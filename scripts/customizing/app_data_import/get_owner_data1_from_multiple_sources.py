@@ -215,21 +215,20 @@ def rlm_login(user: str, password: str, api_url: str) -> str:
 
 def rlm_get_owners(token: str, api_url: str, rlm_version: float = 2.5) -> dict[str, Any]:
     headers: dict[str, str] = {}
+    params: dict[str, str] = {}
 
     if rlm_version < RLM_VERSION_BREAK:
         headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
     else:
-        api_url += "?access_token=" + token
+        params = {"access_token": token}
 
     with requests.Session() as session:
         session.verify = False
         try:
-            response = session.get(api_url, headers=headers)
+            response = session.get(api_url, headers=headers, params=params)
 
         except requests.exceptions.RequestException:
-            raise ApiServiceUnavailableError(
-                f"api: error while getting owners from url: {api_url!s} with token {token!s}"
-            ) from None
+            raise ApiServiceUnavailableError(f"api: error while getting owners from url: {api_url!s}") from None
 
         if response.status_code == HTTP_OK:
             return json.loads(response.text)

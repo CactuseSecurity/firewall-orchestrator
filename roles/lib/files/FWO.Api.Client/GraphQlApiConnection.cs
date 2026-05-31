@@ -8,6 +8,7 @@ using Newtonsoft.Json.Linq;
 using FWO.Logging;
 using System.Security.Claims;
 using System.Security.Authentication;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace FWO.Api.Client
 {
@@ -19,7 +20,8 @@ namespace FWO.Api.Client
 
         private GraphQLHttpClient graphQlClient = null!;
 
-        private readonly Stack<string> previousRoles = new();
+        private readonly AsyncLocal<List<string>> roleStack = new();
+        private string defaultRole = "";
 
         private void Initialize(string ApiServerUri)
         {
@@ -59,22 +61,13 @@ namespace FWO.Api.Client
         {
             graphQlClient.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); // Change jwt in auth header
             graphQlClient.Options.ConfigureWebSocketConnectionInitPayload = httpClientOptions => new { headers = new { authorization = $"Bearer {jwt}" } };
+            defaultRole = GetDefaultRoleFromJwt(jwt);
             InvokeOnAuthHeaderChanged(this, jwt);
         }
 
         public override void SetRole(string role)
         {
-            previousRoles.Push(GetActRole());
-            SetRoleHeader(role);
-        }
-
-        private void SetRoleHeader(string role)
-        {
-            graphQlClient.HttpClient.DefaultRequestHeaders.Remove("x-hasura-role");
-            if (role != "")
-            {
-                graphQlClient.HttpClient.DefaultRequestHeaders.Add("x-hasura-role", role);
-            }
+            PushRole(role);
         }
 
         public bool IsActRole(string role)
@@ -84,62 +77,70 @@ namespace FWO.Api.Client
 
         public string GetActRole()
         {
-            if (graphQlClient.HttpClient.DefaultRequestHeaders.TryGetValues("x-hasura-role", out IEnumerable<string>? roles))
-            {
-                if (roles.Count() > 1)
-                {
-                    Log.WriteDebug("API call", $"More than one role in x-hasura-role: {roles}");
-                }
-                return roles.First();
-            }
-            return "";
+            List<string>? roles = roleStack.Value;
+            return roles == null || roles.Count == 0 ? defaultRole : roles[^1];
         }
 
         public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
         {
-            previousRoles.Push(GetActRole());
-            if (!SetFirstAllowedRole(user, targetRoleList))
+            if (!TryGetFirstAllowedRole(user, targetRoleList, out string role))
             {
                 throw new AuthenticationException($"User has none of the required roles: {string.Join(", ", targetRoleList)}");
             }
+            PushRole(role);
         }
 
         public override void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
         {
             string actRole = GetActRole();
-            previousRoles.Push(actRole);
 
             // first look if user is already in one of the target roles 
             if (targetRoleList.Contains(actRole))
             {
+                PushRole(actRole);
                 return;
             }
             // now look if user has a target role as allowed role
-            if (!SetFirstAllowedRole(user, targetRoleList))
+            if (!TryGetFirstAllowedRole(user, targetRoleList, out string role))
             {
                 throw new AuthenticationException($"User has none of the required roles: {string.Join(", ", targetRoleList)}");
             }
+            PushRole(role);
         }
 
-        private bool SetFirstAllowedRole(ClaimsPrincipal user, List<string> targetRoleList)
+        private static bool TryGetFirstAllowedRole(ClaimsPrincipal user, List<string> targetRoleList, out string role)
         {
-            foreach (string role in targetRoleList)
+            foreach (string targetRole in targetRoleList)
             {
-                if (HasAllowedRole(user, role))
+                if (HasAllowedRole(user, targetRole))
                 {
-                    SetRoleHeader(role);
+                    role = targetRole;
                     return true;
                 }
             }
+            role = "";
             return false;
         }
 
         public override void SwitchBack()
         {
-            if (previousRoles.TryPop(out string? previousRole))
+            List<string>? roles = roleStack.Value;
+            if (roles == null || roles.Count == 0)
             {
-                SetRoleHeader(previousRole);
+                return;
             }
+
+            List<string> newRoles = [.. roles];
+            newRoles.RemoveAt(newRoles.Count - 1);
+            roleStack.Value = newRoles;
+        }
+
+        private void PushRole(string role)
+        {
+            List<string>? roles = roleStack.Value;
+            List<string> newRoles = roles == null ? [] : [.. roles];
+            newRoles.Add(role);
+            roleStack.Value = newRoles;
         }
 
         private static bool HasAllowedRole(ClaimsPrincipal user, string role)
@@ -200,6 +201,19 @@ namespace FWO.Api.Client
             }
         }
 
+        private static string GetDefaultRoleFromJwt(string jwt)
+        {
+            try
+            {
+                JwtSecurityToken token = new JwtSecurityTokenHandler().ReadJwtToken(jwt);
+                return token.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-default-role")?.Value ?? "";
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
         /// <summary>
         /// Sends an APICall (query, mutation)
         /// NB: SendQueryAsync always returns an array of objects (even if the result is a single element)
@@ -214,8 +228,8 @@ namespace FWO.Api.Client
             try
             {
                 Log.WriteDebug("API call", $"Sending API call {operationName} in role {GetActRole()}: {query.Substring(0, Math.Min(query.Length, 70)).Replace(Environment.NewLine, "")}... " +
-                    (variables != null ? $"with variables: {JsonSerializer.Serialize(variables).Substring(0, Math.Min(JsonSerializer.Serialize(variables).Length, 50)).Replace(Environment.NewLine, "")}..." : ""));
-                GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(query, variables, operationName);
+                    (variables != null ? "with variables: <redacted>" : ""));
+                GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(CreateHttpRequest(query, variables, operationName));
                 // Log.WriteDebug("API call", "API response received.");
 
                 if (response.Errors != null)
@@ -246,7 +260,7 @@ namespace FWO.Api.Client
 
             catch (Exception exception)
             {
-                Log.WriteError(LogCategory, $"Error while sending query to GraphQL API. Query: {query}, variables: {(variables != null ? JsonSerializer.Serialize(variables) : "")}", exception);
+                Log.WriteError(LogCategory, $"Error while sending query to GraphQL API. Query: {query}, variables: {(variables != null ? "<redacted>" : "")}", exception);
                 throw;
             }
         }
@@ -259,8 +273,8 @@ namespace FWO.Api.Client
             try
             {
                 Log.WriteDebug("API call", $"Sending API call {operationName} in role {GetActRole()}: {query.Substring(0, Math.Min(query.Length, 70)).Replace(Environment.NewLine, "")}... " +
-                    (variables != null ? $"with variables: {JsonSerializer.Serialize(variables).Substring(0, Math.Min(JsonSerializer.Serialize(variables).Length, 50)).Replace(Environment.NewLine, "")}..." : ""));
-                GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(query, variables, operationName);
+                    (variables != null ? "with variables: <redacted>" : ""));
+                GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(CreateHttpRequest(query, variables, operationName));
 
                 if (response.Errors != null)
                 {
@@ -286,7 +300,7 @@ namespace FWO.Api.Client
             }
             catch (Exception exception)
             {
-                Log.WriteError(LogCategory, $"Error while sending query to GraphQL API. Query: {query}, variables: {(variables != null ? JsonSerializer.Serialize(variables) : "")}", exception);
+                Log.WriteError(LogCategory, $"Error while sending query to GraphQL API. Query: {query}, variables: {(variables != null ? "<redacted>" : "")}", exception);
                 return new ApiResponse<QueryResponseType>(exception.Message);
             }
         }
@@ -329,6 +343,26 @@ namespace FWO.Api.Client
             }
 
             subscriptions.RemoveAll(_ => _.GetType() == typeof(T));
+        }
+
+        private GraphQLHttpRequest CreateHttpRequest(string query, object? variables, string? operationName)
+        {
+            return new RoleGraphQLHttpRequest(GetActRole(), query, variables, operationName);
+        }
+
+        private sealed class RoleGraphQLHttpRequest(string role, string query, object? variables = null, string? operationName = null)
+            : GraphQLHttpRequest(query, variables, operationName)
+        {
+            public override HttpRequestMessage ToHttpRequestMessage(GraphQLHttpClientOptions options, IGraphQLJsonSerializer serializer)
+            {
+                HttpRequestMessage request = base.ToHttpRequestMessage(options, serializer);
+                if (!string.IsNullOrWhiteSpace(role))
+                {
+                    request.Headers.Remove("x-hasura-role");
+                    request.Headers.Add("x-hasura-role", role);
+                }
+                return request;
+            }
         }
     }
 }

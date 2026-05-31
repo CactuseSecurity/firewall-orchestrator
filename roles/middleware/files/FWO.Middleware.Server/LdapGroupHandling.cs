@@ -445,7 +445,8 @@ namespace FWO.Middleware.Server
                 using LdapConnection connection = await GetBoundConnection(SearchUser, SearchUserPwd);
 
                 // searchfilter for users
-                string searchFilter = $"(|(cn={userToSearch})(sAMAccountName={userToSearch}))";
+                string escapedUserToSearch = EscapeFilterValue(userToSearch);
+                string searchFilter = $"(|(cn={escapedUserToSearch})(sAMAccountName={escapedUserToSearch}))";
 
                 var searchResults = await connection.SearchAsync(
                     UserSearchPath,

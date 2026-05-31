@@ -25,6 +25,7 @@ from scripts.customizing.fwo_custom_lib.basic_helpers import (
     read_custom_config,
     read_custom_config_with_default,
 )
+from scripts.customizing.fwo_custom_lib.git_helpers import split_repo_url_credentials
 from scripts.customizing.fwo_custom_lib.read_app_data_csv import (
     ExtractAppDataCsvOptions,
     extract_app_data_from_csv,
@@ -1015,6 +1016,15 @@ class AppDataImportTests(unittest.TestCase):
 
         self.assertIsNone(repo_url)
         self.assertTrue(any("git repo url missing" in message for message in log_context.output))
+
+    def test_split_repo_url_credentials_removes_credentials_from_clone_url(self) -> None:
+        clone_url, username, password = split_repo_url_credentials(
+            "https://git-user:p%40ssword@git.example.org/group/repo.git"
+        )
+
+        self.assertEqual(clone_url, "https://git.example.org/group/repo.git")
+        self.assertEqual(username, "git-user")
+        self.assertEqual(password, "p@ssword")
 
     def test_parse_responsibles_columns_parses_grouped_entries(self) -> None:
         parsed: dict[str, tuple[str, ...]] = parse_responsibles_columns(

@@ -33,7 +33,7 @@ T = TypeVar("T", bound=BaseModel)
 HTTP_OK = 200
 
 
-def fortios_api_call(api_url: str) -> list[dict[str, Any]]:
+def fortios_api_call(api_url: str, access_token: str) -> list[dict[str, Any]]:
     """
     Makes a GET request to the FortiOS REST API and returns the JSON response.
 
@@ -46,7 +46,12 @@ def fortios_api_call(api_url: str) -> list[dict[str, Any]]:
     """
     request_headers = {"Content-Type": "application/json"}
 
-    response = requests.get(api_url, headers=request_headers, verify=fwo_globals.verify_certs)
+    response = requests.get(
+        api_url,
+        headers=request_headers,
+        params={"access_token": access_token},
+        verify=fwo_globals.verify_certs,
+    )
     if response.status_code != HTTP_OK:
         raise FwApiCallFailedError(
             "error while sending api_call to url '"
@@ -106,71 +111,59 @@ def get_native_config(fm_api_url: str, sid: str) -> FortiOSConfig:
 
     # Network objects
     native_config.nw_obj_address.extend(
-        parse_api_results(NwObjAddress, fortios_api_call(fm_api_url + "/cmdb/firewall/address?access_token=" + sid))
+        parse_api_results(NwObjAddress, fortios_api_call(fm_api_url + "/cmdb/firewall/address", sid))
     )
     native_config.nw_obj_address6.extend(
-        parse_api_results(NwObjAddress6, fortios_api_call(fm_api_url + "/cmdb/firewall/address6?access_token=" + sid))
+        parse_api_results(NwObjAddress6, fortios_api_call(fm_api_url + "/cmdb/firewall/address6", sid))
     )
     native_config.nw_obj_addrgrp.extend(
-        parse_api_results(NwObjAddrGrp, fortios_api_call(fm_api_url + "/cmdb/firewall/addrgrp?access_token=" + sid))
+        parse_api_results(NwObjAddrGrp, fortios_api_call(fm_api_url + "/cmdb/firewall/addrgrp", sid))
     )
     native_config.nw_obj_addrgrp6.extend(
-        parse_api_results(NwObjAddrGrp6, fortios_api_call(fm_api_url + "/cmdb/firewall/addrgrp6?access_token=" + sid))
+        parse_api_results(NwObjAddrGrp6, fortios_api_call(fm_api_url + "/cmdb/firewall/addrgrp6", sid))
     )
     native_config.nw_obj_ippool.extend(
-        parse_api_results(NwObjIpPool, fortios_api_call(fm_api_url + "/cmdb/firewall/ippool?access_token=" + sid))
+        parse_api_results(NwObjIpPool, fortios_api_call(fm_api_url + "/cmdb/firewall/ippool", sid))
     )
     native_config.nw_obj_vip.extend(
-        parse_api_results(NwObjVip, fortios_api_call(fm_api_url + "/cmdb/firewall/vip?access_token=" + sid))
+        parse_api_results(NwObjVip, fortios_api_call(fm_api_url + "/cmdb/firewall/vip", sid))
     )
     native_config.nw_obj_internet_service.extend(
-        parse_api_results(
-            NwObjInternetService, fortios_api_call(fm_api_url + "/cmdb/firewall/internet-service?access_token=" + sid)
-        )
+        parse_api_results(NwObjInternetService, fortios_api_call(fm_api_url + "/cmdb/firewall/internet-service", sid))
     )
     native_config.nw_obj_internet_service_group.extend(
         parse_api_results(
             NwObjInternetServiceGroup,
-            fortios_api_call(fm_api_url + "/cmdb/firewall/internet-service-group?access_token=" + sid),
+            fortios_api_call(fm_api_url + "/cmdb/firewall/internet-service-group", sid),
         )
     )
 
     # Service objects
     native_config.svc_obj_application_list.extend(
-        parse_api_results(
-            SvcObjApplicationList, fortios_api_call(fm_api_url + "/cmdb/application/list?access_token=" + sid)
-        )
+        parse_api_results(SvcObjApplicationList, fortios_api_call(fm_api_url + "/cmdb/application/list", sid))
     )
     native_config.svc_obj_application_group.extend(
-        parse_api_results(
-            SvcObjApplicationGroup, fortios_api_call(fm_api_url + "/cmdb/application/group?access_token=" + sid)
-        )
+        parse_api_results(SvcObjApplicationGroup, fortios_api_call(fm_api_url + "/cmdb/application/group", sid))
     )
     native_config.svc_obj_custom.extend(
-        parse_api_results(
-            SvcObjCustom, fortios_api_call(fm_api_url + "/cmdb/firewall.service/custom?access_token=" + sid)
-        )
+        parse_api_results(SvcObjCustom, fortios_api_call(fm_api_url + "/cmdb/firewall.service/custom", sid))
     )
     native_config.svc_obj_group.extend(
-        parse_api_results(
-            SvcObjGroup, fortios_api_call(fm_api_url + "/cmdb/firewall.service/group?access_token=" + sid)
-        )
+        parse_api_results(SvcObjGroup, fortios_api_call(fm_api_url + "/cmdb/firewall.service/group", sid))
     )
 
     # User objects
     native_config.user_obj_local.extend(
-        parse_api_results(UserObjLocal, fortios_api_call(fm_api_url + "/cmdb/user/local?access_token=" + sid))
+        parse_api_results(UserObjLocal, fortios_api_call(fm_api_url + "/cmdb/user/local", sid))
     )
     native_config.user_obj_group.extend(
-        parse_api_results(UserObjGroup, fortios_api_call(fm_api_url + "/cmdb/user/group?access_token=" + sid))
+        parse_api_results(UserObjGroup, fortios_api_call(fm_api_url + "/cmdb/user/group", sid))
     )
 
     add_zone_if_missing(native_config, "global")
 
     # Rules
-    native_config.rules.extend(
-        parse_api_results(Rule, fortios_api_call(fm_api_url + "/cmdb/firewall/policy?access_token=" + sid))
-    )
+    native_config.rules.extend(parse_api_results(Rule, fortios_api_call(fm_api_url + "/cmdb/firewall/policy", sid)))
 
     process_zones(native_config)
 

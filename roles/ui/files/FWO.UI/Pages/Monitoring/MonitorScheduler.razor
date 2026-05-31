@@ -4,6 +4,7 @@
 @using FWO.Basics
 @using FWO.Data.Middleware
 @using FWO.Middleware.Client
+@using System.Net
 @using System.Linq
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
@@ -73,7 +74,7 @@ else
                         {
                             <tr>
                                 <td colspan="6" style="background-color: #ffd400d6">
-                                    @((MarkupString)$"<p><span class=\"text-danger {Icons.Warning} px-1\"></span><b>{job.LastExecutionError}</b></p>")
+                                    @((MarkupString)$"<p><span class=\"text-danger {Icons.Warning} px-1\"></span><b>{WebUtility.HtmlEncode(job.LastExecutionError)}</b></p>")
                                 </td>
                             </tr>
                         }

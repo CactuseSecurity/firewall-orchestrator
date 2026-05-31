@@ -6,6 +6,7 @@ using FWO.Data.Middleware;
 using FWO.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace FWO.Middleware.Server.Controllers
 {
@@ -221,11 +222,22 @@ namespace FWO.Middleware.Server.Controllers
         /// <param name="parameters">UserChangePasswordParameters</param>
         /// <returns>error message, empty if Ok</returns>
         [HttpPatch("EditPassword")]
+        [Authorize]
         public async Task<ActionResult<string>> ChangePassword([FromBody] UserChangePasswordParameters parameters)
         {
+            if (User.Identity?.IsAuthenticated != true)
+            {
+                return Unauthorized();
+            }
+
             // the demo user (currently auditor) can't change his password
             if (User.IsInRole(Roles.Auditor))
                 return Unauthorized();
+
+            if (!CallerCanChangePassword(User, parameters.UserId))
+            {
+                return Forbid();
+            }
 
             UiUser user = await ResolveUser(parameters.UserId) ?? throw new ArgumentException(WrongUserId);
 
@@ -249,6 +261,20 @@ namespace FWO.Middleware.Server.Controllers
 
             // Return status and result
             return errorMsg;
+        }
+
+        /// <summary>
+        /// Checks whether the authenticated caller may change the requested user's password.
+        /// </summary>
+        private static bool CallerCanChangePassword(ClaimsPrincipal caller, int targetUserId)
+        {
+            if (caller.IsInRole(Roles.Admin))
+            {
+                return true;
+            }
+
+            string? userIdClaim = caller.FindFirstValue("x-hasura-user-id");
+            return int.TryParse(userIdClaim, out int callerUserId) && callerUserId == targetUserId;
         }
 
         // GET: api/<ValuesController>

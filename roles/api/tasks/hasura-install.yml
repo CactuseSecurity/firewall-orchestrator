@@ -9,14 +9,15 @@
     - python3-virtualenv
   become: true
 
-- name: read dbadmin pwd from secrets file
+- name: read Hasura database user password from database host
   slurp:
-    src: "{{ dbadmin_password_file }}"
+    src: "{{ api_user_password_file }}"
   register: api_user_password
+  delegate_to: "{{ fworch_db_host }}"
   become: true
   no_log: true
 
-- name: decode dbadmin pwd
+- name: decode Hasura database user password
   set_fact:
     api_user_password: "{{ api_user_password['content'] | b64decode | trim }}"
   no_log: true

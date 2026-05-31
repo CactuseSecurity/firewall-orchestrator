@@ -422,3 +422,47 @@ These settings are no longer used due to the full automation of UpdateRuleOwner.
 
 # 9.1.3 - 27.05.2026 DEVELOP
 - add optional workflow flow merging for Flow DB creation
+
+### 9.1.4 - 01.06.2026 DEVELOP
+security patches
+- Installer/API: run Hasura with a dedicated database user that has full privileges only inside the FWORCH database instead of using the PostgreSQL superuser.
+- fix missing Authorize statement for password change REST endpoint
+- introduce separate (non db admin) user for hasura db access
+
+mport file/script path security
+
+   - Adds ImportPathPolicy to restrict app data import sources to /usr/local/fworch/scripts/customizing.
+   - Allows only .json and .py import files.
+   - Rejects paths outside the allowed root, symlinks/reparse points, and world-writable path components.
+   - Logs SHA-256 hashes before reading/running import files.
+   - Changes the UI import settings from free-form paths toward selectable allowed import stems.
+
+Secret leakage in Ansible installs
+
+   - Adds no_log: true around LDAP, database, Hasura, and middleware secret handling.
+   - Stops passing the Hasura admin secret on the command line for hasura init; uses environment instead.
+   - Stops printing actual generated admin/Hasura secrets at the end of installation, showing only file paths.
+
+LDAP install and test idempotency
+
+   - Replaces LDAP -w {{ password }} command-line usage with password files via -y.
+   - Makes LDAP tree modification tolerate already-existing entries.
+   - Adds missing parent LDAP objects for the integration test JWT user.
+   - Avoids restarting middleware during sample auth setup if the middleware service unit does not exist yet.
+
+Hasura permission tightening
+
+   - Prevents modeller/recertifier users from inserting or updating global config_user = 0 config rows.
+   - Restricts auditor/modeller/recertifier config updates to config_value only.
+   - Gives middleware-server the dedicated permission to manage global config rows.
+
+Installer/test reliability
+
+   - Waits for middleware/reverse proxy readiness before auth integration tests.
+   - Makes optional customizing API scripts non-fatal when missing.
+   - Adjusts GitHub Actions install-test cleanup behavior.
+   - Fixes several installation edge cases called out in the commit history.
+
+- Webhook role removal
+   - Deletes the old roles/webhook service, templates, handlers, defaults, and syslog/logrotate wiring.
+   - Removes the webhook role from site.yml and related testserver configuration/docs.

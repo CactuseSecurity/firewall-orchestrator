@@ -266,6 +266,7 @@ else
             appDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportAppDataPath) ?? [];
             RolesToSetByType = ParseRolesWithImport(configData.RolesWithAppDataImport);
             SubnetDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportSubnetDataPath) ?? [];
+            // This UI-local scan is a temporary single-host assumption. Split UI/middleware deployments need a middleware-owned design for listing and validating import sources.
             allowedImportPaths = ImportPathPolicy.GetAllowedImportFileStems();
             appDataDate = appDataTime = configData.ImportAppDataStartAt;
             subnetDataDate = subnetDataTime = configData.ImportSubnetDataStartAt;

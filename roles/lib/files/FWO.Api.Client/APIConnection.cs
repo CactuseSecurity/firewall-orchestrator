@@ -7,6 +7,7 @@ namespace FWO.Api.Client
         private bool disposed = false;
 
         public event EventHandler<string>? OnAuthHeaderChanged;
+        public event EventHandler<string>? OnExecutionModeChanged;
 
         public Basics.Interfaces.ILogger Logger = new Logger();
 
@@ -17,9 +18,21 @@ namespace FWO.Api.Client
             OnAuthHeaderChanged?.Invoke(sender, newAuthHeader);
         }
 
+        protected void InvokeOnExecutionModeChanged(object? sender, string executionMode)
+        {
+            OnExecutionModeChanged?.Invoke(sender, executionMode);
+        }
+
         public abstract void SetAuthHeader(string jwt);
 
         public abstract void SetRole(string role);
+
+        public virtual void SetExecutionMode(System.Security.Claims.ClaimsPrincipal user, string role) { }
+
+        public virtual string GetExecutionMode()
+        {
+            return "";
+        }
 
         public abstract void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList);
 

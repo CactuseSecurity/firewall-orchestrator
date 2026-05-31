@@ -97,6 +97,7 @@
         {
             ownerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask ?? throw new AuthenticationException("Authentication missing"), userConfig, apiConnection, DisplayMessageInUi);
             Initialized = true;
+            await ApplyParameters(force: true);
         }
         catch (Exception exception)
         {
@@ -106,23 +107,34 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if(Initialized && (ModellingFilter != prevModellingFilter || ReportType != prevReportType))
+        if(ModellingFilter != prevModellingFilter || ReportType != prevReportType)
+        {
+            await ApplyParameters();
+        }
+    }
+
+    private async Task ApplyParameters(bool force = false)
+    {
+        if(force || ModellingFilter != prevModellingFilter || ReportType != prevReportType)
         {
             prevModellingFilter = ModellingFilter;
             prevReportType = ReportType;
             if(ReportType == ReportType.OwnerRecertification)
             {
-                ModellingFilter.SelectedOwners = ownerList;
+                if(Initialized)
+                {
+                    ModellingFilter.SelectedOwners = ownerList;
+                }
             }
             else
             {
                 NormalizeSelectedOwner();
             }
-            if(ModellingFilter.SelectedOwner.Id > 0)
+            if(Initialized && ModellingFilter.SelectedOwner.Id > 0)
             {
                 await LoadOwnerRecerts(ModellingFilter.SelectedOwner);
             }
-            else
+            else if(ModellingFilter.SelectedOwner.Id <= 0)
             {
                 ownerRecerts = [];
                 selectedOwnerRecert = null;
@@ -139,14 +151,15 @@
 
     private void NormalizeSelectedOwner()
     {
-        if(ownerList.Count == 0)
+        List<FwoOwner> selectableOwners = ownerList.Count > 0 ? ownerList : ModellingFilter.SelectedOwners;
+        if(selectableOwners.Count == 0)
         {
             ModellingFilter.SelectedOwners = [];
         }
         else
         {
-            FwoOwner selectedOwner = ownerList.FirstOrDefault(owner => owner.Id == ModellingFilter.SelectedOwner.Id)
-                ?? (InjectedAppId == null ? ownerList.First() : ownerList.FirstOrDefault(owner => owner.Id == InjectedAppId) ?? ownerList.First());
+            FwoOwner selectedOwner = selectableOwners.FirstOrDefault(owner => owner.Id == ModellingFilter.SelectedOwner.Id)
+                ?? (InjectedAppId == null ? selectableOwners.First() : selectableOwners.FirstOrDefault(owner => owner.Id == InjectedAppId) ?? selectableOwners.First());
             ModellingFilter.SelectedOwners = [selectedOwner];
         }
     }

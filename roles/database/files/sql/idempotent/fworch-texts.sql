@@ -2156,8 +2156,12 @@ INSERT INTO txt VALUES ('groups',		        'German', 	'Interne Gruppen');
 INSERT INTO txt VALUES ('groups',		        'English', 	'Internal Groups');
 INSERT INTO txt VALUES ('roles',		        'German', 	'Rollen');
 INSERT INTO txt VALUES ('roles',		        'English', 	'Roles');
-INSERT INTO txt VALUES ('hash',		        'German', 	'Hash');
-INSERT INTO txt VALUES ('hash',		        'English', 	'Hash');
+INSERT INTO txt VALUES ('execution_mode',       'German',   'Ausf&uuml;hrungsmodus');
+INSERT INTO txt VALUES ('execution_mode',       'English',  'Execution Mode');
+INSERT INTO txt VALUES ('user_roles',           'German',   'Nutzerrollen');
+INSERT INTO txt VALUES ('user_roles',           'English',  'User Roles');
+INSERT INTO txt VALUES ('hash',		            'German', 	'Hash');
+INSERT INTO txt VALUES ('hash',		            'English', 	'Hash');
 INSERT INTO txt VALUES ('source_groups',		'German', 	'Quellgruppen');
 INSERT INTO txt VALUES ('source_groups',		'English', 	'Source groups');
 INSERT INTO txt VALUES ('destination_groups',	'German', 	'Zielgruppen');
@@ -5719,6 +5723,12 @@ INSERT INTO txt VALUES ('H5281', 'German',  'Vorname: Vorname des Benutzers.');
 INSERT INTO txt VALUES ('H5281', 'English', 'First name: The user''s given name.');
 INSERT INTO txt VALUES ('H5282', 'German',  'Nachname: Nachname des Benutzers.');
 INSERT INTO txt VALUES ('H5282', 'English', 'Surname: The user''s surname.');
+INSERT INTO txt VALUES ('H5283', 'German',  'Ausf&uuml;hrungsmodus: Nutzer mit mehreren Rollen einschliesslich admin oder auditor k&ouml;nnen admin oder auditor erzwingen. Mit Nutzerrollen wird wieder die rollenbezogene Auswahl der Anwendung verwendet.
+    Der Ausf&uuml;hrungsmodus ist eine Hilfe f&uuml;r die Bedienoberfl&auml;che, damit bei mehreren erlaubten Rollen die passende Rolle f&uuml;r Anzeigen und Aktionen gew&auml;hlt wird.
+    Er ersetzt keine Berechtigung. Die tats&auml;chlichen Zugriffsrechte ergeben sich weiterhin aus den zugewiesenen Rollen und den serverseitigen Berechtigungen.');
+INSERT INTO txt VALUES ('H5283', 'English', 'Execution Mode: Users with multiple roles including admin or auditor can force admin or auditor mode. User Roles restores the application''s role-specific selection.
+    Execution mode is a user interface helper for choosing the suitable role for views and actions when several roles are allowed.
+    It does not grant or replace authorization. Actual access rights still come from the assigned roles and server-side permissions.');
 INSERT INTO txt VALUES ('H5301', 'German',  'Der Admin kann Nutzergruppen im internen Ldap definieren. Dabei besteht die M&ouml;glichkeit, sie gleich einer Rolle zuzuordnen.
     Weitere Rollenzuordnungen k&ouml;nnen dann unter <a href="/help/settings/roles">Rollen</a> erfolgen.<br>
 ');

@@ -421,7 +421,7 @@
                 <div class="btn-group">
                     @if (WfHandler.EditReqTaskMode)
                     {
-                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.FwAdmin}")">
+                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.FwAdmin}")">
                             <Authorized>
                                 @if(WfHandler.AddTicketMode)
                                 {
@@ -435,29 +435,29 @@
                             <NotAuthorized>
                                 <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                             </NotAuthorized>
-                        </AuthorizeView>
+                        </ExecutionModeAuthorizeView>
                     }
                     else if (WfHandler.PlanReqTaskMode)
                     {
-                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}, {Roles.FwAdmin}")">
+                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}, {Roles.FwAdmin}")">
                             <Authorized>
                                 <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteReqTask">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                             </Authorized>
                             <NotAuthorized>
                                 <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                             </NotAuthorized>
-                        </AuthorizeView>
+                        </ExecutionModeAuthorizeView>
                     }
                     else if (WfHandler.ApproveReqTaskMode)
                     {
-                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.FwAdmin}")">
+                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.FwAdmin}")">
                             <Authorized>
                                 <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitApproveTask">@(DisplayService.DisplayButton(userConfig, "approve", Icons.Approve))</button>
                             </Authorized>
                             <NotAuthorized>
                                 <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "approve", Icons.Approve))</button>
                             </NotAuthorized>
-                        </AuthorizeView>
+                        </ExecutionModeAuthorizeView>
                     }
                     @if(WfHandler.EditReqTaskMode || WfHandler.PlanReqTaskMode || WfHandler.ApproveReqTaskMode)
                     {

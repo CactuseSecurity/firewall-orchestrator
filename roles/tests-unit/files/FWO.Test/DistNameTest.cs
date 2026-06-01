@@ -89,6 +89,15 @@ namespace FWO.Test
             Assert.That(DistName.DnEquals(leftDn, rightDn), Is.True);
         }
 
+        [TestCase(null, null)]
+        [TestCase(null, "")]
+        [TestCase("", "")]
+        [TestCase(" ", "cn=user,dc=example,dc=com")]
+        public void DnEquals_DoesNotTreatMissingDnsAsEqual(string? leftDn, string? rightDn)
+        {
+            Assert.That(DistName.DnEquals(leftDn, rightDn), Is.False);
+        }
+
         [Test]
         public void DnComparer_DeduplicatesCaseAndEscapedDns()
         {

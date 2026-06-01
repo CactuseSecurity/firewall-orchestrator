@@ -187,6 +187,11 @@ namespace FWO.Data
         /// <returns>True when both distinguished names normalize to the same value.</returns>
         public static bool DnEquals(string? leftDn, string? rightDn)
         {
+            if (string.IsNullOrWhiteSpace(leftDn) || string.IsNullOrWhiteSpace(rightDn))
+            {
+                return false;
+            }
+
             return string.Equals(
                 NormalizeDnForComparison(leftDn),
                 NormalizeDnForComparison(rightDn),

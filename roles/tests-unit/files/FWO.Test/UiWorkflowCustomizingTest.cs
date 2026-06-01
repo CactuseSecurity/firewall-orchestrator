@@ -69,12 +69,42 @@ namespace FWO.Test
             Assert.That(editableConfig.ReqAllowedChangesByApprover, Is.EqualTo(newConfig.ToConfigValue()));
         }
 
+        [Test]
+        public async Task Save_PersistsReqUseFlowDb()
+        {
+            SettingsCustomizing component = new();
+            WorkflowCustomizingApiConn apiConnection = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ReqAvailableTaskTypes = "[]",
+                ReqPriorities = "[]",
+                ReqUseFlowDb = false
+            };
+            SimulatedUserConfig userConfig = new();
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
+            editableConfig.ReqUseFlowDb = true;
+
+            SetMember(component, "apiConnection", apiConnection);
+            SetMember(component, "globalConfig", globalConfig);
+            SetMember(component, "userConfig", userConfig);
+            SetMember(component, "configData", editableConfig);
+            SetMember(component, "taskTypesActiveDict", Enum.GetValues(typeof(WfTaskType)).Cast<WfTaskType>().ToDictionary(type => type, _ => false));
+            SetMember(component, "prioList", new List<WfPriority>());
+
+            Task saveTask = (Task)GetPrivateMethod(typeof(SettingsCustomizing), "Save").Invoke(component, [])!;
+            await saveTask;
+
+            Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+            ConfigItem flowDbConfig = apiConnection.LastConfigItems.Single(item => item.Key == "reqUseFlowDb");
+            Assert.That(flowDbConfig.Value, Is.EqualTo("True"));
+        }
+
         private sealed class WorkflowCustomizingApiConn : SimulatedApiConnection
         {
             public int UpsertConfigCallCount { get; private set; }
             public List<ConfigItem> LastConfigItems { get; private set; } = [];
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == ConfigQueries.upsertConfigItems)
                 {

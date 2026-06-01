@@ -247,6 +247,10 @@ namespace FWO.Data.Flow
         public readonly Dictionary<string, FlowSvcGroup> SvcGroups = [];
         public readonly Dictionary<string, FlowTimeObject> TimeObjects = [];
         public readonly Dictionary<string, FlowAccess> Accesses = [];
+        public readonly Dictionary<long, FlowNwObject> NwObjectsById = [];
+        public readonly Dictionary<long, FlowNwGroup> NwGroupsById = [];
+        public readonly Dictionary<long, FlowSvcObject> SvcObjectsById = [];
+        public readonly Dictionary<long, FlowSvcGroup> SvcGroupsById = [];
 
         public Dictionary<long, string> NwObjectHashes { get; private set; } = [];
         public Dictionary<long, string> SvcObjectHashes { get; private set; } = [];
@@ -261,6 +265,10 @@ namespace FWO.Data.Flow
             SvcGroups = svcGroups.ToDictionary(fsg => fsg.Hash, fsg => fsg);
             TimeObjects = timeObjects.ToDictionary(fto => fto.Hash, fto => fto);
             Accesses = accesses.ToDictionary(fa => fa.Hash, fa => fa);
+            NwObjectsById = nwObjects.ToDictionary(flowObject => flowObject.Id);
+            NwGroupsById = nwGroups.ToDictionary(group => group.Id);
+            SvcObjectsById = svcObjects.ToDictionary(flowObject => flowObject.Id);
+            SvcGroupsById = svcGroups.ToDictionary(group => group.Id);
 
             NwObjectHashes = nwObjects.SelectMany(fo => (fo.Objects ?? Enumerable.Empty<NetworkObject>())
                     .Select(o => new { o.Id, ParentHash = fo.Hash }))
@@ -274,6 +282,35 @@ namespace FWO.Data.Flow
             AccessHashes = accesses.SelectMany(fa => (fa.Rules ?? Enumerable.Empty<Rule>())
                     .Select(r => new { r.Id, ParentHash = fa.Hash }))
                 .ToDictionary(x => x.Id, x => x.ParentHash);
+        }
+
+        public void Add(FlowNwObject flowObject)
+        {
+            NwObjectsById[flowObject.Id] = flowObject;
+            NwObjects[flowObject.Hash] = flowObject;
+        }
+
+        public void Add(FlowNwGroup group)
+        {
+            NwGroupsById[group.Id] = group;
+            NwGroups[group.Hash] = group;
+        }
+
+        public void Add(FlowSvcObject flowObject)
+        {
+            SvcObjectsById[flowObject.Id] = flowObject;
+            SvcObjects[flowObject.Hash] = flowObject;
+        }
+
+        public void Add(FlowSvcGroup group)
+        {
+            SvcGroupsById[group.Id] = group;
+            SvcGroups[group.Hash] = group;
+        }
+
+        public void Add(FlowAccess access)
+        {
+            Accesses[access.Hash] = access;
         }
     }
 }

@@ -10,6 +10,7 @@ namespace FWO.Basics
         public const string kMainKeyFile = kFwoBaseDir + "/etc/secrets/main_key";
 
         public const string kEnglish = "English";
+        public const string kUserRolesSelection = "user_roles";
         public const int kTenant0Id = 1;
 
         public const int kSessionExpirationTimeDefault = 720; // 60 * 12
@@ -208,5 +209,13 @@ namespace FWO.Basics
         public const string Any = "any";
         public const string Reject = "reject";
         public const string Drop = "drop";
+    }
+
+    public enum ChunkMergeMode
+    {
+        None = 0,
+        MutationAffectedRowsAndReturning = 1,
+        TopLevelArrayConcat = 2,
+        MutationAffectedRowsOnly = 3
     }
 }

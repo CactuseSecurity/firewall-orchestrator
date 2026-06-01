@@ -56,6 +56,11 @@
     {
         try
         {
+            if (!userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
+            {
+                return;
+            }
+
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Admin, Roles.FwAdmin, Roles.Auditor ]);
             policies = await apiConnection.SendQueryAsync<List<CompliancePolicy>>(ComplianceQueries.getPolicies);
         }

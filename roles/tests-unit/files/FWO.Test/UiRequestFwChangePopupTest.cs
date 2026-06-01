@@ -133,7 +133,7 @@ namespace FWO.Test
             return new()
             {
                 ModIntegrationMode = ModIntegrationMode.WorkflowNotifications,
-                User = { Ownerships = [7] }
+                User = { Ownerships = [7], Roles = [Roles.Modeller] }
             };
         }
 
@@ -183,7 +183,7 @@ namespace FWO.Test
         public bool ThrowOnGetStates { get; set; }
         public List<string> Queries { get; } = [];
 
-        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
             Queries.Add(query);
             if (query == StmQueries.getIpProtocols)

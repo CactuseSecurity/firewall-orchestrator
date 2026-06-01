@@ -361,12 +361,28 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
 
     private static List<NetworkObject> FlattenRuleNetworkObjects(List<NetworkObject> list)
     {
-        return NetworkObject.FlattenRuleNetworkObjects(list).Distinct().ToList();
+        return NetworkObject.FlattenRuleNetworkObjects(list)
+            .Where(HasType)
+            .Distinct()
+            .ToList();
     }
 
     private static List<NetworkService> FlattenRuleServices(List<NetworkService> list)
     {
-        return NetworkService.FlattenRuleServices(list).Distinct().ToList();
+        return NetworkService.FlattenRuleServices(list)
+            .Where(HasType)
+            .Distinct()
+            .ToList();
+    }
+
+    private static bool HasType(NetworkObject networkObject)
+    {
+        return !string.IsNullOrWhiteSpace(networkObject.Type?.Name);
+    }
+
+    private static bool HasType(NetworkService networkService)
+    {
+        return !string.IsNullOrWhiteSpace(networkService.Type?.Name);
     }
 
     private static string? SanitizeRuleAction(string action)

@@ -1,3 +1,4 @@
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Workflow;
@@ -18,7 +19,7 @@ namespace FWO.Test
             public string LastQuery { get; private set; } = "";
             public object? LastVariables { get; private set; }
 
-            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null)
+            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 LastQuery = query;
                 LastVariables = variables;

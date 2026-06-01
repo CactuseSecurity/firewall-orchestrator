@@ -956,7 +956,7 @@ namespace FWO.Test
             return (T)property.GetValue(variables)!;
         }
 
-        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
             Queries.Add(query);
             if (variables != null)

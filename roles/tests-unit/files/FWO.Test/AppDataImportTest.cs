@@ -1775,7 +1775,7 @@ namespace FWO.Test
             public int UpdateChangelogOwnerCalls { get; private set; }
             public HashSet<int> FailDeactivateOwnerIds { get; } = [];
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == OwnerQueries.getOwners)
                 {
@@ -1848,7 +1848,7 @@ namespace FWO.Test
             public List<(int ownerId, string dn, int responsibleType)> Inserted { get; } = [];
             public List<(int ownerId, string dn, int responsibleType)> Deleted { get; } = [];
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == OwnerQueries.newOwnerResponsibles)
                 {
@@ -1928,7 +1928,7 @@ namespace FWO.Test
             public Dictionary<string, string>? LastNewOwnerAdditionalInfo { get; private set; }
             public Dictionary<string, string>? LastUpdateOwnerAdditionalInfo { get; private set; }
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == OwnerQueries.newOwner)
                 {

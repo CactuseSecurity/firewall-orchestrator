@@ -164,7 +164,7 @@ namespace FWO.Test
         public int UpdateCalls { get; private set; }
         public int DeleteCalls { get; private set; }
 
-        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
             if (query == OwnerQueries.getOwnersForResponsibleType)
             {

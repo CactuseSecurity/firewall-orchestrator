@@ -5,6 +5,24 @@ namespace FWO.Data
 {
     public class DistName
     {
+        private sealed class NormalizedDnEqualityComparer : IEqualityComparer<string>
+        {
+            public bool Equals(string? x, string? y)
+            {
+                return DnEquals(x, y);
+            }
+
+            public int GetHashCode(string obj)
+            {
+                return NormalizeDnForComparison(obj).GetHashCode(StringComparison.Ordinal);
+            }
+        }
+
+        /// <summary>
+        /// Compares distinguished names by their LDAP-normalized form.
+        /// </summary>
+        public static IEqualityComparer<string> DnComparer { get; } = new NormalizedDnEqualityComparer();
+
         public string UserName { get; set; }
         public string Role { get; set; }
         public string Group { get; set; }
@@ -134,6 +152,7 @@ namespace FWO.Data
                 return "";
             }
 
+            dn = dn.Trim();
             StringBuilder normalizedDn = new();
             int index = 0;
 
@@ -160,11 +179,25 @@ namespace FWO.Data
             return normalizedDn.ToString().ToLowerInvariant();
         }
 
+        /// <summary>
+        /// Checks whether two distinguished names refer to the same LDAP object.
+        /// </summary>
+        /// <param name="leftDn">First distinguished name.</param>
+        /// <param name="rightDn">Second distinguished name.</param>
+        /// <returns>True when both distinguished names normalize to the same value.</returns>
+        public static bool DnEquals(string? leftDn, string? rightDn)
+        {
+            return string.Equals(
+                NormalizeDnForComparison(leftDn),
+                NormalizeDnForComparison(rightDn),
+                StringComparison.Ordinal);
+        }
+
         private static bool TryReadHexEscapedValue(string dn, int currentIndex, out string decodedValue, out int nextIndex)
         {
             decodedValue = "";
             nextIndex = currentIndex;
-            if (currentIndex + 2 >= dn.Length || !IsHexPair(dn, currentIndex + 1))
+            if (dn[currentIndex] != '\\' || currentIndex + 2 >= dn.Length || !IsHexPair(dn, currentIndex + 1))
             {
                 return false;
             }

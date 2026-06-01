@@ -797,6 +797,27 @@ namespace FWO.Test
         }
 
         [Test]
+        public void CheckResponsibles_TreatsNormalizedDnsAsUnchanged()
+        {
+            AppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+            SetOwnerDataImportSyncUsers(import, true);
+            List<OwnerResponsible> existingResponsibles =
+            [
+                new() { Dn = @"CN=User\, Example,OU=Users,DC=Example,DC=COM", ResponsibleTypeId = 1 }
+            ];
+            List<OwnerResponsible> incomingResponsibles =
+            [
+                new() { Dn = @"cn=User\2C Example,ou=users,dc=example,dc=com", ResponsibleTypeId = 1 }
+            ];
+
+            (List<OwnerResponsible> toInsert, List<OwnerResponsible> toDelete) =
+                InvokeCheckResponsibles(import, existingResponsibles, incomingResponsibles);
+
+            Assert.That(toInsert, Is.Empty);
+            Assert.That(toDelete, Is.Empty);
+        }
+
+        [Test]
         public void CheckResponsibles_ReturnsInsertOnly_WhenSyncDisabled()
         {
             AppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());

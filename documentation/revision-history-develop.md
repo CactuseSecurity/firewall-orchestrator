@@ -429,7 +429,7 @@ security patches
 - fix missing Authorize statement for password change REST endpoint
 - introduce separate (non db admin) user for hasura db access
 
-mport file/script path security
+Import file/script path security
 
    - Adds ImportPathPolicy to restrict app data import sources to /usr/local/fworch/scripts/customizing.
    - Allows only .json and .py import files.

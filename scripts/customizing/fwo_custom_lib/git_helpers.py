@@ -39,19 +39,17 @@ def split_repo_url_credentials(repo_url: str) -> tuple[str, str | None, str | No
     if not parsed_url.username and not parsed_url.password:
         return repo_url, None, None
 
-    host = parsed_url.hostname or ""
-    if parsed_url.port is not None:
-        host = f"{host}:{parsed_url.port}"
-    sanitized_url = urlunsplit((parsed_url.scheme, host, parsed_url.path, parsed_url.query, parsed_url.fragment))
+    sanitized_netloc = parsed_url.netloc.rsplit("@", 1)[-1]
+    sanitized_url = urlunsplit((parsed_url.scheme, sanitized_netloc, parsed_url.path, parsed_url.query, parsed_url.fragment))
     return sanitized_url, unquote(parsed_url.username or ""), unquote(parsed_url.password or "")
 
 
-def _create_git_askpass_script(directory: str) -> str:
+def create_git_askpass_script(directory: str) -> str:
     script_path = Path(directory) / "git-askpass.sh"
     script_path.write_text(
         "#!/bin/sh\n"
         'case "$1" in\n'
-        "*Username*) printf '%s\\n' \"$GIT_ASKPASS_USERNAME\" ;;\n"
+        "*Username*|*username*) printf '%s\\n' \"$GIT_ASKPASS_USERNAME\" ;;\n"
         "*) printf '%s\\n' \"$GIT_ASKPASS_PASSWORD\" ;;\n"
         "esac\n",
         encoding="utf-8",
@@ -83,7 +81,7 @@ def update_git_repo(
             with tempfile.TemporaryDirectory() as askpass_dir:
                 env = {
                     **os.environ,
-                    "GIT_ASKPASS": _create_git_askpass_script(askpass_dir),
+                    "GIT_ASKPASS": create_git_askpass_script(askpass_dir),
                     "GIT_ASKPASS_USERNAME": git_username,
                     "GIT_ASKPASS_PASSWORD": git_password,
                     "GIT_TERMINAL_PROMPT": "0",

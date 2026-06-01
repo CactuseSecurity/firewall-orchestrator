@@ -462,7 +462,7 @@ OnCSVAppServerImportEvent(_.EventArgs));
         List<string> changes = [];
         AddSettingChange(changes, nameof(ConfigData.ImportAppDataPath), oldAppDataPath, configData!.ImportAppDataPath);
         AddSettingChange(changes, nameof(ConfigData.ImportSubnetDataPath), oldSubnetDataPath, configData.ImportSubnetDataPath);
-        AddSettingChange(changes, nameof(ConfigData.ImportAppDataScriptArgs), oldScriptArgs, configData.ImportAppDataScriptArgs);
+        AddSettingChange(changes, nameof(ConfigData.ImportAppDataScriptArgs), oldScriptArgs, configData.ImportAppDataScriptArgs, redactValues: true);
 
         if (changes.Count == 0)
         {
@@ -476,11 +476,11 @@ OnCSVAppServerImportEvent(_.EventArgs));
             UserDN: userConfig.User.Dn);
     }
 
-    private static void AddSettingChange(List<string> changes, string settingName, string oldValue, string newValue)
+    private static void AddSettingChange(List<string> changes, string settingName, string oldValue, string newValue, bool redactValues = false)
     {
         if (oldValue != newValue)
         {
-            changes.Add($"{settingName}: '{oldValue}' -> '{newValue}'");
+            changes.Add(redactValues ? $"{settingName}: changed" : $"{settingName}: '{oldValue}' -> '{newValue}'");
         }
     }
 

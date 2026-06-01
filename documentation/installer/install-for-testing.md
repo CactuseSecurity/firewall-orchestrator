@@ -10,7 +10,7 @@ This includes:
 - API hasura admin secret
 - UI admin user
 These secrets are fixed and publicly known in the source tree. They must never be used for production installations.
-Note: the relevant secrets are displayed at the very end of the installation. They can also be found in the etc/secrets directory.
+Note: the installer writes these secrets into the etc/secrets directory and prints only the file paths at the end of the installation.
 
 ```console
 ansible-playbook site.yml -e "testkeys=yes" -K

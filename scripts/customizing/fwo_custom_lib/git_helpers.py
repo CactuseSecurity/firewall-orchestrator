@@ -40,7 +40,9 @@ def split_repo_url_credentials(repo_url: str) -> tuple[str, str | None, str | No
         return repo_url, None, None
 
     sanitized_netloc = parsed_url.netloc.rsplit("@", 1)[-1]
-    sanitized_url = urlunsplit((parsed_url.scheme, sanitized_netloc, parsed_url.path, parsed_url.query, parsed_url.fragment))
+    sanitized_url = urlunsplit(
+        (parsed_url.scheme, sanitized_netloc, parsed_url.path, parsed_url.query, parsed_url.fragment)
+    )
     return sanitized_url, unquote(parsed_url.username or ""), unquote(parsed_url.password or "")
 
 

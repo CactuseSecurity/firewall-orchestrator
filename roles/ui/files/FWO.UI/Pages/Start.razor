@@ -51,7 +51,7 @@
                 : JsonSerializer.Deserialize<List<Module>>(userConfig.AvailableModules) ?? throw new JsonException("Config data could not be parsed.");
  
 
-        if(authenticationState.User.IsInRole(Roles.Modeller) && availableModules.Contains(Module.Modelling))
+        if(userConfig.CanUseAnyRole(Roles.Modeller) && availableModules.Contains(Module.Modelling))
         {
             NavigationManager.NavigateTo($"/{PageName.Modelling}/{AppId ?? ""}");
         }

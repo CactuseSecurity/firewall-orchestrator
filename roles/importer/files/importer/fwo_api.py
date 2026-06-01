@@ -2,7 +2,7 @@ import json
 import string
 import time
 import traceback
-from collections.abc import MutableMapping
+from collections.abc import Mapping
 from pprint import pformat
 from typing import Any
 
@@ -115,7 +115,7 @@ class FwoApi:
                 session.verify = False
             else:
                 session.verify = fwo_globals.verify_certs
-            session.headers = {"Content-Type": JSON_CONTENT_TYPE}
+            session.headers.update({"Content-Type": JSON_CONTENT_TYPE})
 
             try:
                 response = session.post(user_management_api_base_url + method, data=json.dumps(payload))
@@ -162,7 +162,7 @@ class FwoApi:
             else:
                 session.verify = fwo_globals.verify_certs
 
-            session.headers = {"Authorization": f"Bearer {self.fwo_jwt}", "Content-Type": JSON_CONTENT_TYPE}
+            session.headers.update({"Authorization": f"Bearer {self.fwo_jwt}", "Content-Type": JSON_CONTENT_TYPE})
 
             try:
                 if method.upper() == "GET":
@@ -423,7 +423,7 @@ class FwoApi:
         self,
         api_url: str,
         query: dict[str, Any],
-        headers: dict[str, Any] | MutableMapping[str, str | bytes],
+        headers: Mapping[str, Any],
         typ: str = "debug",
         show_query_info: bool = False,
     ):

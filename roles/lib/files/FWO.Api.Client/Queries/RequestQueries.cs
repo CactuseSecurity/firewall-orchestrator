@@ -26,11 +26,13 @@ namespace FWO.Api.Client.Queries
         public static readonly string subscribeTaskChanges;
         public static readonly string newRequestTask;
         public static readonly string updateRequestTask;
+        public static readonly string updateRequestTaskFlowId;
         public static readonly string updateRequestTaskState;
         public static readonly string updateRequestTaskAdditionalInfo;
         public static readonly string deleteRequestTask;
         public static readonly string newRequestElement;
         public static readonly string updateRequestElement;
+        public static readonly string updateRequestElementFlowIds;
         public static readonly string deleteRequestElement;
         public static readonly string newImplementationTask;
         public static readonly string updateImplementationTask;
@@ -52,6 +54,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string updateAction;
         public static readonly string deleteAction;
         public static readonly string addStateAction;
+        public static readonly string updateStateActionSortOrder;
         public static readonly string removeStateAction;
         public static readonly string newComment;
         public static readonly string addCommentToReqTask;
@@ -88,11 +91,13 @@ namespace FWO.Api.Client.Queries
                 subscribeTaskChanges = reqElementDetailsFragment + GetQueryText("request/subscribeTaskChanges.graphql");
                 newRequestTask = GetQueryText("request/newRequestTask.graphql");
                 updateRequestTask = GetQueryText("request/updateRequestTask.graphql");
+                updateRequestTaskFlowId = GetQueryText("request/updateRequestTaskFlowId.graphql");
                 updateRequestTaskState = GetQueryText("request/updateRequestTaskState.graphql");
                 updateRequestTaskAdditionalInfo = GetQueryText("request/updateRequestTaskAdditionalInfo.graphql");
                 deleteRequestTask = GetQueryText("request/deleteRequestTask.graphql");
                 newRequestElement = GetQueryText("request/newRequestElement.graphql");
                 updateRequestElement = GetQueryText("request/updateRequestElement.graphql");
+                updateRequestElementFlowIds = GetQueryText("request/updateRequestElementFlowIds.graphql");
                 deleteRequestElement = GetQueryText("request/deleteRequestElement.graphql");
                 newImplementationTask = GetQueryText("request/newImplementationTask.graphql");
                 updateImplementationTask = GetQueryText("request/updateImplementationTask.graphql");
@@ -114,6 +119,7 @@ namespace FWO.Api.Client.Queries
                 updateAction = GetQueryText("request/updateAction.graphql");
                 deleteAction = GetQueryText("request/deleteAction.graphql");
                 addStateAction = GetQueryText("request/addStateAction.graphql");
+                updateStateActionSortOrder = GetQueryText("request/updateStateActionSortOrder.graphql");
                 removeStateAction = GetQueryText("request/removeStateAction.graphql");
                 newComment = GetQueryText("request/newComment.graphql");
                 addCommentToReqTask = GetQueryText("request/addCommentToReqTask.graphql");

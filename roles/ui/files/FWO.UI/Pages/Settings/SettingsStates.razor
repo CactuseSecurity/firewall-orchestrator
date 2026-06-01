@@ -1,4 +1,4 @@
-﻿@using System.Text.Json
+@using System.Text.Json
 
 @page "/settings/statedefinitions"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -86,11 +86,18 @@
                         <Column TableItem="WfStateActionDataHelper" Title="@(userConfig.GetText("actions"))" Field="(x => x.Action.Id)" Sortable="false" Filterable="false">
                             <Template>
                                 <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-secondary" disabled="@(ActionIndex(context) == 0)" @onclick="() => MoveActionInState(context, -1)">
+                                        <span class="@Icons.CollapseUp"></span>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-secondary" disabled="@(ActionIndex(context) >= actState.Actions.Count - 1)" @onclick="() => MoveActionInState(context, 1)">
+                                        <span class="@Icons.CollapseDown"></span>
+                                    </button>
                                     <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveActionFromState(context)">
                                         @(DisplayService.DisplayButton(userConfig, "remove", Icons.Delete))</button>
                                 </div>
                             </Template>
                         </Column>
+                        <Column TableItem="WfStateActionDataHelper" Title="@(userConfig.GetText("sort_order"))" Field="@(x => x.SortOrder)" Sortable="true" Filterable="true" />
                         <Column TableItem="WfStateActionDataHelper" Title="@(userConfig.GetText("id"))" Field="@(x => x.Action.Id)" Sortable="true" Filterable="true" />
                         <Column TableItem="WfStateActionDataHelper" Title="@(userConfig.GetText("name"))" Field="@(x => x.Action.Name)" Sortable="true" Filterable="true" />
                     </Table>
@@ -99,14 +106,14 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="@Roles.Admin">
+                <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="SaveState">@(userConfig.GetText("save"))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                     </NotAuthorized> 
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
                 <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
             </div>
         </Footer>
@@ -129,7 +136,7 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="@Roles.Admin">
+                <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                     <Authorized>
                         @if(selectedAction != null)
                         {
@@ -143,7 +150,7 @@
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("add"))</button>
                     </NotAuthorized> 
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
                 <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelSelect">@(userConfig.GetText("cancel"))</button>
             </div>
         </Footer>
@@ -193,6 +200,11 @@ else
     private async Task RefreshStates()
     {
         states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
+        foreach (WfState state in states)
+        {
+            state.Actions = [.. state.Actions.OrderBy(action => action.SortOrder).ThenBy(action => action.Action.Id)];
+            NormalizeActionSortOrder(state);
+        }
         statesDict = new WfStateDict();
         await statesDict.Init(apiConnection);
         await GetUsedStates();
@@ -289,9 +301,10 @@ else
             {
                 states.Add(actState);
                 states = states.OrderBy(x => x.Id).ToList();
+                NormalizeActionSortOrder(actState);
                 foreach(var action in actState.Actions)
                 {
-                    await apiConnection.SendQueryAsync<object>(RequestQueries.addStateAction, new { stateId = actState.Id, actionId = action.Action.Id });
+                    await apiConnection.SendQueryAsync<object>(RequestQueries.addStateAction, new { stateId = actState.Id, actionId = action.Action.Id, sortOrder = action.SortOrder });
                 }
             }
             else
@@ -353,9 +366,10 @@ else
         {
             if(!AddStateMode)
             {
-                await apiConnection.SendQueryAsync<object>(RequestQueries.addStateAction, new { stateId = actState.Id, actionId = selectedAction?.Id ?? 0});
+                await apiConnection.SendQueryAsync<object>(RequestQueries.addStateAction, new { stateId = actState.Id, actionId = selectedAction?.Id ?? 0, sortOrder = NextActionSortOrder() });
             }
-            actState.Actions.Add(new WfStateActionDataHelper(){ Action = selectedAction ?? throw new ArgumentException("no action selected") });
+            actState.Actions.Add(new WfStateActionDataHelper(){ Action = selectedAction ?? throw new ArgumentException("no action selected"), SortOrder = NextActionSortOrder() });
+            NormalizeActionSortOrder(actState);
             SelectActionMode = false;
         }
         catch (Exception exception)
@@ -373,6 +387,11 @@ else
                 await apiConnection.SendQueryAsync<object>(RequestQueries.removeStateAction, new { stateId = actState.Id, actionId = action.Action.Id });
             }
             actState.Actions.Remove(action);
+            NormalizeActionSortOrder(actState);
+            if (!AddStateMode)
+            {
+                await SaveActionSortOrder(actState.Actions);
+            }
         }
         catch (Exception exception)
         {
@@ -383,5 +402,55 @@ else
     private void EditExtStates()
     {
         EditExtStatesMode = true;
+    }
+
+    private int ActionIndex(WfStateActionDataHelper action)
+    {
+        return actState.Actions.IndexOf(action);
+    }
+
+    private int NextActionSortOrder()
+    {
+        return actState.Actions.Count == 0 ? 1 : actState.Actions.Max(action => action.SortOrder) + 1;
+    }
+
+    private static void NormalizeActionSortOrder(WfState state)
+    {
+        for (int index = 0; index < state.Actions.Count; ++index)
+        {
+            state.Actions[index].SortOrder = index + 1;
+        }
+    }
+
+    private async Task MoveActionInState(WfStateActionDataHelper action, int offset)
+    {
+        int index = ActionIndex(action);
+        int targetIndex = index + offset;
+        if (index < 0 || targetIndex < 0 || targetIndex >= actState.Actions.Count)
+        {
+            return;
+        }
+
+        WfStateActionDataHelper movedAction = actState.Actions[index];
+        actState.Actions[index] = actState.Actions[targetIndex];
+        actState.Actions[targetIndex] = movedAction;
+        NormalizeActionSortOrder(actState);
+        if (!AddStateMode)
+        {
+            await SaveActionSortOrder([actState.Actions[index], actState.Actions[targetIndex]]);
+        }
+    }
+
+    private async Task SaveActionSortOrder(IEnumerable<WfStateActionDataHelper> stateActions)
+    {
+        foreach (WfStateActionDataHelper stateAction in stateActions)
+        {
+            await apiConnection.SendQueryAsync<object>(RequestQueries.updateStateActionSortOrder, new
+            {
+                stateId = actState.Id,
+                actionId = stateAction.Action.Id,
+                sortOrder = stateAction.SortOrder
+            });
+        }
     }
 }

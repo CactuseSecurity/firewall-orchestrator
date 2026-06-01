@@ -9,7 +9,7 @@
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("modIntegrationStates"))" Show="@Display" Size=PopupSize.Medium OnClose="Close">
+<PopUp Title="@(userConfig.GetText("modIntegrationStates"))" Show="@Display" Size=PopupSize.Large OnClose="Close">
     <Body>
         @if (Display)
         {
@@ -21,17 +21,22 @@
                     </div>
                 </div>
                 <div class="row fw-bold border-bottom pb-1">
-                    <div class="col-sm-7">@(userConfig.GetText("name"))</div>
-                    <div class="col-sm-3">@(userConfig.GetText("include_into_request"))</div>
+                    <div class="col-sm-5">@(userConfig.GetText("name"))</div>
+                    <div class="col-sm-3">@(userConfig.GetText("monitor_status"))</div>
+                    <div class="col-sm-2">@(userConfig.GetText("include_into_request"))</div>
                     <div class="col-sm-2"></div>
                 </div>
                 @foreach (ModIntegrationState state in states)
                 {
                     <div class="row align-items-center mt-1">
-                        <div class="col-sm-7">
+                        <div class="col-sm-5">
                             <input type="text" class="form-control form-control-sm" @bind="state.Name" />
                         </div>
                         <div class="col-sm-3">
+                            <Dropdown ElementType="string" @bind-SelectedElement="state.MonitorStatus"
+                                      ElementToString="DisplayMonitorStatus" Elements="ModIntegrationStateStatus.All" />
+                        </div>
+                        <div class="col-sm-2">
                             <input type="checkbox" class="form-check-input" @bind="state.IncludeIntoRequest" />
                         </div>
                         <div class="col-sm-2">
@@ -42,10 +47,14 @@
                     </div>
                 }
                 <div class="row align-items-center mt-3">
-                    <div class="col-sm-7">
+                    <div class="col-sm-5">
                         <input type="text" class="form-control form-control-sm" @bind="newState.Name" />
                     </div>
                     <div class="col-sm-3">
+                        <Dropdown ElementType="string" @bind-SelectedElement="newState.MonitorStatus"
+                                  ElementToString="DisplayMonitorStatus" Elements="ModIntegrationStateStatus.All" />
+                    </div>
+                    <div class="col-sm-2">
                         <input type="checkbox" class="form-check-input" @bind="newState.IncludeIntoRequest" />
                     </div>
                     <div class="col-sm-2">
@@ -59,14 +68,14 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@Roles.Admin">
+            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                 </NotAuthorized>
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>
@@ -124,7 +133,8 @@
         states.Add(new()
         {
             Name = newState.Name,
-            IncludeIntoRequest = newState.IncludeIntoRequest
+            IncludeIntoRequest = newState.IncludeIntoRequest,
+            MonitorStatus = newState.MonitorStatus
         });
         newState = new();
     }
@@ -132,6 +142,11 @@
     private void RemoveState(ModIntegrationState state)
     {
         states.Remove(state);
+    }
+
+    private string DisplayMonitorStatus(string status)
+    {
+        return userConfig.GetText(ModIntegrationStateConfig.MonitorStatusTextKey(status));
     }
 
     private async Task Save()

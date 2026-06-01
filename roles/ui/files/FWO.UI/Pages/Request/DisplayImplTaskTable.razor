@@ -41,7 +41,7 @@
                         <div class="btn-group">
                             <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowImplTask(implTask)">
                                 @(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
-                            @if(!WfHandler.StateMatrix(implTask.TaskType).PhaseActive[WorkflowPhases.planning] && WfHandler.StateMatrix(implTask.TaskType).PhaseActive[WorkflowPhases.approval])
+                            @if(ImplTaskView && !WfHandler.StateMatrix(implTask.TaskType).PhaseActive[WorkflowPhases.planning] && WfHandler.StateMatrix(implTask.TaskType).PhaseActive[WorkflowPhases.approval])
                             {
                                 <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(implTask)">
                                     @(DisplayService.DisplayButton(userConfig, "approvals", Icons.Approval))</button>
@@ -59,7 +59,7 @@
                                 {
                                     @if (implTask.StateId < WfHandler.StateMatrix(implTask.TaskType).LowestStartedState)
                                     {
-                                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
+                                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
                                             <Authorized Context="ctx">
                                                 <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await StartImplPhase(implTask)">
                                                     @(DisplayService.DisplayButton(userConfig, "start_" + Phase.ToString(), Icons.Edit))</button>
@@ -68,7 +68,7 @@
                                                 <button type="button" class="btn btn-sm btn-warning" disabled>
                                                     @(DisplayService.DisplayButton(userConfig, "start_" + Phase.ToString(), Icons.Edit))</button>
                                             </NotAuthorized>
-                                        </AuthorizeView>
+                                        </ExecutionModeAuthorizeView>
                                     }
                                     else if (implTask.StateId < WfHandler.StateMatrix(implTask.TaskType).LowestEndState)
                                     {

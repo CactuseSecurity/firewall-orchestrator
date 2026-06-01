@@ -60,7 +60,7 @@ namespace FWO.Api.Client
                 _subscription = null;
 
                 Log.WriteDebug("API", $"Creating API subscription {_request.OperationName}.");
-                _subscriptionStream = _graphQlClient.CreateSubscriptionStream<dynamic>(_request, _internalExceptionHandler);
+                _subscriptionStream = CreateSubscriptionStream();
                 Log.WriteDebug("API", "API subscription created.");
 
                 _subscription = _subscriptionStream.Subscribe(response =>
@@ -71,38 +71,41 @@ namespace FWO.Api.Client
                     {
                         throw new NotImplementedException("System.Text.Json is not supported anymore.");
                     }
-                    else
+
+                    try
                     {
-                        try
+                        // If repsonse.Data == null -> Jwt expired - connection was closed
+                        // Leads to this method getting called again
+                        if (response.Data == null)
                         {
-                            // If repsonse.Data == null -> Jwt expired - connection was closed
-                            // Leads to this method getting called again
-                            if (response.Data == null)
+                            // Terminate subscription
+                            lock (_lock)
                             {
-                                // Terminate subscription
-                                lock (_lock)
-                                {
-                                    _subscription?.Dispose();
-                                    _subscription = null;
-                                }
-                            }
-                            else
-                            {
-                                JObject data = (JObject)response.Data;
-                                JProperty prop = (JProperty)(data.First ?? throw new Exception($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
-                                JToken result = prop.Value;
-                                SubscriptionResponseType returnValue = result.ToObject<SubscriptionResponseType>() ?? throw new Exception($"Could not convert result from Json to {typeof(SubscriptionResponseType)}.\nJson: {response.Data}");
-                                OnUpdate?.Invoke(returnValue);
+                                _subscription?.Dispose();
+                                _subscription = null;
                             }
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            Log.WriteError("GraphQL Subscription", "Subscription lead to exception", ex);
-                            throw;
+                            JObject data = (JObject)response.Data;
+                            JProperty prop = (JProperty)(data.First ?? throw new Exception($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
+                            JToken result = prop.Value;
+                            SubscriptionResponseType returnValue = result.ToObject<SubscriptionResponseType>() ?? throw new Exception($"Could not convert result from Json to {typeof(SubscriptionResponseType)}.\nJson: {response.Data}");
+                            OnUpdate?.Invoke(returnValue);
                         }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.WriteError("GraphQL Subscription", "Subscription lead to exception", ex);
+                        throw;
                     }
                 });
             }
+        }
+
+        protected virtual IObservable<GraphQLResponse<dynamic>> CreateSubscriptionStream()
+        {
+            return _graphQlClient.CreateSubscriptionStream<dynamic>(_request, _internalExceptionHandler);
         }
 
         private void ApiConnectionOnAuthHeaderChanged(object? sender, string jwt)

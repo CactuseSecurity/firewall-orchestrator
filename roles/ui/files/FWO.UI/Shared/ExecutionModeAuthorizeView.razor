@@ -1,0 +1,77 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+
+@inject UserConfig userConfig
+@implements IDisposable
+
+@if (string.IsNullOrWhiteSpace(Roles) || HasRoleInExecutionMode())
+{
+    <AuthorizeView Roles="@Roles">
+        <Authorized Context="authState">
+            @if (Authorized != null)
+            {
+                @Authorized(authState)
+            }
+            else
+            {
+                @ChildContent
+            }
+        </Authorized>
+        <NotAuthorized Context="authState">
+            @if (NotAuthorized != null)
+            {
+                @NotAuthorized(authState)
+            }
+        </NotAuthorized>
+    </AuthorizeView>
+}
+else
+{
+    @if (NotAuthorized != null)
+    {
+        @NotAuthorized(new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity())))
+    }
+}
+
+@code
+{
+    [Parameter]
+    public string Roles { get; set; } = "";
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public RenderFragment<AuthenticationState>? Authorized { get; set; }
+
+    [Parameter]
+    public RenderFragment<AuthenticationState>? NotAuthorized { get; set; }
+
+    [Parameter]
+    public string? Context { get; set; }
+
+    protected override void OnInitialized()
+    {
+        userConfig.OnChange += OnChange;
+    }
+
+    private void OnChange(Config _, ConfigItem[] __)
+    {
+        Task.Run(async () => await InvokeAsync(StateHasChanged));
+    }
+
+    private bool HasRoleInExecutionMode()
+    {
+        return userConfig.CanUseAnyRole(ParseRoles());
+    }
+
+    private string[] ParseRoles()
+    {
+        return Roles.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
+
+    public void Dispose()
+    {
+        userConfig.OnChange -= OnChange;
+    }
+}

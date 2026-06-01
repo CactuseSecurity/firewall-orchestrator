@@ -80,7 +80,7 @@ else
     {
         try
         {
-            wfHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Approver) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
+            wfHandler.ReadOnlyMode = !userConfig.CanUseAnyRole(Roles.Approver, Roles.Admin);
             await wfHandler.Init(true, OwnerIds);
         }
         catch (Exception exception)

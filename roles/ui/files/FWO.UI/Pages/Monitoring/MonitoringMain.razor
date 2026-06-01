@@ -21,7 +21,7 @@
 @(userConfig.GetText("U7001"))
 <hr />
 
-<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")">
+<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")">
     <h5>@(userConfig.GetText("open_alerts"))</h5>
     @if (InitComplete)
     {
@@ -31,7 +31,7 @@
         }
         else
         {
-            <button type="button" class="btn btn-sm btn-danger" @onclick="RequestAcknowledgeAllOpen">@(DisplayService.DisplayButton(userConfig, "acknowledge_all", Icons.Acknowledge))</button>
+            <button type="button" class="btn btn-sm btn-danger" disabled="@(!userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin))" @onclick="RequestAcknowledgeAllOpen">@(DisplayService.DisplayButton(userConfig, "acknowledge_all", Icons.Acknowledge))</button>
             <div class="vheight75">
                 <PageSizeComponent PageSize="20" PageSizeCallback="UpdatePageSize"></PageSizeComponent>
                 <Table PageSize="PageSize" TableClass="table table-bordered table-sm th-bg-secondary sticky-header" TableItem="Alert" Items="alertEntrys">
@@ -59,14 +59,14 @@
                                     <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                                 }
 
-                                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
-                                    <Authorized Context="ctx">
-                                        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Acknowledge(alert)">@(DisplayService.DisplayButton(userConfig, "acknowledge", Icons.Acknowledge))</button>
-                                    </Authorized>
-                                    <NotAuthorized Context="ctx">
-                                        <button type="button" class="btn btn-sm btn-secondary" disabled>@(DisplayService.DisplayButton(userConfig, "acknowledge", Icons.Acknowledge))</button>
-                                    </NotAuthorized>
-                                </AuthorizeView>
+                                @if (userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin))
+                                {
+                                    <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Acknowledge(alert)">@(DisplayService.DisplayButton(userConfig, "acknowledge", Icons.Acknowledge))</button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-sm btn-secondary" disabled>@(DisplayService.DisplayButton(userConfig, "acknowledge", Icons.Acknowledge))</button>
+                                }
                             </div>
                         </Template>
                     </Column>
@@ -91,7 +91,7 @@
     {
         <Loading/>
     }
-</AuthorizeView>
+</ExecutionModeAuthorizeView>
 
 <AutoDiscovery Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await RefreshAlerts();}" />
 <ImportDetails ImportStatus="actStatus" @bind-DetailsMode="DetailsMode" Closing="async () => {DetailsMode = false; await RefreshAlerts();}" />
@@ -135,7 +135,7 @@
     {
         try
         {
-            if (authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
+            if (userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
             {
                 apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.Auditor]);
                 managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
@@ -283,7 +283,7 @@
     private async Task DeleteManagements()
     {
         // Todo: refresh necessary?
-        if (authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
+        if (userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
         {
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.Auditor]);
             managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);

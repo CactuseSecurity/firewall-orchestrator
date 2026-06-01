@@ -15,7 +15,7 @@
                     <Column TableItem="WfApproval" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                         <Template>
                             <div class="btn-group">
-                                @if((context.ApproverDn == null || context.ApproverDn == "") && !WfHandler.AddTicketMode && !WfHandler.ReadOnlyMode)
+                                @if((context.ApproverDn == null || context.ApproverDn == "") && !WfHandler.AddTicketMode && !IsReadOnly)
                                 {
                                     <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="() => InitAddComment(context)">
                                         @(DisplayService.DisplayButton(userConfig, "add_comment", Icons.Add, "comment"))</button>
@@ -86,8 +86,12 @@
     [Parameter]
     public WfStateDict States { get; set; } = new ();
 
+    [Parameter]
+    public bool? ReadOnlyMode { get; set; }
+
     static List<string> validRoles = new (){Roles.Approver};
     private bool WorkInProgress = false;
+    private bool IsReadOnly => ReadOnlyMode ?? WfHandler.ReadOnlyMode;
 
 
     private async Task Close()
@@ -96,6 +100,7 @@
         await ResetParent();
         WorkInProgress = false;
         Display = false;
+        await DisplayChanged.InvokeAsync(false);
     }
 
     private async Task Reset()
@@ -106,11 +111,19 @@
 
     private async Task AssignApproval(WfApproval approval)
     {
+        if(IsReadOnly)
+        {
+            return;
+        }
         await WfHandler.SelectApprovalPopUp(approval, ObjAction.displayAssign);
     }
 
     private async Task InitAddComment(WfApproval approval)
     {
+        if(IsReadOnly)
+        {
+            return;
+        }
         await WfHandler.SelectApprovalPopUp(approval, ObjAction.displayComment);
     }
     private async Task ConfAddComment(string commentText)

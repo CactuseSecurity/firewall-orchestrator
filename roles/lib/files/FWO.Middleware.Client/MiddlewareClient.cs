@@ -60,7 +60,7 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<int>(request);
         }
 
-        public async Task<RestResponse<string>> ChangePassword(UserChangePasswordParameters parameters)
+        public virtual async Task<RestResponse<string>> ChangePassword(UserChangePasswordParameters parameters)
         {
             RestRequest request = new("User/EditPassword", Method.Patch);
             request.AddJsonBody(parameters);
@@ -245,6 +245,13 @@ namespace FWO.Middleware.Client
             RestRequest request = new("ExternalRequest/PatchState", Method.Patch);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<bool>(request);
+        }
+
+        public async Task<RestResponse<WorkflowActionResult>> ExecuteWorkflowActions(WorkflowActionParameters parameters)
+        {
+            RestRequest request = new("Workflow/Actions", Method.Post);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<WorkflowActionResult>(request);
         }
 
         public async Task<RestResponse<string>> GetReport(ReportGetParameters parameters)

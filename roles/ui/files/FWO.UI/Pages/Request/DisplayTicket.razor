@@ -119,36 +119,36 @@
         <div class="btn-group">
             @if(WfHandler.EditTicketMode)
             {
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.FwAdmin}")">
+                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.FwAdmin}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="InitSaveTicket">@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
                     </NotAuthorized> 
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
             }
             else if (CanSaveTicketChanges())
             {
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.FwAdmin}")">
+                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.FwAdmin}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="InitSaveTicket">@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
                     </NotAuthorized>
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
             }
             else if (CheckPromoteTicket())
             {
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.FwAdmin}")">
+                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.FwAdmin}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteTicket">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                     </NotAuthorized> 
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
             }
             @if(WfHandler.EditTicketMode || CanSaveTicketChanges() || CheckPromoteTicket())
             {
@@ -179,6 +179,7 @@
 
 <PromoteObject @bind-Promote="WfHandler.DisplaySaveTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@WfHandler.ActTicket.Title" Save="WfHandler.SaveTicket" StatefulObject="WfHandler.ActTicket" StateMatrix="WfHandler.MasterStateMatrix" States="States"/>
 <PromoteObject @bind-Promote="WfHandler.DisplayPromoteTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@WfHandler.ActTicket.Title" Save="PromoteTicketForPhase" StatefulObject="WfHandler.ActTicket" StateMatrix="WfHandler.MasterStateMatrix" States="States"/>
+<InProgress Display="WorkInProgress"/>
 
 
 @code
@@ -208,6 +209,7 @@
     private List<int> possibleStates = new ();
     private List<WfStateAction> offeredActions = new ();
     private bool ConfirmCancelMode = false;
+    private bool WorkInProgress = false;
     private WfPriority? selectedPriority;
     private bool firstParamSet = true;
 
@@ -270,11 +272,27 @@
 
     private async Task PerformAction(WfStateAction action)
     {
-        if(WfHandler.ActionHandler != null)
+        if (WorkInProgress)
         {
-            await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActTicket, WfObjectScopes.Ticket, null, WfHandler.ActTicket.Id);
+            return;
         }
-        await ResetParent();
+        WorkInProgress = true;
+        try
+        {
+            if(WfHandler.ActionHandler != null)
+            {
+                await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActTicket, WfObjectScopes.Ticket, null, WfHandler.ActTicket.Id);
+            }
+            await ResetParent();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("action"), "", true);
+        }
+        finally
+        {
+            WorkInProgress = false;
+        }
     }
 
     private bool CheckPromoteTicket()

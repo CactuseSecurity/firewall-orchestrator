@@ -1,0 +1,5 @@
+mutation deleteOwnerTickets($ownerId: Int!) {
+  delete_owner_ticket(where: { owner_id: { _eq: $ownerId } }) {
+    affected_rows
+  }
+}

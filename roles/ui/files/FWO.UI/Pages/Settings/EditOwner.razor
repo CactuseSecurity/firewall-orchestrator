@@ -267,14 +267,14 @@
         <div class="btn-group">
             @if(!Readonly || !userConfig.AllowManualOwnerAdmin)
             {
-                <AuthorizeView Roles="@Roles.Admin">
+                <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="HandleSave">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                     </NotAuthorized>
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
             }
             <button type="button" class="btn btn-sm btn-secondary" @onclick="HandleCancel">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>

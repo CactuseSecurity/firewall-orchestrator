@@ -7,12 +7,12 @@
 <Sidebar PositionLeft="true" Collapsible="true" Resizeable="true" @bind-Width="sidebarWidth">
     <div class="me-2 ms-2 mt-4 mb-4">
         <ul class="navbar-nav navbar-dark flex-column">
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Importer}, {Roles.Auditor}, {Roles.FwAdmin}")">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Importer}, {Roles.Auditor}, {Roles.FwAdmin}")">
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5011"))">
                     <h5>@(userConfig.GetText("devices"))</h5>
                 </li>
-            </AuthorizeView>
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
+            </ExecutionModeAuthorizeView>
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/credentials">
                         <span class="@Icons.Credential"></span> @(userConfig.GetText("import_credential"))
@@ -28,9 +28,9 @@
                         <span class="@Icons.Gateway"></span> @(userConfig.GetText("gateways"))
                     </NavLink>
                 </li>
-            </AuthorizeView>
-            <hr />
-            <AuthorizeView Roles="@($"{Roles.Admin}")">
+            </ExecutionModeAuthorizeView>
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}")">
+                <hr />
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5011"))">
                     <h5>Flow</h5>
                 </li>
@@ -39,28 +39,28 @@
                         <span class="@Icons.Settings"></span> @(userConfig.GetText("network_objects"))
                     </NavLink>
                 </li>
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <hr />
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5012"))">
                     <h5>@(userConfig.GetText("authorization"))</h5>
                 </li>
-            </AuthorizeView>
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
+            </ExecutionModeAuthorizeView>
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/ldap">
                         <span class="@Icons.Ldap"></span> @(userConfig.GetText("ldap_conns"))
                     </NavLink>
                 </li>
-            </AuthorizeView>
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
+            </ExecutionModeAuthorizeView>
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/tenants">
                         <span class="@Icons.Tenant"></span> @(userConfig.GetText("tenants"))
                     </NavLink>
                 </li>
-            </AuthorizeView>
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
+            </ExecutionModeAuthorizeView>
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/users">
                         <span class="@Icons.User"></span> @(userConfig.GetText("users"))
@@ -192,7 +192,7 @@
                         <span class="@Icons.Text"></span> @(userConfig.GetText("customize_texts"))
                     </NavLink>
                 </li>            
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <hr />
             <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5014"))">
                 <h5>@(userConfig.GetText("personal"))</h5>
@@ -207,30 +207,30 @@
                 <NavLink class="nav-link" href="settings/language">
                     <span class="@Icons.Language"></span> @(userConfig.GetText("language"))
                 </NavLink>
-                <AuthorizeView
+                <ExecutionModeAuthorizeView
                     Roles="@($"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Recertifier}, {Roles.Modeller}, {Roles.Auditor}, {Roles.FwAdmin}")">
                     <NavLink class="nav-link" href="settings/report">
                         <span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))
                     </NavLink>
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
             </li>
             @if (userConfig.RecertificationMode == RecertificationMode.RuleByRule)
             {
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")">
+                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")">
                     <li class="nav-item px-2">
                         <NavLink class="nav-link" href="settings/recertificationpersonal">
                             <span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
                         </NavLink>
                     </li>
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
             }
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/modellingpersonal">
                         <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
                     </NavLink>
                 </li>
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
         </ul>
         <br><br>
     </div>

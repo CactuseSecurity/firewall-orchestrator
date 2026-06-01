@@ -11,6 +11,9 @@ namespace FWO.Data.Workflow
         [JsonProperty("ticket_id"), JsonPropertyName("ticket_id")]
         public long TicketId { get; set; }
 
+        [JsonProperty("flow_access_id"), JsonPropertyName("flow_access_id")]
+        public long? FlowAccessId { get; set; }
+
         [JsonProperty("elements"), JsonPropertyName("elements")]
         public List<WfReqElement> Elements { get; set; } = [];
 
@@ -40,6 +43,7 @@ namespace FWO.Data.Workflow
         {
             Id = reqtask.Id;
             TicketId = reqtask.TicketId;
+            FlowAccessId = reqtask.FlowAccessId;
             Elements = reqtask.Elements;
             ImplementationTasks = reqtask.ImplementationTasks;
             Approvals = reqtask.Approvals;
@@ -114,6 +118,7 @@ namespace FWO.Data.Workflow
                         ProtoId = reqElem.ProtoId ?? 0,
                         ServiceId = reqElem.ServiceId,
                         Name = reqElem.Name,
+                        GroupName = reqElem.GroupName,
                         RequestAction = reqElem.RequestAction
                     });
                 }

@@ -75,7 +75,7 @@
         }
     </Body>
     <Footer>
-        <AuthorizeView Roles="@Roles.Modeller">
+        <ExecutionModeAuthorizeView Roles="@Roles.Modeller">
             <Authorized>
                 @if (SelectedApp.Id > 0 && !WorkInProgress && !RequestInProcess && TaskList.Count > 0 && userConfig.User.Ownerships.Contains(SelectedApp.Id))
                 {
@@ -89,7 +89,7 @@
             <NotAuthorized>
                 <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "request_fw_change", Icons.RequestFwChange))</button>
             </NotAuthorized>
-        </AuthorizeView>
+        </ExecutionModeAuthorizeView>
         <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "close", Icons.Close))</button>
     </Footer>
 </PopUp>
@@ -159,11 +159,21 @@
     {
         if (Display && FirstTry)
         {
-            FirstTry = false;
-            WorkInProgress = true;
-            await states.Init(apiConnection);
-            await InitTasks();
-            WorkInProgress = false;
+            try
+            {
+                FirstTry = false;
+                WorkInProgress = true;
+                await states.Init(apiConnection);
+                await InitTasks();
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("request_fw_change"), "", true);
+            }
+            finally
+            {
+                WorkInProgress = false;
+            }
         }
     }
 
@@ -358,6 +368,10 @@
 
     private async Task StartRequests()
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
         WorkInProgress = true;
         try
         {

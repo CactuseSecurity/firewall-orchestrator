@@ -1,12 +1,14 @@
-using System.Text.Json;
 using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
 using GraphQL.Client.Serializer.Newtonsoft;
 using GraphQL.Client.Abstractions;
 using Newtonsoft.Json.Linq;
+using FWO.Basics;
 using FWO.Logging;
 using System.Security.Claims;
+using System.Security.Authentication;
+using System.Text.Json;
 
 namespace FWO.Api.Client
 {
@@ -18,7 +20,9 @@ namespace FWO.Api.Client
 
         private GraphQLHttpClient graphQlClient = null!;
 
-        private string prevRole = "";
+        private readonly Stack<string> previousRoles = new();
+        private string forcedExecutionMode = "";
+        private bool restrictElevatedRoleSwitches = false;
 
         private void Initialize(string ApiServerUri)
         {
@@ -63,9 +67,48 @@ namespace FWO.Api.Client
 
         public override void SetRole(string role)
         {
-            prevRole = GetActRole();
+            if (restrictElevatedRoleSwitches && IsForcedExecutionMode(role))
+            {
+                throw new AuthenticationException($"Execution mode '{GlobalConst.kUserRolesSelection}' does not allow switching to role: {role}");
+            }
+
+            previousRoles.Push(GetActRole());
+            SetRoleHeader(IsForcedExecutionMode(forcedExecutionMode) ? forcedExecutionMode : role);
+        }
+
+        private void ApplyExecutionMode(string role, bool restrictElevatedRoles)
+        {
+            forcedExecutionMode = IsForcedExecutionMode(role) ? role : "";
+            restrictElevatedRoleSwitches = restrictElevatedRoles;
+            SetRoleHeader(role);
+        }
+
+        public override void SetExecutionMode(ClaimsPrincipal user, string role)
+        {
+            if (IsForcedExecutionMode(role) && !HasAllowedRole(user, role))
+            {
+                throw new AuthenticationException($"User is not allowed to use execution mode: {role}");
+            }
+
+            List<string> userRoles = ExecutionModeHelper.GetUserRoles(user);
+            string selectedExecutionMode = ExecutionModeHelper.NormalizeExecutionMode(userRoles, role);
+            string normalizedRole = selectedExecutionMode.Equals(GlobalConst.kUserRolesSelection, StringComparison.OrdinalIgnoreCase) ? "" : selectedExecutionMode;
+            ApplyExecutionMode(normalizedRole, normalizedRole == "" && HasSelectableUserRole(user));
+            InvokeOnExecutionModeChanged(this, GetExecutionMode());
+        }
+
+        public override string GetExecutionMode()
+        {
+            return forcedExecutionMode == "" ? GlobalConst.kUserRolesSelection : forcedExecutionMode;
+        }
+
+        private void SetRoleHeader(string role)
+        {
             graphQlClient.HttpClient.DefaultRequestHeaders.Remove("x-hasura-role");
-            graphQlClient.HttpClient.DefaultRequestHeaders.Add("x-hasura-role", role);
+            if (role != "")
+            {
+                graphQlClient.HttpClient.DefaultRequestHeaders.Add("x-hasura-role", role);
+            }
         }
 
         public bool IsActRole(string role)
@@ -88,94 +131,83 @@ namespace FWO.Api.Client
 
         public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
         {
-            prevRole = GetActRole();
-            foreach (string role in targetRoleList)
-            {
-                if (HasAllowedRole(user, role))
-                {
-                    SetRole(role);
-                    return;
-                }
-            }
+            string actRole = GetActRole();
+            bool includeElevatedRoles = !HasSelectableUserRole(user);
+            string targetRole = IsForcedExecutionMode(user)
+                ? forcedExecutionMode
+                : GetFirstAllowedRole(user, targetRoleList, includeElevatedRoles)
+                    ?? throw new AuthenticationException($"User has none of the required roles: {string.Join(", ", targetRoleList)}");
+            previousRoles.Push(actRole);
+            SetRoleHeader(targetRole);
         }
 
         public override void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
         {
-            prevRole = GetActRole();
+            string actRole = GetActRole();
+            string? targetRole = null;
+            bool includeElevatedRoles = !HasSelectableUserRole(user);
 
-            // first look if user is already in one of the target roles 
-            if (targetRoleList.Contains(prevRole))
+            if (IsForcedExecutionMode(user))
             {
-                return;
+                targetRole = forcedExecutionMode;
             }
-            // now look if user has a target role as allowed role
-            SetBestRole(user, targetRoleList);
+            else if ((includeElevatedRoles || !IsForcedExecutionMode(actRole)) && targetRoleList.Contains(actRole))
+            {
+                targetRole = actRole;
+            }
+            else
+            {
+                targetRole = GetFirstAllowedRole(user, targetRoleList, includeElevatedRoles);
+            }
+
+            if (targetRole == null)
+            {
+                throw new AuthenticationException($"User has none of the required roles: {string.Join(", ", targetRoleList)}");
+            }
+
+            previousRoles.Push(actRole);
+            SetRoleHeader(targetRole);
+        }
+
+        private static string? GetFirstAllowedRole(ClaimsPrincipal user, List<string> targetRoleList, bool includeElevatedRoles)
+        {
+            foreach (string role in targetRoleList)
+            {
+                if ((includeElevatedRoles || !IsForcedExecutionMode(role)) && HasAllowedRole(user, role))
+                {
+                    return role;
+                }
+            }
+            return null;
+        }
+
+        private bool IsForcedExecutionMode(ClaimsPrincipal user)
+        {
+            return IsForcedExecutionMode(forcedExecutionMode) && HasAllowedRole(user, forcedExecutionMode);
+        }
+
+        private static bool IsForcedExecutionMode(string role)
+        {
+            return role.Equals(FWO.Basics.Roles.Admin, StringComparison.OrdinalIgnoreCase)
+                || role.Equals(FWO.Basics.Roles.Auditor, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool HasSelectableUserRole(ClaimsPrincipal user)
+        {
+            return ExecutionModeHelper.GetUserRoles(user).Any(role => !IsForcedExecutionMode(role) && !FWO.Basics.RoleGroups.IsTechnicalOrAnonymous(role));
         }
 
         public override void SwitchBack()
         {
-            if (prevRole != "")
+            if (previousRoles.TryPop(out string? previousRole))
             {
-                SetRole(prevRole);
+                SetRoleHeader(previousRole);
             }
         }
 
         private static bool HasAllowedRole(ClaimsPrincipal user, string role)
         {
-            if (user.IsInRole(role))
-            {
-                return true;
-            }
-
-            foreach (Claim claim in user.Claims.Where(currentClaim => IsHasuraAllowedRolesClaim(currentClaim.Type)))
-            {
-                if (claim.Value == role)
-                {
-                    return true;
-                }
-
-                if (TryParseAllowedRoles(claim.Value, out List<string> parsedRoles)
-                    && parsedRoles.Contains(role, StringComparer.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool IsHasuraAllowedRolesClaim(string claimType)
-        {
-            if (claimType.Equals("x-hasura-allowed-roles", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            return claimType.EndsWith("/x-hasura-allowed-roles", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static bool TryParseAllowedRoles(string claimValue, out List<string> parsedRoles)
-        {
-            parsedRoles = [];
-            if (string.IsNullOrWhiteSpace(claimValue))
-            {
-                return false;
-            }
-
-            try
-            {
-                string[]? roleArray = JsonSerializer.Deserialize<string[]>(claimValue);
-                if (roleArray == null)
-                {
-                    return false;
-                }
-                parsedRoles = roleArray.Where(role => !string.IsNullOrWhiteSpace(role)).ToList();
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
+            return ExecutionModeHelper.GetUserRoles(user).Contains(role, StringComparer.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -208,31 +240,18 @@ namespace FWO.Api.Client
 
                     throw new InvalidOperationException(errorMessage);
                 }
-                else
-                {
-                    // DEBUG
-                    // // string JsonResponse = JsonSerializer.Serialize(response, new JsonSerializerOptions { });
-                    // string JsonResponse = JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });
-                    // Log.WriteDebug("API Response", $"API response: { JsonResponse }");
 
-                    if (ApiConstants.UseSystemTextJsonSerializer)
-                    {
-                        // JsonElement.ObjectEnumerator responseObjectEnumerator = response.Data.EnumerateObject();
-                        // responseObjectEnumerator.MoveNext();
-                        // QueryResponseType returnValue = JsonSerializer.Deserialize<QueryResponseType>(responseObjectEnumerator.Current.Value.GetRawText()) ??
-                        // throw new Exception($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {responseObjectEnumerator.Current.Value.GetRawText()}");
-                        // return returnValue;
-                    }
-                    else
-                    {
-                        JObject data = (JObject)response.Data;
-                        JProperty prop = (JProperty)(data.First ?? throw new InvalidOperationException($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
-                        JToken result = prop.Value;
-                        QueryResponseType returnValue = result.ToObject<QueryResponseType>() ??
-                            throw new InvalidOperationException($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {response.Data}");
-                        return returnValue;
-                    }
+                if (ApiConstants.UseSystemTextJsonSerializer)
+                {
+                    throw new NotImplementedException("System.Text.Json is not supported anymore.");
                 }
+
+                JObject data = (JObject)response.Data;
+                JProperty prop = (JProperty)(data.First ?? throw new InvalidOperationException($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
+                JToken result = prop.Value;
+                QueryResponseType returnValue = result.ToObject<QueryResponseType>() ??
+                    throw new InvalidOperationException($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {response.Data}");
+                return returnValue;
             }
 
             catch (Exception exception)

@@ -60,6 +60,7 @@ builder.Services.AddScoped<ApiConnection>(_ => new GraphQlApiConnection(ApiUri))
 builder.Services.AddScoped<MiddlewareClient>(_ => new MiddlewareClient(MiddlewareUri));
 builder.Services.AddScoped<ISessionStorage, SessionStorageWrapper>();
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<ExecutionModeStorage>();
 
 // Create "anonymous" (empty) jwt
 MiddlewareClient middlewareClient = new(MiddlewareUri);

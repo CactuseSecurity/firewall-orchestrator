@@ -73,7 +73,7 @@ else
             wfHandler.SetContinueEnv(ObjAction.implement);
             if(wfHandler.ActTicket.Tasks.Count > 0 && wfHandler.ActTicket.Tasks[0].ImplementationTasks.Count > 0)
             {
-                if(JumpedIn && authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
+                if(JumpedIn && userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor))
                 {
                     wfHandler.SelectImplTask(wfHandler.ActTicket.Tasks[0].ImplementationTasks[0], ObjAction.display);
                 }
@@ -150,7 +150,7 @@ else
     {
         try
         {
-            wfHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Implementer) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
+            wfHandler.ReadOnlyMode = !userConfig.CanUseAnyRole(Roles.Implementer, Roles.FwAdmin, Roles.Admin);
             await wfHandler.Init(true, userConfig.ReqOwnerBased ? Owners.ConvertAll(x => x.Id) : null, false, true);
         }
         catch (Exception exception)

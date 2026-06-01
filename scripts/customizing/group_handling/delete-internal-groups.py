@@ -46,7 +46,7 @@ def fwo_rest_api_call(
 
 # get JWT token from FWO REST API
 def get_jwt_token(user: str, password: str, api_url: str = DEFAULT_API_URL) -> str:
-    payload: dict[str, str] = {"Username": user, "Password": password}
+    payload: dict[str, Any] = {"Username": user, "Password": password}
     headers: dict[str, str] = {"content-type": "application/json"}
 
     endpoint: str = api_url + "AuthenticationToken/Get"

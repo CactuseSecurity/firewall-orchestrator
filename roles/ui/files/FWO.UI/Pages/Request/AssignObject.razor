@@ -41,7 +41,7 @@
                     }
                 </form>
                 @if(AssignBack != null && StatefulObject.RecentHandler != null && StatefulObject.RecentHandler.DbId != userConfig.User.DbId
-                    && (origAssignedGroup == userConfig.User.Dn /* || userConfig.User.Groups.Contains((new DistName(origAssignedGroup)).Group)*/ )) 
+                    && (DistName.DnEquals(origAssignedGroup, userConfig.User.Dn) /* || userConfig.User.Groups.Contains((new DistName(origAssignedGroup)).Group)*/ ))
                     // userConfig.User.Groups is currently not filled, because information may be available only in external Ldap
                 {
                     <form class="form-group row mt-2">
@@ -118,7 +118,7 @@
             firstTry = false;
             await InitGroupList();
             origAssignedGroup = StatefulObject.AssignedGroup ?? "";
-            selectedUserGroup = userAndGroupList.FirstOrDefault(x => x.Dn == StatefulObject.AssignedGroup);
+            selectedUserGroup = userAndGroupList.FirstOrDefault(x => DistName.DnEquals(x.Dn, StatefulObject.AssignedGroup));
         }
     }
 
@@ -148,7 +148,7 @@
                     List<UiUser> tmpList = await RoleAccess.GetRoleMembers(middlewareClient, role);
                     foreach(var elem in tmpList)
                     {
-                        if(!userAndGroupList.Any(x => x.Dn == elem.Dn))
+                        if(!userAndGroupList.Any(x => DistName.DnEquals(x.Dn, elem.Dn)))
                         {
                             userAndGroupList.Add(elem);
                         }

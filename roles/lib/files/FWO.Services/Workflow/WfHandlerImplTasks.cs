@@ -407,7 +407,7 @@ namespace FWO.Services.Workflow
             {
                 foreach (var implTask in reqTask.ImplementationTasks)
                 {
-                    bool assignedToMe = implTask.CurrentHandler?.DbId == userConfig.User.DbId || implTask.AssignedGroup == userConfig.User.Dn;  // todo: resolve group membership?
+                    bool assignedToMe = implTask.CurrentHandler?.DbId == userConfig.User.DbId || DistName.DnEquals(implTask.AssignedGroup, userConfig.User.Dn);  // todo: resolve group membership?
                     if (selectedOwnerOpt.Id == -1 || (selectedOwnerOpt.Id == -2 && assignedToMe)
                         || (selectedOwnerOpt.Id > 0 && reqTask.Owners.FirstOrDefault(o => o.Owner.Id == selectedOwnerOpt.Id) != null))
                     {

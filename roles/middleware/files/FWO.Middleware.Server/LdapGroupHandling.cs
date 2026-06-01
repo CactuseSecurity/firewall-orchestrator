@@ -61,7 +61,7 @@ namespace FWO.Middleware.Server
             {
                 return [];
             }
-            HashSet<string> dns = new(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> dns = new(DistName.DnComparer);
             foreach (string name in groupNames)
             {
                 if (string.IsNullOrWhiteSpace(name))
@@ -104,8 +104,8 @@ namespace FWO.Middleware.Server
                     string searchFilter = $"(&(objectClass=groupOfUniqueNames)(cn=*))";
                     ILdapSearchResults? allExistingGroupsAndRoles = await connection.SearchAsync(searchPath, searchScope, searchFilter, null, false);
 
-                    // convert dnList to lower case to avoid case problems
-                    dnList = dnList.ConvertAll(dn => dn.ToLower());
+                    HashSet<string> searchableDns = new(DistName.DnComparer);
+                    searchableDns.UnionWith(dnList.Where(dn => !string.IsNullOrWhiteSpace(dn)));
 
                     Log.WriteDebug("Ldap Roles/Groups", $"Try to get roles / groups from ldap");
 
@@ -121,10 +121,8 @@ namespace FWO.Middleware.Server
                         // Foreach user (member) of the current role/group:
                         foreach (string currentDn in memberDn.Where(dn => dn != "")) // ignore empty dn (could be caused by empty lines in LDAP)
                         {
-                            string currentUserDnEscapedLower = ConvertHexCommaToComma(currentDn.ToLower());
-
                             // Check if current user dn is matching with given user dn => Given user has current role / group
-                            if (dnList.Contains(currentUserDnEscapedLower))
+                            if (searchableDns.Contains(ConvertHexCommaToComma(currentDn)))
                             {
                                 // Get name and add it to list of roles / groups of given user
                                 string name = entry.Get("cn").StringValue;
@@ -365,14 +363,14 @@ namespace FWO.Middleware.Server
         /// <returns>List of resolved user DNs.</returns>
         public async Task<List<string>> ResolveUsersFromDns(IEnumerable<string> dns)
         {
-            HashSet<string> resolvedUsers = new(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> resolvedUsers = new(DistName.DnComparer);
             if (dns == null)
             {
                 return resolvedUsers.ToList();
             }
 
             Queue<string> groupQueue = new();
-            HashSet<string> visitedGroups = new(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> visitedGroups = new(DistName.DnComparer);
 
             foreach (string dn in dns)
             {

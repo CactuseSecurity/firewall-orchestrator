@@ -419,6 +419,10 @@ namespace FWO.Services.Workflow
             variables["requestAction"] = element.RequestAction;
             variables["taskId"] = element.TaskId;
             variables["deviceId"] = element.DeviceId;
+            variables["flowNwObjId"] = element.FlowNetworkObjectId;
+            variables["flowNwGrpId"] = element.FlowNetworkGroupId;
+            variables["flowSvcObjId"] = element.FlowServiceObjectId;
+            variables["flowSvcGrpId"] = element.FlowServiceGroupId;
             return variables;
         }
 

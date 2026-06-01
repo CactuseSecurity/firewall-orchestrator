@@ -207,7 +207,7 @@ namespace FWO.Services
                     NwObjHash = hash,
                     IpStart = obj.IP,
                     IpEnd = obj.IpEnd,
-                    State = "implemented",
+                    State = FlowState.Implemented,
                     RemovedDate = null,
                     ShowInRequestModule = true,
                     Name = useManagementNamesForFlow ? obj.Name : null
@@ -320,7 +320,7 @@ namespace FWO.Services
                     PortEnd = svc.DestinationPortEnd,
                     IpProtoId = svc.ProtoId!.Value,
                     SvcObjHash = hash,
-                    State = "implemented",
+                    State = FlowState.Implemented,
                     RemovedDate = null,
                     ShowInRequestModule = true
                 };
@@ -425,7 +425,7 @@ namespace FWO.Services
                     StartTime = timeObj.StartTime,
                     EndTime = timeObj.EndTime,
                     TimeObjHash = hash,
-                    State = "implemented",
+                    State = FlowState.Implemented,
                     RemovedDate = null,
                     ShowInRequestModule = true
                 };
@@ -535,7 +535,7 @@ namespace FWO.Services
                 {
                     Name = useManagementNamesForFlow ? group.Name : null,
                     NwGrpHash = hash,
-                    State = "implemented",
+                    State = FlowState.Implemented,
                     RemovedDate = null,
                     ShowInRequestModule = true,
                     NwGroupMembers = new FlowNwGroupInsertMembersContainer
@@ -649,7 +649,7 @@ namespace FWO.Services
                 {
                     SvcGrpHash = hash,
                     Name = useManagementNamesForFlow ? group.Name : null,
-                    State = "implemented",
+                    State = FlowState.Implemented,
                     RemovedDate = null,
                     ShowInRequestModule = true,
                     SvcGroupMembers = new FlowSvcGroupInsertMembersContainer
@@ -962,15 +962,15 @@ namespace FWO.Services
                     AccessHash = accessHash,
                     RequesterId = null,
                     OwnerId = rule.OwnerId,
-                    State = "implemented",
+                    State = FlowState.Implemented,
                     RemovedDate = null,
-                    AccessSources = BuildAccessMembersContainer(sourceIds.Select(id => new NwRef { NwObjId = id })),
-                    AccessSourceGroups = BuildAccessMembersContainer(sourceGroupIds.Select(id => new NwGroupRef { NwGroupId = id })),
-                    AccessDestinations = BuildAccessMembersContainer(destinationIds.Select(id => new NwRef { NwObjId = id })),
-                    AccessDestinationGroups = BuildAccessMembersContainer(destinationGroupIds.Select(id => new NwGroupRef { NwGroupId = id })),
-                    AccessServices = BuildAccessMembersContainer(serviceIds.Select(id => new SvcRef { SvcObjId = id })),
-                    AccessServiceGroups = BuildAccessMembersContainer(serviceGroupIds.Select(id => new SvcGroupRef { SvcGroupId = id })),
-                    AccessTimeObjects = BuildAccessMembersContainer(timeIds.Select(id => new TimeRef { TimeObjId = id }))
+                    AccessSources = FlowAccessInsertHelper.BuildMembersContainer(sourceIds.Select(id => new NwRef { NwObjId = id })),
+                    AccessSourceGroups = FlowAccessInsertHelper.BuildMembersContainer(sourceGroupIds.Select(id => new NwGroupRef { NwGroupId = id })),
+                    AccessDestinations = FlowAccessInsertHelper.BuildMembersContainer(destinationIds.Select(id => new NwRef { NwObjId = id })),
+                    AccessDestinationGroups = FlowAccessInsertHelper.BuildMembersContainer(destinationGroupIds.Select(id => new NwGroupRef { NwGroupId = id })),
+                    AccessServices = FlowAccessInsertHelper.BuildMembersContainer(serviceIds.Select(id => new SvcRef { SvcObjId = id })),
+                    AccessServiceGroups = FlowAccessInsertHelper.BuildMembersContainer(serviceGroupIds.Select(id => new SvcGroupRef { SvcGroupId = id })),
+                    AccessTimeObjects = FlowAccessInsertHelper.BuildMembersContainer(timeIds.Select(id => new TimeRef { TimeObjId = id }))
                 };
 
                 pendingAccessInserts.Add(accessHash, accessInsert);
@@ -1102,15 +1102,6 @@ namespace FWO.Services
             }
 
             return true;
-        }
-
-        /// <summary>
-        /// Wraps access member inserts into a container for the mutation input.
-        /// </summary>
-        private static FlowAccessInsertMembersContainer BuildAccessMembersContainer<T>(IEnumerable<T> items) where T : class
-        {
-            var list = items.ToList();
-            return new FlowAccessInsertMembersContainer { Data = [.. list.Cast<object>()] };
         }
 
         /// <summary>

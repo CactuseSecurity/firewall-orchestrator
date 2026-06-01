@@ -107,6 +107,30 @@ namespace FWO.Test
             Assert.That(response.Result, Is.Null);
         }
 
+        [Test]
+        public async Task SendQuerySafeAsync_ReturnsResult_WhenResponseContainsData()
+        {
+            const string json = "{\"data\":{\"test\":\"value\"}}";
+            using GraphQlApiConnection connection = CreateConnectionWithHandler(new StubHttpMessageHandler(_ => JsonResponse(json)));
+
+            ApiResponse<string> response = await connection.SendQuerySafeAsync<string>("query { test }");
+
+            Assert.That(response.HasErrors, Is.False);
+            Assert.That(response.Result, Is.EqualTo("value"));
+        }
+
+        [Test]
+        public async Task SendQuerySafeAsync_ReturnsError_WhenDataHasNoResultProperty()
+        {
+            const string json = "{\"data\":{}}";
+            using GraphQlApiConnection connection = CreateConnectionWithHandler(new StubHttpMessageHandler(_ => JsonResponse(json)));
+
+            ApiResponse<string> response = await connection.SendQuerySafeAsync<string>("query { test }");
+
+            Assert.That(response.HasErrors, Is.True);
+            Assert.That(response.Result, Is.Null);
+        }
+
         /// <summary>
         /// Exceptions thrown during transport are converted to ApiResponse errors.
         /// </summary>
@@ -121,6 +145,29 @@ namespace FWO.Test
             Assert.That(response.Errors, Is.Not.Null);
             Assert.That(response.Errors![0], Does.Contain("network down"));
             Assert.That(response.Result, Is.Null);
+        }
+
+        [Test]
+        public async Task SendQueryAsync_ReturnsResult_WhenResponseContainsData()
+        {
+            const string json = "{\"data\":{\"test\":\"value\"}}";
+            using GraphQlApiConnection connection = CreateConnectionWithHandler(new StubHttpMessageHandler(_ => JsonResponse(json)));
+
+            string result = await connection.SendQueryAsync<string>("query { test }");
+
+            Assert.That(result, Is.EqualTo("value"));
+        }
+
+        [Test]
+        public void SendQueryAsync_Throws_WhenGraphQlErrorsPresent()
+        {
+            const string json = "{\"errors\":[{\"message\":\"boom\"}]}";
+            using GraphQlApiConnection connection = CreateConnectionWithHandler(new StubHttpMessageHandler(_ => JsonResponse(json)));
+
+            InvalidOperationException? exception = Assert.ThrowsAsync<InvalidOperationException>(
+                async () => await connection.SendQueryAsync<string>("query { test }"));
+
+            Assert.That(exception!.Message, Does.Contain("boom"));
         }
     }
 }

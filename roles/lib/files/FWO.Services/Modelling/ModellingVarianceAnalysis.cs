@@ -39,7 +39,7 @@ namespace FWO.Services.Modelling
         private List<ModellingAppRole> allModelledAppRoles = [];
 
         private readonly Dictionary<int, List<ModellingAppRole>> allProdAppRoles = [];
-        private readonly Dictionary<int, Dictionary<int, long>> allExistingAppServersHashes = [];
+        private readonly Dictionary<int, Dictionary<ModellingAppServer, long>> allExistingAppServers = [];
         private readonly Dictionary<int, List<ModellingAppServer>> alreadyCreatedAppServers = [];
         private List<ModellingConnection> DeletedConns = [];
         private List<ModellingNetworkArea> AllAreas = [];

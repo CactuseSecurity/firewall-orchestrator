@@ -178,6 +178,12 @@ namespace FWO.Services.Workflow
                 case nameof(StateActionTypes.SendEmail):
                     await SendEmail(action, statefulObject, scope, owner, userGrpDn);
                     break;
+                case nameof(StateActionTypes.CreateFlow):
+                    await CreateFlow(action, statefulObject, scope, owner, ticketId);
+                    break;
+                case nameof(StateActionTypes.BundleTasks):
+                    await BundleTasks(action, statefulObject, scope, owner, ticketId);
+                    break;
                 case nameof(StateActionTypes.UpdateConnectionOwner):
                     await UpdateConnectionOwner(owner, ticketId);
                     break;
@@ -228,7 +234,8 @@ namespace FWO.Services.Workflow
                 OldStateId = statefulObject.StateChanged() ? statefulObject.ChangedFrom() : statefulObject.StateId,
                 NewStateId = statefulObject.StateId,
                 StateChangedByCreation = statefulObject.StateChangedByCreation(),
-                Phase = wfHandler.Phase.ToString()
+                Phase = wfHandler.Phase.ToString(),
+                ExecutionMode = wfHandler.userConfig.ExecutionMode
             };
         }
 
@@ -340,141 +347,123 @@ namespace FWO.Services.Workflow
             };
         }
 
-        public async Task CallExternal(WfStateAction action)
+        public async Task CreateFlow(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner, long? ticketId)
         {
-            // call external APIs with ExternalParams, e.g. for Compliance Check
+            if (!wfHandler.userConfig.ReqUseFlowDb)
+            {
+                Log.WriteInfo("Create Flow", $"Flow creation action '{action.Name}' skipped because Flow DB use is disabled.");
+                return;
+            }
+            if (scope == WfObjectScopes.ImplementationTask)
+            {
+                Log.WriteInfo("Create Flow", $"Flow creation action '{action.Name}' skipped for implementation task scope.");
+                return;
+            }
+
+            FlowDbCreator flowDbCreator = new(apiConnection);
+            bool? success = await flowDbCreator.CreateFlowInFlowDb(action, statefulObject, scope, owner, ticketId);
+            if (success != null)
+            {
+                ActionResultStateParams? resultStateParams = TryLoadActionResultStateParams(action.ExternalParams);
+                if (resultStateParams?.ConfirmUiMessage == true)
+                {
+                    wfHandler.DisplayMessage(null, wfHandler.userConfig.GetText("CreateFlow"),
+                        wfHandler.userConfig.GetText((bool)success ? "flow_creation_succeeded" : "flow_creation_failed"), !(bool)success);
+                }
+                await PromoteAfterActionResult(action.ExternalParams, (bool)success, statefulObject, scope);
+            }
         }
 
-        public async Task SendEmail(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner, string? userGrpDn = null)
+        public async Task BundleTasks(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner, long? ticketId)
         {
-            Log.WriteDebug("SendEmail", "Perform Action");
-            EmailActionParams? emailActionParams = null;
-            try
+            WfTicket? ticket = GetTicketForBundling(statefulObject, scope);
+            if (ticket == null)
             {
-                emailActionParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
-                List<FwoNotification> actionNotifications = await ResolveActionNotifications(emailActionParams);
-                int sentEmailCount = 0;
-                List<int> sentNotificationIds = [];
-                foreach (FwoNotification actionNotification in actionNotifications)
+                Log.WriteWarning("Bundle Tasks", $"Task bundling action '{action.Name}' found no ticket request tasks.");
+                return;
+            }
+
+            BundleTasksActionParams bundleParams = BundleTasksActionParams.FromExternalParams(action.ExternalParams);
+            Dictionary<long, string> bundleAssignments = new RequestTaskBundler().BuildBundleAssignments(ticket.Tasks, bundleParams.BundleType);
+            foreach (WfReqTask reqTask in ticket.Tasks.Where(task => task.Id > 0))
+            {
+                string currentBundleId = reqTask.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId);
+                if (bundleAssignments.TryGetValue(reqTask.Id, out string? newBundleId) && !string.IsNullOrWhiteSpace(newBundleId))
                 {
-                    await SetScope(statefulObject, scope, actionNotification);
-                    WorkflowEmailContent? workflowContent = await CreateWorkflowEmailContent(emailActionParams.AttachedContent, statefulObject, scope);
-                    EmailHelper emailHelper = new(apiConnection, wfHandler.MiddlewareClient, wfHandler.userConfig, wfHandler.DisplayMessage, UserGroups, useInMwServer, workflowRecipientResolver);
-                    await emailHelper.Init(ScopedUserTo, ScopedUserCc, ScopedUserBcc, ScopedUserEmailTo, ScopedUserEmailCc, ScopedUserEmailBcc);
-                    WfStatefulObject placeholderObject = WorkflowPlaceholderObject(statefulObject);
-                    if (await emailHelper.SendWorkflowActionEmail(actionNotification, statefulObject, owner, userGrpDn, workflowContent, placeholderObject))
+                    if (currentBundleId != newBundleId)
                     {
-                        ++sentEmailCount;
-                        if (actionNotification.Id > 0)
-                        {
-                            sentNotificationIds.Add(actionNotification.Id);
-                        }
+                        await wfHandler.SetAddInfoInReqTask(reqTask, AdditionalInfoKeys.FlowBundleId, newBundleId);
                     }
                 }
-                await UpdateSentNotificationTimestamps(sentNotificationIds);
-                Log.WriteInfo("SendEmail", $"Sent {sentEmailCount} workflow action email(s).");
-                DisplaySentEmailConfirmation(emailActionParams, sentEmailCount);
-            }
-            catch (Exception exc)
-            {
-                Log.WriteError("Send Email", $"Could not send email: ", exc);
-                if (emailActionParams?.ConfirmSentMail ?? false)
+                else if (!string.IsNullOrWhiteSpace(currentBundleId))
                 {
-                    wfHandler.DisplayMessage(exc, wfHandler.userConfig.GetText("send_email"), "", true);
+                    await wfHandler.RemoveAddInfoInReqTask(reqTask, AdditionalInfoKeys.FlowBundleId);
                 }
             }
+            Log.WriteInfo("Bundle Tasks", $"Bundled {bundleAssignments.Count} request tasks for flow creation.");
         }
 
-        private void DisplaySentEmailConfirmation(EmailActionParams emailActionParams, int sentEmailCount)
+        private WfTicket? GetTicketForBundling(WfStatefulObject statefulObject, WfObjectScopes scope)
         {
-            if (emailActionParams.ConfirmSentMail && sentEmailCount > 0)
+            if (scope == WfObjectScopes.Ticket && statefulObject is WfTicket ticket)
             {
-                wfHandler.DisplayMessage(null, wfHandler.userConfig.GetText("send_email"), $"{sentEmailCount}{wfHandler.userConfig.GetText("emails_sent")}", false);
+                return ticket;
             }
+            if (scope == WfObjectScopes.RequestTask && wfHandler.ActTicket.Tasks.Count > 0)
+            {
+                return wfHandler.ActTicket;
+            }
+            return null;
         }
 
-        private async Task UpdateSentNotificationTimestamps(List<int> notificationIds)
+        private async Task PromoteAfterActionResult(string externalParams, bool success, WfStatefulObject statefulObject, WfObjectScopes scope)
         {
-            List<int> distinctNotificationIds = [.. notificationIds.Where(id => id > 0).Distinct()];
-            if (distinctNotificationIds.Count == 0)
+            if (string.IsNullOrWhiteSpace(externalParams))
             {
                 return;
             }
 
+            ActionResultStateParams? resultStateParams = TryLoadActionResultStateParams(externalParams);
+            if (resultStateParams == null)
+            {
+                return;
+            }
+            int? toState = success ? resultStateParams.SuccessState : resultStateParams.ErrorState;
+            if (toState == null)
+            {
+                return;
+            }
+
+            if (states.FirstOrDefault(x => x.Id == toState) == null)
+            {
+                Log.WriteWarning("Action result state", $"Configured target state '{toState}' does not exist.");
+                return;
+            }
+
+            await wfHandler.AutoPromote(statefulObject, scope, toState);
+        }
+
+        private static ActionResultStateParams? TryLoadActionResultStateParams(string externalParams)
+        {
+            if (string.IsNullOrWhiteSpace(externalParams))
+            {
+                return new();
+            }
+
             try
             {
-                int affectedRows = (await apiConnection.SendQueryAsync<ReturnId>(NotificationQueries.updateNotificationsLastSent,
-                    new { ids = distinctNotificationIds, lastSent = DateTime.Now })).AffectedRows;
-                if (affectedRows != distinctNotificationIds.Count)
-                {
-                    Log.WriteWarning("SendEmail", $"Updated last_sent for {affectedRows} of {distinctNotificationIds.Count} workflow action notification(s).");
-                }
+                return JsonSerializer.Deserialize<ActionResultStateParams>(externalParams) ?? new();
             }
-            catch (Exception exc)
+            catch (JsonException exception)
             {
-                Log.WriteWarning("SendEmail", $"Could not update last_sent for workflow action notification(s): {exc.Message}");
-            }
-        }
-
-        private async Task<List<FwoNotification>> ResolveActionNotifications(EmailActionParams emailActionParams)
-        {
-            List<int> notificationIds = [.. emailActionParams.NotificationIds.Where(id => id > 0).Distinct()];
-            if (notificationIds.Count > 0)
-            {
-                List<FwoNotification> notifications = await apiConnection.SendQueryAsync<List<FwoNotification>>(NotificationQueries.getNotifications,
-                    new { client = NotificationClient.WfAction.ToString() });
-                List<FwoNotification> actionNotifications = [.. notifications.Where(n => notificationIds.Contains(n.Id))];
-                List<int> missingNotificationIds = [.. notificationIds.Except(actionNotifications.Select(n => n.Id))];
-                if (missingNotificationIds.Count > 0)
-                {
-                    throw new JsonException($"Referenced notification(s) '{string.Join(", ", missingNotificationIds)}' were not found.");
-                }
-                return actionNotifications;
-            }
-
-            return [emailActionParams.ToNotification()];
-        }
-
-        private async Task<WorkflowEmailContent?> CreateWorkflowEmailContent(EmailAttachedContent attachedContent, WfStatefulObject statefulObject, WfObjectScopes scope)
-        {
-            if (attachedContent != EmailAttachedContent.RequestedConnections)
-            {
+                Log.WriteWarning("Action result state", $"Configured action result parameters are invalid JSON. Skipping result-state promotion. {exception.Message}");
                 return null;
             }
-
-            return scope switch
-            {
-                WfObjectScopes.Ticket when statefulObject is WfTicket ticket => WorkflowEmailContent.FromRequestTasks((await GetTicketForEmailContent(ticket)).Tasks, wfHandler.userConfig),
-                WfObjectScopes.RequestTask when statefulObject is WfReqTask reqTask => WorkflowEmailContent.FromRequestTasks([reqTask], wfHandler.userConfig),
-                WfObjectScopes.ImplementationTask when statefulObject is WfImplTask implTask => WorkflowEmailContent.FromImplementationTasks([implTask], wfHandler.userConfig),
-                WfObjectScopes.Approval when wfHandler.ActReqTask.Id > 0 => WorkflowEmailContent.FromRequestTasks([wfHandler.ActReqTask], wfHandler.userConfig),
-                _ => null
-            };
         }
 
-        private async Task<WfTicket> GetTicketForEmailContent(WfTicket ticket)
+        public async Task CallExternal(WfStateAction action)
         {
-            if (ticket.Id <= 0)
-            {
-                return ticket;
-            }
-
-            try
-            {
-                WfTicket fullTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { id = ticket.Id });
-                fullTicket.UpdateCidrsInTaskElements();
-                return fullTicket.Id > 0 ? fullTicket : ticket;
-            }
-            catch (Exception exc)
-            {
-                Log.WriteWarning("SendEmail", $"Could not load full ticket {ticket.Id} for workflow email content. Falling back to current ticket data. {exc.Message}");
-                return ticket;
-            }
-        }
-
-        private WfStatefulObject WorkflowPlaceholderObject(WfStatefulObject statefulObject)
-        {
-            return wfHandler.ActTicket.Id > 0 ? wfHandler.ActTicket : statefulObject;
+            // call external APIs with ExternalParams, e.g. for Compliance Check
         }
 
         public async Task SetAlert(string? description)
@@ -498,106 +487,6 @@ namespace FWO.Services.Workflow
             {
                 Log.WriteError("Write Alert", $"Could not write Alert for Workflow: ", exc);
             }
-        }
-
-        private async Task<int?> GetAutoPromoteTargetState(string externalParams, WfStatefulObject statefulObject, WfObjectScopes scope)
-        {
-            if (!WfStateAction.TryParseAutoPromoteParams(externalParams, out int? toState, out ConditionalAutoPromoteParams? conditionalParams))
-            {
-                throw new JsonException("Extparams could not be parsed.");
-            }
-
-            if (conditionalParams == null)
-            {
-                return toState;
-            }
-
-            return await EvaluateConditionalAutoPromote(conditionalParams, statefulObject, scope) ? conditionalParams.IfCompliantState : conditionalParams.IfNotCompliantState;
-        }
-
-        private Task<bool> EvaluateConditionalAutoPromote(ConditionalAutoPromoteParams conditionalParams, WfStatefulObject statefulObject, WfObjectScopes scope)
-        {
-            return conditionalParams.ToBeCalled switch
-            {
-                ToBeCalled.PolicyCheck => ExecutePolicyCheck(conditionalParams.PolicyIds, conditionalParams.CheckResultLabel, statefulObject, scope),
-                _ => Task.FromResult(false)
-            };
-        }
-
-        private async Task<bool> ExecutePolicyCheck(IEnumerable<int> selectedPolicyIds, string checkResultLabel, WfStatefulObject statefulObject, WfObjectScopes scope)
-        {
-            try
-            {
-                List<WfReqTask> requestedRuleTasks = GetRequestedRuleTasksForCallingTicket(statefulObject, scope);
-                if (requestedRuleTasks.Count == 0)
-                {
-                    return false;
-                }
-
-                if (requestedRulePolicyChecker == null)
-                {
-                    return false;
-                }
-
-                bool isCompliant = await requestedRulePolicyChecker.AreRequestTasksCompliant(selectedPolicyIds, requestedRuleTasks);
-                await AttachPolicyCheckResultLabel(requestedRuleTasks, checkResultLabel, isCompliant);
-                return isCompliant;
-            }
-            catch (Exception exc)
-            {
-                Log.WriteError("Policy Check", "Conditional compliance evaluation failed.", exc);
-                return false;
-            }
-        }
-
-        private async Task AttachPolicyCheckResultLabel(IEnumerable<WfReqTask> requestTasks, string checkResultLabel, bool isCompliant)
-        {
-            if (string.IsNullOrWhiteSpace(checkResultLabel))
-            {
-                return;
-            }
-
-            foreach (WfReqTask requestTask in requestTasks)
-            {
-                await wfHandler.SetAddInfoInReqTask(requestTask, checkResultLabel.Trim(), isCompliant.ToString().ToLowerInvariant());
-            }
-        }
-
-        private List<WfReqTask> GetRequestedRuleTasksForCallingTicket(WfStatefulObject statefulObject, WfObjectScopes scope)
-        {
-            WfTicket? ticket = GetCallingTicket(statefulObject, scope);
-            if (ticket == null)
-            {
-                return [];
-            }
-
-            return ticket.Tasks
-                .Where(task => task.ManagementId != null)
-                .Where(task => task.GetNwObjectElements(ElemFieldType.source).Count > 0)
-                .Where(task => task.GetNwObjectElements(ElemFieldType.destination).Count > 0)
-                .Where(task => task.GetServiceElements().Count > 0)
-                .ToList();
-        }
-
-        private WfTicket? GetCallingTicket(WfStatefulObject statefulObject, WfObjectScopes scope)
-        {
-            if (scope == WfObjectScopes.Ticket && statefulObject is WfTicket ticket)
-            {
-                return ticket;
-            }
-
-            if (wfHandler.ActTicket.Tasks.Count > 0)
-            {
-                return wfHandler.ActTicket;
-            }
-
-            return scope switch
-            {
-                WfObjectScopes.RequestTask when statefulObject is WfReqTask reqTask => new WfTicket { Tasks = [reqTask] },
-                WfObjectScopes.ImplementationTask when wfHandler.ActReqTask.Id > 0 => new WfTicket { Tasks = [wfHandler.ActReqTask] },
-                WfObjectScopes.Approval when wfHandler.ActReqTask.Id > 0 => new WfTicket { Tasks = [wfHandler.ActReqTask] },
-                _ => null
-            };
         }
 
         private List<WfStateAction> GetRelevantActions(WfStatefulObject statefulObject, WfObjectScopes scope, bool toState = true)

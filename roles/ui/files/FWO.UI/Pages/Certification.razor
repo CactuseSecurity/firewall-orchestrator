@@ -45,7 +45,7 @@
         <input type="text" class="form-control form-control-sm" @bind="recertLookAheadDays" />
         <br>
         <h5 class="text-left">@(userConfig.GetText("owner")):</h5>
-        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
+        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
             <Authorized>
                 <div class="p-3">
                     <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true"
@@ -71,7 +71,7 @@
                     <input type="text" class="form-control form-control-sm" readonly value="@selectedOwner.Name" />
                 }
             </NotAuthorized>
-        </AuthorizeView>
+        </ExecutionModeAuthorizeView>
     </div>
 
     <ManagementSelection @bind-DeviceFilter="deviceFilter" />
@@ -84,7 +84,7 @@
     <div class="btn-group sticky-marker-60">
         @if (CanWriteSelectedOwner())
         {
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}")">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}")">
                 <Authorized>
                     @if (rulesFound)
                     {
@@ -101,7 +101,7 @@
                     <button type="button" class="btn btn-sm btn-danger"
                             disabled>@(userConfig.GetText("execute_selected"))</button>
                 </NotAuthorized>
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
         }
     </div>
     @if (ShowNoRecertifiableOwnersHint())
@@ -207,8 +207,8 @@
 
     private async Task CollectOwnerships()
     {
-        bool isAdmin = authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
-        bool isAuditor = authenticationStateTask.Result.User.IsInRole(Roles.Auditor);
+        bool isAdmin = userConfig.CanUseAnyRole(Roles.Admin);
+        bool isAuditor = userConfig.CanUseAnyRole(Roles.Auditor);
         if (isAdmin || isAuditor)
         {
             collectedOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
@@ -446,16 +446,16 @@
 
     private bool CanWriteSelectedOwner()
     {
-        bool isAdmin = authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
-        bool hasRecertifierRole = authenticationStateTask.Result.User.IsInRole(Roles.Recertifier);
+        bool isAdmin = userConfig.CanUseAnyRole(Roles.Admin);
+        bool hasRecertifierRole = userConfig.CanUseAnyRole(Roles.Recertifier);
 
         return RecertificationOwnerSelection.CanWriteSelectedOwner(selectedOwner, isAdmin, hasRecertifierRole, recertifiableOwnerIds);
     }
 
     private bool ShowNoRecertifiableOwnersHint()
     {
-        bool isAdmin = authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
-        bool hasRecertifierRole = authenticationStateTask.Result.User.IsInRole(Roles.Recertifier);
+        bool isAdmin = userConfig.CanUseAnyRole(Roles.Admin);
+        bool hasRecertifierRole = userConfig.CanUseAnyRole(Roles.Recertifier);
         return RecertificationOwnerSelection.ShowNoRecertifiableOwnersHint(
             isAdmin,
             hasRecertifierRole,

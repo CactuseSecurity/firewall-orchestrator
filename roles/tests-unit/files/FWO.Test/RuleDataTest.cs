@@ -1,4 +1,5 @@
 using FWO.Data;
+using FWO.Data.Workflow;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
@@ -124,6 +125,36 @@ namespace FWO.Test
             Assert.That(timeObject.FlowActive, Is.True);
             Assert.That(timeObject.FlowTimeObject, Is.Not.Null);
             Assert.That(timeObject.FlowTimeObject!.Id, Is.EqualTo(5003));
+        }
+
+        [Test]
+        public void WorkflowRequestFlowLinkFields_AreDeserialized()
+        {
+            const string serialized = """
+                {
+                    "id": 6001,
+                    "flow_access_id": 7001,
+                    "elements": [
+                        {
+                            "id": 6002,
+                            "flow_nwobj_id": 7002,
+                            "flow_nwgrp_id": 7003,
+                            "flow_svcobj_id": 7004,
+                            "flow_svcgrp_id": 7005
+                        }
+                    ]
+                }
+                """;
+
+            WfReqTask? reqTask = JsonConvert.DeserializeObject<WfReqTask>(serialized);
+
+            Assert.That(reqTask, Is.Not.Null);
+            Assert.That(reqTask!.FlowAccessId, Is.EqualTo(7001));
+            Assert.That(reqTask.Elements, Has.Count.EqualTo(1));
+            Assert.That(reqTask.Elements[0].FlowNetworkObjectId, Is.EqualTo(7002));
+            Assert.That(reqTask.Elements[0].FlowNetworkGroupId, Is.EqualTo(7003));
+            Assert.That(reqTask.Elements[0].FlowServiceObjectId, Is.EqualTo(7004));
+            Assert.That(reqTask.Elements[0].FlowServiceGroupId, Is.EqualTo(7005));
         }
     }
 }

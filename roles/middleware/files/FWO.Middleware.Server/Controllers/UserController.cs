@@ -6,6 +6,7 @@ using FWO.Data.Middleware;
 using FWO.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace FWO.Middleware.Server.Controllers
 {
@@ -224,7 +225,7 @@ namespace FWO.Middleware.Server.Controllers
         public async Task<ActionResult<string>> ChangePassword([FromBody] UserChangePasswordParameters parameters)
         {
             // the demo user (currently auditor) can't change his password
-            if (User.IsInRole(Roles.Auditor))
+            if (CallerCanUseRole(User, parameters.ExecutionMode, Roles.Auditor))
                 return Unauthorized();
 
             UiUser user = await ResolveUser(parameters.UserId) ?? throw new ArgumentException(WrongUserId);
@@ -249,6 +250,11 @@ namespace FWO.Middleware.Server.Controllers
 
             // Return status and result
             return errorMsg;
+        }
+
+        private static bool CallerCanUseRole(ClaimsPrincipal user, string executionMode, string role)
+        {
+            return ExecutionModeHelper.HasAnyRoleInExecutionMode(ExecutionModeHelper.GetUserRoles(user), executionMode, [role]);
         }
 
         // GET: api/<ValuesController>

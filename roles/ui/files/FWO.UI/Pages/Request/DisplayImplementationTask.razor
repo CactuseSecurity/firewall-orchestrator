@@ -527,6 +527,11 @@
 
     private async Task PerformAction(WfStateAction action)
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
+        WorkInProgress = true;
         try
         {
             if(WfHandler.ActionHandler != null)
@@ -537,6 +542,10 @@
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("action"), "", true);
+        }
+        finally
+        {
+            WorkInProgress = false;
         }
     }
 
@@ -553,14 +562,24 @@
 
     private async Task AssignOwner()
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
         WorkInProgress = true;
-        await InvokeAsync(StateHasChanged);
-        SetChangedOwner();
-        await WfHandler.ChangeOwner();
-        actOwner = WfHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
-        newOwnerAssigned = true;
-        assignOwnerMode = false;
-        WorkInProgress = false;
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+            SetChangedOwner();
+            await WfHandler.ChangeOwner();
+            actOwner = WfHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
+            newOwnerAssigned = true;
+            assignOwnerMode = false;
+        }
+        finally
+        {
+            WorkInProgress = false;
+        }
     }
 
     private void InitAddComment()
@@ -643,6 +662,10 @@
 
     private async Task SaveImplTask()
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
         WorkInProgress = true;
         await InvokeAsync(StateHasChanged);
         try
@@ -677,7 +700,10 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("save_task"), "", true);
         }
-        WorkInProgress = false;
+        finally
+        {
+            WorkInProgress = false;
+        }
     }
 
     private void SetChangedOwner()

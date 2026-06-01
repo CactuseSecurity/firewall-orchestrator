@@ -482,6 +482,7 @@
 {
     <EditConnPopup @bind-Display="WfHandler.ActionHandler.DisplayConnectionMode" ConnHandler="WfHandler.ActionHandler.ConnHandler"/>
 }
+<InProgress Display="WorkInProgress"/>
 
 
 @code
@@ -538,6 +539,7 @@
     private string? actGrpName;
     private bool grpTypeSvc = false;
     private bool firstParamSet = false;
+    private bool WorkInProgress = false;
     private List<Management> managements = [];
     private Management? actManagement;
     private FwoOwner? actRequestingOwner;
@@ -753,6 +755,11 @@
 
     private async Task PerformAction(WfStateAction action)
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
+        WorkInProgress = true;
         try
         {
             if(WfHandler.ActionHandler != null)
@@ -769,6 +776,10 @@
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("action"), "", true);
+        }
+        finally
+        {
+            WorkInProgress = false;
         }
     }
 
@@ -817,15 +828,27 @@
 
     private async Task ConfApproveTask(WfStatefulObject approval)
     {
-        if (CanSaveReqTaskChanges())
+        if (WorkInProgress)
         {
-            if (!await PrepareReqTaskForSave())
-            {
-                return;
-            }
-            await WfHandler.ChangeReqTask();
+            return;
         }
-        await WfHandler.ApproveTask(approval);
+        WorkInProgress = true;
+        try
+        {
+            if (CanSaveReqTaskChanges())
+            {
+                if (!await PrepareReqTaskForSave())
+                {
+                    return;
+                }
+                await WfHandler.ChangeReqTask();
+            }
+            await WfHandler.ApproveTask(approval);
+        }
+        finally
+        {
+            WorkInProgress = false;
+        }
     }
 
     private void InitAddComment()
@@ -910,6 +933,11 @@
 
     private async Task SaveReqTask()
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
+        WorkInProgress = true;
         try
         {
             if (await PrepareReqTaskForSave())
@@ -930,6 +958,10 @@
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("save_task"), "", true);
+        }
+        finally
+        {
+            WorkInProgress = false;
         }
     }
 

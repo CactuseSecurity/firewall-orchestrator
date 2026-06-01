@@ -93,6 +93,10 @@
 
     private async Task SendRequest()
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
         WorkInProgress = true;
         try
         {
@@ -120,7 +124,10 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("add_new_request"), "", true);
         }
-        WorkInProgress = false;
+        finally
+        {
+            WorkInProgress = false;
+        }
     }
 
     private bool CheckInput()

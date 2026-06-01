@@ -368,6 +368,10 @@
 
     private async Task StartRequests()
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
         WorkInProgress = true;
         try
         {

@@ -9,7 +9,7 @@
 <Sidebar PositionLeft="true" Collapsible="true" Resizeable="true" @bind-Width="sidebarWidth">
     <div class="me-2 ms-2 mt-4 mb-4">
         <ul class="navbar-nav navbar-dark flex-column">
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")" Context="monitoringLayoutAuth">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
                 <li class="nav-item px-2">
                     <h5>@(userConfig.GetText("alerts"))</h5>
                 </li>
@@ -82,13 +82,13 @@
                 </li>
                 @if (userConfig.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications)
                 {
-                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")" Context="monitoringRequestsAuth">
+                    <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                         <li class="nav-item px-2">
                             <NavLink class="nav-link" href="monitoring/modelling_requests">
                                 <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling_request_status"))
                             </NavLink>
                         </li>
-                    </AuthorizeView>
+                    </ExecutionModeAuthorizeView>
                 }
                 <hr />
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5016"))">
@@ -105,7 +105,7 @@
                     </NavLink>
                 </li>
                 <hr />
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5014"))">
                 <h5>@(userConfig.GetText("personal"))</h5>
             </li>
@@ -114,13 +114,13 @@
                     <span class="@Icons.UiMessages"></span> @(userConfig.GetText("ui_messages"))
                 </NavLink>
             </li>
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")" Context="monitoringAllAuth">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="monitoring/monitor_all">
                         <span class="@Icons.Monitoring"></span> @(userConfig.GetText("all"))
                     </NavLink>
                 </li>
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
         </ul>
     </div>
 </Sidebar>

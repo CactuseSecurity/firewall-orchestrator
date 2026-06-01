@@ -347,6 +347,12 @@ else
             workInProgress = true;
             StateHasChanged();
 
+            if (!userConfig.CanUseAnyRole(Roles.Admin))
+            {
+                workInProgress = false;
+                return;
+            }
+
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin]);
             configData = await globalConfig.GetEditableConfig();
             selectableManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowSelectableManagements);

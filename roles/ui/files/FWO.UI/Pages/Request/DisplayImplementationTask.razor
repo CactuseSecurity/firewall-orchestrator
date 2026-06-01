@@ -302,25 +302,25 @@
                 <div class="btn-group">
                     @if (WfHandler.EditImplTaskMode)
                     {
-                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}, {Roles.FwAdmin}")">
+                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}, {Roles.FwAdmin}")">
                             <Authorized>
                                 <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveImplTask">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                             </Authorized>
                             <NotAuthorized>
                                 <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                             </NotAuthorized>
-                        </AuthorizeView>
+                        </ExecutionModeAuthorizeView>
                     }
                     else if ((WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode) && !newOwnerAssigned)
                     {
-                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
+                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
                             <Authorized>
                                 <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteImplTask">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.Save))</button>
                             </Authorized>
                             <NotAuthorized>
                                 <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                             </NotAuthorized>
-                        </AuthorizeView>
+                        </ExecutionModeAuthorizeView>
                     }
                     @if((WfHandler.EditImplTaskMode || WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode) && !newOwnerAssigned)
                     {
@@ -527,6 +527,11 @@
 
     private async Task PerformAction(WfStateAction action)
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
+        WorkInProgress = true;
         try
         {
             if(WfHandler.ActionHandler != null)
@@ -537,6 +542,10 @@
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("action"), "", true);
+        }
+        finally
+        {
+            WorkInProgress = false;
         }
     }
 
@@ -553,14 +562,24 @@
 
     private async Task AssignOwner()
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
         WorkInProgress = true;
-        await InvokeAsync(StateHasChanged);
-        SetChangedOwner();
-        await WfHandler.ChangeOwner();
-        actOwner = WfHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
-        newOwnerAssigned = true;
-        assignOwnerMode = false;
-        WorkInProgress = false;
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+            SetChangedOwner();
+            await WfHandler.ChangeOwner();
+            actOwner = WfHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
+            newOwnerAssigned = true;
+            assignOwnerMode = false;
+        }
+        finally
+        {
+            WorkInProgress = false;
+        }
     }
 
     private void InitAddComment()
@@ -643,6 +662,10 @@
 
     private async Task SaveImplTask()
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
         WorkInProgress = true;
         await InvokeAsync(StateHasChanged);
         try
@@ -677,7 +700,10 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("save_task"), "", true);
         }
-        WorkInProgress = false;
+        finally
+        {
+            WorkInProgress = false;
+        }
     }
 
     private void SetChangedOwner()

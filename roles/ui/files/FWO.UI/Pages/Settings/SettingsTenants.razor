@@ -118,7 +118,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin, fw-admin">
+            <ExecutionModeAuthorizeView Roles="admin, fw-admin">
                 <Authorized>
                     @if (addDeleteAllowed && !AddTenantMode)
                     {
@@ -134,7 +134,7 @@
                 <NotAuthorized>
                     <button type="button" class="btn btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized>
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary"
                 @onclick="() => LeaveModifyTenantMode(cancel:true)">@(userConfig.GetText("cancel"))</button>
         </div>
@@ -150,14 +150,14 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin">
+            <ExecutionModeAuthorizeView Roles="admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-success" @onclick="async () => await LeaveEditDevicesSelectedForTenantMode(cancel:false)" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized>
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="async () => await LeaveEditDevicesSelectedForTenantMode(cancel:true)">
                 @(userConfig.GetText("cancel"))
             </button>
@@ -214,7 +214,7 @@
     {
         try
         {
-            addDeleteAllowed = authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
+            addDeleteAllowed = userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor);
             await GetTenantsFromLdap();
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
         }

@@ -1,4 +1,4 @@
-﻿@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Modeller}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Modeller}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -35,14 +35,14 @@
             <div class="btn-group">
                 @if(ServiceHandler.IsOwner)
                 {
-                    <AuthorizeView Roles="@(AsAdmin? Roles.Admin : Roles.Modeller)">
+                    <ExecutionModeAuthorizeView Roles="@(AsAdmin? Roles.Admin : Roles.Modeller)">
                         <Authorized>
                             <button type="button" class="btn btn-sm btn-danger" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                         </Authorized>
                         <NotAuthorized>
                             <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                         </NotAuthorized> 
-                    </AuthorizeView>
+                    </ExecutionModeAuthorizeView>
                 }
                 else
                 {

@@ -1,6 +1,7 @@
 @using FWO.Ui.Services
 @using FWO.Compliance
 @using FWO.Middleware.Client
+@using FWO.Api.Client
 
 @page "/request/ticketsoverview"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Requester}")]
@@ -12,9 +13,13 @@
 <h3>@(userConfig.GetText("all_readonly"))</h3>
 <hr />
 
-@if(InitComplete)
+@if(InitComplete && accessAllowed)
 {
     <DisplayTicketTable Phase="WorkflowPhases.request" States="states" WfHandler="wfHandler" ResetParent="Reset"/>
+}
+else if(InitComplete)
+{
+    <div></div>
 }
 else
 {
@@ -33,12 +38,20 @@ else
     private WfStateDict states = new ();
     private List<int>? OwnerIds = null;
     private bool InitComplete = false;
+    private bool accessAllowed = true;
 
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            accessAllowed = userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Requester, Roles.Auditor);
+            if (!accessAllowed)
+            {
+                InitComplete = true;
+                return;
+            }
+
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Admin, Roles.FwAdmin, Roles.Requester, Roles.Auditor ]);
             await states.Init(apiConnection);
 
@@ -62,14 +75,9 @@ else
         {
             wfHandler.ReadOnlyMode = true;
             await wfHandler.Init(true, OwnerIds, true);
-            if(!userConfig.ReqOwnerBased)
+            if(!userConfig.ReqOwnerBased && userConfig.CanUseAnyRole(Roles.Requester) && !userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin))
             {
-                // Todo: put filtering into graphql query
-                if(authenticationStateTask!.Result.User.IsInRole(Roles.Requester) && 
-                    !(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin)))
-                {
-                    wfHandler.FilterForRequester();
-                }
+                wfHandler.FilterForRequester();
             }
         }
         catch (Exception exception)

@@ -133,7 +133,7 @@ namespace FWO.Test
             return new()
             {
                 ModIntegrationMode = ModIntegrationMode.WorkflowNotifications,
-                User = { Ownerships = [7] }
+                User = { Ownerships = [7], Roles = [Roles.Modeller] }
             };
         }
 

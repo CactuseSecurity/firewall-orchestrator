@@ -274,6 +274,44 @@ namespace FWO.Test
             Assert.That(userConfig.User.Dn, Is.EqualTo(TestApiConnection.TestUserDn));
         }
 
+        [Test]
+        public async Task RestoreAuthenticationState_RestoresStoredExecutionMode()
+        {
+            using RSA rsa = RSA.Create(2048);
+            RsaSecurityKey privateKey = new(rsa.ExportParameters(true));
+            RsaSecurityKey publicKey = new(rsa.ExportParameters(false));
+            JwtPrivateKeyField.SetValue(null, privateKey);
+            JwtPublicKeyField.SetValue(null, publicKey);
+
+            MockMiddlewareClient mockMiddlewareClient = new();
+            MockProtectedSessionStorage mockSessionStorage = new();
+            EventMediator eventMediator = new();
+            TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
+            ExecutionModeStorage executionModeStorage = new(mockSessionStorage);
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, executionModeStorage);
+            UserConfig userConfig = new();
+            TestApiConnection apiConnection = new();
+
+            string accessToken = GenerateJwtToken(privateKey, Roles.Admin, DateTime.UtcNow.AddMinutes(10), BuildJwtClaims(Roles.Admin, Roles.Modeller));
+            await tokenService.SetTokenPair(new TokenPair
+            {
+                AccessToken = accessToken,
+                RefreshToken = "refresh-token",
+                AccessTokenExpires = DateTime.UtcNow.AddMinutes(10),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(1)
+            });
+            await executionModeStorage.SetExecutionMode(Roles.Admin);
+
+            bool restored = await authStateProvider.RestoreAuthenticationState(apiConnection, mockMiddlewareClient, userConfig, new CircuitHandlerService(eventMediator));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(restored, Is.True);
+                Assert.That(apiConnection.SelectedExecutionMode, Is.EqualTo(Roles.Admin));
+                Assert.That(userConfig.ExecutionMode, Is.EqualTo(Roles.Admin));
+            });
+        }
+
         private static void SetAuthenticatedUser(AuthStateProvider authStateProvider, string userDn)
         {
             ClaimsIdentity identity = new(
@@ -313,14 +351,15 @@ namespace FWO.Test
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        private static List<Claim> BuildJwtClaims()
+        private static List<Claim> BuildJwtClaims(params string[] allowedRoles)
         {
+            string[] roles = allowedRoles.Length > 0 ? allowedRoles : [Roles.Reporter];
             return
             [
                 new Claim(JwtRegisteredClaimNames.UniqueName, "test-user"),
                 new Claim("x-hasura-uuid", TestApiConnection.TestUserDn),
                 new Claim("x-hasura-tenant-id", TestApiConnection.TestTenantId.ToString()),
-                new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(new[] { Roles.Reporter })),
+                new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(roles)),
                 new Claim("x-hasura-editable-owners", "{ 3,7 }"),
                 new Claim("x-hasura-recertifiable-owners", "{ 9 }")
             ];
@@ -330,6 +369,7 @@ namespace FWO.Test
         {
             internal const string TestUserDn = "cn=test-user,dc=example,dc=com";
             internal const int TestTenantId = 7;
+            internal string SelectedExecutionMode { get; private set; } = "";
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
@@ -361,6 +401,11 @@ namespace FWO.Test
 
             public override void SetAuthHeader(string jwt)
             { }
+
+            public override void SetExecutionMode(ClaimsPrincipal user, string role)
+            {
+                SelectedExecutionMode = role;
+            }
 
             public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
             {

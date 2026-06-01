@@ -30,14 +30,14 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.FwAdmin}")">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.FwAdmin}")">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="Perform">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                 </NotAuthorized> 
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Cancel">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>
@@ -94,7 +94,7 @@
         if (Promote)
         {
             possibleStates = StateMatrix.getAllowedTransitions(StatefulObject.StateId);
-            if(possibleStates.Count == 1 && !authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
+            if(possibleStates.Count == 1 && !userConfig.CanUseAnyRole(Roles.Auditor))
             {
                 int oldState = StatefulObject.StateId;
                 StatefulObject.StateId = possibleStates[0];

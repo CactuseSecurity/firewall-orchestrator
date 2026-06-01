@@ -1,4 +1,4 @@
-﻿@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Modeller}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Modeller}")]
 
 @inject UserConfig userConfig
 
@@ -16,14 +16,14 @@
             {
                 @if(Enabled)
                 {
-                    <AuthorizeView Roles="@AllowedRoles">
+                    <ExecutionModeAuthorizeView Roles="@AllowedRoles">
                         <Authorized>
                             <button type="button" class="btn btn-sm btn-danger" @onclick="Perform">@(DisplayService.DisplayButton(userConfig, Remove ? "remove" : "delete", Icons.Delete))</button>
                         </Authorized>
                         <NotAuthorized>
                             <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, Remove ? "remove" : "delete", Icons.Delete))</button>
                         </NotAuthorized> 
-                    </AuthorizeView>
+                    </ExecutionModeAuthorizeView>
                 }
                 else
                 {

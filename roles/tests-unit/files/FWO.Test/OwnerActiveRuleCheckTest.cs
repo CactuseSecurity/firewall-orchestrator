@@ -127,7 +127,7 @@ namespace FWO.Test
             public Dictionary<int, List<Rule>> ActiveRulesByOwnerId { get; } = [];
             public List<FwoOwner> Owners { get; set; } = [];
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == OwnerQueries.getOwners)
                 {

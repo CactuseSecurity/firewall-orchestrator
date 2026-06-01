@@ -18,7 +18,7 @@ namespace FWO.Test
         {
             public WfTicket Ticket { get; set; } = new();
 
-            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null)
+            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == RequestQueries.getTicketById)
                 {

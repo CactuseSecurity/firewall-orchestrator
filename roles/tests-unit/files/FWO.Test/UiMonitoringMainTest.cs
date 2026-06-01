@@ -101,7 +101,7 @@ namespace FWO.Test
         public int AcknowledgeAllCalls { get; private set; }
         public int AckAllAffectedRows { get; set; } = 1;
 
-        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
             if (typeof(QueryResponseType) == typeof(ReturnId))
             {

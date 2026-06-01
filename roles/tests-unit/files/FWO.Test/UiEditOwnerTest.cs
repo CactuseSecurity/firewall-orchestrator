@@ -414,7 +414,7 @@ namespace FWO.Test
 
     internal sealed class EditOwnerTestApiConn : SimulatedApiConnection
     {
-        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
             if (query == OwnerQueries.getNetworkOwnerships)
             {

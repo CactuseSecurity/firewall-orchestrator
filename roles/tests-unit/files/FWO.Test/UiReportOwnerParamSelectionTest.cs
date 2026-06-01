@@ -16,7 +16,7 @@ namespace FWO.Test
     {
         private sealed class ThrowingOwnerParamApiConn : SimulatedApiConnection
         {
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 throw new InvalidOperationException("field 'owner_lifecycle_state' not found in type: 'query_root'");
             }

@@ -148,7 +148,7 @@
                         <span class="@Icons.Settings"></span> @(userConfig.GetText("customizing"))
                     </NavLink>
                 </li>
-                <AuthorizeView Roles="@($"{Roles.Admin}")">
+                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}")">
                     <hr />
                     <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5011"))">
                         <h5>@(userConfig.GetText("flow"))</h5>
@@ -158,7 +158,7 @@
                             <span class="@Icons.Settings"></span> @(userConfig.GetText("network_objects"))
                         </NavLink>
                     </li>
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
                 <hr />
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5013"))">
                     <h5>@(userConfig.GetText("defaults"))</h5>

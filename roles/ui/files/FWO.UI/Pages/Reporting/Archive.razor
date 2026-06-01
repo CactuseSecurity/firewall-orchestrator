@@ -43,7 +43,7 @@
                         {
                             <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { Exporting = true; await GetGeneratedReportContent(context.Id); ShowDownloadReportFileDialog = true; Exporting = false; }">
                                 @(DisplayService.DisplayButton(userConfig, "download", Icons.Download))</button>
-                            @if (!context.ReadOnly && (context.OwningUserId == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)))
+                            @if (!context.ReadOnly && (context.OwningUserId == userConfig.User.DbId || userConfig.CanUseAnyRole(Roles.Admin)))
                             {
                                 <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportFileContext = context; ShowDeleteReportFileDialog = true; }">
                                     @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
@@ -103,7 +103,7 @@
     private bool ShowDeleteReportFileDialog = false;
     private bool ShowDownloadReportFileDialog = false;
     private bool Exporting = false;
-    private ReportVisibility reportVisibility => RoleGroups.GetReportVisibility(authenticationStateTask!.Result.User);
+    private ReportVisibility reportVisibility => userConfig.GetReportVisibility();
 
 
     protected override async Task OnInitializedAsync()
@@ -156,7 +156,9 @@
 
     private void SetVisibleReportTypes()
     {
-        visibleReportTypes = [.. ReportTypeGroups.ReportTypeSelection(reportVisibility).Where(v => visibleReports.Any(r => r.Type == (int)v))];
+        visibleReportTypes = [.. ReportTypeGroups.ReportTypeSelection(reportVisibility)
+            .Where(v => visibleReports.Any(r => r.Type == (int)v)
+                && userConfig.CanUseReportType(v))];
     }
 
     private string DisplayArchiveReportType(ReportType reportType)

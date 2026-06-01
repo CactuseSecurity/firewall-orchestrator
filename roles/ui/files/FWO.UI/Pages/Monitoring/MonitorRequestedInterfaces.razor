@@ -53,7 +53,7 @@
         </div>
         <PageSizeComponent PageSize="20" PageSizeCallback="UpdatePageSize"></PageSizeComponent>
         <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
-               TableItem="RequestedInterfaceRow" Items="FilteredRequestedInterfaces" PageSize="PageSize" ColumnReorder="true">
+               TableItem="RequestedInterfaceRow" Items="GetFilteredRequestedInterfaces().ToList()" PageSize="PageSize" ColumnReorder="true">
             <Column TableItem="RequestedInterfaceRow" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group btn-group-sm" role="group">
@@ -175,8 +175,10 @@ else
     private bool InitComplete = false;
     private int PageSize { get; set; }
     private bool ShowRemovedRequestedInterfaces { get; set; } = false;
-    private string SelectedTicketStateFilter { get; set; } = "all";
-    private List<string> TicketStateFilterOptions { get; set; } = ["all", "all_open"];
+    private const string TicketStateFilterAll = "all";
+    private const string TicketStateFilterAllOpen = "all_open";
+    private string SelectedTicketStateFilter { get; set; } = TicketStateFilterAll;
+    private List<string> TicketStateFilterOptions { get; set; } = [TicketStateFilterAll, TicketStateFilterAllOpen];
     private ModellingConnectionHandler? DisplayConnHandler { get; set; }
     private bool ShowDisplayPopup { get; set; } = false;
     private ModellingConnectionHandler? RejectConnHandler { get; set; }
@@ -187,7 +189,7 @@ else
     private WfHandler wfHandler = new();
     private WfStateDict states = new();
     private bool WorkInProgress = false;
-    private List<RequestedInterfaceRow> OpenRemovedRequestedRows => [.. FilteredRequestedInterfaces
+    private List<RequestedInterfaceRow> OpenRemovedRequestedRows => [.. GetFilteredRequestedInterfaces()
         .Where(row => row.Connection.Removed && row.IsOpen && row.TicketId != null)];
 
     private List<long> OpenRemovedTicketIds => [.. OpenRemovedRequestedRows
@@ -252,17 +254,19 @@ else
         PageSize = pageSize;
     }
 
-    private List<RequestedInterfaceRow> FilteredRequestedInterfaces =>
-        SelectedTicketStateFilter switch
+    private IEnumerable<RequestedInterfaceRow> GetFilteredRequestedInterfaces()
+    {
+        return SelectedTicketStateFilter switch
         {
-            "all" => RequestedInterfaceRows,
-            "all_open" => RequestedInterfaceRows.Where(row => row.IsOpen).ToList(),
-            _ => RequestedInterfaceRows.Where(row => row.TicketState == SelectedTicketStateFilter).ToList()
+            TicketStateFilterAll => RequestedInterfaceRows,
+            TicketStateFilterAllOpen => RequestedInterfaceRows.Where(row => row.IsOpen),
+            _ => RequestedInterfaceRows.Where(row => row.TicketState == SelectedTicketStateFilter)
         };
+    }
 
     private void UpdateTicketStateFilter(string selectedState)
     {
-        SelectedTicketStateFilter = string.IsNullOrWhiteSpace(selectedState) ? "all" : selectedState;
+        SelectedTicketStateFilter = string.IsNullOrWhiteSpace(selectedState) ? TicketStateFilterAll : selectedState;
     }
 
     private void RebuildTicketStateFilterOptions()
@@ -274,10 +278,10 @@ else
             .OrderBy(state => state)
             .ToList();
 
-        TicketStateFilterOptions = ["all", "all_open", .. usedStateNames];
+        TicketStateFilterOptions = [TicketStateFilterAll, TicketStateFilterAllOpen, .. usedStateNames];
         if (!TicketStateFilterOptions.Contains(SelectedTicketStateFilter))
         {
-            SelectedTicketStateFilter = "all";
+            SelectedTicketStateFilter = TicketStateFilterAll;
         }
     }
 
@@ -285,8 +289,8 @@ else
     {
         return value switch
         {
-            "all" => userConfig.GetText("all"),
-            "all_open" => userConfig.GetText("all_open"),
+            TicketStateFilterAll => userConfig.GetText("all"),
+            TicketStateFilterAllOpen => userConfig.GetText("all_open"),
             _ => value
         };
     }
@@ -450,6 +454,10 @@ else
 
     private async Task RejectRemovedInterfaceTickets()
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
         try
         {
             WorkInProgress = true;

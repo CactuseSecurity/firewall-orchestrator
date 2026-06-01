@@ -47,14 +47,14 @@
         <div class="btn-group">
             @if(selectedObject != null)
             {
-                <AuthorizeView Roles="@(CommonAreaMode || SpecUserMode || UpdObjMode ? Roles.Admin : Roles.Modeller)">
+                <ExecutionModeAuthorizeView Roles="@(CommonAreaMode || SpecUserMode || UpdObjMode ? Roles.Admin : Roles.Modeller)">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-success" @onclick="AddObject">@(DisplayService.DisplayButton(userConfig, "select", Icons.Select))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, "select", Icons.Select))</button>
                     </NotAuthorized>
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
             }
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>

@@ -8,7 +8,7 @@
     <Body>
         @if (Display)
         {
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                 <Authorized>
                     <div class="form-group row">
                         <label for="cbx_show_all" class="col-form-label col-sm-2">@(userConfig.GetText("show_all")):</label>
@@ -21,7 +21,7 @@
                         </div>
                     </div>
                 </Authorized>
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
             <Table PageSize="PageSize" class="table table-bordered th-bg-secondary table-responsive sticky-header" TableItem="ModellingHistoryEntry" Items="history">
                 <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("application"))" Field="@(x => x.AppId)" Sortable="true" Filterable="true">

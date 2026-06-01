@@ -34,14 +34,14 @@
                             @if (userConfig.AllowManualOwnerAdmin)
                             {
                                 <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditLifeCyle(item)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
-                                <AuthorizeView Roles="@Roles.Admin" Context="ctx">
-                                    <Authorized>
+                                <ExecutionModeAuthorizeView Roles="@Roles.Admin" Context="ctx">
+                                    <Authorized Context="authState">
                                         <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteLifeCycle(item)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                     </Authorized>
-                                    <NotAuthorized>
+                                    <NotAuthorized Context="authState">
                                         <button type="button" disabled class="btn btn-sm btn-danger">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                     </NotAuthorized>
-                                </AuthorizeView>
+                                </ExecutionModeAuthorizeView>
                             }
                         </div>
                     </Template>
@@ -88,14 +88,14 @@ else
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@Roles.Admin">
+            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="SaveLifeCycle">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                 </NotAuthorized>
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelEditLifeCycle">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>

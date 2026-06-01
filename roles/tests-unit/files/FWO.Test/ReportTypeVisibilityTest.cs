@@ -1,5 +1,5 @@
-using System.Security.Claims;
 using FWO.Basics;
+using FWO.Config.Api;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -11,7 +11,7 @@ namespace FWO.Test
         [Test]
         public void GetReportVisibility_ModellerOnly_HidesComplianceAndWorkflowReports()
         {
-            ReportVisibility visibility = RoleGroups.GetReportVisibility(BuildPrincipal(Roles.Modeller));
+            ReportVisibility visibility = BuildUserConfig(Roles.Modeller).GetReportVisibility();
 
             Assert.That(visibility.RuleRelated, Is.False);
             Assert.That(visibility.ModellingRelated, Is.True);
@@ -23,7 +23,7 @@ namespace FWO.Test
         [Test]
         public void CustomSortReportType_FiltersUnorderedComplianceAndArchiveOnlyReports()
         {
-            ReportVisibility visibility = RoleGroups.GetReportVisibility(BuildPrincipal(Roles.Modeller));
+            ReportVisibility visibility = BuildUserConfig(Roles.Modeller).GetReportVisibility();
             List<ReportType> sortedTypes = ReportTypeGroups.CustomSortReportType(
             [
                 ReportType.ComplianceReport,
@@ -39,7 +39,7 @@ namespace FWO.Test
         [Test]
         public void CustomSortReportType_ReporterDoesNotSeeModellingOverlapOrOwnerReports()
         {
-            ReportVisibility visibility = RoleGroups.GetReportVisibility(BuildPrincipal(Roles.Reporter));
+            ReportVisibility visibility = BuildUserConfig(Roles.Reporter).GetReportVisibility();
             List<ReportType> sortedTypes = ReportTypeGroups.CustomSortReportType(
             [
                 ReportType.Rules,
@@ -55,7 +55,7 @@ namespace FWO.Test
         [Test]
         public void CustomSortReportType_AdminSeesOwnersReport()
         {
-            ReportVisibility visibility = RoleGroups.GetReportVisibility(BuildPrincipal(Roles.Admin));
+            ReportVisibility visibility = BuildUserConfig(Roles.Admin).GetReportVisibility();
             List<ReportType> sortedTypes = ReportTypeGroups.CustomSortReportType(
             [
                 ReportType.Owners,
@@ -66,6 +66,31 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GetReportVisibility_UserRolesModeSuppressesAdminVisibilityWhenUserRoleExists()
+        {
+            UserConfig userConfig = BuildUserConfig(Roles.Admin, Roles.Modeller);
+
+            ReportVisibility visibility = userConfig.GetReportVisibility();
+
+            Assert.That(visibility.OwnerRelated, Is.False);
+            Assert.That(visibility.ComplianceRelated, Is.False);
+            Assert.That(visibility.ModellingRelated, Is.True);
+        }
+
+        [Test]
+        public void GetReportVisibility_AdminModeEnablesAdminVisibility()
+        {
+            UserConfig userConfig = BuildUserConfig(Roles.Admin, Roles.Modeller);
+            userConfig.SetExecutionMode(Roles.Admin);
+
+            ReportVisibility visibility = userConfig.GetReportVisibility();
+
+            Assert.That(visibility.OwnerRelated, Is.True);
+            Assert.That(visibility.ComplianceRelated, Is.True);
+            Assert.That(visibility.ModellingRelated, Is.True);
+        }
+
+        [Test]
         public void ReportTypeSelection_DoesNotContainArchiveOnlyReport()
         {
             List<ReportType> reportTypes = ReportTypeGroups.ReportTypeSelection(new(true, true, true, true, true));
@@ -73,15 +98,11 @@ namespace FWO.Test
             Assert.That(reportTypes, Does.Not.Contain(ReportType.RecertificationEvent));
         }
 
-        private static ClaimsPrincipal BuildPrincipal(params string[] roles)
+        private static UserConfig BuildUserConfig(params string[] roles)
         {
-            ClaimsIdentity identity = new(
-                roles.Select(role => new Claim(ClaimTypes.Role, role)),
-                authenticationType: "test",
-                nameType: ClaimTypes.Name,
-                roleType: ClaimTypes.Role);
-
-            return new ClaimsPrincipal(identity);
+            UserConfig userConfig = new();
+            userConfig.User.Roles = [.. roles];
+            return userConfig;
         }
     }
 }

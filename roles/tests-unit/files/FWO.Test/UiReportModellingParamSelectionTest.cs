@@ -31,7 +31,7 @@ namespace FWO.Test
             context.Services.AddSingleton<AuthenticationStateProvider>(new MonitoringTestAuthStateProvider(Roles.Admin));
             context.Services.AddSingleton<ApiConnection>(new ReportModellingParamSelectionTestApiConn());
             context.Services.AddScoped<DomEventService>();
-            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig { User = { Roles = [Roles.Admin] } });
 
             FwoOwner firstOwner = new() { Id = 11, Name = "App One" };
             FwoOwner secondOwner = new() { Id = 12, Name = "App Two" };

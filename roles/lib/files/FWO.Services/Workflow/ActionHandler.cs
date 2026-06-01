@@ -234,7 +234,8 @@ namespace FWO.Services.Workflow
                 OldStateId = statefulObject.StateChanged() ? statefulObject.ChangedFrom() : statefulObject.StateId,
                 NewStateId = statefulObject.StateId,
                 StateChangedByCreation = statefulObject.StateChangedByCreation(),
-                Phase = wfHandler.Phase.ToString()
+                Phase = wfHandler.Phase.ToString(),
+                ExecutionMode = wfHandler.userConfig.ExecutionMode
             };
         }
 

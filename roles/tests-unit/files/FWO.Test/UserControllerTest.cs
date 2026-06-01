@@ -1,7 +1,9 @@
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Middleware;
+using FWO.Middleware.Server;
 using FWO.Middleware.Server.Controllers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -391,8 +393,13 @@ namespace FWO.Test
 
         private static ClaimsPrincipal PrincipalWithRoles(params string[] roles)
         {
+            List<Claim> claims =
+            [
+                new("x-hasura-user-id", "1")
+            ];
+            claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
             return new ClaimsPrincipal(new ClaimsIdentity(
-                roles.Select(role => new Claim(ClaimTypes.Role, role)),
+                claims,
                 "test",
                 ClaimTypes.Name,
                 ClaimTypes.Role));

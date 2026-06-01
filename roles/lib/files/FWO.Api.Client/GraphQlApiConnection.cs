@@ -20,7 +20,8 @@ namespace FWO.Api.Client
 
         private GraphQLHttpClient graphQlClient = null!;
 
-        private readonly Stack<string> previousRoles = new();
+        private readonly AsyncLocal<List<string>?> roleStack = new();
+        private string defaultRole = "";
         private string forcedExecutionMode = "";
         private bool restrictElevatedRoleSwitches = false;
 
@@ -73,15 +74,14 @@ namespace FWO.Api.Client
                 throw new AuthenticationException($"Execution mode '{GlobalConst.kUserRolesSelection}' does not allow switching to role: {role}");
             }
 
-            previousRoles.Push(GetActRole());
-            SetRoleHeader(IsForcedExecutionMode(forcedExecutionMode) ? forcedExecutionMode : role);
+            PushRole(IsForcedExecutionMode(forcedExecutionMode) ? forcedExecutionMode : role);
         }
 
         private void ApplyExecutionMode(string role, bool restrictElevatedRoles)
         {
             forcedExecutionMode = IsForcedExecutionMode(role) ? role : "";
             restrictElevatedRoleSwitches = restrictElevatedRoles;
-            SetRoleHeader(role);
+            roleStack.Value = null;
         }
 
         public override void SetExecutionMode(ClaimsPrincipal user, string role)
@@ -103,15 +103,6 @@ namespace FWO.Api.Client
             return forcedExecutionMode == "" ? GlobalConst.kUserRolesSelection : forcedExecutionMode;
         }
 
-        private void SetRoleHeader(string role)
-        {
-            graphQlClient.HttpClient.DefaultRequestHeaders.Remove("x-hasura-role");
-            if (role != "")
-            {
-                graphQlClient.HttpClient.DefaultRequestHeaders.Add("x-hasura-role", role);
-            }
-        }
-
         public bool IsActRole(string role)
         {
             return role == GetActRole();
@@ -120,19 +111,17 @@ namespace FWO.Api.Client
         public string GetActRole()
         {
             List<string>? roles = roleStack.Value;
-            return roles == null || roles.Count == 0 ? defaultRole : roles[^1];
+            return roles == null || roles.Count == 0 ? GetBaselineRole() : roles[^1];
         }
 
         public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
         {
-            string actRole = GetActRole();
             bool includeElevatedRoles = !HasSelectableUserRole(user);
             string targetRole = IsForcedExecutionMode(user)
                 ? forcedExecutionMode
                 : GetFirstAllowedRole(user, targetRoleList, includeElevatedRoles)
                     ?? throw new AuthenticationException($"User has none of the required roles: {string.Join(", ", targetRoleList)}");
-            previousRoles.Push(actRole);
-            SetRoleHeader(targetRole);
+            PushRole(targetRole);
         }
 
         public override void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
@@ -159,17 +148,16 @@ namespace FWO.Api.Client
                 throw new AuthenticationException($"User has none of the required roles: {string.Join(", ", targetRoleList)}");
             }
 
-            previousRoles.Push(actRole);
-            SetRoleHeader(targetRole);
+            PushRole(targetRole);
         }
 
         private static string? GetFirstAllowedRole(ClaimsPrincipal user, List<string> targetRoleList, bool includeElevatedRoles)
         {
             foreach (string targetRole in targetRoleList)
             {
-                if ((includeElevatedRoles || !IsForcedExecutionMode(role)) && HasAllowedRole(user, role))
+                if ((includeElevatedRoles || !IsForcedExecutionMode(targetRole)) && HasAllowedRole(user, targetRole))
                 {
-                    return role;
+                    return targetRole;
                 }
             }
             return null;
@@ -189,6 +177,11 @@ namespace FWO.Api.Client
         private static bool HasSelectableUserRole(ClaimsPrincipal user)
         {
             return ExecutionModeHelper.GetUserRoles(user).Any(role => !IsForcedExecutionMode(role) && !FWO.Basics.RoleGroups.IsTechnicalOrAnonymous(role));
+        }
+
+        private string GetBaselineRole()
+        {
+            return IsForcedExecutionMode(forcedExecutionMode) ? forcedExecutionMode : defaultRole;
         }
 
         public override void SwitchBack()

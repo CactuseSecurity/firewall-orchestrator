@@ -21,7 +21,7 @@ namespace FWO.Test
         {
             public UiUser[] Users { get; set; } = [];
 
-            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null)
+            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == AuthQueries.getUsers)
                 {

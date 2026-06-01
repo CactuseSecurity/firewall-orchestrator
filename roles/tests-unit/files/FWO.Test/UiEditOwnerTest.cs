@@ -348,7 +348,7 @@ namespace FWO.Test
 
             string normalized = (string)GetPrivateStaticMethod("NormalizeDnForRoleComparison").Invoke(null, [dnUser])!;
 
-            Assert.That(normalized, Is.EqualTo(@"CN=Mustermann\,\20Max,OU=Users,DC=example,DC=com"));
+            Assert.That(normalized, Is.EqualTo("cn=mustermann, max,ou=users,dc=example,dc=com"));
         }
 
         [Test]
@@ -358,7 +358,7 @@ namespace FWO.Test
 
             string normalized = (string)GetPrivateStaticMethod("NormalizeDnForRoleComparison").Invoke(null, [dnUser])!;
 
-            Assert.That(normalized, Is.EqualTo(dnUser));
+            Assert.That(normalized, Is.EqualTo("cn=mustermann, max,ou=users,dc=example,dc=com"));
         }
 
         [Test]

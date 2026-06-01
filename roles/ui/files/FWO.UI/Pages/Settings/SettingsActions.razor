@@ -1,4 +1,4 @@
-﻿@using System.Text.Json
+@using System.Text.Json
 @using FWO.Config.Api.Data
 @using FWO.Data.Modelling
 @using FWO.Ui.Services
@@ -354,6 +354,58 @@
                                 </div>
                             </div>
                             break;
+                        case nameof(StateActionTypes.CreateFlow):
+                            <div class="col-sm-4">
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("successState")):</label>
+                                    <div class="col-sm-8">
+                                        <Dropdown ElementType="WfState" ElementToString="@(s => DisplaySelectableState(s))" @bind-SelectedElement="selectedSuccessState"
+                                                Elements="states" Nullable="true" NoneSelectedText="@(userConfig.GetText("None"))">
+                                            <ElementTemplate Context="state">
+                                                @DisplaySelectableState(state)
+                                            </ElementTemplate>
+                                        </Dropdown>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("errorState")):</label>
+                                    <div class="col-sm-8">
+                                        <Dropdown ElementType="WfState" ElementToString="@(s => DisplaySelectableState(s))" @bind-SelectedElement="selectedErrorState"
+                                                Elements="states" Nullable="true" NoneSelectedText="@(userConfig.GetText("None"))">
+                                            <ElementTemplate Context="state">
+                                                @DisplaySelectableState(state)
+                                            </ElementTemplate>
+                                        </Dropdown>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5536"))">
+                                    <label class="col-sm-10 col-form-label col-form-label-sm" for="confirmCreateFlow">@(userConfig.GetText("confirm_flow_creation")):</label>
+                                    <div class="col-sm-2">
+                                        <input id="confirmCreateFlow" class="form-check-input mt-2" type="checkbox" @bind="actActionResultStateParams.ConfirmUiMessage" />
+                                    </div>
+                                </div>
+                            </div>
+                            break;
+                        case nameof(StateActionTypes.BundleTasks):
+                            <div class="col-sm-4">
+                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5535"))">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("bundle_type")):</label>
+                                    <div class="col-sm-8">
+                                        <Dropdown ElementType="BundleTaskType" @bind-SelectedElement="selectedBundleTaskType"
+                                                ElementToString="@(t => userConfig.GetText(t.ToString()))"
+                                                Elements="Enum.GetValues(typeof(BundleTaskType)).Cast<BundleTaskType>()">
+                                            <ElementTemplate Context="bundleType">
+                                                @(userConfig.GetText(bundleType.ToString()))
+                                            </ElementTemplate>
+                                        </Dropdown>
+                                    </div>
+                                </div>
+                            </div>
+                            break;
                         default:
                             break;
                     }
@@ -366,14 +418,14 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="SaveAction">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                     </NotAuthorized> 
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
                 <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
             </div>
         </Footer>
@@ -414,6 +466,7 @@ else
     private WfStateAction persistedActionSnapshot = new ();
     private ConditionalAutoPromoteParams actConditionalAutoPromoteParams = new ();
 
+    private ActionResultStateParams actActionResultStateParams = new ();
     private string? selectedPhase;
     private WfTaskType? selectedTaskType;
     private WfState selectedState = new ();
@@ -422,8 +475,11 @@ else
     private WfState selectedToState = AutomaticState;
     private WfState selectedStateOk = AutomaticState;
     private WfState selectedStateNotOk = AutomaticState;
+    private WfState? selectedSuccessState;
+    private WfState? selectedErrorState;
     private UiUser? selectedUserGroup;
     private ToBeCalled selectedToBeCalled = ToBeCalled.PolicyCheck;
+    private BundleTaskType selectedBundleTaskType = BundleTaskType.TwoOutOfThree;
 
     private bool EditActionMode = false;
     private bool AddActionMode = false;
@@ -498,6 +554,7 @@ else
         actConfirmUpdateModelling = false;
         legacyActionNotification = null;
         actConditionalAutoPromoteParams = new();
+        actActionResultStateParams = new();
         toState = -1;
         message = "";
         selectedToState = AutomaticState;
@@ -505,7 +562,10 @@ else
         selectedStateNotOk = AutomaticState;
         selectedPolicies = [];
         selectedToBeCalled = ToBeCalled.PolicyCheck;
+        selectedBundleTaskType = BundleTaskType.TwoOutOfThree;
         selectedModIntegrationState = null;
+        selectedSuccessState = null;
+        selectedErrorState = null;
         selectedState = new();
         selectedUserGroup = null;
     }
@@ -537,8 +597,12 @@ else
 
     private void LoadActionExternalParams(WfStateAction action)
     {
-        if (action.ExternalParams == "" || action.ExternalParams == "{}")
+        if (string.IsNullOrWhiteSpace(action.ExternalParams) || action.ExternalParams == "{}")
         {
+            if (action.ActionType == nameof(StateActionTypes.CreateFlow))
+            {
+                LoadCreateFlowParams(action.ExternalParams);
+            }
             return;
         }
 
@@ -561,6 +625,12 @@ else
                 break;
             case nameof(StateActionTypes.UpdateModelling):
                 LoadUpdateModellingParams(action.ExternalParams);
+                break;
+            case nameof(StateActionTypes.CreateFlow):
+                LoadCreateFlowParams(action.ExternalParams);
+                break;
+            case nameof(StateActionTypes.BundleTasks):
+                selectedBundleTaskType = BundleTasksActionParams.FromExternalParams(action.ExternalParams).BundleType;
                 break;
             default:
                 break;
@@ -601,6 +671,17 @@ else
         actConfirmUpdateModelling = updateModellingParams.ConfirmUiMessage;
     }
 
+    private void LoadCreateFlowParams(string externalParams)
+    {
+        if (string.IsNullOrWhiteSpace(externalParams))
+        {
+            actActionResultStateParams = new();
+            return;
+        }
+
+        actActionResultStateParams = JsonSerializer.Deserialize<ActionResultStateParams>(externalParams) ?? throw new JsonException("Extparams could not be parsed.");
+    }
+
     private void ResolveActionSelections()
     {
         selectedState = states.FirstOrDefault(x => x.Id == actApprovalParams.StateId) ?? new WfState();
@@ -610,6 +691,8 @@ else
         }
         selectedStateOk = statesPlus.Where(x => x.Id != ConditionalState.Id).FirstOrDefault(x => x.Id == actConditionalAutoPromoteParams.IfCompliantState) ?? AutomaticState;
         selectedStateNotOk = statesPlus.Where(x => x.Id != ConditionalState.Id).FirstOrDefault(x => x.Id == actConditionalAutoPromoteParams.IfNotCompliantState) ?? AutomaticState;
+        selectedSuccessState = states.FirstOrDefault(x => x.Id == actActionResultStateParams.SuccessState);
+        selectedErrorState = states.FirstOrDefault(x => x.Id == actActionResultStateParams.ErrorState);
         selectedUserGroup = userAndGroupList.FirstOrDefault(x => x.Dn == actApprovalParams.ApproverGroup);
     }
 
@@ -666,6 +749,12 @@ else
                 return await TryUpdateEmailExternalParams();
             case nameof(StateActionTypes.UpdateModelling):
                 actAction.ExternalParams = UpdateModellingExternalParams();
+                return true;
+            case nameof(StateActionTypes.CreateFlow):
+                actAction.ExternalParams = CreateFlowExternalParams();
+                return true;
+            case nameof(StateActionTypes.BundleTasks):
+                actAction.ExternalParams = BundleTasksExternalParams();
                 return true;
             default:
                 return true;
@@ -861,6 +950,20 @@ else
             modelling_state = selectedModIntegrationState ?? "",
             confirm_ui_message = actConfirmUpdateModelling
         });
+    }
+
+    private string CreateFlowExternalParams()
+    {
+        actActionResultStateParams.SuccessState = selectedSuccessState?.Id;
+        actActionResultStateParams.ErrorState = selectedErrorState?.Id;
+        return actActionResultStateParams.SuccessState != null || actActionResultStateParams.ErrorState != null || actActionResultStateParams.ConfirmUiMessage
+            ? JsonSerializer.Serialize(actActionResultStateParams)
+            : "";
+    }
+
+    private string BundleTasksExternalParams()
+    {
+        return new BundleTasksActionParams { BundleType = selectedBundleTaskType }.ToExternalParams();
     }
 
     private async Task<int> UpdateAction(WfStateAction action, string externalParams)

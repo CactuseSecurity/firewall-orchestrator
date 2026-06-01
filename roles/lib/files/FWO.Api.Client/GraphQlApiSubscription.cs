@@ -60,7 +60,7 @@ namespace FWO.Api.Client
                 _subscription = null;
 
                 Log.WriteDebug("API", $"Creating API subscription {_request.OperationName}.");
-                _subscriptionStream = _graphQlClient.CreateSubscriptionStream<dynamic>(_request, _internalExceptionHandler);
+                _subscriptionStream = CreateSubscriptionStream();
                 Log.WriteDebug("API", "API subscription created.");
 
                 _subscription = _subscriptionStream.Subscribe(response =>
@@ -101,6 +101,11 @@ namespace FWO.Api.Client
                     }
                 });
             }
+        }
+
+        protected virtual IObservable<GraphQLResponse<dynamic>> CreateSubscriptionStream()
+        {
+            return _graphQlClient.CreateSubscriptionStream<dynamic>(_request, _internalExceptionHandler);
         }
 
         private void ApiConnectionOnAuthHeaderChanged(object? sender, string jwt)

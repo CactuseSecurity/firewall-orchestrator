@@ -1,5 +1,6 @@
 using FWO.Data;
 using FWO.Data.Workflow;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -17,7 +18,8 @@ namespace FWO.Test
                 Reason = "reason",
                 AdditionalInfo = "{\"key\":\"value\"}",
                 LastRecertDate = new DateTime(2024, 1, 2),
-                ManagementId = 5
+                ManagementId = 5,
+                FlowAccessId = 99
             };
             reqTask.SelectedDevices = "[1,2]";
             reqTask.Elements.Add(new WfReqElement
@@ -62,6 +64,8 @@ namespace FWO.Test
             Assert.That(reqWriter.AdditionalInfo, Is.EqualTo(reqTask.AdditionalInfo));
             Assert.That(reqWriter.LastRecertDate, Is.EqualTo(reqTask.LastRecertDate));
             Assert.That(reqWriter.ManagementId, Is.EqualTo(reqTask.ManagementId));
+            Assert.That(JsonConvert.SerializeObject(reqWriter), Does.Not.Contain("flow_access_id"));
+            Assert.That(System.Text.Json.JsonSerializer.Serialize(reqWriter), Does.Not.Contain("flow_access_id"));
             Assert.That(reqWriter.GetDeviceList(), Is.EqualTo(new List<int> { 1, 2 }));
             Assert.That(reqWriter.Elements.WfElementList, Has.Count.EqualTo(1));
 

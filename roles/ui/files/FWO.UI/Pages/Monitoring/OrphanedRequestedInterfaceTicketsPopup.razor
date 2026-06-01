@@ -28,9 +28,12 @@
                             <button type="button" class="btn btn-sm btn-dark" @onclick="() => OpenTicket.InvokeAsync(context.TicketId)">
                                 @(DisplayService.DisplayButton(userConfig, "display_ticket", Icons.Display, "", Icons.Workflow))
                             </button>
-                            <button type="button" class="btn btn-sm btn-danger ms-1" @onclick="() => RejectTicket(context.TicketId)">
-                                @(DisplayService.DisplayButton(userConfig, "reject", Icons.Reject))
-                            </button>
+                            @if (context.CanReject)
+                            {
+                                <button type="button" class="btn btn-sm btn-danger ms-1" @onclick="() => RejectTicket(context.TicketId)">
+                                    @(DisplayService.DisplayButton(userConfig, "reject", Icons.Reject))
+                                </button>
+                            }
                         </Template>
                     </Column>
                     <Column TableItem="OrphanedRequestedInterfaceTicketRow" Title="@(userConfig.GetText("ticket"))" Field="@(x => x.TicketId)" Sortable="true" Filterable="true" />
@@ -41,6 +44,8 @@
                         </Template>
                     </Column>
                     <Column TableItem="OrphanedRequestedInterfaceTicketRow" Title="@(userConfig.GetText("requested_interfaces"))" Field="@(x => x.InterfaceNames)" Sortable="true" Filterable="true" />
+                    <Column TableItem="OrphanedRequestedInterfaceTicketRow" Title="@(userConfig.GetText("connection_id"))" Field="@(x => x.ConnectionIds)" Sortable="true" Filterable="true" />
+                    <Column TableItem="OrphanedRequestedInterfaceTicketRow" Title="@(userConfig.GetText("problem_reason"))" Field="@(x => x.ProblemReasons)" Sortable="true" Filterable="true" />
                     <Pager ShowPageNumber="true" ShowTotalCount="true" />
                 </Table>
             }
@@ -51,7 +56,7 @@
         }
     </Body>
     <Footer>
-        @if (Tickets.Count > 0)
+        @if (Tickets.Any(ticket => ticket.CanReject))
         {
             <button type="button" class="btn btn-sm btn-danger me-2" @onclick="RejectAllTickets">
                 @(DisplayService.DisplayButton(userConfig, "reject_tickets", Icons.Reject))
@@ -99,7 +104,7 @@
     }
 
     /// <summary>
-    /// Loads open new-interface tickets whose referenced interface ids no longer exist.
+    /// Loads open new-interface tickets whose requested-interface linkage is missing or suspicious.
     /// </summary>
     private async Task LoadOrphanedRequestedInterfaceTickets()
     {
@@ -117,37 +122,15 @@
                 toState = NewInterfaceStateMatrix.LowestEndState
             });
             Tickets = [];
-            foreach (WfTicket ticket in openTickets)
+            List<OpenInterfaceTask> openInterfaceTasks = BuildOpenInterfaceTasks(openTickets);
+            MarkDuplicateOpenInterfaceTasks(openInterfaceTasks);
+            foreach (IGrouping<long, OpenInterfaceTask> ticketTasks in openInterfaceTasks.GroupBy(task => task.Ticket.Id))
             {
-                List<string> missingInterfaceNames = [];
-                foreach (WfReqTask task in ticket.Tasks.Where(task => task.TaskType == WfTaskType.new_interface.ToString()))
+                OrphanedRequestedInterfaceTicketRow? row = await BuildProblemRow(ticketTasks);
+                if (row != null)
                 {
-                    int connId = task.GetAddInfoIntValueOrZero(AdditionalInfoKeys.ConnId);
-                    if (connId <= 0)
-                    {
-                        continue;
-                    }
-
-                    List<ModellingConnection> existingConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(
-                        ModellingQueries.getConnectionById,
-                        new { id = connId });
-                    if (existingConnections.Count == 0)
-                    {
-                        missingInterfaceNames.Add(string.IsNullOrWhiteSpace(task.Title) ? connId.ToString() : task.Title);
-                    }
+                    Tickets.Add(row);
                 }
-
-                if (missingInterfaceNames.Count == 0)
-                {
-                    continue;
-                }
-                Tickets.Add(new()
-                {
-                    TicketId = ticket.Id,
-                    TicketState = States.GetName(ticket.StateId),
-                    TicketCreationDate = ticket.CreationDate,
-                    InterfaceNames = string.Join(", ", missingInterfaceNames.OrderBy(name => name))
-                });
             }
             Tickets = Tickets.OrderBy(ticket => ticket.TicketId).ToList();
         }
@@ -160,6 +143,134 @@
         {
             WorkInProgress = false;
         }
+    }
+
+    private static List<OpenInterfaceTask> BuildOpenInterfaceTasks(IEnumerable<WfTicket> openTickets)
+    {
+        return [.. openTickets.SelectMany(ticket => ticket.Tasks
+            .Where(task => task.TaskType == WfTaskType.new_interface.ToString())
+            .Select(task => new OpenInterfaceTask(ticket, task)))];
+    }
+
+    private static void MarkDuplicateOpenInterfaceTasks(List<OpenInterfaceTask> openInterfaceTasks)
+    {
+        foreach (IGrouping<string, OpenInterfaceTask> duplicateGroup in openInterfaceTasks.GroupBy(DuplicateKey, StringComparer.OrdinalIgnoreCase))
+        {
+            if (duplicateGroup.Count() <= 1)
+            {
+                continue;
+            }
+            foreach (OpenInterfaceTask openInterfaceTask in duplicateGroup)
+            {
+                openInterfaceTask.DuplicateLooking = true;
+            }
+        }
+    }
+
+    private static string DuplicateKey(OpenInterfaceTask openInterfaceTask)
+    {
+        WfReqTask task = openInterfaceTask.Task;
+        int requestedOwnerId = task.Owners.FirstOrDefault()?.Owner.Id ?? 0;
+        int requestingOwnerId = task.GetAddInfoIntValueOrZero(AdditionalInfoKeys.ReqOwner);
+        string normalizedTitle = NormalizeTaskTitle(task.Title);
+        return $"{requestedOwnerId}|{requestingOwnerId}|{normalizedTitle}";
+    }
+
+    private static string NormalizeTaskTitle(string title)
+    {
+        return string.Join(" ", title.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+    }
+
+    private async Task<OrphanedRequestedInterfaceTicketRow?> BuildProblemRow(IEnumerable<OpenInterfaceTask> ticketTasks)
+    {
+        WfTicket ticket = ticketTasks.First().Ticket;
+        List<string> interfaceNames = [];
+        List<string> connectionIds = [];
+        List<string> problemReasons = [];
+        bool canReject = false;
+        foreach (OpenInterfaceTask openInterfaceTask in ticketTasks)
+        {
+            TaskProblemClassification classification = await ClassifyTaskProblems(openInterfaceTask);
+            if (classification.Reasons.Count == 0)
+            {
+                continue;
+            }
+            interfaceNames.Add(DisplayTaskName(openInterfaceTask.Task));
+            connectionIds.Add(DisplayConnectionId(openInterfaceTask.Task));
+            problemReasons.AddRange(classification.Reasons);
+            canReject |= classification.HasStructuralProblem;
+        }
+
+        if (problemReasons.Count == 0)
+        {
+            return null;
+        }
+
+        return new()
+        {
+            TicketId = ticket.Id,
+            TicketState = States.GetName(ticket.StateId),
+            TicketCreationDate = ticket.CreationDate,
+            InterfaceNames = string.Join(", ", interfaceNames.OrderBy(name => name)),
+            ConnectionIds = string.Join(", ", connectionIds.Distinct().OrderBy(id => id)),
+            ProblemReasons = string.Join(", ", problemReasons.Distinct().OrderBy(reason => reason)),
+            CanReject = canReject
+        };
+    }
+
+    private async Task<TaskProblemClassification> ClassifyTaskProblems(OpenInterfaceTask openInterfaceTask)
+    {
+        List<string> reasons = [];
+        bool hasStructuralProblem = false;
+        WfReqTask task = openInterfaceTask.Task;
+        int connId = task.GetAddInfoIntValueOrZero(AdditionalInfoKeys.ConnId);
+        if (openInterfaceTask.DuplicateLooking)
+        {
+            reasons.Add(userConfig.GetText("E9022"));
+        }
+        if (connId <= 0)
+        {
+            reasons.Add(userConfig.GetText("E9023"));
+            return new(reasons, true);
+        }
+
+        List<ModellingConnection> existingConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(
+            ModellingQueries.getConnectionById,
+            new { id = connId });
+        if (existingConnections.Count == 0)
+        {
+            reasons.Add(userConfig.GetText("E9024"));
+            return new(reasons, true);
+        }
+
+        ModellingConnection connection = existingConnections[0];
+        if (!connection.IsInterface || !connection.IsRequested)
+        {
+            reasons.Add(userConfig.GetText("E9025"));
+            hasStructuralProblem = true;
+        }
+        if (connection.TicketId != openInterfaceTask.Ticket.Id)
+        {
+            reasons.Add(userConfig.GetText("E9026"));
+            hasStructuralProblem = true;
+        }
+        if (connection.Removed)
+        {
+            reasons.Add(userConfig.GetText("E9027"));
+            hasStructuralProblem = true;
+        }
+        return new(reasons, hasStructuralProblem);
+    }
+
+    private static string DisplayTaskName(WfReqTask task)
+    {
+        return string.IsNullOrWhiteSpace(task.Title) ? "-" : task.Title;
+    }
+
+    private static string DisplayConnectionId(WfReqTask task)
+    {
+        int connId = task.GetAddInfoIntValueOrZero(AdditionalInfoKeys.ConnId);
+        return connId > 0 ? connId.ToString() : "-";
     }
 
     /// <summary>
@@ -199,7 +310,7 @@
     /// </summary>
     private async Task RejectAllTickets()
     {
-        await RejectTickets(Tickets.Select(ticket => ticket.TicketId));
+        await RejectTickets(Tickets.Where(ticket => ticket.CanReject).Select(ticket => ticket.TicketId));
     }
 
     /// <summary>
@@ -207,6 +318,10 @@
     /// </summary>
     private async Task RejectTickets(IEnumerable<long> ticketIds)
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
         if (authenticationStateTask?.Result.User == null)
         {
             return;
@@ -252,5 +367,21 @@
         public string TicketState { get; set; } = "-";
         public DateTime? TicketCreationDate { get; set; }
         public string InterfaceNames { get; set; } = "-";
+        public string ConnectionIds { get; set; } = "-";
+        public string ProblemReasons { get; set; } = "-";
+        public bool CanReject { get; set; }
+    }
+
+    private sealed class OpenInterfaceTask(WfTicket ticket, WfReqTask task)
+    {
+        public WfTicket Ticket { get; } = ticket;
+        public WfReqTask Task { get; } = task;
+        public bool DuplicateLooking { get; set; }
+    }
+
+    private sealed class TaskProblemClassification(List<string> reasons, bool hasStructuralProblem)
+    {
+        public List<string> Reasons { get; } = reasons;
+        public bool HasStructuralProblem { get; } = hasStructuralProblem;
     }
 }

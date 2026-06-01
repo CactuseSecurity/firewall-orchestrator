@@ -216,10 +216,18 @@ namespace FWO.Test
             {"show_removed_requested_interfaces","Show removed requested interfaces" },
             {"reject_tickets","Close Tickets as rejected" },
             {"reject","Reject" },
-            {"orphaned_requested_interface_tickets","Open tickets for deleted requested interfaces" },
-            {"orphaned_requested_interface_tickets_empty","No open tickets for deleted requested interfaces were found." },
-            {"H7423","If deleted requested interfaces still have open tickets, the administrator can close those tickets together as rejected." },
-            {"H7424","The button \"Open tickets for deleted requested interfaces\" opens a separate list of all still open new-interface tickets whose requested interface does not exist anymore. The check is performed only when opening the popup, so it is independent from the current table filter." },
+            {"orphaned_requested_interface_tickets","Open tickets with requested interface problems" },
+            {"orphaned_requested_interface_tickets_empty","No open tickets with requested interface problems were found." },
+            {"connection_id","Connection ID" },
+            {"problem_reason","Problem reason" },
+            {"E9022","Duplicate-looking open interface request" },
+            {"E9023","Missing connection ID" },
+            {"E9024","Requested interface not found" },
+            {"E9025","Linked connection is not a requested interface" },
+            {"E9026","Ticket and connection link mismatch" },
+            {"E9027","Requested interface removed" },
+            {"H7423","If requested interface problems still have open tickets, the administrator can close those tickets together as rejected." },
+            {"H7424","The button \"Open tickets with requested interface problems\" opens a separate list of all still open new-interface tickets whose requested interface linkage is missing, broken, removed, or suspicious. The check is performed only when opening the popup, so it is independent from the current table filter." },
             {"reject_interface","Reject interface" },
             {"requesting_app","Requesting App" },
             {"requesting_ext_app_id","Requesting Ext App Id" },
@@ -445,7 +453,10 @@ namespace FWO.Test
             {"H1524","Detailed view tooltip"},
             {"detailed_view","Detailed View"},
             {"task","Task"},
-            {"U9026","Nothing to request!"}
+            {"U9026","Nothing to request!"},
+            {"CreateFlow","Create flow"},
+            {"flow_creation_succeeded","Flow DB entries were created."},
+            {"flow_creation_failed","Flow DB entries could not be created. Check the workflow log for unresolved objects or services."}
         };
 
         public override string GetText(string key)

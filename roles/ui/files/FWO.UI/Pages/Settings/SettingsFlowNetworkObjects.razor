@@ -347,6 +347,12 @@ else
             workInProgress = true;
             StateHasChanged();
 
+            if (!userConfig.CanUseAnyRole(Roles.Admin))
+            {
+                workInProgress = false;
+                return;
+            }
+
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin]);
             configData = await globalConfig.GetEditableConfig();
             selectableManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowSelectableManagements);
@@ -749,7 +755,7 @@ else
                 ipStart = (string?)null,
                 ipEnd = (string?)null,
                 nwobjHash = FlowHashGenerator.GenerateRandomHash(),
-                state = "implemented",
+                state = FlowState.Implemented,
                 showInRequestModule = NewCustomFlowNwObject.ShowInRequestModule
             });
             FlowNwObject createdObject = createdObjects.Returning.FirstOrDefault() ?? throw new InvalidOperationException("Created flow object not returned by API.");

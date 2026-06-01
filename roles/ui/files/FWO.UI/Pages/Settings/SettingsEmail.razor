@@ -1,4 +1,4 @@
-﻿@using FWO.Middleware.Client
+@using FWO.Middleware.Client
 @using System
 @using FWO.Mail
 @using FWO.Encryption
@@ -80,7 +80,7 @@
 <hr>
 
 <div class="btn-group">
-    <AuthorizeView Roles="@Roles.Admin">
+    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-dark"  data-toggle="tooltip" title="@(userConfig.PureLine("H5492"))"
                 @onclick="TestConnection">@(userConfig.GetText("test_connection"))</button>
@@ -91,7 +91,7 @@
                 disabled>@(userConfig.GetText("test_connection"))</button>
             <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
         </NotAuthorized> 
-    </AuthorizeView>
+    </ExecutionModeAuthorizeView>
 </div>
 
 @code

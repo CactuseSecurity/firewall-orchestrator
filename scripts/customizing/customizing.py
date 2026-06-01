@@ -50,7 +50,7 @@ def login(
 
     with requests.Session() as session:
         session.verify = False
-        session.headers = {"Content-Type": "application/json"}
+        session.headers.update({"Content-Type": "application/json"})
 
         try:
             response = session.post(user_management_api_base_url + method, data=json.dumps(payload))

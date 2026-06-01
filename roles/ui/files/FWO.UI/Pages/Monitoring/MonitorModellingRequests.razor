@@ -20,30 +20,26 @@
 {
     <div>@(userConfig.GetText("WorkflowNotifications")) @(userConfig.GetText("inactive"))</div>
 }
-else if (InitComplete)
+else if (InitComplete && accessAllowed)
 {
     <div class="m-2 vheight75">
         <PageSizeComponent PageSize="20" PageSizeCallback="UpdatePageSize"></PageSizeComponent>
         <Table PageSize="PageSize" class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="OwnerRequestStatus" Items="Rows" ColumnReorder="true">
             <Column TableItem="OwnerRequestStatus" Title="@(userConfig.GetText("actions"))" Field="@(x => x.TicketId)" Sortable="false" Filterable="false">
                 <Template Context="row">
-                    @if (row.TicketId > 0)
+                    @if (row.TicketId > 0 && userConfig.CanUseAnyRole(Roles.Admin))
                     {
-                        <AuthorizeView Roles="@Roles.Admin">
-                            <Authorized Context="authState">
-                                <div class="btn-group">
-                                    <button type="button" class="btn btn-sm btn-warning" disabled="@(ConfiguredImplementationStatuses.Count == 0)" @onclick="() => RequestImplementationStatusChange(row)">
-                                        @(DisplayService.DisplayButton(userConfig, "modIntegrationStates", Icons.ChangeState))
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestTicketStateChange(row)">
-                                        @(DisplayService.DisplayButton(userConfig, "ticket_status", Icons.ChangeState))
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestReset(row)">
-                                        @(DisplayService.DisplayButton(userConfig, "reset", Icons.Undo))
-                                    </button>
-                                </div>
-                            </Authorized>
-                        </AuthorizeView>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-warning" disabled="@(ConfiguredImplementationStatuses.Count == 0)" @onclick="() => RequestImplementationStatusChange(row)">
+                                @(DisplayService.DisplayButton(userConfig, "modIntegrationStates", Icons.ChangeState))
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestTicketStateChange(row)">
+                                @(DisplayService.DisplayButton(userConfig, "ticket_status", Icons.ChangeState))
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestReset(row)">
+                                @(DisplayService.DisplayButton(userConfig, "reset", Icons.Undo))
+                            </button>
+                        </div>
                     }
                 </Template>
             </Column>
@@ -62,6 +58,10 @@ else if (InitComplete)
             <Pager ShowPageNumber="true" ShowTotalCount="true" />
         </Table>
     </div>
+}
+else if (InitComplete)
+{
+    <div></div>
 }
 else
 {
@@ -85,18 +85,18 @@ else
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@Roles.Admin">
-                <Authorized>
-                    <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SetRequestImplementationStatus">
-                        @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
-                    </button>
-                </Authorized>
-                <NotAuthorized>
-                    <button type="button" class="btn btn-sm btn-primary" disabled>
-                        @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
-                    </button>
-                </NotAuthorized>
-            </AuthorizeView>
+            @if (userConfig.CanUseAnyRole(Roles.Admin))
+            {
+                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SetRequestImplementationStatus">
+                    @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+                </button>
+            }
+            else
+            {
+                <button type="button" class="btn btn-sm btn-primary" disabled>
+                    @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+                </button>
+            }
             <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="CancelImplementationStatusChange">
                 @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))
             </button>
@@ -122,18 +122,18 @@ else
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@Roles.Admin">
-                <Authorized>
-                    <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SetTicketState">
-                        @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
-                    </button>
-                </Authorized>
-                <NotAuthorized>
-                    <button type="button" class="btn btn-sm btn-primary" disabled>
-                        @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
-                    </button>
-                </NotAuthorized>
-            </AuthorizeView>
+            @if (userConfig.CanUseAnyRole(Roles.Admin))
+            {
+                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SetTicketState">
+                    @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+                </button>
+            }
+            else
+            {
+                <button type="button" class="btn btn-sm btn-primary" disabled>
+                    @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+                </button>
+            }
             <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="CancelTicketStateChange">
                 @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))
             </button>
@@ -161,6 +161,7 @@ else
     private int SelectedTicketStateId = 0;
     private long? DummyAppRoleId;
     private bool InitComplete = false;
+    private bool accessAllowed = true;
     private bool ResetMode { get; set; } = false;
     private bool ChangeImplementationStatusMode { get; set; } = false;
     private bool ChangeTicketStateMode { get; set; } = false;
@@ -170,6 +171,13 @@ else
     {
         try
         {
+            accessAllowed = userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor);
+            if (!accessAllowed)
+            {
+                InitComplete = true;
+                return;
+            }
+
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.Auditor]);
             ConfiguredImplementationStatuses = ConfiguredStatusNames();
             await States.Init(apiConnection);
@@ -359,10 +367,14 @@ else
         {
             if (!string.IsNullOrWhiteSpace(SelectedImplementationStatus) && ChangeStatusRow.TicketId > 0)
             {
-                WfTicket ticket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { id = ChangeStatusRow.TicketId });
-                await SetTicketImplementationStatus(ticket, SelectedImplementationStatus);
+                await apiConnection.RunWithBestRole(authenticationStateTask!.Result.User, [Roles.Admin], async () =>
+                {
+                    WfTicket ticket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { id = ChangeStatusRow.TicketId });
+                    await SetTicketImplementationStatus(ticket, SelectedImplementationStatus);
+                });
             }
             ChangeImplementationStatusMode = false;
+            await LoadRows();
             StateHasChanged();
         }
         catch (Exception exception)
@@ -377,14 +389,17 @@ else
         {
             if (ChangeTicketStateRow.TicketId > 0)
             {
-                WfTicket ticket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { id = ChangeTicketStateRow.TicketId });
-                await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateTicketState, new
+                await apiConnection.RunWithBestRole(authenticationStateTask!.Result.User, [Roles.Admin], async () =>
                 {
-                    id = ticket.Id,
-                    state = SelectedTicketStateId,
-                    closed = ticket.CompletionDate,
-                    deadline = ticket.Deadline,
-                    priority = ticket.Priority
+                    WfTicket ticket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { id = ChangeTicketStateRow.TicketId });
+                    await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateTicketState, new
+                    {
+                        id = ticket.Id,
+                        state = SelectedTicketStateId,
+                        closed = ticket.CompletionDate,
+                        deadline = ticket.Deadline,
+                        priority = ticket.Priority
+                    });
                 });
                 ChangeTicketStateMode = false;
                 await LoadRows();
@@ -409,8 +424,11 @@ else
     {
         try
         {
-            await CleanOwnerModellingRequestState(ResetRow.Owner.Id);
-            await apiConnection.SendQueryAsync<ReturnId>(MonitorQueries.deleteOwnerTickets, new { ownerId = ResetRow.Owner.Id });
+            await apiConnection.RunWithBestRole(authenticationStateTask!.Result.User, [Roles.Admin], async () =>
+            {
+                await CleanOwnerModellingRequestState(ResetRow.Owner.Id);
+                await apiConnection.SendQueryAsync<ReturnId>(MonitorQueries.deleteOwnerTickets, new { ownerId = ResetRow.Owner.Id });
+            });
             ResetMode = false;
             ReplaceResetRowDisplay();
             StateHasChanged();

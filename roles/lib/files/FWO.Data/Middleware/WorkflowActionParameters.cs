@@ -12,6 +12,7 @@ namespace FWO.Data.Middleware
         public int NewStateId { get; set; }
         public bool StateChangedByCreation { get; set; }
         public string Phase { get; set; } = WorkflowPhases.request.ToString();
+        public string ExecutionMode { get; set; } = "";
     }
 
     public class WorkflowActionResult

@@ -18,7 +18,7 @@ namespace FWO.Config.Api.Data
         public readonly bool Editable;
 
         [JsonProperty("DefaultLanguage"), JsonPropertyName("DefaultLanguage")]
-        public virtual string DefaultLanguage { get; set; } = GlobalConst.kEnglish;        
+        public virtual string DefaultLanguage { get; set; } = GlobalConst.kEnglish;
 
         [JsonProperty("uiHostName"), JsonPropertyName("uiHostName")]
         public string UiHostName { get; set; } = "http://localhost:5000";
@@ -251,6 +251,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("reqAllowObjectSearch"), JsonPropertyName("reqAllowObjectSearch")]
         public bool ReqAllowObjectSearch { get; set; } = false;
+
+        [JsonProperty("reqUseFlowDb"), JsonPropertyName("reqUseFlowDb")]
+        public bool ReqUseFlowDb { get; set; } = false;
 
         [JsonProperty("reqAllowManualOwnerAdmin"), JsonPropertyName("reqAllowManualOwnerAdmin")]
         public bool AllowManualOwnerAdmin { get; set; } = false;

@@ -16,8 +16,18 @@ namespace FWO.Test.Mocks
         public bool ShouldRevokeSucceed { get; set; } = true;
         public int RefreshTokenCallCount { get; private set; }
         public int RevokeRefreshTokenCallCount { get; private set; }
+        public int ChangePasswordCallCount { get; private set; }
         public RefreshTokenRequest? LastRefreshRequest { get; private set; }
         public RefreshTokenRequest? LastRevokeRequest { get; private set; }
+        public UserChangePasswordParameters? LastChangePasswordRequest { get; private set; }
+        public Exception? ChangePasswordException { get; set; }
+        public RestResponse<string> ChangePasswordResponse { get; set; } = new(new RestRequest())
+        {
+            StatusCode = HttpStatusCode.OK,
+            Data = "",
+            ResponseStatus = ResponseStatus.Completed,
+            IsSuccessStatusCode = true
+        };
 
         public MockMiddlewareClient() : base("http://localhost/")
         {
@@ -55,6 +65,21 @@ namespace FWO.Test.Mocks
             return failResponse;
         }
 
+        public override async Task<RestResponse<string>> ChangePassword(UserChangePasswordParameters parameters)
+        {
+            ChangePasswordCallCount++;
+            LastChangePasswordRequest = parameters;
+
+            await Task.CompletedTask;
+
+            if (ChangePasswordException != null)
+            {
+                throw ChangePasswordException;
+            }
+
+            return ChangePasswordResponse;
+        }
+
         public override async Task<RestResponse> RevokeRefreshToken(RefreshTokenRequest parameters)
         {
             RevokeRefreshTokenCallCount++;
@@ -87,12 +112,22 @@ namespace FWO.Test.Mocks
         {
             RefreshTokenCallCount = 0;
             RevokeRefreshTokenCallCount = 0;
+            ChangePasswordCallCount = 0;
             LastRefreshRequest = null;
             LastRevokeRequest = null;
+            LastChangePasswordRequest = null;
+            ChangePasswordException = null;
             NextRefreshTokenResponse = null;
             ShouldRefreshSucceed = true;
             ReturnRefreshData = true;
             ShouldRevokeSucceed = true;
+            ChangePasswordResponse = new(new RestRequest())
+            {
+                StatusCode = HttpStatusCode.OK,
+                Data = "",
+                ResponseStatus = ResponseStatus.Completed,
+                IsSuccessStatusCode = true
+            };
         }
     }
 }

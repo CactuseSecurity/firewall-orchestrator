@@ -1,4 +1,6 @@
 @using System.Text.Json
+@using System.Security.Claims
+@using FWO.Api.Client
 
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
@@ -31,63 +33,63 @@
 				<ul class="@NavPaddingCollapseClass d-flex flex-wrap navbar-nav align-items-start flex-row">
 					@if (availableModules.Contains(Module.Report))
 					{
-						<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")">
+						<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")">
 							<li class="nav-item px-2">
 								<a href="@("/" + PageName.ReportGeneration)" class="nav-link @(navigationManager.Uri.Contains("/report/") ? "active" : "")">
 									<span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))
 								</a>
 							</li>
-						</AuthorizeView>
+						</ExecutionModeAuthorizeView>
 					}
 					@if (availableModules.Contains(Module.Workflow))
 					{
-						<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.FwAdmin}, {Roles.Auditor}")">
+						<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.FwAdmin}, {Roles.Auditor}")">
 							<li class="nav-item px-2">
 								<NavLink class="nav-link" href="@firstWorkflowPage">
 									<span class="@Icons.Workflow"></span> @(userConfig.GetText("workflow"))
 								</NavLink>
 							</li>
-						</AuthorizeView>
+						</ExecutionModeAuthorizeView>
 					}
 					@if (availableModules.Contains(Module.Recertification) && userConfig.RecertificationMode == RecertificationMode.RuleByRule)
 					{
-						<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.Auditor}")">
+						<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.Auditor}")">
 							<li class="nav-item px-2">
 								<NavLink class="nav-link" href="@("/" + PageName.Certification)">
 									<span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
 								</NavLink>
 							</li>
-						</AuthorizeView>
+						</ExecutionModeAuthorizeView>
 					}
 					@if (availableModules.Contains(Module.Modelling))
 					{
-						<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")">
+						<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")">
 							<li class="nav-item px-2">
 								<NavLink class="nav-link" href="@("/" + PageName.Modelling)">
 									<span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
 								</NavLink>
 							</li>
-						</AuthorizeView>
+						</ExecutionModeAuthorizeView>
 					}
 					@if (availableModules.Contains(Module.NetworkAnalysis))
 					{
-						<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Planner}, {Roles.Auditor}")">
+						<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Planner}, {Roles.Auditor}")">
 							<li class="nav-item px-2">
 								<NavLink class="nav-link" href="/network_analysis">
 									<span class="@Icons.NetworkAnalysis"></span> @(userConfig.GetText("network_analysis"))
 								</NavLink>
 							</li>
-						</AuthorizeView>
+						</ExecutionModeAuthorizeView>
 					}
 					@if (availableModules.Contains(Module.Compliance))
 					{
-						<AuthorizeView Roles="@($"{ComplianceRoles()}")">
+						<ExecutionModeAuthorizeView Roles="@($"{ComplianceRoles()}")">
 							<li class="nav-item px-2">
 								<NavLink class="nav-link" href="/compliance/policies">
 									<span class="@Icons.Compliance"></span> @(userConfig.GetText("compliance"))
 								</NavLink>
 							</li>
-						</AuthorizeView>
+						</ExecutionModeAuthorizeView>
 					}
 				</ul>
 				<ul class="@NavPaddingCollapseClass d-flex flex-wrap navbar-nav align-items-end ms-auto flex-row">
@@ -113,7 +115,7 @@
 					</li>
 					<li class="nav-item px-2">
 						<NavLink class="nav-link" href="/settings/user">
-							<span class="@Icons.User"></span> @(userConfig.User.Name.ToUpper())
+							<span class="@Icons.User"></span> @(GetUserNameDisplay())
 						</NavLink>
 					</li>
 				</ul>
@@ -145,11 +147,14 @@
     private StateMatrix stateMatrix = new();
     private List<Module> availableModules { get; set; } = [];
     private bool InitComplete = false;
+    private string displayedExecutionMode = GlobalConst.kUserRolesSelection;
 
 
     protected override async Task OnInitializedAsync()
     {
         userConfig.OnChange += OnChange;
+        apiConnection.OnExecutionModeChanged += OnExecutionModeChanged;
+        displayedExecutionMode = userConfig.ExecutionMode;
         try
         {
             if (RequiresWorkflowStateInitialization())
@@ -169,31 +174,41 @@
         InitComplete = true;
     }
 
+    private void OnExecutionModeChanged(object? sender, string executionMode)
+    {
+        Task.Run(async () => await InvokeAsync(() =>
+        {
+            displayedExecutionMode = executionMode;
+            firstWorkflowPage = "";
+            ConfigureFirstWorkflowPage();
+            StateHasChanged();
+        }));
+    }
+
     private void ConfigureFirstWorkflowPage()
     {
-        if (authenticationStateTask!.Result.User.IsInRole(Roles.Admin) ||
-            authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) ||
-            authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
+        ClaimsPrincipal user = authenticationStateTask!.Result.User;
+        if (CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
         {
             firstWorkflowPage = "/request/ticketsoverview";
         }
-        else if (stateMatrix.PhaseActive[WorkflowPhases.request] && authenticationStateTask!.Result.User.IsInRole(Roles.Requester))
+        else if (stateMatrix.PhaseActive[WorkflowPhases.request] && CanUseAnyRole(Roles.Requester))
         {
             firstWorkflowPage = "/request/tickets";
         }
-        else if (stateMatrix.PhaseActive[WorkflowPhases.approval] && authenticationStateTask!.Result.User.IsInRole(Roles.Approver))
+        else if (stateMatrix.PhaseActive[WorkflowPhases.approval] && CanUseAnyRole(Roles.Approver))
         {
             firstWorkflowPage = "/request/approvals";
         }
-        else if (stateMatrix.PhaseActive[WorkflowPhases.planning] && authenticationStateTask!.Result.User.IsInRole(Roles.Planner))
+        else if (stateMatrix.PhaseActive[WorkflowPhases.planning] && CanUseAnyRole(Roles.Planner))
         {
             firstWorkflowPage = "/request/plannings";
         }
-        else if (stateMatrix.PhaseActive[WorkflowPhases.implementation] && authenticationStateTask!.Result.User.IsInRole(Roles.Implementer))
+        else if (stateMatrix.PhaseActive[WorkflowPhases.implementation] && CanUseAnyRole(Roles.Implementer))
         {
             firstWorkflowPage = "/request/implementations";
         }
-        else if (stateMatrix.PhaseActive[WorkflowPhases.review] && authenticationStateTask!.Result.User.IsInRole(Roles.Reviewer))
+        else if (stateMatrix.PhaseActive[WorkflowPhases.review] && CanUseAnyRole(Roles.Reviewer))
         {
             firstWorkflowPage = "/request/reviews";
         }
@@ -208,19 +223,23 @@
 	{
 		availableModules = string.IsNullOrEmpty(userConfig.AvailableModules) ? [.. Enum.GetValues(typeof(Module)).Cast<Module>()]
 			: JsonSerializer.Deserialize<List<Module>>(userConfig.AvailableModules) ?? throw new JsonException("Config data could not be parsed.");
+        displayedExecutionMode = userConfig.ExecutionMode;
         Task.Run(async () => await InvokeAsync(StateHasChanged));
     }
 
     private bool RequiresWorkflowStateInitialization()
     {
-        return authenticationStateTask!.Result.User.IsInRole(Roles.Admin) ||
-            authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) ||
-            authenticationStateTask!.Result.User.IsInRole(Roles.Auditor) ||
-            authenticationStateTask!.Result.User.IsInRole(Roles.Requester) ||
-            authenticationStateTask!.Result.User.IsInRole(Roles.Approver) ||
-            authenticationStateTask!.Result.User.IsInRole(Roles.Planner) ||
-            authenticationStateTask!.Result.User.IsInRole(Roles.Implementer) ||
-            authenticationStateTask!.Result.User.IsInRole(Roles.Reviewer);
+        return CanUseAnyRole(WorkflowNavigationRoles());
+    }
+
+    private bool CanUseAnyRole(params string[] targetRoles)
+    {
+        return ExecutionModeHelper.HasAnyRoleInExecutionMode(userConfig.User.Roles, displayedExecutionMode, targetRoles);
+    }
+
+    private static string[] WorkflowNavigationRoles()
+    {
+        return [Roles.Admin, Roles.FwAdmin, Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Auditor];
     }
 
     private string ComplianceRoles()
@@ -228,8 +247,27 @@
         string workflowRoles = userConfig.ReqShowCompliance ? ", " + Roles.WorkflowRolesList : "";
         return $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.ReporterViewAll}, {Roles.Reporter}, {Roles.Auditor}{workflowRoles}";
     }
+
+    private string GetUserNameDisplay()
+    {
+        string displayName = userConfig.User.Name.ToUpper();
+        if (!ExecutionModeHelper.ShouldShowExecutionModeSelection(userConfig.User.Roles))
+        {
+            return displayName;
+        }
+
+        string executionMode = ExecutionModeHelper.GetSelectedExecutionMode(userConfig.User.Roles, displayedExecutionMode);
+        return $"{displayName} ({GetExecutionModeText(executionMode)})";
+    }
+
+    private string GetExecutionModeText(string executionMode)
+    {
+        return executionMode == GlobalConst.kUserRolesSelection ? userConfig.GetText("user_roles") : executionMode;
+    }
+
 	public void Dispose()
 	{
 		userConfig.OnChange -= OnChange;
+        apiConnection.OnExecutionModeChanged -= OnExecutionModeChanged;
 	}
 }

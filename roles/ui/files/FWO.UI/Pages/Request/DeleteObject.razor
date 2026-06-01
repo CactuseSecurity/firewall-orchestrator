@@ -12,14 +12,14 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.FwAdmin}")">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.FwAdmin}")">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="Perform">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                 </NotAuthorized> 
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>

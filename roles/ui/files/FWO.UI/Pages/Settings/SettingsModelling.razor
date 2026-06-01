@@ -381,14 +381,14 @@
         </div>
         <hr />
     </form>
-    <AuthorizeView Roles="@Roles.Admin">
+    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
         </Authorized>
         <NotAuthorized>
             <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
         </NotAuthorized>
-    </AuthorizeView>
+    </ExecutionModeAuthorizeView>
     <br>
     <br>
     <p>@(userConfig.GetText("U5303"))</p>

@@ -27,11 +27,51 @@ namespace FWO.Test
 
             ClaimsPrincipal principal = BuildPrincipal(new List<string> { Roles.ReporterViewAll });
             Task<AuthenticationState> authStateTask = Task.FromResult(new AuthenticationState(principal));
-            UserConfig userConfig = new SimulatedUserConfig();
+            UserConfig userConfig = new SimulatedUserConfig { User = { Roles = [Roles.ReporterViewAll] } };
 
             await ModellingHandlerBase.GetOwnApps(authStateTask, userConfig, apiConnection, NoopDisplay);
 
             await apiConnection.Received(1)
+                .SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners, Arg.Any<object?>(), Arg.Any<string?>());
+        }
+
+        [Test]
+        public async Task ReporterViewAllUsesAllOwnersWithConnQueryWhenRequested()
+        {
+            ApiConnection apiConnection = Substitute.For<ApiConnection>();
+            apiConnection.SendQueryAsync<List<FwoOwner>>(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<string?>())
+                .Returns(new List<FwoOwner>());
+
+            ClaimsPrincipal principal = BuildPrincipal(new List<string> { Roles.ReporterViewAll });
+            Task<AuthenticationState> authStateTask = Task.FromResult(new AuthenticationState(principal));
+            UserConfig userConfig = new SimulatedUserConfig { User = { Roles = [Roles.ReporterViewAll] } };
+
+            await ModellingHandlerBase.GetOwnApps(authStateTask, userConfig, apiConnection, NoopDisplay, withConn: true);
+
+            await apiConnection.Received(1)
+                .SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithConn, Arg.Any<object?>(), Arg.Any<string?>());
+        }
+
+        [Test]
+        public async Task AuditorWithWorkflowExecutionModeUsesEditableOwnersWithoutConnectionAggregate()
+        {
+            ApiConnection apiConnection = Substitute.For<ApiConnection>();
+            apiConnection.SendQueryAsync<List<FwoOwner>>(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<string?>())
+                .Returns(new List<FwoOwner>());
+
+            ClaimsPrincipal principal = BuildPrincipal(
+                new List<string> { Roles.Auditor, Roles.Approver },
+                new Claim("x-hasura-editable-owners", "{3,4}"));
+            Task<AuthenticationState> authStateTask = Task.FromResult(new AuthenticationState(principal));
+            UserConfig userConfig = new SimulatedUserConfig { User = { Roles = [Roles.Auditor, Roles.Approver] } };
+
+            await ModellingHandlerBase.GetOwnApps(authStateTask, userConfig, apiConnection, NoopDisplay);
+
+            await apiConnection.Received(1)
+                .SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners,
+                    Arg.Is<object?>(vars => HasOwnerIds(vars, new[] { 3, 4 })),
+                    Arg.Any<string?>());
+            await apiConnection.DidNotReceive()
                 .SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithConn, Arg.Any<object?>(), Arg.Any<string?>());
         }
 

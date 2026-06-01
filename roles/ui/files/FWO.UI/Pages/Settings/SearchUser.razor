@@ -40,14 +40,14 @@
                             </Dropdown>
                         </div>
                         <div class="col-sm-2">
-                            <AuthorizeView Roles="@Roles.Admin">
+                            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                                 <Authorized>
                                     <button type="button" class="btn btn-sm btn-success" @onclick="async () => { await AddUser(selectedUiUser); Close(); }" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                                 </Authorized>
                                 <NotAuthorized>
                                     <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
                                 </NotAuthorized>
-                            </AuthorizeView>
+                            </ExecutionModeAuthorizeView>
                         </div>
                     </form>
                 }
@@ -59,14 +59,14 @@
                             <Dropdown ElementType="string" @bind-SelectedElement="selectedInternalGroupDn" Elements="Array.ConvertAll(internalGroups.ToArray(), x => x.Dn).ToList()" />
                         </div>
                         <div class="col-sm-2">
-                            <AuthorizeView Roles="@Roles.Admin">
+                            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                                 <Authorized>
                                     <button type="button" class="btn btn-sm btn-success" @onclick="async () => { await AddGroup(selectedInternalGroupDn); Close(); }" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                                 </Authorized>
                                 <NotAuthorized>
                                     <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
                                 </NotAuthorized>
-                            </AuthorizeView>
+                            </ExecutionModeAuthorizeView>
                         </div>
                     </form>
                 }

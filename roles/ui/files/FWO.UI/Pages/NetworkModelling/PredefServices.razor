@@ -1,4 +1,4 @@
-﻿@using FWO.Ui.Display
+@using FWO.Ui.Display
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
@@ -17,14 +17,14 @@
                         <Template>
                             <div class="btn-group">
                                 <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditServiceGroup(context)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
-                                <AuthorizeView Roles="@Roles.Admin" Context="ctx">
-                                    <Authorized>
+                                <ExecutionModeAuthorizeView Roles="@Roles.Admin" Context="ctx">
+                                    <Authorized Context="authState">
                                         <button type="button" class="btn btn-sm btn-danger" @onclick="async () => await RequestDeleteServiceGrp(context)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                     </Authorized>
-                                    <NotAuthorized>
+                                    <NotAuthorized Context="authState">
                                         <button type="button" disabled class="btn btn-sm btn-danger">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                     </NotAuthorized> 
-                                </AuthorizeView>
+                                </ExecutionModeAuthorizeView>
                             </div>
                         </Template>
                     </Column>

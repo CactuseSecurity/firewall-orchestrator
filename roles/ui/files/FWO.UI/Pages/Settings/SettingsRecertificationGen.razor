@@ -1,4 +1,4 @@
-﻿@using FWO.Data
+@using FWO.Data
 @using FWO.Recert
 @using System.Text.Json
 
@@ -217,7 +217,7 @@
                     <label for="cbx_rec_refresh_daily" class="col-form-label-marg7">@(userConfig.GetText("daily"))</label>
                 </div>
                 <div class="form-group col-sm-2">
-                    <AuthorizeView Roles="@Roles.Admin">
+                    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                         <Authorized>
                             @if (!recertCalcInProgress)
                             {
@@ -239,20 +239,20 @@
                         <NotAuthorized>
                             <button type="button" class="btn btn-sm btn-info" disabled>@(userConfig.GetText("recalc_now"))</button>
                         </NotAuthorized>
-                    </AuthorizeView>
+                    </ExecutionModeAuthorizeView>
                 </div>
             </div>
         }
     </form>
     <hr />
-    <AuthorizeView Roles="@Roles.Admin">
+    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
         </Authorized>
         <NotAuthorized>
             <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
         </NotAuthorized>
-    </AuthorizeView>
+    </ExecutionModeAuthorizeView>
     <br><br>
     <p>@(userConfig.GetText("U5304"))</p>
 }

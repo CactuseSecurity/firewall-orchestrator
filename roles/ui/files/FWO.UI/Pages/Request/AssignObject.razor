@@ -27,7 +27,7 @@
                     @if(userAndGroupList.Count > 0 && selectedUserGroup != null && selectedUserGroup.Dn != origAssignedGroup)
                     {
                         <div class="col-sm-2">
-                            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.WorkflowRolesList}")">
+                            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.WorkflowRolesList}")">
                                 <Authorized>
                                     <button type="button" class="btn btn-sm btn-success" @onclick="PerformAssign" @onclick:preventDefault>
                                         @(DisplayService.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
@@ -36,7 +36,7 @@
                                     <button type="button" class="btn btn-sm btn-success" disabled>
                                         @(DisplayService.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
                                 </NotAuthorized> 
-                            </AuthorizeView>
+                            </ExecutionModeAuthorizeView>
                         </div>
                     }
                 </form>
@@ -48,7 +48,7 @@
                         <label for="backAssignedGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("back_to")):</label>
                         <label id="backAssignedGroup" class="col-sm-8">@StatefulObject.RecentHandler.Name</label>
                         <div class="col-sm-2">
-                            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.WorkflowRolesList}")">
+                            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.WorkflowRolesList}")">
                                 <Authorized>
                                     <button type="button" class="btn btn-sm btn-success" @onclick="PerformAssignBack" @onclick:preventDefault>
                                         @(DisplayService.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
@@ -57,7 +57,7 @@
                                     <button type="button" class="btn btn-sm btn-success" disabled>
                                         @(DisplayService.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
                                 </NotAuthorized> 
-                            </AuthorizeView>
+                            </ExecutionModeAuthorizeView>
                         </div>
                     </form>
                 }

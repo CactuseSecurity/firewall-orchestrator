@@ -1,13 +1,16 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Ui.Pages.Monitoring;
+using Microsoft.AspNetCore.Components.Authorization;
 using NUnit.Framework;
 using System.Collections;
 using System.Reflection;
+using System.Security.Claims;
 
 namespace FWO.Test
 {
@@ -76,6 +79,18 @@ namespace FWO.Test
                 throw new MissingMemberException(typeof(MonitorModellingRequests).FullName, "userConfig");
             }
             prop.SetValue(component, userConfig);
+        }
+
+        private static void SetAuthenticationState(MonitorModellingRequests component, params string[] roles)
+        {
+            PropertyInfo? prop = typeof(MonitorModellingRequests).GetProperty("authenticationStateTask", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (prop == null)
+            {
+                throw new MissingMemberException(typeof(MonitorModellingRequests).FullName, "authenticationStateTask");
+            }
+
+            ClaimsIdentity identity = new(roles.Select(role => new Claim(ClaimTypes.Role, role)), "test", ClaimTypes.Name, ClaimTypes.Role);
+            prop.SetValue(component, Task.FromResult(new AuthenticationState(new ClaimsPrincipal(identity))));
         }
 
         private static object CreateRequestStatusRow(FwoOwner owner, long ticketId, string status, int stateId = 0)
@@ -735,7 +750,7 @@ namespace FWO.Test
             MonitorModellingRequests component = new();
             MonitorModellingRequestsApiConn apiConn = new();
             string marker = ModIntegrationStateConfig.DefaultMarker;
-            ModellingConnection connection = new() { Id = 100 };
+            ModellingConnection connection = new() { Id = 100, IsRequested = true, RequestedOnFw = true, TicketId = 123 };
             connection.AddProperty(marker, "Requested | 2026-05-01T10:00:00Z");
             connection.AddProperty(ModIntegrationStateConfig.TimestampMarker(marker), "2026-05-01T10:00:00Z");
             connection.AddProperty("keep", "value");
@@ -773,6 +788,9 @@ namespace FWO.Test
                 string connProp = GetVariable<string>(apiConn.Variables[1], "connProp");
                 Assert.That(connProp, Does.Contain("keep"));
                 Assert.That(connProp, Does.Not.Contain(marker));
+                Assert.That(ModellingQueries.resetConnectionRequestState, Does.Not.Contain("is_requested"));
+                Assert.That(ModellingQueries.resetConnectionRequestState, Does.Not.Contain("ticket_id"));
+                Assert.That(ModellingQueries.resetConnectionRequestState, Does.Contain("requested_on_fw: false"));
                 Assert.That(GetVariable<long>(apiConn.Variables[3], "id"), Is.EqualTo(200));
                 Assert.That(GetVariable<string>(apiConn.Variables[3], "comment"), Is.EqualTo("before"));
                 Assert.That(GetVariable<int>(apiConn.Variables[5], "id"), Is.EqualTo(300));
@@ -865,6 +883,7 @@ namespace FWO.Test
             SetPrivateField(component, "States", new FWO.Services.Workflow.WfStateDict { Name = { [8] = "Closed" } });
             SetPrivateField(component, "ChangeTicketStateRow", row);
             SetPrivateField(component, "SelectedTicketStateId", 8);
+            SetAuthenticationState(component, Roles.Admin);
 
             Task task = (Task)GetPrivateMethod("SetTicketState").Invoke(component, null)!;
             await task;

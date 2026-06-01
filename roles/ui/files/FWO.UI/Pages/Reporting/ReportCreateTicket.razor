@@ -1,4 +1,4 @@
-﻿@using FWO.Middleware.Client
+@using FWO.Middleware.Client
 @using FWO.Compliance
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Requester}")]
@@ -25,14 +25,14 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}")">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}")">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-danger" @onclick="CreateTicket">@(DisplayService.DisplayButton(userConfig, "create_ticket", Icons.Confirm))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, "create_ticket", Icons.Confirm))</button>
                 </NotAuthorized> 
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>

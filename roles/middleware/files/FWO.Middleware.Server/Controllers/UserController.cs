@@ -231,7 +231,7 @@ namespace FWO.Middleware.Server.Controllers
             }
 
             // the demo user (currently auditor) can't change his password
-            if (User.IsInRole(Roles.Auditor))
+            if (CallerCanUseRole(User, parameters.ExecutionMode, Roles.Auditor))
                 return Unauthorized();
 
             if (!CallerCanChangePassword(User, parameters.UserId))
@@ -275,6 +275,10 @@ namespace FWO.Middleware.Server.Controllers
 
             string? userIdClaim = caller.FindFirstValue("x-hasura-user-id");
             return int.TryParse(userIdClaim, out int callerUserId) && callerUserId == targetUserId;
+        }
+        private static bool CallerCanUseRole(ClaimsPrincipal user, string executionMode, string role)
+        {
+            return ExecutionModeHelper.HasAnyRoleInExecutionMode(ExecutionModeHelper.GetUserRoles(user), executionMode, [role]);
         }
 
         // GET: api/<ValuesController>

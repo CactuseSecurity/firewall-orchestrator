@@ -18,7 +18,7 @@
                                     @(DisplayService.DisplayButton(userConfig, "load", Icons.Load))
                                 </button>
                                 @* only display buttons for manipulating a template, when it's the user's template or the user has admin role *@
-                                @if (template.TemplateOwningUserId == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
+                                @if (template.TemplateOwningUserId == userConfig.User.DbId || userConfig.CanUseAnyRole(Roles.Admin))
                                 {
                                     <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditTemplate(template)">
                                         @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
@@ -259,7 +259,7 @@
     private DeviceFilter DeviceFilterOrig = new();
     private TimeFilter templateActTimeFilter = new();
 
-    private ReportVisibility reportVisibility => RoleGroups.GetReportVisibility(authenticationStateTask!.Result.User);
+    private ReportVisibility reportVisibility => userConfig.GetReportVisibility();
 
     protected override async Task OnInitializedAsync()
     {
@@ -378,7 +378,7 @@
     {
         ReportType reportType = (ReportType)reportTemplate.ReportParams.ReportType;
         bool modellingOwnerAllowed = modOwnerList.FirstOrDefault(o => o.Id == reportTemplate.ReportParams.ModellingFilter.SelectedOwner.Id) != null;
-        return !reportType.IsArchiveOnlyReport() && reportType.IsVisibleTemplateType(reportVisibility, modellingOwnerAllowed);
+        return userConfig.CanUseReportType(reportType, modellingOwnerAllowed);
     }
 
     public void NewTemplate(ReportTemplate reportTemplate)

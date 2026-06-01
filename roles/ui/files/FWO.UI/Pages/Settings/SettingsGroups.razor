@@ -111,14 +111,14 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@Roles.Admin">
+            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="() => Save()">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized>
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>

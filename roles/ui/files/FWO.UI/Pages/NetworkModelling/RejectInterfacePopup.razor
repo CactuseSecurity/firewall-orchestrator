@@ -86,6 +86,10 @@
 
     private async Task Reject()
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
         if(ConnHandler != null)
         {
             WorkInProgress = true;
@@ -108,7 +112,10 @@
             {
                 DisplayMessageInUi(exception, userConfig.GetText("reject_interface"), "", true);
             }
-            WorkInProgress = false;
+            finally
+            {
+                WorkInProgress = false;
+            }
         }
     }
 

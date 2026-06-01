@@ -179,6 +179,7 @@
 
 <PromoteObject @bind-Promote="WfHandler.DisplaySaveTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@WfHandler.ActTicket.Title" Save="WfHandler.SaveTicket" StatefulObject="WfHandler.ActTicket" StateMatrix="WfHandler.MasterStateMatrix" States="States"/>
 <PromoteObject @bind-Promote="WfHandler.DisplayPromoteTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@WfHandler.ActTicket.Title" Save="PromoteTicketForPhase" StatefulObject="WfHandler.ActTicket" StateMatrix="WfHandler.MasterStateMatrix" States="States"/>
+<InProgress Display="WorkInProgress"/>
 
 
 @code
@@ -208,6 +209,7 @@
     private List<int> possibleStates = new ();
     private List<WfStateAction> offeredActions = new ();
     private bool ConfirmCancelMode = false;
+    private bool WorkInProgress = false;
     private WfPriority? selectedPriority;
     private bool firstParamSet = true;
 
@@ -270,6 +272,11 @@
 
     private async Task PerformAction(WfStateAction action)
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
+        WorkInProgress = true;
         try
         {
             if(WfHandler.ActionHandler != null)
@@ -281,6 +288,10 @@
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("action"), "", true);
+        }
+        finally
+        {
+            WorkInProgress = false;
         }
     }
 

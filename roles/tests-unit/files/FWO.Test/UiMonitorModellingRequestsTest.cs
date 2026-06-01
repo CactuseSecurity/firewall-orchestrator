@@ -750,7 +750,7 @@ namespace FWO.Test
             MonitorModellingRequests component = new();
             MonitorModellingRequestsApiConn apiConn = new();
             string marker = ModIntegrationStateConfig.DefaultMarker;
-            ModellingConnection connection = new() { Id = 100 };
+            ModellingConnection connection = new() { Id = 100, IsRequested = true, RequestedOnFw = true, TicketId = 123 };
             connection.AddProperty(marker, "Requested | 2026-05-01T10:00:00Z");
             connection.AddProperty(ModIntegrationStateConfig.TimestampMarker(marker), "2026-05-01T10:00:00Z");
             connection.AddProperty("keep", "value");
@@ -788,6 +788,9 @@ namespace FWO.Test
                 string connProp = GetVariable<string>(apiConn.Variables[1], "connProp");
                 Assert.That(connProp, Does.Contain("keep"));
                 Assert.That(connProp, Does.Not.Contain(marker));
+                Assert.That(ModellingQueries.resetConnectionRequestState, Does.Not.Contain("is_requested"));
+                Assert.That(ModellingQueries.resetConnectionRequestState, Does.Not.Contain("ticket_id"));
+                Assert.That(ModellingQueries.resetConnectionRequestState, Does.Contain("requested_on_fw: false"));
                 Assert.That(GetVariable<long>(apiConn.Variables[3], "id"), Is.EqualTo(200));
                 Assert.That(GetVariable<string>(apiConn.Variables[3], "comment"), Is.EqualTo("before"));
                 Assert.That(GetVariable<int>(apiConn.Variables[5], "id"), Is.EqualTo(300));

@@ -262,22 +262,28 @@
 
     private async Task StartRecert()
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
         if (!CanRecertify || !HasRecertWriteAccess())
         {
             DisplayMessageInUi(null, userConfig.GetText("recertify"), userConfig.GetText("E9104"), true);
             return;
         }
+        WorkInProgress = true;
         try
         {
-            WorkInProgress = true;
             await DoRecertification();
-            WorkInProgress = false;
             Close();
         }
         catch (Exception exception)
         {
-            WorkInProgress = false;
             DisplayMessageInUi(exception, userConfig.GetText("recertify"), "", true);
+        }
+        finally
+        {
+            WorkInProgress = false;
         }
     }
 

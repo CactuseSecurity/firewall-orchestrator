@@ -108,6 +108,10 @@
 
     private async Task Decommission()
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
         if(ConnHandler != null)
         {
             WorkInProgress = true;
@@ -121,7 +125,10 @@
             {
                 DisplayMessageInUi(exception, userConfig.GetText("decomm_interface"), "", true);
             }
-            WorkInProgress = false;
+            finally
+            {
+                WorkInProgress = false;
+            }
         }
     }
 

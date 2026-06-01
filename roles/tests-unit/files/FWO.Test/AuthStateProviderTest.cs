@@ -371,7 +371,7 @@ namespace FWO.Test
             internal const int TestTenantId = 7;
             internal string SelectedExecutionMode { get; private set; } = "";
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 object response = typeof(QueryResponseType) switch
                 {

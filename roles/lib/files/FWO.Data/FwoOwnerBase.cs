@@ -61,7 +61,7 @@ namespace FWO.Data
 
         public List<string> GetAllOwnerResponsibles()
         {
-            HashSet<string> responsibles = new(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> responsibles = new(DistName.DnComparer);
             foreach (OwnerResponsible responsible in OwnerResponsibles ?? [])
                 AddResponsible(responsibles, responsible.Dn);
             return responsibles.ToList();
@@ -73,7 +73,7 @@ namespace FWO.Data
                 .Where(responsible => responsible.ResponsibleTypeId == responsibleType)
                 .Select(responsible => responsible.Dn)
                 .Where(dn => !string.IsNullOrWhiteSpace(dn))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Distinct(DistName.DnComparer)
                 .ToList();
         }
 
@@ -94,7 +94,7 @@ namespace FWO.Data
                 return;
             }
             OwnerResponsibles ??= [];
-            if (!OwnerResponsibles.Any(r => r.ResponsibleTypeId == responsibleType && r.Dn.Equals(dn, StringComparison.OrdinalIgnoreCase)))
+            if (!OwnerResponsibles.Any(r => r.ResponsibleTypeId == responsibleType && DistName.DnEquals(r.Dn, dn)))
             {
                 OwnerResponsibles.Add(new OwnerResponsible { Dn = dn, ResponsibleTypeId = responsibleType });
             }
@@ -107,7 +107,7 @@ namespace FWO.Data
                 return;
             }
             OwnerResponsibles?.RemoveAll(responsible =>
-                responsible.ResponsibleTypeId == responsibleType && responsible.Dn.Equals(dn, StringComparison.OrdinalIgnoreCase));
+                responsible.ResponsibleTypeId == responsibleType && DistName.DnEquals(responsible.Dn, dn));
         }
 
         private static void AddResponsible(HashSet<string> responsibles, string? dn)

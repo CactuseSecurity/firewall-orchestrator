@@ -1,3 +1,4 @@
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
@@ -40,7 +41,7 @@ namespace FWO.Test
             public List<WfExtState> ExtStates { get; set; } = [];
             public WfTicketWriter? LastTicketWriter { get; private set; }
 
-            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null)
+            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 Queries.Add(query);
                 Variables.Add(variables);

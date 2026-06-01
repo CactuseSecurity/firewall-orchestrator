@@ -81,5 +81,33 @@ namespace FWO.Test
 
             Assert.That(normalizedLeft, Is.EqualTo(normalizedRight));
         }
+
+        [TestCase(@"CN=User\, Example,OU=Users,DC=Example,DC=COM", @"cn=User\2C Example,ou=users,dc=example,dc=com")]
+        [TestCase(@"cn=M\C3\BCller,ou=users,dc=example,dc=com", @"CN=Müller,OU=Users,DC=Example,DC=COM")]
+        public void DnEquals_TreatsCaseAndEscapedDnsAsEqual(string leftDn, string rightDn)
+        {
+            Assert.That(DistName.DnEquals(leftDn, rightDn), Is.True);
+        }
+
+        [TestCase(null, null)]
+        [TestCase(null, "")]
+        [TestCase("", "")]
+        [TestCase(" ", "cn=user,dc=example,dc=com")]
+        public void DnEquals_DoesNotTreatMissingDnsAsEqual(string? leftDn, string? rightDn)
+        {
+            Assert.That(DistName.DnEquals(leftDn, rightDn), Is.False);
+        }
+
+        [Test]
+        public void DnComparer_DeduplicatesCaseAndEscapedDns()
+        {
+            HashSet<string> dns = new(DistName.DnComparer)
+            {
+                @"CN=User\, Example,OU=Users,DC=Example,DC=COM",
+                @"cn=User\2C Example,ou=users,dc=example,dc=com"
+            };
+
+            Assert.That(dns, Has.Count.EqualTo(1));
+        }
     }
 }

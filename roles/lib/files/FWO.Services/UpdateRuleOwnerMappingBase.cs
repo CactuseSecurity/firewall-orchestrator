@@ -12,6 +12,9 @@ namespace FWO.Services
     public abstract class UpdateRuleOwnerMappingBase : IUpdateRuleOwnerMapping
     {
         protected const int MaxPendingImportsBeforeFullReinit = 3;
+        protected const int RuleOwnerRemovalBatchSize = 500;
+        protected const int RuleOwnerInsertBatchSize = 500;
+
         protected const string LogMessageTitle = "Update rule_owner Notifier";
         protected readonly ApiConnection apiConnection;
         protected readonly GlobalConfig globalConfig;
@@ -236,7 +239,15 @@ namespace FWO.Services
                     {
                         objects = listRuleOwnersToRemove,
                         removed = importControlId
+                    },
+                    chunkingOptions: new QueryChunkingOptions
+                    {
+                        Enabled = true,
+                        ChunkVariableName = "objects",
+                        ChunkSize = RuleOwnerRemovalBatchSize,
+                        MergeMode = ChunkMergeMode.MutationAffectedRowsOnly
                     });
+
             }
             catch (Exception ex)
             {
@@ -245,7 +256,6 @@ namespace FWO.Services
                 throw;
             }
         }
-
 
         protected async Task InsertNewRuleOwners(List<RuleOwner> ruleOwners)
         {
@@ -257,7 +267,16 @@ namespace FWO.Services
 
             try
             {
-                await apiConnection.SendQueryAsync<RuleOwnerMutationWrapper>(OwnerQueries.insertRuleOwners, new { objects = ruleOwners });
+
+                await apiConnection.SendQueryAsync<RuleOwnerMutationWrapper>(OwnerQueries.insertRuleOwners, new { objects = ruleOwners.ToList() },
+                chunkingOptions: new QueryChunkingOptions
+                {
+                    Enabled = true,
+                    ChunkVariableName = "objects",
+                    ChunkSize = RuleOwnerInsertBatchSize,
+                    MergeMode = ChunkMergeMode.MutationAffectedRowsAndReturning
+                });
+
                 Log.WriteInfo(LogMessageTitle, $"{ruleOwners.Count} rule owners inserted successfully.");
             }
             catch (Exception ex)

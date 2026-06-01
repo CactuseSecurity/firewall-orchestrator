@@ -32,13 +32,13 @@ namespace FWO.Middleware.Server
         /// <returns>Resolved user distinguished names.</returns>
         public async Task<List<string>> ResolveUserDns(IEnumerable<string> dns)
         {
-            List<string> dnsList = dns.Where(dn => !string.IsNullOrWhiteSpace(dn)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            List<string> dnsList = dns.Where(dn => !string.IsNullOrWhiteSpace(dn)).Distinct(DistName.DnComparer).ToList();
             if (dnsList.Count == 0)
             {
                 return [];
             }
 
-            HashSet<string> resolvedDns = new(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> resolvedDns = new(DistName.DnComparer);
             foreach (Ldap ldap in ldaps.Where(ldap => ldap.HasGroupHandling()))
             {
                 foreach (string resolvedDn in await ldap.ResolveUsersFromDns(dnsList))
@@ -69,8 +69,8 @@ namespace FWO.Middleware.Server
 
             Dictionary<string, UiUser> uiUsersByDn = (await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUserEmails))
                 .Where(user => !string.IsNullOrWhiteSpace(user.Dn))
-                .GroupBy(user => user.Dn, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+                .GroupBy(user => user.Dn, DistName.DnComparer)
+                .ToDictionary(group => group.Key, group => group.First(), DistName.DnComparer);
 
             List<UiUser> resolvedUsers = [];
             foreach (string dn in resolvedDns)

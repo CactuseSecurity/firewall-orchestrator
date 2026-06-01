@@ -527,7 +527,7 @@ namespace FWO.Middleware.Server.Controllers
 
         public async Task<List<string>> GetGroups(LdapEntry ldapUser, Ldap ldap)
         {
-            HashSet<string> userGroups = new(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> userGroups = new(DistName.DnComparer);
             userGroups.UnionWith(ldap.GetGroups(ldapUser));
             if (userGroups.Count == 0)
             {

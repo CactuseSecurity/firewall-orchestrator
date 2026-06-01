@@ -1,5 +1,11 @@
 mutation insertRuleOwners($objects: [rule_owner_insert_input!]!) {
-  insert_rule_owner(objects: $objects) {
+  insert_rule_owner(
+    objects: $objects,
+    on_conflict: {
+      constraint: rule_owner_pkey,
+      update_columns: []
+    }
+  ) {
     affected_rows
     returning {
       rule_id

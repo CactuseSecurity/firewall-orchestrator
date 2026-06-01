@@ -355,13 +355,34 @@ namespace FWO.Middleware.Server
         {
             ArgumentNullException.ThrowIfNull(task);
 
-            var deserialized = JsonSerializer.Deserialize<List<ManagementFwConfigChangeState>>(UserConfig.FwConfigChangeMgmSettings) ?? new List<ManagementFwConfigChangeState>();
+            var managementSettings = JsonSerializer.Deserialize<List<ManagementFwConfigChangeState>>(UserConfig.FwConfigChangeMgmSettings) ?? new List<ManagementFwConfigChangeState>();
 
-            var item = deserialized.FirstOrDefault(m => m.Id == task.ManagementId) ?? throw new InvalidOperationException("No matching config item found.");
+            ManagementFwConfigChangeState managementSetting = managementSettings.FirstOrDefault(m => m.Id == task.ManagementId)
+                ?? throw new InvalidOperationException($"No matching config item found for management {task.ManagementId}.");
+
+            if (!managementSetting.Enabled)
+            {
+                throw new InvalidOperationException($"External workflow is disabled for management {task.ManagementId}.");
+            }
+
+            string changeCategory = GetChangeCategory(task);    // object oder rule
+
+            if (!managementSetting.SelectedChanges.TryGetValue(changeCategory, out string? selectedSystemValue) || string.IsNullOrWhiteSpace(selectedSystemValue) || selectedSystemValue == "Disabled")
+            {
+                throw new InvalidOperationException(
+                    $"No external ticket system configured for management {task.ManagementId} and category '{changeCategory}'.");
+            }
+
+            if (!int.TryParse(selectedSystemValue, out int externalTicketSystemId))
+            {
+                throw new InvalidOperationException(
+                    $"Configured external ticket system id '{selectedSystemValue}' for management {task.ManagementId} and category '{changeCategory}' is invalid.");
+            }
 
             var extTicketSystems = JsonSerializer.Deserialize<List<ExternalTicketSystem>>(UserConfig.ExtTicketSystems) ?? new List<ExternalTicketSystem>();
 
-            var system = extTicketSystems.FirstOrDefault(s => s.Id == item.Id) ?? throw new InvalidOperationException("No matching external ticket system found.");
+            ExternalTicketSystem system = extTicketSystems.FirstOrDefault(s => s.Id == externalTicketSystemId) ?? throw new InvalidOperationException(
+                $"No matching external ticket system found for id {externalTicketSystemId}.");
 
             extSystemType = system.TypeId;
             actSystem = system;
@@ -498,6 +519,22 @@ namespace FWO.Middleware.Server
                 return (task.GetAddInfoIntValue(AdditionalInfoKeys.SvcGrpId) ?? 0, ModellingTypes.ModObjectType.ServiceGroup);
             }
             return (0, ModellingTypes.ModObjectType.Connection);
+        }
+
+        private static string GetChangeCategory(WfReqTask task)
+        {
+            return task.TaskType switch
+            {
+                nameof(WfTaskType.group_create) => ManagementFwConfigChangeCategories.ObjectChanges,
+                nameof(WfTaskType.group_modify) => ManagementFwConfigChangeCategories.ObjectChanges,
+                nameof(WfTaskType.group_delete) => ManagementFwConfigChangeCategories.ObjectChanges,
+
+                nameof(WfTaskType.access) => ManagementFwConfigChangeCategories.RuleChanges,
+                nameof(WfTaskType.rule_modify) => ManagementFwConfigChangeCategories.RuleChanges,
+                nameof(WfTaskType.rule_delete) => ManagementFwConfigChangeCategories.RuleChanges,
+
+                _ => throw new InvalidOperationException($"Unsupported workflow task type '{task.TaskType}'.")
+            };
         }
 
         private static string ConstructLogMessageText(ModellingTypes.ChangeType changeType)

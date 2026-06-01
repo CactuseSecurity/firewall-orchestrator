@@ -66,20 +66,28 @@ namespace FWO.Test
                 Protocol = new NetworkProtocol { Name = "tcp" }
             };
 
-            var group = new NetworkService
+            var nestedGroup = new NetworkService
             {
                 Id = 12,
-                Name = "Service A",
+                Name = "Group A",
                 Type = new NetworkServiceType { Name = ServiceType.Group },
                 ServiceGroupFlats = [new GroupFlat<NetworkService> { Id = 13, Object = leaf }]
+            };
+
+            var group = new NetworkService
+            {
+                Id = 14,
+                Name = "Service A",
+                Type = new NetworkServiceType { Name = ServiceType.Group },
+                ServiceGroupFlats = [new GroupFlat<NetworkService> { Id = 15, Object = nestedGroup }]
             };
 
             List<NetworkService> result = InvokePrivateFlatten<NetworkService>("FlattenRuleServices",
                 [placeholder, group]);
 
-            ClassicAssert.AreEqual(2, result.Count);
+            ClassicAssert.AreEqual(1, result.Count);
             ClassicAssert.IsFalse(result.Any(item => item.Id == placeholder.Id));
-            ClassicAssert.IsTrue(result.Any(item => item.Id == group.Id));
+            ClassicAssert.IsFalse(result.Any(item => item.Id == group.Id));
             ClassicAssert.IsTrue(result.Any(item => item.Id == leaf.Id));
         }
 

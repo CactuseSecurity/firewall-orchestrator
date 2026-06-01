@@ -103,7 +103,7 @@ namespace FWO.Test
             RulebaseLinks = [new() { GatewayId = 1, NextRulebaseId = 3 }]
         };
 
-        public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
             await DefaultInit.DoNothing(); // qad avoid compiler warning
             Type responseType = typeof(QueryResponseType);

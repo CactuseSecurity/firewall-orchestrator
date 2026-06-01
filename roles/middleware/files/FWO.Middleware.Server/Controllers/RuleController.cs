@@ -48,6 +48,19 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
     {
         try
         {
+            bool hasOwnerId = request.Query.OwnerId is not null;
+            bool hasIpAddress = !string.IsNullOrWhiteSpace(request.Query.IpAddress);
+
+            if (hasOwnerId && hasIpAddress)
+            {
+                return BadRequest("Exactly one of OwnerId or IpAddress must be provided.");
+            }
+
+            if (!hasOwnerId && !hasIpAddress)
+            {
+                return BadRequest("Either OwnerId or IpAddress must be provided.");
+            }
+
             GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection);
             UserConfig userConfig = new(globalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
 
@@ -58,14 +71,14 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
 
             List<RuleDetail> rules;
 
-            if (request.Query.OwnerId is not null)
+            if (hasOwnerId)
             {
                 rules = await FetchRulesByOwnerId(
                     request.Query.OwnerId ?? -1,
                     userConfig,
                     request.Query.FieldSourceMapping);
             }
-            else if (!string.IsNullOrWhiteSpace(request.Query.IpAddress))
+            else
             {
                 if (!IPAddress.TryParse(request.Query.IpAddress, out IPAddress? ipAddress))
                 {
@@ -100,10 +113,6 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                     userConfig,
                     request.Query.FieldSourceMapping
                 );
-            }
-            else
-            {
-                return BadRequest("Either OwnerId or IpAddress must be provided.");
             }
 
             var response = new RulesByFilterResponse

@@ -2,11 +2,13 @@
 - name: disable apache sites
   command: a2dissite {{ product_name }}-ui
   ignore_errors: true
+  become: true
 
 - name: disable apache modules (due to a bug with php mod not properly getting purged)
   apache2_module: state=absent name={{ item }}
   loop: "{{ apache2_required_modules }}"
   ignore_errors: true
+  become: true
 
 - name: uninstall all packages for {{ product_name }}, keeping git and ansible
   package:
@@ -39,9 +41,11 @@
     - "{{ postgresql_test_package }}"
     - "{{ webserver_package_name }}"
   when: wipe_packages is defined and wipe_packages|bool
+  become: true
 
 - name: uninstall openldap on Debian
   package:
     state: absent
     name: slapd
     purge: yes
+  become: true

@@ -29,8 +29,10 @@
     - "{{ postgresql_test_package }}"
     - "{{ webserver_package_name }}"
   when: wipe_packages is defined and wipe_packages|bool
+  become: true
 
 - name: uninstall openldap on RedHat
   package:
     state: absent
     name: openldap-servers
+  become: true

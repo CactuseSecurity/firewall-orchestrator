@@ -130,7 +130,7 @@ namespace FWO.Test
             public string SelectedExecutionMode { get; private set; } = "";
             public ClaimsPrincipal SelectionUser { get; private set; } = new();
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == AuthQueries.getUserByDbId)
                 {

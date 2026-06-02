@@ -311,7 +311,7 @@ namespace FWO.Test
         {
             public int QueryCount { get; private set; }
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 QueryCount++;
                 throw new InvalidOperationException("No query should be executed in this test.");
@@ -323,7 +323,7 @@ namespace FWO.Test
             public int QueryCount { get; private set; }
             public FwoOwner? Owner { get; set; }
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 QueryCount++;
                 if (query == OwnerQueries.getOwnerById && typeof(QueryResponseType) == typeof(FwoOwner) && Owner != null)
@@ -341,7 +341,7 @@ namespace FWO.Test
             public int LogEntryCount { get; private set; }
             public int AlertCount { get; private set; }
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == OwnerQueries.getOwnerById)
                 {
@@ -382,7 +382,7 @@ namespace FWO.Test
             public List<AlertCode> AlertCodes { get; } = [];
             public List<int> LogSeverities { get; } = [];
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == MonitorQueries.getImportStatus && typeof(QueryResponseType) == typeof(List<ImportStatus>))
                 {

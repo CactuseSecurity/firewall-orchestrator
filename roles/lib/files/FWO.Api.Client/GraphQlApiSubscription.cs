@@ -58,49 +58,54 @@ namespace FWO.Api.Client
 
                 _subscription = _subscriptionStream.Subscribe(response =>
                 {
-                    if (_disposed || subscriptionVersion != _subscriptionVersion) return;
-
-                    if (ApiConstants.UseSystemTextJsonSerializer)
-                    {
-                        throw new NotImplementedException("System.Text.Json is not supported anymore.");
-                    }
-
-                    try
-                    {
-                        // If repsonse.Data == null -> Jwt expired - connection was closed
-                        // Leads to this method getting called again
-                        if (response.Data == null)
-                        {
-                            if (subscriptionVersion != _subscriptionVersion)
-                            {
-                                return;
-                            }
-
-                            // Terminate subscription
-                            lock (_lock)
-                            {
-                                if (subscriptionVersion == _subscriptionVersion)
-                                {
-                                    _subscription?.Dispose();
-                                    _subscription = null;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            JObject data = (JObject)response.Data;
-                            JProperty prop = (JProperty)(data.First ?? throw new Exception($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
-                            JToken result = prop.Value;
-                            SubscriptionResponseType returnValue = result.ToObject<SubscriptionResponseType>() ?? throw new Exception($"Could not convert result from Json to {typeof(SubscriptionResponseType)}.\nJson: {response.Data}");
-                            OnUpdate?.Invoke(returnValue);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.WriteError("GraphQL Subscription", "Subscription lead to exception", ex);
-                        throw;
-                    }
+                    Subscribe(response, subscriptionVersion);
                 });
+            }
+        }
+
+        private void Subscribe(GraphQLResponse<dynamic> response, int subscriptionVersion)
+        {
+            if (_disposed || subscriptionVersion != _subscriptionVersion) return;
+
+            if (ApiConstants.UseSystemTextJsonSerializer)
+            {
+                throw new NotImplementedException("System.Text.Json is not supported anymore.");
+            }
+
+            try
+            {
+                // If repsonse.Data == null -> Jwt expired - connection was closed
+                // Leads to this method getting called again
+                if (response.Data == null)
+                {
+                    if (subscriptionVersion != _subscriptionVersion)
+                    {
+                        return;
+                    }
+
+                    // Terminate subscription
+                    lock (_lock)
+                    {
+                        if (subscriptionVersion == _subscriptionVersion)
+                        {
+                            _subscription?.Dispose();
+                            _subscription = null;
+                        }
+                    }
+                }
+                else
+                {
+                    JObject data = (JObject)response.Data;
+                    JProperty prop = (JProperty)(data.First ?? throw new Exception($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
+                    JToken result = prop.Value;
+                    SubscriptionResponseType returnValue = result.ToObject<SubscriptionResponseType>() ?? throw new Exception($"Could not convert result from Json to {typeof(SubscriptionResponseType)}.\nJson: {response.Data}");
+                    OnUpdate?.Invoke(returnValue);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError("GraphQL Subscription", "Subscription lead to exception", ex);
+                throw;
             }
         }
 

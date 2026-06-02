@@ -6,8 +6,10 @@ from typing import Any
 
 from fw_modules.fortiadom5ff import fmgr_getter
 from fw_modules.fortiadom5ff.fmgr_consts import nat_types
+from fw_modules.fortiadom5ff.fmgr_network import create_network_object
+from fw_modules.fortiadom5ff.fmgr_service import create_svc_object
 from fw_modules.fortiadom5ff.fmgr_zone import find_zones_in_normalized_config
-from fwo_const import LIST_DELIMITER
+from fwo_const import ANY_IP_END, ANY_IP_START, LIST_DELIMITER
 from fwo_exceptions import (
     FwoDeviceWithoutLocalPackageError,
     FwoImporterErrorInconsistenciesError,
@@ -388,6 +390,30 @@ def parse_nat_rules_in_rulebase(
             FWOLogger.warning("NAT rule without UUID, skipping")
             continue
 
+        # Prepare translated fields: if a translated field equals the original,
+        # replace it with the standard placeholder object "Original".
+        ensure_original_objects(normalized_config_adom, normalized_config_global)
+
+        translated_dst_list_local = list(rule_dst_list)
+        translated_dst_refs_list_local = list(rule_dst_refs_list)
+        translated_svc_list_local = list(rule_svc_list)
+        translated_svc_refs_list_local = list(rule_svc_refs_list)
+
+        # If translation did not change the source, mark it as Original
+        if set(translated_src_list) == set(rule_src_list):
+            translated_src_list = ["Original"]
+            translated_src_refs_list = ["Original"]
+
+        # If translated destination equals original destination, use Original placeholder
+        if set(translated_dst_list_local) == set(rule_dst_list):
+            translated_dst_list_local = ["Original"]
+            translated_dst_refs_list_local = ["Original"]
+
+        # If translated service equals original service, use Original placeholder
+        if set(translated_svc_list_local) == set(rule_svc_list):
+            translated_svc_list_local = ["Original"]
+            translated_svc_refs_list_local = ["Original"]
+
         # Create original rule (match phase)
         rule_original_uid = f"{rule_uid}-original"
         rule_translated_uid = f"{rule_uid}-translated"
@@ -436,11 +462,11 @@ def parse_nat_rules_in_rulebase(
             rule_src=LIST_DELIMITER.join(translated_src_list),
             rule_src_refs=LIST_DELIMITER.join(translated_src_refs_list),
             rule_dst_neg=False,
-            rule_dst=LIST_DELIMITER.join(rule_dst_list),
-            rule_dst_refs=LIST_DELIMITER.join(rule_dst_refs_list),
+            rule_dst=LIST_DELIMITER.join(translated_dst_list_local),
+            rule_dst_refs=LIST_DELIMITER.join(translated_dst_refs_list_local),
             rule_svc_neg=False,
-            rule_svc=LIST_DELIMITER.join(rule_svc_list),
-            rule_svc_refs=LIST_DELIMITER.join(rule_svc_refs_list),
+            rule_svc=LIST_DELIMITER.join(translated_svc_list_local),
+            rule_svc_refs=LIST_DELIMITER.join(translated_svc_refs_list_local),
             rule_action=rule_parse_action(native_rule),
             rule_track=rule_parse_tracking_info(native_rule),
             rule_installon=rule_parse_installon(native_rule),
@@ -798,6 +824,45 @@ def build_nat_addr_list(
                     normalized_config_global=normalized_config_global,
                 )
             )
+
+
+def ensure_original_objects(normalized_config_adom: dict[str, Any], normalized_config_global: dict[str, Any]) -> None:
+    """
+    Ensure that a standard 'Original' network and service object exist in the normalized config.
+    If missing, create minimal placeholder objects in the ADOM normalized config.
+    """
+    # Ensure lists exist
+    normalized_config_adom.setdefault("network_objects", [])
+    normalized_config_adom.setdefault("service_objects", [])
+
+    # Check network objects in ADOM and global
+    combined_nw = normalized_config_adom["network_objects"] + normalized_config_global.get("network_objects", [])
+    if not any(obj.get("obj_name") == "Original" for obj in combined_nw):
+        normalized_config_adom["network_objects"].append(
+            create_network_object(
+                name="Original",
+                obj_type="network",
+                ip=ANY_IP_START,
+                ip_end=ANY_IP_END,
+                uid="Original",
+                color="black",
+                comment='"original" network object created by FWO importer for NAT purposes',
+                zone="global",
+            )
+        )
+
+    # Check service objects in ADOM and global
+    combined_svc = normalized_config_adom["service_objects"] + normalized_config_global.get("service_objects", [])
+    if not any(svc.get("svc_name") == "Original" for svc in combined_svc):
+        normalized_config_adom["service_objects"].append(
+            create_svc_object(
+                name="Original",
+                proto=0,
+                color="foreground",
+                port=None,
+                comment='"original" service object created by FWO importer for NAT purposes',
+            )
+        )
 
 
 def find_addr_ref(

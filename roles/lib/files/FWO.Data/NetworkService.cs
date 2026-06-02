@@ -154,45 +154,16 @@ namespace FWO.Data
         /// </summary>
         public static List<NetworkService> FlattenRuleServices(IEnumerable<NetworkService> services)
         {
-            List<NetworkService> flattenedServices = [];
             HashSet<long> flattenedServiceIds = [];
-            HashSet<long> visitedGroupIds = [];
 
-            foreach (NetworkService service in services)
-            {
-                FlattenRuleService(service, flattenedServices, flattenedServiceIds, visitedGroupIds);
-            }
-
-            return flattenedServices;
-        }
-
-        private static void FlattenRuleService(NetworkService? service, List<NetworkService> flattenedServices,
-            HashSet<long> flattenedServiceIds, HashSet<long> visitedGroupIds)
-        {
-            if (service is null)
-            {
-                return;
-            }
-
-            if (string.Equals(service.Type?.Name, ServiceType.Group, StringComparison.OrdinalIgnoreCase))
-            {
-                if (!visitedGroupIds.Add(service.Id))
-                {
-                    return;
-                }
-
-                foreach (GroupFlat<NetworkService> groupFlat in service.ServiceGroupFlats ?? [])
-                {
-                    FlattenRuleService(groupFlat.Object, flattenedServices, flattenedServiceIds, visitedGroupIds);
-                }
-
-                return;
-            }
-
-            if (flattenedServiceIds.Add(service.Id))
-            {
-                flattenedServices.Add(service);
-            }
+            return services
+                .Where(service => service is not null)
+                .SelectMany(service => string.Equals(service!.Type?.Name, ServiceType.Group, StringComparison.OrdinalIgnoreCase)
+                    ? (service.ServiceGroupFlats ?? []).Select(groupFlat => groupFlat.Object).OfType<NetworkService>()
+                    : new[] { service })
+                .Where(service => !string.Equals(service.Type?.Name, ServiceType.Group, StringComparison.OrdinalIgnoreCase))
+                .Where(service => flattenedServiceIds.Add(service.Id))
+                .ToList();
         }
     }
 }

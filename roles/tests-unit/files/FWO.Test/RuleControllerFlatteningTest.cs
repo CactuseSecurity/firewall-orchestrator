@@ -71,7 +71,10 @@ namespace FWO.Test
                 Id = 12,
                 Name = "Group A",
                 Type = new NetworkServiceType { Name = ServiceType.Group },
-                ServiceGroupFlats = [new GroupFlat<NetworkService> { Id = 13, Object = leaf }]
+                ServiceGroupFlats =
+                [
+                    new GroupFlat<NetworkService> { Id = 13, Object = leaf }
+                ]
             };
 
             var group = new NetworkService
@@ -79,7 +82,11 @@ namespace FWO.Test
                 Id = 14,
                 Name = "Service A",
                 Type = new NetworkServiceType { Name = ServiceType.Group },
-                ServiceGroupFlats = [new GroupFlat<NetworkService> { Id = 15, Object = nestedGroup }]
+                ServiceGroupFlats =
+                [
+                    new GroupFlat<NetworkService> { Id = 15, Object = nestedGroup },
+                    new GroupFlat<NetworkService> { Id = 16, Object = leaf }
+                ]
             };
 
             List<NetworkService> result = InvokePrivateFlatten<NetworkService>("FlattenRuleServices",

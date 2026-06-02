@@ -167,7 +167,7 @@ namespace FWO.Test
         {
             NetworkService nestedService = CreateServiceObject(401, "Nested Service", 8443, 6, "TCP");
             NetworkService innerServiceGroup = CreateServiceGroup(400, "Inner Service Group", nestedService);
-            NetworkService outerServiceGroup = CreateServiceGroup(300, "Outer Service Group", innerServiceGroup);
+            NetworkService outerServiceGroup = CreateServiceGroup(300, "Outer Service Group", innerServiceGroup, nestedService);
 
             return new Rule
             {
@@ -232,14 +232,14 @@ namespace FWO.Test
             };
         }
 
-        private static NetworkService CreateServiceGroup(long id, string name, NetworkService member)
+        private static NetworkService CreateServiceGroup(long id, string name, params NetworkService[] members)
         {
             return new NetworkService
             {
                 Id = id,
                 Name = name,
                 Type = new NetworkServiceType { Name = ServiceType.Group },
-                ServiceGroupFlats = [new GroupFlat<NetworkService> { Id = member.Id, Object = member }]
+                ServiceGroupFlats = members.Select(member => new GroupFlat<NetworkService> { Id = member.Id, Object = member }).ToArray()
             };
         }
     }

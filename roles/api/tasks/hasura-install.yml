@@ -6,7 +6,6 @@
     state: present
   loop:
     - python3-pip
-    - python3-virtualenv
   become: true
 
 - name: read dbadmin pwd from secrets file

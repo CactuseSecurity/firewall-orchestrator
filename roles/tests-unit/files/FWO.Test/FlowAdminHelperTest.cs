@@ -158,5 +158,22 @@ namespace FWO.Test
             Assert.That(details, Does.Contain("candidate"));
             Assert.That(details, Does.Contain("uid-42"));
         }
+
+        [Test]
+        public void FormatNetworkObjectTechnicalDetails_UsesTechnicalIdentifierForNoIpObjects()
+        {
+            NetworkObject candidate = new()
+            {
+                Id = 42,
+                Name = "",
+                IP = "",
+                IpEnd = "",
+                Uid = "uid-42"
+            };
+
+            string details = FlowAdminHelper.FormatNetworkObjectTechnicalDetails(candidate);
+
+            Assert.That(details, Is.EqualTo("uid-42"));
+        }
     }
 }

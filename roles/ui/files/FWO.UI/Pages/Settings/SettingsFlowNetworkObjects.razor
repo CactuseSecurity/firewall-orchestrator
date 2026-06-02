@@ -966,7 +966,7 @@ else
     private static string GetCustomObjectSelectionLabel(CustomObjectManagementSelection selection)
     {
         return selection.SelectedObject != null
-            ? DisplayBase.DisplayIpWithName(selection.SelectedObject)
+            ? FlowAdminHelper.FormatNetworkObjectTechnicalDetails(selection.SelectedObject)
             : "-";
     }
 

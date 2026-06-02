@@ -151,6 +151,7 @@ namespace FWO.Middleware.Server
 
             return new((int)ReportType.Changes, deviceFilter)
             {
+                IncludeObjects = userConfig.GlobalConfig!.ImpChangeIncludeObjectChanges,
                 TimeFilter = new()
                 {
                     TimeRangeType = TimeRangeType.Fixeddates,

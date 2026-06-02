@@ -95,17 +95,29 @@ namespace FWO.Report.Filter
             query.ConnectionWhereStatement += "{";
             query.OwnerWhereStatement += "{";
 
-            if ((ReportType)filter.ReportParams.ReportType == ReportType.Changes || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChanges || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChangesTech)
+            bool isChangeReport = (ReportType)filter.ReportParams.ReportType == ReportType.Changes || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChanges || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChangesTech;
+
+            string beforeExtract = query.RuleWhereStatement;
+
+            if (isChangeReport)
             {
                 query.RuleWhereStatement += "rule: {";
             }
+
             // now we convert the ast into a graphql query:
             ast?.Extract(ref query, (ReportType)filter.ReportParams.ReportType);
             // TODO: remove rule dev filtering for rework 
 
-            if ((ReportType)filter.ReportParams.ReportType == ReportType.Changes || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChanges || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChangesTech)
+            if (isChangeReport)
             {
-                query.RuleWhereStatement += "}";
+                if (query.RuleWhereStatement == beforeExtract + "rule: {")
+                {
+                    query.RuleWhereStatement = beforeExtract;
+                }
+                else
+                {
+                    query.RuleWhereStatement += "}";
+                }
             }
 
             query.RuleWhereStatement += "}] ";

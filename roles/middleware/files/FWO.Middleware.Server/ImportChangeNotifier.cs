@@ -121,7 +121,7 @@ namespace FWO.Middleware.Server
             }
             else
             {
-                importsToNotify = await apiConnection.SendQueryAsync<List<ImportToNotify>>(ReportQueries.getImportsToNotify);
+                importsToNotify = await apiConnection.SendQueryAsync<List<ImportToNotify>>(ReportQueries.getImportsToNotifyForRuleChanges);
             }
 
             importedManagements = [];

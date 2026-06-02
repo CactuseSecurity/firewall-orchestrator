@@ -35,7 +35,7 @@ jobs:
       - name: Run Ansible test install without integration cleanup
         run: |
           cd /home/runner/work/firewall-orchestrator/firewall-orchestrator
-          ansible-playbook -e force_install=true site.yml -K --skip-tags integrationtests
+          ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true --skip-tags integrationtests
 
       - name: Running in GitHub actions requires testing puppeteer pdf creation separately
         if: ${{ env.RUNNING_ON_GITHUB_ACTIONS == 'true' }}
@@ -59,7 +59,7 @@ jobs:
         if: ${{ success() }}
         run: |
           cd /home/runner/work/firewall-orchestrator/firewall-orchestrator
-          ansible-playbook -e force_install=true site.yml -K --tags integrationtests
+          ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true --tags integrationtests
 
 
   python-code-check:

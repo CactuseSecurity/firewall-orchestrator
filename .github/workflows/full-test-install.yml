@@ -37,7 +37,7 @@ jobs:
       - name: Run Ansible test install
         run: |
           cd ${{ github.workspace }}
-          ansible-playbook -e force_install=true -e "ansible_python_interpreter=$(which python)" site.yml -K
+          ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true -e "ansible_python_interpreter=$(which python)"
 
       - name: Running in GitHub actions requires testing puppeteer pdf creation separately
         if: ${{ env.RUNNING_ON_GITHUB_ACTIONS == 'true' }}

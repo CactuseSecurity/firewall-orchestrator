@@ -96,25 +96,27 @@ namespace FWO.Report.Filter
             query.OwnerWhereStatement += "{";
 
             bool isChangeReport = (ReportType)filter.ReportParams.ReportType == ReportType.Changes || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChanges || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChangesTech;
-
-            string beforeExtract = query.RuleWhereStatement;
-
-            if (isChangeReport)
-            {
-                query.RuleWhereStatement += "rule: {";
-            }
+            
+            string ruleBeforeExtract = query.RuleWhereStatement;
 
             ast?.Extract(ref query, (ReportType)filter.ReportParams.ReportType);
 
             if (isChangeReport)
             {
-                if (query.RuleWhereStatement == beforeExtract + "rule: {")
+                string astRuleFilter = query.RuleWhereStatement.Substring(ruleBeforeExtract.Length).Trim();     
+                query.RuleWhereStatement = ruleBeforeExtract;
+
+                if (string.IsNullOrWhiteSpace(astRuleFilter))
                 {
-                    query.RuleWhereStatement = beforeExtract;
+                    query.RuleWhereStatement += "_or: [{ rule: {} }, { ruleByOldRuleId: {} }]";
                 }
                 else
                 {
-                    query.RuleWhereStatement += "}";
+                    query.RuleWhereStatement +=
+                        "_or: [" +
+                        "{ rule: { " + astRuleFilter + " } }, " +
+                        "{ ruleByOldRuleId: { " + astRuleFilter + " } }" +
+                        "]";
                 }
             }
 

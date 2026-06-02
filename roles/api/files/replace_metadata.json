@@ -15760,6 +15760,14 @@
                 "name": "refresh_token",
                 "schema": "public"
               },
+              "object_relationships": [
+                {
+                  "name": "uiuser",
+                  "using": {
+                    "foreign_key_constraint_on": "user_id"
+                  }
+                }
+              ],
               "insert_permissions": [
                 {
                   "role": "middleware-server",
@@ -27354,6 +27362,18 @@
                       "column": "last_recertifier",
                       "table": {
                         "name": "owner",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "refresh_tokens",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "user_id",
+                      "table": {
+                        "name": "refresh_token",
                         "schema": "public"
                       }
                     }

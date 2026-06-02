@@ -1,7 +1,6 @@
 @inherits LayoutComponentBase
 @using FWO.Data.Middleware
 @using FWO.Middleware.Client
-@using FWO.Services.EventMediator
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
 @using FWO.Services
@@ -13,7 +12,6 @@
 @using Microsoft.AspNetCore.Components.Server.Circuits;
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using RestSharp
-@using System.IdentityModel.Tokens.Jwt
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -67,28 +65,28 @@
             </div>
             <input type="password" class="form-control @reloginCssClass" @bind="password"
                    placeholder="@(userConfig.GetText("password"))" @bind:event="oninput" @onkeypress="@KeyHandler">
-            </div>
-            @if (!string.IsNullOrEmpty(reloginErrorMessage))
+        </div>
+        @if (!string.IsNullOrEmpty(reloginErrorMessage))
+        {
+            <label class="mt-1 mb-1 text-danger">@reloginErrorMessage</label>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if (reloginAbortable)
             {
-                <label class="mt-1 mb-1 text-danger">@reloginErrorMessage</label>
+                <button type="button" class="btn btn-secondary" @onclick="@(() => showReloginDialog = false)">
+                    @(userConfig.GetText("cancel"))
+                </button>
             }
-        </Body>
-        <Footer>
-            <div class="btn-group">
-                @if (reloginAbortable)
-                {
-                    <button type="button" class="btn btn-secondary" @onclick="@(() => showReloginDialog = false)">
-                        @(userConfig.GetText("cancel"))
-                    </button>
-                }
-                else
-                {
-                    <a class="btn btn-danger" href="/logout">@(userConfig.GetText("logout"))</a>
-                }
-                <button type="button" class="btn btn-primary" @onclick="Relogin">@(userConfig.GetText("relogin"))</button>
-            </div>
-        </Footer>
-    </PopUp>
+            else
+            {
+                <a class="btn btn-danger" href="/logout">@(userConfig.GetText("logout"))</a>
+            }
+            <button type="button" class="btn btn-primary" @onclick="Relogin">@(userConfig.GetText("relogin"))</button>
+        </div>
+    </Footer>
+</PopUp>
 
 <KeyboardInput />
 
@@ -102,7 +100,6 @@
     private GraphQlApiSubscription<List<Alert>>? alertSubscription;
     private bool showAlert = false;
     private object errorLock = new object();
-    private bool isCircuitDisconnected = false;
 
     private string reloginErrorMessage = "";
     private string reloginCssClass = "";
@@ -127,8 +124,6 @@
 
         DisplayMessageInUiFunction = DisplayMessageInUi;
 
-        SubscribeCircuitEvents();
-
         await CheckAndRefreshTokenAsync();
 
         NavigationManager.LocationChanged += OnLocationChanged;
@@ -149,14 +144,6 @@
         StartTokenRefreshRunner();
     }
 
-    private void SubscribeCircuitEvents()
-    {
-        CircuitHandlerService circuitHandlerService = (CircuitHandlerService)circuitHandler;
-        circuitHandlerService.ConnectionDown += OnCircuitConnectionDown;
-        circuitHandlerService.ConnectionUp += OnCircuitConnectionUp;
-        circuitHandlerService.CircuitClosed += OnCircuitClosed;
-    }
-
     private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
         if (LastLocation != e.Location)
@@ -171,11 +158,6 @@
     {
         try
         {
-            if (isCircuitDisconnected)
-            {
-                return;
-            }
-
             if (!await tokenService.HasRefreshToken())
             {
                 return;
@@ -228,25 +210,10 @@
 
     private void OnUserSessionClosed(UserSessionClosedEventArgs? e)
     {
-        StopTokenRefreshRunner();
-    }
-
-    private void OnCircuitConnectionDown()
-    {
-        isCircuitDisconnected = true;
-        StopTokenRefreshRunner();
-    }
-
-    private void OnCircuitConnectionUp()
-    {
-        isCircuitDisconnected = false;
-        StartTokenRefreshRunner();
-    }
-
-    private void OnCircuitClosed()
-    {
-        isCircuitDisconnected = true;
-        StopTokenRefreshRunner();
+        if (DistName.DnEquals(e?.UserDn, userConfig.User.Dn))
+        {
+            StopTokenRefreshRunner();
+        }
     }
 
     private void StartTokenRefreshRunner()
@@ -474,9 +441,9 @@
                     }
                     catch (Exception) { }
                 }
-                
+
                 Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception, userConfig.User.Name, role);
-                
+
                 severity = 2;
                 cause = (title != "" ? title : userConfig.GetText("unspecified_error"));
                 description = $"{(message != "" ? message : userConfig.GetText("E0001"))}" + (ErrorFlag ? $": {exception.Message}" : "") + " . " + userConfig.GetText("E0002");
@@ -501,7 +468,7 @@
             };
 
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addUiLogEntry, Variables)).ReturnIds;
-            
+
             if (returnIds == null)
             {
                 Log.WriteError("Write Log", "Log could not be written to database");
@@ -515,11 +482,6 @@
 
     private void ApiExceptionHandler(Exception exception)
     {
-        if (SubscriptionExceptionHelper.ShouldIgnoreDuringCircuitShutdown(exception, isCircuitDisconnected))
-        {
-            return;
-        }
-
         Log.WriteError("Alarm Handling", "Api subscription lead to exception. Retry subscription.", exception);
         // Subscription will be restored if no exception is thrown here
     }
@@ -548,12 +510,8 @@
         NavigationManager.LocationChanged -= OnLocationChanged;
         StopTokenRefreshRunner();
         CircuitHandlerService circuitHandlerService = (CircuitHandlerService)circuitHandler;
-        circuitHandlerService.ConnectionDown -= OnCircuitConnectionDown;
-        circuitHandlerService.ConnectionUp -= OnCircuitConnectionUp;
-        circuitHandlerService.CircuitClosed -= OnCircuitClosed;
         EventMediator.Unsubscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent));
         EventMediator.Unsubscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent));
         EventMediator.Unsubscribe<UserSessionClosedEvent>(nameof(UserSessionClosedEvent));
-        isCircuitDisconnected = true;
     }
 }

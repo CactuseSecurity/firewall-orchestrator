@@ -9,11 +9,7 @@ namespace FWO.Ui.Services
     public class CircuitHandlerService(IEventMediator eventMediator) : CircuitHandler
     {
         public UiUser? User { get; set; }
-
-        public event Action? ConnectionDown;
-        public event Action? ConnectionUp;
-        public event Action? CircuitClosed;
-
+        
         private readonly UserSessionClosedEvent OnUserSessionClosed = new();
 
         public override Task OnConnectionDownAsync(Circuit circuit, CancellationToken cancellationToken)
@@ -28,18 +24,10 @@ namespace FWO.Ui.Services
                     UserName = User.Name,
                 };
 
-                CircuitClosed?.Invoke();
                 eventMediator.Publish(nameof(UserSessionClosedEvent), OnUserSessionClosed);
             }
 
-            ConnectionDown?.Invoke();
             return base.OnConnectionDownAsync(circuit, cancellationToken);
-        }
-
-        public override Task OnConnectionUpAsync(Circuit circuit, CancellationToken cancellationToken)
-        {
-            ConnectionUp?.Invoke();
-            return base.OnConnectionUpAsync(circuit, cancellationToken);
         }
 
         public override Task OnCircuitClosedAsync(Circuit circuit, CancellationToken cancellationToken)
@@ -54,7 +42,6 @@ namespace FWO.Ui.Services
                     UserName = User.Name,
                 };
 
-                CircuitClosed?.Invoke();
                 eventMediator.Publish(nameof(UserSessionClosedEvent), OnUserSessionClosed);
             }
 

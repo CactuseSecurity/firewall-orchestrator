@@ -410,6 +410,9 @@ Removed deprecated configuration keys:
 - updateRuleOwnerMappingStartAt
 These settings are no longer used due to the full automation of UpdateRuleOwner.
 
+# 9.1.4 - 02.06.2026 DEVELOP
+- remove old jwt token lifetime config values
+
 # 9.0.24 - 27.04.2026 DEVELOP
 - introduce new modelling integration mode WorkflowNotifications
 

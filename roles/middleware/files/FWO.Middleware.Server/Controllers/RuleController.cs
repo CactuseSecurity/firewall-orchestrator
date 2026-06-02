@@ -48,17 +48,10 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
     {
         try
         {
-            bool hasOwnerId = request.Query.OwnerId is not null;
-            bool hasIpAddress = !string.IsNullOrWhiteSpace(request.Query.IpAddress);
-
-            if (hasOwnerId && hasIpAddress)
+            string? filterSelectionValidationError = ValidateFilterSelection(request.Query.OwnerId, request.Query.IpAddress);
+            if (filterSelectionValidationError is not null)
             {
-                return BadRequest("Exactly one of OwnerId or IpAddress must be provided.");
-            }
-
-            if (!hasOwnerId && !hasIpAddress)
-            {
-                return BadRequest("Either OwnerId or IpAddress must be provided.");
+                return BadRequest(filterSelectionValidationError);
             }
 
             GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection);
@@ -70,68 +63,114 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
             LogSiemEntry(request, requestId);
 
             List<RuleDetail> rules;
-
-            if (hasOwnerId)
+            if (request.Query.OwnerId is not null)
             {
                 rules = await FetchRulesByOwnerId(
-                    request.Query.OwnerId ?? -1,
+                    request.Query.OwnerId.Value,
                     userConfig,
                     request.Query.FieldSourceMapping);
             }
             else
             {
-                if (!IPAddress.TryParse(request.Query.IpAddress, out IPAddress? ipAddress))
-                {
-                    return BadRequest(
-                        "The IPAddress must be a valid IPv4 address.");
-                }
-
-                RuleFilter queryFilter = request.Query.Filter ?? new RuleFilter();
-                if (string.IsNullOrEmpty(queryFilter.Action))
-                {
-                    return BadRequest(
-                        "The field Action must be filled with either \"accept\", \"deny\" or \"any\".");
-                }
-
-                if (queryFilter.MinPrefixLength < 0 || queryFilter.MinPrefixLength > 32)
-                {
-                    return BadRequest(
-                        $"The value for MinPrefixLength {queryFilter.MinPrefixLength} must be between 0 and 32.");
-                }
-
-                if (string.IsNullOrEmpty(queryFilter.InField))
-                {
-                    return BadRequest(
-                        $"The field InField must be filled with either \"{FilterFields.Source}\", \"{FilterFields.Destination}\" or \"{FilterFields.Both}\".");
-                }
-
-                rules = await FilterRules(
-                    ipAddress,
-                    queryFilter.Action,
-                    queryFilter.MinPrefixLength,
-                    queryFilter.InField,
+                (List<RuleDetail>? fetchedRules, string? validationError) = await FetchRulesByIpAddress(
+                    request.Query.IpAddress,
+                    request.Query.Filter,
                     userConfig,
-                    request.Query.FieldSourceMapping
-                );
+                    request.Query.FieldSourceMapping);
+
+                if (validationError is not null)
+                {
+                    return BadRequest(validationError);
+                }
+
+                rules = fetchedRules ?? [];
             }
 
-            var response = new RulesByFilterResponse
-            {
-                Request_Id = requestId,
-                Result = new RuleResult
-                {
-                    Count = rules.Count,
-                    Rules = rules
-                }
-            };
-
-            return Ok(response);
+            return Ok(CreateRulesByFilterResponse(requestId, rules));
         }
         catch (Exception exception)
         {
             Log.WriteError("Get Rules By Filter", "Error while fetching rules.", exception);
             return StatusCode(500, "Internal server error");
         }
+    }
+
+    private static string? ValidateFilterSelection(int? ownerId, string? ipAddress)
+    {
+        bool hasOwnerId = ownerId is not null;
+        bool hasIpAddress = !string.IsNullOrWhiteSpace(ipAddress);
+
+        if (hasOwnerId && hasIpAddress)
+        {
+            return "Exactly one of OwnerId or IpAddress must be provided.";
+        }
+
+        if (!hasOwnerId && !hasIpAddress)
+        {
+            return "Either OwnerId or IpAddress must be provided.";
+        }
+
+        return null;
+    }
+
+    private async Task<(List<RuleDetail>? Rules, string? Error)> FetchRulesByIpAddress(
+        string? ipAddress,
+        RuleFilter? queryFilter,
+        UserConfig userConfig,
+        FieldSourceMapping? fieldSourceMapping)
+    {
+        if (!IPAddress.TryParse(ipAddress, out IPAddress? parsedIpAddress))
+        {
+            return (null, "The IPAddress must be a valid IPv4 address.");
+        }
+
+        RuleFilter effectiveFilter = queryFilter ?? new RuleFilter();
+        string? validationError = ValidateIpFilter(effectiveFilter);
+        if (validationError is not null)
+        {
+            return (null, validationError);
+        }
+
+        return (await FilterRules(
+            parsedIpAddress,
+            effectiveFilter.Action,
+            effectiveFilter.MinPrefixLength,
+            effectiveFilter.InField,
+            userConfig,
+            fieldSourceMapping), null);
+    }
+
+    private static string? ValidateIpFilter(RuleFilter queryFilter)
+    {
+        if (string.IsNullOrEmpty(queryFilter.Action))
+        {
+            return "The field Action must be filled with either \"accept\", \"deny\" or \"any\".";
+        }
+
+        if (queryFilter.MinPrefixLength < 0 || queryFilter.MinPrefixLength > 32)
+        {
+            return $"The value for MinPrefixLength {queryFilter.MinPrefixLength} must be between 0 and 32.";
+        }
+
+        if (string.IsNullOrEmpty(queryFilter.InField))
+        {
+            return $"The field InField must be filled with either \"{FilterFields.Source}\", \"{FilterFields.Destination}\" or \"{FilterFields.Both}\".";
+        }
+
+        return null;
+    }
+
+    private static RulesByFilterResponse CreateRulesByFilterResponse(string requestId, List<RuleDetail> rules)
+    {
+        return new RulesByFilterResponse
+        {
+            Request_Id = requestId,
+            Result = new RuleResult
+            {
+                Count = rules.Count,
+                Rules = rules
+            }
+        };
     }
 
     private void LogSiemEntry(RulesByFilterRequest request, string requestId)

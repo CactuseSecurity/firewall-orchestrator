@@ -18,8 +18,8 @@ query RuleDetailById(
                 obj_name
                 obj_ip
                 obj_ip_end
-                type {
-                    name
+                type: stm_obj_type {
+                    name: obj_typ_name
                 }
                 objgrp_flats(
                     where: {
@@ -47,8 +47,8 @@ query RuleDetailById(
                 obj_name
                 obj_ip
                 obj_ip_end
-                type {
-                    name
+                type: stm_obj_type {
+                    name: obj_typ_name
                 }
                 objgrp_flats(
                     where: {

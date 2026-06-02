@@ -209,7 +209,7 @@
             group.Roles = new List<string>();
             foreach (var role in roles)
             {
-                if (role.Users != null && role.Users.Exists(x => x.Dn == group.Dn))
+                if (role.Users != null && role.Users.Exists(x => DistName.DnEquals(x.Dn, group.Dn)))
                 {
                     group.Roles.Add(role.Name);
                 }
@@ -288,7 +288,7 @@
                     else
                     {
                         string newDn = middlewareServerResponse.Data;
-                        int changedGroup = groups.FindIndex(x => x.Dn == actGroup.Dn);
+                        int changedGroup = groups.FindIndex(x => DistName.DnEquals(x.Dn, actGroup.Dn));
                         groups[changedGroup].Dn = newDn;
                         groups[changedGroup].Name = newGroupName;
                         EditGroupMode = false;

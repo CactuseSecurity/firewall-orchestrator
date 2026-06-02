@@ -55,10 +55,7 @@ namespace FWO.Test
 
     internal sealed class ReportModellingParamSelectionTestApiConn : SimulatedApiConnection
     {
-        public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(
-            string query,
-            object? variables = null,
-            string? operationName = null)
+        public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
             await Task.CompletedTask;
 

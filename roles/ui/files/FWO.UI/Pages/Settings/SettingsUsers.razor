@@ -395,7 +395,7 @@
                 user.Groups = new ();
                 foreach (var group in groups)
                 {
-                    if (group.Users != null && group.Users.Exists(x => x.Dn == user.Dn))
+                    if (group.Users != null && group.Users.Exists(x => DistName.DnEquals(x.Dn, user.Dn)))
                     {
                         user.Groups.Add(group.Name);
                     }
@@ -417,7 +417,7 @@
                 user.Roles = new ();
                 foreach (var role in roles)
                 {
-                    if (role.Users != null && role.Users.Exists(x => x.Dn == user.Dn))
+                    if (role.Users != null && role.Users.Exists(x => DistName.DnEquals(x.Dn, user.Dn)))
                     {
                         user.Roles.Add(role.Name);
                     }
@@ -455,7 +455,7 @@
         {
             foreach (var ldapUser in ldapUsers)
             {
-                UiUser? relatedUiUser = uiUsers.FirstOrDefault(x => x.Dn == ldapUser.Dn);
+                UiUser? relatedUiUser = uiUsers.FirstOrDefault(x => DistName.DnEquals(x.Dn, ldapUser.Dn));
                 if (relatedUiUser != null)
                 {
                     // Update related user
@@ -828,7 +828,7 @@
             DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5212"), true);
             return false;
         }
-        if (uiUsers.Exists(x => x.Dn == actUser.Dn))
+        if (uiUsers.Exists(x => DistName.DnEquals(x.Dn, actUser.Dn)))
         {
             DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5210"), true);
             return false;
@@ -889,7 +889,7 @@
         try
         {
             actUser = user;
-            if (actUser.Dn == userConfig.User.Dn)
+            if (DistName.DnEquals(actUser.Dn, userConfig.User.Dn))
             {
                 DisplayMessageInUi(null, userConfig.GetText("delete_user"), userConfig.GetText("E5215"), true);
             }

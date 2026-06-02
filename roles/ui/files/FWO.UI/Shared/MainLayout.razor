@@ -102,6 +102,7 @@
     private GraphQlApiSubscription<List<Alert>>? alertSubscription;
     private bool showAlert = false;
     private object errorLock = new object();
+    private bool isCircuitShuttingDown = false;
 
     private string reloginErrorMessage = "";
     private string reloginCssClass = "";
@@ -126,6 +127,7 @@
 
         EventMediator.Subscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent), _ => OnPermissionsChanged(_.EventArgs));
         EventMediator.Subscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent), _ => OnJwtExpired(_.EventArgs));
+        EventMediator.Subscribe<UserSessionClosedEvent>(nameof(UserSessionClosedEvent), _ => OnUserSessionClosed(_.EventArgs));
 
         NavigationManager.LocationChanged += OnLocationChanged;
 
@@ -208,6 +210,11 @@
         {
             ShowReloginDialog(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), reloginAbortable: false);
         }
+    }
+
+    private void OnUserSessionClosed(UserSessionClosedEventArgs? e)
+    {
+        isCircuitShuttingDown = true;
     }
 
     private void ShowReloginDialog(string title, string text, bool reloginAbortable)
@@ -459,6 +466,11 @@
 
     private void ApiExceptionHandler(Exception exception)
     {
+        if (SubscriptionExceptionHelper.ShouldIgnoreDuringCircuitShutdown(exception, isCircuitShuttingDown))
+        {
+            return;
+        }
+
         Log.WriteError("Alarm Handling", "Api subscription lead to exception. Retry subscription.", exception);
         // Subscription will be restored if no exception is thrown here
     }
@@ -488,5 +500,7 @@
         tokenRefreshRunner?.Dispose();
         EventMediator.Unsubscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent));
         EventMediator.Unsubscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent));
+        EventMediator.Unsubscribe<UserSessionClosedEvent>(nameof(UserSessionClosedEvent));
+        isCircuitShuttingDown = true;
     }
 }

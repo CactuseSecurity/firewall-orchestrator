@@ -3,6 +3,7 @@ using GraphQL;
 using GraphQL.Client.Http;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics.CodeAnalysis;
+using System.Net.WebSockets;
 
 namespace FWO.Api.Client
 {
@@ -18,11 +19,11 @@ namespace FWO.Api.Client
 
         private readonly GraphQLHttpClient _graphQlClient;
         private readonly GraphQLRequest _request;
-        private readonly Action<Exception> _internalExceptionHandler;
         private readonly ApiConnection _apiConnection;
 
         private readonly object _lock = new();
         private bool _disposed;
+        private int _subscriptionVersion;
 
         public GraphQlApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate onUpdate)
         {
@@ -31,24 +32,14 @@ namespace FWO.Api.Client
             _request = request;
 
             OnUpdate += onUpdate;
-
-            // handle subscription terminating exceptions
-            _internalExceptionHandler = (Exception exception) =>
-            {
-                // Case: Jwt expired
-                if (exception.Message.Contains("JWTExpired"))
-                {
-                    // Quit subscription by throwing exception.
-                    // This does NOT lead to a real thrown exception within the application but is instead handled by the graphql library
-                    throw exception;
-                }
-                exceptionHandler(exception);
-            };
+            ExternalExceptionHandler = exceptionHandler;
 
             CreateSubscription();
 
             _apiConnection.OnAuthHeaderChanged += ApiConnectionOnAuthHeaderChanged;
         }
+
+        private Action<Exception> ExternalExceptionHandler { get; }
 
         protected virtual void CreateSubscription()
         {
@@ -56,16 +47,18 @@ namespace FWO.Api.Client
             {
                 if (_disposed) return;
 
+                int subscriptionVersion = ++_subscriptionVersion;
                 _subscription?.Dispose();
                 _subscription = null;
 
                 Log.WriteDebug("API", $"Creating API subscription {_request.OperationName}.");
-                _subscriptionStream = CreateSubscriptionStream();
+                Action<Exception> subscriptionExceptionHandler = exception => HandleSubscriptionException(exception, subscriptionVersion);
+                _subscriptionStream = CreateSubscriptionStream(subscriptionVersion, subscriptionExceptionHandler);
                 Log.WriteDebug("API", "API subscription created.");
 
                 _subscription = _subscriptionStream.Subscribe(response =>
                 {
-                    if (_disposed) return;
+                    if (_disposed || subscriptionVersion != _subscriptionVersion) return;
 
                     if (ApiConstants.UseSystemTextJsonSerializer)
                     {
@@ -78,11 +71,19 @@ namespace FWO.Api.Client
                         // Leads to this method getting called again
                         if (response.Data == null)
                         {
+                            if (subscriptionVersion != _subscriptionVersion)
+                            {
+                                return;
+                            }
+
                             // Terminate subscription
                             lock (_lock)
                             {
-                                _subscription?.Dispose();
-                                _subscription = null;
+                                if (subscriptionVersion == _subscriptionVersion)
+                                {
+                                    _subscription?.Dispose();
+                                    _subscription = null;
+                                }
                             }
                         }
                         else
@@ -103,15 +104,39 @@ namespace FWO.Api.Client
             }
         }
 
-        protected virtual IObservable<GraphQLResponse<dynamic>> CreateSubscriptionStream()
+        protected virtual IObservable<GraphQLResponse<dynamic>> CreateSubscriptionStream(int subscriptionVersion, Action<Exception> exceptionHandler)
         {
-            return _graphQlClient.CreateSubscriptionStream<dynamic>(_request, _internalExceptionHandler);
+            return _graphQlClient.CreateSubscriptionStream<dynamic>(_request, exceptionHandler);
         }
 
         private void ApiConnectionOnAuthHeaderChanged(object? sender, string jwt)
         {
             // Recreate subscription (CreateSubscription handles disposal + locking)
             CreateSubscription();
+        }
+
+        private void HandleSubscriptionException(Exception exception, int subscriptionVersion)
+        {
+            if (subscriptionVersion != _subscriptionVersion && IsExpectedReconnectException(exception))
+            {
+                Log.WriteDebug("GraphQL Subscription", $"Ignoring expected subscription reconnect failure for {_request.OperationName}: {exception.Message}");
+                return;
+            }
+
+            if (exception.Message.Contains("JWTExpired"))
+            {
+                throw exception;
+            }
+
+            ExternalExceptionHandler.Invoke(exception);
+        }
+
+        private static bool IsExpectedReconnectException(Exception exception)
+        {
+            return exception is WebSocketException
+                || exception is OperationCanceledException
+                || exception is ObjectDisposedException
+                || exception.Message.Contains("close handshake", StringComparison.OrdinalIgnoreCase);
         }
 
         protected override void Dispose(bool disposing)

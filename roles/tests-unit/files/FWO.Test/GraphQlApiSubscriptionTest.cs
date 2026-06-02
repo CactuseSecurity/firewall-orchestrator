@@ -4,6 +4,7 @@ using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using System.Net.WebSockets;
 using System.Security.Claims;
 
 namespace FWO.Test
@@ -102,6 +103,24 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GraphQlApiSubscriptionIgnoresExpectedReconnectErrorsFromStaleStream()
+        {
+            ManualGraphQlObservable firstStream = new();
+            ManualGraphQlObservable secondStream = new();
+            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(firstStream);
+            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(secondStream);
+            TestApiConnection apiConnection = new();
+            int exceptionCount = 0;
+            using StreamBackedGraphQlApiSubscription<string> subscription = CreateStreamBackedSubscription<string>(apiConnection, _ => { }, _ => exceptionCount++);
+
+            apiConnection.RaiseAuthHeaderChanged("jwt");
+            firstStream.EmitError(new WebSocketException("The remote party closed the WebSocket connection without completing the close handshake."));
+
+            Assert.That(exceptionCount, Is.EqualTo(0));
+            Assert.That(secondStream.SubscribeCount, Is.EqualTo(1));
+        }
+
+        [Test]
         public void GraphQlApiSubscriptionDoesNotDispatchAfterDispose()
         {
             ManualGraphQlObservable stream = new();
@@ -150,14 +169,14 @@ namespace FWO.Test
         }
 
         private static StreamBackedGraphQlApiSubscription<T> CreateStreamBackedSubscription<T>(ApiConnection apiConnection,
-            GraphQlApiSubscription<T>.SubscriptionUpdate onUpdate)
+            GraphQlApiSubscription<T>.SubscriptionUpdate onUpdate, Action<Exception>? exceptionHandler = null)
         {
             GraphQLHttpClient graphQlClient = new(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient());
             return new StreamBackedGraphQlApiSubscription<T>(
                 apiConnection,
                 graphQlClient,
                 new GraphQLRequest("subscription Test { test }"),
-                _ => { },
+                exceptionHandler ?? (_ => { }),
                 onUpdate);
         }
 
@@ -203,9 +222,11 @@ namespace FWO.Test
                 : base(apiConnection, graphQlClient, request, exceptionHandler, onUpdate)
             { }
 
-            protected override IObservable<GraphQLResponse<dynamic>> CreateSubscriptionStream()
+            protected override IObservable<GraphQLResponse<dynamic>> CreateSubscriptionStream(int subscriptionVersion, Action<Exception> exceptionHandler)
             {
-                return (IObservable<GraphQLResponse<dynamic>>)(object)Streams.Dequeue();
+                ManualGraphQlObservable stream = Streams.Dequeue();
+                stream.ExceptionHandler = exceptionHandler;
+                return (IObservable<GraphQLResponse<dynamic>>)(object)stream;
             }
 
             protected override void Dispose(bool disposing)
@@ -221,6 +242,7 @@ namespace FWO.Test
 
             public int SubscribeCount { get; private set; }
             public ManualObservableSubscription? ActiveSubscription { get; private set; }
+            public Action<Exception>? ExceptionHandler { get; set; }
 
             public IDisposable Subscribe(IObserver<GraphQLResponse<object>> observer)
             {
@@ -236,6 +258,11 @@ namespace FWO.Test
                 {
                     observer?.OnNext(response);
                 }
+            }
+
+            public void EmitError(Exception exception)
+            {
+                ExceptionHandler?.Invoke(exception);
             }
         }
 

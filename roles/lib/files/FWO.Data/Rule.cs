@@ -159,7 +159,7 @@ namespace FWO.Data
         public RuleOwner?[] RuleOwner { get; set; } = [];
 
         [JsonProperty("xlate_rule"), JsonPropertyName("xlate_rule")]
-        public string? XlateRule { get; set; }
+        public long? XlateRule { get; set; }
 
         [JsonProperty("flow_access_id"), JsonPropertyName("flow_access_id")]
         public long? FlowAccessId { get; set; }

@@ -9,29 +9,25 @@ namespace FWO.Ui.Services
     public class CircuitHandlerService(IEventMediator eventMediator) : CircuitHandler
     {
         public UiUser? User { get; set; }
-        
+
         private readonly UserSessionClosedEvent OnUserSessionClosed = new();
 
         public override Task OnConnectionDownAsync(Circuit circuit, CancellationToken cancellationToken)
         {
-            if (User != null)
-            {
-                Log.WriteAudit($"Session of \"{User.Name}\" closed", $"Session of user \"{User.Name}\" (last logged in) with DN: \"{User.Dn}\" was closed.");
-
-                OnUserSessionClosed.EventArgs = new UserSessionClosedEventArgs
-                {
-                    UserDn = User.Dn,
-                    UserName = User.Name,
-                };
-
-                eventMediator.Publish(nameof(UserSessionClosedEvent), OnUserSessionClosed);
-            }
+            PublishSessionClosedEvent();
 
             return base.OnConnectionDownAsync(circuit, cancellationToken);
         }
 
         public override Task OnCircuitClosedAsync(Circuit circuit, CancellationToken cancellationToken)
         {
+            PublishSessionClosedEvent();
+
+            return base.OnCircuitClosedAsync(circuit, cancellationToken);
+        }
+
+        private void PublishSessionClosedEvent()
+        {
             if (User != null)
             {
                 Log.WriteAudit($"Session of \"{User.Name}\" closed", $"Session of user \"{User.Name}\" (last logged in) with DN: \"{User.Dn}\" was closed.");
@@ -44,8 +40,6 @@ namespace FWO.Ui.Services
 
                 eventMediator.Publish(nameof(UserSessionClosedEvent), OnUserSessionClosed);
             }
-
-            return base.OnCircuitClosedAsync(circuit, cancellationToken);
         }
     }
 }

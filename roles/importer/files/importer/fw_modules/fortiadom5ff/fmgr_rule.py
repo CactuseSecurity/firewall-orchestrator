@@ -199,7 +199,7 @@ def normalize_nat_rulebase(
     normalized_config_adom: dict[str, Any],
     normalized_config_global: dict[str, Any],
 ):
-    normalized_config_adom["nat_policies"] = []
+    normalized_config_adom.setdefault("nat_policies", [])
     link_type = rulebase_link.get("link_type", rulebase_link.get("type", "ordered"))
     if link_type == "nat":
         return

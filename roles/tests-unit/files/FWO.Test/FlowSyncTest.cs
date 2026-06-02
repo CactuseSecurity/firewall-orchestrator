@@ -172,7 +172,7 @@ namespace FWO.Test
         public async Task Run_ReturnsFalseWhenNoPendingImportsExist()
         {
             FlowSyncTestApiConn apiConn = new();
-            FlowSync flowSync = new(apiConn, new GlobalConfig());
+            FlowSync flowSync = new(apiConn);
 
             bool result = await flowSync.Run();
 
@@ -206,7 +206,7 @@ namespace FWO.Test
                     Rules = [rule]
                 }
             };
-            FlowSync flowSync = new(apiConn, new GlobalConfig());
+            FlowSync flowSync = new(apiConn);
 
             bool result = await flowSync.Run();
 

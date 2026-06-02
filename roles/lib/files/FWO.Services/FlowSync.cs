@@ -1,7 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
-using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Flow;
 using FWO.Logging;
@@ -18,15 +17,13 @@ namespace FWO.Services
         private const string LogMessageTitle = "Flow sync";
 
         private readonly ApiConnection apiConnection;
-        private readonly GlobalConfig globalConfig;
 
         /// <summary>
-        /// Creates a new flow sync service with API access and global configuration.
+        /// Creates a new flow sync service with API access.
         /// </summary>
-        public FlowSync(ApiConnection apiConnection, GlobalConfig globalConfig)
+        public FlowSync(ApiConnection apiConnection)
         {
             this.apiConnection = apiConnection;
-            this.globalConfig = globalConfig;
         }
 
         /// <summary>
@@ -105,8 +102,7 @@ namespace FWO.Services
             }
 
             var flowData = await GetFlowSyncDataAsync(mgmId);
-            List<int> flowNamingRanking = FlowNamingHelper.ParseManagementRanking(globalConfig.FlowNamingSourceManagementRanking);
-            bool useManagementNamesForFlow = flowNamingRanking.Count > 0 && flowNamingRanking.Contains(mgmId);
+            bool useManagementNamesForFlow = true;
 
             // Process simple objects first, as they are used in groups and accesses
             await ProcessNetworkObjectsAsync(managementData.NetworkObjects.Where(o => o.Type.Name != ObjectType.Group), flowData, useManagementNamesForFlow);

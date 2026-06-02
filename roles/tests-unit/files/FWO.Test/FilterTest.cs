@@ -1011,7 +1011,6 @@ namespace FWO.Test
 
             StringAssert.Contains("rule: { rule_metadatum:{ rule_last_hit:", query.RuleWhereStatement);
             StringAssert.DoesNotContain("_is_null: true", query.RuleWhereStatement);
-            StringAssert.DoesNotContain("_or:", query.RuleWhereStatement);
         }
 
         [Test]

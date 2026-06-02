@@ -102,7 +102,7 @@
     private GraphQlApiSubscription<List<Alert>>? alertSubscription;
     private bool showAlert = false;
     private object errorLock = new object();
-    private bool isCircuitShuttingDown = false;
+    private bool isCircuitDisconnected = false;
 
     private string reloginErrorMessage = "";
     private string reloginCssClass = "";
@@ -121,13 +121,15 @@
 
     protected override async Task OnInitializedAsync()
     {
-        DisplayMessageInUiFunction = DisplayMessageInUi;
-
-        await CheckAndRefreshTokenAsync();
-
         EventMediator.Subscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent), _ => OnPermissionsChanged(_.EventArgs));
         EventMediator.Subscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent), _ => OnJwtExpired(_.EventArgs));
         EventMediator.Subscribe<UserSessionClosedEvent>(nameof(UserSessionClosedEvent), _ => OnUserSessionClosed(_.EventArgs));
+
+        DisplayMessageInUiFunction = DisplayMessageInUi;
+
+        SubscribeCircuitEvents();
+
+        await CheckAndRefreshTokenAsync();
 
         NavigationManager.LocationChanged += OnLocationChanged;
 
@@ -144,8 +146,15 @@
 
         UIMessageQueTimer.Elapsed += OnUIMessageTimerTick;
 
-        tokenRefreshRunner = new(() => InvokeAsync(CheckAndRefreshTokenAsync), TokenRefreshCheckInterval);
-        tokenRefreshRunner.Start();
+        StartTokenRefreshRunner();
+    }
+
+    private void SubscribeCircuitEvents()
+    {
+        CircuitHandlerService circuitHandlerService = (CircuitHandlerService)circuitHandler;
+        circuitHandlerService.ConnectionDown += OnCircuitConnectionDown;
+        circuitHandlerService.ConnectionUp += OnCircuitConnectionUp;
+        circuitHandlerService.CircuitClosed += OnCircuitClosed;
     }
 
     private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
@@ -162,6 +171,11 @@
     {
         try
         {
+            if (isCircuitDisconnected)
+            {
+                return;
+            }
+
             if (!await tokenService.HasRefreshToken())
             {
                 return;
@@ -214,7 +228,42 @@
 
     private void OnUserSessionClosed(UserSessionClosedEventArgs? e)
     {
-        isCircuitShuttingDown = true;
+        StopTokenRefreshRunner();
+    }
+
+    private void OnCircuitConnectionDown()
+    {
+        isCircuitDisconnected = true;
+        StopTokenRefreshRunner();
+    }
+
+    private void OnCircuitConnectionUp()
+    {
+        isCircuitDisconnected = false;
+        StartTokenRefreshRunner();
+    }
+
+    private void OnCircuitClosed()
+    {
+        isCircuitDisconnected = true;
+        StopTokenRefreshRunner();
+    }
+
+    private void StartTokenRefreshRunner()
+    {
+        if (tokenRefreshRunner != null)
+        {
+            return;
+        }
+
+        tokenRefreshRunner = new(() => InvokeAsync(CheckAndRefreshTokenAsync), TokenRefreshCheckInterval);
+        tokenRefreshRunner.Start();
+    }
+
+    private void StopTokenRefreshRunner()
+    {
+        tokenRefreshRunner?.Dispose();
+        tokenRefreshRunner = null;
     }
 
     private void ShowReloginDialog(string title, string text, bool reloginAbortable)
@@ -466,7 +515,7 @@
 
     private void ApiExceptionHandler(Exception exception)
     {
-        if (SubscriptionExceptionHelper.ShouldIgnoreDuringCircuitShutdown(exception, isCircuitShuttingDown))
+        if (SubscriptionExceptionHelper.ShouldIgnoreDuringCircuitShutdown(exception, isCircuitDisconnected))
         {
             return;
         }
@@ -497,10 +546,14 @@
 
         alertSubscription?.Dispose();
         NavigationManager.LocationChanged -= OnLocationChanged;
-        tokenRefreshRunner?.Dispose();
+        StopTokenRefreshRunner();
+        CircuitHandlerService circuitHandlerService = (CircuitHandlerService)circuitHandler;
+        circuitHandlerService.ConnectionDown -= OnCircuitConnectionDown;
+        circuitHandlerService.ConnectionUp -= OnCircuitConnectionUp;
+        circuitHandlerService.CircuitClosed -= OnCircuitClosed;
         EventMediator.Unsubscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent));
         EventMediator.Unsubscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent));
         EventMediator.Unsubscribe<UserSessionClosedEvent>(nameof(UserSessionClosedEvent));
-        isCircuitShuttingDown = true;
+        isCircuitDisconnected = true;
     }
 }

@@ -201,7 +201,7 @@ namespace FWO.Middleware.Server
                 ownerDns.AddRange(groupsOfUser);
                 ownerDns = ownerDns
                     .Where(dn => !string.IsNullOrWhiteSpace(dn))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Distinct(DistName.DnComparer)
                     .ToList();
                 List<FwoOwner> recertOwnerships = ownerDns.Count == 0
                     ? []

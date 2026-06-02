@@ -1,6 +1,6 @@
-using NUnit.Framework;
-using NUnit.Framework.Legacy;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
@@ -8,7 +8,8 @@ using FWO.Data.Workflow;
 using FWO.Services;
 using FWO.Services.Modelling;
 using FWO.Services.Workflow;
-using FWO.Basics;
+using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace FWO.Test
 {
@@ -988,7 +989,7 @@ namespace FWO.Test
                 Type = new() { Name = ObjectType.Host }
             };
 
-            public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 await DefaultInit.DoNothing();
                 Type responseType = typeof(QueryResponseType);

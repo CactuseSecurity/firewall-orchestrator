@@ -251,7 +251,7 @@ namespace FWO.Middleware.Server.Controllers
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Recertifier}, {Roles.Modeller}")]
         public async Task<List<string>> GetMemberships([FromBody] GroupMembershipGetParameters parameters)
         {
-            HashSet<string> memberships = new(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> memberships = new(DistName.DnComparer);
             if (string.IsNullOrWhiteSpace(parameters.UserDn) && string.IsNullOrWhiteSpace(parameters.UserName))
             {
                 return [];
@@ -306,7 +306,7 @@ namespace FWO.Middleware.Server.Controllers
                 return [];
             }
 
-            HashSet<string> resolved = new(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> resolved = new(DistName.DnComparer);
             object resolvedLock = new();
             await ResolveFromLdaps(parameters.Dns, resolved, resolvedLock);
             AddDirectDns(parameters.Dns, resolved, GetGroupSearchPaths());

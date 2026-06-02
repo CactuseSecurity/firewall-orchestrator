@@ -104,9 +104,7 @@ namespace FWO.Report.Filter
                 query.RuleWhereStatement += "rule: {";
             }
 
-            // now we convert the ast into a graphql query:
             ast?.Extract(ref query, (ReportType)filter.ReportParams.ReportType);
-            // TODO: remove rule dev filtering for rework 
 
             if (isChangeReport)
             {

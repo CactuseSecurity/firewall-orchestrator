@@ -3,7 +3,6 @@ using GraphQL;
 using GraphQL.Client.Http;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics.CodeAnalysis;
-using System.Net.WebSockets;
 
 namespace FWO.Api.Client
 {
@@ -17,26 +16,25 @@ namespace FWO.Api.Client
         private IObservable<GraphQLResponse<dynamic>>? _subscriptionStream;
         private IDisposable? _subscription;
 
-        private readonly GraphQLHttpClient _graphQlClient;
-        private readonly GraphQLRequest _request;
+        private GraphQLHttpClient _graphQlClient;
+        public GraphQLRequest Request { get; init; }
         private readonly ApiConnection _apiConnection;
+        private readonly SubscriptionUpdate _subscriptionUpdateHandler;
 
         private readonly object _lock = new();
         private bool _disposed;
-        private int _subscriptionVersion;
 
         public GraphQlApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate onUpdate)
         {
             _apiConnection = apiConnection;
             _graphQlClient = graphQlClient;
-            _request = request;
+            Request = request;
+            _subscriptionUpdateHandler = onUpdate;
 
             OnUpdate += onUpdate;
             ExternalExceptionHandler = exceptionHandler;
 
             CreateSubscription();
-
-            _apiConnection.OnAuthHeaderChanged += ApiConnectionOnAuthHeaderChanged;
         }
 
         private Action<Exception> ExternalExceptionHandler { get; }
@@ -47,25 +45,24 @@ namespace FWO.Api.Client
             {
                 if (_disposed) return;
 
-                int subscriptionVersion = ++_subscriptionVersion;
                 _subscription?.Dispose();
                 _subscription = null;
 
-                Log.WriteDebug("API", $"Creating API subscription {_request.OperationName}.");
-                Action<Exception> subscriptionExceptionHandler = exception => HandleSubscriptionException(exception, subscriptionVersion);
-                _subscriptionStream = CreateSubscriptionStream(subscriptionVersion, subscriptionExceptionHandler);
+                Log.WriteDebug("API", $"Creating API subscription {Request.OperationName}.");
+                Action<Exception> subscriptionExceptionHandler = HandleSubscriptionException;
+                _subscriptionStream = CreateSubscriptionStream(subscriptionExceptionHandler);
                 Log.WriteDebug("API", "API subscription created.");
 
                 _subscription = _subscriptionStream.Subscribe(response =>
                 {
-                    Subscribe(response, subscriptionVersion);
+                    Subscribe(response);
                 });
             }
         }
 
-        private void Subscribe(GraphQLResponse<dynamic> response, int subscriptionVersion)
+        private void Subscribe(GraphQLResponse<dynamic> response)
         {
-            if (_disposed || subscriptionVersion != _subscriptionVersion) return;
+            if (_disposed) return;
 
             if (ApiConstants.UseSystemTextJsonSerializer)
             {
@@ -78,19 +75,11 @@ namespace FWO.Api.Client
                 // Leads to this method getting called again
                 if (response.Data == null)
                 {
-                    if (subscriptionVersion != _subscriptionVersion)
-                    {
-                        return;
-                    }
-
                     // Terminate subscription
                     lock (_lock)
                     {
-                        if (subscriptionVersion == _subscriptionVersion)
-                        {
-                            _subscription?.Dispose();
-                            _subscription = null;
-                        }
+                        _subscription?.Dispose();
+                        _subscription = null;
                     }
                 }
                 else
@@ -109,22 +98,15 @@ namespace FWO.Api.Client
             }
         }
 
-        protected virtual IObservable<GraphQLResponse<dynamic>> CreateSubscriptionStream(int subscriptionVersion, Action<Exception> exceptionHandler)
+        protected virtual IObservable<GraphQLResponse<dynamic>> CreateSubscriptionStream(Action<Exception> exceptionHandler)
         {
-            return _graphQlClient.CreateSubscriptionStream<dynamic>(_request, exceptionHandler);
+            return _graphQlClient.CreateSubscriptionStream<dynamic>(Request, exceptionHandler);
         }
 
-        private void ApiConnectionOnAuthHeaderChanged(object? sender, string jwt)
+        private void HandleSubscriptionException(Exception exception)
         {
-            // Recreate subscription (CreateSubscription handles disposal + locking)
-            CreateSubscription();
-        }
-
-        private void HandleSubscriptionException(Exception exception, int subscriptionVersion)
-        {
-            if (subscriptionVersion != _subscriptionVersion && IsExpectedReconnectException(exception))
+            if (IsDisposed)
             {
-                Log.WriteDebug("GraphQL Subscription", $"Ignoring expected subscription reconnect failure for {_request.OperationName}: {exception.Message}");
                 return;
             }
 
@@ -133,15 +115,17 @@ namespace FWO.Api.Client
                 throw exception;
             }
 
-            ExternalExceptionHandler.Invoke(exception);
+            ExternalExceptionHandler(exception);
         }
 
-        private static bool IsExpectedReconnectException(Exception exception)
+        internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
         {
-            return exception is WebSocketException
-                || exception is OperationCanceledException
-                || exception is ObjectDisposedException
-                || exception.Message.Contains("close handshake", StringComparison.OrdinalIgnoreCase);
+            return new GraphQlApiSubscription<SubscriptionResponseType>(
+                _apiConnection,
+                graphQlClient,
+                Request,
+                ExternalExceptionHandler,
+                _subscriptionUpdateHandler);
         }
 
         protected override void Dispose(bool disposing)
@@ -152,9 +136,6 @@ namespace FWO.Api.Client
             {
                 if (_disposed) return;
                 _disposed = true;
-
-                // Important: detach from ApiConnection event to avoid keeping this subscription alive.
-                _apiConnection.OnAuthHeaderChanged -= ApiConnectionOnAuthHeaderChanged;
                 _subscription?.Dispose();
                 _subscription = null;
                 OnUpdate = null;

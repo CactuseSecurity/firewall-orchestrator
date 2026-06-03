@@ -101,10 +101,10 @@ namespace FWO.Test
                         RemovedDate = insert.RemovedDate,
                         ShowInRequestModule = insert.ShowInRequestModule,
                         NwGroupMembers = insert.NwGroupMembers?.Data.Select(member => new FlowNwGroupMember
-                            {
-                                NwGroupId = groupId,
-                                NwObjectId = member.NwObjId
-                            }).ToList() ?? []
+                        {
+                            NwGroupId = groupId,
+                            NwObjectId = member.NwObjId
+                        }).ToList() ?? []
                     };
                     InsertedNetworkGroups.Add(inserted);
                     return Task.FromResult((T)(object)new FlowNwGroupInsertResult { Returning = [inserted] });
@@ -139,10 +139,10 @@ namespace FWO.Test
                         RemovedDate = insert.RemovedDate,
                         ShowInRequestModule = insert.ShowInRequestModule,
                         SvcGroupMembers = insert.SvcGroupMembers?.Data.Select(member => new FlowSvcGroupMember
-                            {
-                                SvcGroupId = nextServiceObjectId,
-                                SvcObjectId = member.SvcObjId
-                            }).ToList() ?? []
+                        {
+                            SvcGroupId = nextServiceObjectId,
+                            SvcObjectId = member.SvcObjId
+                        }).ToList() ?? []
                     };
                     InsertedServiceGroups.Add(inserted);
                     return Task.FromResult((T)(object)new FlowSvcGroupInsertResult { Returning = [inserted] });

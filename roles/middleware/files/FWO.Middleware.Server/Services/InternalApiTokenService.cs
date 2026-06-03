@@ -60,7 +60,7 @@ namespace FWO.Middleware.Server.Services
                 }
 
                 string refreshedToken = CreateNewMiddlewareToken();
-                apiConnection.SetAuthHeader(refreshedToken);
+                await apiConnection.ReconnectSubscriptionsAsync(refreshedToken, cancellationToken);
 
                 Log.WriteAudit(nameof(InternalApiTokenService), BuildTokenAuditText(refreshedToken, "Rotated internal middleware JWT."));
 

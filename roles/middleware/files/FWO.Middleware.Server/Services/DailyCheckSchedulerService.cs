@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
@@ -46,7 +47,7 @@ namespace FWO.Middleware.Server.Services
             try
             {
                 scheduler = await schedulerFactory.GetScheduler();
-                configSubscription = apiConnection.GetSubscription<List<ConfigItem>>(ApiExceptionHandler, OnGlobalConfigChange, ConfigQueries.subscribeDailyCheckConfigChanges);
+                configSubscription = apiConnection.GetSubscription<List<ConfigItem>>(GraphqlExceptionHandler.ExceptionHandler, OnGlobalConfigChange, ConfigQueries.subscribeDailyCheckConfigChanges);
                 Log.WriteInfo(SchedulerName, "Listener started");
             }
             catch (Exception ex)
@@ -114,11 +115,6 @@ namespace FWO.Middleware.Server.Services
                 startTime = startTime.Add(interval);
             }
             return new DateTimeOffset(startTime);
-        }
-
-        private static void ApiExceptionHandler(Exception exception)
-        {
-            Log.WriteError(SchedulerName, "Config subscription lead to exception. Retry subscription.", exception);
         }
 
         /// <summary>

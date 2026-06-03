@@ -609,7 +609,7 @@ namespace FWO.Config.Api.Data
         public bool ComplianceFilterOutInitialViolations { get; set; } = false;
 
         [JsonProperty("reportingPersonalPreferredCollapseState"), JsonPropertyName("reportingPersonalPreferredCollapseState")]
-        public PreferredCollapseState ReportingPersonalPreferredCollapseState { get; set; } = PreferredCollapseState.Collapsed;        
+        public PreferredCollapseState ReportingPersonalPreferredCollapseState { get; set; } = PreferredCollapseState.Collapsed;
 
         public ConfigData(bool editable = false)
         {

@@ -1,5 +1,6 @@
 @inherits LayoutComponentBase
 @using FWO.Data.Middleware
+@using FWO.Api.Client.ExceptionHandling
 @using FWO.Middleware.Client
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
@@ -130,7 +131,7 @@
 
         user = authenticationStateTask!.Result.User;
 
-        alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
+        alertSubscription = apiConnection.GetSubscription<List<Alert>>(GraphqlExceptionHandler.ExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
 
         UIMessageQueTimer = new()
         {
@@ -478,12 +479,6 @@
         {
             Log.WriteError("Write Log", $"Could not write log for user {userConfig.User.DbId}: ", exc);
         }
-    }
-
-    private void ApiExceptionHandler(Exception exception)
-    {
-        Log.WriteError("Alarm Handling", "Api subscription lead to exception. Retry subscription.", exception);
-        // Subscription will be restored if no exception is thrown here
     }
 
     public async Task setAlert(string title, string message)

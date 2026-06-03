@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using GraphQL.Client.Http;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -57,6 +58,11 @@ namespace FWO.Test
         {
             public int DisposeCount { get; private set; }
 
+            internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
+            {
+                return new FirstSubscription();
+            }
+
             protected override void Dispose(bool disposing)
             {
                 DisposeCount++;
@@ -69,6 +75,11 @@ namespace FWO.Test
         private sealed class SecondSubscription : ApiSubscription
         {
             public int DisposeCount { get; private set; }
+
+            internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
+            {
+                return new SecondSubscription();
+            }
 
             protected override void Dispose(bool disposing)
             {

@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api.Data;
 using FWO.Logging;
@@ -57,7 +58,7 @@ namespace FWO.Config.Api
                 _configGraphQlSubscription = null;
 
                 List<string> ignoreKeys = []; // currently nothing ignored, may be used later
-                _configGraphQlSubscription = apiConnection.GetSubscription<ConfigItem[]>(SubscriptionExceptionHandler, SubscriptionUpdateHandler,
+                _configGraphQlSubscription = apiConnection.GetSubscription<ConfigItem[]>(GraphqlExceptionHandler.ExceptionHandler, SubscriptionUpdateHandler,
                     ConfigQueries.subscribeConfigChangesByUser, new { UserId, ignoreKeys });
 
                 while (!Initialized)
@@ -254,11 +255,6 @@ namespace FWO.Config.Api
                 return (ConfigData)CloneEditable();
             }
             finally { semaphoreSlim.Release(); }
-        }
-
-        protected static void SubscriptionExceptionHandler(Exception exception)
-        {
-            Log.WriteError("Config Subscription", "Config subscription lead to error.", exception);
         }
 
         protected void InvokeOnChange(Config config, ConfigItem[] configItems)

@@ -35,7 +35,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task EnsureFreshTokenAsync_WhenForced_RotatesTokenAndUpdatesApiConnectionHeader()
+        public async Task EnsureFreshTokenAsync_WhenForced_RotatesTokenAndReconnectsApiSubscriptions()
         {
             InternalApiTokenService tokenService = CreateTokenService();
             ApiConnection apiConnection = Substitute.For<ApiConnection>();
@@ -50,7 +50,7 @@ namespace FWO.Test
             Assert.That(parsedToken.Claims.Any(claim => claim.Type == "x-hasura-default-role" && claim.Value == "middleware-server"), Is.True);
             Assert.That(parsedToken.Id, Is.Not.EqualTo(initialParsedToken.Id));
             Assert.That(refreshedToken, Is.Not.EqualTo(initialToken));
-            apiConnection.Received(1).SetAuthHeader(refreshedToken);
+            await apiConnection.Received(1).ReconnectSubscriptionsAsync(refreshedToken, Arg.Any<CancellationToken>());
         }
 
         [Test]
@@ -64,7 +64,7 @@ namespace FWO.Test
             string currentToken = await tokenService.EnsureFreshTokenAsync(apiConnection);
 
             Assert.That(currentToken, Is.EqualTo(initialToken));
-            apiConnection.DidNotReceive().SetAuthHeader(Arg.Any<string>());
+            await apiConnection.DidNotReceive().ReconnectSubscriptionsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
         }
 
         [Test]
@@ -90,7 +90,7 @@ namespace FWO.Test
 
             Assert.That(refreshedParsedToken.ValidTo, Is.GreaterThan(initialParsedToken.ValidTo));
             Assert.That(refreshedParsedToken.Id, Is.Not.EqualTo(initialParsedToken.Id));
-            apiConnection.Received(1).SetAuthHeader(refreshedToken);
+            await apiConnection.Received(1).ReconnectSubscriptionsAsync(refreshedToken, Arg.Any<CancellationToken>());
         }
 
         private static InternalApiTokenService CreateTokenService(TokenLifetimeProvider? tokenLifetimeProvider = null, InternalApiTokenServiceOptions? options = null)

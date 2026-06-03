@@ -17,7 +17,7 @@ namespace FWO.Test
                 "objgrp_flats(");
 
             StringAssert.Contains("obj_id", fromBlock);
-            StringAssert.Contains("type {", fromBlock);
+            StringAssert.Contains("type: stm_obj_typ {", fromBlock);
         }
 
         [Test]
@@ -29,7 +29,7 @@ namespace FWO.Test
                 "objgrp_flats(");
 
             StringAssert.Contains("obj_id", toBlock);
-            StringAssert.Contains("type {", toBlock);
+            StringAssert.Contains("type: stm_obj_typ {", toBlock);
         }
 
         private static string ExtractObjectBlock(string query, string startMarker, string endMarker)

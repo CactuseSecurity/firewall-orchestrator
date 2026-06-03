@@ -167,6 +167,11 @@ namespace FWO.Test
             {
                 throw new NotImplementedException();
             }
+
+            public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
+            {
+                throw new NotImplementedException();
+            }
         }
     }
 }

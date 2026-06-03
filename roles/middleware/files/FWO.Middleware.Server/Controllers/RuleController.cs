@@ -119,7 +119,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         UserConfig userConfig,
         FieldSourceMapping? fieldSourceMapping)
     {
-        if (!IPAddress.TryParse(ipAddress, out IPAddress? parsedIpAddress))
+        if (!IPAddress.TryParse(ipAddress, out IPAddress? parsedIpAddress) || parsedIpAddress.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
         {
             return (null, "The IPAddress must be a valid IPv4 address.");
         }
@@ -142,7 +142,10 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
 
     private static string? ValidateIpFilter(RuleFilter queryFilter)
     {
-        if (string.IsNullOrEmpty(queryFilter.Action))
+        if (string.IsNullOrWhiteSpace(queryFilter.Action) ||
+            (queryFilter.Action != RuleActions.Accept &&
+             queryFilter.Action != RuleActions.Deny &&
+             queryFilter.Action != RuleActions.Any))
         {
             return "The field Action must be filled with either \"accept\", \"deny\" or \"any\".";
         }
@@ -152,7 +155,10 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
             return $"The value for MinPrefixLength {queryFilter.MinPrefixLength} must be between 0 and 32.";
         }
 
-        if (string.IsNullOrEmpty(queryFilter.InField))
+        if (string.IsNullOrWhiteSpace(queryFilter.InField) ||
+            (queryFilter.InField != FilterFields.Source &&
+             queryFilter.InField != FilterFields.Destination &&
+             queryFilter.InField != FilterFields.Both))
         {
             return $"The field InField must be filled with either \"{FilterFields.Source}\", \"{FilterFields.Destination}\" or \"{FilterFields.Both}\".";
         }
@@ -278,7 +284,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
     private static List<RuleDetail> ConvertRuleList(List<Rule> inputList, UserConfig userConfig,
         FieldSourceMapping? fieldSourceMapping)
     {
-        const string notFound = "Not Found in Database";
+        string notFound = RuleFieldSourceResolver.NotFoundValue;
         FieldSource ownerInformationSource = RuleFieldSourceResolver.ResolveOwnerInformationSource(fieldSourceMapping);
         FieldSource changeIdSource = RuleFieldSourceResolver.ResolveChangeIdSource(fieldSourceMapping);
         string ownerCustomFieldKey = userConfig.GlobalConfig?.CustomFieldOwnerKey ?? "";

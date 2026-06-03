@@ -22,6 +22,7 @@ namespace FWO.Api.Client
         public string ApiServerUri { get; private set; } = "";
 
         private GraphQLHttpClient? graphQlClient;
+        private GraphQLHttpClient? graphQlSubscriptionClient;
 
         private readonly Stack<string> previousRoles = new();
         private string forcedExecutionMode = "";
@@ -53,6 +54,7 @@ namespace FWO.Api.Client
             // Save Server URI
             this.ApiServerUri = ApiServerUri;
             graphQlClient = CreateClient(this.ApiServerUri);
+            graphQlSubscriptionClient = CreateClient(this.ApiServerUri);
         }
 
         public GraphQlApiConnection(string ApiServerUri, string jwt)
@@ -69,8 +71,10 @@ namespace FWO.Api.Client
         public override void SetAuthHeader(string jwt)
         {
             ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
+            ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
 
             ApplyAuthHeader(graphQlClient, jwt);
+            ApplyAuthHeader(graphQlSubscriptionClient, jwt);
 
             InvokeOnAuthHeaderChanged(this, jwt);
         }
@@ -130,8 +134,10 @@ namespace FWO.Api.Client
         private void SetRoleHeader(string role)
         {
             ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
+            ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
 
             ApplyRoleHeader(graphQlClient, role);
+            ApplyRoleHeader(graphQlSubscriptionClient, role);
         }
 
         public bool IsActRole(string role)
@@ -373,10 +379,10 @@ namespace FWO.Api.Client
         {
             try
             {
-                ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
+                ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
 
                 GraphQLRequest request = new(subscription, variables, operationName);
-                GraphQlApiSubscription<SubscriptionResponseType> newSub = new(this, graphQlClient, request, exceptionHandler, subscriptionUpdateHandler);
+                GraphQlApiSubscription<SubscriptionResponseType> newSub = new(this, graphQlSubscriptionClient, request, exceptionHandler, subscriptionUpdateHandler);
                 subscriptions.Add(newSub);
 
                 return newSub;
@@ -395,20 +401,23 @@ namespace FWO.Api.Client
             try
             {
                 ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
+                ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
                 Log.WriteInfo(LogCategory, $"Reconnecting {subscriptions.Count} API subscriptions after JWT refresh.");
 
-                GraphQLHttpClient oldClient = graphQlClient;
-                GraphQLHttpClient newClient = CreateClient(ApiServerUri);
-                ApplyAuthHeader(newClient, jwt);
-                ApplyRoleHeader(newClient, GetActRole());
+                GraphQLHttpClient oldSubscriptionClient = graphQlSubscriptionClient;
+                GraphQLHttpClient newSubscriptionClient = CreateClient(ApiServerUri);
+                ApplyAuthHeader(graphQlClient, jwt);
+                ApplyRoleHeader(graphQlClient, GetActRole());
+                ApplyAuthHeader(newSubscriptionClient, jwt);
+                ApplyRoleHeader(newSubscriptionClient, GetActRole());
 
                 List<ApiSubscription> oldSubscriptions = [.. subscriptions];
                 List<ApiSubscription> recreatedSubscriptions = [];
-                graphQlClient = newClient;
+                graphQlSubscriptionClient = newSubscriptionClient;
 
                 foreach (ApiSubscription subscription in oldSubscriptions)
                 {
-                    recreatedSubscriptions.Add(subscription.Recreate(newClient));
+                    recreatedSubscriptions.Add(subscription.Recreate(newSubscriptionClient));
                 }
 
                 subscriptions.Clear();
@@ -419,7 +428,7 @@ namespace FWO.Api.Client
                     subscription.Dispose();
                 }
 
-                oldClient.Dispose();
+                oldSubscriptionClient.Dispose();
             }
             catch (TaskCanceledException)
             {
@@ -756,6 +765,8 @@ namespace FWO.Api.Client
 
                 graphQlClient?.Dispose();
                 graphQlClient = null;
+                graphQlSubscriptionClient?.Dispose();
+                graphQlSubscriptionClient = null;
             }
         }
 

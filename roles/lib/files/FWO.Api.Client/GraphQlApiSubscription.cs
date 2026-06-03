@@ -53,10 +53,7 @@ namespace FWO.Api.Client
                 _subscriptionStream = CreateSubscriptionStream(subscriptionExceptionHandler);
                 Log.WriteDebug("API", "API subscription created.");
 
-                _subscription = _subscriptionStream.Subscribe(response =>
-                {
-                    Subscribe(response);
-                });
+                _subscription = _subscriptionStream.Subscribe(Subscribe);
             }
         }
 

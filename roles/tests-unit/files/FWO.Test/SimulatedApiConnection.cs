@@ -45,7 +45,7 @@ namespace FWO.Test
 
         public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            return Task.CompletedTask;
         }
     }
 

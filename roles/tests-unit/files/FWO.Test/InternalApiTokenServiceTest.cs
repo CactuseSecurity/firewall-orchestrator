@@ -30,8 +30,8 @@ namespace FWO.Test
             JwtSecurityToken parsedToken = tokenHandler.ReadJwtToken(token);
 
             Assert.That(parsedToken.Claims.Any(claim => claim.Type == "x-hasura-default-role" && claim.Value == "middleware-server"), Is.True);
-            Assert.That(parsedToken.ValidTo, Is.LessThanOrEqualTo(DateTime.UtcNow.AddMinutes(16)));
-            Assert.That(parsedToken.ValidTo, Is.GreaterThan(DateTime.UtcNow.AddMinutes(10)));
+            Assert.That(parsedToken.ValidTo, Is.LessThanOrEqualTo(DateTime.UtcNow.AddMinutes(4)));
+            Assert.That(parsedToken.ValidTo, Is.GreaterThan(DateTime.UtcNow.AddMinutes(2)));
         }
 
         [Test]

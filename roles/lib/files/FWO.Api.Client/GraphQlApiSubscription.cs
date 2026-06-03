@@ -16,7 +16,7 @@ namespace FWO.Api.Client
         private IObservable<GraphQLResponse<dynamic>>? _subscriptionStream;
         private IDisposable? _subscription;
 
-        private GraphQLHttpClient _graphQlClient;
+        private readonly GraphQLHttpClient _graphQlClient;
         public GraphQLRequest Request { get; init; }
         private readonly ApiConnection _apiConnection;
         private readonly SubscriptionUpdate _subscriptionUpdateHandler;

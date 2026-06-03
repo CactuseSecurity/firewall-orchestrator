@@ -9,8 +9,8 @@ namespace FWO.Middleware.Server.Services
     /// </summary>
     public class TokenLifetimeProvider
     {
-        private static readonly TimeSpan kAnonymousTokenLifetime = TimeSpan.FromMinutes(5);
-        private static readonly TimeSpan kInternalServiceTokenLifetime = TimeSpan.FromMinutes(3);
+        private static readonly TimeSpan kAnonymousTokenLifetime = TimeSpan.FromMinutes(15);
+        private static readonly TimeSpan kInternalServiceTokenLifetime = TimeSpan.FromMinutes(60);
 
         /// <summary>
         /// Gets the configured access-token lifetime for interactive users.

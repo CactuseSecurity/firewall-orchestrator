@@ -15,7 +15,7 @@ namespace FWO.Test
         {
             TokenLifetimeProvider provider = new();
 
-            Assert.That(provider.GetAnonymousTokenLifetime(), Is.EqualTo(TimeSpan.FromMinutes(5)));
+            Assert.That(provider.GetAnonymousTokenLifetime(), Is.EqualTo(TimeSpan.FromMinutes(15)));
         }
 
         [Test]
@@ -23,7 +23,7 @@ namespace FWO.Test
         {
             TokenLifetimeProvider provider = new();
 
-            Assert.That(provider.GetInternalServiceTokenLifetime(), Is.EqualTo(TimeSpan.FromMinutes(3)));
+            Assert.That(provider.GetInternalServiceTokenLifetime(), Is.EqualTo(TimeSpan.FromMinutes(60)));
         }
 
         [Test]

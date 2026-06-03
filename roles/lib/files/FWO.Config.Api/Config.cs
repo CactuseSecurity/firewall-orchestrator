@@ -58,7 +58,7 @@ namespace FWO.Config.Api
                 _configGraphQlSubscription = null;
 
                 List<string> ignoreKeys = []; // currently nothing ignored, may be used later
-                _configGraphQlSubscription = apiConnection.GetSubscription<ConfigItem[]>(GraphqlExceptionHandler.ExceptionHandler, SubscriptionUpdateHandler,
+                _configGraphQlSubscription = apiConnection.GetSubscription<ConfigItem[]>(GraphqlExceptionHandler.Handle, SubscriptionUpdateHandler,
                     ConfigQueries.subscribeConfigChangesByUser, new { UserId, ignoreKeys });
 
                 while (!Initialized)

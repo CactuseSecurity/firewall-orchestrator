@@ -47,7 +47,7 @@ namespace FWO.Middleware.Server.Services
             try
             {
                 scheduler = await schedulerFactory.GetScheduler();
-                configSubscription = apiConnection.GetSubscription<List<ConfigItem>>(GraphqlExceptionHandler.ExceptionHandler, OnGlobalConfigChange, ConfigQueries.subscribeDailyCheckConfigChanges);
+                configSubscription = apiConnection.GetSubscription<List<ConfigItem>>(GraphqlExceptionHandler.Handle, OnGlobalConfigChange, ConfigQueries.subscribeDailyCheckConfigChanges);
                 Log.WriteInfo(SchedulerName, "Listener started");
             }
             catch (Exception ex)

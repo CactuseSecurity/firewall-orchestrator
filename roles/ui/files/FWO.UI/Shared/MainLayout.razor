@@ -131,7 +131,7 @@
 
         user = authenticationStateTask!.Result.User;
 
-        alertSubscription = apiConnection.GetSubscription<List<Alert>>(GraphqlExceptionHandler.ExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
+        alertSubscription = apiConnection.GetSubscription<List<Alert>>(GraphqlExceptionHandler.Handle, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
 
         UIMessageQueTimer = new()
         {

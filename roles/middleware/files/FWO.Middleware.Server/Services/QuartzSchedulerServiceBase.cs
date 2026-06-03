@@ -89,7 +89,7 @@ namespace FWO.Middleware.Server.Services
             {
                 scheduler = await schedulerFactory.GetScheduler();
                 configSubscription = apiConnection.GetSubscription<List<ConfigItem>>(
-                    GraphqlExceptionHandler.ExceptionHandler,
+                    GraphqlExceptionHandler.Handle,
                     OnGlobalConfigChange,
                     options.ConfigSubscriptionQuery);
                 Log.WriteInfo(options.SchedulerName, "Listener started");

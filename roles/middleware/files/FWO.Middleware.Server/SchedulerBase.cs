@@ -47,7 +47,7 @@ namespace FWO.Middleware.Server
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
-            ConfigDataSubscription = apiConnection.GetSubscription<List<ConfigItem>>(GraphqlExceptionHandler.ExceptionHandler, OnGlobalConfigChange, configDataSubscription);
+            ConfigDataSubscription = apiConnection.GetSubscription<List<ConfigItem>>(GraphqlExceptionHandler.Handle, OnGlobalConfigChange, configDataSubscription);
             SchedulerText = "Scheduler-" + schedulerName;
             SchedulerInterval = schedulerInterval;
         }

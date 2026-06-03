@@ -26,12 +26,16 @@ namespace FWO.Test
             InternalApiTokenService tokenService = CreateTokenService();
             JwtSecurityTokenHandler tokenHandler = new();
 
+
             string token = tokenService.CreateInitialMiddlewareToken();
             JwtSecurityToken parsedToken = tokenHandler.ReadJwtToken(token);
 
+            TokenLifetimeProvider provider = new();
+            TimeSpan internalLifetime = provider.GetInternalServiceTokenLifetime();
+
             Assert.That(parsedToken.Claims.Any(claim => claim.Type == "x-hasura-default-role" && claim.Value == "middleware-server"), Is.True);
-            Assert.That(parsedToken.ValidTo, Is.LessThanOrEqualTo(DateTime.UtcNow.AddMinutes(4)));
-            Assert.That(parsedToken.ValidTo, Is.GreaterThan(DateTime.UtcNow.AddMinutes(2)));
+            Assert.That(parsedToken.ValidTo, Is.LessThanOrEqualTo(DateTime.UtcNow.Add(internalLifetime)));
+            Assert.That(parsedToken.ValidTo, Is.GreaterThan(DateTime.UtcNow.Add(internalLifetime.Subtract(TimeSpan.FromSeconds(15)))));
         }
 
         [Test]

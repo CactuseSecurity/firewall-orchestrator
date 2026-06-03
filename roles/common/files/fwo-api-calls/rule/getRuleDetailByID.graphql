@@ -18,7 +18,7 @@ query RuleDetailById(
                 obj_name
                 obj_ip
                 obj_ip_end
-                type: stm_obj_type {
+                type: stm_obj_typ {
                     name: obj_typ_name
                 }
                 objgrp_flats(
@@ -32,7 +32,7 @@ query RuleDetailById(
                         obj_id
                         obj_name
                         obj_ip
-                        obj_ip_end 
+                        obj_ip_end
                         obj_member_refs
                         type: stm_obj_typ {
                             name: obj_typ_name
@@ -47,7 +47,7 @@ query RuleDetailById(
                 obj_name
                 obj_ip
                 obj_ip_end
-                type: stm_obj_type {
+                type: stm_obj_typ {
                     name: obj_typ_name
                 }
                 objgrp_flats(

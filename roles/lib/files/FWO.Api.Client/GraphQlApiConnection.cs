@@ -41,7 +41,8 @@ namespace FWO.Api.Client
                 EndPoint = new Uri(this.ApiServerUri),
                 HttpMessageHandler = Handler,
                 UseWebSocketForQueriesAndMutations = false, // TODO: Use websockets for performance reasons          
-                ConfigureWebsocketOptions = webSocketOptions => webSocketOptions.RemoteCertificateValidationCallback += (message, cert, chain, errors) => true
+                ConfigureWebsocketOptions = webSocketOptions => webSocketOptions.RemoteCertificateValidationCallback += (message, cert, chain, errors) => true,
+                ConfigureWebSocketConnectionInitPayload = _ => CreateWebSocketConnectionInitPayload()
             }, ApiConstants.UseSystemTextJsonSerializer ? new SystemTextJsonSerializer() : new NewtonsoftJsonSerializer());
 
             // 1 hour timeout
@@ -62,7 +63,6 @@ namespace FWO.Api.Client
         public override void SetAuthHeader(string jwt)
         {
             graphQlClient.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); // Change jwt in auth header
-            graphQlClient.Options.ConfigureWebSocketConnectionInitPayload = httpClientOptions => new { headers = new { authorization = $"Bearer {jwt}" } };
             defaultRole = GetDefaultRoleFromJwt(jwt);
             InvokeOnAuthHeaderChanged(this, jwt);
         }
@@ -357,7 +357,7 @@ namespace FWO.Api.Client
         {
             try
             {
-                GraphQLRequest request = new(subscription, variables, operationName);
+                GraphQLRequest request = CreateSubscriptionRequest(subscription, variables, operationName);
                 GraphQlApiSubscription<SubscriptionResponseType> newSub =
                     new(this, graphQlClient, request, exceptionHandler, subscriptionUpdateHandler);
                 subscriptions.Add(newSub);
@@ -702,6 +702,35 @@ namespace FWO.Api.Client
         private GraphQLHttpRequest CreateHttpRequest(string query, object? variables, string? operationName)
         {
             return new RoleGraphQLHttpRequest(GetActRole(), query, variables, operationName);
+        }
+
+        private object CreateWebSocketConnectionInitPayload()
+        {
+            string role = GetActRole();
+            Dictionary<string, object?> headers = new()
+            {
+                ["authorization"] = graphQlClient.HttpClient.DefaultRequestHeaders.Authorization?.ToString()
+            };
+            if (!string.IsNullOrWhiteSpace(role))
+            {
+                headers["x-hasura-role"] = role;
+            }
+
+            return new Dictionary<string, object?> { ["headers"] = headers };
+        }
+
+        private GraphQLRequest CreateSubscriptionRequest(string query, object? variables, string? operationName)
+        {
+            string role = GetActRole();
+            GraphQLRequest request = new(query, variables, operationName);
+            if (!string.IsNullOrWhiteSpace(role))
+            {
+                request.Extensions = new Dictionary<string, object?>
+                {
+                    ["x-hasura-role"] = role
+                };
+            }
+            return request;
         }
 
         private sealed class RoleGraphQLHttpRequest(string role, string query, object? variables = null, string? operationName = null)

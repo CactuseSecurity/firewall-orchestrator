@@ -2,6 +2,7 @@ using FWO.Api.Client;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server;
+using GraphQL;
 using GraphQL.Client.Http;
 using NUnit.Framework;
 using System.IdentityModel.Tokens.Jwt;
@@ -87,6 +88,40 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GraphQlApiConnection_SubscriptionRequestCarriesActiveRole()
+        {
+            using GraphQlApiConnection connection = new("http://localhost");
+
+            connection.SetRole("modeller");
+            GraphQLRequest request = CreateSubscriptionRequest(connection, "subscription Test { test }", null, "Test");
+
+            Assert.That(request.Extensions, Is.TypeOf<Dictionary<string, object?>>());
+            Dictionary<string, object?> extensions = (Dictionary<string, object?>)request.Extensions!;
+            Assert.That(extensions["x-hasura-role"], Is.EqualTo("modeller"));
+        }
+
+        [Test]
+        public void GraphQlApiConnection_WebSocketInitPayloadCarriesActiveRole()
+        {
+            string jwt = new JwtSecurityTokenHandler().WriteToken(new JwtSecurityToken(claims:
+            [
+                new Claim("x-hasura-default-role", "middleware-server")
+            ]));
+            using GraphQlApiConnection connection = new("http://localhost", jwt);
+
+            connection.SetRole("auditor");
+            GraphQLHttpClient client = GetGraphQlClient(connection);
+            object? payload = client.Options.ConfigureWebSocketConnectionInitPayload!(client.Options);
+
+            Dictionary<string, object?> payloadDictionary = payload as Dictionary<string, object?>
+                ?? throw new InvalidOperationException("Websocket init payload has unexpected type.");
+            Dictionary<string, object?> headers = payloadDictionary["headers"] as Dictionary<string, object?>
+                ?? throw new InvalidOperationException("Websocket init payload headers have unexpected type.");
+            Assert.That(headers["authorization"], Is.EqualTo($"Bearer {jwt}"));
+            Assert.That(headers["x-hasura-role"], Is.EqualTo("auditor"));
+        }
+
+        [Test]
         public void GraphQlApiConnection_UsesJwtDefaultRoleAsBaselineRole()
         {
             string jwt = new JwtSecurityTokenHandler().WriteToken(new JwtSecurityToken(claims:
@@ -109,6 +144,12 @@ namespace FWO.Test
         {
             FieldInfo? field = typeof(GraphQlApiConnection).GetField("graphQlClient", BindingFlags.NonPublic | BindingFlags.Instance);
             return (GraphQLHttpClient)(field?.GetValue(connection) ?? throw new InvalidOperationException("graphQlClient field not found."));
+        }
+
+        private static GraphQLRequest CreateSubscriptionRequest(GraphQlApiConnection connection, string query, object? variables, string? operationName)
+        {
+            MethodInfo? method = typeof(GraphQlApiConnection).GetMethod("CreateSubscriptionRequest", BindingFlags.NonPublic | BindingFlags.Instance);
+            return (GraphQLRequest)(method?.Invoke(connection, [query, variables, operationName]) ?? throw new InvalidOperationException("CreateSubscriptionRequest method not found."));
         }
     }
 }

@@ -411,8 +411,9 @@
     network:
       - host
     user: "1001:1001"
-    env: "{{ hasura_env }}"
+    env_file: "{{ api_env_file }}"
   become: true
+  no_log: true
   when:
     - not api_reuse_existing_hasura_image | bool
 

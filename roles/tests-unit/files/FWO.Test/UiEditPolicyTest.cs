@@ -45,7 +45,7 @@ namespace FWO.Test
         [Test]
         public async Task Save_AddModeWithEmptyName_DoesNotInsertPolicy()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
@@ -76,7 +76,7 @@ namespace FWO.Test
         [Test]
         public async Task Save_AddMode_InsertsPolicyAndCriteria()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
@@ -114,7 +114,7 @@ namespace FWO.Test
         [Test]
         public async Task Save_EditMode_RemovesCriteria()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
@@ -152,7 +152,7 @@ namespace FWO.Test
         [Test]
         public async Task SelectableCriteria_ExcludesExistingAndPending()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();

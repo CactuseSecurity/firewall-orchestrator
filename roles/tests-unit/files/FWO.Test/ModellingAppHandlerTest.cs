@@ -189,7 +189,7 @@ namespace FWO.Test
             ModellingConnection iface = new() { Id = 1, IsInterface = true };
             ModellingAppHandler handler = CreateHandler([iface]);
 
-            using Bunit.TestContext context = new();
+            using BunitContext context = new();
             IRenderedComponent<TabSet> renderedTabSet = context.Render<TabSet>();
             TabSet tabSet = renderedTabSet.Instance;
             Tab tab0 = new();
@@ -213,7 +213,7 @@ namespace FWO.Test
             ModellingAppHandler handler = CreateHandler([common]);
             handler.Application.CommSvcPossible = true;
 
-            using Bunit.TestContext context = new();
+            using BunitContext context = new();
             IRenderedComponent<TabSet> renderedTabSet = context.Render<TabSet>();
             TabSet tabSet = renderedTabSet.Instance;
             Tab tab0 = new();
@@ -235,7 +235,7 @@ namespace FWO.Test
         {
             ModellingAppHandler handler = CreateHandler([]);
 
-            using Bunit.TestContext context = new();
+            using BunitContext context = new();
             IRenderedComponent<TabSet> renderedTabSet = context.Render<TabSet>();
             TabSet tabSet = renderedTabSet.Instance;
             Tab tab0 = new();

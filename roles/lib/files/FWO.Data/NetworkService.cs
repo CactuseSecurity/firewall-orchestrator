@@ -149,15 +149,20 @@ namespace FWO.Data
             return Id.GetHashCode();
         }
 
+        /// <summary>
+        /// Flattens service groups into their leaf services and removes duplicate service entries.
+        /// </summary>
         public static List<NetworkService> FlattenRuleServices(IEnumerable<NetworkService> services)
         {
+            HashSet<long> flattenedServiceIds = [];
+
             return services
-                .SelectMany(service =>
-                    service.Type.Name == ServiceType.Group
-                        ? service.ServiceGroupFlats.Select(groupFlat => groupFlat.Object)
-                        : new[] { service })
-                .OfType<NetworkService>()
-                .Where(service => service.Type.Name != ServiceType.Group)
+                .Where(service => service is not null)
+                .SelectMany(service => string.Equals(service!.Type?.Name, ServiceType.Group, StringComparison.OrdinalIgnoreCase)
+                    ? (service.ServiceGroupFlats ?? []).Select(groupFlat => groupFlat.Object).OfType<NetworkService>()
+                    : new[] { service })
+                .Where(service => !string.Equals(service.Type?.Name, ServiceType.Group, StringComparison.OrdinalIgnoreCase))
+                .Where(service => flattenedServiceIds.Add(service.Id))
                 .ToList();
         }
     }

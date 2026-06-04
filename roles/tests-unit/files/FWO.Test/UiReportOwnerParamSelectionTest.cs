@@ -34,7 +34,7 @@ namespace FWO.Test
         [Test]
         public async Task ReportOwnerParamSelection_QueryFailure_IsCaughtAndReported()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddScoped<DomEventService>();
             context.Services.AddSingleton<ApiConnection>(new ThrowingOwnerParamApiConn());

@@ -104,9 +104,9 @@ else
     {
         try
         {
-            bool isAdmin = authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
-            bool isAuditor = authenticationStateTask.Result.User.IsInRole(Roles.Auditor);
-            bool isReporterViewAll = authenticationStateTask.Result.User.IsInRole(Roles.ReporterViewAll);
+            bool isAdmin = userConfig.CanUseAnyRole(Roles.Admin);
+            bool isAuditor = userConfig.CanUseAnyRole(Roles.Auditor);
+            bool isReporterViewAll = userConfig.CanUseAnyRole(Roles.ReporterViewAll);
             if (isAdmin || isAuditor || isReporterViewAll)
             {
                 ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);

@@ -797,6 +797,27 @@ namespace FWO.Test
         }
 
         [Test]
+        public void CheckResponsibles_TreatsNormalizedDnsAsUnchanged()
+        {
+            AppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+            SetOwnerDataImportSyncUsers(import, true);
+            List<OwnerResponsible> existingResponsibles =
+            [
+                new() { Dn = @"CN=User\, Example,OU=Users,DC=Example,DC=COM", ResponsibleTypeId = 1 }
+            ];
+            List<OwnerResponsible> incomingResponsibles =
+            [
+                new() { Dn = @"cn=User\2C Example,ou=users,dc=example,dc=com", ResponsibleTypeId = 1 }
+            ];
+
+            (List<OwnerResponsible> toInsert, List<OwnerResponsible> toDelete) =
+                InvokeCheckResponsibles(import, existingResponsibles, incomingResponsibles);
+
+            Assert.That(toInsert, Is.Empty);
+            Assert.That(toDelete, Is.Empty);
+        }
+
+        [Test]
         public void CheckResponsibles_ReturnsInsertOnly_WhenSyncDisabled()
         {
             AppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
@@ -1775,7 +1796,7 @@ namespace FWO.Test
             public int UpdateChangelogOwnerCalls { get; private set; }
             public HashSet<int> FailDeactivateOwnerIds { get; } = [];
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == OwnerQueries.getOwners)
                 {
@@ -1848,7 +1869,7 @@ namespace FWO.Test
             public List<(int ownerId, string dn, int responsibleType)> Inserted { get; } = [];
             public List<(int ownerId, string dn, int responsibleType)> Deleted { get; } = [];
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == OwnerQueries.newOwnerResponsibles)
                 {
@@ -1928,7 +1949,7 @@ namespace FWO.Test
             public Dictionary<string, string>? LastNewOwnerAdditionalInfo { get; private set; }
             public Dictionary<string, string>? LastUpdateOwnerAdditionalInfo { get; private set; }
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == OwnerQueries.newOwner)
                 {

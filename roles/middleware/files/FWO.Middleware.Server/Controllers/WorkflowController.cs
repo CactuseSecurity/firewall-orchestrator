@@ -64,7 +64,7 @@ namespace FWO.Middleware.Server.Controllers
                     return result;
                 }
 
-                if (!CallerCanExecutePhase(User, phase))
+                if (!CallerCanExecutePhase(User, parameters.ExecutionMode, phase))
                 {
                     SetWarning(result, $"User is not authorized to execute workflow actions in phase '{phase}'.");
                     return result;
@@ -108,20 +108,20 @@ namespace FWO.Middleware.Server.Controllers
             return false;
         }
 
-        private static bool CallerCanExecutePhase(ClaimsPrincipal user, WorkflowPhases phase)
+        private static bool CallerCanExecutePhase(ClaimsPrincipal user, string executionMode, WorkflowPhases phase)
         {
-            if (user.IsInRole(Roles.Admin) || user.IsInRole(Roles.FwAdmin))
+            if (CallerCanUseRole(user, executionMode, Roles.Admin) || CallerCanUseRole(user, executionMode, Roles.FwAdmin))
             {
                 return true;
             }
 
             return phase switch
             {
-                WorkflowPhases.request => user.IsInRole(Roles.Requester),
-                WorkflowPhases.approval => user.IsInRole(Roles.Approver),
-                WorkflowPhases.planning => user.IsInRole(Roles.Planner),
-                WorkflowPhases.implementation => user.IsInRole(Roles.Implementer),
-                WorkflowPhases.review => user.IsInRole(Roles.Reviewer),
+                WorkflowPhases.request => CallerCanUseRole(user, executionMode, Roles.Requester),
+                WorkflowPhases.approval => CallerCanUseRole(user, executionMode, Roles.Approver),
+                WorkflowPhases.planning => CallerCanUseRole(user, executionMode, Roles.Planner),
+                WorkflowPhases.implementation => CallerCanUseRole(user, executionMode, Roles.Implementer),
+                WorkflowPhases.review => CallerCanUseRole(user, executionMode, Roles.Reviewer),
                 _ => false
             };
         }
@@ -166,7 +166,7 @@ namespace FWO.Middleware.Server.Controllers
                 return result;
             }
 
-            if (!CallerCanAccessTicket(User, userConfig, ticket))
+            if (!CallerCanAccessTicket(User, parameters.ExecutionMode, userConfig, ticket))
             {
                 SetWarning(result, $"User is not authorized to execute workflow actions for ticket {ticket.Id}.");
                 return result;
@@ -249,7 +249,7 @@ namespace FWO.Middleware.Server.Controllers
                 return false;
             }
 
-            if (parameters.StateChangedByCreation || CanForceStateTransition(user))
+            if (parameters.StateChangedByCreation || CanForceStateTransition(user, parameters.ExecutionMode))
             {
                 return true;
             }
@@ -263,9 +263,9 @@ namespace FWO.Middleware.Server.Controllers
             return true;
         }
 
-        private static bool CanForceStateTransition(ClaimsPrincipal user)
+        private static bool CanForceStateTransition(ClaimsPrincipal user, string executionMode)
         {
-            return user.IsInRole(Roles.Admin) || user.IsInRole(Roles.FwAdmin);
+            return CallerCanUseRole(user, executionMode, Roles.Admin) || CallerCanUseRole(user, executionMode, Roles.FwAdmin);
         }
 
         private static async Task<bool> InitWorkflowHandler(WfHandler wfHandler, WorkflowActionResult result)
@@ -320,9 +320,9 @@ namespace FWO.Middleware.Server.Controllers
             return parameters.TicketId > 0 || scope != WfObjectScopes.Ticket ? parameters.TicketId : parameters.ObjectId;
         }
 
-        private static bool CallerCanAccessTicket(ClaimsPrincipal user, UserConfig userConfig, WfTicket ticket)
+        private static bool CallerCanAccessTicket(ClaimsPrincipal user, string executionMode, UserConfig userConfig, WfTicket ticket)
         {
-            if (user.IsInRole(Roles.Admin) || user.IsInRole(Roles.FwAdmin) || !userConfig.ReqOwnerBased)
+            if (CallerCanUseRole(user, executionMode, Roles.Admin) || CallerCanUseRole(user, executionMode, Roles.FwAdmin) || !userConfig.ReqOwnerBased)
             {
                 return true;
             }
@@ -334,6 +334,11 @@ namespace FWO.Middleware.Server.Controllers
 
             HashSet<int> editableOwnerIds = GetClaimIds(user, "x-hasura-editable-owners");
             return editableOwnerIds.Count > 0 && ticket.Tasks.Any(task => CallerOwnsTask(task, editableOwnerIds));
+        }
+
+        private static bool CallerCanUseRole(ClaimsPrincipal user, string executionMode, string role)
+        {
+            return ExecutionModeHelper.HasAnyRoleInExecutionMode(ExecutionModeHelper.GetUserRoles(user), executionMode, [role]);
         }
 
         private static bool CallerIsRequester(ClaimsPrincipal user, WfTicket ticket)

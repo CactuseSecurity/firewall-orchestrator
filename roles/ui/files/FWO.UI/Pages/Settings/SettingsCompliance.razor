@@ -242,7 +242,7 @@
     }
     <hr />
     
-    <AuthorizeView Roles="@Roles.Admin">
+    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5845"))">
                 <label class="col-form-label col-sm-4">@(userConfig.GetText("H5846"))</label>
@@ -276,11 +276,11 @@
                 </div>
             </div>
         </NotAuthorized>
-    </AuthorizeView>
+    </ExecutionModeAuthorizeView>
     
     <br>
     
-    <AuthorizeView Roles="@Roles.Admin">
+    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5848"))">
                 <label class="col-form-label col-sm-4">@(userConfig.GetText("H5849"))</label>
@@ -316,17 +316,17 @@
                 </div>
             </div>
         </NotAuthorized>
-    </AuthorizeView>
+    </ExecutionModeAuthorizeView>
     <hr />
     <div class="pb-5">
-        <AuthorizeView Roles="@Roles.Admin">
+        <ExecutionModeAuthorizeView Roles="@Roles.Admin">
             <Authorized>
                 <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
             </Authorized>
             <NotAuthorized>
                 <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
             </NotAuthorized>
-        </AuthorizeView>
+        </ExecutionModeAuthorizeView>
     </div>
     <br />
 }

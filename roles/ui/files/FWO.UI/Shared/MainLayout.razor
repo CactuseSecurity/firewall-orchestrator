@@ -196,7 +196,7 @@
 
     private void OnPermissionsChanged(PermissionChangedEventArgs? e)
     {
-        if (e?.UserDn == userConfig.User.Dn)
+        if (DistName.DnEquals(e?.UserDn, userConfig.User.Dn))
         {
             ShowReloginDialog(userConfig.GetText("permissions"), userConfig.GetText("permissions_text"), reloginAbortable: false);
         }
@@ -204,7 +204,7 @@
 
     private void OnJwtExpired(JwtExpiredEventArgs? e)
     {
-        if (user?.Identity?.IsAuthenticated == true && !string.IsNullOrWhiteSpace(e?.UserDn) && e.UserDn == userConfig.User.Dn)
+        if (user?.Identity?.IsAuthenticated == true && !string.IsNullOrWhiteSpace(e?.UserDn) && DistName.DnEquals(e.UserDn, userConfig.User.Dn))
         {
             ShowReloginDialog(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), reloginAbortable: false);
         }
@@ -257,7 +257,7 @@
     private void OnAlertUpdate(List<Alert> alerts)
     {
         user = authenticationStateTask!.Result.User;
-        showAlert = (user.IsInRole(Roles.Admin) || user.IsInRole(Roles.FwAdmin) || user.IsInRole(Roles.Auditor)) && alerts.Count() > 0;
+        showAlert = userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor) && alerts.Count() > 0;
 
         InvokeAsync(StateHasChanged);
     }

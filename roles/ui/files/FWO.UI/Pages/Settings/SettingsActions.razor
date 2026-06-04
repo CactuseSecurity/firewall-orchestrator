@@ -1,4 +1,4 @@
-﻿@using System.Text.Json
+@using System.Text.Json
 @using FWO.Config.Api.Data
 @using FWO.Data.Modelling
 @using FWO.Ui.Services
@@ -418,14 +418,14 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="SaveAction">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                     </NotAuthorized> 
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
                 <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
             </div>
         </Footer>
@@ -693,7 +693,7 @@ else
         selectedStateNotOk = statesPlus.Where(x => x.Id != ConditionalState.Id).FirstOrDefault(x => x.Id == actConditionalAutoPromoteParams.IfNotCompliantState) ?? AutomaticState;
         selectedSuccessState = states.FirstOrDefault(x => x.Id == actActionResultStateParams.SuccessState);
         selectedErrorState = states.FirstOrDefault(x => x.Id == actActionResultStateParams.ErrorState);
-        selectedUserGroup = userAndGroupList.FirstOrDefault(x => x.Dn == actApprovalParams.ApproverGroup);
+        selectedUserGroup = userAndGroupList.FirstOrDefault(x => DistName.DnEquals(x.Dn, actApprovalParams.ApproverGroup));
     }
 
     private async Task SaveAction()

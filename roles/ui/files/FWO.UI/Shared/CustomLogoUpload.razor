@@ -14,7 +14,7 @@
 
 <div class="row">
     <div class="col-sm">
-        <AuthorizeView Roles="@AuthorizedRoles">
+        <ExecutionModeAuthorizeView Roles="@AuthorizedRoles">
             <Authorized>
                 <InputFile id="fileUpload" hidden accept="@SupportedFileFormats" OnChange="@(async (InputFileChangeEventArgs e) => await UploadCustomLogo(e))" />
                 <label class="btn btn-sm @(UploadSuccess ? "btn-success" : "btn-primary")" for="fileUpload">
@@ -28,7 +28,7 @@
                     </span>
                 </button>
             </NotAuthorized>
-        </AuthorizeView>
+        </ExecutionModeAuthorizeView>
     </div>
 </div>
 @if(!string.IsNullOrEmpty(LogoBase64))

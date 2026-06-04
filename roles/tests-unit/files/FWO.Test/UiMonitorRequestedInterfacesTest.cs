@@ -79,7 +79,7 @@ namespace FWO.Test
             return (T)(property.GetValue(component) ?? throw new InvalidOperationException($"Property {propertyName} is null."));
         }
 
-        private static MonitorRequestedInterfaces RenderComponent(Bunit.TestContext context, ApiConnection apiConnection)
+        private static MonitorRequestedInterfaces RenderComponent(BunitContext context, ApiConnection apiConnection)
         {
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
@@ -100,7 +100,7 @@ namespace FWO.Test
         public async Task ShowRejectRemovedTicketsConfirm_SetsPopupStateAndDefaultReason()
         {
             MonitorRequestedInterfacesTestApiConn apiConn = new();
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
 
             PrepareRows(component, new List<ModellingConnection>
@@ -132,7 +132,7 @@ namespace FWO.Test
         public async Task OpenRemovedTicketIds_ContainsOnlyOpenRemovedDistinctTickets()
         {
             MonitorRequestedInterfacesTestApiConn apiConn = new();
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
 
             PrepareRows(component, new List<ModellingConnection>
@@ -160,7 +160,7 @@ namespace FWO.Test
         public async Task OpenRemovedTicketIds_RespectsSelectedTicketStateFilter()
         {
             MonitorRequestedInterfacesTestApiConn apiConn = new();
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
 
             PrepareRows(component, new List<ModellingConnection>
@@ -185,7 +185,7 @@ namespace FWO.Test
         public async Task OpenRemovedTicketIds_ExcludesInterfacesUsedByConnections()
         {
             MonitorRequestedInterfacesTestApiConn apiConn = new();
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
 
             List<ModellingConnection> connections =
@@ -216,7 +216,7 @@ namespace FWO.Test
         public async Task CloseRejectRemovedTicketsConfirm_ResetsPopupStateAndReason()
         {
             MonitorRequestedInterfacesTestApiConn apiConn = new();
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
 
             SetPrivateField(component, "ConfirmRejectRemovedTickets", true);
@@ -238,7 +238,7 @@ namespace FWO.Test
                     [501] = new ApiResponse<WfTicket>("missing ticket")
                 }
             };
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
 
             SetPrivateField(component, "RequestedInterfaces", new List<ModellingConnection>
@@ -259,7 +259,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task OrphanedRequestedInterfaceTicketsPopup_LoadsOnlyTicketsWithMissingInterfaces()
+        public async Task OrphanedRequestedInterfaceTicketsPopup_LoadsTicketsWithInterfaceProblems()
         {
             MonitorRequestedInterfacesTestApiConn apiConn = new()
             {
@@ -273,7 +273,8 @@ namespace FWO.Test
                         Tasks =
                         {
                             CreateTask(1, WfTaskType.new_interface, "if-removed-a"),
-                            CreateTask(2, WfTaskType.new_interface, "if-removed-b")
+                            CreateTask(2, WfTaskType.new_interface, "if-removed-b"),
+                            CreateTask(0, WfTaskType.new_interface, "if-missing-conn")
                         }
                     },
                     new WfTicket
@@ -282,7 +283,8 @@ namespace FWO.Test
                         StateId = 10,
                         Tasks =
                         {
-                            CreateTask(3, WfTaskType.new_interface, "if-still-exists")
+                            CreateTask(3, WfTaskType.new_interface, "if-still-exists"),
+                            CreateTask(5, WfTaskType.new_interface, "if-wrong-kind")
                         }
                     },
                     new WfTicket
@@ -299,15 +301,16 @@ namespace FWO.Test
                 {
                     [1] = [],
                     [2] = [],
-                    [3] = [new ModellingConnection { Id = 3, Name = "existing-if" }],
-                    [4] = [new ModellingConnection { Id = 4, Name = "existing-if-2" }]
+                    [3] = [new ModellingConnection { Id = 3, Name = "existing-if", TicketId = 777, IsInterface = true, IsRequested = true }],
+                    [4] = [new ModellingConnection { Id = 4, Name = "existing-if-2", TicketId = 888, IsInterface = true, IsRequested = true }],
+                    [5] = [new ModellingConnection { Id = 5, Name = "normal-connection", TicketId = 777, IsInterface = false, IsRequested = false }]
                 },
                 States =
                 [
                     new WfState { Id = 10, Name = "In Progress" },
                 ]
             };
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddLocalization();
             context.Services.AddSingleton<ApiConnection>(apiConn);
@@ -328,8 +331,13 @@ namespace FWO.Test
                 Assert.That(markup, Does.Contain("In Progress"));
                 Assert.That(markup, Does.Contain("if-removed-a"));
                 Assert.That(markup, Does.Contain("if-removed-b"));
+                Assert.That(markup, Does.Contain("if-missing-conn"));
+                Assert.That(markup, Does.Contain("Missing connection ID"));
+                Assert.That(markup, Does.Contain("Requested interface not found"));
+                Assert.That(markup, Does.Contain("777"));
+                Assert.That(markup, Does.Contain("if-wrong-kind"));
+                Assert.That(markup, Does.Contain("Linked connection is not a requested interface"));
                 Assert.That(markup, Does.Contain("Close Tickets as rejected"));
-                Assert.That(cellTexts, Does.Not.Contain("777"));
                 Assert.That(cellTexts, Does.Not.Contain("888"));
             });
         }
@@ -364,7 +372,7 @@ namespace FWO.Test
         public List<WfTicket> TicketsByParametersResult { get; set; } = [];
         public List<WfState> States { get; set; } = [];
 
-        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
             if (typeof(QueryResponseType) == typeof(List<GlobalStateMatrixHelper>) && query == ConfigQueries.getConfigItemByKey)
             {

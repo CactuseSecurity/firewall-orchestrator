@@ -1,4 +1,4 @@
-﻿@inject ApiConnection apiConnection
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 <PopUp Title="@(userConfig.GetText("rollback_import") + ": " + ManagementId)" Show="@RollbackMode" Size=PopupSize.Small OnClose="() => RollbackMode = false">
@@ -17,7 +17,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Importer}")" Context="xxx">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Importer}")" Context="xxx">
                 <Authorized>
                     @if (LastIncompleteImport != null && LastIncompleteImport.Length > 0)
                     {
@@ -31,7 +31,7 @@
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("rollback"))</button>
                 </NotAuthorized> 
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>

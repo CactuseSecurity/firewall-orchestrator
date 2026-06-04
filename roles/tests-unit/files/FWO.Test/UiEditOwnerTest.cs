@@ -59,7 +59,7 @@ namespace FWO.Test
         }
 
         private static IRenderedComponent<EditOwner> RenderEditOwner(
-            Bunit.TestContext context,
+            BunitContext context,
             FwoOwner owner,
             bool readOnly,
             List<OwnerResponsibleType>? responsibleTypes = null,
@@ -92,7 +92,7 @@ namespace FWO.Test
         [Test]
         public async Task EditOwner_EditableMode_BindsCriticalityInput()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 0, Name = "Owner A", Criticality = "high" };
             IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false);
 
@@ -106,7 +106,7 @@ namespace FWO.Test
         [Test]
         public async Task EditOwner_ReadonlyMode_ShowsCriticalityAsText()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 0, Name = "Owner A", Criticality = "high" };
             IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: true);
 
@@ -117,7 +117,7 @@ namespace FWO.Test
         [Test]
         public async Task EditOwner_AddOwnerResponsible_AddsDnAndClearsInput()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 0, Name = "Owner A" };
             List<OwnerResponsibleType> types =
             [
@@ -143,7 +143,7 @@ namespace FWO.Test
         [Test]
         public async Task EditOwner_AddOwnerResponsible_DoesNotDuplicateExistingDn()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 0, Name = "Owner A" };
             owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeMain, "cn=main,dc=test");
             List<OwnerResponsibleType> types =
@@ -165,7 +165,7 @@ namespace FWO.Test
         [Test]
         public async Task EditOwner_AddOwnerResponsible_EmptyDn_DoesNothing()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 0, Name = "Owner A" };
             List<OwnerResponsibleType> types =
             [
@@ -186,7 +186,7 @@ namespace FWO.Test
         [Test]
         public async Task EditOwner_CheckValues_FailsWithoutAnyResponsibles()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 0, Name = "Owner A" };
             IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false);
 
@@ -198,7 +198,7 @@ namespace FWO.Test
         [Test]
         public async Task EditOwner_CheckValues_FailsWithoutName()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 0, Name = "" };
             owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeMain, "cn=main,dc=test");
             IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false);
@@ -211,7 +211,7 @@ namespace FWO.Test
         [Test]
         public async Task EditOwner_CheckValues_FailsForDuplicateOwnerNameInAddMode()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 0, Name = "Owner A" };
             owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeMain, "cn=main,dc=test");
             List<FwoOwner> existing = [new() { Id = 42, Name = "Owner A" }];
@@ -226,7 +226,7 @@ namespace FWO.Test
         [Test]
         public async Task EditOwner_PrepareOwnerForSave_MapsSelectionsAndNormalizesRecertParams()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 0, Name = "Owner A" };
             IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false);
 
@@ -255,7 +255,7 @@ namespace FWO.Test
         [Test]
         public async Task EditOwner_HasRelevantOwnerMappingChanges_ReturnsTrue_ForLifecycleActivityChange()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 5, Name = "Owner A", OwnerLifeCycleStateId = 1 };
             IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, ownerLifeCycleStates:
             [
@@ -272,7 +272,7 @@ namespace FWO.Test
         [Test]
         public async Task EditOwner_HasRelevantOwnerMappingChanges_ReturnsTrue_ForOwnedIpChange()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 6, Name = "Owner B", OwnerLifeCycleStateId = 1 };
             IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false);
 
@@ -289,7 +289,7 @@ namespace FWO.Test
         [Test]
         public async Task EditOwner_GetDecommDateAfterLifecycleChange_SetsDateForDeactivateAndClearsForReactivate()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 7, Name = "Owner C", OwnerLifeCycleStateId = 1 };
             IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, ownerLifeCycleStates:
             [
@@ -348,7 +348,7 @@ namespace FWO.Test
 
             string normalized = (string)GetPrivateStaticMethod("NormalizeDnForRoleComparison").Invoke(null, [dnUser])!;
 
-            Assert.That(normalized, Is.EqualTo(@"CN=Mustermann\,\20Max,OU=Users,DC=example,DC=com"));
+            Assert.That(normalized, Is.EqualTo("cn=mustermann, max,ou=users,dc=example,dc=com"));
         }
 
         [Test]
@@ -358,7 +358,7 @@ namespace FWO.Test
 
             string normalized = (string)GetPrivateStaticMethod("NormalizeDnForRoleComparison").Invoke(null, [dnUser])!;
 
-            Assert.That(normalized, Is.EqualTo(dnUser));
+            Assert.That(normalized, Is.EqualTo("cn=mustermann, max,ou=users,dc=example,dc=com"));
         }
 
         [Test]
@@ -414,7 +414,7 @@ namespace FWO.Test
 
     internal sealed class EditOwnerTestApiConn : SimulatedApiConnection
     {
-        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
             if (query == OwnerQueries.getNetworkOwnerships)
             {

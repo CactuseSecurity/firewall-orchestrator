@@ -29,7 +29,7 @@ namespace FWO.Test
                 ?? throw new MissingMethodException(typeof(MonitorModelling).FullName, name);
         }
 
-        private static MonitorModelling RenderComponent(Bunit.TestContext context, ApiConnection apiConnection)
+        private static MonitorModelling RenderComponent(BunitContext context, ApiConnection apiConnection)
         {
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
@@ -50,7 +50,7 @@ namespace FWO.Test
         public async Task RemoveOrphanedAppRole_ReturnsCountAndCallsApi()
         {
             MonitorModellingTestApiConn apiConn = new();
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             MonitorModelling component = RenderComponent(context, apiConn);
 
             ModellingConnection connection = new()
@@ -77,7 +77,7 @@ namespace FWO.Test
         public async Task RemoveOrphanedServiceGroup_ReturnsCountAndCallsApi()
         {
             MonitorModellingTestApiConn apiConn = new();
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             MonitorModelling component = RenderComponent(context, apiConn);
 
             ModellingConnection connection = new()
@@ -104,7 +104,7 @@ namespace FWO.Test
         public async Task ExtractOrphanedServices_FiltersByInterfaceAndKeepsServices()
         {
             MonitorModellingTestApiConn apiConn = new();
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             MonitorModelling component = RenderComponent(context, apiConn);
 
             ModellingConnection ignored = new()
@@ -137,7 +137,7 @@ namespace FWO.Test
         public List<NwGroupRemoval> NwGroupRemovals { get; } = [];
         public List<ServiceGroupRemoval> ServiceGroupRemovals { get; } = [];
 
-        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
             if (typeof(QueryResponseType) == typeof(List<FwoOwner>))
             {

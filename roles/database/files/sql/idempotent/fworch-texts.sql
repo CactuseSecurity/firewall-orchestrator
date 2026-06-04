@@ -2156,8 +2156,12 @@ INSERT INTO txt VALUES ('groups',		        'German', 	'Interne Gruppen');
 INSERT INTO txt VALUES ('groups',		        'English', 	'Internal Groups');
 INSERT INTO txt VALUES ('roles',		        'German', 	'Rollen');
 INSERT INTO txt VALUES ('roles',		        'English', 	'Roles');
-INSERT INTO txt VALUES ('hash',		        'German', 	'Hash');
-INSERT INTO txt VALUES ('hash',		        'English', 	'Hash');
+INSERT INTO txt VALUES ('execution_mode',       'German',   'Ausf&uuml;hrungsmodus');
+INSERT INTO txt VALUES ('execution_mode',       'English',  'Execution Mode');
+INSERT INTO txt VALUES ('user_roles',           'German',   'Nutzerrollen');
+INSERT INTO txt VALUES ('user_roles',           'English',  'User Roles');
+INSERT INTO txt VALUES ('hash',		            'German', 	'Hash');
+INSERT INTO txt VALUES ('hash',		            'English', 	'Hash');
 INSERT INTO txt VALUES ('source_groups',		'German', 	'Quellgruppen');
 INSERT INTO txt VALUES ('source_groups',		'English', 	'Source groups');
 INSERT INTO txt VALUES ('destination_groups',	'German', 	'Zielgruppen');
@@ -3261,10 +3265,14 @@ INSERT INTO txt VALUES ('reject_ticket',        'German',   'Auftrag als abgeleh
 INSERT INTO txt VALUES ('reject_ticket',        'English',  'Close Ticket as rejected');
 INSERT INTO txt VALUES ('reject_tickets',       'German',   'Auftr&auml;ge als abgelehnt schliessen');
 INSERT INTO txt VALUES ('reject_tickets',       'English',  'Close Tickets as rejected');
-INSERT INTO txt VALUES ('orphaned_requested_interface_tickets', 'German', 'Offene Tickets zu gel&ouml;schten angeforderten Schnittstellen');
-INSERT INTO txt VALUES ('orphaned_requested_interface_tickets', 'English', 'Open tickets for deleted requested interfaces');
-INSERT INTO txt VALUES ('orphaned_requested_interface_tickets_empty', 'German', 'Es wurden keine offenen Tickets zu gel&ouml;schten angeforderten Schnittstellen gefunden.');
-INSERT INTO txt VALUES ('orphaned_requested_interface_tickets_empty', 'English', 'No open tickets for deleted requested interfaces were found.');
+INSERT INTO txt VALUES ('orphaned_requested_interface_tickets', 'German', 'Offene Tickets mit Problemen bei angeforderten Schnittstellen');
+INSERT INTO txt VALUES ('orphaned_requested_interface_tickets', 'English', 'Open tickets with requested interface problems');
+INSERT INTO txt VALUES ('orphaned_requested_interface_tickets_empty', 'German', 'Es wurden keine offenen Tickets mit Problemen bei angeforderten Schnittstellen gefunden.');
+INSERT INTO txt VALUES ('orphaned_requested_interface_tickets_empty', 'English', 'No open tickets with requested interface problems were found.');
+INSERT INTO txt VALUES ('connection_id', 'German', 'Verbindungs-ID');
+INSERT INTO txt VALUES ('connection_id', 'English', 'Connection ID');
+INSERT INTO txt VALUES ('problem_reason', 'German', 'Problemgrund');
+INSERT INTO txt VALUES ('problem_reason', 'English', 'Problem reason');
 INSERT INTO txt VALUES ('wait_cycles',          'German',   'Wartezyklen');
 INSERT INTO txt VALUES ('wait_cycles',          'English',  'Wait cycles');
 INSERT INTO txt VALUES ('attempts',             'German',   'Versuche');
@@ -4128,6 +4136,18 @@ INSERT INTO txt VALUES ('E9020', 'German',  'Schnittstelle kann nicht auf Privat
 INSERT INTO txt VALUES ('E9020', 'English', 'Interface cannot be set to Private because it is used by other applications.');
 INSERT INTO txt VALUES ('E9021', 'German',  'Schnittstellenberechtigung erforderlich.');
 INSERT INTO txt VALUES ('E9021', 'English', 'Interface permission required.');
+INSERT INTO txt VALUES ('E9022', 'German',  'M&ouml;glicherweise doppelte offene Schnittstellenanfrage');
+INSERT INTO txt VALUES ('E9022', 'English', 'Duplicate-looking open interface request');
+INSERT INTO txt VALUES ('E9023', 'German',  'Fehlende Verbindungs-ID');
+INSERT INTO txt VALUES ('E9023', 'English', 'Missing connection ID');
+INSERT INTO txt VALUES ('E9024', 'German',  'Angeforderte Schnittstelle nicht gefunden');
+INSERT INTO txt VALUES ('E9024', 'English', 'Requested interface not found');
+INSERT INTO txt VALUES ('E9025', 'German',  'Verkn&uuml;pfte Verbindung ist keine angeforderte Schnittstelle');
+INSERT INTO txt VALUES ('E9025', 'English', 'Linked connection is not a requested interface');
+INSERT INTO txt VALUES ('E9026', 'German',  'Ticket und Verbindung passen nicht zusammen');
+INSERT INTO txt VALUES ('E9026', 'English', 'Ticket and connection link mismatch');
+INSERT INTO txt VALUES ('E9027', 'German',  'Angeforderte Schnittstelle gel&ouml;scht');
+INSERT INTO txt VALUES ('E9027', 'English', 'Requested interface removed');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');
@@ -5719,6 +5739,12 @@ INSERT INTO txt VALUES ('H5281', 'German',  'Vorname: Vorname des Benutzers.');
 INSERT INTO txt VALUES ('H5281', 'English', 'First name: The user''s given name.');
 INSERT INTO txt VALUES ('H5282', 'German',  'Nachname: Nachname des Benutzers.');
 INSERT INTO txt VALUES ('H5282', 'English', 'Surname: The user''s surname.');
+INSERT INTO txt VALUES ('H5283', 'German',  'Ausf&uuml;hrungsmodus: Nutzer mit mehreren Rollen einschliesslich admin oder auditor k&ouml;nnen admin oder auditor erzwingen. Mit Nutzerrollen wird wieder die rollenbezogene Auswahl der Anwendung verwendet.
+    Der Ausf&uuml;hrungsmodus ist eine Hilfe f&uuml;r die Bedienoberfl&auml;che, damit bei mehreren erlaubten Rollen die passende Rolle f&uuml;r Anzeigen und Aktionen gew&auml;hlt wird.
+    Er ersetzt keine Berechtigung. Die tats&auml;chlichen Zugriffsrechte ergeben sich weiterhin aus den zugewiesenen Rollen und den serverseitigen Berechtigungen.');
+INSERT INTO txt VALUES ('H5283', 'English', 'Execution Mode: Users with multiple roles including admin or auditor can force admin or auditor mode. User Roles restores the application''s role-specific selection.
+    Execution mode is a user interface helper for choosing the suitable role for views and actions when several roles are allowed.
+    It does not grant or replace authorization. Actual access rights still come from the assigned roles and server-side permissions.');
 INSERT INTO txt VALUES ('H5301', 'German',  'Der Admin kann Nutzergruppen im internen Ldap definieren. Dabei besteht die M&ouml;glichkeit, sie gleich einer Rolle zuzuordnen.
     Weitere Rollenzuordnungen k&ouml;nnen dann unter <a href="/help/settings/roles">Rollen</a> erfolgen.<br>
 ');
@@ -6861,6 +6887,12 @@ INSERT INTO txt VALUES ('H6906', 'German',  'Anmelden zur Generierung eines g&uu
 INSERT INTO txt VALUES ('H6906', 'English', 'Login to get a JWT for the steps further below');
 INSERT INTO txt VALUES ('H6907', 'German',  'Auflisten bereits vorhandener Reports im Archiv (hier der letzte generierte zum Schedule)');
 INSERT INTO txt VALUES ('H6907', 'English', 'List generated reports in archive (here we get the last one generated for the respective schedule)');
+INSERT INTO txt VALUES ('H6934', 'German',  'Der <code>GetRulesByFilter</code> Endpunkt gibt Regeln zurück, die entweder zu <code>OwnerId</code> oder zu <code>IpAddress</code> passen. Genau eines dieser beiden Felder muss angegeben werden. Das Objekt <code>Filter</code> wird nur beim Filtern per IP-Adresse verwendet: <code>Action</code> wählt zwischen <code>accept</code>, <code>deny</code> oder <code>any</code>, <code>MinPrefixLength</code> setzt die minimale CIDR-Prefix-Länge und <code>InField</code> entscheidet, ob Quelle, Ziel oder beides geprüft wird. <code>FieldSourceMapping</code> steuert, aus welcher Quelle einzelne Ausgabefelder gelesen werden. Verwenden Sie <code>Database</code> für den normalisierten Datenbankwert oder <code>CustomField</code> für das kundenspezifische Custom-Feld.');
+INSERT INTO txt VALUES ('H6934', 'English', 'The <code>GetRulesByFilter</code> endpoint returns rules that match either <code>OwnerId</code> or <code>IpAddress</code>. Exactly one of those two fields must be provided. The <code>Filter</code> object is only used when filtering by IP address: <code>Action</code> selects <code>accept</code>, <code>deny</code>, or <code>any</code>, <code>MinPrefixLength</code> sets the minimum CIDR prefix length, and <code>InField</code> decides whether source, destination, or both are evaluated. <code>FieldSourceMapping</code> controls where selected output fields are read from. Use <code>Database</code> for the normalized database value or <code>CustomField</code> for the customer-specific custom field.');
+INSERT INTO txt VALUES ('H6935', 'German',  '<ul><li><code>OwnerId</code>: Gibt alle Regeln für den angegebenen Eigentümer zurück.</li><li><code>IpAddress</code>: Sucht Regeln anhand der angegebenen IP-Adresse.</li><li><code>Filter.Action</code>: Pflichtfeld beim IP-Filter; erlaubt sind <code>accept</code>, <code>deny</code> und <code>any</code>.</li><li><code>Filter.MinPrefixLength</code>: Minimale Prefix-Länge des gefundenen Netzwerkobjekts von 0 bis 32.</li><li><code>Filter.InField</code>: Legt fest, ob Quelle, Ziel oder beides geprüft wird.</li><li><code>FieldSourceMapping.OwnerInformation</code>: <code>Database</code> verwendet die Standarddatenbankzuordnung, <code>CustomField</code> liest aus dem kundenspezifischen Feld.</li><li><code>FieldSourceMapping.ChangeId</code>: <code>Database</code> ist aktuell noch nicht unterstützt, <code>CustomField</code> verwendet das kundenspezifische Feld.</li></ul>');
+INSERT INTO txt VALUES ('H6935', 'English', '<ul><li><code>OwnerId</code>: Returns all rules for the specified owner.</li><li><code>IpAddress</code>: Finds rules by the provided IP address.</li><li><code>Filter.Action</code>: Required for IP-based filtering; allowed values are <code>accept</code>, <code>deny</code>, and <code>any</code>.</li><li><code>Filter.MinPrefixLength</code>: Minimum prefix length of the matching network object, from 0 to 32.</li><li><code>Filter.InField</code>: Defines whether source, destination, or both are evaluated.</li><li><code>FieldSourceMapping.OwnerInformation</code>: <code>Database</code> uses the standard database mapping, <code>CustomField</code> reads from the customer-specific custom field.</li><li><code>FieldSourceMapping.ChangeId</code>: <code>Database</code> is not supported yet, <code>CustomField</code> uses the customer-specific field.</li></ul>');
+INSERT INTO txt VALUES ('H6936', 'German',  'Hinweis: Wenn <code>FieldSourceMapping.ChangeId</code> auf <code>Database</code> gesetzt wird, liefert der aktuelle Serverwert <code>Not Found in Database</code> zurück. Ungültige Enum-Werte werden bereits beim Einlesen der Anfrage abgelehnt.');
+INSERT INTO txt VALUES ('H6936', 'English', 'Note: when <code>FieldSourceMapping.ChangeId</code> is set to <code>Database</code>, the current server value returned is <code>Not Found in Database</code>. Invalid enum values are rejected while parsing the request.');
 INSERT INTO txt VALUES ('H6921', 'German',  'Der Import von Applikationsdaten wird aus einer oder mehreren .json-Dateien mit den in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> definierten Pfaden und Namen gespeist.
     Dort kann auch jeweils ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Dateien hinterlegt werden. Die .json-Datei hat die folgende Struktur:
 ');
@@ -7143,12 +7175,12 @@ INSERT INTO txt VALUES ('H7422', 'German', 'Mit dem Statusfilter kann die Liste 
 INSERT INTO txt VALUES ('H7422', 'English', 'The state filter can be used to restrict the list to one concrete ticket state or to all open items.
     The option "Show removed requested interfaces" shows deleted interfaces instead, so their original requests can still be reviewed and cleaned up.
 ');
-INSERT INTO txt VALUES ('H7423', 'German', 'Wenn entfernte angeforderte Schnittstellen noch offene Tickets besitzen, kann der Administrator diese gesammelt als abgelehnt schliessen.');
-INSERT INTO txt VALUES ('H7423', 'English', 'If deleted requested interfaces still have open tickets, the administrator can close those tickets together as rejected.');
-INSERT INTO txt VALUES ('H7424', 'German', 'Die Schaltfl&auml;che "Offene Tickets zu gel&ouml;schten angeforderten Schnittstellen" &ouml;ffnet eine separate Liste aller noch offenen New-Interface-Tickets, deren angeforderte Schnittstelle nicht mehr existiert.
+INSERT INTO txt VALUES ('H7423', 'German', 'Wenn problematische angeforderte Schnittstellen noch offene Tickets besitzen, kann der Administrator diese gesammelt als abgelehnt schliessen.');
+INSERT INTO txt VALUES ('H7423', 'English', 'If requested interface problems still have open tickets, the administrator can close those tickets together as rejected.');
+INSERT INTO txt VALUES ('H7424', 'German', 'Die Schaltfl&auml;che "Offene Tickets mit Problemen bei angeforderten Schnittstellen" &ouml;ffnet eine separate Liste aller noch offenen New-Interface-Tickets, deren Schnittstellenverkn&uuml;pfung fehlt, defekt, gel&ouml;scht oder verd&auml;chtig ist.
     Die Pr&uuml;fung erfolgt erst beim &Ouml;ffnen des Fensters und ist damit unabh&auml;ngig von der aktuell angezeigten Tabellenfilterung.
 ');
-INSERT INTO txt VALUES ('H7424', 'English', 'The button "Open tickets for deleted requested interfaces" opens a separate list of all still open new-interface tickets whose requested interface does not exist anymore.
+INSERT INTO txt VALUES ('H7424', 'English', 'The button "Open tickets with requested interface problems" opens a separate list of all still open new-interface tickets whose requested interface linkage is missing, broken, removed, or suspicious.
     The check is performed only when opening the popup, so it is independent from the current table filter.
 ');
 INSERT INTO txt VALUES ('H7425', 'German', 'Diese Seite listet Owner mit modellierten Verbindungen und zeigt den letzten zugeordneten Workflow-Antrag.

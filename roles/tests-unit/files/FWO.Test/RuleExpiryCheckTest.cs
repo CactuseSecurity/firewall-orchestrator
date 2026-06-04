@@ -447,7 +447,7 @@ namespace FWO.Test
             public List<ExpiredRuleEntryInput> ExpiredRuleEntries { get; set; } = [];
             public int LastUpdatedNotificationIdCount { get; private set; }
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 Type responseType = typeof(QueryResponseType);
 

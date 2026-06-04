@@ -60,7 +60,7 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<int>(request);
         }
 
-        public async Task<RestResponse<string>> ChangePassword(UserChangePasswordParameters parameters)
+        public virtual async Task<RestResponse<string>> ChangePassword(UserChangePasswordParameters parameters)
         {
             RestRequest request = new("User/EditPassword", Method.Patch);
             request.AddJsonBody(parameters);

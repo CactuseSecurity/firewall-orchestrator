@@ -93,15 +93,15 @@ namespace FWO.Report.Filter
 
             query.RuleWhereStatement += "{";
             query.ConnectionWhereStatement += "{";
-            query.OwnerWhereStatement += "{";           
-            
+            query.OwnerWhereStatement += "{";
+
             string ruleBeforeExtract = query.RuleWhereStatement;
 
             ast?.Extract(ref query, (ReportType)filter.ReportParams.ReportType);
 
             if (((ReportType)filter.ReportParams.ReportType).IsChangeReport())
             {
-                string astRuleFilter = query.RuleWhereStatement.Substring(ruleBeforeExtract.Length).Trim();     
+                string astRuleFilter = query.RuleWhereStatement.Substring(ruleBeforeExtract.Length).Trim();
                 query.RuleWhereStatement = ruleBeforeExtract;
 
                 if (string.IsNullOrWhiteSpace(astRuleFilter))

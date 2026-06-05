@@ -31,7 +31,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string addGeneratedReport;
 
         public static readonly string getUsageDataCount;
-        public static readonly string getImportsToNotify;
+        public static readonly string getImportsToNotifyForRuleChanges;
         public static readonly string getImportsToNotifyForAnyChanges;
         public static readonly string setImportsNotified;
 
@@ -66,7 +66,7 @@ namespace FWO.Api.Client.Queries
                 addGeneratedReport = GetQueryText("report/addGeneratedReport.graphql");
                 getUsageDataCount = GetQueryText("report/getUsageDataCount.graphql");
                 // note: currently we only check for rule changes, but this should be extended to other changes in the future
-                getImportsToNotify = GetQueryText("report/getImportsToNotifyForRuleChanges.graphql");
+                getImportsToNotifyForRuleChanges = GetQueryText("report/getImportsToNotifyForRuleChanges.graphql");
                 getImportsToNotifyForAnyChanges = GetQueryText("report/getImportsToNotifyForAnyChanges.graphql");
                 setImportsNotified = GetQueryText("report/setImportsNotified.graphql");
                 getManagementForNormalizedConfig = GetQueryText("report/getManagementForNormalizedConfig.graphql");

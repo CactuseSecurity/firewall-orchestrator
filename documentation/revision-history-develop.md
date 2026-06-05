@@ -422,3 +422,6 @@ These settings are no longer used due to the full automation of UpdateRuleOwner.
 
 # 9.1.3 - 27.05.2026 DEVELOP
 - add optional workflow flow merging for Flow DB creation
+
+# 9.1.4 - 27.05.2026 DEVELOP
+- credentials field in management for writing on Firewalls

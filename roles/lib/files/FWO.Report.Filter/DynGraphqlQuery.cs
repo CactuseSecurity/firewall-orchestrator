@@ -93,19 +93,29 @@ namespace FWO.Report.Filter
 
             query.RuleWhereStatement += "{";
             query.ConnectionWhereStatement += "{";
-            query.OwnerWhereStatement += "{";
+            query.OwnerWhereStatement += "{";           
+            
+            string ruleBeforeExtract = query.RuleWhereStatement;
 
-            if ((ReportType)filter.ReportParams.ReportType == ReportType.Changes || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChanges || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChangesTech)
-            {
-                query.RuleWhereStatement += "rule: {";
-            }
-            // now we convert the ast into a graphql query:
             ast?.Extract(ref query, (ReportType)filter.ReportParams.ReportType);
-            // TODO: remove rule dev filtering for rework 
 
-            if ((ReportType)filter.ReportParams.ReportType == ReportType.Changes || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChanges || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChangesTech)
+            if (((ReportType)filter.ReportParams.ReportType).IsChangeReport())
             {
-                query.RuleWhereStatement += "}";
+                string astRuleFilter = query.RuleWhereStatement.Substring(ruleBeforeExtract.Length).Trim();     
+                query.RuleWhereStatement = ruleBeforeExtract;
+
+                if (string.IsNullOrWhiteSpace(astRuleFilter))
+                {
+                    query.RuleWhereStatement += "_or: [{ rule: {} }, { ruleByOldRuleId: {} }]";
+                }
+                else
+                {
+                    query.RuleWhereStatement +=
+                        "_or: [" +
+                        "{ rule: { " + astRuleFilter + " } }, " +
+                        "{ ruleByOldRuleId: { " + astRuleFilter + " } }" +
+                        "]";
+                }
             }
 
             query.RuleWhereStatement += "}] ";

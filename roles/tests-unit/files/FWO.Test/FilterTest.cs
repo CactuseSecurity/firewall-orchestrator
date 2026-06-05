@@ -1012,9 +1012,11 @@ namespace FWO.Test
 
             DynGraphqlQuery query = Compiler.Compile(template);
 
-            StringAssert.Contains("rule: { rule_metadatum:{ rule_last_hit:", query.RuleWhereStatement);
+            StringAssert.Contains("rule: { rule_metadatum: { rule_last_hit:", query.RuleWhereStatement);
+            StringAssert.Contains("ruleByOldRuleId: { rule_metadatum: { rule_last_hit:", query.RuleWhereStatement);
+            StringAssert.DoesNotContain("rule: { rule: {", query.RuleWhereStatement);
+            StringAssert.DoesNotContain("ruleByOldRuleId: { rule: {", query.RuleWhereStatement);
             StringAssert.DoesNotContain("_is_null: true", query.RuleWhereStatement);
-            StringAssert.DoesNotContain("_or:", query.RuleWhereStatement);
         }
 
         [Test]
@@ -1029,9 +1031,12 @@ namespace FWO.Test
 
             DynGraphqlQuery query = Compiler.Compile(template);
 
-            StringAssert.Contains("rule: { rule_metadatum: { rule_last_hit:", query.RuleWhereStatement);
+            StringAssert.Contains("rule: { _or: [", query.RuleWhereStatement);
+            StringAssert.Contains("ruleByOldRuleId: { _or: [", query.RuleWhereStatement);
+            StringAssert.Contains("rule_metadatum: { rule_last_hit:", query.RuleWhereStatement);
             StringAssert.Contains("_is_null: true", query.RuleWhereStatement);
-            StringAssert.Contains("_or:", query.RuleWhereStatement);
+            StringAssert.DoesNotContain("rule: { rule: {", query.RuleWhereStatement);
+            StringAssert.DoesNotContain("ruleByOldRuleId: { rule: {", query.RuleWhereStatement);
         }
 
         [Test]

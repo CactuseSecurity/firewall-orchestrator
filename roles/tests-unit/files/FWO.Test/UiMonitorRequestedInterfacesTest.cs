@@ -88,7 +88,7 @@ namespace FWO.Test
             return (T)(property.GetValue(instance) ?? throw new InvalidOperationException($"Property {propertyName} is null."));
         }
 
-        private static MonitorRequestedInterfaces RenderComponent(Bunit.TestContext context, ApiConnection apiConnection)
+        private static MonitorRequestedInterfaces RenderComponent(BunitContext context, ApiConnection apiConnection)
         {
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
@@ -109,7 +109,7 @@ namespace FWO.Test
         public async Task ShowRejectRemovedTicketsConfirm_SetsPopupStateAndDefaultReason()
         {
             MonitorRequestedInterfacesTestApiConn apiConn = new();
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
 
             PrepareRows(component, new List<ModellingConnection>
@@ -141,7 +141,7 @@ namespace FWO.Test
         public async Task OpenRemovedTicketIds_ContainsOnlyOpenRemovedDistinctTickets()
         {
             MonitorRequestedInterfacesTestApiConn apiConn = new();
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
 
             PrepareRows(component, new List<ModellingConnection>
@@ -169,7 +169,7 @@ namespace FWO.Test
         public async Task OpenRemovedTicketIds_RespectsSelectedTicketStateFilter()
         {
             MonitorRequestedInterfacesTestApiConn apiConn = new();
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
 
             PrepareRows(component, new List<ModellingConnection>
@@ -194,7 +194,7 @@ namespace FWO.Test
         public async Task OpenRemovedTicketIds_ExcludesInterfacesUsedByConnections()
         {
             MonitorRequestedInterfacesTestApiConn apiConn = new();
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
 
             List<ModellingConnection> connections =
@@ -466,7 +466,7 @@ namespace FWO.Test
         public async Task CloseRejectRemovedTicketsConfirm_ResetsPopupStateAndReason()
         {
             MonitorRequestedInterfacesTestApiConn apiConn = new();
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
 
             SetPrivateField(component, "ConfirmRejectRemovedTickets", true);
@@ -488,7 +488,7 @@ namespace FWO.Test
                     [501] = new ApiResponse<WfTicket>("missing ticket")
                 }
             };
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
 
             SetPrivateField(component, "RequestedInterfaces", new List<ModellingConnection>
@@ -560,7 +560,7 @@ namespace FWO.Test
                     new WfState { Id = 10, Name = "In Progress" },
                 ]
             };
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddLocalization();
             context.Services.AddSingleton<ApiConnection>(apiConn);

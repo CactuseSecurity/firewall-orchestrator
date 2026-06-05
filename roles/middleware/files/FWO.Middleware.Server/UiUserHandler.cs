@@ -8,7 +8,6 @@ using FWO.Logging;
 using Newtonsoft.Json;
 using System.Reflection;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 
 namespace FWO.Middleware.Server
 {
@@ -215,14 +214,6 @@ namespace FWO.Middleware.Server
                     user.Ownerships.Add(owner.Id);
                 }
 
-                // now handle memberships via groups
-                List<FwoOwner> allOwners = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
-                List<ConfigItem> configResult;
-                configResult = await apiConn.SendQueryAsync<List<ConfigItem>>(ConfigQueries.getConfigItemByKey,
-                    new { key = "ownerLdapGroupNames" });
-                string? namingConvention = configResult.Count > 0 ? configResult[0].Value : string.Empty;
-
-
                 List<string> groupsOfUser = user.Groups ?? [];
                 if (groupsOfUser.Count > 0)
                 {
@@ -230,21 +221,6 @@ namespace FWO.Middleware.Server
                         OwnerQueries.getOwnersFromGroups,
                         new { groupDns = groupsOfUser });
                     foreach (var owner in groupOwnerships)
-                    {
-                        user.Ownerships.Add(owner.Id);
-                    }
-                }
-
-                foreach (string group in groupsOfUser)
-                {
-                    string groupName = new DistName(group).Group;
-                    if (!MatchesNamingConvention(groupName, namingConvention))
-                    {
-                        continue; // skip groups that do not match the naming convention
-                    }
-                    FwoOwner? owner = FindOwnerWithMatchingGroupName(groupName, allOwners);
-
-                    if (owner != null)
                     {
                         user.Ownerships.Add(owner.Id);
                     }
@@ -270,70 +246,6 @@ namespace FWO.Middleware.Server
             {
                 Log.WriteError("Get ownerships", $"Ownerships could not be detemined for User {user.Name}.", exeption);
             }
-        }
-
-        private static bool MatchesNamingConvention(string userIn, string? namingConvention)
-        {
-            if (string.IsNullOrEmpty(namingConvention))
-            {
-                return true; // no naming convention defined, so all cn match
-            }
-            string regexPattern = ReplacePlaceholdersWithPattern(namingConvention);
-            string cn = userIn;
-
-            if (userIn.Contains(','))
-            {
-                // the userIn is a DN, so extract the CN part
-                cn = userIn.ExtractCommonNameFromDn();
-            }
-
-            // turn naming convention into a regex pattern
-            if (Regex.IsMatch(cn, regexPattern, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100)))
-            {
-                return true; // cn matches the naming convention
-            }
-            return false; // cn does not match the naming convention
-        }
-
-        private static string ReplacePlaceholdersWithPattern(string input)
-        {
-            // Pattern: finds @@...@@ – non-greedy
-            string pattern = "@@(.*?)@@";
-
-            // Replaces each match with the regex expression
-            string replaced = Regex.Replace(input, pattern, "(.*?)", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
-
-            return replaced;
-        }
-        private static FwoOwner? FindOwnerWithMatchingGroupName(string groupName, List<FwoOwner> apps)
-        {
-            foreach (FwoOwner app in apps)
-            {
-                foreach (string dn in app.GetAllOwnerResponsibles())
-                {
-                    if (MatchesGroupName(dn, groupName))
-                    {
-                        return app;
-                    }
-                }
-            }
-            return null;
-        }
-
-        private static bool MatchesGroupName(string dn, string groupName)
-        {
-            if (string.IsNullOrWhiteSpace(dn))
-            {
-                return false;
-            }
-            string[] groupDnParts = dn.Split(',', StringSplitOptions.RemoveEmptyEntries);
-            if (groupDnParts.Length == 0)
-            {
-                return false;
-            }
-            string[] cnParts = groupDnParts[0].Split('=', StringSplitOptions.RemoveEmptyEntries);
-            // note: this only works for flat groups! TODO: make this universal by checking group membership
-            return cnParts.Length == 2 && cnParts[1].Equals(groupName, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>

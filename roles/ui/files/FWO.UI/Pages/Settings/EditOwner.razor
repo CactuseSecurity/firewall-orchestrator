@@ -412,7 +412,7 @@
                 await UpdateOwnerInDb();
             }
 
-            if (ActOwner.RecertActive && !RecertActiveBefore)
+            if (ActOwner.RecertActive && (addOwnerMode || !RecertActiveBefore))
             {
                 RecertHandler recertHandler = new(apiConnection, userConfig);
                 await recertHandler.InitOwnerRecert(ActOwner);

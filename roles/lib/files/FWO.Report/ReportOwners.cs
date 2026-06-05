@@ -5,7 +5,7 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Report;
 using FWO.Report.Filter;
-using System.Net;
+using FWO.Ui.Display;
 using System.Text;
 
 namespace FWO.Report
@@ -75,7 +75,7 @@ namespace FWO.Report
             report.AppendLine($"<th>{userConfig.GetText("state")}</th>");
             foreach (OwnerResponsibleType type in ownerResponsibleTypes)
             {
-                report.AppendLine($"<th>{Encode(type.Name)}</th>");
+                report.AppendLine($"<th>{EncodeHtml(type.Name)}</th>");
             }
             report.AppendLine($"<th>{userConfig.GetText("additional_info")}</th>");
             report.AppendLine("</tr>");
@@ -98,13 +98,13 @@ namespace FWO.Report
         private void AppendOwnerDataHtml(ref StringBuilder report, FwoOwner owner)
         {
             report.AppendLine("<tr>");
-            report.AppendLine($"<td>{Encode(owner.ExtAppId)}</td>");
-            report.AppendLine($"<td>{Encode(owner.Name)}</td>");
-            report.AppendLine($"<td>{Encode(owner.Criticality)}</td>");
-            report.AppendLine($"<td>{Encode(GetOwnerState(owner))}</td>");
+            report.AppendLine($"<td>{EncodeHtml(owner.ExtAppId)}</td>");
+            report.AppendLine($"<td>{EncodeHtml(owner.Name)}</td>");
+            report.AppendLine($"<td>{EncodeHtml(owner.Criticality)}</td>");
+            report.AppendLine($"<td>{EncodeHtml(GetOwnerState(owner))}</td>");
             foreach (OwnerResponsibleType type in ownerResponsibleTypes)
             {
-                report.AppendLine($"<td>{FormatHtmlCell(GetResponsibles(owner, type.Id))}</td>");
+                report.AppendLine($"<td>{FormatHtmlCell(OwnerRecertDisplay.FormatResponsibles(owner, type.Id, "\n"))}</td>");
             }
             report.AppendLine($"<td>{FormatHtmlCell(GetAdditionalInfo(owner))}</td>");
             report.AppendLine("</tr>");
@@ -118,7 +118,7 @@ namespace FWO.Report
             report.Append(OutputCsv(GetOwnerState(owner)));
             foreach (OwnerResponsibleType type in ownerResponsibleTypes)
             {
-                report.Append(OutputCsv(GetResponsibles(owner, type.Id, "; ")));
+                report.Append(OutputCsv(OwnerRecertDisplay.FormatResponsibles(owner, type.Id, "; ")));
             }
             report.Append(OutputCsv(GetAdditionalInfo(owner, "; ")));
             report.AppendLine();
@@ -134,21 +134,6 @@ namespace FWO.Report
             return "";
         }
 
-        private static string Encode(string? value)
-        {
-            return WebUtility.HtmlEncode(value ?? "");
-        }
-
-        private static string FormatHtmlCell(string value)
-        {
-            return string.IsNullOrWhiteSpace(value)
-                ? ""
-                : Encode(value)
-                    .Replace("\r\n", "<br>")
-                    .Replace("\n", "<br>")
-                    .Replace("\r", "<br>");
-        }
-
         private static string GetAdditionalInfo(FwoOwner owner, string separator = "\n")
         {
             return owner.AdditionalInfo == null
@@ -156,19 +141,5 @@ namespace FWO.Report
                 : string.Join(separator, owner.AdditionalInfo.OrderBy(entry => entry.Key).Select(entry => $"{entry.Key}: {entry.Value}"));
         }
 
-        private static string GetResponsibles(FwoOwner owner, int responsibleTypeId, string separator = "\n")
-        {
-            return string.Join(separator, owner.GetOwnerResponsiblesByType(responsibleTypeId)
-                .Where(dn => !string.IsNullOrWhiteSpace(dn))
-                .OrderBy(dn => dn)
-                .Select(FormatResponsible));
-        }
-
-        private static string FormatResponsible(string dn)
-        {
-            DistName distName = new(dn);
-            string display = !string.IsNullOrWhiteSpace(distName.UserName) ? distName.UserName : distName.Group;
-            return string.IsNullOrWhiteSpace(display) ? dn : display;
-        }
     }
 }

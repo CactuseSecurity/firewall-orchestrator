@@ -341,13 +341,67 @@ namespace FWO.Test
             StringAssert.Contains("# Owners due within 7 days: 1", csv);
             StringAssert.Contains("# Further active owners: 1", csv);
             StringAssert.Contains("# Owners with inactive recertification: 1", csv);
-            StringAssert.Contains("\"Next Recertification Date\",\"Id\",\"Name\",\"Last Recertified\",\"Last Recertifier\",", csv);
-            StringAssert.Contains("\"EXT-OVERDUE\",\"Overdue Owner\",", csv);
+            StringAssert.Contains("\"Next Recertification Date\",\"Id\",\"Name\",\"Main responsible person (DN)\",\"Last Recertified\",\"Last Recertifier\",", csv);
+            StringAssert.Contains("\"EXT-OVERDUE\",\"Overdue Owner\",\"overdue.main, overdue.second\",", csv);
             StringAssert.Contains("\"EXT-UPCOMING\",\"Upcoming Owner\",", csv);
             StringAssert.Contains("\"EXT-FURTHER\",\"Further Owner\",", csv);
             StringAssert.Contains("# Owners with inactive recertification", csv);
-            StringAssert.Contains("\"Id\",\"Name\",", csv);
-            StringAssert.Contains("\"EXT-INACTIVE\",\"Inactive Owner\",", csv);
+            StringAssert.Contains("\"Id\",\"Name\",\"Main responsible person (DN)\",", csv);
+            StringAssert.Contains("\"EXT-INACTIVE\",\"Inactive Owner\",\"inactive.main\",", csv);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateCsvMergesDisplayedTables()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.MergeOwnerRecertTables = true;
+
+            string csv = report.ExportToCsv();
+
+            StringAssert.Contains("# Recertification overview", csv);
+            Assert.That(CountOccurrences(csv, "\"Next Recertification Date\""), Is.EqualTo(1));
+            StringAssert.Contains("\"\",\"EXT-INACTIVE\",\"Inactive Owner\",\"inactive.main\",\"\",\"\",", csv);
+            Assert.That(csv.IndexOf("\"EXT-OVERDUE\"", StringComparison.Ordinal), Is.LessThan(csv.IndexOf("\"EXT-UPCOMING\"", StringComparison.Ordinal)));
+            Assert.That(csv.IndexOf("\"EXT-UPCOMING\"", StringComparison.Ordinal), Is.LessThan(csv.IndexOf("\"EXT-FURTHER\"", StringComparison.Ordinal)));
+            Assert.That(csv.IndexOf("\"EXT-FURTHER\"", StringComparison.Ordinal), Is.LessThan(csv.IndexOf("\"EXT-INACTIVE\"", StringComparison.Ordinal)));
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateCsvMergedTableIsSortedByNextRecertDate()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.MergeOwnerRecertTables = true;
+            report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-FURTHER").Owner.NextRecertDate = DateTime.Today.AddDays(-5);
+
+            string csv = report.ExportToCsv();
+
+            Assert.That(csv.IndexOf("\"EXT-FURTHER\"", StringComparison.Ordinal), Is.LessThan(csv.IndexOf("\"EXT-OVERDUE\"", StringComparison.Ordinal)));
+            Assert.That(csv.IndexOf("\"EXT-OVERDUE\"", StringComparison.Ordinal), Is.LessThan(csv.IndexOf("\"EXT-UPCOMING\"", StringComparison.Ordinal)));
+            Assert.That(csv.IndexOf("\"EXT-UPCOMING\"", StringComparison.Ordinal), Is.LessThan(csv.IndexOf("\"EXT-INACTIVE\"", StringComparison.Ordinal)));
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateCsvShowsSelectedOwnerAdditionalInfo()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerAdditionalInfoKey = "business_unit";
+            report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner.AdditionalInfo =
+                new() { ["business_unit"] = "Payments" };
+
+            string csv = report.ExportToCsv();
+
+            StringAssert.Contains("\"Label: business_unit\",", csv);
+            StringAssert.Contains("\"EXT-OVERDUE\",\"Overdue Owner\",\"overdue.main, overdue.second\",\"", csv);
+            StringAssert.Contains("\",\"overdue.user\",\"Payments\",", csv);
         }
 
         [Test]
@@ -363,6 +417,19 @@ namespace FWO.Test
             StringAssert.Contains("# Overdue owners: 1", csv);
             StringAssert.DoesNotContain("# Owners due within 0 days", csv);
             StringAssert.DoesNotContain("# No owners due within 0 days.", csv);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateCsvUsesCreationDateHintWhenOwnerSummaryDatesAreMissing()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertFallbackReport()
+            };
+
+            string csv = report.ExportToCsv();
+
+            StringAssert.Contains("\"15.02.2026\",\"EXT-FALLBACK\",\"Fallback Owner\",\"\",\"01.02.2026 (Created)\",\"\",", csv);
         }
 
         [Test]
@@ -382,8 +449,73 @@ namespace FWO.Test
             StringAssert.Contains("<li>Further active owners: 1</li>", html);
             StringAssert.Contains("<li>Owners with inactive recertification: 1</li>", html);
             StringAssert.Contains(">Owners with inactive recertification</h3>", html);
-            StringAssert.Contains("<th>Id</th><th>Name</th>", RemoveLinebreaks(html));
+            StringAssert.Contains("<th>Id</th><th>Name</th><th>Main responsible person (DN)</th>", RemoveLinebreaks(html));
+            StringAssert.Contains("<td>EXT-OVERDUE</td><td>Overdue Owner</td><td>overdue.main, overdue.second</td>", RemoveLinebreaks(html));
+            StringAssert.Contains("<td>EXT-INACTIVE</td><td>Inactive Owner</td><td>inactive.main</td>", RemoveLinebreaks(html));
             StringAssert.DoesNotContain("<th>Last Recertified</th><th>Last Recertifier</th></tr><tr><td>EXT-INACTIVE", RemoveLinebreaks(html));
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateHtmlMergesDisplayedTables()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.MergeOwnerRecertTables = true;
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            StringAssert.Contains(">Recertification overview</h3>", html);
+            StringAssert.DoesNotContain(">Owners with inactive recertification</h3>", html);
+            Assert.That(CountOccurrences(html, "<table>"), Is.EqualTo(1));
+            StringAssert.Contains("<tr><td></td><td>EXT-INACTIVE</td><td>Inactive Owner</td><td>inactive.main</td><td></td><td></td></tr>", html);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateHtmlShowsSelectedOwnerAdditionalInfo()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerAdditionalInfoKey = "business_unit";
+            report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner.AdditionalInfo =
+                new() { ["business_unit"] = "Payments" };
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            StringAssert.Contains("<th>Label: business_unit</th>", html);
+            StringAssert.Contains("<td>overdue.user</td><td>Payments</td>", html);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateHtmlShowsBooleanOwnerAdditionalInfoAsHtml()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerAdditionalInfoKey = "recert_required";
+            report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner.AdditionalInfo =
+                new() { ["recert_required"] = "true" };
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            StringAssert.Contains("<td><span class=\" bi bi-check-lg\"></span></td>", html);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateHtmlUsesCreationDateHintWhenOwnerSummaryDatesAreMissing()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertFallbackReport()
+            };
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            StringAssert.Contains("<td>15.02.2026</td><td>EXT-FALLBACK</td><td>Fallback Owner</td><td></td><td>01.02.2026 (Created)</td><td></td>", html);
         }
 
         [Test]
@@ -1588,7 +1720,20 @@ namespace FWO.Test
                         RecertOverdue = true,
                         NextRecertDate = DateTime.Today.AddDays(-1),
                         LastRecertified = DateTime.Today.AddDays(-30),
-                        LastRecertifierDn = "cn=overdue.user,ou=users,dc=test,dc=local"
+                        LastRecertifierDn = "cn=overdue.user,ou=users,dc=test,dc=local",
+                        OwnerResponsibles =
+                        [
+                            new()
+                            {
+                                Dn = "cn=overdue.main,ou=users,dc=test,dc=local",
+                                ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeMain
+                            },
+                            new()
+                            {
+                                Dn = "cn=overdue.second,ou=users,dc=test,dc=local",
+                                ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeMain
+                            }
+                        ]
                     }
                 },
                 new()
@@ -1602,7 +1747,15 @@ namespace FWO.Test
                             RecertUpcoming = recertificationDisplayPeriod > 0,
                             NextRecertDate = DateTime.Today.AddDays(3),
                             LastRecertified = DateTime.Today.AddDays(-20),
-                            LastRecertifierDn = "cn=upcoming.user,ou=users,dc=test,dc=local"
+                            LastRecertifierDn = "cn=upcoming.user,ou=users,dc=test,dc=local",
+                            OwnerResponsibles =
+                            [
+                                new()
+                                {
+                                    Dn = "cn=upcoming.main,ou=users,dc=test,dc=local",
+                                    ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeMain
+                                }
+                            ]
                         }
                     },
                 new()
@@ -1615,7 +1768,15 @@ namespace FWO.Test
                         RecertActive = true,
                         NextRecertDate = withNullFurtherDate ? null : DateTime.Today.AddDays(20),
                         LastRecertified = DateTime.Today.AddDays(-10),
-                        LastRecertifierDn = "cn=further.user,ou=users,dc=test,dc=local"
+                        LastRecertifierDn = "cn=further.user,ou=users,dc=test,dc=local",
+                        OwnerResponsibles =
+                        [
+                            new()
+                            {
+                                Dn = "cn=further.main,ou=users,dc=test,dc=local",
+                                ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeMain
+                            }
+                        ]
                     }
                 },
                 new()
@@ -1625,7 +1786,15 @@ namespace FWO.Test
                         Id = 4,
                         Name = "Inactive Owner",
                         ExtAppId = "EXT-INACTIVE",
-                        RecertActive = false
+                        RecertActive = false,
+                        OwnerResponsibles =
+                        [
+                            new()
+                            {
+                                Dn = "cn=inactive.main,ou=users,dc=test,dc=local",
+                                ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeMain
+                            }
+                        ]
                     }
                 }
             ];
@@ -1639,7 +1808,15 @@ namespace FWO.Test
                         Id = 0,
                         Name = "Inactive Owner Low",
                         ExtAppId = "EXT-INACTIVE-LOW",
-                        RecertActive = false
+                        RecertActive = false,
+                        OwnerResponsibles =
+                        [
+                            new()
+                            {
+                                Dn = "cn=inactive.low.main,ou=users,dc=test,dc=local",
+                                ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeMain
+                            }
+                        ]
                     }
                 });
             }
@@ -1648,6 +1825,40 @@ namespace FWO.Test
             {
                 RecertificationDisplayPeriod = recertificationDisplayPeriod,
                 OwnerData = ownerData
+            };
+        }
+
+        private static ReportData ConstructOwnerRecertFallbackReport()
+        {
+            return new()
+            {
+                RecertificationDisplayPeriod = 7,
+                OwnerData =
+                [
+                    new()
+                    {
+                        Owner = new()
+                        {
+                            Id = 5,
+                            Name = "Fallback Owner",
+                            ExtAppId = "EXT-FALLBACK",
+                            RecertActive = true,
+                            RecertOverdue = true,
+                            RecertInterval = 14,
+                            ChangelogOwners =
+                            [
+                                new()
+                                {
+                                    ChangeAction = ChangelogActionType.INSERT,
+                                    ChangeImport = new()
+                                    {
+                                        Time = new DateTime(2026, 2, 1)
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
             };
         }
 
@@ -1679,6 +1890,18 @@ namespace FWO.Test
             }
             exportString = exportString.Replace("\r", "");
             return exportString.Replace("\n", "");
+        }
+
+        private static int CountOccurrences(string value, string search)
+        {
+            int count = 0;
+            int index = 0;
+            while ((index = value.IndexOf(search, index, StringComparison.Ordinal)) >= 0)
+            {
+                ++count;
+                index += search.Length;
+            }
+            return count;
         }
     }
 }

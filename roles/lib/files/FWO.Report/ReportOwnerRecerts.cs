@@ -4,6 +4,7 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Report;
 using FWO.Report.Filter;
+using FWO.Ui.Display;
 using System.Text;
 
 namespace FWO.Report
@@ -50,18 +51,25 @@ namespace FWO.Report
             }
             report.AppendLine("#");
 
-            AppendOwnerTableCsv(ref report, GetOverdueHeadline(), overdueOwners, true);
-            if (ReportData.RecertificationDisplayPeriod > 0)
+            if (ReportData.MergeOwnerRecertTables)
             {
-                AppendOwnerTableCsv(ref report, GetUpcomingHeadline(), upcomingOwners, true);
+                AppendOwnerTableCsv(ref report, GetMergedHeadline(), GetMergedOwners(overdueOwners, upcomingOwners, furtherOwners, inactiveOwners), true);
             }
-            if (furtherOwners.Count > 0)
+            else
             {
-                AppendOwnerTableCsv(ref report, GetFurtherHeadline(furtherOwners), furtherOwners, true);
-            }
-            if (inactiveOwners.Count > 0)
-            {
-                AppendOwnerTableCsv(ref report, GetInactiveHeadline(), inactiveOwners, false);
+                AppendOwnerTableCsv(ref report, GetOverdueHeadline(), overdueOwners, true);
+                if (ReportData.RecertificationDisplayPeriod > 0)
+                {
+                    AppendOwnerTableCsv(ref report, GetUpcomingHeadline(), upcomingOwners, true);
+                }
+                if (furtherOwners.Count > 0)
+                {
+                    AppendOwnerTableCsv(ref report, GetFurtherHeadline(furtherOwners), furtherOwners, true);
+                }
+                if (inactiveOwners.Count > 0)
+                {
+                    AppendOwnerTableCsv(ref report, GetInactiveHeadline(), inactiveOwners, false);
+                }
             }
 
             return report.ToString();
@@ -92,39 +100,62 @@ namespace FWO.Report
             }
             report.AppendLine("</ul>");
             report.AppendLine("<hr>");
-            if (overdueOwners.Count > 0)
+            if (ReportData.MergeOwnerRecertTables)
             {
-                report.AppendLine(Headline(GetOverdueHeadline(), 3));
-                AppendOwnerTable(ref report, overdueOwners, true);
+                report.AppendLine(Headline(GetMergedHeadline(), 3));
+                AppendOwnerTable(ref report, GetMergedOwners(overdueOwners, upcomingOwners, furtherOwners, inactiveOwners), true);
             }
             else
             {
-                report.AppendLine(userConfig.GetText("U4004"));
-            }
-            report.AppendLine("<hr>");
-            if (upcomingOwners.Count > 0)
-            {
-                report.AppendLine(Headline(GetUpcomingHeadline(), 3));
-                AppendOwnerTable(ref report, upcomingOwners, true);
-            }
-            else if (ReportData.RecertificationDisplayPeriod > 0)
-            {
-                report.AppendLine(userConfig.GetText("U4006").Replace(Placeholder.DAYS, ReportData.RecertificationDisplayPeriod.ToString()));
-            }
-            report.AppendLine("<hr>");
-            if (furtherOwners.Count > 0)
-            {
-                report.AppendLine(Headline(GetFurtherHeadline(furtherOwners), 3));
-                AppendOwnerTable(ref report, furtherOwners, true);
-            }
-            if (inactiveOwners.Count > 0)
-            {
+                if (overdueOwners.Count > 0)
+                {
+                    report.AppendLine(Headline(GetOverdueHeadline(), 3));
+                    AppendOwnerTable(ref report, overdueOwners, true);
+                }
+                else
+                {
+                    report.AppendLine(userConfig.GetText("U4004"));
+                }
                 report.AppendLine("<hr>");
-                report.AppendLine(Headline(GetInactiveHeadline(), 3));
-                AppendOwnerTable(ref report, inactiveOwners, false);
+                if (upcomingOwners.Count > 0)
+                {
+                    report.AppendLine(Headline(GetUpcomingHeadline(), 3));
+                    AppendOwnerTable(ref report, upcomingOwners, true);
+                }
+                else if (ReportData.RecertificationDisplayPeriod > 0)
+                {
+                    report.AppendLine(userConfig.GetText("U4006").Replace(Placeholder.DAYS, ReportData.RecertificationDisplayPeriod.ToString()));
+                }
+                report.AppendLine("<hr>");
+                if (furtherOwners.Count > 0)
+                {
+                    report.AppendLine(Headline(GetFurtherHeadline(furtherOwners), 3));
+                    AppendOwnerTable(ref report, furtherOwners, true);
+                }
+                if (inactiveOwners.Count > 0)
+                {
+                    report.AppendLine("<hr>");
+                    report.AppendLine(Headline(GetInactiveHeadline(), 3));
+                    AppendOwnerTable(ref report, inactiveOwners, false);
+                }
             }
 
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
+        }
+
+        private List<FwoOwner> GetMergedOwners(List<FwoOwner> overdueOwners, List<FwoOwner> upcomingOwners,
+            List<FwoOwner> furtherOwners, List<FwoOwner> inactiveOwners)
+        {
+            return [.. GetDisplayedOwners(overdueOwners, upcomingOwners, furtherOwners, inactiveOwners)
+                .OrderBy(owner => owner.GetEffectiveNextRecertDate(userConfig.RecertificationPeriod) ?? DateTime.MaxValue)
+                .ThenBy(owner => owner.ExtAppId ?? "")
+                .ThenBy(owner => owner.Name)];
+        }
+
+        private static List<FwoOwner> GetDisplayedOwners(List<FwoOwner> overdueOwners, List<FwoOwner> upcomingOwners,
+            List<FwoOwner> furtherOwners, List<FwoOwner> inactiveOwners)
+        {
+            return [.. overdueOwners, .. upcomingOwners, .. furtherOwners, .. inactiveOwners];
         }
 
         private void AppendOwnerTable(ref StringBuilder report, List<FwoOwner> owners, bool includeRecertData)
@@ -149,19 +180,24 @@ namespace FWO.Report
             report.AppendLine("#");
         }
 
-        private static void AppendOwnerDataHtml(ref StringBuilder report, FwoOwner owner, bool includeRecertData)
+        private void AppendOwnerDataHtml(ref StringBuilder report, FwoOwner owner, bool includeRecertData)
         {
             report.AppendLine("<tr>");
             if (includeRecertData)
             {
-                report.AppendLine($"<td>{owner.NextRecertDate?.ToString("dd.MM.yyyy")}</td>");
+                report.AppendLine($"<td>{FormatHtmlCell(OwnerRecertDisplay.FormatNextRecertDate(owner, userConfig))}</td>");
             }
             report.AppendLine($"<td>{owner.ExtAppId}</td>");
             report.AppendLine($"<td>{owner.Name}</td>");
+            report.AppendLine($"<td>{FormatHtmlCell(OwnerRecertDisplay.FormatMainResponsibles(owner))}</td>");
             if (includeRecertData)
             {
-                report.AppendLine($"<td>{owner.LastRecertified}</td>");
+                report.AppendLine($"<td>{FormatHtmlCell(OwnerRecertDisplay.FormatLastRecertified(owner, userConfig))}</td>");
                 report.AppendLine($"<td>{new DistName(owner.LastRecertifierDn).UserName}</td>");
+            }
+            if (HasOwnerAdditionalInfoColumn())
+            {
+                report.AppendLine($"<td>{FormatOwnerAdditionalInfoValueHtml(owner)}</td>");
             }
             report.AppendLine("</tr>");
         }
@@ -174,26 +210,36 @@ namespace FWO.Report
             }
             report.Append(OutputCsv(userConfig.GetText("id")));
             report.Append(OutputCsv(userConfig.GetText("name")));
+            report.Append(OutputCsv(userConfig.GetText("main_responsible")));
             if (includeRecertData)
             {
                 report.Append(OutputCsv(userConfig.GetText("last_recertified")));
                 report.Append(OutputCsv(userConfig.GetText("last_recertifier")));
             }
+            if (HasOwnerAdditionalInfoColumn())
+            {
+                report.Append(OutputCsv(GetOwnerAdditionalInfoHeadline()));
+            }
             report.AppendLine();
         }
 
-        private static void AppendOwnerDataCsv(ref StringBuilder report, FwoOwner owner, bool includeRecertData)
+        private void AppendOwnerDataCsv(ref StringBuilder report, FwoOwner owner, bool includeRecertData)
         {
             if (includeRecertData)
             {
-                report.Append(OutputCsv(owner.NextRecertDate?.ToString("dd.MM.yyyy")));
+                report.Append(OutputCsv(OwnerRecertDisplay.FormatNextRecertDate(owner, userConfig)));
             }
             report.Append(OutputCsv(owner.ExtAppId));
             report.Append(OutputCsv(owner.Name));
+            report.Append(OutputCsv(OwnerRecertDisplay.FormatMainResponsibles(owner)));
             if (includeRecertData)
             {
-                report.Append(OutputCsv(owner.LastRecertified?.ToString("dd.MM.yyyy")));
+                report.Append(OutputCsv(OwnerRecertDisplay.FormatLastRecertified(owner, userConfig)));
                 report.Append(OutputCsv(new DistName(owner.LastRecertifierDn).UserName));
+            }
+            if (HasOwnerAdditionalInfoColumn())
+            {
+                report.Append(OutputCsv(GetOwnerAdditionalInfoValue(owner)));
             }
             report.AppendLine();
         }
@@ -207,12 +253,40 @@ namespace FWO.Report
             }
             report.AppendLine($"<th>{userConfig.GetText("id")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("main_responsible")}</th>");
             if (includeRecertData)
             {
                 report.AppendLine($"<th>{userConfig.GetText("last_recertified")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("last_recertifier")}</th>");
             }
+            if (HasOwnerAdditionalInfoColumn())
+            {
+                report.AppendLine($"<th>{FormatHtmlCell(GetOwnerAdditionalInfoHeadline())}</th>");
+            }
             report.AppendLine("</tr>");
+        }
+
+        private bool HasOwnerAdditionalInfoColumn()
+        {
+            return !string.IsNullOrWhiteSpace(ReportData.OwnerAdditionalInfoKey);
+        }
+
+        private string GetOwnerAdditionalInfoHeadline()
+        {
+            return $"{userConfig.GetText("label")}: {ReportData.OwnerAdditionalInfoKey}";
+        }
+
+        private string GetOwnerAdditionalInfoValue(FwoOwner owner)
+        {
+            return OwnerRecertDisplay.FormatAdditionalInfoValue(owner, ReportData.OwnerAdditionalInfoKey);
+        }
+
+        private string FormatOwnerAdditionalInfoValueHtml(FwoOwner owner)
+        {
+            string value = GetOwnerAdditionalInfoValue(owner);
+            return OwnerRecertDisplay.TryParseBooleanValue(value, out bool boolValue)
+                ? boolValue.ShowAsHtml().ToString()
+                : FormatHtmlCell(value);
         }
 
         private string GetOverdueHeadline()
@@ -233,6 +307,11 @@ namespace FWO.Report
         private string GetInactiveHeadline()
         {
             return userConfig.GetText("U4009");
+        }
+
+        private string GetMergedHeadline()
+        {
+            return userConfig.GetText("owner_recert_overview");
         }
 
     }

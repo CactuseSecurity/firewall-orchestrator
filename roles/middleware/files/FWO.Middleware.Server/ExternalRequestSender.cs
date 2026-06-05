@@ -159,7 +159,9 @@ namespace FWO.Middleware.Server
                         request.ExtRequestState = ExtStates.ExtReqFailed.ToString();
                         await UpdateRequestCreation(request);
                     }
-                    throw new ProcessingFailedException("RestResponse: HttpStatusCode not OK");
+                    throw new ProcessingFailedException(
+                        $"External request failed for {RequestInfo(request)} with status {(int)ticketIdResponse.StatusCode} " +
+                        $"{ticketIdResponse.StatusCode}: {ticketIdResponse.Content}");
                 }
             }
             catch (ProcessingFailedException)

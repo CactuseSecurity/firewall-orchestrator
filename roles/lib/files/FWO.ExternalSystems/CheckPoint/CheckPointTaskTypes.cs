@@ -1,5 +1,4 @@
 using FWO.Data.Workflow;
-using FWO.ExternalSystems.Tufin.SecureChange;
 
 namespace FWO.ExternalSystems.CheckPoint
 {
@@ -19,6 +18,10 @@ namespace FWO.ExternalSystems.CheckPoint
 
         public const string HostCreate = "host_create";
         public const string NetworkCreate = "network_create";
-        public const string Adress_RangeCreate = "address_range_create";
+        public const string AddressRangeCreate = "address_range_create";
+
+        public const string HostModify = "host_modify";
+        public const string NetworkModify = "network_modify";
+        public const string AddressRangeModify = "address_range_modify";
     }
 }

@@ -7,6 +7,7 @@ namespace FWO.ExternalSystems.CheckPoint
     internal sealed class CheckPointObjectRequest
     {
         public string NetworkObjectType { get; init; } = ObjectType.Host;
+        public string RequestAction { get; set; } = FWO.Data.Workflow.RequestAction.create.ToString();
         public string Name { get; init; } = "";
         public IPAddressRange Range { get; init; } = default!;
         public string Comment { get; init; } = "";

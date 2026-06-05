@@ -17,10 +17,31 @@ namespace FWO.ExternalSystems.CheckPoint
         private string? SessionId;
 
         public CheckPointClient(ExternalTicketSystem ticketSystem, Management management)
-            : base(ticketSystem.Url, ticketSystem.ResponseTimeout)
+            : base(BuildBaseUrl(ticketSystem, management), ticketSystem.ResponseTimeout)
         {
             TicketSystem = ticketSystem;
             Management = management;
+        }
+
+        private static string BuildBaseUrl(ExternalTicketSystem ticketSystem, Management management)
+        {
+            if (string.IsNullOrWhiteSpace(management.Hostname))
+            {
+                return ticketSystem.Url;
+            }
+
+            string host = management.Hostname.Trim();
+
+            if (host.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                host.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                Uri uri = new(host);
+                int uriPort = uri.IsDefaultPort ? 443 : uri.Port;
+                return $"https://{uri.Host}:{uriPort}/web_api/";
+            }
+
+            int port = management.Port > 0 ? management.Port : 443;
+            return $"https://{host}:{port}/web_api/";
         }
 
         // =========================================================

@@ -155,7 +155,7 @@ namespace FWO.Data
         {
             bool shortened = false;
             Name = Name.SanitizeMand(ref shortened);
-            Url = Url.SanitizeMand(ref shortened);
+            Url = IsCheckPoint() ? Url.SanitizeOpt(ref shortened) ?? "" : Url.SanitizeMand(ref shortened);
             TicketTemplate = TicketTemplate.SanitizeJsonMand(ref shortened);
             TasksTemplate = TasksTemplate.SanitizeJsonMand(ref shortened);
             foreach (var template in Templates)

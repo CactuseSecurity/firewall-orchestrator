@@ -76,6 +76,8 @@ namespace FWO.ExternalSystems.CheckPoint
 
                 ticketTask.FillTaskText(template);  // Placeholers setzen? TaskText
 
+                // For Check Point, both group_create and group_modify send the full target membership.
+                // Required member objects are created or updated before the group request is sent.
                 if (task.TaskType == nameof(WfTaskType.group_create) || task.TaskType == nameof(WfTaskType.group_modify))
                 {
                     AddMemberObjectSteps(ticketTask);       // Members Tasks
@@ -104,12 +106,24 @@ namespace FWO.ExternalSystems.CheckPoint
         }
         private static string GetTaskType(CheckPointObjectRequest request)
         {
-            return request.NetworkObjectType switch
+            return request.RequestAction switch
             {
-                ObjectType.Host => CheckPointTaskTypes.HostCreate,
-                ObjectType.Network => CheckPointTaskTypes.NetworkCreate,
-                ObjectType.IPRange => CheckPointTaskTypes.Adress_RangeCreate, // AddressRangeCreate,
-                _ => throw new ConfigException("Unsupported CheckPoint object type.")
+                nameof(RequestAction.create) => request.NetworkObjectType switch
+                {
+                    ObjectType.Host => CheckPointTaskTypes.HostCreate,
+                    ObjectType.Network => CheckPointTaskTypes.NetworkCreate,
+                    ObjectType.IPRange => CheckPointTaskTypes.AddressRangeCreate,
+                    _ => throw new ConfigException("Unsupported CheckPoint object type.")
+                },
+
+                nameof(RequestAction.modify) => request.NetworkObjectType switch
+                {
+                    ObjectType.Host => CheckPointTaskTypes.HostModify,
+                    ObjectType.Network => CheckPointTaskTypes.NetworkModify,
+                    ObjectType.IPRange => CheckPointTaskTypes.AddressRangeModify,
+                    _ => throw new ConfigException("Unsupported CheckPoint object type.")
+                },
+                _ => throw new ConfigException($"Unsupported CheckPoint request action '{request.RequestAction}'.")
             };
         }
 
@@ -151,9 +165,15 @@ namespace FWO.ExternalSystems.CheckPoint
                 CheckPointTaskTypes.GroupCreate => "add-group",
                 CheckPointTaskTypes.GroupModify => "set-group",
                 CheckPointTaskTypes.GroupDelete => "delete-group",
+
                 CheckPointTaskTypes.HostCreate => "add-host",
+                CheckPointTaskTypes.HostModify => "set-host",
+
                 CheckPointTaskTypes.NetworkCreate => "add-network",
-                CheckPointTaskTypes.Adress_RangeCreate => "add-address-range",
+                CheckPointTaskTypes.NetworkModify => "set-network",
+
+                CheckPointTaskTypes.AddressRangeCreate => "add-address-range",
+                CheckPointTaskTypes.AddressRangeModify => "set-address-range",
 
                 CheckPointTaskTypes.Publish => "publish",
                 _ => throw new ConfigException($"No endpoint mapping for taskType {taskType}")
@@ -232,8 +252,6 @@ namespace FWO.ExternalSystems.CheckPoint
 
                     lastResponse = await ExecuteTask(task);
 
-
-
                     if (!string.IsNullOrWhiteSpace(lastResponse.Content))   // Host already exists? Multiple Objects with same IP-Adress
                     {
                         Log.WriteInfo("CheckPoint RESPONSE BODY", lastResponse.Content);
@@ -247,11 +265,6 @@ namespace FWO.ExternalSystems.CheckPoint
                     {
                         return lastResponse;
                     }
-
-
-
-
-
                 }
 
                 return lastResponse ?? throw new ProcessingFailedException("No response received from CheckPoint.");

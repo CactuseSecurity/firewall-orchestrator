@@ -64,14 +64,15 @@
                     </Dropdown>
                 </div>
             </div>
+            @if (selectedType.IsBuiltIn)
+            {
             <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593"))">
                 <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_url")):</label>
                 <div class="col-sm-8">
                     <input type="text" class="col-sm-8" @bind="extTicketingSystemUrl" />
                 </div>
             </div>
-            @if (selectedType.IsBuiltIn)
-            {
+
                 <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5594"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_auth")):</label>
                     <div class="col-sm-8">

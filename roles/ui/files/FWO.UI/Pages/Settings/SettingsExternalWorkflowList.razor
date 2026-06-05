@@ -53,28 +53,27 @@
             <hr />
             <div class="row mb-2">
                 <div class="col-sm-12">
-                    @if (userConfig.AllowManualOwnerAdmin)
-                    {
-                        <button type="button" class="btn btn-sm btn-success" @onclick="AddExternalTicketSystem">@(DisplayService.DisplayButton(userConfig, "add_owner_lc_state", Icons.Add))</button>@* Todo change Text *@
-                    }
+                    <AuthorizeView Roles="@Roles.Admin">
+                        <Authorized>
+                            <button type="button" class="btn btn-sm btn-success" @onclick="AddExternalTicketSystem">@(DisplayService.DisplayButton(userConfig, "add_owner_lc_state", Icons.Add))</button>@* Todo change Text *@
+                        </Authorized>
+                    </AuthorizeView>
                 </div>
             </div>
             <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" @ref="tableExternalTicketSystems" TableItem="ExternalTicketSystem" Items="extTicketSystems" PageSize="0" ColumnReorder="true">
                 <Column TableItem="ExternalTicketSystem" Title="ExternalTicketSystems" Field="(x => x.Id)" Sortable="false" Filterable="false">
                     <Template Context="item">
                         <div class="btn-group">
-                            @if (userConfig.AllowManualOwnerAdmin)
-                            {
-                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditExternalTicketSystem(item)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
-                                <AuthorizeView Roles="@Roles.Admin" Context="ctx">
-                                    <Authorized>
-                                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteExternalTicketSystem(item)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
-                                    </Authorized>
-                                    <NotAuthorized>
-                                        <button type="button" disabled class="btn btn-sm btn-danger">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
-                                    </NotAuthorized>
-                                </AuthorizeView>
-                            }
+                            <AuthorizeView Roles="@Roles.Admin">
+                                <Authorized>
+                                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditExternalTicketSystem(item)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteExternalTicketSystem(item)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                                </Authorized>
+                                <NotAuthorized>
+                                    <button type="button" disabled class="btn btn-sm btn-warning">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                                    <button type="button" disabled class="btn btn-sm btn-danger">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                                </NotAuthorized>
+                            </AuthorizeView>
                         </div>
                     </Template>
                 </Column>
@@ -106,14 +105,14 @@
                             </Dropdown>
                         </div>
                     </div>
-                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593"))">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_url")):</label>
-                        <div class="col-sm-8">
-                            <input type="text" class="col-sm-8" @bind="editModel.Url" />
-                        </div>
-                    </div>
                     @if (selectedType.IsBuiltIn)
                     {
+                        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593"))">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_url")):</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="col-sm-8" @bind="editModel.Url" />
+                            </div>
+                        </div>
                         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5594"))">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_auth")):</label>
                             <div class="col-sm-8">
@@ -140,57 +139,57 @@
                         <label for="cbx_ext_ticket_lookup_id" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_lookup_id")):</label>
                         <div class="col-sm-2">
                             <input id="cbx_ext_ticket_lookup_id" type="checkbox" class="w-100" @bind="editModel.LookupRequesterId">
-                            </div>
+                        </div>
+                    }
+                    <br>
+                    <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false">
+                        @{
+                            int pos = 0;
                         }
-                        <br>
-                        <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false">
-                            @{
-                                int pos = 0;
-                            }
-                            @foreach (var template in editModel.Templates)
-                            {
-                                <Tab Title="@(template.TaskType)" Position=pos++>
-                                    <ExtTicketTemplates Template="template" />
-                                </Tab>
-                            }
-                            <Tab Title="  +  " Position=pos>
-                                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5599"))">
-                                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
-                                    <div class="col-sm-4">
-                                        <Dropdown ElementType="string" @bind-SelectedElement="newTemplate.TaskType" Elements="AvailableTaskTypesForNewTemplate" />
-                                    </div>
-                                </div>
-                                <ExtTicketTemplates Template="newTemplate" />
+                        @foreach (var template in editModel.Templates)
+                        {
+                            <Tab Title="@(template.TaskType)" Position=pos++>
+                                <ExtTicketTemplates Template="template" />
                             </Tab>
-                        </TabSet>
-                    </div>
-                    <hr />
-                }
-
-            </Body>
-            <Footer>
-                <div class="btn-group">
-                    <AuthorizeView Roles="@Roles.Admin">
-                        <Authorized>
-                            <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
-                        </Authorized>
-                        <NotAuthorized>
-                            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-                        </NotAuthorized>
-                    </AuthorizeView>
-                    <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelEdit">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+                        }
+                        <Tab Title="  +  " Position=pos>
+                            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5599"))">
+                                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
+                                <div class="col-sm-4">
+                                    <Dropdown ElementType="string" @bind-SelectedElement="newTemplate.TaskType" Elements="AvailableTaskTypesForNewTemplate" />
+                                </div>
+                            </div>
+                            <ExtTicketTemplates Template="newTemplate" />
+                        </Tab>
+                    </TabSet>
                 </div>
-            </Footer>
+                <hr />
+            }
 
-        </PopUp>
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                <AuthorizeView Roles="@Roles.Admin">
+                    <Authorized>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    </NotAuthorized>
+                </AuthorizeView>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelEdit">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+            </div>
+        </Footer>
 
-        <ConfirmDelete @bind-Display="DeleteExternalTicketSystemMode" PerformAction="DeleteExternalTicketSystem" Title="@userConfig.GetText("delete_owner_lc_state")" DeleteMessage="@(userConfig.GetText("U5219") + externalTicketSystemToDelete.Name + "?")" />@* Todo change Text *@
+    </PopUp>
 
-    }
-    else
-    {
-        <Loading />
-    }
+    <ConfirmDelete @bind-Display="DeleteExternalTicketSystemMode" PerformAction="DeleteExternalTicketSystem" Title="@userConfig.GetText("delete_owner_lc_state")" DeleteMessage="@(userConfig.GetText("U5219") + externalTicketSystemToDelete.Name + "?")" />@* Todo change Text *@
+
+}
+else
+{
+    <Loading />
+}
 
 @code
 {
@@ -437,7 +436,7 @@
                 Log.WriteAudit(
                     Title: $"External Ticket System Settings",
                     Text: $"Deleted External Ticket System: {externalTicketSystemToDelete.Name}");
-                
+
                 extTicketSystems.Remove(externalTicketSystemToDelete);
 
                 configData.ExtTicketSystems = JsonSerializer.Serialize(extTicketSystems);

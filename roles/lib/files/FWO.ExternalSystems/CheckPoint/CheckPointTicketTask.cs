@@ -74,10 +74,12 @@ namespace FWO.ExternalSystems.CheckPoint
             return UsesNetworkSubTemplates(template) ? "[" + string.Join(",", convertedElements) + "]" : JsonSerializer.Serialize(convertedElements);
         }
 
+        // The members list always represents the full desired final membership of the group.
         private string ConvertMembers()     // Soll GroupName = Groupname prüfen? 
         {
             List<string> members = ReqTask.Elements
                 .Where(IsNetworkMember)
+                .Where(ShouldBeIncludedInGroupMembership)
                 .Select(element => element.Name ?? "")
                 .Where(name => !string.IsNullOrWhiteSpace(name))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -87,11 +89,18 @@ namespace FWO.ExternalSystems.CheckPoint
             return JsonSerializer.Serialize(members);
         }
 
+        private static bool ShouldBeIncludedInGroupMembership(WfReqElement element)
+        {
+            return element.RequestAction == nameof(RequestAction.create)
+                || element.RequestAction == nameof(RequestAction.modify)
+                || element.RequestAction == nameof(RequestAction.unchanged);
+        }
+
         internal List<CheckPointObjectRequest> GetRequiredMemberObjects()   // Name oder GroupName prüfen?
         {
             return ReqTask.Elements
                 .Where(IsNetworkMember)
-                .Where(IsNewObjectMember)
+                .Where(RequiresMemberObjectStep)
                 .Where(element => !string.IsNullOrWhiteSpace(element.Name))
                 .Select(ToCheckPointObjectRequest)
                 .ToList();
@@ -103,10 +112,9 @@ namespace FWO.ExternalSystems.CheckPoint
                 && element.Field != ElemFieldType.rule.ToString();
         }
 
-        private static bool IsNewObjectMember(WfReqElement element)
+        private static bool RequiresMemberObjectStep(WfReqElement element)
         {
-            return element.RequestAction == nameof(RequestAction.create)
-                || element.RequestAction == nameof(RequestAction.addAfterCreation);
+            return element.RequestAction == nameof(RequestAction.create) || element.RequestAction == nameof(RequestAction.modify);
         }
 
         private CheckPointObjectRequest ToCheckPointObjectRequest(WfReqElement element)
@@ -117,25 +125,17 @@ namespace FWO.ExternalSystems.CheckPoint
             startIp = startIp.Split('/')[0];
             endIp = endIp.Split('/')[0];
 
-            return new()        
+            return new()
             {
                 NetworkObjectType = IpOperations.GetObjectType(startIp, endIp),
                 Name = element.Name ?? "",
+                RequestAction = element.RequestAction ?? nameof(RequestAction.create),
                 Range = new IPAddressRange(
                     IPAddress.Parse(startIp),
                     IPAddress.Parse(endIp)),
                 Comment = ""
             };
         }
-
-
-
-
-
-
-
-
-
 
         private string ConvertServiceElems(ExternalTicketTemplate template)
         {
@@ -381,7 +381,6 @@ namespace FWO.ExternalSystems.CheckPoint
             return requestAction switch
             {
                 nameof(RequestAction.create) => "ADDED",
-                nameof(RequestAction.addAfterCreation) => "ADDED",
                 nameof(RequestAction.delete) => "DELETED",
                 _ => "NOT_CHANGED"
             };

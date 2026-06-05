@@ -996,6 +996,10 @@ INSERT INTO txt VALUES ('schedule_tile',		'German',	'Terminplan');
 INSERT INTO txt VALUES ('schedule_tile',		'English',	'Report schedule');
 INSERT INTO txt VALUES ('schedule_upd_err_msg',	'German',	'Das Laden der terminierten Reports f&uuml;hrte zu einem Fehler.');
 INSERT INTO txt VALUES ('schedule_upd_err_msg',	'English',	'Loading the scheduled reports resulted in an error.');
+INSERT INTO txt VALUES ('Hours', 		        'German',	'Stunde(n)');
+INSERT INTO txt VALUES ('Hours', 		        'English',	'Hour(s)');
+INSERT INTO txt VALUES ('Minutes2', 		    'German',	'Minute(n)');
+INSERT INTO txt VALUES ('Minutes2', 		    'English',	'Minute(s)');
 
 -- archive
 INSERT INTO txt VALUES ('download',				'German', 	'Herunterladen');
@@ -3115,10 +3119,10 @@ INSERT INTO txt VALUES ('set_roles_with_import','German', 	'Beim Import zu setze
 INSERT INTO txt VALUES ('set_roles_with_import','English', 	'Set Roles with import');
 INSERT INTO txt VALUES ('no_owners',			'German', 	'Keine Eigent&uuml;mer zur Auswahl');
 INSERT INTO txt VALUES ('no_owners',			'English', 	'No owners to be selected');
-INSERT INTO txt VALUES ('accesstoken_lifetime', 'German', 	'Access Token G&uuml;ltigkeitsdauer (in Stunden)');
-INSERT INTO txt VALUES ('accesstoken_lifetime', 'English',  'Access Token Lifetime (in Hours)');
-INSERT INTO txt VALUES ('refreshtoken_lifetime','German',   'Refresh Token G&uuml;ltigkeitsdauer (in Tagen)');
-INSERT INTO txt VALUES ('refreshtoken_lifetime','English',  'Refresh Token Lifetime (in Days)');
+INSERT INTO txt VALUES ('accesstoken_lifetime', 'German', 	'Access Token G&uuml;ltigkeitsdauer');
+INSERT INTO txt VALUES ('accesstoken_lifetime', 'English',  'Access Token Lifetime');
+INSERT INTO txt VALUES ('refreshtoken_lifetime','German',   'Refresh Token G&uuml;ltigkeitsdauer');
+INSERT INTO txt VALUES ('refreshtoken_lifetime','English',  'Refresh Token Lifetime');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');

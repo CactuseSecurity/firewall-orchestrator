@@ -288,6 +288,7 @@ namespace FWO.Services.Modelling
         {
             return groupNames
                 .Where(groupName => !string.IsNullOrWhiteSpace(groupName))
+                .OrderBy(groupName => groupName, StringComparer.OrdinalIgnoreCase)
                 .Select(groupName => new WfReqElement
                 {
                     RequestAction = RequestAction.create.ToString(),
@@ -301,6 +302,7 @@ namespace FWO.Services.Modelling
             return groups
                 .Select(group => group.IdString)
                 .Where(groupName => !string.IsNullOrWhiteSpace(groupName))
+                .OrderBy(groupName => groupName, StringComparer.OrdinalIgnoreCase)
                 .Select(groupName => new WfReqElement
                 {
                     RequestAction = RequestAction.create.ToString(),

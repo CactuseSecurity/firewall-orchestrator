@@ -590,6 +590,83 @@ namespace FWO.Test
                 Assert.That(markup, Does.Contain("Close Tickets as rejected"));
                 Assert.That(cellTexts, Does.Not.Contain("888"));
             });
+            component.FindAll("button")
+                .First(button => button.TextContent.Contains("Close Tickets as rejected", StringComparison.Ordinal))
+                .Click();
+            component.WaitForAssertion(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("Are you sure you want to close 2 ticket(s) as rejected?"));
+            });
+        }
+
+        [Test]
+        public async Task OrphanedRequestedInterfaceTicketsPopup_LoadsAlreadyPublishedInterfacesWithDoneAction()
+        {
+            MonitorRequestedInterfacesTestApiConn apiConn = new()
+            {
+                TicketsByParametersResult =
+                [
+                    new WfTicket
+                    {
+                        Id = 889,
+                        StateId = 10,
+                        Tasks =
+                        {
+                            CreateTask(6, WfTaskType.new_interface, "if-published")
+                        }
+                    }
+                ],
+                ConnectionById =
+                {
+                    [6] =
+                    [
+                        new ModellingConnection
+                        {
+                            Id = 6,
+                            Name = "published-if",
+                            TicketId = 889,
+                            IsInterface = true,
+                            IsRequested = false,
+                            IsPublished = true,
+                            ProposedAppId = null,
+                            Removed = false
+                        }
+                    ]
+                },
+                States =
+                [
+                    new WfState { Id = 10, Name = "In Progress" },
+                ]
+            };
+            await using BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<ApiConnection>(apiConn);
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+
+            IRenderedComponent<OrphanedRequestedInterfaceTicketsPopup> component =
+                context.Render<OrphanedRequestedInterfaceTicketsPopup>(parameters => parameters
+                    .Add(p => p.Display, true));
+
+            component.WaitForAssertion(() =>
+            {
+                string markup = component.Markup;
+                Assert.That(markup, Does.Contain("889"));
+                Assert.That(markup, Does.Contain("if-published"));
+                Assert.That(markup, Does.Contain("Requested interface is already published"));
+                Assert.That(markup, Does.Contain("Close as done"));
+                Assert.That(markup, Does.Contain("Close Tickets as done"));
+                Assert.That(markup, Does.Not.Contain("Close Tickets as rejected"));
+                Assert.That(markup, Does.Not.Contain("Linked connection is not a requested interface"));
+            });
+            component.FindAll("button")
+                .First(button => button.TextContent.Contains("Close Tickets as done", StringComparison.Ordinal))
+                .Click();
+            component.WaitForAssertion(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("Are you sure you want to close 1 ticket(s) as done?"));
+            });
         }
 
         private static WfReqTask CreateTask(int connId, WfTaskType taskType, string title = "", int reqOwnerId = 0)

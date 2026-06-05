@@ -3285,6 +3285,10 @@ INSERT INTO txt VALUES ('reject_ticket',        'German',   'Auftrag als abgeleh
 INSERT INTO txt VALUES ('reject_ticket',        'English',  'Close Ticket as rejected');
 INSERT INTO txt VALUES ('reject_tickets',       'German',   'Auftr&auml;ge als abgelehnt schliessen');
 INSERT INTO txt VALUES ('reject_tickets',       'English',  'Close Tickets as rejected');
+INSERT INTO txt VALUES ('close_as_done',        'German',   'Als erledigt schliessen');
+INSERT INTO txt VALUES ('close_as_done',        'English',  'Close as done');
+INSERT INTO txt VALUES ('close_tickets_as_done','German',   'Auftr&auml;ge als erledigt schliessen');
+INSERT INTO txt VALUES ('close_tickets_as_done','English',  'Close Tickets as done');
 INSERT INTO txt VALUES ('orphaned_requested_interface_tickets', 'German', 'Offene Tickets mit Problemen bei angeforderten Schnittstellen');
 INSERT INTO txt VALUES ('orphaned_requested_interface_tickets', 'English', 'Open tickets with requested interface problems');
 INSERT INTO txt VALUES ('orphaned_requested_interface_tickets_empty', 'German', 'Es wurden keine offenen Tickets mit Problemen bei angeforderten Schnittstellen gefunden.');
@@ -3789,6 +3793,14 @@ INSERT INTO txt VALUES ('U9036', 'German',  'Zur&uuml;ckgewiesen durch Admin');
 INSERT INTO txt VALUES ('U9036', 'English', 'Rejected by Admin');
 INSERT INTO txt VALUES ('U9037', 'German',  'Die G&uuml;ltigkeitsdauer des Zugriffstokens darf die G&uuml;ltigkeitsdauer des Aktualisierungstokens nicht &uuml;berschreiten.');
 INSERT INTO txt VALUES ('U9037', 'English', 'Access token lifetime cannot exceed refresh token lifetime.');
+INSERT INTO txt VALUES ('U9038', 'German',  'Als erledigt durch Admin geschlossen');
+INSERT INTO txt VALUES ('U9038', 'English', 'Closed as done by Admin');
+INSERT INTO txt VALUES ('U9039', 'German',  'Ticket als erledigt geschlossen.');
+INSERT INTO txt VALUES ('U9039', 'English', 'Ticket closed as done.');
+INSERT INTO txt VALUES ('U9040', 'German',  'Sind sie sicher, dass sie @@COUNT@@ Ticket(s) als abgelehnt schliessen wollen?');
+INSERT INTO txt VALUES ('U9040', 'English', 'Are you sure you want to close @@COUNT@@ ticket(s) as rejected?');
+INSERT INTO txt VALUES ('U9041', 'German',  'Sind sie sicher, dass sie @@COUNT@@ Ticket(s) als erledigt schliessen wollen?');
+INSERT INTO txt VALUES ('U9041', 'English', 'Are you sure you want to close @@COUNT@@ ticket(s) as done?');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -4170,6 +4182,8 @@ INSERT INTO txt VALUES ('E9026', 'German',  'Ticket und Verbindung passen nicht 
 INSERT INTO txt VALUES ('E9026', 'English', 'Ticket and connection link mismatch');
 INSERT INTO txt VALUES ('E9027', 'German',  'Angeforderte Schnittstelle gel&ouml;scht');
 INSERT INTO txt VALUES ('E9027', 'English', 'Requested interface removed');
+INSERT INTO txt VALUES ('E9028', 'German',  'Angeforderte Schnittstelle ist bereits ver&ouml;ffentlicht');
+INSERT INTO txt VALUES ('E9028', 'English', 'Requested interface is already published');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');
@@ -7203,11 +7217,11 @@ INSERT INTO txt VALUES ('H7422', 'English', 'The state filter can be used to res
 ');
 INSERT INTO txt VALUES ('H7423', 'German', 'Wenn problematische angeforderte Schnittstellen noch offene Tickets besitzen, kann der Administrator diese gesammelt als abgelehnt schliessen.');
 INSERT INTO txt VALUES ('H7423', 'English', 'If requested interface problems still have open tickets, the administrator can close those tickets together as rejected.');
-INSERT INTO txt VALUES ('H7424', 'German', 'Die Schaltfl&auml;che "Offene Tickets mit Problemen bei angeforderten Schnittstellen" &ouml;ffnet eine separate Liste aller noch offenen New-Interface-Tickets, deren Schnittstellenverkn&uuml;pfung fehlt, defekt, gel&ouml;scht oder verd&auml;chtig ist.
-    Die Pr&uuml;fung erfolgt erst beim &Ouml;ffnen des Fensters und ist damit unabh&auml;ngig von der aktuell angezeigten Tabellenfilterung.
+INSERT INTO txt VALUES ('H7424', 'German', 'Die Schaltfl&auml;che "Offene Tickets mit Problemen bei angeforderten Schnittstellen" &ouml;ffnet eine separate Liste aller noch offenen New-Interface-Tickets, deren Schnittstellenverkn&uuml;pfung fehlt, defekt, gel&ouml;scht, bereits ver&ouml;ffentlicht oder verd&auml;chtig ist.
+    Die Pr&uuml;fung erfolgt erst beim &Ouml;ffnen des Fensters und ist damit unabh&auml;ngig von der aktuell angezeigten Tabellenfilterung. Je nach Problem k&ouml;nnen Tickets als abgelehnt oder als erledigt geschlossen werden.
 ');
-INSERT INTO txt VALUES ('H7424', 'English', 'The button "Open tickets with requested interface problems" opens a separate list of all still open new-interface tickets whose requested interface linkage is missing, broken, removed, or suspicious.
-    The check is performed only when opening the popup, so it is independent from the current table filter.
+INSERT INTO txt VALUES ('H7424', 'English', 'The button "Open tickets with requested interface problems" opens a separate list of all still open new-interface tickets whose requested interface linkage is missing, broken, removed, already published, or suspicious.
+    The check is performed only when opening the popup, so it is independent from the current table filter. Depending on the problem, tickets can be closed as rejected or as done.
 ');
 INSERT INTO txt VALUES ('H7425', 'German', 'Diese Seite listet Owner mit modellierten Verbindungen und zeigt den letzten zugeordneten Workflow-Antrag.
     Die Spalte Antragsstatus wird aus den konfigurierten Integrationsstatuswerten der modellierten Verbindungen und Gruppen sowie deren Monitorstatus ermittelt. Sie unterscheidet zwischen nie beantragt, laufendem Antrag, nichts zu beantragen, alles implementiert, Ablehnungen und nicht beantragten &Auml;nderungen.

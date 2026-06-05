@@ -41,6 +41,9 @@
                 <a class="nav-link" href="/help/API/query/?lang=@($"{userConfig.User.Language}")">
                     <span class="@Icons.Query"></span> @userConfig.GetText("sample_queries")
                 </a>
+                <a class="nav-link" href="/help/API/rulesbyfilter/?lang=@($"{userConfig.User.Language}")">
+                    <span class="@Icons.RestDoku"></span> @userConfig.GetText("rule_filters")
+                </a>
                 <a class="nav-link" href="/help/API/mutation/?lang=@($"{userConfig.User.Language}")">
                     <span class="@Icons.Mutation"></span> @userConfig.GetText("sample_mutation")
                 </a>

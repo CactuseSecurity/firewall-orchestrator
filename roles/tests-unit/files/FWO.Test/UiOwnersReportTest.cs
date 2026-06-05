@@ -36,7 +36,7 @@ namespace FWO.Test
         [Test]
         public void OwnersReport_QueryFailure_IsCaughtAndReported()
         {
-            using Bunit.TestContext context = new();
+            using BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddSingleton<ApiConnection>(new ThrowingOwnersReportApiConn());
             SimulatedUserConfig userConfig = new();

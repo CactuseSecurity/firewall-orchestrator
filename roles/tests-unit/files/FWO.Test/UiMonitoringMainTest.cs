@@ -38,7 +38,7 @@ namespace FWO.Test
         [Test]
         public async Task Acknowledge_RemovesAlertAndCallsApi()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
@@ -66,7 +66,7 @@ namespace FWO.Test
         [Test]
         public async Task AcknowledgeAllOpen_ClearsAlertsWhenSuccessful()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();

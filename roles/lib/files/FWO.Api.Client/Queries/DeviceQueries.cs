@@ -5,6 +5,7 @@ namespace FWO.Api.Client.Queries
     public class DeviceQueries : Queries
     {
         public static readonly string getDevicesByManagement;
+        public static readonly string getDevicesByManagementOrSuperMgm;
         public static readonly string getManagementNames;
         public static readonly string getManagementsDetails;
         public static readonly string getManagementDetailsWithoutSecrets;
@@ -36,6 +37,7 @@ namespace FWO.Api.Client.Queries
             try
             {
                 getDevicesByManagement = GetQueryText("device/getDevicesByManagement.graphql");
+                getDevicesByManagementOrSuperMgm = GetQueryText("device/getDevicesByManagementOrSuperMgm.graphql");
                 getManagementNames = GetQueryText("device/getManagementNames.graphql");
                 getManagementsDetails = GetQueryText("device/getManagementsDetails.graphql")
                                         + GetQueryText("device/fragments/subManagements.graphql")

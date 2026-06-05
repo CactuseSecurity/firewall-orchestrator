@@ -23,7 +23,7 @@ namespace FWO.Test
         [Test]
         public async Task VarianceAnalysisCollapsesMultiOwnerSelectionToDisplayedOwner()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
             context.Services.AddLocalization();

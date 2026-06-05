@@ -108,7 +108,7 @@ namespace FWO.Test
         }
 
         private static IRenderedComponent<DisplayRequestTask> RenderDisplayRequestTask(
-            Bunit.TestContext context,
+            BunitContext context,
             WfHandler handler,
             WfStateDict states,
             params string[] roles)
@@ -135,7 +135,7 @@ namespace FWO.Test
         }
 
         private static IRenderedComponent<DisplayImplementationTask> RenderDisplayImplementationTask(
-            Bunit.TestContext context,
+            BunitContext context,
             WfHandler handler,
             WfStateDict states,
             params string[] roles)
@@ -162,7 +162,7 @@ namespace FWO.Test
         }
 
         private static IRenderedComponent<PromoteObject> RenderPromoteObject(
-            Bunit.TestContext context,
+            BunitContext context,
             WfStateDict states,
             StateMatrix stateMatrix,
             WfStatefulObject statefulObject,
@@ -360,7 +360,7 @@ namespace FWO.Test
             existingHandler.ActTicket.Tasks.Add(existingHandler.ActReqTask);
             WfStateDict states = new() { Name = { [0] = "Draft" } };
             int existingDropdownCount;
-            await using (Bunit.TestContext existingContext = new())
+            await using (BunitContext existingContext = new())
             {
                 IRenderedComponent<DisplayRequestTask> existingComponent = RenderDisplayRequestTask(existingContext, existingHandler, states, Roles.Requester);
                 existingDropdownCount = existingComponent.FindAll("input[id^='dropdown-input-']").Count;
@@ -381,7 +381,7 @@ namespace FWO.Test
             };
             newHandler.ActTicket.Tasks.Add(newHandler.ActReqTask);
             int newDropdownCount;
-            await using (Bunit.TestContext newContext = new())
+            await using (BunitContext newContext = new())
             {
                 IRenderedComponent<DisplayRequestTask> newComponent = RenderDisplayRequestTask(newContext, newHandler, states, Roles.Requester);
                 newDropdownCount = newComponent.FindAll("input[id^='dropdown-input-']").Count;
@@ -393,7 +393,7 @@ namespace FWO.Test
         [Test]
         public async Task DisplayAccessElements_ReadOnlyObjectEntriesPreferGroupName()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             context.Services.AddSingleton<ApiConnection>(new RequestWorkflowApiConn());
             context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig());
             List<NwObjectElement> sources =
@@ -468,7 +468,7 @@ namespace FWO.Test
             };
             WfStateDict states = new() { Name = { [1] = "Open" } };
 
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             IRenderedComponent<DisplayImplementationTask> component = RenderDisplayImplementationTask(context, handler, states, Roles.Implementer);
 
             Assert.Multiple(() =>
@@ -496,7 +496,7 @@ namespace FWO.Test
             SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix());
             WfStateDict states = new() { Name = { [0] = "Draft" } };
 
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             IRenderedComponent<DisplayRequestTask> component = RenderDisplayRequestTask(context, handler, states, Roles.Requester);
 
             Assert.That(GetMember<List<NwObjectElement>>(component.Instance, "actSources").Single().IpString, Is.EqualTo("10.0.0.1/32"));
@@ -521,7 +521,7 @@ namespace FWO.Test
         [Test]
         public async Task PromoteObject_MissingStateName_FallsBackToStateId()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             WfStateDict states = new();
             StateMatrix stateMatrix = new()
             {

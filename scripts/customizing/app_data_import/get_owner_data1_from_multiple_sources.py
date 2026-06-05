@@ -46,6 +46,8 @@ api_url_path_rlm_login: str = "apps/public/rlm/oauth/token"
 api_url_path_rlm_apps: str = "apps/public/rlm/api/owners"
 HTTP_OK: int = 200
 RLM_VERSION_BREAK: float = 2.6
+# (connect, read) timeout tuple so a stalled endpoint cannot hang the owner-data import
+HTTP_TIMEOUT: tuple[int, int] = (60, 14400)
 
 
 class ApiLoginFailedError(Exception):
@@ -202,7 +204,7 @@ def rlm_login(user: str, password: str, api_url: str) -> str:
     with requests.Session() as session:
         session.verify = False
         try:
-            response = session.post(api_url, payload)
+            response = session.post(api_url, payload, timeout=HTTP_TIMEOUT)
         except requests.exceptions.RequestException:
             raise ApiFailureError(f"api: error during login to url: {api_url!s} with user {user}") from None
 
@@ -225,7 +227,7 @@ def rlm_get_owners(token: str, api_url: str, rlm_version: float = 2.5) -> dict[s
     with requests.Session() as session:
         session.verify = False
         try:
-            response = session.get(api_url, headers=headers, params=params)
+            response = session.get(api_url, headers=headers, params=params, timeout=HTTP_TIMEOUT)
 
         except requests.exceptions.RequestException:
             raise ApiServiceUnavailableError(f"api: error while getting owners from url: {api_url!s}") from None

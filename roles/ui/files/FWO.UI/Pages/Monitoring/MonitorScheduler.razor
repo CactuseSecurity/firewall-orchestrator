@@ -35,7 +35,7 @@ else
         <table class="table table-bordered th-bg-secondary table-striped align-middle">
             <thead>
                 <tr>
-                    <th scope="col">Job</th>
+                    <th scope="col">@(userConfig.GetText("scheduler_job"))</th>
                     <th scope="col">@(userConfig.GetText("scheduler_interval"))</th>
                     <th scope="col">@(userConfig.GetText("scheduler_last_run"))</th>
                     <th scope="col">@(userConfig.GetText("scheduler_next_run"))</th>
@@ -137,13 +137,13 @@ else
             }
             else
             {
-                DisplayMessageInUi(new InvalidOperationException(response.ErrorMessage ?? response.StatusDescription ?? "Job fetch failed."),
-                "Fetch scheduler jobs", response.Content ?? string.Empty, true);
+                DisplayMessageInUi(new InvalidOperationException(response.ErrorMessage ?? response.StatusDescription ?? userConfig.GetText("scheduler_job_fetch_failed")),
+                userConfig.GetText("scheduler_fetch_jobs"), response.Content ?? string.Empty, true);
             }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Fetch scheduler jobs", exception.Message, true);
+            DisplayMessageInUi(exception, userConfig.GetText("scheduler_fetch_jobs"), exception.Message, true);
         }
         finally
         {
@@ -168,13 +168,13 @@ else
 
             if (!response.IsSuccessful || !response.Data)
             {
-                DisplayMessageInUi(new InvalidOperationException(response.ErrorMessage ?? response.StatusDescription ?? "Job trigger failed."),
-                "Start now", response.Content ?? string.Empty, true);
+                DisplayMessageInUi(new InvalidOperationException(response.ErrorMessage ?? response.StatusDescription ?? userConfig.GetText("scheduler_job_trigger_failed")),
+                userConfig.GetText("scheduler_start_now"), response.Content ?? string.Empty, true);
             }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Start now", exception.Message, true);
+            DisplayMessageInUi(exception, userConfig.GetText("scheduler_start_now"), exception.Message, true);
         }
         finally
         {

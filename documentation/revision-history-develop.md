@@ -429,7 +429,7 @@ These settings are no longer used due to the full automation of UpdateRuleOwner.
 ### 9.1.5 - 05.06.2026 DEVELOP
 security patches
 
-This PR hardens FWO installation and security-sensitive workflows. It restricts app data import file/script paths, reduces installer secret exposure, tightens Hasura config permissions, improves LDAP/install test idempotency, removes the obsolete webhook role, and fixes related installer/test reliability issues. It also includes targeted documentation and version updates for 9.1.4.
+This PR hardens FWO installation and security-sensitive workflows. It restricts app data import file/script paths, reduces installer secret exposure, tightens Hasura config permissions, improves LDAP/install test idempotency, removes the obsolete webhook role, and fixes related installer/test reliability issues. It also includes targeted documentation and version updates.
 
 - Import file/script handling now restricts app data sources to allowed .json and .py files under the customizing directory, rejecting unsafe paths and logging file hashes.
 - Installer secret handling now uses no_log, avoids passing Hasura secrets on command lines, and prints secret file locations instead of secret values.
@@ -438,5 +438,10 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 - Installer and integration tests now wait for required services, tolerate missing optional customizing scripts, and improve cleanup/reliability behavior.
 - The obsolete webhook role and its docs, service files, templates, syslog, logrotate, and playbook wiring were removed.
 - The app data import UI now selects allowed import stems instead of accepting arbitrary free-form paths.
-- Product documentation and revision history were updated for the 9.1.4 security-hardening release.
+- Product documentation and revision history were updated for this security-hardening release.
 - The password-change REST endpoint now has an explicit [Authorize] requirement so anonymous callers are rejected before password-change logic runs.
+- Importer and customizing-script HTTP calls now use connect/read timeouts so a stalled firewall or API endpoint can no longer hang an importer worker indefinitely.
+- FortiOS (REST) VIP/destination-NAT objects are now normalized to their external IP, so policies referencing VIP objects resolve instead of failing the import or losing coverage.
+- Tenant settings role handling now mirrors the backend per operation: the page stays viewable for admin/auditor/fw-admin, adding/deleting tenants and saving device visibility are admin-only (matching the REST and Hasura permissions), and editing existing tenants is allowed for admin/fw-admin.
+- Remaining hardcoded strings on the scheduler monitoring page were moved into the localization texts.
+- The shared confirm dialogs now raise DisplayChanged(false) after a successful action, so the parent's bound visibility state no longer remains stale.

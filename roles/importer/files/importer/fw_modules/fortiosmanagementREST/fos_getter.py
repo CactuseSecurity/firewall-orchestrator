@@ -24,6 +24,7 @@ from fw_modules.fortiosmanagementREST.fos_models import (
     ZoneObject,
 )
 from fw_modules.fortiosmanagementREST.fos_zone import normalize_zone_name
+from fwo_const import FWO_HTTP_TIMEOUT
 from fwo_exceptions import FwApiCallFailedError
 from fwo_log import FWOLogger
 from pydantic import BaseModel, TypeAdapter
@@ -51,6 +52,7 @@ def fortios_api_call(api_url: str, access_token: str) -> list[dict[str, Any]]:
         headers=request_headers,
         params={"access_token": access_token},
         verify=fwo_globals.verify_certs,
+        timeout=FWO_HTTP_TIMEOUT,
     )
     if response.status_code != HTTP_OK:
         raise FwApiCallFailedError(

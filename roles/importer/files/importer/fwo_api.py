@@ -8,7 +8,7 @@ from typing import Any
 
 import fwo_globals
 import requests
-from fwo_const import FWO_API_HTTP_IMPORT_TIMEOUT
+from fwo_const import FWO_API_HTTP_IMPORT_TIMEOUT, FWO_HTTP_TIMEOUT
 from fwo_exceptions import FwoApiLoginFailedError, FwoApiServiceUnavailableError, FwoApiTimeoutError, FwoImporterError
 from fwo_log import FWOLogger
 from query_analyzer import QueryAnalyzer
@@ -120,7 +120,11 @@ class FwoApi:
             session.headers.update({"Content-Type": JSON_CONTENT_TYPE})
 
             try:
-                response = session.post(user_management_api_base_url + method, data=json.dumps(payload))
+                response = session.post(
+                    user_management_api_base_url + method,
+                    data=json.dumps(payload),
+                    timeout=FWO_HTTP_TIMEOUT,
+                )
             except requests.exceptions.RequestException:
                 raise FwoApiLoginFailedError(
                     "fwo_api: error during login to url: " + str(user_management_api_base_url) + " with user " + user

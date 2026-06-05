@@ -727,7 +727,10 @@ namespace FWO.Api.Client
             {
                 request.Extensions = new Dictionary<string, object?>
                 {
-                    ["x-hasura-role"] = role
+                    ["headers"] = new Dictionary<string, object?>
+                    {
+                        ["x-hasura-role"] = role
+                    }
                 };
             }
             return request;

@@ -8,6 +8,7 @@ from scripts.customizing.fwo_custom_lib.git_helpers import (
     cleanup_repo_target_dir,
     parse_git_depth_arg,
     read_file_from_git_repo,
+    split_repo_url_credentials,
     update_git_repo,
 )
 
@@ -29,6 +30,22 @@ def test_parse_git_depth_arg_rejects_non_positive_values() -> None:
 def test_parse_git_depth_arg_rejects_non_integer_values() -> None:
     with pytest.raises(ValueError, match="invalid git depth value: abc"):
         parse_git_depth_arg("abc")
+
+
+def test_split_repo_url_credentials_sanitizes_username_only_url_without_credentials() -> None:
+    clone_url, username, password = split_repo_url_credentials("https://git-user@git.example.org/group/repo.git")
+
+    assert clone_url == "https://git.example.org/group/repo.git"
+    assert username is None
+    assert password is None
+
+
+def test_split_repo_url_credentials_sanitizes_password_only_url_without_credentials() -> None:
+    clone_url, username, password = split_repo_url_credentials("https://:secret@git.example.org/group/repo.git")
+
+    assert clone_url == "https://git.example.org/group/repo.git"
+    assert username is None
+    assert password is None
 
 
 def test_update_git_repo_replaces_existing_repo_with_clean_clone_when_depth_not_set() -> None:
@@ -109,6 +126,23 @@ def test_update_git_repo_passes_depth_for_clone_when_set() -> None:
         branch="main",
         depth=CLONE_DEPTH,
     )
+
+
+def test_update_git_repo_does_not_use_askpass_for_partial_credentials() -> None:
+    logger: logging.Logger = logging.getLogger("git-helper-tests")
+    repo_path_mock: Mock = Mock()
+    repo_path_mock.exists.return_value = False
+    parent_path_mock: Mock = Mock()
+    repo_path_mock.parent = parent_path_mock
+
+    with (
+        patch("scripts.customizing.fwo_custom_lib.git_helpers.Path", return_value=repo_path_mock),
+        patch("scripts.customizing.fwo_custom_lib.git_helpers.git.Repo.clone_from") as clone_from_mock,
+    ):
+        update_git_repo("https://git-user@example.invalid/repo.git", REPO_TARGET_DIR, logger)
+
+    parent_path_mock.mkdir.assert_called_once_with(parents=True, exist_ok=True)
+    clone_from_mock.assert_called_once_with("https://example.invalid/repo.git", REPO_TARGET_DIR)
 
 
 def test_update_git_repo_removes_partial_repo_after_clone_failure() -> None:

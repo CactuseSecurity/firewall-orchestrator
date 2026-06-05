@@ -97,7 +97,9 @@ namespace FWO.Test
 
             Assert.That(request.Extensions, Is.TypeOf<Dictionary<string, object?>>());
             Dictionary<string, object?> extensions = (Dictionary<string, object?>)request.Extensions!;
-            Assert.That(extensions["x-hasura-role"], Is.EqualTo("modeller"));
+            Dictionary<string, object?> headers = extensions["headers"] as Dictionary<string, object?>
+                ?? throw new InvalidOperationException("Subscription extensions headers have unexpected type.");
+            Assert.That(headers["x-hasura-role"], Is.EqualTo("modeller"));
         }
 
         [Test]

@@ -36,14 +36,16 @@ def cleanup_repo_target_dir(git_repo_target_dir: str) -> None:
 
 def split_repo_url_credentials(repo_url: str) -> tuple[str, str | None, str | None]:
     parsed_url = urlsplit(repo_url)
-    if not parsed_url.username and not parsed_url.password:
-        return repo_url, None, None
-
     sanitized_netloc = parsed_url.netloc.rsplit("@", 1)[-1]
     sanitized_url = urlunsplit(
         (parsed_url.scheme, sanitized_netloc, parsed_url.path, parsed_url.query, parsed_url.fragment)
     )
-    return sanitized_url, unquote(parsed_url.username or ""), unquote(parsed_url.password or "")
+    username = unquote(parsed_url.username or "")
+    password = unquote(parsed_url.password or "")
+    if not username or not password:
+        return sanitized_url, None, None
+
+    return sanitized_url, username, password
 
 
 def create_git_askpass_script(directory: str) -> str:

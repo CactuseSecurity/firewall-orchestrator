@@ -423,7 +423,10 @@ These settings are no longer used due to the full automation of UpdateRuleOwner.
 # 9.1.3 - 27.05.2026 DEVELOP
 - add optional workflow flow merging for Flow DB creation
 
-### 9.1.4 - 01.06.2026 DEVELOP
+# 9.1.4 - 03.06.2026 DEVELOP
+- remove legacy ownerLdapGroupNames owner mapping fallback
+
+### 9.1.5 - 05.06.2026 DEVELOP
 security patches
 
 This PR hardens FWO installation and security-sensitive workflows. It restricts app data import file/script paths, reduces installer secret exposure, tightens Hasura config permissions, improves LDAP/install test idempotency, removes the obsolete webhook role, and fixes related installer/test reliability issues. It also includes targeted documentation and version updates for 9.1.4.
@@ -437,4 +440,3 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 - The app data import UI now selects allowed import stems instead of accepting arbitrary free-form paths.
 - Product documentation and revision history were updated for the 9.1.4 security-hardening release.
 - The password-change REST endpoint now has an explicit [Authorize] requirement so anonymous callers are rejected before password-change logic runs.
-

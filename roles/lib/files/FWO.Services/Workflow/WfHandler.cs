@@ -191,7 +191,8 @@ namespace FWO.Services.Workflow
             ActionHandler = new(activeApiConnection, this, UserGroups, usedInMwServer, RequestedRulePolicyChecker, WorkflowRecipientResolver);
             await ActionHandler.Init();
             dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, activeApiConnection, ActionHandler,
-                AuthUser == null || userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor)) { };
+                AuthUser == null || userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor))
+            { };
             Devices = await activeApiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
             AllOwners = await activeApiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             await stateMatrixDict.Init(Phase, activeApiConnection);

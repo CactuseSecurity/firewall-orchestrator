@@ -57,6 +57,17 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ReconnectSubscriptionsAsyncPreservesRoleHeader()
+        {
+            using GraphQlApiConnection connection = new("http://localhost");
+            connection.SetRole(Roles.Modeller);
+
+            await connection.ReconnectSubscriptionsAsync("jwt", CancellationToken.None);
+
+            Assert.That(connection.GetActRole(), Is.EqualTo(Roles.Modeller));
+        }
+
+        [Test]
         public void SetBestRoleUsesUserRoleInsteadOfAdminInNormalMode()
         {
             using GraphQlApiConnection connection = new("http://localhost");

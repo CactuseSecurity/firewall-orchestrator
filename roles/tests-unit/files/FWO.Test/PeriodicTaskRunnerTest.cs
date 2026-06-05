@@ -30,5 +30,35 @@ namespace FWO.Test
             Assert.That(completedTask, Is.EqualTo(callbackReached.Task));
             Assert.That(executionCount, Is.GreaterThanOrEqualTo(2));
         }
+
+        [Test]
+        public async Task Dispose_StopsFurtherExecutions()
+        {
+            int executionCount = 0;
+            TaskCompletionSource<bool> firstTickReached = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            PeriodicTaskRunner runner = new(async () =>
+            {
+                if (Interlocked.Increment(ref executionCount) == 1)
+                {
+                    firstTickReached.TrySetResult(true);
+                }
+
+                await Task.CompletedTask;
+            }, TimeSpan.FromMilliseconds(20));
+
+            runner.Start();
+
+            Task completedTask = await Task.WhenAny(firstTickReached.Task, Task.Delay(TimeSpan.FromSeconds(2)));
+
+            Assert.That(completedTask, Is.EqualTo(firstTickReached.Task));
+
+            runner.Dispose();
+            int executionCountAfterDispose = executionCount;
+
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
+
+            Assert.That(executionCount, Is.EqualTo(executionCountAfterDispose));
+        }
     }
 }

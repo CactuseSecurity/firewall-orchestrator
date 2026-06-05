@@ -5,8 +5,6 @@ INSERT INTO language ("name", "culture_info") VALUES('English', 'en-US');
 insert into uiuser (uiuser_id, uiuser_username, uuid) VALUES (0,'default', 'default');
 
 insert into config (config_key, config_value, config_user) VALUES ('DefaultLanguage', 'English', 0);
-insert into config (config_key, config_value, config_user) VALUES ('sessionTimeout', '720', 0);
-insert into config (config_key, config_value, config_user) VALUES ('sessionTimeoutNoticePeriod', '60', 0); -- in minutes before expiry
 insert into config (config_key, config_value, config_user) VALUES ('uiHostName', 'http://localhost:5000', 0);
 -- insert into config (config_key, config_value, config_user) VALUES ('maxMessages', '3', 0);
 insert into config (config_key, config_value, config_user) VALUES ('elementsPerFetch', '100', 0);
@@ -590,3 +588,8 @@ insert into stm_link_type (id, name) VALUES (5, 'domain');
 INSERT INTO stm_import (import_type_id, import_type_name) VALUES (1, 'rule');
 INSERT INTO stm_import (import_type_id, import_type_name) VALUES (2, 'owner');
 INSERT INTO stm_import (import_type_id, import_type_name) VALUES (3, 'admin via reinitialize button');
+
+INSERT INTO config (config_key, config_value, config_user) VALUES ('accessTokenLifetime', '1', 0);
+INSERT INTO config (config_key, config_value, config_user) VALUES ('accessTokenLifetimeUnit', 'Hours', 0);
+INSERT INTO config (config_key, config_value, config_user) VALUES ('refreshTokenLifetime', '1', 0);
+INSERT INTO config (config_key, config_value, config_user) VALUES ('refreshTokenLifetimeUnit', 'Days', 0);

@@ -223,6 +223,56 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task OpenOrphanedTicketsPopup_SetsPopupState()
+        {
+            MonitorRequestedInterfacesTestApiConn apiConn = new();
+            await using BunitContext context = new();
+            MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
+
+            await (Task)GetPrivateMethod("OpenOrphanedTicketsPopup").Invoke(component, null)!;
+
+            Assert.That(GetPrivateField<bool>(component, "ShowOrphanedTicketsPopup"), Is.True);
+        }
+
+        [Test]
+        public async Task BuildRequestedInterfaceRows_AllowsRejectOnlyForOpenUnusedTickets()
+        {
+            MonitorRequestedInterfacesTestApiConn apiConn = new();
+            await using BunitContext context = new();
+            MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
+
+            List<ModellingConnection> connections =
+            [
+                new() { Id = 1, Name = "open-unused", Removed = true, TicketId = 1001 },
+                new() { Id = 2, Name = "open-used", Removed = true, TicketId = 1002 },
+                new() { Id = 3, Name = "closed-unused", Removed = true, TicketId = 1003 },
+                new() { Id = 4, Name = "missing-ticket", Removed = true }
+            ];
+            SetPrivateField(component, "RequestedInterfaces", connections);
+            SetPrivateField(component, "TicketStateIdByConnectionId", new Dictionary<int, int>
+            {
+                { 1, 10 },
+                { 2, 10 },
+                { 3, 150 }
+            });
+            SetPrivateField(component, "UsedByConnectionIdsByInterfaceId", new Dictionary<int, string>
+            {
+                { 1, "-" },
+                { 2, "77" },
+                { 3, "-" },
+                { 4, "-" }
+            });
+            SetPrivateField(component, "NewInterfaceStateMatrix", new StateMatrix { LowestEndState = 100 });
+
+            GetPrivateMethod("BuildRequestedInterfaceRows").Invoke(component, null);
+
+            Assert.That(GetObjectProperty<bool>(GetRequestedInterfaceRow(component, 1), "CanReject"), Is.True);
+            Assert.That(GetObjectProperty<bool>(GetRequestedInterfaceRow(component, 2), "CanReject"), Is.False);
+            Assert.That(GetObjectProperty<bool>(GetRequestedInterfaceRow(component, 3), "CanReject"), Is.False);
+            Assert.That(GetObjectProperty<bool>(GetRequestedInterfaceRow(component, 4), "CanReject"), Is.False);
+        }
+
+        [Test]
         public async Task GetFilteredRequestedInterfaces_ShowsAllRowsUntilDeactivatedOwnerFilterIsSelected()
         {
             MonitorRequestedInterfacesTestApiConn apiConn = new();
@@ -590,9 +640,7 @@ namespace FWO.Test
                 Assert.That(markup, Does.Contain("Close Tickets as rejected"));
                 Assert.That(cellTexts, Does.Not.Contain("888"));
             });
-            component.FindAll("button")
-                .First(button => button.TextContent.Contains("Close Tickets as rejected", StringComparison.Ordinal))
-                .Click();
+            component.Find("button.btn-danger.me-2").Click();
             component.WaitForAssertion(() =>
             {
                 Assert.That(component.Markup, Does.Contain("Are you sure you want to close 2 ticket(s) as rejected?"));
@@ -660,12 +708,128 @@ namespace FWO.Test
                 Assert.That(markup, Does.Not.Contain("Close Tickets as rejected"));
                 Assert.That(markup, Does.Not.Contain("Linked connection is not a requested interface"));
             });
-            component.FindAll("button")
-                .First(button => button.TextContent.Contains("Close Tickets as done", StringComparison.Ordinal))
-                .Click();
+            component.Find("button.btn-success.me-2").Click();
             component.WaitForAssertion(() =>
             {
                 Assert.That(component.Markup, Does.Contain("Are you sure you want to close 1 ticket(s) as done?"));
+            });
+        }
+
+        [Test]
+        public async Task OrphanedRequestedInterfaceTicketsPopup_LoadsDuplicateLookingTasksWithoutBulkActions()
+        {
+            MonitorRequestedInterfacesTestApiConn apiConn = new()
+            {
+                TicketsByParametersResult =
+                [
+                    new WfTicket
+                    {
+                        Id = 901,
+                        StateId = 10,
+                        Tasks =
+                        {
+                            CreateTask(11, WfTaskType.new_interface, "same interface", reqOwnerId: 7)
+                        }
+                    },
+                    new WfTicket
+                    {
+                        Id = 902,
+                        StateId = 10,
+                        Tasks =
+                        {
+                            CreateTask(12, WfTaskType.new_interface, " same   interface ", reqOwnerId: 7)
+                        }
+                    }
+                ],
+                ConnectionById =
+                {
+                    [11] = [new ModellingConnection { Id = 11, TicketId = 901, IsInterface = true, IsRequested = true }],
+                    [12] = [new ModellingConnection { Id = 12, TicketId = 902, IsInterface = true, IsRequested = true }]
+                },
+                States =
+                [
+                    new WfState { Id = 10, Name = "In Progress" },
+                ]
+            };
+            await using BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<ApiConnection>(apiConn);
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+
+            IRenderedComponent<OrphanedRequestedInterfaceTicketsPopup> component =
+                context.Render<OrphanedRequestedInterfaceTicketsPopup>(parameters => parameters
+                    .Add(p => p.Display, true));
+
+            component.WaitForAssertion(() =>
+            {
+                string markup = component.Markup;
+                Assert.That(markup, Does.Contain("901"));
+                Assert.That(markup, Does.Contain("902"));
+                Assert.That(markup, Does.Contain("Duplicate-looking open interface request"));
+                Assert.That(markup, Does.Not.Contain("Close Tickets as rejected"));
+                Assert.That(markup, Does.Not.Contain("Close Tickets as done"));
+            });
+        }
+
+        [Test]
+        public async Task OrphanedRequestedInterfaceTicketsPopup_DoesNotCloseAsDoneWhenPublishedCriteriaAreIncomplete()
+        {
+            MonitorRequestedInterfacesTestApiConn apiConn = new()
+            {
+                TicketsByParametersResult =
+                [
+                    new WfTicket
+                    {
+                        Id = 903,
+                        StateId = 10,
+                        Tasks =
+                        {
+                            CreateTask(13, WfTaskType.new_interface, "published-but-still-proposed")
+                        }
+                    }
+                ],
+                ConnectionById =
+                {
+                    [13] =
+                    [
+                        new ModellingConnection
+                        {
+                            Id = 13,
+                            TicketId = 903,
+                            IsInterface = true,
+                            IsRequested = false,
+                            IsPublished = true,
+                            ProposedAppId = 20,
+                            Removed = false
+                        }
+                    ]
+                },
+                States =
+                [
+                    new WfState { Id = 10, Name = "In Progress" },
+                ]
+            };
+            await using BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<ApiConnection>(apiConn);
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+
+            IRenderedComponent<OrphanedRequestedInterfaceTicketsPopup> component =
+                context.Render<OrphanedRequestedInterfaceTicketsPopup>(parameters => parameters
+                    .Add(p => p.Display, true));
+
+            component.WaitForAssertion(() =>
+            {
+                string markup = component.Markup;
+                Assert.That(markup, Does.Contain("903"));
+                Assert.That(markup, Does.Contain("Linked connection is not a requested interface"));
+                Assert.That(markup, Does.Contain("Close Tickets as rejected"));
+                Assert.That(markup, Does.Not.Contain("Requested interface is already published"));
+                Assert.That(markup, Does.Not.Contain("Close Tickets as done"));
             });
         }
 

@@ -389,6 +389,10 @@
     /// </summary>
     private async Task RejectTickets(IEnumerable<long> ticketIds)
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
         await PromoteTickets(ticketIds, ExtStates.Rejected, userConfig.GetText("U9036"), userConfig.GetText("reject_tickets"), userConfig.GetText("U9018"));
     }
 
@@ -397,6 +401,10 @@
     /// </summary>
     private async Task CloseTicketsAsDone(IEnumerable<long> ticketIds)
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
         await PromoteTickets(ticketIds, ExtStates.Done, userConfig.GetText("U9038"), userConfig.GetText("close_tickets_as_done"), userConfig.GetText("U9039"));
     }
 

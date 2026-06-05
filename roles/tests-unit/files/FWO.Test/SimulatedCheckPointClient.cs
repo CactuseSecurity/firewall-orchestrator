@@ -13,7 +13,8 @@ namespace FWO.Test
         public int LogoutCalls { get; private set; }
         private readonly Dictionary<string, Queue<RestResponse<int>>> queuedResponses = new();
 
-        public SimulatedCheckPointClient(ExternalTicketSystem checkPointSystem) : base(checkPointSystem)
+        public SimulatedCheckPointClient(ExternalTicketSystem checkPointSystem, Management management)
+            : base(checkPointSystem, management)
         { }
 
         public void EnqueueResponse(string restEndPoint, RestResponse<int> response)

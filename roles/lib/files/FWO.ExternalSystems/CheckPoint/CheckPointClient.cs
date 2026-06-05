@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Basics.Exceptions;
 using FWO.Data;
+using FWO.Encryption;
 using FWO.Logging;
 using RestSharp;
 using System.Net;
@@ -11,12 +12,15 @@ namespace FWO.ExternalSystems.CheckPoint
     public class CheckPointClient : RestApiClient
     {
         private readonly ExternalTicketSystem TicketSystem;
+        private readonly Management Management;
+
         private string? SessionId;
 
-        public CheckPointClient(ExternalTicketSystem ticketSystem)
+        public CheckPointClient(ExternalTicketSystem ticketSystem, Management management)
             : base(ticketSystem.Url, ticketSystem.ResponseTimeout)
         {
             TicketSystem = ticketSystem;
+            Management = management;
         }
 
         // =========================================================
@@ -28,7 +32,7 @@ namespace FWO.ExternalSystems.CheckPoint
             if (!HasLoginCredentials())
             {
                 throw new ProcessingFailedException(
-                    "CheckPoint login credentials missing. Configure UserName and Password in the external ticket system.");
+                    "CheckPoint login credentials missing. Configure export credentials on the management.");
             }
 
             if (!string.IsNullOrWhiteSpace(SessionId))
@@ -98,10 +102,18 @@ namespace FWO.ExternalSystems.CheckPoint
             request.AddHeader("Content-Type", "application/json");
             request.AddHeader("Accept", "application/json");
 
+            string password = AesEnc.TryDecrypt(
+                Management.ExportCredential.Secret,
+                true,
+                "CheckPointClient",
+                $"Could not decrypt secret in export credential '{Management.ExportCredential.Name}'.",
+                true
+            );
+
             request.AddJsonBody(new
             {
-                user = TicketSystem.UserName,
-                password = TicketSystem.Password
+                user = Management.ExportCredential.ImportUser,
+                password = password
             });
 
             var response = await restClient.ExecuteAsync<LoginResponse>(request);
@@ -117,8 +129,8 @@ namespace FWO.ExternalSystems.CheckPoint
 
         private bool HasLoginCredentials()
         {
-            return !string.IsNullOrWhiteSpace(TicketSystem.UserName)
-                && !string.IsNullOrWhiteSpace(TicketSystem.Password);
+            return !string.IsNullOrWhiteSpace(Management.ExportCredential.ImportUser)
+                && !string.IsNullOrWhiteSpace(Management.ExportCredential.Secret);
         }
 
         private void AddAuthHeader(RestRequest request)

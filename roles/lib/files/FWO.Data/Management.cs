@@ -30,6 +30,9 @@ namespace FWO.Data
         [JsonProperty("import_credential"), JsonPropertyName("import_credential")]
         public ImportCredential ImportCredential { get; set; } = new();
 
+        [JsonProperty("export_credential"), JsonPropertyName("export_credential")]
+        public ImportCredential ExportCredential { get; set; } = new();
+
         [JsonProperty("configPath"), JsonPropertyName("configPath")]
         public string? ConfigPath { get; set; } = "";
 
@@ -126,6 +129,10 @@ namespace FWO.Data
                 ImportCredential = new ImportCredential(management.ImportCredential);
             else
                 ImportCredential = new ImportCredential();
+            if (management.ExportCredential != null)
+                ExportCredential = new ImportCredential(management.ExportCredential);
+            else
+                ExportCredential = new ImportCredential();
             ConfigPath = management.ConfigPath;
             DomainUid = management.DomainUid;
             CloudSubscriptionId = management.CloudSubscriptionId;

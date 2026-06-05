@@ -1,12 +1,5 @@
-@using FWO.Data.Middleware
 @using FWO.Logging
-@using FWO.Middleware.Client
-@using FWO.Recert
-@using FWO.ExternalSystems
 @using FWO.ExternalSystems.Tufin.SecureChange
-@using FWO.Ui.Pages.NetworkModelling
-@using RestSharp
-@using System.Net
 @using System.Text.Json
 
 @page "/settings/exttickettemplates"
@@ -125,21 +118,6 @@
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_auth")):</label>
                             <div class="col-sm-8">
                                 <input type="text" class="col-sm-8" @bind="editModel.Authorization" />
-                            </div>
-                        </div>
-                    }
-                    @if (!selectedType.IsBuiltIn)
-                    {
-                        <div class="form-group row mt-2">
-                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("username")):</label>
-                            <div class="col-sm-8">
-                                <input type="text" class="col-sm-8" @bind="editModel.UserName" />
-                            </div>
-                        </div>
-                        <div class="form-group row mt-2">
-                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("password")):</label>
-                            <div class="col-sm-8">
-                                <input type="password" class="col-sm-8" @bind="editModel.Password" />
                             </div>
                         </div>
                     }
@@ -328,8 +306,6 @@
                 system.MaxAttempts = editModel.MaxAttempts;
                 system.CyclesBetweenAttempts = editModel.CyclesBetweenAttempts;
                 system.Authorization = selectedType.IsBuiltIn ? editModel.Authorization : "";
-                system.UserName = editModel.UserName;
-                system.Password = editModel.Password;
                 system.LookupRequesterId = editModel.LookupRequesterId;
                 system.Templates = editModel.Templates
                     .Select(t => new ExternalTicketTemplate
@@ -506,8 +482,6 @@
             MaxAttempts = s.MaxAttempts,
             CyclesBetweenAttempts = s.CyclesBetweenAttempts,
             Authorization = s.Authorization,
-            UserName = s.UserName,
-            Password = s.Password,
             LookupRequesterId = s.LookupRequesterId,
             Templates = s.Templates
                     .Select(t => new ExternalTicketTemplate

@@ -127,7 +127,8 @@ namespace FWO.Middleware.Server
 
         private async Task SendRequest(ExternalRequest request)
         {
-            ExternalTicket? ticket = ConstructTicket(request);
+            ExternalTicket? ticket = await ConstructTicket(request);
+
             try
             {
                 Log.WriteInfo(LogMessageTitle, $"Sending {RequestInfo(request)}");
@@ -174,19 +175,53 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private ExternalTicket ConstructTicket(ExternalRequest request)
+        private async Task<ExternalTicket> ConstructTicket(ExternalRequest request)
         {
             if (ExtTicketSystem == null)
             {
                 throw new InvalidOperationException("No external ticket system loaded.");
             }
 
-            ExternalTicket ticket = ExternalTicketFactory.Create(ExtTicketSystem, InjScClient);     //ToDo warum nochmal actSystem und text zuweisen?
-
-            ticket.TicketSystem = ExtTicketSystem;
+            ExternalTicket ticket = ExternalTicketFactory.Create(ExtTicketSystem, InjScClient);
             ticket.TicketText = request.ExtRequestContent;
+            ticket.TicketSystem = ExtTicketSystem;
+            ticket.OnManagement = await LoadManagementForRequest(request);
 
             return ticket;
+        }
+
+        private static int? GetManagementId(string extQueryVariables)
+        {
+            if (string.IsNullOrWhiteSpace(extQueryVariables))
+            {
+                return null;
+            }
+
+            Dictionary<string, List<int>>? extQueryVars =
+                JsonSerializer.Deserialize<Dictionary<string, List<int>>>(extQueryVariables);
+
+            return extQueryVars != null
+                && extQueryVars.TryGetValue(ExternalVarKeys.ManagementId, out List<int>? ids)
+                && ids.Count > 0
+                ? ids[0]
+                : null;
+        }
+
+        private async Task<Management?> LoadManagementForRequest(ExternalRequest request)
+        {
+            int? managementId = GetManagementId(request.ExtQueryVariables);
+            if (managementId == null)
+            {
+                return null;
+            }
+
+            var variables = new { id = managementId.Value };
+            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(
+                DeviceQueries.getManagementById,
+                variables
+            );
+
+            return managements.FirstOrDefault();
         }
 
         private async Task RejectRequest(ExternalRequest request)

@@ -308,11 +308,23 @@ namespace FWO.Middleware.Server
         private async Task CreateExtRequest(WfTicket ticket, List<WfReqTask> tasks, List<WfReqTask> handledTasks, int waitCycles)
         {
             string taskContent = await ConstructContent(tasks, ticket.Requester);
-            Dictionary<string, List<int>>? handledTaskNumbers;
+            Dictionary<string, List<int>> handledTaskNumbers = [];
             string? extQueryVars = null;
+
+            int? managementId = tasks.FirstOrDefault()?.OnManagement?.Id;
+
+            if (managementId != null)
+            {
+                handledTaskNumbers[ExternalVarKeys.ManagementId] = [managementId.Value];
+            }
+
             if (handledTasks.Count > 1)
             {
-                handledTaskNumbers = new() { { ExternalVarKeys.BundledTasks, handledTasks.ConvertAll(t => t.TaskNumber) } };
+                handledTaskNumbers[ExternalVarKeys.BundledTasks] = handledTasks.ConvertAll(t => t.TaskNumber);
+            }
+
+            if (handledTaskNumbers.Count > 0)
+            {
                 extQueryVars = JsonSerializer.Serialize(handledTaskNumbers);
             }
 

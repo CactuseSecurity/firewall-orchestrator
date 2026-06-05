@@ -1,12 +1,5 @@
-@using FWO.Data.Middleware
-@using FWO.Logging
-@using FWO.Middleware.Client
-@using FWO.Recert
-@using FWO.ExternalSystems
 @using FWO.ExternalSystems.Tufin.SecureChange
-@using FWO.Ui.Pages.NetworkModelling
 @using RestSharp
-@using System.Net
 @using System.Text.Json
 
 @page "/settings/extticketing"
@@ -85,22 +78,7 @@
                         <input type="text" class="col-sm-8" @bind="extTicketingSystemAuth" />
                     </div>
                 </div>
-            }
-            @if (!selectedType.IsBuiltIn)
-            {
-                <div class="form-group row mt-2">
-                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("username")):</label>
-                    <div class="col-sm-8">
-                        <input type="text" class="col-sm-8" @bind="extTicketingSystemUserName" />
-                    </div>
-                </div>
-                <div class="form-group row mt-2">
-                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("password")):</label>
-                    <div class="col-sm-8">
-                        <input type="password" class="col-sm-8" @bind="extTicketingSystemPassword" />
-                    </div>
-                </div>
-            }
+            }            
             <div class="form-group row mt-2">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("response_timeout")):</label>
                 <div class="col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593a"))">
@@ -179,8 +157,6 @@ else
     private int extTicketingSystemMaxAttempts = 3;
     private int extTicketingSystemCyclesBetweenAttempts = 5;
     private string extTicketingSystemAuth = "";
-    private string extTicketingSystemUserName = "";
-    private string extTicketingSystemPassword = "";
     private bool extTicketingSystemLookup = false;
     private List<ExternalTicketSystem> extTicketSystems = [];
     private List<ExternalTicketTemplate> extTicketingSystemTemplates = [];
@@ -239,8 +215,6 @@ else
                 extTicketingSystemMaxAttempts = systemToEdit.MaxAttempts;
                 extTicketingSystemCyclesBetweenAttempts = systemToEdit.CyclesBetweenAttempts;
                 extTicketingSystemAuth = systemToEdit.Authorization;
-                extTicketingSystemUserName = systemToEdit.UserName;
-                extTicketingSystemPassword = systemToEdit.Password;
                 extTicketingSystemLookup = systemToEdit.LookupRequesterId;
                 extTicketingSystemTemplates = systemToEdit.Templates;
             }
@@ -248,8 +222,6 @@ else
             {
                 // Create-Mode
                 extTicketingSystemName = "";
-                extTicketingSystemUserName = "";
-                extTicketingSystemPassword = "";
                 actExtTicketSystemTypeId = BuiltInExternalTicketSystemTypes.GenericId;
                 selectedType = ResolveSelectedType(actExtTicketSystemTypeId);
                 InitTaskTypeList(actExtTicketSystemTypeId);
@@ -337,8 +309,6 @@ else
                 system.MaxAttempts = extTicketingSystemMaxAttempts;
                 system.CyclesBetweenAttempts = extTicketingSystemCyclesBetweenAttempts;
                 system.Authorization = selectedType.IsBuiltIn ? extTicketingSystemAuth : "";
-                system.UserName = extTicketingSystemUserName;
-                system.Password = extTicketingSystemPassword;
                 system.LookupRequesterId = extTicketingSystemLookup;
                 system.Templates = extTicketingSystemTemplates;
                 system.Sanitize();
@@ -356,8 +326,6 @@ else
                     MaxAttempts = extTicketingSystemMaxAttempts,
                     CyclesBetweenAttempts = extTicketingSystemCyclesBetweenAttempts,
                     Authorization = selectedType.IsBuiltIn ? extTicketingSystemAuth : "",
-                    UserName = extTicketingSystemUserName,
-                    Password = extTicketingSystemPassword,
                     LookupRequesterId = extTicketingSystemLookup,
                     Templates = extTicketingSystemTemplates
                 };

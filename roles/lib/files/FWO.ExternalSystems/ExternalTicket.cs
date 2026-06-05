@@ -21,6 +21,7 @@ namespace FWO.ExternalSystems
         public string ExtQueryVariables { get; set; } = "";
         protected List<string> TicketTasks = [];
         public ExternalTicketSystem TicketSystem { get; set; } = new();
+        public Management? OnManagement { get; set; }
 
         public ExternalTicket() { }
 

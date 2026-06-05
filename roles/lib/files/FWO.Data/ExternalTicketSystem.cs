@@ -81,12 +81,6 @@ namespace FWO.Data
         [JsonProperty(nameof(Authorization)), JsonPropertyName(nameof(Authorization))]
         public string Authorization { get; set; } = "Basic xyz"; // replace xyz with b64encode(username:password)
 
-        [JsonProperty(nameof(UserName)), JsonPropertyName(nameof(UserName))]
-        public string UserName { get; set; } = "";
-
-        [JsonProperty(nameof(Password)), JsonPropertyName(nameof(Password))]
-        public string Password { get; set; } = "";
-
         [JsonProperty(nameof(Name)), JsonPropertyName(nameof(Name))]
         public string Name { get; set; } = "";
 
@@ -162,8 +156,6 @@ namespace FWO.Data
             bool shortened = false;
             Name = Name.SanitizeMand(ref shortened);
             Url = Url.SanitizeMand(ref shortened);
-            UserName = UserName.SanitizeMand(ref shortened);
-            Password = Password.SanitizePasswMand(ref shortened);
             TicketTemplate = TicketTemplate.SanitizeJsonMand(ref shortened);
             TasksTemplate = TasksTemplate.SanitizeJsonMand(ref shortened);
             foreach (var template in Templates)

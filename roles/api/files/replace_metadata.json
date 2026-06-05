@@ -9092,6 +9092,18 @@
                       }
                     }
                   }
+                },
+                {
+                  "name": "managementByExportCredentialId",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "export_credential_id",
+                      "table": {
+                        "name": "management",
+                        "schema": "public"
+                      }
+                    }
+                  }
                 }
               ],
               "insert_permissions": [
@@ -10401,6 +10413,12 @@
               },
               "object_relationships": [
                 {
+                  "name": "importCredentialByExportCredentialId",
+                  "using": {
+                    "foreign_key_constraint_on": "export_credential_id"
+                  }
+                },
+                {
                   "name": "import_credential",
                   "using": {
                     "foreign_key_constraint_on": "import_credential_id"
@@ -10750,6 +10768,7 @@
                       "dev_typ_id",
                       "do_not_import",
                       "domain_uid",
+                      "export_credential_id",
                       "ext_mgm_data",
                       "force_initial_import",
                       "hide_in_gui",
@@ -10801,33 +10820,34 @@
                   "permission": {
                     "columns": [
                       "clearing_import_ran",
-                      "do_not_import",
-                      "force_initial_import",
-                      "hide_in_gui",
-                      "is_super_manager",
-                      "last_import_attempt_successful",
                       "cloud_subscription_id",
                       "cloud_tenant_id",
                       "config_path",
+                      "debug_level",
+                      "dev_typ_id",
+                      "do_not_import",
                       "domain_uid",
+                      "export_credential_id",
                       "ext_mgm_data",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "import_credential_id",
                       "importer_hostname",
+                      "is_super_manager",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
                       "last_import_md5_complete_config",
+                      "mgm_comment",
+                      "mgm_create",
+                      "mgm_id",
                       "mgm_name",
                       "mgm_uid",
+                      "mgm_update",
+                      "multi_device_manager_id",
                       "rulebase_name",
                       "rulebase_uid",
                       "ssh_hostname",
-                      "debug_level",
-                      "dev_typ_id",
-                      "import_credential_id",
-                      "mgm_id",
-                      "multi_device_manager_id",
-                      "ssh_port",
-                      "mgm_comment",
-                      "last_import_attempt",
-                      "mgm_create",
-                      "mgm_update"
+                      "ssh_port"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -10838,33 +10858,34 @@
                   "permission": {
                     "columns": [
                       "clearing_import_ran",
-                      "do_not_import",
-                      "force_initial_import",
-                      "hide_in_gui",
-                      "is_super_manager",
-                      "last_import_attempt_successful",
                       "cloud_subscription_id",
                       "cloud_tenant_id",
                       "config_path",
+                      "debug_level",
+                      "dev_typ_id",
+                      "do_not_import",
                       "domain_uid",
+                      "export_credential_id",
                       "ext_mgm_data",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "import_credential_id",
                       "importer_hostname",
+                      "is_super_manager",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
                       "last_import_md5_complete_config",
+                      "mgm_comment",
+                      "mgm_create",
+                      "mgm_id",
                       "mgm_name",
                       "mgm_uid",
+                      "mgm_update",
+                      "multi_device_manager_id",
                       "rulebase_name",
                       "rulebase_uid",
                       "ssh_hostname",
-                      "debug_level",
-                      "dev_typ_id",
-                      "import_credential_id",
-                      "mgm_id",
-                      "multi_device_manager_id",
-                      "ssh_port",
-                      "mgm_comment",
-                      "last_import_attempt",
-                      "mgm_create",
-                      "mgm_update"
+                      "ssh_port"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -10899,33 +10920,34 @@
                   "permission": {
                     "columns": [
                       "clearing_import_ran",
-                      "do_not_import",
-                      "force_initial_import",
-                      "hide_in_gui",
-                      "is_super_manager",
-                      "last_import_attempt_successful",
                       "cloud_subscription_id",
                       "cloud_tenant_id",
                       "config_path",
+                      "debug_level",
+                      "dev_typ_id",
+                      "do_not_import",
                       "domain_uid",
+                      "export_credential_id",
                       "ext_mgm_data",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "import_credential_id",
                       "importer_hostname",
+                      "is_super_manager",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
                       "last_import_md5_complete_config",
+                      "mgm_comment",
+                      "mgm_create",
+                      "mgm_id",
                       "mgm_name",
                       "mgm_uid",
+                      "mgm_update",
+                      "multi_device_manager_id",
                       "rulebase_name",
                       "rulebase_uid",
                       "ssh_hostname",
-                      "debug_level",
-                      "dev_typ_id",
-                      "import_credential_id",
-                      "mgm_id",
-                      "multi_device_manager_id",
-                      "ssh_port",
-                      "mgm_comment",
-                      "last_import_attempt",
-                      "mgm_create",
-                      "mgm_update"
+                      "ssh_port"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -10936,33 +10958,34 @@
                   "permission": {
                     "columns": [
                       "clearing_import_ran",
-                      "do_not_import",
-                      "force_initial_import",
-                      "hide_in_gui",
-                      "is_super_manager",
-                      "last_import_attempt_successful",
                       "cloud_subscription_id",
                       "cloud_tenant_id",
                       "config_path",
+                      "debug_level",
+                      "dev_typ_id",
+                      "do_not_import",
                       "domain_uid",
+                      "export_credential_id",
                       "ext_mgm_data",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "import_credential_id",
                       "importer_hostname",
+                      "is_super_manager",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
                       "last_import_md5_complete_config",
+                      "mgm_comment",
+                      "mgm_create",
+                      "mgm_id",
                       "mgm_name",
                       "mgm_uid",
+                      "mgm_update",
+                      "multi_device_manager_id",
                       "rulebase_name",
                       "rulebase_uid",
                       "ssh_hostname",
-                      "debug_level",
-                      "dev_typ_id",
-                      "import_credential_id",
-                      "mgm_id",
-                      "multi_device_manager_id",
-                      "ssh_port",
-                      "mgm_comment",
-                      "last_import_attempt",
-                      "mgm_create",
-                      "mgm_update"
+                      "ssh_port"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -11021,33 +11044,34 @@
                   "permission": {
                     "columns": [
                       "clearing_import_ran",
-                      "do_not_import",
-                      "force_initial_import",
-                      "hide_in_gui",
-                      "is_super_manager",
-                      "last_import_attempt_successful",
                       "cloud_subscription_id",
                       "cloud_tenant_id",
                       "config_path",
+                      "debug_level",
+                      "dev_typ_id",
+                      "do_not_import",
                       "domain_uid",
+                      "export_credential_id",
                       "ext_mgm_data",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "import_credential_id",
                       "importer_hostname",
+                      "is_super_manager",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
                       "last_import_md5_complete_config",
+                      "mgm_comment",
+                      "mgm_create",
+                      "mgm_id",
                       "mgm_name",
                       "mgm_uid",
+                      "mgm_update",
+                      "multi_device_manager_id",
                       "rulebase_name",
                       "rulebase_uid",
                       "ssh_hostname",
-                      "debug_level",
-                      "dev_typ_id",
-                      "import_credential_id",
-                      "mgm_id",
-                      "multi_device_manager_id",
-                      "ssh_port",
-                      "mgm_comment",
-                      "last_import_attempt",
-                      "mgm_create",
-                      "mgm_update"
+                      "ssh_port"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -11156,33 +11180,34 @@
                   "permission": {
                     "columns": [
                       "clearing_import_ran",
-                      "do_not_import",
-                      "force_initial_import",
-                      "hide_in_gui",
-                      "is_super_manager",
-                      "last_import_attempt_successful",
                       "cloud_subscription_id",
                       "cloud_tenant_id",
                       "config_path",
+                      "debug_level",
+                      "dev_typ_id",
+                      "do_not_import",
                       "domain_uid",
+                      "export_credential_id",
                       "ext_mgm_data",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "import_credential_id",
                       "importer_hostname",
+                      "is_super_manager",
+                      "last_import_attempt",
+                      "last_import_attempt_successful",
                       "last_import_md5_complete_config",
+                      "mgm_comment",
+                      "mgm_create",
+                      "mgm_id",
                       "mgm_name",
                       "mgm_uid",
+                      "mgm_update",
+                      "multi_device_manager_id",
                       "rulebase_name",
                       "rulebase_uid",
                       "ssh_hostname",
-                      "debug_level",
-                      "dev_typ_id",
-                      "import_credential_id",
-                      "mgm_id",
-                      "multi_device_manager_id",
-                      "ssh_port",
-                      "mgm_comment",
-                      "last_import_attempt",
-                      "mgm_create",
-                      "mgm_update"
+                      "ssh_port"
                     ],
                     "filter": {},
                     "check": {}
@@ -13639,6 +13664,18 @@
               ],
               "array_relationships": [
                 {
+                  "name": "accesses",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_id",
+                      "table": {
+                        "name": "access",
+                        "schema": "flow"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "change_histories",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -15760,6 +15797,14 @@
                 "name": "refresh_token",
                 "schema": "public"
               },
+              "object_relationships": [
+                {
+                  "name": "uiuser",
+                  "using": {
+                    "foreign_key_constraint_on": "user_id"
+                  }
+                }
+              ],
               "insert_permissions": [
                 {
                   "role": "middleware-server",
@@ -24476,6 +24521,18 @@
                       }
                     }
                   }
+                },
+                {
+                  "name": "svcobjects",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "ip_proto_id",
+                      "table": {
+                        "name": "svcobject",
+                        "schema": "flow"
+                      }
+                    }
+                  }
                 }
               ],
               "select_permissions": [
@@ -27132,6 +27189,18 @@
               ],
               "array_relationships": [
                 {
+                  "name": "accesses",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "requester_id",
+                      "table": {
+                        "name": "access",
+                        "schema": "flow"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "alerts",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -27354,6 +27423,18 @@
                       "column": "last_recertifier",
                       "table": {
                         "name": "owner",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "refresh_tokens",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "user_id",
+                      "table": {
+                        "name": "refresh_token",
                         "schema": "public"
                       }
                     }

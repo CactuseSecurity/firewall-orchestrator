@@ -29,7 +29,7 @@ namespace FWO.ExternalSystems.CheckPoint
     {
         private const string Content = "Content: ";
 
-        private readonly CheckPointClient checkPointClient;
+        private CheckPointClient? checkPointClient;
 
         private WfReqTask? rootTask;
 
@@ -41,7 +41,7 @@ namespace FWO.ExternalSystems.CheckPoint
         public CheckPointTicket(ExternalTicketSystem checkPointSystem, CheckPointClient? checkPointClient = null)
         {
             TicketSystem = checkPointSystem;
-            this.checkPointClient = checkPointClient ?? new CheckPointClient(checkPointSystem);
+            this.checkPointClient = checkPointClient;
         }
 
         #region Request Creation
@@ -205,6 +205,7 @@ namespace FWO.ExternalSystems.CheckPoint
 
         public override async Task<RestResponse<int>> CreateExternalTicket()
         {
+            checkPointClient ??= new CheckPointClient(TicketSystem, OnManagement ?? throw new ProcessingFailedException("No management context available for Check Point request."));
             try
             {
                 EnsureExecutionPlanLoaded();
@@ -337,7 +338,7 @@ namespace FWO.ExternalSystems.CheckPoint
             Log.WriteInfo("CheckPoint REQUEST", endpoint);
             Log.WriteInfo("CheckPoint BODY", task.Body.ToJsonString());
 
-            RestResponse response = await checkPointClient.RestCall(request, endpoint);
+            RestResponse response = await checkPointClient!.RestCall(request, endpoint);
 
 
             if (task.TaskType == CheckPointTaskTypes.HostCreate && IsResponseError(response, "same IP address", "err_validation_failed"))
@@ -409,7 +410,7 @@ namespace FWO.ExternalSystems.CheckPoint
 
             request.AddJsonBody(new { name });
 
-            RestResponse response = await checkPointClient.RestCall(request, "show-group");
+            RestResponse response = await checkPointClient!.RestCall(request, "show-group");
 
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
@@ -470,7 +471,7 @@ namespace FWO.ExternalSystems.CheckPoint
                 taskId = TicketId
             });
 
-            RestResponse response = await checkPointClient.RestCall(request, "show-task");
+            RestResponse response = await checkPointClient!.RestCall(request, "show-task");
 
             return new RestResponse<int>(request)
             {

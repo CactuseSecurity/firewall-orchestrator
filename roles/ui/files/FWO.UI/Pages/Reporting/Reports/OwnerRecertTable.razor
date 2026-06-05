@@ -1,6 +1,5 @@
 ﻿@using FWO.Ui.Display
 
-@using System.Net
 @using FWO.Basics
 @inject UserConfig userConfig
 
@@ -68,17 +67,9 @@
         return !string.IsNullOrWhiteSpace(AdditionalInfoKey);
     }
 
-    private string GetAdditionalInfoValue(FwoOwner owner)
-    {
-        return OwnerRecertDisplay.FormatAdditionalInfoValue(owner, AdditionalInfoKey);
-    }
-
     private string GetAdditionalInfoValueHtml(FwoOwner owner)
     {
-        string value = GetAdditionalInfoValue(owner);
-        return OwnerRecertDisplay.TryParseBooleanValue(value, out bool boolValue)
-            ? boolValue.ShowAsHtml().ToString()
-            : WebUtility.HtmlEncode(value);
+        return OwnerRecertDisplay.FormatAdditionalInfoValueHtml(owner, AdditionalInfoKey);
     }
 
 }

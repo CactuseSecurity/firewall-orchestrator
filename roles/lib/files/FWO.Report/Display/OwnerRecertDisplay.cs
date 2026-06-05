@@ -1,6 +1,7 @@
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using System.Net;
 
 namespace FWO.Ui.Display
 {
@@ -31,6 +32,14 @@ namespace FWO.Ui.Display
             return owner.AdditionalInfo != null && owner.AdditionalInfo.TryGetValue(key, out string? value)
                 ? value
                 : "";
+        }
+
+        public static string FormatAdditionalInfoValueHtml(FwoOwner owner, string key)
+        {
+            string value = FormatAdditionalInfoValue(owner, key);
+            return TryParseBooleanValue(value, out bool boolValue)
+                ? boolValue.ShowAsHtml().ToString()
+                : WebUtility.HtmlEncode(value);
         }
 
         public static bool TryParseBooleanValue(string value, out bool boolValue)

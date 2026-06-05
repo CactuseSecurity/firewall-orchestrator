@@ -285,7 +285,7 @@ namespace FWO.Report
         {
             string value = GetOwnerAdditionalInfoValue(owner);
             return OwnerRecertDisplay.TryParseBooleanValue(value, out bool boolValue)
-                ? boolValue.ShowAsHtml().ToString()
+                ? boolValue.ShowAsHtmlWithoutBootstrap().ToString()
                 : FormatHtmlCell(value);
         }
 

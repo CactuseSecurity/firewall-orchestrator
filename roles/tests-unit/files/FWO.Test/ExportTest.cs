@@ -502,7 +502,8 @@ namespace FWO.Test
 
             string html = RemoveLinebreaks(report.ExportToHtml());
 
-            StringAssert.Contains("<td><span class=\" bi bi-check-lg\"></span></td>", html);
+            StringAssert.Contains("<td>✓</td>", html);
+            StringAssert.DoesNotContain("<span class=\" bi bi-check-lg\"></span>", html);
         }
 
         [Test]

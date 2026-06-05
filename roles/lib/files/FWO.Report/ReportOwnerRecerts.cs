@@ -83,6 +83,16 @@ namespace FWO.Report
             List<FwoOwner> inactiveOwners = [.. ReportData.OwnerData.Select(o => o.Owner).Where(ow => !ow.RecertActive).OrderBy(ow => ow.Id)];
 
             StringBuilder report = new();
+            AppendOwnerRecertStatisticsHtml(ref report, overdueOwners, upcomingOwners, furtherOwners, inactiveOwners);
+            report.AppendLine("<hr>");
+            AppendOwnerRecertTablesHtml(ref report, overdueOwners, upcomingOwners, furtherOwners, inactiveOwners);
+
+            return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
+        }
+
+        private void AppendOwnerRecertStatisticsHtml(ref StringBuilder report, List<FwoOwner> overdueOwners, List<FwoOwner> upcomingOwners,
+            List<FwoOwner> furtherOwners, List<FwoOwner> inactiveOwners)
+        {
             report.AppendLine(Headline(userConfig.GetText("statistics"), 3));
             report.AppendLine("<ul>");
             report.AppendLine($"<li>{GetOverdueHeadline()}: {overdueOwners.Count}</li>");
@@ -99,7 +109,11 @@ namespace FWO.Report
                 report.AppendLine($"<li>{GetInactiveHeadline()}: {inactiveOwners.Count}</li>");
             }
             report.AppendLine("</ul>");
-            report.AppendLine("<hr>");
+        }
+
+        private void AppendOwnerRecertTablesHtml(ref StringBuilder report, List<FwoOwner> overdueOwners, List<FwoOwner> upcomingOwners,
+            List<FwoOwner> furtherOwners, List<FwoOwner> inactiveOwners)
+        {
             if (ReportData.MergeOwnerRecertTables)
             {
                 report.AppendLine(Headline(GetMergedHeadline(), 3));
@@ -139,8 +153,6 @@ namespace FWO.Report
                     AppendOwnerTable(ref report, inactiveOwners, false);
                 }
             }
-
-            return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
         }
 
         private List<FwoOwner> GetMergedOwners(List<FwoOwner> overdueOwners, List<FwoOwner> upcomingOwners,

@@ -402,7 +402,8 @@ namespace FWO.Api.Client
             {
                 ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
                 ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
-                Log.WriteInfo(LogCategory, $"Reconnecting {subscriptions.Count} API subscriptions after JWT refresh.");
+                List<ApiSubscription> activeSubscriptions = subscriptions.Where(subscription => !subscription.IsDisposed).ToList();
+                Log.WriteInfo(LogCategory, $"Reconnecting {activeSubscriptions.Count} API subscriptions after JWT refresh.");
 
                 GraphQLHttpClient oldSubscriptionClient = graphQlSubscriptionClient;
                 GraphQLHttpClient newSubscriptionClient = CreateClient(ApiServerUri);
@@ -411,11 +412,10 @@ namespace FWO.Api.Client
                 ApplyAuthHeader(newSubscriptionClient, jwt);
                 ApplyRoleHeader(newSubscriptionClient, GetActRole());
 
-                List<ApiSubscription> oldSubscriptions = [.. subscriptions];
                 List<ApiSubscription> recreatedSubscriptions = [];
                 graphQlSubscriptionClient = newSubscriptionClient;
 
-                foreach (ApiSubscription subscription in oldSubscriptions)
+                foreach (ApiSubscription subscription in activeSubscriptions)
                 {
                     recreatedSubscriptions.Add(subscription.Recreate(newSubscriptionClient));
                 }
@@ -423,7 +423,7 @@ namespace FWO.Api.Client
                 subscriptions.Clear();
                 subscriptions.AddRange(recreatedSubscriptions);
 
-                foreach (ApiSubscription subscription in oldSubscriptions)
+                foreach (ApiSubscription subscription in activeSubscriptions)
                 {
                     subscription.Dispose();
                 }

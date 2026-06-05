@@ -41,6 +41,26 @@ namespace FWO.Test
             Assert.That(second.DisposeCount, Is.EqualTo(1));
         }
 
+        [Test]
+        public async Task ReconnectSubscriptionsAsyncSkipsDisposedSubscriptions()
+        {
+            TestGraphQlApiConnection connection = new();
+            TrackingSubscription active = new();
+            TrackingSubscription disposed = new();
+            connection.AddSubscription(active);
+            connection.AddSubscription(disposed);
+
+            disposed.Dispose();
+
+            await connection.ReconnectSubscriptionsAsync("jwt", CancellationToken.None);
+
+            Assert.That(active.RecreateCount, Is.EqualTo(1));
+            Assert.That(active.DisposeCount, Is.EqualTo(1));
+            Assert.That(disposed.RecreateCount, Is.EqualTo(0));
+            Assert.That(disposed.DisposeCount, Is.EqualTo(1));
+            Assert.That(connection.SubscriptionCount, Is.EqualTo(1));
+        }
+
         private sealed class TestGraphQlApiConnection : GraphQlApiConnection
         {
             public TestGraphQlApiConnection() : base("http://localhost")
@@ -79,6 +99,23 @@ namespace FWO.Test
             internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
             {
                 return new SecondSubscription();
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                DisposeCount++;
+            }
+        }
+
+        private sealed class TrackingSubscription : ApiSubscription
+        {
+            public int DisposeCount { get; private set; }
+            public int RecreateCount { get; private set; }
+
+            internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
+            {
+                RecreateCount++;
+                return new TrackingSubscription();
             }
 
             protected override void Dispose(bool disposing)

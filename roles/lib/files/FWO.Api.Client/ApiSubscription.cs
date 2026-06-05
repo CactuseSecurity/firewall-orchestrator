@@ -6,7 +6,7 @@ namespace FWO.Api.Client
     {
         private bool _disposed;
 
-        protected bool IsDisposed => _disposed;
+        protected internal bool IsDisposed => _disposed;
 
         internal abstract ApiSubscription Recreate(GraphQLHttpClient graphQlClient);
 

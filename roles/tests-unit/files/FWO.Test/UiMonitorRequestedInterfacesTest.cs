@@ -11,11 +11,13 @@ using FWO.Middleware.Client;
 using FWO.Services.Workflow;
 using FWO.Ui.Pages.Monitoring;
 using FWO.Ui.Services;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -77,6 +79,13 @@ namespace FWO.Test
         {
             PropertyInfo property = GetPrivateProperty(propertyName);
             return (T)(property.GetValue(component) ?? throw new InvalidOperationException($"Property {propertyName} is null."));
+        }
+
+        private static T GetObjectProperty<T>(object instance, string propertyName)
+        {
+            PropertyInfo property = instance.GetType().GetProperty(propertyName)
+                ?? throw new MissingMemberException(instance.GetType().FullName, propertyName);
+            return (T)(property.GetValue(instance) ?? throw new InvalidOperationException($"Property {propertyName} is null."));
         }
 
         private static MonitorRequestedInterfaces RenderComponent(BunitContext context, ApiConnection apiConnection)
@@ -175,7 +184,7 @@ namespace FWO.Test
             },
             lowestEndState: 100);
 
-            SetPrivateField(component, "SelectedTicketStateFilter", "10");
+            GetPrivateMethod("UpdateTicketStateFilter", typeof(string)).Invoke(component, ["10"]);
             List<long> filteredTicketIds = GetPrivatePropertyValue<List<long>>(component, "OpenRemovedTicketIds");
 
             Assert.That(filteredTicketIds, Is.EqualTo(new List<long> { 1001 }));
@@ -206,10 +215,301 @@ namespace FWO.Test
             });
             SetPrivateField(component, "NewInterfaceStateMatrix", new StateMatrix { LowestEndState = 100 });
             GetPrivateMethod("BuildRequestedInterfaceRows").Invoke(component, null);
+            GetPrivateMethod("RefreshDisplayedRequestedInterfaceRows").Invoke(component, null);
 
             List<long> ticketIds = GetPrivatePropertyValue<List<long>>(component, "OpenRemovedTicketIds");
 
             Assert.That(ticketIds, Is.EqualTo(new List<long> { 1001 }));
+        }
+
+        [Test]
+        public async Task OpenOrphanedTicketsPopup_SetsPopupState()
+        {
+            MonitorRequestedInterfacesTestApiConn apiConn = new();
+            await using BunitContext context = new();
+            MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
+
+            await (Task)GetPrivateMethod("OpenOrphanedTicketsPopup").Invoke(component, null)!;
+
+            Assert.That(GetPrivateField<bool>(component, "ShowOrphanedTicketsPopup"), Is.True);
+        }
+
+        [Test]
+        public async Task BuildRequestedInterfaceRows_AllowsRejectOnlyForOpenUnusedTickets()
+        {
+            MonitorRequestedInterfacesTestApiConn apiConn = new();
+            await using BunitContext context = new();
+            MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
+
+            List<ModellingConnection> connections =
+            [
+                new() { Id = 1, Name = "open-unused", Removed = true, TicketId = 1001 },
+                new() { Id = 2, Name = "open-used", Removed = true, TicketId = 1002 },
+                new() { Id = 3, Name = "closed-unused", Removed = true, TicketId = 1003 },
+                new() { Id = 4, Name = "missing-ticket", Removed = true }
+            ];
+            SetPrivateField(component, "RequestedInterfaces", connections);
+            SetPrivateField(component, "TicketStateIdByConnectionId", new Dictionary<int, int>
+            {
+                { 1, 10 },
+                { 2, 10 },
+                { 3, 150 }
+            });
+            SetPrivateField(component, "UsedByConnectionIdsByInterfaceId", new Dictionary<int, string>
+            {
+                { 1, "-" },
+                { 2, "77" },
+                { 3, "-" },
+                { 4, "-" }
+            });
+            SetPrivateField(component, "NewInterfaceStateMatrix", new StateMatrix { LowestEndState = 100 });
+
+            GetPrivateMethod("BuildRequestedInterfaceRows").Invoke(component, null);
+
+            Assert.That(GetObjectProperty<bool>(GetRequestedInterfaceRow(component, 1), "CanReject"), Is.True);
+            Assert.That(GetObjectProperty<bool>(GetRequestedInterfaceRow(component, 2), "CanReject"), Is.False);
+            Assert.That(GetObjectProperty<bool>(GetRequestedInterfaceRow(component, 3), "CanReject"), Is.False);
+            Assert.That(GetObjectProperty<bool>(GetRequestedInterfaceRow(component, 4), "CanReject"), Is.False);
+        }
+
+        [Test]
+        public async Task GetFilteredRequestedInterfaces_ShowsAllRowsUntilDeactivatedOwnerFilterIsSelected()
+        {
+            MonitorRequestedInterfacesTestApiConn apiConn = new();
+            await using Bunit.TestContext context = new();
+            MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
+
+            List<ModellingConnection> connections =
+            [
+                new() { Id = 1, Name = "active-if", ProposedAppId = 20, ProposedApp = new FwoOwner { Id = 20, Name = "Active Requested", Active = true, OwnerLifeCycleStateId = 1 }, TicketId = 1001 },
+                new() { Id = 2, Name = "import-inactive-if", ProposedAppId = 20, ProposedApp = new FwoOwner { Id = 20, Name = "Active Requested", Active = true, OwnerLifeCycleStateId = 1 }, TicketId = 1002 },
+                new() { Id = 3, Name = "lifecycle-inactive-if", ProposedAppId = 30, ProposedApp = new FwoOwner { Id = 30, Name = "Lifecycle Inactive Requested", Active = true, OwnerLifeCycleStateId = 2 }, TicketId = 1003 },
+                new() { Id = 4, Name = "closed-import-inactive-if", ProposedAppId = 20, ProposedApp = new FwoOwner { Id = 20, Name = "Active Requested", Active = true, OwnerLifeCycleStateId = 1 }, TicketId = 1004 }
+            ];
+            SetPrivateField(component, "OwnersById", new Dictionary<int, FwoOwner>
+            {
+                { 10, new FwoOwner { Id = 10, Name = "Active Requester", Active = true, OwnerLifeCycleStateId = 1 } },
+                { 11, new FwoOwner { Id = 11, Name = "Import Inactive Requester", Active = false, OwnerLifeCycleStateId = 1 } },
+                { 20, new FwoOwner { Id = 20, Name = "Active Requested", Active = true, OwnerLifeCycleStateId = 1 } },
+                { 30, new FwoOwner { Id = 30, Name = "Lifecycle Inactive Requested", Active = true, OwnerLifeCycleStateId = 2 } }
+            });
+            SetPrivateField(component, "OwnerLifeCycleActiveById", new Dictionary<int, bool>
+            {
+                { 1, true },
+                { 2, false }
+            });
+            SetPrivateField(component, "RequestingAppByConnectionId", new Dictionary<int, FwoOwner>
+            {
+                { 1, new FwoOwner { Id = 10, Name = "Active Requester", Active = true, OwnerLifeCycleStateId = 1 } },
+                { 2, new FwoOwner { Id = 11, Name = "Import Inactive Requester", Active = false, OwnerLifeCycleStateId = 1 } },
+                { 3, new FwoOwner { Id = 10, Name = "Active Requester", Active = true, OwnerLifeCycleStateId = 1 } },
+                { 4, new FwoOwner { Id = 11, Name = "Import Inactive Requester", Active = false, OwnerLifeCycleStateId = 1 } }
+            });
+            PrepareRows(component, connections, new Dictionary<int, int>
+            {
+                { 1, 10 },
+                { 2, 10 },
+                { 3, 10 },
+                { 4, 150 }
+            },
+            lowestEndState: 100);
+
+            Assert.That(GetFilteredRequestedInterfaceIds(component), Is.EqualTo(new List<int> { 1, 2, 3, 4 }));
+
+            SetPrivateField(component, "ShowImportDeactivatedRequestedInterfaces", true);
+            Assert.That(GetFilteredRequestedInterfaceIds(component), Is.EqualTo(new List<int> { 2, 4 }));
+
+            SetPrivateField(component, "ShowImportDeactivatedRequestedInterfaces", false);
+            SetPrivateField(component, "ShowLifecycleDeactivatedRequestedInterfaces", true);
+            Assert.That(GetFilteredRequestedInterfaceIds(component), Is.EqualTo(new List<int> { 3 }));
+
+            SetPrivateField(component, "ShowImportDeactivatedRequestedInterfaces", true);
+            SetPrivateField(component, "SelectedTicketStateFilter", "all_open");
+            Assert.That(GetFilteredRequestedInterfaceIds(component), Is.EqualTo(new List<int> { 2, 3 }));
+        }
+
+        [Test]
+        public async Task DeactivatedOwnerCheckboxHandlers_RefreshDisplayedRows()
+        {
+            MonitorRequestedInterfacesTestApiConn apiConn = new();
+            await using Bunit.TestContext context = new();
+            MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
+
+            SetPrivateField(component, "OwnerLifeCycleActiveById", new Dictionary<int, bool> { { 1, true }, { 2, false } });
+            SetPrivateField(component, "RequestingAppByConnectionId", new Dictionary<int, FwoOwner>
+            {
+                { 1, new FwoOwner { Id = 10, Name = "Active Requester", Active = true, OwnerLifeCycleStateId = 1 } },
+                { 2, new FwoOwner { Id = 11, Name = "Inactive Requester", Active = false, OwnerLifeCycleStateId = 1 } },
+                { 3, new FwoOwner { Id = 12, Name = "Lifecycle Requester", Active = true, OwnerLifeCycleStateId = 2 } }
+            });
+            PrepareRows(component, new List<ModellingConnection>
+            {
+                new() { Id = 1, Name = "active-if", TicketId = 1001, ProposedApp = new FwoOwner { Id = 20, Name = "Active Requested", Active = true, OwnerLifeCycleStateId = 1 } },
+                new() { Id = 2, Name = "import-inactive-if", TicketId = 1002, ProposedApp = new FwoOwner { Id = 20, Name = "Active Requested", Active = true, OwnerLifeCycleStateId = 1 } },
+                new() { Id = 3, Name = "lifecycle-inactive-if", TicketId = 1003, ProposedApp = new FwoOwner { Id = 20, Name = "Active Requested", Active = true, OwnerLifeCycleStateId = 1 } }
+            },
+            new Dictionary<int, int> { { 1, 10 }, { 2, 10 }, { 3, 10 } },
+            lowestEndState: 100);
+
+            Assert.That(GetDisplayedRequestedInterfaceIds(component), Is.EqualTo(new List<int> { 1, 2, 3 }));
+
+            GetPrivateMethod("UpdateShowImportDeactivatedRequestedInterfaces", typeof(ChangeEventArgs))
+                .Invoke(component, [new ChangeEventArgs { Value = true }]);
+            Assert.That(GetDisplayedRequestedInterfaceIds(component), Is.EqualTo(new List<int> { 2 }));
+
+            GetPrivateMethod("UpdateShowLifecycleDeactivatedRequestedInterfaces", typeof(ChangeEventArgs))
+                .Invoke(component, [new ChangeEventArgs { Value = "true" }]);
+            Assert.That(GetDisplayedRequestedInterfaceIds(component), Is.EqualTo(new List<int> { 2, 3 }));
+
+            GetPrivateMethod("UpdateShowImportDeactivatedRequestedInterfaces", typeof(ChangeEventArgs))
+                .Invoke(component, [new ChangeEventArgs { Value = false }]);
+            Assert.That(GetDisplayedRequestedInterfaceIds(component), Is.EqualTo(new List<int> { 3 }));
+        }
+
+        [Test]
+        public async Task BuildRequestedInterfaceRows_UsesProposedAppRelationshipAndOwnerFallback()
+        {
+            MonitorRequestedInterfacesTestApiConn apiConn = new();
+            await using Bunit.TestContext context = new();
+            MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
+
+            SetPrivateField(component, "OwnersById", new Dictionary<int, FwoOwner>
+            {
+                { 30, new FwoOwner { Id = 30, Name = "Fallback Requested", ExtAppId = "APP-30", Active = false, OwnerLifeCycleStateId = 1 } }
+            });
+            SetPrivateField(component, "OwnerLifeCycleActiveById", new Dictionary<int, bool> { { 1, true }, { 2, false } });
+            PrepareRows(component, new List<ModellingConnection>
+            {
+                new()
+                {
+                    Id = 1,
+                    Name = "relationship-if",
+                    TicketId = 1001,
+                    ProposedAppId = 20,
+                    ProposedApp = new FwoOwner { Id = 20, Name = "Lifecycle Requested", ExtAppId = "APP-20", Active = true, OwnerLifeCycleStateId = 2 }
+                },
+                new() { Id = 2, Name = "fallback-if", TicketId = 1002, ProposedAppId = 30 }
+            },
+            new Dictionary<int, int> { { 1, 10 }, { 2, 10 } },
+            lowestEndState: 100);
+
+            object relationshipRow = GetRequestedInterfaceRow(component, 1);
+            Assert.That(GetObjectProperty<string>(relationshipRow, "RequestedApp"), Is.EqualTo("Lifecycle Requested"));
+            Assert.That(GetObjectProperty<string>(relationshipRow, "RequestedExtAppId"), Is.EqualTo("APP-20"));
+            Assert.That(GetObjectProperty<string>(relationshipRow, "RequestedOwnerState"), Is.EqualTo("Inactive lifecycle state"));
+            Assert.That(GetObjectProperty<bool>(relationshipRow, "HasLifecycleDeactivatedOwner"), Is.True);
+
+            object fallbackRow = GetRequestedInterfaceRow(component, 2);
+            Assert.That(GetObjectProperty<string>(fallbackRow, "RequestedApp"), Is.EqualTo("Fallback Requested"));
+            Assert.That(GetObjectProperty<string>(fallbackRow, "RequestedExtAppId"), Is.EqualTo("APP-30"));
+            Assert.That(GetObjectProperty<string>(fallbackRow, "RequestedOwnerState"), Is.EqualTo("Import deactivated"));
+            Assert.That(GetObjectProperty<bool>(fallbackRow, "HasImportDeactivatedOwner"), Is.True);
+        }
+
+        [Test]
+        public async Task RebuildTicketStateFilterOptions_SortsStatesAndResetsInvalidSelection()
+        {
+            MonitorRequestedInterfacesTestApiConn apiConn = new();
+            await using Bunit.TestContext context = new();
+            MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
+
+            PrepareRows(component, new List<ModellingConnection>
+            {
+                new() { Id = 1, Name = "if-a", TicketId = 1001 },
+                new() { Id = 2, Name = "if-b", TicketId = 1002 },
+                new() { Id = 3, Name = "if-c", TicketId = 1003 }
+            },
+            new Dictionary<int, int> { { 1, 20 }, { 2, 10 } },
+            lowestEndState: 100);
+            SetPrivateField(component, "SelectedTicketStateFilter", "obsolete");
+
+            GetPrivateMethod("RebuildTicketStateFilterOptions").Invoke(component, null);
+
+            Assert.That(GetPrivateField<List<string>>(component, "TicketStateFilterOptions"),
+                Is.EqualTo(new List<string> { "all", "all_open", "10", "20" }));
+            Assert.That(GetPrivateField<string>(component, "SelectedTicketStateFilter"), Is.EqualTo("all"));
+        }
+
+        [Test]
+        public async Task ResolveRequestingAppsFromTickets_MapsTaskDataAndKeepsFirstTaskForConnection()
+        {
+            DateTime creationDate = new(2026, 5, 1, 12, 30, 0);
+            MonitorRequestedInterfacesTestApiConn apiConn = new()
+            {
+                SafeTicketById =
+                {
+                    [501] = new ApiResponse<WfTicket>(new WfTicket
+                    {
+                        Id = 501,
+                        StateId = 42,
+                        CreationDate = creationDate,
+                        Tasks =
+                        {
+                            CreateTask(1, WfTaskType.new_interface, "if-a", 7),
+                            CreateTask(1, WfTaskType.new_interface, "if-a-duplicate", 8),
+                            CreateTask(2, WfTaskType.new_interface, "if-b", 9)
+                        }
+                    })
+                }
+            };
+            await using Bunit.TestContext context = new();
+            MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
+
+            SetPrivateField(component, "RequestedInterfaces", new List<ModellingConnection>
+            {
+                new() { Id = 1, Name = "if-a", TicketId = 501 },
+                new() { Id = 2, Name = "if-b", TicketId = 501 }
+            });
+            SetPrivateField(component, "OwnersById", new Dictionary<int, FwoOwner>
+            {
+                { 7, new FwoOwner { Id = 7, Name = "Requester 7" } },
+                { 8, new FwoOwner { Id = 8, Name = "Requester 8" } },
+                { 9, new FwoOwner { Id = 9, Name = "Requester 9" } }
+            });
+
+            await (Task)GetPrivateMethod("ResolveRequestingAppsFromTickets").Invoke(component, null)!;
+
+            Dictionary<int, FwoOwner> requestingOwners = GetPrivateField<Dictionary<int, FwoOwner>>(component, "RequestingAppByConnectionId");
+            Dictionary<int, int> ticketStates = GetPrivateField<Dictionary<int, int>>(component, "TicketStateIdByConnectionId");
+            Dictionary<int, DateTime> ticketCreationDates = GetPrivateField<Dictionary<int, DateTime>>(component, "TicketCreationDateByConnectionId");
+
+            Assert.That(requestingOwners[1].Id, Is.EqualTo(7));
+            Assert.That(requestingOwners[2].Id, Is.EqualTo(9));
+            Assert.That(ticketStates[1], Is.EqualTo(42));
+            Assert.That(ticketStates[2], Is.EqualTo(42));
+            Assert.That(ticketCreationDates[1], Is.EqualTo(creationDate));
+            Assert.That(ticketCreationDates[2], Is.EqualTo(creationDate));
+        }
+
+        [Test]
+        public async Task ResolveUsedByConnections_StoresDistinctSortedConnectionIds()
+        {
+            MonitorRequestedInterfacesTestApiConn apiConn = new()
+            {
+                InterfaceUsersByInterfaceId =
+                {
+                    [5] =
+                    [
+                        new ModellingConnection { Id = 30 },
+                        new ModellingConnection { Id = 10 },
+                        new ModellingConnection { Id = 30 }
+                    ]
+                }
+            };
+            await using Bunit.TestContext context = new();
+            MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
+
+            SetPrivateField(component, "RequestedInterfaces", new List<ModellingConnection>
+            {
+                new() { Id = 5, Name = "used-if" },
+                new() { Id = 6, Name = "unused-if" }
+            });
+
+            await (Task)GetPrivateMethod("ResolveUsedByConnections").Invoke(component, null)!;
+
+            Dictionary<int, string> usedByConnectionIds = GetPrivateField<Dictionary<int, string>>(component, "UsedByConnectionIdsByInterfaceId");
+            Assert.That(usedByConnectionIds[5], Is.EqualTo("10, 30"));
+            Assert.That(usedByConnectionIds[6], Is.EqualTo("-"));
         }
 
         [Test]
@@ -340,12 +640,207 @@ namespace FWO.Test
                 Assert.That(markup, Does.Contain("Close Tickets as rejected"));
                 Assert.That(cellTexts, Does.Not.Contain("888"));
             });
+            component.Find("button.btn-danger.me-2").Click();
+            component.WaitForAssertion(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("Are you sure you want to close 2 ticket(s) as rejected?"));
+            });
         }
 
-        private static WfReqTask CreateTask(int connId, WfTaskType taskType, string title = "")
+        [Test]
+        public async Task OrphanedRequestedInterfaceTicketsPopup_LoadsAlreadyPublishedInterfacesWithDoneAction()
+        {
+            MonitorRequestedInterfacesTestApiConn apiConn = new()
+            {
+                TicketsByParametersResult =
+                [
+                    new WfTicket
+                    {
+                        Id = 889,
+                        StateId = 10,
+                        Tasks =
+                        {
+                            CreateTask(6, WfTaskType.new_interface, "if-published")
+                        }
+                    }
+                ],
+                ConnectionById =
+                {
+                    [6] =
+                    [
+                        new ModellingConnection
+                        {
+                            Id = 6,
+                            Name = "published-if",
+                            TicketId = 889,
+                            IsInterface = true,
+                            IsRequested = false,
+                            IsPublished = true,
+                            ProposedAppId = null,
+                            Removed = false
+                        }
+                    ]
+                },
+                States =
+                [
+                    new WfState { Id = 10, Name = "In Progress" },
+                ]
+            };
+            await using BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<ApiConnection>(apiConn);
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+
+            IRenderedComponent<OrphanedRequestedInterfaceTicketsPopup> component =
+                context.Render<OrphanedRequestedInterfaceTicketsPopup>(parameters => parameters
+                    .Add(p => p.Display, true));
+
+            component.WaitForAssertion(() =>
+            {
+                string markup = component.Markup;
+                Assert.That(markup, Does.Contain("889"));
+                Assert.That(markup, Does.Contain("if-published"));
+                Assert.That(markup, Does.Contain("Requested interface is already published"));
+                Assert.That(markup, Does.Contain("Close as done"));
+                Assert.That(markup, Does.Contain("Close Tickets as done"));
+                Assert.That(markup, Does.Not.Contain("Close Tickets as rejected"));
+                Assert.That(markup, Does.Not.Contain("Linked connection is not a requested interface"));
+            });
+            component.Find("button.btn-success.me-2").Click();
+            component.WaitForAssertion(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("Are you sure you want to close 1 ticket(s) as done?"));
+            });
+        }
+
+        [Test]
+        public async Task OrphanedRequestedInterfaceTicketsPopup_LoadsDuplicateLookingTasksWithoutBulkActions()
+        {
+            MonitorRequestedInterfacesTestApiConn apiConn = new()
+            {
+                TicketsByParametersResult =
+                [
+                    new WfTicket
+                    {
+                        Id = 901,
+                        StateId = 10,
+                        Tasks =
+                        {
+                            CreateTask(11, WfTaskType.new_interface, "same interface", reqOwnerId: 7)
+                        }
+                    },
+                    new WfTicket
+                    {
+                        Id = 902,
+                        StateId = 10,
+                        Tasks =
+                        {
+                            CreateTask(12, WfTaskType.new_interface, " same   interface ", reqOwnerId: 7)
+                        }
+                    }
+                ],
+                ConnectionById =
+                {
+                    [11] = [new ModellingConnection { Id = 11, TicketId = 901, IsInterface = true, IsRequested = true }],
+                    [12] = [new ModellingConnection { Id = 12, TicketId = 902, IsInterface = true, IsRequested = true }]
+                },
+                States =
+                [
+                    new WfState { Id = 10, Name = "In Progress" },
+                ]
+            };
+            await using BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<ApiConnection>(apiConn);
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+
+            IRenderedComponent<OrphanedRequestedInterfaceTicketsPopup> component =
+                context.Render<OrphanedRequestedInterfaceTicketsPopup>(parameters => parameters
+                    .Add(p => p.Display, true));
+
+            component.WaitForAssertion(() =>
+            {
+                string markup = component.Markup;
+                Assert.That(markup, Does.Contain("901"));
+                Assert.That(markup, Does.Contain("902"));
+                Assert.That(markup, Does.Contain("Duplicate-looking open interface request"));
+                Assert.That(markup, Does.Not.Contain("Close Tickets as rejected"));
+                Assert.That(markup, Does.Not.Contain("Close Tickets as done"));
+            });
+        }
+
+        [Test]
+        public async Task OrphanedRequestedInterfaceTicketsPopup_DoesNotCloseAsDoneWhenPublishedCriteriaAreIncomplete()
+        {
+            MonitorRequestedInterfacesTestApiConn apiConn = new()
+            {
+                TicketsByParametersResult =
+                [
+                    new WfTicket
+                    {
+                        Id = 903,
+                        StateId = 10,
+                        Tasks =
+                        {
+                            CreateTask(13, WfTaskType.new_interface, "published-but-still-proposed")
+                        }
+                    }
+                ],
+                ConnectionById =
+                {
+                    [13] =
+                    [
+                        new ModellingConnection
+                        {
+                            Id = 13,
+                            TicketId = 903,
+                            IsInterface = true,
+                            IsRequested = false,
+                            IsPublished = true,
+                            ProposedAppId = 20,
+                            Removed = false
+                        }
+                    ]
+                },
+                States =
+                [
+                    new WfState { Id = 10, Name = "In Progress" },
+                ]
+            };
+            await using BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<ApiConnection>(apiConn);
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+
+            IRenderedComponent<OrphanedRequestedInterfaceTicketsPopup> component =
+                context.Render<OrphanedRequestedInterfaceTicketsPopup>(parameters => parameters
+                    .Add(p => p.Display, true));
+
+            component.WaitForAssertion(() =>
+            {
+                string markup = component.Markup;
+                Assert.That(markup, Does.Contain("903"));
+                Assert.That(markup, Does.Contain("Linked connection is not a requested interface"));
+                Assert.That(markup, Does.Contain("Close Tickets as rejected"));
+                Assert.That(markup, Does.Not.Contain("Requested interface is already published"));
+                Assert.That(markup, Does.Not.Contain("Close Tickets as done"));
+            });
+        }
+
+        private static WfReqTask CreateTask(int connId, WfTaskType taskType, string title = "", int reqOwnerId = 0)
         {
             WfReqTask task = new() { TaskType = taskType.ToString(), Title = title };
             task.SetAddInfo(AdditionalInfoKeys.ConnId, connId.ToString());
+            if (reqOwnerId > 0)
+            {
+                task.SetAddInfo(AdditionalInfoKeys.ReqOwner, reqOwnerId.ToString());
+            }
             return task;
         }
 
@@ -360,6 +855,29 @@ namespace FWO.Test
             SetPrivateField(component, "UsedByConnectionIdsByInterfaceId", connections.ToDictionary(c => c.Id, _ => "-"));
             SetPrivateField(component, "NewInterfaceStateMatrix", new StateMatrix { LowestEndState = lowestEndState });
             GetPrivateMethod("BuildRequestedInterfaceRows").Invoke(component, null);
+            GetPrivateMethod("RefreshDisplayedRequestedInterfaceRows").Invoke(component, null);
+        }
+
+        private static List<int> GetFilteredRequestedInterfaceIds(MonitorRequestedInterfaces component)
+        {
+            IEnumerable rows = (IEnumerable)GetPrivateMethod("GetFilteredRequestedInterfaces").Invoke(component, null)!;
+            return rows.Cast<object>()
+                .Select(row => (int)(row.GetType().GetProperty("Id")?.GetValue(row) ?? 0))
+                .ToList();
+        }
+
+        private static List<int> GetDisplayedRequestedInterfaceIds(MonitorRequestedInterfaces component)
+        {
+            IEnumerable rows = GetPrivateField<IEnumerable>(component, "DisplayedRequestedInterfaceRows");
+            return rows.Cast<object>()
+                .Select(row => GetObjectProperty<int>(row, "Id"))
+                .ToList();
+        }
+
+        private static object GetRequestedInterfaceRow(MonitorRequestedInterfaces component, int id)
+        {
+            IEnumerable rows = GetPrivateField<IEnumerable>(component, "RequestedInterfaceRows");
+            return rows.Cast<object>().First(row => GetObjectProperty<int>(row, "Id") == id);
         }
     }
 
@@ -368,9 +886,11 @@ namespace FWO.Test
         private static readonly string stateMatrixJson = BuildStateMatrixJson();
         public Dictionary<long, ApiResponse<WfTicket>> SafeTicketById { get; } = [];
         public Dictionary<int, List<ModellingConnection>> ConnectionById { get; } = [];
+        public Dictionary<int, List<ModellingConnection>> InterfaceUsersByInterfaceId { get; } = [];
         public List<ModellingConnection> RequestedInterfacesResult { get; set; } = [];
         public List<WfTicket> TicketsByParametersResult { get; set; } = [];
         public List<WfState> States { get; set; } = [];
+        public List<OwnerLifeCycleState> OwnerLifeCycleStates { get; set; } = [];
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
@@ -404,6 +924,11 @@ namespace FWO.Test
                 return Task.FromResult((QueryResponseType)(object)new List<FwoOwner>());
             }
 
+            if (typeof(QueryResponseType) == typeof(List<OwnerLifeCycleState>) && query == OwnerQueries.getOwnerLifeCycleStates)
+            {
+                return Task.FromResult((QueryResponseType)(object)OwnerLifeCycleStates);
+            }
+
             if (typeof(QueryResponseType) == typeof(List<WfState>) && query == RequestQueries.getStates)
             {
                 return Task.FromResult((QueryResponseType)(object)States);
@@ -416,6 +941,11 @@ namespace FWO.Test
 
             if (typeof(QueryResponseType) == typeof(List<ModellingConnection>) && query == ModellingQueries.getInterfaceUsers)
             {
+                int interfaceId = Convert.ToInt32(variables?.GetType().GetProperty("id")?.GetValue(variables) ?? 0);
+                if (InterfaceUsersByInterfaceId.TryGetValue(interfaceId, out List<ModellingConnection>? usingConnections))
+                {
+                    return Task.FromResult((QueryResponseType)(object)usingConnections);
+                }
                 return Task.FromResult((QueryResponseType)(object)new List<ModellingConnection>());
             }
 

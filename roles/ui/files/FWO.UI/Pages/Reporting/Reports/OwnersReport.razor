@@ -1,4 +1,5 @@
 @using System.Net
+@using FWO.Ui.Display
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
@@ -28,7 +29,7 @@
                     <td>@GetOwnerState(owner)</td>
                     @foreach (OwnerResponsibleType type in ownerResponsibleTypes)
                     {
-                        <td>@((MarkupString)FormatMultilineCell(FormatResponsibles(owner, type.Id)))</td>
+                        <td>@((MarkupString)FormatMultilineCell(OwnerRecertDisplay.FormatResponsibles(owner, type.Id, Environment.NewLine)))</td>
                     }
                     <td>@((MarkupString)FormatMultilineCell(FormatAdditionalInfo(owner)))</td>
                 </tr>
@@ -82,23 +83,9 @@
             : string.Join(Environment.NewLine, owner.AdditionalInfo.OrderBy(entry => entry.Key).Select(entry => $"{entry.Key}: {entry.Value}"));
     }
 
-    private static string FormatResponsibles(FwoOwner owner, int responsibleTypeId)
-    {
-        return string.Join(Environment.NewLine, owner.GetOwnerResponsiblesByType(responsibleTypeId)
-            .Where(dn => !string.IsNullOrWhiteSpace(dn))
-            .OrderBy(dn => dn)
-            .Select(FormatResponsible));
-    }
-
     private static string FormatMultilineCell(string value)
     {
         return WebUtility.HtmlEncode(value).Replace(Environment.NewLine, "<br>");
     }
 
-    private static string FormatResponsible(string dn)
-    {
-        DistName distName = new(dn);
-        string display = !string.IsNullOrWhiteSpace(distName.UserName) ? distName.UserName : distName.Group;
-        return string.IsNullOrWhiteSpace(display) ? dn : display;
-    }
 }

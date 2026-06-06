@@ -22,7 +22,10 @@ namespace FWO.Basics
             : $"<span class=\"{colorClass} {@Icons.Close}\"></span>";
             return new MarkupString(htmlString);
         }
+
+        public static MarkupString ShowAsHtmlWithoutBootstrap(this bool boolVal)
+        {
+            return new MarkupString(boolVal ? "✓" : "✕");
+        }
     }
-
 }
-

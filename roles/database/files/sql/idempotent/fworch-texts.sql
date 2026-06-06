@@ -940,6 +940,10 @@ INSERT INTO txt VALUES ('show_all_owners',		'German', 	'Alle Eigent&uuml;mer mit
 INSERT INTO txt VALUES ('show_all_owners',		'English', 	'All owners with active recertification');
 INSERT INTO txt VALUES ('show_inactive_recert_owners', 'German', 'Eigent&uuml;mer ohne aktive Rezertifizierung');
 INSERT INTO txt VALUES ('show_inactive_recert_owners', 'English', 'Owners with inactive recertification');
+INSERT INTO txt VALUES ('merge_owner_recert_tables', 'German', 'Alle angezeigten Tabellen zusammenf&uuml;hren');
+INSERT INTO txt VALUES ('merge_owner_recert_tables', 'English', 'Merge all displayed tables');
+INSERT INTO txt VALUES ('owner_additional_info_key', 'German', 'Schl&uuml;ssel der Zusatzinformation');
+INSERT INTO txt VALUES ('owner_additional_info_key', 'English', 'Additional info key');
 INSERT INTO txt VALUES ('recert_activated',		'German', 	'Rezertifizierung aktiviert');
 INSERT INTO txt VALUES ('recert_activated',		'English', 	'Recertification activated');
 INSERT INTO txt VALUES ('no_recerts',			'German', 	'keine Rezertifizierung vorhanden');
@@ -2798,10 +2802,22 @@ INSERT INTO txt VALUES ('requested_ext_app_id', 'German',   'Angeforderte extern
 INSERT INTO txt VALUES ('requested_ext_app_id', 'English',  'Requested External Application Id');
 INSERT INTO txt VALUES ('requesting_ext_app_id','German',   'Anfordernde externe Anwendungs-Id');
 INSERT INTO txt VALUES ('requesting_ext_app_id','English',  'Requesting External Application Id');
+INSERT INTO txt VALUES ('requesting_owner_state','German',  'Status des anfordernden Eigent&uuml;mers');
+INSERT INTO txt VALUES ('requesting_owner_state','English', 'Requesting Owner State');
 INSERT INTO txt VALUES ('used_in_connection_ids','German',  'Genutzt in Verbindungs-ID(s)');
 INSERT INTO txt VALUES ('used_in_connection_ids','English', 'Used In Connection ID(s)');
-INSERT INTO txt VALUES ('show_removed_requested_interfaces','German', 'Gel&ouml;schte angeforderte Schnittstellen anzeigen');
-INSERT INTO txt VALUES ('show_removed_requested_interfaces','English', 'Show removed requested interfaces');
+INSERT INTO txt VALUES ('requested_owner_state','German',   'Status des angeforderten Eigent&uuml;mers');
+INSERT INTO txt VALUES ('requested_owner_state','English',  'Requested Owner State');
+INSERT INTO txt VALUES ('show_removed_requested_interfaces','German', 'Gel&ouml;schte angeforderte Schnittstellen');
+INSERT INTO txt VALUES ('show_removed_requested_interfaces','English', 'Removed requested interfaces');
+INSERT INTO txt VALUES ('show_import_deactivated_requested_interfaces','German', 'Schnittstellenanfragen import-deaktivierter Eigent&uuml;mer');
+INSERT INTO txt VALUES ('show_import_deactivated_requested_interfaces','English', 'Interface requests of import-deactivated owners');
+INSERT INTO txt VALUES ('show_lifecycle_deactivated_requested_interfaces','German', 'Schnittstellenanfragen von Eigent&uuml;mern mit inaktivem Lifecycle-Status');
+INSERT INTO txt VALUES ('show_lifecycle_deactivated_requested_interfaces','English', 'Interface requests of owners with inactive lifecycle state');
+INSERT INTO txt VALUES ('owner_import_deactivated','German', 'Durch Import deaktiviert');
+INSERT INTO txt VALUES ('owner_import_deactivated','English', 'Import deactivated');
+INSERT INTO txt VALUES ('owner_lifecycle_deactivated','German', 'Inaktiver Lifecycle-Status');
+INSERT INTO txt VALUES ('owner_lifecycle_deactivated','English', 'Inactive lifecycle state');
 INSERT INTO txt VALUES ('criticality',          'German',   'Kritikalit&auml;t');
 INSERT INTO txt VALUES ('criticality',          'English',  'Criticality');
 INSERT INTO txt VALUES ('comm_svc_possible',    'German',   'Common Service zugelassen');
@@ -2810,8 +2826,8 @@ INSERT INTO txt VALUES ('additional_info',      'German',   'Zus&auml;tzliche In
 INSERT INTO txt VALUES ('additional_info',      'English',  'Additional Information');
 INSERT INTO txt VALUES ('dn',                   'German',   'Vollst&auml;ndiger Name');
 INSERT INTO txt VALUES ('dn',                   'English',  'Distinguished Name');
-INSERT INTO txt VALUES ('main_responsible',     'German',   'Hauptverantwortlicher (DN)');
-INSERT INTO txt VALUES ('main_responsible',     'English',  'Main responsible person (DN)');
+INSERT INTO txt VALUES ('main_responsible',     'German',   'Hauptverantwortlicher');
+INSERT INTO txt VALUES ('main_responsible',     'English',  'Main responsible person');
 INSERT INTO txt VALUES ('responsibles',         'German',   'Verantwortliche');
 INSERT INTO txt VALUES ('responsibles',         'English',  'Responsibles');
 INSERT INTO txt VALUES ('allow_modelling',      'German',   'Modelling erlauben');
@@ -3269,6 +3285,10 @@ INSERT INTO txt VALUES ('reject_ticket',        'German',   'Auftrag als abgeleh
 INSERT INTO txt VALUES ('reject_ticket',        'English',  'Close Ticket as rejected');
 INSERT INTO txt VALUES ('reject_tickets',       'German',   'Auftr&auml;ge als abgelehnt schliessen');
 INSERT INTO txt VALUES ('reject_tickets',       'English',  'Close Tickets as rejected');
+INSERT INTO txt VALUES ('close_as_done',        'German',   'Als erledigt schliessen');
+INSERT INTO txt VALUES ('close_as_done',        'English',  'Close as done');
+INSERT INTO txt VALUES ('close_tickets_as_done','German',   'Auftr&auml;ge als erledigt schliessen');
+INSERT INTO txt VALUES ('close_tickets_as_done','English',  'Close Tickets as done');
 INSERT INTO txt VALUES ('orphaned_requested_interface_tickets', 'German', 'Offene Tickets mit Problemen bei angeforderten Schnittstellen');
 INSERT INTO txt VALUES ('orphaned_requested_interface_tickets', 'English', 'Open tickets with requested interface problems');
 INSERT INTO txt VALUES ('orphaned_requested_interface_tickets_empty', 'German', 'Es wurden keine offenen Tickets mit Problemen bei angeforderten Schnittstellen gefunden.');
@@ -3496,6 +3516,8 @@ INSERT INTO txt VALUES ('U4008', 'German',  'Weitere Apps');
 INSERT INTO txt VALUES ('U4008', 'English', 'Further apps');
 INSERT INTO txt VALUES ('U4009', 'German',  'Apps ohne aktive Rezertifizierung');
 INSERT INTO txt VALUES ('U4009', 'English', 'Apps without active recertification');
+INSERT INTO txt VALUES ('owner_recert_overview', 'German', 'Rezertifizierungs&uuml;bersicht');
+INSERT INTO txt VALUES ('owner_recert_overview', 'English', 'Recertification overview');
 INSERT INTO txt VALUES ('U4501', 'German',  'Sind sie sicher, dass sie folgende Policy l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U4501', 'English', 'Are you sure you want to delete policy: ');
 INSERT INTO txt VALUES ('U4502', 'German',  'Sind sie sicher, dass sie folgendes Fixes Kriterium l&ouml;schen wollen: ');
@@ -3771,6 +3793,14 @@ INSERT INTO txt VALUES ('U9036', 'German',  'Zur&uuml;ckgewiesen durch Admin');
 INSERT INTO txt VALUES ('U9036', 'English', 'Rejected by Admin');
 INSERT INTO txt VALUES ('U9037', 'German',  'Die G&uuml;ltigkeitsdauer des Zugriffstokens darf die G&uuml;ltigkeitsdauer des Aktualisierungstokens nicht &uuml;berschreiten.');
 INSERT INTO txt VALUES ('U9037', 'English', 'Access token lifetime cannot exceed refresh token lifetime.');
+INSERT INTO txt VALUES ('U9038', 'German',  'Als erledigt durch Admin geschlossen');
+INSERT INTO txt VALUES ('U9038', 'English', 'Closed as done by Admin');
+INSERT INTO txt VALUES ('U9039', 'German',  'Ticket als erledigt geschlossen.');
+INSERT INTO txt VALUES ('U9039', 'English', 'Ticket closed as done.');
+INSERT INTO txt VALUES ('U9040', 'German',  'Sind sie sicher, dass sie @@COUNT@@ Ticket(s) als abgelehnt schliessen wollen?');
+INSERT INTO txt VALUES ('U9040', 'English', 'Are you sure you want to close @@COUNT@@ ticket(s) as rejected?');
+INSERT INTO txt VALUES ('U9041', 'German',  'Sind sie sicher, dass sie @@COUNT@@ Ticket(s) als erledigt schliessen wollen?');
+INSERT INTO txt VALUES ('U9041', 'English', 'Are you sure you want to close @@COUNT@@ ticket(s) as done?');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -4152,6 +4182,8 @@ INSERT INTO txt VALUES ('E9026', 'German',  'Ticket und Verbindung passen nicht 
 INSERT INTO txt VALUES ('E9026', 'English', 'Ticket and connection link mismatch');
 INSERT INTO txt VALUES ('E9027', 'German',  'Angeforderte Schnittstelle gel&ouml;scht');
 INSERT INTO txt VALUES ('E9027', 'English', 'Requested interface removed');
+INSERT INTO txt VALUES ('E9028', 'German',  'Angeforderte Schnittstelle ist bereits ver&ouml;ffentlicht');
+INSERT INTO txt VALUES ('E9028', 'English', 'Requested interface is already published');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');
@@ -4255,6 +4287,10 @@ INSERT INTO txt VALUES ('C1001', 'German',  'Zeige alle Eigent&uuml;er, f&uuml; 
 INSERT INTO txt VALUES ('C1001', 'English', 'Show all owners with recertification activated.');
 INSERT INTO txt VALUES ('C1002', 'German',  'Zeige Eigent&uuml;mer, f&uuml;r die keine aktive Rezertifizierung konfiguriert ist, in einem separaten Kapitel.');
 INSERT INTO txt VALUES ('C1002', 'English', 'Show owners without active recertification in a separate chapter.');
+INSERT INTO txt VALUES ('C1003', 'German',  'F&uuml;hre alle im Bericht angezeigten Rezertifizierungstabellen zu einer Tabelle zusammen.');
+INSERT INTO txt VALUES ('C1003', 'English', 'Merge all recertification tables displayed in the report into one table.');
+INSERT INTO txt VALUES ('C1004', 'German',  'Zeige den Wert dieses Schl&uuml;ssels aus den Zusatzinformationen des Eigent&uuml;mers als zus&auml;tzliche Spalte.');
+INSERT INTO txt VALUES ('C1004', 'English', 'Show the value of this key from the owner additional information as an extra column.');
 INSERT INTO txt VALUES ('C9000', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der App Rolle entfernt werden.');
 INSERT INTO txt VALUES ('C9000', 'English', 'This object was deactivated and should be removed from App Role.');
 INSERT INTO txt VALUES ('C9001', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der Verbindung entfernt werden.');
@@ -7181,11 +7217,11 @@ INSERT INTO txt VALUES ('H7422', 'English', 'The state filter can be used to res
 ');
 INSERT INTO txt VALUES ('H7423', 'German', 'Wenn problematische angeforderte Schnittstellen noch offene Tickets besitzen, kann der Administrator diese gesammelt als abgelehnt schliessen.');
 INSERT INTO txt VALUES ('H7423', 'English', 'If requested interface problems still have open tickets, the administrator can close those tickets together as rejected.');
-INSERT INTO txt VALUES ('H7424', 'German', 'Die Schaltfl&auml;che "Offene Tickets mit Problemen bei angeforderten Schnittstellen" &ouml;ffnet eine separate Liste aller noch offenen New-Interface-Tickets, deren Schnittstellenverkn&uuml;pfung fehlt, defekt, gel&ouml;scht oder verd&auml;chtig ist.
-    Die Pr&uuml;fung erfolgt erst beim &Ouml;ffnen des Fensters und ist damit unabh&auml;ngig von der aktuell angezeigten Tabellenfilterung.
+INSERT INTO txt VALUES ('H7424', 'German', 'Die Schaltfl&auml;che "Offene Tickets mit Problemen bei angeforderten Schnittstellen" &ouml;ffnet eine separate Liste aller noch offenen New-Interface-Tickets, deren Schnittstellenverkn&uuml;pfung fehlt, defekt, gel&ouml;scht, bereits ver&ouml;ffentlicht oder verd&auml;chtig ist.
+    Die Pr&uuml;fung erfolgt erst beim &Ouml;ffnen des Fensters und ist damit unabh&auml;ngig von der aktuell angezeigten Tabellenfilterung. Je nach Problem k&ouml;nnen Tickets als abgelehnt oder als erledigt geschlossen werden.
 ');
-INSERT INTO txt VALUES ('H7424', 'English', 'The button "Open tickets with requested interface problems" opens a separate list of all still open new-interface tickets whose requested interface linkage is missing, broken, removed, or suspicious.
-    The check is performed only when opening the popup, so it is independent from the current table filter.
+INSERT INTO txt VALUES ('H7424', 'English', 'The button "Open tickets with requested interface problems" opens a separate list of all still open new-interface tickets whose requested interface linkage is missing, broken, removed, already published, or suspicious.
+    The check is performed only when opening the popup, so it is independent from the current table filter. Depending on the problem, tickets can be closed as rejected or as done.
 ');
 INSERT INTO txt VALUES ('H7425', 'German', 'Diese Seite listet Owner mit modellierten Verbindungen und zeigt den letzten zugeordneten Workflow-Antrag.
     Die Spalte Antragsstatus wird aus den konfigurierten Integrationsstatuswerten der modellierten Verbindungen und Gruppen sowie deren Monitorstatus ermittelt. Sie unterscheidet zwischen nie beantragt, laufendem Antrag, nichts zu beantragen, alles implementiert, Ablehnungen und nicht beantragten &Auml;nderungen.

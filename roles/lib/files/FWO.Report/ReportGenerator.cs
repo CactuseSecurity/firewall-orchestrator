@@ -78,17 +78,20 @@ namespace FWO.Report
                     return Task.CompletedTask;
                 }, token);
             report.ReportData.RecertificationDisplayPeriod = reportTemplate.ReportParams.RecertFilter.RecertificationDisplayPeriod;
+            report.ReportData.MergeOwnerRecertTables = reportTemplate.ReportParams.ModellingFilter.MergeOwnerRecertTables;
+            report.ReportData.OwnerAdditionalInfoKey = reportTemplate.ReportParams.ModellingFilter.OwnerAdditionalInfoKey;
             foreach (var owner in report.ReportData.OwnerData.Select(o => o.Owner))
             {
                 if (!owner.RecertActive)
                 {
                     continue;
                 }
-                if (owner.NextRecertDate < DateTime.Now)
+                DateTime? effectiveNextRecertDate = owner.GetEffectiveNextRecertDate(report.userConfig.RecertificationPeriod);
+                if (effectiveNextRecertDate < DateTime.Now)
                 {
                     owner.RecertOverdue = true;
                 }
-                else if (owner.NextRecertDate < DateTime.Now.AddDays(reportTemplate.ReportParams.RecertFilter.RecertificationDisplayPeriod))
+                else if (effectiveNextRecertDate < DateTime.Now.AddDays(reportTemplate.ReportParams.RecertFilter.RecertificationDisplayPeriod))
                 {
                     owner.RecertUpcoming = true;
                 }

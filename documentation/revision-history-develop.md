@@ -426,7 +426,15 @@ These settings are no longer used due to the full automation of UpdateRuleOwner.
 # 9.1.4 - 03.06.2026 DEVELOP
 - remove legacy ownerLdapGroupNames owner mapping fallback
 
-### 9.1.5 - 05.06.2026 DEVELOP
+# 9.1.5 - 05.06.2026 DEVELOP
+- remove old jwt token lifetime config values
+- asynchronous initial JWT bootstrap in the UI
+- subscription-aware reconnect logic after JWT refresh
+- a separate GraphQL subscription client path
+- improved cancellation and JWT-expiry handling
+- a small cleanup of exception logging for subscription errors
+
+### 9.1.6 - 06.06.2026 DEVELOP
 security patches
 
 This PR hardens FWO installation and security-sensitive workflows. It restricts app data import file/script paths, reduces installer secret exposure, tightens Hasura config permissions, improves LDAP/install test idempotency, removes the obsolete webhook role, and fixes related installer/test reliability issues. It also includes targeted documentation and version updates.

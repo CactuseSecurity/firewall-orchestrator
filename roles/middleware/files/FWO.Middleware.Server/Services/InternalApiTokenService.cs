@@ -60,8 +60,10 @@ namespace FWO.Middleware.Server.Services
                 }
 
                 string refreshedToken = CreateNewMiddlewareToken();
-                apiConnection.SetAuthHeader(refreshedToken);
-                Log.WriteDebug("Jwt generation", $"Rotated internal middleware JWT. Valid until: {TimeZoneInfo.ConvertTimeFromUtc(currentTokenExpiresUtc, TimeZoneInfo.Local)}.");
+                await apiConnection.ReconnectSubscriptionsAsync(refreshedToken, cancellationToken);
+
+                Log.WriteAudit(nameof(InternalApiTokenService), BuildTokenAuditText(refreshedToken, "Rotated internal middleware JWT."));
+
                 return refreshedToken;
             }
             finally
@@ -81,6 +83,18 @@ namespace FWO.Middleware.Server.Services
             currentToken = jwtWriter.CreateJWTMiddlewareServer(lifetime);
             currentTokenExpiresUtc = tokenHandler.ReadJwtToken(currentToken).ValidTo;
             return currentToken;
+        }
+
+        /// <summary>
+        /// Builds the log text for a middleware token refresh.
+        /// </summary>
+        /// <param name="jwt">Refreshed JWT.</param>
+        /// <param name="actionText">Human-readable action prefix.</param>
+        /// <returns>Log message text containing jti and expiry information.</returns>
+        private static string BuildTokenAuditText(string jwt, string actionText)
+        {
+            JwtSecurityToken accessToken = new JwtSecurityTokenHandler().ReadJwtToken(jwt);
+            return $"{actionText} access_jti={accessToken.Id}, access_expires={accessToken.ValidTo.ToLocalTime():yyyy-MM-dd'T'HH:mm:sszzz}";
         }
     }
 }

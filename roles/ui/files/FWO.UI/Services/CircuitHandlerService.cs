@@ -12,7 +12,21 @@ namespace FWO.Ui.Services
 
         private readonly UserSessionClosedEvent OnUserSessionClosed = new();
 
+        public override Task OnConnectionDownAsync(Circuit circuit, CancellationToken cancellationToken)
+        {
+            PublishSessionClosedEvent();
+
+            return base.OnConnectionDownAsync(circuit, cancellationToken);
+        }
+
         public override Task OnCircuitClosedAsync(Circuit circuit, CancellationToken cancellationToken)
+        {
+            PublishSessionClosedEvent();
+
+            return base.OnCircuitClosedAsync(circuit, cancellationToken);
+        }
+
+        private void PublishSessionClosedEvent()
         {
             if (User != null)
             {
@@ -24,10 +38,8 @@ namespace FWO.Ui.Services
                     UserName = User.Name,
                 };
 
-                eventMediator.Publish(nameof(CircuitHandlerService), OnUserSessionClosed);
+                eventMediator.Publish(nameof(UserSessionClosedEvent), OnUserSessionClosed);
             }
-
-            return base.OnCircuitClosedAsync(circuit, cancellationToken);
         }
     }
 }

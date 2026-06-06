@@ -1,4 +1,6 @@
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Basics;
+using FWO.Basics.Exceptions;
 using FWO.Logging;
 using GraphQL;
 using GraphQL.Client.Abstractions;
@@ -6,6 +8,7 @@ using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.Newtonsoft;
 using GraphQL.Client.Serializer.SystemTextJson;
 using Newtonsoft.Json.Linq;
+using System.Net.Http.Headers;
 using System.Security.Authentication;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -18,35 +21,42 @@ namespace FWO.Api.Client
         // Server URL
         public string ApiServerUri { get; private set; } = "";
 
-        private GraphQLHttpClient graphQlClient = null!;
+        private GraphQLHttpClient? graphQlClient;
+        private GraphQLHttpClient? graphQlSubscriptionClient;
 
         private readonly AsyncLocal<List<string>?> roleStack = new();
         private string defaultRole = "";
         private string forcedExecutionMode = "";
         private bool restrictElevatedRoleSwitches = false;
 
-        private void Initialize(string ApiServerUri)
-        {
-            // Save Server URI
-            this.ApiServerUri = ApiServerUri;
+        private readonly SemaphoreSlim _reconnectLock = new(1, 1);
 
-            // Allow all certificates | TODO: REMOVE IF SERVER GOT VALID CERTIFICATE
-            HttpClientHandler Handler = new()
+        private GraphQLHttpClient CreateClient(string apiServerUri)
+        {
+            HttpClientHandler handler = new()
             {
                 ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
             };
 
-            graphQlClient = new GraphQLHttpClient(new GraphQLHttpClientOptions()
+            GraphQLHttpClient client = new(new GraphQLHttpClientOptions()
             {
-                EndPoint = new Uri(this.ApiServerUri),
-                HttpMessageHandler = Handler,
+                EndPoint = new Uri(apiServerUri),
+                HttpMessageHandler = handler,
                 UseWebSocketForQueriesAndMutations = false, // TODO: Use websockets for performance reasons          
                 ConfigureWebsocketOptions = webSocketOptions => webSocketOptions.RemoteCertificateValidationCallback += (message, cert, chain, errors) => true,
                 ConfigureWebSocketConnectionInitPayload = _ => CreateWebSocketConnectionInitPayload()
             }, ApiConstants.UseSystemTextJsonSerializer ? new SystemTextJsonSerializer() : new NewtonsoftJsonSerializer());
 
-            // 1 hour timeout
-            graphQlClient.HttpClient.Timeout = new TimeSpan(1, 0, 0);
+            client.HttpClient.Timeout = new TimeSpan(1, 0, 0);
+            return client;
+        }
+
+        private void Initialize(string ApiServerUri)
+        {
+            // Save Server URI
+            this.ApiServerUri = ApiServerUri;
+            graphQlClient = CreateClient(this.ApiServerUri);
+            graphQlSubscriptionClient = CreateClient(this.ApiServerUri);
         }
 
         public GraphQlApiConnection(string ApiServerUri, string jwt)
@@ -62,9 +72,28 @@ namespace FWO.Api.Client
 
         public override void SetAuthHeader(string jwt)
         {
-            graphQlClient.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); // Change jwt in auth header
-            defaultRole = GetDefaultRoleFromJwt(jwt);
+            ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
+            ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
+
+            ApplyAuthHeader(graphQlClient, jwt);
+            ApplyAuthHeader(graphQlSubscriptionClient, jwt);
+
             InvokeOnAuthHeaderChanged(this, jwt);
+        }
+
+        private static void ApplyAuthHeader(GraphQLHttpClient client, string jwt)
+        {
+            client.HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+            client.Options.ConfigureWebSocketConnectionInitPayload = httpClientOptions => new { headers = new { authorization = $"Bearer {jwt}" } };
+        }
+
+        private static void ApplyRoleHeader(GraphQLHttpClient client, string role)
+        {
+            client.HttpClient.DefaultRequestHeaders.Remove("x-hasura-role");
+            if (role != "")
+            {
+                client.HttpClient.DefaultRequestHeaders.Add("x-hasura-role", role);
+            }
         }
 
         public override void SetRole(string role)
@@ -103,6 +132,15 @@ namespace FWO.Api.Client
             return forcedExecutionMode == "" ? GlobalConst.kUserRolesSelection : forcedExecutionMode;
         }
 
+        private void SetRoleHeader(string role)
+        {
+            ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
+            ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
+
+            ApplyRoleHeader(graphQlClient, role);
+            ApplyRoleHeader(graphQlSubscriptionClient, role);
+        }
+
         public bool IsActRole(string role)
         {
             return role == GetActRole();
@@ -110,11 +148,20 @@ namespace FWO.Api.Client
 
         public string GetActRole()
         {
-            List<string>? roles = roleStack.Value;
-            return roles == null || roles.Count == 0 ? GetBaselineRole() : roles[^1];
+            ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
+
+            if (graphQlClient.HttpClient.DefaultRequestHeaders.TryGetValues("x-hasura-role", out IEnumerable<string>? roles))
+            {
+                if (roles.Count() > 1)
+                {
+                    Log.WriteDebug("API call", $"More than one role in x-hasura-role: {roles}");
+                }
+                return roles.First();
+            }
+            return "";
         }
 
-        public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
+        public override void SetBestRole(ClaimsPrincipal user, List<string> targetRoleList)
         {
             bool includeElevatedRoles = !HasSelectableUserRole(user);
             string targetRole = IsForcedExecutionMode(user)
@@ -124,7 +171,7 @@ namespace FWO.Api.Client
             PushRole(targetRole);
         }
 
-        public override void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
+        public override void SetProperRole(ClaimsPrincipal user, List<string> targetRoleList)
         {
             string actRole = GetActRole();
             string? targetRole = null;
@@ -237,6 +284,8 @@ namespace FWO.Api.Client
         {
             try
             {
+                ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
+
                 if (chunkingOptions != null && chunkingOptions.Enabled)
                 {
                     return await SendChunkedQueryAsync<QueryResponseType>(query, variables, operationName, chunkingOptions);
@@ -287,6 +336,8 @@ namespace FWO.Api.Client
         {
             try
             {
+                ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
+
                 Log.WriteDebug("API call", $"Sending API call {operationName} in role {GetActRole()}: {query.Substring(0, Math.Min(query.Length, 70)).Replace(Environment.NewLine, "")}... " +
                     (variables != null ? "with variables: <redacted>" : ""));
                 GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(CreateHttpRequest(query, variables, operationName));
@@ -357,9 +408,10 @@ namespace FWO.Api.Client
         {
             try
             {
-                GraphQLRequest request = CreateSubscriptionRequest(subscription, variables, operationName);
-                GraphQlApiSubscription<SubscriptionResponseType> newSub =
-                    new(this, graphQlClient, request, exceptionHandler, subscriptionUpdateHandler);
+                ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
+
+                GraphQLRequest request = new(subscription, variables, operationName);
+                GraphQlApiSubscription<SubscriptionResponseType> newSub = new(this, graphQlSubscriptionClient, request, exceptionHandler, subscriptionUpdateHandler);
                 subscriptions.Add(newSub);
 
                 return newSub;
@@ -368,6 +420,56 @@ namespace FWO.Api.Client
             {
                 Log.WriteError(LogCategory, "Error while creating subscription to GraphQL API.", exception);
                 throw;
+            }
+        }
+
+        public override async Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
+        {
+            await _reconnectLock.WaitAsync(ct);
+
+            try
+            {
+                ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
+                ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
+                List<ApiSubscription> activeSubscriptions = subscriptions.Where(subscription => !subscription.IsDisposed).ToList();
+                Log.WriteInfo(LogCategory, $"Reconnecting {activeSubscriptions.Count} API subscriptions after JWT refresh.");
+
+                GraphQLHttpClient oldSubscriptionClient = graphQlSubscriptionClient;
+                GraphQLHttpClient newSubscriptionClient = CreateClient(ApiServerUri);
+                ApplyAuthHeader(graphQlClient, jwt);
+                ApplyRoleHeader(graphQlClient, GetActRole());
+                ApplyAuthHeader(newSubscriptionClient, jwt);
+                ApplyRoleHeader(newSubscriptionClient, GetActRole());
+
+                List<ApiSubscription> recreatedSubscriptions = [];
+                graphQlSubscriptionClient = newSubscriptionClient;
+
+                foreach (ApiSubscription subscription in activeSubscriptions)
+                {
+                    recreatedSubscriptions.Add(subscription.Recreate(newSubscriptionClient));
+                }
+
+                subscriptions.Clear();
+                subscriptions.AddRange(recreatedSubscriptions);
+
+                foreach (ApiSubscription subscription in activeSubscriptions)
+                {
+                    subscription.Dispose();
+                }
+
+                oldSubscriptionClient.Dispose();
+            }
+            catch (TaskCanceledException)
+            {
+                Log.WriteDebug(LogCategory, $"{nameof(ReconnectSubscriptionsAsync)} was cancelled.");
+            }
+            catch (Exception ex) when (ex is ObjectDisposedException)
+            {
+                Log.WriteError(LogCategory, "Error while reconnecting subscription", ex);
+            }
+            finally
+            {
+                _reconnectLock.Release();
             }
         }
 
@@ -479,8 +581,10 @@ namespace FWO.Api.Client
 
         private async Task<JObject> SendSingleChunkAsync(string query, object variables, string? operationName, QueryChunkingOptions chunkingOptions, object?[] batch)
         {
-            object chunkedVariables = ReplaceChunkVariable(variables!, chunkingOptions.ChunkVariableName, batch.ToList());
-            GraphQLResponse<dynamic> chunkResponse = await graphQlClient.SendQueryAsync<dynamic>(CreateHttpRequest(query, chunkedVariables, operationName));
+            ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
+
+            object chunkedVariables = ReplaceChunkVariable(variables!, chunkingOptions.ChunkVariableName, [.. batch]);
+            GraphQLResponse<dynamic> chunkResponse = await graphQlClient.SendQueryAsync<dynamic>(query, chunkedVariables, operationName);
 
             if (chunkResponse.Errors != null)
             {
@@ -681,11 +785,17 @@ namespace FWO.Api.Client
         {
             if (disposing)
             {
-                graphQlClient.Dispose();
                 foreach (ApiSubscription subscription in subscriptions)
                 {
                     subscription.Dispose();
                 }
+
+                subscriptions.Clear();
+
+                graphQlClient?.Dispose();
+                graphQlClient = null;
+                graphQlSubscriptionClient?.Dispose();
+                graphQlSubscriptionClient = null;
             }
         }
 

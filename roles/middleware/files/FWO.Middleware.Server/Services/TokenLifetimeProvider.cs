@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Config.Api.Data;
+using FWO.Data.Enums;
 
 namespace FWO.Middleware.Server.Services
 {
@@ -9,16 +10,16 @@ namespace FWO.Middleware.Server.Services
     public class TokenLifetimeProvider
     {
         private static readonly TimeSpan kAnonymousTokenLifetime = TimeSpan.FromMinutes(15);
-        private static readonly TimeSpan kInternalServiceTokenLifetime = TimeSpan.FromMinutes(15);
-        private static readonly TimeSpan kDelegatedUserTokenLifetime = TimeSpan.FromHours(1);
+        private static readonly TimeSpan kInternalServiceTokenLifetime = TimeSpan.FromMinutes(60);
 
         /// <summary>
         /// Gets the configured access-token lifetime for interactive users.
         /// </summary>
         public virtual async Task<TimeSpan> GetUserAccessTokenLifetimeAsync(ApiConnection apiConnection)
         {
-            int lifetimeHours = await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.AccessTokenLifetimeHours));
-            return TimeSpan.FromHours(Math.Max(1, lifetimeHours));
+            int lifetimeValue = await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.AccessTokenLifetime));
+            TokenLifetimeUnit lifetimeUnit = await UiUserHandler.GetExpirationUnit(apiConnection, nameof(ConfigData.AccessTokenLifetimeUnit));
+            return ConvertToTimeSpan(lifetimeValue, lifetimeUnit);
         }
 
         /// <summary>
@@ -26,8 +27,9 @@ namespace FWO.Middleware.Server.Services
         /// </summary>
         public virtual async Task<TimeSpan> GetRefreshTokenLifetimeAsync(ApiConnection apiConnection)
         {
-            int lifetimeDays = await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.RefreshTokenLifetimeDays));
-            return TimeSpan.FromDays(Math.Max(1, lifetimeDays));
+            int lifetimeValue = await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.RefreshTokenLifetime));
+            TokenLifetimeUnit lifetimeUnit = await UiUserHandler.GetExpirationUnit(apiConnection, nameof(ConfigData.RefreshTokenLifetimeUnit));
+            return ConvertToTimeSpan(lifetimeValue, lifetimeUnit);
         }
 
         /// <summary>
@@ -46,26 +48,17 @@ namespace FWO.Middleware.Server.Services
             return kInternalServiceTokenLifetime;
         }
 
-        /// <summary>
-        /// Gets the maximum lifetime for delegated user tokens.
-        /// </summary>
-        public virtual TimeSpan GetDelegatedUserTokenLifetime()
+        private static TimeSpan ConvertToTimeSpan(int value, TokenLifetimeUnit unit)
         {
-            return kDelegatedUserTokenLifetime;
-        }
+            int safeValue = Math.Max(1, value);
 
-        /// <summary>
-        /// Caps a requested delegated user-token lifetime to the configured maximum.
-        /// </summary>
-        public virtual TimeSpan CapDelegatedUserTokenLifetime(TimeSpan? requestedLifetime)
-        {
-            TimeSpan maxLifetime = GetDelegatedUserTokenLifetime();
-            if (requestedLifetime == null || requestedLifetime.Value <= TimeSpan.Zero)
+            return unit switch
             {
-                return maxLifetime;
-            }
-
-            return requestedLifetime.Value <= maxLifetime ? requestedLifetime.Value : maxLifetime;
+                TokenLifetimeUnit.Minutes => TimeSpan.FromMinutes(safeValue),
+                TokenLifetimeUnit.Hours => TimeSpan.FromHours(safeValue),
+                TokenLifetimeUnit.Days => TimeSpan.FromDays(safeValue),
+                _ => TimeSpan.FromHours(safeValue)
+            };
         }
     }
 }

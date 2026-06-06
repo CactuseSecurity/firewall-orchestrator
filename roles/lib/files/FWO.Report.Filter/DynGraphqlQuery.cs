@@ -434,6 +434,15 @@ namespace FWO.Report.Filter
         private static string ConstructOwnerQuery(DynGraphqlQuery query, string paramString, ReportType reportType)
         {
             string orderBy = reportType == ReportType.OwnerRecertification ? "next_recert_date: desc, name: asc" : "name: asc";
+            string ownerCreationHintProjection = reportType == ReportType.OwnerRecertification
+                ? @"
+                        changelog_owners(where: {change_action: {_eq: ""I""}}, order_by: {import_control: {stop_time: asc_nulls_last}, log_owner_id: asc}, limit: 1) {
+                            change_action
+                            import: import_control {
+                                time: stop_time
+                            }
+                        }"
+                : "";
             return $@"
                 {OwnerQueries.ownerDetailsFragment}
                 query getOwners ({paramString})
@@ -441,6 +450,7 @@ namespace FWO.Report.Filter
                     owner (where: {{ {query.OwnerWhereStatement} }} order_by: {{ {orderBy} }})
                     {{
                         ...ownerDetails
+                        {ownerCreationHintProjection}
                     }}
                 }}";
         }

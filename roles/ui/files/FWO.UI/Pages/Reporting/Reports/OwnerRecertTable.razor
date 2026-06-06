@@ -1,5 +1,6 @@
 ﻿@using FWO.Ui.Display
 
+@using FWO.Basics
 @inject UserConfig userConfig
 
 <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="FwoOwner" Items="Owners" PageSize="0">
@@ -7,22 +8,35 @@
     {
         <Column TableItem="FwoOwner" Title="@(userConfig.GetText("next_recert_date"))" Field="@(x => x.Id)" >
             <Template>
-                @(context.NextRecertDate?.ToString("dd.MM.yyyy") ?? "")
+                @(OwnerRecertDisplay.FormatNextRecertDate(context, userConfig))
             </Template>
         </Column>
     }
     <Column TableItem="FwoOwner" Title="@(userConfig.GetText("id"))" Field="@(x => x.ExtAppId)" />
     <Column TableItem="FwoOwner" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" />
+    <Column TableItem="FwoOwner" Title="@(userConfig.GetText("main_responsible"))" Field="@(x => x.Id)" >
+        <Template>
+            @(OwnerRecertDisplay.FormatMainResponsibles(context))
+        </Template>
+    </Column>
     @if (ShowRecertData)
     {
         <Column TableItem="FwoOwner" Title="@(userConfig.GetText("last_recertified"))" Field="@(x => x.LastRecertified)" >
             <Template>
-                @(context.LastRecertified?.ToString("dd.MM.yyyy") ?? "")
+                @(OwnerRecertDisplay.FormatLastRecertified(context, userConfig))
             </Template>
         </Column>
         <Column TableItem="FwoOwner" Title="@(userConfig.GetText("last_recertifier"))" Field="@(x => x.LastRecertifierDn)" >
            <Template>
                 @(GetRecertifierName(context))
+            </Template>
+        </Column>
+    }
+    @if (HasAdditionalInfoColumn())
+    {
+        <Column TableItem="FwoOwner" Title="@AdditionalInfoColumnTitle" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+           <Template>
+                @((MarkupString)GetAdditionalInfoValueHtml(context))
             </Template>
         </Column>
     }
@@ -37,9 +51,25 @@
     [Parameter]
     public bool ShowRecertData { get; set; } = true;
 
+    [Parameter]
+    public string AdditionalInfoKey { get; set; } = "";
+
+    private string AdditionalInfoColumnTitle => $"{userConfig.GetText("label")}: {AdditionalInfoKey}";
+
     private string GetRecertifierName(FwoOwner owner)
     {
         string UserName = new DistName(owner.LastRecertifierDn).UserName;
         return string.IsNullOrEmpty(UserName) ? (owner.LastRecertifierDn ?? "") : UserName;
     }
+
+    private bool HasAdditionalInfoColumn()
+    {
+        return !string.IsNullOrWhiteSpace(AdditionalInfoKey);
+    }
+
+    private string GetAdditionalInfoValueHtml(FwoOwner owner)
+    {
+        return OwnerRecertDisplay.FormatAdditionalInfoValueHtml(owner, AdditionalInfoKey);
+    }
+
 }

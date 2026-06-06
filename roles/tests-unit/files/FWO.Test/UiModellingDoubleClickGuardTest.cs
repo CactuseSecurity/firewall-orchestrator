@@ -43,6 +43,7 @@ namespace FWO.Test
         private static IEnumerable ArgumentHandlerCases()
         {
             yield return new TestCaseData(typeof(OrphanedRequestedInterfaceTicketsPopup), "RejectTickets", new object[] { new List<long> { 1 } });
+            yield return new TestCaseData(typeof(OrphanedRequestedInterfaceTicketsPopup), "CloseTicketsAsDone", new object[] { new List<long> { 1 } });
             yield return new TestCaseData(typeof(DisplayTicket), "PerformAction", new object[] { new WfStateAction() });
             yield return new TestCaseData(typeof(DisplayRequestTask), "PerformAction", new object[] { new WfStateAction() });
             yield return new TestCaseData(typeof(DisplayRequestTask), "ConfApproveTask", new object[] { new WfTicket() });

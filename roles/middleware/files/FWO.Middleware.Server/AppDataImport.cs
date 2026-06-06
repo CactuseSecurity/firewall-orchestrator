@@ -200,7 +200,7 @@ namespace FWO.Middleware.Server
                 }
                 // Store users from all imported responsibles in uiuser for email notifications.
                 await AddAllResponsiblesToUiUser(responsibles);
-                await InitRecert(incomingApp, existingApp, appId);
+                await InitRecert(incomingApp, appId);
             }
             catch (Exception exc)
             {
@@ -477,7 +477,7 @@ namespace FWO.Middleware.Server
                 ownerLifeCycleStateId,
                 importSource = incomingApp.ImportSource,
                 commSvcPossible = false,
-                recertActive = false,
+                recertActive = incomingApp.RecertActive,
                 decommDate = GetDecommDateForNewOwner(ownerLifeCycleStateId)
             };
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newOwner, variables)).ReturnIds;
@@ -1277,10 +1277,9 @@ namespace FWO.Middleware.Server
             return true;
         }
 
-        private async Task InitRecert(ModellingImportAppData incomingApp, FwoOwner? existingApp, int appId)
+        private async Task InitRecert(ModellingImportAppData incomingApp, int appId)
         {
-            if (userConfig.RecertificationMode == RecertificationMode.OwnersAndRules &&
-                incomingApp.RecertActive && (existingApp == null || !existingApp.RecertActive))
+            if (userConfig.RecertificationMode == RecertificationMode.OwnersAndRules && incomingApp.RecertActive)
             {
                 RecertHandler recertHandler = new(apiConnection, userConfig);
                 await recertHandler.InitOwnerRecert(new()

@@ -43,8 +43,7 @@ namespace FWO.Api.Client
                 EndPoint = new Uri(apiServerUri),
                 HttpMessageHandler = handler,
                 UseWebSocketForQueriesAndMutations = false, // TODO: Use websockets for performance reasons          
-                ConfigureWebsocketOptions = webSocketOptions => webSocketOptions.RemoteCertificateValidationCallback += (message, cert, chain, errors) => true,
-                ConfigureWebSocketConnectionInitPayload = _ => CreateWebSocketConnectionInitPayload()
+                ConfigureWebsocketOptions = webSocketOptions => webSocketOptions.RemoteCertificateValidationCallback += (message, cert, chain, errors) => true
             }, ApiConstants.UseSystemTextJsonSerializer ? new SystemTextJsonSerializer() : new NewtonsoftJsonSerializer());
 
             client.HttpClient.Timeout = new TimeSpan(1, 0, 0);
@@ -75,25 +74,17 @@ namespace FWO.Api.Client
             ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
             ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
 
+            defaultRole = GetDefaultRoleFromJwt(jwt);
             ApplyAuthHeader(graphQlClient, jwt);
             ApplyAuthHeader(graphQlSubscriptionClient, jwt);
 
             InvokeOnAuthHeaderChanged(this, jwt);
         }
 
-        private static void ApplyAuthHeader(GraphQLHttpClient client, string jwt)
+        private void ApplyAuthHeader(GraphQLHttpClient client, string jwt)
         {
             client.HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
-            client.Options.ConfigureWebSocketConnectionInitPayload = httpClientOptions => new { headers = new { authorization = $"Bearer {jwt}" } };
-        }
-
-        private static void ApplyRoleHeader(GraphQLHttpClient client, string role)
-        {
-            client.HttpClient.DefaultRequestHeaders.Remove("x-hasura-role");
-            if (role != "")
-            {
-                client.HttpClient.DefaultRequestHeaders.Add("x-hasura-role", role);
-            }
+            client.Options.ConfigureWebSocketConnectionInitPayload = _ => CreateWebSocketConnectionInitPayload(client);
         }
 
         public override void SetRole(string role)
@@ -132,15 +123,6 @@ namespace FWO.Api.Client
             return forcedExecutionMode == "" ? GlobalConst.kUserRolesSelection : forcedExecutionMode;
         }
 
-        private void SetRoleHeader(string role)
-        {
-            ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
-            ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
-
-            ApplyRoleHeader(graphQlClient, role);
-            ApplyRoleHeader(graphQlSubscriptionClient, role);
-        }
-
         public bool IsActRole(string role)
         {
             return role == GetActRole();
@@ -150,15 +132,12 @@ namespace FWO.Api.Client
         {
             ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
 
-            if (graphQlClient.HttpClient.DefaultRequestHeaders.TryGetValues("x-hasura-role", out IEnumerable<string>? roles))
+            List<string>? roles = roleStack.Value;
+            if (roles != null && roles.Count > 0)
             {
-                if (roles.Count() > 1)
-                {
-                    Log.WriteDebug("API call", $"More than one role in x-hasura-role: {roles}");
-                }
-                return roles.First();
+                return roles[^1];
             }
-            return "";
+            return GetBaselineRole();
         }
 
         public override void SetBestRole(ClaimsPrincipal user, List<string> targetRoleList)
@@ -410,7 +389,7 @@ namespace FWO.Api.Client
             {
                 ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
 
-                GraphQLRequest request = new(subscription, variables, operationName);
+                GraphQLRequest request = CreateSubscriptionRequest(subscription, variables, operationName);
                 GraphQlApiSubscription<SubscriptionResponseType> newSub = new(this, graphQlSubscriptionClient, request, exceptionHandler, subscriptionUpdateHandler);
                 subscriptions.Add(newSub);
 
@@ -436,10 +415,9 @@ namespace FWO.Api.Client
 
                 GraphQLHttpClient oldSubscriptionClient = graphQlSubscriptionClient;
                 GraphQLHttpClient newSubscriptionClient = CreateClient(ApiServerUri);
+                defaultRole = GetDefaultRoleFromJwt(jwt);
                 ApplyAuthHeader(graphQlClient, jwt);
-                ApplyRoleHeader(graphQlClient, GetActRole());
                 ApplyAuthHeader(newSubscriptionClient, jwt);
-                ApplyRoleHeader(newSubscriptionClient, GetActRole());
 
                 List<ApiSubscription> recreatedSubscriptions = [];
                 graphQlSubscriptionClient = newSubscriptionClient;
@@ -584,7 +562,7 @@ namespace FWO.Api.Client
             ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
 
             object chunkedVariables = ReplaceChunkVariable(variables!, chunkingOptions.ChunkVariableName, [.. batch]);
-            GraphQLResponse<dynamic> chunkResponse = await graphQlClient.SendQueryAsync<dynamic>(query, chunkedVariables, operationName);
+            GraphQLResponse<dynamic> chunkResponse = await graphQlClient.SendQueryAsync<dynamic>(CreateHttpRequest(query, chunkedVariables, operationName));
 
             if (chunkResponse.Errors != null)
             {
@@ -814,12 +792,12 @@ namespace FWO.Api.Client
             return new RoleGraphQLHttpRequest(GetActRole(), query, variables, operationName);
         }
 
-        private object CreateWebSocketConnectionInitPayload()
+        private object CreateWebSocketConnectionInitPayload(GraphQLHttpClient client)
         {
             string role = GetActRole();
             Dictionary<string, object?> headers = new()
             {
-                ["authorization"] = graphQlClient.HttpClient.DefaultRequestHeaders.Authorization?.ToString()
+                ["authorization"] = client.HttpClient.DefaultRequestHeaders.Authorization?.ToString()
             };
             if (!string.IsNullOrWhiteSpace(role))
             {

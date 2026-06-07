@@ -16,6 +16,7 @@ ALTER TABLE "rule_from" DROP CONSTRAINT IF EXISTS rule_from_rf_last_seen_fkey;
 ALTER TABLE "rule_to" DROP CONSTRAINT IF EXISTS rule_to_rt_last_seen_fkey;
 ALTER TABLE "rule_service" DROP CONSTRAINT IF EXISTS rule_service_rs_last_seen_fkey;
 
+-- remove indices on last_seen columns
 DROP INDEX IF EXISTS "IX_Relationship108";
 DROP INDEX IF EXISTS "IX_Relationship121";
 DROP INDEX IF EXISTS "IX_Relationship123";

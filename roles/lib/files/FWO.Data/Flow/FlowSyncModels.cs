@@ -308,6 +308,11 @@ namespace FWO.Data.Flow
             SvcGroups[group.Hash] = group;
         }
 
+        public void Add(FlowTimeObject timeObject)
+        {
+            TimeObjects[timeObject.Hash] = timeObject;
+        }
+
         public void Add(FlowAccess access)
         {
             Accesses[access.Hash] = access;

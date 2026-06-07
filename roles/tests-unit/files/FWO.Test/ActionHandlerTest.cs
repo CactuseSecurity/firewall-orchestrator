@@ -178,6 +178,10 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)new List<FlowSvcGroup>());
                 }
+                if (query == FlowQueries.getFlowSyncTimeObjects)
+                {
+                    return Task.FromResult((T)(object)new List<FlowTimeObject>());
+                }
                 if (query == FlowQueries.getFlowSyncAccesses)
                 {
                     return Task.FromResult((T)(object)new List<FlowAccess>());

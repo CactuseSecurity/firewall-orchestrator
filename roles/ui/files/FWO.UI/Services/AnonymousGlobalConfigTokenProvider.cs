@@ -1,0 +1,86 @@
+using FWO.Data.Middleware;
+using FWO.Logging;
+using FWO.Middleware.Client;
+using RestSharp;
+using System.Text.Json;
+
+namespace FWO.Ui.Services
+{
+    /// <summary>
+    /// Supplies anonymous bootstrap token pairs for the singleton global configuration subscription.
+    /// </summary>
+    public interface IAnonymousGlobalConfigTokenProvider
+    {
+        /// <summary>
+        /// Requests a fresh anonymous bootstrap token pair from the middleware.
+        /// </summary>
+        /// <param name="cancellationToken">Token used to cancel the request.</param>
+        /// <returns>A fresh anonymous token pair.</returns>
+        Task<TokenPair> CreateTokenPairAsync(CancellationToken cancellationToken);
+    }
+
+    /// <summary>
+    /// Middleware-backed anonymous token provider for the singleton global configuration subscription.
+    /// </summary>
+    public class AnonymousGlobalConfigTokenProvider : IAnonymousGlobalConfigTokenProvider, IDisposable
+    {
+        private readonly MiddlewareClient middlewareClient;
+        private bool disposed;
+
+        /// <summary>
+        /// Creates a provider for anonymous bootstrap token pairs.
+        /// </summary>
+        /// <param name="middlewareServerUri">Base URI of the FWO middleware server.</param>
+        public AnonymousGlobalConfigTokenProvider(string middlewareServerUri)
+        {
+            middlewareClient = new MiddlewareClient(middlewareServerUri);
+        }
+
+        /// <inheritdoc />
+        public async Task<TokenPair> CreateTokenPairAsync(CancellationToken cancellationToken)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+
+            RestResponse<TokenPair> response = await middlewareClient.CreateInitialJWT(cancellationToken);
+            TokenPair? tokenPair = response.Data ?? ParseTokenPairResponse(response);
+
+            if (!response.IsSuccessful || tokenPair == null || string.IsNullOrWhiteSpace(tokenPair.AccessToken))
+            {
+                throw new InvalidOperationException($"Could not create anonymous global config token: {response.ErrorMessage ?? response.Content}");
+            }
+
+            return tokenPair;
+        }
+
+        private static TokenPair? ParseTokenPairResponse(RestResponse<TokenPair> response)
+        {
+            if (string.IsNullOrWhiteSpace(response.Content))
+            {
+                return null;
+            }
+
+            try
+            {
+                return JsonSerializer.Deserialize<TokenPair>(response.Content);
+            }
+            catch (JsonException exception)
+            {
+                Log.WriteWarning("Global Config Token Refresh", $"Failed to deserialize anonymous token pair: {exception.Message}");
+                return null;
+            }
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            if (disposed)
+            {
+                return;
+            }
+
+            middlewareClient.Dispose();
+            disposed = true;
+            GC.SuppressFinalize(this);
+        }
+    }
+}

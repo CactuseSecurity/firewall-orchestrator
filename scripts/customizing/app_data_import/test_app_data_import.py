@@ -989,15 +989,20 @@ class AppDataImportTests(unittest.TestCase):
             parse_additional_information_columns(["invalid-entry"])
 
     def test_build_git_repo_url_includes_credentials_when_configured(self) -> None:
+        git_user: str = "git-user-1"
+        git_auth: str = "sampleCrednetial"
         repo_url: str | None = build_git_repo_url(
             "github.example.de/cmdb/app-export",
-            "git-user-1",
-            "secret",
+            git_user,
+            git_auth,
             self.logger,
             "CMDB",
         )
 
-        self.assertEqual(repo_url, "https://git-user-1:secret@github.example.de/cmdb/app-export")
+        self.assertEqual(
+            repo_url,
+            "https://" + git_user + ":" + git_auth + "@github.example.de/cmdb/app-export",
+        )
 
     def test_build_git_repo_url_uses_anonymous_access_when_credentials_missing(self) -> None:
         repo_url: str | None = build_git_repo_url(

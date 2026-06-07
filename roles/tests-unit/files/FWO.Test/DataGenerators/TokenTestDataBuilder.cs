@@ -10,7 +10,6 @@ namespace FWO.Test.DataGenerators
         public string? Username { get; private set; }
         public string? Password { get; private set; }
         public string? TargetUserName { get; private set; }
-        public TimeSpan? Lifetime { get; private set; }
 
         public TokenTestDataBuilder WithUsername(string user)
         {
@@ -30,12 +29,6 @@ namespace FWO.Test.DataGenerators
             return this;
         }
 
-        public TokenTestDataBuilder WithLifetime(TimeSpan time)
-        {
-            Lifetime = time;
-            return this;
-        }
-
         public AuthenticationTokenGetParameters BuildGetParameters()
         {
             return new AuthenticationTokenGetParameters
@@ -51,8 +44,7 @@ namespace FWO.Test.DataGenerators
             {
                 AdminUsername = Username!,
                 AdminPassword = Password!,
-                TargetUserName = TargetUserName!,
-                Lifetime = Lifetime ?? TimeSpan.FromHours(24)
+                TargetUserName = TargetUserName!
             };
         }
     }

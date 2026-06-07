@@ -4999,6 +4999,24 @@
                   "comment": ""
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "abs_change_id",
+                      "control_id",
+                      "log_owner_id",
+                      "new_owner_id",
+                      "old_owner_id",
+                      "security_relevant",
+                      "change_action",
+                      "source_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -8939,9 +8957,18 @@
                       "successful_import"
                     ],
                     "filter": {
-                      "mgm_id": {
-                        "_in": "x-hasura-visible-managements"
-                      }
+                      "_or": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "import_type_id": {
+                            "_eq": 2
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   },
@@ -8966,9 +8993,18 @@
                       "successful_import"
                     ],
                     "filter": {
-                      "mgm_id": {
-                        "_in": "x-hasura-visible-managements"
-                      }
+                      "_or": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "import_type_id": {
+                            "_eq": 2
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   },
@@ -15760,6 +15796,14 @@
                 "name": "refresh_token",
                 "schema": "public"
               },
+              "object_relationships": [
+                {
+                  "name": "uiuser",
+                  "using": {
+                    "foreign_key_constraint_on": "user_id"
+                  }
+                }
+              ],
               "insert_permissions": [
                 {
                   "role": "middleware-server",
@@ -27372,6 +27416,18 @@
                       "column": "last_recertifier",
                       "table": {
                         "name": "owner",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "refresh_tokens",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "user_id",
+                      "table": {
+                        "name": "refresh_token",
                         "schema": "public"
                       }
                     }

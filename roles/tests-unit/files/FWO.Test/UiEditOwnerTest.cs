@@ -64,13 +64,14 @@ namespace FWO.Test
             bool readOnly,
             List<OwnerResponsibleType>? responsibleTypes = null,
             List<FwoOwner>? existingOwners = null,
-            List<OwnerLifeCycleState>? ownerLifeCycleStates = null)
+            List<OwnerLifeCycleState>? ownerLifeCycleStates = null,
+            EditOwnerTestApiConn? apiConn = null)
         {
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
             context.Services.AddSingleton<AuthenticationStateProvider>(new UiEditOwnerAuthStateProvider());
-            context.Services.AddSingleton<ApiConnection>(new EditOwnerTestApiConn());
+            context.Services.AddSingleton<ApiConnection>(apiConn ?? new EditOwnerTestApiConn());
             context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
             context.Services.AddSingleton<UserConfig>(new EditOwnerTestUserConfig());
             context.Services.AddSingleton<DomEventService>();
@@ -253,6 +254,32 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task EditOwner_HandleSave_InitializesRecertForNewActiveOwner()
+        {
+            await using Bunit.TestContext context = new();
+            EditOwnerTestApiConn apiConn = new();
+            FwoOwner owner = new()
+            {
+                Id = 0,
+                Name = "Owner A",
+                RecertActive = true,
+                RecertInterval = 30
+            };
+            owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeMain, "cn=main,dc=test");
+
+            IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, apiConn: apiConn);
+            SetPrivateField(editOwner.Instance, "RoleDnByName", new Dictionary<string, string> { ["dummy"] = "cn=dummy,dc=test" });
+            SetPrivateField(editOwner.Instance, "RoleUsersByName", new Dictionary<string, HashSet<string>> { ["dummy"] = [] });
+
+            await (Task)GetPrivateMethod("HandleSave").Invoke(editOwner.Instance, null)!;
+
+            Assert.That(owner.Id, Is.EqualTo(apiConn.CreatedOwnerId));
+            Assert.That(apiConn.GetInitialOwnerRecertCalls, Is.EqualTo(1));
+            Assert.That(apiConn.RecertifyOwnerCalls, Is.EqualTo(1));
+            Assert.That(apiConn.SetOwnerLastRecertCalls, Is.EqualTo(1));
+        }
+
+        [Test]
         public async Task EditOwner_HasRelevantOwnerMappingChanges_ReturnsTrue_ForLifecycleActivityChange()
         {
             await using BunitContext context = new();
@@ -414,6 +441,11 @@ namespace FWO.Test
 
     internal sealed class EditOwnerTestApiConn : SimulatedApiConnection
     {
+        public int CreatedOwnerId { get; set; } = 77;
+        public int GetInitialOwnerRecertCalls { get; private set; }
+        public int RecertifyOwnerCalls { get; private set; }
+        public int SetOwnerLastRecertCalls { get; private set; }
+
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
             if (query == OwnerQueries.getNetworkOwnerships)
@@ -426,7 +458,69 @@ namespace FWO.Test
                 return Task.FromResult(Activator.CreateInstance<QueryResponseType>());
             }
 
+            if (query == OwnerQueries.newOwner)
+            {
+                return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                {
+                    ReturnIds = [new ReturnId { NewId = CreatedOwnerId }]
+                });
+            }
+
+            if (query == OwnerQueries.updateOwner)
+            {
+                return Task.FromResult((QueryResponseType)(object)new ReturnId
+                {
+                    UpdatedId = GetIntVariable(variables, "id")
+                });
+            }
+
+            if (query == OwnerQueries.deleteOwnerResponsibles
+                || query == OwnerQueries.newOwnerResponsibles
+                || query == OwnerQueries.newRuleOwnership
+                || query == OwnerQueries.newNetworkOwnership
+                || query == OwnerQueries.deleteRuleOwnership
+                || query == OwnerQueries.deleteNetworkOwnership)
+            {
+                return Task.FromResult(Activator.CreateInstance<QueryResponseType>());
+            }
+
+            if (query == ConfigQueries.getConfigItemByKey)
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<ConfigItem>());
+            }
+
+            if (query == RecertQueries.getInitialOwnerRecert)
+            {
+                GetInitialOwnerRecertCalls++;
+                return Task.FromResult((QueryResponseType)(object)new List<OwnerRecertification>());
+            }
+
+            if (query == RecertQueries.recertifyOwner)
+            {
+                RecertifyOwnerCalls++;
+                return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                {
+                    ReturnIds = [new ReturnId { NewIdLong = 1234 }]
+                });
+            }
+
+            if (query == OwnerQueries.setOwnerLastRecert)
+            {
+                SetOwnerLastRecertCalls++;
+                return Task.FromResult((QueryResponseType)(object)new ReturnId
+                {
+                    UpdatedId = GetIntVariable(variables, "id")
+                });
+            }
+
             throw new NotImplementedException();
+        }
+
+        private static int GetIntVariable(object? variables, string name)
+        {
+            PropertyInfo? property = variables?.GetType().GetProperty(name);
+            object? value = property?.GetValue(variables);
+            return Convert.ToInt32(value);
         }
     }
 }

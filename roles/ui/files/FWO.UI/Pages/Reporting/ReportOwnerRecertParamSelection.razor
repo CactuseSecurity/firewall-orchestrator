@@ -45,7 +45,19 @@ else
                    checked="@ModellingFilter.ShowInactiveRecertOwners" @onchange="ToggleShowInactiveRecertOwners" />
             <label class="@CheckboxLabelClass" for="showInactiveRecertOwners">@(userConfig.GetText("show_inactive_recert_owners"))</label>
         </div>
+        <div class="form-check" data-toggle="tooltip" title="@(userConfig.PureLine("C1003"))">
+            <input class="form-check-input" id="mergeOwnerRecertTables" type="checkbox"
+                   checked="@ModellingFilter.MergeOwnerRecertTables" @onchange="ToggleMergeOwnerRecertTables" />
+            <label class="@CheckboxLabelClass" for="mergeOwnerRecertTables">@(userConfig.GetText("merge_owner_recert_tables"))</label>
+        </div>
+        <div class="mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("C1004"))">
+            <label class="@FieldLabelClass" for="ownerAdditionalInfoKey">@(userConfig.GetText("label")):</label>
+            <input id="ownerAdditionalInfoKey" type="text" class="form-control form-control-sm"
+                   value="@ModellingFilter.OwnerAdditionalInfoKey" @onchange="ChangeOwnerAdditionalInfoKey" />
+        </div>
     </text>;
+
+    private string FieldLabelClass => UseLightText ? "text-white" : string.Empty;
 
     private async Task ToggleShowAllOwners(ChangeEventArgs args)
     {
@@ -56,6 +68,18 @@ else
     private async Task ToggleShowInactiveRecertOwners(ChangeEventArgs args)
     {
         ModellingFilter.ShowInactiveRecertOwners = args.Value as bool? ?? false;
+        await ModellingFilterChanged.InvokeAsync(ModellingFilter);
+    }
+
+    private async Task ToggleMergeOwnerRecertTables(ChangeEventArgs args)
+    {
+        ModellingFilter.MergeOwnerRecertTables = args.Value as bool? ?? false;
+        await ModellingFilterChanged.InvokeAsync(ModellingFilter);
+    }
+
+    private async Task ChangeOwnerAdditionalInfoKey(ChangeEventArgs args)
+    {
+        ModellingFilter.OwnerAdditionalInfoKey = args.Value?.ToString()?.Trim() ?? "";
         await ModellingFilterChanged.InvokeAsync(ModellingFilter);
     }
 }

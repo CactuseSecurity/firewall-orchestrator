@@ -21,47 +21,31 @@ namespace FWO.Report.Filter.Ast
             switch (Name.Kind)
             {
                 case TokenKind.LastHit:
-                    ExtractLastHitFilter(query, reportType);
+                    ExtractLastHitFilter(query);
                     break;
                 default:
                     break;
             }
         }
 
-        private void ExtractLastHitFilter(DynGraphqlQuery query, ReportType? reportType)
+        private void ExtractLastHitFilter(DynGraphqlQuery query)
         {
             string queryVarName = AddVariable<DateTimeRange>(query, "lastHitLimit", Operator.Kind, semanticValue!);
 
-            if (reportType != null && ((ReportType)reportType).IsChangeReport())
+            if (Operator.Kind == TokenKind.LSS) // only show rules which have a hit before a certain date (including no hit rules)
             {
-                if (Operator.Kind == TokenKind.LSS) // only show rules which have a hit before a certain date (including no hit rules)
-                {
-                    query.RuleWhereStatement += $@"
+                query.RuleWhereStatement += $@"
                         _or: [
-                            {{ rule: {{ rule_metadatum: {{ rule_last_hit: {{{ExtractOperator()}: ${queryVarName} }} }} }} }}
-                            {{ rule: {{ rule_metadatum: {{ rule_last_hit: {{_is_null: true }} }} }} }}
-                        ]";
-                }
-                else // only show rules which have a hit after a certain date (leaving out no hit rules)
-                {
-                    query.RuleWhereStatement += $"rule: {{ rule_metadatum:{{ rule_last_hit: {{{ExtractOperator()}: ${queryVarName} }} }} }}";
-                }
-            }
-            else
-            {
-                if (Operator.Kind == TokenKind.LSS) // only show rules which have a hit before a certain date (including no hit rules)
-                {
-                    query.RuleWhereStatement += $@"
-                        _or: [
-                            {{ rule_metadatum: {{ rule_last_hit: {{{ExtractOperator()}: ${queryVarName} }} }} }}
-                            {{ rule_metadatum: {{ rule_last_hit: {{_is_null: true }} }} }}
+                                {{ rule_metadatum: {{ rule_last_hit: {{{ExtractOperator()}: ${queryVarName} }} }} }}
+                                {{ rule_metadatum: {{ rule_last_hit: {{_is_null: true }} }} }}
                             ]";
-                }
-                else // only show rules which have a hit after a certain date (leaving out no hit rules)
-                {
-                    query.RuleWhereStatement += $"rule_metadatum: {{ rule_last_hit: {{{ExtractOperator()}: ${queryVarName} }} }}";
-                }
+            }
+            else // only show rules which have a hit after a certain date (leaving out no hit rules)
+            {
+                query.RuleWhereStatement += $"rule_metadatum: {{ rule_last_hit: {{{ExtractOperator()}: ${queryVarName} }} }}";
+
             }
         }
     }
 }
+

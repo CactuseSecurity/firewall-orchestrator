@@ -49,6 +49,9 @@ namespace FWO.Data.Modelling
         [JsonProperty("owner"), JsonPropertyName("owner")]
         public FwoOwner App { get; set; } = new();
 
+        [JsonProperty("ownerByProposedAppId"), JsonPropertyName("ownerByProposedAppId")]
+        public FwoOwner ProposedApp { get; set; } = new();
+
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; } = "";
 
@@ -190,6 +193,7 @@ namespace FWO.Data.Modelling
             AppId = conn.AppId;
             App = conn.App;
             ProposedAppId = conn.ProposedAppId;
+            ProposedApp = conn.ProposedApp;
             Name = conn.Name;
             Reason = conn.Reason;
             IsInterface = conn.IsInterface;

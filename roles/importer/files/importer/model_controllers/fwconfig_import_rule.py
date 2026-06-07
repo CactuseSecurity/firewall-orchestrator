@@ -1278,8 +1278,6 @@ class FwConfigImportRule:
         exclude = {
             "last_hit",
             "rule_num",
-            "rule_src_zone",
-            "rule_dst_zone",
             "rule_name",
             "rule_comment",
             "rule_custom_fields",

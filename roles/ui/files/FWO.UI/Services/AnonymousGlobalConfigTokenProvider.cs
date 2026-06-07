@@ -70,16 +70,29 @@ namespace FWO.Ui.Services
             }
         }
 
-        /// <inheritdoc />
-        public void Dispose()
+        /// <summary>
+        /// Releases the resources used by this token provider.
+        /// </summary>
+        /// <param name="disposing">True when called from <see cref="Dispose()"/>.</param>
+        protected virtual void Dispose(bool disposing)
         {
             if (disposed)
             {
                 return;
             }
 
-            middlewareClient.Dispose();
+            if (disposing)
+            {
+                middlewareClient.Dispose();
+            }
+
             disposed = true;
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
     }

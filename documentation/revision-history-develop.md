@@ -412,7 +412,6 @@ These settings are no longer used due to the full automation of UpdateRuleOwner.
 
 # 9.0.24 - 27.04.2026 DEVELOP
 - introduce new modelling integration mode WorkflowNotifications
-- backfill rule source and destination zone text fields from rule zone links
 
 # 9.1.0 - 20.05.2026 DEVELOP
 - JWT refresh token
@@ -434,3 +433,4 @@ These settings are no longer used due to the full automation of UpdateRuleOwner.
 - a separate GraphQL subscription client path
 - improved cancellation and JWT-expiry handling
 - a small cleanup of exception logging for subscription errors
+- backfill rule source and destination zone text fields from rule zone links

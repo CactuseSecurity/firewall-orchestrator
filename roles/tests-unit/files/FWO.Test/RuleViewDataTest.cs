@@ -185,11 +185,11 @@ namespace FWO.Test
 
 
         [Test]
-        public void RuleViewData_LastModified_UsesImportStartTime()
+        public void RuleViewData_LastModified_UsesRemovedImportStartTime()
         {
             Rule rule = new Rule
             {
-                LastSeenImport = new ImportControl { StartTime = new DateTime(2023, 04, 05) }
+                RemovedImport = new ImportControl { StartTime = new DateTime(2023, 04, 05) }
             };
 
             UserConfig userConfig = new UserConfig();
@@ -200,7 +200,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void RuleViewData_LastModified_UsesCreatedWhenNoLastSeen()
+        public void RuleViewData_LastModified_UsesCreatedWhenNoRemovedImport()
         {
             Rule rule = new Rule
             {
@@ -215,6 +215,25 @@ namespace FWO.Test
             RuleViewData viewData = new RuleViewData(rule, ruleDisplay, OutputLocation.report, true);
 
             Assert.That(viewData.LastModified, Is.EqualTo("2023-01-10"));
+        }
+
+        [Test]
+        public void RuleViewData_LastModified_UsesRuleCreateWhenNoRemovedImport()
+        {
+            Rule rule = new Rule
+            {
+                CreatedImport = new ImportControl { StartTime = new DateTime(2023, 02, 15) },
+                Metadata = new RuleMetadata
+                {
+                    CreatedImport = new ImportControl { StartTime = new DateTime(2023, 01, 10) }
+                }
+            };
+
+            UserConfig userConfig = new UserConfig();
+            NatRuleDisplayHtml ruleDisplay = new NatRuleDisplayHtml(userConfig);
+            RuleViewData viewData = new RuleViewData(rule, ruleDisplay, OutputLocation.report, true);
+
+            Assert.That(viewData.LastModified, Is.EqualTo("2023-02-15"));
         }
 
         [Test]

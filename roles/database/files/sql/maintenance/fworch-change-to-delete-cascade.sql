@@ -196,7 +196,7 @@ ALTER TABLE changelog_user
         ON UPDATE RESTRICT
         ON DELETE CASCADE;
 
-        
+
 ALTER TABLE device
    DROP CONSTRAINT device_tenant_id_fkey,
    ADD CONSTRAINT device_tenant_id_fkey FOREIGN KEY (tenant_id)
@@ -235,11 +235,6 @@ ALTER TABLE object
         REFERENCES public.import_control (control_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
-    DROP CONSTRAINT object_obj_last_seen_fkey,
-    ADD CONSTRAINT object_obj_last_seen_fkey FOREIGN KEY (obj_last_seen)
-        REFERENCES public.import_control (control_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
     DROP CONSTRAINT object_obj_nat_install_fkey,
     ADD CONSTRAINT object_obj_nat_install_fkey FOREIGN KEY (obj_nat_install)
         REFERENCES public.device (dev_id) MATCH SIMPLE
@@ -254,7 +249,7 @@ ALTER TABLE object
     ADD CONSTRAINT object_zone_id_fkey FOREIGN KEY (zone_id)
         REFERENCES public.zone (zone_id) MATCH SIMPLE
         ON UPDATE RESTRICT
-        ON DELETE CASCADE;        
+        ON DELETE CASCADE;
 
 ALTER TABLE usr
     DROP CONSTRAINT usr_tenant_id_fkey,
@@ -304,6 +299,11 @@ ALTER TABLE rule
         REFERENCES public.management (mgm_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
+    DROP CONSTRAINT rule_removed_fkey,
+    ADD CONSTRAINT rule_removed_fkey FOREIGN KEY (removed)
+        REFERENCES public.import_control (control_id) MATCH SIMPLE
+        ON UPDATE RESTRICT
+        ON DELETE CASCADE,
     DROP CONSTRAINT rule_rule_create_fkey,
     ADD CONSTRAINT rule_rule_create_fkey FOREIGN KEY (rule_create)
         REFERENCES public.import_control (control_id) MATCH SIMPLE
@@ -312,11 +312,6 @@ ALTER TABLE rule
     DROP CONSTRAINT rule_rule_from_zone_fkey,
     ADD CONSTRAINT rule_rule_from_zone_fkey FOREIGN KEY (rule_from_zone)
         REFERENCES public.zone (zone_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
-    DROP CONSTRAINT rule_rule_last_seen_fkey,
-    ADD CONSTRAINT rule_rule_last_seen_fkey FOREIGN KEY (rule_last_seen)
-        REFERENCES public.import_control (control_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
     DROP CONSTRAINT rule_rule_to_zone_fkey,
@@ -356,17 +351,12 @@ ALTER TABLE service
         REFERENCES public.import_control (control_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
-    DROP CONSTRAINT service_svc_last_seen_fkey,
-    ADD CONSTRAINT service_svc_last_seen_fkey FOREIGN KEY (svc_last_seen)
-        REFERENCES public.import_control (control_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
     DROP CONSTRAINT service_svc_typ_id_fkey,
     ADD CONSTRAINT service_svc_typ_id_fkey FOREIGN KEY (svc_typ_id)
         REFERENCES public.stm_svc_typ (svc_typ_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE;
-        
+
 -- ALTER TABLE temp_mgmid_importid_at_report_time
 --     DROP CONSTRAINT temp_mgmid_importid_at_report_time_control_id_fkey,
 --     ADD CONSTRAINT temp_mgmid_importid_at_report_time_control_id_fkey FOREIGN KEY (control_id)
@@ -389,11 +379,6 @@ ALTER TABLE zone
     ADD CONSTRAINT zone_zone_create_fkey FOREIGN KEY (zone_create)
         REFERENCES public.import_control (control_id) MATCH SIMPLE
         ON UPDATE RESTRICT
-        ON DELETE CASCADE,
-    DROP CONSTRAINT zone_zone_last_seen_fkey,
-    ADD CONSTRAINT zone_zone_last_seen_fkey FOREIGN KEY (zone_last_seen)
-        REFERENCES public.import_control (control_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
         ON DELETE CASCADE;
 
 -- ALTER TABLE rule_order
@@ -412,15 +397,10 @@ ALTER TABLE zone
 --         REFERENCES public.rule (rule_id) MATCH SIMPLE
 --         ON UPDATE RESTRICT
 --         ON DELETE CASCADE;
-        
+
 ALTER TABLE objgrp
     DROP CONSTRAINT objgrp_import_created_fkey,
     ADD CONSTRAINT objgrp_import_created_fkey FOREIGN KEY (import_created)
-        REFERENCES public.import_control (control_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
-    DROP CONSTRAINT objgrp_import_last_seen_fkey,
-    ADD CONSTRAINT objgrp_import_last_seen_fkey FOREIGN KEY (import_last_seen)
         REFERENCES public.import_control (control_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
@@ -441,11 +421,6 @@ ALTER TABLE objgrp_flat
         REFERENCES public.import_control (control_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
-    DROP CONSTRAINT objgrp_flat_import_last_seen_fkey,
-    ADD CONSTRAINT objgrp_flat_import_last_seen_fkey FOREIGN KEY (import_last_seen)
-        REFERENCES public.import_control (control_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
     DROP CONSTRAINT objgrp_flat_objgrp_flat_id_fkey,
     ADD CONSTRAINT objgrp_flat_objgrp_flat_id_fkey FOREIGN KEY (objgrp_flat_id)
         REFERENCES public.object (obj_id) MATCH SIMPLE
@@ -456,15 +431,10 @@ ALTER TABLE objgrp_flat
         REFERENCES public.object (obj_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE;
-        
+
 ALTER TABLE svcgrp    
     DROP CONSTRAINT svcgrp_import_created_fkey,
     ADD CONSTRAINT svcgrp_import_created_fkey FOREIGN KEY (import_created)
-        REFERENCES public.import_control (control_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
-    DROP CONSTRAINT svcgrp_import_last_seen_fkey,
-    ADD CONSTRAINT svcgrp_import_last_seen_fkey FOREIGN KEY (import_last_seen)
         REFERENCES public.import_control (control_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
@@ -485,11 +455,6 @@ ALTER TABLE svcgrp_flat
         REFERENCES public.import_control (control_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
-    DROP CONSTRAINT svcgrp_flat_import_last_seen_fkey,
-    ADD CONSTRAINT svcgrp_flat_import_last_seen_fkey FOREIGN KEY (import_last_seen)
-        REFERENCES public.import_control (control_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
     DROP CONSTRAINT svcgrp_flat_svcgrp_flat_id_fkey,
     ADD CONSTRAINT svcgrp_flat_svcgrp_flat_id_fkey FOREIGN KEY (svcgrp_flat_id)
         REFERENCES public.service (svc_id) MATCH SIMPLE
@@ -500,15 +465,10 @@ ALTER TABLE svcgrp_flat
         REFERENCES public.service (svc_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE;
-        
+
 ALTER TABLE usergrp
     DROP CONSTRAINT usergrp_import_created_fkey,
     ADD CONSTRAINT usergrp_import_created_fkey FOREIGN KEY (import_created)
-        REFERENCES public.import_control (control_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
-    DROP CONSTRAINT usergrp_import_last_seen_fkey,
-    ADD CONSTRAINT usergrp_import_last_seen_fkey FOREIGN KEY (import_last_seen)
         REFERENCES public.import_control (control_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
@@ -522,15 +482,10 @@ ALTER TABLE usergrp
         REFERENCES public.usr (user_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE;
-        
+
 ALTER TABLE usergrp_flat
     DROP CONSTRAINT usergrp_flat_import_created_fkey,
     ADD CONSTRAINT usergrp_flat_import_created_fkey FOREIGN KEY (import_created)
-        REFERENCES public.import_control (control_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
-    DROP CONSTRAINT usergrp_flat_import_last_seen_fkey,
-    ADD CONSTRAINT usergrp_flat_import_last_seen_fkey FOREIGN KEY (import_last_seen)
         REFERENCES public.import_control (control_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
@@ -544,8 +499,8 @@ ALTER TABLE usergrp_flat
         REFERENCES public.usr (user_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE;
-        
-ALTER TABLE rule_from        
+
+ALTER TABLE rule_from
     DROP CONSTRAINT rule_from_obj_id_fkey,
     ADD CONSTRAINT rule_from_obj_id_fkey FOREIGN KEY (obj_id)
         REFERENCES public.object (obj_id) MATCH SIMPLE
@@ -553,11 +508,6 @@ ALTER TABLE rule_from
         ON DELETE CASCADE,
     DROP CONSTRAINT rule_from_rf_create_fkey,
     ADD CONSTRAINT rule_from_rf_create_fkey FOREIGN KEY (rf_create)
-        REFERENCES public.import_control (control_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
-    DROP CONSTRAINT rule_from_rf_last_seen_fkey,
-    ADD CONSTRAINT rule_from_rf_last_seen_fkey FOREIGN KEY (rf_last_seen)
         REFERENCES public.import_control (control_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
@@ -583,11 +533,6 @@ ALTER TABLE rule_to
         REFERENCES public.import_control (control_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
-    DROP CONSTRAINT rule_to_rt_last_seen_fkey,
-    ADD CONSTRAINT rule_to_rt_last_seen_fkey FOREIGN KEY (rt_last_seen)
-        REFERENCES public.import_control (control_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
     DROP CONSTRAINT rule_to_rule_id_fkey,
     ADD CONSTRAINT rule_to_rule_id_fkey FOREIGN KEY (rule_id)
         REFERENCES public.rule (rule_id) MATCH SIMPLE
@@ -597,11 +542,6 @@ ALTER TABLE rule_to
 ALTER TABLE rule_service
 	DROP CONSTRAINT rule_service_rs_create_fkey,
 	ADD CONSTRAINT rule_service_rs_create_fkey FOREIGN KEY (rs_create)
-        REFERENCES public.import_control (control_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
-    DROP CONSTRAINT rule_service_rs_last_seen_fkey,
-    ADD CONSTRAINT rule_service_rs_last_seen_fkey FOREIGN KEY (rs_last_seen)
         REFERENCES public.import_control (control_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
@@ -615,7 +555,7 @@ ALTER TABLE rule_service
         REFERENCES public.service (svc_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE;  
-        
+
 -- ALTER TABLE temp_filtered_rule_ids
 -- 	DROP CONSTRAINT temp_filtered_rule_ids_rule_id_fkey,
 -- 	ADD CONSTRAINT temp_filtered_rule_ids_rule_id_fkey FOREIGN KEY (rule_id)
@@ -623,7 +563,7 @@ ALTER TABLE rule_service
 --         ON UPDATE RESTRICT
 --         ON DELETE CASCADE;
 
-ALTER TABLE report        
+ALTER TABLE report
     DROP CONSTRAINT report_tenant_id_fkey,
     ADD CONSTRAINT report_tenant_id_fkey FOREIGN KEY (tenant_id)
         REFERENCES public.tenant (tenant_id) MATCH SIMPLE
@@ -649,4 +589,3 @@ ALTER TABLE report
         REFERENCES public.import_control (control_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE; 
-        

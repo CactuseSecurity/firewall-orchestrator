@@ -13,7 +13,6 @@ fragment networkObjectDetailsChangesOld on object {
   obj_create_time: import_control {
     time: start_time
   }
-  obj_last_seen
   type: stm_obj_typ {
     name: obj_typ_name
   }

@@ -517,9 +517,7 @@ class TestFwConfigImportObjectCollectGroupMembers:
         )
 
         # Assert
-        assert new_group_members == [
-            {f"{prefix}_id": 1, f"{prefix}_member_id": 2, "import_created": 5, "import_last_seen": 5}
-        ]
+        assert new_group_members == [{f"{prefix}_id": 1, f"{prefix}_member_id": 2, "import_created": 5}]
 
 
 class TestFwConfigImportObjectCollectFlatGroupMembers:
@@ -597,9 +595,7 @@ class TestFwConfigImportObjectCollectFlatGroupMembers:
         )
 
         # Assert
-        assert new_group_member_flats == [
-            {f"{prefix}_flat_id": 1, f"{prefix}_flat_member_id": 2, "import_created": 5, "import_last_seen": 5}
-        ]
+        assert new_group_member_flats == [{f"{prefix}_flat_id": 1, f"{prefix}_flat_member_id": 2, "import_created": 5}]
 
 
 class TestFwConfigImportObjectAddGroupMemberships:
@@ -734,7 +730,6 @@ class TestFwConfigImportObjectAddGroupMemberships:
             [
                 {
                     "import_created": 5,
-                    "import_last_seen": 5,
                     "objgrp_id": 1,
                     "objgrp_member_id": 1,
                 },
@@ -742,7 +737,6 @@ class TestFwConfigImportObjectAddGroupMemberships:
             [
                 {
                     "import_created": 5,
-                    "import_last_seen": 5,
                     "objgrp_flat_id": 1,
                     "objgrp_flat_member_id": 1,
                 }
@@ -783,7 +777,6 @@ class TestFwConfigImportObjectAddGroupMemberships:
             [
                 {
                     "import_created": 7,
-                    "import_last_seen": 7,
                     "objgrp_id": 1,
                     "objgrp_member_id": 1,
                 }
@@ -791,7 +784,6 @@ class TestFwConfigImportObjectAddGroupMemberships:
             [
                 {
                     "import_created": 7,
-                    "import_last_seen": 7,
                     "objgrp_flat_id": 1,
                     "objgrp_flat_member_id": 1,
                 }
@@ -839,7 +831,6 @@ class TestFwConfigImportObjectAddGroupMemberships:
             [
                 {
                     "import_created": 9,
-                    "import_last_seen": 9,
                     "objgrp_id": 1,
                     "objgrp_member_id": 2,
                 }
@@ -847,7 +838,6 @@ class TestFwConfigImportObjectAddGroupMemberships:
             [
                 {
                     "import_created": 9,
-                    "import_last_seen": 9,
                     "objgrp_flat_id": 1,
                     "objgrp_flat_member_id": 2,
                 }
@@ -906,13 +896,11 @@ class TestFwConfigImportObjectAddGroupMemberships:
             [
                 {
                     "import_created": 11,
-                    "import_last_seen": 11,
                     "objgrp_id": 1,
                     "objgrp_member_id": 2,
                 },
                 {
                     "import_created": 11,
-                    "import_last_seen": 11,
                     "objgrp_id": 1,
                     "objgrp_member_id": 3,
                 },
@@ -920,13 +908,11 @@ class TestFwConfigImportObjectAddGroupMemberships:
             [
                 {
                     "import_created": 11,
-                    "import_last_seen": 11,
                     "objgrp_flat_id": 1,
                     "objgrp_flat_member_id": 2,
                 },
                 {
                     "import_created": 11,
-                    "import_last_seen": 11,
                     "objgrp_flat_id": 1,
                     "objgrp_flat_member_id": 3,
                 },
@@ -1892,13 +1878,11 @@ class TestFwConfigImportObjectPrepareNewZones:
             {
                 "mgm_id": 1,
                 "zone_create": 5,
-                "zone_last_seen": 5,
                 "zone_name": "zone1",
             },
             {
                 "mgm_id": 1,
                 "zone_create": 5,
-                "zone_last_seen": 5,
                 "zone_name": "zone2",
             },
         ]
@@ -1940,7 +1924,6 @@ class TestFwConfigImportObjectPrepareNewUserobjs:
             {
                 "mgm_id": 1,
                 "user_create": 5,
-                "user_last_seen": 5,
                 "user_name": f"user-{new_user_uids[0]}",
                 "user_uid": new_user_uids[0],
                 "usr_typ_id": 2,
@@ -1948,7 +1931,6 @@ class TestFwConfigImportObjectPrepareNewUserobjs:
             {
                 "mgm_id": 1,
                 "user_create": 5,
-                "user_last_seen": 5,
                 "user_name": f"user-{new_user_uids[1]}",
                 "user_uid": new_user_uids[1],
                 "usr_typ_id": 2,

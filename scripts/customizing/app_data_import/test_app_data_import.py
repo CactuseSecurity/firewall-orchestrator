@@ -990,7 +990,7 @@ class AppDataImportTests(unittest.TestCase):
 
     def test_build_git_repo_url_includes_credentials_when_configured(self) -> None:
         git_user: str = "git-user-1"
-        git_auth: str = "sampleCrednetial"
+        git_auth: str = "test-password-1"
         repo_url: str | None = build_git_repo_url(
             "github.example.de/cmdb/app-export",
             git_user,

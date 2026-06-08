@@ -590,7 +590,6 @@ class FwConfigImportRule:
                 obj_id=self.uid2id_mapper.get_network_object_id(nwobj_uid),
                 user_id=self.uid2id_mapper.get_user_id(user_uid) if user_uid else None,
                 rf_create=import_id,
-                rf_last_seen=import_id,  # TODO: to be removed in the future
                 negated=rule.rule_src_neg,
             ).model_dump()
         if ref_type == RefType.DST:
@@ -600,7 +599,6 @@ class FwConfigImportRule:
                 obj_id=self.uid2id_mapper.get_network_object_id(nwobj_uid),
                 user_id=self.uid2id_mapper.get_user_id(user_uid) if user_uid else None,
                 rt_create=import_id,
-                rt_last_seen=import_id,  # TODO: to be removed in the future
                 negated=rule.rule_dst_neg,
             ).model_dump()
         if ref_type == RefType.SVC:
@@ -608,7 +606,6 @@ class FwConfigImportRule:
                 rule_id=self.uid2id_mapper.get_rule_id(rule.rule_uid),
                 svc_id=self.uid2id_mapper.get_service_object_id(ref_uid),  # type: ignore # ref_uid is str here TODO: Cleanup ref_uid dict  # noqa: PGH003
                 rs_create=import_id,
-                rs_last_seen=import_id,  # TODO: to be removed in the future
             ).model_dump()
         if ref_type == RefType.NWOBJ_RESOLVED:
             return {
@@ -1143,7 +1140,6 @@ class FwConfigImportRule:
             is_global=False,
             rulebase_id=rulebase_id,
             rule_create=self.import_details.state.import_id,
-            rule_last_seen=self.import_details.state.import_id,
             rule_num_numeric=rule.rule_num_numeric,
             action_id=self.import_details.state.lookup_action(rule.rule_action),
             track_id=self.import_details.state.lookup_track(rule.rule_track),

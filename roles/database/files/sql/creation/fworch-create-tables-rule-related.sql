@@ -34,7 +34,6 @@ Create table "rule"
 	"rule_head_text" Text,
 	"rule_implied" Boolean NOT NULL Default FALSE,
 	"rule_create" BIGINT NOT NULL,
-	"rule_last_seen" BIGINT NOT NULL,
 	"dev_id" Integer,
 	"rule_custom_fields" jsonb,
 	"access_rule" BOOLEAN Default TRUE,
@@ -110,7 +109,6 @@ Create table "rule_from"
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
 	"rf_create" BIGINT NOT NULL,
-	"rf_last_seen" BIGINT NOT NULL,
 	"removed" BIGINT
 );
 
@@ -120,7 +118,6 @@ Create table "rule_service"
 	"svc_id" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
 	"rs_create" BIGINT NOT NULL,
-	"rs_last_seen" BIGINT NOT NULL,
 	"negated" Boolean NOT NULL Default FALSE,
 	"removed" BIGINT,
  primary key ("rule_id","svc_id")
@@ -134,7 +131,6 @@ Create table "rule_to"
 	"obj_id" BIGINT NOT NULL,
 	"user_id" BIGINT,
 	"rt_create" BIGINT NOT NULL,
-	"rt_last_seen" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
 	"removed" BIGINT

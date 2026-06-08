@@ -434,5 +434,5 @@ These settings are no longer used due to the full automation of UpdateRuleOwner.
 - improved cancellation and JWT-expiry handling
 - a small cleanup of exception logging for subscription errors
 
-# 9.1.4 - 27.05.2026 DEVELOP
+# 9.1.6 - 27.05.2026 DEVELOP
 - credentials field in management for writing on Firewalls

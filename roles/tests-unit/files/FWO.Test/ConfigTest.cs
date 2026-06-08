@@ -58,6 +58,11 @@ namespace FWO.Test
 
             public override void DisposeSubscriptions<T>() { }
             protected override void Dispose(bool disposing) { }
+
+            public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         [Test]

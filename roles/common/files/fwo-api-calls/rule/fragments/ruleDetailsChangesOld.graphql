@@ -1,4 +1,4 @@
-﻿fragment ruleDetailsChangesOld on rule {
+fragment ruleDetailsChangesOld on rule {
   rule_id
   rule_uid
   dev_id
@@ -22,7 +22,15 @@
   }
   active
   rule_create
-  rule_last_seen
+  removed
+  createdImport: import_control {
+    control_id
+    start_time
+  }
+  importControlByRemoved {
+    control_id
+    start_time
+  }
   rule_src_neg
   rule_dst_neg
   rule_svc_neg

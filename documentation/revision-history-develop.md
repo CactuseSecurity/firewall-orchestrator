@@ -422,3 +422,17 @@ These settings are no longer used due to the full automation of UpdateRuleOwner.
 
 # 9.1.3 - 27.05.2026 DEVELOP
 - add optional workflow flow merging for Flow DB creation
+
+# 9.1.4 - 03.06.2026 DEVELOP
+- remove legacy ownerLdapGroupNames owner mapping fallback
+
+# 9.1.5 - 05.06.2026 DEVELOP
+- remove old jwt token lifetime config values
+- asynchronous initial JWT bootstrap in the UI
+- subscription-aware reconnect logic after JWT refresh
+- a separate GraphQL subscription client path
+- improved cancellation and JWT-expiry handling
+- a small cleanup of exception logging for subscription errors
+
+# 9.1.6 - 07.06.2026 DEVELOP
+- remove obsolete database last_seen fields

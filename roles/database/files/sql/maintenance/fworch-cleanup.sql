@@ -159,11 +159,11 @@ WITH
     )
 DELETE FROM import_control ic
 WHERE
-    NOT EXISTS (
-        SELECT 1
+    ic.control_id NOT IN (
+        SELECT referenced.id
         FROM referenced_imports referenced
         WHERE
-            referenced.id = ic.control_id
+            referenced.id IS NOT NULL
     );
 
 DROP index "firewall_akey";

@@ -171,6 +171,58 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildReqElementVariables_ClearsManualPortFieldsForFlowServiceReference()
+        {
+            WfReqElement element = new()
+            {
+                Field = ElemFieldType.service.ToString(),
+                FlowServiceObjectId = 5,
+                Name = "https",
+                Port = 0,
+                PortEnd = null,
+                ProtoId = 0
+            };
+            MethodInfo? buildMethod = typeof(WfDbAccess).GetMethod("BuildReqElementVariables", BindingFlags.NonPublic | BindingFlags.Static);
+            Assert.That(buildMethod, Is.Not.Null);
+
+            Dictionary<string, object?> variables = (Dictionary<string, object?>)buildMethod!.Invoke(null, [element])!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(variables["flowSvcObjId"], Is.EqualTo(5));
+                Assert.That(variables["port"], Is.Null);
+                Assert.That(variables["portEnd"], Is.Null);
+                Assert.That(variables["proto"], Is.Null);
+            });
+        }
+
+        [Test]
+        public void BuildReqElementVariables_KeepsResolvedPortFieldsForFlowServiceReference()
+        {
+            WfReqElement element = new()
+            {
+                Field = ElemFieldType.service.ToString(),
+                FlowServiceObjectId = 5,
+                Name = "https",
+                Port = 443,
+                PortEnd = null,
+                ProtoId = 6
+            };
+            MethodInfo? buildMethod = typeof(WfDbAccess).GetMethod("BuildReqElementVariables", BindingFlags.NonPublic | BindingFlags.Static);
+            Assert.That(buildMethod, Is.Not.Null);
+
+            Dictionary<string, object?> variables = (Dictionary<string, object?>)buildMethod!.Invoke(null, [element])!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(variables["flowSvcObjId"], Is.EqualTo(5));
+                Assert.That(variables["port"], Is.EqualTo(443));
+                Assert.That(variables["portEnd"], Is.Null);
+                Assert.That(variables["proto"], Is.EqualTo(6));
+            });
+        }
+
+        [Test]
         public void BuildImplTaskUpdateVariables_DoesNotIncludeTaskType()
         {
             WfImplTask implTask = new()

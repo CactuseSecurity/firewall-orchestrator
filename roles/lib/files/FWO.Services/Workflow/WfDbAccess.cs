@@ -695,13 +695,14 @@ namespace FWO.Services.Workflow
 
         private static Dictionary<string, object?> BuildElementBaseVariables(WfElementBase element, Cidr? cidr, Cidr? cidrEnd)
         {
+            bool hasServiceReference = HasId(element.ServiceId) || HasId(element.FlowServiceObjectId) || HasId(element.FlowServiceGroupId);
             return new Dictionary<string, object?>
             {
                 ["ip"] = cidr != null && cidr.Valid ? cidr.CidrString : null,
                 ["ipEnd"] = cidrEnd != null && cidrEnd.Valid ? cidrEnd.CidrString : null,
-                ["port"] = element.Port,
-                ["portEnd"] = element.PortEnd,
-                ["proto"] = element.ProtoId,
+                ["port"] = hasServiceReference && !HasValidPort(element.Port) ? null : element.Port,
+                ["portEnd"] = hasServiceReference && !HasValidPort(element.PortEnd) ? null : element.PortEnd,
+                ["proto"] = hasServiceReference && !HasId(element.ProtoId) ? null : element.ProtoId,
                 ["networkObjId"] = element.NetworkId,
                 ["serviceId"] = element.ServiceId,
                 ["field"] = element.Field,
@@ -711,6 +712,21 @@ namespace FWO.Services.Workflow
                 ["groupName"] = element.GroupName,
                 ["name"] = element.Name
             };
+        }
+
+        private static bool HasId(long? id)
+        {
+            return id.HasValue && id.Value != 0;
+        }
+
+        private static bool HasId(int? id)
+        {
+            return id.HasValue && id.Value != 0;
+        }
+
+        private static bool HasValidPort(int? port)
+        {
+            return port.HasValue && port.Value > 0;
         }
 
 

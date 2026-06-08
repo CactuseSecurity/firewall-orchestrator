@@ -35,6 +35,13 @@ namespace FWO.Test
         }
 
         [Test]
+        public void FlowQueries_LoadSvcObjectCatalogQuery()
+        {
+            Assert.That(FlowQueries.getFlowSvcObjectCatalog, Does.Contain("query getFlowSvcObjectCatalog"));
+            Assert.That(FlowQueries.getFlowSvcObjectCatalog, Does.Contain("fragment flowSvcObjectDetails"));
+        }
+
+        [Test]
         public void FlowQueries_LoadSelectableManagementsQuery()
         {
             Assert.That(FlowQueries.getFlowSelectableManagements, Does.Contain("query getFlowSelectableManagements"));

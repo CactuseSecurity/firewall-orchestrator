@@ -488,9 +488,13 @@
         {
             return element.GroupName;
         }
-        if (!string.IsNullOrWhiteSpace(element.Name) && string.IsNullOrWhiteSpace(element.IpString))
+        if (!string.IsNullOrWhiteSpace(element.Name))
         {
             return element.Name;
+        }
+        if (HasId(element.FlowNetworkObjectId) || HasId(element.FlowNetworkGroupId))
+        {
+            return element.FlowNetworkObjectId?.ToString() ?? element.FlowNetworkGroupId?.ToString() ?? "";
         }
         return NwObjDisplay.DisplayIp(element.IpString, element.IpEndString);
     }
@@ -501,11 +505,20 @@
         {
             return element.GroupName;
         }
-        if (!string.IsNullOrWhiteSpace(element.Name) && element.Port == 0)
+        if (!string.IsNullOrWhiteSpace(element.Name))
         {
             return element.Name;
         }
+        if (HasId(element.FlowServiceObjectId) || HasId(element.FlowServiceGroupId))
+        {
+            return element.FlowServiceObjectId?.ToString() ?? element.FlowServiceGroupId?.ToString() ?? "";
+        }
         return DisplayBase.DisplayService(element, ipProtos);
+    }
+
+    private static bool HasId(long? id)
+    {
+        return id.HasValue && id.Value != 0;
     }
 
     private async Task Close()

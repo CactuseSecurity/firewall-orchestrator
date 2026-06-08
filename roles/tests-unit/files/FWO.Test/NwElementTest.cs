@@ -40,6 +40,8 @@ namespace FWO.Test
                 Cidr = new Cidr("10.0.0.1/32"),
                 CidrEnd = new Cidr("10.0.0.2/32"),
                 NetworkId = 3,
+                FlowNetworkObjectId = 13,
+                FlowNetworkGroupId = 14,
                 GroupName = "grp",
                 RequestAction = "create",
                 Name = "obj"
@@ -53,6 +55,8 @@ namespace FWO.Test
             Assert.That(reqElement.Cidr?.CidrString, Is.EqualTo("10.0.0.1/32"));
             Assert.That(reqElement.CidrEnd?.CidrString, Is.EqualTo("10.0.0.2/32"));
             Assert.That(reqElement.NetworkId, Is.EqualTo(3));
+            Assert.That(reqElement.FlowNetworkObjectId, Is.EqualTo(13));
+            Assert.That(reqElement.FlowNetworkGroupId, Is.EqualTo(14));
             Assert.That(reqElement.GroupName, Is.EqualTo("grp"));
             Assert.That(reqElement.RequestAction, Is.EqualTo("create"));
             Assert.That(reqElement.Name, Is.EqualTo("obj"));
@@ -68,6 +72,8 @@ namespace FWO.Test
                 Cidr = new Cidr("10.0.0.1/32"),
                 CidrEnd = new Cidr("10.0.0.2/32"),
                 NetworkId = 3,
+                FlowNetworkObjectId = 13,
+                FlowNetworkGroupId = 14,
                 GroupName = "grp",
                 Name = "obj"
             };
@@ -80,6 +86,8 @@ namespace FWO.Test
             Assert.That(implElement.Cidr?.CidrString, Is.EqualTo("10.0.0.1/32"));
             Assert.That(implElement.CidrEnd?.CidrString, Is.EqualTo("10.0.0.2/32"));
             Assert.That(implElement.NetworkId, Is.EqualTo(3));
+            Assert.That(implElement.FlowNetworkObjectId, Is.Null);
+            Assert.That(implElement.FlowNetworkGroupId, Is.Null);
             Assert.That(implElement.GroupName, Is.EqualTo("grp"));
             Assert.That(implElement.Name, Is.EqualTo("obj"));
         }
@@ -95,6 +103,8 @@ namespace FWO.Test
                 PortEnd = 81,
                 ProtoId = 6,
                 ServiceId = 7,
+                FlowServiceObjectId = 17,
+                FlowServiceGroupId = 18,
                 Name = "svc",
                 GroupName = "grp",
                 RequestAction = "delete"
@@ -109,6 +119,8 @@ namespace FWO.Test
             Assert.That(reqElement.PortEnd, Is.EqualTo(81));
             Assert.That(reqElement.ProtoId, Is.EqualTo(6));
             Assert.That(reqElement.ServiceId, Is.EqualTo(7));
+            Assert.That(reqElement.FlowServiceObjectId, Is.EqualTo(17));
+            Assert.That(reqElement.FlowServiceGroupId, Is.EqualTo(18));
             Assert.That(reqElement.Name, Is.EqualTo("svc"));
             Assert.That(reqElement.GroupName, Is.EqualTo("grp"));
             Assert.That(reqElement.RequestAction, Is.EqualTo("delete"));
@@ -125,6 +137,8 @@ namespace FWO.Test
                 PortEnd = 81,
                 ProtoId = 6,
                 ServiceId = 7,
+                FlowServiceObjectId = 17,
+                FlowServiceGroupId = 18,
                 Name = "svc",
                 GroupName = "grp"
             };
@@ -138,6 +152,8 @@ namespace FWO.Test
             Assert.That(implElement.PortEnd, Is.EqualTo(81));
             Assert.That(implElement.ProtoId, Is.EqualTo(6));
             Assert.That(implElement.ServiceId, Is.EqualTo(7));
+            Assert.That(implElement.FlowServiceObjectId, Is.Null);
+            Assert.That(implElement.FlowServiceGroupId, Is.Null);
             Assert.That(implElement.Name, Is.EqualTo("svc"));
             Assert.That(implElement.GroupName, Is.EqualTo("grp"));
         }

@@ -161,8 +161,9 @@ namespace FWO.Services.Workflow
             List<FlowSvcGroup> svcGroups = await apiConnection.SendQueryAsync<List<FlowSvcGroup>>(FlowQueries.getFlowSyncSvcGroups, new { mgmId }) ?? [];
             List<FlowTimeObject> timeObjects = await apiConnection.SendQueryAsync<List<FlowTimeObject>>(FlowQueries.getFlowSyncTimeObjects, new { mgmId }) ?? [];
             List<FlowAccess> accesses = await apiConnection.SendQueryAsync<List<FlowAccess>>(FlowQueries.getFlowSyncAccesses, new { mgmId }) ?? [];
+            List<IpProtocol> ipProtocols = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols) ?? [];
 
-            return new FlowSyncFlowData(nwObjects, nwGroups, svcObjects, svcGroups, timeObjects, accesses);
+            return new FlowSyncFlowData(nwObjects, nwGroups, svcObjects, svcGroups, timeObjects, accesses, ipProtocols);
         }
 
         private async Task<bool> PersistGroupPayload(FlowCreationPayload payload, FlowSyncFlowData context, FlowGroupMaps groupMaps)
@@ -551,7 +552,7 @@ namespace FWO.Services.Workflow
 
             FlowSvcObjectInsert insert = new()
             {
-                Name = BuildServiceObjectName(snapshot),
+                Name = BuildServiceObjectName(snapshot, context),
                 PortStart = snapshot.Port,
                 PortEnd = portEnd,
                 IpProtoId = protoId,
@@ -781,14 +782,17 @@ namespace FWO.Services.Workflow
             return string.IsNullOrWhiteSpace(snapshot.IpEnd) || snapshot.IpEnd == snapshot.Ip ? snapshot.Ip ?? "" : $"{snapshot.Ip}-{snapshot.IpEnd}";
         }
 
-        private static string BuildServiceObjectName(FlowServiceSnapshot snapshot)
+        private static string BuildServiceObjectName(FlowServiceSnapshot snapshot, FlowSyncFlowData context)
         {
             if (!string.IsNullOrWhiteSpace(snapshot.Name))
             {
                 return snapshot.Name!;
             }
             string portLabel = snapshot.PortEnd.HasValue && snapshot.PortEnd != snapshot.Port ? $"{snapshot.Port}-{snapshot.PortEnd}" : $"{snapshot.Port}";
-            return $"{snapshot.ProtoId}/{portLabel}";
+            string protocolLabel = snapshot.ProtoId.HasValue && context.ProtocolNamesById.TryGetValue(snapshot.ProtoId.Value, out string? protocolName)
+                ? protocolName
+                : $"{snapshot.ProtoId}";
+            return $"{portLabel}/{protocolLabel}";
         }
 
         private static string BuildTimeObjectName(WfReqTask task)

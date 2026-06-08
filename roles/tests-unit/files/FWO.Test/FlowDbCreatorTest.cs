@@ -31,6 +31,7 @@ namespace FWO.Test
             public Dictionary<int, List<FlowSvcGroup>> ExistingServiceGroupsByManagement { get; } = [];
             public Dictionary<int, List<FlowTimeObject>> ExistingTimeObjectsByManagement { get; } = [];
             public Dictionary<int, List<FlowAccess>> ExistingAccessesByManagement { get; } = [];
+            public List<IpProtocol> IpProtocols { get; } = [new() { Id = 6, Name = "tcp" }, new() { Id = 17, Name = "udp" }];
             public List<int> QueriedManagementIds { get; } = [];
             public List<long> UpdatedRequestTaskIds { get; } = [];
             public List<RequestElementFlowUpdate> UpdatedRequestElements { get; } = [];
@@ -80,6 +81,10 @@ namespace FWO.Test
                     int mgmId = GetValue<int>(variables, "mgmId");
                     QueriedManagementIds.Add(mgmId);
                     return Task.FromResult((T)(object)GetManagementData(ExistingAccessesByManagement, ExistingAccesses, mgmId));
+                }
+                if (query == StmQueries.getIpProtocols)
+                {
+                    return Task.FromResult((T)(object)IpProtocols);
                 }
                 if (query == FlowQueries.insertFlowNwObjects)
                 {
@@ -339,6 +344,22 @@ namespace FWO.Test
             Assert.That(apiConn.UpdatedRequestElements.Single(update => update.Id == 111).FlowNetworkObjectId, Is.EqualTo(101));
             Assert.That(apiConn.UpdatedRequestElements.Single(update => update.Id == 112).FlowNetworkObjectId, Is.EqualTo(102));
             Assert.That(apiConn.UpdatedRequestElements.Single(update => update.Id == 113).FlowServiceObjectId, Is.EqualTo(201));
+            Assert.That(apiConn.InsertedServiceObjects.Single().Name, Is.EqualTo("443/tcp"));
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_UsesPortRangeAndProtocolNameForFallbackServiceName()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
+            WfReqElement service = task.Elements.Single(element => element.Field == ElemFieldType.service.ToString());
+            service.PortEnd = 8443;
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.InsertedServiceObjects.Single().Name, Is.EqualTo("443-8443/tcp"));
         }
 
         [Test]
@@ -752,7 +773,7 @@ namespace FWO.Test
             Assert.That(result, Is.True);
             Assert.That(apiConn.InsertedNetworkObjects.First().Name, Is.EqualTo("Src Host"));
             Assert.That(apiConn.InsertedNetworkObjects.Last().Name, Is.EqualTo("10.0.1.1"));
-            Assert.That(apiConn.InsertedServiceObjects.Select(serviceObject => serviceObject.Name), Is.EquivalentTo(new[] { "HTTPS", "6/8443-8444" }));
+            Assert.That(apiConn.InsertedServiceObjects.Select(serviceObject => serviceObject.Name), Is.EquivalentTo(new[] { "HTTPS", "8443-8444/tcp" }));
         }
 
         [Test]

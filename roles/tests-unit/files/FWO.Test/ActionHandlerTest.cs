@@ -186,6 +186,10 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)new List<FlowAccess>());
                 }
+                if (query == StmQueries.getIpProtocols)
+                {
+                    return Task.FromResult((T)(object)new List<IpProtocol> { new() { Id = 6, Name = "tcp" }, new() { Id = 17, Name = "udp" } });
+                }
                 throw new AssertionException($"Unexpected query: {query}");
             }
 

@@ -580,7 +580,6 @@
                 displayedReqTaskId = WfHandler.ActReqTask.Id;
                 InitElements();
                 await InitComments();
-                await Reset();
                 if(!WfHandler.AddReqTaskMode)
                 {
                     Enum.TryParse<WfTaskType>(WfHandler.ActReqTask.TaskType, out actTaskType);
@@ -594,6 +593,7 @@
                     }
                     actGrpName = WfHandler.ActReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
                 }
+                await Reset();
             }
         }
         catch (Exception exception)
@@ -716,7 +716,13 @@
 
     private Device GetAllDevicesOption()
     {
-        return selectableDevices.First(dev => dev.Id == WfReqTaskBase.kAllDevicesId);
+        return selectableDevices.FirstOrDefault(dev => dev.Id == WfReqTaskBase.kAllDevicesId)
+            ?? new Device()
+            {
+                Id = WfReqTaskBase.kAllDevicesId,
+                Name = userConfig.GetText("all"),
+                DeviceType = new() { Id = 0 }
+            };
     }
 
     private string DisplayObjectElement(NwObjectElement element)
@@ -1041,16 +1047,34 @@
         }
         foreach (var reqElem in WfHandler.ActReqTask.Elements)
         {
-            if (reqElem.NetworkId == null && reqElem.ServiceId == null)
+            if (!HasObjectReference(reqElem) && IsInvalidServicePort(reqElem))
             {
-                if (reqElem.Field == ElemFieldType.service.ToString() && reqElem.Port < 1 || reqElem.Port > GlobalConst.kMaxPortNumber)
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("save_element"), userConfig.GetText("E5103"), true);
-                    return false;
-                }
+                DisplayMessageInUi(null, userConfig.GetText("save_element"), userConfig.GetText("E5103"), true);
+                return false;
             }
         }
         return true;
+    }
+
+    private static bool HasObjectReference(WfReqElement element)
+    {
+        return HasId(element.NetworkId)
+            || HasId(element.ServiceId)
+            || HasId(element.FlowNetworkObjectId)
+            || HasId(element.FlowNetworkGroupId)
+            || HasId(element.FlowServiceObjectId)
+            || HasId(element.FlowServiceGroupId);
+    }
+
+    private static bool HasId(long? id)
+    {
+        return id.HasValue && id.Value != 0;
+    }
+
+    private static bool IsInvalidServicePort(WfReqElement element)
+    {
+        return element.Field == ElemFieldType.service.ToString()
+            && (element.Port < 1 || element.Port > GlobalConst.kMaxPortNumber);
     }
 
     private async Task<bool> RejectInvalidRuleDeleteTask()

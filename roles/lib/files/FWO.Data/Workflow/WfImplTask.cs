@@ -110,6 +110,8 @@ namespace FWO.Data.Workflow
                         Cidr = new Cidr(implElem.Cidr != null ? implElem.Cidr.CidrString : ""),
                         IpString = implElem.IpString ?? "",
                         NetworkId = implElem.NetworkId,
+                        FlowNetworkObjectId = implElem.FlowNetworkObjectId,
+                        FlowNetworkGroupId = implElem.FlowNetworkGroupId,
                         Name = implElem.Name,
                         GroupName = implElem.GroupName ?? ""
                     });
@@ -133,6 +135,8 @@ namespace FWO.Data.Workflow
                         PortEnd = implElem.PortEnd,
                         ProtoId = implElem.ProtoId ?? 0,
                         ServiceId = implElem.ServiceId,
+                        FlowServiceObjectId = implElem.FlowServiceObjectId,
+                        FlowServiceGroupId = implElem.FlowServiceGroupId,
                         Name = implElem.Name,
                         GroupName = implElem.GroupName
                     });

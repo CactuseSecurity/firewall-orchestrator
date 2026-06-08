@@ -1,3 +1,4 @@
+using FWO.Data;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 
@@ -251,13 +252,15 @@ namespace FWO.Data.Flow
         public readonly Dictionary<long, FlowNwGroup> NwGroupsById = [];
         public readonly Dictionary<long, FlowSvcObject> SvcObjectsById = [];
         public readonly Dictionary<long, FlowSvcGroup> SvcGroupsById = [];
+        public readonly Dictionary<int, string> ProtocolNamesById = [];
 
         public Dictionary<long, string> NwObjectHashes { get; private set; } = [];
         public Dictionary<long, string> SvcObjectHashes { get; private set; } = [];
         public Dictionary<long, string> TimeObjectHashes { get; private set; } = [];
         public Dictionary<long, string> AccessHashes { get; private set; } = [];
 
-        public FlowSyncFlowData(List<FlowNwObject> nwObjects, List<FlowNwGroup> nwGroups, List<FlowSvcObject> svcObjects, List<FlowSvcGroup> svcGroups, List<FlowTimeObject> timeObjects, List<FlowAccess> accesses)
+        public FlowSyncFlowData(List<FlowNwObject> nwObjects, List<FlowNwGroup> nwGroups, List<FlowSvcObject> svcObjects, List<FlowSvcGroup> svcGroups,
+            List<FlowTimeObject> timeObjects, List<FlowAccess> accesses, List<IpProtocol>? ipProtocols = null)
         {
             NwObjects = nwObjects.ToDictionary(fo => fo.Hash, fo => fo);
             NwGroups = nwGroups.ToDictionary(fg => fg.Hash, fg => fg);
@@ -269,6 +272,7 @@ namespace FWO.Data.Flow
             NwGroupsById = nwGroups.ToDictionary(group => group.Id);
             SvcObjectsById = svcObjects.ToDictionary(flowObject => flowObject.Id);
             SvcGroupsById = svcGroups.ToDictionary(group => group.Id);
+            ProtocolNamesById = (ipProtocols ?? []).Where(protocol => !string.IsNullOrWhiteSpace(protocol.Name)).ToDictionary(protocol => protocol.Id, protocol => protocol.Name);
 
             NwObjectHashes = nwObjects.SelectMany(fo => (fo.Objects ?? Enumerable.Empty<NetworkObject>())
                     .Select(o => new { o.Id, ParentHash = fo.Hash }))

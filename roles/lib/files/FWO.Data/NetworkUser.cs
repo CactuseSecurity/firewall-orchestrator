@@ -35,9 +35,6 @@ namespace FWO.Data
         [JsonProperty("user_create_time"), JsonPropertyName("user_create_time")]
         public TimeWrapper CreateTime { get; set; } = new();
 
-        [JsonProperty("user_last_seen"), JsonPropertyName("user_last_seen")]
-        public int LastSeen { get; set; }
-
         [JsonProperty("user_member_names"), JsonPropertyName("user_member_names")]
         public string MemberNames { get; set; } = "";
 

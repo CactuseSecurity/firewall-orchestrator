@@ -2,7 +2,7 @@ import logging
 import os
 import threading
 import time
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, Literal, Protocol, TextIO, TypeAlias, cast
 
@@ -89,7 +89,7 @@ class LogLock:
 
     @classmethod
     @contextmanager
-    def locked_file(cls, mode: OpenTextMode) -> Iterator[TextIO]:
+    def locked_file(cls, mode: OpenTextMode) -> Generator[TextIO]:
         with open(cls.lock_file_path, mode, encoding="utf-8") as file:
             if fcntl is not None:
                 fcntl.flock(file.fileno(), fcntl.LOCK_EX)

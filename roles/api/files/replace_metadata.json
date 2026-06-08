@@ -8255,30 +8255,6 @@
                   }
                 },
                 {
-                  "name": "objectsByObjLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "obj_last_seen",
-                      "table": {
-                        "name": "object",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "objgrpFlatsByImportLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "import_last_seen",
-                      "table": {
-                        "name": "objgrp_flat",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "objgrp_flats",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -8303,36 +8279,12 @@
                   }
                 },
                 {
-                  "name": "objgrpsByImportLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "import_last_seen",
-                      "table": {
-                        "name": "objgrp",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "ruleEnforcedOnGatewaysByRemoved",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "removed",
                       "table": {
                         "name": "rule_enforced_on_gateway",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "ruleFromsByRfLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rf_last_seen",
-                      "table": {
-                        "name": "rule_from",
                         "schema": "public"
                       }
                     }
@@ -8375,18 +8327,6 @@
                   }
                 },
                 {
-                  "name": "ruleServicesByRsLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rs_last_seen",
-                      "table": {
-                        "name": "rule_service",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "ruleSvcResolvedsByRemoved",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -8405,18 +8345,6 @@
                       "column": "removed",
                       "table": {
                         "name": "rule_time",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "ruleTosByRtLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rt_last_seen",
-                      "table": {
-                        "name": "rule_to",
                         "schema": "public"
                       }
                     }
@@ -8591,10 +8519,10 @@
                   }
                 },
                 {
-                  "name": "rulesByRuleLastSeen",
+                  "name": "rulesByRemoved",
                   "using": {
                     "foreign_key_constraint_on": {
-                      "column": "rule_last_seen",
+                      "column": "removed",
                       "table": {
                         "name": "rule",
                         "schema": "public"
@@ -8609,30 +8537,6 @@
                       "column": "svc_create",
                       "table": {
                         "name": "service",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "servicesBySvcLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "svc_last_seen",
-                      "table": {
-                        "name": "service",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "svcgrpFlatsByImportLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "import_last_seen",
-                      "table": {
-                        "name": "svcgrp_flat",
                         "schema": "public"
                       }
                     }
@@ -8655,18 +8559,6 @@
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "import_created",
-                      "table": {
-                        "name": "svcgrp",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "svcgrpsByImportLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "import_last_seen",
                       "table": {
                         "name": "svcgrp",
                         "schema": "public"
@@ -8699,18 +8591,6 @@
                   }
                 },
                 {
-                  "name": "usergrpFlatsByImportLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "import_last_seen",
-                      "table": {
-                        "name": "usergrp_flat",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "usergrp_flats",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -8735,18 +8615,6 @@
                   }
                 },
                 {
-                  "name": "usergrpsByImportLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "import_last_seen",
-                      "table": {
-                        "name": "usergrp",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "usrs",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -8759,34 +8627,10 @@
                   }
                 },
                 {
-                  "name": "usrsByUserLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "user_last_seen",
-                      "table": {
-                        "name": "usr",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "zones",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "zone_create",
-                      "table": {
-                        "name": "zone",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "zonesByZoneLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "zone_last_seen",
                       "table": {
                         "name": "zone",
                         "schema": "public"
@@ -12564,12 +12408,6 @@
                   }
                 },
                 {
-                  "name": "importControlByObjLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": "obj_last_seen"
-                  }
-                },
-                {
                   "name": "import_control",
                   "using": {
                     "foreign_key_constraint_on": "obj_create"
@@ -12774,7 +12612,6 @@
                       "flow_nwobj_id",
                       "obj_create",
                       "obj_id",
-                      "obj_last_seen",
                       "removed",
                       "active",
                       "flow_active",
@@ -12818,7 +12655,6 @@
                       "flow_nwobj_id",
                       "obj_create",
                       "obj_id",
-                      "obj_last_seen",
                       "removed",
                       "active",
                       "flow_active",
@@ -12861,7 +12697,6 @@
                       "flow_nwobj_id",
                       "obj_create",
                       "obj_id",
-                      "obj_last_seen",
                       "removed",
                       "active",
                       "flow_active",
@@ -12904,7 +12739,6 @@
                       "flow_nwobj_id",
                       "obj_create",
                       "obj_id",
-                      "obj_last_seen",
                       "removed",
                       "active",
                       "flow_active",
@@ -12957,7 +12791,6 @@
                       "obj_id",
                       "obj_ip",
                       "obj_ip_end",
-                      "obj_last_seen",
                       "obj_location",
                       "obj_member_names",
                       "obj_member_refs",
@@ -12990,7 +12823,6 @@
                       "flow_nwobj_id",
                       "obj_create",
                       "obj_id",
-                      "obj_last_seen",
                       "removed",
                       "active",
                       "flow_active",
@@ -13037,7 +12869,6 @@
                       "flow_nwobj_id",
                       "obj_create",
                       "obj_id",
-                      "obj_last_seen",
                       "removed",
                       "active",
                       "flow_active",
@@ -13084,7 +12915,6 @@
                       "flow_nwobj_id",
                       "obj_create",
                       "obj_id",
-                      "obj_last_seen",
                       "removed",
                       "active",
                       "flow_active",
@@ -13131,7 +12961,6 @@
                       "flow_nwobj_id",
                       "obj_create",
                       "obj_id",
-                      "obj_last_seen",
                       "removed",
                       "active",
                       "flow_active",
@@ -13176,7 +13005,6 @@
                       "flow_nwobj_id",
                       "obj_create",
                       "obj_id",
-                      "obj_last_seen",
                       "removed",
                       "active",
                       "flow_active",
@@ -13243,12 +13071,6 @@
               },
               "object_relationships": [
                 {
-                  "name": "importControlByImportLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": "import_last_seen"
-                  }
-                },
-                {
                   "name": "import_control",
                   "using": {
                     "foreign_key_constraint_on": "import_created"
@@ -13274,7 +13096,6 @@
                     "check": {},
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "objgrp_id",
                       "objgrp_member_id",
                       "removed",
@@ -13293,7 +13114,6 @@
                       "objgrp_id",
                       "objgrp_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active",
                       "negated"
@@ -13307,7 +13127,6 @@
                   "permission": {
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "objgrp_id",
                       "removed",
                       "objgrp_member_id",
@@ -13322,7 +13141,6 @@
                   "permission": {
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "objgrp_id",
                       "objgrp_member_id",
                       "removed",
@@ -13338,7 +13156,6 @@
                   "permission": {
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "objgrp_id",
                       "objgrp_member_id",
                       "removed",
@@ -13356,7 +13173,6 @@
                       "objgrp_id",
                       "objgrp_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active",
                       "negated"
@@ -13372,7 +13188,6 @@
                       "objgrp_id",
                       "objgrp_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active",
                       "negated"
@@ -13388,7 +13203,6 @@
                       "objgrp_id",
                       "objgrp_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active",
                       "negated"
@@ -13404,7 +13218,6 @@
                       "objgrp_id",
                       "objgrp_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active",
                       "negated"
@@ -13419,7 +13232,6 @@
                   "permission": {
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "objgrp_id",
                       "objgrp_member_id",
                       "removed",
@@ -13449,12 +13261,6 @@
               },
               "object_relationships": [
                 {
-                  "name": "importControlByImportLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": "import_last_seen"
-                  }
-                },
-                {
                   "name": "import_control",
                   "using": {
                     "foreign_key_constraint_on": "import_created"
@@ -13480,7 +13286,6 @@
                     "check": {},
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "objgrp_flat_id",
                       "objgrp_flat_member_id",
                       "removed",
@@ -13500,7 +13305,6 @@
                       "objgrp_flat_member_id",
                       "active",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "negated"
                     ],
@@ -13513,7 +13317,6 @@
                   "permission": {
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "objgrp_flat_id",
                       "objgrp_flat_member_id",
@@ -13528,7 +13331,6 @@
                   "permission": {
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "objgrp_flat_id",
                       "objgrp_flat_member_id",
                       "removed",
@@ -13544,7 +13346,6 @@
                   "permission": {
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "objgrp_flat_id",
                       "objgrp_flat_member_id",
                       "removed",
@@ -13564,7 +13365,6 @@
                       "removed",
                       "active",
                       "import_created",
-                      "import_last_seen",
                       "negated"
                     ],
                     "filter": {},
@@ -13580,7 +13380,6 @@
                       "removed",
                       "active",
                       "import_created",
-                      "import_last_seen",
                       "negated"
                     ],
                     "filter": {},
@@ -13596,7 +13395,6 @@
                       "removed",
                       "active",
                       "import_created",
-                      "import_last_seen",
                       "negated"
                     ],
                     "filter": {},
@@ -13612,7 +13410,6 @@
                       "removed",
                       "active",
                       "import_created",
-                      "import_last_seen",
                       "negated"
                     ],
                     "filter": {}
@@ -13625,7 +13422,6 @@
                   "permission": {
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "objgrp_flat_id",
                       "objgrp_flat_member_id",
                       "removed",
@@ -18311,9 +18107,9 @@
                   }
                 },
                 {
-                  "name": "importControlByRuleLastSeen",
+                  "name": "importControlByRemoved",
                   "using": {
-                    "foreign_key_constraint_on": "rule_last_seen"
+                    "foreign_key_constraint_on": "removed"
                   }
                 },
                 {
@@ -18663,7 +18459,6 @@
                       "removed",
                       "rule_create",
                       "rule_id",
-                      "rule_last_seen",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -18718,7 +18513,6 @@
                       "removed",
                       "rule_create",
                       "rule_id",
-                      "rule_last_seen",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -18775,7 +18569,6 @@
                       "removed",
                       "rule_create",
                       "rule_id",
-                      "rule_last_seen",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -18832,7 +18625,6 @@
                       "removed",
                       "rule_create",
                       "rule_id",
-                      "rule_last_seen",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -18889,7 +18681,6 @@
                       "removed",
                       "rule_create",
                       "rule_id",
-                      "rule_last_seen",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -18946,7 +18737,6 @@
                       "removed",
                       "rule_create",
                       "rule_id",
-                      "rule_last_seen",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -19003,7 +18793,6 @@
                       "removed",
                       "rule_create",
                       "rule_id",
-                      "rule_last_seen",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -19073,7 +18862,6 @@
                       "removed",
                       "rule_create",
                       "rule_id",
-                      "rule_last_seen",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -19143,7 +18931,6 @@
                       "removed",
                       "rule_create",
                       "rule_id",
-                      "rule_last_seen",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -19213,7 +19000,6 @@
                     "columns": [
                       "active",
                       "removed",
-                      "rule_last_seen",
                       "rule_num_numeric"
                     ],
                     "filter": {},
@@ -19366,7 +19152,6 @@
                       "removed",
                       "rule_create",
                       "rule_id",
-                      "rule_last_seen",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -19417,7 +19202,6 @@
                       "removed",
                       "rule_create",
                       "rule_id",
-                      "rule_last_seen",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -19468,7 +19252,6 @@
                       "removed",
                       "rule_create",
                       "rule_id",
-                      "rule_last_seen",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -19519,7 +19302,6 @@
                       "removed",
                       "rule_create",
                       "rule_id",
-                      "rule_last_seen",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -19570,7 +19352,6 @@
                       "removed",
                       "rule_create",
                       "rule_id",
-                      "rule_last_seen",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -19629,7 +19410,6 @@
                       "removed",
                       "rule_create",
                       "rule_id",
-                      "rule_last_seen",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -19688,7 +19468,6 @@
                       "removed",
                       "rule_create",
                       "rule_id",
-                      "rule_last_seen",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -19747,7 +19526,6 @@
                       "removed",
                       "rule_create",
                       "rule_id",
-                      "rule_last_seen",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -19992,12 +19770,6 @@
               },
               "object_relationships": [
                 {
-                  "name": "importControlByRfLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": "rf_last_seen"
-                  }
-                },
-                {
                   "name": "import_control",
                   "using": {
                     "foreign_key_constraint_on": "rf_create"
@@ -20043,7 +19815,6 @@
                       "obj_id",
                       "removed",
                       "rf_create",
-                      "rf_last_seen",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -20064,7 +19835,6 @@
                       "obj_id",
                       "removed",
                       "rf_create",
-                      "rf_last_seen",
                       "rule_from_id",
                       "rule_id",
                       "user_id"
@@ -20085,7 +19855,6 @@
                       "obj_id",
                       "removed",
                       "rf_create",
-                      "rf_last_seen",
                       "removed",
                       "rule_from_id",
                       "rule_id",
@@ -20105,7 +19874,6 @@
                       "obj_id",
                       "removed",
                       "rf_create",
-                      "rf_last_seen",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -20129,7 +19897,6 @@
                       "obj_id",
                       "removed",
                       "rf_create",
-                      "rf_last_seen",
                       "rule_from_id",
                       "rule_id",
                       "user_id"
@@ -20148,7 +19915,6 @@
                       "obj_id",
                       "removed",
                       "rf_create",
-                      "rf_last_seen",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -20171,7 +19937,6 @@
                       "obj_id",
                       "removed",
                       "rf_create",
-                      "rf_last_seen",
                       "rule_from_id",
                       "rule_id",
                       "user_id"
@@ -20205,7 +19970,6 @@
                       "obj_id",
                       "removed",
                       "rf_create",
-                      "rf_last_seen",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -20241,7 +20005,6 @@
                       "obj_id",
                       "removed",
                       "rf_create",
-                      "rf_last_seen",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -20264,7 +20027,6 @@
                       "obj_id",
                       "removed",
                       "rf_create",
-                      "rf_last_seen",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -21226,12 +20988,6 @@
               },
               "object_relationships": [
                 {
-                  "name": "importControlByRsLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": "rs_last_seen"
-                  }
-                },
-                {
                   "name": "import_control",
                   "using": {
                     "foreign_key_constraint_on": "rs_create"
@@ -21258,7 +21014,6 @@
                     "columns": [
                       "rs_create",
                       "removed",
-                      "rs_last_seen",
                       "rule_id",
                       "svc_id",
                       "active",
@@ -21277,7 +21032,6 @@
                       "negated",
                       "removed",
                       "rs_create",
-                      "rs_last_seen",
                       "rule_id",
                       "svc_id"
                     ],
@@ -21292,7 +21046,6 @@
                       "negated",
                       "removed",
                       "rs_create",
-                      "rs_last_seen",
                       "removed",
                       "rule_id",
                       "svc_id"
@@ -21306,7 +21059,6 @@
                     "columns": [
                       "removed",
                       "rs_create",
-                      "rs_last_seen",
                       "rule_id",
                       "svc_id",
                       "active",
@@ -21325,7 +21077,6 @@
                       "negated",
                       "removed",
                       "rs_create",
-                      "rs_last_seen",
                       "rule_id",
                       "svc_id"
                     ],
@@ -21341,7 +21092,6 @@
                       "negated",
                       "removed",
                       "rs_create",
-                      "rs_last_seen",
                       "rule_id",
                       "svc_id"
                     ],
@@ -21357,7 +21107,6 @@
                       "negated",
                       "removed",
                       "rs_create",
-                      "rs_last_seen",
                       "rule_id",
                       "svc_id"
                     ],
@@ -21373,7 +21122,6 @@
                       "negated",
                       "removed",
                       "rs_create",
-                      "rs_last_seen",
                       "rule_id",
                       "svc_id"
                     ],
@@ -21389,7 +21137,6 @@
                       "negated",
                       "removed",
                       "rs_create",
-                      "rs_last_seen",
                       "rule_id",
                       "svc_id"
                     ],
@@ -21404,7 +21151,6 @@
                     "columns": [
                       "removed",
                       "rs_create",
-                      "rs_last_seen",
                       "rule_id",
                       "svc_id",
                       "active",
@@ -21815,12 +21561,6 @@
               },
               "object_relationships": [
                 {
-                  "name": "importControlByRtLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": "rt_last_seen"
-                  }
-                },
-                {
                   "name": "import_control",
                   "using": {
                     "foreign_key_constraint_on": "rt_create"
@@ -21866,7 +21606,6 @@
                       "obj_id",
                       "removed",
                       "rt_create",
-                      "rt_last_seen",
                       "rule_id",
                       "rule_to_id",
                       "user_id",
@@ -21887,7 +21626,6 @@
                       "obj_id",
                       "removed",
                       "rt_create",
-                      "rt_last_seen",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -21907,7 +21645,6 @@
                       "obj_id",
                       "removed",
                       "rt_create",
-                      "rt_last_seen",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -21925,7 +21662,6 @@
                       "obj_id",
                       "removed",
                       "rt_create",
-                      "rt_last_seen",
                       "rule_id",
                       "rule_to_id",
                       "user_id",
@@ -21949,7 +21685,6 @@
                       "obj_id",
                       "removed",
                       "rt_create",
-                      "rt_last_seen",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -21969,7 +21704,6 @@
                       "obj_id",
                       "removed",
                       "rt_create",
-                      "rt_last_seen",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -21990,7 +21724,6 @@
                       "obj_id",
                       "removed",
                       "rt_create",
-                      "rt_last_seen",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -22026,7 +21759,6 @@
                       "obj_id",
                       "removed",
                       "rt_create",
-                      "rt_last_seen",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -22062,7 +21794,6 @@
                       "obj_id",
                       "removed",
                       "rt_create",
-                      "rt_last_seen",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -22082,7 +21813,6 @@
                       "obj_id",
                       "removed",
                       "rt_create",
-                      "rt_last_seen",
                       "rule_id",
                       "rule_to_id",
                       "user_id",
@@ -22936,12 +22666,6 @@
                   }
                 },
                 {
-                  "name": "importControlBySvcLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": "svc_last_seen"
-                  }
-                },
-                {
                   "name": "import_control",
                   "using": {
                     "foreign_key_constraint_on": "svc_create"
@@ -23135,7 +22859,6 @@
                       "removed",
                       "svc_create",
                       "svc_id",
-                      "svc_last_seen",
                       "active",
                       "flow_active",
                       "initial_config",
@@ -23182,7 +22905,6 @@
                       "removed",
                       "svc_create",
                       "svc_id",
-                      "svc_last_seen",
                       "active",
                       "flow_active",
                       "initial_config",
@@ -23228,7 +22950,6 @@
                       "removed",
                       "svc_create",
                       "svc_id",
-                      "svc_last_seen",
                       "active",
                       "flow_active",
                       "initial_config",
@@ -23274,7 +22995,6 @@
                       "removed",
                       "svc_create",
                       "svc_id",
-                      "svc_last_seen",
                       "active",
                       "flow_active",
                       "initial_config",
@@ -23320,7 +23040,6 @@
                       "removed",
                       "svc_create",
                       "svc_id",
-                      "svc_last_seen",
                       "active",
                       "flow_active",
                       "initial_config",
@@ -23366,7 +23085,6 @@
                       "removed",
                       "svc_create",
                       "svc_id",
-                      "svc_last_seen",
                       "active",
                       "flow_active",
                       "initial_config",
@@ -23416,7 +23134,6 @@
                       "removed",
                       "svc_create",
                       "svc_id",
-                      "svc_last_seen",
                       "active",
                       "flow_active",
                       "initial_config",
@@ -23466,7 +23183,6 @@
                       "removed",
                       "svc_create",
                       "svc_id",
-                      "svc_last_seen",
                       "active",
                       "flow_active",
                       "initial_config",
@@ -23516,7 +23232,6 @@
                       "removed",
                       "svc_create",
                       "svc_id",
-                      "svc_last_seen",
                       "active",
                       "flow_active",
                       "initial_config",
@@ -23564,7 +23279,6 @@
                       "removed",
                       "svc_create",
                       "svc_id",
-                      "svc_last_seen",
                       "active",
                       "flow_active",
                       "initial_config",
@@ -25328,12 +25042,6 @@
               },
               "object_relationships": [
                 {
-                  "name": "importControlByImportLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": "import_last_seen"
-                  }
-                },
-                {
                   "name": "import_control",
                   "using": {
                     "foreign_key_constraint_on": "import_created"
@@ -25359,7 +25067,6 @@
                     "check": {},
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "svcgrp_id",
                       "svcgrp_member_id",
@@ -25379,7 +25086,6 @@
                       "svcgrp_member_id",
                       "import_created",
                       "removed",
-                      "import_last_seen",
                       "active",
                       "negated"
                     ],
@@ -25392,7 +25098,6 @@
                   "permission": {
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "svcgrp_id",
                       "svcgrp_member_id",
@@ -25407,7 +25112,6 @@
                   "permission": {
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "svcgrp_id",
                       "svcgrp_member_id",
@@ -25423,7 +25127,6 @@
                   "permission": {
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "svcgrp_id",
                       "svcgrp_member_id",
@@ -25441,7 +25144,6 @@
                       "svcgrp_id",
                       "svcgrp_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active",
                       "negated"
@@ -25457,7 +25159,6 @@
                       "svcgrp_id",
                       "svcgrp_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active",
                       "negated"
@@ -25473,7 +25174,6 @@
                       "svcgrp_id",
                       "svcgrp_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active",
                       "negated"
@@ -25489,7 +25189,6 @@
                       "svcgrp_id",
                       "svcgrp_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active",
                       "negated"
@@ -25504,7 +25203,6 @@
                   "permission": {
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "svcgrp_id",
                       "svcgrp_member_id",
@@ -25534,12 +25232,6 @@
               },
               "object_relationships": [
                 {
-                  "name": "importControlByImportLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": "import_last_seen"
-                  }
-                },
-                {
                   "name": "import_control",
                   "using": {
                     "foreign_key_constraint_on": "import_created"
@@ -25568,7 +25260,6 @@
                       "active",
                       "negated",
                       "import_created",
-                      "import_last_seen",
                       "svcgrp_flat_id",
                       "svcgrp_flat_member_id"
                     ]
@@ -25584,7 +25275,6 @@
                       "svcgrp_flat_id",
                       "svcgrp_flat_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active",
                       "negated"
@@ -25600,7 +25290,6 @@
                       "active",
                       "negated",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "svcgrp_flat_id",
                       "svcgrp_flat_member_id"
@@ -25616,7 +25305,6 @@
                       "active",
                       "negated",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "svcgrp_flat_id",
                       "svcgrp_flat_member_id"
@@ -25633,7 +25321,6 @@
                       "active",
                       "negated",
                       "import_created",
-                      "import_last_seen",
                       "svcgrp_flat_id",
                       "svcgrp_flat_member_id"
                     ],
@@ -25648,7 +25335,6 @@
                       "svcgrp_flat_id",
                       "svcgrp_flat_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active",
                       "negated"
@@ -25664,7 +25350,6 @@
                       "svcgrp_flat_id",
                       "svcgrp_flat_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active",
                       "negated"
@@ -25680,7 +25365,6 @@
                       "svcgrp_flat_id",
                       "svcgrp_flat_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active",
                       "negated"
@@ -25696,7 +25380,6 @@
                       "svcgrp_flat_id",
                       "svcgrp_flat_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active",
                       "negated"
@@ -25714,7 +25397,6 @@
                       "active",
                       "negated",
                       "import_created",
-                      "import_last_seen",
                       "svcgrp_flat_id",
                       "svcgrp_flat_member_id"
                     ],
@@ -28114,12 +27796,6 @@
               },
               "object_relationships": [
                 {
-                  "name": "importControlByImportLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": "import_last_seen"
-                  }
-                },
-                {
                   "name": "import_control",
                   "using": {
                     "foreign_key_constraint_on": "import_created"
@@ -28145,7 +27821,6 @@
                     "check": {},
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "usergrp_id",
                       "usergrp_member_id",
@@ -28164,7 +27839,6 @@
                       "usergrp_member_id",
                       "import_created",
                       "removed",
-                      "import_last_seen",
                       "active"
                     ],
                     "filter": {},
@@ -28178,7 +27852,6 @@
                       "usergrp_id",
                       "usergrp_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active"
                     ],
@@ -28191,7 +27864,6 @@
                   "permission": {
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "usergrp_id",
                       "usergrp_member_id",
@@ -28207,7 +27879,6 @@
                       "usergrp_id",
                       "usergrp_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active"
                     ],
@@ -28220,7 +27891,6 @@
                   "permission": {
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "removed",
                       "usergrp_id",
@@ -28237,7 +27907,6 @@
                   "permission": {
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "usergrp_id",
                       "usergrp_member_id",
@@ -28255,7 +27924,6 @@
                       "usergrp_id",
                       "usergrp_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active"
                     ],
@@ -28270,7 +27938,6 @@
                       "usergrp_id",
                       "usergrp_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active"
                     ],
@@ -28285,7 +27952,6 @@
                       "usergrp_id",
                       "usergrp_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active"
                     ],
@@ -28300,7 +27966,6 @@
                       "usergrp_id",
                       "usergrp_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active"
                     ],
@@ -28315,7 +27980,6 @@
                       "usergrp_id",
                       "usergrp_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active"
                     ],
@@ -28329,7 +27993,6 @@
                       "usergrp_id",
                       "usergrp_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active"
                     ],
@@ -28344,7 +28007,6 @@
                       "usergrp_id",
                       "usergrp_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "active"
                     ],
@@ -28359,7 +28021,6 @@
                   "permission": {
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "usergrp_id",
                       "usergrp_member_id",
@@ -28388,12 +28049,6 @@
               },
               "object_relationships": [
                 {
-                  "name": "importControlByImportLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": "import_last_seen"
-                  }
-                },
-                {
                   "name": "import_control",
                   "using": {
                     "foreign_key_constraint_on": "import_created"
@@ -28419,7 +28074,6 @@
                     "check": {},
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "usergrp_flat_id",
                       "usergrp_flat_member_id",
@@ -28438,7 +28092,6 @@
                       "usergrp_flat_id",
                       "usergrp_flat_member_id",
                       "import_created",
-                      "import_last_seen",
                       "removed"
                     ],
                     "filter": {},
@@ -28450,7 +28103,6 @@
                   "permission": {
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "usergrp_flat_id",
                       "usergrp_flat_member_id",
@@ -28464,7 +28116,6 @@
                   "permission": {
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "usergrp_flat_id",
                       "usergrp_flat_member_id",
@@ -28480,7 +28131,6 @@
                   "permission": {
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "usergrp_flat_id",
                       "usergrp_flat_member_id",
@@ -28499,8 +28149,7 @@
                       "usergrp_flat_id",
                       "usergrp_flat_member_id",
                       "import_created",
-                      "removed",
-                      "import_last_seen"
+                      "removed"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -28514,8 +28163,7 @@
                       "usergrp_flat_id",
                       "usergrp_flat_member_id",
                       "import_created",
-                      "removed",
-                      "import_last_seen"
+                      "removed"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -28529,8 +28177,7 @@
                       "usergrp_flat_id",
                       "usergrp_flat_member_id",
                       "import_created",
-                      "removed",
-                      "import_last_seen"
+                      "removed"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -28544,8 +28191,7 @@
                       "usergrp_flat_id",
                       "usergrp_flat_member_id",
                       "import_created",
-                      "removed",
-                      "import_last_seen"
+                      "removed"
                     ],
                     "filter": {}
                   }
@@ -28557,7 +28203,6 @@
                   "permission": {
                     "columns": [
                       "import_created",
-                      "import_last_seen",
                       "removed",
                       "usergrp_flat_id",
                       "usergrp_flat_member_id",
@@ -28585,12 +28230,6 @@
                 "schema": "public"
               },
               "object_relationships": [
-                {
-                  "name": "importControlByUserLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": "user_last_seen"
-                  }
-                },
                 {
                   "name": "import_control",
                   "using": {
@@ -28795,7 +28434,6 @@
                       "removed",
                       "user_create",
                       "user_id",
-                      "user_last_seen",
                       "active",
                       "user_authmethod",
                       "user_firstname",
@@ -28840,7 +28478,6 @@
                       "dst_restrict",
                       "time_restrict",
                       "user_create",
-                      "user_last_seen",
                       "removed",
                       "user_comment",
                       "user_uid",
@@ -28859,7 +28496,6 @@
                     "columns": [
                       "user_create",
                       "user_id",
-                      "user_last_seen",
                       "removed",
                       "active",
                       "user_authmethod",
@@ -28892,7 +28528,6 @@
                       "removed",
                       "user_create",
                       "user_id",
-                      "user_last_seen",
                       "active",
                       "user_authmethod",
                       "user_firstname",
@@ -28924,7 +28559,6 @@
                     "columns": [
                       "user_create",
                       "user_id",
-                      "user_last_seen",
                       "removed",
                       "active",
                       "user_authmethod",
@@ -28969,7 +28603,6 @@
                       "dst_restrict",
                       "time_restrict",
                       "user_create",
-                      "user_last_seen",
                       "removed",
                       "user_comment",
                       "user_uid",
@@ -29005,7 +28638,6 @@
                       "dst_restrict",
                       "time_restrict",
                       "user_create",
-                      "user_last_seen",
                       "removed",
                       "user_comment",
                       "user_uid",
@@ -29041,7 +28673,6 @@
                       "dst_restrict",
                       "time_restrict",
                       "user_create",
-                      "user_last_seen",
                       "removed",
                       "user_comment",
                       "user_uid",
@@ -29077,7 +28708,6 @@
                       "dst_restrict",
                       "time_restrict",
                       "user_create",
-                      "user_last_seen",
                       "removed",
                       "user_comment",
                       "user_uid",
@@ -29099,7 +28729,6 @@
                       "removed",
                       "user_create",
                       "user_id",
-                      "user_last_seen",
                       "active",
                       "user_authmethod",
                       "user_firstname",
@@ -29478,12 +29107,6 @@
               },
               "object_relationships": [
                 {
-                  "name": "importControlByZoneLastSeen",
-                  "using": {
-                    "foreign_key_constraint_on": "zone_last_seen"
-                  }
-                },
-                {
                   "name": "import_control",
                   "using": {
                     "foreign_key_constraint_on": "zone_create"
@@ -29566,7 +29189,6 @@
                     "columns": [
                       "removed",
                       "zone_create",
-                      "zone_last_seen",
                       "active",
                       "zone_name",
                       "mgm_id",
@@ -29583,7 +29205,6 @@
                     "columns": [
                       "zone_id",
                       "zone_create",
-                      "zone_last_seen",
                       "removed",
                       "mgm_id",
                       "zone_name",
@@ -29598,7 +29219,6 @@
                   "permission": {
                     "columns": [
                       "zone_create",
-                      "zone_last_seen",
                       "removed",
                       "active",
                       "zone_name",
@@ -29615,7 +29235,6 @@
                     "columns": [
                       "removed",
                       "zone_create",
-                      "zone_last_seen",
                       "active",
                       "zone_name",
                       "mgm_id",
@@ -29631,7 +29250,6 @@
                   "permission": {
                     "columns": [
                       "zone_create",
-                      "zone_last_seen",
                       "removed",
                       "active",
                       "zone_name",
@@ -29648,7 +29266,6 @@
                     "columns": [
                       "zone_id",
                       "zone_create",
-                      "zone_last_seen",
                       "removed",
                       "mgm_id",
                       "zone_name",
@@ -29668,7 +29285,6 @@
                     "columns": [
                       "zone_id",
                       "zone_create",
-                      "zone_last_seen",
                       "removed",
                       "mgm_id",
                       "zone_name",
@@ -29688,7 +29304,6 @@
                     "columns": [
                       "zone_id",
                       "zone_create",
-                      "zone_last_seen",
                       "removed",
                       "mgm_id",
                       "zone_name",
@@ -29709,7 +29324,6 @@
                       "active",
                       "mgm_id",
                       "zone_create",
-                      "zone_last_seen",
                       "removed",
                       "zone_id",
                       "zone_name"
@@ -29725,7 +29339,6 @@
                   "permission": {
                     "columns": [
                       "removed",
-                      "zone_last_seen",
                       "active"
                     ],
                     "filter": {},

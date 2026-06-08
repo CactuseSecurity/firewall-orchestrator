@@ -46,9 +46,6 @@ namespace FWO.Data
         [JsonProperty("svc_create_time"), JsonPropertyName("svc_create_time")]
         public TimeWrapper CreateTime { get; set; } = new();
 
-        [JsonProperty("svc_last_seen"), JsonPropertyName("svc_last_seen")]
-        public int LastSeen { get; set; }
-
         [JsonProperty("service_type"), JsonPropertyName("service_type")]
         public NetworkServiceType Type { get; set; } = new();
 
@@ -121,7 +118,6 @@ namespace FWO.Data
             Active = networkService.Active;
             Create = networkService.Create;
             CreateTime = networkService.CreateTime;
-            LastSeen = networkService.LastSeen;
             Type = networkService.Type;
             Comment = networkService.Comment;
             ColorId = networkService.ColorId;

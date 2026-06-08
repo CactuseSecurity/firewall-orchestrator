@@ -433,4 +433,7 @@ These settings are no longer used due to the full automation of UpdateRuleOwner.
 - a separate GraphQL subscription client path
 - improved cancellation and JWT-expiry handling
 - a small cleanup of exception logging for subscription errors
+
+# 9.1.6 - 07.06.2026 DEVELOP
+- remove obsolete database last_seen fields
 - backfill rule source and destination zone text fields from rule zone links

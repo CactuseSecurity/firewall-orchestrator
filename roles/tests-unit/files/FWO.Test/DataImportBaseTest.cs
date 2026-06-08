@@ -198,6 +198,35 @@ namespace FWO.Test
             }
         }
 
+        [Test]
+        public void ValidateImportSourceShapeAcceptsSourceUnderRootWithoutFilesystemAccess()
+        {
+            // Root and files do not exist on disk: shape validation must not touch the filesystem.
+            string root = Path.Combine(Path.GetTempPath(), $"fwo-missing-root-{Guid.NewGuid():N}");
+
+            Assert.DoesNotThrow(() => ImportPathPolicy.ValidateImportSourceShape(Path.Combine(root, "owners"), root));
+            Assert.DoesNotThrow(() => ImportPathPolicy.ValidateImportSourceShape(Path.Combine(root, "nested", "owners.json"), root));
+            Assert.DoesNotThrow(() => ImportPathPolicy.ValidateImportSourceShape("owners", root));
+        }
+
+        [Test]
+        public void ValidateImportSourceShapeRejectsTraversalOutsideRoot()
+        {
+            string root = Path.Combine(Path.GetTempPath(), $"fwo-missing-root-{Guid.NewGuid():N}");
+
+            Assert.Throws<UnauthorizedAccessException>(() =>
+                ImportPathPolicy.ValidateImportSourceShape(Path.Combine(root, "..", "owners"), root));
+        }
+
+        [Test]
+        public void ValidateImportSourceShapeRejectsDisallowedExtension()
+        {
+            string root = Path.Combine(Path.GetTempPath(), $"fwo-missing-root-{Guid.NewGuid():N}");
+
+            Assert.Throws<ArgumentException>(() =>
+                ImportPathPolicy.ValidateImportSourceShape(Path.Combine(root, "owners.sh"), root));
+        }
+
         private sealed class TestDataImportBase : DataImportBase
         {
             public TestDataImportBase(ApiConnection apiConnection, GlobalConfig globalConfig)

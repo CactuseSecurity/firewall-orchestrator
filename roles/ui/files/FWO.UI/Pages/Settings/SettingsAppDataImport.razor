@@ -50,13 +50,7 @@
                     </Display>
                 </EditList>
                 <div class="row col-sm-12 mt-1">
-                    <select class="col-sm-10" @bind="actPath">
-                        <option value="">@(userConfig.GetText("select_file"))</option>
-                        @foreach (string importPath in allowedImportPaths)
-                        {
-                            <option value="@importPath">@importPath</option>
-                        }
-                    </select>
+                    <input type="text" class="col-sm-10" @bind="actPath" placeholder="@(ImportPathPolicy.kAllowedCustomizationRoot)/..." />
                     <button type="button" class="col-sm-2 btn btn-sm btn-primary" disabled="@(string.IsNullOrWhiteSpace(actPath))" @onclick="AddPath"
                             @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
@@ -114,13 +108,7 @@
                     </Display>
                 </EditList>
                 <div class="row col-sm-12 mt-1">
-                    <select class="col-sm-10" @bind="SubnetActPath">
-                        <option value="">@(userConfig.GetText("select_file"))</option>
-                        @foreach (string importPath in allowedImportPaths)
-                        {
-                            <option value="@importPath">@importPath</option>
-                        }
-                    </select>
+                    <input type="text" class="col-sm-10" @bind="SubnetActPath" placeholder="@(ImportPathPolicy.kAllowedCustomizationRoot)/..." />
                     <button type="button" class="col-sm-2 btn btn-sm btn-primary" disabled="@(string.IsNullOrWhiteSpace(SubnetActPath))" @onclick="AddPathSubnet"
                             @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
@@ -214,7 +202,6 @@ else
     private List<string> PathsToDelete = [];
     private List<string> PathsToAddSubnet = [];
     private List<string> PathsToDeleteSubnet = [];
-    private List<string> allowedImportPaths = [];
     private string actPath = "";
     private string SubnetActPath = "";
     private DateTime appDataDate = DateTime.Today;
@@ -266,8 +253,6 @@ else
             appDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportAppDataPath) ?? [];
             RolesToSetByType = ParseRolesWithImport(configData.RolesWithAppDataImport);
             SubnetDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportSubnetDataPath) ?? [];
-            // This UI-local scan is a temporary single-host assumption. Split UI/middleware deployments need a middleware-owned design for listing and validating import sources.
-            allowedImportPaths = ImportPathPolicy.GetAllowedImportFileStems();
             appDataDate = appDataTime = configData.ImportAppDataStartAt;
             subnetDataDate = subnetDataTime = configData.ImportSubnetDataStartAt;
 
@@ -449,11 +434,15 @@ OnCSVAppServerImportEvent(_.EventArgs));
         configData!.ImportSubnetDataPath = JsonSerializer.Serialize(SubnetDataPaths);
     }
 
+    // Save validates path shape only (rooted in the customization dir, allowed extension, no traversal).
+    // File existence and security attributes are enforced on the importer host at read/run time, so
+    // saving unrelated settings is not blocked by sources that are absent on the UI host (split deploy)
+    // or not yet deployed.
     private static void ValidateImportPaths(List<string> importPaths)
     {
         foreach (string importPath in importPaths)
         {
-            ImportPathPolicy.GetValidatedExistingImportFiles(importPath);
+            ImportPathPolicy.ValidateImportSourceShape(importPath);
         }
     }
 

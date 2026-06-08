@@ -91,6 +91,42 @@ namespace FWO.Basics
         }
 
         /// <summary>
+        /// Validates the shape of a configured import source without touching the filesystem.
+        /// Ensures the source resolves below the allowed customization root, uses no path
+        /// traversal, and (when an extension is present) uses an allowed extension.
+        /// File existence and security attributes (symlink, world-writable) are validated on the
+        /// importer host at read/run time, since only that host owns the customization directory.
+        /// </summary>
+        public static void ValidateImportSourceShape(string importSource)
+        {
+            ValidateImportSourceShape(importSource, kAllowedCustomizationRoot);
+        }
+
+        /// <summary>
+        /// Validates the shape of a configured import source without touching the filesystem.
+        /// </summary>
+        public static void ValidateImportSourceShape(string importSource, string allowedRoot)
+        {
+            if (string.IsNullOrWhiteSpace(importSource))
+            {
+                throw new ArgumentException("Import source must not be empty.");
+            }
+
+            string extension = Path.GetExtension(importSource);
+            if (extension.Length > 0 && !kAllowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException($"Import source '{importSource}' must reference a .json or .py file.");
+            }
+
+            string fullRoot = Path.GetFullPath(allowedRoot).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            string fullPath = Path.GetFullPath(importSource, fullRoot);
+            if (!fullPath.StartsWith(fullRoot, StringComparison.Ordinal))
+            {
+                throw new UnauthorizedAccessException($"Import source '{importSource}' is outside the allowed customization directory '{allowedRoot}'.");
+            }
+        }
+
+        /// <summary>
         /// Validates a specific existing import file.
         /// </summary>
         public static void ValidateExistingImportFile(string filePath)

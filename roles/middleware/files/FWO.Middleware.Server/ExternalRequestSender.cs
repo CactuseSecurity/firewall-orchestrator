@@ -218,10 +218,7 @@ namespace FWO.Middleware.Server
             }
 
             var variables = new { id = managementId.Value };
-            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(
-                DeviceQueries.getManagementById,
-                variables
-            );
+            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementById, variables);
 
             return managements.FirstOrDefault();
         }

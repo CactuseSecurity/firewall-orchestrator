@@ -31,6 +31,7 @@ namespace FWO.Test
             public long? CompletedImportControlId { get; private set; }
 
             public FlowSyncManagementData ManagementData { get; set; } = new();
+            public Dictionary<int, FlowSyncManagementData> ManagementDataById { get; set; } = [];
             public List<ImportControl> PendingImports { get; set; } = [];
 
             public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
@@ -41,6 +42,12 @@ namespace FWO.Test
                 }
                 if (query == FlowQueries.getFlowSyncManagementData)
                 {
+                    int mgmId = GetVariable<int>(variables, "mgmId");
+                    if (ManagementDataById.TryGetValue(mgmId, out FlowSyncManagementData? managementData))
+                    {
+                        return Task.FromResult((T)(object)new List<FlowSyncManagementData> { managementData });
+                    }
+
                     return Task.FromResult((T)(object)new List<FlowSyncManagementData> { ManagementData });
                 }
                 if (query == FlowQueries.getFlowSyncNwObjects)
@@ -173,7 +180,7 @@ namespace FWO.Test
         public async Task Run_ReturnsFalseWhenNoPendingImportsExist()
         {
             FlowSyncTestApiConn apiConn = new();
-            FlowSync flowSync = new(apiConn);
+            FlowSync flowSync = new(apiConn, new GlobalConfig());
 
             bool result = await flowSync.Run();
 
@@ -207,7 +214,7 @@ namespace FWO.Test
                     Rules = [rule]
                 }
             };
-            FlowSync flowSync = new(apiConn);
+            FlowSync flowSync = new(apiConn, new GlobalConfig());
 
             bool result = await flowSync.Run();
 
@@ -302,6 +309,62 @@ namespace FWO.Test
             Assert.That(pendingInserts[hash].Name, Is.Null);
             Assert.That(mappings[hash].Select(mapping => mapping.Id), Is.EqualTo(new long[] { 1, 2 }));
             Assert.That(mappings[hash].Last().FlowActive, Is.False);
+        }
+
+        [Test]
+        public async Task Run_UsesSavedRankingToChooseNamingSourceManagement()
+        {
+            string sharedHash = FlowHashGenerator.GenerateNwObjectHash("10.0.0.1", "10.0.0.1");
+            NetworkObject firstManagementObject = CreateNetworkObject(1, "first-name", "10.0.0.1", "10.0.0.1");
+            NetworkObject secondManagementObject = CreateNetworkObject(2, "second-name", "10.0.0.1", "10.0.0.1");
+            FlowSyncTestApiConn apiConn = new()
+            {
+                PendingImports =
+                [
+                    new ImportControl { ControlId = 10, MgmId = 1 },
+                    new ImportControl { ControlId = 20, MgmId = 2 }
+                ],
+                ManagementDataById =
+                {
+                    [1] = new FlowSyncManagementData { Id = 1, NetworkObjects = [firstManagementObject] },
+                    [2] = new FlowSyncManagementData { Id = 2, NetworkObjects = [secondManagementObject] }
+                }
+            };
+            FlowSync flowSync = new(apiConn, new GlobalConfig { FlowNamingSourceManagementRanking = "[2,1]" });
+
+            bool result = await flowSync.Run();
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.InsertedNetworkObjects, Has.Count.EqualTo(1));
+            Assert.That(apiConn.InsertedNetworkObjects[0].NwObjHash, Is.EqualTo(sharedHash));
+            Assert.That(apiConn.InsertedNetworkObjects[0].Name, Is.EqualTo("second-name"));
+        }
+
+        [Test]
+        public async Task Run_DoesNotNameImportedObjectsWhenNoRankingIsSaved()
+        {
+            FlowSyncTestApiConn apiConn = new()
+            {
+                PendingImports =
+                [
+                    new ImportControl { ControlId = 10, MgmId = 1 }
+                ],
+                ManagementDataById =
+                {
+                    [1] = new FlowSyncManagementData
+                    {
+                        Id = 1,
+                        NetworkObjects = [CreateNetworkObject(1, "unnamed-source", "10.0.0.1", "10.0.0.1")]
+                    }
+                }
+            };
+            FlowSync flowSync = new(apiConn, new GlobalConfig { FlowNamingSourceManagementRanking = "[]" });
+
+            bool result = await flowSync.Run();
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.InsertedNetworkObjects, Has.Count.EqualTo(1));
+            Assert.That(apiConn.InsertedNetworkObjects[0].Name, Is.Null);
         }
 
         private static T InvokePrivateStatic<T>(string methodName, params object[] parameters)

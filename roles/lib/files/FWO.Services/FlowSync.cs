@@ -3,6 +3,7 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Flow;
+using FWO.Config.Api;
 using FWO.Logging;
 
 namespace FWO.Services
@@ -17,13 +18,15 @@ namespace FWO.Services
         private const string LogMessageTitle = "Flow sync";
 
         private readonly ApiConnection apiConnection;
+        private readonly GlobalConfig globalConfig;
 
         /// <summary>
         /// Creates a new flow sync service with API access.
         /// </summary>
-        public FlowSync(ApiConnection apiConnection)
+        public FlowSync(ApiConnection apiConnection, GlobalConfig globalConfig)
         {
             this.apiConnection = apiConnection;
+            this.globalConfig = globalConfig;
         }
 
         /// <summary>
@@ -66,6 +69,22 @@ namespace FWO.Services
                 return false;
             }
 
+            List<int> configuredManagementRanking = FlowNamingHelper.ParseManagementRanking(globalConfig.FlowNamingSourceManagementRanking);
+            List<int> preferredManagementRanking = FlowNamingHelper.NormalizeManagementRanking(
+                configuredManagementRanking,
+                pendingByManagement.Select(group => group.Key));
+            bool useManagementNamesForFlow = configuredManagementRanking.Count > 0;
+            if (useManagementNamesForFlow)
+            {
+                Dictionary<int, int> rankingPositions = preferredManagementRanking
+                    .Select((managementId, index) => new { managementId, index })
+                    .ToDictionary(item => item.managementId, item => item.index);
+
+                pendingByManagement = [.. pendingByManagement
+                    .OrderBy(group => rankingPositions.GetValueOrDefault(group.Key, int.MaxValue))
+                    .ThenBy(group => group.Max(import => import.ControlId))];
+            }
+
             bool syncedAny = false;
 
             foreach (var managementGroup in pendingByManagement)
@@ -75,7 +94,7 @@ namespace FWO.Services
 
                 try
                 {
-                    await SyncManagementAsync(mgmId, importsForManagement);
+                    await SyncManagementAsync(mgmId, importsForManagement, useManagementNamesForFlow);
                     syncedAny = true;
                 }
                 catch (Exception exception)
@@ -91,7 +110,7 @@ namespace FWO.Services
         /// Synchronizes a single management: fetches normalized objects, calculates hashes,
         /// inserts missing flows, updates mappings, and marks imports as complete.
         /// </summary>
-        private async Task SyncManagementAsync(int mgmId, List<ImportControl> importsForManagement)
+        private async Task SyncManagementAsync(int mgmId, List<ImportControl> importsForManagement, bool useManagementNamesForFlow)
         {
             var managementData = (await apiConnection.SendQueryAsync<List<FlowSyncManagementData>>(FlowQueries.getFlowSyncManagementData, new { mgmId }))?.FirstOrDefault();
 
@@ -102,7 +121,6 @@ namespace FWO.Services
             }
 
             var flowData = await GetFlowSyncDataAsync(mgmId);
-            bool useManagementNamesForFlow = true;
 
             // Process simple objects first, as they are used in groups and accesses
             await ProcessNetworkObjectsAsync(managementData.NetworkObjects.Where(o => o.Type.Name != ObjectType.Group), flowData, useManagementNamesForFlow);

@@ -436,4 +436,7 @@ These settings are no longer used due to the full automation of UpdateRuleOwner.
 
 # 9.1.6 - 07.06.2026 DEVELOP
 - remove obsolete database last_seen fields
-- backfill rule source and destination zone text fields from rule zone links
+
+# 9.1.7 - 08.06.2026 DEVELOP
+- change internal logic to handle src/dst zones as security-relevant
+- backfill existing rule source and destination zone text fields from rule zone links

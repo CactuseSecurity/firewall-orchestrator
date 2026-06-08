@@ -1,13 +1,26 @@
 import logging
+import os
 import threading
 import time
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TextIO, TypeAlias, cast
 
 try:
-    import fcntl
+    import fcntl as fcntl_module
 except ImportError:
-    fcntl = None
+    fcntl_module = None
+
+
+class FileLockModule(Protocol):
+    LOCK_EX: int
+    LOCK_UN: int
+
+    def flock(self, file_descriptor: int, lock_type: int) -> None: ...
+
+
+fcntl: FileLockModule | None = cast("FileLockModule", fcntl_module) if fcntl_module is not None else None
+OpenTextMode: TypeAlias = Literal["r", "w", "a", "x", "r+", "w+", "a+"]
 
 if TYPE_CHECKING:
     from models.import_state import ImportState
@@ -16,7 +29,7 @@ if TYPE_CHECKING:
 
 
 class LogLock:
-    lock_file_path = "/var/fworch/lock/importer_api_log.lock"
+    lock_file_path: str | os.PathLike[str] = "/var/fworch/lock/importer_api_log.lock"
     semaphore = threading.Semaphore()
     lock_thread: threading.Thread | None = None
     thread_lock = threading.Lock()
@@ -76,8 +89,8 @@ class LogLock:
 
     @classmethod
     @contextmanager
-    def locked_file(cls, mode):
-        with open(cls.lock_file_path, mode) as file:
+    def locked_file(cls, mode: OpenTextMode) -> Iterator[TextIO]:
+        with open(cls.lock_file_path, mode, encoding="utf-8") as file:
             if fcntl is not None:
                 fcntl.flock(file.fileno(), fcntl.LOCK_EX)
             try:

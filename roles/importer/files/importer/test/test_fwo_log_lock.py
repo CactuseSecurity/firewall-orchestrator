@@ -1,59 +1,69 @@
+from pathlib import Path
+from typing import Any, Protocol
+
+import pytest
 from fwo_log import FWOLogger, LogLock
+
+LogEvent = str | tuple[str, str, int] | tuple[str, str, Any, int]
 
 
 class FakeFcntl:
     LOCK_EX = 1
     LOCK_UN = 2
 
-    def __init__(self):
-        self.calls = []
+    def __init__(self) -> None:
+        self.calls: list[tuple[int, int]] = []
 
-    def flock(self, file_descriptor, lock_type):
+    def flock(self, file_descriptor: int, lock_type: int) -> None:
         self.calls.append((file_descriptor, lock_type))
 
 
 class TrackingSemaphore:
-    def __init__(self):
-        self.events = []
+    def __init__(self) -> None:
+        self.events: list[LogEvent] = []
 
-    def acquire(self):
+    def acquire(self) -> None:
         self.events.append("acquire")
 
-    def release(self):
+    def release(self) -> None:
         self.events.append("release")
 
 
 class TrackingLogger:
-    def __init__(self, events):
+    def __init__(self, events: list[LogEvent]) -> None:
         self.events = events
 
-    def debug(self, msg, stacklevel):
+    def debug(self, msg: str, stacklevel: int) -> None:
         self.events.append(("debug", msg, stacklevel))
 
-    def error(self, msg, stacklevel):
+    def error(self, msg: str, stacklevel: int) -> None:
         self.events.append(("error", msg, stacklevel))
 
-    def info(self, msg, stacklevel):
+    def info(self, msg: str, stacklevel: int) -> None:
         self.events.append(("info", msg, stacklevel))
 
-    def warning(self, msg, stacklevel):
+    def warning(self, msg: str, stacklevel: int) -> None:
         self.events.append(("warning", msg, stacklevel))
 
-    def exception(self, msg, exc_info, stacklevel):
+    def exception(self, msg: str, exc_info: Any, stacklevel: int) -> None:
         self.events.append(("exception", msg, exc_info, stacklevel))
 
 
-class TrackingLoggerInstance:
-    def __init__(self, logger, debug_level=1):
+class TrackingLoggerProtocol(Protocol):
+    def get_logger(self) -> TrackingLogger: ...
+
+
+class TrackingLoggerInstance(TrackingLoggerProtocol):
+    def __init__(self, logger: TrackingLogger, debug_level: int = 1) -> None:
         self.logger = logger
         self.debug_level = debug_level
 
-    def get_logger(self):
+    def get_logger(self) -> TrackingLogger:
         return self.logger
 
 
-def test_logger_initialization_starts_log_lock(monkeypatch):
-    start_calls = []
+def test_logger_initialization_starts_log_lock(monkeypatch: pytest.MonkeyPatch) -> None:
+    start_calls: list[str] = []
 
     monkeypatch.setattr(LogLock, "start", lambda: start_calls.append("started"))
 
@@ -62,7 +72,7 @@ def test_logger_initialization_starts_log_lock(monkeypatch):
     assert start_calls == ["started"]
 
 
-def test_log_lock_file_transactions_use_flock(monkeypatch, tmp_path):
+def test_log_lock_file_transactions_use_flock(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     fake_fcntl = FakeFcntl()
     lock_file_path = tmp_path / "importer_api_log.lock"
 
@@ -76,7 +86,7 @@ def test_log_lock_file_transactions_use_flock(monkeypatch, tmp_path):
     assert lock_file_path.read_text() == "REQUESTED\n"
 
 
-def test_info_logging_uses_log_lock(monkeypatch):
+def test_info_logging_uses_log_lock(monkeypatch: pytest.MonkeyPatch) -> None:
     tracking_semaphore = TrackingSemaphore()
     tracking_logger = TrackingLogger(tracking_semaphore.events)
 
@@ -88,7 +98,7 @@ def test_info_logging_uses_log_lock(monkeypatch):
     assert tracking_semaphore.events == ["acquire", ("info", "message", 2), "release"]
 
 
-def test_debug_logging_uses_log_lock_when_level_matches(monkeypatch):
+def test_debug_logging_uses_log_lock_when_level_matches(monkeypatch: pytest.MonkeyPatch) -> None:
     tracking_semaphore = TrackingSemaphore()
     tracking_logger = TrackingLogger(tracking_semaphore.events)
 
@@ -100,7 +110,7 @@ def test_debug_logging_uses_log_lock_when_level_matches(monkeypatch):
     assert tracking_semaphore.events == ["acquire", ("debug", "message", 2), "release"]
 
 
-def test_debug_logging_skips_log_lock_when_level_is_too_low(monkeypatch):
+def test_debug_logging_skips_log_lock_when_level_is_too_low(monkeypatch: pytest.MonkeyPatch) -> None:
     tracking_semaphore = TrackingSemaphore()
     tracking_logger = TrackingLogger(tracking_semaphore.events)
 
@@ -112,7 +122,7 @@ def test_debug_logging_skips_log_lock_when_level_is_too_low(monkeypatch):
     assert tracking_semaphore.events == []
 
 
-def test_error_warning_and_exception_logging_use_log_lock(monkeypatch):
+def test_error_warning_and_exception_logging_use_log_lock(monkeypatch: pytest.MonkeyPatch) -> None:
     tracking_semaphore = TrackingSemaphore()
     tracking_logger = TrackingLogger(tracking_semaphore.events)
 

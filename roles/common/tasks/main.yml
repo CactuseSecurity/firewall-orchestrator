@@ -71,6 +71,11 @@
             old_version: "{{ config.product_version }}"
             product_version_changed: "{{ config.product_version != product_version }}"
 
+        - name: fail if attempting a downgrade
+          fail:
+            msg: "Refusing to downgrade: installed version {{ old_version }} is newer than the version being installed ({{ product_version }})."
+          when: old_version is version(product_version, '>')
+
       when: already_installed and installation_mode == "upgrade"
 
     - name: create group {{ fworch_group }}

@@ -1,7 +1,7 @@
 @inherits LayoutComponentBase
 @using FWO.Data.Middleware
+@using FWO.Api.Client.ExceptionHandling
 @using FWO.Middleware.Client
-@using FWO.Services.EventMediator
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
 @using FWO.Services
@@ -13,7 +13,6 @@
 @using Microsoft.AspNetCore.Components.Server.Circuits;
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using RestSharp
-@using System.IdentityModel.Tokens.Jwt
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -67,28 +66,28 @@
             </div>
             <input type="password" class="form-control @reloginCssClass" @bind="password"
                    placeholder="@(userConfig.GetText("password"))" @bind:event="oninput" @onkeypress="@KeyHandler">
-            </div>
-            @if (!string.IsNullOrEmpty(reloginErrorMessage))
+        </div>
+        @if (!string.IsNullOrEmpty(reloginErrorMessage))
+        {
+            <label class="mt-1 mb-1 text-danger">@reloginErrorMessage</label>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if (reloginAbortable)
             {
-                <label class="mt-1 mb-1 text-danger">@reloginErrorMessage</label>
+                <button type="button" class="btn btn-secondary" @onclick="@(() => showReloginDialog = false)">
+                    @(userConfig.GetText("cancel"))
+                </button>
             }
-        </Body>
-        <Footer>
-            <div class="btn-group">
-                @if (reloginAbortable)
-                {
-                    <button type="button" class="btn btn-secondary" @onclick="@(() => showReloginDialog = false)">
-                        @(userConfig.GetText("cancel"))
-                    </button>
-                }
-                else
-                {
-                    <a class="btn btn-danger" href="/logout">@(userConfig.GetText("logout"))</a>
-                }
-                <button type="button" class="btn btn-primary" @onclick="Relogin">@(userConfig.GetText("relogin"))</button>
-            </div>
-        </Footer>
-    </PopUp>
+            else
+            {
+                <a class="btn btn-danger" href="/logout">@(userConfig.GetText("logout"))</a>
+            }
+            <button type="button" class="btn btn-primary" @onclick="Relogin">@(userConfig.GetText("relogin"))</button>
+        </div>
+    </Footer>
+</PopUp>
 
 <KeyboardInput />
 
@@ -120,18 +119,19 @@
 
     protected override async Task OnInitializedAsync()
     {
+        EventMediator.Subscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent), _ => OnPermissionsChanged(_.EventArgs));
+        EventMediator.Subscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent), _ => OnJwtExpired(_.EventArgs));
+        EventMediator.Subscribe<UserSessionClosedEvent>(nameof(UserSessionClosedEvent), _ => OnUserSessionClosed(_.EventArgs));
+
         DisplayMessageInUiFunction = DisplayMessageInUi;
 
         await CheckAndRefreshTokenAsync();
-
-        EventMediator.Subscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent), _ => OnPermissionsChanged(_.EventArgs));
-        EventMediator.Subscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent), _ => OnJwtExpired(_.EventArgs));
 
         NavigationManager.LocationChanged += OnLocationChanged;
 
         user = authenticationStateTask!.Result.User;
 
-        alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
+        alertSubscription = apiConnection.GetSubscription<List<Alert>>(GraphqlExceptionHandler.Handle, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
 
         UIMessageQueTimer = new()
         {
@@ -142,8 +142,7 @@
 
         UIMessageQueTimer.Elapsed += OnUIMessageTimerTick;
 
-        tokenRefreshRunner = new(() => InvokeAsync(CheckAndRefreshTokenAsync), TokenRefreshCheckInterval);
-        tokenRefreshRunner.Start();
+        StartTokenRefreshRunner();
     }
 
     private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
@@ -196,7 +195,7 @@
 
     private void OnPermissionsChanged(PermissionChangedEventArgs? e)
     {
-        if (e?.UserDn == userConfig.User.Dn)
+        if (DistName.DnEquals(e?.UserDn, userConfig.User.Dn))
         {
             ShowReloginDialog(userConfig.GetText("permissions"), userConfig.GetText("permissions_text"), reloginAbortable: false);
         }
@@ -204,10 +203,35 @@
 
     private void OnJwtExpired(JwtExpiredEventArgs? e)
     {
-        if (user?.Identity?.IsAuthenticated == true && !string.IsNullOrWhiteSpace(e?.UserDn) && e.UserDn == userConfig.User.Dn)
+        if (user?.Identity?.IsAuthenticated == true && !string.IsNullOrWhiteSpace(e?.UserDn) && DistName.DnEquals(e.UserDn, userConfig.User.Dn))
         {
             ShowReloginDialog(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), reloginAbortable: false);
         }
+    }
+
+    private void OnUserSessionClosed(UserSessionClosedEventArgs? e)
+    {
+        if (DistName.DnEquals(e?.UserDn, userConfig.User.Dn))
+        {
+            StopTokenRefreshRunner();
+        }
+    }
+
+    private void StartTokenRefreshRunner()
+    {
+        if (tokenRefreshRunner != null)
+        {
+            return;
+        }
+
+        tokenRefreshRunner = new(() => InvokeAsync(CheckAndRefreshTokenAsync), TokenRefreshCheckInterval);
+        tokenRefreshRunner.Start();
+    }
+
+    private void StopTokenRefreshRunner()
+    {
+        tokenRefreshRunner?.Dispose();
+        tokenRefreshRunner = null;
     }
 
     private void ShowReloginDialog(string title, string text, bool reloginAbortable)
@@ -257,7 +281,7 @@
     private void OnAlertUpdate(List<Alert> alerts)
     {
         user = authenticationStateTask!.Result.User;
-        showAlert = (user.IsInRole(Roles.Admin) || user.IsInRole(Roles.FwAdmin) || user.IsInRole(Roles.Auditor)) && alerts.Count() > 0;
+        showAlert = userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor) && alerts.Count() > 0;
 
         InvokeAsync(StateHasChanged);
     }
@@ -418,9 +442,9 @@
                     }
                     catch (Exception) { }
                 }
-                
+
                 Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception, userConfig.User.Name, role);
-                
+
                 severity = 2;
                 cause = (title != "" ? title : userConfig.GetText("unspecified_error"));
                 description = $"{(message != "" ? message : userConfig.GetText("E0001"))}" + (ErrorFlag ? $": {exception.Message}" : "") + " . " + userConfig.GetText("E0002");
@@ -445,7 +469,7 @@
             };
 
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addUiLogEntry, Variables)).ReturnIds;
-            
+
             if (returnIds == null)
             {
                 Log.WriteError("Write Log", "Log could not be written to database");
@@ -455,12 +479,6 @@
         {
             Log.WriteError("Write Log", $"Could not write log for user {userConfig.User.DbId}: ", exc);
         }
-    }
-
-    private void ApiExceptionHandler(Exception exception)
-    {
-        Log.WriteError("Alarm Handling", "Api subscription lead to exception. Retry subscription.", exception);
-        // Subscription will be restored if no exception is thrown here
     }
 
     public async Task setAlert(string title, string message)
@@ -485,8 +503,10 @@
 
         alertSubscription?.Dispose();
         NavigationManager.LocationChanged -= OnLocationChanged;
-        tokenRefreshRunner?.Dispose();
+        StopTokenRefreshRunner();
+        CircuitHandlerService circuitHandlerService = (CircuitHandlerService)circuitHandler;
         EventMediator.Unsubscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent));
         EventMediator.Unsubscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent));
+        EventMediator.Unsubscribe<UserSessionClosedEvent>(nameof(UserSessionClosedEvent));
     }
 }

@@ -27,7 +27,7 @@
                     @if(userAndGroupList.Count > 0 && selectedUserGroup != null && selectedUserGroup.Dn != origAssignedGroup)
                     {
                         <div class="col-sm-2">
-                            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.WorkflowRolesList}")">
+                            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.WorkflowRolesList}")">
                                 <Authorized>
                                     <button type="button" class="btn btn-sm btn-success" @onclick="PerformAssign" @onclick:preventDefault>
                                         @(DisplayService.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
@@ -36,19 +36,19 @@
                                     <button type="button" class="btn btn-sm btn-success" disabled>
                                         @(DisplayService.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
                                 </NotAuthorized> 
-                            </AuthorizeView>
+                            </ExecutionModeAuthorizeView>
                         </div>
                     }
                 </form>
                 @if(AssignBack != null && StatefulObject.RecentHandler != null && StatefulObject.RecentHandler.DbId != userConfig.User.DbId
-                    && (origAssignedGroup == userConfig.User.Dn /* || userConfig.User.Groups.Contains((new DistName(origAssignedGroup)).Group)*/ )) 
+                    && (DistName.DnEquals(origAssignedGroup, userConfig.User.Dn) /* || userConfig.User.Groups.Contains((new DistName(origAssignedGroup)).Group)*/ ))
                     // userConfig.User.Groups is currently not filled, because information may be available only in external Ldap
                 {
                     <form class="form-group row mt-2">
                         <label for="backAssignedGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("back_to")):</label>
                         <label id="backAssignedGroup" class="col-sm-8">@StatefulObject.RecentHandler.Name</label>
                         <div class="col-sm-2">
-                            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.WorkflowRolesList}")">
+                            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.WorkflowRolesList}")">
                                 <Authorized>
                                     <button type="button" class="btn btn-sm btn-success" @onclick="PerformAssignBack" @onclick:preventDefault>
                                         @(DisplayService.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
@@ -57,7 +57,7 @@
                                     <button type="button" class="btn btn-sm btn-success" disabled>
                                         @(DisplayService.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
                                 </NotAuthorized> 
-                            </AuthorizeView>
+                            </ExecutionModeAuthorizeView>
                         </div>
                     </form>
                 }
@@ -118,7 +118,7 @@
             firstTry = false;
             await InitGroupList();
             origAssignedGroup = StatefulObject.AssignedGroup ?? "";
-            selectedUserGroup = userAndGroupList.FirstOrDefault(x => x.Dn == StatefulObject.AssignedGroup);
+            selectedUserGroup = userAndGroupList.FirstOrDefault(x => DistName.DnEquals(x.Dn, StatefulObject.AssignedGroup));
         }
     }
 
@@ -148,7 +148,7 @@
                     List<UiUser> tmpList = await RoleAccess.GetRoleMembers(middlewareClient, role);
                     foreach(var elem in tmpList)
                     {
-                        if(!userAndGroupList.Any(x => x.Dn == elem.Dn))
+                        if(!userAndGroupList.Any(x => DistName.DnEquals(x.Dn, elem.Dn)))
                         {
                             userAndGroupList.Add(elem);
                         }

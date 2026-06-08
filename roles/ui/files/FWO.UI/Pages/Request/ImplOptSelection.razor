@@ -75,7 +75,7 @@
         ownerOptions = new (Owners);
         ownerOptions.Add(allMyOwners);
         ownerOptions.Add(assignedToMe);
-        if(!userConfig.ReqReducedView || authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
+        if(!userConfig.ReqReducedView || userConfig.CanUseAnyRole(Roles.Admin))
         {
             ownerOptions.Add(optTicket);
         }
@@ -90,7 +90,7 @@
         deviceOptions = new (WfHandler.Devices);
         deviceOptions.Add(allGateways);
         selectedDeviceOpt = allGateways;
-        if(!userConfig.ReqReducedView || authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
+        if(!userConfig.ReqReducedView || userConfig.CanUseAnyRole(Roles.Admin))
         {
             deviceOptions.Add(optTicket);
             selectedDeviceOpt = optTicket;

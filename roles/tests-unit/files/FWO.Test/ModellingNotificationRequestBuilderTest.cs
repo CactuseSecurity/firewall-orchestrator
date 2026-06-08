@@ -347,6 +347,31 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void BuildRequestTasks_SortsDestinationAppRolesAlphabetically()
+        {
+            ModellingConnection connection = CreateConnection(40);
+            connection.DestinationAppServers = [];
+            connection.DestinationAppRoles =
+            [
+                new() { Content = new() { Id = 402, IdString = "ARxx12345-200" } },
+                new() { Content = new() { Id = 401, IdString = "ARxx12345-050" } },
+                new() { Content = new() { Id = 403, IdString = "ARxx12345-100" } }
+            ];
+            ModellingNotificationRequestBuilder builder = new(new SimulatedUserConfig());
+
+            List<WfReqTask> tasks = builder.BuildRequestTasks([connection], new() { Id = 7, Name = "App" }, stateId: 23);
+
+            WfReqTask accessTask = tasks.Single(task => task.TaskType == WfTaskType.access.ToString());
+            List<string?> destinationGroupNames =
+            [
+                .. accessTask.Elements
+                    .Where(element => element.Field == ElemFieldType.destination.ToString() && !string.IsNullOrEmpty(element.GroupName))
+                    .Select(element => element.GroupName)
+            ];
+            Assert.That(destinationGroupNames, Is.EqualTo(new[] { "ARxx12345-050", "ARxx12345-100", "ARxx12345-200" }));
+        }
+
         private static ModellingConnection CreateConnection(int id, params string[] extraConfigTypes)
         {
             return new()

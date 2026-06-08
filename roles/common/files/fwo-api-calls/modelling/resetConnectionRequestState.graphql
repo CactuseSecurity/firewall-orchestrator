@@ -5,8 +5,6 @@ mutation resetConnectionRequestState(
   update_modelling_connection_by_pk(
     pk_columns: { id: $id }
     _set: {
-      is_requested: false
-      ticket_id: null
       requested_on_fw: false
       conn_prop: $connProp
   }) {

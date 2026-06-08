@@ -20,7 +20,7 @@ namespace FWO.Test
     {
         private sealed class ReportTemplateComponentTestApiConn(List<ReportTemplate> templates, List<FwoOwner> owners) : SimulatedApiConnection
         {
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 if (typeof(QueryResponseType) == typeof(ReportTemplate[]))
                 {
@@ -73,7 +73,7 @@ namespace FWO.Test
         [Test]
         public void ReportTemplateComponent_ModellerOnly_ShowsOnlyAllowedTemplates()
         {
-            using Bunit.TestContext context = CreateContext(
+            using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Modeller),
                 CreateUserConfig([Roles.Modeller], [11]),
                 new ReportTemplateComponentTestApiConn(
@@ -101,7 +101,7 @@ namespace FWO.Test
         [Test]
         public void ReportTemplateComponent_Auditor_ShowsComplianceAndWorkflowButNotArchiveOnly()
         {
-            using Bunit.TestContext context = CreateContext(
+            using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Auditor),
                 CreateUserConfig([Roles.Auditor], [11]),
                 new ReportTemplateComponentTestApiConn(
@@ -127,7 +127,7 @@ namespace FWO.Test
         [Test]
         public void ReportTemplateComponent_Modeller_HidesTemplateForInaccessibleOwner()
         {
-            using Bunit.TestContext context = CreateContext(
+            using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Modeller),
                 CreateUserConfig([Roles.Modeller], [11]),
                 new ReportTemplateComponentTestApiConn(
@@ -151,7 +151,7 @@ namespace FWO.Test
         [Test]
         public void ReportTemplateComponent_Reporter_ShowsRuleTemplateButNotWorkflowTemplate()
         {
-            using Bunit.TestContext context = CreateContext(
+            using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),
                 CreateUserConfig([Roles.Reporter], []),
                 new ReportTemplateComponentTestApiConn(
@@ -179,7 +179,7 @@ namespace FWO.Test
         [Test]
         public void ReportTemplateComponent_DecodeAndRecodeComment_PreserveTemplateKey()
         {
-            using Bunit.TestContext context = CreateContext(
+            using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),
                 CreateUserConfig([Roles.Reporter], []),
                 new ReportTemplateComponentTestApiConn([], []));
@@ -203,7 +203,7 @@ namespace FWO.Test
         [Test]
         public void ReportTemplateComponent_NewTemplate_OpensAddDialogForSelectedType()
         {
-            using Bunit.TestContext context = CreateContext(
+            using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),
                 CreateUserConfig([Roles.Reporter], []),
                 new ReportTemplateComponentTestApiConn([], []));
@@ -223,7 +223,7 @@ namespace FWO.Test
         [Test]
         public void ReportTemplateComponent_CancelEdit_RestoresOriginalDeviceFilterAndClosesDialogs()
         {
-            using Bunit.TestContext context = CreateContext(
+            using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),
                 CreateUserConfig([Roles.Reporter], []),
                 new ReportTemplateComponentTestApiConn([], []));
@@ -255,7 +255,7 @@ namespace FWO.Test
         public void ReportTemplateComponent_DisplayTime_ShowsChangeIntervalDescription()
         {
             SimulatedUserConfig userConfig = CreateUserConfig([Roles.Reporter], []);
-            using Bunit.TestContext context = CreateContext(
+            using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),
                 userConfig,
                 new ReportTemplateComponentTestApiConn([], []));
@@ -276,7 +276,7 @@ namespace FWO.Test
         [Test]
         public void ReportTemplateComponent_DisplayTime_ShowsOpenFixedDateRange()
         {
-            using Bunit.TestContext context = CreateContext(
+            using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),
                 CreateUserConfig([Roles.Reporter], []),
                 new ReportTemplateComponentTestApiConn([], []));
@@ -294,9 +294,9 @@ namespace FWO.Test
             Assert.That(displayTime, Is.EqualTo("Open"));
         }
 
-        private static Bunit.TestContext CreateContext(AuthenticationStateProvider authStateProvider, UserConfig userConfig, ApiConnection apiConnection)
+        private static BunitContext CreateContext(AuthenticationStateProvider authStateProvider, UserConfig userConfig, ApiConnection apiConnection)
         {
-            Bunit.TestContext context = new();
+            BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
             context.Services.AddLocalization();

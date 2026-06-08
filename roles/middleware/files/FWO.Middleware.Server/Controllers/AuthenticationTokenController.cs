@@ -117,8 +117,7 @@ namespace FWO.Middleware.Server.Controllers
                 UiUser authenticatedTargetUser = await authManager.AuthenticateAndBuildUserAsync(targetUser, validatePassword: false)
                     ?? throw new AuthenticationException("Provided target user credentials are invalid.");
 
-                TimeSpan delegatedLifetime = tokenLifetimeProvider.CapDelegatedUserTokenLifetime(parameters.Lifetime);
-                TokenPair tokenPair = await authManager.CreateTokenPair(authenticatedTargetUser, delegatedLifetime);
+                TokenPair tokenPair = await authManager.CreateTokenPair(authenticatedTargetUser);
                 WriteTokenPairAudit("IssueDelegatedTokenPair", tokenPair, authenticatedAdminUser,
                     $"Issued delegated token pair for target user \"{authenticatedTargetUser.Name}\".");
 
@@ -181,11 +180,10 @@ namespace FWO.Middleware.Server.Controllers
         /// <remarks>
         /// AdminUsername (required) - Example: "admin" &#xA;
         /// AdminPassword (required) - Example: "password" &#xA;
-        /// Lifetime (optional) - Example: "365.12:02:00" ("days.hours:minutes:seconds") &#xA;
         /// TargetUserDn OR TargetUserName (required) - Example: "uid=demo_user,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal" OR "demo_user" 
         /// </remarks>
-        /// <param name="parameters">Admin Credentials, Lifetime, User</param>
-        /// <returns>User jwt, if credentials are vaild.</returns>
+        /// <param name="parameters">Admin credentials and target user identity.</param>
+        /// <returns>User jwt, if credentials are valid.</returns>
         [HttpPost("GetForUser")]
         public async Task<ActionResult<string>> GetAsyncForUser([FromBody] AuthenticationTokenGetForUserParameters parameters)
         {
@@ -193,7 +191,6 @@ namespace FWO.Middleware.Server.Controllers
             {
                 string adminUsername = parameters.AdminUsername;
                 string adminPassword = parameters.AdminPassword;
-                TimeSpan lifetime = parameters.Lifetime;
                 string targetUserName = parameters.TargetUserName;
                 string targetUserDn = parameters.TargetUserDn;
 
@@ -220,10 +217,13 @@ namespace FWO.Middleware.Server.Controllers
                     UiUser targetUser = new() { Name = targetUserName, Dn = targetUserDn };
                     UiUser authenticatedTargetUser = await authManager.AuthenticateAndBuildUserAsync(targetUser, validatePassword: false)
                         ?? throw new AuthenticationException("Provided target user credentials are invalid.");
-                    TimeSpan delegatedLifetime = tokenLifetimeProvider.CapDelegatedUserTokenLifetime(lifetime);
-                    string jwt = jwtWriter.CreateJWT(authenticatedTargetUser, delegatedLifetime);
+
+                    TimeSpan configuredLifetime = await tokenLifetimeProvider.GetUserAccessTokenLifetimeAsync(apiConnection);
+                    string jwt = jwtWriter.CreateJWT(authenticatedTargetUser, configuredLifetime);
+
                     WriteJwtAudit("IssueDelegatedAccessToken", jwt, adminUser,
                         $"Issued delegated access token for target user \"{authenticatedTargetUser.Name}\".");
+
                     return Ok(jwt);
                 }
                 catch (Exception e)
@@ -527,7 +527,7 @@ namespace FWO.Middleware.Server.Controllers
 
         public async Task<List<string>> GetGroups(LdapEntry ldapUser, Ldap ldap)
         {
-            HashSet<string> userGroups = new(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> userGroups = new(DistName.DnComparer);
             userGroups.UnionWith(ldap.GetGroups(ldapUser));
             if (userGroups.Count == 0)
             {

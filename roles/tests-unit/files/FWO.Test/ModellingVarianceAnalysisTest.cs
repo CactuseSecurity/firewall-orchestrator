@@ -1,5 +1,6 @@
-using NUnit.Framework;
-using NUnit.Framework.Legacy;
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
@@ -7,7 +8,8 @@ using FWO.Data.Workflow;
 using FWO.Services;
 using FWO.Services.Modelling;
 using FWO.Services.Workflow;
-using FWO.Basics;
+using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace FWO.Test
 {
@@ -314,6 +316,52 @@ namespace FWO.Test
             ClassicAssert.AreEqual("service", TaskList[3].Elements[0].Field);
             ClassicAssert.AreEqual("create", TaskList[3].Elements[0].RequestAction);
             userConfig.ModRolloutResolveServiceGroups = true;
+        }
+
+        [Test]
+        public async Task TestAnalyseModelledConnectionsForRequest_DoesNotTreatHashCollisionAsExistingAppServer()
+        {
+            ModellingNamingConvention namingConvention = new() { AppServerPrefix = "", NetworkPrefix = "", IpRangePrefix = "" };
+            AppServerComparer appServerComparer = new(namingConvention);
+            (ModellingAppServer existingAppServer, ModellingAppServer modelledAppServer) = CreateDifferentAppServersWithSameHash(appServerComparer);
+            SimulatedUserConfig localUserConfig = new()
+            {
+                ModNamingConvention = "{\"appServerPrefix\":\"\",\"networkPrefix\":\"\",\"ipRangePrefix\":\"\"}",
+                CreateAppZones = false,
+                RuleRecognitionOption = stdRecogOpt
+            };
+            ModellingConnection connection = new()
+            {
+                Id = 500,
+                Name = "HashCollisionConnection",
+                SourceAppRoles =
+                [
+                    new()
+                    {
+                        Content = new()
+                        {
+                            Id = 600,
+                            AppId = Application.Id,
+                            IdString = "AR-HASH-COLLISION",
+                            AppServers = [new() { Content = modelledAppServer }]
+                        }
+                    }
+                ]
+            };
+            ModellingVarianceAnalysis varianceAnalysis = new(
+                new HashCollisionVarianceAnalysisApiConn(existingAppServer),
+                extStateHandler,
+                localUserConfig,
+                Application,
+                DefaultInit.DoNothing);
+
+            List<WfReqTask> taskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest([connection]);
+            WfReqTask groupCreateTask = taskList.First(t => t.TaskType == WfTaskType.group_create.ToString());
+            WfReqElement appServerElement = groupCreateTask.Elements[0];
+
+            ClassicAssert.AreEqual(RequestAction.create.ToString(), appServerElement.RequestAction);
+            ClassicAssert.IsNull(appServerElement.NetworkId);
+            ClassicAssert.AreEqual(modelledAppServer.Name, appServerElement.Name);
         }
 
         [Test]
@@ -903,6 +951,83 @@ namespace FWO.Test
             ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules.Count);
             ClassicAssert.AreEqual("FWOC7_mgt2", result.RuleDifferences[0].ImplementedRules[0].Name);
             ClassicAssert.AreEqual("FWOC7_mgt3", result.RuleDifferences[0].ImplementedRules[1].Name);
+        }
+
+        private static (ModellingAppServer, ModellingAppServer) CreateDifferentAppServersWithSameHash(AppServerComparer appServerComparer)
+        {
+            Dictionary<int, ModellingAppServer> appServersByHash = [];
+            const int kMaxCandidates = 400000;
+            for (int candidateIndex = 0; candidateIndex < kMaxCandidates; candidateIndex++)
+            {
+                ModellingAppServer candidate = new()
+                {
+                    Id = candidateIndex,
+                    Name = $"HashCollisionCandidate{candidateIndex}",
+                    Ip = $"10.{candidateIndex / 65536}.{candidateIndex / 256 % 256}.{candidateIndex % 256}",
+                    IpEnd = $"10.{candidateIndex / 65536}.{candidateIndex / 256 % 256}.{candidateIndex % 256}"
+                };
+                int hash = appServerComparer.GetHashCode(candidate);
+                if (appServersByHash.TryGetValue(hash, out ModellingAppServer? existingAppServer) &&
+                    !appServerComparer.Equals(existingAppServer, candidate))
+                {
+                    return (existingAppServer, candidate);
+                }
+                appServersByHash.TryAdd(hash, candidate);
+            }
+            Assert.Fail($"No app-server hash collision found in {kMaxCandidates} candidates.");
+            return (new(), new());
+        }
+
+        private class HashCollisionVarianceAnalysisApiConn(ModellingAppServer existingAppServer) : SimulatedApiConnection
+        {
+            private readonly NetworkObject existingNetworkObject = new()
+            {
+                Id = 700,
+                Name = existingAppServer.Name,
+                IP = existingAppServer.Ip,
+                IpEnd = existingAppServer.IpEnd,
+                Type = new() { Name = ObjectType.Host }
+            };
+
+            public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                await DefaultInit.DoNothing();
+                Type responseType = typeof(QueryResponseType);
+                if (responseType == typeof(List<Management>))
+                {
+                    if (query == ReportQueries.getRelevantImportIdsAtTime)
+                    {
+                        return (QueryResponseType)(object)new List<Management>
+                        {
+                            new() { Import = new() { ImportAggregate = new() { ImportAggregateMax = new() { RelevantImportId = 1 } } } }
+                        };
+                    }
+                    return (QueryResponseType)(object)new List<Management>
+                    {
+                        new() { Id = 1, Name = "Checkpoint1", ExtMgtData = "{\"id\":\"1\"}" }
+                    };
+                }
+                if (responseType == typeof(List<NetworkObject>))
+                {
+                    int[] objTypeIds = variables?.GetType().GetProperties().First(o => o.Name == "objTypeIds").GetValue(variables, null) as int[] ?? [];
+                    List<NetworkObject> networkObjects = objTypeIds.Length > 0 && objTypeIds[0] == 2 ? [] : [existingNetworkObject];
+                    return (QueryResponseType)(object)networkObjects;
+                }
+                if (responseType == typeof(List<Rule>))
+                {
+                    return (QueryResponseType)(object)new List<Rule>();
+                }
+                if (responseType == typeof(List<ModellingConnection>))
+                {
+                    return (QueryResponseType)(object)new List<ModellingConnection>();
+                }
+                if (responseType == typeof(List<ModellingNetworkArea>))
+                {
+                    return (QueryResponseType)(object)new List<ModellingNetworkArea>();
+                }
+
+                throw new NotImplementedException();
+            }
         }
     }
 }

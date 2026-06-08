@@ -15,7 +15,6 @@
 @using Newtonsoft.Json
 @using RestSharp
 @using System.Net
-@using System.Text.RegularExpressions
 @using System.Text.Json.Serialization
 
 @inject UserConfig userConfig
@@ -267,14 +266,14 @@
         <div class="btn-group">
             @if(!Readonly || !userConfig.AllowManualOwnerAdmin)
             {
-                <AuthorizeView Roles="@Roles.Admin">
+                <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="HandleSave">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                     </NotAuthorized>
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
             }
             <button type="button" class="btn btn-sm btn-secondary" @onclick="HandleCancel">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
@@ -413,7 +412,7 @@
                 await UpdateOwnerInDb();
             }
 
-            if (ActOwner.RecertActive && !RecertActiveBefore)
+            if (ActOwner.RecertActive && (addOwnerMode || !RecertActiveBefore))
             {
                 RecertHandler recertHandler = new(apiConnection, userConfig);
                 await recertHandler.InitOwnerRecert(ActOwner);
@@ -516,7 +515,7 @@
             return "";
         }
 
-        return Regex.Replace(dn.Trim(), @"\\2c", "\\,", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
+        return DistName.NormalizeDnForComparison(dn);
     }
 
     private string GetResponsibleTypeDisplayName(OwnerResponsibleType type)
@@ -686,7 +685,7 @@
             .ToDictionary(r => r.Name, r => r.Dn, StringComparer.OrdinalIgnoreCase);
         RoleUsersByName = roles.ToDictionary(
             r => r.Name,
-            r => new HashSet<string>(r.Users.Select(u => NormalizeDnForRoleComparison(u.Dn)), StringComparer.OrdinalIgnoreCase),
+            r => new HashSet<string>(r.Users.Select(u => NormalizeDnForRoleComparison(u.Dn)), DistName.DnComparer),
             StringComparer.OrdinalIgnoreCase);
     }
 
@@ -749,7 +748,7 @@
         }
         if (!RoleUsersByName.TryGetValue(roleName, out HashSet<string>? users))
         {
-            users = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            users = new HashSet<string>(DistName.DnComparer);
             RoleUsersByName[roleName] = users;
         }
         users.Add(NormalizeDnForRoleComparison(dn));

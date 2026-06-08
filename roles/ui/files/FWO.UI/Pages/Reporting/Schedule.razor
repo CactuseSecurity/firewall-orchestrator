@@ -16,7 +16,7 @@
     <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ReportSchedule" Items="reportSchedules" PageSize="0">
         <Column TableItem="ReportSchedule" Title="@(userConfig.GetText("actions"))">
             <Template>
-                @if (context.ScheduleOwningUser.DbId == uiUserDbId || authenticationState != null && authenticationState.User.IsInRole(Roles.Admin))
+                @if (context.ScheduleOwningUser.DbId == uiUserDbId || userConfig.CanUseAnyRole(Roles.Admin))
                 {
                     <div class="btn-group">
                         <button type="button" class="btn btn-sm btn-warning" @onclick="() => OnEditReportScheduleButtonClick(context)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
@@ -240,9 +240,8 @@
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
-    private AuthenticationState? authenticationState;
     private List<FwoOwner> modOwnerList = [];
-    private ReportVisibility reportVisibility => RoleGroups.GetReportVisibility(authenticationStateTask!.Result.User);
+    private ReportVisibility reportVisibility => userConfig.GetReportVisibility();
 
     private bool scheduleToEmail;
     private string scheduleEmailRecipients = "";
@@ -268,9 +267,8 @@
             {
                 ReportType reportType = (ReportType)rt.ReportParams.ReportType;
                 bool modellingOwnerAllowed = modOwnerList.FirstOrDefault(o => o.Id == rt.ReportParams.ModellingFilter.SelectedOwner.Id) != null;
-                return !reportType.IsArchiveOnlyReport() && reportType.IsVisibleTemplateType(reportVisibility, modellingOwnerAllowed);
+                return userConfig.CanUseReportType(reportType, modellingOwnerAllowed);
             }).ToList();
-            authenticationState = await authenticationStateTask!;
         }
         catch (Exception exception)
         {
@@ -305,7 +303,8 @@
 
     private async void HandleSubscriptionError(Exception exception)
     {
-        await InvokeAsync(() => DisplayMessageInUi(exception, userConfig.GetText("schedule_tile"), userConfig.GetText("schedule_upd_err_msg"), true));
+        await InvokeAsync(() => GraphqlSubscriptionExceptionHandler.Handle(exception,
+            () => DisplayMessageInUi(exception, userConfig.GetText("schedule_tile"), userConfig.GetText("schedule_upd_err_msg"), true)));
     }
 
     private async void OnReportScheduleUpdate(List<ReportSchedule> newReportSchedules)

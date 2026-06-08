@@ -8,6 +8,10 @@ nw_obj_types = [
     "system/external-resource",
     "firewall/wildcard-fqdn/custom",
     "firewall/wildcard-fqdn/group",
+    "firewall/vipgrp",
+    "firewall/vipgrp6",
+    "firewall/vipgrp46",
+    "firewall/vipgrp64",
 ]
 
 svc_obj_types = [

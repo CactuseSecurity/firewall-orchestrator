@@ -18,7 +18,7 @@ using System.Security.Claims;
 
 namespace FWO.Ui.Auth
 {
-    public class AuthStateProvider(TokenService tokenService, IEventMediator eventMediator) : AuthenticationStateProvider
+    public class AuthStateProvider(TokenService tokenService, IEventMediator eventMediator, ExecutionModeStorage? executionModeStorage = null) : AuthenticationStateProvider
     {
         private ClaimsPrincipal user = new(new ClaimsIdentity());
 
@@ -160,6 +160,11 @@ namespace FWO.Ui.Auth
             }
             finally
             {
+                if (executionModeStorage != null)
+                {
+                    await executionModeStorage.ClearExecutionMode();
+                }
+
                 user = new ClaimsPrincipal(new ClaimsIdentity());
 
                 NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
@@ -201,7 +206,9 @@ namespace FWO.Ui.Auth
                 throw new AuthenticationException("not_authorized");
             }
 
-            apiConnection.SetAuthHeader(jwtString);
+            using CancellationTokenSource cts = new(TimeSpan.FromSeconds(30));
+
+            await apiConnection.ReconnectSubscriptionsAsync(jwtString, cts.Token);
             middlewareClient.SetAuthenticationToken(jwtString);
 
             ClaimsIdentity identity = new
@@ -228,6 +235,8 @@ namespace FWO.Ui.Auth
             Log.WriteDebug("Auth Claims", $"Parsed editable owners: [{string.Join(", ", userConfig.User.Ownerships)}]");
             Log.WriteDebug("Auth Claims", $"Parsed recertifiable owners: [{string.Join(", ", userConfig.User.RecertOwnerships)}]");
 
+            await RestoreExecutionMode(apiConnection, userConfig);
+
             circuitHandler.User = userConfig.User;
 
             if (!userConfig.User.PasswordMustBeChanged)
@@ -236,6 +245,22 @@ namespace FWO.Ui.Auth
             }
 
             return true;
+        }
+
+        private async Task RestoreExecutionMode(ApiConnection apiConnection, UserConfig userConfig)
+        {
+            string storedExecutionMode = executionModeStorage != null
+                ? await executionModeStorage.GetExecutionMode() ?? GlobalConst.kUserRolesSelection
+                : GlobalConst.kUserRolesSelection;
+            string executionMode = ExecutionModeHelper.NormalizeExecutionMode(userConfig.User.Roles, storedExecutionMode);
+
+            apiConnection.SetExecutionMode(user, executionMode);
+            userConfig.SetExecutionMode(executionMode);
+
+            if (executionModeStorage != null)
+            {
+                await executionModeStorage.SetExecutionMode(executionMode);
+            }
         }
 
         /// <summary>

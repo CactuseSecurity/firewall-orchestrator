@@ -23,7 +23,7 @@ namespace FWO.Test
         [Test]
         public async Task VarianceAnalysisCollapsesMultiOwnerSelectionToDisplayedOwner()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
             context.Services.AddLocalization();
@@ -31,7 +31,7 @@ namespace FWO.Test
             context.Services.AddSingleton<AuthenticationStateProvider>(new MonitoringTestAuthStateProvider(Roles.Admin));
             context.Services.AddSingleton<ApiConnection>(new ReportModellingParamSelectionTestApiConn());
             context.Services.AddScoped<DomEventService>();
-            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig { User = { Roles = [Roles.Admin] } });
 
             FwoOwner firstOwner = new() { Id = 11, Name = "App One" };
             FwoOwner secondOwner = new() { Id = 12, Name = "App Two" };
@@ -55,10 +55,7 @@ namespace FWO.Test
 
     internal sealed class ReportModellingParamSelectionTestApiConn : SimulatedApiConnection
     {
-        public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(
-            string query,
-            object? variables = null,
-            string? operationName = null)
+        public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
             await Task.CompletedTask;
 

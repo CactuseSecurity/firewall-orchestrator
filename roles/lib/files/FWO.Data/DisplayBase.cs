@@ -99,6 +99,10 @@ namespace FWO.Data
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(ip1) && string.IsNullOrWhiteSpace(ip2))
+                {
+                    return "";
+                }
                 if (string.IsNullOrEmpty(ip1) && !string.IsNullOrEmpty(ip2))
                 {
                     ip1 = ip2;
@@ -107,6 +111,7 @@ namespace FWO.Data
                 {
                     ip2 = ip1;
                 }
+
                 string nwObjType = IpOperations.GetObjectType(ip1, ip2);
                 return DisplayIp(ip1, ip2, nwObjType, inBrackets);
             }

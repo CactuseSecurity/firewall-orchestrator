@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NUnit.Framework;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Security.Claims;
@@ -70,7 +71,7 @@ namespace FWO.Test
 
         private static MethodInfo GetPrivateMethod(Type type, string methodName)
         {
-            return type.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance)
+            return type.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
                 ?? throw new MissingMethodException(type.FullName, methodName);
         }
 
@@ -78,6 +79,17 @@ namespace FWO.Test
         {
             Task task = (Task)GetPrivateMethod(instance.GetType(), methodName).Invoke(instance, args)!;
             await task;
+        }
+
+        private static async Task<Task> StartPrivateTask<TComponent>(IRenderedComponent<TComponent> component, string methodName, params object[] args)
+            where TComponent : IComponent
+        {
+            Task? runningTask = null;
+            await component.InvokeAsync(() =>
+            {
+                runningTask = (Task)GetPrivateMethod(typeof(TComponent), methodName).Invoke(component.Instance, args)!;
+            });
+            return runningTask!;
         }
 
         private static bool InvokePrivateBool(object instance, string methodName, params object[] args)
@@ -100,6 +112,32 @@ namespace FWO.Test
             FieldInfo? field = typeof(WfHandler).GetField("stateMatrixDict", BindingFlags.NonPublic | BindingFlags.Instance);
             StateMatrixDict dict = (StateMatrixDict)(field?.GetValue(handler) ?? new StateMatrixDict());
             dict.Matrices[taskType] = matrix;
+        }
+
+        private static StateMatrix CreateWorkflowMatrix(bool planningActive = true)
+        {
+            return new()
+            {
+                LowestInputState = 0,
+                LowestStartedState = 2,
+                LowestEndState = 10,
+                PhaseActive = { [WorkflowPhases.planning] = planningActive }
+            };
+        }
+
+        private static WfHandler CreateWorkflowHandler(WorkflowPhases phase, string taskType, WfTicket ticket)
+        {
+            WfHandler handler = new()
+            {
+                Phase = phase,
+                ActTicket = ticket,
+                MasterStateMatrix = CreateWorkflowMatrix()
+            };
+            handler.userConfig.User.Dn = "cn=current";
+            handler.userConfig.User.DbId = 10;
+            handler.TicketList.Add(ticket);
+            SetMatrix(handler, taskType, CreateWorkflowMatrix(planningActive: phase == WorkflowPhases.planning));
+            return handler;
         }
 
         private static DisplayReqTaskTable CreateReqTaskTable(WfHandler handler, WorkflowPhases phase)
@@ -134,6 +172,36 @@ namespace FWO.Test
             return component;
         }
 
+        private static IRenderedComponent<DisplayTicket> RenderDisplayTicket(
+            BunitContext context,
+            WfHandler handler,
+            WorkflowPhases phase,
+            WfStateDict states,
+            Func<WfReqTask, Task>? startPhase = null,
+            Func<WfImplTask, Task>? startImplPhase = null)
+        {
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddAuthorizationCore();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new RequestWorkflowAuthStateProvider(Roles.Requester));
+            context.Services.TryAddSingleton<ApiConnection>(new RequestWorkflowApiConn());
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.TryAddSingleton<UserConfig>(new RequestWorkflowUserConfig());
+            context.Services.TryAddSingleton<DomEventService>();
+            context.Services.TryAddSingleton<IEventMediator>(new EventMediator());
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters => parameters
+                .AddChildContent<DisplayTicket>(child => child
+                    .Add(p => p.Phase, phase)
+                    .Add(p => p.States, states)
+                    .Add(p => p.WfHandler, handler)
+                    .Add(p => p.ResetParent, DefaultInit.DoNothing)
+                    .Add(p => p.StartPhase, startPhase ?? (Func<WfReqTask, Task>)DefaultInit.DoNothing)
+                    .Add(p => p.StartImplPhase, startImplPhase ?? (Func<WfImplTask, Task>)DefaultInit.DoNothing)));
+
+            return wrapper.FindComponent<DisplayTicket>();
+        }
+
         private static WfReqTask CreateAccessTask(long id, string sourceIp, string destinationIp, int servicePort)
         {
             return new()
@@ -159,6 +227,16 @@ namespace FWO.Test
             WfStateDict states,
             params string[] roles)
         {
+            return RenderDisplayRequestTask(context, handler, states, null, roles);
+        }
+
+        private static IRenderedComponent<DisplayRequestTask> RenderDisplayRequestTask(
+            BunitContext context,
+            WfHandler handler,
+            WfStateDict states,
+            Func<WfImplTask, Task>? startImplPhase,
+            params string[] roles)
+        {
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
@@ -175,9 +253,28 @@ namespace FWO.Test
                     .Add(p => p.States, states)
                     .Add(p => p.WfHandler, handler)
                     .Add(p => p.ResetParent, DefaultInit.DoNothing)
-                    .Add(p => p.StartImplPhase, (Func<WfImplTask, Task>)DefaultInit.DoNothing)));
+                    .Add(p => p.StartImplPhase, startImplPhase ?? (Func<WfImplTask, Task>)DefaultInit.DoNothing)));
 
             return wrapper.FindComponent<DisplayRequestTask>();
+        }
+
+        private static IRenderedComponent<TComponent> RenderWorkflowPage<TComponent>(BunitContext context, params string[] roles)
+            where TComponent : IComponent
+        {
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddAuthorizationCore();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new RequestWorkflowAuthStateProvider(roles));
+            context.Services.TryAddSingleton<ApiConnection>(new RequestWorkflowApiConn());
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.TryAddSingleton<UserConfig>(new RequestWorkflowUserConfig());
+            context.Services.TryAddSingleton<DomEventService>();
+            context.Services.TryAddSingleton<IEventMediator>(new EventMediator());
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters => parameters
+                .AddChildContent<TComponent>());
+
+            return wrapper.FindComponent<TComponent>();
         }
 
         private static IRenderedComponent<DisplayImplementationTask> RenderDisplayImplementationTask(
@@ -495,6 +592,318 @@ namespace FWO.Test
             {
                 Assert.That(canPromote, Is.True);
                 Assert.That(canPromoteWhenDerivedStateMatches, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task DisplayTicket_StartRequestPhase_DelegatesTaskAndBlocksReentry()
+        {
+            TaskCompletionSource<object?> started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            TaskCompletionSource<object?> release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            WfReqTask reqTask = new() { Id = 1, Title = "Request task" };
+            WfReqTask? observedReqTask = null;
+            int callCount = 0;
+            WfHandler handler = new()
+            {
+                ActTicket = new WfTicket
+                {
+                    Id = 10,
+                    Title = "Ticket",
+                    Tasks = [reqTask]
+                }
+            };
+            using BunitContext context = new();
+            IRenderedComponent<DisplayTicket> component = RenderDisplayTicket(
+                context,
+                handler,
+                WorkflowPhases.request,
+                new WfStateDict(),
+                async task =>
+                {
+                    callCount++;
+                    observedReqTask = task;
+                    started.SetResult(null);
+                    await release.Task;
+                });
+
+            Task runningTask = await StartPrivateTask(component, "StartRequestPhase", reqTask);
+            await started.Task.WaitAsync(TimeSpan.FromSeconds(1));
+
+            Task blockedTask = await StartPrivateTask(component, "StartRequestPhase", reqTask);
+            await blockedTask;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetMember<bool>(component.Instance, "WorkInProgress"), Is.True);
+                Assert.That(callCount, Is.EqualTo(1));
+            });
+
+            release.SetResult(null);
+            await runningTask;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetMember<bool>(component.Instance, "WorkInProgress"), Is.False);
+                Assert.That(callCount, Is.EqualTo(1));
+                Assert.That(observedReqTask, Is.SameAs(reqTask));
+            });
+        }
+
+        [Test]
+        public async Task DisplayTicket_StartImplementationPhase_DelegatesTaskAndBlocksReentry()
+        {
+            TaskCompletionSource<object?> started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            TaskCompletionSource<object?> release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            WfImplTask implTask = new() { Id = 21, Title = "Implementation task" };
+            WfImplTask? observedImplTask = null;
+            int callCount = 0;
+            WfHandler handler = new()
+            {
+                ActTicket = new WfTicket
+                {
+                    Id = 10,
+                    Title = "Ticket",
+                    Tasks = [new WfReqTask { Id = 1, Title = "Request task", ImplementationTasks = { implTask } }]
+                }
+            };
+            using BunitContext context = new();
+            IRenderedComponent<DisplayTicket> component = RenderDisplayTicket(
+                context,
+                handler,
+                WorkflowPhases.implementation,
+                new WfStateDict(),
+                startImplPhase: async task =>
+                {
+                    callCount++;
+                    observedImplTask = task;
+                    started.SetResult(null);
+                    await release.Task;
+                });
+
+            Task runningTask = await StartPrivateTask(component, "StartImplementationPhase", implTask);
+            await started.Task.WaitAsync(TimeSpan.FromSeconds(1));
+
+            Task blockedTask = await StartPrivateTask(component, "StartImplementationPhase", implTask);
+            await blockedTask;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetMember<bool>(component.Instance, "WorkInProgress"), Is.True);
+                Assert.That(callCount, Is.EqualTo(1));
+            });
+
+            release.SetResult(null);
+            await runningTask;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetMember<bool>(component.Instance, "WorkInProgress"), Is.False);
+                Assert.That(callCount, Is.EqualTo(1));
+                Assert.That(observedImplTask, Is.SameAs(implTask));
+            });
+        }
+
+        [Test]
+        public async Task DisplayRequestTask_StartImplementationPhase_DelegatesTaskAndBlocksReentry()
+        {
+            TaskCompletionSource<object?> started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            TaskCompletionSource<object?> release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            WfReqTask reqTask = CreateAccessTask(1, "10.0.0.1", "10.0.0.2", 443);
+            WfImplTask implTask = new() { Id = 31, Title = "Implementation task", ReqTaskId = reqTask.Id };
+            reqTask.ImplementationTasks.Add(implTask);
+            WfImplTask? observedImplTask = null;
+            int callCount = 0;
+            WfHandler handler = new()
+            {
+                ActReqTask = reqTask,
+                ActTicket = new WfTicket
+                {
+                    Id = 10,
+                    Title = "Ticket",
+                    Tasks = [reqTask]
+                }
+            };
+            using BunitContext context = new();
+            IRenderedComponent<DisplayRequestTask> component = RenderDisplayRequestTask(
+                context,
+                handler,
+                new WfStateDict(),
+                async task =>
+                {
+                    callCount++;
+                    observedImplTask = task;
+                    started.SetResult(null);
+                    await release.Task;
+                },
+                Roles.Requester);
+
+            Task runningTask = await StartPrivateTask(component, "StartImplementationPhase", implTask);
+            await started.Task.WaitAsync(TimeSpan.FromSeconds(1));
+
+            Task blockedTask = await StartPrivateTask(component, "StartImplementationPhase", implTask);
+            await blockedTask;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetMember<bool>(component.Instance, "WorkInProgress"), Is.True);
+                Assert.That(callCount, Is.EqualTo(1));
+            });
+
+            release.SetResult(null);
+            await runningTask;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetMember<bool>(component.Instance, "WorkInProgress"), Is.False);
+                Assert.That(callCount, Is.EqualTo(1));
+                Assert.That(observedImplTask, Is.SameAs(implTask));
+            });
+        }
+
+        [Test]
+        public async Task RequestPlannings_StartPlanTask_StampsStartAndOpensPlanMode()
+        {
+            string taskType = WfTaskType.access.ToString();
+            WfReqTask reqTask = new()
+            {
+                Id = 11,
+                TicketId = 7,
+                TaskType = taskType,
+                StateId = 0
+            };
+            WfTicket ticket = new() { Id = 7, Tasks = { reqTask } };
+            WfHandler handler = CreateWorkflowHandler(WorkflowPhases.planning, taskType, ticket);
+            DateTime beforeStart = DateTime.Now;
+
+            await using BunitContext context = new();
+            IRenderedComponent<RequestPlannings> component = RenderWorkflowPage<RequestPlannings>(context, Roles.Planner);
+            SetMember(component.Instance, "wfHandler", handler);
+
+            await (await StartPrivateTask(component, "StartPlanTask", reqTask));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(reqTask.Start, Is.Not.Null);
+                Assert.That(reqTask.Start!.Value, Is.GreaterThanOrEqualTo(beforeStart));
+                Assert.That(handler.ActReqTask.Start, Is.EqualTo(reqTask.Start));
+                Assert.That(handler.ActReqTask.CurrentHandler, Is.SameAs(handler.userConfig.User));
+                Assert.That(handler.PlanReqTaskMode, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task RequestApprovals_StartApproveTask_OpensApproveModeWithoutStampingStart()
+        {
+            string taskType = WfTaskType.access.ToString();
+            WfReqTask reqTask = new()
+            {
+                Id = 11,
+                TicketId = 7,
+                TaskType = taskType,
+                StateId = 0
+            };
+            WfTicket ticket = new() { Id = 7, Tasks = { reqTask } };
+            WfHandler handler = CreateWorkflowHandler(WorkflowPhases.approval, taskType, ticket);
+
+            await using BunitContext context = new();
+            IRenderedComponent<RequestApprovals> component = RenderWorkflowPage<RequestApprovals>(context, Roles.Approver);
+            SetMember(component.Instance, "wfHandler", handler);
+
+            await (await StartPrivateTask(component, "StartApproveTask", reqTask));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(reqTask.Start, Is.Null);
+                Assert.That(handler.ActReqTask.Start, Is.Null);
+                Assert.That(handler.ActReqTask.CurrentHandler, Is.SameAs(handler.userConfig.User));
+                Assert.That(handler.ApproveReqTaskMode, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task RequestImplementations_StartImplementTask_StampsStartClearsStopAndOpensImplementMode()
+        {
+            string taskType = WfTaskType.access.ToString();
+            WfReqTask reqTask = new()
+            {
+                Id = 11,
+                TicketId = 7,
+                TaskType = taskType,
+                StateId = 0
+            };
+            WfImplTask implTask = new()
+            {
+                Id = 21,
+                TicketId = 7,
+                ReqTaskId = 11,
+                TaskType = taskType,
+                StateId = 0,
+                Stop = new DateTime(2026, 1, 1)
+            };
+            reqTask.ImplementationTasks.Add(implTask);
+            WfTicket ticket = new() { Id = 7, Tasks = { reqTask } };
+            WfHandler handler = CreateWorkflowHandler(WorkflowPhases.implementation, taskType, ticket);
+            DateTime beforeStart = DateTime.Now;
+
+            await using BunitContext context = new();
+            IRenderedComponent<RequestImplementations> component = RenderWorkflowPage<RequestImplementations>(context, Roles.Implementer);
+            SetMember(component.Instance, "wfHandler", handler);
+
+            await (await StartPrivateTask(component, "StartImplementTask", implTask));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(implTask.Start, Is.Not.Null);
+                Assert.That(implTask.Start!.Value, Is.GreaterThanOrEqualTo(beforeStart));
+                Assert.That(implTask.Stop, Is.Null);
+                Assert.That(handler.ActImplTask.Start, Is.EqualTo(implTask.Start));
+                Assert.That(handler.ActImplTask.Stop, Is.Null);
+                Assert.That(handler.ActImplTask.CurrentHandler, Is.SameAs(handler.userConfig.User));
+                Assert.That(handler.ImplementImplTaskMode, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task RequestReviews_StartReviewTask_OpensReviewModeWithoutChangingImplementationTimes()
+        {
+            string taskType = WfTaskType.access.ToString();
+            DateTime existingStart = new(2026, 1, 1);
+            DateTime existingStop = new(2026, 1, 2);
+            WfReqTask reqTask = new()
+            {
+                Id = 11,
+                TicketId = 7,
+                TaskType = taskType,
+                StateId = 0
+            };
+            WfImplTask implTask = new()
+            {
+                Id = 21,
+                TicketId = 7,
+                ReqTaskId = 11,
+                TaskType = taskType,
+                StateId = 0,
+                Start = existingStart,
+                Stop = existingStop
+            };
+            reqTask.ImplementationTasks.Add(implTask);
+            WfTicket ticket = new() { Id = 7, Tasks = { reqTask } };
+            WfHandler handler = CreateWorkflowHandler(WorkflowPhases.review, taskType, ticket);
+
+            await using BunitContext context = new();
+            IRenderedComponent<RequestReviews> component = RenderWorkflowPage<RequestReviews>(context, Roles.Reviewer);
+            SetMember(component.Instance, "wfHandler", handler);
+
+            await (await StartPrivateTask(component, "StartReviewTask", implTask));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(implTask.Start, Is.EqualTo(existingStart));
+                Assert.That(implTask.Stop, Is.EqualTo(existingStop));
+                Assert.That(handler.ActImplTask.Start, Is.EqualTo(existingStart));
+                Assert.That(handler.ActImplTask.Stop, Is.EqualTo(existingStop));
+                Assert.That(handler.ActImplTask.CurrentHandler, Is.SameAs(handler.userConfig.User));
+                Assert.That(handler.ReviewImplTaskMode, Is.True);
             });
         }
 

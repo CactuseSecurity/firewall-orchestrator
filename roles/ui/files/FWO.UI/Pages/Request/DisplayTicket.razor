@@ -103,14 +103,14 @@
                     <h5>@(userConfig.GetText("tasks"))</h5>
 
                     <DisplayReqTaskTable Phase="Phase" States="States" 
-                        WfHandler="WfHandler" ResetParent="Reset" StartPhase="StartPhase"/>
+                        WfHandler="WfHandler" ResetParent="Reset" StartPhase="StartRequestPhase"/>
                 }
                 else
                 {
                     <h5>@(userConfig.GetText("implementation_tasks"))</h5>
 
                     <DisplayImplTaskTable Phase="Phase" States="States" WfHandler="WfHandler" ResetParent="Reset" 
-                        AllImplTasks="WfHandler.AllTicketImplTasks" StartImplPhase="StartImplPhase"/>
+                        AllImplTasks="WfHandler.AllTicketImplTasks" StartImplPhase="StartImplementationPhase"/>
                 }
             </form>
         }
@@ -292,6 +292,45 @@
         finally
         {
             WorkInProgress = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task StartImplementationPhase(WfImplTask implTask)
+    {
+        if (WorkInProgress)
+        {
+            return;
+        }
+        WorkInProgress = true;
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+            await StartImplPhase(implTask);
+        }
+        finally
+        {
+            WorkInProgress = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task StartRequestPhase(WfReqTask reqTask)
+    {
+        if (WorkInProgress)
+        {
+            return;
+        }
+        WorkInProgress = true;
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+            await StartPhase(reqTask);
+        }
+        finally
+        {
+            WorkInProgress = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 

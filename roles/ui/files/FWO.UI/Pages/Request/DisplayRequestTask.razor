@@ -19,7 +19,7 @@
                 <div class="form-group row">
                     <div class="col-sm-2">
                         <div class="form-group row">
-                            <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                            <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("req_task_id")):</label>
                             <div class="col-sm-6">
                                 <label class="col-sm-12 border bg-secondary">@WfHandler.ActReqTask.Id</label>
                             </div>
@@ -392,7 +392,7 @@
                     <h5 class="mt-2">@(userConfig.GetText("implementation_tasks"))</h5>
 
                     <DisplayImplTaskTable Phase="Phase" States="States" WfHandler="WfHandler" ResetParent="Reset"
-                        AllImplTasks="WfHandler.ActReqTask.ImplementationTasks" StartImplPhase="StartImplPhase"/>
+                        AllImplTasks="WfHandler.ActReqTask.ImplementationTasks" StartImplPhase="StartImplementationPhase"/>
                 }
             </form>
         }
@@ -786,6 +786,7 @@
         finally
         {
             WorkInProgress = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -823,6 +824,25 @@
     private bool IsRequestTaskReadOnly()
     {
         return WfHandler.ReadOnlyMode || !(WfHandler.EditReqTaskMode || WfHandler.PlanReqTaskMode || WfHandler.ApproveReqTaskMode);
+    }
+
+    private async Task StartImplementationPhase(WfImplTask implTask)
+    {
+        if (WorkInProgress)
+        {
+            return;
+        }
+        WorkInProgress = true;
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+            await StartImplPhase(implTask);
+        }
+        finally
+        {
+            WorkInProgress = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task ResetApprovalsPopup()

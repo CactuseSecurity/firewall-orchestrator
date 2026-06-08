@@ -16,7 +16,7 @@
                 <div class="form-group row">
                     <div class="col-sm-2">
                         <div class="form-group row">
-                            <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                            <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("impl_task_id")):</label>
                             <div class="col-sm-6">
                                 <label class="col-sm-12 border bg-secondary">@WfHandler.ActImplTask.Id</label>
                             </div>
@@ -315,7 +315,7 @@
                     {
                         <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
                             <Authorized>
-                                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteImplTask">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.Save))</button>
+                                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteImplTask">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                             </Authorized>
                             <NotAuthorized>
                                 <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>

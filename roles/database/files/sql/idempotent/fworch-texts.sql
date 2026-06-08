@@ -1274,6 +1274,10 @@ INSERT INTO txt VALUES ('select_owner',         'German',   'Eigent&uuml;mer aus
 INSERT INTO txt VALUES ('select_owner',         'English',  'Select Owner');
 INSERT INTO txt VALUES ('ticket_id',            'German', 	'Ticket-Id');
 INSERT INTO txt VALUES ('ticket_id',            'English',  'Ticket Id');
+INSERT INTO txt VALUES ('req_task_id',          'German', 	'Aufgaben-Id');
+INSERT INTO txt VALUES ('req_task_id',          'English',  'Request Task Id');
+INSERT INTO txt VALUES ('impl_task_id',         'German', 	'Impl.-Id');
+INSERT INTO txt VALUES ('impl_task_id',         'English',  'Impl. Id');
 INSERT INTO txt VALUES ('requesting_owner',     'German',   'Beantragender Eigent&uuml;mer');
 INSERT INTO txt VALUES ('requesting_owner',     'English',  'Requesting Owner');
 INSERT INTO txt VALUES ('port_range',		    'German', 	'Port(bereich)');

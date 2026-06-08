@@ -434,8 +434,11 @@ These settings are no longer used due to the full automation of UpdateRuleOwner.
 - improved cancellation and JWT-expiry handling
 - a small cleanup of exception logging for subscription errors
 
-### 9.1.6 - 06.06.2026 DEVELOP
-security patches
+# 9.1.6 - 08.06.2026 DEVELOP
+- remove obsolete database last_seen fields
+
+# 9.1.7 - 08.06.2026 DEVELOP
+security patch
 
 This PR hardens FWO installation and security-sensitive workflows. It restricts app data import file/script paths, reduces installer secret exposure, tightens Hasura config permissions, improves LDAP/install test idempotency, removes the obsolete webhook role, and fixes related installer/test reliability issues. It also includes targeted documentation and version updates.
 

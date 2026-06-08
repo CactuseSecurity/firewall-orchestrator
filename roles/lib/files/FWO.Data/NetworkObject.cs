@@ -34,9 +34,6 @@ namespace FWO.Data
         [JsonProperty("obj_create_time"), JsonPropertyName("obj_create_time")]
         public TimeWrapper CreateTime { get; set; } = new();
 
-        [JsonProperty("obj_last_seen"), JsonPropertyName("obj_last_seen")]
-        public int LastSeen { get; set; }
-
         [JsonProperty("type"), JsonPropertyName("type")]
         public NetworkObjectType Type { get; set; } = new();
 

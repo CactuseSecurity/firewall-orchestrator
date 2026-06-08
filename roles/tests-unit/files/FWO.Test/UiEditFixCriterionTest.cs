@@ -57,7 +57,7 @@ namespace FWO.Test
         [Test]
         public async Task Save_ForbiddenServiceWithPendingProtocolPort_AddsPendingElement()
         {
-            await using Bunit.TestContext context = CreateContext(out EditFixCriterionTestApiConn apiConn);
+            await using BunitContext context = CreateContext(out EditFixCriterionTestApiConn apiConn);
 
             ComplianceCriterion criterion = new()
             {
@@ -84,7 +84,7 @@ namespace FWO.Test
         public async Task Save_ForbidSourceNameWithEmptyContent_ShowsValidationError()
         {
             List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
-            await using Bunit.TestContext context = CreateContext(out EditFixCriterionTestApiConn apiConn);
+            await using BunitContext context = CreateContext(out EditFixCriterionTestApiConn apiConn);
 
             ComplianceCriterion criterion = new()
             {
@@ -106,7 +106,7 @@ namespace FWO.Test
         [Test]
         public async Task Save_ForbidDestinationNameWithContent_PersistsTrimmedContent()
         {
-            await using Bunit.TestContext context = CreateContext(out EditFixCriterionTestApiConn apiConn);
+            await using BunitContext context = CreateContext(out EditFixCriterionTestApiConn apiConn);
 
             ComplianceCriterion criterion = new()
             {
@@ -127,7 +127,7 @@ namespace FWO.Test
         [Test]
         public async Task Save_EditMode_ReLinksPoliciesToReplacementCriterion()
         {
-            await using Bunit.TestContext context = CreateContext(out EditFixCriterionTestApiConn apiConn);
+            await using BunitContext context = CreateContext(out EditFixCriterionTestApiConn apiConn);
 
             ComplianceCriterion criterion = new()
             {
@@ -158,9 +158,9 @@ namespace FWO.Test
                 throw new MissingMemberException(typeof(EditFixCriterion).FullName, name);
         }
 
-        private static Bunit.TestContext CreateContext(out EditFixCriterionTestApiConn apiConn)
+        private static BunitContext CreateContext(out EditFixCriterionTestApiConn apiConn)
         {
-            Bunit.TestContext context = new();
+            BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
@@ -173,7 +173,7 @@ namespace FWO.Test
         }
 
         private static IRenderedComponent<CascadingAuthenticationState> RenderComponent(
-            Bunit.TestContext context,
+            BunitContext context,
             ComplianceCriterion criterion,
             bool addMode,
             List<(Exception? Exception, string Title, string Message, bool IsError)>? messages = null,

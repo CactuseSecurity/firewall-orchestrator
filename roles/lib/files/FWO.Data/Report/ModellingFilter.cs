@@ -21,6 +21,8 @@ namespace FWO.Data.Report
 
         public bool ShowAllOwners { get; set; } = false;
         public bool ShowInactiveRecertOwners { get; set; } = false;
+        public bool MergeOwnerRecertTables { get; set; } = false;
+        public string OwnerAdditionalInfoKey { get; set; } = "";
         public long? OwnerRecertId { get; set; }
         public long? ReportId { get; set; }
 
@@ -41,6 +43,8 @@ namespace FWO.Data.Report
             RulesForDeletedConns = modellingFilter.RulesForDeletedConns;
             ShowAllOwners = modellingFilter.ShowAllOwners;
             ShowInactiveRecertOwners = modellingFilter.ShowInactiveRecertOwners;
+            MergeOwnerRecertTables = modellingFilter.MergeOwnerRecertTables;
+            OwnerAdditionalInfoKey = modellingFilter.OwnerAdditionalInfoKey;
             OwnerRecertId = modellingFilter.OwnerRecertId;
             ReportId = modellingFilter.ReportId;
         }

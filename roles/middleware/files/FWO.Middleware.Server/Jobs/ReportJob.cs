@@ -45,17 +45,28 @@ namespace FWO.Middleware.Server.Jobs
         /// <inheritdoc />
         public async Task Execute(IJobExecutionContext context)
         {
-            Log.WriteDebug(LogMessageTitle, "Process started");
-            DateTime dateTimeNowRounded = RoundDown(DateTime.Now, CheckScheduleInterval);
-            List<ReportSchedule> scheduledReports = await apiConnectionScheduler.SendQueryAsync<List<ReportSchedule>>(ReportQueries.getReportSchedules);
-
-            if (scheduledReports is null || scheduledReports.Count == 0)
+            try
             {
-                return;
-            }
+                Log.WriteDebug(LogMessageTitle, "Process started");
+                DateTime dateTimeNowRounded = RoundDown(DateTime.Now, CheckScheduleInterval);
+                List<ReportSchedule> scheduledReports = await apiConnectionScheduler.SendQueryAsync<List<ReportSchedule>>(ReportQueries.getReportSchedules);
 
-            await Parallel.ForEachAsync(scheduledReports, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
-                async (reportSchedule, ct) => await ProcessScheduledReport(reportSchedule, dateTimeNowRounded, ct));
+                if (scheduledReports is null || scheduledReports.Count == 0)
+                {
+                    return;
+                }
+
+                await Parallel.ForEachAsync(scheduledReports, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
+                    async (reportSchedule, ct) => await ProcessScheduledReport(reportSchedule, dateTimeNowRounded, ct));
+            }
+            catch (TaskCanceledException)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(ReportJob)} stopped.");
+            }
+            catch (OperationCanceledException)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(ReportJob)} stopped.");
+            }
         }
 
         private async Task ProcessScheduledReport(ReportSchedule reportSchedule, DateTime dateTimeNowRounded, CancellationToken ct)
@@ -83,6 +94,14 @@ namespace FWO.Middleware.Server.Jobs
                         await GenerateReport(reportSchedule, dateTimeNowRounded, ct);
                     }
                 }
+            }
+            catch (TaskCanceledException)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(ReportJob)} stopped.");
+            }
+            catch (OperationCanceledException)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(ReportJob)} stopped.");
             }
             catch (Exception exception)
             {
@@ -143,7 +162,11 @@ namespace FWO.Middleware.Server.Jobs
             }
             catch (TaskCanceledException)
             {
-                Log.WriteWarning(LogMessageTitle, $"Generating scheduled report \"{reportSchedule.Name}\" was cancelled");
+                Log.WriteDebug(LogMessageTitle, $"{nameof(ReportJob)} stopped.");
+            }
+            catch (OperationCanceledException)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(ReportJob)} stopped.");
             }
             catch (Exception exception)
             {
@@ -162,7 +185,7 @@ namespace FWO.Middleware.Server.Jobs
         {
             List<Ldap> connectedLdaps = await apiConnectionScheduler.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
             AuthManager authManager = new(jwtWriter, connectedLdaps, apiConnectionScheduler, tokenLifetimeProvider);
-            string jwt = await authManager.AuthorizeUserAsync(reportSchedule.ScheduleOwningUser, validatePassword: false, tokenLifetimeProvider.GetDelegatedUserTokenLifetime());
+            string jwt = await authManager.AuthorizeUserAsync(reportSchedule.ScheduleOwningUser, validatePassword: false);
             ApiConnection apiConnectionUserContext = new GraphQlApiConnection(apiServerUri, jwt);
             GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
             UserConfig userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnectionUserContext, reportSchedule.ScheduleOwningUser.DbId);

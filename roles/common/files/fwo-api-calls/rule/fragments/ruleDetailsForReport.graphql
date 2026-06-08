@@ -1,4 +1,4 @@
-﻿fragment ruleDetailsForReport on rule {
+fragment ruleDetailsForReport on rule {
   rule_id
   rule_uid
   mgm_id
@@ -23,8 +23,12 @@
   }
   active
   rule_create
-  rule_last_seen
-  importControlByRuleLastSeen {
+  removed
+  createdImport: import_control {
+    control_id
+    start_time
+  }
+  importControlByRemoved {
     control_id
     start_time
   }

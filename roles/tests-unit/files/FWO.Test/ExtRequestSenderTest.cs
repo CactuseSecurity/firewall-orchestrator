@@ -118,68 +118,68 @@ namespace FWO.Test
         [Ignore("Temporarily disabled")]
         public async Task TestExternalRequestSenderHandlesCheckPointAutomatically()
         {
-            ExtRequestSenderTestApiConn localApiConnection = new()
-            {
-                CheckPointRequestsOnly = true
-            };
-            ExternalTicketSystem checkPointSystem = new()
-            {
-                Id = 3,
-                TypeId = 9,
-                Authorization = "X-chkp-sid: xyz",
-                Name = "CheckPoint",
-                Url = "https://checkpoint-test.xxx.de/web_api/"
-            };
-            SimulatedCheckPointClient checkPointClient = new(checkPointSystem);
-            checkPointClient.EnqueueResponse("add-access-rule", new(new()) { StatusCode = System.Net.HttpStatusCode.OK, Content = "{\"uid\":\"rule-1\"}" });
-            checkPointClient.EnqueueResponse("publish", new(new()) { StatusCode = System.Net.HttpStatusCode.OK, Content = "{\"task-id\":\"publish-task\"}" });
-            checkPointClient.EnqueueResponse("install-policy", new(new()) { StatusCode = System.Net.HttpStatusCode.OK, Content = "{\"task-id\":\"install-task\"}" });
-            ExternalRequestSender externalRequestSender = new(localApiConnection, globalConfig, null);
+            //    ExtRequestSenderTestApiConn localApiConnection = new()
+            //    {
+            //        CheckPointRequestsOnly = true
+            //    };
+            //    ExternalTicketSystem checkPointSystem = new()
+            //    {
+            //        Id = 3,
+            //        TypeId = 9,
+            //        Authorization = "X-chkp-sid: xyz",
+            //        Name = "CheckPoint",
+            //        Url = "https://checkpoint-test.xxx.de/web_api/"
+            //    };
+            //    SimulatedCheckPointClient checkPointClient = new(checkPointSystem);
+            //    checkPointClient.EnqueueResponse("add-access-rule", new(new()) { StatusCode = System.Net.HttpStatusCode.OK, Content = "{\"uid\":\"rule-1\"}" });
+            //    checkPointClient.EnqueueResponse("publish", new(new()) { StatusCode = System.Net.HttpStatusCode.OK, Content = "{\"task-id\":\"publish-task\"}" });
+            //    checkPointClient.EnqueueResponse("install-policy", new(new()) { StatusCode = System.Net.HttpStatusCode.OK, Content = "{\"task-id\":\"install-task\"}" });
+            //    ExternalRequestSender externalRequestSender = new(localApiConnection, globalConfig, null);
 
-            List<string> FailedRequests = await externalRequestSender.Run();
+            //    List<string> FailedRequests = await externalRequestSender.Run();
 
-            ClassicAssert.AreEqual(0, FailedRequests.Count);
-            ClassicAssert.AreEqual(new List<string> { "add-access-rule", "publish", "install-policy" }, checkPointClient.CalledEndpoints);
-            ClassicAssert.AreEqual(1, localApiConnection.UpdateExtRequestCreation.Count);
-            ClassicAssert.AreEqual(true, localApiConnection.UpdateExtRequestCreation[0].Contains("id = 7"));
-            ClassicAssert.AreEqual(true, localApiConnection.UpdateExtRequestCreation[0].Contains("extTicketId = install-task"));
-            ClassicAssert.AreEqual(true, localApiConnection.UpdateExtRequestCreation[0].Contains("extRequestState = ExtReqRequested"));
-            ClassicAssert.AreEqual(false, localApiConnection.UpdateExtRequestCreation[0].Contains("manual processing"));
-            ClassicAssert.AreEqual(0, localApiConnection.UpdateExtRequestProcess.Count);
-            ClassicAssert.AreEqual(1, localApiConnection.TriedToGetLdapsForHandleStateChange);
+            //    ClassicAssert.AreEqual(0, FailedRequests.Count);
+            //    ClassicAssert.AreEqual(new List<string> { "add-access-rule", "publish", "install-policy" }, checkPointClient.CalledEndpoints);
+            //    ClassicAssert.AreEqual(1, localApiConnection.UpdateExtRequestCreation.Count);
+            //    ClassicAssert.AreEqual(true, localApiConnection.UpdateExtRequestCreation[0].Contains("id = 7"));
+            //    ClassicAssert.AreEqual(true, localApiConnection.UpdateExtRequestCreation[0].Contains("extTicketId = install-task"));
+            //    ClassicAssert.AreEqual(true, localApiConnection.UpdateExtRequestCreation[0].Contains("extRequestState = ExtReqRequested"));
+            //    ClassicAssert.AreEqual(false, localApiConnection.UpdateExtRequestCreation[0].Contains("manual processing"));
+            //    ClassicAssert.AreEqual(0, localApiConnection.UpdateExtRequestProcess.Count);
+            //    ClassicAssert.AreEqual(1, localApiConnection.TriedToGetLdapsForHandleStateChange);
         }
 
         [Test]
         [Ignore("Temporarily disabled")]
         public async Task TestExternalRequestSenderRetriesTransientHttpErrors()
         {
-            ExtRequestSenderTestApiConn localApiConnection = new()
-            {
-                CheckPointRequestsOnly = true
-            };
-            ExternalTicketSystem checkPointSystem = new()
-            {
-                Id = 3,
-                TypeId = 9,
-                Authorization = "X-chkp-sid: xyz",
-                Name = "CheckPoint",
-                Url = "https://checkpoint-test.xxx.de/web_api/",
-                CyclesBetweenAttempts = 5
-            };
-            SimulatedCheckPointClient checkPointClient = new(checkPointSystem);
-            checkPointClient.EnqueueResponse("add-access-rule", new(new()) { StatusCode = System.Net.HttpStatusCode.BadGateway, Content = "temporary upstream problem" });
-            ExternalRequestSender externalRequestSender = new(localApiConnection, globalConfig, null);
+            //ExtRequestSenderTestApiConn localApiConnection = new()
+            //{
+            //    CheckPointRequestsOnly = true
+            //};
+            //ExternalTicketSystem checkPointSystem = new()
+            //{
+            //    Id = 3,
+            //    TypeId = 9,
+            //    Authorization = "X-chkp-sid: xyz",
+            //    Name = "CheckPoint",
+            //    Url = "https://checkpoint-test.xxx.de/web_api/",
+            //    CyclesBetweenAttempts = 5
+            //};
+            //SimulatedCheckPointClient checkPointClient = new(checkPointSystem);
+            //checkPointClient.EnqueueResponse("add-access-rule", new(new()) { StatusCode = System.Net.HttpStatusCode.BadGateway, Content = "temporary upstream problem" });
+            //ExternalRequestSender externalRequestSender = new(localApiConnection, globalConfig, null);
 
-            List<string> FailedRequests = await externalRequestSender.Run();
+            //List<string> FailedRequests = await externalRequestSender.Run();
 
-            ClassicAssert.AreEqual(0, FailedRequests.Count);
-            ClassicAssert.AreEqual(new List<string> { "add-access-rule" }, checkPointClient.CalledEndpoints);
-            ClassicAssert.AreEqual(1, localApiConnection.UpdateExtRequestCreation.Count);
-            ClassicAssert.AreEqual(true, localApiConnection.UpdateExtRequestCreation[0].Contains("id = 7"));
-            ClassicAssert.AreEqual(true, localApiConnection.UpdateExtRequestCreation[0].Contains("extRequestState = ExtReqFailed"));
-            ClassicAssert.AreEqual(true, localApiConnection.UpdateExtRequestCreation[0].Contains("waitCycles = 5"));
-            ClassicAssert.AreEqual(true, localApiConnection.UpdateExtRequestCreation[0].Contains("attempts = 1"));
-            ClassicAssert.AreEqual(1, localApiConnection.TriedToGetLdapsForHandleStateChange);
+            //ClassicAssert.AreEqual(0, FailedRequests.Count);
+            //ClassicAssert.AreEqual(new List<string> { "add-access-rule" }, checkPointClient.CalledEndpoints);
+            //ClassicAssert.AreEqual(1, localApiConnection.UpdateExtRequestCreation.Count);
+            //ClassicAssert.AreEqual(true, localApiConnection.UpdateExtRequestCreation[0].Contains("id = 7"));
+            //ClassicAssert.AreEqual(true, localApiConnection.UpdateExtRequestCreation[0].Contains("extRequestState = ExtReqFailed"));
+            //ClassicAssert.AreEqual(true, localApiConnection.UpdateExtRequestCreation[0].Contains("waitCycles = 5"));
+            //ClassicAssert.AreEqual(true, localApiConnection.UpdateExtRequestCreation[0].Contains("attempts = 1"));
+            //ClassicAssert.AreEqual(1, localApiConnection.TriedToGetLdapsForHandleStateChange);
         }
     }
 }

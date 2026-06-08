@@ -187,7 +187,9 @@
                         <span class="@Icons.Text"></span> @(userConfig.GetText("customize_texts"))
                     </NavLink>
                 </li>
+                </ExecutionModeAuthorizeView>
                 <hr />
+                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5013"))">@* ToDo - tooltip - Icons - getTextForMenuText *@
                     <h5>@(userConfig.GetText("fwconfigchange"))</h5>
                 </li>                
@@ -206,7 +208,7 @@
                         <span class="@Icons.Settings"></span> @(userConfig.GetText("ext_ticket_templates"))
                     </NavLink>
                 </li>
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <hr />
             <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5014"))">
                 <h5>@(userConfig.GetText("personal"))</h5>

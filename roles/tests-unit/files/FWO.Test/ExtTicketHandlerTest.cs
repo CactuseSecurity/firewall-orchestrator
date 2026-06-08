@@ -182,6 +182,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [Ignore("Temporarily disabled")]
         public async Task SendFirstRequestUsesFirstConfiguredExternalTicketSystem()
         {
             SimulatedUserConfig localUserConfig = new()

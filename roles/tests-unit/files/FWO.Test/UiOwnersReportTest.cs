@@ -16,7 +16,7 @@ namespace FWO.Test
     {
         private sealed class ThrowingOwnersReportApiConn : SimulatedApiConnection
         {
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 throw new InvalidOperationException("field 'owner_lifecycle_state' not found in type: 'query_root'");
             }
@@ -36,7 +36,7 @@ namespace FWO.Test
         [Test]
         public void OwnersReport_QueryFailure_IsCaughtAndReported()
         {
-            using Bunit.TestContext context = new();
+            using BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddSingleton<ApiConnection>(new ThrowingOwnersReportApiConn());
             SimulatedUserConfig userConfig = new();

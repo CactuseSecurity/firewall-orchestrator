@@ -341,13 +341,67 @@ namespace FWO.Test
             StringAssert.Contains("# Owners due within 7 days: 1", csv);
             StringAssert.Contains("# Further active owners: 1", csv);
             StringAssert.Contains("# Owners with inactive recertification: 1", csv);
-            StringAssert.Contains("\"Next Recertification Date\",\"Id\",\"Name\",\"Last Recertified\",\"Last Recertifier\",", csv);
-            StringAssert.Contains("\"EXT-OVERDUE\",\"Overdue Owner\",", csv);
+            StringAssert.Contains("\"Next Recertification Date\",\"Id\",\"Name\",\"Main responsible person (DN)\",\"Last Recertified\",\"Last Recertifier\",", csv);
+            StringAssert.Contains("\"EXT-OVERDUE\",\"Overdue Owner\",\"overdue.main, overdue.second\",", csv);
             StringAssert.Contains("\"EXT-UPCOMING\",\"Upcoming Owner\",", csv);
             StringAssert.Contains("\"EXT-FURTHER\",\"Further Owner\",", csv);
             StringAssert.Contains("# Owners with inactive recertification", csv);
-            StringAssert.Contains("\"Id\",\"Name\",", csv);
-            StringAssert.Contains("\"EXT-INACTIVE\",\"Inactive Owner\",", csv);
+            StringAssert.Contains("\"Id\",\"Name\",\"Main responsible person (DN)\",", csv);
+            StringAssert.Contains("\"EXT-INACTIVE\",\"Inactive Owner\",\"inactive.main\",", csv);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateCsvMergesDisplayedTables()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.MergeOwnerRecertTables = true;
+
+            string csv = report.ExportToCsv();
+
+            StringAssert.Contains("# Recertification overview", csv);
+            Assert.That(CountOccurrences(csv, "\"Next Recertification Date\""), Is.EqualTo(1));
+            StringAssert.Contains("\"\",\"EXT-INACTIVE\",\"Inactive Owner\",\"inactive.main\",\"\",\"\",", csv);
+            Assert.That(csv.IndexOf("\"EXT-OVERDUE\"", StringComparison.Ordinal), Is.LessThan(csv.IndexOf("\"EXT-UPCOMING\"", StringComparison.Ordinal)));
+            Assert.That(csv.IndexOf("\"EXT-UPCOMING\"", StringComparison.Ordinal), Is.LessThan(csv.IndexOf("\"EXT-FURTHER\"", StringComparison.Ordinal)));
+            Assert.That(csv.IndexOf("\"EXT-FURTHER\"", StringComparison.Ordinal), Is.LessThan(csv.IndexOf("\"EXT-INACTIVE\"", StringComparison.Ordinal)));
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateCsvMergedTableIsSortedByNextRecertDate()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.MergeOwnerRecertTables = true;
+            report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-FURTHER").Owner.NextRecertDate = DateTime.Today.AddDays(-5);
+
+            string csv = report.ExportToCsv();
+
+            Assert.That(csv.IndexOf("\"EXT-FURTHER\"", StringComparison.Ordinal), Is.LessThan(csv.IndexOf("\"EXT-OVERDUE\"", StringComparison.Ordinal)));
+            Assert.That(csv.IndexOf("\"EXT-OVERDUE\"", StringComparison.Ordinal), Is.LessThan(csv.IndexOf("\"EXT-UPCOMING\"", StringComparison.Ordinal)));
+            Assert.That(csv.IndexOf("\"EXT-UPCOMING\"", StringComparison.Ordinal), Is.LessThan(csv.IndexOf("\"EXT-INACTIVE\"", StringComparison.Ordinal)));
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateCsvShowsSelectedOwnerAdditionalInfo()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerAdditionalInfoKey = "business_unit";
+            report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner.AdditionalInfo =
+                new() { ["business_unit"] = "Payments" };
+
+            string csv = report.ExportToCsv();
+
+            StringAssert.Contains("\"Label: business_unit\",", csv);
+            StringAssert.Contains("\"EXT-OVERDUE\",\"Overdue Owner\",\"overdue.main, overdue.second\",\"", csv);
+            StringAssert.Contains("\",\"overdue.user\",\"Payments\",", csv);
         }
 
         [Test]
@@ -363,6 +417,19 @@ namespace FWO.Test
             StringAssert.Contains("# Overdue owners: 1", csv);
             StringAssert.DoesNotContain("# Owners due within 0 days", csv);
             StringAssert.DoesNotContain("# No owners due within 0 days.", csv);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateCsvUsesCreationDateHintWhenOwnerSummaryDatesAreMissing()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertFallbackReport()
+            };
+
+            string csv = report.ExportToCsv();
+
+            StringAssert.Contains("\"15.02.2026\",\"EXT-FALLBACK\",\"Fallback Owner\",\"\",\"01.02.2026 (Created)\",\"\",", csv);
         }
 
         [Test]
@@ -382,8 +449,74 @@ namespace FWO.Test
             StringAssert.Contains("<li>Further active owners: 1</li>", html);
             StringAssert.Contains("<li>Owners with inactive recertification: 1</li>", html);
             StringAssert.Contains(">Owners with inactive recertification</h3>", html);
-            StringAssert.Contains("<th>Id</th><th>Name</th>", RemoveLinebreaks(html));
+            StringAssert.Contains("<th>Id</th><th>Name</th><th>Main responsible person (DN)</th>", RemoveLinebreaks(html));
+            StringAssert.Contains("<td>EXT-OVERDUE</td><td>Overdue Owner</td><td>overdue.main, overdue.second</td>", RemoveLinebreaks(html));
+            StringAssert.Contains("<td>EXT-INACTIVE</td><td>Inactive Owner</td><td>inactive.main</td>", RemoveLinebreaks(html));
             StringAssert.DoesNotContain("<th>Last Recertified</th><th>Last Recertifier</th></tr><tr><td>EXT-INACTIVE", RemoveLinebreaks(html));
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateHtmlMergesDisplayedTables()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.MergeOwnerRecertTables = true;
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            StringAssert.Contains(">Recertification overview</h3>", html);
+            StringAssert.DoesNotContain(">Owners with inactive recertification</h3>", html);
+            Assert.That(CountOccurrences(html, "<table>"), Is.EqualTo(1));
+            StringAssert.Contains("<tr><td></td><td>EXT-INACTIVE</td><td>Inactive Owner</td><td>inactive.main</td><td></td><td></td></tr>", html);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateHtmlShowsSelectedOwnerAdditionalInfo()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerAdditionalInfoKey = "business_unit";
+            report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner.AdditionalInfo =
+                new() { ["business_unit"] = "Payments" };
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            StringAssert.Contains("<th>Label: business_unit</th>", html);
+            StringAssert.Contains("<td>overdue.user</td><td>Payments</td>", html);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateHtmlShowsBooleanOwnerAdditionalInfoAsHtml()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerAdditionalInfoKey = "recert_required";
+            report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner.AdditionalInfo =
+                new() { ["recert_required"] = "true" };
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            StringAssert.Contains("<td>✓</td>", html);
+            StringAssert.DoesNotContain("<span class=\" bi bi-check-lg\"></span>", html);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateHtmlUsesCreationDateHintWhenOwnerSummaryDatesAreMissing()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertFallbackReport()
+            };
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            StringAssert.Contains("<td>15.02.2026</td><td>EXT-FALLBACK</td><td>Fallback Owner</td><td></td><td>01.02.2026 (Created)</td><td></td>", html);
         }
 
         [Test]
@@ -729,48 +862,48 @@ namespace FWO.Test
                                         "\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}," +
                                         "\"rules\": [" +
                                         "{\"rule_id\": 0,\"rule_uid\": \"uid1\",\"mgm_id\": 0,\"rule_num_numeric\": 1,\"rule_name\": \"TestRule1\",\"rule_comment\": \"comment1\",\"rule_disabled\": false," +
-                                        "\"rule_services\": [{\"service\": {\"svc_id\": 1,\"svc_name\": \"TestService1\",\"svc_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"svc_port\": 443,\"svc_port_end\": 443,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0,\"service_type\": {\"name\": \"\"},\"svc_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"svc_color_id\": null,\"stm_color\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 6,\"name\": \"TCP\"},\"svc_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": [],\"svc_rpcnr\": null,\"flow_svcobj_id\": null,\"flow_svcobject\": null,\"flow_svcgrp_id\": null,\"flow_svcgroup\": null,\"flow_active\": false,\"removed\": null}}]," +
+                                        "\"rule_services\": [{\"service\": {\"svc_id\": 1,\"svc_name\": \"TestService1\",\"svc_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"svc_port\": 443,\"svc_port_end\": 443,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"service_type\": {\"name\": \"\"},\"svc_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"svc_color_id\": null,\"stm_color\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 6,\"name\": \"TCP\"},\"svc_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": [],\"svc_rpcnr\": null,\"flow_svcobj_id\": null,\"flow_svcobject\": null,\"flow_svcgrp_id\": null,\"flow_svcgroup\": null,\"flow_active\": false,\"removed\": null}}]," +
                                         "\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_svc_refs\": \"\",\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_src_refs\": \"\",\"rule_from_zones\": [{\"zone\": {\"zone_id\": 0,\"zone_name\": \"srczn1\"}},{\"zone\": {\"zone_id\": 0,\"zone_name\": \"srczn2\"}},{\"zone\": {\"zone_id\": 0,\"zone_name\": \"srczn3\"}}]," +
                                         "\"rule_froms\": [" +
-                                        "{\"object\": {\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.4/32\",\"obj_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"zone\": null,\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"id\": 0,\"name\": \"network\"},\"obj_color\": null,\"obj_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": [],\"flow_nwobj_id\": null,\"flow_nwobject\": null,\"flow_nwgrp_id\": null,\"flow_nwgroup\": null,\"flow_active\": false,\"removed\": null},\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}," +
-                                        "{\"object\": {\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"127.0.0.1/32\",\"obj_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"zone\": null,\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"id\": 0,\"name\": \"network\"},\"obj_color\": null,\"obj_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": [],\"flow_nwobj_id\": null,\"flow_nwobject\": null,\"flow_nwgrp_id\": null,\"flow_nwgroup\": null,\"flow_active\": false,\"removed\": null},\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
+                                        "{\"object\": {\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.4/32\",\"obj_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"zone\": null,\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"type\": {\"id\": 0,\"name\": \"network\"},\"obj_color\": null,\"obj_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": [],\"flow_nwobj_id\": null,\"flow_nwobject\": null,\"flow_nwgrp_id\": null,\"flow_nwgroup\": null,\"flow_active\": false,\"removed\": null},\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}," +
+                                        "{\"object\": {\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"127.0.0.1/32\",\"obj_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"zone\": null,\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"type\": {\"id\": 0,\"name\": \"network\"},\"obj_color\": null,\"obj_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": [],\"flow_nwobj_id\": null,\"flow_nwobject\": null,\"flow_nwgrp_id\": null,\"flow_nwgroup\": null,\"flow_active\": false,\"removed\": null},\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
                                         "\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_dst_refs\": \"\",\"rule_to_zones\": [{\"zone\": {\"zone_id\": 0,\"zone_name\": \"dstzn1\"}},{\"zone\": {\"zone_id\": 0,\"zone_name\": \"dstzn2\"}},{\"zone\": {\"zone_id\": 0,\"zone_name\": \"dstzn3\"}}]," +
                                         "\"rule_tos\": [" +
-                                        "{\"object\": {\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"zone\": null,\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"id\": 0,\"name\": \"ip_range\"},\"obj_color\": null,\"obj_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": [],\"flow_nwobj_id\": null,\"flow_nwobject\": null,\"flow_nwgrp_id\": null,\"flow_nwgroup\": null,\"flow_active\": false,\"removed\": null},\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
+                                        "{\"object\": {\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"zone\": null,\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"type\": {\"id\": 0,\"name\": \"ip_range\"},\"obj_color\": null,\"obj_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": [],\"flow_nwobj_id\": null,\"flow_nwobject\": null,\"flow_nwgrp_id\": null,\"flow_nwgroup\": null,\"flow_active\": false,\"removed\": null},\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
                                         "\"rule_action\": \"accept\",\"rule_track\": \"none\",\"section_header\": \"\"," +
                                         "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"created_import\": null,\"removed\": null,\"removed_import\": null,\"rule_first_hit\": null,\"rule_last_hit\": \"2022-04-19T00:00:00Z\",\"recertification\": [],\"recert_history\": [],\"rule_uid\": \"\",\"rules\": [],\"Recert\": false}," +
                                         "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []}," +
                                         "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"rule_custom_fields\": \"\",\"rule_implied\": false,\"nat_rule\": false,\"rulebase_id\": 0,\"rule_num\": 0,\"rule_enforced_on_gateways\": [],\"rule_installon\": null,\"rule_time\": null,\"rule_times\": [],\"violations\": [],\"rulebase\": {\"id\": 0,\"name\": \"\",\"uid\": \"\",\"mgm_id\": 0,\"is_global\": false,\"created\": 0,\"removed\": 0,\"rules\": []},\"uiuser\": null,\"rule\": null,\"rule_owners\": [],\"flow_access_id\": null,\"flow_access\": null,\"removed\": null,\"ChangeID\": \"\",\"AdoITID\": \"\",\"Compliance\": 0,\"ViolationDetails\": \"\",\"DisplayOrderNumberString\": \"1\",\"DisplayOrderNumber\": 1,\"Certified\": false,\"DeviceName\": \"\",\"RulebaseName\": \"\",\"DisregardedFroms\": [],\"DisregardedTos\": [],\"DisregardedServices\": [],\"ShowDisregarded\": false}," +
                                         "{\"rule_id\": 0,\"rule_uid\": \"uid2:123\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"TestRule2\",\"rule_comment\": \"comment2\",\"rule_disabled\": false," +
-                                        "\"rule_services\": [{\"service\": {\"svc_id\": 2,\"svc_name\": \"TestService2\",\"svc_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"svc_port\": 6666,\"svc_port_end\": 7777,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0,\"service_type\": {\"name\": \"\"},\"svc_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"svc_color_id\": null,\"stm_color\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 17,\"name\": \"UDP\"},\"svc_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": [],\"svc_rpcnr\": null,\"flow_svcobj_id\": null,\"flow_svcobject\": null,\"flow_svcgrp_id\": null,\"flow_svcgroup\": null,\"flow_active\": false,\"removed\": null}}]," +
+                                        "\"rule_services\": [{\"service\": {\"svc_id\": 2,\"svc_name\": \"TestService2\",\"svc_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"svc_port\": 6666,\"svc_port_end\": 7777,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"service_type\": {\"name\": \"\"},\"svc_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"svc_color_id\": null,\"stm_color\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 17,\"name\": \"UDP\"},\"svc_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": [],\"svc_rpcnr\": null,\"flow_svcobj_id\": null,\"flow_svcobject\": null,\"flow_svcgrp_id\": null,\"flow_svcgroup\": null,\"flow_active\": false,\"removed\": null}}]," +
                                         "\"rule_svc_neg\": true,\"rule_svc\": \"\",\"rule_svc_refs\": \"\",\"rule_src_neg\": true,\"rule_src\": \"\",\"rule_src_refs\": \"\",\"rule_from_zones\": []," +
                                         "\"rule_froms\": [" +
-                                        "{\"object\": {\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.4/32\",\"obj_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"zone\": null,\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"id\": 0,\"name\": \"network\"},\"obj_color\": null,\"obj_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": [],\"flow_nwobj_id\": null,\"flow_nwobject\": null,\"flow_nwgrp_id\": null,\"flow_nwgroup\": null,\"flow_active\": false,\"removed\": null},\"usr\": {\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}," +
-                                        "{\"object\": {\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"127.0.0.1/32\",\"obj_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"zone\": null,\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"id\": 0,\"name\": \"network\"},\"obj_color\": null,\"obj_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": [],\"flow_nwobj_id\": null,\"flow_nwobject\": null,\"flow_nwgrp_id\": null,\"flow_nwgroup\": null,\"flow_active\": false,\"removed\": null},\"usr\": {\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
+                                        "{\"object\": {\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.4/32\",\"obj_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"zone\": null,\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"type\": {\"id\": 0,\"name\": \"network\"},\"obj_color\": null,\"obj_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": [],\"flow_nwobj_id\": null,\"flow_nwobject\": null,\"flow_nwgrp_id\": null,\"flow_nwgroup\": null,\"flow_active\": false,\"removed\": null},\"usr\": {\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}," +
+                                        "{\"object\": {\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"127.0.0.1/32\",\"obj_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"zone\": null,\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"type\": {\"id\": 0,\"name\": \"network\"},\"obj_color\": null,\"obj_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": [],\"flow_nwobj_id\": null,\"flow_nwobject\": null,\"flow_nwgrp_id\": null,\"flow_nwgroup\": null,\"flow_active\": false,\"removed\": null},\"usr\": {\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
                                         "\"rule_dst_neg\": true,\"rule_dst\": \"\",\"rule_dst_refs\": \"\",\"rule_to_zones\": []," +
                                         "\"rule_tos\": [" +
-                                        "{\"object\": {\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"zone\": null,\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"id\": 0,\"name\": \"ip_range\"},\"obj_color\": null,\"obj_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": [],\"flow_nwobj_id\": null,\"flow_nwobject\": null,\"flow_nwgrp_id\": null,\"flow_nwgroup\": null,\"flow_active\": false,\"removed\": null},\"usr\": {\"user_id\": 2,\"user_uid\": \"\",\"user_name\": \"TestUser2\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"group\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
+                                        "{\"object\": {\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"zone\": null,\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"type\": {\"id\": 0,\"name\": \"ip_range\"},\"obj_color\": null,\"obj_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": [],\"flow_nwobj_id\": null,\"flow_nwobject\": null,\"flow_nwgrp_id\": null,\"flow_nwgroup\": null,\"flow_active\": false,\"removed\": null},\"usr\": {\"user_id\": 2,\"user_uid\": \"\",\"user_name\": \"TestUser2\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"group\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
                                         "\"rule_action\": \"deny\",\"rule_track\": \"none\",\"section_header\": \"\"," +
                                         "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"created_import\": null,\"removed\": null,\"removed_import\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"recertification\": [],\"recert_history\": [],\"rule_uid\": \"\",\"rules\": [],\"Recert\": false}," +
                                         "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []}," +
                                         "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"rule_custom_fields\": \"\",\"rule_implied\": false,\"nat_rule\": false,\"rulebase_id\": 0,\"rule_num\": 0,\"rule_enforced_on_gateways\": [],\"rule_installon\": null,\"rule_time\": null,\"rule_times\": [],\"violations\": [],\"rulebase\": {\"id\": 0,\"name\": \"\",\"uid\": \"\",\"mgm_id\": 0,\"is_global\": false,\"created\": 0,\"removed\": 0,\"rules\": []},\"uiuser\": null,\"rule\": null,\"rule_owners\": [],\"flow_access_id\": null,\"flow_access\": null,\"removed\": null,\"ChangeID\": \"\",\"AdoITID\": \"\",\"Compliance\": 0,\"ViolationDetails\": \"\",\"DisplayOrderNumberString\": \"\",\"DisplayOrderNumber\": 2,\"Certified\": false,\"DeviceName\": \"\",\"RulebaseName\": \"\",\"DisregardedFroms\": [],\"DisregardedTos\": [],\"DisregardedServices\": [],\"ShowDisregarded\": false}]}]," +
                                         "\"changelog_rules\": null,\"changelog_objects\": null,\"changelog_services\": null,\"changelog_users\": null,\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"import_controls\": [],\"RelevantImportId\": null,\"is_super_manager\": false,\"multi_device_manager_id\": null,\"management\": null,\"managementByMultiDeviceManagerId\": [],\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": [],\"zoneObjects\": []," +
                                         "\"reportNetworkObjects\": [{\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.4/32\",\"obj_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"zone\": null,\"active\": false,\"obj_create\": 0," +
-                                        "\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"id\": 0,\"name\": \"network\"},\"obj_color\": null,\"obj_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_refs\": \"\"," +
+                                        "\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"type\": {\"id\": 0,\"name\": \"network\"},\"obj_color\": null,\"obj_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_refs\": \"\"," +
                                         "\"objgrps\": [],\"objgrp_flats\": [],\"flow_nwobj_id\": null,\"flow_nwobject\": null,\"flow_nwgrp_id\": null,\"flow_nwgroup\": null,\"flow_active\": false,\"removed\": null},{\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"127.0.0.1/32\",\"obj_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"zone\": null,\"active\": false,\"obj_create\": 0," +
-                                        "\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"id\": 0,\"name\": \"network\"},\"obj_color\": null,\"obj_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_refs\": \"\",\"objgrps\": []," +
+                                        "\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"type\": {\"id\": 0,\"name\": \"network\"},\"obj_color\": null,\"obj_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_refs\": \"\",\"objgrps\": []," +
                                         "\"objgrp_flats\": [],\"flow_nwobj_id\": null,\"flow_nwobject\": null,\"flow_nwgrp_id\": null,\"flow_nwgroup\": null,\"flow_active\": false,\"removed\": null},{\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"zone\": null,\"active\": false,\"obj_create\": 0," +
-                                        "\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"id\": 0,\"name\": \"ip_range\"},\"obj_color\": null,\"obj_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_refs\": \"\"," +
+                                        "\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"type\": {\"id\": 0,\"name\": \"ip_range\"},\"obj_color\": null,\"obj_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_refs\": \"\"," +
                                         "\"objgrps\": [],\"objgrp_flats\": [],\"flow_nwobj_id\": null,\"flow_nwobject\": null,\"flow_nwgrp_id\": null,\"flow_nwgroup\": null,\"flow_active\": false,\"removed\": null}],\"reportServiceObjects\": [{\"svc_id\": 1,\"svc_name\": \"TestService1\",\"svc_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"svc_port\": 443,\"svc_port_end\": 443,\"svc_source_port\": null,\"svc_source_port_end\": null," +
-                                        "\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0,\"service_type\": {\"name\": \"\"},\"svc_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\"," +
+                                        "\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"service_type\": {\"name\": \"\"},\"svc_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\"," +
                                         "\"svc_color_id\": null,\"stm_color\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 6,\"name\": \"TCP\"},\"svc_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []," +
                                         "\"svc_rpcnr\": null,\"flow_svcobj_id\": null,\"flow_svcobject\": null,\"flow_svcgrp_id\": null,\"flow_svcgroup\": null,\"flow_active\": false,\"removed\": null},{\"svc_id\": 2,\"svc_name\": \"TestService2\",\"svc_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"svc_port\": 6666,\"svc_port_end\": 7777,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\"," +
-                                        "\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0,\"service_type\": {\"name\": \"\"},\"svc_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\"," +
+                                        "\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"service_type\": {\"name\": \"\"},\"svc_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\"," +
                                         "\"svc_color_id\": null,\"stm_color\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 17,\"name\": \"UDP\"},\"svc_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": [],\"svc_rpcnr\": null,\"flow_svcobj_id\": null,\"flow_svcobject\": null,\"flow_svcgrp_id\": null,\"flow_svcgroup\": null,\"flow_active\": false,\"removed\": null}]," +
                                         "\"reportUserObjects\": [{\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0," +
-                                        "\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []},{\"user_id\": 2,\"user_uid\": \"\"," +
+                                        "\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []},{\"user_id\": 2,\"user_uid\": \"\"," +
                                         "\"user_name\": \"TestUser2\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"group\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"}," +
-                                        "\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}],\"ReportedRuleIds\": [0],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}}," +
+                                        "\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}],\"ReportedRuleIds\": [0],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}}," +
                                         "\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}},\"unusedRules_Count\": {\"aggregate\": {\"count\": 0}},\"Ignore\": false}]";
 
             expectedJsonResult = GuidRegexPattern().Replace(expectedJsonResult, StaticUid);
@@ -1117,7 +1250,7 @@ namespace FWO.Test
                 ServiceNegated = false,
                 Services = InitServices(TestService1, resolved),
                 Metadata = new RuleMetadata() { LastHit = new DateTime(2022, 04, 19) },
-                LastSeenImport = new ImportControl { StartTime = new DateTime(2023, 04, 05) }
+                RemovedImport = new ImportControl { StartTime = new DateTime(2023, 04, 05) }
             };
         }
 
@@ -1138,7 +1271,7 @@ namespace FWO.Test
                 Tos = InitTos(resolved, true),
                 ServiceNegated = true,
                 Services = InitServices(TestService2, resolved),
-                LastSeenImport = new ImportControl { StartTime = new DateTime(2023, 04, 05) }
+                RemovedImport = new ImportControl { StartTime = new DateTime(2023, 04, 05) }
             };
         }
 
@@ -1588,7 +1721,20 @@ namespace FWO.Test
                         RecertOverdue = true,
                         NextRecertDate = DateTime.Today.AddDays(-1),
                         LastRecertified = DateTime.Today.AddDays(-30),
-                        LastRecertifierDn = "cn=overdue.user,ou=users,dc=test,dc=local"
+                        LastRecertifierDn = "cn=overdue.user,ou=users,dc=test,dc=local",
+                        OwnerResponsibles =
+                        [
+                            new()
+                            {
+                                Dn = "cn=overdue.main,ou=users,dc=test,dc=local",
+                                ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeMain
+                            },
+                            new()
+                            {
+                                Dn = "cn=overdue.second,ou=users,dc=test,dc=local",
+                                ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeMain
+                            }
+                        ]
                     }
                 },
                 new()
@@ -1602,7 +1748,15 @@ namespace FWO.Test
                             RecertUpcoming = recertificationDisplayPeriod > 0,
                             NextRecertDate = DateTime.Today.AddDays(3),
                             LastRecertified = DateTime.Today.AddDays(-20),
-                            LastRecertifierDn = "cn=upcoming.user,ou=users,dc=test,dc=local"
+                            LastRecertifierDn = "cn=upcoming.user,ou=users,dc=test,dc=local",
+                            OwnerResponsibles =
+                            [
+                                new()
+                                {
+                                    Dn = "cn=upcoming.main,ou=users,dc=test,dc=local",
+                                    ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeMain
+                                }
+                            ]
                         }
                     },
                 new()
@@ -1615,7 +1769,15 @@ namespace FWO.Test
                         RecertActive = true,
                         NextRecertDate = withNullFurtherDate ? null : DateTime.Today.AddDays(20),
                         LastRecertified = DateTime.Today.AddDays(-10),
-                        LastRecertifierDn = "cn=further.user,ou=users,dc=test,dc=local"
+                        LastRecertifierDn = "cn=further.user,ou=users,dc=test,dc=local",
+                        OwnerResponsibles =
+                        [
+                            new()
+                            {
+                                Dn = "cn=further.main,ou=users,dc=test,dc=local",
+                                ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeMain
+                            }
+                        ]
                     }
                 },
                 new()
@@ -1625,7 +1787,15 @@ namespace FWO.Test
                         Id = 4,
                         Name = "Inactive Owner",
                         ExtAppId = "EXT-INACTIVE",
-                        RecertActive = false
+                        RecertActive = false,
+                        OwnerResponsibles =
+                        [
+                            new()
+                            {
+                                Dn = "cn=inactive.main,ou=users,dc=test,dc=local",
+                                ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeMain
+                            }
+                        ]
                     }
                 }
             ];
@@ -1639,7 +1809,15 @@ namespace FWO.Test
                         Id = 0,
                         Name = "Inactive Owner Low",
                         ExtAppId = "EXT-INACTIVE-LOW",
-                        RecertActive = false
+                        RecertActive = false,
+                        OwnerResponsibles =
+                        [
+                            new()
+                            {
+                                Dn = "cn=inactive.low.main,ou=users,dc=test,dc=local",
+                                ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeMain
+                            }
+                        ]
                     }
                 });
             }
@@ -1648,6 +1826,40 @@ namespace FWO.Test
             {
                 RecertificationDisplayPeriod = recertificationDisplayPeriod,
                 OwnerData = ownerData
+            };
+        }
+
+        private static ReportData ConstructOwnerRecertFallbackReport()
+        {
+            return new()
+            {
+                RecertificationDisplayPeriod = 7,
+                OwnerData =
+                [
+                    new()
+                    {
+                        Owner = new()
+                        {
+                            Id = 5,
+                            Name = "Fallback Owner",
+                            ExtAppId = "EXT-FALLBACK",
+                            RecertActive = true,
+                            RecertOverdue = true,
+                            RecertInterval = 14,
+                            ChangelogOwners =
+                            [
+                                new()
+                                {
+                                    ChangeAction = ChangelogActionType.INSERT,
+                                    ChangeImport = new()
+                                    {
+                                        Time = new DateTime(2026, 2, 1)
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
             };
         }
 
@@ -1679,6 +1891,18 @@ namespace FWO.Test
             }
             exportString = exportString.Replace("\r", "");
             return exportString.Replace("\n", "");
+        }
+
+        private static int CountOccurrences(string value, string search)
+        {
+            int count = 0;
+            int index = 0;
+            while ((index = value.IndexOf(search, index, StringComparison.Ordinal)) >= 0)
+            {
+                ++count;
+                index += search.Length;
+            }
+            return count;
         }
     }
 }

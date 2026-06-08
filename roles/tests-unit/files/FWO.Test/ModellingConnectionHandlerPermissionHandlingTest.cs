@@ -161,7 +161,7 @@ namespace FWO.Test
         public List<FwoOwner> ExistingPermittedOwners { get; set; } = [];
         public List<ModellingConnection> InterfaceUsers { get; set; } = [];
 
-        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
             Type responseType = typeof(QueryResponseType);
             if (query == ModellingQueries.getInterfaceUsers && responseType == typeof(List<ModellingConnection>))

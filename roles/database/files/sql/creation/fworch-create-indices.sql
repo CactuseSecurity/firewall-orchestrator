@@ -74,39 +74,27 @@ Create index "IX_Relationship80" on "changelog_user" ("old_user_id");
 
 
 Create index "IX_Relationship120" on "objgrp" ("import_created");
-Create index "IX_Relationship121" on "objgrp" ("import_last_seen");
 Create index "IX_Relationship122" on "svcgrp" ("import_created");
-Create index "IX_Relationship123" on "svcgrp" ("import_last_seen");
 Create index "IX_Relationship50" on "usergrp" ("usergrp_id");
 Create index "IX_Relationship51" on "usergrp" ("usergrp_member_id");
 Create index "IX_Relationship153" on "usergrp" ("import_created");
-Create index "IX_Relationship154" on "usergrp" ("import_last_seen");
 
 
 Create index "IX_relationship20" on "svcgrp" ("svcgrp_member_id");
 Create index "IX_relationship14" on "objgrp" ("objgrp_member_id");
 
 Create index "IX_Relationship107" on "objgrp_flat" ("import_created");
-Create index "IX_Relationship108" on "objgrp_flat" ("import_last_seen");
 Create index "IX_Relationship124" on "svcgrp_flat" ("import_created");
-Create index "IX_Relationship125" on "svcgrp_flat" ("import_last_seen");
 Create index "IX_Relationship151" on "usergrp_flat" ("import_created");
-Create index "IX_Relationship152" on "usergrp_flat" ("import_last_seen");
 
 Create index "IX_Relationship166" on "rule" ("rule_create");
-Create index "IX_Relationship167" on "rule" ("rule_last_seen");
+CREATE INDEX IF NOT EXISTS idx_rule_removed ON "rule" ("removed");
 Create index "IX_Relationship168" on "rule_from" ("rf_create");
-Create index "IX_Relationship169" on "rule_from" ("rf_last_seen");
 Create index "IX_Relationship170" on "rule_to" ("rt_create");
-Create index "IX_Relationship171" on "rule_to" ("rt_last_seen");
 Create index "IX_Relationship172" on "rule_service" ("rs_create");
-Create index "IX_Relationship173" on "rule_service" ("rs_last_seen");
 Create index "IX_Relationship174" on "object" ("obj_create");
-Create index "IX_Relationship175" on "object" ("obj_last_seen");
 Create index "IX_Relationship176" on "service" ("svc_create");
-Create index "IX_Relationship177" on "service" ("svc_last_seen");
 Create index "IX_Relationship178" on "zone" ("zone_create");
-Create index "IX_Relationship179" on "zone" ("zone_last_seen");
 
 create unique index if not exists only_one_default_owner on owner(is_default) 
 where is_default = true;

@@ -693,7 +693,7 @@ else
         selectedStateNotOk = statesPlus.Where(x => x.Id != ConditionalState.Id).FirstOrDefault(x => x.Id == actConditionalAutoPromoteParams.IfNotCompliantState) ?? AutomaticState;
         selectedSuccessState = states.FirstOrDefault(x => x.Id == actActionResultStateParams.SuccessState);
         selectedErrorState = states.FirstOrDefault(x => x.Id == actActionResultStateParams.ErrorState);
-        selectedUserGroup = userAndGroupList.FirstOrDefault(x => x.Dn == actApprovalParams.ApproverGroup);
+        selectedUserGroup = userAndGroupList.FirstOrDefault(x => DistName.DnEquals(x.Dn, actApprovalParams.ApproverGroup));
     }
 
     private async Task SaveAction()

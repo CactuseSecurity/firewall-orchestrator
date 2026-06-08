@@ -46,9 +46,6 @@ namespace FWO.Data
         [JsonProperty("svc_create_time"), JsonPropertyName("svc_create_time")]
         public TimeWrapper CreateTime { get; set; } = new();
 
-        [JsonProperty("svc_last_seen"), JsonPropertyName("svc_last_seen")]
-        public int LastSeen { get; set; }
-
         [JsonProperty("service_type"), JsonPropertyName("service_type")]
         public NetworkServiceType Type { get; set; } = new();
 
@@ -121,7 +118,6 @@ namespace FWO.Data
             Active = networkService.Active;
             Create = networkService.Create;
             CreateTime = networkService.CreateTime;
-            LastSeen = networkService.LastSeen;
             Type = networkService.Type;
             Comment = networkService.Comment;
             ColorId = networkService.ColorId;
@@ -149,15 +145,20 @@ namespace FWO.Data
             return Id.GetHashCode();
         }
 
+        /// <summary>
+        /// Flattens service groups into their leaf services and removes duplicate service entries.
+        /// </summary>
         public static List<NetworkService> FlattenRuleServices(IEnumerable<NetworkService> services)
         {
+            HashSet<long> flattenedServiceIds = [];
+
             return services
-                .SelectMany(service =>
-                    service.Type.Name == ServiceType.Group
-                        ? service.ServiceGroupFlats.Select(groupFlat => groupFlat.Object)
-                        : new[] { service })
-                .OfType<NetworkService>()
-                .Where(service => service.Type.Name != ServiceType.Group)
+                .Where(service => service is not null)
+                .SelectMany(service => string.Equals(service!.Type?.Name, ServiceType.Group, StringComparison.OrdinalIgnoreCase)
+                    ? (service.ServiceGroupFlats ?? []).Select(groupFlat => groupFlat.Object).OfType<NetworkService>()
+                    : new[] { service })
+                .Where(service => !string.Equals(service.Type?.Name, ServiceType.Group, StringComparison.OrdinalIgnoreCase))
+                .Where(service => flattenedServiceIds.Add(service.Id))
                 .ToList();
         }
     }

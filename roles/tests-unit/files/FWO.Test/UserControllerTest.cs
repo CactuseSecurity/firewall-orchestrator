@@ -304,10 +304,7 @@ namespace FWO.Test
         public string LastVariablesText { get; private set; } = "";
         public UiUser[] Users { get; set; } = [];
 
-        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(
-            string query,
-            object? variables = null,
-            string? operationName = null)
+        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
             if (typeof(QueryResponseType) == typeof(UiUser[]))
             {

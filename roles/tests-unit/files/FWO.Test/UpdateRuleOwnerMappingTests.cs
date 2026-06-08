@@ -1,3 +1,4 @@
+using FWO.Api.Client;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
@@ -480,6 +481,54 @@ namespace FWO.Test
             Assert.DoesNotThrowAsync(async () => await service.RunAsync(), "Incremental mapping should remove the active pair before re-inserting it.");
         }
 
+        [Test]
+        public async Task SetAffectedRuleOwnersRemoved_ShouldPassChunkingOptionsToApiConnection()
+        {
+            RecordingChunkingApiConnection apiConnection = new();
+            TestUpdateRuleOwnerMappingCustomField service = new(apiConnection, new GlobalConfig());
+
+            List<RuleOwner> ruleOwners =
+            [
+                new() { RuleId = 1, OwnerId = 10, Created = 100 },
+                new() { RuleId = 2, OwnerId = 20, Created = 100 }
+            ];
+
+            await service.CallSetAffectedRuleOwnersRemoved(ruleOwners, 999);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.LastQuery, Is.EqualTo(FWO.Api.Client.Queries.OwnerQueries.setAffectedRuleOwnersRemoved));
+                Assert.That(apiConnection.LastChunkingOptions, Is.Not.Null);
+                Assert.That(apiConnection.LastChunkingOptions!.Enabled, Is.True);
+                Assert.That(apiConnection.LastChunkingOptions.ChunkVariableName, Is.EqualTo("objects"));
+                Assert.That(apiConnection.LastChunkingOptions.ChunkSize, Is.EqualTo(500));
+            });
+        }
+
+        [Test]
+        public async Task InsertNewRuleOwners_ShouldPassChunkingOptionsToApiConnection()
+        {
+            RecordingChunkingApiConnection apiConnection = new();
+            TestUpdateRuleOwnerMappingCustomField service = new(apiConnection, new GlobalConfig());
+
+            List<RuleOwner> ruleOwners =
+            [
+                new() { RuleId = 1, OwnerId = 10, Created = 100, RuleMetadataId = 1001, OwnerMappingSourceId = 2 },
+                new() { RuleId = 2, OwnerId = 20, Created = 100, RuleMetadataId = 1002, OwnerMappingSourceId = 2 }
+            ];
+
+            await service.CallInsertNewRuleOwners(ruleOwners);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.LastQuery, Is.EqualTo(FWO.Api.Client.Queries.OwnerQueries.insertRuleOwners));
+                Assert.That(apiConnection.LastChunkingOptions, Is.Not.Null);
+                Assert.That(apiConnection.LastChunkingOptions!.Enabled, Is.True);
+                Assert.That(apiConnection.LastChunkingOptions.ChunkVariableName, Is.EqualTo("objects"));
+                Assert.That(apiConnection.LastChunkingOptions.ChunkSize, Is.EqualTo(500));
+            });
+        }
+
         #region Test Data Builders
         private static Rule BuildRule(
             int id = 1,
@@ -522,6 +571,41 @@ namespace FWO.Test
             return new OwnerNetwork { IP = ipStart, IpEnd = ipEnd };
         }
 
+        private sealed class TestUpdateRuleOwnerMappingCustomField : UpdateRuleOwnerMappingCustomField
+        {
+            public TestUpdateRuleOwnerMappingCustomField(ApiConnection apiConnection, GlobalConfig globalConfig)
+                : base(apiConnection, globalConfig)
+            {
+            }
+
+            public Task CallSetAffectedRuleOwnersRemoved(List<RuleOwner> ruleOwnersToSetRemoved, long importControlId)
+            {
+                return SetAffectedRuleOwnersRemoved(ruleOwnersToSetRemoved, importControlId);
+            }
+
+            public Task CallInsertNewRuleOwners(List<RuleOwner> ruleOwners)
+            {
+                return InsertNewRuleOwners(ruleOwners);
+            }
+        }
+
+        private sealed class RecordingChunkingApiConnection : SimulatedApiConnection
+        {
+            public string? LastQuery { get; private set; }
+            public FWO.Api.Client.QueryChunkingOptions? LastChunkingOptions { get; private set; }
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(
+                string query,
+                object? variables = null,
+                string? operationName = null,
+                FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                LastQuery = query;
+                LastChunkingOptions = chunkingOptions;
+                return Task.FromResult(default(QueryResponseType)!);
+            }
+        }
+
         private sealed class UpdateRuleOwnerMappingNameFieldApiConnection : SimulatedApiConnection
         {
             public List<OwnerChange> ChangedOwners { get; set; } = [];
@@ -533,7 +617,7 @@ namespace FWO.Test
             public List<int> FilteredOwnerIds { get; private set; } = [];
             public List<int> RemovedOwnerIds { get; private set; } = [];
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == FWO.Api.Client.Queries.OwnerQueries.getChangedOwnersForRuleOwnerMappingNameField)
                 {
@@ -702,7 +786,7 @@ namespace FWO.Test
                 };
             }
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == FWO.Api.Client.Queries.ImportQueries.getPendingRuleOwnerImports)
                 {
@@ -998,7 +1082,7 @@ namespace FWO.Test
                 owners = CreateOwners(owners9);
             }
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == FWO.Api.Client.Queries.ImportQueries.getPendingRuleOwnerImports)
                 {
@@ -1201,7 +1285,7 @@ namespace FWO.Test
                     };
             }
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == FWO.Api.Client.Queries.ImportQueries.getPendingRuleOwnerImports)
                 {
@@ -1401,7 +1485,7 @@ namespace FWO.Test
             private readonly FwoOwner trackedOwner = new() { Id = 1, ExtAppId = "A" };
             private readonly List<long> completedImports = [];
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == FWO.Api.Client.Queries.ImportQueries.getPendingRuleOwnerImports)
                 {
@@ -1549,6 +1633,7 @@ namespace FWO.Test
                 };
             }
         }
+
         #endregion
     }
 }

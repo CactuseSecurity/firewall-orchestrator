@@ -1,3 +1,4 @@
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Flow;
@@ -38,7 +39,7 @@ namespace FWO.Test
             public List<FlowSvcObject> InsertedServiceObjects { get; } = [];
             public List<FlowSvcGroup> InsertedServiceGroups { get; } = [];
 
-            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null)
+            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == FlowQueries.getFlowSyncNwObjects)
                 {
@@ -100,10 +101,10 @@ namespace FWO.Test
                         RemovedDate = insert.RemovedDate,
                         ShowInRequestModule = insert.ShowInRequestModule,
                         NwGroupMembers = insert.NwGroupMembers?.Data.Select(member => new FlowNwGroupMember
-                            {
-                                NwGroupId = groupId,
-                                NwObjectId = member.NwObjId
-                            }).ToList() ?? []
+                        {
+                            NwGroupId = groupId,
+                            NwObjectId = member.NwObjId
+                        }).ToList() ?? []
                     };
                     InsertedNetworkGroups.Add(inserted);
                     return Task.FromResult((T)(object)new FlowNwGroupInsertResult { Returning = [inserted] });
@@ -138,10 +139,10 @@ namespace FWO.Test
                         RemovedDate = insert.RemovedDate,
                         ShowInRequestModule = insert.ShowInRequestModule,
                         SvcGroupMembers = insert.SvcGroupMembers?.Data.Select(member => new FlowSvcGroupMember
-                            {
-                                SvcGroupId = nextServiceObjectId,
-                                SvcObjectId = member.SvcObjId
-                            }).ToList() ?? []
+                        {
+                            SvcGroupId = nextServiceObjectId,
+                            SvcObjectId = member.SvcObjId
+                        }).ToList() ?? []
                     };
                     InsertedServiceGroups.Add(inserted);
                     return Task.FromResult((T)(object)new FlowSvcGroupInsertResult { Returning = [inserted] });

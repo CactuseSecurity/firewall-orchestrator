@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Config.Api;
@@ -46,7 +47,7 @@ namespace FWO.Middleware.Server
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
-            ConfigDataSubscription = apiConnection.GetSubscription<List<ConfigItem>>(ApiExceptionHandler, OnGlobalConfigChange, configDataSubscription);
+            ConfigDataSubscription = apiConnection.GetSubscription<List<ConfigItem>>(GraphqlExceptionHandler.Handle, OnGlobalConfigChange, configDataSubscription);
             SchedulerText = "Scheduler-" + schedulerName;
             SchedulerInterval = schedulerInterval;
         }
@@ -55,15 +56,6 @@ namespace FWO.Middleware.Server
         /// set scheduling timer from config values, to be overwritten for specific scheduler
         /// </summary>
         protected abstract void OnGlobalConfigChange(List<ConfigItem> config);
-
-        /// <summary>
-        /// subscription exception handling
-        /// </summary>
-        protected void ApiExceptionHandler(Exception exception)
-        {
-            Log.WriteError(SchedulerText, "Api subscription lead to exception. Retry subscription.", exception);
-            // Subscription will be restored if no exception is thrown here
-        }
 
         /// <summary>
         /// define the processing to be done, to be overwritten for specific schedule

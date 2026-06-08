@@ -95,10 +95,7 @@ namespace FWO.Test
         /// <summary>
         /// Returns rule details for rule-tab fetches during tests.
         /// </summary>
-        public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(
-            string query,
-            object? variables = null,
-            string? operationName = null)
+        public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
             await DefaultInit.DoNothing();
             if (typeof(QueryResponseType) == typeof(List<Rule>))

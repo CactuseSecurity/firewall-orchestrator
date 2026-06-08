@@ -1,0 +1,7 @@
+secret:
+  ignored-paths:
+    - "**/test_*"
+    - "tests-unit/**"
+    - "tests-integration/**"
+
+# ignore all test files, as they may contain test credentials that are not used in production and should not be flagged by GitGuardian.

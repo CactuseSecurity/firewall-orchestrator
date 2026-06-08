@@ -39,12 +39,25 @@ class FakeFcntl:
         self.calls.append((file_descriptor, lock_type))
 
 
+def find_repository_root(start: Path) -> Path:
+    for candidate in [start.parent, *start.parents]:
+        if (candidate / "scripts" / "acquire_lock.py").is_file():
+            return candidate
+
+    raise FileNotFoundError("Could not find repository root containing scripts/acquire_lock.py")
+
+
 def load_script(script_name: str) -> ModuleType:
-    repository_root = Path(__file__).resolve().parents[5]
+    repository_root = find_repository_root(Path(__file__).resolve())
     script_path = repository_root / "scripts" / script_name
-    spec = importlib.util.spec_from_file_location(script_name.replace(".py", ""), script_path)
+
+    if not script_path.is_file():
+        raise FileNotFoundError(f"Could not find script: {script_path}")
+
+    spec = importlib.util.spec_from_file_location(script_name.removesuffix(".py"), script_path)
     assert spec is not None
     assert spec.loader is not None
+
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module

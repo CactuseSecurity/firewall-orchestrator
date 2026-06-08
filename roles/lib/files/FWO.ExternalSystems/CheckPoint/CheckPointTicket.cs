@@ -343,34 +343,40 @@ namespace FWO.ExternalSystems.CheckPoint
             //    };
             //}
 
+            JsonNode requestBody = task.Body.DeepClone();
+
+            if (task.TaskType == CheckPointTaskTypes.HostCreate)
+            {
+                requestBody["ignore-warnings"] = true;
+            }
 
             // Normal
             RestRequest request = new(endpoint, Method.Post);
-            request.AddStringBody(task.Body.ToJsonString(), ContentType.Json);
+            request.AddStringBody(requestBody.ToString(), ContentType.Json);
 
             Log.WriteInfo("CheckPoint REQUEST", endpoint);
-            Log.WriteInfo("CheckPoint BODY", task.Body.ToJsonString());
+            Log.WriteInfo("CheckPoint BODY", requestBody.ToJsonString());
 
             RestResponse response = await checkPointClient!.RestCall(request, endpoint);
 
             Log.WriteInfo("CheckPoint RESPONSE STATUS", $"{(int)response.StatusCode} {response.StatusCode}");
             Log.WriteInfo("CheckPoint RESPONSE BODY", string.IsNullOrWhiteSpace(response.Content) ? "<empty>" : response.Content);
 
-            if (task.TaskType == CheckPointTaskTypes.HostCreate && IsResponseError(response, "same IP address", "err_validation_failed"))
-            {
-                JsonObject retryBody = JsonNode.Parse(task.Body.ToJsonString())?.AsObject() ?? new JsonObject();
-                retryBody["ignore-warnings"] = true;
+            //if (task.TaskType == CheckPointTaskTypes.HostCreate && IsResponseError(response, "same IP address", "err_validation_failed"))
+            //{
+            //    JsonObject retryBody = JsonNode.Parse(task.Body.ToJsonString())?.AsObject() ?? new JsonObject();
+            //    retryBody["ignore-warnings"] = true;
 
-                Log.WriteInfo("CheckPoint RETRY", "Retrying add-host with ignore-warnings=true");
-                Log.WriteInfo("CheckPoint RETRY BODY", retryBody.ToJsonString());
+            //    Log.WriteInfo("CheckPoint RETRY", "Retrying add-host with ignore-warnings=true");
+            //    Log.WriteInfo("CheckPoint RETRY BODY", retryBody.ToJsonString());
 
-                RestRequest retryRequest = new(endpoint, Method.Post);
-                retryRequest.AddStringBody(retryBody.ToJsonString(), ContentType.Json);
-                response = await checkPointClient.RestCall(retryRequest, endpoint);
+            //    RestRequest retryRequest = new(endpoint, Method.Post);
+            //    retryRequest.AddStringBody(retryBody.ToJsonString(), ContentType.Json);
+            //    response = await checkPointClient.RestCall(retryRequest, endpoint);
 
-                Log.WriteInfo("CheckPoint RETRY RESPONSE STATUS", $"{(int)response.StatusCode} {response.StatusCode}");
-                Log.WriteInfo("CheckPoint RETRY RESPONSE BODY", string.IsNullOrWhiteSpace(response.Content) ? "<empty>" : response.Content);
-            }
+            //    Log.WriteInfo("CheckPoint RETRY RESPONSE STATUS", $"{(int)response.StatusCode} {response.StatusCode}");
+            //    Log.WriteInfo("CheckPoint RETRY RESPONSE BODY", string.IsNullOrWhiteSpace(response.Content) ? "<empty>" : response.Content);
+            //}
 
             return new RestResponse<int>(request)
             {

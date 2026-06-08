@@ -433,14 +433,12 @@ else
                 return;
             }
 
-            List<int> preferredManagementRanking = GetNamingManagementRankingIds();
-            configData.FlowNamingSourceManagementRanking = FlowNamingHelper.SerializeManagementRanking(preferredManagementRanking);
-            await globalConfig.WriteToDatabase(configData, apiConnection);
+            await SaveNamingManagementRankingAsync();
 
             List<FlowNwObject> objectsToBackfill = [.. flowNwObjects.Where(nwObject => string.IsNullOrWhiteSpace(nwObject.Name))];
             foreach (FlowNwObject nwObject in objectsToBackfill)
             {
-                string resolvedName = ResolveMissingFlowObjectName(nwObject, preferredManagementRanking, "");
+                string resolvedName = ResolveMissingFlowObjectName(nwObject, GetNamingManagementRankingIds(), "");
                 if (string.IsNullOrWhiteSpace(resolvedName))
                 {
                     continue;
@@ -461,6 +459,18 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("flow_naming"), "", true);
         }
+    }
+
+    private async Task SaveNamingManagementRankingAsync()
+    {
+        if (configData == null)
+        {
+            return;
+        }
+
+        List<int> preferredManagementRanking = GetNamingManagementRankingIds();
+        configData.FlowNamingSourceManagementRanking = FlowNamingHelper.SerializeManagementRanking(preferredManagementRanking);
+        await globalConfig.WriteToDatabase(configData, apiConnection);
     }
 
     private void InitializeNamingManagementRanking()
@@ -519,11 +529,12 @@ else
                 return;
             }
 
+            await SaveNamingManagementRankingAsync();
             RecalculateConfirmMode = false;
             workInProgress = true;
             StateHasChanged();
 
-            List<int> preferredManagementRanking = GetNamingManagementRankingIds();
+            List<int> preferredManagementRanking = FlowNamingHelper.ParseManagementRanking(configData.FlowNamingSourceManagementRanking);
             List<FlowNwObject> objectsToRecalculate = [.. flowNwObjects];
             foreach (FlowNwObject nwObject in objectsToRecalculate)
             {
@@ -921,13 +932,11 @@ else
             StateHasChanged();
 
             foreach (FlowNwObject nwObject in targets.Where(nwObject =>
-                         nwObject.ShowInRequestModule != showInRequestModule &&
-                         !string.IsNullOrWhiteSpace(nwObject.Name)))
+                         nwObject.ShowInRequestModule != showInRequestModule))
             {
-                FlowNwObject updatedObject = await apiConnection.SendQueryAsync<FlowNwObject>(FlowMutations.updateFlowNwObject, new
+                FlowNwObject updatedObject = await apiConnection.SendQueryAsync<FlowNwObject>(FlowMutations.updateFlowNwObjectVisibility, new
                 {
                     nwobjId = nwObject.Id,
-                    name = nwObject.Name!.Trim(),
                     showInRequestModule
                 });
 

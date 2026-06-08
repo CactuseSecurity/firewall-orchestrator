@@ -8,7 +8,6 @@ Create table "usergrp_flat"
 	"usergrp_flat_id" BIGINT NOT NULL,
 	"usergrp_flat_member_id" BIGINT NOT NULL,
 	"import_created" BIGINT NOT NULL,
-	"import_last_seen" BIGINT NOT NULL,
 	"removed" BIGINT,
  primary key ("usergrp_flat_id","usergrp_flat_member_id")
 );
@@ -19,7 +18,6 @@ Create table "objgrp_flat"
 	"objgrp_flat_member_id" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
 	"import_created" BIGINT NOT NULL,
-	"import_last_seen" BIGINT NOT NULL,
 	"negated" Boolean NOT NULL Default FALSE,
 	"removed" BIGINT
 );
@@ -29,7 +27,6 @@ Create table "svcgrp_flat"
 	"svcgrp_flat_id" BIGINT NOT NULL,
 	"svcgrp_flat_member_id" BIGINT NOT NULL,
 	"import_created" BIGINT NOT NULL,
-	"import_last_seen" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
 	"removed" BIGINT

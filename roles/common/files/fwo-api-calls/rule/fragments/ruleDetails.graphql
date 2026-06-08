@@ -17,8 +17,12 @@ fragment ruleDetails on rule {
     }
   active
   rule_create
-  rule_last_seen
-  importControlByRuleLastSeen {
+  removed
+  createdImport: import_control {
+    control_id
+    start_time
+  }
+  importControlByRemoved {
     control_id
     start_time
   }

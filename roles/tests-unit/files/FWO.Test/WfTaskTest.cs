@@ -16,7 +16,8 @@ namespace FWO.Test
                 Reason = "reason",
                 AdditionalInfo = "{\"key\":\"value\"}",
                 LastRecertDate = new DateTime(2024, 1, 2),
-                ManagementId = 5
+                ManagementId = 5,
+                Locked = true
             };
             original.SelectedDevices = "[1,2,3]";
 
@@ -27,6 +28,7 @@ namespace FWO.Test
             Assert.That(copy.AdditionalInfo, Is.EqualTo(original.AdditionalInfo));
             Assert.That(copy.LastRecertDate, Is.EqualTo(original.LastRecertDate));
             Assert.That(copy.ManagementId, Is.EqualTo(original.ManagementId));
+            Assert.That(copy.Locked, Is.EqualTo(original.Locked));
             Assert.That(copy.GetDeviceList(), Is.EqualTo(original.GetDeviceList()));
         }
 

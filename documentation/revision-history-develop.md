@@ -436,3 +436,6 @@ These settings are no longer used due to the full automation of UpdateRuleOwner.
 
 # 9.1.6 - 07.06.2026 DEVELOP
 - remove obsolete database last_seen fields
+
+# 9.1.7 - 08.06.2026 DEVELOP
+- request workflow: add locked tickets and request tasks for automatically created change requests

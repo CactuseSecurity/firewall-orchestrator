@@ -39,7 +39,8 @@ namespace FWO.Services.Workflow
                 StateId = (int)stateId,
                 Title = title,
                 Requester = userConfig.User,
-                Reason = reason
+                Reason = reason,
+                Locked = true
             },
                 ObjAction.add);
             foreach (var reqTask in reqTasks)
@@ -56,7 +57,8 @@ namespace FWO.Services.Workflow
                     OnManagement = reqTask.OnManagement,
                     Elements = reqTask.Elements,
                     Comments = reqTask.Comments,
-                    AdditionalInfo = reqTask.AdditionalInfo
+                    AdditionalInfo = reqTask.AdditionalInfo,
+                    Locked = true
                 },
                     ObjAction.add);
                 await wfHandler.AddApproval(JsonSerializer.Serialize(new ApprovalParams() { StateId = (int)stateId }));
@@ -110,7 +112,8 @@ namespace FWO.Services.Workflow
                 StateId = stateId,
                 Title = userConfig.ModReqTicketTitle + ": " + interfaceName,
                 Requester = userConfig.User,
-                Reason = reason
+                Reason = reason,
+                Locked = true
             },
                 ObjAction.add);
             Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ReqOwner, requestingOwner.Id.ToString() } };
@@ -121,7 +124,8 @@ namespace FWO.Services.Workflow
                 TaskType = WfTaskType.new_interface.ToString(),
                 Owners = [new() { Owner = owner }],
                 Reason = reason,
-                AdditionalInfo = JsonSerializer.Serialize(addInfo)
+                AdditionalInfo = JsonSerializer.Serialize(addInfo),
+                Locked = true
             },
                 ObjAction.add);
             await wfHandler.AddApproval(JsonSerializer.Serialize(new ApprovalParams() { StateId = wfHandler.MasterStateMatrix.LowestEndState }));
@@ -203,7 +207,8 @@ namespace FWO.Services.Workflow
                 Requester = userConfig.User,
                 Reason = ticketReason,
                 Priority = priority,
-                Deadline = deadline
+                Deadline = deadline,
+                Locked = true
             };
             foreach (var ruleUid in ruleUids)
             {
@@ -213,7 +218,8 @@ namespace FWO.Services.Workflow
                     Title = taskTitle + " " + ruleUid,
                     TaskType = WfTaskType.rule_delete.ToString(),
                     RequestAction = RequestAction.delete.ToString(),
-                    Reason = taskReason
+                    Reason = taskReason,
+                    Locked = true
                 };
                 wfHandler.ActReqTask.Elements.Add(new WfReqElement()
                 {

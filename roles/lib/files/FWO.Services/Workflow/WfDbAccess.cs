@@ -128,6 +128,7 @@ namespace FWO.Services.Workflow
                 var Variables = BuildTicketVariables(ticket);
                 Variables["requesterId"] = ticket.Requester?.DbId;
                 Variables["requestTasks"] = new WfTicketWriter(ticket);
+                Variables["locked"] = ticket.Locked;
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newTicket, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
@@ -239,6 +240,11 @@ namespace FWO.Services.Workflow
 
         public async Task UpdateReqTaskInDb(WfReqTask reqtask)
         {
+            if (reqtask.Locked)
+            {
+                return;
+            }
+
             try
             {
                 var Variables = BuildReqTaskUpdateVariables(reqtask);
@@ -303,6 +309,7 @@ namespace FWO.Services.Workflow
         {
             Dictionary<string, object?> variables = BuildReqTaskUpdateVariables(reqtask);
             variables["taskType"] = reqtask.TaskType;
+            variables["locked"] = reqtask.Locked;
             return variables;
         }
 

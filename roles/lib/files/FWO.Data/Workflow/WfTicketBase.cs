@@ -45,6 +45,9 @@ namespace FWO.Data.Workflow
         [JsonProperty("ticket_priority"), JsonPropertyName("ticket_priority")]
         public int? Priority { get; set; }
 
+        [JsonProperty("locked"), JsonPropertyName("locked")]
+        public bool Locked { get; set; }
+
 
         public WfTicketBase()
         { }
@@ -64,6 +67,7 @@ namespace FWO.Data.Workflow
             ExternalTicketSource = ticket.ExternalTicketSource;
             Deadline = ticket.Deadline;
             Priority = ticket.Priority;
+            Locked = ticket.Locked;
         }
 
         public override bool Sanitize()

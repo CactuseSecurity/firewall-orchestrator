@@ -191,6 +191,11 @@
 
     private bool CanEditReqTaskInPhase(WfReqTask reqTask)
     {
+        if (reqTask.Locked)
+        {
+            return false;
+        }
+
         if (!CanChangeReqTaskStructure())
         {
             return false;
@@ -202,6 +207,6 @@
 
     private bool CanChangeReqTaskStructure()
     {
-        return WfHandler.EditTicketMode && Phase == WorkflowPhases.request;
+        return WfHandler.EditTicketMode && Phase == WorkflowPhases.request && !WfHandler.ActTicket.Locked;
     }
 }

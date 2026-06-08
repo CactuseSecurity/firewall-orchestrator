@@ -362,6 +362,34 @@ namespace FWO.Test
         }
 
         [Test]
+        public void DisplayReqTaskTable_RequestPhase_BlocksLockedRequestTaskEdit()
+        {
+            WfHandler handler = new()
+            {
+                EditTicketMode = true
+            };
+            WfReqTask reqTask = new()
+            {
+                TaskType = WfTaskType.access.ToString(),
+                StateId = 1,
+                Locked = true
+            };
+            SetMatrix(handler, reqTask.TaskType, new StateMatrix
+            {
+                LowestStartedState = 1,
+                LowestEndState = 5
+            });
+
+            DisplayReqTaskTable component = CreateReqTaskTable(handler, WorkflowPhases.request);
+            MethodInfo? method = typeof(DisplayReqTaskTable).GetMethod("CanEditReqTaskInPhase", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(method, Is.Not.Null);
+
+            bool canEdit = (bool)method!.Invoke(component, [reqTask])!;
+
+            Assert.That(canEdit, Is.False);
+        }
+
+        [Test]
         public void DisplayTicketTable_ApprovalPhase_AllowsEditInPhaseRange()
         {
             WfHandler handler = new()
@@ -948,6 +976,23 @@ namespace FWO.Test
             bool canChange = (bool)method!.Invoke(component, [])!;
 
             Assert.That(canChange, Is.True);
+        }
+
+        [Test]
+        public void DisplayReqTaskTable_RequestPhase_BlocksStructuralTaskChangesForLockedTicket()
+        {
+            WfHandler handler = new()
+            {
+                EditTicketMode = true,
+                ActTicket = new WfTicket { Locked = true }
+            };
+            DisplayReqTaskTable component = CreateReqTaskTable(handler, WorkflowPhases.request);
+            MethodInfo? method = typeof(DisplayReqTaskTable).GetMethod("CanChangeReqTaskStructure", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(method, Is.Not.Null);
+
+            bool canChange = (bool)method!.Invoke(component, [])!;
+
+            Assert.That(canChange, Is.False);
         }
 
         [Test]

@@ -145,6 +145,7 @@ namespace FWO.Test
                     StateId = GetVariable<int>(variables, "state"),
                     Reason = GetVariable<string>(variables, "reason") ?? "",
                     Priority = GetVariable<int>(variables, "priority"),
+                    Locked = GetVariable<bool>(variables, "locked"),
                     Requester = new UiUser { DbId = GetVariable<int>(variables, "requesterId"), Name = "Requester" }
                 };
                 long taskId = ticketId * 10;
@@ -161,7 +162,8 @@ namespace FWO.Test
                         RequestAction = taskWriter.RequestAction,
                         Reason = taskWriter.Reason,
                         AdditionalInfo = taskWriter.AdditionalInfo,
-                        ManagementId = taskWriter.ManagementId
+                        ManagementId = taskWriter.ManagementId,
+                        Locked = taskWriter.Locked
                     };
                     task.Elements.AddRange(taskWriter.Elements.WfElementList.Select(element => new WfReqElement
                     {
@@ -235,7 +237,9 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(ticket.Id, Is.GreaterThan(0));
+                Assert.That(ticket.Locked, Is.True);
                 Assert.That(writtenTask.Title, Is.EqualTo("Allow web"));
+                Assert.That(writtenTask.Locked, Is.True);
                 Assert.That(writtenTask.StateId, Is.EqualTo(7));
                 Assert.That(writtenTask.Owners.WfOwnerList.Single().OwnerId, Is.EqualTo(owner.Id));
                 Assert.That(writtenTask.Approvals.WfApprovalList.Single().StateId, Is.EqualTo(7));
@@ -259,6 +263,7 @@ namespace FWO.Test
             {
                 Assert.That(ticketId, Is.GreaterThan(0));
                 Assert.That(writtenTask.TaskType, Is.EqualTo(WfTaskType.new_interface.ToString()));
+                Assert.That(writtenTask.Locked, Is.True);
                 Assert.That(writtenTask.Owners.WfOwnerList.Single().OwnerId, Is.EqualTo(owner.Id));
                 Assert.That(writtenTask.GetAddInfoIntValueOrZero(AdditionalInfoKeys.ReqOwner), Is.EqualTo(requestingOwner.Id));
             });
@@ -347,6 +352,7 @@ namespace FWO.Test
             {
                 Assert.That(tasks, Has.Count.EqualTo(2));
                 Assert.That(tasks.Select(task => task.TaskType), Is.All.EqualTo(WfTaskType.rule_delete.ToString()));
+                Assert.That(tasks.Select(task => task.Locked), Is.All.True);
                 Assert.That(tasks.Select(task => task.Elements.WfElementList.Single().RuleUid), Is.EqualTo(new[] { "rule-1", "rule-2" }));
                 Assert.That(apiConn.Queries, Does.Contain(RequestQueries.newComment));
                 Assert.That(apiConn.Queries, Does.Contain(RequestQueries.addCommentToTicket));

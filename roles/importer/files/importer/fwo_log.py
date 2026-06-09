@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import logging
-import os
 import threading
 import time
-from collections.abc import Generator
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, Literal, Protocol, TextIO, TypeAlias, cast
 
@@ -25,6 +23,9 @@ fcntl: FileLockModule | None = cast("FileLockModule", fcntl_module) if fcntl_mod
 OpenTextMode: TypeAlias = Literal["r", "w", "a", "x", "r+", "w+", "a+"]
 
 if TYPE_CHECKING:
+    import os
+    from collections.abc import Generator
+
     from models.import_state import ImportState
 
     from importer.services.uid2id_mapper import Uid2IdMapper

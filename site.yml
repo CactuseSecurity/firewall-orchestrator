@@ -84,12 +84,6 @@
     - frontend
     - ui
 
-- hosts: testservers
-  roles:
-    - { role: webhook, when: install_webhook|bool and not installation_mode == 'uninstall' }
-  tags:
-    - test
-
 - hosts: all
   roles:
     - { role: finalize, when: "not installation_mode == 'uninstall'" }
@@ -124,8 +118,8 @@
     - name: display secrets for this installation
       debug:
         msg:
-          - "Your initial UI admin password is '{{ admin_password }}'"
-          - "Your api hasura admin secret is '{{ api_hasura_admin_secret }}'"
+          - "The initial UI admin password is stored in {{ ui_admin_password_file }}"
+          - "The API Hasura admin secret is stored in {{ fworch_secrets_dir }}/hasura_admin_pwd"
       when: |
         admin_password is defined and 
         api_hasura_admin_secret is defined

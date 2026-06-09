@@ -129,6 +129,8 @@ In case of errors with existing pip config, do not use the script to create the 
 remove any local pip config and install manually:
     
     rm -f $HOME/.config/pip/pip.conf
+    sudo apt-get update
+    sudo apt-get install --yes python3-venv
     python3 -m venv installer-venv
     source installer-venv/bin/activate
     pip install -r requirements.txt
@@ -196,9 +198,6 @@ rsyslog config
         if $programname == '{{ product_name }}-api' then /var/log/{{ product_name }}/api.log
         if $programname startswith '{{ product_name }}-import' then /var/log/{{ product_name }}/importer.log
         if $programname startswith '{{ product_name }}-' and $msg contains "Audit" then /var/log/{{ product_name }}/audit.log
-        # only for devsrv:
-        if $programname == '{{ product_name }}-webhook' then /var/log/{{ product_name }}/webhook.log
-
   - name: edit logrotate
     blockinfile:
       path: "/etc/logrotate.d/{{ product_name }}"

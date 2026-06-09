@@ -58,6 +58,7 @@
         block: |
           host  all         dbadmin              127.0.0.0/8            md5
           host  all         dbadmin              ::1/128                md5
+          host  all         {{ api_user }}       127.0.0.0/8            md5
           host  all         {{ fwo_db_ro_user }} 127.0.0.0/8            trust
           host  all         {{ fwo_db_ro_user }} ::1/128                trust
           host  all         {{ fworch_user }}    127.0.0.0/8            trust
@@ -125,6 +126,9 @@
 - name: upgrade database
   import_tasks: upgrade-database.yml
   when: installation_mode == "upgrade"
+
+- name: create Hasura database user and grants
+  import_tasks: create-hasura-user.yml
 
 - name: (re)defines functions and views (idempotent)
   community.postgresql.postgresql_script:

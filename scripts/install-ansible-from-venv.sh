@@ -38,6 +38,7 @@ case "${ID_LIKE:-$ID}" in
     *debian*)
         sudo apt update
         sudo apt install python3-venv -y
+        python3 -m venv --clear installer-venv
         ;;
     *rhel*|*fedora*)
         sudo dnf install python3 python3-pip -y
@@ -49,6 +50,7 @@ case "${ID_LIKE:-$ID}" in
 esac
 
 python3 -m venv installer-venv
+
 source installer-venv/bin/activate
 if [[ "${http_proxy:-}" != "" ]];
 then

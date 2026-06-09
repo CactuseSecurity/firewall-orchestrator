@@ -198,9 +198,41 @@ def normalize_ip_pools(native_config: FortiOSConfig, nw_obj_lookup_dict: dict[st
         )
 
 
+def parse_fortios_ip_range(ip_value: str | None, obj_name: str, context: str) -> tuple[IPNetwork, IPNetwork, str]:
+    """
+    Parse a FortiOS IPv4 address or 'start-end' range string into start/end /32 networks.
+
+    Args:
+        ip_value: The raw IP value, either a single address or a 'start-end' range.
+        obj_name: Name of the owning object (used for logging).
+        context: Calling context name (used for logging).
+
+    Returns:
+        tuple[IPNetwork, IPNetwork, str]: The start IP, end IP and the derived object type.
+
+    """
+    if not ip_value:
+        FWOLogger.warning(f"{context}: Unable to determine IP range for object {obj_name}, setting to full range.")
+        ip_start, ip_end = DEFAULT_IPv4
+        return ip_start, ip_end, "network"
+
+    if "-" in ip_value:
+        start_raw, end_raw = ip_value.split("-", 1)
+        ip_start = IPNetwork(f"{start_raw.strip()}/32")
+        ip_end = IPNetwork(f"{end_raw.strip()}/32")
+        return ip_start, ip_end, "host" if ip_start == ip_end else "ip_range"
+
+    ip_start = IPNetwork(f"{ip_value.strip()}/32")
+    return ip_start, ip_start, "host"
+
+
 def normalize_vips(native_config: FortiOSConfig, nw_obj_lookup_dict: dict[str, str]) -> Generator[NetworkObject]:
     """
-    Normalize VIP objects from the native FortiOS configuration.
+    Normalize VIP (virtual IP / destination NAT) objects from the native FortiOS configuration.
+
+    The external IP (extip) is the address that policies match against at the firewall ingress,
+    so it is used as the normalized object's IP range. This ensures rules referencing VIP/DNAT
+    objects resolve to a network object instead of failing the import or losing coverage.
 
     Args:
         native_config (FortiOSConfig): The native FortiOS configuration.
@@ -210,7 +242,20 @@ def normalize_vips(native_config: FortiOSConfig, nw_obj_lookup_dict: dict[str, s
         NetworkObject: The normalized network object.
 
     """
-    raise NotImplementedError("normalize_vips is not yet implemented.")  # TODO: need test data
+    for vip_obj in native_config.nw_obj_vip:
+        ip_start, ip_end, obj_typ = parse_fortios_ip_range(vip_obj.extip, vip_obj.name, "normalize_vips")
+        obj_uid = vip_obj.uuid or vip_obj.name
+        nw_obj_lookup_dict[vip_obj.name] = obj_uid
+
+        yield NetworkObject(
+            obj_name=vip_obj.name,
+            obj_uid=obj_uid,
+            obj_typ=obj_typ,
+            obj_ip=ip_start,
+            obj_ip_end=ip_end,
+            obj_color=fwo_const.DEFAULT_COLOR,
+            obj_comment=vip_obj.comment,
+        )
 
 
 def normalize_internet_services(
@@ -260,7 +305,7 @@ def normalize_network_objects(
     # groups may use any of the above objects as members
     yield from normalize_nwobj_groups(native_config, nw_obj_lookup_dict)
     yield from normalize_ip_pools(native_config, nw_obj_lookup_dict)
-    # TODO: implement vips
+    yield from normalize_vips(native_config, nw_obj_lookup_dict)
     yield from normalize_internet_services(native_config, nw_obj_lookup_dict)
     # "Original" network object for natting
     yield NetworkObject(

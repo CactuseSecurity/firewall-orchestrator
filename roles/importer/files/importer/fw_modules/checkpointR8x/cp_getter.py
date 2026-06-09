@@ -34,7 +34,13 @@ def cp_api_call(url: str, command: str, json_payload: dict[str, Any], sid: str |
         FWOLogger.debug("json_payload: " + str(json_payload), 10)
 
     try:
-        r = requests.post(url, json=json_payload, headers=request_headers, verify=fwo_globals.verify_certs)
+        r = requests.post(
+            url,
+            json=json_payload,
+            headers=request_headers,
+            verify=fwo_globals.verify_certs,
+            timeout=fwo_const.FWO_HTTP_TIMEOUT,
+        )
     except requests.exceptions.RequestException as _:
         if "password" in json.dumps(json_payload):
             exception_text = "\nerror while sending api_call containing credential information to url '" + str(url)

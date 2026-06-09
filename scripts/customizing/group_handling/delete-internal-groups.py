@@ -12,6 +12,8 @@ from requests import Session, exceptions
 
 DEFAULT_API_URL: str = "https://localhost:8888/api/"
 HTTP_OK: int = 200
+# (connect, read) timeout tuple so a stalled endpoint cannot hang the group-handling run
+HTTP_TIMEOUT: tuple[int, int] = (60, 14400)
 
 
 class HttpCommand(Enum):
@@ -36,7 +38,7 @@ def fwo_rest_api_call(
         session.verify = False
         http_method = getattr(session, command.lower())
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        response = http_method(api_url + endpoint_name, json=payload, headers=headers)
+        response = http_method(api_url + endpoint_name, json=payload, headers=headers, timeout=HTTP_TIMEOUT)
 
         if response.status_code == HTTP_OK:
             return response.json()
@@ -55,7 +57,7 @@ def get_jwt_token(user: str, password: str, api_url: str = DEFAULT_API_URL) -> s
         session.verify = False
         try:
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            response = session.post(endpoint, json=payload, headers=headers)
+            response = session.post(endpoint, json=payload, headers=headers, timeout=HTTP_TIMEOUT)
         except exceptions.RequestException:
             logger.exception("api: error during login to url: %s with user %s", endpoint, user)
             sys.exit(1)

@@ -27,6 +27,14 @@
         msg: "Found undefined installation_mode: {{ installation_mode }}, aborting."
       when: installation_mode != "new" and installation_mode != "uninstall" and installation_mode != "upgrade"
 
+    - name: warn when fixed test keys are enabled for development
+      debug:
+        msg: >-
+          SECURITY WARNING: testkeys=yes is enabled. This installation uses fixed,
+          publicly known development secrets and is only acceptable for isolated
+          development or test environments.
+      when: testkeys | default(false) | bool
+
     - name: fail if already installed and installation_mode is new
       fail:
         msg: "Found existing installation but running with installation_mode set to {{ installation_mode }}. If you want to upgrade, use 'installation_mode=upgrade'."
@@ -57,6 +65,11 @@
           set_fact:
             old_version: "{{ config.product_version }}"
             product_version_changed: "{{ config.product_version != product_version }}"
+
+        - name: fail if attempting a downgrade
+          fail:
+            msg: "Refusing to downgrade: installed version {{ old_version }} is newer than the version being installed ({{ product_version }})."
+          when: old_version is version(product_version, '>')
 
       when: already_installed and installation_mode == "upgrade"
 

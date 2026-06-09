@@ -13,25 +13,50 @@
       state: restarted
   become: true
 
-- name: wait for middleware port to become available
-  ansible.builtin.wait_for:
-      port: "{{ middleware_web_listener_port }}"
-      host: "{{ middleware_hostname }}"
-      connect_timeout: 1
-      delay: 10
-      timeout: 120
+- block:
+    - name: wait for middleware port to become available
+      ansible.builtin.wait_for:
+          port: "{{ middleware_internal_port }}"
+          host: "127.0.0.1"
+          connect_timeout: 1
+          delay: 10
+          timeout: 120
 
-- name: wait for middleware web server to become available
-  ansible.builtin.uri:
-      url: "{{ middleware_uri }}/swagger/"
-      method: GET
-      validate_certs: false
-      return_content: false
-  register: middleware_web_result
-  changed_when: false
-  until: middleware_web_result.status == 200
-  retries: 12
-  delay: 5
+    - name: wait for middleware web server to become available
+      ansible.builtin.uri:
+          url: "{{ middleware_uri }}/swagger/"
+          method: GET
+          validate_certs: false
+          return_content: false
+      register: middleware_web_result
+      changed_when: false
+      until: middleware_web_result.status == 200
+      retries: 12
+      delay: 5
+  rescue:
+    - name: get middleware service status
+      ansible.builtin.command: "systemctl status {{ middleware_service_name }} --no-pager -l"
+      register: middleware_service_status
+      changed_when: false
+      failed_when: false
+      become: true
+
+    - name: get middleware service journal
+      ansible.builtin.command: "journalctl -u {{ middleware_service_name }} --no-pager -n 100"
+      register: middleware_service_journal
+      changed_when: false
+      failed_when: false
+      become: true
+
+    - name: show middleware startup diagnostics
+      ansible.builtin.debug:
+          msg:
+              - "systemctl status {{ middleware_service_name }}: {{ middleware_service_status.stdout | default('') }}"
+              - "journalctl -u {{ middleware_service_name }}: {{ middleware_service_journal.stdout | default('') }}"
+
+    - name: fail middleware readiness check
+      ansible.builtin.fail:
+          msg: "Middleware did not become ready on 127.0.0.1:{{ middleware_internal_port }}."
 
 - name: middleware test get jwt valid creds
   ansible.builtin.uri:

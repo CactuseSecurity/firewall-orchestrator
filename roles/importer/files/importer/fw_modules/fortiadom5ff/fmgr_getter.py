@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 import fwo_globals
 import requests
+from fwo_const import FWO_HTTP_TIMEOUT
 from fwo_exceptions import (
     FwApiCallFailedError,
     FwLoginFailedError,
@@ -30,7 +31,13 @@ def api_call(url: str, command: str, json_payload: dict[str, Any], sid: str, met
         method = "get"
     json_payload.update({"method": method})
 
-    r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=fwo_globals.verify_certs)
+    r = requests.post(
+        url,
+        data=json.dumps(json_payload),
+        headers=request_headers,
+        verify=fwo_globals.verify_certs,
+        timeout=FWO_HTTP_TIMEOUT,
+    )
     result_json = r.json()
     if "result" not in result_json or len(result_json["result"]) == 0:
         if "pass" in json.dumps(json_payload):

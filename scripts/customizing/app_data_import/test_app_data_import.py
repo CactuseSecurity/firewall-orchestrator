@@ -25,6 +25,7 @@ from scripts.customizing.fwo_custom_lib.basic_helpers import (
     read_custom_config,
     read_custom_config_with_default,
 )
+from scripts.customizing.fwo_custom_lib.git_helpers import create_git_askpass_script, split_repo_url_credentials
 from scripts.customizing.fwo_custom_lib.read_app_data_csv import (
     ExtractAppDataCsvOptions,
     extract_app_data_from_csv,
@@ -988,15 +989,20 @@ class AppDataImportTests(unittest.TestCase):
             parse_additional_information_columns(["invalid-entry"])
 
     def test_build_git_repo_url_includes_credentials_when_configured(self) -> None:
+        git_user: str = "git-user-1"
+        git_auth: str = "test-password-1"
         repo_url: str | None = build_git_repo_url(
             "github.example.de/cmdb/app-export",
-            "git-user-1",
-            "secret",
+            git_user,
+            git_auth,
             self.logger,
             "CMDB",
         )
 
-        self.assertEqual(repo_url, "https://git-user-1:secret@github.example.de/cmdb/app-export")
+        self.assertEqual(
+            repo_url,
+            "https://" + git_user + ":" + git_auth + "@github.example.de/cmdb/app-export",
+        )
 
     def test_build_git_repo_url_uses_anonymous_access_when_credentials_missing(self) -> None:
         repo_url: str | None = build_git_repo_url(
@@ -1015,6 +1021,33 @@ class AppDataImportTests(unittest.TestCase):
 
         self.assertIsNone(repo_url)
         self.assertTrue(any("git repo url missing" in message for message in log_context.output))
+
+    def test_split_repo_url_credentials_removes_credentials_from_clone_url(self) -> None:
+        clone_url, username, password = split_repo_url_credentials(
+            "https://" + "git-user" + ":" + "p%40ssword" + "@git.example.org/group/repo.git"
+        )
+
+        self.assertEqual(clone_url, "https://git.example.org/group/repo.git")
+        self.assertEqual(username, "git-user")
+        self.assertEqual(password, "p@ssword")
+
+    def test_split_repo_url_credentials_preserves_ipv6_brackets(self) -> None:
+        clone_url, username, password = split_repo_url_credentials(
+            "https://" + "git-user" + ":" + "placeholder-token" + "@[2001:db8::1]:8443/group/repo.git"
+        )
+
+        self.assertEqual(clone_url, "https://[2001:db8::1]:8443/group/repo.git")
+        self.assertEqual(username, "git-user")
+        self.assertEqual(password, "placeholder-token")
+
+    def test_git_askpass_script_matches_git_username_prompt(self) -> None:
+        with tempfile.TemporaryDirectory() as askpass_dir:
+            script_path = create_git_askpass_script(askpass_dir)
+            script_text = Path(script_path).read_text(encoding="utf-8")
+
+        self.assertIn("*Username*|*username*)", script_text)
+        self.assertIn("GIT_ASKPASS_USERNAME", script_text)
+        self.assertIn("GIT_ASKPASS_PASSWORD", script_text)
 
     def test_parse_responsibles_columns_parses_grouped_entries(self) -> None:
         parsed: dict[str, tuple[str, ...]] = parse_responsibles_columns(

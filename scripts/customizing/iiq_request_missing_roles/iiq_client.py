@@ -7,6 +7,9 @@ import requests
 
 from scripts.customizing.fwo_custom_lib.basic_helpers import FWOLogger, get_logger
 
+# (connect, read) timeout tuple so a stalled IdentityIQ endpoint cannot hang the request
+HTTP_TIMEOUT: tuple[int, int] = (60, 14400)
+
 
 class IIQClient:
     def __init__(
@@ -129,10 +132,12 @@ class IIQClient:
 
         if method == "POST":
             response: requests.Response = requests.post(
-                url, json=body, auth=(self.user, self.password), headers=headers, verify=True
+                url, json=body, auth=(self.user, self.password), headers=headers, verify=True, timeout=HTTP_TIMEOUT
             )
         elif method == "GET":
-            response = requests.get(url, auth=(self.user, self.password), headers=headers, verify=True)
+            response = requests.get(
+                url, auth=(self.user, self.password), headers=headers, verify=True, timeout=HTTP_TIMEOUT
+            )
         else:
             self.logger.error("unsupported method %s in send", method)
             sys.exit(1)

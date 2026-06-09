@@ -70,6 +70,7 @@ def import_management(
     import_state = service_provider.get_global_state().import_state
     config_importer = FwConfigImport()
     exception: BaseException | None = None
+    shutdown_exception: BaseException | None = None
 
     try:
         _import_management(
@@ -91,13 +92,22 @@ def import_management(
     ) as e:
         import_state.delete_import()  # delete whole import
         exception = e
-    except (KeyboardInterrupt, ImportInterruptionError, ShutdownRequestedError) as e:
-        roll_back_exception_handler(
-            import_state,
-            config_importer=config_importer,
-            exc=e,
-            error_text="shutdown requested",
-        )
+    except (KeyboardInterrupt, ShutdownRequestedError) as e:
+        shutdown_exception = e
+        handle_shutdown_exception(import_state, config_importer=config_importer, exc=e)
+        raise
+    except ImportInterruptionError as e:
+        if fwo_globals.shutdown_requested:
+            shutdown_exception = e
+            handle_shutdown_exception(import_state, config_importer=config_importer, exc=e)
+        else:
+            exception = e
+            roll_back_exception_handler(
+                import_state,
+                config_importer=config_importer,
+                exc=e,
+                error_text="",
+            )
         raise
     except (FwoApiWriteError, FwoImporterError) as e:
         exception = e
@@ -107,7 +117,8 @@ def import_management(
         handle_unexpected_exception(import_state=import_state, config_importer=config_importer, e=e)
     finally:
         try:
-            api_call.complete_import(import_state.state, exception)
+            if shutdown_exception is None:
+                api_call.complete_import(import_state.state, exception)
             ServiceProvider().dispose_service(Services.UID2ID_MAPPER, import_state.state.import_id)
         except Exception as e:
             FWOLogger.error(f"Error during import completion: {e!s}")
@@ -190,6 +201,29 @@ def handle_unexpected_exception(
 ):
     if import_state is not None and config_importer is not None:
         roll_back_exception_handler(import_state, config_importer=config_importer, exc=e)
+
+
+def handle_shutdown_exception(
+    import_state: ImportStateController,
+    config_importer: FwConfigImport | None = None,
+    exc: BaseException | None = None,
+):
+    import_id = import_state.state.import_id
+    if import_id <= 0:
+        FWOLogger.warning("Shutdown requested before import lock was acquired.")
+        return
+
+    if import_state.state.rollback_required:
+        roll_back_exception_handler(
+            import_state,
+            config_importer=config_importer,
+            exc=exc,
+            error_text="shutdown requested",
+        )
+        return
+
+    FWOLogger.warning("Shutdown requested before import data changes. Removing import lock without rollback.")
+    import_state.delete_import()
 
 
 def roll_back_exception_handler(

@@ -20,6 +20,21 @@
       ldap://{{ openldap_server }}:{{ (openldap_port | default(389) | int == 636) | ternary(389, openldap_port | default(389)) }}
       {%- endif %}
 
+- name: ensure integration test user parent tree exists
+  command: "ldapmodify {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"
+  loop:
+    - integration_testuser_jwt_parent_level_0
+    - integration_testuser_jwt_parent_user
+    - integration_testuser_jwt_parent_group
+    - integration_testuser_jwt_parent_operator
+    - integration_testuser_jwt_parent_tenant0
+  register: ldap_parent_result
+  failed_when:
+    - ldap_parent_result.rc != 0
+    - "'Already exists' not in ldap_parent_result.stderr"
+  changed_when: ldap_parent_result.rc == 0
+  become: true
+
 - name: add or modify tree entries
   command: "ldapmodify {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"
   loop:

@@ -72,6 +72,7 @@ class FwConfigImport:
         self.update_diffs(previous_config, previous_global_config, single_manager)
 
     def import_management_set(self, service_provider: ServiceProvider, mgr_set: FwConfigManagerListController):
+        self.import_state.state.rollback_required = True
         for manager in sorted(mgr_set.ManagerSet, key=lambda m: not getattr(m, "IsSuperManager", False)):
             """
             the following loop is a preparation for future functionality

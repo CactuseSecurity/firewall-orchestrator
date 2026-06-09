@@ -8,13 +8,15 @@ from typing import Any
 
 import fwo_globals
 import requests
-from fwo_const import FWO_API_HTTP_IMPORT_TIMEOUT
+from fwo_const import FWO_API_HTTP_IMPORT_TIMEOUT, FWO_HTTP_TIMEOUT
 from fwo_exceptions import FwoApiLoginFailedError, FwoApiServiceUnavailableError, FwoApiTimeoutError, FwoImporterError
 from fwo_log import FWOLogger
 from query_analyzer import QueryAnalyzer
 from services.service_provider import ServiceProvider
 
 JSON_CONTENT_TYPE = "application/json"
+REDACTED_VALUE = "<redacted>"
+SENSITIVE_HEADER_NAMES = {"authorization", "x-hasura-admin-secret"}
 
 
 # this class is used for making calls to the FWO API (will supersede fwo_api.py)
@@ -118,7 +120,11 @@ class FwoApi:
             session.headers.update({"Content-Type": JSON_CONTENT_TYPE})
 
             try:
-                response = session.post(user_management_api_base_url + method, data=json.dumps(payload))
+                response = session.post(
+                    user_management_api_base_url + method,
+                    data=json.dumps(payload),
+                    timeout=FWO_HTTP_TIMEOUT,
+                )
             except requests.exceptions.RequestException:
                 raise FwoApiLoginFailedError(
                     "fwo_api: error during login to url: " + str(user_management_api_base_url) + " with user " + user
@@ -257,7 +263,10 @@ class FwoApi:
 
             total_chunk_elements = self._update_query_variables_by_chunk(query_variables, chunkable_variables)
 
-            FWOLogger.debug(f"Chunk {chunk_number}:  Query variables updated\n{pformat(query_variables)}", 9)
+            FWOLogger.debug(
+                f"Chunk {chunk_number}: Query variables updated: {self.summarize_query_variables(query_variables)}",
+                9,
+            )
 
             # Post query.
 
@@ -374,7 +383,7 @@ class FwoApi:
 
         r = session.post(self.fwo_api_url, data=json.dumps(query_payload), timeout=int(FWO_API_HTTP_IMPORT_TIMEOUT))
 
-        FWOLogger.debug("API response: " + pformat(r.json(), indent=2), 10)
+        FWOLogger.debug("API response received", 10)
 
         r.raise_for_status()
 
@@ -382,8 +391,9 @@ class FwoApi:
 
     def show_api_call_info(self, url: str, query: dict[str, Any], headers: dict[str, Any], typ: str = "debug"):
         max_query_size_to_display = 1000
-        query_string = json.dumps(query, indent=2)
-        header_string = json.dumps(headers, indent=2)
+        redacted_query = self._redact_graphql_payload(query)
+        query_string = json.dumps(redacted_query, indent=2)
+        header_string = json.dumps(self._redact_headers(headers), indent=2)
         query_size = len(query_string)
 
         result = "error while sending api_call to url " if typ == "error" else "successful FWO API call to url "
@@ -392,7 +402,7 @@ class FwoApi:
             result += query_string
         else:
             result += (
-                str(query)[: round(max_query_size_to_display / 2)]
+                str(redacted_query)[: round(max_query_size_to_display / 2)]
                 + "\n ... [snip] ... \n"
                 + query_string[query_size - round(max_query_size_to_display / 2) :]
                 + " (total query size="
@@ -428,8 +438,9 @@ class FwoApi:
         show_query_info: bool = False,
     ):
         max_query_size_to_display = 1000
-        query_string = json.dumps(query, indent=2)
-        header_string = json.dumps(dict(headers), indent=2)
+        redacted_query = self._redact_graphql_payload(query)
+        query_string = json.dumps(redacted_query, indent=2)
+        header_string = json.dumps(self._redact_headers(headers), indent=2)
         api_url = json.dumps(api_url, indent=2)
         query_size = len(query_string)
         result = "error while sending api_call to url " if typ == "error" else "successful FWO API call to url "
@@ -438,7 +449,7 @@ class FwoApi:
             result += query_string
         else:
             result += (
-                str(query)[: round(max_query_size_to_display / 2)]
+                str(redacted_query)[: round(max_query_size_to_display / 2)]
                 + "\n ... [snip] ... \n"
                 + query_string[query_size - round(max_query_size_to_display / 2) :]
                 + " (total query size="
@@ -451,6 +462,28 @@ class FwoApi:
             result += "\nQuery Info: \n" + pformat(self.query_info)
 
         return result
+
+    @staticmethod
+    def _redact_headers(headers: Mapping[str, Any]) -> dict[str, Any]:
+        return {
+            header_name: REDACTED_VALUE if header_name.lower() in SENSITIVE_HEADER_NAMES else header_value
+            for header_name, header_value in dict(headers).items()
+        }
+
+    @staticmethod
+    def _redact_graphql_payload(query_payload: dict[str, Any]) -> dict[str, Any]:
+        redacted_payload = dict(query_payload)
+        if "variables" in redacted_payload:
+            redacted_payload["variables"] = REDACTED_VALUE
+        return redacted_payload
+
+    @staticmethod
+    def summarize_query_variables(query_variables: Mapping[str, Any]) -> str:
+        if not query_variables:
+            return "none"
+        return (
+            f"{len(query_variables)} variable(s): {', '.join(sorted(query_variables.keys()))}; values {REDACTED_VALUE}"
+        )
 
     @classmethod
     def get_graphql_code(cls, file_list: list[str]) -> str:

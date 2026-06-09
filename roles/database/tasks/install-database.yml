@@ -2,11 +2,13 @@
   set_fact:
     dbadmin_password: "{{ dbadmin_initial_password }}"
   when: dbadmin_initial_password is defined
+  no_log: true
 
 - name: set dbadmin password randomly
   set_fact:
     dbadmin_password: "{{ randomly_generated_pwd }}"
   when: dbadmin_initial_password is not defined
+  no_log: true
 
 - name: write dbadmin_password password to secrets directory
   copy:
@@ -16,10 +18,12 @@
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
   become: true
+  no_log: true
 
 - name: set fworch db password randomly
   set_fact:
     fworch_db_password: "{{ randomly_generated_pwd }}"
+  no_log: true
 
 - name: write fworch_db_password to secrets directory
   copy:
@@ -29,6 +33,7 @@
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
   become: true
+  no_log: true
 
 - block:
 
@@ -43,6 +48,7 @@
       password: "{{ dbadmin_password }}"
       encrypted: true
       role_attr_flags: CREATEDB,SUPERUSER,CREATEROLE,INHERIT,LOGIN
+    no_log: true
 
   - name: create postgres user "{{ fworch_user }}"
     postgresql_user: 
@@ -50,6 +56,7 @@
       password: "{{ fworch_db_password }}"
       encrypted: true
       role_attr_flags: LOGIN
+    no_log: true
 
   # include add-tablespace.yml here
 

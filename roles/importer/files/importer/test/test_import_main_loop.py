@@ -106,7 +106,6 @@ class TestWaitWithShutdownCheck:
         finally:
             fwo_globals.shutdown_requested = False
 
-
     def test_shutdown_requested_during_loop(
         self,
         mocker: MockerFixture,

@@ -1,9 +1,6 @@
-using System.Globalization;
-using FWO.Api.Client;
-using FWO.Api.Client.Queries;
-using FWO.Data.Flow;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
+using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -15,11 +12,11 @@ namespace FWO.Middleware.Server.Controllers;
 [Route("api/[controller]")]
 public class FlowController : ControllerBase
 {
-    private readonly ApiConnection apiConnection;
+    private readonly FlowCatalogService flowCatalogService;
 
-    public FlowController(ApiConnection apiConnection)
+    public FlowController(FlowCatalogService flowCatalogService)
     {
-        this.apiConnection = apiConnection;
+        this.flowCatalogService = flowCatalogService;
     }
 
     #region Schemas
@@ -43,8 +40,7 @@ public class FlowController : ControllerBase
             return errorResult!;
         }
 
-        List<FlowNwObject> flowObjects = await LoadFlowNwObjectsAsync(request.Filter?.VisibleInRequest);
-        return Ok(flowObjects.Select(ToAddressObjectResponse).ToList());
+        return Ok(await flowCatalogService.GetAddressObjectsAsync(request.Filter?.VisibleInRequest));
     }
 
     [HttpPost("getAddressGroups")]
@@ -55,8 +51,7 @@ public class FlowController : ControllerBase
             return errorResult!;
         }
 
-        List<FlowNwGroup> flowGroups = await LoadFlowNwGroupsAsync(request.Filter?.VisibleInRequest);
-        return Ok(flowGroups.Select(ToAddressGroupResponse).ToList());
+        return Ok(await flowCatalogService.GetAddressGroupsAsync(request.Filter?.VisibleInRequest));
     }
 
     [HttpPost("getServiceObjects")]
@@ -67,8 +62,7 @@ public class FlowController : ControllerBase
             return errorResult!;
         }
 
-        List<FlowSvcObject> flowObjects = await LoadFlowSvcObjectsAsync(request.Filter?.VisibleInRequest);
-        return Ok(flowObjects.Select(ToServiceObjectResponse).ToList());
+        return Ok(await flowCatalogService.GetServiceObjectsAsync(request.Filter?.VisibleInRequest));
     }
 
     [HttpPost("getServiceGroups")]
@@ -79,8 +73,7 @@ public class FlowController : ControllerBase
             return errorResult!;
         }
 
-        List<FlowSvcGroup> flowGroups = await LoadFlowSvcGroupsAsync(request.Filter?.VisibleInRequest);
-        return Ok(flowGroups.Select(ToServiceGroupResponse).ToList());
+        return Ok(await flowCatalogService.GetServiceGroupsAsync(request.Filter?.VisibleInRequest));
     }
 
     [HttpPost("getTimeObjects")]
@@ -91,8 +84,7 @@ public class FlowController : ControllerBase
             return errorResult!;
         }
 
-        List<FlowTimeObject> flowObjects = await LoadFlowTimeObjectsAsync(request.Filter?.VisibleInRequest);
-        return Ok(flowObjects.Select(ToTimeObjectResponse).ToList());
+        return Ok(await flowCatalogService.GetTimeObjectsAsync(request.Filter?.VisibleInRequest));
     }
 
     [HttpPost("getFlowComplianceState")]
@@ -170,169 +162,4 @@ public class FlowController : ControllerBase
         return VisibleInRequestFilterValidator.TryValidate(request, filterSchema, out errorResult);
     }
 
-    private async Task<List<FlowNwObject>> LoadFlowNwObjectsAsync(bool? visibleInRequest)
-    {
-        string query = BuildCatalogQuery(
-            "getAddressObjects",
-            "nwobjects",
-            "flow_nwobject",
-            "nwobj_id",
-            "flowNwObjectDetails",
-            FlowQueries.flowNwObjectDetailsFragment,
-            visibleInRequest);
-
-        return await apiConnection.SendQueryAsync<List<FlowNwObject>>(query) ?? [];
-    }
-
-    private async Task<List<FlowNwGroup>> LoadFlowNwGroupsAsync(bool? visibleInRequest)
-    {
-        string query = BuildCatalogQuery(
-            "getAddressGroups",
-            "nwgroups",
-            "flow_nwgroup",
-            "nwgrp_id",
-            "flowNwGroupDetails",
-            FlowQueries.flowNwGroupDetailsFragment,
-            visibleInRequest);
-
-        return await apiConnection.SendQueryAsync<List<FlowNwGroup>>(query) ?? [];
-    }
-
-    private async Task<List<FlowSvcObject>> LoadFlowSvcObjectsAsync(bool? visibleInRequest)
-    {
-        string query = BuildCatalogQuery(
-            "getServiceObjects",
-            "svcobjects",
-            "flow_svcobject",
-            "svcobj_id",
-            "flowSvcObjectDetails",
-            FlowQueries.flowSvcObjectDetailsFragment,
-            visibleInRequest);
-
-        return await apiConnection.SendQueryAsync<List<FlowSvcObject>>(query) ?? [];
-    }
-
-    private async Task<List<FlowSvcGroup>> LoadFlowSvcGroupsAsync(bool? visibleInRequest)
-    {
-        string query = BuildCatalogQuery(
-            "getServiceGroups",
-            "svcgroups",
-            "flow_svcgroup",
-            "svcgrp_id",
-            "flowSvcGroupDetails",
-            FlowQueries.flowSvcGroupDetailsFragment,
-            visibleInRequest);
-
-        return await apiConnection.SendQueryAsync<List<FlowSvcGroup>>(query) ?? [];
-    }
-
-    private async Task<List<FlowTimeObject>> LoadFlowTimeObjectsAsync(bool? visibleInRequest)
-    {
-        string query = BuildCatalogQuery(
-            "getTimeObjects",
-            "timeobjects",
-            "flow_timeobject",
-            "timeobj_id",
-            "flowTimeObjectDetails",
-            FlowQueries.flowTimeObjectDetailsFragment,
-            visibleInRequest);
-
-        return await apiConnection.SendQueryAsync<List<FlowTimeObject>>(query) ?? [];
-    }
-
-    private static string BuildCatalogQuery(
-        string operationName,
-        string topLevelAlias,
-        string tableName,
-        string idFieldName,
-        string fragmentName,
-        string fragmentText,
-        bool? visibleInRequest)
-    {
-        string visibleInRequestClause = visibleInRequest.HasValue
-            ? $"where: {{ show_in_request_module: {{ _eq: {GetGraphQlBoolean(visibleInRequest.Value)} }} }}, "
-            : string.Empty;
-
-        return fragmentText + $@"query {operationName} {{
-  {topLevelAlias}: {tableName}({visibleInRequestClause}order_by: [{{ name: asc }}, {{ {idFieldName}: asc }}]) {{
-    ...{fragmentName}
-  }}
-}}";
-    }
-
-    private static string GetGraphQlBoolean(bool value)
-    {
-        return value ? "true" : "false";
-    }
-
-    private static AddressObjectResponse ToAddressObjectResponse(FlowNwObject flowObject)
-    {
-        return new AddressObjectResponse
-        {
-            Id = (int)flowObject.Id,
-            Name = flowObject.Name ?? string.Empty,
-            IpStart = flowObject.IpStart ?? string.Empty,
-            IpEnd = flowObject.IpEnd ?? string.Empty,
-            State = flowObject.State
-        };
-    }
-
-    private static AddressGroupResponse ToAddressGroupResponse(FlowNwGroup flowGroup)
-    {
-        return new AddressGroupResponse
-        {
-            Id = (int)flowGroup.Id,
-            Name = flowGroup.Name,
-            State = flowGroup.State,
-            Members = flowGroup.NwGroupMembers
-                .Select(member => new AddressGroupResponse.AddressGroupMemberResponse
-                {
-                    Id = (int)member.NwObjectId,
-                    Name = member.NwObject.Name ?? string.Empty
-                })
-                .ToList()
-        };
-    }
-
-    private static ServiceObjectResponse ToServiceObjectResponse(FlowSvcObject flowObject)
-    {
-        return new ServiceObjectResponse
-        {
-            Id = (int)flowObject.Id,
-            Name = flowObject.Name,
-            PortStart = flowObject.PortStart ?? 0,
-            PortEnd = flowObject.PortEnd ?? 0,
-            Protocol = flowObject.ProtoId > 0 ? flowObject.ProtoId.ToString(CultureInfo.InvariantCulture) : string.Empty,
-            State = flowObject.State
-        };
-    }
-
-    private static ServiceGroupResponse ToServiceGroupResponse(FlowSvcGroup flowGroup)
-    {
-        return new ServiceGroupResponse
-        {
-            Id = (int)flowGroup.Id,
-            Name = flowGroup.Name,
-            State = flowGroup.State,
-            Members = flowGroup.SvcGroupMembers
-                .Select(member => new ServiceGroupResponse.ServiceGroupMemberResponse
-                {
-                    Id = (int)member.SvcObjectId,
-                    Name = member.SvcObject.Name
-                })
-                .ToList()
-        };
-    }
-
-    private static TimeObjectResponse ToTimeObjectResponse(FlowTimeObject flowObject)
-    {
-        return new TimeObjectResponse
-        {
-            Id = (int)flowObject.Id,
-            Name = flowObject.Name,
-            StartTime = flowObject.StartTime?.ToString("o", CultureInfo.InvariantCulture) ?? string.Empty,
-            EndTime = flowObject.EndTime?.ToString("o", CultureInfo.InvariantCulture) ?? string.Empty,
-            State = flowObject.State
-        };
-    }
 }

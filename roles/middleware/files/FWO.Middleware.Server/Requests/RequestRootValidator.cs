@@ -18,11 +18,9 @@ public static class RequestRootValidator
 
     private static BadRequestObjectResult BuildError(RequestRootValidationSchema schema)
     {
-        string allowedShapes = string.Join(" or ", new[]
-        {
-            "{}",
-            "{ \"filter\": {} }"
-        }.Concat(schema.AllowedKeys.Select(key => $"{{ \"{key.JsonName}\": ... }}")));
+        string allowedShapes = string.Join(" or ", schema.AllowedKeys.Count == 0
+            ? ["{}"]
+            : ["{}", .. schema.AllowedKeys.Select(key => $"{{ \"{key.JsonName}\": ... }}")]);
 
         string keyHelp = string.Join(" ", schema.AllowedKeys.Select(key => $"'{key.JsonName}': {key.Description}"));
 

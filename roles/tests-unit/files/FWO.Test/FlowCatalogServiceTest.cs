@@ -135,6 +135,87 @@ internal class FlowCatalogServiceTest
         Assert.That(result[0].EndTime, Does.StartWith("2026-06-01T17:30:00"));
     }
 
+    [Test]
+    public async Task GetAddressObjectIdAsync_ReturnsMatchingObjectAndAppliesVisibilityFilter()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        apiConnection.AddressObjects =
+        [
+            new FlowNwObject
+            {
+                Id = 40,
+                Name = "HostX"
+            }
+        ];
+
+        FlowCatalogService service = new(apiConnection);
+
+        AddressObjectIdResponse result = await service.GetAddressObjectIdAsync("10.0.0.1", "10.0.0.2", true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Id, Is.EqualTo(40));
+            Assert.That(result.Name, Is.EqualTo("HostX"));
+            Assert.That(apiConnection.SentQueries[0], Does.Contain("query getAddressObjectId"));
+            Assert.That(apiConnection.SentQueries[0], Does.Contain("ip_start: { _eq: \"10.0.0.1\" }"));
+            Assert.That(apiConnection.SentQueries[0], Does.Contain("ip_end: { _eq: \"10.0.0.2\" }"));
+            Assert.That(apiConnection.SentQueries[0], Does.Contain("show_in_request_module: { _eq: true }"));
+        });
+    }
+
+    [Test]
+    public async Task GetServiceObjectIdAsync_ResolvesProtocolByName()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        apiConnection.ServiceObjects =
+        [
+            new FlowSvcObject
+            {
+                Id = 50,
+                Name = "HTTPS",
+                ProtoId = 6
+            }
+        ];
+        apiConnection.Protocols =
+        [
+            new IpProtocol { Id = 6, Name = "TCP" },
+            new IpProtocol { Id = 17, Name = "UDP" }
+        ];
+
+        FlowCatalogService service = new(apiConnection);
+
+        ServiceObjectIdResponse result = await service.GetServiceObjectIdAsync("tcp", 443, 443, false);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Id, Is.EqualTo(50));
+            Assert.That(result.Name, Is.EqualTo("HTTPS"));
+            Assert.That(apiConnection.SentQueries[0], Is.EqualTo(StmQueries.getIpProtocols));
+            Assert.That(apiConnection.SentQueries[1], Does.Contain("query getServiceObjectId"));
+            Assert.That(apiConnection.SentQueries[1], Does.Contain("port_start: { _eq: 443 }"));
+            Assert.That(apiConnection.SentQueries[1], Does.Contain("port_end: { _eq: 443 }"));
+            Assert.That(apiConnection.SentQueries[1], Does.Contain("ip_proto_id: { _eq: 6 }"));
+            Assert.That(apiConnection.SentQueries[1], Does.Contain("show_in_request_module: { _eq: false }"));
+        });
+    }
+
+    [Test]
+    public async Task GetServiceObjectIdAsync_ReturnsEmptyResponseForUnknownProtocol()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        FlowCatalogService service = new(apiConnection);
+
+        ServiceObjectIdResponse result = await service.GetServiceObjectIdAsync("not-a-protocol", 443, 443, null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Id, Is.EqualTo(0));
+            Assert.That(result.Name, Is.EqualTo(string.Empty));
+            Assert.That(apiConnection.SentQueries, Has.Count.EqualTo(1));
+            Assert.That(apiConnection.SentQueries[0], Is.EqualTo(StmQueries.getIpProtocols));
+        });
+    }
+
     private sealed class FlowCatalogServiceApiConn : SimulatedApiConnection
     {
         public List<string> SentQueries { get; } = [];

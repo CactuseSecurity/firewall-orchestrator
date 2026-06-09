@@ -88,6 +88,36 @@ internal class FlowControllerValidationTest
         });
     }
 
+    [TestCaseSource(nameof(LookupRequestCases))]
+    public void FlowControllerValidation_AllowsLookupRequestShapes(LookupRequestCase requestCase)
+    {
+        object request = requestCase.Deserialize(requestCase.ValidJson);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(RequestRootValidator.TryValidate((IRequestWithRootAdditionalData)request, requestCase.RootSchema, out var rootError), Is.True);
+            Assert.That(rootError, Is.Null);
+            Assert.That(VisibleInRequestFilterValidator.TryValidate((IVisibleInRequestFilterRequest)request, requestCase.FilterSchema, out var filterError), Is.True);
+            Assert.That(filterError, Is.Null);
+        });
+    }
+
+    [TestCaseSource(nameof(LookupRequestCases))]
+    public void FlowControllerValidation_RejectsUnknownLookupRootKeys(LookupRequestCase requestCase)
+    {
+        object request = requestCase.Deserialize(requestCase.InvalidRootJson);
+
+        bool valid = RequestRootValidator.TryValidate((IRequestWithRootAdditionalData)request, requestCase.RootSchema, out var error);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(error, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain(requestCase.EndpointName));
+            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain(requestCase.ExpectedRootKey));
+        });
+    }
+
     private static IEnumerable<TestCaseData> RequestCases()
     {
         yield return new TestCaseData(new RequestCase(
@@ -121,9 +151,52 @@ internal class FlowControllerValidationTest
             RequestFilterValidationSchema.ForVisibleInRequest("GetTimeObjects")));
     }
 
+    private static IEnumerable<TestCaseData> LookupRequestCases()
+    {
+        yield return new TestCaseData(new LookupRequestCase(
+            "GetServiceObjectId",
+            json => JsonSerializer.Deserialize<GetServiceObjectIdRequest>(json)!,
+            new RequestRootValidationSchema(
+                "GetServiceObjectId",
+                [
+                    new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
+                    new RequestKeyDefinition("portStart", "Start port for the service object lookup."),
+                    new RequestKeyDefinition("portEnd", "End port for the service object lookup."),
+                    new RequestKeyDefinition("protocol", "Protocol name or protocol id for the service object lookup.")
+                ]),
+            RequestFilterValidationSchema.ForVisibleInRequest("GetServiceObjectId"),
+            """{"filter":{"visibleInRequest":true},"portStart":443,"portEnd":443,"protocol":"TCP"}""",
+            """{"filter":{"visibleInRequest":true},"portStart":443,"portEnd":443,"protocol":"TCP","typo":1}""",
+            "portStart"));
+
+        yield return new TestCaseData(new LookupRequestCase(
+            "GetAddressObjectId",
+            json => JsonSerializer.Deserialize<GetAddressObjectIdRequest>(json)!,
+            new RequestRootValidationSchema(
+                "GetAddressObjectId",
+                [
+                    new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
+                    new RequestKeyDefinition("ipStart", "Start IP address for the address object lookup."),
+                    new RequestKeyDefinition("ipEnd", "End IP address for the address object lookup.")
+                ]),
+            RequestFilterValidationSchema.ForVisibleInRequest("GetAddressObjectId"),
+            """{"filter":{"visibleInRequest":false},"ipStart":"10.0.0.1","ipEnd":"10.0.0.2"}""",
+            """{"filter":{"visibleInRequest":false},"ipStart":"10.0.0.1","ipEnd":"10.0.0.2","typo":1}""",
+            "ipStart"));
+    }
+
     internal sealed record RequestCase(
         string EndpointName,
         Func<string, object> Deserialize,
         RequestRootValidationSchema RootSchema,
         RequestFilterValidationSchema FilterSchema);
+
+    internal sealed record LookupRequestCase(
+        string EndpointName,
+        Func<string, object> Deserialize,
+        RequestRootValidationSchema RootSchema,
+        RequestFilterValidationSchema FilterSchema,
+        string ValidJson,
+        string InvalidRootJson,
+        string ExpectedRootKey);
 }

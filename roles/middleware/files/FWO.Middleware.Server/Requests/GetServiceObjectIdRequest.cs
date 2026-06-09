@@ -1,11 +1,12 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace FWO.Middleware.Server.Requests;
 
-public sealed class GetServiceObjectIdRequest
+public sealed class GetServiceObjectIdRequest : IVisibleInRequestFilterRequest
 {
     [JsonPropertyName("filter")]
-    public VisibleInRequestFilter Filter { get; set; } = new();
+    public VisibleInRequestFilter? Filter { get; set; }
 
     [JsonPropertyName("portStart")]
     public int PortStart { get; set; }
@@ -16,9 +17,6 @@ public sealed class GetServiceObjectIdRequest
     [JsonPropertyName("protocol")]
     public string Protocol { get; set; } = string.Empty;
 
-    public sealed class VisibleInRequestFilter
-    {
-        [JsonPropertyName("visibleInRequest")]
-        public bool VisibleInRequest { get; set; } = true;
-    }
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalData { get; set; }
 }

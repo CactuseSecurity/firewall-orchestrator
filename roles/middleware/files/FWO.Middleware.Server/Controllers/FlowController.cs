@@ -30,6 +30,23 @@ public class FlowController : ControllerBase
     private static readonly RequestFilterValidationSchema ServiceGroupsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceGroups));
     private static readonly RequestRootValidationSchema TimeObjectsRootSchema = RequestRootValidationSchema.ForVisibleInRequest(nameof(GetTimeObjects));
     private static readonly RequestFilterValidationSchema TimeObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetTimeObjects));
+    private static readonly RequestRootValidationSchema ServiceObjectIdRootSchema = new(
+        nameof(GetServiceObjectId),
+        [
+            new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
+            new RequestKeyDefinition("portStart", "Start port for the service object lookup."),
+            new RequestKeyDefinition("portEnd", "End port for the service object lookup."),
+            new RequestKeyDefinition("protocol", "Protocol name or protocol id for the service object lookup.")
+        ]);
+    private static readonly RequestRootValidationSchema AddressObjectIdRootSchema = new(
+        nameof(GetAddressObjectId),
+        [
+            new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
+            new RequestKeyDefinition("ipStart", "Start IP address for the address object lookup."),
+            new RequestKeyDefinition("ipEnd", "End IP address for the address object lookup.")
+        ]);
+    private static readonly RequestFilterValidationSchema ServiceObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceObjectId));
+    private static readonly RequestFilterValidationSchema AddressObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressObjectId));
     #endregion
 
     [HttpPost("getAddressObjects")]
@@ -100,15 +117,25 @@ public class FlowController : ControllerBase
     }
 
     [HttpPost("getServiceObjectId")]
-    public ActionResult<ServiceObjectIdResponse> GetServiceObjectId([FromBody] GetServiceObjectIdRequest request)
+    public async Task<ActionResult<ServiceObjectIdResponse>> GetServiceObjectId([FromBody] GetServiceObjectIdRequest request)
     {
-        return StatusCode(StatusCodes.Status501NotImplemented);
+        if (!TryValidateVisibleInRequestRequest(request, ServiceObjectIdRootSchema, ServiceObjectIdFilterSchema, out ActionResult? errorResult))
+        {
+            return errorResult!;
+        }
+
+        return Ok(await flowCatalogService.GetServiceObjectIdAsync(request.Protocol, request.PortStart, request.PortEnd, request.Filter?.VisibleInRequest));
     }
 
     [HttpPost("getAddressObjectId")]
-    public ActionResult<AddressObjectIdResponse> GetAddressObjectId([FromBody] GetAddressObjectIdRequest request)
+    public async Task<ActionResult<AddressObjectIdResponse>> GetAddressObjectId([FromBody] GetAddressObjectIdRequest request)
     {
-        return StatusCode(StatusCodes.Status501NotImplemented);
+        if (!TryValidateVisibleInRequestRequest(request, AddressObjectIdRootSchema, AddressObjectIdFilterSchema, out ActionResult? errorResult))
+        {
+            return errorResult!;
+        }
+
+        return Ok(await flowCatalogService.GetAddressObjectIdAsync(request.IpStart, request.IpEnd, request.Filter?.VisibleInRequest));
     }
 
     [HttpPost("generateAddressObjectName")]

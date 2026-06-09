@@ -13,10 +13,12 @@ namespace FWO.Middleware.Server.Controllers;
 public class FlowController : ControllerBase
 {
     private readonly FlowCatalogService flowCatalogService;
+    private readonly FlowComplianceService flowComplianceService;
 
-    public FlowController(FlowCatalogService flowCatalogService)
+    public FlowController(FlowCatalogService flowCatalogService, FlowComplianceService flowComplianceService)
     {
         this.flowCatalogService = flowCatalogService;
+        this.flowComplianceService = flowComplianceService;
     }
 
     #region Schemas
@@ -105,15 +107,25 @@ public class FlowController : ControllerBase
     }
 
     [HttpPost("getFlowComplianceState")]
-    public ActionResult<List<FlowComplianceStateResponse>> GetFlowComplianceState([FromBody] GetFlowComplianceStateRequest request)
+    public async Task<ActionResult<List<FlowComplianceStateResponse>>> GetFlowComplianceState([FromBody] GetFlowComplianceStateRequest request)
     {
-        return StatusCode(StatusCodes.Status501NotImplemented);
+        if (!FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult))
+        {
+            return errorResult!;
+        }
+
+        return Ok(await flowComplianceService.GetFlowComplianceStateAsync(request));
     }
 
     [HttpPost("getPolicyIds")]
-    public ActionResult<List<PolicyIdResponse>> GetPolicyIds([FromBody] GetPolicyIdsRequest request)
+    public async Task<ActionResult<List<PolicyIdResponse>>> GetPolicyIds([FromBody] GetPolicyIdsRequest request)
     {
-        return StatusCode(StatusCodes.Status501NotImplemented);
+        if (!FlowComplianceRequestValidator.TryValidatePolicyIds(request, out ActionResult? errorResult))
+        {
+            return errorResult!;
+        }
+
+        return Ok(await flowComplianceService.GetPolicyIdsAsync());
     }
 
     [HttpPost("getServiceObjectId")]

@@ -92,6 +92,7 @@ builder.Services.AddControllers()
 builder.Services.AddSingleton<JwtWriter>(jwtWriter);
 builder.Services.AddSingleton<List<Ldap>>(connectedLdaps);
 builder.Services.AddSingleton<FlowCatalogService>();
+builder.Services.AddSingleton<FlowComplianceService>();
 
 builder.Services.AddAuthentication(confOptions =>
 {

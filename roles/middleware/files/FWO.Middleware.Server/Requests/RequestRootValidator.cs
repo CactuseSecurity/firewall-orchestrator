@@ -23,8 +23,9 @@ public static class RequestRootValidator
             : ["{}", .. schema.AllowedKeys.Select(key => $"{{ \"{key.JsonName}\": ... }}")]);
 
         string keyHelp = string.Join(" ", schema.AllowedKeys.Select(key => $"'{key.JsonName}': {key.Description}"));
+        string rootKeySuffix = string.IsNullOrWhiteSpace(keyHelp) ? string.Empty : $". Valid root keys: {keyHelp}";
 
         return new BadRequestObjectResult(
-            $"{schema.EndpointName} only accepts {allowedShapes}. Valid root keys: {keyHelp}");
+            $"{schema.EndpointName} only accepts {allowedShapes}{rootKeySuffix}");
     }
 }

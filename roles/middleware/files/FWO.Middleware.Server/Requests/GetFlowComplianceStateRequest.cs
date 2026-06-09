@@ -1,8 +1,9 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace FWO.Middleware.Server.Requests;
 
-public sealed class GetFlowComplianceStateRequest
+public sealed class GetFlowComplianceStateRequest : IRequestWithRootAdditionalData
 {
     [JsonPropertyName("source")]
     public List<IpRangeRequest> Source { get; set; } = [];
@@ -16,16 +17,22 @@ public sealed class GetFlowComplianceStateRequest
     [JsonPropertyName("policies")]
     public List<int> Policies { get; set; } = [];
 
-    public sealed class IpRangeRequest
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalData { get; set; }
+
+    public sealed class IpRangeRequest : IRequestWithAdditionalData
     {
         [JsonPropertyName("ipStart")]
         public string IpStart { get; set; } = string.Empty;
 
         [JsonPropertyName("ipEnd")]
         public string IpEnd { get; set; } = string.Empty;
+
+        [JsonExtensionData]
+        public Dictionary<string, JsonElement>? AdditionalData { get; set; }
     }
 
-    public sealed class ServiceRangeRequest
+    public sealed class ServiceRangeRequest : IRequestWithAdditionalData
     {
         [JsonPropertyName("portStart")]
         public int PortStart { get; set; }
@@ -35,5 +42,8 @@ public sealed class GetFlowComplianceStateRequest
 
         [JsonPropertyName("protocol")]
         public string Protocol { get; set; } = string.Empty;
+
+        [JsonExtensionData]
+        public Dictionary<string, JsonElement>? AdditionalData { get; set; }
     }
 }

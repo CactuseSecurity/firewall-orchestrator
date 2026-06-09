@@ -32,6 +32,7 @@ class ImportState:
     is_initial_import: bool = False
     responsible_for_importing: bool = True
     is_clearing_import: bool = False
+    rollback_required: bool = False
 
     def __init__(self) -> None:
         self.stats: ImportStatisticsController = ImportStatisticsController()

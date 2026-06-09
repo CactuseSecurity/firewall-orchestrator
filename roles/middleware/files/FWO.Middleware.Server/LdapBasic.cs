@@ -6,6 +6,7 @@ using FWO.Logging;
 using Novell.Directory.Ldap;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 
 namespace FWO.Middleware.Server
 {
@@ -128,24 +129,63 @@ namespace FWO.Middleware.Server
             }
         }
 
+        /// <summary>
+        /// Escapes an LDAP assertion value according to RFC 4515.
+        /// </summary>
+        public static string EscapeFilterValue(string? value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return "";
+            }
+
+            StringBuilder escaped = new();
+            foreach (char character in value)
+            {
+                switch (character)
+                {
+                    case '\\':
+                        escaped.Append(@"\5c");
+                        break;
+                    case '*':
+                        escaped.Append(@"\2a");
+                        break;
+                    case '(':
+                        escaped.Append(@"\28");
+                        break;
+                    case ')':
+                        escaped.Append(@"\29");
+                        break;
+                    case '\0':
+                        escaped.Append(@"\00");
+                        break;
+                    default:
+                        escaped.Append(character);
+                        break;
+                }
+            }
+            return escaped.ToString();
+        }
+
         private string GetUserSearchFilter(string searchPattern)
         {
             string userFilter;
             string searchFilter;
+            string escapedSearchPattern = EscapeFilterValue(searchPattern);
             if (Type == (int)LdapType.ActiveDirectory)
             {
                 userFilter = "(&(objectclass=user)(!(objectclass=computer)))";
-                searchFilter = $"(|(cn={searchPattern})(sAMAccountName={searchPattern}))";
+                searchFilter = $"(|(cn={escapedSearchPattern})(sAMAccountName={escapedSearchPattern}))";
             }
             else if (Type == (int)LdapType.OpenLdap)
             {
                 userFilter = "(|(objectclass=user)(objectclass=person)(objectclass=inetOrgPerson)(objectclass=organizationalPerson))";
-                searchFilter = $"(|(cn={searchPattern})(uid={searchPattern}))";
+                searchFilter = $"(|(cn={escapedSearchPattern})(uid={escapedSearchPattern}))";
             }
             else // LdapType.Default
             {
                 userFilter = "(&(|(objectclass=user)(objectclass=person)(objectclass=inetOrgPerson)(objectclass=organizationalPerson))(!(objectclass=computer)))";
-                searchFilter = $"(|(cn={searchPattern})(uid={searchPattern})(userPrincipalName={searchPattern})(mail={searchPattern}))";
+                searchFilter = $"(|(cn={escapedSearchPattern})(uid={escapedSearchPattern})(userPrincipalName={escapedSearchPattern})(mail={escapedSearchPattern}))";
             }
             return (searchPattern == null || searchPattern == "") ? userFilter : $"(&{userFilter}{searchFilter})";
         }
@@ -154,20 +194,21 @@ namespace FWO.Middleware.Server
         {
             string groupFilter;
             string searchFilter;
+            string escapedSearchPattern = EscapeFilterValue(searchPattern);
             if (Type == (int)LdapType.ActiveDirectory)
             {
                 groupFilter = "(objectClass=group)";
-                searchFilter = $"(|(cn={searchPattern})(name={searchPattern}))";
+                searchFilter = $"(|(cn={escapedSearchPattern})(name={escapedSearchPattern}))";
             }
             else if (Type == (int)LdapType.OpenLdap)
             {
                 groupFilter = "(|(objectclass=group)(objectclass=groupofnames)(objectclass=groupofuniquenames))";
-                searchFilter = $"(cn={searchPattern})";
+                searchFilter = $"(cn={escapedSearchPattern})";
             }
             else // LdapType.Default
             {
                 groupFilter = "(|(objectclass=group)(objectclass=groupofnames)(objectclass=groupofuniquenames))";
-                searchFilter = $"(|(dc={searchPattern})(o={searchPattern})(ou={searchPattern})(cn={searchPattern})(uid={searchPattern})(mail={searchPattern}))";
+                searchFilter = $"(|(dc={escapedSearchPattern})(o={escapedSearchPattern})(ou={escapedSearchPattern})(cn={escapedSearchPattern})(uid={escapedSearchPattern})(mail={escapedSearchPattern}))";
             }
             return (searchPattern == null || searchPattern == "") ? groupFilter : $"(&{groupFilter}{searchFilter})";
         }

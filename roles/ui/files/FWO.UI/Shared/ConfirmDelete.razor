@@ -74,6 +74,7 @@
         await PerformAction();
         workInProgress = false;
         Display = false;
+        await DisplayChanged.InvokeAsync(Display);
     }
 
     private void Cancel()

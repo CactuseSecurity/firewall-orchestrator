@@ -1,5 +1,6 @@
 using FWO.Basics;
 using Newtonsoft.Json;
+using System.Net;
 using System.Text.Json.Serialization;
 
 namespace FWO.Data.Workflow
@@ -115,9 +116,11 @@ namespace FWO.Data.Workflow
             string allComments = "";
             foreach (var comment in Comments)
             {
+                string creatorName = asMarkup ? WebUtility.HtmlEncode(comment.Comment.Creator.Name) : comment.Comment.Creator.Name;
+                string commentText = asMarkup ? WebUtility.HtmlEncode(comment.Comment.CommentText) : comment.Comment.CommentText;
                 allComments += comment.Comment.CreationDate.ToShortDateString() + " "
-                            + comment.Comment.Creator.Name + ": "
-                            + comment.Comment.CommentText + (asMarkup ? "<br>" : "\r\n");
+                            + creatorName + ": "
+                            + commentText + (asMarkup ? "<br>" : "\r\n");
             }
             return allComments;
         }

@@ -16,9 +16,6 @@
                 <a class="nav-link" href="/help/settings/managements/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Management"></span> @(userConfig.GetText("managements"))
                 </a>
-                <a class="nav-link" href="/help/settings/flows/networkobjects/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="@Icons.Settings"></span> @(userConfig.GetText("network_objects"))
-                </a>
                 <a class="nav-link" href="/help/settings/gateways/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Gateway"></span> @(userConfig.GetText("gateways"))
                 </a>
@@ -80,6 +77,11 @@
                 </a>
                 <a class="nav-link" href="/help/settings/workflowcustomizing/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Settings"></span> @(userConfig.GetText("customizing"))
+                </a>
+                <p></p>
+                <h5>@(userConfig.GetText("flow"))</h5>
+                <a class="nav-link" href="/help/settings/flows/networkobjects/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Settings"></span> @(userConfig.GetText("network_objects"))
                 </a>
                 <p></p>
                 <h5>@(userConfig.GetText("defaults"))</h5>

@@ -202,6 +202,14 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ConfigData_DefaultsFlowNamingSourceRankingToAnEmptyList()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.FlowNamingSourceManagementRanking, Is.EqualTo("[]"));
+        }
+
+        [Test]
         public void ModIntegrationStateConfig_TrimsAndSerializesNamedStates()
         {
             string configValue = ModIntegrationStateConfig.ToConfigValue(

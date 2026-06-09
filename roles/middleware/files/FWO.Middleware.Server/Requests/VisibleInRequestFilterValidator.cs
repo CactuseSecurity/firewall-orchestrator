@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FWO.Middleware.Server.Requests;
 
-internal static class VisibleInRequestFilterValidator
+public static class VisibleInRequestFilterValidator
 {
     public static bool TryValidate(IVisibleInRequestFilterRequest request, RequestFilterValidationSchema schema, out ActionResult? errorResult)
     {

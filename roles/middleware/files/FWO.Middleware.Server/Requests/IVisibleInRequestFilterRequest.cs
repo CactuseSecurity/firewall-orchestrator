@@ -2,9 +2,7 @@ using System.Text.Json;
 
 namespace FWO.Middleware.Server.Requests;
 
-internal interface IVisibleInRequestFilterRequest
+public interface IVisibleInRequestFilterRequest : IRequestWithRootAdditionalData
 {
     VisibleInRequestFilter? Filter { get; set; }
-
-    Dictionary<string, JsonElement>? AdditionalData { get; set; }
 }

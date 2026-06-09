@@ -1062,6 +1062,103 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DisplayRequestTask_NewInterface_RequestingOwnerDropdownUsesOwnOwners()
+        {
+            RequestWorkflowUserConfig userConfig = new()
+            {
+                ReqAvailableTaskTypes = "[\"new_interface\"]"
+            };
+            userConfig.User.Ownerships = [1, 3];
+            WfHandler handler = new()
+            {
+                DisplayReqTaskMode = true,
+                EditReqTaskMode = true,
+                AddReqTaskMode = true,
+                AllOwners =
+                [
+                    new FwoOwner { Id = 0, Name = "All" },
+                    new FwoOwner { Id = 1, Name = "Own A" },
+                    new FwoOwner { Id = 2, Name = "Foreign" },
+                    new FwoOwner { Id = 3, Name = "Own B" }
+                ],
+                ActReqTask = new WfReqTask
+                {
+                    Id = 0,
+                    Title = "Task",
+                    TaskType = WfTaskType.new_interface.ToString(),
+                    StateId = 0
+                }
+            };
+            handler.ActTicket.Tasks.Add(handler.ActReqTask);
+            WfStateDict states = new() { Name = { [0] = "Draft" } };
+            await using BunitContext context = new();
+            context.Services.AddSingleton<UserConfig>(userConfig);
+
+            IRenderedComponent<DisplayRequestTask> component = RenderDisplayRequestTask(context, handler, states, Roles.Requester);
+
+            List<int> ownerIds = GetMember<IEnumerable<FwoOwner>>(component.Instance, "NewInterfaceOwnerOptions")
+                .Select(owner => owner.Id)
+                .ToList();
+            List<int> requestingOwnerIds = GetMember<IEnumerable<FwoOwner>>(component.Instance, "RequestingOwnerOptions")
+                .Select(owner => owner.Id)
+                .ToList();
+            Assert.Multiple(() =>
+            {
+                Assert.That(ownerIds, Is.EqualTo(new List<int> { 1, 2, 3 }));
+                Assert.That(requestingOwnerIds, Is.EqualTo(new List<int> { 1, 3 }));
+            });
+        }
+
+        [Test]
+        public async Task DisplayRequestTask_NewInterface_AdminRequestingOwnerDropdownUsesAllOwners()
+        {
+            RequestWorkflowUserConfig userConfig = new()
+            {
+                ReqAvailableTaskTypes = "[\"new_interface\"]"
+            };
+            userConfig.User.Roles = [Roles.Admin];
+            userConfig.User.Ownerships = [0];
+            WfHandler handler = new()
+            {
+                DisplayReqTaskMode = true,
+                EditReqTaskMode = true,
+                AddReqTaskMode = true,
+                AllOwners =
+                [
+                    new FwoOwner { Id = 0, Name = "All" },
+                    new FwoOwner { Id = 1, Name = "App A" },
+                    new FwoOwner { Id = 2, Name = "App B" },
+                    new FwoOwner { Id = 3, Name = "App C" }
+                ],
+                ActReqTask = new WfReqTask
+                {
+                    Id = 0,
+                    Title = "Task",
+                    TaskType = WfTaskType.new_interface.ToString(),
+                    StateId = 0
+                }
+            };
+            handler.ActTicket.Tasks.Add(handler.ActReqTask);
+            WfStateDict states = new() { Name = { [0] = "Draft" } };
+            await using BunitContext context = new();
+            context.Services.AddSingleton<UserConfig>(userConfig);
+
+            IRenderedComponent<DisplayRequestTask> component = RenderDisplayRequestTask(context, handler, states, Roles.Admin);
+
+            List<int> ownerIds = GetMember<IEnumerable<FwoOwner>>(component.Instance, "NewInterfaceOwnerOptions")
+                .Select(owner => owner.Id)
+                .ToList();
+            List<int> requestingOwnerIds = GetMember<IEnumerable<FwoOwner>>(component.Instance, "RequestingOwnerOptions")
+                .Select(owner => owner.Id)
+                .ToList();
+            Assert.Multiple(() =>
+            {
+                Assert.That(ownerIds, Is.EqualTo(new List<int> { 1, 2, 3 }));
+                Assert.That(requestingOwnerIds, Is.EqualTo(new List<int> { 1, 2, 3 }));
+            });
+        }
+
+        [Test]
         public async Task DisplayAccessElements_ReadOnlyObjectEntriesPreferGroupName()
         {
             await using BunitContext context = new();

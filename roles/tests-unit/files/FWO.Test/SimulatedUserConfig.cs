@@ -239,6 +239,7 @@ namespace FWO.Test
             {"E9026","Ticket and connection link mismatch" },
             {"E9027","Requested interface removed" },
             {"E9028","Requested interface is already published" },
+            {"E9029","Ticket has multiple request tasks" },
             {"H7423","If requested interface problems still have open tickets, the administrator can close those tickets together as rejected." },
             {"H7424","The button \"Open tickets with requested interface problems\" opens a separate list of all still open new-interface tickets whose requested interface linkage is missing, broken, removed, already published, or suspicious. The check is performed only when opening the popup, so it is independent from the current table filter. Depending on the problem, tickets can be closed as rejected or as done." },
             {"reject_interface","Reject interface" },

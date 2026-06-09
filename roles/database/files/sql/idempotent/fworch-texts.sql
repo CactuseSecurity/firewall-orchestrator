@@ -4188,6 +4188,8 @@ INSERT INTO txt VALUES ('E9027', 'German',  'Angeforderte Schnittstelle gel&ouml
 INSERT INTO txt VALUES ('E9027', 'English', 'Requested interface removed');
 INSERT INTO txt VALUES ('E9028', 'German',  'Angeforderte Schnittstelle ist bereits ver&ouml;ffentlicht');
 INSERT INTO txt VALUES ('E9028', 'English', 'Requested interface is already published');
+INSERT INTO txt VALUES ('E9029', 'German',  'Ticket enth&auml;lt mehrere Anforderungsaufgaben');
+INSERT INTO txt VALUES ('E9029', 'English', 'Ticket has multiple request tasks');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');

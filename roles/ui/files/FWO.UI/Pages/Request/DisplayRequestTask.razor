@@ -159,7 +159,7 @@
                                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("owner"))*:</label>
                                         <div class="col-sm-9">
                                             <Dropdown ElementType="FwoOwner" @bind-SelectedElement="actOwner"
-                                                ElementToString="@(a => a.Display(userConfig.GetText("common_service")))" Elements="WfHandler.AllOwners" Nullable="true">
+                                                ElementToString="@(a => a.Display(userConfig.GetText("common_service")))" Elements="NewInterfaceOwnerOptions" Nullable="true">
                                                 <ElementTemplate Context="app">
                                                     @app.Display(userConfig.GetText("common_service"))
                                                 </ElementTemplate>
@@ -171,7 +171,7 @@
                                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("requesting_owner")):</label>
                                         <div class="col-sm-9">
                                             <Dropdown ElementType="FwoOwner" @bind-SelectedElement="actRequestingOwner"
-                                                ElementToString="@(a => a.Display(userConfig.GetText("common_service")))" Elements="WfHandler.AllOwners" Nullable="true">
+                                                ElementToString="@(a => a.Display(userConfig.GetText("common_service")))" Elements="RequestingOwnerOptions" Nullable="true">
                                                 <ElementTemplate Context="app">
                                                     @app.Display(userConfig.GetText("common_service"))
                                                 </ElementTemplate>
@@ -544,6 +544,10 @@
     private Management? actManagement;
     private FwoOwner? actRequestingOwner;
     private long displayedReqTaskId = -1;
+    private IEnumerable<FwoOwner> NewInterfaceOwnerOptions => WfHandler.AllOwners.Where(owner => owner.Id != 0);
+    private IEnumerable<FwoOwner> RequestingOwnerOptions => userConfig.CanUseAnyRole(Roles.Admin)
+        ? NewInterfaceOwnerOptions
+        : NewInterfaceOwnerOptions.Where(owner => userConfig.User.Ownerships.Contains(owner.Id));
   
     protected override async Task OnInitializedAsync()
     {
@@ -691,7 +695,7 @@
         actTracking = trackings.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.Tracking);
         actManagement = WfHandler.ActReqTask.ManagementId != null ? managements.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.ManagementId) : managements.FirstOrDefault();
         actOwner = WfHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
-        actRequestingOwner = WfHandler.AllOwners.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner));
+        actRequestingOwner = RequestingOwnerOptions.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner));
         await InvokeAsync(StateHasChanged);
     }
 
@@ -1048,13 +1052,18 @@
     private bool RejectInvalidTaskFormat()
     {
         if (WfHandler.ActReqTask.Title == null || WfHandler.ActReqTask.Title == "" ||
-            (actTaskType == WfTaskType.new_interface && actOwner == null))
+            (actTaskType == WfTaskType.new_interface && (actOwner == null || !IsRequestingOwnerAllowed())))
         {
             DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
             return false;
         }
 
         return true;
+    }
+
+    private bool IsRequestingOwnerAllowed()
+    {
+        return actRequestingOwner == null || RequestingOwnerOptions.Any(owner => owner.Id == actRequestingOwner.Id);
     }
 
     private bool RejectInvalidAccessTask()

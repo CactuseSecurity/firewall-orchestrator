@@ -34,7 +34,7 @@ namespace FWO.Services.Workflow
         public void SetImplTaskEnv(WfImplTask implTask)
         {
             ActImplTask = new WfImplTask(implTask);
-            WfTicket? tick = TicketList.FirstOrDefault(x => x.Id == ActImplTask.TicketId);
+            WfTicket? tick = ActTicket.Id == ActImplTask.TicketId ? ActTicket : TicketList.FirstOrDefault(x => x.Id == ActImplTask.TicketId);
             if (tick != null)
             {
                 ActTicket = tick;

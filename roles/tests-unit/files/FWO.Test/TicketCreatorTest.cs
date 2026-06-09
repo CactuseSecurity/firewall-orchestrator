@@ -89,6 +89,8 @@ namespace FWO.Test
                 }
                 if (query == RequestQueries.updateTicketState
                     || query == RequestQueries.updateRequestTaskState
+                    || query == RequestQueries.updateImplementationTask
+                    || query == RequestQueries.updateImplementationTaskState
                     || query == RequestQueries.updateRequestTaskAdditionalInfo
                     || query == RequestQueries.updateApproval)
                 {
@@ -340,6 +342,51 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task PromoteNewInterfaceImplTasks_PromotesSelectedRequestTasks()
+        {
+            WfImplTask firstImplTask = CreateImplementationTask(21, 11);
+            WfImplTask ignoredImplTask = CreateImplementationTask(22, 12);
+            WfImplTask secondImplTask = CreateImplementationTask(23, 13);
+            TicketCreatorTestApiConn apiConn = new()
+            {
+                TicketById = new WfTicket
+                {
+                    Id = 42,
+                    StateId = 210,
+                    Tasks =
+                    [
+                        CreateNewInterfaceTask(11, firstImplTask),
+                        CreateNewInterfaceTask(12, ignoredImplTask),
+                        CreateNewInterfaceTask(13, secondImplTask)
+                    ]
+                },
+                ExtStates = [new WfExtState { Name = ExtStates.Rejected.ToString(), StateId = 249 }]
+            };
+            TicketCreator ticketCreator = CreateTicketCreator(apiConn);
+
+            int promotedCount = await ticketCreator.PromoteNewInterfaceImplTasks(42, ExtStates.Rejected, [11, 13], "reject relevant");
+
+            List<long> updatedImplTaskIds = apiConn.Queries
+                .Select((query, index) => new { query, index })
+                .Where(entry => entry.query == RequestQueries.updateImplementationTaskState)
+                .Where(entry => GetVariable<int>(apiConn.Variables[entry.index], "state") == 249)
+                .Select(entry => GetVariable<long>(apiConn.Variables[entry.index], "id"))
+                .ToList();
+            List<long> updatedRequestTaskIds = apiConn.Queries
+                .Select((query, index) => new { query, index })
+                .Where(entry => entry.query == RequestQueries.updateRequestTaskState)
+                .Select(entry => GetVariable<long>(apiConn.Variables[entry.index], "id"))
+                .ToList();
+            Assert.Multiple(() =>
+            {
+                Assert.That(promotedCount, Is.EqualTo(2));
+                Assert.That(updatedImplTaskIds, Is.EqualTo(new List<long> { 21, 23 }));
+                Assert.That(updatedRequestTaskIds, Is.EqualTo(new List<long> { 11, 13 }));
+                Assert.That(apiConn.Queries.Count(query => query == RequestQueries.addCommentToImplTask), Is.EqualTo(2));
+            });
+        }
+
+        [Test]
         public async Task CreateUnusedRuleDeleteTicket_CreatesRuleDeleteTasksAndTicketComment()
         {
             TicketCreatorTestApiConn apiConn = new();
@@ -403,6 +450,30 @@ namespace FWO.Test
             };
             return new TicketCreator(apiConn, userConfig, new ClaimsPrincipal(), null!,
                 WorkflowPhases.request, null, DefaultInit.DoNothing);
+        }
+
+        private static WfReqTask CreateNewInterfaceTask(long id, WfImplTask implTask)
+        {
+            return new WfReqTask
+            {
+                Id = id,
+                TicketId = 42,
+                StateId = 210,
+                TaskType = WfTaskType.new_interface.ToString(),
+                ImplementationTasks = { implTask }
+            };
+        }
+
+        private static WfImplTask CreateImplementationTask(long id, long requestTaskId)
+        {
+            return new WfImplTask
+            {
+                Id = id,
+                TicketId = 42,
+                ReqTaskId = requestTaskId,
+                StateId = 210,
+                TaskType = WfTaskType.new_interface.ToString()
+            };
         }
 
         private static TValue GetVariable<TValue>(object? variables, string propertyName)

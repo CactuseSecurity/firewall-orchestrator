@@ -1,9 +1,13 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace FWO.Middleware.Server.Requests;
 
-public sealed class GetServiceObjectsRequest
+public sealed class GetServiceObjectsRequest : IVisibleInRequestFilterRequest
 {
     [JsonPropertyName("filter")]
-    public VisibleInRequestFilter Filter { get; set; } = new();
+    public VisibleInRequestFilter? Filter { get; set; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalData { get; set; }
 }

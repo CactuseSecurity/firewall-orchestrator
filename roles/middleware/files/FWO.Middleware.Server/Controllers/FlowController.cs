@@ -14,30 +14,55 @@ public class FlowController : ControllerBase
     [HttpPost("getAddressObjects")]
     public ActionResult<List<AddressObjectResponse>> GetAddressObjects([FromBody] GetAddressObjectsRequest request)
     {
+        if (!VisibleInRequestFilterValidator.TryValidate(request, nameof(GetAddressObjects), out ActionResult? errorResult))
+        {
+            return errorResult!;
+        }
+
         return StatusCode(StatusCodes.Status501NotImplemented);
     }
 
     [HttpPost("getAddressGroups")]
     public ActionResult<List<AddressGroupResponse>> GetAddressGroups([FromBody] GetAddressGroupsRequest request)
     {
+        if (!VisibleInRequestFilterValidator.TryValidate(request, nameof(GetAddressGroups), out ActionResult? errorResult))
+        {
+            return errorResult!;
+        }
+
         return StatusCode(StatusCodes.Status501NotImplemented);
     }
 
     [HttpPost("getServiceObjects")]
     public ActionResult<List<ServiceObjectResponse>> GetServiceObjects([FromBody] GetServiceObjectsRequest request)
     {
+        if (!VisibleInRequestFilterValidator.TryValidate(request, nameof(GetServiceObjects), out ActionResult? errorResult))
+        {
+            return errorResult!;
+        }
+
         return StatusCode(StatusCodes.Status501NotImplemented);
     }
 
     [HttpPost("getServiceGroups")]
     public ActionResult<List<ServiceGroupResponse>> GetServiceGroups([FromBody] GetServiceGroupsRequest request)
     {
+        if (!VisibleInRequestFilterValidator.TryValidate(request, nameof(GetServiceGroups), out ActionResult? errorResult))
+        {
+            return errorResult!;
+        }
+
         return StatusCode(StatusCodes.Status501NotImplemented);
     }
 
     [HttpPost("getTimeObjects")]
     public ActionResult<List<TimeObjectResponse>> GetTimeObjects([FromBody] GetTimeObjectsRequest request)
     {
+        if (!VisibleInRequestFilterValidator.TryValidate(request, nameof(GetTimeObjects), out ActionResult? errorResult))
+        {
+            return errorResult!;
+        }
+
         return StatusCode(StatusCodes.Status501NotImplemented);
     }
 

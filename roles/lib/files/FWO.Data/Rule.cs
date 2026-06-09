@@ -84,19 +84,15 @@ namespace FWO.Data
         public RuleMetadata Metadata { get; set; } = new();
 
         [SystemTextJsonIgnore]
-        [JsonProperty("rule_last_seen"), JsonPropertyName("rule_last_seen")]
-        public long? LastSeenImportId { get; set; }
-
-        [SystemTextJsonIgnore]
-        [JsonProperty("importControlByRuleLastSeen"), JsonPropertyName("importControlByRuleLastSeen")]
-        public ImportControl? LastSeenImport { get; set; }
+        [JsonProperty("importControlByRemoved"), JsonPropertyName("importControlByRemoved")]
+        public ImportControl? RemovedImport { get; set; }
 
         [SystemTextJsonIgnore]
         [JsonProperty("createdImport"), JsonPropertyName("createdImport")]
         public ImportControl? CreatedImport { get; set; }
 
         [SystemTextJsonIgnore]
-        public DateTime? LastModified => LastSeenImport?.StartTime ?? Metadata?.Created;
+        public DateTime? LastModified => RemovedImport?.StartTime ?? CreatedImport?.StartTime ?? Metadata?.Created;
 
         [JsonProperty("translate"), JsonPropertyName("translate")]
         public NatData NatData { get; set; } = new();

@@ -47,13 +47,13 @@
     - name: remove legacy middleware listen lines on Debian
       lineinfile:
         path: "{{ apache_ports_config_file }}"
-        regexp: "^(?![[:space:]])Listen {{ middleware_web_listener_port }}$"
+        regexp: '^(?!\s)Listen {{ middleware_web_listener_port }}$'
         state: absent
 
     - name: add mw port to apache on Debian
       lineinfile:
         path: "{{ apache_ports_config_file }}"
-        regexp: "^[[:space:]]*Listen {{ middleware_web_listener_port }}$"
+        regexp: '^\s*Listen {{ middleware_web_listener_port }}$'
         line: "    Listen {{ middleware_web_listener_port }}"
         insertafter: "<IfModule ssl_module>"
 

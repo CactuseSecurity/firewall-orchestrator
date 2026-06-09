@@ -51,13 +51,13 @@
     - name: remove legacy api listen lines on Debian
       lineinfile:
         path: "{{ apache_ports_config_file }}"
-        regexp: "^(?![[:space:]])Listen {{ api_web_port }}$"
+        regexp: '^(?!\s)Listen {{ api_web_port }}$'
         state: absent
 
     - name: add api port to apache on Debian
       lineinfile:
         path: "{{ apache_ports_config_file }}"
-        regexp: "^[[:space:]]*Listen {{ api_web_port }}$"
+        regexp: '^\s*Listen {{ api_web_port }}$'
         line: "    Listen {{ api_web_port }}"
         insertafter: "<IfModule ssl_module>"
 

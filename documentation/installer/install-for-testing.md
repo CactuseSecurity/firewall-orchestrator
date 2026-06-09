@@ -4,12 +4,13 @@ always change into the firewwall-orchestrator directory before starting the inst
 
 ## testkeys - not for production use
 
-Use the testkeys switch to always use the same fixed secrets.
+Use the testkeys switch only in isolated development or test environments to always use the same fixed secrets.
 This includes:
 - jwt generation keys
 - API hasura admin secret
 - UI admin user
-Note: the relevant secrets are displayed at the very end of the installation. They can also be found in the etc/secrets directory.
+These secrets are fixed and publicly known in the source tree. They must never be used for production installations.
+Note: the installer writes these secrets into the etc/secrets directory and prints only the file paths at the end of the installation.
 
 ```console
 ansible-playbook site.yml -e "testkeys=yes" -K

@@ -1,29 +1,54 @@
 import logging
+import os
 import threading
 import time
-from typing import TYPE_CHECKING
+from collections.abc import Generator
+from contextlib import contextmanager
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TextIO, TypeAlias, cast
+
+try:
+    import fcntl as fcntl_module
+except ImportError:
+    fcntl_module = None
+
+
+class FileLockModule(Protocol):
+    LOCK_EX: int
+    LOCK_UN: int
+
+    def flock(self, file_descriptor: int, lock_type: int) -> None: ...
+
+
+fcntl: FileLockModule | None = cast("FileLockModule", fcntl_module) if fcntl_module is not None else None
+OpenTextMode: TypeAlias = Literal["r", "w", "a", "x", "r+", "w+", "a+"]
 
 if TYPE_CHECKING:
     from models.import_state import ImportState
 
     from importer.services.uid2id_mapper import Uid2IdMapper
 
-from typing import Any, Literal
-
 
 class LogLock:
-    semaphore = threading.Semaphore()
+    lock_file_path: str | os.PathLike[str] = "/var/fworch/lock/importer_api_log.lock"
+    semaphore = threading.BoundedSemaphore()
+    lock_thread: threading.Thread | None = None
+    thread_lock = threading.Lock()
 
-    @staticmethod
-    def handle_log_lock():
-        # Initialize values
-        lock_file_path = "/var/fworch/lock/importer_api_log.lock"
+    @classmethod
+    def start(cls):
+        with cls.thread_lock:
+            if cls.lock_thread is None or not cls.lock_thread.is_alive():
+                cls.lock_thread = threading.Thread(target=cls.handle_log_lock, name="FWOLogLock", daemon=True)
+                cls.lock_thread.start()
+
+    @classmethod
+    def handle_log_lock(cls):
         log_owned = False
         stopwatch = time.time()
 
         while True:
             try:
-                with open(lock_file_path, "a+") as file:
+                with cls.locked_file("a+") as file:
                     # Jump to the beginning of the file
                     file.seek(0)
                     # Read the file content
@@ -34,26 +59,26 @@ class LogLock:
                         if time.time() - stopwatch > 10:  # noqa: PLR2004
                             file.write("FORCEFULLY RELEASED\n")
                             stopwatch = -1
-                            LogLock.semaphore.release()
+                            cls.semaphore.release()
                             log_owned = False
 
                         elif lock_file_content.endswith("RELEASED"):
                             # RELEASED - lock was released by log swap process
                             # only release lock if it was formerly requested by us
                             stopwatch = -1
-                            LogLock.semaphore.release()
+                            cls.semaphore.release()
                             log_owned = False
 
                     elif lock_file_content.endswith("GRANTED"):
                         # Request lock if it is not already requested by us
                         # (in case of restart with log already granted)
-                        LogLock.semaphore.acquire()
+                        cls.semaphore.acquire()
                         stopwatch = time.time()
                         log_owned = True
 
                     elif lock_file_content.endswith("REQUESTED"):
                         # REQUESTED - lock was requested by log swap process
-                        LogLock.semaphore.acquire()
+                        cls.semaphore.acquire()
                         stopwatch = time.time()
                         log_owned = True
                         file.write("GRANTED\n")
@@ -61,6 +86,19 @@ class LogLock:
                 pass
             # Wait a second
             time.sleep(1)
+
+    @classmethod
+    @contextmanager
+    def locked_file(cls, mode: OpenTextMode) -> Generator[TextIO]:
+        with open(cls.lock_file_path, mode, encoding="utf-8") as file:
+            if fcntl is not None:
+                fcntl.flock(file.fileno(), fcntl.LOCK_EX)
+            try:
+                yield file
+            finally:
+                file.flush()
+                if fcntl is not None:
+                    fcntl.flock(file.fileno(), fcntl.LOCK_UN)
 
 
 class FWOLogger:
@@ -73,6 +111,7 @@ class FWOLogger:
         return cls.instance
 
     def __init__(self, _debug_level: int = 0):
+        LogLock.start()
         self.logger = get_fwo_logger(_debug_level)
         self.debug_level = _debug_level
 
@@ -87,28 +126,48 @@ class FWOLogger:
     def debug(msg: str, needed_level: int = 1):
         log = FWOLogger.instance.get_logger()
         if FWOLogger.instance.debug_level >= needed_level:
-            # Find the caller's frame to show correct file/function/line info
-            log.debug(msg, stacklevel=2)
+            LogLock.semaphore.acquire()
+            try:
+                # Find the caller's frame to show correct file/function/line info
+                log.debug(msg, stacklevel=2)
+            finally:
+                LogLock.semaphore.release()
 
     @staticmethod
     def error(msg: str):
         logger = FWOLogger.instance.get_logger()
-        logger.error(msg, stacklevel=2)
+        LogLock.semaphore.acquire()
+        try:
+            logger.error(msg, stacklevel=2)
+        finally:
+            LogLock.semaphore.release()
 
     @staticmethod
     def info(msg: str):
         logger = FWOLogger.instance.get_logger()
-        logger.info(msg, stacklevel=2)
+        LogLock.semaphore.acquire()
+        try:
+            logger.info(msg, stacklevel=2)
+        finally:
+            LogLock.semaphore.release()
 
     @staticmethod
     def warning(msg: str):
         logger = FWOLogger.instance.get_logger()
-        logger.warning(msg, stacklevel=2)
+        LogLock.semaphore.acquire()
+        try:
+            logger.warning(msg, stacklevel=2)
+        finally:
+            LogLock.semaphore.release()
 
     @staticmethod
     def exception(msg: str, exc_info: Any = None):
         logger = FWOLogger.instance.get_logger()
-        logger.exception(msg, exc_info=exc_info, stacklevel=2)
+        LogLock.semaphore.acquire()
+        try:
+            logger.exception(msg, exc_info=exc_info, stacklevel=2)
+        finally:
+            LogLock.semaphore.release()
 
     @staticmethod
     def is_debug_level(level: int) -> bool:

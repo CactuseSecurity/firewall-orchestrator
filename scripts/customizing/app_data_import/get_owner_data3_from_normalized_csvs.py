@@ -501,8 +501,12 @@ if __name__ == "__main__":
     local_repo_base_path.mkdir(parents=True, exist_ok=True)
     app_data_repo_target_dir: str = str(local_repo_base_path / "cmdb-repo")
     recert_repo_target_dir: str = str(local_repo_base_path / "recert-repo")
-
     import_from_folder: str | None = args.import_from_folder
+
+    # Cleanup target dir if we are not importing from a folder, to avoid mixing of old and new files
+    if import_from_folder is None:
+        cleanup_repo_target_dir(app_data_repo_target_dir)
+
     try:
         if import_from_folder:
             base_dir = import_from_folder
@@ -619,6 +623,6 @@ if __name__ == "__main__":
             for owner in app_dict.values():
                 total_ips += len(owner.app_servers)
             logger.info("#ip addresses in total: %s", total_ips)
-    finally:
-        if import_from_folder is None:
-            cleanup_repo_target_dir(app_data_repo_target_dir)
+    except Exception:
+        logger.exception("Error during app data import")
+        sys.exit(1)

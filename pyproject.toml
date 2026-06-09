@@ -5,6 +5,7 @@ include = [
 ]
 extraPaths = ["roles/importer/files/importer"]
 venv = ".venv"
+pythonPlatform = "Linux"
 
 exclude = [
     "**/.*",

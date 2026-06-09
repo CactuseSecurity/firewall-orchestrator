@@ -14,6 +14,7 @@ using PuppeteerSharp.Media;
 using PuppeteerSharp.BrowserData;
 using HtmlAgilityPack;
 using System.Runtime.InteropServices;
+using System.Net;
 
 namespace FWO.Report
 {
@@ -230,6 +231,21 @@ namespace FWO.Report
         protected static string OutputCsv(string? input)
         {
             return $"\"{input?.Replace("\"", "\"\"") ?? ""}\",";
+        }
+
+        protected static string EncodeHtml(string? value)
+        {
+            return WebUtility.HtmlEncode(value ?? "");
+        }
+
+        protected static string FormatHtmlCell(string value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? ""
+                : EncodeHtml(value)
+                    .Replace("\r\n", "<br>")
+                    .Replace("\n", "<br>")
+                    .Replace("\r", "<br>");
         }
 
         protected string GenerateHtmlFrameBase(string title, string filter, DateTime date, StringBuilder htmlReport, string? otherFilter = null, string? ownerFilter = null, TimeFilter? timeFilter = null)

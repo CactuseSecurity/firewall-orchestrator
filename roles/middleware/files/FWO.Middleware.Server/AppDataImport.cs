@@ -64,11 +64,14 @@ namespace FWO.Middleware.Server
 
             foreach (var importfilePathAndName in importfilePathAndNames)
             {
-                if (!RunImportScript(importfilePathAndName + ".py", globalConfig.ImportAppDataScriptArgs))
+                string importSourcePath = FWO.Basics.ImportPathPolicy.RemoveAllowedExtension(importfilePathAndName);
+                List<string> validatedImportFiles = ValidateConfiguredImportSource(importSourcePath);
+                string scriptPath = importSourcePath + ".py";
+                if (validatedImportFiles.Contains(scriptPath) && !RunImportScript(scriptPath, globalConfig.ImportAppDataScriptArgs))
                 {
-                    Log.WriteInfo(LogMessageTitle, $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
+                    Log.WriteInfo(LogMessageTitle, $"Script {scriptPath} failed but trying to import from existing file.");
                 }
-                await ImportSingleSource(importfilePathAndName + ".json", failedImports, ownerChangeTracker);
+                await ImportSingleSource(importSourcePath + ".json", failedImports, ownerChangeTracker);
             }
 
             await ownerChangeTracker.CompleteImport(failedImports.Count == 0);
@@ -197,7 +200,7 @@ namespace FWO.Middleware.Server
                 }
                 // Store users from all imported responsibles in uiuser for email notifications.
                 await AddAllResponsiblesToUiUser(responsibles);
-                await InitRecert(incomingApp, existingApp, appId);
+                await InitRecert(incomingApp, appId);
             }
             catch (Exception exc)
             {
@@ -474,7 +477,7 @@ namespace FWO.Middleware.Server
                 ownerLifeCycleStateId,
                 importSource = incomingApp.ImportSource,
                 commSvcPossible = false,
-                recertActive = false,
+                recertActive = incomingApp.RecertActive,
                 decommDate = GetDecommDateForNewOwner(ownerLifeCycleStateId)
             };
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newOwner, variables)).ReturnIds;
@@ -552,7 +555,7 @@ namespace FWO.Middleware.Server
         private List<OwnerResponsible> BuildOwnerResponsibles(ModellingImportAppData incomingApp)
         {
             List<OwnerResponsible> responsibles = [];
-            HashSet<string> seenTypeDn = new(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> seenTypeDn = new(StringComparer.Ordinal);
 
             if (incomingApp.Responsibles != null && incomingApp.Responsibles.Count > 0)
             {
@@ -594,7 +597,7 @@ namespace FWO.Middleware.Server
                 return;
             }
             string normalizedDn = dn.Trim();
-            string dedupKey = $"{responsibleTypeId}|{normalizedDn}";
+            string dedupKey = $"{responsibleTypeId}|{DistName.NormalizeDnForComparison(normalizedDn)}";
             if (seenTypeDn.Add(dedupKey))
             {
                 responsibles.Add(new OwnerResponsible
@@ -708,7 +711,7 @@ namespace FWO.Middleware.Server
 
         private static string NormalizeDn(string dn)
         {
-            return dn.Trim().ToUpperInvariant();
+            return DistName.NormalizeDnForComparison(dn);
         }
 
         private async Task ApplyRolesToResponsibles(List<OwnerResponsible> responsibles, Dictionary<int, List<string>> rolesByType)
@@ -805,13 +808,13 @@ namespace FWO.Middleware.Server
         /// </summary>
         private async Task AddAllResponsiblesToUiUser(IEnumerable<OwnerResponsible> responsibles)
         {
-            HashSet<string> handledUserDns = new(StringComparer.OrdinalIgnoreCase);
-            HashSet<string> handledGroupDnsByLdap = new(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> handledUserDns = new(DistName.DnComparer);
+            HashSet<string> handledGroupDnsByLdap = new(StringComparer.Ordinal);
 
             foreach (string responsibleDn in responsibles
                 .Where(responsible => !string.IsNullOrWhiteSpace(responsible.Dn))
                 .Select(responsible => responsible.Dn.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase))
+                .Distinct(DistName.DnComparer))
             {
                 await AddResponsibleDnToUiUser(responsibleDn, handledUserDns, handledGroupDnsByLdap);
             }
@@ -827,7 +830,7 @@ namespace FWO.Middleware.Server
 
             foreach (Ldap ldap in connectedLdaps)
             {
-                string groupKey = $"{ldap.Id}|{normalizedResponsibleDn}";
+                string groupKey = BuildLdapDnKey(ldap.Id, normalizedResponsibleDn);
                 if (!handledGroupDnsByLdap.Add(groupKey))
                 {
                     continue;
@@ -859,6 +862,11 @@ namespace FWO.Middleware.Server
                 Log.WriteWarning(LogMessageTitle, $"Resolved imported user \"{uiUser.Dn}\" could not be written to uiuser.");
             }
             return true;
+        }
+
+        private static string BuildLdapDnKey(int ldapId, string dn)
+        {
+            return $"{ldapId}|{DistName.NormalizeDnForComparison(dn)}";
         }
 
         private async Task<UiUser?> ConvertLdapToUiUser(string userDn)
@@ -1269,10 +1277,9 @@ namespace FWO.Middleware.Server
             return true;
         }
 
-        private async Task InitRecert(ModellingImportAppData incomingApp, FwoOwner? existingApp, int appId)
+        private async Task InitRecert(ModellingImportAppData incomingApp, int appId)
         {
-            if (userConfig.RecertificationMode == RecertificationMode.OwnersAndRules &&
-                incomingApp.RecertActive && (existingApp == null || !existingApp.RecertActive))
+            if (userConfig.RecertificationMode == RecertificationMode.OwnersAndRules && incomingApp.RecertActive)
             {
                 RecertHandler recertHandler = new(apiConnection, userConfig);
                 await recertHandler.InitOwnerRecert(new()

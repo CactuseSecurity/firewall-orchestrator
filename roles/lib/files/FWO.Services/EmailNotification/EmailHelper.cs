@@ -408,7 +408,7 @@ namespace FWO.Services
 
         private async Task<List<string>> CollectEmailAddressesFromDns(IEnumerable<string>? dns)
         {
-            List<string> dnsList = dns?.Where(dn => !string.IsNullOrWhiteSpace(dn)).Distinct(StringComparer.OrdinalIgnoreCase).ToList() ?? [];
+            List<string> dnsList = dns?.Where(dn => !string.IsNullOrWhiteSpace(dn)).Distinct(DistName.DnComparer).ToList() ?? [];
             if (dnsList.Count == 0)
             {
                 Log.WriteWarning("Workflow Email", "No DNs supplied for recipient resolution.");
@@ -436,7 +436,7 @@ namespace FWO.Services
 
         private async Task<List<string>> CollectEmailAddressesFromResolver(IEnumerable<string>? dns)
         {
-            List<string> dnsList = dns?.Where(dn => !string.IsNullOrWhiteSpace(dn)).Distinct(StringComparer.OrdinalIgnoreCase).ToList() ?? [];
+            List<string> dnsList = dns?.Where(dn => !string.IsNullOrWhiteSpace(dn)).Distinct(DistName.DnComparer).ToList() ?? [];
             if (recipientResolver == null || dnsList.Count == 0)
             {
                 return [];
@@ -458,7 +458,7 @@ namespace FWO.Services
                 return;
             }
 
-            UiUser? existingUser = uiUsers.FirstOrDefault(user => user.Dn.Equals(resolvedUser.Dn, StringComparison.OrdinalIgnoreCase));
+            UiUser? existingUser = uiUsers.FirstOrDefault(user => DistName.DnEquals(user.Dn, resolvedUser.Dn));
             if (existingUser == null)
             {
                 uiUsers.Add(resolvedUser);
@@ -473,7 +473,7 @@ namespace FWO.Services
 
         private async Task<List<string>> ResolveUserDns(IEnumerable<string>? dns)
         {
-            List<string> dnsList = dns?.Where(dn => !string.IsNullOrWhiteSpace(dn)).Distinct(StringComparer.OrdinalIgnoreCase).ToList() ?? [];
+            List<string> dnsList = dns?.Where(dn => !string.IsNullOrWhiteSpace(dn)).Distinct(DistName.DnComparer).ToList() ?? [];
             if (dnsList.Count == 0)
             {
                 return [];
@@ -506,7 +506,7 @@ namespace FWO.Services
                 var response = await middlewareClient.ResolveGroupMembers(new GroupResolveParameters { Dns = dnsList });
                 if (response.IsSuccessful && response.Data != null)
                 {
-                    return [.. response.Data.Where(dn => !string.IsNullOrWhiteSpace(dn)).Distinct(StringComparer.OrdinalIgnoreCase)];
+                    return [.. response.Data.Where(dn => !string.IsNullOrWhiteSpace(dn)).Distinct(DistName.DnComparer)];
                 }
 
                 DisplayResolveGroupMembersError(null);
@@ -520,10 +520,10 @@ namespace FWO.Services
 
         private List<string> ResolveUserDnsFromOwnerGroups(List<string> dnsList)
         {
-            HashSet<string> resolved = new(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> resolved = new(DistName.DnComparer);
             foreach (string dn in dnsList)
             {
-                UserGroup? ownerGroup = ownerGroups.FirstOrDefault(x => x.Dn == dn);
+                UserGroup? ownerGroup = ownerGroups.FirstOrDefault(x => DistName.DnEquals(x.Dn, dn));
                 if (ownerGroup != null)
                 {
                     foreach (var user in ownerGroup.Users)
@@ -550,7 +550,7 @@ namespace FWO.Services
             {
                 return userConfig.DummyEmailAddress;
             }
-            UiUser? uiuser = uiUsers.FirstOrDefault(x => x.Dn == dn);
+            UiUser? uiuser = uiUsers.FirstOrDefault(x => DistName.DnEquals(x.Dn, dn));
             if (uiuser != null && uiuser.Email != null && uiuser.Email != "")
             {
                 return uiuser.Email;

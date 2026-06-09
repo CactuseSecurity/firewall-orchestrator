@@ -940,6 +940,10 @@ INSERT INTO txt VALUES ('show_all_owners',		'German', 	'Alle Eigent&uuml;mer mit
 INSERT INTO txt VALUES ('show_all_owners',		'English', 	'All owners with active recertification');
 INSERT INTO txt VALUES ('show_inactive_recert_owners', 'German', 'Eigent&uuml;mer ohne aktive Rezertifizierung');
 INSERT INTO txt VALUES ('show_inactive_recert_owners', 'English', 'Owners with inactive recertification');
+INSERT INTO txt VALUES ('merge_owner_recert_tables', 'German', 'Alle angezeigten Tabellen zusammenf&uuml;hren');
+INSERT INTO txt VALUES ('merge_owner_recert_tables', 'English', 'Merge all displayed tables');
+INSERT INTO txt VALUES ('owner_additional_info_key', 'German', 'Schl&uuml;ssel der Zusatzinformation');
+INSERT INTO txt VALUES ('owner_additional_info_key', 'English', 'Additional info key');
 INSERT INTO txt VALUES ('recert_activated',		'German', 	'Rezertifizierung aktiviert');
 INSERT INTO txt VALUES ('recert_activated',		'English', 	'Recertification activated');
 INSERT INTO txt VALUES ('no_recerts',			'German', 	'keine Rezertifizierung vorhanden');
@@ -992,6 +996,10 @@ INSERT INTO txt VALUES ('schedule_tile',		'German',	'Terminplan');
 INSERT INTO txt VALUES ('schedule_tile',		'English',	'Report schedule');
 INSERT INTO txt VALUES ('schedule_upd_err_msg',	'German',	'Das Laden der terminierten Reports f&uuml;hrte zu einem Fehler.');
 INSERT INTO txt VALUES ('schedule_upd_err_msg',	'English',	'Loading the scheduled reports resulted in an error.');
+INSERT INTO txt VALUES ('Hours', 		        'German',	'Stunde(n)');
+INSERT INTO txt VALUES ('Hours', 		        'English',	'Hour(s)');
+INSERT INTO txt VALUES ('Minutes2', 		    'German',	'Minute(n)');
+INSERT INTO txt VALUES ('Minutes2', 		    'English',	'Minute(s)');
 
 -- archive
 INSERT INTO txt VALUES ('download',				'German', 	'Herunterladen');
@@ -2794,10 +2802,22 @@ INSERT INTO txt VALUES ('requested_ext_app_id', 'German',   'Angeforderte extern
 INSERT INTO txt VALUES ('requested_ext_app_id', 'English',  'Requested External Application Id');
 INSERT INTO txt VALUES ('requesting_ext_app_id','German',   'Anfordernde externe Anwendungs-Id');
 INSERT INTO txt VALUES ('requesting_ext_app_id','English',  'Requesting External Application Id');
+INSERT INTO txt VALUES ('requesting_owner_state','German',  'Status des anfordernden Eigent&uuml;mers');
+INSERT INTO txt VALUES ('requesting_owner_state','English', 'Requesting Owner State');
 INSERT INTO txt VALUES ('used_in_connection_ids','German',  'Genutzt in Verbindungs-ID(s)');
 INSERT INTO txt VALUES ('used_in_connection_ids','English', 'Used In Connection ID(s)');
-INSERT INTO txt VALUES ('show_removed_requested_interfaces','German', 'Gel&ouml;schte angeforderte Schnittstellen anzeigen');
-INSERT INTO txt VALUES ('show_removed_requested_interfaces','English', 'Show removed requested interfaces');
+INSERT INTO txt VALUES ('requested_owner_state','German',   'Status des angeforderten Eigent&uuml;mers');
+INSERT INTO txt VALUES ('requested_owner_state','English',  'Requested Owner State');
+INSERT INTO txt VALUES ('show_removed_requested_interfaces','German', 'Gel&ouml;schte angeforderte Schnittstellen');
+INSERT INTO txt VALUES ('show_removed_requested_interfaces','English', 'Removed requested interfaces');
+INSERT INTO txt VALUES ('show_import_deactivated_requested_interfaces','German', 'Schnittstellenanfragen import-deaktivierter Eigent&uuml;mer');
+INSERT INTO txt VALUES ('show_import_deactivated_requested_interfaces','English', 'Interface requests of import-deactivated owners');
+INSERT INTO txt VALUES ('show_lifecycle_deactivated_requested_interfaces','German', 'Schnittstellenanfragen von Eigent&uuml;mern mit inaktivem Lifecycle-Status');
+INSERT INTO txt VALUES ('show_lifecycle_deactivated_requested_interfaces','English', 'Interface requests of owners with inactive lifecycle state');
+INSERT INTO txt VALUES ('owner_import_deactivated','German', 'Durch Import deaktiviert');
+INSERT INTO txt VALUES ('owner_import_deactivated','English', 'Import deactivated');
+INSERT INTO txt VALUES ('owner_lifecycle_deactivated','German', 'Inaktiver Lifecycle-Status');
+INSERT INTO txt VALUES ('owner_lifecycle_deactivated','English', 'Inactive lifecycle state');
 INSERT INTO txt VALUES ('criticality',          'German',   'Kritikalit&auml;t');
 INSERT INTO txt VALUES ('criticality',          'English',  'Criticality');
 INSERT INTO txt VALUES ('comm_svc_possible',    'German',   'Common Service zugelassen');
@@ -2806,8 +2826,8 @@ INSERT INTO txt VALUES ('additional_info',      'German',   'Zus&auml;tzliche In
 INSERT INTO txt VALUES ('additional_info',      'English',  'Additional Information');
 INSERT INTO txt VALUES ('dn',                   'German',   'Vollst&auml;ndiger Name');
 INSERT INTO txt VALUES ('dn',                   'English',  'Distinguished Name');
-INSERT INTO txt VALUES ('main_responsible',     'German',   'Hauptverantwortlicher (DN)');
-INSERT INTO txt VALUES ('main_responsible',     'English',  'Main responsible person (DN)');
+INSERT INTO txt VALUES ('main_responsible',     'German',   'Hauptverantwortlicher');
+INSERT INTO txt VALUES ('main_responsible',     'English',  'Main responsible person');
 INSERT INTO txt VALUES ('responsibles',         'German',   'Verantwortliche');
 INSERT INTO txt VALUES ('responsibles',         'English',  'Responsibles');
 INSERT INTO txt VALUES ('allow_modelling',      'German',   'Modelling erlauben');
@@ -3099,10 +3119,10 @@ INSERT INTO txt VALUES ('set_roles_with_import','German', 	'Beim Import zu setze
 INSERT INTO txt VALUES ('set_roles_with_import','English', 	'Set Roles with import');
 INSERT INTO txt VALUES ('no_owners',			'German', 	'Keine Eigent&uuml;mer zur Auswahl');
 INSERT INTO txt VALUES ('no_owners',			'English', 	'No owners to be selected');
-INSERT INTO txt VALUES ('accesstoken_lifetime', 'German', 	'Access Token G&uuml;ltigkeitsdauer (in Stunden)');
-INSERT INTO txt VALUES ('accesstoken_lifetime', 'English',  'Access Token Lifetime (in Hours)');
-INSERT INTO txt VALUES ('refreshtoken_lifetime','German',   'Refresh Token G&uuml;ltigkeitsdauer (in Tagen)');
-INSERT INTO txt VALUES ('refreshtoken_lifetime','English',  'Refresh Token Lifetime (in Days)');
+INSERT INTO txt VALUES ('accesstoken_lifetime', 'German', 	'Access Token G&uuml;ltigkeitsdauer');
+INSERT INTO txt VALUES ('accesstoken_lifetime', 'English',  'Access Token Lifetime');
+INSERT INTO txt VALUES ('refreshtoken_lifetime','German',   'Refresh Token G&uuml;ltigkeitsdauer');
+INSERT INTO txt VALUES ('refreshtoken_lifetime','English',  'Refresh Token Lifetime');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -3265,6 +3285,10 @@ INSERT INTO txt VALUES ('reject_ticket',        'German',   'Auftrag als abgeleh
 INSERT INTO txt VALUES ('reject_ticket',        'English',  'Close Ticket as rejected');
 INSERT INTO txt VALUES ('reject_tickets',       'German',   'Auftr&auml;ge als abgelehnt schliessen');
 INSERT INTO txt VALUES ('reject_tickets',       'English',  'Close Tickets as rejected');
+INSERT INTO txt VALUES ('close_as_done',        'German',   'Als erledigt schliessen');
+INSERT INTO txt VALUES ('close_as_done',        'English',  'Close as done');
+INSERT INTO txt VALUES ('close_tickets_as_done','German',   'Auftr&auml;ge als erledigt schliessen');
+INSERT INTO txt VALUES ('close_tickets_as_done','English',  'Close Tickets as done');
 INSERT INTO txt VALUES ('orphaned_requested_interface_tickets', 'German', 'Offene Tickets mit Problemen bei angeforderten Schnittstellen');
 INSERT INTO txt VALUES ('orphaned_requested_interface_tickets', 'English', 'Open tickets with requested interface problems');
 INSERT INTO txt VALUES ('orphaned_requested_interface_tickets_empty', 'German', 'Es wurden keine offenen Tickets mit Problemen bei angeforderten Schnittstellen gefunden.');
@@ -3309,6 +3333,14 @@ INSERT INTO txt VALUES ('scheduler_now', 	              'German',   'Jetzt');
 INSERT INTO txt VALUES ('scheduler_now', 	              'English',  'Now');
 INSERT INTO txt VALUES ('scheduler_interval_description', 'German',   'Alle');
 INSERT INTO txt VALUES ('scheduler_interval_description', 'English',  'Every');
+INSERT INTO txt VALUES ('scheduler_job', 	              'German',   'Job');
+INSERT INTO txt VALUES ('scheduler_job', 	              'English',  'Job');
+INSERT INTO txt VALUES ('scheduler_fetch_jobs', 	      'German',   'Scheduler-Jobs abrufen');
+INSERT INTO txt VALUES ('scheduler_fetch_jobs', 	      'English',  'Fetch scheduler jobs');
+INSERT INTO txt VALUES ('scheduler_job_fetch_failed',     'German',   'Abruf der Jobs fehlgeschlagen.');
+INSERT INTO txt VALUES ('scheduler_job_fetch_failed',     'English',  'Job fetch failed.');
+INSERT INTO txt VALUES ('scheduler_job_trigger_failed',   'German',   'Ausl&ouml;sen des Jobs fehlgeschlagen.');
+INSERT INTO txt VALUES ('scheduler_job_trigger_failed',   'English',  'Job trigger failed.');
 INSERT INTO txt VALUES ('orphaned_app_roles',   'German', 	'Verwaiste App Regeln');
 INSERT INTO txt VALUES ('orphaned_app_roles',	'English', 	'Orphaned App Roles');
 INSERT INTO txt VALUES ('orphaned_app_servers', 'German',   'Verwaiste App Server');
@@ -3492,6 +3524,8 @@ INSERT INTO txt VALUES ('U4008', 'German',  'Weitere Apps');
 INSERT INTO txt VALUES ('U4008', 'English', 'Further apps');
 INSERT INTO txt VALUES ('U4009', 'German',  'Apps ohne aktive Rezertifizierung');
 INSERT INTO txt VALUES ('U4009', 'English', 'Apps without active recertification');
+INSERT INTO txt VALUES ('owner_recert_overview', 'German', 'Rezertifizierungs&uuml;bersicht');
+INSERT INTO txt VALUES ('owner_recert_overview', 'English', 'Recertification overview');
 INSERT INTO txt VALUES ('U4501', 'German',  'Sind sie sicher, dass sie folgende Policy l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U4501', 'English', 'Are you sure you want to delete policy: ');
 INSERT INTO txt VALUES ('U4502', 'German',  'Sind sie sicher, dass sie folgendes Fixes Kriterium l&ouml;schen wollen: ');
@@ -3767,6 +3801,14 @@ INSERT INTO txt VALUES ('U9036', 'German',  'Zur&uuml;ckgewiesen durch Admin');
 INSERT INTO txt VALUES ('U9036', 'English', 'Rejected by Admin');
 INSERT INTO txt VALUES ('U9037', 'German',  'Die G&uuml;ltigkeitsdauer des Zugriffstokens darf die G&uuml;ltigkeitsdauer des Aktualisierungstokens nicht &uuml;berschreiten.');
 INSERT INTO txt VALUES ('U9037', 'English', 'Access token lifetime cannot exceed refresh token lifetime.');
+INSERT INTO txt VALUES ('U9038', 'German',  'Als erledigt durch Admin geschlossen');
+INSERT INTO txt VALUES ('U9038', 'English', 'Closed as done by Admin');
+INSERT INTO txt VALUES ('U9039', 'German',  'Ticket als erledigt geschlossen.');
+INSERT INTO txt VALUES ('U9039', 'English', 'Ticket closed as done.');
+INSERT INTO txt VALUES ('U9040', 'German',  'Sind sie sicher, dass sie @@COUNT@@ Ticket(s) als abgelehnt schliessen wollen?');
+INSERT INTO txt VALUES ('U9040', 'English', 'Are you sure you want to close @@COUNT@@ ticket(s) as rejected?');
+INSERT INTO txt VALUES ('U9041', 'German',  'Sind sie sicher, dass sie @@COUNT@@ Ticket(s) als erledigt schliessen wollen?');
+INSERT INTO txt VALUES ('U9041', 'English', 'Are you sure you want to close @@COUNT@@ ticket(s) as done?');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -4148,6 +4190,8 @@ INSERT INTO txt VALUES ('E9026', 'German',  'Ticket und Verbindung passen nicht 
 INSERT INTO txt VALUES ('E9026', 'English', 'Ticket and connection link mismatch');
 INSERT INTO txt VALUES ('E9027', 'German',  'Angeforderte Schnittstelle gel&ouml;scht');
 INSERT INTO txt VALUES ('E9027', 'English', 'Requested interface removed');
+INSERT INTO txt VALUES ('E9028', 'German',  'Angeforderte Schnittstelle ist bereits ver&ouml;ffentlicht');
+INSERT INTO txt VALUES ('E9028', 'English', 'Requested interface is already published');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');
@@ -4251,6 +4295,10 @@ INSERT INTO txt VALUES ('C1001', 'German',  'Zeige alle Eigent&uuml;er, f&uuml; 
 INSERT INTO txt VALUES ('C1001', 'English', 'Show all owners with recertification activated.');
 INSERT INTO txt VALUES ('C1002', 'German',  'Zeige Eigent&uuml;mer, f&uuml;r die keine aktive Rezertifizierung konfiguriert ist, in einem separaten Kapitel.');
 INSERT INTO txt VALUES ('C1002', 'English', 'Show owners without active recertification in a separate chapter.');
+INSERT INTO txt VALUES ('C1003', 'German',  'F&uuml;hre alle im Bericht angezeigten Rezertifizierungstabellen zu einer Tabelle zusammen.');
+INSERT INTO txt VALUES ('C1003', 'English', 'Merge all recertification tables displayed in the report into one table.');
+INSERT INTO txt VALUES ('C1004', 'German',  'Zeige den Wert dieses Schl&uuml;ssels aus den Zusatzinformationen des Eigent&uuml;mers als zus&auml;tzliche Spalte.');
+INSERT INTO txt VALUES ('C1004', 'English', 'Show the value of this key from the owner additional information as an extra column.');
 INSERT INTO txt VALUES ('C9000', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der App Rolle entfernt werden.');
 INSERT INTO txt VALUES ('C9000', 'English', 'This object was deactivated and should be removed from App Role.');
 INSERT INTO txt VALUES ('C9001', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der Verbindung entfernt werden.');
@@ -6416,14 +6464,14 @@ INSERT INTO txt VALUES ('H5610', 'English', 'App Role Pattern: Defines the begin
     According to an network area name (e.g. "NAxx"), an App Role name (e.g. "ARxx") is preset in the length of the fixed part defined above.
     If the length of the pattern is greater than the fixed part length, the surplus part is ignored.
 ');
-INSERT INTO txt VALUES ('H5611', 'German',  'Pfad und Name von Appdaten-Import (ohne Endung): Hier werden die vollst&auml;ndigen Pfade f&uuml;r eventuell vorhandene Importskripte und -dateien eingegeben.
-    Der Importprozess pr&uuml;ft f&uuml;r jede der eingegebenen Datenquellen zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden ist, und f&uuml;hrt dieses ggf. aus.
+INSERT INTO txt VALUES ('H5611', 'German',  'Pfad und Name von Appdaten-Import (ohne Endung): Hier werden Importskripte und -dateien unter /usr/local/fworch/scripts/customizing eingetragen.
+    Der gespeicherte Wert enth&auml;lt keine Dateiendung. Beim Speichern wird gepr&uuml;ft, dass der Eintrag unterhalb des Customizing-Verzeichnisses liegt und keine unzul&auml;ssige Dateiendung verwendet. Der Importprozess pr&uuml;ft f&uuml;r jede eingetragene Datenquelle zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden und zul&auml;ssig ist, und f&uuml;hrt dieses ggf. aus.
     Anschliessend wird eine Datei desselben Namens mit der Endung .json gesucht und ggf. importiert.
     Es gibt f&uuml;r den Import pro Datenquelle also sowohl die M&ouml;glichkeit, eine direkt zu importierende Datei zur Verf&uuml;gung zu stellen, als auch ein Skript zur Datenabholung,
     welches die ben&ouml;tigte Import-Datei erst erzeugt. Die Struktur der Importdatei wird unter <a href="/help/API/appdataimport">Import-Schnittstellen</a> beschrieben.
 ');
-INSERT INTO txt VALUES ('H5611', 'English', 'Path and Name of App data import (without ending): Here the full paths of provided import scripts and files are inserted.
-    The import process checks for each data source, if a script of this name with ending .py exists and executes it.
+INSERT INTO txt VALUES ('H5611', 'English', 'Path and Name of App data import (without ending): Import scripts and files below /usr/local/fworch/scripts/customizing are entered here.
+    The stored value contains no file extension. Saving checks that the entry stays below the customizing directory and does not use a disallowed extension. The import process checks each configured data source for an existing and allowed script of this name with ending .py and executes it if present.
     Then a file of this name with ending .json is searched and imported if found.
     Thus there is the possibility for each data source to provide a file for direct import or a script to catch the import data and create the app data import file.
     The structure of the import file is described at <a href="/help/API/appdataimport">Import Interfaces</a>.
@@ -6438,13 +6486,13 @@ INSERT INTO txt VALUES ('H5612', 'English', 'Import App data sleep time (in hour
 ');
 INSERT INTO txt VALUES ('H5613', 'German',  'Import Appdaten-Start: Legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die Appdaten-Importe gerechnet werden.');
 INSERT INTO txt VALUES ('H5613', 'English', 'Import App data start at: Defines a referential time from which the App data import intervals are calculated.');
-INSERT INTO txt VALUES ('H5614', 'German',  'Pfad und Name von Subnetzdaten-Import (ohne Endung): Hier wird der vollst&auml;ndige Pfad f&uuml;r ein eventuell vorhandenes Importskript oder einer Import-Datei eingegeben.
-    Der Importprozess pr&uuml;ft zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden ist, und f&uuml;hrt dieses ggf. aus. Anschliessend wird eine Datei desselben Namens mit der Endung .json
+INSERT INTO txt VALUES ('H5614', 'German',  'Pfad und Name von Subnetzdaten-Import (ohne Endung): Hier wird ein Importskript oder eine Import-Datei unter /usr/local/fworch/scripts/customizing eingetragen.
+    Der gespeicherte Wert enth&auml;lt keine Dateiendung. Beim Speichern wird gepr&uuml;ft, dass der Eintrag unterhalb des Customizing-Verzeichnisses liegt und keine unzul&auml;ssige Dateiendung verwendet. Der Importprozess pr&uuml;ft zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden und zul&auml;ssig ist, und f&uuml;hrt dieses ggf. aus. Anschliessend wird eine Datei desselben Namens mit der Endung .json
     gesucht und ggf. importiert. Es gibt f&uuml;r den Import also sowohl die M&ouml;glichkeit, eine direkt zu importierende Datei zur Verf&uuml;gung zu stellen, als auch ein Skript zur Datenabholung,
     welches die ben&ouml;tigte Import-Datei erst erzeugt. Die Struktur der Importdatei wird unter <a href="/help/API/subnetdataimport">Import-Schnittstellen</a> beschrieben.
 ');
-INSERT INTO txt VALUES ('H5614', 'English', 'Path and Name of subnet data import (without ending): Here the full path of a provided import script or file is inserted.
-    The import process checks, if a script of this name with ending .py exists and executes it.
+INSERT INTO txt VALUES ('H5614', 'English', 'Path and Name of subnet data import (without ending): An import script or file below /usr/local/fworch/scripts/customizing is entered here.
+    The stored value contains no file extension. Saving checks that the entry stays below the customizing directory and does not use a disallowed extension. The import process checks if an existing and allowed script of this name with ending .py is present and executes it if found.
     Then a file of this name with ending .json is searched and imported if found.
     Thus there is the possibility to provide a file for direct import or a script to catch the import data and create the subnet data import file.
     The structure of the import file is described at <a href="/help/API/subnetdataimport">Import Interfaces</a>.
@@ -6887,6 +6935,12 @@ INSERT INTO txt VALUES ('H6906', 'German',  'Anmelden zur Generierung eines g&uu
 INSERT INTO txt VALUES ('H6906', 'English', 'Login to get a JWT for the steps further below');
 INSERT INTO txt VALUES ('H6907', 'German',  'Auflisten bereits vorhandener Reports im Archiv (hier der letzte generierte zum Schedule)');
 INSERT INTO txt VALUES ('H6907', 'English', 'List generated reports in archive (here we get the last one generated for the respective schedule)');
+INSERT INTO txt VALUES ('H6934', 'German',  'Der <code>GetRulesByFilter</code> Endpunkt gibt Regeln zurück, die entweder zu <code>OwnerId</code> oder zu <code>IpAddress</code> passen. Genau eines dieser beiden Felder muss angegeben werden. Das Objekt <code>Filter</code> wird nur beim Filtern per IP-Adresse verwendet: <code>Action</code> wählt zwischen <code>accept</code>, <code>deny</code> oder <code>any</code>, <code>MinPrefixLength</code> setzt die minimale CIDR-Prefix-Länge und <code>InField</code> entscheidet, ob Quelle, Ziel oder beides geprüft wird. <code>FieldSourceMapping</code> steuert, aus welcher Quelle einzelne Ausgabefelder gelesen werden. Verwenden Sie <code>Database</code> für den normalisierten Datenbankwert oder <code>CustomField</code> für das kundenspezifische Custom-Feld.');
+INSERT INTO txt VALUES ('H6934', 'English', 'The <code>GetRulesByFilter</code> endpoint returns rules that match either <code>OwnerId</code> or <code>IpAddress</code>. Exactly one of those two fields must be provided. The <code>Filter</code> object is only used when filtering by IP address: <code>Action</code> selects <code>accept</code>, <code>deny</code>, or <code>any</code>, <code>MinPrefixLength</code> sets the minimum CIDR prefix length, and <code>InField</code> decides whether source, destination, or both are evaluated. <code>FieldSourceMapping</code> controls where selected output fields are read from. Use <code>Database</code> for the normalized database value or <code>CustomField</code> for the customer-specific custom field.');
+INSERT INTO txt VALUES ('H6935', 'German',  '<ul><li><code>OwnerId</code>: Gibt alle Regeln für den angegebenen Eigentümer zurück.</li><li><code>IpAddress</code>: Sucht Regeln anhand der angegebenen IP-Adresse.</li><li><code>Filter.Action</code>: Pflichtfeld beim IP-Filter; erlaubt sind <code>accept</code>, <code>deny</code> und <code>any</code>.</li><li><code>Filter.MinPrefixLength</code>: Minimale Prefix-Länge des gefundenen Netzwerkobjekts von 0 bis 32.</li><li><code>Filter.InField</code>: Legt fest, ob Quelle, Ziel oder beides geprüft wird.</li><li><code>FieldSourceMapping.OwnerInformation</code>: <code>Database</code> verwendet die Standarddatenbankzuordnung, <code>CustomField</code> liest aus dem kundenspezifischen Feld.</li><li><code>FieldSourceMapping.ChangeId</code>: <code>Database</code> ist aktuell noch nicht unterstützt, <code>CustomField</code> verwendet das kundenspezifische Feld.</li></ul>');
+INSERT INTO txt VALUES ('H6935', 'English', '<ul><li><code>OwnerId</code>: Returns all rules for the specified owner.</li><li><code>IpAddress</code>: Finds rules by the provided IP address.</li><li><code>Filter.Action</code>: Required for IP-based filtering; allowed values are <code>accept</code>, <code>deny</code>, and <code>any</code>.</li><li><code>Filter.MinPrefixLength</code>: Minimum prefix length of the matching network object, from 0 to 32.</li><li><code>Filter.InField</code>: Defines whether source, destination, or both are evaluated.</li><li><code>FieldSourceMapping.OwnerInformation</code>: <code>Database</code> uses the standard database mapping, <code>CustomField</code> reads from the customer-specific custom field.</li><li><code>FieldSourceMapping.ChangeId</code>: <code>Database</code> is not supported yet, <code>CustomField</code> uses the customer-specific field.</li></ul>');
+INSERT INTO txt VALUES ('H6936', 'German',  'Hinweis: Wenn <code>FieldSourceMapping.ChangeId</code> auf <code>Database</code> gesetzt wird, liefert der aktuelle Serverwert <code>Not Found in Database</code> zurück. Ungültige Enum-Werte werden bereits beim Einlesen der Anfrage abgelehnt.');
+INSERT INTO txt VALUES ('H6936', 'English', 'Note: when <code>FieldSourceMapping.ChangeId</code> is set to <code>Database</code>, the current server value returned is <code>Not Found in Database</code>. Invalid enum values are rejected while parsing the request.');
 INSERT INTO txt VALUES ('H6921', 'German',  'Der Import von Applikationsdaten wird aus einer oder mehreren .json-Dateien mit den in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> definierten Pfaden und Namen gespeist.
     Dort kann auch jeweils ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Dateien hinterlegt werden. Die .json-Datei hat die folgende Struktur:
 ');
@@ -7171,11 +7225,11 @@ INSERT INTO txt VALUES ('H7422', 'English', 'The state filter can be used to res
 ');
 INSERT INTO txt VALUES ('H7423', 'German', 'Wenn problematische angeforderte Schnittstellen noch offene Tickets besitzen, kann der Administrator diese gesammelt als abgelehnt schliessen.');
 INSERT INTO txt VALUES ('H7423', 'English', 'If requested interface problems still have open tickets, the administrator can close those tickets together as rejected.');
-INSERT INTO txt VALUES ('H7424', 'German', 'Die Schaltfl&auml;che "Offene Tickets mit Problemen bei angeforderten Schnittstellen" &ouml;ffnet eine separate Liste aller noch offenen New-Interface-Tickets, deren Schnittstellenverkn&uuml;pfung fehlt, defekt, gel&ouml;scht oder verd&auml;chtig ist.
-    Die Pr&uuml;fung erfolgt erst beim &Ouml;ffnen des Fensters und ist damit unabh&auml;ngig von der aktuell angezeigten Tabellenfilterung.
+INSERT INTO txt VALUES ('H7424', 'German', 'Die Schaltfl&auml;che "Offene Tickets mit Problemen bei angeforderten Schnittstellen" &ouml;ffnet eine separate Liste aller noch offenen New-Interface-Tickets, deren Schnittstellenverkn&uuml;pfung fehlt, defekt, gel&ouml;scht, bereits ver&ouml;ffentlicht oder verd&auml;chtig ist.
+    Die Pr&uuml;fung erfolgt erst beim &Ouml;ffnen des Fensters und ist damit unabh&auml;ngig von der aktuell angezeigten Tabellenfilterung. Je nach Problem k&ouml;nnen Tickets als abgelehnt oder als erledigt geschlossen werden.
 ');
-INSERT INTO txt VALUES ('H7424', 'English', 'The button "Open tickets with requested interface problems" opens a separate list of all still open new-interface tickets whose requested interface linkage is missing, broken, removed, or suspicious.
-    The check is performed only when opening the popup, so it is independent from the current table filter.
+INSERT INTO txt VALUES ('H7424', 'English', 'The button "Open tickets with requested interface problems" opens a separate list of all still open new-interface tickets whose requested interface linkage is missing, broken, removed, already published, or suspicious.
+    The check is performed only when opening the popup, so it is independent from the current table filter. Depending on the problem, tickets can be closed as rejected or as done.
 ');
 INSERT INTO txt VALUES ('H7425', 'German', 'Diese Seite listet Owner mit modellierten Verbindungen und zeigt den letzten zugeordneten Workflow-Antrag.
     Die Spalte Antragsstatus wird aus den konfigurierten Integrationsstatuswerten der modellierten Verbindungen und Gruppen sowie deren Monitorstatus ermittelt. Sie unterscheidet zwischen nie beantragt, laufendem Antrag, nichts zu beantragen, alles implementiert, Ablehnungen und nicht beantragten &Auml;nderungen.

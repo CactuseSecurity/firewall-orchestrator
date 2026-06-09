@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Config.File;
@@ -34,7 +35,7 @@ while (true)
     // Repeat first api call in case graphql api is not started yet
     try
     {
-        connectedLdaps = apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getAllLdapConnections).Result;
+        connectedLdaps = await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getAllLdapConnections);
         break;
     }
     catch (Exception ex)
@@ -44,9 +45,8 @@ while (true)
     }
 }
 
-Action<Exception> handleSubscriptionException = exception => Log.WriteError("Subscription", "Subscription lead to exception.", exception);
 GraphQlApiSubscription<List<Ldap>>.SubscriptionUpdate connectedLdapsSubscriptionUpdate = (List<Ldap> ldapsChanges) => { lock (changesLock) { connectedLdaps = ldapsChanges; } };
-GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription = apiConnection.GetSubscription<List<Ldap>>(handleSubscriptionException, connectedLdapsSubscriptionUpdate, AuthQueries.getLdapConnectionsSubscription);
+GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription = apiConnection.GetSubscription<List<Ldap>>(GraphqlExceptionHandler.Handle, connectedLdapsSubscriptionUpdate, AuthQueries.getLdapConnectionsSubscription);
 Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => $"{ldap.Address}:{ldap.Port}")));
 
 // GlobalConfig for Quartz DI

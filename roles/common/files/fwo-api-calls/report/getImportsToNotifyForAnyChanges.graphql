@@ -4,6 +4,7 @@ query getImportsToNotifyForAnyChanges {
     successful_import: {_eq: true}
     changes_found: {_eq: true}
     notification_done: {_eq: false}
+    mgm_id: {_is_null: false}
   } order_by: {stop_time: asc}) {
     control_id
     stop_time

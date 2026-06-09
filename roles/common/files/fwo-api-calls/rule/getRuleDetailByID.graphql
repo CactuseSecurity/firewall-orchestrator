@@ -14,9 +14,13 @@ query RuleDetailById(
         mgm_id
         rule_froms(order_by:{ object: {obj_id: asc}}){
             object{
+                obj_id
                 obj_name
                 obj_ip
                 obj_ip_end
+                type: stm_obj_typ {
+                    name: obj_typ_name
+                }
                 objgrp_flats(
                     where: {
                         active: { _eq: true }
@@ -39,9 +43,13 @@ query RuleDetailById(
         }
         rule_tos(order_by: { object: { obj_name: asc } }) {
             object {
+                obj_id
                 obj_name
                 obj_ip
                 obj_ip_end
+                type: stm_obj_typ {
+                    name: obj_typ_name
+                }
                 objgrp_flats(
                     where: {
                         active: { _eq: true }
@@ -64,12 +72,45 @@ query RuleDetailById(
         }
         rule_services(order_by: { service: { svc_name: asc } }) {
             service {
+                svc_id
+                svc_uid
                 svc_name
+                svc_port_end
+                svc_member_refs
+                service_type: stm_svc_typ {
+                    name: svc_typ_name
+                }
                 ip_proto_id
                 protocol_name: stm_ip_proto {
+                    id: ip_proto_id
                     name: ip_proto_name
                 }
                 svc_port
+                svcgrp_flats(
+                    where: {
+                        active: { _eq: true }
+                        removed: { _is_null: true }
+                    }
+                    order_by: { svcgrp_flat_member_id: asc }
+                ) {
+                    flat_id: svcgrp_flat_id
+                    byFlatId: serviceBySvcgrpFlatMemberId {
+                        svc_id
+                        svc_uid
+                        svc_name
+                        svc_port
+                        svc_port_end
+                        svc_member_refs
+                        ip_proto_id
+                        protocol_name: stm_ip_proto {
+                            id: ip_proto_id
+                            name: ip_proto_name
+                        }
+                        service_type: stm_svc_typ {
+                            name: svc_typ_name
+                        }
+                    }
+                }
             }
         }
         rule_times(
@@ -84,7 +125,10 @@ query RuleDetailById(
         }
         rule_custom_fields
         rule_name
-        rule_last_seen
+        removed
+        importControlByRemoved {
+            start_time
+        }
         rule_action
         rule_comment
         createdImport: import_control {

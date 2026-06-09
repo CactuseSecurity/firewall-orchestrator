@@ -123,7 +123,6 @@ class RuleNormalized(BaseModel):  # noqa: PLW1641
 	"rule_head_text" Text,
 	"rule_implied" Boolean NOT NULL Default FALSE,
 	"rule_create" BIGINT NOT NULL,
-	"rule_last_seen" BIGINT NOT NULL,
 	"dev_id" Integer,
 	"rule_custom_fields" jsonb,
 	"access_rule" BOOLEAN Default TRUE,
@@ -156,7 +155,6 @@ class Rule(BaseModel):
     rule_head_text: str | None = None
     rule_implied: bool = False
     rule_installon: str | None = None
-    rule_last_seen: int
     rule_name: str | None = None
     rule_num: int
     rule_num_numeric: float

@@ -14,6 +14,9 @@ DUMMY_IP = "0.0.0.0/32"
 DEFAULT_COLOR = "black"
 NAT_POSTFIX = "_NatNwObj"
 FWO_API_HTTP_IMPORT_TIMEOUT = 14400  # 4 hours
+FWO_HTTP_CONNECT_TIMEOUT = 60  # max seconds to establish a connection before giving up on a stalled endpoint
+# (connect, read) timeout tuple guarding outbound HTTP calls so a stalled endpoint cannot hang an importer worker
+FWO_HTTP_TIMEOUT = (FWO_HTTP_CONNECT_TIMEOUT, FWO_API_HTTP_IMPORT_TIMEOUT)
 IMPORTER_USER_NAME = "importer"  # TODO: move to config file?
 FWO_CONFIG_FILENAME = BASE_DIR + "/etc/fworch.json"
 MAIN_KEY_FILE = BASE_DIR + "/etc/secrets/main_key"

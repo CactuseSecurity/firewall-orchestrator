@@ -96,17 +96,27 @@ namespace FWO.Report.Filter
             query.ConnectionWhereStatement += "{";
             query.OwnerWhereStatement += "{";
 
-            if ((ReportType)filter.ReportParams.ReportType == ReportType.Changes || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChanges || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChangesTech)
-            {
-                query.RuleWhereStatement += "rule: {";
-            }
-            // now we convert the ast into a graphql query:
-            ast?.Extract(ref query, (ReportType)filter.ReportParams.ReportType);
-            // TODO: remove rule dev filtering for rework 
+            string ruleBeforeExtract = query.RuleWhereStatement;
 
-            if ((ReportType)filter.ReportParams.ReportType == ReportType.Changes || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChanges || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChangesTech)
+            ast?.Extract(ref query, (ReportType)filter.ReportParams.ReportType);
+
+            if (((ReportType)filter.ReportParams.ReportType).IsChangeReport())
             {
-                query.RuleWhereStatement += "}";
+                string astRuleFilter = query.RuleWhereStatement.Substring(ruleBeforeExtract.Length).Trim();
+                query.RuleWhereStatement = ruleBeforeExtract;
+
+                if (string.IsNullOrWhiteSpace(astRuleFilter))
+                {
+                    query.RuleWhereStatement += "_or: [{ rule: {} }, { ruleByOldRuleId: {} }]";
+                }
+                else
+                {
+                    query.RuleWhereStatement +=
+                        "_or: [" +
+                        "{ rule: { " + astRuleFilter + " } }, " +
+                        "{ ruleByOldRuleId: { " + astRuleFilter + " } }" +
+                        "]";
+                }
             }
 
             query.RuleWhereStatement += "}] ";
@@ -446,6 +456,15 @@ namespace FWO.Report.Filter
         private static string ConstructOwnerQuery(DynGraphqlQuery query, string paramString, ReportType reportType)
         {
             string orderBy = reportType == ReportType.OwnerRecertification ? "next_recert_date: desc, name: asc" : "name: asc";
+            string ownerCreationHintProjection = reportType == ReportType.OwnerRecertification
+                ? @"
+                        changelog_owners(where: {change_action: {_eq: ""I""}}, order_by: {import_control: {stop_time: asc_nulls_last}, log_owner_id: asc}, limit: 1) {
+                            change_action
+                            import: import_control {
+                                time: stop_time
+                            }
+                        }"
+                : "";
             return $@"
                 {OwnerQueries.ownerDetailsFragment}
                 query getOwners ({paramString})
@@ -453,6 +472,7 @@ namespace FWO.Report.Filter
                     owner (where: {{ {query.OwnerWhereStatement} }} order_by: {{ {orderBy} }})
                     {{
                         ...ownerDetails
+                        {ownerCreationHintProjection}
                     }}
                 }}";
         }

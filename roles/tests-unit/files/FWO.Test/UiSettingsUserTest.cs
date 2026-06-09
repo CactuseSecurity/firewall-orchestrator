@@ -22,7 +22,7 @@ namespace FWO.Test
         [Test]
         public async Task SettingsUser_HidesExecutionModeDropdownForSingleAdminRole()
         {
-            await using Bunit.TestContext context = CreateContext([Roles.Admin], out _, out _);
+            await using BunitContext context = CreateContext([Roles.Admin], out _, out _);
 
             IRenderedComponent<SettingsUser> component = RenderSettingsUser(context);
 
@@ -33,7 +33,7 @@ namespace FWO.Test
         [Test]
         public async Task SettingsUser_ShowsExecutionModeDropdownForAdminWithUserRole()
         {
-            await using Bunit.TestContext context = CreateContext([Roles.Admin, Roles.Modeller], out _, out _);
+            await using BunitContext context = CreateContext([Roles.Admin, Roles.Modeller], out _, out _);
 
             IRenderedComponent<SettingsUser> component = RenderSettingsUser(context);
 
@@ -48,7 +48,7 @@ namespace FWO.Test
         [Test]
         public async Task SettingsUser_ShowsOnlyElevatedModesForAdminAndAuditor()
         {
-            await using Bunit.TestContext context = CreateContext([Roles.Admin, Roles.Auditor], out _, out _);
+            await using BunitContext context = CreateContext([Roles.Admin, Roles.Auditor], out _, out _);
 
             IRenderedComponent<SettingsUser> component = RenderSettingsUser(context);
 
@@ -63,7 +63,7 @@ namespace FWO.Test
         [Test]
         public async Task SettingsUser_SelectingAdminUpdatesApiConnectionAndUserConfig()
         {
-            await using Bunit.TestContext context = CreateContext([Roles.Admin, Roles.Modeller], out SettingsUserTestApiConnection apiConnection, out SimulatedUserConfig userConfig);
+            await using BunitContext context = CreateContext([Roles.Admin, Roles.Modeller], out SettingsUserTestApiConnection apiConnection, out SimulatedUserConfig userConfig);
             IRenderedComponent<SettingsUser> component = RenderSettingsUser(context);
 
             IRenderedComponent<Dropdown<string>> dropdown = component.FindComponent<Dropdown<string>>();
@@ -77,9 +77,9 @@ namespace FWO.Test
             });
         }
 
-        private static Bunit.TestContext CreateContext(List<string> roles, out SettingsUserTestApiConnection apiConnection, out SimulatedUserConfig userConfig)
+        private static BunitContext CreateContext(List<string> roles, out SettingsUserTestApiConnection apiConnection, out SimulatedUserConfig userConfig)
         {
-            Bunit.TestContext context = new();
+            BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
             context.Services.AddScoped<DomEventService>();
@@ -97,7 +97,7 @@ namespace FWO.Test
             return context;
         }
 
-        private static IRenderedComponent<SettingsUser> RenderSettingsUser(Bunit.TestContext context)
+        private static IRenderedComponent<SettingsUser> RenderSettingsUser(BunitContext context)
         {
             return context.Render<CascadingAuthenticationState>(parameters => parameters
                 .AddChildContent<SettingsUser>())
@@ -130,7 +130,7 @@ namespace FWO.Test
             public string SelectedExecutionMode { get; private set; } = "";
             public ClaimsPrincipal SelectionUser { get; private set; } = new();
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == AuthQueries.getUserByDbId)
                 {

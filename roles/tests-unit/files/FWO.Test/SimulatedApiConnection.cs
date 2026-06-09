@@ -11,7 +11,7 @@ namespace FWO.Test
             throw new NotImplementedException();
         }
 
-        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
             throw new NotImplementedException();
         }
@@ -42,6 +42,11 @@ namespace FWO.Test
 
         public override void DisposeSubscriptions<T>()
         { }
+
+        public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
+        {
+            return Task.CompletedTask;
+        }
     }
 
     internal class SimulatedApiSubscription<SubscriptionResponseType> : GraphQlApiSubscription<SubscriptionResponseType>

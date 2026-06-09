@@ -25,6 +25,8 @@ namespace FWO.Api.Client
 
         public abstract void SetAuthHeader(string jwt);
 
+        public abstract Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct);
+
         public abstract void SetRole(string role);
 
         public virtual void SetExecutionMode(System.Security.Claims.ClaimsPrincipal user, string role) { }
@@ -121,7 +123,7 @@ namespace FWO.Api.Client
         /// <summary>
         /// Sends an API call and returns the deserialized result or throws on errors.
         /// </summary>
-        public abstract Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null);
+        public abstract Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null);
 
         /// <summary>
         /// Sends an API call and returns a non-throwing response wrapper containing data or errors.

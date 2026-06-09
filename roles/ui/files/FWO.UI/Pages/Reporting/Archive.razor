@@ -168,7 +168,8 @@
 
     private async void HandleSubscriptionError(Exception exception)
     {
-        await InvokeAsync(() => DisplayMessageInUi(exception, userConfig.GetText("archive_tile"), userConfig.GetText("archive_upd_err_msg"), true));
+        await InvokeAsync(() => GraphqlSubscriptionExceptionHandler.Handle(exception,
+            () => DisplayMessageInUi(exception, userConfig.GetText("archive_tile"), userConfig.GetText("archive_upd_err_msg"), true)));
     }
 
     private async void OnReportArchiveUpdate(List<ReportFile> newArchivedReports)

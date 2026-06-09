@@ -123,7 +123,7 @@
         {
             DisplayMessageInUi(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5240"), true);
         }
-        else if (actRole.Users.Exists(x => x.Dn == user.Dn))
+        else if (actRole.Users.Exists(x => DistName.DnEquals(x.Dn, user.Dn)))
         {
             DisplayMessageInUi(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5254"), true);
         }

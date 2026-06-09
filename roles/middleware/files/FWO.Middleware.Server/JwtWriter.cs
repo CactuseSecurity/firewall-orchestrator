@@ -103,7 +103,7 @@ namespace FWO.Middleware.Server
                 signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
             );
             string GeneratedToken = tokenHandler.WriteToken(token);
-            Log.WriteDebug("Jwt generation", $"Generated internal JWT for role {role}. Valid until: {TimeZoneInfo.ConvertTimeFromUtc(token.ValidTo, TimeZoneInfo.Local)}.");
+            Log.WriteDebug("Jwt generation", $"Generated internal JWT for role {role}. Valid until: {token.ValidTo.ToLocalTime():yyyy-MM-dd'T'HH:mm:sszzz)}.");
             return GeneratedToken;
         }
 

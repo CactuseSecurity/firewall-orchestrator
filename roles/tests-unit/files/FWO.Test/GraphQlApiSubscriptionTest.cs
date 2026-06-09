@@ -33,28 +33,17 @@ namespace FWO.Test
         }
 
         [Test]
-        public void GraphQlApiSubscriptionRecreatesSubscriptionOnAuthHeaderChange()
+        public void GraphQlApiSubscriptionRecreateCreatesFreshSubscription()
         {
             TestApiConnection apiConnection = new();
             using TestGraphQlApiSubscription<string> subscription = CreateSubscription<string>(apiConnection);
+            GraphQLHttpClient recreatedClient = new(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient());
 
-            apiConnection.RaiseAuthHeaderChanged("jwt");
+            TestGraphQlApiSubscription<string> recreated = (TestGraphQlApiSubscription<string>)subscription.Recreate(recreatedClient);
 
-            Assert.That(subscription.CreateSubscriptionCount, Is.EqualTo(2));
-        }
-
-        [Test]
-        public void GraphQlApiSubscriptionDetachesFromAuthHeaderChangeOnDispose()
-        {
-            TestApiConnection apiConnection = new();
-            TestGraphQlApiSubscription<string> subscription = CreateSubscription<string>(apiConnection);
-
-            subscription.Dispose();
-            apiConnection.RaiseAuthHeaderChanged("jwt");
-            subscription.Dispose();
-
+            Assert.That(recreated, Is.Not.SameAs(subscription));
+            Assert.That(recreated.CreateSubscriptionCount, Is.EqualTo(1));
             Assert.That(subscription.CreateSubscriptionCount, Is.EqualTo(1));
-            Assert.That(subscription.DisposeCount, Is.EqualTo(1));
         }
 
         [Test]
@@ -86,19 +75,32 @@ namespace FWO.Test
         }
 
         [Test]
-        public void GraphQlApiSubscriptionDisposesPreviousSubscriptionWhenRecreated()
+        public void GraphQlApiSubscriptionInvokesExternalExceptionHandlerForCurrentStreamErrors()
         {
-            ManualGraphQlObservable firstStream = new();
-            ManualGraphQlObservable secondStream = new();
-            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(firstStream);
-            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(secondStream);
+            ManualGraphQlObservable stream = new();
+            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(stream);
             TestApiConnection apiConnection = new();
-            using StreamBackedGraphQlApiSubscription<string> subscription = CreateStreamBackedSubscription<string>(apiConnection, _ => { });
+            int exceptionCount = 0;
+            using StreamBackedGraphQlApiSubscription<string> subscription = CreateStreamBackedSubscription<string>(apiConnection, _ => { }, _ => exceptionCount++);
 
-            apiConnection.RaiseAuthHeaderChanged("jwt");
+            stream.EmitError(new InvalidOperationException("boom"));
 
-            Assert.That(firstStream.ActiveSubscription!.DisposeCount, Is.EqualTo(1));
-            Assert.That(secondStream.SubscribeCount, Is.EqualTo(1));
+            Assert.That(exceptionCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void GraphQlApiSubscriptionIgnoresErrorsAfterDispose()
+        {
+            ManualGraphQlObservable stream = new();
+            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(stream);
+            TestApiConnection apiConnection = new();
+            int exceptionCount = 0;
+            StreamBackedGraphQlApiSubscription<string> subscription = CreateStreamBackedSubscription<string>(apiConnection, _ => { }, _ => exceptionCount++);
+
+            subscription.Dispose();
+            stream.EmitError(new InvalidOperationException("boom"));
+
+            Assert.That(exceptionCount, Is.EqualTo(0));
         }
 
         [Test]
@@ -150,14 +152,14 @@ namespace FWO.Test
         }
 
         private static StreamBackedGraphQlApiSubscription<T> CreateStreamBackedSubscription<T>(ApiConnection apiConnection,
-            GraphQlApiSubscription<T>.SubscriptionUpdate onUpdate)
+            GraphQlApiSubscription<T>.SubscriptionUpdate onUpdate, Action<Exception>? exceptionHandler = null)
         {
             GraphQLHttpClient graphQlClient = new(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient());
             return new StreamBackedGraphQlApiSubscription<T>(
                 apiConnection,
                 graphQlClient,
                 new GraphQLRequest("subscription Test { test }"),
-                _ => { },
+                exceptionHandler ?? (_ => { }),
                 onUpdate);
         }
 
@@ -165,6 +167,11 @@ namespace FWO.Test
         {
             public int DisposeCount { get; private set; }
             public bool DisposedState => IsDisposed;
+
+            internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
+            {
+                return new TrackingSubscription();
+            }
 
             protected override void Dispose(bool disposing)
             {
@@ -174,17 +181,30 @@ namespace FWO.Test
 
         private sealed class TestGraphQlApiSubscription<T> : GraphQlApiSubscription<T>
         {
+            private readonly ApiConnection apiConnection;
+            private readonly Action<Exception> exceptionHandler;
+            private readonly SubscriptionUpdate onUpdate;
+
             public int CreateSubscriptionCount { get; private set; }
             public int DisposeCount { get; private set; }
 
             public TestGraphQlApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request,
                 Action<Exception> exceptionHandler, SubscriptionUpdate onUpdate)
                 : base(apiConnection, graphQlClient, request, exceptionHandler, onUpdate)
-            { }
+            {
+                this.apiConnection = apiConnection;
+                this.exceptionHandler = exceptionHandler;
+                this.onUpdate = onUpdate;
+            }
 
             protected override void CreateSubscription()
             {
                 CreateSubscriptionCount++;
+            }
+
+            internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
+            {
+                return new TestGraphQlApiSubscription<T>(apiConnection, graphQlClient, Request, exceptionHandler, onUpdate);
             }
 
             protected override void Dispose(bool disposing)
@@ -197,15 +217,29 @@ namespace FWO.Test
         private sealed class StreamBackedGraphQlApiSubscription<T> : GraphQlApiSubscription<T>
         {
             public static Queue<ManualGraphQlObservable> Streams { get; } = [];
+            private readonly ApiConnection apiConnection;
+            private readonly Action<Exception> exceptionHandler;
+            private readonly SubscriptionUpdate onUpdate;
 
             public StreamBackedGraphQlApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request,
                 Action<Exception> exceptionHandler, SubscriptionUpdate onUpdate)
                 : base(apiConnection, graphQlClient, request, exceptionHandler, onUpdate)
-            { }
-
-            protected override IObservable<GraphQLResponse<dynamic>> CreateSubscriptionStream()
             {
-                return (IObservable<GraphQLResponse<dynamic>>)(object)Streams.Dequeue();
+                this.apiConnection = apiConnection;
+                this.exceptionHandler = exceptionHandler;
+                this.onUpdate = onUpdate;
+            }
+
+            protected override IObservable<GraphQLResponse<dynamic>> CreateSubscriptionStream(Action<Exception> exceptionHandler)
+            {
+                ManualGraphQlObservable stream = Streams.Dequeue();
+                stream.ExceptionHandler = exceptionHandler;
+                return (IObservable<GraphQLResponse<dynamic>>)(object)stream;
+            }
+
+            internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
+            {
+                return new StreamBackedGraphQlApiSubscription<T>(apiConnection, graphQlClient, Request, exceptionHandler, onUpdate);
             }
 
             protected override void Dispose(bool disposing)
@@ -221,6 +255,7 @@ namespace FWO.Test
 
             public int SubscribeCount { get; private set; }
             public ManualObservableSubscription? ActiveSubscription { get; private set; }
+            public Action<Exception>? ExceptionHandler { get; set; }
 
             public IDisposable Subscribe(IObserver<GraphQLResponse<object>> observer)
             {
@@ -236,6 +271,11 @@ namespace FWO.Test
                 {
                     observer?.OnNext(response);
                 }
+            }
+
+            public void EmitError(Exception exception)
+            {
+                ExceptionHandler?.Invoke(exception);
             }
         }
 
@@ -253,11 +293,6 @@ namespace FWO.Test
 
         private sealed class TestApiConnection : ApiConnection
         {
-            public void RaiseAuthHeaderChanged(string jwt)
-            {
-                InvokeOnAuthHeaderChanged(this, jwt);
-            }
-
             public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(
                 Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler,
                 string subscription, object? variables = null, string? operationName = null)
@@ -265,7 +300,7 @@ namespace FWO.Test
                 throw new NotImplementedException();
             }
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 throw new NotImplementedException();
             }
@@ -277,7 +312,7 @@ namespace FWO.Test
 
             public override void SetAuthHeader(string jwt)
             {
-                RaiseAuthHeaderChanged(jwt);
+                InvokeOnAuthHeaderChanged(this, jwt);
             }
 
             public override void SetRole(string role)
@@ -297,6 +332,11 @@ namespace FWO.Test
 
             public override void DisposeSubscriptions<T>()
             { }
+
+            public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
+            {
+                throw new NotImplementedException();
+            }
         }
     }
 }

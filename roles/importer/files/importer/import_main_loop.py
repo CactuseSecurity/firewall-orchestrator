@@ -20,6 +20,7 @@ from fwo_exceptions import (
     FwLoginFailedError,
     FwoApiFailedLockImportError,
     FwoApiLoginFailedError,
+    ShutdownRequestedError,
 )
 from fwo_log import FWOLogger
 from model_controllers.import_state_controller import ImportStateController
@@ -46,12 +47,16 @@ def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> 
 
 
 def wait_with_shutdown_check(sleep_time: int):
-    counter = 0
-    while counter < sleep_time:
+    def exit_if_shutdown_requested():
         if fwo_globals.shutdown_requested:
             FWOLogger.info("import_main_loop - shutdown requested. Exiting...")
             raise SystemExit("import_main_loop - shutdown requested")
+
+    exit_if_shutdown_requested()
+    counter = 0
+    while counter < sleep_time:
         time.sleep(1)
+        exit_if_shutdown_requested()
         counter += 1
 
 
@@ -119,6 +124,8 @@ def import_single_management(
             suppress_certificate_warnings,
             suppress_consistency_check=suppress_consistency_check,
         )
+    except (KeyboardInterrupt, ShutdownRequestedError) as e:
+        raise SystemExit("import_main_loop - shutdown requested") from e
     except (FwoApiFailedLockImportError, FwLoginFailedError):
         FWOLogger.info(f"import_main_loop - minor error while importing mgm_id={mgm_id}, {traceback.format_exc()!s}")
         return  # minor errors for a single mgm, go to next one

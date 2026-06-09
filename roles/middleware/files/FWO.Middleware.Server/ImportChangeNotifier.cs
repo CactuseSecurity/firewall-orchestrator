@@ -121,7 +121,7 @@ namespace FWO.Middleware.Server
             }
             else
             {
-                importsToNotify = await apiConnection.SendQueryAsync<List<ImportToNotify>>(ReportQueries.getImportsToNotify);
+                importsToNotify = await apiConnection.SendQueryAsync<List<ImportToNotify>>(ReportQueries.getImportsToNotifyForRuleChanges);
             }
 
             importedManagements = [];
@@ -129,6 +129,7 @@ namespace FWO.Middleware.Server
             {
                 importedManagements.Add(impMgt);
             }
+
             return importsToNotify.Count > 0;
         }
 
@@ -146,11 +147,29 @@ namespace FWO.Middleware.Server
 
         private async Task<ReportParams> SetFilters()
         {
-            deviceFilter.Managements = [.. (await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement)).Where(x => importedManagements.Contains(x.Id))];
+            deviceFilter.Managements = [];
+            var result = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagementOrSuperMgm);
+            List<ManagementSelect> selectedManagements = [];
+
+            foreach (ManagementSelect management in result.Where(m => importedManagements.Contains(m.Id)))
+            {
+                if (management.IsSuperManager)
+                {
+                    selectedManagements.AddRange(management.subManagers);
+                }
+                else
+                {
+                    selectedManagements.Add(management);
+                }
+            }
+
+            deviceFilter.Managements = [.. selectedManagements.DistinctBy(m => m.Id)];
+
             deviceFilter.ApplyFullDeviceSelection(true);
 
             return new((int)ReportType.Changes, deviceFilter)
             {
+                IncludeObjects = userConfig.GlobalConfig!.ImpChangeIncludeObjectChanges,
                 TimeFilter = new()
                 {
                     TimeRangeType = TimeRangeType.Fixeddates,

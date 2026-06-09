@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 
 class LogLock:
     lock_file_path: str | os.PathLike[str] = "/var/fworch/lock/importer_api_log.lock"
-    semaphore = threading.Semaphore()
+    semaphore = threading.BoundedSemaphore()
     lock_thread: threading.Thread | None = None
     thread_lock = threading.Lock()
 

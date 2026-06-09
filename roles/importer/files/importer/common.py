@@ -97,11 +97,11 @@ def import_management(
         handle_shutdown_exception(import_state, config_importer=config_importer, exc=e)
         raise
     except ImportInterruptionError as e:
-        exception = e
         if fwo_globals.shutdown_requested:
             shutdown_exception = e
             handle_shutdown_exception(import_state, config_importer=config_importer, exc=e)
         else:
+            exception = e
             roll_back_exception_handler(
                 import_state,
                 config_importer=config_importer,

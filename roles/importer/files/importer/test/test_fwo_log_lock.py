@@ -1,3 +1,4 @@
+import threading
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -120,6 +121,33 @@ def test_debug_logging_skips_log_lock_when_level_is_too_low(monkeypatch: pytest.
     FWOLogger.debug("message", needed_level=2)
 
     assert tracking_semaphore.events == []
+
+
+def test_log_lock_semaphore_is_bounded() -> None:
+    # The handle_log_lock state machine pairs each acquire (REQUESTED/GRANTED) with
+    # exactly one release (RELEASED/FORCEFULLY RELEASED). A BoundedSemaphore makes an
+    # unpaired release fail fast instead of silently breaking mutual exclusion, so the
+    # production lock must be the bounded variant.
+    assert isinstance(LogLock.semaphore, threading.BoundedSemaphore)
+
+
+def test_unpaired_release_fails_fast_with_bounded_semaphore() -> None:
+    # Reproduce a lock-file "drift": a release without an intervening acquire (e.g. two
+    # consecutive release states). The bounded semaphore raises immediately and refuses
+    # to raise its counter above the initial value, so mutual exclusion stays intact...
+    bounded = threading.BoundedSemaphore()
+    bounded.acquire()
+    bounded.release()  # paired release - fine
+
+    with pytest.raises(ValueError, match="released too many times"):
+        bounded.release()  # unpaired drift -> fail fast
+
+    # ...whereas a plain (unbounded) Semaphore would silently let the counter climb to 2,
+    # letting two parties "own" the lock at once and corrupting the log swap unnoticed.
+    plain = threading.Semaphore()
+    plain.acquire()
+    plain.release()
+    plain.release()  # no error: the bug this guards against would pass silently
 
 
 def test_error_warning_and_exception_logging_use_log_lock(monkeypatch: pytest.MonkeyPatch) -> None:

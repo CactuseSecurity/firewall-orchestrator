@@ -201,8 +201,8 @@ class ChangeLogger:
     _instance = None
     changed_object_id_map: dict[int, int]
     changed_service_id_map: dict[int, int]
-    _import_state: "ImportState | None" = None
-    _uid2id_mapper: "Uid2IdMapper | None" = None
+    _import_state: ImportState | None = None
+    _uid2id_mapper: Uid2IdMapper | None = None
 
     def __new__(cls):
         """
@@ -217,7 +217,7 @@ class ChangeLogger:
 
     def create_change_id_maps(
         self,
-        uid2id_mapper: "Uid2IdMapper",
+        uid2id_mapper: Uid2IdMapper,
         changed_nw_objs: list[str],
         changed_svcs: list[str],
         removed_nw_objs: list[dict[str, Any]],
@@ -242,7 +242,7 @@ class ChangeLogger:
     def create_changelog_import_object(
         self,
         typ: str,
-        import_state: "ImportState",
+        import_state: ImportState,
         change_action: str,
         change_typ: Literal[2, 3],
         import_time: str,

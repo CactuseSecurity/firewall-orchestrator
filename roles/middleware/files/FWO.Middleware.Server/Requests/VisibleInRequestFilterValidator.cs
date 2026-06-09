@@ -4,11 +4,11 @@ namespace FWO.Middleware.Server.Requests;
 
 internal static class VisibleInRequestFilterValidator
 {
-    public static bool TryValidate(IVisibleInRequestFilterRequest request, string endpointName, out ActionResult? errorResult)
+    public static bool TryValidate(IVisibleInRequestFilterRequest request, RequestFilterValidationSchema schema, out ActionResult? errorResult)
     {
         if (request.AdditionalData is { Count: > 0 })
         {
-            errorResult = BuildError(endpointName);
+            errorResult = BuildError(schema);
             return false;
         }
 
@@ -20,7 +20,7 @@ internal static class VisibleInRequestFilterValidator
 
         if (request.Filter.AdditionalData is { Count: > 0 })
         {
-            errorResult = BuildError(endpointName);
+            errorResult = BuildError(schema);
             return false;
         }
 
@@ -28,10 +28,17 @@ internal static class VisibleInRequestFilterValidator
         return true;
     }
 
-    private static BadRequestObjectResult BuildError(string endpointName)
+    private static BadRequestObjectResult BuildError(RequestFilterValidationSchema schema)
     {
+        string allowedShapes = string.Join(" or ", new[]
+        {
+            "{}",
+            "{ \"filter\": {} }"
+        }.Concat(schema.AllowedKeys.Select(key => $"{{ \"filter\": {{ \"{key.JsonName}\": ... }} }}")));
+
+        string keyHelp = string.Join(" ", schema.AllowedKeys.Select(key => $"'{key.JsonName}': {key.Description}"));
+
         return new BadRequestObjectResult(
-            $"{endpointName} only accepts {{}} or {{ \"filter\": {{}} }} or {{ \"filter\": {{ \"visibleInRequest\": true }} }} or {{ \"filter\": {{ \"visibleInRequest\": false }} }}. " +
-            "Valid filter key: visibleInRequest, which controls whether request-visible objects are included.");
+            $"{schema.EndpointName} only accepts {allowedShapes}. Valid filter keys: {keyHelp}");
     }
 }

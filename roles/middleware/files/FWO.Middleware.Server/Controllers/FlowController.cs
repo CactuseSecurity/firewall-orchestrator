@@ -11,10 +11,17 @@ namespace FWO.Middleware.Server.Controllers;
 [Route("api/[controller]")]
 public class FlowController : ControllerBase
 {
+    #region Schemas
+    private static readonly RequestFilterValidationSchema AddressObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressObjects));
+    private static readonly RequestFilterValidationSchema AddressGroupsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressGroups));
+    private static readonly RequestFilterValidationSchema ServiceObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceObjects));
+    private static readonly RequestFilterValidationSchema ServiceGroupsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceGroups));
+    private static readonly RequestFilterValidationSchema TimeObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetTimeObjects));
+    #endregion
     [HttpPost("getAddressObjects")]
     public ActionResult<List<AddressObjectResponse>> GetAddressObjects([FromBody] GetAddressObjectsRequest request)
     {
-        if (!VisibleInRequestFilterValidator.TryValidate(request, nameof(GetAddressObjects), out ActionResult? errorResult))
+        if (!VisibleInRequestFilterValidator.TryValidate(request, AddressObjectsFilterSchema, out ActionResult? errorResult))
         {
             return errorResult!;
         }
@@ -25,7 +32,7 @@ public class FlowController : ControllerBase
     [HttpPost("getAddressGroups")]
     public ActionResult<List<AddressGroupResponse>> GetAddressGroups([FromBody] GetAddressGroupsRequest request)
     {
-        if (!VisibleInRequestFilterValidator.TryValidate(request, nameof(GetAddressGroups), out ActionResult? errorResult))
+        if (!VisibleInRequestFilterValidator.TryValidate(request, AddressGroupsFilterSchema, out ActionResult? errorResult))
         {
             return errorResult!;
         }
@@ -36,7 +43,7 @@ public class FlowController : ControllerBase
     [HttpPost("getServiceObjects")]
     public ActionResult<List<ServiceObjectResponse>> GetServiceObjects([FromBody] GetServiceObjectsRequest request)
     {
-        if (!VisibleInRequestFilterValidator.TryValidate(request, nameof(GetServiceObjects), out ActionResult? errorResult))
+        if (!VisibleInRequestFilterValidator.TryValidate(request, ServiceObjectsFilterSchema, out ActionResult? errorResult))
         {
             return errorResult!;
         }
@@ -47,7 +54,7 @@ public class FlowController : ControllerBase
     [HttpPost("getServiceGroups")]
     public ActionResult<List<ServiceGroupResponse>> GetServiceGroups([FromBody] GetServiceGroupsRequest request)
     {
-        if (!VisibleInRequestFilterValidator.TryValidate(request, nameof(GetServiceGroups), out ActionResult? errorResult))
+        if (!VisibleInRequestFilterValidator.TryValidate(request, ServiceGroupsFilterSchema, out ActionResult? errorResult))
         {
             return errorResult!;
         }
@@ -58,7 +65,7 @@ public class FlowController : ControllerBase
     [HttpPost("getTimeObjects")]
     public ActionResult<List<TimeObjectResponse>> GetTimeObjects([FromBody] GetTimeObjectsRequest request)
     {
-        if (!VisibleInRequestFilterValidator.TryValidate(request, nameof(GetTimeObjects), out ActionResult? errorResult))
+        if (!VisibleInRequestFilterValidator.TryValidate(request, TimeObjectsFilterSchema, out ActionResult? errorResult))
         {
             return errorResult!;
         }

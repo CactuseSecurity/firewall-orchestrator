@@ -4,6 +4,7 @@ nw_obj_types = [
     "firewall/addrgrp",
     "firewall/addrgrp6",
     "firewall/ippool",
+    "firewall/ippool6",
     "firewall/vip",
     "system/external-resource",
     "firewall/wildcard-fqdn/custom",

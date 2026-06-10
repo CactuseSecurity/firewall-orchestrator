@@ -295,6 +295,12 @@ def extract_nat_config_fields(native_rule: dict[str, Any]) -> str:
 
     if native_rule.get("ippool") == 1:
         nat_config["ippool"] = 1
+        poolname6 = native_rule.get("poolname6")
+        if isinstance(poolname6, list) and poolname6:
+            nat_config["poolname6"] = poolname6
+        elif isinstance(poolname6, str) and poolname6:
+            nat_config["poolname6"] = [poolname6]
+
         poolname = native_rule.get("poolname")
         if isinstance(poolname, list) and poolname:
             nat_config["poolname"] = poolname
@@ -320,14 +326,15 @@ def get_nat_translated_source(
     normalized_config_global: dict[str, Any],
 ) -> tuple[list[str], list[str]]:
     if native_rule.get("ippool") == 1:
-        poolname = native_rule.get("poolname", [])
+        is_ipv6 = "poolname6" in native_rule and native_rule.get("poolname6") not in (None, [], "")
+        poolname = native_rule.get("poolname6" if is_ipv6 else "poolname", [])
         if isinstance(poolname, str):
             poolname = [poolname]
         translated_src_list = sorted(poolname)
         translated_src_refs_list = [
             find_addr_ref(
                 pool,
-                is_v4=True,
+                is_v4=not is_ipv6,
                 normalized_config_adom=normalized_config_adom,
                 normalized_config_global=normalized_config_global,
             )
@@ -801,25 +808,27 @@ def build_nat_addr_list(
     addr_list: list[str],
     addr_ref_list: list[str],
 ) -> None:
-    # so far only ip v4 expected
+    is_ipv6 = bool(native_rule.get("srcaddr6") or native_rule.get("dstaddr6"))
     if target == "src":
-        for addr in sorted(native_rule.get("srcaddr", [])):
+        source_addrs = native_rule.get("srcaddr6", []) if is_ipv6 else native_rule.get("srcaddr", [])
+        for addr in sorted(source_addrs):
             addr_list.append(addr)
             addr_ref_list.append(
                 find_addr_ref(
                     addr,
-                    is_v4=True,
+                    is_v4=not is_ipv6,
                     normalized_config_adom=normalized_config_adom,
                     normalized_config_global=normalized_config_global,
                 )
             )
     if target == "dst":
-        for addr in sorted(native_rule.get("dstaddr", [])):
+        destination_addrs = native_rule.get("dstaddr6", []) if is_ipv6 else native_rule.get("dstaddr", [])
+        for addr in sorted(destination_addrs):
             addr_list.append(addr)
             addr_ref_list.append(
                 find_addr_ref(
                     addr,
-                    is_v4=True,
+                    is_v4=not is_ipv6,
                     normalized_config_adom=normalized_config_adom,
                     normalized_config_global=normalized_config_global,
                 )

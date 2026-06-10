@@ -241,3 +241,64 @@ def test_parse_nat_rules_in_rulebase_keeps_translation_metadata_on_translated_ru
         "nat_type": "nat",
         "poolname": ["pool-a"],
     }
+
+
+def test_parse_nat_rules_in_rulebase_supports_ipv6_nat_pool_translation():
+    normalized_config_adom = {
+        "network_objects": [
+            {"obj_name": "src-net-v6", "obj_uid": "src-net-v6-uid", "obj_ip": "2001:db8::/64"},
+            {"obj_name": "dst-net-v6", "obj_uid": "dst-net-v6-uid", "obj_ip": "2001:db8:1::/64"},
+            {"obj_name": "pool-v6", "obj_uid": "pool-v6-uid", "obj_ip": "2001:db8:2::1/128"},
+        ],
+        "zone_objects": [{"zone_name": "inside"}, {"zone_name": "outside"}],
+        "policies": [],
+        "rules": [],
+    }
+    normalized_config_global: dict[str, list[Any]] = {
+        "network_objects": [],
+        "zone_objects": [],
+        "policies": [],
+        "rules": [],
+    }
+    native_rulebase = {
+        "data": [
+            {
+                "uuid": "nat-rule-v6-uid",
+                "name": "nat-rule-v6",
+                "nat": 1,
+                "status": 1,
+                "srcaddr6": ["src-net-v6"],
+                "dstaddr6": ["dst-net-v6"],
+                "service": ["ALL"],
+                "srcintf": ["inside"],
+                "dstintf": ["outside"],
+                "ippool": 1,
+                "poolname6": ["pool-v6"],
+                "fixedport": 1,
+            }
+        ]
+    }
+    normalized_nat_rulebase = Rulebase(uid="nat-rulebase-v6-test", name="NAT", mgm_uid="mgm", rules={})
+
+    parse_nat_rules_in_rulebase(
+        normalized_config_adom,
+        normalized_config_global,
+        native_rulebase,
+        normalized_nat_rulebase,
+    )
+
+    assert set(normalized_nat_rulebase.rules) == {"nat-rule-v6-uid-original", "nat-rule-v6-uid-translated"}
+
+    translated_rule = normalized_nat_rulebase.rules["nat-rule-v6-uid-translated"]
+    assert translated_rule.rule_src == "pool-v6"
+    assert translated_rule.rule_src_refs == "pool-v6-uid"
+    assert translated_rule.rule_dst == "Original"
+    assert translated_rule.rule_dst_refs == "Original"
+    assert translated_rule.rule_src_zone == "inside"
+    assert translated_rule.rule_dst_zone == "outside"
+    assert json.loads(translated_rule.rule_custom_fields or "{}") == {
+        "fixedport": 1,
+        "ippool": 1,
+        "nat_type": "nat",
+        "poolname6": ["pool-v6"],
+    }

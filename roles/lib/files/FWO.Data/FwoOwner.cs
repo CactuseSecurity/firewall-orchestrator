@@ -84,6 +84,7 @@ namespace FWO.Data
             NextRecertDate = owner.NextRecertDate;
             ChangelogOwners = owner.ChangelogOwners.Select(change => new OwnerChange(change)).ToList();
             DecommDate = owner.DecommDate;
+            RecertActive = owner.RecertActive;
             RecertOverdue = owner.RecertOverdue;
             RecertUpcoming = owner.RecertUpcoming;
             LastRecertId = owner.LastRecertId;

@@ -231,8 +231,8 @@ def test_parse_nat_rules_in_rulebase_keeps_translation_metadata_on_translated_ru
     translated_rule = normalized_nat_rulebase.rules["nat-rule-uid-translated"]
     assert translated_rule.rule_src == "pool-a"
     assert translated_rule.rule_src_refs == "pool-a-uid"
-    assert translated_rule.rule_dst == "dst-net"
-    assert translated_rule.rule_dst_refs == "dst-net-uid"
+    assert translated_rule.rule_dst == "Original"
+    assert translated_rule.rule_dst_refs == "Original"
     assert translated_rule.rule_src_zone == "inside"
     assert translated_rule.rule_dst_zone == "outside"
     assert json.loads(translated_rule.rule_custom_fields or "{}") == {

@@ -36,4 +36,10 @@ public sealed class AddressObjectResponse
     /// </summary>
     [JsonPropertyName("state")]
     public string State { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets the ShowInRequest value.
+    /// </summary>
+    [JsonPropertyName("showInRequest")]
+    public bool ShowInRequest { get; set; }
 }

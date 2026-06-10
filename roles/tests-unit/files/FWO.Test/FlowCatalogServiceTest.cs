@@ -24,7 +24,8 @@ internal class FlowCatalogServiceTest
                 PortStart = 443,
                 PortEnd = 443,
                 ProtoId = 6,
-                State = FlowState.Requested
+                State = FlowState.Requested,
+                ShowInRequestModule = true
             }
         ];
         apiConnection.Protocols =
@@ -39,6 +40,7 @@ internal class FlowCatalogServiceTest
 
         Assert.That(result, Has.Count.EqualTo(1));
         Assert.That(result[0].Protocol, Is.EqualTo("TCP"));
+        Assert.That(result[0].ShowInRequest, Is.True);
         Assert.That(apiConnection.SentQueries, Has.Count.EqualTo(2));
         Assert.That(apiConnection.SentQueries[0], Does.Contain("query getServiceObjects"));
         Assert.That(apiConnection.SentQueries[0], Does.Contain("show_in_request_module"));
@@ -88,6 +90,7 @@ internal class FlowCatalogServiceTest
                 Id = 20,
                 Name = "Admins",
                 State = FlowState.Implemented,
+                ShowInRequestModule = false,
                 NwGroupMembers =
                 [
                     new FlowNwGroupMember
@@ -105,6 +108,7 @@ internal class FlowCatalogServiceTest
         List<AddressGroupResponse> result = await service.GetAddressGroupsAsync(null);
 
         Assert.That(result, Has.Count.EqualTo(1));
+        Assert.That(result[0].ShowInRequest, Is.False);
         Assert.That(result[0].Members, Has.Count.EqualTo(1));
         Assert.That(result[0].Members[0].Name, Is.EqualTo("HostA"));
         Assert.That(apiConnection.SentQueries[0], Does.Not.Contain("where: { show_in_request_module"));
@@ -122,7 +126,8 @@ internal class FlowCatalogServiceTest
                 Name = "BusinessHours",
                 StartTime = new DateTime(2026, 6, 1, 8, 0, 0, DateTimeKind.Utc),
                 EndTime = new DateTime(2026, 6, 1, 17, 30, 0, DateTimeKind.Utc),
-                State = FlowState.Requested
+                State = FlowState.Requested,
+                ShowInRequestModule = true
             }
         ];
 
@@ -133,6 +138,73 @@ internal class FlowCatalogServiceTest
         Assert.That(result, Has.Count.EqualTo(1));
         Assert.That(result[0].StartTime, Does.StartWith("2026-06-01T08:00:00"));
         Assert.That(result[0].EndTime, Does.StartWith("2026-06-01T17:30:00"));
+        Assert.That(result[0].ShowInRequest, Is.True);
+    }
+
+    [Test]
+    public async Task GetAddressObjectsAsync_MapsShowInRequestFlag()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        apiConnection.AddressObjects =
+        [
+            new FlowNwObject
+            {
+                Id = 15,
+                Name = "HostA",
+                IpStart = "10.0.0.1",
+                IpEnd = "10.0.0.1",
+                State = FlowState.Requested,
+                ShowInRequestModule = true
+            }
+        ];
+
+        FlowCatalogService service = new(apiConnection);
+
+        List<AddressObjectResponse> result = await service.GetAddressObjectsAsync(null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Has.Count.EqualTo(1));
+            Assert.That(result[0].Name, Is.EqualTo("HostA"));
+            Assert.That(result[0].ShowInRequest, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task GetServiceGroupsAsync_MapsShowInRequestFlag()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        apiConnection.ServiceGroups =
+        [
+            new FlowSvcGroup
+            {
+                Id = 25,
+                Name = "Web",
+                State = FlowState.Implemented,
+                ShowInRequestModule = true,
+                SvcGroupMembers =
+                [
+                    new FlowSvcGroupMember
+                    {
+                        SvcGroupId = 25,
+                        SvcObjectId = 200,
+                        SvcObject = new FlowSvcObject { Id = 200, Name = "HTTPS" }
+                    }
+                ]
+            }
+        ];
+
+        FlowCatalogService service = new(apiConnection);
+
+        List<ServiceGroupResponse> result = await service.GetServiceGroupsAsync(null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Has.Count.EqualTo(1));
+            Assert.That(result[0].ShowInRequest, Is.True);
+            Assert.That(result[0].Members, Has.Count.EqualTo(1));
+            Assert.That(result[0].Members[0].Name, Is.EqualTo("HTTPS"));
+        });
     }
 
     [Test]

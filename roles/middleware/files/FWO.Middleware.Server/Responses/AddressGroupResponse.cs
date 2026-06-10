@@ -26,6 +26,12 @@ public sealed class AddressGroupResponse
     public string State { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets the ShowInRequest value.
+    /// </summary>
+    [JsonPropertyName("showInRequest")]
+    public bool ShowInRequest { get; set; }
+
+    /// <summary>
     /// Gets the Members value.
     /// </summary>
     [JsonPropertyName("members")]

@@ -303,7 +303,8 @@ public sealed class FlowCatalogService
             Name = flowObject.Name ?? string.Empty,
             IpStart = flowObject.IpStart ?? string.Empty,
             IpEnd = flowObject.IpEnd ?? string.Empty,
-            State = flowObject.State
+            State = flowObject.State,
+            ShowInRequest = flowObject.ShowInRequestModule
         };
     }
 
@@ -314,6 +315,7 @@ public sealed class FlowCatalogService
             Id = (int)flowGroup.Id,
             Name = flowGroup.Name,
             State = flowGroup.State,
+            ShowInRequest = flowGroup.ShowInRequestModule,
             Members = flowGroup.NwGroupMembers
                 .Select(member => new AddressGroupResponse.AddressGroupMemberResponse
                 {
@@ -343,7 +345,8 @@ public sealed class FlowCatalogService
             PortStart = flowObject.PortStart ?? 0,
             PortEnd = flowObject.PortEnd ?? 0,
             Protocol = protocol,
-            State = flowObject.State
+            State = flowObject.State,
+            ShowInRequest = flowObject.ShowInRequestModule
         };
     }
 
@@ -354,6 +357,7 @@ public sealed class FlowCatalogService
             Id = (int)flowGroup.Id,
             Name = flowGroup.Name,
             State = flowGroup.State,
+            ShowInRequest = flowGroup.ShowInRequestModule,
             Members = flowGroup.SvcGroupMembers
                 .Select(member => new ServiceGroupResponse.ServiceGroupMemberResponse
                 {
@@ -372,7 +376,8 @@ public sealed class FlowCatalogService
             Name = flowObject.Name,
             StartTime = flowObject.StartTime?.ToString("o", CultureInfo.InvariantCulture) ?? string.Empty,
             EndTime = flowObject.EndTime?.ToString("o", CultureInfo.InvariantCulture) ?? string.Empty,
-            State = flowObject.State
+            State = flowObject.State,
+            ShowInRequest = flowObject.ShowInRequestModule
         };
     }
 }

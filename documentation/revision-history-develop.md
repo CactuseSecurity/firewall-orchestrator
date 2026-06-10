@@ -438,9 +438,6 @@ These settings are no longer used due to the full automation of UpdateRuleOwner.
 - remove obsolete database last_seen fields
 
 # 9.1.7 - 08.06.2026 DEVELOP
-- request workflow: add locked tickets and request tasks for automatically 
-created change requests
-
 security patch
 
 This PR hardens FWO installation and security-sensitive workflows. It restricts app data import file/script paths, reduces installer secret exposure, tightens Hasura config permissions, improves LDAP/install test idempotency, removes the obsolete webhook role, and fixes related installer/test reliability issues. It also includes targeted documentation and version updates.
@@ -459,3 +456,6 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 - Tenant settings role handling now mirrors the backend per operation: the page stays viewable for admin/auditor/fw-admin, adding/deleting tenants and saving device visibility are admin-only (matching the REST and Hasura permissions), and editing existing tenants is allowed for admin/fw-admin.
 - Remaining hardcoded strings on the scheduler monitoring page were moved into the localization texts.
 - The shared confirm dialogs now raise DisplayChanged(false) after a successful action, so the parent's bound visibility state no longer remains stale.
+
+# 9.1.8 - 08.06.2026 DEVELOP
+- request workflow: add locked tickets and request tasks for automatically created change requests

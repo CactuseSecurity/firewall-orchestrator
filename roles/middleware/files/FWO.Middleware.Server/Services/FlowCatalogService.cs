@@ -221,47 +221,47 @@ public sealed class FlowCatalogService
 }}";
     }
 
-        private static string BuildObjectWhereClause(string firstFieldName, string firstFieldValue, string secondFieldName, string secondFieldValue, bool? visibleInRequest, string? thirdFieldName = null, int? thirdFieldValue = null)
-        {
-            List<string> parts =
-            [
-                $"{firstFieldName}: {{ _eq: {JsonSerializer.Serialize(firstFieldValue)} }}",
+    private static string BuildObjectWhereClause(string firstFieldName, string firstFieldValue, string secondFieldName, string secondFieldValue, bool? visibleInRequest, string? thirdFieldName = null, int? thirdFieldValue = null)
+    {
+        List<string> parts =
+        [
+            $"{firstFieldName}: {{ _eq: {JsonSerializer.Serialize(firstFieldValue)} }}",
                 $"{secondFieldName}: {{ _eq: {JsonSerializer.Serialize(secondFieldValue)} }}"
-            ];
+        ];
 
-            if (thirdFieldName != null && thirdFieldValue.HasValue)
-            {
-                parts.Add($"{thirdFieldName}: {{ _eq: {thirdFieldValue.Value.ToString(CultureInfo.InvariantCulture)} }}");
-            }
-
-            if (visibleInRequest.HasValue)
-            {
-                parts.Add($"show_in_request_module: {{ _eq: {GetGraphQlBoolean(visibleInRequest.Value)} }}");
-            }
-
-            return string.Join(", ", parts);
-        }
-
-        private static string BuildObjectWhereClause(string firstFieldName, int firstFieldValue, string secondFieldName, int secondFieldValue, bool? visibleInRequest, string? thirdFieldName = null, int? thirdFieldValue = null)
+        if (thirdFieldName != null && thirdFieldValue.HasValue)
         {
-            List<string> parts =
-            [
-                $"{firstFieldName}: {{ _eq: {firstFieldValue.ToString(CultureInfo.InvariantCulture)} }}",
-                $"{secondFieldName}: {{ _eq: {secondFieldValue.ToString(CultureInfo.InvariantCulture)} }}"
-            ];
-
-            if (thirdFieldName != null && thirdFieldValue.HasValue)
-            {
-                parts.Add($"{thirdFieldName}: {{ _eq: {thirdFieldValue.Value.ToString(CultureInfo.InvariantCulture)} }}");
-            }
-
-            if (visibleInRequest.HasValue)
-            {
-                parts.Add($"show_in_request_module: {{ _eq: {GetGraphQlBoolean(visibleInRequest.Value)} }}");
-            }
-
-            return string.Join(", ", parts);
+            parts.Add($"{thirdFieldName}: {{ _eq: {thirdFieldValue.Value.ToString(CultureInfo.InvariantCulture)} }}");
         }
+
+        if (visibleInRequest.HasValue)
+        {
+            parts.Add($"show_in_request_module: {{ _eq: {GetGraphQlBoolean(visibleInRequest.Value)} }}");
+        }
+
+        return string.Join(", ", parts);
+    }
+
+    private static string BuildObjectWhereClause(string firstFieldName, int firstFieldValue, string secondFieldName, int secondFieldValue, bool? visibleInRequest, string? thirdFieldName = null, int? thirdFieldValue = null)
+    {
+        List<string> parts =
+        [
+            $"{firstFieldName}: {{ _eq: {firstFieldValue.ToString(CultureInfo.InvariantCulture)} }}",
+                $"{secondFieldName}: {{ _eq: {secondFieldValue.ToString(CultureInfo.InvariantCulture)} }}"
+        ];
+
+        if (thirdFieldName != null && thirdFieldValue.HasValue)
+        {
+            parts.Add($"{thirdFieldName}: {{ _eq: {thirdFieldValue.Value.ToString(CultureInfo.InvariantCulture)} }}");
+        }
+
+        if (visibleInRequest.HasValue)
+        {
+            parts.Add($"show_in_request_module: {{ _eq: {GetGraphQlBoolean(visibleInRequest.Value)} }}");
+        }
+
+        return string.Join(", ", parts);
+    }
 
     private static string GetGraphQlBoolean(bool value)
     {

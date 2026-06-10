@@ -17,12 +17,14 @@ public sealed class GetAddressObjectIdRequest : IVisibleInRequestFilterRequest
     /// <summary>
     /// Gets the IpStart value.
     /// </summary>
+    [JsonRequired]
     [JsonPropertyName("ipStart")]
     public string IpStart { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets the IpEnd value.
     /// </summary>
+    [JsonRequired]
     [JsonPropertyName("ipEnd")]
     public string IpEnd { get; set; } = string.Empty;
 

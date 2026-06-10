@@ -56,7 +56,7 @@ public sealed class FlowComplianceService
 
         Rule rule = BuildSyntheticRule(request);
         List<FlowComplianceStateResponse> results = [];
-        foreach (int policyId in request.Policies.Where(id => id > 0).Distinct())
+        foreach (int policyId in request.Policies.Distinct())
         {
             ComplianceCheck complianceCheck = new(userConfig, apiConnection);
             await complianceCheck.AreRulesCompliant([policyId], [rule]);

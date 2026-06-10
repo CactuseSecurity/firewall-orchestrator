@@ -39,4 +39,17 @@ internal class FlowRequestContractTest
     {
         Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<GetServiceObjectIdRequest>(json));
     }
+
+    [TestCase("""{"portStart":443,"portEnd":443}""")]
+    public void GetServiceObjectIdRequest_RequiresProtocol(string json)
+    {
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<GetServiceObjectIdRequest>(json));
+    }
+
+    [TestCase("""{"ipEnd":"10.0.0.2"}""")]
+    [TestCase("""{"ipStart":"10.0.0.1"}""")]
+    public void GetAddressObjectIdRequest_RequiresIpBounds(string json)
+    {
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<GetAddressObjectIdRequest>(json));
+    }
 }

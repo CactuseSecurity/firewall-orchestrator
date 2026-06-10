@@ -1,6 +1,10 @@
+using FWO.Api.Client;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Requests;
+using FWO.Middleware.Server.Responses;
+using FWO.Middleware.Server.Services;
 using NUnit.Framework;
 
 namespace FWO.Test;
@@ -118,6 +122,37 @@ internal class FlowControllerValidationTest
         });
     }
 
+    [Test]
+    public async Task FlowControllerValidation_GetServiceObjectId_RejectsMissingProtocol()
+    {
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+
+        ActionResult<ServiceObjectIdResponse> result = await controller.GetServiceObjectId(new GetServiceObjectIdRequest
+        {
+            PortStart = 443,
+            PortEnd = 443,
+            Protocol = string.Empty
+        });
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("'protocol'"));
+    }
+
+    [Test]
+    public async Task FlowControllerValidation_GetAddressObjectId_RejectsMissingIpBounds()
+    {
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+
+        ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
+        {
+            IpStart = string.Empty,
+            IpEnd = "10.0.0.2"
+        });
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("'ipStart'"));
+    }
+
     private static IEnumerable<TestCaseData> RequestCases()
     {
         yield return new TestCaseData(new RequestCase(
@@ -199,4 +234,50 @@ internal class FlowControllerValidationTest
         string ValidJson,
         string InvalidRootJson,
         string ExpectedRootKey);
+
+    private sealed class ValidationApiConnection : SimulatedApiConnection
+    {
+        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+        {
+            throw new InvalidOperationException("Validation should return before the API is queried.");
+        }
+
+        public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void SetAuthHeader(string jwt)
+        {
+        }
+
+        public override void SetRole(string role)
+        {
+        }
+
+        public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
+        {
+        }
+
+        public override void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
+        {
+        }
+
+        public override void SwitchBack()
+        {
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+        }
+
+        public override void DisposeSubscriptions<T>()
+        {
+        }
+
+        public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
+        {
+            return Task.CompletedTask;
+        }
+    }
 }

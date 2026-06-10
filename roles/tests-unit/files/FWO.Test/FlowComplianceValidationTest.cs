@@ -94,4 +94,77 @@ internal class FlowComplianceValidationTest
             Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'portStart'"));
         });
     }
+
+    [Test]
+    public void GetFlowComplianceState_RejectsMissingIpBounds()
+    {
+        string json = """
+        {
+          "source": [{"ipStart":"10.0.0.1"}],
+          "destination": [{"ipStart":"10.0.1.1","ipEnd":"10.0.1.2"}],
+          "service": [{"portStart":443,"portEnd":443,"protocol":"TCP"}],
+          "policies": [1]
+        }
+        """;
+
+        GetFlowComplianceStateRequest request = JsonSerializer.Deserialize<GetFlowComplianceStateRequest>(json)!;
+
+        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'source'"));
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'ipStart'"));
+        });
+    }
+
+    [Test]
+    public void GetFlowComplianceState_RejectsMissingServiceProtocol()
+    {
+        string json = """
+        {
+          "source": [{"ipStart":"10.0.0.1","ipEnd":"10.0.0.2"}],
+          "destination": [{"ipStart":"10.0.1.1","ipEnd":"10.0.1.2"}],
+          "service": [{"portStart":443,"portEnd":443}],
+          "policies": [1]
+        }
+        """;
+
+        GetFlowComplianceStateRequest request = JsonSerializer.Deserialize<GetFlowComplianceStateRequest>(json)!;
+
+        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'service'"));
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'protocol'"));
+        });
+    }
+
+    [TestCase(0)]
+    [TestCase(-1)]
+    public void GetFlowComplianceState_RejectsNonPositivePolicyIds(int policyId)
+    {
+        GetFlowComplianceStateRequest request = new()
+        {
+            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.0.1", IpEnd = "10.0.0.2" }],
+            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.1.1", IpEnd = "10.0.1.2" }],
+            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
+            Policies = [policyId]
+        };
+
+        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'policies'"));
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("positive integers"));
+        });
+    }
 }

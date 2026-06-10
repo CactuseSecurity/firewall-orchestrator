@@ -31,6 +31,7 @@ public sealed class GetServiceObjectIdRequest : IVisibleInRequestFilterRequest
     /// <summary>
     /// Gets the Protocol value.
     /// </summary>
+    [JsonRequired]
     [JsonPropertyName("protocol")]
     public string Protocol { get; set; } = string.Empty;
 

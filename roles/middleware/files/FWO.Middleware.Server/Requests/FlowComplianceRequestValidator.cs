@@ -69,6 +69,11 @@ public static class FlowComplianceRequestValidator
             return false;
         }
 
+        if (!TryValidatePolicies(request.Policies, out errorResult))
+        {
+            return false;
+        }
+
         errorResult = null;
         return true;
     }
@@ -113,6 +118,36 @@ public static class FlowComplianceRequestValidator
             errorResult = new BadRequestObjectResult(
                 $"'{collectionName}' only accepts {allowedShapes}. Valid keys: {keyHelp}");
             return false;
+        }
+
+        switch (item)
+        {
+            case GetFlowComplianceStateRequest.IpRangeRequest ipRange
+                when string.IsNullOrWhiteSpace(ipRange.IpStart) || string.IsNullOrWhiteSpace(ipRange.IpEnd):
+                errorResult = new BadRequestObjectResult($"'{collectionName}' entries require non-empty 'ipStart' and 'ipEnd'.");
+                return false;
+            case GetFlowComplianceStateRequest.ServiceRangeRequest serviceRange
+                when string.IsNullOrWhiteSpace(serviceRange.Protocol):
+                errorResult = new BadRequestObjectResult($"'{collectionName}' entries require non-empty 'protocol'.");
+                return false;
+        }
+
+        errorResult = null;
+        return true;
+    }
+
+    private static bool TryValidatePolicies(IEnumerable<int> policies, out ActionResult? errorResult)
+    {
+        int index = 0;
+        foreach (int policyId in policies)
+        {
+            if (policyId <= 0)
+            {
+                errorResult = new BadRequestObjectResult($"'policies' entries must be positive integers. Invalid value at index {index}.");
+                return false;
+            }
+
+            index++;
         }
 
         errorResult = null;

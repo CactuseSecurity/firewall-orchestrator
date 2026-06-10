@@ -14460,6 +14460,21 @@
               ],
               "insert_permissions": [
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "recertified",
+                      "comment",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "check": {},

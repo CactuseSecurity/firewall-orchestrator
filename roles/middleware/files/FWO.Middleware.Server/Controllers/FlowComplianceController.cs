@@ -44,13 +44,16 @@ public class FlowComplianceController : ControllerBase
     /// Returns the policy identifiers for the current dataset.
     /// </summary>
     [HttpPost("getPolicyIds")]
-    public async Task<ActionResult<List<PolicyIdResponse>>> GetPolicyIds([FromBody] GetPolicyIdsRequest request)
+    public async Task<ActionResult<GetPolicyIdsResponse>> GetPolicyIds([FromBody] GetPolicyIdsRequest request)
     {
         if (!FlowComplianceRequestValidator.TryValidatePolicyIds(request, out ActionResult? errorResult))
         {
             return errorResult!;
         }
 
-        return Ok(await flowComplianceService.GetPolicyIdsAsync());
+        return Ok(new GetPolicyIdsResponse
+        {
+            Policies = await flowComplianceService.GetPolicyIdsAsync()
+        });
     }
 }

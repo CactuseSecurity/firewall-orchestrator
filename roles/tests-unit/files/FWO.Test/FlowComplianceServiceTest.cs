@@ -2,9 +2,11 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api.Data;
 using FWO.Data;
+using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
+using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using NUnit.Framework;
 
@@ -34,6 +36,36 @@ internal class FlowComplianceServiceTest
             Assert.That(result[0].Name, Is.EqualTo("Alpha"));
             Assert.That(result[1].Id, Is.EqualTo(2));
             Assert.That(result[1].Name, Is.EqualTo("Beta"));
+        });
+    }
+
+    [Test]
+    public async Task GetPolicyIds_ReturnsWrappedPoliciesResponse()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        apiConnection.Policies =
+        [
+            new CompliancePolicy { Id = 2, Name = "Beta" },
+            new CompliancePolicy { Id = 1, Name = "Alpha" }
+        ];
+
+        FlowComplianceController controller = new(new FlowComplianceService(apiConnection));
+
+        ActionResult<GetPolicyIdsResponse> result = await controller.GetPolicyIds(new GetPolicyIdsRequest());
+
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+
+        OkObjectResult okResult = (OkObjectResult)result.Result!;
+        Assert.That(okResult.Value, Is.TypeOf<GetPolicyIdsResponse>());
+
+        GetPolicyIdsResponse response = (GetPolicyIdsResponse)okResult.Value!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Policies, Has.Count.EqualTo(2));
+            Assert.That(response.Policies[0].Id, Is.EqualTo(1));
+            Assert.That(response.Policies[0].Name, Is.EqualTo("Alpha"));
+            Assert.That(response.Policies[1].Id, Is.EqualTo(2));
+            Assert.That(response.Policies[1].Name, Is.EqualTo("Beta"));
         });
     }
 

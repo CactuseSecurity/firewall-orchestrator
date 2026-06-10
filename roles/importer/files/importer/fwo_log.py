@@ -1,14 +1,17 @@
 import logging
 import os
+import sys
 import threading
 import time
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, Literal, Protocol, TextIO, TypeAlias, cast
 
-try:
+# Returns True if the OS is Linux, macOS (Darwin), or BSD-based systems
+is_unix = sys.platform in ("linux", "darwin", "freebsd")
+if is_unix:
     import fcntl as fcntl_module
-except ImportError:
+else:
     fcntl_module = None
 
 

@@ -946,7 +946,7 @@ class AppDataImportTests(unittest.TestCase):
             self.assertIsNone(apps_by_id["APP-020"].additional_information)
             self.assertEqual(
                 apps_by_id["APP-021"].additional_information,
-                {"Anwendung vollständig isoliert": "Nein"},
+                {"Isolated": "Nein"},
             )
 
     def test_extract_app_data_from_csv_keeps_isolation_unset_when_not_configured(self) -> None:

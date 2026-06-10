@@ -755,7 +755,7 @@ def parse_app_line(
     return count_skips
 
 
-ISOLATION_COMPLETED_KEY: str = "Anwendung vollständig isoliert"
+ISOLATION_COMPLETED_KEY: str = "Isolated"
 ISOLATION_NOT_COMPLETED_VALUE: str = "Nein"
 
 

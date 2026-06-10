@@ -47,6 +47,9 @@ namespace FWO.Data
         [JsonProperty("importDisabled"), JsonPropertyName("importDisabled")]
         public bool ImportDisabled { get; set; }
 
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public bool ImportEnabled => !ImportDisabled;
+
         [JsonProperty("last_import_attempt"), JsonPropertyName("last_import_attempt")]
         public DateTime? LastImportAttempt { get; set; }
 

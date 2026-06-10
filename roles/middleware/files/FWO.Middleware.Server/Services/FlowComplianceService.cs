@@ -53,12 +53,12 @@ public sealed class FlowComplianceService
 
         GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection);
         UserConfig userConfig = new(globalConfig, false);
-        ComplianceCheck complianceCheck = new(userConfig, apiConnection);
 
         Rule rule = BuildSyntheticRule(request);
         List<FlowComplianceStateResponse> results = [];
         foreach (int policyId in request.Policies.Where(id => id > 0).Distinct())
         {
+            ComplianceCheck complianceCheck = new(userConfig, apiConnection);
             await complianceCheck.AreRulesCompliant([policyId], [rule]);
             results.Add(ToResponse(policyId, complianceCheck));
         }
@@ -114,12 +114,13 @@ public sealed class FlowComplianceService
 
     private static FlowComplianceStateResponse ToResponse(int policyId, ComplianceCheck complianceCheck)
     {
+        bool policyResolved = complianceCheck.Policy is { Id: > 0 };
         return new FlowComplianceStateResponse
         {
             Policy = new FlowComplianceStateResponse.CompliancePolicyResponse
             {
-                Id = complianceCheck.Policy?.Id ?? policyId,
-                Name = complianceCheck.Policy?.Name ?? string.Empty
+                Id = policyResolved ? complianceCheck.Policy!.Id : policyId,
+                Name = policyResolved ? complianceCheck.Policy!.Name : string.Empty
             },
             Violations = complianceCheck.CurrentViolationsInCheck
                 .Select(violation => new FlowComplianceStateResponse.ComplianceViolationResponse

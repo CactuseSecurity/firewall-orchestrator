@@ -94,11 +94,35 @@ internal class FlowComplianceServiceTest
         });
     }
 
+    [Test]
+    public async Task GetFlowComplianceStateAsync_DoesNotReuseViolationsForUnknownPolicies()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        ConfigureComplianceFixture(apiConnection);
+
+        FlowComplianceService service = new(apiConnection);
+
+        GetFlowComplianceStateRequest request = BuildComplianceRequest();
+        request.Policies = [7, 999999];
+
+        List<FlowComplianceStateResponse> result = await service.GetFlowComplianceStateAsync(request);
+
+        Assert.That(result, Has.Count.EqualTo(2));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result[0].Policy.Id, Is.EqualTo(7));
+            Assert.That(result[0].Violations, Has.Count.EqualTo(2));
+            Assert.That(result[1].Policy.Id, Is.EqualTo(999999));
+            Assert.That(result[1].Policy.Name, Is.EqualTo(string.Empty));
+            Assert.That(result[1].Violations, Is.Empty);
+        });
+    }
+
     private static void ConfigureComplianceFixture(FlowComplianceServiceApiConn apiConnection)
     {
         apiConnection.Languages = [new Language { Name = "English", CultureInfo = "en-US" }];
         apiConnection.TextsByLanguage["English"] = BuildEnglishTexts();
-        apiConnection.PolicyById = BuildPolicy();
+        apiConnection.PoliciesById[7] = BuildPolicy();
         apiConnection.Managements = [new Management { Id = 1, Uid = "mgmt-1" }];
         apiConnection.NetworkZones = BuildNetworkZones();
     }
@@ -218,7 +242,7 @@ internal class FlowComplianceServiceTest
         public List<Language> Languages { get; set; } = [];
         public Dictionary<string, List<UiText>> TextsByLanguage { get; set; } = new();
         public List<CompliancePolicy> Policies { get; set; } = [];
-        public CompliancePolicy? PolicyById { get; set; }
+        public Dictionary<int, CompliancePolicy> PoliciesById { get; } = new();
         public List<Management> Managements { get; set; } = [];
         public List<ComplianceNetworkZone> NetworkZones { get; set; } = [];
 
@@ -254,7 +278,8 @@ internal class FlowComplianceServiceTest
 
             if (typeof(QueryResponseType) == typeof(CompliancePolicy) && query == ComplianceQueries.getPolicyById)
             {
-                return Task.FromResult((QueryResponseType)(object)(PolicyById ?? new CompliancePolicy()));
+                int policyId = int.TryParse(GetVariableValue(variables, "id"), out int id) ? id : 0;
+                return Task.FromResult((QueryResponseType)(object)(PoliciesById.TryGetValue(policyId, out CompliancePolicy? policy) ? policy : new CompliancePolicy()));
             }
 
             if (typeof(QueryResponseType) == typeof(List<Management>) && query == DeviceQueries.getManagementNames)

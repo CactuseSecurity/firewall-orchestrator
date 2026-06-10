@@ -177,6 +177,20 @@ namespace FWO.Test
         }
 
         [Test]
+        public void FlowSyncSubscription_ContainsFlowSyncSleepTime()
+        {
+            Assert.That(ConfigQueries.subscribeFlowSyncConfigChanges, Does.Contain("flowSyncSleepTime"));
+        }
+
+        [Test]
+        public void ConfigData_DefaultsFlowSyncSleepTimeToDisabled()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.FlowSyncSleepTime, Is.Zero);
+        }
+
+        [Test]
         public void ConfigData_DefaultsModIntegrationModeToFullyIntegrated()
         {
             ConfigData configData = new();

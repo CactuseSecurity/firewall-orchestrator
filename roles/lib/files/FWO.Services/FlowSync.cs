@@ -134,7 +134,7 @@ namespace FWO.Services
             // Refresh flow data to include newly inserted groups
             flowData = await GetFlowSyncDataAsync(mgmId);
             // Finally, process accesses which reference all object types
-            await ProcessRulesAsync(managementData.Rules, flowData);
+            await ProcessRulesAsync(mgmId, managementData.Rules, flowData);
 
             // remove flow mappings from all normalized entries that are set to removed
             await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.updateFlowMappingsForRemoved, new { mgmId });
@@ -706,7 +706,7 @@ namespace FWO.Services
         /// <summary>
         /// Inserts missing flow accesses and updates normalized rule mappings.
         /// </summary>
-        private async Task ProcessRulesAsync(IEnumerable<Rule> rules, FlowSyncFlowData flowData)
+        private async Task ProcessRulesAsync(int mgmId, IEnumerable<Rule> rules, FlowSyncFlowData flowData)
         {
             Dictionary<string, FlowAccessInsert> pendingAccessInserts = [];
             Dictionary<string, List<FlowRuleMappingUpdate>> newFlowMappings = [];
@@ -734,7 +734,7 @@ namespace FWO.Services
                     newFlowMappings.GetValueOrDefault(inserted.Hash, []).ForEach(m => m.FlowId = inserted.Id);
                 }
 
-                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedAccesses.Count} new flow accesses for management. Skipped: {skippedRules}.");
+                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedAccesses.Count} new flow accesses for management {mgmId}. Skipped: {skippedRules}.");
             }
 
             // update normalized rules with flow mappings
@@ -752,7 +752,7 @@ namespace FWO.Services
 
                 var updateCount = await SendUpdateManyAsync(FlowQueries.updateRuleFlowMappings, updates);
 
-                Log.WriteInfo(LogMessageTitle, $"Updated flow mappings for {updateCount} rules");
+                Log.WriteInfo(LogMessageTitle, $"Updated flow mappings for {updateCount} rules in management {mgmId}");
             }
         }
 
@@ -924,6 +924,7 @@ namespace FWO.Services
             {
                 if (!TryAddRuleNetworkLocation(location.Object, flowData, sourceIds, sourceGroupIds, sourceHashes))
                 {
+                    Log.WriteDebug(LogMessageTitle, $"Skipping rule {rule.Id} because source object {location.Object.Id} does not have a valid hash and cannot be added to the flow access.");
                     return false;
                 }
             }
@@ -932,6 +933,7 @@ namespace FWO.Services
             {
                 if (!TryAddRuleNetworkLocation(location.Object, flowData, destinationIds, destinationGroupIds, destinationHashes))
                 {
+                    Log.WriteDebug(LogMessageTitle, $"Skipping rule {rule.Id} because destination object {location.Object.Id} does not have a valid hash and cannot be added to the flow access.");
                     return false;
                 }
             }
@@ -940,17 +942,20 @@ namespace FWO.Services
             {
                 if (!TryAddRuleService(wrapper.Content, flowData, serviceIds, serviceGroupIds, serviceHashes))
                 {
+                    Log.WriteDebug(LogMessageTitle, $"Skipping rule {rule.Id} because service object {wrapper.Content.Id} does not have a valid hash and cannot be added to the flow access.");
                     return false;
                 }
             }
 
             if (sourceHashes.Count == 0 || destinationHashes.Count == 0 || serviceHashes.Count == 0)
             {
+                Log.WriteDebug(LogMessageTitle, $"Skipping rule {rule.Id} because one or more required objects do not have valid hashes.");
                 return false;
             }
 
             if (!TryAddRuleTimeObjects(rule.RuleTimes, flowData, timeIds))
             {
+                Log.WriteDebug(LogMessageTitle, $"Skipping rule {rule.Id} because time objects do not have valid hashes and cannot be added to the flow access.");
                 return false;
             }
 

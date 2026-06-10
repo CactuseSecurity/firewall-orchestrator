@@ -251,6 +251,14 @@
                     <a href="/help/settings/workflowcustomizing/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("customizing")</a>
                 </li>
                 <li class="nav-item px-2">
+                    <b>@userConfig.GetText("flow")</b>
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item px-2">
+                            <a href="/help/settings/flows/networkobjects/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("network_objects")</a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="nav-item px-2">
                     <a href="/help/settings/password/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("password")</a>
                 </li>
                 <li class="nav-item px-2">

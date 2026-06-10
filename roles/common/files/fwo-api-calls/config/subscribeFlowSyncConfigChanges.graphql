@@ -1,0 +1,9 @@
+subscription subscribeFlowSyncConfigChanges {
+  config(where: {_or: [
+        {config_key: {_eq: "flowSyncSleepTime"}}
+    ]}
+    ){
+    config_key
+    config_value
+  }
+}

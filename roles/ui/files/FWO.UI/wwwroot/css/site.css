@@ -448,6 +448,10 @@ thead {
     background-color: rgba(255, 0, 0, 0.25);
 }
 
+.background-disabled {
+    background-color: rgba(108, 117, 125, 0.18);
+}
+
 .fly-in-animation {
     animation: fly-in 1s ease-out;
 }

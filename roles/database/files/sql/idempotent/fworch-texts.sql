@@ -2272,10 +2272,12 @@ INSERT INTO txt VALUES ('private_key',          'German', 	'Privater Schl&uuml;s
 INSERT INTO txt VALUES ('private_key',          'English', 	'Private Key');
 INSERT INTO txt VALUES ('public_key',           'German', 	'&Ouml;ffentlicher Schl&uuml;ssel');
 INSERT INTO txt VALUES ('public_key',           'English', 	'Public Key');
-INSERT INTO txt VALUES ('import_credential',    'German', 	'Import Login-Daten');
-INSERT INTO txt VALUES ('import_credential',    'English', 	'Import Credentials');
-INSERT INTO txt VALUES ('export_credential',    'German', 	'Export Login-Daten');
-INSERT INTO txt VALUES ('export_credential',    'English', 	'Export Credentials');
+INSERT INTO txt VALUES ('readonly_credential',  'German', 	'Login-Daten');
+INSERT INTO txt VALUES ('readonly_credential',  'English', 	'Credentials');
+INSERT INTO txt VALUES ('readonly_credential_mgm','German', 	'Login-Daten(Import)');
+INSERT INTO txt VALUES ('readonly_credential_mgm','English', 	'Credentials(import)');
+INSERT INTO txt VALUES ('write_credential',    'German', 	'Login-Daten(Bereitstellung)');
+INSERT INTO txt VALUES ('write_credential',    'English', 	'Credentials(Provisioning)');
 INSERT INTO txt VALUES ('is_key_pair',          'German', 	'Schl&uuml;sselpaar?');
 INSERT INTO txt VALUES ('is_key_pair',          'English', 	'Key pair?');
 INSERT INTO txt VALUES ('hide_in_ui',           'German', 	'Nicht sichtbar');

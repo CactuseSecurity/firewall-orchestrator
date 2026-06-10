@@ -5,9 +5,6 @@ using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.ExternalSystems.Tufin.SecureChange;
 using FWO.Logging;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Org.BouncyCastle.Asn1.Ocsp;
-using Org.BouncyCastle.Utilities.Net;
 using RestSharp;
 using System.Net;
 using System.Text.Json;
@@ -70,37 +67,63 @@ namespace FWO.ExternalSystems.CheckPoint
                 string taskType = GetCheckPointTaskType(task);
                 Log.WriteInfo("DEBUG", $"TaskNumber: {task.TaskNumber}");
                 Log.WriteInfo("DEBUG", $"Generated AR: AR{task.TaskNumber}");
-                ExternalTicketTemplate template = ResolveTemplate(taskType, task);
 
+                ExternalTicketTemplate template = ResolveTemplate(taskType, task);
                 CheckPointTicketTask ticketTask = new(task, ipProtos, namingConvention);
 
-                ticketTask.FillTaskText(template);  // Placeholers setzen? TaskText
-
-                // For Check Point, both group_create and group_modify send the full target membership.
-                // Required member objects are created or updated before the group request is sent.
-                if (task.TaskType == nameof(WfTaskType.group_create) || task.TaskType == nameof(WfTaskType.group_modify))
-                {
-                    AddMemberObjectSteps(ticketTask);       // Members Tasks
-                }
-
+                ticketTask.FillTaskText(template);
                 TicketTasks.Add(ticketTask.TaskText);
 
-                string renderedBody = RenderTemplate(template.TicketTemplate, task);
-                JsonNode body = JsonNode.Parse(renderedBody) ?? throw new ConfigException("Rendered CheckPoint body could not be parsed into valid JSON.");
+                if (task.TaskType == nameof(WfTaskType.group_create))
+                {
+                    AddEmptyGroupCreateStep(ticketTask);
+                    AddPublishTask();
 
-                renderedTasks.Add(new RenderedTask(taskType, body));
+                    AddMemberObjectSteps(ticketTask);
+                    AddMemberAddSteps(ticketTask);
+                    continue;
+                }
+
+                if (task.TaskType == nameof(WfTaskType.group_modify))
+                {
+                    AddMemberObjectSteps(ticketTask);
+                    AddMemberAddSteps(ticketTask);
+                    AddMemberRemoveSteps(ticketTask);
+                    continue;
+                }
+
+                renderedTasks.Add(new RenderedTask(taskType, ticketTask.TaskBody));
             }
 
-            AddPublishTask();       // Last Task Publish, not publish again? 
-
+            AddPublishTask();
             TicketText = SerializeExecutionPlan();
         }
 
         private void AddMemberObjectSteps(CheckPointTicketTask ticketTask)
         {
-            foreach (CheckPointObjectRequest request in ticketTask.GetRequiredMemberObjects())
+            foreach (CheckPointObjectRequest request in ticketTask.GetRequiredMemberObjectSteps())
             {
                 renderedTasks.Add(new RenderedTask(GetTaskType(request), RenderObjectBody(request)));
+                AddPublishTask();
+            }
+        }
+        private void AddEmptyGroupCreateStep(CheckPointTicketTask ticketTask)
+        {
+            renderedTasks.Add(new RenderedTask(CheckPointTaskTypes.GroupCreate, ticketTask.RenderEmptyGroupCreateBody()));
+        }
+        private void AddMemberAddSteps(CheckPointTicketTask ticketTask)
+        {
+            foreach (string memberName in ticketTask.GetMembersToAdd())
+            {
+                renderedTasks.Add(new RenderedTask(CheckPointTaskTypes.GroupAddMembers, ticketTask.RenderGroupMemberAddBody(memberName)));
+                AddPublishTask();
+            }
+        }
+        private void AddMemberRemoveSteps(CheckPointTicketTask ticketTask)
+        {
+            foreach (string memberName in ticketTask.GetMembersToRemove())
+            {
+                renderedTasks.Add(new RenderedTask(CheckPointTaskTypes.GroupRemoveMembers, ticketTask.RenderGroupMemberRemoveBody(memberName)));
                 AddPublishTask();
             }
         }
@@ -164,6 +187,8 @@ namespace FWO.ExternalSystems.CheckPoint
             {
                 CheckPointTaskTypes.GroupCreate => "add-group",
                 CheckPointTaskTypes.GroupModify => "set-group",
+                CheckPointTaskTypes.GroupAddMembers => "set-group",
+                CheckPointTaskTypes.GroupRemoveMembers => "set-group",
                 CheckPointTaskTypes.GroupDelete => "delete-group",
 
                 CheckPointTaskTypes.HostCreate => "add-host",

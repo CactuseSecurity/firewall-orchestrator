@@ -19,8 +19,10 @@ namespace FWO.ExternalSystems.CheckPoint
         public override void FillTaskText(ExternalTicketTemplate template)
         {
             ExtMgtData extMgt = ReqTask.OnManagement != null && ReqTask.OnManagement.ExtMgtData != null ? JsonSerializer.Deserialize<ExtMgtData>(ReqTask.OnManagement.ExtMgtData) : new();
+
             string managementId = extMgt.ExtId ?? ReqTask.ManagementId?.ToString() ?? "0";
             string managementName = extMgt.ExtName ?? ReqTask.OnManagement?.Name ?? "";
+
             TaskText = (string.IsNullOrWhiteSpace(template.TasksTemplate) ? template.TicketTemplate : template.TasksTemplate)
                 .Replace(Placeholder.ORDERNAME, "AR" + ReqTask.TaskNumber.ToString())
                 .Replace(Placeholder.TASKCOMMENT, ReqTask.GetFirstCommentText())
@@ -36,7 +38,7 @@ namespace FWO.ExternalSystems.CheckPoint
                 .Replace(Placeholder.DESTINATIONS, ConvertNetworkElems(template, ElemFieldType.destination, managementId, managementName))
                 //.Replace(Placeholder.MEMBERS, "[\"ChrisHost\"]")
                 //.Replace(Placeholder.MEMBERS, "[\"AR" + ReqTask.TicketId.ToString() + "\"]") 
-                .Replace(Placeholder.MEMBERS, ConvertMembers())
+                .Replace(Placeholder.MEMBERS, "[]") //now delta tasks, not final group member list
                 .Replace(Placeholder.SERVICES, ConvertServiceElems(template));
 
             if (!string.IsNullOrWhiteSpace(TaskText))
@@ -65,6 +67,102 @@ namespace FWO.ExternalSystems.CheckPoint
             };
         }
 
+        private string GetGroupName()
+        {
+            return ReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
+        }
+
+        internal JsonNode RenderEmptyGroupCreateBody()
+        {
+            return new JsonObject
+            {
+                ["name"] = GetGroupName()
+            };
+        }
+
+        internal JsonNode RenderGroupMemberAddBody(string memberName)
+        {
+            return new JsonObject
+            {
+                ["name"] = GetGroupName(),
+                ["members"] = new JsonObject
+                {
+                    ["add"] = new JsonArray(memberName)
+                }
+            };
+        }
+
+        internal JsonNode RenderGroupMemberRemoveBody(string memberName)
+        {
+            return new JsonObject
+            {
+                ["name"] = GetGroupName(),
+                ["members"] = new JsonObject
+                {
+                    ["remove"] = new JsonArray(memberName)
+                }
+            };
+        }
+
+        internal List<CheckPointObjectRequest> GetRequiredMemberObjectSteps()
+        {
+            return ReqTask.Elements
+                .Where(IsNetworkMember)
+                .Where(RequiresMemberObjectStep)
+                .Where(element => !string.IsNullOrWhiteSpace(element.Name))
+                .Select(ToCheckPointObjectRequest)
+                .ToList();
+        }
+
+        internal List<string> GetMembersToAdd()
+        {
+            return ReqTask.Elements
+                .Where(IsNetworkMember)
+                .Where(ShouldBeAddedToGroup)
+                .Select(GetMemberName)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        internal List<string> GetMembersToRemove()
+        {
+            return ReqTask.Elements
+                .Where(IsNetworkMember)
+                .Where(element => element.RequestAction == nameof(RequestAction.delete))
+                .Select(GetMemberName)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private bool ShouldBeAddedToGroup(WfReqElement element)
+        {
+            if (ReqTask.TaskType == nameof(WfTaskType.group_create))
+            {
+                return element.RequestAction == nameof(RequestAction.create)
+                    || element.RequestAction == nameof(RequestAction.unchanged)
+                    || element.RequestAction == nameof(RequestAction.addAfterCreation);
+            }
+
+            if (ReqTask.TaskType == nameof(WfTaskType.group_modify))
+            {
+                // TODO: If future workflow semantics require "modify" elements to also
+                // trigger a group add, extend this condition here.
+                return element.RequestAction == nameof(RequestAction.create)
+                    || element.RequestAction == nameof(RequestAction.addAfterCreation);
+            }
+
+            return false;
+        }
+
+        private static string GetMemberName(WfReqElement element)
+        {
+            return element.Name ?? "";
+        }
+
         private string ConvertNetworkElems(ExternalTicketTemplate template, ElemFieldType fieldType, string managementId, string managementName)
         {
             List<string> convertedElements = ReqTask.GetNwObjectElements(fieldType)
@@ -74,36 +172,61 @@ namespace FWO.ExternalSystems.CheckPoint
             return UsesNetworkSubTemplates(template) ? "[" + string.Join(",", convertedElements) + "]" : JsonSerializer.Serialize(convertedElements);
         }
 
-        // The members list always represents the full desired final membership of the group.
-        private string ConvertMembers()     // Soll GroupName = Groupname prüfen? 
+        private string ConvertServiceElems(ExternalTicketTemplate template)
         {
-            List<string> members = ReqTask.Elements
-                .Where(IsNetworkMember)
-                .Where(ShouldBeIncludedInGroupMembership)
-                .Select(element => element.Name ?? "")
-                .Where(name => !string.IsNullOrWhiteSpace(name))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            List<string> services = ReqTask.GetServiceElements()
+                .Select(service => ConvertServiceElement(template, service))
+                .Where(service => !string.IsNullOrWhiteSpace(service))
+                .OrderBy(service => service, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            return JsonSerializer.Serialize(members);
+            return UsesServiceSubTemplates(template)
+                ? "[" + string.Join(",", services) + "]"
+                : JsonSerializer.Serialize(services);
         }
 
-        private static bool ShouldBeIncludedInGroupMembership(WfReqElement element)
+        private string ConvertNetworkElement(ExternalTicketTemplate template, NwObjectElement element, string managementId, string managementName)
         {
-            return element.RequestAction == nameof(RequestAction.create)
-                || element.RequestAction == nameof(RequestAction.modify)
-                || element.RequestAction == nameof(RequestAction.unchanged);
+            string fallback = ConvertNetworkElement(element);
+
+            if (!string.IsNullOrWhiteSpace(element.GroupName) && !string.IsNullOrWhiteSpace(template.NwObjGroupTemplate))
+            {
+                return FillNetworkGroupTemplate(template.NwObjGroupTemplate, element.GroupName, managementId, managementName);
+            }
+
+            if (!string.IsNullOrWhiteSpace(element.IpString) && !string.IsNullOrWhiteSpace(template.IpTemplate))
+            {
+                return FillIpTemplate(template.IpTemplate, element.IpString, element.IpEndString, fallback);
+            }
+
+            if (!string.IsNullOrWhiteSpace(template.ObjectTemplate))
+            {
+                return FillObjectTemplate(template.ObjectTemplate, element, fallback, managementId);
+            }
+
+            if (!string.IsNullOrWhiteSpace(template.ObjectTemplateShort))
+            {
+                return FillObjectShortTemplate(template.ObjectTemplateShort, fallback, element.RequestAction, managementId);
+            }
+
+            return UsesNetworkSubTemplates(template) || UsesObjectSubTemplates(template)
+                ? JsonSerializer.Serialize(fallback)
+                : fallback;
         }
 
-        internal List<CheckPointObjectRequest> GetRequiredMemberObjects()   // Name oder GroupName prüfen?
+        private static string ConvertNetworkElement(NwObjectElement element)
         {
-            return ReqTask.Elements
-                .Where(IsNetworkMember)
-                .Where(RequiresMemberObjectStep)
-                .Where(element => !string.IsNullOrWhiteSpace(element.Name))
-                .Select(ToCheckPointObjectRequest)
-                .ToList();
+            if (!string.IsNullOrWhiteSpace(element.GroupName))
+            {
+                return element.GroupName;
+            }
+
+            if (!string.IsNullOrWhiteSpace(element.Name))
+            {
+                return element.Name;
+            }
+
+            return element.IpString;
         }
 
         private static bool IsNetworkMember(WfReqElement element)
@@ -137,86 +260,7 @@ namespace FWO.ExternalSystems.CheckPoint
             };
         }
 
-        private string ConvertServiceElems(ExternalTicketTemplate template)
-        {
-            List<string> services = ReqTask.GetServiceElements()
-                .Select(service => ConvertServiceElement(template, service))
-                .Where(service => !string.IsNullOrWhiteSpace(service))
-                .OrderBy(service => service, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-            return UsesServiceSubTemplates(template) ? "[" + string.Join(",", services) + "]" : JsonSerializer.Serialize(services);
-        }
-
-        private string ConvertNetworkElement(ExternalTicketTemplate template, NwObjectElement element, string managementId, string managementName)
-        {
-            string fallback = ConvertNetworkElement(element);
-            if (!string.IsNullOrWhiteSpace(element.GroupName) && !string.IsNullOrWhiteSpace(template.NwObjGroupTemplate))
-            {
-                return FillNetworkGroupTemplate(template.NwObjGroupTemplate, element.GroupName, managementId, managementName);
-            }
-            if (!string.IsNullOrWhiteSpace(element.IpString) && !string.IsNullOrWhiteSpace(template.IpTemplate))
-            {
-                return FillIpTemplate(template.IpTemplate, element.IpString, element.IpEndString, fallback);
-            }
-            if (!string.IsNullOrWhiteSpace(template.ObjectTemplate))
-            {
-                return FillObjectTemplate(template.ObjectTemplate, element, fallback, managementId);
-            }
-            if (!string.IsNullOrWhiteSpace(template.ObjectTemplateShort))
-            {
-                return FillObjectShortTemplate(template.ObjectTemplateShort, fallback, element.RequestAction, managementId);
-            }
-            return UsesNetworkSubTemplates(template) || UsesObjectSubTemplates(template) ? JsonSerializer.Serialize(fallback) : fallback;
-        }
-
-        private static string ConvertNetworkElement(NwObjectElement element)
-        {
-            if (!string.IsNullOrWhiteSpace(element.GroupName))
-            {
-                return element.GroupName;
-            }
-            if (!string.IsNullOrWhiteSpace(element.Name))
-            {
-                return element.Name;
-            }
-            return element.IpString;
-        }
-
-        private string ConvertNetworkElement(ExternalTicketTemplate template, WfReqElement element, string managementId, string managementName)
-        {
-            string fallback = ConvertNetworkElement(element);
-            if (!string.IsNullOrWhiteSpace(element.GroupName) && !string.IsNullOrWhiteSpace(template.NwObjGroupTemplate))
-            {
-                return FillNetworkGroupTemplate(template.NwObjGroupTemplate, element.GroupName, managementId, managementName);
-            }
-            if (!string.IsNullOrWhiteSpace(element.IpString) && !string.IsNullOrWhiteSpace(template.IpTemplate))
-            {
-                return FillIpTemplate(template.IpTemplate, element.IpString, element.IpEnd ?? "", fallback);
-            }
-            if (!string.IsNullOrWhiteSpace(template.ObjectTemplate))
-            {
-                return FillObjectTemplate(template.ObjectTemplate, element, fallback, managementId);
-            }
-            if (!string.IsNullOrWhiteSpace(template.ObjectTemplateShort))
-            {
-                return FillObjectShortTemplate(template.ObjectTemplateShort, fallback, element.RequestAction, managementId);
-            }
-            return UsesNetworkSubTemplates(template) || UsesObjectSubTemplates(template) ? JsonSerializer.Serialize(fallback) : fallback;
-        }
-
-        private static string ConvertNetworkElement(WfReqElement element)
-        {
-            if (!string.IsNullOrWhiteSpace(element.GroupName))
-            {
-                return element.GroupName;
-            }
-            if (!string.IsNullOrWhiteSpace(element.Name))
-            {
-                return element.Name;
-            }
-            return element.IpString ?? "";
-        }
-
+        
         private string ConvertServiceElement(ExternalTicketTemplate template, NwServiceElement service)
         {
             string fallback = ConvertServiceElement(service);

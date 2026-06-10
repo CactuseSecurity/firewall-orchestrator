@@ -68,7 +68,7 @@
                 }
             </Template>
         </Column>
-        <Column TableItem="Management" Title="@(userConfig.GetText("import_credential"))" Field="@(x => x.ImportCredential.Id)" Sortable="true">
+        <Column TableItem="Management" Title="@(userConfig.GetText("readonly_credential_mgm"))" Field="@(x => x.ImportCredential.Id)" Sortable="true">
             <Template>
                 @if (!context.DeviceType.IsDummyRouter())
                 {
@@ -170,7 +170,7 @@
                         </div>
                     }
                     <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5116"))">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("import_credential"))*:</label>
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("readonly_credential_mgm"))*:</label>
                         <div class="col-sm-8">
                             <Dropdown ElementType="ImportCredential" ElementToString="@(c => c.Name)" @bind-SelectedElement="actManagement.ImportCredential" Elements="credentials">
                                 <ElementTemplate Context="cred">
@@ -180,7 +180,7 @@
                         </div>
                     </div>
                     <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5117"))">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("export_credential")):</label>
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("write_credential")):</label>
                         <div class="col-sm-8">
                             <Dropdown ElementType="ImportCredential" ElementToString="@(c => c.Name)" @bind-SelectedElement="actManagement.ExportCredential" Elements="credentials">
                                 <ElementTemplate Context="cred">

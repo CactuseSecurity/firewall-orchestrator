@@ -814,6 +814,8 @@ INSERT INTO txt VALUES ('expand_all',	        'German', 	'Alles ausklappen');
 INSERT INTO txt VALUES ('expand_all',		    'English', 	'Expand all');
 INSERT INTO txt VALUES ('all',		            'German', 	'Alle');
 INSERT INTO txt VALUES ('all',		            'English', 	'All');
+INSERT INTO txt VALUES ('ShowRulesWithoutOwnersDropDown',   'German', 'Regeln ohne Eigentümer');
+INSERT INTO txt VALUES ('ShowRulesWithoutOwnersDropDown',	'English', 'Rules without Owner');
 INSERT INTO txt VALUES ('all_open',             'German',   'Alle offenen');
 INSERT INTO txt VALUES ('all_open',             'English',  'All open');
 INSERT INTO txt VALUES ('rule',		            'German', 	'Regel');

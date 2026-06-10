@@ -47,6 +47,7 @@ else
     private RecertFilter? previousRecertFilter;
     private const int AllId = -1;
     private const int UnselectedId = -2;
+    private const int RulesWithoutOwnersId = -3;
 
     private string OwnerCheckboxLabelClass => UseFormLayout ? "col-sm-3 col-form-label col-form-label-sm" : "form-check-label text-white";
     private string OwnerLabelClass => UseFormLayout ? "col-sm-3 col-form-label col-form-label-sm" : "text-left text-white";
@@ -128,6 +129,8 @@ else
             {
                 ownerList.Add(new(){ Id = AllId, Name = userConfig.GetText("all")});
                 ownerList = [.. ownerList.OrderBy(o => o.Id)];
+                ownerList.Add(new(){ Id = RulesWithoutOwnersId, Name = userConfig.GetText("ShowRulesWithoutOwnersDropDown")});
+                ownerList = [.. ownerList.OrderBy(o => o.Id)];
             }
             else
             {
@@ -186,6 +189,12 @@ else
     private void SelectedOwnerChanged(FwoOwner newOwner)
     {
         selectedOwner = newOwner;
+        if (newOwner.Id == RulesWithoutOwnersId)
+        {
+            RecertFilter.ShowRulesWithoutOwner = true;
+            RecertFilter.RecertOwnerList = [];
+            return;
+        }
         if(newOwner.Id == AllId)
         {
             RecertFilter.RecertOwnerList = [.. ownerList.Select(o => o.Id).Where(id => id >= 0)];
@@ -198,6 +207,7 @@ else
         {
             RecertFilter.RecertOwnerList = [newOwner.Id];
         }
+        RecertFilter.ShowRulesWithoutOwner = false;
     }
 
     private async Task ToggleShowAnyMatch()

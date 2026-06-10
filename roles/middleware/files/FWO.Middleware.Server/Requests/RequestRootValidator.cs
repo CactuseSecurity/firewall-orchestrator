@@ -2,8 +2,14 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FWO.Middleware.Server.Requests;
 
+/// <summary>
+/// Represents the RequestRootValidator type.
+/// </summary>
 public static class RequestRootValidator
 {
+    /// <summary>
+    /// Performs the TryValidate operation.
+    /// </summary>
     public static bool TryValidate(IRequestWithRootAdditionalData request, RequestRootValidationSchema schema, out ActionResult? errorResult)
     {
         if (request.AdditionalData is not { Count: > 0 })

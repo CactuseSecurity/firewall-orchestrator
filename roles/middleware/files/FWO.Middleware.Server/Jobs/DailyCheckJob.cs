@@ -144,6 +144,9 @@ namespace FWO.Middleware.Server.Jobs
             public bool SampleGroupExisting;
             public bool SampleOwnerExisting;
 
+            /// <summary>
+            /// Performs the AnyFlagSet operation.
+            /// </summary>
             public readonly bool AnyFlagSet()
             {
                 return SampleManagementExisting || SampleCredentialExisting || SampleUserExisting

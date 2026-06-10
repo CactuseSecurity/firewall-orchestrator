@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
@@ -7,7 +8,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FWO.Middleware.Server.Controllers;
 
-[Authorize]
+/// <summary>
+/// Provides flow catalog, compliance, and request endpoints.
+/// </summary>
+[Authorize(Roles = $"{Roles.Admin}")]
 [ApiController]
 [Route("api/[controller]")]
 public class FlowController : ControllerBase
@@ -15,6 +19,11 @@ public class FlowController : ControllerBase
     private readonly FlowCatalogService flowCatalogService;
     private readonly FlowComplianceService flowComplianceService;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FlowController"/> class.
+    /// </summary>
+    /// <param name="flowCatalogService">The flow catalog service.</param>
+    /// <param name="flowComplianceService">The flow compliance service.</param>
     public FlowController(FlowCatalogService flowCatalogService, FlowComplianceService flowComplianceService)
     {
         this.flowCatalogService = flowCatalogService;
@@ -51,6 +60,9 @@ public class FlowController : ControllerBase
     private static readonly RequestFilterValidationSchema AddressObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressObjectId));
     #endregion
 
+    /// <summary>
+    /// Returns address objects for the requested visibility filter.
+    /// </summary>
     [HttpPost("getAddressObjects")]
     public async Task<ActionResult<List<AddressObjectResponse>>> GetAddressObjects([FromBody] GetAddressObjectsRequest request)
     {
@@ -62,6 +74,9 @@ public class FlowController : ControllerBase
         return Ok(await flowCatalogService.GetAddressObjectsAsync(request.Filter?.VisibleInRequest));
     }
 
+    /// <summary>
+    /// Returns address groups for the requested visibility filter.
+    /// </summary>
     [HttpPost("getAddressGroups")]
     public async Task<ActionResult<List<AddressGroupResponse>>> GetAddressGroups([FromBody] GetAddressGroupsRequest request)
     {
@@ -73,6 +88,9 @@ public class FlowController : ControllerBase
         return Ok(await flowCatalogService.GetAddressGroupsAsync(request.Filter?.VisibleInRequest));
     }
 
+    /// <summary>
+    /// Returns service objects for the requested visibility filter.
+    /// </summary>
     [HttpPost("getServiceObjects")]
     public async Task<ActionResult<List<ServiceObjectResponse>>> GetServiceObjects([FromBody] GetServiceObjectsRequest request)
     {
@@ -84,6 +102,9 @@ public class FlowController : ControllerBase
         return Ok(await flowCatalogService.GetServiceObjectsAsync(request.Filter?.VisibleInRequest));
     }
 
+    /// <summary>
+    /// Returns service groups for the requested visibility filter.
+    /// </summary>
     [HttpPost("getServiceGroups")]
     public async Task<ActionResult<List<ServiceGroupResponse>>> GetServiceGroups([FromBody] GetServiceGroupsRequest request)
     {
@@ -95,6 +116,9 @@ public class FlowController : ControllerBase
         return Ok(await flowCatalogService.GetServiceGroupsAsync(request.Filter?.VisibleInRequest));
     }
 
+    /// <summary>
+    /// Returns time objects for the requested visibility filter.
+    /// </summary>
     [HttpPost("getTimeObjects")]
     public async Task<ActionResult<List<TimeObjectResponse>>> GetTimeObjects([FromBody] GetTimeObjectsRequest request)
     {
@@ -106,6 +130,9 @@ public class FlowController : ControllerBase
         return Ok(await flowCatalogService.GetTimeObjectsAsync(request.Filter?.VisibleInRequest));
     }
 
+    /// <summary>
+    /// Returns the compliance state for the requested flows.
+    /// </summary>
     [HttpPost("getFlowComplianceState")]
     public async Task<ActionResult<List<FlowComplianceStateResponse>>> GetFlowComplianceState([FromBody] GetFlowComplianceStateRequest request)
     {
@@ -117,6 +144,9 @@ public class FlowController : ControllerBase
         return Ok(await flowComplianceService.GetFlowComplianceStateAsync(request));
     }
 
+    /// <summary>
+    /// Returns the policy identifiers for the current dataset.
+    /// </summary>
     [HttpPost("getPolicyIds")]
     public async Task<ActionResult<List<PolicyIdResponse>>> GetPolicyIds([FromBody] GetPolicyIdsRequest request)
     {
@@ -128,6 +158,9 @@ public class FlowController : ControllerBase
         return Ok(await flowComplianceService.GetPolicyIdsAsync());
     }
 
+    /// <summary>
+    /// Resolves a service object identifier from the supplied lookup request.
+    /// </summary>
     [HttpPost("getServiceObjectId")]
     public async Task<ActionResult<ServiceObjectIdResponse>> GetServiceObjectId([FromBody] GetServiceObjectIdRequest request)
     {
@@ -139,6 +172,9 @@ public class FlowController : ControllerBase
         return Ok(await flowCatalogService.GetServiceObjectIdAsync(request.Protocol, request.PortStart, request.PortEnd, request.Filter?.VisibleInRequest));
     }
 
+    /// <summary>
+    /// Resolves an address object identifier from the supplied lookup request.
+    /// </summary>
     [HttpPost("getAddressObjectId")]
     public async Task<ActionResult<AddressObjectIdResponse>> GetAddressObjectId([FromBody] GetAddressObjectIdRequest request)
     {
@@ -150,36 +186,54 @@ public class FlowController : ControllerBase
         return Ok(await flowCatalogService.GetAddressObjectIdAsync(request.IpStart, request.IpEnd, request.Filter?.VisibleInRequest));
     }
 
+    /// <summary>
+    /// Generates an address object name.
+    /// </summary>
     [HttpPost("generateAddressObjectName")]
     public ActionResult<GenerateAddressObjectNameResponse> GenerateAddressObjectName([FromBody] GenerateAddressObjectNameRequest request)
     {
         return StatusCode(StatusCodes.Status501NotImplemented);
     }
 
+    /// <summary>
+    /// Generates a service object name.
+    /// </summary>
     [HttpPost("generateServiceObjectName")]
     public ActionResult<GenerateServiceObjectNameResponse> GenerateServiceObjectName([FromBody] GenerateServiceObjectNameRequest request)
     {
         return StatusCode(StatusCodes.Status501NotImplemented);
     }
 
+    /// <summary>
+    /// Checks whether a network object definition is valid.
+    /// </summary>
     [HttpPost("getNetObjectValidity")]
     public ActionResult<NetObjectValidityResponse> GetNetObjectValidity([FromBody] GetNetObjectValidityRequest request)
     {
         return StatusCode(StatusCodes.Status501NotImplemented);
     }
 
+    /// <summary>
+    /// Checks whether a network group definition is valid.
+    /// </summary>
     [HttpPost("getNetGroupValidity")]
     public ActionResult<NetGroupValidityResponse> GetNetGroupValidity([FromBody] List<GetNetGroupValidityRequestItem> request)
     {
         return StatusCode(StatusCodes.Status501NotImplemented);
     }
 
+    /// <summary>
+    /// Creates a new request.
+    /// </summary>
     [HttpPost("createRequest")]
     public ActionResult<CreateRequestResponse> CreateRequest([FromBody] CreateRequestRequest request)
     {
         return StatusCode(StatusCodes.Status501NotImplemented);
     }
 
+    /// <summary>
+    /// Returns the status of an existing request.
+    /// </summary>
     [HttpPost("getRequestStatus")]
     public ActionResult<GetRequestStatusResponse> GetRequestStatus([FromBody] GetRequestStatusRequest request)
     {

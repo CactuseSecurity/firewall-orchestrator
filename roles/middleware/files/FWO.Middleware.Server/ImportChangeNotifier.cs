@@ -32,23 +32,41 @@ namespace FWO.Middleware.Server
 
         private struct ImportToNotify
         {
+            /// <summary>
+            /// Gets the ControlId value.
+            /// </summary>
             [JsonProperty("control_id"), JsonPropertyName("control_id")]
             public long ControlId { get; set; }
 
+            /// <summary>
+            /// Gets the MgmtId value.
+            /// </summary>
             [JsonProperty("mgm_id"), JsonPropertyName("mgm_id")]
             public int MgmtId { get; set; }
 
+            /// <summary>
+            /// Gets the Mgmt value.
+            /// </summary>
             [JsonProperty("management"), JsonPropertyName("management")]
             public ImportManagement Mgmt { get; set; }
 
+            /// <summary>
+            /// Gets the StopTime value.
+            /// </summary>
             [JsonProperty("stop_time"), JsonPropertyName("stop_time")]
             public DateTime StopTime { get; set; }
 
+            /// <summary>
+            /// Gets the RelevantChanges value.
+            /// </summary>
             [JsonProperty("security_relevant_changes_counter"), JsonPropertyName("security_relevant_changes_counter")]
             public int RelevantChanges { get; set; }
         };
         private struct ImportManagement
         {
+            /// <summary>
+            /// Gets the MgmtName value.
+            /// </summary>
             [JsonProperty("mgm_name"), JsonPropertyName("mgm_name")]
             public string MgmtName { get; set; }
         }

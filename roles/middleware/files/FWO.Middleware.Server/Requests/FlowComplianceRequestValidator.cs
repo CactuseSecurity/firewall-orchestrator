@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FWO.Middleware.Server.Requests;
 
+/// <summary>
+/// Represents the FlowComplianceRequestValidator type.
+/// </summary>
 public static class FlowComplianceRequestValidator
 {
     private const string GetPolicyIdsEndpointName = "getPolicyIds";
@@ -33,11 +36,17 @@ public static class FlowComplianceRequestValidator
         new("protocol", "Protocol name or id of the service range.")
     ];
 
+    /// <summary>
+    /// Performs the TryValidatePolicyIds operation.
+    /// </summary>
     public static bool TryValidatePolicyIds(GetPolicyIdsRequest request, out ActionResult? errorResult)
     {
         return RequestRootValidator.TryValidate(request, PolicyIdsRootSchema, out errorResult);
     }
 
+    /// <summary>
+    /// Performs the TryValidateFlowComplianceState operation.
+    /// </summary>
     public static bool TryValidateFlowComplianceState(GetFlowComplianceStateRequest request, out ActionResult? errorResult)
     {
         if (!RequestRootValidator.TryValidate(request, FlowComplianceRootSchema, out errorResult))

@@ -8,29 +8,44 @@ using FWO.Middleware.Server.Responses;
 
 namespace FWO.Middleware.Server.Services;
 
+/// <summary>
+/// Represents the FlowCatalogService type.
+/// </summary>
 public sealed class FlowCatalogService
 {
     private readonly ApiConnection apiConnection;
     private Dictionary<int, string>? ipProtocolNames;
     private Dictionary<string, int>? ipProtocolIdsByName;
 
+    /// <summary>
+    /// Initializes a new instance of the type.
+    /// </summary>
     public FlowCatalogService(ApiConnection apiConnection)
     {
         this.apiConnection = apiConnection;
     }
 
+    /// <summary>
+    /// Performs the GetAddressObjectsAsync operation.
+    /// </summary>
     public async Task<List<AddressObjectResponse>> GetAddressObjectsAsync(bool? visibleInRequest)
     {
         List<FlowNwObject> flowObjects = await LoadFlowNwObjectsAsync(visibleInRequest);
         return flowObjects.Select(ToAddressObjectResponse).ToList();
     }
 
+    /// <summary>
+    /// Performs the GetAddressGroupsAsync operation.
+    /// </summary>
     public async Task<List<AddressGroupResponse>> GetAddressGroupsAsync(bool? visibleInRequest)
     {
         List<FlowNwGroup> flowGroups = await LoadFlowNwGroupsAsync(visibleInRequest);
         return flowGroups.Select(ToAddressGroupResponse).ToList();
     }
 
+    /// <summary>
+    /// Performs the GetServiceObjectsAsync operation.
+    /// </summary>
     public async Task<List<ServiceObjectResponse>> GetServiceObjectsAsync(bool? visibleInRequest)
     {
         List<FlowSvcObject> flowObjects = await LoadFlowSvcObjectsAsync(visibleInRequest);
@@ -38,18 +53,27 @@ public sealed class FlowCatalogService
         return flowObjects.Select(ToServiceObjectResponse).ToList();
     }
 
+    /// <summary>
+    /// Performs the GetServiceGroupsAsync operation.
+    /// </summary>
     public async Task<List<ServiceGroupResponse>> GetServiceGroupsAsync(bool? visibleInRequest)
     {
         List<FlowSvcGroup> flowGroups = await LoadFlowSvcGroupsAsync(visibleInRequest);
         return flowGroups.Select(ToServiceGroupResponse).ToList();
     }
 
+    /// <summary>
+    /// Performs the GetTimeObjectsAsync operation.
+    /// </summary>
     public async Task<List<TimeObjectResponse>> GetTimeObjectsAsync(bool? visibleInRequest)
     {
         List<FlowTimeObject> flowObjects = await LoadFlowTimeObjectsAsync(visibleInRequest);
         return flowObjects.Select(ToTimeObjectResponse).ToList();
     }
 
+    /// <summary>
+    /// Performs the GetAddressObjectIdAsync operation.
+    /// </summary>
     public async Task<AddressObjectIdResponse> GetAddressObjectIdAsync(string ipStart, string ipEnd, bool? visibleInRequest)
     {
         string query = BuildLookupQuery(
@@ -67,6 +91,9 @@ public sealed class FlowCatalogService
             : new AddressObjectIdResponse { Id = (int)flowObject.Id, Name = flowObject.Name ?? string.Empty };
     }
 
+    /// <summary>
+    /// Performs the GetServiceObjectIdAsync operation.
+    /// </summary>
     public async Task<ServiceObjectIdResponse> GetServiceObjectIdAsync(string protocol, int portStart, int portEnd, bool? visibleInRequest)
     {
         int? protocolId = await ResolveProtocolIdAsync(protocol);

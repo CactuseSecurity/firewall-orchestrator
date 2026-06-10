@@ -2,8 +2,14 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FWO.Middleware.Server.Requests;
 
+/// <summary>
+/// Represents the VisibleInRequestFilterValidator type.
+/// </summary>
 public static class VisibleInRequestFilterValidator
 {
+    /// <summary>
+    /// Performs the TryValidate operation.
+    /// </summary>
     public static bool TryValidate(IVisibleInRequestFilterRequest request, RequestFilterValidationSchema schema, out ActionResult? errorResult)
     {
         if (request.AdditionalData is { Count: > 0 })

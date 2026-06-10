@@ -9,15 +9,24 @@ using FWO.Middleware.Server.Responses;
 
 namespace FWO.Middleware.Server.Services;
 
+/// <summary>
+/// Represents the FlowComplianceService type.
+/// </summary>
 public sealed class FlowComplianceService
 {
     private readonly ApiConnection apiConnection;
 
+    /// <summary>
+    /// Initializes a new instance of the type.
+    /// </summary>
     public FlowComplianceService(ApiConnection apiConnection)
     {
         this.apiConnection = apiConnection;
     }
 
+    /// <summary>
+    /// Performs the GetPolicyIdsAsync operation.
+    /// </summary>
     public async Task<List<PolicyIdResponse>> GetPolicyIdsAsync()
     {
         List<CompliancePolicy> policies = await apiConnection.SendQueryAsync<List<CompliancePolicy>>(ComplianceQueries.getPolicies) ?? [];
@@ -32,6 +41,9 @@ public sealed class FlowComplianceService
             .ToList();
     }
 
+    /// <summary>
+    /// Performs the GetFlowComplianceStateAsync operation.
+    /// </summary>
     public async Task<List<FlowComplianceStateResponse>> GetFlowComplianceStateAsync(GetFlowComplianceStateRequest request)
     {
         if (request.Policies.Count == 0)

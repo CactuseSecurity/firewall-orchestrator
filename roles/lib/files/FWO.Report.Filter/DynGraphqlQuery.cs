@@ -943,7 +943,7 @@ namespace FWO.Report.Filter
 
                 if (recertFilter.ShowRulesWithoutOwner)
                 {
-                    query.RuleWhereStatement += "{ _not: { rule_owners: {} } }, ";
+                    query.RuleWhereStatement += "{ _not: { rule_owners: { removed: { _is_null: true } } } }, ";
                 }
                 query.QueryVariables["ownerWhere"] = recertFilter.RecertOwnerList.Count > 0
                     ? new { id = new { _in = recertFilter.RecertOwnerList } }

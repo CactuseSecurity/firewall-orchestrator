@@ -1,4 +1,4 @@
-﻿@inject ApiConnection apiConnection
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 
@@ -127,10 +127,9 @@ else
 
             if(ownerList.Count > 0)
             {
-                ownerList.Add(new(){ Id = AllId, Name = userConfig.GetText("all")});
-                ownerList = [.. ownerList.OrderBy(o => o.Id)];
-                ownerList.Add(new(){ Id = RulesWithoutOwnersId, Name = userConfig.GetText("ShowRulesWithoutOwnersDropDown")});
-                ownerList = [.. ownerList.OrderBy(o => o.Id)];
+                ownerList = [.. ownerList.OrderBy(o => o.Name)];
+                ownerList.Insert(0, new() { Id = AllId, Name = userConfig.GetText("all") });
+                ownerList.Insert(1, new() { Id = RulesWithoutOwnersId, Name = userConfig.GetText("ShowRulesWithoutOwnersDropDown") });
             }
             else
             {
@@ -166,6 +165,16 @@ else
 
     private void InitOwner()
     {
+        if (RecertFilter.ShowRulesWithoutOwner)
+        {
+            FwoOwner? rulesWithoutOwners = ownerList.FirstOrDefault(o => o.Id == RulesWithoutOwnersId);
+            if (rulesWithoutOwners != null)
+            {
+                selectedOwner = rulesWithoutOwners;
+                return;
+            }
+        }
+
         if(RecertFilter.RecertOwnerList.Count > 0 && !CheckForAll())
         {
             FwoOwner? preselectedOwner = ownerList.FirstOrDefault(o => o.Id == RecertFilter.RecertOwnerList[0]);

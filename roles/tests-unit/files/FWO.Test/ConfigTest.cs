@@ -177,6 +177,20 @@ namespace FWO.Test
         }
 
         [Test]
+        public void FlowSyncSubscription_ContainsFlowSyncSleepTime()
+        {
+            Assert.That(ConfigQueries.subscribeFlowSyncConfigChanges, Does.Contain("flowSyncSleepTime"));
+        }
+
+        [Test]
+        public void ConfigData_DefaultsFlowSyncSleepTimeToDisabled()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.FlowSyncSleepTime, Is.Zero);
+        }
+
+        [Test]
         public void ConfigData_DefaultsModIntegrationModeToFullyIntegrated()
         {
             ConfigData configData = new();
@@ -199,6 +213,14 @@ namespace FWO.Test
             ConfigData configData = new();
 
             Assert.That(configData.ModIntegrationStateMarker, Is.EqualTo(ModIntegrationStateConfig.DefaultMarker));
+        }
+
+        [Test]
+        public void ConfigData_DefaultsFlowNamingSourceRankingToAnEmptyList()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.FlowNamingSourceManagementRanking, Is.EqualTo("[]"));
         }
 
         [Test]

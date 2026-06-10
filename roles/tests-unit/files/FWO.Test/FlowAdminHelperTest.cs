@@ -106,14 +106,74 @@ namespace FWO.Test
 
             List<NetworkObject> byName = FlowAdminHelper.FilterCustomObjectCandidates(candidates, "test");
             List<NetworkObject> byIp = FlowAdminHelper.FilterCustomObjectCandidates(candidates, "10.0.0.1");
+            List<NetworkObject> byUid = FlowAdminHelper.FilterCustomObjectCandidates(candidates, "uid-10");
             List<NetworkObject> byType = FlowAdminHelper.FilterCustomObjectCandidates(candidates, "host");
 
             Assert.That(byName, Has.Count.EqualTo(1));
             Assert.That(byName[0].Id, Is.EqualTo(10));
             Assert.That(byIp, Has.Count.EqualTo(1));
             Assert.That(byIp[0].Id, Is.EqualTo(10));
+            Assert.That(byUid, Has.Count.EqualTo(1));
+            Assert.That(byUid[0].Id, Is.EqualTo(10));
             Assert.That(byType, Has.Count.EqualTo(1));
             Assert.That(byType[0].Id, Is.EqualTo(10));
+        }
+
+        [Test]
+        public void HasNoTechnicalAddress_OnlyReturnsTrueForObjectsWithoutIpData()
+        {
+            NetworkObject customObject = new()
+            {
+                Id = 100,
+                IP = "",
+                IpEnd = "",
+                Uid = "fw-uid"
+            };
+            NetworkObject technicalObject = new()
+            {
+                Id = 200,
+                IP = "192.0.2.10",
+                IpEnd = "",
+                Uid = "fw-uid-2"
+            };
+
+            Assert.That(FlowAdminHelper.HasNoTechnicalAddress(customObject), Is.True);
+            Assert.That(FlowAdminHelper.HasNoTechnicalAddress(technicalObject), Is.False);
+        }
+
+        [Test]
+        public void FormatNetworkObjectTechnicalDetails_IncludesTheTechnicalIdentifier()
+        {
+            NetworkObject candidate = new()
+            {
+                Id = 42,
+                Name = "candidate",
+                IP = "",
+                IpEnd = "",
+                Uid = "uid-42"
+            };
+
+            string details = FlowAdminHelper.FormatNetworkObjectTechnicalDetails(candidate);
+
+            Assert.That(details, Does.Contain("candidate"));
+            Assert.That(details, Does.Contain("uid-42"));
+        }
+
+        [Test]
+        public void FormatNetworkObjectTechnicalDetails_UsesTechnicalIdentifierForNoIpObjects()
+        {
+            NetworkObject candidate = new()
+            {
+                Id = 42,
+                Name = "",
+                IP = "",
+                IpEnd = "",
+                Uid = "uid-42"
+            };
+
+            string details = FlowAdminHelper.FormatNetworkObjectTechnicalDetails(candidate);
+
+            Assert.That(details, Is.EqualTo("uid-42"));
         }
     }
 }

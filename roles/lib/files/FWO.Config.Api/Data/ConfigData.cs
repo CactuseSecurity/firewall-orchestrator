@@ -109,6 +109,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("updateRuleOwnerMappingSleepTime"), JsonPropertyName("updateRuleOwnerMappingSleepTime")]
         public int UpdateRuleOwnerMappingSleepTime { get; set; } = 60;
 
+        [JsonProperty("flowSyncSleepTime"), JsonPropertyName("flowSyncSleepTime")]
+        public int FlowSyncSleepTime { get; set; } = 0;
+
         [JsonProperty("externalRequestSleepTime"), JsonPropertyName("externalRequestSleepTime")]
         public int ExternalRequestSleepTime { get; set; } = 60;
 
@@ -358,8 +361,8 @@ namespace FWO.Config.Api.Data
         [JsonProperty("modReqInterfaceName"), JsonPropertyName("modReqInterfaceName")]
         public string ModReqInterfaceName { get; set; } = "";
 
-        [JsonProperty("flowNamingSourceManagementId"), JsonPropertyName("flowNamingSourceManagementId")]
-        public int? FlowNamingSourceManagementId { get; set; }
+        [JsonProperty("flowNamingSourceManagementRanking"), JsonPropertyName("flowNamingSourceManagementRanking")]
+        public string FlowNamingSourceManagementRanking { get; set; } = "[]";
 
         [JsonProperty("modReqEmailReceiver"), JsonPropertyName("modReqEmailReceiver")]
         public string ModReqEmailReceiver { get; set; } = nameof(EmailRecipientOption.None);

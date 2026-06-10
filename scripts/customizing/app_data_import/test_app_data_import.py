@@ -918,6 +918,61 @@ class AppDataImportTests(unittest.TestCase):
                 {"cost_center": "CC-100", "owner_type": "Business"},
             )
 
+    def test_extract_app_data_from_csv_marks_apps_without_completed_isolation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA\n"
+                    "App Isolated,APP-020,user20,false\n"
+                    "App Not Isolated,APP-021,user21,false\n"
+                )
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                isolation_completed_app_list=["APP-020"],
+            )
+
+            self.assertEqual(len(app_list), 2)
+            apps_by_id: dict[str, Owner] = {app.app_id_external: app for app in app_list}
+            self.assertIsNone(apps_by_id["APP-020"].additional_information)
+            self.assertEqual(
+                apps_by_id["APP-021"].additional_information,
+                {"Anwendung vollständig isoliert": "Nein"},
+            )
+
+    def test_extract_app_data_from_csv_keeps_isolation_unset_when_not_configured(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA\n"
+                    "App No Isolation Source,APP-022,user22,false\n"
+                )
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+            )
+
+            self.assertEqual(len(app_list), 1)
+            self.assertIsNone(app_list[0].additional_information)
+
     def test_extract_app_data_from_csv_applies_criticality_recert_period_mapping(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"

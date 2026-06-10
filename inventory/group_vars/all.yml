@@ -76,6 +76,8 @@ fworch_db_name: fworchdb
 fworch_dbadmin_name: dbadmin
 dbadmin_password_file: "{{ fworch_secrets_dir }}/dbadmin_pwd"
 fworch_db_password_file: "{{ fworch_secrets_dir }}/fworch_db_pwd"
+api_user: fwo_api
+api_user_password_file: "{{ fworch_secrets_dir }}/api_db_pwd"
 
 ###############################################################
 ### api

@@ -8,6 +8,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string upsertFlowNwObjectMapping;
         public static readonly string updateFlowNwGroup;
         public static readonly string updateFlowNwObject;
+        public static readonly string updateFlowNwObjectVisibility;
         public static readonly string updateFlowSvcGroup;
         public static readonly string updateFlowSvcObject;
         public static readonly string updateFlowTimeObject;
@@ -20,6 +21,7 @@ namespace FWO.Api.Client.Queries
                 upsertFlowNwObjectMapping = GetQueryText("flow/mutations/upsertFlowNwObjectMapping.graphql");
                 updateFlowNwGroup = GetQueryText("flow/mutations/updateFlowNwGroup.graphql");
                 updateFlowNwObject = GetQueryText("flow/mutations/updateFlowNwObject.graphql");
+                updateFlowNwObjectVisibility = GetQueryText("flow/mutations/updateFlowNwObjectVisibility.graphql");
                 updateFlowSvcGroup = GetQueryText("flow/mutations/updateFlowSvcGroup.graphql");
                 updateFlowSvcObject = GetQueryText("flow/mutations/updateFlowSvcObject.graphql");
                 updateFlowTimeObject = GetQueryText("flow/mutations/updateFlowTimeObject.graphql");

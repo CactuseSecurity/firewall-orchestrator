@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Config.Api;
 using FWO.Logging;
@@ -41,10 +42,15 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Read the Import Data File
         /// </summary>
-        protected void ReadFile(string filepath)
+        protected void ReadFile(string filepath, bool validateImportFile = true)
         {
             try
             {
+                if (validateImportFile)
+                {
+                    ImportPathPolicy.ValidateExistingImportFile(filepath);
+                    LogFileHash("Read Import File", filepath);
+                }
                 importFile = File.ReadAllText(filepath).Trim();
             }
             catch (Exception)
@@ -57,12 +63,17 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Execute the Data Import Script
         /// </summary>
-        protected bool RunImportScript(string importScriptFile, string? scriptArguments = null)
+        protected bool RunImportScript(string importScriptFile, string? scriptArguments = null, bool validateImportFile = true)
         {
             try
             {
                 if (File.Exists(importScriptFile))
                 {
+                    if (validateImportFile)
+                    {
+                        ImportPathPolicy.ValidateExistingImportFile(importScriptFile);
+                    }
+                    LogFileHash("Run Import Script", importScriptFile);
                     ProcessStartInfo start = new()
                     {
                         FileName = importScriptFile,
@@ -84,6 +95,24 @@ namespace FWO.Middleware.Server
                 Log.WriteError("Run Import Script", $"File {importScriptFile} could not be executed.", Exception);
             }
             return false;
+        }
+
+        /// <summary>
+        /// Validate a configured extensionless import source.
+        /// </summary>
+        protected static List<string> ValidateConfiguredImportSource(string importfilePathAndName)
+        {
+            string normalizedPath = ImportPathPolicy.RemoveAllowedExtension(importfilePathAndName);
+            return ImportPathPolicy.GetValidatedExistingImportFiles(normalizedPath);
+        }
+
+        /// <summary>
+        /// Calculates and writes a stable SHA-256 hash for executed/read import files.
+        /// </summary>
+        protected static void LogFileHash(string title, string filePath)
+        {
+            string sha256 = ImportPathPolicy.CalculateSha256(filePath);
+            Log.WriteInfo(title, $"Import file '{filePath}' sha256={sha256} at {DateTimeOffset.Now:O}");
         }
 
         /// <summary>

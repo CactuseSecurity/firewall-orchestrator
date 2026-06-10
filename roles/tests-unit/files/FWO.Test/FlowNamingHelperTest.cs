@@ -62,6 +62,42 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ResolvePreferredNameByRanking_UsesTheFirstManagementWithAUsableName()
+        {
+            Dictionary<int, string?> namesByManagement = new()
+            {
+                [1] = "",
+                [2] = "checkpoint-name",
+                [3] = "third-name"
+            };
+
+            string result = FlowNamingHelper.ResolvePreferredNameByRanking(
+                [1, 2, 3],
+                managementId => namesByManagement.GetValueOrDefault(managementId),
+                fallbackName: "fallback");
+
+            Assert.That(result, Is.EqualTo("checkpoint-name"));
+        }
+
+        [Test]
+        public void NormalizeManagementRanking_AppendsMissingManagementsAndDropsDuplicates()
+        {
+            List<int> ranking = FlowNamingHelper.NormalizeManagementRanking(
+                [3, 1, 3, 9],
+                [1, 2, 3, 4]);
+
+            Assert.That(ranking, Is.EqualTo(new[] { 3, 1, 2, 4 }));
+        }
+
+        [Test]
+        public void ParseManagementRanking_ReturnsEmptyListForInvalidJson()
+        {
+            List<int> ranking = FlowNamingHelper.ParseManagementRanking("not-json");
+
+            Assert.That(ranking, Is.Empty);
+        }
+
+        [Test]
         public void ResolveNwObjectName_UsesFirstActiveLink()
         {
             FlowNwObject nwObject = new()
@@ -154,5 +190,6 @@ namespace FWO.Test
 
             Assert.That(result, Is.EqualTo("replacement-name"));
         }
+
     }
 }

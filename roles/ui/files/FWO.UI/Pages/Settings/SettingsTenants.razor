@@ -150,6 +150,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
+            @* Device-visibility save writes tenant_to_management/tenant_to_device; Hasura grants those writes to admin only. *@
             <ExecutionModeAuthorizeView Roles="admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-success" @onclick="async () => await LeaveEditDevicesSelectedForTenantMode(cancel:false)" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
@@ -214,7 +215,10 @@
     {
         try
         {
-            addDeleteAllowed = userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor);
+            // Auditor and FwAdmin have read-only / limited access. Adding (POST) and deleting (DELETE)
+            // tenants is admin-only at the REST layer (TenantController), so only Admin sees those affordances.
+            // FwAdmin may still edit (PUT) existing tenants via the save button in the edit dialog.
+            addDeleteAllowed = userConfig.CanUseAnyRole(Roles.Admin);
             await GetTenantsFromLdap();
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
         }

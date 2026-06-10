@@ -2128,8 +2128,10 @@ INSERT INTO txt VALUES ('managements',			'German', 	'Managements');
 INSERT INTO txt VALUES ('managements',			'English', 	'Managements');
 INSERT INTO txt VALUES ('flow_objects',			'German', 	'Flow-Objekte');
 INSERT INTO txt VALUES ('flow_objects',			'English', 	'Flow Objects');
-INSERT INTO txt VALUES ('flow_naming',			'German', 	'Flow-Namensquelle');
-INSERT INTO txt VALUES ('flow_naming',			'English', 	'Flow naming source');
+INSERT INTO txt VALUES ('flow',					'German', 	'Flow');
+INSERT INTO txt VALUES ('flow',					'English', 	'Flow');
+INSERT INTO txt VALUES ('flow_naming',			'German', 	'Flow-Namensquellen-Rangfolge');
+INSERT INTO txt VALUES ('flow_naming',			'English', 	'Flow naming source ranking');
 INSERT INTO txt VALUES ('current',			'German', 	'Aktuell');
 INSERT INTO txt VALUES ('current',			'English', 	'Current');
 INSERT INTO txt VALUES ('flow_object',			'German', 	'Flow-Objekt');
@@ -2138,8 +2140,8 @@ INSERT INTO txt VALUES ('duplicate_objects',	'German', 	'Doppelte Objekte');
 INSERT INTO txt VALUES ('duplicate_objects',	'English', 	'Duplicate objects');
 INSERT INTO txt VALUES ('no_duplicate_conflicts',	'German', 	'Keine doppelten Zuordnungen gefunden');
 INSERT INTO txt VALUES ('no_duplicate_conflicts',	'English', 	'No duplicate conflicts found');
-INSERT INTO txt VALUES ('custom_objects',		'German', 	'Benutzerdefinierte Objekte');
-INSERT INTO txt VALUES ('custom_objects',		'English', 	'Custom objects');
+INSERT INTO txt VALUES ('custom_objects',		'German', 	'Benutzerdefinierte Netzwerkobjekte');
+INSERT INTO txt VALUES ('custom_objects',		'English', 	'Custom Network Objects');
 INSERT INTO txt VALUES ('create_custom_flow_object',	'German', 	'Benutzerdefiniertes Flow-Objekt anlegen');
 INSERT INTO txt VALUES ('create_custom_flow_object',	'English', 	'Create custom flow object');
 INSERT INTO txt VALUES ('recalculate_flow_names',	'German', 	'Flow-Namen neu berechnen');
@@ -2150,6 +2152,16 @@ INSERT INTO txt VALUES ('edit_flow_object',		'German', 	'Flow-Objekt bearbeiten'
 INSERT INTO txt VALUES ('edit_flow_object',		'English', 	'Edit Flow Object');
 INSERT INTO txt VALUES ('show_in_request_module',	'German', 	'Im Request-Modul anzeigen');
 INSERT INTO txt VALUES ('show_in_request_module',	'English', 	'Show in request module');
+INSERT INTO txt VALUES ('move_up',			'German', 	'Nach oben');
+INSERT INTO txt VALUES ('move_up',			'English', 	'Move up');
+INSERT INTO txt VALUES ('move_down',			'German', 	'Nach unten');
+INSERT INTO txt VALUES ('move_down',			'English', 	'Move down');
+INSERT INTO txt VALUES ('H5016',				'German', 	'Diese Seite zeigt den Flow-Netzwerkobjekt-Katalog und die dazu passenden Werkzeuge zur Bereinigung und Pflege.');
+INSERT INTO txt VALUES ('H5016',				'English', 	'This page shows the flow network object catalog and the matching tools for cleanup and maintenance.');
+INSERT INTO txt VALUES ('H5017',				'German', 	'Im Katalog werden Flow-Objekte, doppelte Zuordnungen und benutzerdefinierte Netzwerkobjekte zusammengefasst.');
+INSERT INTO txt VALUES ('H5017',				'English', 	'The catalog brings flow objects, duplicate mappings, and custom network objects together in one place.');
+INSERT INTO txt VALUES ('H5018',				'German', 	'Verwenden Sie die Seite, um Namensquellen zu setzen, Konflikte zu lösen und bei Bedarf einzelne Zuordnungen manuell anzulegen.');
+INSERT INTO txt VALUES ('H5018',				'English', 	'Use the page to set naming sources, resolve conflicts, and create individual mappings manually when needed.');
 INSERT INTO txt VALUES ('gateways',		    	'German', 	'Gateways');
 INSERT INTO txt VALUES ('gateways',		    	'English', 	'Gateways');
 INSERT INTO txt VALUES ('authorization',		'German', 	'Berechtigungen');
@@ -3335,6 +3347,14 @@ INSERT INTO txt VALUES ('scheduler_now', 	              'German',   'Jetzt');
 INSERT INTO txt VALUES ('scheduler_now', 	              'English',  'Now');
 INSERT INTO txt VALUES ('scheduler_interval_description', 'German',   'Alle');
 INSERT INTO txt VALUES ('scheduler_interval_description', 'English',  'Every');
+INSERT INTO txt VALUES ('scheduler_job', 	              'German',   'Job');
+INSERT INTO txt VALUES ('scheduler_job', 	              'English',  'Job');
+INSERT INTO txt VALUES ('scheduler_fetch_jobs', 	      'German',   'Scheduler-Jobs abrufen');
+INSERT INTO txt VALUES ('scheduler_fetch_jobs', 	      'English',  'Fetch scheduler jobs');
+INSERT INTO txt VALUES ('scheduler_job_fetch_failed',     'German',   'Abruf der Jobs fehlgeschlagen.');
+INSERT INTO txt VALUES ('scheduler_job_fetch_failed',     'English',  'Job fetch failed.');
+INSERT INTO txt VALUES ('scheduler_job_trigger_failed',   'German',   'Ausl&ouml;sen des Jobs fehlgeschlagen.');
+INSERT INTO txt VALUES ('scheduler_job_trigger_failed',   'English',  'Job trigger failed.');
 INSERT INTO txt VALUES ('orphaned_app_roles',   'German', 	'Verwaiste App Regeln');
 INSERT INTO txt VALUES ('orphaned_app_roles',	'English', 	'Orphaned App Roles');
 INSERT INTO txt VALUES ('orphaned_app_servers', 'German',   'Verwaiste App Server');
@@ -6462,14 +6482,14 @@ INSERT INTO txt VALUES ('H5610', 'English', 'App Role Pattern: Defines the begin
     According to an network area name (e.g. "NAxx"), an App Role name (e.g. "ARxx") is preset in the length of the fixed part defined above.
     If the length of the pattern is greater than the fixed part length, the surplus part is ignored.
 ');
-INSERT INTO txt VALUES ('H5611', 'German',  'Pfad und Name von Appdaten-Import (ohne Endung): Hier werden die vollst&auml;ndigen Pfade f&uuml;r eventuell vorhandene Importskripte und -dateien eingegeben.
-    Der Importprozess pr&uuml;ft f&uuml;r jede der eingegebenen Datenquellen zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden ist, und f&uuml;hrt dieses ggf. aus.
+INSERT INTO txt VALUES ('H5611', 'German',  'Pfad und Name von Appdaten-Import (ohne Endung): Hier werden Importskripte und -dateien unter /usr/local/fworch/scripts/customizing eingetragen.
+    Der gespeicherte Wert enth&auml;lt keine Dateiendung. Beim Speichern wird gepr&uuml;ft, dass der Eintrag unterhalb des Customizing-Verzeichnisses liegt und keine unzul&auml;ssige Dateiendung verwendet. Der Importprozess pr&uuml;ft f&uuml;r jede eingetragene Datenquelle zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden und zul&auml;ssig ist, und f&uuml;hrt dieses ggf. aus.
     Anschliessend wird eine Datei desselben Namens mit der Endung .json gesucht und ggf. importiert.
     Es gibt f&uuml;r den Import pro Datenquelle also sowohl die M&ouml;glichkeit, eine direkt zu importierende Datei zur Verf&uuml;gung zu stellen, als auch ein Skript zur Datenabholung,
     welches die ben&ouml;tigte Import-Datei erst erzeugt. Die Struktur der Importdatei wird unter <a href="/help/API/appdataimport">Import-Schnittstellen</a> beschrieben.
 ');
-INSERT INTO txt VALUES ('H5611', 'English', 'Path and Name of App data import (without ending): Here the full paths of provided import scripts and files are inserted.
-    The import process checks for each data source, if a script of this name with ending .py exists and executes it.
+INSERT INTO txt VALUES ('H5611', 'English', 'Path and Name of App data import (without ending): Import scripts and files below /usr/local/fworch/scripts/customizing are entered here.
+    The stored value contains no file extension. Saving checks that the entry stays below the customizing directory and does not use a disallowed extension. The import process checks each configured data source for an existing and allowed script of this name with ending .py and executes it if present.
     Then a file of this name with ending .json is searched and imported if found.
     Thus there is the possibility for each data source to provide a file for direct import or a script to catch the import data and create the app data import file.
     The structure of the import file is described at <a href="/help/API/appdataimport">Import Interfaces</a>.
@@ -6484,13 +6504,13 @@ INSERT INTO txt VALUES ('H5612', 'English', 'Import App data sleep time (in hour
 ');
 INSERT INTO txt VALUES ('H5613', 'German',  'Import Appdaten-Start: Legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die Appdaten-Importe gerechnet werden.');
 INSERT INTO txt VALUES ('H5613', 'English', 'Import App data start at: Defines a referential time from which the App data import intervals are calculated.');
-INSERT INTO txt VALUES ('H5614', 'German',  'Pfad und Name von Subnetzdaten-Import (ohne Endung): Hier wird der vollst&auml;ndige Pfad f&uuml;r ein eventuell vorhandenes Importskript oder einer Import-Datei eingegeben.
-    Der Importprozess pr&uuml;ft zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden ist, und f&uuml;hrt dieses ggf. aus. Anschliessend wird eine Datei desselben Namens mit der Endung .json
+INSERT INTO txt VALUES ('H5614', 'German',  'Pfad und Name von Subnetzdaten-Import (ohne Endung): Hier wird ein Importskript oder eine Import-Datei unter /usr/local/fworch/scripts/customizing eingetragen.
+    Der gespeicherte Wert enth&auml;lt keine Dateiendung. Beim Speichern wird gepr&uuml;ft, dass der Eintrag unterhalb des Customizing-Verzeichnisses liegt und keine unzul&auml;ssige Dateiendung verwendet. Der Importprozess pr&uuml;ft zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden und zul&auml;ssig ist, und f&uuml;hrt dieses ggf. aus. Anschliessend wird eine Datei desselben Namens mit der Endung .json
     gesucht und ggf. importiert. Es gibt f&uuml;r den Import also sowohl die M&ouml;glichkeit, eine direkt zu importierende Datei zur Verf&uuml;gung zu stellen, als auch ein Skript zur Datenabholung,
     welches die ben&ouml;tigte Import-Datei erst erzeugt. Die Struktur der Importdatei wird unter <a href="/help/API/subnetdataimport">Import-Schnittstellen</a> beschrieben.
 ');
-INSERT INTO txt VALUES ('H5614', 'English', 'Path and Name of subnet data import (without ending): Here the full path of a provided import script or file is inserted.
-    The import process checks, if a script of this name with ending .py exists and executes it.
+INSERT INTO txt VALUES ('H5614', 'English', 'Path and Name of subnet data import (without ending): An import script or file below /usr/local/fworch/scripts/customizing is entered here.
+    The stored value contains no file extension. Saving checks that the entry stays below the customizing directory and does not use a disallowed extension. The import process checks if an existing and allowed script of this name with ending .py is present and executes it if found.
     Then a file of this name with ending .json is searched and imported if found.
     Thus there is the possibility to provide a file for direct import or a script to catch the import data and create the subnet data import file.
     The structure of the import file is described at <a href="/help/API/subnetdataimport">Import Interfaces</a>.

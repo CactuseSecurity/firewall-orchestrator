@@ -361,8 +361,8 @@ namespace FWO.Config.Api.Data
         [JsonProperty("modReqInterfaceName"), JsonPropertyName("modReqInterfaceName")]
         public string ModReqInterfaceName { get; set; } = "";
 
-        [JsonProperty("flowNamingSourceManagementId"), JsonPropertyName("flowNamingSourceManagementId")]
-        public int? FlowNamingSourceManagementId { get; set; }
+        [JsonProperty("flowNamingSourceManagementRanking"), JsonPropertyName("flowNamingSourceManagementRanking")]
+        public string FlowNamingSourceManagementRanking { get; set; } = "[]";
 
         [JsonProperty("modReqEmailReceiver"), JsonPropertyName("modReqEmailReceiver")]
         public string ModReqEmailReceiver { get; set; } = nameof(EmailRecipientOption.None);

@@ -9,6 +9,8 @@ import requests
 import urllib3
 
 HTTP_OK: int = 200
+# (connect, read) timeout tuple so a stalled endpoint cannot hang the customizing run
+HTTP_TIMEOUT: tuple[int, int] = (60, 14400)
 
 
 class CustomizingError(Exception):
@@ -53,7 +55,9 @@ def login(
         session.headers.update({"Content-Type": "application/json"})
 
         try:
-            response = session.post(user_management_api_base_url + method, data=json.dumps(payload))
+            response = session.post(
+                user_management_api_base_url + method, data=json.dumps(payload), timeout=HTTP_TIMEOUT
+            )
         except requests.exceptions.RequestException:
             raise CustomizingError("fwo_api login ERROR: no valid response from: " + str(user_management_api_base_url))
 

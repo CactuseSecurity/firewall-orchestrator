@@ -15,10 +15,6 @@ example for user tim:
     
 note: your public key needs to be added to /home/devoloper/.ssh/authorized_keys on devsrvffm 
 
-### automatic updates of test server
-The testserver has a webhook receiver running at https://cactus.de:60355/fwo (2nd server on 60345/tcp) which is triggered by changes to the cactus repo (not the individual forks!).
-Only changes to roles, inventory and site.yml will trigger a rebuild, not documentation changes.
-
 ### add local config on development client
 
 In order to allow locally running components to read the necessary config you have to create the following config files on your client:
@@ -105,14 +101,6 @@ aQIDAQAB
 
 - 5001 - blazor
 - 8880 - middleware-server
-
-## install webhook
-
-simply install role webhook plus
-- double-check that a) ssl is not checked if not using properly signed cert and b) Content type of the webhook call is set to application/json
-- create secrets file ~/fworch-webhook.secret containing webhook secret
-- copy ssh private key for deployment to ~/.ssh/id_github_deploy
-
 
 ## FAQ
 ### Errors during debugging

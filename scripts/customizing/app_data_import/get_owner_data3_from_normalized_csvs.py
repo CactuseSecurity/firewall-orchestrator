@@ -291,6 +291,7 @@ if __name__ == "__main__":
                             "csvAppServerFilePattern": "NeMo_???_IP_.*?.csv", \
                             "gitRepoOwnersWithActiveRecert": "github.example.de/FWO", \
                             "gitFileOwnersWithActiveRecert": "isolated-apps.txt", \
+                            "gitFileOwnersIsolationCompleted": "isolation-completed-apps.txt", \
                             "csvSeparator": ";", \
                             "validAppIdPrefixes": ["app-", "com-"], \
                             "importSource": "tufinRlm" \
@@ -436,6 +437,9 @@ if __name__ == "__main__":
     recert_active_file_name: str | None = read_custom_config_with_default(
         args.config, "gitFileOwnersWithActiveRecert", None, logger
     )
+    isolation_completed_file_name: str | None = read_custom_config_with_default(
+        args.config, "gitFileOwnersIsolationCompleted", None, logger
+    )
     owner_header_patterns: dict[str, str] = read_custom_config_with_default(
         args.config, "csvOwnerColumnPatterns", {}, logger
     )
@@ -501,8 +505,12 @@ if __name__ == "__main__":
     local_repo_base_path.mkdir(parents=True, exist_ok=True)
     app_data_repo_target_dir: str = str(local_repo_base_path / "cmdb-repo")
     recert_repo_target_dir: str = str(local_repo_base_path / "recert-repo")
-
     import_from_folder: str | None = args.import_from_folder
+
+    # Cleanup target dir if we are not importing from a folder, to avoid mixing of old and new files
+    if import_from_folder is None:
+        cleanup_repo_target_dir(app_data_repo_target_dir)
+
     try:
         if import_from_folder:
             base_dir = import_from_folder
@@ -554,6 +562,35 @@ if __name__ == "__main__":
             )
 
         #############################################
+        # 2b. get app list with completed isolation
+
+        isolation_completed_app_list: list[str] | None = None
+        if recert_active_repo_url and isolation_completed_file_name:
+            isolation_repo_url: str | None = build_git_repo_url(
+                recert_active_repo_url,
+                cmdb_git_username,
+                cmdb_git_password,
+                logger,
+                "isolation completion",
+            )
+            isolation_completed_data: str | None = None
+            if isolation_repo_url:
+                isolation_completed_data = read_file_from_git_repo(
+                    isolation_repo_url,
+                    recert_repo_target_dir,
+                    isolation_completed_file_name,
+                    logger,
+                    depth=git_depth,
+                )
+            isolation_completed_lines: list[str] = []
+            if isolation_completed_data:
+                isolation_completed_lines = isolation_completed_data.splitlines()
+            isolation_completed_app_list = isolation_completed_lines
+            logger.info("found %s apps with completed isolation", len(isolation_completed_app_list))
+        else:
+            logger.info("no isolation completion source configured; skipping isolation completion import")
+
+        #############################################
         # 3. get app data from CSV files
         app_list: list[Owner] = []
         re_owner_file_pattern: re.Pattern[str] = re.compile(csv_owner_file_pattern)
@@ -569,6 +606,7 @@ if __name__ == "__main__":
                     debug_level,
                     base_dir=base_dir,
                     recert_active_app_list=recert_active_app_list,
+                    isolation_completed_app_list=isolation_completed_app_list,
                     default_recert_active_state=default_recert_active_state,
                     column_patterns=owner_header_patterns,
                     valid_app_id_prefixes=valid_app_id_prefixes,
@@ -619,6 +657,6 @@ if __name__ == "__main__":
             for owner in app_dict.values():
                 total_ips += len(owner.app_servers)
             logger.info("#ip addresses in total: %s", total_ips)
-    finally:
-        if import_from_folder is None:
-            cleanup_repo_target_dir(app_data_repo_target_dir)
+    except Exception:
+        logger.exception("Error during app data import")
+        sys.exit(1)

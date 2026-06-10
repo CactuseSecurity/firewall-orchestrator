@@ -52,15 +52,18 @@ namespace FWO.Middleware.Server
 
         private async Task ImportSingleFile(string importfilePathAndName, List<ModellingImportNwData> allNwData, List<string> failedImports)
         {
-            if (!RunImportScript(importfilePathAndName + ".py", null))
+            string importSourcePath = ImportPathPolicy.RemoveAllowedExtension(importfilePathAndName);
+            List<string> validatedImportFiles = ValidateConfiguredImportSource(importSourcePath);
+            string scriptPath = importSourcePath + ".py";
+            if (validatedImportFiles.Contains(scriptPath) && !RunImportScript(scriptPath, null))
             {
-                Log.WriteInfo(LogMessageTitle, $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
+                Log.WriteInfo(LogMessageTitle, $"Script {scriptPath} failed but trying to import from existing file.");
             }
 
             try
             {
-                Log.WriteInfo(LogMessageTitle, $"Importing Area Network Data from file {importfilePathAndName}.json");
-                ReadFile(importfilePathAndName + ".json");
+                Log.WriteInfo(LogMessageTitle, $"Importing Area Network Data from file {importSourcePath}.json");
+                ReadFile(importSourcePath + ".json");
                 ModellingImportNwData nwData = JsonSerializer.Deserialize<ModellingImportNwData>(importFile) ?? throw new JsonException("File could not be parsed.");
                 if (nwData.Areas.Count > 0)
                 {
@@ -68,15 +71,15 @@ namespace FWO.Middleware.Server
                 }
                 else
                 {
-                    Log.WriteInfo(LogMessageTitle, $"Nothing found to import in file {importfilePathAndName}.json");
+                    Log.WriteInfo(LogMessageTitle, $"Nothing found to import in file {importSourcePath}.json");
                 }
             }
             catch (Exception ex)
             {
-                string errorText = $"Import from file {importfilePathAndName}.json could not be processed.";
+                string errorText = $"Import from file {importSourcePath}.json could not be processed.";
                 Log.WriteError(LogMessageTitle, errorText, ex);
                 await AddLogEntry(GlobalConst.kImportAreaSubnetData, 2, LevelFile, errorText);
-                failedImports.Add(importfilePathAndName);
+                failedImports.Add(importSourcePath);
             }
         }
 

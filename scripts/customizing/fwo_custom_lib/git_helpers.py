@@ -1,7 +1,11 @@
 import logging
+import os
 import shutil
+import stat
+import tempfile
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote, urlsplit, urlunsplit
 
 import git
 
@@ -30,6 +34,34 @@ def cleanup_repo_target_dir(git_repo_target_dir: str) -> None:
     _remove_repo_target_path(repo_target_path)
 
 
+def split_repo_url_credentials(repo_url: str) -> tuple[str, str | None, str | None]:
+    parsed_url = urlsplit(repo_url)
+    sanitized_netloc = parsed_url.netloc.rsplit("@", 1)[-1]
+    sanitized_url = urlunsplit(
+        (parsed_url.scheme, sanitized_netloc, parsed_url.path, parsed_url.query, parsed_url.fragment)
+    )
+    username = unquote(parsed_url.username or "")
+    password = unquote(parsed_url.password or "")
+    if not username or not password:
+        return sanitized_url, None, None
+
+    return sanitized_url, username, password
+
+
+def create_git_askpass_script(directory: str) -> str:
+    script_path = Path(directory) / "git-askpass.sh"
+    script_path.write_text(
+        "#!/bin/sh\n"
+        'case "$1" in\n'
+        "*Username*|*username*) printf '%s\\n' \"$GIT_ASKPASS_USERNAME\" ;;\n"
+        "*) printf '%s\\n' \"$GIT_ASKPASS_PASSWORD\" ;;\n"
+        "esac\n",
+        encoding="utf-8",
+    )
+    script_path.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+    return str(script_path)
+
+
 def update_git_repo(
     repo_url: str,
     git_repo_target_dir: str,
@@ -38,6 +70,7 @@ def update_git_repo(
     depth: int | None = None,
 ) -> bool:
     repo_target_path: Path = Path(git_repo_target_dir)
+    clone_url, git_username, git_password = split_repo_url_credentials(repo_url)
     try:
         git_any: Any = git
         _remove_repo_target_path(repo_target_path)
@@ -48,11 +81,22 @@ def update_git_repo(
             clone_args["branch"] = branch
         if depth is not None:
             clone_args["depth"] = depth
-        git_any.Repo.clone_from(repo_url, git_repo_target_dir, **clone_args)
+        if git_username is not None and git_password is not None:
+            with tempfile.TemporaryDirectory() as askpass_dir:
+                env = {
+                    **os.environ,
+                    "GIT_ASKPASS": create_git_askpass_script(askpass_dir),
+                    "GIT_ASKPASS_USERNAME": git_username,
+                    "GIT_ASKPASS_PASSWORD": git_password,
+                    "GIT_TERMINAL_PROMPT": "0",
+                }
+                git_any.Repo.clone_from(clone_url, git_repo_target_dir, env=env, **clone_args)
+        else:
+            git_any.Repo.clone_from(clone_url, git_repo_target_dir, **clone_args)
         return True
     except Exception:
         _remove_repo_target_path(repo_target_path)
-        logger.exception("could not clone/pull git repo from %s", repo_url)
+        logger.exception("could not clone/pull git repo from %s", clone_url)
         return False
 
 

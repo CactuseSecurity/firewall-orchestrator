@@ -7,7 +7,9 @@ from socket import gethostname
 from fw_modules.checkpointR8x.fwcommon import CheckpointR8xCommon
 from fw_modules.ciscoasa9.fwcommon import CiscoAsa9Common
 from fw_modules.fortiadom5ff.fwcommon import FortiAdom5ffCommon
-from fw_modules.fortiosmanagementREST.fwcommon import FortiosManagementRESTCommon
+from fw_modules.fortiosmanagementREST.fwcommon import \
+    FortiosManagementRESTCommon
+from fw_modules.opnsense25ff.fwcommon import OPNsense25common
 from fwo_const import IMPORTER_BASE_DIR
 from fwo_log import FWOLogger
 from model_controllers.fwconfig_import_rollback import FwConfigImportRollback
@@ -23,20 +25,16 @@ import fwo_signalling
 from fwo_api_call import FwoApiCall
 from fwo_base import string_is_uri, write_native_config_to_file
 from fwo_const import IMPORT_TMP_PATH
-from fwo_exceptions import (
-    FwLoginFailedError,
-    FwoApiWriteError,
-    FwoImporterError,
-    FwoImporterErrorInconsistenciesError,
-    ImportInterruptionError,
-    ImportRecursionLimitReachedError,
-    ShutdownRequestedError,
-)
+from fwo_exceptions import (FwLoginFailedError, FwoApiWriteError,
+                            FwoImporterError,
+                            FwoImporterErrorInconsistenciesError,
+                            ImportInterruptionError,
+                            ImportRecursionLimitReachedError,
+                            ShutdownRequestedError)
 from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.fwconfig_import import FwConfigImport
-from model_controllers.fwconfigmanagerlist_controller import (
-    FwConfigManagerListController,
-)
+from model_controllers.fwconfigmanagerlist_controller import \
+    FwConfigManagerListController
 from model_controllers.import_state_controller import ImportStateController
 from models.gateway import Gateway
 from services.enums import Services
@@ -299,6 +297,8 @@ def get_module(import_state: ImportState) -> FwCommon:
             fw_module = CheckpointR8xCommon()
         case "fortiosmanagementREST":
             fw_module = FortiosManagementRESTCommon()
+        case "opnsensestandalone25ff":
+            fw_module = OPNsense25common()
         case _:
             raise FwoImporterError(f"import_management - no fwcommon module found for package name {pkg_name}")
 

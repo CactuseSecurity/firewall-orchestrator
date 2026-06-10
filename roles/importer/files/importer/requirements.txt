@@ -24,3 +24,7 @@ pytest-mock==3.15.1
 ruff==0.15.0
 pre-commit==4.6.0
 pyright==1.1.409
+
+# OPNsense import
+xmltodict>=1.0.4
+netaddr_pydantic>=0.2.1

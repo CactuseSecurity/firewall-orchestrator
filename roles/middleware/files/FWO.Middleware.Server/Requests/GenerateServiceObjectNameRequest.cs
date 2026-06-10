@@ -10,12 +10,14 @@ public sealed class GenerateServiceObjectNameRequest
     /// <summary>
     /// Gets the PortStart value.
     /// </summary>
+    [JsonRequired]
     [JsonPropertyName("portStart")]
     public int PortStart { get; set; }
 
     /// <summary>
     /// Gets the PortEnd value.
     /// </summary>
+    [JsonRequired]
     [JsonPropertyName("portEnd")]
     public int PortEnd { get; set; }
 

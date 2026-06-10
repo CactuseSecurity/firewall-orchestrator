@@ -10,6 +10,7 @@ public sealed class GetRequestStatusRequest
     /// <summary>
     /// Gets the TicketId value.
     /// </summary>
+    [JsonRequired]
     [JsonPropertyName("ticketId")]
     public int TicketId { get; set; }
 }

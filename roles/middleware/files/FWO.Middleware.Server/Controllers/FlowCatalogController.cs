@@ -3,34 +3,18 @@ using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FWO.Middleware.Server.Controllers;
 
 /// <summary>
-/// Provides flow catalog, compliance, and request endpoints.
+/// Provides flow catalog endpoints.
 /// </summary>
 [Authorize(Roles = $"{Roles.Admin}")]
 [ApiController]
-[Route("api/[controller]")]
-public class FlowController : ControllerBase
+[Route("api/flow")]
+public class FlowCatalogController : ControllerBase
 {
-    private readonly FlowCatalogService flowCatalogService;
-    private readonly FlowComplianceService flowComplianceService;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="FlowController"/> class.
-    /// </summary>
-    /// <param name="flowCatalogService">The flow catalog service.</param>
-    /// <param name="flowComplianceService">The flow compliance service.</param>
-    public FlowController(FlowCatalogService flowCatalogService, FlowComplianceService flowComplianceService)
-    {
-        this.flowCatalogService = flowCatalogService;
-        this.flowComplianceService = flowComplianceService;
-    }
-
-    #region Schemas
     private static readonly RequestRootValidationSchema AddressObjectsRootSchema = RequestRootValidationSchema.ForVisibleInRequest(nameof(GetAddressObjects));
     private static readonly RequestFilterValidationSchema AddressObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressObjects));
     private static readonly RequestRootValidationSchema AddressGroupsRootSchema = RequestRootValidationSchema.ForVisibleInRequest(nameof(GetAddressGroups));
@@ -58,7 +42,17 @@ public class FlowController : ControllerBase
         ]);
     private static readonly RequestFilterValidationSchema ServiceObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceObjectId));
     private static readonly RequestFilterValidationSchema AddressObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressObjectId));
-    #endregion
+
+    private readonly FlowCatalogService flowCatalogService;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FlowCatalogController"/> class.
+    /// </summary>
+    /// <param name="flowCatalogService">The flow catalog service.</param>
+    public FlowCatalogController(FlowCatalogService flowCatalogService)
+    {
+        this.flowCatalogService = flowCatalogService;
+    }
 
     /// <summary>
     /// Returns address objects for the requested visibility filter.
@@ -131,34 +125,6 @@ public class FlowController : ControllerBase
     }
 
     /// <summary>
-    /// Returns the compliance state for the requested flows.
-    /// </summary>
-    [HttpPost("getFlowComplianceState")]
-    public async Task<ActionResult<List<FlowComplianceStateResponse>>> GetFlowComplianceState([FromBody] GetFlowComplianceStateRequest request)
-    {
-        if (!FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult))
-        {
-            return errorResult!;
-        }
-
-        return Ok(await flowComplianceService.GetFlowComplianceStateAsync(request));
-    }
-
-    /// <summary>
-    /// Returns the policy identifiers for the current dataset.
-    /// </summary>
-    [HttpPost("getPolicyIds")]
-    public async Task<ActionResult<List<PolicyIdResponse>>> GetPolicyIds([FromBody] GetPolicyIdsRequest request)
-    {
-        if (!FlowComplianceRequestValidator.TryValidatePolicyIds(request, out ActionResult? errorResult))
-        {
-            return errorResult!;
-        }
-
-        return Ok(await flowComplianceService.GetPolicyIdsAsync());
-    }
-
-    /// <summary>
     /// Resolves a service object identifier from the supplied lookup request.
     /// </summary>
     [HttpPost("getServiceObjectId")]
@@ -186,60 +152,6 @@ public class FlowController : ControllerBase
         return Ok(await flowCatalogService.GetAddressObjectIdAsync(request.IpStart, request.IpEnd, request.Filter?.VisibleInRequest));
     }
 
-    /// <summary>
-    /// Generates an address object name.
-    /// </summary>
-    [HttpPost("generateAddressObjectName")]
-    public ActionResult<GenerateAddressObjectNameResponse> GenerateAddressObjectName([FromBody] GenerateAddressObjectNameRequest request)
-    {
-        return StatusCode(StatusCodes.Status501NotImplemented);
-    }
-
-    /// <summary>
-    /// Generates a service object name.
-    /// </summary>
-    [HttpPost("generateServiceObjectName")]
-    public ActionResult<GenerateServiceObjectNameResponse> GenerateServiceObjectName([FromBody] GenerateServiceObjectNameRequest request)
-    {
-        return StatusCode(StatusCodes.Status501NotImplemented);
-    }
-
-    /// <summary>
-    /// Checks whether a network object definition is valid.
-    /// </summary>
-    [HttpPost("getNetObjectValidity")]
-    public ActionResult<NetObjectValidityResponse> GetNetObjectValidity([FromBody] GetNetObjectValidityRequest request)
-    {
-        return StatusCode(StatusCodes.Status501NotImplemented);
-    }
-
-    /// <summary>
-    /// Checks whether a network group definition is valid.
-    /// </summary>
-    [HttpPost("getNetGroupValidity")]
-    public ActionResult<NetGroupValidityResponse> GetNetGroupValidity([FromBody] List<GetNetGroupValidityRequestItem> request)
-    {
-        return StatusCode(StatusCodes.Status501NotImplemented);
-    }
-
-    /// <summary>
-    /// Creates a new request.
-    /// </summary>
-    [HttpPost("createRequest")]
-    public ActionResult<CreateRequestResponse> CreateRequest([FromBody] CreateRequestRequest request)
-    {
-        return StatusCode(StatusCodes.Status501NotImplemented);
-    }
-
-    /// <summary>
-    /// Returns the status of an existing request.
-    /// </summary>
-    [HttpPost("getRequestStatus")]
-    public ActionResult<GetRequestStatusResponse> GetRequestStatus([FromBody] GetRequestStatusRequest request)
-    {
-        return StatusCode(StatusCodes.Status501NotImplemented);
-    }
-
     private static bool TryValidateVisibleInRequestRequest<TRequest>(
         TRequest request,
         RequestRootValidationSchema rootSchema,
@@ -254,5 +166,4 @@ public class FlowController : ControllerBase
 
         return VisibleInRequestFilterValidator.TryValidate(request, filterSchema, out errorResult);
     }
-
 }

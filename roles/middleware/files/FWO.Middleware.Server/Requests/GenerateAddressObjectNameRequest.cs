@@ -22,6 +22,7 @@ public sealed class GenerateAddressObjectNameRequest
     /// <summary>
     /// Gets the NetMask value.
     /// </summary>
+    [JsonRequired]
     [JsonPropertyName("netMask")]
     public int NetMask { get; set; }
 }

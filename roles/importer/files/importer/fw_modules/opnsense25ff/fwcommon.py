@@ -25,7 +25,6 @@ class OPNsense25common(FwCommon):
     def get_config(
         self, config_in: FwConfigManagerListController, import_state: ImportStateController
     ) -> tuple[int, FwConfigManagerListController]:
-        #raise NotImplementedError("OPNsense 25ff is not supported yet in the new python importer.")
         return get_config(config_in=config_in, import_state=import_state)
 
 def get_config(
@@ -38,26 +37,25 @@ def get_config(
     with requests.Session() as session:
         session.verify = import_state.state.verify_certs
         session.auth = HTTPBasicAuth(import_state.state.mgm_details.import_user, import_state.state.mgm_details.secret)
-        #session.headers = {"Accept": "application/octet-stream"}
 
         try:
             # Stage 1: config retrieval
-            FWOLogger.debug(f"[*] receiving OPNsense config.xml ...")
+            FWOLogger.debug("[*] receiving OPNsense config.xml ...")
             response = session.get(os_api_url, timeout=60)
             response.raise_for_status()
-            FWOLogger.debug(f"[+] success!")
+            FWOLogger.debug("[+] success!")
 
             # Stage 2: sanitizing config
             raw_config = remove_opnsense_sensitive_data(xmltodict.parse(response.content))
-            FWOLogger.debug(f"[+] sanitizing complete!")
+            FWOLogger.debug("[+] sanitizing complete!")
 
             # Stage 3: saving sanitized config
             config_in.native_config = raw_config
-            FWOLogger.debug(f"[+] parsing complete!")
+            FWOLogger.debug("[+] parsing complete!")
 
             # Stage 4: normalizing config
             config_in = _normalize_opnsense_config(config_in, import_state=import_state)
-            FWOLogger.debug(f"[+] normalizing complete!")
+            FWOLogger.debug("[+] normalizing complete!")
 
             return 0, config_in
 

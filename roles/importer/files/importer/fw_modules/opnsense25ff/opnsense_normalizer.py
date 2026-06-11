@@ -106,7 +106,7 @@ def _create_special_network_objects() -> list[NetworkObject]:
         obj_typ          = "ip_range",
         obj_member_refs  = None,
         obj_member_names = None,
-        obj_comment      = "special network object created during normalization"
+        obj_comment      = "special network object references any IPv4 address"
     )
     any_v6 = NetworkObject(
         obj_uid          = 'Any-v6',
@@ -117,9 +117,9 @@ def _create_special_network_objects() -> list[NetworkObject]:
         obj_typ          = "ip_range",
         obj_member_refs  = None,
         obj_member_names = None,
-        obj_comment      = "special network object created during normalization"
+        obj_comment      = "special network object references any IPv6 address"
     )
-    any = NetworkObject(
+    any_grp = NetworkObject(
         obj_uid          = 'Any',
         obj_name         = 'Any',
         obj_ip           = None,
@@ -128,9 +128,9 @@ def _create_special_network_objects() -> list[NetworkObject]:
         obj_typ          = "group",
         obj_member_refs  = sort_and_join([any_v4.obj_name, any_v6.obj_name]),
         obj_member_names = sort_and_join([any_v4.obj_name, any_v6.obj_name]),
-        obj_comment      = "special network object created during normalization"
+        obj_comment      = "special network object references any IPv4 and IPv6 address"
     )
-    return [any, any_v4, any_v6, self_obj]
+    return [any_grp, any_v4, any_v6, self_obj]
 
 
 def _create_network_object_from_alias(alias: OPNsenseHostAlias | OPNsenseNetworkAlias, normalized: dict[str, NetworkObject], depth: int) -> NetworkObject:
@@ -722,8 +722,8 @@ def _normalize_interfaces(os_config: OPNsenseConfig) -> list[dict[str, Any]]:
                 "name"         : os_if.name + "_v4",        # str
                 "ip"           : str(os_if.ip4_address),    # IPAddress
                 "netmask_bits" : os_if.ip4_subnet,          # int
-                "state_up"     : True ,                     # bool = True
-                "ip_version"   : 4,                         # int = 4
+                "state_up"     : True,                      # bool
+                "ip_version"   : 4,                         # int
             }
 
             dev_id += 1
@@ -734,8 +734,8 @@ def _normalize_interfaces(os_config: OPNsenseConfig) -> list[dict[str, Any]]:
                 "name"         : os_if.name + "_v4",        # str
                 "ip"           : str(os_if.ip6_address),    # IPAddress
                 "netmask_bits" : os_if.ip6_subnet,          # int
-                "state_up"     : True ,                     # bool = True
-                "ip_version"   : 6,                         # int = 4
+                "state_up"     : True,                      # bool
+                "ip_version"   : 6,                         # int
             }
 
             dev_id += 1
@@ -746,15 +746,15 @@ def _normalize_interfaces(os_config: OPNsenseConfig) -> list[dict[str, Any]]:
 def _normalize_opnsense_config(config_in: FwConfigManagerListController, import_state: ImportStateController) -> FwConfigManagerListController:
 
     # Parse the native configuration into structured objects
-    FWOLogger.debug(f"[*] parsing native config...")
+    FWOLogger.debug("[*] parsing native config...")
     native_config: OPNsenseConfig = _parse_opnsense_config(config_in.native_config)
     #FWOLogger.debug(f"[*] normalizing users...")
     #user_objects = _normalize_users(native_config)
     #FWOLogger.debug(f"[*] normalized {len(user_objects)} users...")
-    FWOLogger.debug(f"[*] normalizing service objects...")
+    FWOLogger.debug("[*] normalizing service objects...")
     svc_objects = _normalize_services(native_config)
     FWOLogger.debug(f"[*] normalized {len(svc_objects)} service objects...")
-    FWOLogger.debug(f"[*] normalizing network objects...")
+    FWOLogger.debug("[*] normalizing network objects...")
     network_objects = _normalize_network_objects(native_config)
     #[FWOLogger.debug(f"[*] {entry}:{network_object_map[entry]}") for entry in network_object_map]
     #FWOLogger.debug(f"[*] normalized network objects:\n{network_objects}")
@@ -763,10 +763,10 @@ def _normalize_opnsense_config(config_in: FwConfigManagerListController, import_
     #FWOLogger.debug(f"[*] normalizing interface groups as zone objects...")
     #zone_objects = _normalize_ifgroups_as_zone_objects(native_config)
     #FWOLogger.debug(f"[*] normalized {len(network_objects)} interface groups as zone objects...")
-    FWOLogger.debug(f"[*] normalizing access rules...")
+    FWOLogger.debug("[*] normalizing access rules...")
     rulebases = _create_rulebases_from_access_rules(native_config, import_state.state.mgm_details.uid)
     [FWOLogger.debug(f"[*] normalized {len(rb.rules)} access rules in Rulebase {rb.name}...") for rb in rulebases]
-    FWOLogger.debug(f"[*] normalizing interfaces for gateway definition...")
+    FWOLogger.debug("[*] normalizing interfaces for gateway definition...")
     interfaces = _normalize_interfaces(native_config)
     FWOLogger.debug(f"[*] normalized {len(interfaces)} interfaces for gateway definition...")
 

@@ -37,11 +37,11 @@ def remove_opnsense_sensitive_data(native_config: dict[str, Any]) -> dict[str, A
     service_exclude = [
         "cron",
         "crowdsec",
-        "DHCRelay"
+        "DHCRelay",
         "ftpproxies",
         "IDS",
         "monit",
-        "Netflow"
+        "Netflow",
         "ntopng",
         "postfix",
         "redis",

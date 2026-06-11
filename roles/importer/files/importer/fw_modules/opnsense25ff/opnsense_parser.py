@@ -59,7 +59,7 @@ def _parse_opnsense_hostname(config: dict[str, Any]) -> str:
     if hostname and domain:
         return f"{hostname}.{domain}"
     else:
-        FWOLogger.debug(f"[-] _parse_hostname: hostname or domain not defined")
+        FWOLogger.debug("[-] _parse_hostname: hostname or domain not defined")
         return None
 
 def _parse_timestamp(seconds: str) -> str | None:
@@ -67,7 +67,7 @@ def _parse_timestamp(seconds: str) -> str | None:
         seconds = float(seconds)
         return datetime.fromtimestamp(seconds).isoformat()
     else:
-        FWOLogger.debug(f"[-] _parse_timestamp: seconds not defined")
+        FWOLogger.debug("[-] _parse_timestamp: seconds not defined")
         return None
 
 def _parse_opnsense_user_groups(config: dict[str, Any]) -> list[OPNsenseUserGroup] | None:
@@ -107,7 +107,7 @@ def _parse_opnsense_interfaces(config: dict[str, Any]) -> dict[str, OPNsenseInte
 
     return ifaces_parsed
 
-def _parse_opnsense_if_groups(config: dict[str, Any]) -> list[OPNsenseIfGroup] | None:
+def _parse_opnsense_if_groups(config: dict[str, Any]) -> ldict[str, OPNsenseInterface] | None:
     ifgroups = config.get("opnsense", {}).get("ifgroups", {}).get("ifgroupentry", {})
     #FWOLogger.debug(f"[*] _parse_opnsense_if_groups: ifgroups\n    {ifgroups}")
 

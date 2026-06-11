@@ -118,11 +118,38 @@ internal class FlowComplianceServiceTest
         });
     }
 
+    [Test]
+    public async Task GetFlowComplianceStateAsync_ReusesSharedComplianceDataAcrossPolicies()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        ConfigureComplianceFixture(apiConnection);
+
+        FlowComplianceService service = new(apiConnection);
+
+        GetFlowComplianceStateRequest request = BuildComplianceRequest();
+        request.Policies = [7, 8];
+
+        List<FlowComplianceStateResponse> result = await service.GetFlowComplianceStateAsync(request);
+
+        Assert.That(result, Has.Count.EqualTo(2));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result[0].Policy.Id, Is.EqualTo(7));
+            Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix", "ForbiddenService" }));
+            Assert.That(result[1].Policy.Id, Is.EqualTo(8));
+            Assert.That(result[1].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix" }));
+            Assert.That(apiConnection.CountQueries(DeviceQueries.getManagementNames), Is.EqualTo(1));
+            Assert.That(apiConnection.CountQueries(ComplianceQueries.getNetworkZonesForMatrix), Is.EqualTo(1));
+            Assert.That(apiConnection.CountQueries(ComplianceQueries.getPolicyById), Is.EqualTo(2));
+        });
+    }
+
     private static void ConfigureComplianceFixture(FlowComplianceServiceApiConn apiConnection)
     {
         apiConnection.Languages = [new Language { Name = "English", CultureInfo = "en-US" }];
         apiConnection.TextsByLanguage["English"] = BuildEnglishTexts();
         apiConnection.PoliciesById[7] = BuildPolicy();
+        apiConnection.PoliciesById[8] = BuildMatrixOnlyPolicy();
         apiConnection.Managements = [new Management { Id = 1, Uid = "mgmt-1" }];
         apiConnection.NetworkZones = BuildNetworkZones();
     }
@@ -185,6 +212,27 @@ internal class FlowComplianceServiceTest
                         Name = "Forbidden Service",
                         CriterionType = nameof(CriterionType.ForbiddenService),
                         Content = "443/TCP"
+                    }
+                }
+            ]
+        };
+    }
+
+    private static CompliancePolicy BuildMatrixOnlyPolicy()
+    {
+        return new CompliancePolicy
+        {
+            Id = 8,
+            Name = "Matrix Only Policy",
+            Criteria =
+            [
+                new ComplianceCriterionWrapper
+                {
+                    Content = new ComplianceCriterion
+                    {
+                        Id = 101,
+                        Name = "Matrix A",
+                        CriterionType = nameof(CriterionType.Matrix)
                     }
                 }
             ]
@@ -331,6 +379,11 @@ internal class FlowComplianceServiceTest
         public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
         {
             return Task.CompletedTask;
+        }
+
+        public int CountQueries(string query)
+        {
+            return SentQueries.Count(sentQuery => sentQuery == query);
         }
 
         private static string? GetVariableValue(object? variables, string propertyName)

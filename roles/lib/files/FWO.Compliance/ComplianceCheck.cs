@@ -223,20 +223,20 @@ namespace FWO.Compliance
             }
 
             ApplyGlobalConfig(globalConfig);
-            Managements = await _apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
+            await LoadManagementsAsync();
 
             foreach (int policyId in selectedPolicyIds)
             {
+                RulesInCheck = [];
+                CurrentViolationsInCheck.Clear();
+                _currentViolations.Clear();
+
                 Policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = policyId });
                 if (Policy == null || Policy.Criteria.Count == 0)
                 {
                     return false;
                 }
-
-                RulesInCheck = [];
-                CurrentViolationsInCheck.Clear();
-                _currentViolations.Clear();
-                await LoadNetworkZones();
+                await LoadNetworkZonesAsync();
                 await CalculateCompliance(selectedRules.Select(rule => new Rule(rule)).ToList());
                 CurrentViolationsInCheck = _currentViolations.ToList();
 
@@ -739,7 +739,7 @@ namespace FWO.Compliance
 
                 // Load data for evaluation.
 
-                await LoadNetworkZones();
+                await LoadNetworkZonesAsync();
 
                 // Perform check.
 
@@ -1235,12 +1235,24 @@ namespace FWO.Compliance
 
 
         /// <summary>
-        /// Loads all network zones referenced by the policy matrix criterion.
+        /// Loads managements once and reuses them across repeated compliance checks on the same instance.
         /// </summary>
-        private async Task LoadNetworkZones()
+        private async Task LoadManagementsAsync()
         {
-            _networkZonesByCriterion.Clear();
+            if (Managements != null && Managements.Count > 0)
+            {
+                return;
+            }
 
+            Managements = await _apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
+        }
+
+        /// <summary>
+        /// Loads all network zones referenced by the policy matrix criterion.
+        /// Reuses previously fetched zones for repeated policy evaluations on the same instance.
+        /// </summary>
+        private async Task LoadNetworkZonesAsync()
+        {
             if (Policy != null)
             {
                 List<int> matrixIds = [.. Policy.Criteria
@@ -1250,6 +1262,11 @@ namespace FWO.Compliance
 
                 foreach (int matrixId in matrixIds)
                 {
+                    if (_networkZonesByCriterion.ContainsKey(matrixId))
+                    {
+                        continue;
+                    }
+
                     Logger.TryWriteInfo("Compliance Check", $"Loading network zones for Matrix {matrixId}.", LocalSettings.ComplianceCheckVerbose);
                     List<ComplianceNetworkZone> networkZones = await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
                     _networkZonesByCriterion[matrixId] = networkZones;

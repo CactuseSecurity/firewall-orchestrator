@@ -9,6 +9,7 @@ namespace FWO.Data
         public const string BundledTasks = "BundledTasks";
         public const string CheckPointInstallPolicyTargets = "CheckPointInstallPolicyTargets";
         public const string ManagementId = "ManagementId";
+        public const string CheckPointStepIndex = "CheckPointStepIndex";
     }
 
     public class ExternalRequest

@@ -1,0 +1,25 @@
+mutation updateExtRequestRuntime(
+  $id: bigint!
+  $extRequestState: String!
+  $extTicketId: String
+  $creationResponse: String
+  $processingResponse: String
+  $extQueryVariables: String
+  $waitCycles: Int
+  $attempts: Int
+) {
+  update_external_request_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      ext_request_state: $extRequestState
+      ext_ticket_id: $extTicketId
+      creation_response: $creationResponse
+      processing_response: $processingResponse
+      ext_query_variables: $extQueryVariables
+      wait_cycles: $waitCycles
+      attempts: $attempts
+    }
+  ) {
+    id
+  }
+}

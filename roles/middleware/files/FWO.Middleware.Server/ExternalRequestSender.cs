@@ -131,38 +131,18 @@ namespace FWO.Middleware.Server
 
             try
             {
-                Log.WriteInfo(LogMessageTitle, $"Sending {RequestInfo(request)}");
-                request.Attempts++;
-                RestResponse<int> ticketIdResponse = await ticket.CreateExternalTicket();
-                request.LastMessage = ticketIdResponse.Content;
-                if (ticketIdResponse.StatusCode == HttpStatusCode.OK || ticketIdResponse.StatusCode == HttpStatusCode.Created)
+                if (ExtTicketSystem == null)
                 {
-                var locationHeader = ticketIdResponse.Headers?.FirstOrDefault(h => h.Name.Equals("location", StringComparison.OrdinalIgnoreCase))?.Value
-                    if (!string.IsNullOrEmpty(locationHeader))
-                    {
-                        Uri locationUri = new(locationHeader);
-                        request.ExtTicketId = locationUri.Segments[^1];
-                    }
-                    request.ExtRequestState = ExtStates.ExtReqRequested.ToString();
-                    await UpdateRequestCreation(request);
-                    Log.WriteDebug(LogMessageTitle, $"{RequestInfo(request)}. Success Message: " + ticketIdResponse.Content);
+                    throw new InvalidOperationException("No external ticket system loaded.");
                 }
-                else
+
+                if (ExtTicketSystem.IsCheckPoint())
                 {
-                    Log.WriteError(LogMessageTitle, $"{RequestInfo(request)}. Error Message: " + ticketIdResponse.StatusDescription + ", " + ticketIdResponse.Content);
-                    if (AnalyseForRejected(ticketIdResponse))
-                    {
-                        await RejectRequest(request);
-                    }
-                    else
-                    {
-                        request.ExtRequestState = ExtStates.ExtReqFailed.ToString();
-                        await UpdateRequestCreation(request);
-                    }
-                    throw new ProcessingFailedException(
-                        $"External request failed for {RequestInfo(request)} with status {(int)ticketIdResponse.StatusCode} " +
-                        $"{ticketIdResponse.StatusCode}: {ticketIdResponse.Content}");
+                    await SendCheckPointRequest(request, ticket);
+                    return;
                 }
+
+                await SendDefaultRequest(request, ticket);
             }
             catch (ProcessingFailedException)
             {
@@ -175,6 +155,177 @@ namespace FWO.Middleware.Server
                     throw;
                 }
             }
+        }
+
+        private async Task SendDefaultRequest(ExternalRequest request, ExternalTicket ticket)
+        {
+            Log.WriteInfo(LogMessageTitle, $"Sending {RequestInfo(request)}");
+            request.Attempts++;
+
+            RestResponse<int> ticketIdResponse = await ticket.CreateExternalTicket();
+            request.LastMessage = ticketIdResponse.Content;
+
+            if (ticketIdResponse.StatusCode == HttpStatusCode.OK || ticketIdResponse.StatusCode == HttpStatusCode.Created)
+            {
+                var locationHeader = ticketIdResponse.Headers?.FirstOrDefault(h => h.Name.Equals("location", StringComparison.OrdinalIgnoreCase))?.Value
+                    ?.ToString();
+
+                if (!string.IsNullOrEmpty(locationHeader))
+                {
+                    Uri locationUri = new(locationHeader);
+                    request.ExtTicketId = locationUri.Segments[^1];
+                }
+
+                request.ExtRequestState = ExtStates.ExtReqRequested.ToString();
+                await UpdateRequestCreation(request);
+                Log.WriteDebug(LogMessageTitle, $"{RequestInfo(request)}. Success Message: " + ticketIdResponse.Content);
+            }
+            else
+            {
+                Log.WriteError(LogMessageTitle, $"{RequestInfo(request)}. Error Message: " + ticketIdResponse.StatusDescription + ", " + ticketIdResponse.Content);
+
+                if (AnalyseForRejected(ticketIdResponse))
+                {
+                    await RejectRequest(request);
+                }
+                else
+                {
+                    request.ExtRequestState = ExtStates.ExtReqFailed.ToString();
+                    await UpdateRequestCreation(request);
+                }
+
+                throw new ProcessingFailedException(
+                    $"External request failed for {RequestInfo(request)} with status {(int)ticketIdResponse.StatusCode} " +
+                    $"{ticketIdResponse.StatusCode}: {ticketIdResponse.Content}");
+            }
+        }
+
+        private async Task SendCheckPointRequest(ExternalRequest request, ExternalTicket ticket)
+        {
+            Log.WriteInfo(LogMessageTitle, $"Sending CheckPoint request {RequestInfo(request)}");
+            request.Attempts++;
+
+            RestResponse<int> response = await ticket.CreateExternalTicket();
+            request.LastMessage = response.Content;
+
+            if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created)
+            {
+                request.ExtRequestState = ExtStates.ExtReqDone.ToString();
+                await UpdateRequestCreation(request);
+
+                using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
+                await extReqHandler.HandleStateChange(request);
+
+                Log.WriteDebug(LogMessageTitle, $"{RequestInfo(request)}. CheckPoint request completed synchronously.");
+                return;
+            }
+
+            if (response.StatusCode == HttpStatusCode.Accepted)
+            {
+                request.ExtTicketId = TryExtractCheckPointTaskId(response.Content);
+                request.ExtRequestState = ExtStates.ExtReqInProgress.ToString();
+                request.ExtQueryVariables = ticket.ExtQueryVariables;
+
+                await UpdateCheckPointRequestProgress(request);
+                return;
+            }
+
+            Log.WriteError(LogMessageTitle, $"{RequestInfo(request)}. CheckPoint send failed: " + response.StatusDescription + ", " + response.Content);
+
+            if (AnalyseForRejected(response))
+            {
+                await RejectRequest(request);
+            }
+            else
+            {
+                request.ExtRequestState = ExtStates.ExtReqFailed.ToString();
+                await UpdateRequestCreation(request);
+            }
+
+            throw new ProcessingFailedException(
+                $"CheckPoint external request failed for {RequestInfo(request)} with status {(int)response.StatusCode} " +
+                $"{response.StatusCode}: {response.Content}");
+        }
+
+        private async Task UpdateCheckPointRequestProgress(ExternalRequest request)
+        {
+            await UpdateExtRequestRuntime(request);
+        }
+
+        private static string IncrementCheckPointStepIndex(string extQueryVariables)
+        {
+            Dictionary<string, List<int>> variables = string.IsNullOrWhiteSpace(extQueryVariables)
+                ? []
+                : JsonSerializer.Deserialize<Dictionary<string, List<int>>>(extQueryVariables) ?? [];
+
+            int currentStepIndex = 0;
+
+            if (variables.TryGetValue(ExternalVarKeys.CheckPointStepIndex, out List<int>? stepIndexes) &&
+                stepIndexes.Count > 0)
+            {
+                currentStepIndex = stepIndexes[0];
+            }
+
+            variables[ExternalVarKeys.CheckPointStepIndex] = [currentStepIndex + 1];
+
+            return JsonSerializer.Serialize(variables);
+        }
+
+        private static string? TryExtractCheckPointTaskId(string? content)
+        {
+            return TryGetJsonValue(content, "task-id", "taskId", "uid");
+        }
+
+        private static string? TryGetJsonValue(string? content, params string[] propertyNames)
+        {
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return null;
+            }
+
+            try
+            {
+                using JsonDocument document = JsonDocument.Parse(content);
+                return FindJsonValue(document.RootElement, propertyNames);
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+
+        private static string? FindJsonValue(JsonElement element, params string[] propertyNames)
+        {
+            if (element.ValueKind == JsonValueKind.Object)
+            {
+                foreach (JsonProperty property in element.EnumerateObject())
+                {
+                    if (propertyNames.Contains(property.Name, StringComparer.OrdinalIgnoreCase))
+                    {
+                        return property.Value.ToString();
+                    }
+
+                    string? childValue = FindJsonValue(property.Value, propertyNames);
+                    if (!string.IsNullOrWhiteSpace(childValue))
+                    {
+                        return childValue;
+                    }
+                }
+            }
+
+            if (element.ValueKind == JsonValueKind.Array)
+            {
+                foreach (JsonElement child in element.EnumerateArray())
+                {
+                    string? childValue = FindJsonValue(child, propertyNames);
+                    if (!string.IsNullOrWhiteSpace(childValue))
+                    {
+                        return childValue;
+                    }
+                }
+            }
+
+            return null;
         }
 
         private async Task<ExternalTicket> ConstructTicket(ExternalRequest request)
@@ -260,7 +411,9 @@ namespace FWO.Middleware.Server
         private static bool AnalyseForRejected(RestResponse<int>? ticketIdResponse)
         {
             return ticketIdResponse != null && ticketIdResponse.Content != null &&
-                ((ticketIdResponse.Content.Contains("GENERAL_ERROR") && !TryAgain(ticketIdResponse)) ||
+                (
+                ticketIdResponse.Content.Contains("Check Point rule change tasks are not yet supported.") ||
+                (ticketIdResponse.Content.Contains("GENERAL_ERROR") && !TryAgain(ticketIdResponse)) ||
                 ticketIdResponse.Content.Contains("ILLEGAL_ARGUMENT_ERROR") ||
                 ticketIdResponse.Content.Contains("FIELD_VALIDATION_ERROR") ||
                 ticketIdResponse.Content.Contains("WEB_APPLICATION_ERROR") ||
@@ -276,9 +429,37 @@ namespace FWO.Middleware.Server
         private async Task RefreshState(ExternalRequest request)
         {
             (request.ExtRequestState, request.LastMessage) = await PollState(request);
-            await UpdateRequestProcess(request);
+
+            if (ExtTicketSystem != null && ExtTicketSystem.IsCheckPoint())
+            {
+                await UpdateExtRequestRuntime(request);
+            }
+            else
+            {
+                await UpdateRequestProcess(request);
+            }
+
             using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
             await extReqHandler.HandleStateChange(request);
+        }
+
+        private async Task UpdateExtRequestRuntime(ExternalRequest request)
+        {
+            request.LastProcessingResponse = request.LastMessage;
+
+            var variables = new
+            {
+                id = request.Id,
+                extRequestState = request.ExtRequestState,
+                extTicketId = request.ExtTicketId,
+                creationResponse = request.LastCreationResponse,
+                processingResponse = request.LastProcessingResponse,
+                extQueryVariables = request.ExtQueryVariables,
+                waitCycles = request.WaitCycles,
+                attempts = request.Attempts
+            };
+
+            await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.UpdateExtRequestRuntime, variables);
         }
 
         private async Task<(string, string?)> PollState(ExternalRequest request)
@@ -290,34 +471,115 @@ namespace FWO.Middleware.Server
                     throw new InvalidOperationException("No external ticket system loaded.");
                 }
 
-                ExternalTicket ticket = ExternalTicketFactory.Create(
-                    ExtTicketSystem,
-                    InjScClient
-                );
+                if (ExtTicketSystem.IsCheckPoint())
+                {
+                    return await PollCheckPointState(request);
+                }
 
-                ticket.TicketId = request.ExtTicketId;
-
-                return await ticket.GetNewState(request.ExtRequestState);
+                return await PollDefaultState(request);
             }
             catch (Exception exc)
             {
                 request.LastMessage = exc.Message;
-                await UpdateRequestProcess(request);
+
+                if (ExtTicketSystem != null && ExtTicketSystem.IsCheckPoint())
+                {
+                    await UpdateExtRequestRuntime(request);
+                }
+                else
+                {
+                    await UpdateRequestProcess(request);
+                }
+
                 throw;
             }
         }
 
+        private async Task<(string, string?)> PollDefaultState(ExternalRequest request)
+        {
+            ExternalTicket ticket = ExternalTicketFactory.Create(
+                ExtTicketSystem!,
+                InjScClient
+            );
+
+            ticket.TicketId = request.ExtTicketId;
+
+            return await ticket.GetNewState(request.ExtRequestState);
+        }
+
+        private async Task<(string, string?)> PollCheckPointState(ExternalRequest request)
+        {
+            ExternalTicket ticket = await ConstructTicket(request);
+            ticket.TicketId = request.ExtTicketId;
+            ticket.ExtQueryVariables = request.ExtQueryVariables;
+
+            (string newState, string? message) = await ticket.GetNewState(request.ExtRequestState);
+
+            if (newState == ExtStates.ExtReqInProgress.ToString())
+            {
+                return (newState, message);
+            }
+
+            if (newState == ExtStates.ExtReqRejected.ToString())
+            {
+                return (newState, message);
+            }
+
+            if (newState == ExtStates.ExtReqDone.ToString())
+            {
+                return await ContinueCheckPointAfterAsyncStep(request, ticket, message);
+            }
+
+            return (newState, message);
+        }
+
+        private async Task<(string, string?)> ContinueCheckPointAfterAsyncStep(ExternalRequest request, ExternalTicket ticket, string? previousMessage)
+        {
+            RestResponse<int> response = await ticket.CreateExternalTicket();
+            string? newMessage = response.Content ?? previousMessage;
+
+            if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created)
+            {
+                request.ExtTicketId = "";
+                request.LastMessage = newMessage;
+                return (ExtStates.ExtReqDone.ToString(), newMessage);
+            }
+
+            if (response.StatusCode == HttpStatusCode.Accepted)
+            {
+                request.ExtTicketId = TryExtractCheckPointTaskId(response.Content);
+                request.ExtQueryVariables = ticket.ExtQueryVariables;
+                request.LastMessage = newMessage;
+                await UpdateCheckPointRequestProgress(request);
+
+                return (ExtStates.ExtReqInProgress.ToString(), newMessage);
+            }
+
+            if (AnalyseForRejected(response))
+            {
+                request.LastMessage = newMessage;
+                return (ExtStates.ExtReqRejected.ToString(), newMessage);
+            }
+
+            throw new ProcessingFailedException(
+                $"CheckPoint continuation failed for {RequestInfo(request)} with status {(int)response.StatusCode} " +
+                $"{response.StatusCode}: {response.Content}");
+        }
+
         private async Task UpdateRequestCreation(ExternalRequest request)
         {
+            request.LastCreationResponse = request.LastMessage;
+
             var Variables = new
             {
                 id = request.Id,
                 extRequestState = request.ExtRequestState,
                 extTicketId = request.ExtTicketId,
-                creationResponse = request.LastMessage,
+                creationResponse = request.LastCreationResponse,
                 waitCycles = request.WaitCycles,
                 attempts = request.Attempts
             };
+
             await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestCreation, Variables);
         }
 
@@ -325,12 +587,15 @@ namespace FWO.Middleware.Server
         {
             try
             {
+                request.LastProcessingResponse = request.LastMessage;
+
                 var Variables = new
                 {
                     id = request.Id,
                     extRequestState = request.ExtRequestState,
-                    processingResponse = request.LastMessage
+                    processingResponse = request.LastProcessingResponse
                 };
+
                 await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestProcess, Variables);
             }
             catch (Exception exception)

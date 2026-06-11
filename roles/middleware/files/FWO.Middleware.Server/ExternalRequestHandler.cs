@@ -308,25 +308,10 @@ namespace FWO.Middleware.Server
         private async Task CreateExtRequest(WfTicket ticket, List<WfReqTask> tasks, List<WfReqTask> handledTasks, int waitCycles)
         {
             string taskContent = await ConstructContent(tasks, ticket.Requester);
-            Dictionary<string, List<int>> handledTaskNumbers = [];
-            string? extQueryVars = null;
-
-            int? managementId = tasks.FirstOrDefault()?.OnManagement?.Id;
-
-            if (managementId != null)
-            {
-                handledTaskNumbers[ExternalVarKeys.ManagementId] = [managementId.Value];
-            }
-
-            if (handledTasks.Count > 1)
-            {
-                handledTaskNumbers[ExternalVarKeys.BundledTasks] = handledTasks.ConvertAll(t => t.TaskNumber);
-            }
-
-            if (handledTaskNumbers.Count > 0)
-            {
-                extQueryVars = JsonSerializer.Serialize(handledTaskNumbers);
-            }
+            Dictionary<string, List<int>> handledTaskNumbers = BuildExtQueryVariables(tasks, handledTasks);
+            string extQueryVars = handledTaskNumbers.Count > 0
+                ? JsonSerializer.Serialize(handledTaskNumbers)
+                : "";
 
             var Variables = new
             {
@@ -336,12 +321,36 @@ namespace FWO.Middleware.Server
                 extTicketSystem = JsonSerializer.Serialize(actSystem),
                 extTaskType = actTaskType,
                 extTaskContent = taskContent,
-                extQueryVariables = extQueryVars ?? "",
+                extQueryVariables = extQueryVars,
                 extRequestState = ExtStates.ExtReqInitialized.ToString(),
                 waitCycles = waitCycles
             };
-            await ApiConnection.SendQueryAsync<ReturnIdWrapper>(ExtRequestQueries.addExtRequest, Variables);        // Schmeißt Fehler -- wegen Members?
+
+            await ApiConnection.SendQueryAsync<ReturnIdWrapper>(ExtRequestQueries.addExtRequest, Variables);
             await LogRequestTasks(handledTasks, ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
+        }
+
+        private Dictionary<string, List<int>> BuildExtQueryVariables(List<WfReqTask> tasks, List<WfReqTask> handledTasks)
+        {
+            Dictionary<string, List<int>> extQueryVariables = [];
+
+            int? managementId = tasks.FirstOrDefault()?.OnManagement?.Id;
+            if (managementId != null)
+            {
+                extQueryVariables[ExternalVarKeys.ManagementId] = [managementId.Value];
+            }
+
+            if (handledTasks.Count > 1)
+            {
+                extQueryVariables[ExternalVarKeys.BundledTasks] = handledTasks.ConvertAll(t => t.TaskNumber);
+
+            }
+
+            if (actSystem.IsCheckPoint())
+            {
+                extQueryVariables[ExternalVarKeys.CheckPointStepIndex] = [0];
+            }
+            return extQueryVariables;
         }
 
         private async Task RejectFollowingTasks(WfTicket ticket, int lastTaskNumber)

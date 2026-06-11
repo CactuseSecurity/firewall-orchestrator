@@ -137,7 +137,7 @@ namespace FWO.Middleware.Server
                 request.LastMessage = ticketIdResponse.Content;
                 if (ticketIdResponse.StatusCode == HttpStatusCode.OK || ticketIdResponse.StatusCode == HttpStatusCode.Created)
                 {
-                    var locationHeader = ticketIdResponse.Headers?.FirstOrDefault(h => h.Name.Equals("location", StringComparison.OrdinalIgnoreCase))?.Value?.ToString();
+                var locationHeader = ticketIdResponse.Headers?.FirstOrDefault(h => h.Name.Equals("location", StringComparison.OrdinalIgnoreCase))?.Value
                     if (!string.IsNullOrEmpty(locationHeader))
                     {
                         Uri locationUri = new(locationHeader);

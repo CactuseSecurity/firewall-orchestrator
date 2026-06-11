@@ -107,7 +107,7 @@ def _parse_opnsense_interfaces(config: dict[str, Any]) -> dict[str, OPNsenseInte
 
     return ifaces_parsed
 
-def _parse_opnsense_if_groups(config: dict[str, Any]) -> ldict[str, OPNsenseInterface] | None:
+def _parse_opnsense_if_groups(config: dict[str, Any]) -> dict[str, OPNsenseInterface] | None:
     ifgroups = config.get("opnsense", {}).get("ifgroups", {}).get("ifgroupentry", {})
     #FWOLogger.debug(f"[*] _parse_opnsense_if_groups: ifgroups\n    {ifgroups}")
 

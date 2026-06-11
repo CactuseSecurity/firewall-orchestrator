@@ -1,0 +1,187 @@
+@using FWO.Ui.Services
+@using System.Globalization
+
+@inject UserConfig userConfig
+
+<div class="col-sm-3">
+    <div class="form-group row">
+        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_from")):</label>
+        <div class="col-sm-8">
+            @if (CanEditTargetBeginDate)
+            {
+                <div class="d-flex gap-1">
+                    <input type="date" class="form-control form-control-sm" value="@targetBeginDateInput" @oninput="SetTargetBeginDate" />
+                    <input type="time" step="1" class="form-control form-control-sm" value="@targetBeginTimeInput" @oninput="SetTargetBeginTime" />
+                </div>
+            }
+            else
+            {
+                <label class="col-sm-12 h-100 border bg-secondary">@TargetBeginDate?.ToString("G")</label>
+            }
+        </div>
+    </div>
+</div>
+<div class="col-sm-3">
+    <div class="form-group row">
+        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_to")):</label>
+        <div class="col-sm-8">
+            @if (CanEditTargetEndDate)
+            {
+                <div class="d-flex gap-1">
+                    <input type="date" class="form-control form-control-sm" value="@targetEndDateInput" @oninput="SetTargetEndDate" />
+                    <input type="time" step="1" class="form-control form-control-sm" value="@targetEndTimeInput" @oninput="SetTargetEndTime" />
+                </div>
+            }
+            else
+            {
+                <label class="col-sm-12 h-100 border bg-secondary">@TargetEndDate?.ToString("G")</label>
+            }
+        </div>
+    </div>
+</div>
+
+@code
+{
+    [Parameter]
+    public DateTime? TargetBeginDate { get; set; }
+
+    [Parameter]
+    public EventCallback<DateTime?> TargetBeginDateChanged { get; set; }
+
+    [Parameter]
+    public DateTime? TargetEndDate { get; set; }
+
+    [Parameter]
+    public EventCallback<DateTime?> TargetEndDateChanged { get; set; }
+
+    [Parameter]
+    public bool CanEditTargetBeginDate { get; set; }
+
+    [Parameter]
+    public bool CanEditTargetEndDate { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> TargetDatesValidChanged { get; set; }
+
+    private const string kDateInputFormat = "yyyy-MM-dd";
+    private const string kTimeInputFormat = "HH:mm:ss";
+    private const string kDefaultBeginTime = "00:00:00";
+    private const string kDefaultEndTime = "23:59:59";
+
+    private string targetBeginDateInput = "";
+    private string targetBeginTimeInput = "";
+    private string targetEndDateInput = "";
+    private string targetEndTimeInput = "";
+    private DateTime? displayedTargetBeginDate;
+    private DateTime? displayedTargetEndDate;
+    private bool targetBeginDateInitialized = false;
+    private bool targetEndDateInitialized = false;
+    private bool targetBeginDateValid = true;
+    private bool targetEndDateValid = true;
+
+    protected override void OnParametersSet()
+    {
+        if (!targetBeginDateInitialized || TargetBeginDate != displayedTargetBeginDate)
+        {
+            targetBeginDateInput = FormatDateInput(TargetBeginDate);
+            targetBeginTimeInput = FormatTimeInput(TargetBeginDate);
+            displayedTargetBeginDate = TargetBeginDate;
+            targetBeginDateInitialized = true;
+            targetBeginDateValid = true;
+        }
+        if (!targetEndDateInitialized || TargetEndDate != displayedTargetEndDate)
+        {
+            targetEndDateInput = FormatDateInput(TargetEndDate);
+            targetEndTimeInput = FormatTimeInput(TargetEndDate);
+            displayedTargetEndDate = TargetEndDate;
+            targetEndDateInitialized = true;
+            targetEndDateValid = true;
+        }
+    }
+
+    private async Task SetTargetBeginDate(ChangeEventArgs args)
+    {
+        targetBeginDateInput = args.Value?.ToString() ?? "";
+        if (!string.IsNullOrWhiteSpace(targetBeginDateInput) && string.IsNullOrWhiteSpace(targetBeginTimeInput))
+        {
+            targetBeginTimeInput = kDefaultBeginTime;
+        }
+        await UpdateTargetBeginDate();
+    }
+
+    private async Task SetTargetBeginTime(ChangeEventArgs args)
+    {
+        targetBeginTimeInput = args.Value?.ToString() ?? "";
+        await UpdateTargetBeginDate();
+    }
+
+    private async Task SetTargetEndDate(ChangeEventArgs args)
+    {
+        targetEndDateInput = args.Value?.ToString() ?? "";
+        if (!string.IsNullOrWhiteSpace(targetEndDateInput) && string.IsNullOrWhiteSpace(targetEndTimeInput))
+        {
+            targetEndTimeInput = kDefaultEndTime;
+        }
+        await UpdateTargetEndDate();
+    }
+
+    private async Task SetTargetEndTime(ChangeEventArgs args)
+    {
+        targetEndTimeInput = args.Value?.ToString() ?? "";
+        await UpdateTargetEndDate();
+    }
+
+    private async Task UpdateTargetBeginDate()
+    {
+        targetBeginDateValid = TryParseDateTimeInput(targetBeginDateInput, targetBeginTimeInput, out DateTime? targetBeginDate);
+        if (targetBeginDateValid)
+        {
+            await TargetBeginDateChanged.InvokeAsync(targetBeginDate);
+        }
+        await TargetDatesValidChanged.InvokeAsync(targetBeginDateValid && targetEndDateValid);
+    }
+
+    private async Task UpdateTargetEndDate()
+    {
+        targetEndDateValid = TryParseDateTimeInput(targetEndDateInput, targetEndTimeInput, out DateTime? targetEndDate);
+        if (targetEndDateValid)
+        {
+            await TargetEndDateChanged.InvokeAsync(targetEndDate);
+        }
+        await TargetDatesValidChanged.InvokeAsync(targetBeginDateValid && targetEndDateValid);
+    }
+
+    private static string FormatDateInput(DateTime? dateTime)
+    {
+        return dateTime?.ToString(kDateInputFormat, CultureInfo.InvariantCulture) ?? "";
+    }
+
+    private static string FormatTimeInput(DateTime? dateTime)
+    {
+        return dateTime?.ToString(kTimeInputFormat, CultureInfo.InvariantCulture) ?? "";
+    }
+
+    private static bool TryParseDateTimeInput(string dateValue, string timeValue, out DateTime? dateTime)
+    {
+        dateTime = null;
+        if (string.IsNullOrWhiteSpace(dateValue) && string.IsNullOrWhiteSpace(timeValue))
+        {
+            return true;
+        }
+        if (string.IsNullOrWhiteSpace(dateValue) || string.IsNullOrWhiteSpace(timeValue))
+        {
+            return false;
+        }
+        if (!DateTime.TryParseExact(dateValue, kDateInputFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedDate))
+        {
+            return false;
+        }
+        if (!DateTime.TryParseExact(timeValue, [kTimeInputFormat, "HH:mm"], CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedTime))
+        {
+            return false;
+        }
+
+        dateTime = parsedDate.Date.Add(parsedTime.TimeOfDay);
+        return true;
+    }
+}

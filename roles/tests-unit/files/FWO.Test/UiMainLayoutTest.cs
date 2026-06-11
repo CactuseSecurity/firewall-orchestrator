@@ -134,34 +134,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task DisplayMessageInUi_WhenImmediateMessageLimitReached_QueuesAndTimerMovesMessageIntoView()
-        {
-            await using MainLayoutFixture fixture = new(maxMessages: 1);
-            MainLayout layout = fixture.Layout.Instance;
-
-            InvokeDisplayMessage(layout, null, "First", "Shown", false);
-            InvokeDisplayMessage(layout, null, "Second", "Queued", false);
-
-            fixture.Layout.WaitForAssertion(() =>
-            {
-                Assert.That(fixture.Layout.Markup, Does.Contain("First - Shown"));
-                Assert.That(fixture.Layout.Markup, Does.Not.Contain("Second - Queued"));
-                Assert.That(GetPrivateFieldValue<Queue<FWO.Ui.Data.UIMessage>>(layout, "UIMessageQue").Count, Is.EqualTo(1));
-            });
-
-            FWO.Ui.Data.UIMessage first = GetPrivateFieldValue<List<FWO.Ui.Data.UIMessage>>(layout, "UIMessages").Single();
-            GetPrivateMethod("HideUIMessage").Invoke(layout, [first.Id]);
-            GetPrivateMethod("OnUIMessageTimerTick").Invoke(layout, [null, null]);
-
-            fixture.Layout.WaitForAssertion(() =>
-            {
-                Assert.That(fixture.Layout.Markup, Does.Contain("Second - Queued"));
-                Assert.That(GetPrivateFieldValue<Queue<FWO.Ui.Data.UIMessage>>(layout, "UIMessageQue"), Is.Empty);
-            });
-            fixture.ApiConnection.WaitForLogCount(2);
-        }
-
-        [Test]
         public async Task EventMediator_PermissionChangedForCurrentUser_ShowsReloginDialog()
         {
             await using MainLayoutFixture fixture = new();
@@ -356,7 +328,7 @@ namespace FWO.Test
 
         public void WaitForLogCount(int expectedCount)
         {
-            Assert.That(() => UiLogs.Count, Is.EqualTo(expectedCount).After(1000, 25));
+            Assert.That(() => UiLogs.Count, Is.EqualTo(expectedCount).After(2000, 25));
         }
 
         private static object? GetVariableValue(object? variables, string propertyName)

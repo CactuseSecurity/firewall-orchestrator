@@ -271,36 +271,11 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-sm-3">
-                            <div class="form-group row">
-                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_from")):</label>
-                                <div class="col-sm-8">
-                                    @if (CanEditReqTaskField(WorkflowEditableFieldKeys.ValidFrom))
-                                    {
-                                        <input type="date" class="form-control form-control-sm" @bind="WfHandler.ActReqTask.TargetBeginDate" />
-                                    }
-                                    else
-                                    {
-                                        <label class="col-sm-12 h-100 border bg-secondary">@WfHandler.ActReqTask.TargetBeginDate?.ToString("d")</label>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-sm-3">
-                            <div class="form-group row">
-                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_to")):</label>
-                                <div class="col-sm-8">
-                                    @if (CanEditReqTaskField(WorkflowEditableFieldKeys.ValidTo))
-                                    {
-                                        <input type="date" class="form-control form-control-sm" @bind="WfHandler.ActReqTask.TargetEndDate" />
-                                    }
-                                    else
-                                    {
-                                        <label class="col-sm-12 h-100 border bg-secondary">@WfHandler.ActReqTask.TargetEndDate?.ToString("d")</label>
-                                    }
-                                </div>
-                            </div>
-                        </div>
+                        <DisplayTaskTargetDates @bind-TargetBeginDate="WfHandler.ActReqTask.TargetBeginDate"
+                            @bind-TargetEndDate="WfHandler.ActReqTask.TargetEndDate"
+                            CanEditTargetBeginDate="CanEditReqTaskField(WorkflowEditableFieldKeys.ValidFrom)"
+                            CanEditTargetEndDate="CanEditReqTaskField(WorkflowEditableFieldKeys.ValidTo)"
+                            TargetDatesValidChanged="SetTargetDatesValid" />
                     </div>
                 }
                 <div class="form-group row mt-2">
@@ -423,7 +398,7 @@
                     {
                         <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.FwAdmin}")">
                             <Authorized>
-                                @if(WfHandler.AddTicketMode)
+                                @if(WfHandler.AddReqTaskMode)
                                 {
                                     <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveReqTask">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                                 }
@@ -540,6 +515,7 @@
     private bool grpTypeSvc = false;
     private bool firstParamSet = false;
     private bool WorkInProgress = false;
+    private bool targetDatesValid = true;
     private List<Management> managements = [];
     private Management? actManagement;
     private FwoOwner? actRequestingOwner;
@@ -997,6 +973,11 @@
 
     private async Task<bool> PrepareReqTaskForSave()
     {
+        if (!RejectInvalidTargetDates())
+        {
+            return false;
+        }
+
         WfHandler.ActReqTask.TaskType = actTaskType.ToString();
         WfHandler.ActReqTask.RuleAction = actRuleAction?.Id;
         WfHandler.ActReqTask.Tracking = actTracking?.Id;
@@ -1055,6 +1036,19 @@
             (actTaskType == WfTaskType.new_interface && (actOwner == null || !IsRequestingOwnerAllowed())))
         {
             DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool RejectInvalidTargetDates()
+    {
+        if (!targetDatesValid ||
+            (WfHandler.ActReqTask.TargetBeginDate.HasValue && WfHandler.ActReqTask.TargetEndDate.HasValue &&
+                WfHandler.ActReqTask.TargetBeginDate.Value > WfHandler.ActReqTask.TargetEndDate.Value))
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5119"), true);
             return false;
         }
 
@@ -1160,6 +1154,11 @@
     private bool CanSaveReqTaskChanges()
     {
         return ApproverAllowedChangesAccess.CanSaveTaskChanges(GetApproverAllowedChanges(), GetTaskFieldEditContext());
+    }
+
+    private void SetTargetDatesValid(bool datesValid)
+    {
+        targetDatesValid = datesValid;
     }
 
     private ApproverAllowedChangesConfig GetApproverAllowedChanges()

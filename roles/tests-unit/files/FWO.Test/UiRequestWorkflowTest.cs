@@ -1,3 +1,4 @@
+using AngleSharp.Dom;
 using Bunit;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -1576,6 +1577,189 @@ namespace FWO.Test
                 Assert.That(component.Markup, Does.Contain("SG-ImplGroup"));
                 Assert.That(component.Markup, Does.Not.Contain("HiddenObjectName"));
                 Assert.That(component.Markup, Does.Not.Contain("HiddenServiceName"));
+            });
+        }
+
+        [Test]
+        public async Task DisplayTaskTargetDates_EditableDatesUpdateParentValues()
+        {
+            DateTime? targetBeginDate = new DateTime(2026, 7, 1, 8, 15, 30);
+            DateTime? targetEndDate = new DateTime(2026, 7, 31, 17, 45, 15);
+
+            await using BunitContext context = new();
+            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig());
+
+            IRenderedComponent<DisplayTaskTargetDates> component = context.Render<DisplayTaskTargetDates>(parameters => parameters
+                .Add(p => p.TargetBeginDate, targetBeginDate)
+                .Add(p => p.TargetBeginDateChanged, EventCallback.Factory.Create<DateTime?>(this, value => targetBeginDate = value))
+                .Add(p => p.TargetEndDate, targetEndDate)
+                .Add(p => p.TargetEndDateChanged, EventCallback.Factory.Create<DateTime?>(this, value => targetEndDate = value))
+                .Add(p => p.CanEditTargetBeginDate, true)
+                .Add(p => p.CanEditTargetEndDate, true));
+
+            IReadOnlyList<IElement> dateInputs = component.FindAll("input[type=date]");
+            IReadOnlyList<IElement> timeInputs = component.FindAll("input[type=time]");
+            await dateInputs[0].InputAsync(new ChangeEventArgs { Value = "2026-08-15" });
+            await timeInputs[0].InputAsync(new ChangeEventArgs { Value = "12:34:56" });
+            await dateInputs[1].InputAsync(new ChangeEventArgs { Value = "2026-08-31" });
+            await timeInputs[1].InputAsync(new ChangeEventArgs { Value = "23:59:58" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(targetBeginDate, Is.EqualTo(new DateTime(2026, 8, 15, 12, 34, 56)));
+                Assert.That(targetEndDate, Is.EqualTo(new DateTime(2026, 8, 31, 23, 59, 58)));
+            });
+        }
+
+        [Test]
+        public async Task DisplayTaskTargetDates_IncompleteDateTimeMarksInputInvalid()
+        {
+            DateTime? targetBeginDate = new DateTime(2026, 7, 1, 8, 15, 30);
+            bool targetDatesValid = true;
+
+            await using BunitContext context = new();
+            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig());
+
+            IRenderedComponent<DisplayTaskTargetDates> component = context.Render<DisplayTaskTargetDates>(parameters => parameters
+                .Add(p => p.TargetBeginDate, targetBeginDate)
+                .Add(p => p.TargetBeginDateChanged, EventCallback.Factory.Create<DateTime?>(this, value => targetBeginDate = value))
+                .Add(p => p.CanEditTargetBeginDate, true)
+                .Add(p => p.CanEditTargetEndDate, true)
+                .Add(p => p.TargetDatesValidChanged, EventCallback.Factory.Create<bool>(this, value => targetDatesValid = value)));
+
+            await component.FindAll("input[type=time]")[0].InputAsync(new ChangeEventArgs { Value = "" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(targetDatesValid, Is.False);
+                Assert.That(targetBeginDate, Is.EqualTo(new DateTime(2026, 7, 1, 8, 15, 30)));
+            });
+        }
+
+        [Test]
+        public async Task DisplayTaskTargetDates_DateSelectionDefaultsMissingTimes()
+        {
+            DateTime? targetBeginDate = null;
+            DateTime? targetEndDate = null;
+
+            await using BunitContext context = new();
+            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig());
+
+            IRenderedComponent<DisplayTaskTargetDates> component = context.Render<DisplayTaskTargetDates>(parameters => parameters
+                .Add(p => p.TargetBeginDate, targetBeginDate)
+                .Add(p => p.TargetBeginDateChanged, EventCallback.Factory.Create<DateTime?>(this, value => targetBeginDate = value))
+                .Add(p => p.TargetEndDate, targetEndDate)
+                .Add(p => p.TargetEndDateChanged, EventCallback.Factory.Create<DateTime?>(this, value => targetEndDate = value))
+                .Add(p => p.CanEditTargetBeginDate, true)
+                .Add(p => p.CanEditTargetEndDate, true));
+
+            IReadOnlyList<IElement> dateInputs = component.FindAll("input[type=date]");
+            await dateInputs[0].InputAsync(new ChangeEventArgs { Value = "2026-08-15" });
+            await dateInputs[1].InputAsync(new ChangeEventArgs { Value = "2026-08-31" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(targetBeginDate, Is.EqualTo(new DateTime(2026, 8, 15, 0, 0, 0)));
+                Assert.That(targetEndDate, Is.EqualTo(new DateTime(2026, 8, 31, 23, 59, 59)));
+            });
+        }
+
+        [Test]
+        public async Task DisplayTaskTargetDates_TimeWithoutSecondsIsAcceptedAsZeroSeconds()
+        {
+            DateTime? targetBeginDate = new DateTime(2026, 7, 1, 8, 15, 30);
+            bool targetDatesValid = true;
+
+            await using BunitContext context = new();
+            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig());
+
+            IRenderedComponent<DisplayTaskTargetDates> component = context.Render<DisplayTaskTargetDates>(parameters => parameters
+                .Add(p => p.TargetBeginDate, targetBeginDate)
+                .Add(p => p.TargetBeginDateChanged, EventCallback.Factory.Create<DateTime?>(this, value => targetBeginDate = value))
+                .Add(p => p.CanEditTargetBeginDate, true)
+                .Add(p => p.CanEditTargetEndDate, true)
+                .Add(p => p.TargetDatesValidChanged, EventCallback.Factory.Create<bool>(this, value => targetDatesValid = value)));
+
+            await component.FindAll("input[type=time]")[0].InputAsync(new ChangeEventArgs { Value = "12:34" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(targetDatesValid, Is.True);
+                Assert.That(targetBeginDate, Is.EqualTo(new DateTime(2026, 7, 1, 12, 34, 0)));
+            });
+        }
+
+        [Test]
+        public async Task DisplayTaskTargetDates_ReadOnlyDatesDisplayLabels()
+        {
+            DateTime targetBeginDate = new(2026, 7, 1, 8, 15, 30);
+            DateTime targetEndDate = new(2026, 7, 31, 17, 45, 15);
+
+            await using BunitContext context = new();
+            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig());
+
+            IRenderedComponent<DisplayTaskTargetDates> component = context.Render<DisplayTaskTargetDates>(parameters => parameters
+                .Add(p => p.TargetBeginDate, targetBeginDate)
+                .Add(p => p.TargetEndDate, targetEndDate)
+                .Add(p => p.CanEditTargetBeginDate, false)
+                .Add(p => p.CanEditTargetEndDate, false));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.FindAll("input[type=date]"), Is.Empty);
+                Assert.That(component.FindAll("input[type=time]"), Is.Empty);
+                Assert.That(component.Markup, Does.Contain(targetBeginDate.ToString("G")));
+                Assert.That(component.Markup, Does.Contain(targetEndDate.ToString("G")));
+            });
+        }
+
+        [Test]
+        public void DisplayRequestTask_TargetBeginAfterTargetEndIsRejected()
+        {
+            List<string> messages = [];
+            DisplayRequestTask component = new();
+            SetMember(component, nameof(DisplayRequestTask.WfHandler), new WfHandler
+            {
+                ActReqTask = new WfReqTask
+                {
+                    TargetBeginDate = new DateTime(2026, 8, 31, 23, 59, 58),
+                    TargetEndDate = new DateTime(2026, 8, 15, 12, 34, 56)
+                }
+            });
+            SetMember(component, "userConfig", new RequestWorkflowUserConfig());
+            SetMember(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((_, _, message, _) => messages.Add(message)));
+
+            bool valid = InvokePrivateBool(component, "RejectInvalidTargetDates");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.False);
+                Assert.That(messages, Does.Contain("E5119"));
+            });
+        }
+
+        [Test]
+        public void DisplayImplementationTask_TargetBeginAfterTargetEndIsRejected()
+        {
+            List<string> messages = [];
+            DisplayImplementationTask component = new();
+            SetMember(component, nameof(DisplayImplementationTask.WfHandler), new WfHandler
+            {
+                ActImplTask = new WfImplTask
+                {
+                    TargetBeginDate = new DateTime(2026, 8, 31, 23, 59, 58),
+                    TargetEndDate = new DateTime(2026, 8, 15, 12, 34, 56)
+                }
+            });
+            SetMember(component, "userConfig", new RequestWorkflowUserConfig());
+            SetMember(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((_, _, message, _) => messages.Add(message)));
+
+            bool valid = InvokePrivateBool(component, "RejectInvalidTargetDates");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.False);
+                Assert.That(messages, Does.Contain("E5119"));
             });
         }
 

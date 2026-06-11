@@ -19,7 +19,7 @@
                 {
                     <div class="col-sm-4">
                         <div class="form-group row">
-                            <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
+                            <label class="col-sm-2">@(userConfig.GetText("object_catalog")):</label>
                             <div class="col-sm-9">
                                 <Dropdown ElementType="NetworkObject" @bind-SelectedElement="newSourceNetwork" ElementToString="@(n => n.Name)" Elements="nwObjects" Nullable="true">
                                     <ElementTemplate Context="nwObject">
@@ -34,7 +34,7 @@
                 {
                     <div class="col-sm-4">
                         <div class="form-group row">
-                            <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
+                            <label class="col-sm-2">@(userConfig.GetText("object_catalog")):</label>
                             <div class="col-sm-9">
                                 <Dropdown ElementType="NetworkObject" @bind-SelectedElement="newDestinationNetwork" ElementToString="@(n => n.Name)" Elements="nwObjects" Nullable="true">
                                     <ElementTemplate Context="nwObject">
@@ -49,7 +49,7 @@
                 {
                     <div class="col-sm-4">
                         <div class="form-group row">
-                            <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
+                            <label class="col-sm-2">@(userConfig.GetText("service_catalog")):</label>
                             <div class="col-sm-9">
                                 <Dropdown ElementType="NetworkService" @bind-SelectedElement="newService" ElementToString="@(s => s.Name)" Elements="nwServices" Nullable="true">
                                     <ElementTemplate Context="nwService">

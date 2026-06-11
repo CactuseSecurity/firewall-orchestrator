@@ -192,36 +192,11 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-sm-3">
-                            <div class="form-group row">
-                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_from")):</label>
-                                <div class="col-sm-8">
-                                    @if (WfHandler.EditImplTaskMode)
-                                    {
-                                        <input type="date" class="form-control form-control-sm" @bind="WfHandler.ActImplTask.TargetBeginDate" />
-                                    }
-                                    else
-                                    {
-                                        <label class="col-sm-12 h-100 border bg-secondary">@WfHandler.ActImplTask.TargetBeginDate?.ToString("d")</label>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-sm-3">
-                            <div class="form-group row">
-                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_to")):</label>
-                                <div class="col-sm-8">
-                                    @if (WfHandler.EditImplTaskMode)
-                                    {
-                                        <input type="date" class="form-control form-control-sm" @bind="WfHandler.ActImplTask.TargetEndDate" />
-                                    }
-                                    else
-                                    {
-                                        <label class="col-sm-12 h-100 border bg-secondary">@WfHandler.ActImplTask.TargetEndDate?.ToString("d")</label>
-                                    }
-                                </div>
-                            </div>
-                        </div>
+                        <DisplayTaskTargetDates @bind-TargetBeginDate="WfHandler.ActImplTask.TargetBeginDate"
+                            @bind-TargetEndDate="WfHandler.ActImplTask.TargetEndDate"
+                            CanEditTargetBeginDate="WfHandler.EditImplTaskMode"
+                            CanEditTargetEndDate="WfHandler.EditImplTaskMode"
+                            TargetDatesValidChanged="SetTargetDatesValid" />
                     </div>
                     <DisplayAccessElements Sources="actSources" @bind-SourcesToAdd="sourcesToAdd" @bind-SourcesToDelete="sourcesToDelete"
                         Destinations="actDestinations" @bind-DestinationsToAdd="destinationsToAdd" @bind-DestinationsToDelete="destinationsToDelete"
@@ -401,6 +376,7 @@
     private bool newOwnerAssigned = false;
     private string? actGrpName;
     private bool firstParamSet = false;
+    private bool targetDatesValid = true;
 
     private List<WfStateAction> offeredActions = new ();
     private string allComments = "";
@@ -683,6 +659,11 @@
         await InvokeAsync(StateHasChanged);
         try
         {
+            if (!RejectInvalidTargetDates())
+            {
+                return;
+            }
+
             if (WfHandler.ActImplTask.Sanitize())
             {
                 DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("U0001"), true);
@@ -748,6 +729,24 @@
             }
         }
         return true;
+    }
+
+    private bool RejectInvalidTargetDates()
+    {
+        if (!targetDatesValid ||
+            (WfHandler.ActImplTask.TargetBeginDate.HasValue && WfHandler.ActImplTask.TargetEndDate.HasValue &&
+                WfHandler.ActImplTask.TargetBeginDate.Value > WfHandler.ActImplTask.TargetEndDate.Value))
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5119"), true);
+            return false;
+        }
+
+        return true;
+    }
+
+    private void SetTargetDatesValid(bool datesValid)
+    {
+        targetDatesValid = datesValid;
     }
 
     private void InitPromoteImplTask()

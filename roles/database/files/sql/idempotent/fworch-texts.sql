@@ -1188,8 +1188,10 @@ INSERT INTO txt VALUES ('review', 			    'German',	'Review');
 INSERT INTO txt VALUES ('review', 			    'English',	'Review');
 INSERT INTO txt VALUES ('verification', 		'German',	'Verifizierung');
 INSERT INTO txt VALUES ('verification', 		'English',	'Verification');
-INSERT INTO txt VALUES ('obj', 			        'German', 	'Obj');
-INSERT INTO txt VALUES ('obj', 			        'English', 	'Obj');
+INSERT INTO txt VALUES ('object_catalog', 	    'German', 	'Objekt Kat.');
+INSERT INTO txt VALUES ('object_catalog', 		'English', 	'Object Cat.');
+INSERT INTO txt VALUES ('service_catalog', 	    'German', 	'Service Kat.');
+INSERT INTO txt VALUES ('service_catalog', 		'English', 	'Service Cat.');
 INSERT INTO txt VALUES ('view', 			    'German', 	'Ansicht');
 INSERT INTO txt VALUES ('view', 			    'English', 	'View');
 INSERT INTO txt VALUES ('all_gateways',         'German', 	'Alle Gateways');
@@ -3925,6 +3927,8 @@ INSERT INTO txt VALUES ('E5117', 'German',  'L&ouml;schen der Login-Daten nicht 
 INSERT INTO txt VALUES ('E5117', 'English', 'Deletion of credentials not allowed as they are in use by one or more management devices. Change the management credentials before deleting them.');
 INSERT INTO txt VALUES ('E5118', 'German',  'Die obere Grenze muss gr&ouml;sser als die untere Grenze des Portbereichs sein.');
 INSERT INTO txt VALUES ('E5118', 'English', 'Upper limit has to be greater than lower limit in Port range.');
+INSERT INTO txt VALUES ('E5119', 'German',  'Inkonsistente Eingaben im G&uuml;ltigkeitsbereich.');
+INSERT INTO txt VALUES ('E5119', 'English', 'Inconsistent validity range.');
 
 INSERT INTO txt VALUES ('E5201', 'German',  'LDAP-Verbindung konnte nicht angelegt werden');
 INSERT INTO txt VALUES ('E5201', 'English', 'LDAP connection could not be created');

@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.Json;
 using System.Threading;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -83,15 +82,9 @@ public sealed class FlowCatalogService
     /// </summary>
     public async Task<AddressObjectIdResponse> GetAddressObjectIdAsync(string ipStart, string ipEnd, bool? visibleInRequest)
     {
-        string query = BuildLookupQuery(
-            "getAddressObjectId",
-            "nwobjects",
-            "flow_nwobject",
-            "nwobj_id",
-            "name",
-            BuildObjectWhereClause("ip_start", ipStart, "ip_end", ipEnd, visibleInRequest));
-
-        List<FlowNwObject> result = await apiConnection.SendQueryAsync<List<FlowNwObject>>(query) ?? [];
+        List<FlowNwObject> result = await apiConnection.SendQueryAsync<List<FlowNwObject>>(
+            FlowQueries.getFlowAddressObjectId,
+            BuildLookupQueryVariables(visibleInRequest, ("ip_start", ipStart), ("ip_end", ipEnd))) ?? [];
         FlowNwObject? flowObject = result.FirstOrDefault();
         return flowObject == null
             ? new AddressObjectIdResponse()
@@ -109,15 +102,13 @@ public sealed class FlowCatalogService
             return new ServiceObjectIdResponse();
         }
 
-        string query = BuildLookupQuery(
-            "getServiceObjectId",
-            "svcobjects",
-            "flow_svcobject",
-            "svcobj_id",
-            "name",
-            BuildObjectWhereClause("port_start", portStart, "port_end", portEnd, visibleInRequest, "ip_proto_id", protocolId.Value));
-
-        List<FlowSvcObject> result = await apiConnection.SendQueryAsync<List<FlowSvcObject>>(query) ?? [];
+        List<FlowSvcObject> result = await apiConnection.SendQueryAsync<List<FlowSvcObject>>(
+            FlowQueries.getFlowServiceObjectId,
+            BuildLookupQueryVariables(
+                visibleInRequest,
+                ("port_start", portStart),
+                ("port_end", portEnd),
+                ("ip_proto_id", protocolId.Value))) ?? [];
         FlowSvcObject? flowObject = result.FirstOrDefault();
         return flowObject == null
             ? new ServiceObjectIdResponse()
@@ -126,72 +117,37 @@ public sealed class FlowCatalogService
 
     private async Task<List<FlowNwObject>> LoadFlowNwObjectsAsync(bool? visibleInRequest)
     {
-        string query = BuildCatalogQuery(
-            "getAddressObjects",
-            "nwobjects",
-            "flow_nwobject",
-            "nwobj_id",
-            "flowNwObjectDetails",
-            FlowQueries.flowNwObjectDetailsFragment,
-            visibleInRequest);
-
-        return await apiConnection.SendQueryAsync<List<FlowNwObject>>(query) ?? [];
+        return await apiConnection.SendQueryAsync<List<FlowNwObject>>(
+            FlowQueries.getFlowAddressObjects,
+            BuildCatalogQueryVariables(visibleInRequest)) ?? [];
     }
 
     private async Task<List<FlowNwGroup>> LoadFlowNwGroupsAsync(bool? visibleInRequest)
     {
-        string query = BuildCatalogQuery(
-            "getAddressGroups",
-            "nwgroups",
-            "flow_nwgroup",
-            "nwgrp_id",
-            "flowNwGroupDetails",
-            FlowQueries.flowNwGroupDetailsFragment,
-            visibleInRequest);
-
-        return await apiConnection.SendQueryAsync<List<FlowNwGroup>>(query) ?? [];
+        return await apiConnection.SendQueryAsync<List<FlowNwGroup>>(
+            FlowQueries.getFlowAddressGroups,
+            BuildCatalogQueryVariables(visibleInRequest)) ?? [];
     }
 
     private async Task<List<FlowSvcObject>> LoadFlowSvcObjectsAsync(bool? visibleInRequest)
     {
-        string query = BuildCatalogQuery(
-            "getServiceObjects",
-            "svcobjects",
-            "flow_svcobject",
-            "svcobj_id",
-            "flowSvcObjectDetails",
-            FlowQueries.flowSvcObjectDetailsFragment,
-            visibleInRequest);
-
-        return await apiConnection.SendQueryAsync<List<FlowSvcObject>>(query) ?? [];
+        return await apiConnection.SendQueryAsync<List<FlowSvcObject>>(
+            FlowQueries.getFlowServiceObjects,
+            BuildCatalogQueryVariables(visibleInRequest)) ?? [];
     }
 
     private async Task<List<FlowSvcGroup>> LoadFlowSvcGroupsAsync(bool? visibleInRequest)
     {
-        string query = BuildCatalogQuery(
-            "getServiceGroups",
-            "svcgroups",
-            "flow_svcgroup",
-            "svcgrp_id",
-            "flowSvcGroupDetails",
-            FlowQueries.flowSvcGroupDetailsFragment,
-            visibleInRequest);
-
-        return await apiConnection.SendQueryAsync<List<FlowSvcGroup>>(query) ?? [];
+        return await apiConnection.SendQueryAsync<List<FlowSvcGroup>>(
+            FlowQueries.getFlowServiceGroups,
+            BuildCatalogQueryVariables(visibleInRequest)) ?? [];
     }
 
     private async Task<List<FlowTimeObject>> LoadFlowTimeObjectsAsync(bool? visibleInRequest)
     {
-        string query = BuildCatalogQuery(
-            "getTimeObjects",
-            "timeobjects",
-            "flow_timeobject",
-            "timeobj_id",
-            "flowTimeObjectDetails",
-            FlowQueries.flowTimeObjectDetailsFragment,
-            visibleInRequest);
-
-        return await apiConnection.SendQueryAsync<List<FlowTimeObject>>(query) ?? [];
+        return await apiConnection.SendQueryAsync<List<FlowTimeObject>>(
+            FlowQueries.getFlowTimeObjects,
+            BuildCatalogQueryVariables(visibleInRequest)) ?? [];
     }
 
     /// <summary>
@@ -244,81 +200,48 @@ public sealed class FlowCatalogService
         return null;
     }
 
-    private static string BuildCatalogQuery(
-        string operationName,
-        string topLevelAlias,
-        string tableName,
-        string idFieldName,
-        string fragmentName,
-        string fragmentText,
-        bool? visibleInRequest)
+    /// <summary>
+    /// Builds query variables for catalog requests with an optional visibility filter.
+    /// </summary>
+    private static Dictionary<string, object> BuildCatalogQueryVariables(bool? visibleInRequest)
     {
-        string visibleInRequestClause = visibleInRequest.HasValue
-            ? $"where: {{ show_in_request_module: {{ _eq: {GetGraphQlBoolean(visibleInRequest.Value)} }} }}, "
-            : string.Empty;
-
-        return fragmentText + $@"query {operationName} {{
-  {topLevelAlias}: {tableName}({visibleInRequestClause}order_by: [{{ name: asc }}, {{ {idFieldName}: asc }}]) {{
-    ...{fragmentName}
-  }}
-}}";
+        return new Dictionary<string, object> { ["where"] = BuildVisibleInRequestWhereClause(visibleInRequest) };
     }
 
-    private static string BuildLookupQuery(string operationName, string topLevelAlias, string tableName, string idFieldName, string fieldName, string whereClause)
+    /// <summary>
+    /// Builds query variables for lookup requests with equality predicates.
+    /// </summary>
+    private static Dictionary<string, object> BuildLookupQueryVariables(bool? visibleInRequest, params (string FieldName, object Value)[] conditions)
     {
-        return $@"query {operationName} {{
-  {topLevelAlias}: {tableName}(where: {{ {whereClause} }}, order_by: [{{ {idFieldName}: asc }}], limit: 1) {{
-    {idFieldName}
-    {fieldName}
-  }}
-}}";
-    }
-
-    private static string BuildObjectWhereClause(string firstFieldName, string firstFieldValue, string secondFieldName, string secondFieldValue, bool? visibleInRequest, string? thirdFieldName = null, int? thirdFieldValue = null)
-    {
-        List<string> parts =
-        [
-            $"{firstFieldName}: {{ _eq: {JsonSerializer.Serialize(firstFieldValue)} }}",
-                $"{secondFieldName}: {{ _eq: {JsonSerializer.Serialize(secondFieldValue)} }}"
-        ];
-
-        if (thirdFieldName != null && thirdFieldValue.HasValue)
+        Dictionary<string, object> whereClause = BuildVisibleInRequestWhereClause(visibleInRequest);
+        foreach ((string fieldName, object value) in conditions)
         {
-            parts.Add($"{thirdFieldName}: {{ _eq: {thirdFieldValue.Value.ToString(CultureInfo.InvariantCulture)} }}");
+            whereClause[fieldName] = BuildEqualsExpression(value);
         }
 
+        return new Dictionary<string, object> { ["where"] = whereClause };
+    }
+
+    /// <summary>
+    /// Builds a Hasura bool_exp with the optional visible-in-request filter.
+    /// </summary>
+    private static Dictionary<string, object> BuildVisibleInRequestWhereClause(bool? visibleInRequest)
+    {
+        Dictionary<string, object> whereClause = [];
         if (visibleInRequest.HasValue)
         {
-            parts.Add($"show_in_request_module: {{ _eq: {GetGraphQlBoolean(visibleInRequest.Value)} }}");
+            whereClause["show_in_request_module"] = BuildEqualsExpression(visibleInRequest.Value);
         }
 
-        return string.Join(", ", parts);
+        return whereClause;
     }
 
-    private static string BuildObjectWhereClause(string firstFieldName, int firstFieldValue, string secondFieldName, int secondFieldValue, bool? visibleInRequest, string? thirdFieldName = null, int? thirdFieldValue = null)
+    /// <summary>
+    /// Builds a Hasura _eq expression for the supplied value.
+    /// </summary>
+    private static Dictionary<string, object> BuildEqualsExpression(object value)
     {
-        List<string> parts =
-        [
-            $"{firstFieldName}: {{ _eq: {firstFieldValue.ToString(CultureInfo.InvariantCulture)} }}",
-                $"{secondFieldName}: {{ _eq: {secondFieldValue.ToString(CultureInfo.InvariantCulture)} }}"
-        ];
-
-        if (thirdFieldName != null && thirdFieldValue.HasValue)
-        {
-            parts.Add($"{thirdFieldName}: {{ _eq: {thirdFieldValue.Value.ToString(CultureInfo.InvariantCulture)} }}");
-        }
-
-        if (visibleInRequest.HasValue)
-        {
-            parts.Add($"show_in_request_module: {{ _eq: {GetGraphQlBoolean(visibleInRequest.Value)} }}");
-        }
-
-        return string.Join(", ", parts);
-    }
-
-    private static string GetGraphQlBoolean(bool value)
-    {
-        return value ? "true" : "false";
+        return new Dictionary<string, object> { ["_eq"] = value };
     }
 
     private static AddressObjectResponse ToAddressObjectResponse(FlowNwObject flowObject)

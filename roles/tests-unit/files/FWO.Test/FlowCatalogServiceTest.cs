@@ -43,9 +43,8 @@ internal class FlowCatalogServiceTest
         Assert.That(result[0].Protocol, Is.EqualTo("TCP"));
         Assert.That(result[0].ShowInRequest, Is.True);
         Assert.That(apiConnection.SentQueries, Has.Count.EqualTo(2));
-        Assert.That(apiConnection.SentQueries[0], Does.Contain("query getServiceObjects"));
-        Assert.That(apiConnection.SentQueries[0], Does.Contain("show_in_request_module"));
-        Assert.That(apiConnection.SentQueries[0], Does.Contain("_eq: true"));
+        Assert.That(apiConnection.SentQueries[0], Is.EqualTo(FlowQueries.getFlowServiceObjects));
+        AssertWhereClauseContains(GetWhereClause(apiConnection.SentVariables[0]), ("show_in_request_module", true));
         Assert.That(apiConnection.SentQueries[1], Is.EqualTo(StmQueries.getIpProtocols));
     }
 
@@ -76,8 +75,8 @@ internal class FlowCatalogServiceTest
 
         Assert.That(result, Has.Count.EqualTo(1));
         Assert.That(result[0].Protocol, Is.EqualTo("250"));
-        Assert.That(apiConnection.SentQueries[0], Does.Contain("query getServiceObjects"));
-        Assert.That(apiConnection.SentQueries[0], Does.Contain("_eq: false"));
+        Assert.That(apiConnection.SentQueries[0], Is.EqualTo(FlowQueries.getFlowServiceObjects));
+        AssertWhereClauseContains(GetWhereClause(apiConnection.SentVariables[0]), ("show_in_request_module", false));
     }
 
     [Test]
@@ -112,7 +111,8 @@ internal class FlowCatalogServiceTest
         Assert.That(result[0].ShowInRequest, Is.False);
         Assert.That(result[0].Members, Has.Count.EqualTo(1));
         Assert.That(result[0].Members[0].Name, Is.EqualTo("HostA"));
-        Assert.That(apiConnection.SentQueries[0], Does.Not.Contain("where: { show_in_request_module"));
+        Assert.That(apiConnection.SentQueries[0], Is.EqualTo(FlowQueries.getFlowAddressGroups));
+        Assert.That(GetWhereClause(apiConnection.SentVariables[0]), Is.Empty);
     }
 
     [Test]
@@ -229,10 +229,11 @@ internal class FlowCatalogServiceTest
         {
             Assert.That(result.Id, Is.EqualTo(40));
             Assert.That(result.Name, Is.EqualTo("HostX"));
-            Assert.That(apiConnection.SentQueries[0], Does.Contain("query getAddressObjectId"));
-            Assert.That(apiConnection.SentQueries[0], Does.Contain("ip_start: { _eq: \"10.0.0.1\" }"));
-            Assert.That(apiConnection.SentQueries[0], Does.Contain("ip_end: { _eq: \"10.0.0.2\" }"));
-            Assert.That(apiConnection.SentQueries[0], Does.Contain("show_in_request_module: { _eq: true }"));
+            Assert.That(apiConnection.SentQueries[0], Is.EqualTo(FlowQueries.getFlowAddressObjectId));
+            AssertWhereClauseContains(GetWhereClause(apiConnection.SentVariables[0]),
+                ("ip_start", "10.0.0.1"),
+                ("ip_end", "10.0.0.2"),
+                ("show_in_request_module", true));
         });
     }
 
@@ -264,11 +265,12 @@ internal class FlowCatalogServiceTest
             Assert.That(result.Id, Is.EqualTo(50));
             Assert.That(result.Name, Is.EqualTo("HTTPS"));
             Assert.That(apiConnection.SentQueries[0], Is.EqualTo(StmQueries.getIpProtocols));
-            Assert.That(apiConnection.SentQueries[1], Does.Contain("query getServiceObjectId"));
-            Assert.That(apiConnection.SentQueries[1], Does.Contain("port_start: { _eq: 443 }"));
-            Assert.That(apiConnection.SentQueries[1], Does.Contain("port_end: { _eq: 443 }"));
-            Assert.That(apiConnection.SentQueries[1], Does.Contain("ip_proto_id: { _eq: 6 }"));
-            Assert.That(apiConnection.SentQueries[1], Does.Contain("show_in_request_module: { _eq: false }"));
+            Assert.That(apiConnection.SentQueries[1], Is.EqualTo(FlowQueries.getFlowServiceObjectId));
+            AssertWhereClauseContains(GetWhereClause(apiConnection.SentVariables[1]),
+                ("port_start", 443),
+                ("port_end", 443),
+                ("ip_proto_id", 6),
+                ("show_in_request_module", false));
         });
     }
 
@@ -347,6 +349,7 @@ internal class FlowCatalogServiceTest
     private sealed class FlowCatalogServiceApiConn : SimulatedApiConnection
     {
         public List<string> SentQueries { get; } = [];
+        public List<object?> SentVariables { get; } = [];
         public Func<Type, string, Task>? BeforeSendQueryAsync { get; set; }
         public List<IpProtocol> Protocols { get; set; } = [];
         public List<FlowNwObject> AddressObjects { get; set; } = [];
@@ -358,6 +361,7 @@ internal class FlowCatalogServiceTest
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
             SentQueries.Add(query);
+            SentVariables.Add(variables);
 
             Type responseType = typeof(QueryResponseType);
             if (BeforeSendQueryAsync != null)
@@ -434,6 +438,27 @@ internal class FlowCatalogServiceTest
         public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
         {
             return Task.CompletedTask;
+        }
+    }
+
+    private static Dictionary<string, object> GetWhereClause(object? variables)
+    {
+        Assert.That(variables, Is.TypeOf<Dictionary<string, object>>());
+        Dictionary<string, object> queryVariables = (Dictionary<string, object>)variables!;
+        Assert.That(queryVariables.TryGetValue("where", out object? whereObject), Is.True);
+        Assert.That(whereObject, Is.TypeOf<Dictionary<string, object>>());
+        return (Dictionary<string, object>)whereObject!;
+    }
+
+    private static void AssertWhereClauseContains(Dictionary<string, object> whereClause, params (string FieldName, object ExpectedValue)[] conditions)
+    {
+        foreach ((string fieldName, object expectedValue) in conditions)
+        {
+            Assert.That(whereClause.TryGetValue(fieldName, out object? conditionObject), Is.True, $"Missing where clause for {fieldName}.");
+            Assert.That(conditionObject, Is.TypeOf<Dictionary<string, object>>(), $"Expected _eq expression for {fieldName}.");
+            Dictionary<string, object> equalsExpression = (Dictionary<string, object>)conditionObject!;
+            Assert.That(equalsExpression.TryGetValue("_eq", out object? actualValue), Is.True, $"Missing _eq for {fieldName}.");
+            Assert.That(actualValue, Is.EqualTo(expectedValue), $"Unexpected value for {fieldName}.");
         }
     }
 }

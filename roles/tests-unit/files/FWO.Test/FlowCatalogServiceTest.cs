@@ -5,6 +5,7 @@ using FWO.Data.Flow;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
 using NUnit.Framework;
+using System.Threading;
 
 namespace FWO.Test;
 
@@ -288,9 +289,65 @@ internal class FlowCatalogServiceTest
         });
     }
 
+    [Test]
+    public async Task GetServiceObjectsAsync_LoadsProtocolCacheOnlyOnceForConcurrentRequests()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        apiConnection.ServiceObjects =
+        [
+            new FlowSvcObject
+            {
+                Id = 60,
+                Name = "HTTPS",
+                PortStart = 443,
+                PortEnd = 443,
+                ProtoId = 6
+            }
+        ];
+        apiConnection.Protocols =
+        [
+            new IpProtocol { Id = 6, Name = "TCP" }
+        ];
+
+        TaskCompletionSource<bool> protocolQueryStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<bool> releaseProtocolQuery = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int protocolQueryCount = 0;
+        apiConnection.BeforeSendQueryAsync = async (responseType, query) =>
+        {
+            if (responseType != typeof(List<IpProtocol>) || query != StmQueries.getIpProtocols)
+            {
+                return;
+            }
+
+            Interlocked.Increment(ref protocolQueryCount);
+            protocolQueryStarted.TrySetResult(true);
+            await releaseProtocolQuery.Task;
+        };
+
+        FlowCatalogService service = new(apiConnection);
+
+        Task<List<ServiceObjectResponse>> firstCall = service.GetServiceObjectsAsync(null);
+        await protocolQueryStarted.Task;
+        Task<List<ServiceObjectResponse>> secondCall = service.GetServiceObjectsAsync(null);
+        releaseProtocolQuery.TrySetResult(true);
+
+        List<ServiceObjectResponse>[] results = await Task.WhenAll(firstCall, secondCall);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(protocolQueryCount, Is.EqualTo(1));
+            Assert.That(apiConnection.SentQueries.FindAll(query => query == StmQueries.getIpProtocols), Has.Count.EqualTo(1));
+            Assert.That(results[0], Has.Count.EqualTo(1));
+            Assert.That(results[1], Has.Count.EqualTo(1));
+            Assert.That(results[0][0].Protocol, Is.EqualTo("TCP"));
+            Assert.That(results[1][0].Protocol, Is.EqualTo("TCP"));
+        });
+    }
+
     private sealed class FlowCatalogServiceApiConn : SimulatedApiConnection
     {
         public List<string> SentQueries { get; } = [];
+        public Func<Type, string, Task>? BeforeSendQueryAsync { get; set; }
         public List<IpProtocol> Protocols { get; set; } = [];
         public List<FlowNwObject> AddressObjects { get; set; } = [];
         public List<FlowNwGroup> AddressGroups { get; set; } = [];
@@ -298,39 +355,44 @@ internal class FlowCatalogServiceTest
         public List<FlowSvcGroup> ServiceGroups { get; set; } = [];
         public List<FlowTimeObject> TimeObjects { get; set; } = [];
 
-        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+        public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
             SentQueries.Add(query);
 
             Type responseType = typeof(QueryResponseType);
+            if (BeforeSendQueryAsync != null)
+            {
+                await BeforeSendQueryAsync(responseType, query);
+            }
+
             if (responseType == typeof(List<FlowNwObject>))
             {
-                return Task.FromResult((QueryResponseType)(object)AddressObjects);
+                return (QueryResponseType)(object)AddressObjects;
             }
 
             if (responseType == typeof(List<FlowNwGroup>))
             {
-                return Task.FromResult((QueryResponseType)(object)AddressGroups);
+                return (QueryResponseType)(object)AddressGroups;
             }
 
             if (responseType == typeof(List<FlowSvcObject>))
             {
-                return Task.FromResult((QueryResponseType)(object)ServiceObjects);
+                return (QueryResponseType)(object)ServiceObjects;
             }
 
             if (responseType == typeof(List<FlowSvcGroup>))
             {
-                return Task.FromResult((QueryResponseType)(object)ServiceGroups);
+                return (QueryResponseType)(object)ServiceGroups;
             }
 
             if (responseType == typeof(List<FlowTimeObject>))
             {
-                return Task.FromResult((QueryResponseType)(object)TimeObjects);
+                return (QueryResponseType)(object)TimeObjects;
             }
 
             if (responseType == typeof(List<IpProtocol>))
             {
-                return Task.FromResult((QueryResponseType)(object)Protocols);
+                return (QueryResponseType)(object)Protocols;
             }
 
             throw new NotImplementedException($"Unsupported response type {responseType.Name}");

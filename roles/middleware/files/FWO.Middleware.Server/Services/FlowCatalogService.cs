@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Threading;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
@@ -14,8 +15,14 @@ namespace FWO.Middleware.Server.Services;
 public sealed class FlowCatalogService
 {
     private readonly ApiConnection apiConnection;
-    private Dictionary<int, string>? ipProtocolNames;
-    private Dictionary<string, int>? ipProtocolIdsByName;
+    private readonly SemaphoreSlim ipProtocolCacheLock = new(1, 1);
+    private IpProtocolCache? ipProtocolCache;
+
+    private sealed class IpProtocolCache(Dictionary<int, string> names, Dictionary<string, int> idsByName)
+    {
+        public Dictionary<int, string> Names { get; } = names;
+        public Dictionary<string, int> IdsByName { get; } = idsByName;
+    }
 
     /// <summary>
     /// Initializes a new instance of the type.
@@ -49,8 +56,8 @@ public sealed class FlowCatalogService
     public async Task<List<ServiceObjectResponse>> GetServiceObjectsAsync(bool? visibleInRequest)
     {
         List<FlowSvcObject> flowObjects = await LoadFlowSvcObjectsAsync(visibleInRequest);
-        await EnsureIpProtocolNamesLoadedAsync();
-        return flowObjects.Select(ToServiceObjectResponse).ToList();
+        IpProtocolCache protocolCache = await GetIpProtocolCacheAsync();
+        return flowObjects.Select(flowObject => ToServiceObjectResponse(flowObject, protocolCache)).ToList();
     }
 
     /// <summary>
@@ -187,19 +194,38 @@ public sealed class FlowCatalogService
         return await apiConnection.SendQueryAsync<List<FlowTimeObject>>(query) ?? [];
     }
 
-    private async Task EnsureIpProtocolNamesLoadedAsync()
+    /// <summary>
+    /// Loads the IP protocol lookup cache once and publishes it atomically.
+    /// </summary>
+    private async Task<IpProtocolCache> GetIpProtocolCacheAsync()
     {
-        if (ipProtocolNames != null && ipProtocolIdsByName != null)
+        if (ipProtocolCache != null)
         {
-            return;
+            return ipProtocolCache;
         }
 
-        List<IpProtocol> protocols = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols) ?? [];
-        ipProtocolNames = protocols.ToDictionary(protocol => protocol.Id, protocol => protocol.Name);
-        ipProtocolIdsByName = protocols
-            .Where(protocol => !string.IsNullOrWhiteSpace(protocol.Name))
-            .GroupBy(protocol => protocol.Name, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase);
+        await ipProtocolCacheLock.WaitAsync();
+        try
+        {
+            if (ipProtocolCache != null)
+            {
+                return ipProtocolCache;
+            }
+
+            List<IpProtocol> protocols = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols) ?? [];
+            ipProtocolCache = new IpProtocolCache(
+                protocols.ToDictionary(protocol => protocol.Id, protocol => protocol.Name),
+                protocols
+                    .Where(protocol => !string.IsNullOrWhiteSpace(protocol.Name))
+                    .GroupBy(protocol => protocol.Name, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase));
+
+            return ipProtocolCache;
+        }
+        finally
+        {
+            ipProtocolCacheLock.Release();
+        }
     }
 
     private async Task<int?> ResolveProtocolIdAsync(string protocol)
@@ -209,8 +235,8 @@ public sealed class FlowCatalogService
             return protocolId;
         }
 
-        await EnsureIpProtocolNamesLoadedAsync();
-        if (ipProtocolIdsByName != null && ipProtocolIdsByName.TryGetValue(protocol, out int resolvedProtocolId))
+        IpProtocolCache protocolCache = await GetIpProtocolCacheAsync();
+        if (protocolCache.IdsByName.TryGetValue(protocol, out int resolvedProtocolId))
         {
             return resolvedProtocolId;
         }
@@ -326,10 +352,10 @@ public sealed class FlowCatalogService
         };
     }
 
-    private ServiceObjectResponse ToServiceObjectResponse(FlowSvcObject flowObject)
+    private ServiceObjectResponse ToServiceObjectResponse(FlowSvcObject flowObject, IpProtocolCache protocolCache)
     {
         string protocol = string.Empty;
-        if (ipProtocolNames != null && ipProtocolNames.TryGetValue(flowObject.ProtoId, out string? protocolName))
+        if (protocolCache.Names.TryGetValue(flowObject.ProtoId, out string? protocolName))
         {
             protocol = protocolName;
         }

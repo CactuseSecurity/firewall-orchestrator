@@ -52,7 +52,7 @@ namespace FWO.Middleware.Server
         {
             NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(globalConfig.ModNamingConvention) ?? new();
             List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportAppDataPath) ?? throw new JsonException("Config Data could not be deserialized.");
-            userConfig = new(globalConfig);
+            userConfig = new(globalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
             userConfig.User.Name = Roles.MiddlewareServer;
             userConfig.AutoReplaceAppServer = globalConfig.AutoReplaceAppServer;
             await InitLdap();
@@ -1279,6 +1279,8 @@ namespace FWO.Middleware.Server
 
         private async Task InitRecert(ModellingImportAppData incomingApp, int appId)
         {
+            Log.WriteDebug(LogMessageTitle,
+                $"Initial owner recert check for app id={appId}, extAppId=\"{incomingApp.ExtAppId}\", recertActive={incomingApp.RecertActive}, recertificationMode={userConfig.RecertificationMode}.");
             if (userConfig.RecertificationMode == RecertificationMode.OwnersAndRules && incomingApp.RecertActive)
             {
                 RecertHandler recertHandler = new(apiConnection, userConfig);
@@ -1287,6 +1289,11 @@ namespace FWO.Middleware.Server
                     Id = appId,
                     RecertInterval = incomingApp.RecertInterval
                 });
+            }
+            else
+            {
+                Log.WriteDebug(LogMessageTitle,
+                    $"Initial owner recert skipped for app id={appId}, extAppId=\"{incomingApp.ExtAppId}\".");
             }
         }
 

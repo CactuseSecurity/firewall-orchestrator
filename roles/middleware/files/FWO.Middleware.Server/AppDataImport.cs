@@ -52,7 +52,7 @@ namespace FWO.Middleware.Server
         {
             NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(globalConfig.ModNamingConvention) ?? new();
             List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportAppDataPath) ?? throw new JsonException("Config Data could not be deserialized.");
-            userConfig = new(globalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
+            userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
             userConfig.User.Name = Roles.MiddlewareServer;
             userConfig.AutoReplaceAppServer = globalConfig.AutoReplaceAppServer;
             await InitLdap();

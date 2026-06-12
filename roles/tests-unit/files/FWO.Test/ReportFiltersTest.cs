@@ -128,7 +128,7 @@ namespace FWO.Test
         public void Init_CopiesGlobalDefaultForIncludeObjectChanges()
         {
             SimulatedGlobalConfig globalConfig = new() { ImpChangeIncludeObjectChanges = true };
-            UserConfig userConfig = new(globalConfig, registerOnChangeHandler: false);
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig, registerOnChangeHandler: false);
             ReportFilters filters = new();
 
             filters.Init(userConfig, true);

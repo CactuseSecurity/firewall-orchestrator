@@ -64,7 +64,7 @@ namespace FWO.Middleware.Server.Jobs
             {
                 if (globalConfig.DnsLookup)
                 {
-                    UserConfig userConfig = new(globalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
+                    UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
                     userConfig.User.Name = Roles.MiddlewareServer;
                     await AppServerHelper.AdjustAppServerNames(apiConnection, userConfig);
                 }

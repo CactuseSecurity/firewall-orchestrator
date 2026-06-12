@@ -69,7 +69,7 @@ namespace FWO.Middleware.Server
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
-            userConfig = new(globalConfig);
+            userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
         }
 
         /// <summary>

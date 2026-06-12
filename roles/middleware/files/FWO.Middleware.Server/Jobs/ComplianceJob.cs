@@ -35,7 +35,7 @@ namespace FWO.Middleware.Server.Jobs
         {
             try
             {
-                UserConfig userConfig = new(globalConfig);
+                UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
                 ComplianceCheck complianceCheck = new(userConfig, apiConnection);
 
                 await complianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);

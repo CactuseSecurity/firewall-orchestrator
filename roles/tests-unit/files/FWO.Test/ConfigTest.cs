@@ -95,6 +95,41 @@ namespace FWO.Test
         }
 
         [Test]
+        public void TextOnlyFactory_DoesNotExposePublicGlobalConfigConstructor()
+        {
+            ConstructorInfo? constructor = typeof(UserConfig).GetConstructor(
+                [typeof(GlobalConfig), typeof(bool)]);
+
+            Assert.That(constructor, Is.Null);
+        }
+
+        [Test]
+        public void TextOnlyFactory_DoesNotApplyDirectConfigValues()
+        {
+            SimulatedGlobalConfig globalConfig = new();
+            globalConfig.RawConfigItems =
+            [
+                new() { Key = "reqOwnerBased", Value = "true", User = 0 }
+            ];
+
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
+
+            Assert.That(userConfig.ReqOwnerBased, Is.False);
+        }
+
+        [Test]
+        public void GlobalSettingsFactory_LoadsDirectConfigValues()
+        {
+            SimulatedGlobalConfig globalConfig = new();
+            using UserConfigApiConnection apiConnection =
+                new([new() { Key = "reqOwnerBased", Value = "true", User = 0 }]);
+
+            UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
+
+            Assert.That(userConfig.ReqOwnerBased, Is.True);
+        }
+
+        [Test]
         public void Constructor_DoesNotOverwriteUserSpecificConfigWithGlobalValues()
         {
             SimulatedGlobalConfig globalConfig = new();
@@ -154,7 +189,7 @@ namespace FWO.Test
                     new() { Key = "OwnerSoruceMappingID", Value = "0", User = 0 }
                 ]
             };
-            UserConfig userConfig = new(globalConfig);
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
             ConfigData editableConfig = await globalConfig.GetEditableConfig();
             editableConfig.OwnerSoruceMappingID = 2;
 

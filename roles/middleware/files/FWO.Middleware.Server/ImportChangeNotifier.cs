@@ -16,7 +16,7 @@ namespace FWO.Middleware.Server
     /// <summary>
     /// Class handling the Import Change Notification
     /// </summary>
-    public class ImportChangeNotifier
+    public class ImportChangeNotifier : IDisposable
     {
         /// <summary>
         /// Api Connection
@@ -70,6 +70,13 @@ namespace FWO.Middleware.Server
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
             userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            userConfig.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>

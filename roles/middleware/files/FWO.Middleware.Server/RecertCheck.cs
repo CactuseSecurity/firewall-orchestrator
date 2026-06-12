@@ -191,7 +191,7 @@ namespace FWO.Middleware.Server
             List<Rule> rules = [];
             try
             {
-                UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
+                using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
 
                 DeviceFilter deviceFilter = new()
                 {

@@ -193,6 +193,27 @@ namespace FWO.Test
         }
 
         [Test]
+        public void AppDataImport_Dispose_UnsubscribesUserConfigWithoutDisposingApiConnection()
+        {
+            SimulatedGlobalConfig globalConfig = new();
+            using UserConfigApiConnection apiConnection = new([]);
+            int initialSubscriberCount = GetOnChangeSubscriberCount(globalConfig);
+            UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
+            AppDataImport appDataImport = new(apiConnection, globalConfig);
+            SetPrivateField(appDataImport, "userConfig", userConfig);
+
+            Assert.That(GetOnChangeSubscriberCount(globalConfig), Is.EqualTo(initialSubscriberCount + 1));
+
+            appDataImport.Dispose();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetOnChangeSubscriberCount(globalConfig), Is.EqualTo(initialSubscriberCount));
+                Assert.That(apiConnection.IsDisposed, Is.False);
+            });
+        }
+
+        [Test]
         public void Constructor_DoesNotOverwriteUserSpecificConfigWithGlobalValues()
         {
             SimulatedGlobalConfig globalConfig = new();
@@ -409,6 +430,14 @@ namespace FWO.Test
                 ?? throw new MissingFieldException(typeof(FWO.Config.Api.Config).FullName, "OnChange");
 
             return ((Delegate?)onChangeField.GetValue(config))?.GetInvocationList().Length ?? 0;
+        }
+
+        private static void SetPrivateField(object target, string fieldName, object value)
+        {
+            FieldInfo field = target.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new MissingFieldException(target.GetType().FullName, fieldName);
+
+            field.SetValue(target, value);
         }
     }
 }

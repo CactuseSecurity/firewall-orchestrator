@@ -250,44 +250,14 @@ namespace FWO.ExternalSystems.CheckPoint
 
         public override async Task<RestResponse<int>> CreateExternalTicket()
         {
-            checkPointClient ??= new CheckPointClient(TicketSystem, OnManagement ?? throw new ProcessingFailedException("No management context available for Check Point request."));
+            checkPointClient ??= new CheckPointClient(
+                TicketSystem,
+                OnManagement ?? throw new ProcessingFailedException("No management context available for Check Point request."));
+
             try
             {
                 EnsureExecutionPlanLoaded();
-
-                CheckPointStepResult result = await ExecuteUntilAsyncBoundary();
-
-                if (result.ResultType == CheckPointStepResultType.AsyncStarted && result.NextStepIndex != null)
-                {
-                    ExtQueryVariables = SetCheckPointStepIndex(ExtQueryVariables, result.NextStepIndex.Value);
-                }
-
-                return result.ResultType switch
-                {
-                    CheckPointStepResultType.Success => new RestResponse<int>(new RestRequest())
-                    {
-                        StatusCode = HttpStatusCode.OK,
-                        ResponseStatus = ResponseStatus.Completed,
-                        Content = result.Message ?? "Check Point request completed.",
-                        Data = 1
-                    },
-
-                    CheckPointStepResultType.AsyncStarted => new RestResponse<int>(new RestRequest())
-                    {
-                        StatusCode = HttpStatusCode.Accepted,
-                        ResponseStatus = ResponseStatus.Completed,
-                        Content = result.Message ?? result.TaskId ?? "Check Point async task started.",
-                        Data = 1
-                    },
-
-                    _ => new RestResponse<int>(new RestRequest())
-                    {
-                        StatusCode = HttpStatusCode.BadRequest,
-                        ResponseStatus = ResponseStatus.Completed,
-                        Content = result.Message ?? "Check Point request rejected.",
-                        Data = 0
-                    }
-                };
+                return await ExecuteAllSteps();
             }
             finally
             {
@@ -295,72 +265,49 @@ namespace FWO.ExternalSystems.CheckPoint
             }
         }
 
-        private async Task<CheckPointStepResult> ExecuteUntilAsyncBoundary()
+        private async Task<RestResponse<int>> ExecuteAllSteps()
         {
-            for (int i = GetCurrentStepIndex(); i < renderedTasks.Count; i++)
-            {
-                RenderedTask task = renderedTasks[i];
+            RestResponse<int>? lastResponse = null;
 
+            foreach (RenderedTask task in renderedTasks)
+            {
                 if (IsRuleChangeTaskType(task.TaskType))
                 {
-                    return new CheckPointStepResult
+                    return new RestResponse<int>(new RestRequest())
                     {
-                        ResultType = CheckPointStepResultType.Rejected,
-                        Message = "Check Point rule change tasks are not yet supported."
+                        StatusCode = HttpStatusCode.BadRequest,
+                        ResponseStatus = ResponseStatus.Completed,
+                        Content = "Check Point rule change tasks are not yet supported.",
+                        Data = 0
                     };
                 }
 
-                Log.WriteInfo("CheckPoint", $"Executing task index {i}: {task.TaskType}");
+                Log.WriteInfo("CheckPoint", $"Executing task: {task.TaskType}");
 
-                RestResponse<int> response = await ExecuteTask(task);
+                lastResponse = await ExecuteTask(task);
 
-                if (IsAsyncBoundary(task.TaskType))
+                if (!string.IsNullOrWhiteSpace(lastResponse.Content))
                 {
-                    if (response.StatusCode == HttpStatusCode.Accepted || response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created)
-                    {
-                        string? taskId = TryExtractTaskId(response.Content);
-                        if (string.IsNullOrWhiteSpace(taskId))
-                        {
-                            return new CheckPointStepResult
-                            {
-                                ResultType = CheckPointStepResultType.Rejected,
-                                Message = $"Check Point async task '{task.TaskType}' returned no task id."
-                            };
-                        }
-
-                        TicketId = taskId;
-                        return new CheckPointStepResult
-                        {
-                            ResultType = CheckPointStepResultType.AsyncStarted,
-                            TaskId = taskId,
-                            Message = response.Content,
-                            NextStepIndex = i + 1
-                        };
-                    }
-
-                    return new CheckPointStepResult
-                    {
-                        ResultType = CheckPointStepResultType.Rejected,
-                        Message = response.Content ?? response.ErrorMessage ?? $"Check Point async task {task.TaskType} failed."
-                    };
+                    Log.WriteInfo("CheckPoint RESPONSE BODY", lastResponse.Content);
+                }
+                else
+                {
+                    Log.WriteWarning("CheckPoint RESPONSE", "Empty response body");
                 }
 
-                if (!IsSynchronousSuccess(response))
+                if (!IsSynchronousSuccess(lastResponse))
                 {
-                    return new CheckPointStepResult
-                    {
-                        ResultType = CheckPointStepResultType.Rejected,
-                        Message = response.Content ?? response.ErrorMessage ?? $"Check Point task {task.TaskType} failed."
-                    };
+                    return lastResponse;
                 }
             }
 
-            return new CheckPointStepResult
-            {
-                ResultType = CheckPointStepResultType.Success,
-                Message = "Check Point request completed synchronously."
-            };
+            return lastResponse ?? throw new ProcessingFailedException("No response received from CheckPoint.");
         }
+
+
+
+
+
 
         private string SerializeExecutionPlan()
         {
@@ -405,7 +352,7 @@ namespace FWO.ExternalSystems.CheckPoint
             JsonNode requestBody = task.Body.DeepClone();
 
             RestRequest request = new(endpoint, Method.Post);
-            request.AddStringBody(requestBody.ToString(), ContentType.Json);
+            request.AddStringBody(requestBody.ToJsonString(), ContentType.Json);
 
             Log.WriteInfo("CheckPoint REQUEST", endpoint);
             Log.WriteInfo("CheckPoint BODY", requestBody.ToJsonString());
@@ -423,26 +370,24 @@ namespace FWO.ExternalSystems.CheckPoint
                 return ToTypedResponse(request, retryResponse);
             }
 
-            if (category == CheckPointResponseCategory.IdempotentCandidate && await IsDesiredStateAlreadyPresent(task))
-            {
-                Log.WriteInfo("CheckPoint SKIP", $"Skipping task {task.TaskType} because desired state already exists.");
-                return new RestResponse<int>(request)
-                {
-                    StatusCode = HttpStatusCode.OK,
-                    ResponseStatus = ResponseStatus.Completed,
-                    Content = response.Content ?? "Skipped because desired state already exists.",
-                    Data = 1
-                };
-            }
+            //if (category == CheckPointResponseCategory.IdempotentCandidate && await IsDesiredStateAlreadyPresent(task))
+            //{
+            //    Log.WriteInfo("CheckPoint SKIP", $"Skipping task {task.TaskType} because desired state already exists.");
+            //    return new RestResponse<int>(request)
+            //    {
+            //        StatusCode = HttpStatusCode.OK,
+            //        ResponseStatus = ResponseStatus.Completed,
+            //        Content = response.Content ?? "Skipped because desired state already exists.",
+            //        Data = 1
+            //    };
+            //}
 
             return ToTypedResponse(request, response);
         }
 
         private static CheckPointResponseCategory CategorizeResponse(RestResponse response)
         {
-            if (response.StatusCode == HttpStatusCode.OK ||
-                response.StatusCode == HttpStatusCode.Created ||
-                response.StatusCode == HttpStatusCode.Accepted)
+            if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created || response.StatusCode == HttpStatusCode.Accepted)
             {
                 return CheckPointResponseCategory.Success;
             }
@@ -454,15 +399,12 @@ namespace FWO.ExternalSystems.CheckPoint
                 return CheckPointResponseCategory.HardError;
             }
 
-            if (content.Contains("already exists", StringComparison.OrdinalIgnoreCase) ||
-                content.Contains("more than one object named", StringComparison.OrdinalIgnoreCase) ||
-                content.Contains("is already defined", StringComparison.OrdinalIgnoreCase))
-            {
-                return CheckPointResponseCategory.IdempotentCandidate;
-            }
+            //if (content.Contains("already exists", StringComparison.OrdinalIgnoreCase) || content.Contains("more than one object named", StringComparison.OrdinalIgnoreCase) || content.Contains("is already defined", StringComparison.OrdinalIgnoreCase))
+            //{
+            //    return CheckPointResponseCategory.IdempotentCandidate;
+            //}
 
-            if (content.Contains("multiple IP", StringComparison.OrdinalIgnoreCase) ||
-                content.Contains("same IP address", StringComparison.OrdinalIgnoreCase))
+            if (content.Contains("multiple IP", StringComparison.OrdinalIgnoreCase) || content.Contains("same IP address", StringComparison.OrdinalIgnoreCase))
             {
                 return CheckPointResponseCategory.WarningCandidate;
             }
@@ -479,7 +421,7 @@ namespace FWO.ExternalSystems.CheckPoint
             Log.WriteInfo("CheckPoint RETRY BODY", retryBody.ToJsonString());
 
             RestRequest retryRequest = new(endpoint, Method.Post);
-            retryRequest.AddStringBody(retryBody.ToString(), ContentType.Json);
+            retryRequest.AddStringBody(retryBody.ToJsonString(), ContentType.Json);
 
             RestResponse retryResponse = await checkPointClient!.RestCall(retryRequest, endpoint);
 
@@ -504,60 +446,6 @@ namespace FWO.ExternalSystems.CheckPoint
 
         #endregion
 
-        #region Polling
-
-        public override async Task<(string, string?)> GetNewState(string oldState)
-        {
-            if (string.IsNullOrWhiteSpace(TicketId))
-            {
-                return (ExtStates.ExtReqDone.ToString(), "No asynchronous CheckPoint task id returned.");
-            }
-
-            RestResponse<int> response = await PollExternalTicket();
-
-            if (response.StatusCode == HttpStatusCode.OK &&
-                response.Content != null)
-            {
-                return (GetInternalState(response.Content), response.Content);
-            }
-
-            Log.WriteError($"Poll status failed for CheckPoint task {TicketId}.", Content + response.Content);
-
-            throw new ProcessingFailedException(response.ErrorMessage ?? "");
-        }
-
-        protected override async Task<RestResponse<int>> PollExternalTicket()
-        {
-            if (string.IsNullOrWhiteSpace(TicketId))
-            {
-                throw new ProcessingFailedException("No Check Point task id available for polling.");
-            }
-
-            checkPointClient ??= new CheckPointClient(
-                TicketSystem,
-                OnManagement ?? throw new ProcessingFailedException("No management context available for Check Point polling."));
-
-            RestRequest request = new("show-task", Method.Post);
-
-            request.AddJsonBody(new
-            {
-                taskId = TicketId
-            });
-
-            RestResponse response = await checkPointClient.RestCall(request, "show-task");
-
-            return new RestResponse<int>(request)
-            {
-                StatusCode = response.StatusCode,
-                Content = response.Content,
-                Data = response.IsSuccessful ? 1 : 0,
-                ResponseStatus = response.ResponseStatus,
-                ErrorMessage = response.ErrorMessage,
-                ErrorException = response.ErrorException
-            };
-        }
-
-        #endregion
 
         #region Template Handling
 
@@ -637,79 +525,12 @@ namespace FWO.ExternalSystems.CheckPoint
         }
 
         #endregion
-
-        #region State Mapping
-
-        private static string GetInternalState(
-            string responseContent)
-        {
-            string externalState =
-                TryGetJsonValue(responseContent, "status")
-                    ?.ToLowerInvariant() ?? "";
-
-            if (externalState.Contains("failed") ||
-                externalState.Contains("canceled") ||
-                externalState.Contains("cancelled"))
-            {
-                return ExtStates.ExtReqRejected.ToString();
-            }
-
-            if (externalState.Contains("succeeded") ||
-                externalState.Contains("success"))
-            {
-                return ExtStates.ExtReqDone.ToString();
-            }
-
-            return ExtStates.ExtReqInProgress.ToString();
-        }
-
-        #endregion
-
         #region Helper
 
         public override string GetTaskTypeAsString(WfReqTask task)
         {
             return GetCheckPointTaskType(task);
         }
-
-        private static string NormalizeStateAfterCreation(
-            string? configuredState)
-        {
-            if (string.IsNullOrWhiteSpace(configuredState))
-            {
-                return ExtStates.ExtReqDone.ToString();
-            }
-
-            return configuredState.Trim() switch
-            {
-                nameof(ExtStates.ExtReqInitialized)
-                    => ExtStates.ExtReqInitialized.ToString(),
-
-                nameof(ExtStates.ExtReqFailed)
-                    => ExtStates.ExtReqFailed.ToString(),
-
-                nameof(ExtStates.ExtReqRequested)
-                    => ExtStates.ExtReqRequested.ToString(),
-
-                nameof(ExtStates.ExtReqInProgress)
-                    => ExtStates.ExtReqInProgress.ToString(),
-
-                nameof(ExtStates.ExtReqDone)
-                    => ExtStates.ExtReqDone.ToString(),
-
-                nameof(ExtStates.ExtReqRejected)
-                    => ExtStates.ExtReqRejected.ToString(),
-
-                _ => ExtStates.ExtReqDone.ToString()
-            };
-        }
-
-        private static bool IsSuccess(RestResponse<int> response)
-        {
-            return response.StatusCode == HttpStatusCode.OK ||
-                   response.StatusCode == HttpStatusCode.Created;
-        }
-
         private List<CheckPointInstallPolicyTarget> GetInstallPolicyTargets()
         {
             if (string.IsNullOrWhiteSpace(
@@ -956,54 +777,12 @@ namespace FWO.ExternalSystems.CheckPoint
                 || taskType == nameof(WfTaskType.rule_delete);
         }
 
-        internal enum CheckPointStepResultType
-        {
-            Success,
-            AsyncStarted,
-            Rejected
-        }
 
-        internal sealed class CheckPointStepResult
-        {
-            public CheckPointStepResultType ResultType { get; set; }
-            public string? TaskId { get; set; }
-            public string? Message { get; set; }
-            public int? NextStepIndex { get; set; }
-        }
 
-        private static bool IsAsyncBoundary(string taskType)
-        {
-            return taskType == CheckPointTaskTypes.Publish;
-        }
 
-        private int GetCurrentStepIndex()
-        {
-            if (string.IsNullOrWhiteSpace(ExtQueryVariables))
-            {
-                return 0;
-            }
 
-            try
-            {
-                Dictionary<string, List<int>>? variables =
-                    JsonSerializer.Deserialize<Dictionary<string, List<int>>>(ExtQueryVariables);
 
-                if (variables != null &&
-                    variables.TryGetValue(ExternalVarKeys.CheckPointStepIndex, out List<int>? stepIndexes) &&
-                    stepIndexes.Count > 0)
-                {
-                    return stepIndexes[0];
-                }
-            }
-            catch (JsonException)
-            { }
 
-            return 0;
-        }
-        private static string? TryExtractTaskId(string? content)
-        {
-            return TryGetJsonValue(content, "task-id", "taskId", "uid");
-        }
         private static bool IsSynchronousSuccess(RestResponse<int> response)
         {
             return response.StatusCode == HttpStatusCode.OK ||
@@ -1198,15 +977,7 @@ namespace FWO.ExternalSystems.CheckPoint
                    task.TaskType == CheckPointTaskTypes.AddressRangeCreate;
         }
 
-        private static string SetCheckPointStepIndex(string extQueryVariables, int stepIndex)
-        {
-            Dictionary<string, List<int>> variables = string.IsNullOrWhiteSpace(extQueryVariables)
-                ? []
-                : JsonSerializer.Deserialize<Dictionary<string, List<int>>>(extQueryVariables) ?? [];
 
-            variables[ExternalVarKeys.CheckPointStepIndex] = [stepIndex];
-            return JsonSerializer.Serialize(variables);
-        }
 
         #endregion
     }

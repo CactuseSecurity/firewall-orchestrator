@@ -18,7 +18,6 @@ namespace FWO.Api.Client.Queries
         public static readonly string updateExtRequestFinal;
         public static readonly string updateExternalRequestWaitCycles;
         public static readonly string updateExternalRequestLock;
-        public static readonly string UpdateExtRequestRuntime;
 
         public static readonly string subscribeExtRequestStateUpdate;
 
@@ -41,7 +40,6 @@ namespace FWO.Api.Client.Queries
                 updateExtRequestFinal = GetQueryText("extRequest/updateExtRequestFinal.graphql");
                 updateExternalRequestWaitCycles = GetQueryText("extRequest/updateExternalRequestWaitCycles.graphql");
                 updateExternalRequestLock = GetQueryText("extRequest/updateExternalRequestLock.graphql");
-                UpdateExtRequestRuntime = GetQueryText("extRequest/UpdateExtRequestRuntime.graphql");
 
                 subscribeExtRequestStateUpdate = GetQueryText("extRequest/subscribeExtRequestStateUpdate.graphql");
             }

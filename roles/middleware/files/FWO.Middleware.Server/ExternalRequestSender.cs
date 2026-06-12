@@ -220,16 +220,6 @@ namespace FWO.Middleware.Server
                 return;
             }
 
-            if (response.StatusCode == HttpStatusCode.Accepted)
-            {
-                request.ExtTicketId = TryExtractCheckPointTaskId(response.Content);
-                request.ExtRequestState = ExtStates.ExtReqInProgress.ToString();
-                request.ExtQueryVariables = ticket.ExtQueryVariables;
-
-                await UpdateCheckPointRequestProgress(request);
-                return;
-            }
-
             Log.WriteError(LogMessageTitle, $"{RequestInfo(request)}. CheckPoint send failed: " + response.StatusDescription + ", " + response.Content);
 
             if (AnalyseForRejected(response))
@@ -247,87 +237,6 @@ namespace FWO.Middleware.Server
                 $"{response.StatusCode}: {response.Content}");
         }
 
-        private async Task UpdateCheckPointRequestProgress(ExternalRequest request)
-        {
-            await UpdateExtRequestRuntime(request);
-        }
-
-        private static string IncrementCheckPointStepIndex(string extQueryVariables)
-        {
-            Dictionary<string, List<int>> variables = string.IsNullOrWhiteSpace(extQueryVariables)
-                ? []
-                : JsonSerializer.Deserialize<Dictionary<string, List<int>>>(extQueryVariables) ?? [];
-
-            int currentStepIndex = 0;
-
-            if (variables.TryGetValue(ExternalVarKeys.CheckPointStepIndex, out List<int>? stepIndexes) &&
-                stepIndexes.Count > 0)
-            {
-                currentStepIndex = stepIndexes[0];
-            }
-
-            variables[ExternalVarKeys.CheckPointStepIndex] = [currentStepIndex + 1];
-
-            return JsonSerializer.Serialize(variables);
-        }
-
-        private static string? TryExtractCheckPointTaskId(string? content)
-        {
-            return TryGetJsonValue(content, "task-id", "taskId", "uid");
-        }
-
-        private static string? TryGetJsonValue(string? content, params string[] propertyNames)
-        {
-            if (string.IsNullOrWhiteSpace(content))
-            {
-                return null;
-            }
-
-            try
-            {
-                using JsonDocument document = JsonDocument.Parse(content);
-                return FindJsonValue(document.RootElement, propertyNames);
-            }
-            catch (JsonException)
-            {
-                return null;
-            }
-        }
-
-        private static string? FindJsonValue(JsonElement element, params string[] propertyNames)
-        {
-            if (element.ValueKind == JsonValueKind.Object)
-            {
-                foreach (JsonProperty property in element.EnumerateObject())
-                {
-                    if (propertyNames.Contains(property.Name, StringComparer.OrdinalIgnoreCase))
-                    {
-                        return property.Value.ToString();
-                    }
-
-                    string? childValue = FindJsonValue(property.Value, propertyNames);
-                    if (!string.IsNullOrWhiteSpace(childValue))
-                    {
-                        return childValue;
-                    }
-                }
-            }
-
-            if (element.ValueKind == JsonValueKind.Array)
-            {
-                foreach (JsonElement child in element.EnumerateArray())
-                {
-                    string? childValue = FindJsonValue(child, propertyNames);
-                    if (!string.IsNullOrWhiteSpace(childValue))
-                    {
-                        return childValue;
-                    }
-                }
-            }
-
-            return null;
-        }
-
         private async Task<ExternalTicket> ConstructTicket(ExternalRequest request)
         {
             if (ExtTicketSystem == null)
@@ -338,6 +247,7 @@ namespace FWO.Middleware.Server
             ExternalTicket ticket = ExternalTicketFactory.Create(ExtTicketSystem, InjScClient);
             ticket.TicketText = request.ExtRequestContent;
             ticket.TicketSystem = ExtTicketSystem;
+            ticket.ExtQueryVariables = request.ExtQueryVariables;
             ticket.OnManagement = await LoadManagementForRequest(request);
 
             return ticket;
@@ -429,37 +339,14 @@ namespace FWO.Middleware.Server
         private async Task RefreshState(ExternalRequest request)
         {
             (request.ExtRequestState, request.LastMessage) = await PollState(request);
+            await UpdateRequestProcess(request);
 
-            if (ExtTicketSystem != null && ExtTicketSystem.IsCheckPoint())
+            if (request.ExtRequestState == ExtStates.ExtReqDone.ToString() ||
+                request.ExtRequestState == ExtStates.ExtReqRejected.ToString())
             {
-                await UpdateExtRequestRuntime(request);
+                using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
+                await extReqHandler.HandleStateChange(request);
             }
-            else
-            {
-                await UpdateRequestProcess(request);
-            }
-
-            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
-            await extReqHandler.HandleStateChange(request);
-        }
-
-        private async Task UpdateExtRequestRuntime(ExternalRequest request)
-        {
-            request.LastProcessingResponse = request.LastMessage;
-
-            var variables = new
-            {
-                id = request.Id,
-                extRequestState = request.ExtRequestState,
-                extTicketId = request.ExtTicketId,
-                creationResponse = request.LastCreationResponse,
-                processingResponse = request.LastProcessingResponse,
-                extQueryVariables = request.ExtQueryVariables,
-                waitCycles = request.WaitCycles,
-                attempts = request.Attempts
-            };
-
-            await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.UpdateExtRequestRuntime, variables);
         }
 
         private async Task<(string, string?)> PollState(ExternalRequest request)
@@ -471,101 +358,23 @@ namespace FWO.Middleware.Server
                     throw new InvalidOperationException("No external ticket system loaded.");
                 }
 
-                if (ExtTicketSystem.IsCheckPoint())
-                {
-                    return await PollCheckPointState(request);
-                }
+                ExternalTicket ticket = ExternalTicketFactory.Create(
+                    ExtTicketSystem,
+                    InjScClient
+                );
 
-                return await PollDefaultState(request);
+                ticket.TicketId = request.ExtTicketId;
+
+                return await ticket.GetNewState(request.ExtRequestState);
             }
             catch (Exception exc)
             {
                 request.LastMessage = exc.Message;
-
-                if (ExtTicketSystem != null && ExtTicketSystem.IsCheckPoint())
-                {
-                    await UpdateExtRequestRuntime(request);
-                }
-                else
-                {
-                    await UpdateRequestProcess(request);
-                }
-
+                await UpdateRequestProcess(request);
                 throw;
             }
         }
-
-        private async Task<(string, string?)> PollDefaultState(ExternalRequest request)
-        {
-            ExternalTicket ticket = ExternalTicketFactory.Create(
-                ExtTicketSystem!,
-                InjScClient
-            );
-
-            ticket.TicketId = request.ExtTicketId;
-
-            return await ticket.GetNewState(request.ExtRequestState);
-        }
-
-        private async Task<(string, string?)> PollCheckPointState(ExternalRequest request)
-        {
-            ExternalTicket ticket = await ConstructTicket(request);
-            ticket.TicketId = request.ExtTicketId;
-            ticket.ExtQueryVariables = request.ExtQueryVariables;
-
-            (string newState, string? message) = await ticket.GetNewState(request.ExtRequestState);
-
-            if (newState == ExtStates.ExtReqInProgress.ToString())
-            {
-                return (newState, message);
-            }
-
-            if (newState == ExtStates.ExtReqRejected.ToString())
-            {
-                return (newState, message);
-            }
-
-            if (newState == ExtStates.ExtReqDone.ToString())
-            {
-                return await ContinueCheckPointAfterAsyncStep(request, ticket, message);
-            }
-
-            return (newState, message);
-        }
-
-        private async Task<(string, string?)> ContinueCheckPointAfterAsyncStep(ExternalRequest request, ExternalTicket ticket, string? previousMessage)
-        {
-            RestResponse<int> response = await ticket.CreateExternalTicket();
-            string? newMessage = response.Content ?? previousMessage;
-
-            if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created)
-            {
-                request.ExtTicketId = "";
-                request.LastMessage = newMessage;
-                return (ExtStates.ExtReqDone.ToString(), newMessage);
-            }
-
-            if (response.StatusCode == HttpStatusCode.Accepted)
-            {
-                request.ExtTicketId = TryExtractCheckPointTaskId(response.Content);
-                request.ExtQueryVariables = ticket.ExtQueryVariables;
-                request.LastMessage = newMessage;
-                await UpdateCheckPointRequestProgress(request);
-
-                return (ExtStates.ExtReqInProgress.ToString(), newMessage);
-            }
-
-            if (AnalyseForRejected(response))
-            {
-                request.LastMessage = newMessage;
-                return (ExtStates.ExtReqRejected.ToString(), newMessage);
-            }
-
-            throw new ProcessingFailedException(
-                $"CheckPoint continuation failed for {RequestInfo(request)} with status {(int)response.StatusCode} " +
-                $"{response.StatusCode}: {response.Content}");
-        }
-
+              
         private async Task UpdateRequestCreation(ExternalRequest request)
         {
             request.LastCreationResponse = request.LastMessage;

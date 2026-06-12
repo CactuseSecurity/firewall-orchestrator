@@ -343,13 +343,8 @@ namespace FWO.Middleware.Server
             if (handledTasks.Count > 1)
             {
                 extQueryVariables[ExternalVarKeys.BundledTasks] = handledTasks.ConvertAll(t => t.TaskNumber);
-
             }
 
-            if (actSystem.IsCheckPoint())
-            {
-                extQueryVariables[ExternalVarKeys.CheckPointStepIndex] = [0];
-            }
             return extQueryVariables;
         }
 

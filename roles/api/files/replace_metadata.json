@@ -30689,6 +30689,30 @@
                   "comment": ""
                 },
                 {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id",
+                      "state_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id",
+                      "state_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "requester",
                   "permission": {
                     "columns": [

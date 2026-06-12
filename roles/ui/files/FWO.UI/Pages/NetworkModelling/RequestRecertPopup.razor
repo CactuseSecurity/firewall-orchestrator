@@ -212,10 +212,12 @@
 
     private async Task<bool> CheckRequestRunning()
     {
-        WfTicket? intTicket = await ModellingAppHandler.GetLatestFWRequestTicket(AppHandler!.Application, apiConnection);
+        WfTicket? intTicket = await apiConnection.RunWithBestRole(authenticationStateTask!.Result.User, [Roles.Modeller, Roles.Admin, Roles.Auditor],
+            async () => await ModellingAppHandler.GetLatestFWRequestTicket(AppHandler!.Application, apiConnection));
         if(intTicket != null)
         {
-           ExtStateHandler extStateHandler = new(apiConnection);
+           ExtStateHandler extStateHandler = await apiConnection.RunWithBestRole(authenticationStateTask!.Result.User, [Roles.Modeller, Roles.Admin, Roles.Auditor],
+               () => Task.FromResult(new ExtStateHandler(apiConnection)));
            return extStateHandler.IsInProgress(intTicket.StateId) && intTicket.Tasks.Any(t => extStateHandler.IsInProgress(t.StateId));
         }
         return false;
@@ -234,7 +236,8 @@
 
     private async Task<bool> CheckImplementation()
     {
-        ExtStateHandler extStateHandler = new(apiConnection);
+        ExtStateHandler extStateHandler = await apiConnection.RunWithBestRole(authenticationStateTask!.Result.User, [Roles.Modeller, Roles.Admin, Roles.Auditor],
+            () => Task.FromResult(new ExtStateHandler(apiConnection)));
         ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, AppHandler!.Application, DisplayMessageInUi);
         ModellingFilter modellingFilter = new()
         {

@@ -1417,6 +1417,39 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SaveApp_ActiveOwnerWithExistingRealRecert_DoesNotCreateInitialRecert()
+        {
+            AppDataImportSaveAppApiConn apiConn = new()
+            {
+                ExistingInitialOwnerRecerts =
+                [
+                    new OwnerRecertification { Id = 556, OwnerId = 47, Recertified = true }
+                ]
+            };
+            GlobalConfig globalConfig = new() { RecertificationMode = RecertificationMode.OwnersAndRules };
+            AppDataImport import = new(apiConn, globalConfig);
+            SetUserConfig(import, new SimulatedUserConfig { RecertificationMode = RecertificationMode.OwnersAndRules });
+            SetExistingApps(import,
+            [
+                new() { Id = 47, Name = "App-47", ExtAppId = "APP-47", RecertActive = true }
+            ]);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-47",
+                ExtAppId = "APP-47",
+                ImportSource = "SRC-47",
+                RecertActive = true
+            };
+
+            bool imported = await InvokeSaveApp(import, incomingApp, new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.GetInitialOwnerRecertCalls, Is.EqualTo(1));
+            Assert.That(apiConn.RecertifyOwnerCalls, Is.EqualTo(0));
+            Assert.That(apiConn.SetOwnerLastRecertCalls, Is.EqualTo(0));
+        }
+
+        [Test]
         public async Task SaveApp_ClearsDecommDate_WhenLifecycleStateChangesToActive()
         {
             AppDataImportSaveAppApiConn apiConn = new();

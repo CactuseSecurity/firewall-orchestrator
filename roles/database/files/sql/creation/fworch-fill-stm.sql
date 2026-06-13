@@ -72,8 +72,8 @@ insert into config (config_key, config_value, config_user) VALUES ('reqAvailable
 insert into config (config_key, config_value, config_user) VALUES ('reqPriorities', '[{"numeric_prio":1,"name":"Highest","ticket_deadline":1,"approval_deadline":1},{"numeric_prio":2,"name":"High","ticket_deadline":3,"approval_deadline":2},{"numeric_prio":3,"name":"Medium","ticket_deadline":7,"approval_deadline":3},{"numeric_prio":4,"name":"Low","ticket_deadline":14,"approval_deadline":7},{"numeric_prio":5,"name":"Lowest","ticket_deadline":30,"approval_deadline":14}]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqAutoCreateImplTasks', 'enterInReqTask', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqOwnerBased', 'False', 0);
-insert into config (config_key, config_value, config_user) VALUES ('reqAllowObjectSearch', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqUseFlowDb', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('reqFlowIntegration', '{"select_objects":"both","select_services":"both","select_time_objects":"both","time_object_precision":"seconds"}', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqAllowManualOwnerAdmin', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqActivatePathAnalysis', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqShowCompliance', 'False', 0);

@@ -220,6 +220,15 @@
                             </div>
                         </div>
                     }
+                    @if (actTaskType == WfTaskType.access)
+                    {
+                        <DisplayTaskTargetDates @bind-TargetBeginDate="WfHandler.ActReqTask.TargetBeginDate"
+                            @bind-TargetEndDate="WfHandler.ActReqTask.TargetEndDate"
+                            CanEditTargetBeginDate="CanEditReqTaskField(WorkflowEditableFieldKeys.ValidFrom)"
+                            CanEditTargetEndDate="CanEditReqTaskField(WorkflowEditableFieldKeys.ValidTo)"
+                            TargetDatesValidChanged="SetTargetDatesValid"
+                            ShowOnlyFlowTimeObjectSelection="true" />
+                    }
                 </div>
                 @if(actTaskType == WfTaskType.generic)
                 {
@@ -275,7 +284,8 @@
                             @bind-TargetEndDate="WfHandler.ActReqTask.TargetEndDate"
                             CanEditTargetBeginDate="CanEditReqTaskField(WorkflowEditableFieldKeys.ValidFrom)"
                             CanEditTargetEndDate="CanEditReqTaskField(WorkflowEditableFieldKeys.ValidTo)"
-                            TargetDatesValidChanged="SetTargetDatesValid" />
+                            TargetDatesValidChanged="SetTargetDatesValid"
+                            HideFlowTimeObjectSelection="true" />
                     </div>
                 }
                 <div class="form-group row mt-2">
@@ -611,11 +621,22 @@
 
     private void InitElements()
     {
+        ResetPendingElementChanges();
         actSources = WfHandler.ActReqTask.GetNwObjectElements(ElemFieldType.source);
         actDestinations = WfHandler.ActReqTask.GetNwObjectElements(ElemFieldType.destination);
         actServices = WfHandler.ActReqTask.GetServiceElements();
         actRules = WfHandler.ActReqTask.GetRuleElements();
         grpTypeSvc = actServices.Count > 0;
+    }
+
+    private void ResetPendingElementChanges()
+    {
+        sourcesToAdd = [];
+        sourcesToDelete = [];
+        destinationsToAdd = [];
+        destinationsToDelete = [];
+        servicesToAdd = [];
+        servicesToDelete = [];
     }
 
     private async Task InitComments()
@@ -626,6 +647,7 @@
 
     private async Task Close()
     {
+        ResetPendingElementChanges();
         firstParamSet = true;
         displayedReqTaskId = -1;
         await ResetParent();

@@ -14,6 +14,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getFlowCustomObjectCandidates;
         public static readonly string getFlowNwObjectCatalog;
         public static readonly string getFlowSvcObjectCatalog;
+        public static readonly string getFlowTimeObjectCatalog;
         public static readonly string getFlowObjectCatalog;
         public static readonly string getFlowSelectableManagements;
         // Flow sync specific queries/mutations
@@ -70,6 +71,10 @@ namespace FWO.Api.Client.Queries
                 getFlowSvcObjectCatalog =
                     flowSvcObjectDetailsFragment +
                     GetQueryText("flow/getFlowSvcObjectCatalog.graphql");
+
+                getFlowTimeObjectCatalog =
+                    flowTimeObjectDetailsFragment +
+                    GetQueryText("flow/getFlowTimeObjectCatalog.graphql");
 
                 getFlowObjectCatalog =
                     flowNwObjectDetailsFragment +

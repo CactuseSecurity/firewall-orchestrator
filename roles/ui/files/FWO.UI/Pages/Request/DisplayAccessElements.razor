@@ -11,16 +11,16 @@
 <hr />
 @if(InitComplete)
 {
-    @if (AnyEditMode && userConfig.ReqAllowObjectSearch)
+    @if (ShowAnyFlowCatalog)
     {
         <div class="bg-secondary p-2">
             <div class="form-group row col-sm-12">
-                @if (CanEditSources)
-                {
-                    <div class="col-sm-4">
+                <div class="col-sm-4">
+                    @if (ShowSourceFlowCatalog)
+                    {
                         <div class="form-group row">
-                            <label class="col-sm-2">@(userConfig.GetText("object_catalog")):</label>
-                            <div class="col-sm-9">
+                            <label class="col-sm-3">@(userConfig.GetText("object_catalog")):</label>
+                            <div class="col-sm-8">
                                 <Dropdown ElementType="NetworkObject" @bind-SelectedElement="newSourceNetwork" ElementToString="@(n => n.Name)" Elements="nwObjects" Nullable="true">
                                     <ElementTemplate Context="nwObject">
                                         @nwObject.Name
@@ -28,14 +28,14 @@
                                 </Dropdown>
                             </div>
                         </div>
-                    </div>
-                }
-                @if (CanEditDestinations)
-                {
-                    <div class="col-sm-4">
+                    }
+                </div>
+                <div class="col-sm-4">
+                    @if (ShowDestinationFlowCatalog)
+                    {
                         <div class="form-group row">
-                            <label class="col-sm-2">@(userConfig.GetText("object_catalog")):</label>
-                            <div class="col-sm-9">
+                            <label class="col-sm-3">@(userConfig.GetText("object_catalog")):</label>
+                            <div class="col-sm-8">
                                 <Dropdown ElementType="NetworkObject" @bind-SelectedElement="newDestinationNetwork" ElementToString="@(n => n.Name)" Elements="nwObjects" Nullable="true">
                                     <ElementTemplate Context="nwObject">
                                         @nwObject.Name
@@ -43,14 +43,14 @@
                                 </Dropdown>
                             </div>
                         </div>
-                    </div>
-                }
-                @if (CanEditServices)
-                {
-                    <div class="col-sm-4">
+                    }
+                </div>
+                <div class="col-sm-4">
+                    @if (ShowServiceFlowCatalog)
+                    {
                         <div class="form-group row">
-                            <label class="col-sm-2">@(userConfig.GetText("service_catalog")):</label>
-                            <div class="col-sm-9">
+                            <label class="col-sm-3">@(userConfig.GetText("service_catalog")):</label>
+                            <div class="col-sm-8">
                                 <Dropdown ElementType="NetworkService" @bind-SelectedElement="newService" ElementToString="@(s => s.Name)" Elements="nwServices" Nullable="true">
                                     <ElementTemplate Context="nwService">
                                         @nwService.Name
@@ -58,17 +58,27 @@
                                 </Dropdown>
                             </div>
                         </div>
-                    </div>
-                }
+                    }
+                </div>
             </div>
         </div>
     }
     <div class="form-group row col-sm-12 mh-13">
         <div class="col-sm-4">
             <label class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("source"))*:</label>
-            @if (CanEditSources)
+            @if (CanEditSources && ShowManualObjects)
             {
                 <IpSelector IpAddresses="Sources" @bind-IpsToAdd="SourcesToAdd" @bind-IpsToDelete="SourcesToDelete" WithLabel="false"/>
+            }
+            else if (CanEditSources && ShowFlowObjects)
+            {
+                <EditList ElementType="NwObjectElement" Elements="Sources.ToArray()" ElementsToAdd="SourcesToAdd" ElementsToDelete="SourcesToDelete" StdLayout="false">
+                    <Display>
+                        <div class="row">
+                            <div class="mh-13 col-sm-12 border bg-transparent">@DisplayNetworkElementForCatalog(context)</div>
+                        </div>
+                    </Display>
+                </EditList>
             }
             else
             {
@@ -90,9 +100,19 @@
         </div>
         <div class="col-sm-4">
             <label for="taskDest" class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("destination"))*:</label>
-            @if (CanEditDestinations)
+            @if (CanEditDestinations && ShowManualObjects)
             {
                 <IpSelector IpAddresses="Destinations" @bind-IpsToAdd="DestinationsToAdd" @bind-IpsToDelete="DestinationsToDelete" WithLabel="false"/>
+            }
+            else if (CanEditDestinations && ShowFlowObjects)
+            {
+                <EditList ElementType="NwObjectElement" Elements="Destinations.ToArray()" ElementsToAdd="DestinationsToAdd" ElementsToDelete="DestinationsToDelete" StdLayout="false">
+                    <Display>
+                        <div class="row">
+                            <div class="mh-13 col-sm-12 border bg-transparent">@DisplayNetworkElementForCatalog(context)</div>
+                        </div>
+                    </Display>
+                </EditList>
             }
             else
             {
@@ -114,9 +134,17 @@
         </div>
         <div class="col-sm-4">
             <label for="taskService" class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("service"))*:</label>
-            @if (CanEditServices)
+            @if (CanEditServices && ShowManualServices)
             {
                 <ServiceSelector Services="Services" @bind-ServicesToAdd="ServicesToAdd" @bind-ServicesToDelete="ServicesToDelete" IpProtos="IpProtos" TaskId="TaskId" WithLabel="false"/>
+            }
+            else if (CanEditServices && ShowFlowServices)
+            {
+                <EditList ElementType="NwServiceElement" Elements="Services.ToArray()" ElementsToAdd="ServicesToAdd" ElementsToDelete="ServicesToDelete" StdLayout="false">
+                    <Display>
+                        <div class="border bg-transparent">@DisplayServiceElementForCatalog(context)</div>
+                    </Display>
+                </EditList>
             }
             else
             {
@@ -213,7 +241,15 @@ else
     private bool CanEditSources => EditMode || EditSources;
     private bool CanEditDestinations => EditMode || EditDestinations;
     private bool CanEditServices => EditMode || EditServices;
-    private bool AnyEditMode => CanEditSources || CanEditDestinations || CanEditServices;
+    private FlowIntegrationConfig FlowIntegration => FlowIntegrationConfig.Parse(userConfig.ReqFlowIntegration);
+    private bool ShowManualObjects => !userConfig.ReqUseFlowDb || ShowsManualSelection(FlowIntegration.SelectObjects);
+    private bool ShowManualServices => !userConfig.ReqUseFlowDb || ShowsManualSelection(FlowIntegration.SelectServices);
+    private bool ShowFlowObjects => userConfig.ReqUseFlowDb && ShowsFlowDbSelection(FlowIntegration.SelectObjects);
+    private bool ShowFlowServices => userConfig.ReqUseFlowDb && ShowsFlowDbSelection(FlowIntegration.SelectServices);
+    private bool ShowSourceFlowCatalog => CanEditSources && ShowFlowObjects;
+    private bool ShowDestinationFlowCatalog => CanEditDestinations && ShowFlowObjects;
+    private bool ShowServiceFlowCatalog => CanEditServices && ShowFlowServices;
+    private bool ShowAnyFlowCatalog => ShowSourceFlowCatalog || ShowDestinationFlowCatalog || ShowServiceFlowCatalog;
     private List<NetworkObject> nwObjects = [];
     private List<NetworkService> nwServices = [];
     
@@ -284,6 +320,13 @@ else
             ?? "";
     }
 
+    private string DisplayNetworkElementForCatalog(NwObjectElement element)
+    {
+        return HasNetworkObjectReference(element)
+            ? DisplayNetworkObject(element)
+            : DisplayNetworkElement(element);
+    }
+
     private string DisplayNetworkService(NwServiceElement element)
     {
         if (!string.IsNullOrWhiteSpace(element.GroupName))
@@ -318,6 +361,13 @@ else
         return DisplayBase.DisplayService(element, IpProtos);
     }
 
+    private string DisplayServiceElementForCatalog(NwServiceElement element)
+    {
+        return HasServiceObjectReference(element)
+            ? DisplayNetworkService(element)
+            : DisplayServiceElement(element);
+    }
+
     private static string DisplayNetworkElement(NwObjectElement element)
     {
         if (!string.IsNullOrWhiteSpace(element.GroupName))
@@ -337,10 +387,16 @@ else
         {
             if (NeedsFlowCatalog())
             {
-                List<FlowNwObject> flowNwObjects = await apiConnection.SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowNwObjectCatalog) ?? [];
-                List<FlowSvcObject> flowSvcObjects = await apiConnection.SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowSvcObjectCatalog) ?? [];
-                nwObjects = [.. flowNwObjects.Where(IsSelectable).Select(ToNetworkObject)];
-                nwServices = [.. flowSvcObjects.Where(IsSelectable).Select(ToNetworkService)];
+                if (NeedsNetworkFlowCatalog())
+                {
+                    List<FlowNwObject> flowNwObjects = await apiConnection.SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowNwObjectCatalog) ?? [];
+                    nwObjects = [.. flowNwObjects.Where(IsSelectable).Select(ToNetworkObject)];
+                }
+                if (NeedsServiceFlowCatalog())
+                {
+                    List<FlowSvcObject> flowSvcObjects = await apiConnection.SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowSvcObjectCatalog) ?? [];
+                    nwServices = [.. flowSvcObjects.Where(IsSelectable).Select(ToNetworkService)];
+                }
             }
             InitComplete = true;
         }
@@ -406,10 +462,21 @@ else
 
     private bool NeedsFlowCatalog()
     {
+        return NeedsNetworkFlowCatalog() || NeedsServiceFlowCatalog();
+    }
+
+    private bool NeedsNetworkFlowCatalog()
+    {
         return userConfig.ReqUseFlowDb
-            && (AnyEditMode && userConfig.ReqAllowObjectSearch
+            && (ShowFlowObjects && (CanEditSources || CanEditDestinations)
                 || Sources.Any(HasNetworkFlowReference)
-                || Destinations.Any(HasNetworkFlowReference)
+                || Destinations.Any(HasNetworkFlowReference));
+    }
+
+    private bool NeedsServiceFlowCatalog()
+    {
+        return userConfig.ReqUseFlowDb
+            && (ShowFlowServices && CanEditServices
                 || Services.Any(HasServiceFlowReference));
     }
 
@@ -426,6 +493,16 @@ else
     private static bool HasId(long? id)
     {
         return id.HasValue && id.Value != 0;
+    }
+
+    private static bool ShowsFlowDbSelection(string selection)
+    {
+        return selection is FlowIntegrationObjectSelectionOptions.FromFlowDb or FlowIntegrationObjectSelectionOptions.Both;
+    }
+
+    private static bool ShowsManualSelection(string selection)
+    {
+        return selection is FlowIntegrationObjectSelectionOptions.Manually or FlowIntegrationObjectSelectionOptions.Both;
     }
 
     private static bool IsMatchingNetworkObject(NetworkObject networkObject, NwObjectElement element)

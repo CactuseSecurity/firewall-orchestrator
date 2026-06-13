@@ -1,44 +1,79 @@
 @using FWO.Ui.Services
 @using System.Globalization
+@using FWO.Data.Flow
+@using FWO.Data.Workflow
 
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<div class="col-sm-3">
-    <div class="form-group row">
-        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_from")):</label>
-        <div class="col-sm-8">
-            @if (CanEditTargetBeginDate)
-            {
-                <div class="d-flex gap-1">
-                    <input type="date" class="form-control form-control-sm" value="@targetBeginDateInput" @oninput="SetTargetBeginDate" />
-                    <input type="time" step="1" class="form-control form-control-sm" value="@targetBeginTimeInput" @oninput="SetTargetBeginTime" />
-                </div>
-            }
-            else
-            {
-                <label class="col-sm-12 h-100 border bg-secondary">@TargetBeginDate?.ToString("G")</label>
-            }
+@if (!HideFlowTimeObjectSelection && ShowFlowTimeObjectSelection)
+{
+    <div class="col-sm-3">
+        <div class="form-group row">
+            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("time_object")):</label>
+            <div class="col-sm-8">
+                <Dropdown ElementType="FlowTimeObject" @bind-SelectedElement="selectedFlowTimeObject" ElementToString="DisplayFlowTimeObject" Elements="flowTimeObjects" Nullable="true">
+                    <ElementTemplate Context="timeObject">
+                        @DisplayFlowTimeObject(timeObject)
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
         </div>
     </div>
-</div>
-<div class="col-sm-3">
-    <div class="form-group row">
-        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_to")):</label>
-        <div class="col-sm-8">
-            @if (CanEditTargetEndDate)
-            {
-                <div class="d-flex gap-1">
-                    <input type="date" class="form-control form-control-sm" value="@targetEndDateInput" @oninput="SetTargetEndDate" />
-                    <input type="time" step="1" class="form-control form-control-sm" value="@targetEndTimeInput" @oninput="SetTargetEndTime" />
-                </div>
-            }
-            else
-            {
-                <label class="col-sm-12 h-100 border bg-secondary">@TargetEndDate?.ToString("G")</label>
-            }
+}
+@if (!ShowOnlyFlowTimeObjectSelection)
+{
+    <div class="col-sm-3">
+        <div class="form-group row">
+            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_from")):</label>
+            <div class="col-sm-8">
+                @if (CanEditTargetBeginDate && ShowManualTimeObjectSelection)
+                {
+                    <div class="d-flex gap-1">
+                        <input type="date" class="form-control form-control-sm" value="@targetBeginDateInput" @oninput="SetTargetBeginDate" />
+                        @if (ShowHourInput)
+                        {
+                            <input type="number" min="0" max="23" class="form-control form-control-sm" value="@targetBeginHourInput" @oninput="SetTargetBeginHour" />
+                        }
+                        else if (ShowTimeInput)
+                        {
+                            <input type="time" step="@TimeInputStep" class="form-control form-control-sm" value="@targetBeginTimeInput" @oninput="SetTargetBeginTime" />
+                        }
+                    </div>
+                }
+                else
+                {
+                    <label class="col-sm-12 h-100 border bg-secondary">@FormatDateTimeDisplay(TargetBeginDate)</label>
+                }
+            </div>
         </div>
     </div>
-</div>
+    <div class="col-sm-3">
+        <div class="form-group row">
+            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_to")):</label>
+            <div class="col-sm-8">
+                @if (CanEditTargetEndDate && ShowManualTimeObjectSelection)
+                {
+                    <div class="d-flex gap-1">
+                        <input type="date" class="form-control form-control-sm" value="@targetEndDateInput" @oninput="SetTargetEndDate" />
+                        @if (ShowHourInput)
+                        {
+                            <input type="number" min="0" max="23" class="form-control form-control-sm" value="@targetEndHourInput" @oninput="SetTargetEndHour" />
+                        }
+                        else if (ShowTimeInput)
+                        {
+                            <input type="time" step="@TimeInputStep" class="form-control form-control-sm" value="@targetEndTimeInput" @oninput="SetTargetEndTime" />
+                        }
+                    </div>
+                }
+                else
+                {
+                    <label class="col-sm-12 h-100 border bg-secondary">@FormatDateTimeDisplay(TargetEndDate)</label>
+                }
+            </div>
+        </div>
+    </div>
+}
 
 @code
 {
@@ -63,39 +98,114 @@
     [Parameter]
     public EventCallback<bool> TargetDatesValidChanged { get; set; }
 
+    [Parameter]
+    public FlowIntegrationConfig? FlowIntegration { get; set; }
+
+    [Parameter]
+    public bool ShowOnlyFlowTimeObjectSelection { get; set; } = false;
+
+    [Parameter]
+    public bool HideFlowTimeObjectSelection { get; set; } = false;
+
     private const string kDateInputFormat = "yyyy-MM-dd";
     private const string kTimeInputFormat = "HH:mm:ss";
     private const string kDefaultBeginTime = "00:00:00";
     private const string kDefaultEndTime = "23:59:59";
+    private const string kDefaultHourEndTime = "00:00:00";
 
     private string targetBeginDateInput = "";
     private string targetBeginTimeInput = "";
+    private string targetBeginHourInput = "";
     private string targetEndDateInput = "";
     private string targetEndTimeInput = "";
+    private string targetEndHourInput = "";
     private DateTime? displayedTargetBeginDate;
     private DateTime? displayedTargetEndDate;
     private bool targetBeginDateInitialized = false;
     private bool targetEndDateInitialized = false;
     private bool targetBeginDateValid = true;
     private bool targetEndDateValid = true;
+    private List<FlowTimeObject> flowTimeObjects = [];
+    private FlowTimeObject? selectedFlowTimeObjectInt;
+    private FlowIntegrationConfig ActiveFlowIntegration => FlowIntegration ?? FlowIntegrationConfig.Parse(userConfig.ReqFlowIntegration);
+    private bool AnyDateEditMode => CanEditTargetBeginDate || CanEditTargetEndDate;
+    private bool ShowFlowTimeObjectSelection => AnyDateEditMode && userConfig.ReqUseFlowDb && ShowsFlowDbSelection(ActiveFlowIntegration.SelectTimeObjects);
+    private bool ShowManualTimeObjectSelection => !userConfig.ReqUseFlowDb || ShowsManualSelection(ActiveFlowIntegration.SelectTimeObjects);
+    private bool ShowHourInput => ActiveFlowIntegration.TimeObjectPrecision == FlowIntegrationTimePrecisionOptions.Hours;
+    private bool ShowTimeInput => ActiveFlowIntegration.TimeObjectPrecision != FlowIntegrationTimePrecisionOptions.Date;
+    private int TimeInputStep => ActiveFlowIntegration.TimeObjectPrecision switch
+    {
+        FlowIntegrationTimePrecisionOptions.Hours => 3600,
+        FlowIntegrationTimePrecisionOptions.Minutes => 60,
+        _ => 1
+    };
+
+    private FlowTimeObject? selectedFlowTimeObject
+    {
+        get => selectedFlowTimeObjectInt;
+        set
+        {
+            selectedFlowTimeObjectInt = value;
+            if (value != null)
+            {
+                _ = SelectFlowTimeObject(value);
+            }
+        }
+    }
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (!HideFlowTimeObjectSelection && ShowFlowTimeObjectSelection)
+            {
+                List<FlowTimeObject> catalog = await apiConnection.SendQueryAsync<List<FlowTimeObject>>(FlowQueries.getFlowTimeObjectCatalog) ?? [];
+                flowTimeObjects = [.. catalog.Where(IsSelectable)];
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
 
     protected override void OnParametersSet()
     {
-        if (!targetBeginDateInitialized || TargetBeginDate != displayedTargetBeginDate)
+        try
         {
-            targetBeginDateInput = FormatDateInput(TargetBeginDate);
-            targetBeginTimeInput = FormatTimeInput(TargetBeginDate);
-            displayedTargetBeginDate = TargetBeginDate;
-            targetBeginDateInitialized = true;
-            targetBeginDateValid = true;
+            if (!targetBeginDateInitialized || TargetBeginDate != displayedTargetBeginDate)
+            {
+                targetBeginDateInput = FormatDateInput(TargetBeginDate);
+                targetBeginTimeInput = FormatTimeInput(TargetBeginDate, ActiveFlowIntegration.TimeObjectPrecision);
+                targetBeginHourInput = FormatHourInput(TargetBeginDate);
+                displayedTargetBeginDate = TargetBeginDate;
+                targetBeginDateInitialized = true;
+                targetBeginDateValid = true;
+            }
+            if (!targetEndDateInitialized || TargetEndDate != displayedTargetEndDate)
+            {
+                targetEndDateInput = FormatDateInput(TargetEndDate);
+                targetEndTimeInput = FormatTimeInput(TargetEndDate, ActiveFlowIntegration.TimeObjectPrecision);
+                targetEndHourInput = FormatHourInput(TargetEndDate);
+                displayedTargetEndDate = TargetEndDate;
+                targetEndDateInitialized = true;
+                targetEndDateValid = true;
+            }
         }
-        if (!targetEndDateInitialized || TargetEndDate != displayedTargetEndDate)
+        catch (Exception exception)
         {
-            targetEndDateInput = FormatDateInput(TargetEndDate);
-            targetEndTimeInput = FormatTimeInput(TargetEndDate);
-            displayedTargetEndDate = TargetEndDate;
+            DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
+            targetBeginDateInput = SafeDateInput(TargetBeginDate);
+            targetBeginTimeInput = SafeTimeInput(TargetBeginDate);
+            targetBeginHourInput = SafeHourInput(TargetBeginDate);
+            targetEndDateInput = SafeDateInput(TargetEndDate);
+            targetEndTimeInput = SafeTimeInput(TargetEndDate);
+            targetEndHourInput = SafeHourInput(TargetEndDate);
+            targetBeginDateInitialized = true;
             targetEndDateInitialized = true;
-            targetEndDateValid = true;
         }
     }
 
@@ -105,6 +215,7 @@
         if (!string.IsNullOrWhiteSpace(targetBeginDateInput) && string.IsNullOrWhiteSpace(targetBeginTimeInput))
         {
             targetBeginTimeInput = kDefaultBeginTime;
+            targetBeginHourInput = "0";
         }
         await UpdateTargetBeginDate();
     }
@@ -115,12 +226,20 @@
         await UpdateTargetBeginDate();
     }
 
+    private async Task SetTargetBeginHour(ChangeEventArgs args)
+    {
+        targetBeginHourInput = args.Value?.ToString() ?? "";
+        targetBeginTimeInput = BuildHourTimeInput(targetBeginHourInput);
+        await UpdateTargetBeginDate();
+    }
+
     private async Task SetTargetEndDate(ChangeEventArgs args)
     {
         targetEndDateInput = args.Value?.ToString() ?? "";
         if (!string.IsNullOrWhiteSpace(targetEndDateInput) && string.IsNullOrWhiteSpace(targetEndTimeInput))
         {
-            targetEndTimeInput = kDefaultEndTime;
+            targetEndTimeInput = GetDefaultEndTime();
+            targetEndHourInput = "0";
         }
         await UpdateTargetEndDate();
     }
@@ -131,8 +250,19 @@
         await UpdateTargetEndDate();
     }
 
+    private async Task SetTargetEndHour(ChangeEventArgs args)
+    {
+        targetEndHourInput = args.Value?.ToString() ?? "";
+        targetEndTimeInput = BuildHourTimeInput(targetEndHourInput);
+        await UpdateTargetEndDate();
+    }
+
     private async Task UpdateTargetBeginDate()
     {
+        if (!ShowTimeInput && !string.IsNullOrWhiteSpace(targetBeginDateInput))
+        {
+            targetBeginTimeInput = kDefaultBeginTime;
+        }
         targetBeginDateValid = TryParseDateTimeInput(targetBeginDateInput, targetBeginTimeInput, out DateTime? targetBeginDate);
         if (targetBeginDateValid)
         {
@@ -143,6 +273,10 @@
 
     private async Task UpdateTargetEndDate()
     {
+        if (!ShowTimeInput && !string.IsNullOrWhiteSpace(targetEndDateInput))
+        {
+            targetEndTimeInput = GetDefaultEndTime();
+        }
         targetEndDateValid = TryParseDateTimeInput(targetEndDateInput, targetEndTimeInput, out DateTime? targetEndDate);
         if (targetEndDateValid)
         {
@@ -156,9 +290,94 @@
         return dateTime?.ToString(kDateInputFormat, CultureInfo.InvariantCulture) ?? "";
     }
 
-    private static string FormatTimeInput(DateTime? dateTime)
+    private static string FormatTimeInput(DateTime? dateTime, string precision)
+    {
+        if (!dateTime.HasValue)
+        {
+            return "";
+        }
+        return precision switch
+        {
+            FlowIntegrationTimePrecisionOptions.Hours => dateTime.Value.ToString("HH:00", CultureInfo.InvariantCulture),
+            FlowIntegrationTimePrecisionOptions.Minutes => dateTime.Value.ToString("HH:mm", CultureInfo.InvariantCulture),
+            _ => dateTime.Value.ToString(kTimeInputFormat, CultureInfo.InvariantCulture)
+        };
+    }
+
+    private static string FormatHourInput(DateTime? dateTime)
+    {
+        return dateTime?.ToString("%H", CultureInfo.InvariantCulture) ?? "";
+    }
+
+    private static string BuildHourTimeInput(string hourInput)
+    {
+        return int.TryParse(hourInput, NumberStyles.Integer, CultureInfo.InvariantCulture, out int hour) && hour is >= 0 and <= 23
+            ? $"{hour:00}:00:00"
+            : "";
+    }
+
+    private string DisplayFlowTimeObject(FlowTimeObject timeObject)
+    {
+        return !string.IsNullOrWhiteSpace(timeObject.Name) ? timeObject.Name : timeObject.Id.ToString();
+    }
+
+    private string FormatDateTimeDisplay(DateTime? dateTime)
+    {
+        if (!dateTime.HasValue)
+        {
+            return "";
+        }
+        try
+        {
+            return ActiveFlowIntegration.TimeObjectPrecision switch
+            {
+                FlowIntegrationTimePrecisionOptions.Date => dateTime.Value.ToString(kDateInputFormat, CultureInfo.InvariantCulture),
+                FlowIntegrationTimePrecisionOptions.Hours => dateTime.Value.ToString("yyyy-MM-dd H 'h'", CultureInfo.InvariantCulture),
+                FlowIntegrationTimePrecisionOptions.Minutes => dateTime.Value.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
+                _ => dateTime.Value.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+            };
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("display"), "", true);
+            return SafeDateTimeDisplay(dateTime);
+        }
+    }
+
+    private static string SafeDateInput(DateTime? dateTime)
+    {
+        return dateTime?.ToString(kDateInputFormat, CultureInfo.InvariantCulture) ?? "";
+    }
+
+    private static string SafeTimeInput(DateTime? dateTime)
     {
         return dateTime?.ToString(kTimeInputFormat, CultureInfo.InvariantCulture) ?? "";
+    }
+
+    private static string SafeHourInput(DateTime? dateTime)
+    {
+        return dateTime?.Hour.ToString(CultureInfo.InvariantCulture) ?? "";
+    }
+
+    private static string SafeDateTimeDisplay(DateTime? dateTime)
+    {
+        return dateTime?.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) ?? "";
+    }
+
+    private async Task SelectFlowTimeObject(FlowTimeObject timeObject)
+    {
+        targetBeginDateValid = true;
+        targetEndDateValid = true;
+        await TargetBeginDateChanged.InvokeAsync(timeObject.StartTime);
+        await TargetEndDateChanged.InvokeAsync(timeObject.EndTime);
+        await TargetDatesValidChanged.InvokeAsync(true);
+    }
+
+    private string GetDefaultEndTime()
+    {
+        return ActiveFlowIntegration.TimeObjectPrecision == FlowIntegrationTimePrecisionOptions.Hours
+            ? kDefaultHourEndTime
+            : kDefaultEndTime;
     }
 
     private static bool TryParseDateTimeInput(string dateValue, string timeValue, out DateTime? dateTime)
@@ -183,5 +402,20 @@
 
         dateTime = parsedDate.Date.Add(parsedTime.TimeOfDay);
         return true;
+    }
+
+    private static bool IsSelectable(FlowTimeObject timeObject)
+    {
+        return timeObject.ShowInRequestModule && timeObject.RemovedDate == null;
+    }
+
+    private static bool ShowsFlowDbSelection(string selection)
+    {
+        return selection is FlowIntegrationObjectSelectionOptions.FromFlowDb or FlowIntegrationObjectSelectionOptions.Both;
+    }
+
+    private static bool ShowsManualSelection(string selection)
+    {
+        return selection is FlowIntegrationObjectSelectionOptions.Manually or FlowIntegrationObjectSelectionOptions.Both;
     }
 }

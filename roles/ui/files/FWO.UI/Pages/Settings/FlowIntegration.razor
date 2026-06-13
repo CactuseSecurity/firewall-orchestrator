@@ -1,0 +1,117 @@
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("flow_integration"))" Show="@Display" Size=PopupSize.Small OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <form>
+                <div class="form-group row mt-2">
+                    <label class="col-form-label col-sm-4">@(userConfig.GetText("select_objects")):</label>
+                    <div class="col-sm-8">
+                        <Dropdown ElementType="string" @bind-SelectedElement="actConfig.SelectObjects" ElementToString="DisplaySelectObjectsOption" Elements="FlowIntegrationObjectSelectionOptions.All">
+                            <ElementTemplate Context="option">
+                                @(DisplaySelectObjectsOption(option))
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-form-label col-sm-4">@(userConfig.GetText("select_services")):</label>
+                    <div class="col-sm-8">
+                        <Dropdown ElementType="string" @bind-SelectedElement="actConfig.SelectServices" ElementToString="DisplaySelectObjectsOption" Elements="FlowIntegrationObjectSelectionOptions.All">
+                            <ElementTemplate Context="option">
+                                @(DisplaySelectObjectsOption(option))
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-form-label col-sm-4">@(userConfig.GetText("select_time_objects")):</label>
+                    <div class="col-sm-8">
+                        <Dropdown ElementType="string" @bind-SelectedElement="actConfig.SelectTimeObjects" ElementToString="DisplaySelectObjectsOption" Elements="FlowIntegrationObjectSelectionOptions.All">
+                            <ElementTemplate Context="option">
+                                @(DisplaySelectObjectsOption(option))
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-form-label col-sm-4">@(userConfig.GetText("time_object_precision")):</label>
+                    <div class="col-sm-8">
+                        <Dropdown ElementType="string" @bind-SelectedElement="actConfig.TimeObjectPrecision" ElementToString="DisplayTimePrecisionOption" Elements="FlowIntegrationTimePrecisionOptions.All">
+                            <ElementTemplate Context="option">
+                                @(DisplayTimePrecisionOption(option))
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Confirm">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public string ConfigValue { get; set; } = "";
+
+    [Parameter]
+    public EventCallback<string> ConfigValueChanged { get; set; }
+
+    private FlowIntegrationConfig actConfig = new();
+
+    protected override void OnParametersSet()
+    {
+        if (Display)
+        {
+            actConfig = FlowIntegrationConfig.Parse(ConfigValue);
+        }
+    }
+
+    private string DisplaySelectObjectsOption(string option)
+    {
+        return userConfig.GetText(option switch
+        {
+            FlowIntegrationObjectSelectionOptions.FromFlowDb => "flow_integration_from_flowdb",
+            FlowIntegrationObjectSelectionOptions.Manually => "flow_integration_manually",
+            FlowIntegrationObjectSelectionOptions.Both => "flow_integration_both",
+            _ => "undefined"
+        });
+    }
+
+    private string DisplayTimePrecisionOption(string option)
+    {
+        return userConfig.GetText(option switch
+        {
+            FlowIntegrationTimePrecisionOptions.Date => "date",
+            FlowIntegrationTimePrecisionOptions.Hours => "hours",
+            FlowIntegrationTimePrecisionOptions.Minutes => "minutes",
+            FlowIntegrationTimePrecisionOptions.Seconds => "seconds",
+            _ => "undefined"
+        });
+    }
+
+    private async Task Confirm()
+    {
+        await ConfigValueChanged.InvokeAsync(actConfig.ToConfigValue());
+        Close();
+    }
+
+    private void Close()
+    {
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

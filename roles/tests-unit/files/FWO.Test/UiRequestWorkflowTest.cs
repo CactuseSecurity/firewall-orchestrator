@@ -1214,7 +1214,7 @@ namespace FWO.Test
                 ]
             };
             context.Services.AddSingleton<ApiConnection>(apiConn);
-            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig { ReqAllowObjectSearch = true, ReqUseFlowDb = true });
+            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig { ReqUseFlowDb = true });
             context.Services.AddSingleton<DomEventService>();
 
             IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
@@ -1255,7 +1255,7 @@ namespace FWO.Test
                 ]
             };
             context.Services.AddSingleton<ApiConnection>(apiConn);
-            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig { ReqAllowObjectSearch = true, ReqUseFlowDb = true });
+            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig { ReqUseFlowDb = true });
             context.Services.AddSingleton<DomEventService>();
 
             IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
@@ -1279,7 +1279,7 @@ namespace FWO.Test
                 FlowNwObjects = [new FlowNwObject { Id = 101, Name = "Flow Source", IpStart = "10.0.0.1/32", ShowInRequestModule = true }],
                 FlowSvcObjects = [new FlowSvcObject { Id = 201, Name = "Flow Service", PortStart = 443, ProtoId = 6, ShowInRequestModule = true }]
             });
-            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig { ReqAllowObjectSearch = true, ReqUseFlowDb = true });
+            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig { ReqUseFlowDb = true });
             context.Services.AddSingleton<DomEventService>();
             List<NwObjectElement> sources = [];
             List<NwObjectElement> sourcesToAdd = [];
@@ -1317,6 +1317,96 @@ namespace FWO.Test
                 Assert.That(serviceSelector.Instance.Services.Any(HasServiceFlowReference), Is.False);
                 Assert.That(component.Markup, Does.Contain("Flow Source"));
                 Assert.That(component.Markup, Does.Contain("Flow Service"));
+            });
+        }
+
+        [Test]
+        public async Task DisplayAccessElements_CatalogOnlySelectionsAreDisplayedInEditList()
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new RequestWorkflowApiConn
+            {
+                FlowNwObjects = [new FlowNwObject { Id = 101, Name = "Flow Source", IpStart = "10.0.0.1/32", ShowInRequestModule = true }],
+                FlowSvcObjects = [new FlowSvcObject { Id = 201, Name = "Flow Service", PortStart = 443, ProtoId = 6, ShowInRequestModule = true }]
+            });
+            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig
+            {
+                ReqUseFlowDb = true,
+                ReqFlowIntegration = new FlowIntegrationConfig
+                {
+                    SelectObjects = FlowIntegrationObjectSelectionOptions.FromFlowDb,
+                    SelectServices = FlowIntegrationObjectSelectionOptions.FromFlowDb,
+                    SelectTimeObjects = FlowIntegrationObjectSelectionOptions.Both,
+                    TimeObjectPrecision = FlowIntegrationTimePrecisionOptions.Seconds
+                }.ToConfigValue()
+            });
+            context.Services.AddSingleton<DomEventService>();
+            List<NwObjectElement> sourcesToAdd = [];
+            List<NwServiceElement> servicesToAdd = [];
+
+            IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
+                .Add(p => p.Sources, new List<NwObjectElement>())
+                .Add(p => p.SourcesToAdd, sourcesToAdd)
+                .Add(p => p.Destinations, new List<NwObjectElement>())
+                .Add(p => p.Services, new List<NwServiceElement>())
+                .Add(p => p.ServicesToAdd, servicesToAdd)
+                .Add(p => p.IpProtos, new List<IpProtocol>())
+                .Add(p => p.EditMode, true));
+
+            NetworkObject flowObject = GetMember<List<NetworkObject>>(component.Instance, "nwObjects").Single();
+            NetworkService flowService = GetMember<List<NetworkService>>(component.Instance, "nwServices").Single();
+            await component.InvokeAsync(() => SetMember(component.Instance, "newSourceNetwork", flowObject));
+            await component.InvokeAsync(() => SetMember(component.Instance, "newService", flowService));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.FindComponents<IpSelector>(), Is.Empty);
+                Assert.That(component.FindComponents<ServiceSelector>(), Is.Empty);
+                Assert.That(sourcesToAdd.Single().Name, Is.EqualTo("Flow Source"));
+                Assert.That(servicesToAdd.Single().Name, Is.EqualTo("Flow Service"));
+                Assert.That(component.Markup, Does.Contain("Flow Source"));
+                Assert.That(component.Markup, Does.Contain("Flow Service"));
+            });
+        }
+
+        [Test]
+        public async Task DisplayAccessElements_ServiceCatalogStaysInServiceColumn_WhenObjectCatalogDisabled()
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new RequestWorkflowApiConn
+            {
+                FlowSvcObjects = [new FlowSvcObject { Id = 201, Name = "Flow Service", PortStart = 443, ProtoId = 6, ShowInRequestModule = true }]
+            });
+            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig
+            {
+                ReqUseFlowDb = true,
+                ReqFlowIntegration = new FlowIntegrationConfig
+                {
+                    SelectObjects = FlowIntegrationObjectSelectionOptions.Manually,
+                    SelectServices = FlowIntegrationObjectSelectionOptions.FromFlowDb,
+                    SelectTimeObjects = FlowIntegrationObjectSelectionOptions.Both,
+                    TimeObjectPrecision = FlowIntegrationTimePrecisionOptions.Seconds
+                }.ToConfigValue()
+            });
+            context.Services.AddSingleton<DomEventService>();
+
+            IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
+                .Add(p => p.Sources, new List<NwObjectElement>())
+                .Add(p => p.Destinations, new List<NwObjectElement>())
+                .Add(p => p.Services, new List<NwServiceElement>())
+                .Add(p => p.IpProtos, new List<IpProtocol>())
+                .Add(p => p.EditMode, true));
+
+            IReadOnlyList<IElement> catalogColumns = component.FindAll(".bg-secondary > .form-group.row.col-sm-12 > .col-sm-4");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.FindComponents<Dropdown<NetworkObject>>(), Is.Empty);
+                Assert.That(component.FindComponents<Dropdown<NetworkService>>(), Has.Count.EqualTo(1));
+                Assert.That(catalogColumns, Has.Count.EqualTo(3));
+                Assert.That(catalogColumns[0].TextContent, Does.Not.Contain("service_catalog"));
+                Assert.That(catalogColumns[1].TextContent, Does.Not.Contain("service_catalog"));
+                Assert.That(catalogColumns[2].TextContent, Does.Contain("service_catalog"));
             });
         }
 
@@ -1587,6 +1677,7 @@ namespace FWO.Test
             DateTime? targetEndDate = new DateTime(2026, 7, 31, 17, 45, 15);
 
             await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new RequestWorkflowApiConn());
             context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig());
 
             IRenderedComponent<DisplayTaskTargetDates> component = context.Render<DisplayTaskTargetDates>(parameters => parameters
@@ -1618,6 +1709,7 @@ namespace FWO.Test
             bool targetDatesValid = true;
 
             await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new RequestWorkflowApiConn());
             context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig());
 
             IRenderedComponent<DisplayTaskTargetDates> component = context.Render<DisplayTaskTargetDates>(parameters => parameters
@@ -1643,6 +1735,7 @@ namespace FWO.Test
             DateTime? targetEndDate = null;
 
             await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new RequestWorkflowApiConn());
             context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig());
 
             IRenderedComponent<DisplayTaskTargetDates> component = context.Render<DisplayTaskTargetDates>(parameters => parameters
@@ -1671,6 +1764,7 @@ namespace FWO.Test
             bool targetDatesValid = true;
 
             await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new RequestWorkflowApiConn());
             context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig());
 
             IRenderedComponent<DisplayTaskTargetDates> component = context.Render<DisplayTaskTargetDates>(parameters => parameters
@@ -1690,13 +1784,68 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task DisplayTaskTargetDates_ReadOnlyDatesDisplayLabels()
+        public async Task DisplayTaskTargetDates_HoursPrecisionUsesHourNumberInputs()
+        {
+            DateTime? targetBeginDate = new DateTime(2026, 7, 1, 8, 15, 30);
+            DateTime? targetEndDate = new DateTime(2026, 7, 31, 17, 45, 15);
+
+            await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new RequestWorkflowApiConn());
+            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig
+            {
+                ReqFlowIntegration = new FlowIntegrationConfig
+                {
+                    SelectObjects = FlowIntegrationObjectSelectionOptions.Both,
+                    SelectServices = FlowIntegrationObjectSelectionOptions.Both,
+                    SelectTimeObjects = FlowIntegrationObjectSelectionOptions.Both,
+                    TimeObjectPrecision = FlowIntegrationTimePrecisionOptions.Hours
+                }.ToConfigValue()
+            });
+
+            IRenderedComponent<DisplayTaskTargetDates> component = context.Render<DisplayTaskTargetDates>(parameters => parameters
+                .Add(p => p.TargetBeginDate, targetBeginDate)
+                .Add(p => p.TargetBeginDateChanged, EventCallback.Factory.Create<DateTime?>(this, value => targetBeginDate = value))
+                .Add(p => p.TargetEndDate, targetEndDate)
+                .Add(p => p.TargetEndDateChanged, EventCallback.Factory.Create<DateTime?>(this, value => targetEndDate = value))
+                .Add(p => p.CanEditTargetBeginDate, true)
+                .Add(p => p.CanEditTargetEndDate, true));
+
+            IReadOnlyList<IElement> hourInputs = component.FindAll("input[type=number]");
+            await hourInputs[0].InputAsync(new ChangeEventArgs { Value = "13" });
+            await hourInputs[1].InputAsync(new ChangeEventArgs { Value = "1" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.FindAll("input[type=time]"), Is.Empty);
+                Assert.That(hourInputs, Has.Count.EqualTo(2));
+                Assert.That(hourInputs[0].GetAttribute("min"), Is.EqualTo("0"));
+                Assert.That(hourInputs[0].GetAttribute("max"), Is.EqualTo("23"));
+                Assert.That(targetBeginDate, Is.EqualTo(new DateTime(2026, 7, 1, 13, 0, 0)));
+                Assert.That(targetEndDate, Is.EqualTo(new DateTime(2026, 7, 31, 1, 0, 0)));
+            });
+        }
+
+        [TestCase(FlowIntegrationTimePrecisionOptions.Date, "2026-07-01", "2026-07-31", "08:15", "17:45")]
+        [TestCase(FlowIntegrationTimePrecisionOptions.Hours, "2026-07-01 8 h", "2026-07-31 17 h", "08:15", "17:45")]
+        [TestCase(FlowIntegrationTimePrecisionOptions.Minutes, "2026-07-01 08:15", "2026-07-31 17:45", "08:15:30", "17:45:15")]
+        [TestCase(FlowIntegrationTimePrecisionOptions.Seconds, "2026-07-01 08:15:30", "2026-07-31 17:45:15", null, null)]
+        public async Task DisplayTaskTargetDates_ReadOnlyDatesDisplayLabelsUseConfiguredPrecision(string precision, string expectedBegin, string expectedEnd, string? hiddenBeginPart, string? hiddenEndPart)
         {
             DateTime targetBeginDate = new(2026, 7, 1, 8, 15, 30);
             DateTime targetEndDate = new(2026, 7, 31, 17, 45, 15);
 
             await using BunitContext context = new();
-            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig());
+            context.Services.AddSingleton<ApiConnection>(new RequestWorkflowApiConn());
+            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig
+            {
+                ReqFlowIntegration = new FlowIntegrationConfig
+                {
+                    SelectObjects = FlowIntegrationObjectSelectionOptions.Both,
+                    SelectServices = FlowIntegrationObjectSelectionOptions.Both,
+                    SelectTimeObjects = FlowIntegrationObjectSelectionOptions.Both,
+                    TimeObjectPrecision = precision
+                }.ToConfigValue()
+            });
 
             IRenderedComponent<DisplayTaskTargetDates> component = context.Render<DisplayTaskTargetDates>(parameters => parameters
                 .Add(p => p.TargetBeginDate, targetBeginDate)
@@ -1708,8 +1857,65 @@ namespace FWO.Test
             {
                 Assert.That(component.FindAll("input[type=date]"), Is.Empty);
                 Assert.That(component.FindAll("input[type=time]"), Is.Empty);
-                Assert.That(component.Markup, Does.Contain(targetBeginDate.ToString("G")));
-                Assert.That(component.Markup, Does.Contain(targetEndDate.ToString("G")));
+                Assert.That(component.Markup, Does.Contain(expectedBegin));
+                Assert.That(component.Markup, Does.Contain(expectedEnd));
+                if (hiddenBeginPart != null)
+                {
+                    Assert.That(component.Markup, Does.Not.Contain(hiddenBeginPart));
+                }
+                if (hiddenEndPart != null)
+                {
+                    Assert.That(component.Markup, Does.Not.Contain(hiddenEndPart));
+                }
+            });
+        }
+
+        [Test]
+        public async Task DisplayTaskTargetDates_FlowTimeObjectDropdownDisplaysNameWithoutRange()
+        {
+            await using BunitContext context = new();
+            RequestWorkflowApiConn apiConn = new()
+            {
+                FlowTimeObjects =
+                [
+                    new FlowTimeObject
+                    {
+                        Id = 301,
+                        Name = "Business Hours",
+                        StartTime = new DateTime(2026, 8, 1, 8, 0, 0),
+                        EndTime = new DateTime(2026, 8, 1, 17, 0, 0),
+                        ShowInRequestModule = true
+                    }
+                ]
+            };
+            context.Services.AddSingleton<ApiConnection>(apiConn);
+            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig
+            {
+                ReqUseFlowDb = true,
+                ReqFlowIntegration = new FlowIntegrationConfig
+                {
+                    SelectObjects = FlowIntegrationObjectSelectionOptions.Both,
+                    SelectServices = FlowIntegrationObjectSelectionOptions.Both,
+                    SelectTimeObjects = FlowIntegrationObjectSelectionOptions.FromFlowDb,
+                    TimeObjectPrecision = FlowIntegrationTimePrecisionOptions.Seconds
+                }.ToConfigValue()
+            });
+            context.Services.AddSingleton<DomEventService>();
+
+            IRenderedComponent<DisplayTaskTargetDates> component = context.Render<DisplayTaskTargetDates>(parameters => parameters
+                .Add(p => p.CanEditTargetBeginDate, true)
+                .Add(p => p.CanEditTargetEndDate, true));
+
+            IRenderedComponent<Dropdown<FlowTimeObject>> dropdown = component.FindComponent<Dropdown<FlowTimeObject>>();
+            string displayText = dropdown.Instance.ElementToString(apiConn.FlowTimeObjects.Single());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries, Does.Contain(FlowQueries.getFlowTimeObjectCatalog));
+                Assert.That(displayText, Is.EqualTo("Business Hours"));
+                Assert.That(displayText, Does.Not.Contain("2026-08-01"));
+                Assert.That(displayText, Does.Not.Contain("08:00"));
+                Assert.That(displayText, Does.Not.Contain("17:00"));
             });
         }
 
@@ -1829,6 +2035,7 @@ namespace FWO.Test
             public List<string> Queries { get; } = [];
             public List<FlowNwObject> FlowNwObjects { get; set; } = [];
             public List<FlowSvcObject> FlowSvcObjects { get; set; } = [];
+            public List<FlowTimeObject> FlowTimeObjects { get; set; } = [];
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
@@ -1856,6 +2063,10 @@ namespace FWO.Test
                 if (query == FlowQueries.getFlowSvcObjectCatalog)
                 {
                     return Task.FromResult((QueryResponseType)(object)FlowSvcObjects);
+                }
+                if (query == FlowQueries.getFlowTimeObjectCatalog)
+                {
+                    return Task.FromResult((QueryResponseType)(object)FlowTimeObjects);
                 }
 
                 throw new NotImplementedException($"Unexpected query: {query}");

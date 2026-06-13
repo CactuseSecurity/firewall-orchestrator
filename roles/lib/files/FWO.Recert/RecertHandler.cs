@@ -2,16 +2,25 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Logging;
 
 namespace FWO.Recert
 {
     public class RecertHandler(ApiConnection apiConnection, UserConfig userConfig)
     {
+        private const string LogMessageTitle = "Initial Owner Recert";
+
         public async Task InitOwnerRecert(FwoOwner owner)
         {
             if ((await apiConnection.SendQueryAsync<List<OwnerRecertification>>(RecertQueries.getInitialOwnerRecert, new { ownerId = owner.Id })).Count == 0)
             {
-                await RecertifyOwner(owner, "Initial Owner Recert", true);
+                FwoOwner recertifiedOwner = await RecertifyOwner(owner, LogMessageTitle, true);
+                Log.WriteInfo(LogMessageTitle,
+                    $"Owner id={owner.Id}: initial recert {(recertifiedOwner.LastRecertId > 0 ? "created" : "not created")}, recertId={recertifiedOwner.LastRecertId}, nextRecertDate={recertifiedOwner.NextRecertDate}.");
+            }
+            else
+            {
+                Log.WriteDebug(LogMessageTitle, $"Owner id={owner.Id}: initial recert creation skipped because an initial entry already exists.");
             }
         }
 

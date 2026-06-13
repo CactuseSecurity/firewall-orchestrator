@@ -145,7 +145,8 @@
     {
         try
         {
-            extStateHandler = new(apiConnection);
+            extStateHandler = await apiConnection.RunWithBestRole(authenticationStateTask!.Result.User, [Roles.Modeller, Roles.Admin, Roles.Auditor],
+                () => Task.FromResult(new ExtStateHandler(apiConnection)));
             ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
             Devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
         }
@@ -206,7 +207,8 @@
     private async Task<bool> GetActTicketStatus()
     {
         LastRequestStartedAt = null;
-        WfTicket? intTicket = await ModellingAppHandler.GetLatestFWRequestTicket(SelectedApp, apiConnection);
+        WfTicket? intTicket = await apiConnection.RunWithBestRole(authenticationStateTask!.Result.User, [Roles.Modeller, Roles.Admin, Roles.Auditor],
+            async () => await ModellingAppHandler.GetLatestFWRequestTicket(SelectedApp, apiConnection));
         if (intTicket != null)
         {
             LastRequestStartedAt = intTicket.CreationDate;

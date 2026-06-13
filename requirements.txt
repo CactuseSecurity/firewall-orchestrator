@@ -1,2 +1,2 @@
-ansible==12.3.0
-cryptography==48.0.0
+ansible==14.0.0
+cryptography==48.0.1

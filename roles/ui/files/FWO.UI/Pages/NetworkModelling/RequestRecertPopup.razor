@@ -236,16 +236,21 @@
 
     private async Task<bool> CheckImplementation()
     {
-        ExtStateHandler extStateHandler = await apiConnection.RunWithBestRole(authenticationStateTask!.Result.User, [Roles.Modeller, Roles.Admin, Roles.Auditor],
-            () => Task.FromResult(new ExtStateHandler(apiConnection)));
-        ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, AppHandler!.Application, DisplayMessageInUi);
-        ModellingFilter modellingFilter = new()
-        {
-            SelectedOwner = AppHandler!.Application,
-            AnalyseRemainingRules = userConfig.ModRecertExpectAllModelled,
-            RulesForDeletedConns = true
-        };
-        VarianceResult = await varianceAnalysis.AnalyseRulesVsModelledConnections(ModelledConnections, modellingFilter, true, true);
+        (VarianceResult, AppZoneModelled, MgmIdsWithDifferingAZ) = await apiConnection.RunWithBestRole(authenticationStateTask!.Result.User, [Roles.Modeller, Roles.Admin, Roles.Auditor],
+            async () =>
+            {
+                ExtStateHandler extStateHandler = new(apiConnection);
+                ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, AppHandler!.Application, DisplayMessageInUi);
+                ModellingFilter modellingFilter = new()
+                {
+                    SelectedOwner = AppHandler!.Application,
+                    AnalyseRemainingRules = userConfig.ModRecertExpectAllModelled,
+                    RulesForDeletedConns = true
+                };
+                ModellingVarianceResult varianceResult = await varianceAnalysis.AnalyseRulesVsModelledConnections(ModelledConnections, modellingFilter, true, true);
+                (bool appZoneModelled, List<ModellingAppZone?> mgmIdsWithDifferingAZ) = await varianceAnalysis.CheckExistingAppZone();
+                return (varianceResult, appZoneModelled, mgmIdsWithDifferingAZ);
+            });
         RulesFromDeletedConns = [];
         foreach(var mgt in VarianceResult.DeletedModelsRules.Keys)
         {
@@ -256,7 +261,6 @@
         {
             UnmodelledRules.AddRange(VarianceResult.UnModelledRules[mgt]);
         }
-        (AppZoneModelled, MgmIdsWithDifferingAZ) = await varianceAnalysis.CheckExistingAppZone();
 
         return MissingAppRoles.Count == 0 && DifferingAppRoles.Count == 0 && RulesFromDeletedConns.Count == 0 && UnmodelledRules.Count == 0
             && VarianceResult.ConnsNotImplemented.Count == 0 && VarianceResult.RuleDifferences.Count == 0

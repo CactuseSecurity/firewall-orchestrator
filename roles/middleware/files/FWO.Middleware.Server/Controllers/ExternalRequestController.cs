@@ -41,7 +41,7 @@ namespace FWO.Middleware.Server.Controllers
             if (parameters.TicketId > 0)
             {
                 using GlobalConfig GlobalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
-                using UserConfig userConfig = new(GlobalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
+                using UserConfig userConfig = UserConfig.ForGlobalSettings(GlobalConfig, apiConnection);
                 using ExternalRequestHandler extRequestHandler = new(userConfig, apiConnection);
                 return await extRequestHandler.SendFirstRequest(parameters.TicketId);
             }
@@ -70,7 +70,7 @@ namespace FWO.Middleware.Server.Controllers
             if (parameters.ExtRequestId > 0)
             {
                 using GlobalConfig GlobalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
-                using UserConfig userConfig = new(GlobalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
+                using UserConfig userConfig = UserConfig.ForGlobalSettings(GlobalConfig, apiConnection);
                 using ExternalRequestHandler extRequestHandler = new(userConfig, apiConnection);
                 ExternalRequest extRequest = new()
                 {

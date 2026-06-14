@@ -16,7 +16,7 @@ namespace FWO.Middleware.Server
     /// <summary>
     /// Class handling the Import Change Notification
     /// </summary>
-    public class ImportChangeNotifier
+    public class ImportChangeNotifier : IDisposable
     {
         /// <summary>
         /// Api Connection
@@ -59,6 +59,7 @@ namespace FWO.Middleware.Server
         private readonly DeviceFilter deviceFilter = new();
         private List<int> importedManagements = [];
         private readonly UserConfig userConfig;
+        private bool disposed = false;
         private const string LogMessageTitle = "Import Change Notifier";
 
 
@@ -69,7 +70,29 @@ namespace FWO.Middleware.Server
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
-            userConfig = new(globalConfig);
+            userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Releases resources used by the notifier.
+        /// </summary>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposed)
+            {
+                if (disposing)
+                {
+                    userConfig.Dispose();
+                }
+                disposed = true;
+            }
         }
 
         /// <summary>
@@ -77,6 +100,7 @@ namespace FWO.Middleware.Server
         /// </summary>
         public async Task Run()
         {
+            ObjectDisposedException.ThrowIf(disposed, this);
             try
             {
                 if (!WorkInProgress)

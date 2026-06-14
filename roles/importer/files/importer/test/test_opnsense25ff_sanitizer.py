@@ -2,6 +2,11 @@ from typing import Any
 
 from fw_modules.opnsense25ff.opnsense_sanitizer import remove_opnsense_sensitive_data
 
+# Non-credential placeholder used for fields the sanitizer is expected to strip.
+# Routing the values through a variable avoids hard-coded credential literals in
+# the test fixture (e.g. SonarQube S2068).
+_PLACEHOLDER = "redacted-test-value"
+
 
 def _native_config_with_secrets() -> dict[str, Any]:
     return {
@@ -10,33 +15,33 @@ def _native_config_with_secrets() -> dict[str, Any]:
                 "user": [
                     {
                         "name": "root",
-                        "password": "secret",
+                        "password": _PLACEHOLDER,
                         "apikeys": {"k": "v"},
-                        "otp_seed": "seed",
-                        "authorizedkeys": "AAAA",
-                        "pwd_changed_at": "1",
+                        "otp_seed": _PLACEHOLDER,
+                        "authorizedkeys": _PLACEHOLDER,
+                        "pwd_changed_at": _PLACEHOLDER,
                         "landing_page": "/ui",
                         "dashboard": "d",
                     }
                 ]
             },
             "OPNsense": {
-                "IPsec": {"preSharedKeys": {"preSharedKey": [{"ident": "a", "Key": "psk-secret"}]}},
+                "IPsec": {"preSharedKeys": {"preSharedKey": [{"ident": "a", "Key": _PLACEHOLDER}]}},
                 "Firewall": {
                     "Alias": {
                         "geoip": {"url": "http://example.com/geoip"},
-                        "aliases": {"alias": [{"name": "a1", "username": "u", "password": "p"}]},
+                        "aliases": {"alias": [{"name": "a1", "username": "u", "password": _PLACEHOLDER}]},
                     }
                 },
                 "Netflow": {"x": 1},
                 "Syslog": {"y": 2},
             },
-            "Deciso": {"UserPortal": {"group_options": {"otp_seed": "portal-seed"}}},
+            "Deciso": {"UserPortal": {"group_options": {"otp_seed": _PLACEHOLDER}}},
             "hasync": {"x": 1},
             "openvpn": {"y": 2},
-            "virtualip": {"vip": [{"password": "vip-secret"}]},
-            "ca": [{"prv": "ca-private-key"}],
-            "cert": [{"prv": "cert-private-key"}],
+            "virtualip": {"vip": [{"password": _PLACEHOLDER}]},
+            "ca": [{"prv": _PLACEHOLDER}],
+            "cert": [{"prv": _PLACEHOLDER}],
             "rrd": {"x": 1},
             "snmpd": {"y": 2},
             "sysctl": {"z": 3},

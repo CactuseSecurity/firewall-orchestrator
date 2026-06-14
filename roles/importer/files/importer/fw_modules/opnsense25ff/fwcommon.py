@@ -1,21 +1,17 @@
-"""Parser for OPNsense configurations.
+"""
+Parser for OPNsense configurations.
 
 The script retrieves and converts an OPNsense configuration into a simplified
 normalized JSON structure.
 """
 
-from socket import gethostname
-
 import requests
 import xmltodict
-from fw_modules.opnsense25ff.opnsense_normalizer import \
-    _normalize_opnsense_config
-from fw_modules.opnsense25ff.opnsense_parser import _parse_opnsense_config
-from fw_modules.opnsense25ff.opnsense_sanitizer import \
-    remove_opnsense_sensitive_data
+from fw_modules.opnsense25ff.opnsense_normalizer import normalize_opnsense_config
+from fw_modules.opnsense25ff.opnsense_sanitizer import remove_opnsense_sensitive_data
+from fwo_exceptions import FwoNativeConfigFetchError
 from fwo_log import FWOLogger
-from model_controllers.fwconfigmanagerlist_controller import \
-    FwConfigManagerListController
+from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.import_state_controller import ImportStateController
 from models.fw_common import FwCommon
 from requests.auth import HTTPBasicAuth
@@ -26,6 +22,7 @@ class OPNsense25common(FwCommon):
         self, config_in: FwConfigManagerListController, import_state: ImportStateController
     ) -> tuple[int, FwConfigManagerListController]:
         return get_config(config_in=config_in, import_state=import_state)
+
 
 def get_config(
     config_in: FwConfigManagerListController, import_state: ImportStateController
@@ -54,10 +51,12 @@ def get_config(
             FWOLogger.debug("[+] parsing complete!")
 
             # Stage 4: normalizing config
-            config_in = _normalize_opnsense_config(config_in, import_state=import_state)
+            config_in = normalize_opnsense_config(config_in, import_state=import_state)
             FWOLogger.debug("[+] normalizing complete!")
 
             return 0, config_in
 
         except requests.exceptions.RequestException as e:
-            raise FWOLogger.error(f"[-] get_config: API request failed: {e}") from e
+            msg = f"[-] get_config: API request failed: {e}"
+            FWOLogger.error(msg)
+            raise FwoNativeConfigFetchError(msg) from e

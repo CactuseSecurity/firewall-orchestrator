@@ -22,14 +22,27 @@ def remove_opnsense_sensitive_data(native_config: dict[str, Any]) -> dict[str, A
         user.pop("dashboard", None)
 
     # remove psk's from ipsec conf
-    for psk_entry in native_config.get("opnsense", {}).get("OPNsense", {}).get("IPsec", {}).get("preSharedKeys", {}).get("preSharedKey", {}):
+    for psk_entry in (
+        native_config.get("opnsense", {})
+        .get("OPNsense", {})
+        .get("IPsec", {})
+        .get("preSharedKeys", {})
+        .get("preSharedKey", {})
+    ):
         psk_entry.pop("Key", None)
 
     # remove geoip url
     native_config.get("opnsense", {}).get("OPNsense", {}).get("Firewall", {}).get("Alias", {}).pop("geoip", None)
 
     # remove username and password fields from aliases:
-    for alias in native_config.get("opnsense", {}).get("OPNsense", {}).get("Firewall", {}).get("Alias", {}).get("aliases", {}).get("alias", {}):
+    for alias in (
+        native_config.get("opnsense", {})
+        .get("OPNsense", {})
+        .get("Firewall", {})
+        .get("Alias", {})
+        .get("aliases", {})
+        .get("alias", {})
+    ):
         alias.pop("password")
         alias.pop("username")
 
@@ -74,20 +87,13 @@ def remove_opnsense_sensitive_data(native_config: dict[str, Any]) -> dict[str, A
     else:
         native_config.get("opnsense", {}).get("cert", {}).pop("prv")
 
-
-    native_config.get("opnsense", {}).get("Deciso", {}).get("UserPortal", {}).get("group_options", {}).pop("otp_seed", None)
+    native_config.get("opnsense", {}).get("Deciso", {}).get("UserPortal", {}).get("group_options", {}).pop(
+        "otp_seed", None
+    )
 
     # remove not necessary system level settings:
-    system_excludes = [
-        "dhcpdv6",
-        "openvpn",
-        "rrd",
-        "snmpd",
-        "sysctl",
-        "widgets"
-    ]
+    system_excludes = ["dhcpdv6", "openvpn", "rrd", "snmpd", "sysctl", "widgets"]
     for sys_ex in system_excludes:
         native_config.get("opnsense", {}).pop(sys_ex, None)
-
 
     return native_config

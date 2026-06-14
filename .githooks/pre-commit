@@ -45,7 +45,16 @@ done
 # Python Checks
 "${PYTHON_CMD[@]}" -m ruff check --fix
 "${PYTHON_CMD[@]}" -m ruff format
-"${PYTHON_CMD[@]}" -m pyright
+
+STAGED_PYRIGHT_FILES=()
+while IFS= read -r -d '' staged_file; do
+    STAGED_PYRIGHT_FILES+=("$staged_file")
+done < <(git diff --cached --name-only -z --diff-filter=ACMR -- '*.py')
+
+if [ "${#STAGED_PYRIGHT_FILES[@]}" -gt 0 ]; then
+    echo "Info: running pyright with $("${PYTHON_CMD[@]}" -m pyright --version) on ${#STAGED_PYRIGHT_FILES[@]} staged Python file(s)."
+    "${PYTHON_CMD[@]}" -m pyright "${STAGED_PYRIGHT_FILES[@]}"
+fi
 
 # Determine changed Dotnet files
 STAGED_ROLES_DOTNET_FORMAT_FILES=()

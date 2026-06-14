@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from fw_modules.fortiadom5ff import fmgr_getter
-from fw_modules.fortiadom5ff.fmgr_consts import nat_types
+from fw_modules.fortiadom5ff.fmgr_consts import EXPECTED_NATIP_LIST_LENGTH, nat_types
 from fw_modules.fortiadom5ff.fmgr_network import create_network_object
 from fw_modules.fortiadom5ff.fmgr_service import create_svc_object
 from fw_modules.fortiadom5ff.fmgr_zone import find_zones_in_normalized_config
@@ -17,6 +17,7 @@ from fwo_exceptions import (
 from fwo_log import FWOLogger
 from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
 from models.rulebase import Rulebase
+from netaddr import IPNetwork
 
 NETWORK_OBJECT = "network_object"
 STRING_PKG = "/pkg/"
@@ -109,7 +110,7 @@ def normalize_rulebases_for_each_link_destination(
             found_rulebase_in_global,
         )
 
-        _process_nat_rules_for_rulebase(
+        new_process_nat_rules_for_rulebase(
             gateway,
             normalized_config_adom,
             normalized_config_global,
@@ -145,6 +146,13 @@ def _find_rulebase_to_parse_for_link(
     return rulebase_to_parse, found_rulebase_in_global
 
 
+def find_rulebase_to_parse(rulebase_list: list[dict[str, Any]], rulebase_uid: str) -> dict[str, Any]:
+    for rulebase in rulebase_list:
+        if rulebase["uid"] == rulebase_uid:
+            return rulebase
+    return {}
+
+
 def _append_normalized_rulebase(
     normalized_config_adom: dict[str, Any],
     normalized_config_global: dict[str, Any],
@@ -155,353 +163,6 @@ def _append_normalized_rulebase(
         normalized_config_global["policies"].append(normalized_rulebase)
     else:
         normalized_config_adom["policies"].append(normalized_rulebase)
-
-
-def _process_nat_rules_for_rulebase(
-    gateway: dict[str, Any],
-    normalized_config_adom: dict[str, Any],
-    normalized_config_global: dict[str, Any],
-    rulebase_to_parse: dict[str, Any],
-    normalized_rulebase: Rulebase,
-) -> None:
-    has_nat_rules = any(
-        any(key in native_rule and native_rule[key] == 1 for key in ["nat", "nat46", "nat64"])
-        for native_rule in rulebase_to_parse.get("data", [])
-    )
-
-    if not has_nat_rules:
-        return
-
-    normalized_nat_rulebase = insert_parent_nat_rulebase(
-        normalized_config_adom,
-        normalized_config_global,
-        normalized_rulebase.uid,
-        normalized_rulebase.mgm_uid,
-    )
-
-    insert_nat_rulebase_link(
-        from_rulebase_uid=normalized_rulebase.uid,
-        to_rulebase_uid=normalized_nat_rulebase.uid,
-        gateway=gateway,
-    )
-
-    parse_nat_rules_in_rulebase(
-        normalized_config_adom,
-        normalized_config_global,
-        rulebase_to_parse,
-        normalized_nat_rulebase,
-    )
-
-
-def normalize_nat_rulebase(
-    rulebase_link: dict[str, Any],
-    native_config: dict[str, Any],
-    normalized_config_adom: dict[str, Any],
-    normalized_config_global: dict[str, Any],
-):
-    normalized_config_adom.setdefault("nat_policies", [])
-    link_type = rulebase_link.get("link_type", rulebase_link.get("type", "ordered"))
-    if link_type == "nat":
-        return
-
-    if not rulebase_link["is_section"]:
-        for nat_type in nat_types:
-            nat_type_string = nat_type + "_" + rulebase_link["to_rulebase_uid"]
-            nat_rulebase = get_native_nat_rulebase(native_config, nat_type_string)
-            parse_nat_rulebase(
-                nat_rulebase,
-                nat_type_string,
-                normalized_config_adom,
-                normalized_config_global,
-            )
-
-            normalized_config_adom["nat_policies"].extend(nat_rulebase)  # pyright: ignore[reportUnknownMemberType]
-
-
-def get_native_nat_rulebase(native_config: dict[str, Any], nat_type_string: str) -> list[dict[str, Any]]:
-    for nat_rulebase in native_config["nat_rulebases"]:
-        if nat_type_string == nat_rulebase["type"]:
-            return nat_rulebase["data"]
-    FWOLogger.warning("no nat data for " + nat_type_string)
-    return []
-
-
-def find_rulebase_to_parse(rulebase_list: list[dict[str, Any]], rulebase_uid: str) -> dict[str, Any]:
-    for rulebase in rulebase_list:
-        if rulebase["uid"] == rulebase_uid:
-            return rulebase
-    return {}
-
-
-def insert_parent_nat_rulebase(
-    normalized_config_adom: dict[str, Any],
-    _normalized_config_global: dict[str, Any],
-    rulebase_uid: str,
-    mgm_uid: str,
-) -> Rulebase:
-    """
-    Creates a NAT rulebase for the given access rulebase.
-    Similar to CheckPoint's cp_nat.py insert_parent_nat_rulebase.
-    """
-    nat_rulebase_uid = "nat-rulebase-" + rulebase_uid
-    normalized_nat_rulebase = Rulebase(
-        uid=nat_rulebase_uid,
-        mgm_uid=mgm_uid,
-        name="NAT",
-        rules={},
-    )
-
-    # Add to adom policies (avoid duplicates)
-    if not any(rb for rb in normalized_config_adom["policies"] if rb.uid == normalized_nat_rulebase.uid):
-        normalized_config_adom["policies"].append(normalized_nat_rulebase)
-
-    return normalized_nat_rulebase
-
-
-def insert_nat_rulebase_link(
-    from_rulebase_uid: str,
-    to_rulebase_uid: str,
-    gateway: dict[str, Any],
-) -> None:
-    """
-    Creates a RulebaseLink with link_type='nat' connecting access rulebase to NAT rulebase.
-    Similar to CheckPoint's cp_nat.py insert_rulebase_link.
-    """
-    if not any(
-        link
-        for link in gateway["rulebase_links"]
-        if link.get("to_rulebase_uid") == to_rulebase_uid
-        and link.get("link_type") == "nat"
-        and link.get("from_rulebase_uid") == from_rulebase_uid
-    ):
-        gateway["rulebase_links"].append(
-            {
-                "from_rulebase_uid": from_rulebase_uid,
-                "to_rulebase_uid": to_rulebase_uid,
-                "type": "nat",
-                "is_initial": False,
-                "is_global": False,
-                "is_section": False,
-            }
-        )
-
-
-def extract_nat_config_fields(native_rule: dict[str, Any]) -> str:
-    """
-    Extracts NAT-specific configuration fields from a native rule.
-    Returns a JSON string with NAT translation metadata.
-    """
-    nat_config: dict[str, Any] = {}
-
-    if native_rule.get("ippool") == 1:
-        nat_config["ippool"] = 1
-        poolname6 = native_rule.get("poolname6")
-        if isinstance(poolname6, list) and poolname6:
-            nat_config["poolname6"] = poolname6
-        elif isinstance(poolname6, str) and poolname6:
-            nat_config["poolname6"] = [poolname6]
-
-        poolname = native_rule.get("poolname")
-        if isinstance(poolname, list) and poolname:
-            nat_config["poolname"] = poolname
-        elif isinstance(poolname, str) and poolname:
-            nat_config["poolname"] = [poolname]
-
-    if "fixedport" in native_rule:
-        nat_config["fixedport"] = native_rule.get("fixedport")
-
-    if "nat" in native_rule and native_rule["nat"] == 1:
-        nat_config["nat_type"] = "nat"
-    elif "nat46" in native_rule and native_rule["nat46"] == 1:
-        nat_config["nat_type"] = "nat46"
-    elif "nat64" in native_rule and native_rule["nat64"] == 1:
-        nat_config["nat_type"] = "nat64"
-
-    return json.dumps(nat_config, sort_keys=True) if nat_config else "{}"
-
-
-def get_nat_translated_source(
-    native_rule: dict[str, Any],
-    normalized_config_adom: dict[str, Any],
-    normalized_config_global: dict[str, Any],
-) -> tuple[list[str], list[str]]:
-    if native_rule.get("ippool") == 1:
-        is_ipv6 = "poolname6" in native_rule and native_rule.get("poolname6") not in (None, [], "")
-        poolname = native_rule.get("poolname6" if is_ipv6 else "poolname", [])
-        if isinstance(poolname, str):
-            poolname = [poolname]
-        translated_src_list = sorted(poolname)
-        translated_src_refs_list = [
-            find_addr_ref(
-                pool,
-                is_v4=not is_ipv6,
-                normalized_config_adom=normalized_config_adom,
-                normalized_config_global=normalized_config_global,
-            )
-            for pool in translated_src_list
-        ]
-        return translated_src_list, translated_src_refs_list
-
-    rule_src_list, rule_src_refs_list = rule_parse_addresses(
-        native_rule, "src", normalized_config_adom, normalized_config_global, is_nat=True
-    )
-    return rule_src_list, rule_src_refs_list
-
-
-def parse_nat_rules_in_rulebase(
-    normalized_config_adom: dict[str, Any],
-    normalized_config_global: dict[str, Any],
-    rulebase_to_parse: dict[str, Any],
-    normalized_nat_rulebase: Rulebase,
-):
-    """
-    Extracts NAT rules from a rulebase and creates normalized NAT rules.
-    Creates two RuleNormalized objects per NAT rule (original + translated).
-    """
-    rule_num = 0
-    for native_rule in rulebase_to_parse.get("data", []):
-        # Check if this is a NAT rule
-        is_nat_rule = any(key in native_rule and native_rule[key] == 1 for key in ["nat", "nat46", "nat64"])
-        if not is_nat_rule:
-            continue
-
-        rule_disabled = True
-        if "status" in native_rule and (native_rule["status"] == 1 or native_rule["status"] == "enable"):
-            rule_disabled = False
-
-        # Parse addresses for original rule
-        rule_src_list, rule_src_refs_list = rule_parse_addresses(
-            native_rule, "src", normalized_config_adom, normalized_config_global, is_nat=True
-        )
-        rule_dst_list, rule_dst_refs_list = rule_parse_addresses(
-            native_rule, "dst", normalized_config_adom, normalized_config_global, is_nat=True
-        )
-        translated_src_list, translated_src_refs_list = get_nat_translated_source(
-            native_rule, normalized_config_adom, normalized_config_global
-        )
-
-        rule_svc_list, rule_svc_refs_list = rule_parse_service(native_rule)
-
-        rule_src_zones = find_zones_in_normalized_config(
-            native_rule.get("srcintf", []), normalized_config_adom, normalized_config_global
-        )
-        rule_dst_zones = find_zones_in_normalized_config(
-            native_rule.get("dstintf", []), normalized_config_adom, normalized_config_global
-        )
-
-        # Extract NAT config fields
-        nat_config_fields = extract_nat_config_fields(native_rule)
-
-        rule_uid = native_rule.get("uuid")
-        if not rule_uid:
-            FWOLogger.warning("NAT rule without UUID, skipping")
-            continue
-
-        # Prepare translated fields: if a translated field equals the original,
-        # replace it with the standard placeholder object "Original".
-        ensure_original_objects(normalized_config_adom, normalized_config_global)
-
-        translated_dst_list_local = list(rule_dst_list)
-        translated_dst_refs_list_local = list(rule_dst_refs_list)
-        translated_svc_list_local = list(rule_svc_list)
-        translated_svc_refs_list_local = list(rule_svc_refs_list)
-
-        # If translation did not change the source, mark it as Original
-        if set(translated_src_list) == set(rule_src_list):
-            translated_src_list = ["Original"]
-            translated_src_refs_list = ["Original"]
-
-        # If translated destination equals original destination, use Original placeholder
-        if set(translated_dst_list_local) == set(rule_dst_list):
-            translated_dst_list_local = ["Original"]
-            translated_dst_refs_list_local = ["Original"]
-
-        # If translated service equals original service, use Original placeholder
-        if set(translated_svc_list_local) == set(rule_svc_list):
-            translated_svc_list_local = ["Original"]
-            translated_svc_refs_list_local = ["Original"]
-
-        # Create original rule (match phase)
-        rule_original_uid = f"{rule_uid}-original"
-        rule_translated_uid = f"{rule_uid}-translated"
-
-        rule_original = RuleNormalized(
-            rule_num=rule_num,
-            rule_num_numeric=0,
-            rule_disabled=rule_disabled,
-            rule_src_neg=False,
-            rule_src=LIST_DELIMITER.join(rule_src_list),
-            rule_src_refs=LIST_DELIMITER.join(rule_src_refs_list),
-            rule_dst_neg=False,
-            rule_dst=LIST_DELIMITER.join(rule_dst_list),
-            rule_dst_refs=LIST_DELIMITER.join(rule_dst_refs_list),
-            rule_svc_neg=False,
-            rule_svc=LIST_DELIMITER.join(rule_svc_list),
-            rule_svc_refs=LIST_DELIMITER.join(rule_svc_refs_list),
-            rule_action=rule_parse_action(native_rule),
-            rule_track=rule_parse_tracking_info(native_rule),
-            rule_installon=rule_parse_installon(native_rule),
-            rule_time=rule_parse_time(native_rule),
-            rule_name=native_rule.get("name", ""),
-            rule_uid=rule_original_uid,
-            rule_custom_fields=None,
-            rule_implied=False,
-            rule_type=RuleType.NAT,
-            last_change_admin=None,
-            parent_rule_uid=None,
-            last_hit=rule_parse_last_hit(native_rule),
-            rule_comment=native_rule.get("comments"),
-            rule_src_zone=LIST_DELIMITER.join(rule_src_zones),
-            rule_dst_zone=LIST_DELIMITER.join(rule_dst_zones),
-            rule_head_text=None,
-            access_rule=False,
-            nat_rule=True,
-            xlate_rule_uid=rule_translated_uid,
-        )
-
-        # Create translated rule (translation phase)
-        # Keep the original destination and service; translate the source to the NAT pool.
-        rule_translated = RuleNormalized(
-            rule_num=rule_num,
-            rule_num_numeric=0,
-            rule_disabled=rule_disabled,
-            rule_src_neg=False,
-            rule_src=LIST_DELIMITER.join(translated_src_list),
-            rule_src_refs=LIST_DELIMITER.join(translated_src_refs_list),
-            rule_dst_neg=False,
-            rule_dst=LIST_DELIMITER.join(translated_dst_list_local),
-            rule_dst_refs=LIST_DELIMITER.join(translated_dst_refs_list_local),
-            rule_svc_neg=False,
-            rule_svc=LIST_DELIMITER.join(translated_svc_list_local),
-            rule_svc_refs=LIST_DELIMITER.join(translated_svc_refs_list_local),
-            rule_action=rule_parse_action(native_rule),
-            rule_track=rule_parse_tracking_info(native_rule),
-            rule_installon=rule_parse_installon(native_rule),
-            rule_time=rule_parse_time(native_rule),
-            rule_name=native_rule.get("name", ""),
-            rule_uid=rule_translated_uid,
-            rule_custom_fields=nat_config_fields,
-            rule_implied=False,
-            rule_type=RuleType.NAT,
-            last_change_admin=None,
-            parent_rule_uid=None,
-            last_hit=rule_parse_last_hit(native_rule),
-            rule_comment=native_rule.get("comments"),
-            rule_src_zone=LIST_DELIMITER.join(rule_src_zones),
-            rule_dst_zone=LIST_DELIMITER.join(rule_dst_zones),
-            rule_head_text=None,
-            access_rule=False,
-            nat_rule=True,
-            xlate_rule_uid=None,
-        )
-
-        # Add both rules to the NAT rulebase
-        if rule_original.rule_uid:
-            normalized_nat_rulebase.rules[rule_original.rule_uid] = rule_original
-        if rule_translated.rule_uid:
-            normalized_nat_rulebase.rules[rule_translated.rule_uid] = rule_translated
-
-        rule_num += 1
 
 
 def initialize_normalized_rulebase(rulebase_to_parse: dict[str, Any], mgm_uid: str) -> Rulebase:
@@ -873,6 +534,20 @@ def ensure_original_objects(normalized_config_adom: dict[str, Any], normalized_c
             )
         )
 
+    if not any(obj.get("obj_name") == "Outgoing Interface IP" for obj in combined_nw):
+        normalized_config_adom["network_objects"].append(
+            create_network_object(
+                name="Outgoing Interface IP",
+                obj_type="network",
+                ip=ANY_IP_START,
+                ip_end=ANY_IP_END,
+                uid="Outgoing_Interface_IP",
+                color="black",
+                comment='"Outgoing Interface IP" network object created by FWO importer for NAT purposes',
+                zone="global",
+            )
+        )
+
 
 def find_addr_ref(
     addr: str,
@@ -1180,6 +855,40 @@ def has_rulebase_data(
     return has_data
 
 
+def handle_combined_nat_rule(
+    rule: dict[str, Any],
+    rule_orig: dict[str, Any],
+    config2import: dict[str, Any],
+    nat_rule_number: int,
+    dev_id: int,
+) -> dict[str, Any] | None:
+    # TODO: see fOS_rule for reference implementation
+    raise NotImplementedError("handle_combined_nat_rule is not implemented yet")
+
+
+def add_users_to_rule(rule_orig: dict[str, Any], rule: dict[str, Any]) -> None:
+    if "groups" in rule_orig:
+        add_users(rule_orig["groups"], rule)
+    if "users" in rule_orig:
+        add_users(rule_orig["users"], rule)
+
+
+def add_users(users: list[str], rule: dict[str, Any]) -> None:
+    for user in users:
+        rule_src_with_users = [user + "@" + src for src in rule["rule_src"].split(LIST_DELIMITER)]
+
+        rule["rule_src"] = LIST_DELIMITER.join(rule_src_with_users)
+
+        # here user ref is the user name itself
+        rule_src_refs_with_users = [user + "@" + src for src in rule["rule_src_refs"].split(LIST_DELIMITER)]
+        rule["rule_src_refs"] = LIST_DELIMITER.join(rule_src_refs_with_users)
+
+
+###################
+# NAT STARTS HERE #
+###################
+
+
 def get_nat_policy(
     sid: str,
     fm_api_url: str,
@@ -1333,17 +1042,6 @@ def create_xlate_rule(rule: dict[str, Any]) -> dict[str, Any]:
     return xlate_rule
 
 
-def handle_combined_nat_rule(
-    rule: dict[str, Any],
-    rule_orig: dict[str, Any],
-    config2import: dict[str, Any],
-    nat_rule_number: int,
-    dev_id: int,
-) -> dict[str, Any] | None:
-    # TODO: see fOS_rule for reference implementation
-    raise NotImplementedError("handle_combined_nat_rule is not implemented yet")
-
-
 def extract_nat_objects(nwobj_list: list[str], all_nwobjects: list[dict[str, str]]) -> list[dict[str, str]]:
     nat_obj_list: list[dict[str, str]] = []
     for obj in nwobj_list:
@@ -1355,19 +1053,403 @@ def extract_nat_objects(nwobj_list: list[str], all_nwobjects: list[dict[str, str
     return nat_obj_list
 
 
-def add_users_to_rule(rule_orig: dict[str, Any], rule: dict[str, Any]) -> None:
-    if "groups" in rule_orig:
-        add_users(rule_orig["groups"], rule)
-    if "users" in rule_orig:
-        add_users(rule_orig["users"], rule)
+def is_nat_rule(
+    native_rule: dict[str, Any],
+    normalized_config_adom: dict[str, Any],
+    normalized_config_global: dict[str, Any],
+) -> tuple[bool, bool]:
+    is_snat = any(key in native_rule and native_rule[key] == 1 for key in ["nat", "nat46", "nat64"])
+
+    dst_addrs = native_rule.get("dstaddr", []) + native_rule.get("dstaddr6", [])
+
+    vip_objects: list[dict[str, Any]] = []
+    network_objects = normalized_config_adom.get("network_objects", []) + normalized_config_global.get(
+        "network_objects", []
+    )
+
+    for nw_obj in network_objects:
+        if "firewall/vip" in nw_obj.get("obj_native_type", ""):
+            vip_objects.extend([nw_obj])
+
+    for addr in dst_addrs:
+        if any(addr == vip_obj.get("obj_name") for vip_obj in vip_objects):
+            return is_snat, True
+
+    return is_snat, False
 
 
-def add_users(users: list[str], rule: dict[str, Any]) -> None:
-    for user in users:
-        rule_src_with_users = [user + "@" + src for src in rule["rule_src"].split(LIST_DELIMITER)]
+def parse_nat_ip(
+    entries: list[str],
+    native_rule: dict[str, Any],
+    normalized_config_adom: dict[str, Any],
+) -> tuple[list[str], list[str]]:
+    """
+    Example entries: ["1.2.3.4", "255.255.255.255"]
 
-        rule["rule_src"] = LIST_DELIMITER.join(rule_src_with_users)
+    Creates a network object for
+    """
+    if len(entries) != EXPECTED_NATIP_LIST_LENGTH:
+        FWOLogger.warning(f"Unexpected number of entries for NAT IP parsing: {len(entries)}. Expected 2.")
+        return [], []
 
-        # here user ref is the user name itself
-        rule_src_refs_with_users = [user + "@" + src for src in rule["rule_src_refs"].split(LIST_DELIMITER)]
-        rule["rule_src_refs"] = LIST_DELIMITER.join(rule_src_refs_with_users)
+    parsed_ip = str(IPNetwork(f"{entries[0]}/{entries[1]}"))
+    uid = f"{native_rule.get('uuid', 'Translated_IP')}_Translated_IP"
+    normalized_config_adom["network_objects"].append(
+        create_network_object(
+            name=native_rule.get("name", "Translated_IP"),
+            obj_type="network",
+            ip=parsed_ip,
+            ip_end=parsed_ip,
+            uid=uid,
+            color="black",
+            comment="Translated IP network object created by FWO importer for NAT purposes",
+            zone="global",
+        )
+    )
+
+    return [parsed_ip], [uid]
+
+
+def parse_nat_rules_in_rulebase(
+    normalized_config_adom: dict[str, Any],
+    normalized_config_global: dict[str, Any],
+    rulebase_to_parse: dict[str, Any],
+    normalized_nat_rulebase: Rulebase,
+):
+    """
+    Extracts NAT rules from a rulebase and creates normalized NAT rules.
+    Creates two RuleNormalized objects per NAT rule (original + translated).
+    """
+    rule_num = 0
+    for native_rule in rulebase_to_parse.get("data", []):
+        # Check if this is a NAT rule
+        is_snat, is_dnat = is_nat_rule(native_rule, normalized_config_adom, normalized_config_global)
+
+        if not is_snat and not is_dnat:
+            continue
+
+        rule_disabled = True
+        if "status" in native_rule and (native_rule["status"] == 1 or native_rule["status"] == "enable"):
+            rule_disabled = False
+
+        # Parse addresses for original rule
+        rule_src_list, rule_src_refs_list = rule_parse_addresses(
+            native_rule, "src", normalized_config_adom, normalized_config_global, is_nat=True
+        )
+        rule_dst_list, rule_dst_refs_list = rule_parse_addresses(
+            native_rule, "dst", normalized_config_adom, normalized_config_global, is_nat=True
+        )
+        translated_src_list, translated_src_refs_list = get_nat_translated_source(
+            native_rule, normalized_config_adom, normalized_config_global
+        )
+
+        rule_svc_list, rule_svc_refs_list = rule_parse_service(native_rule)
+
+        rule_src_zones = find_zones_in_normalized_config(
+            native_rule.get("srcintf", []), normalized_config_adom, normalized_config_global
+        )
+        rule_dst_zones = find_zones_in_normalized_config(
+            native_rule.get("dstintf", []), normalized_config_adom, normalized_config_global
+        )
+
+        # Extract NAT config fields
+        nat_config_fields = extract_nat_config_fields(native_rule)
+
+        rule_uid = native_rule.get("uuid")
+        if not rule_uid:
+            FWOLogger.warning("NAT rule without UUID, skipping")
+            continue
+
+        # Prepare translated fields: if a translated field equals the original,
+        # replace it with the standard placeholder object "Original".
+        ensure_original_objects(normalized_config_adom, normalized_config_global)
+
+        translated_dst_list_local = list(rule_dst_list)
+        translated_dst_refs_list_local = list(rule_dst_refs_list)
+        translated_svc_list_local = list(rule_svc_list)
+        translated_svc_refs_list_local = list(rule_svc_refs_list)
+
+        # If translation did not change the source, mark it as Original
+        if set(translated_src_list) == set(rule_src_list):
+            translated_src_list = ["Original"]
+            translated_src_refs_list = ["Original"]
+
+        # If this is a SNAT rule with no IP pool, the translated source is the outgoing interface IP
+        if is_snat and native_rule.get("ippool") == 0:
+            translated_src_list = ["Outgoing Interface IP"]
+            translated_src_refs_list = ["Outgoing_Interface_IP"]
+
+        # If translated destination equals original destination, use Original placeholder
+        if set(translated_dst_list_local) == set(rule_dst_list) and not is_dnat:
+            translated_dst_list_local = ["Original"]
+            translated_dst_refs_list_local = ["Original"]
+
+        # If translated service equals original service, use Original placeholder
+        if set(translated_svc_list_local) == set(rule_svc_list):
+            translated_svc_list_local = ["Original"]
+            translated_svc_refs_list_local = ["Original"]
+
+        if native_rule.get("rtp-nat") == 1:
+            translated_src_list, translated_src_refs_list = parse_nat_ip(
+                native_rule.get("natip", []), native_rule, normalized_config_adom
+            )
+
+        # Create original rule (match phase)
+        rule_original_uid = f"{rule_uid}-original"
+        rule_translated_uid = f"{rule_uid}-translated"
+
+        rule_original = RuleNormalized(
+            rule_num=rule_num,
+            rule_num_numeric=0,
+            rule_disabled=rule_disabled,
+            rule_src_neg=False,
+            rule_src=LIST_DELIMITER.join(rule_src_list),
+            rule_src_refs=LIST_DELIMITER.join(rule_src_refs_list),
+            rule_dst_neg=False,
+            rule_dst=LIST_DELIMITER.join(rule_dst_list),
+            rule_dst_refs=LIST_DELIMITER.join(rule_dst_refs_list),
+            rule_svc_neg=False,
+            rule_svc=LIST_DELIMITER.join(rule_svc_list),
+            rule_svc_refs=LIST_DELIMITER.join(rule_svc_refs_list),
+            rule_action=rule_parse_action(native_rule),
+            rule_track=rule_parse_tracking_info(native_rule),
+            rule_installon=rule_parse_installon(native_rule),
+            rule_time=rule_parse_time(native_rule),
+            rule_name=native_rule.get("name", ""),
+            rule_uid=rule_original_uid,
+            rule_custom_fields=None,
+            rule_implied=False,
+            rule_type=RuleType.NAT,
+            last_change_admin=None,
+            parent_rule_uid=None,
+            last_hit=rule_parse_last_hit(native_rule),
+            rule_comment=native_rule.get("comments"),
+            rule_src_zone=LIST_DELIMITER.join(rule_src_zones),
+            rule_dst_zone=LIST_DELIMITER.join(rule_dst_zones),
+            rule_head_text=None,
+            access_rule=False,
+            nat_rule=True,
+            xlate_rule_uid=rule_translated_uid,
+        )
+
+        # Create translated rule (translation phase)
+        # Keep the original destination and service; translate the source to the NAT pool.
+        rule_translated = RuleNormalized(
+            rule_num=rule_num,
+            rule_num_numeric=0,
+            rule_disabled=rule_disabled,
+            rule_src_neg=False,
+            rule_src=LIST_DELIMITER.join(translated_src_list),
+            rule_src_refs=LIST_DELIMITER.join(translated_src_refs_list),
+            rule_dst_neg=False,
+            rule_dst=LIST_DELIMITER.join(translated_dst_list_local),
+            rule_dst_refs=LIST_DELIMITER.join(translated_dst_refs_list_local),
+            rule_svc_neg=False,
+            rule_svc=LIST_DELIMITER.join(translated_svc_list_local),
+            rule_svc_refs=LIST_DELIMITER.join(translated_svc_refs_list_local),
+            rule_action=rule_parse_action(native_rule),
+            rule_track=rule_parse_tracking_info(native_rule),
+            rule_installon=rule_parse_installon(native_rule),
+            rule_time=rule_parse_time(native_rule),
+            rule_name=native_rule.get("name", ""),
+            rule_uid=rule_translated_uid,
+            rule_custom_fields=nat_config_fields,
+            rule_implied=False,
+            rule_type=RuleType.NAT,
+            last_change_admin=None,
+            parent_rule_uid=None,
+            last_hit=rule_parse_last_hit(native_rule),
+            rule_comment=native_rule.get("comments"),
+            rule_src_zone=LIST_DELIMITER.join(rule_src_zones),
+            rule_dst_zone=LIST_DELIMITER.join(rule_dst_zones),
+            rule_head_text=None,
+            access_rule=False,
+            nat_rule=True,
+            xlate_rule_uid=None,
+        )
+
+        # Add both rules to the NAT rulebase
+        if rule_original.rule_uid:
+            normalized_nat_rulebase.rules[rule_original.rule_uid] = rule_original
+        if rule_translated.rule_uid:
+            normalized_nat_rulebase.rules[rule_translated.rule_uid] = rule_translated
+
+        rule_num += 1
+
+
+def extract_nat_config_fields(native_rule: dict[str, Any]) -> str:
+    """
+    Extracts NAT-specific configuration fields from a native rule.
+    Returns a JSON string with NAT translation metadata.
+    """
+    nat_config: dict[str, Any] = {}
+
+    if native_rule.get("ippool") == 1:
+        nat_config["ippool"] = 1
+        poolname6 = native_rule.get("poolname6")
+        if isinstance(poolname6, list) and poolname6:
+            nat_config["poolname6"] = poolname6
+        elif isinstance(poolname6, str) and poolname6:
+            nat_config["poolname6"] = [poolname6]
+
+        poolname = native_rule.get("poolname")
+        if isinstance(poolname, list) and poolname:
+            nat_config["poolname"] = poolname
+        elif isinstance(poolname, str) and poolname:
+            nat_config["poolname"] = [poolname]
+
+    if "fixedport" in native_rule:
+        nat_config["fixedport"] = native_rule.get("fixedport")
+
+    if "nat" in native_rule and native_rule["nat"] == 1:
+        nat_config["nat_type"] = "nat"
+    elif "nat46" in native_rule and native_rule["nat46"] == 1:
+        nat_config["nat_type"] = "nat46"
+    elif "nat64" in native_rule and native_rule["nat64"] == 1:
+        nat_config["nat_type"] = "nat64"
+
+    return json.dumps(nat_config, sort_keys=True) if nat_config else "{}"
+
+
+def get_nat_translated_source(
+    native_rule: dict[str, Any],
+    normalized_config_adom: dict[str, Any],
+    normalized_config_global: dict[str, Any],
+) -> tuple[list[str], list[str]]:
+    if native_rule.get("ippool") == 1:
+        is_ipv6 = "poolname6" in native_rule and native_rule.get("poolname6") not in (None, [], "")
+        poolname = native_rule.get("poolname6" if is_ipv6 else "poolname", [])
+        if isinstance(poolname, str):
+            poolname = [poolname]
+        translated_src_list = sorted(poolname)
+        translated_src_refs_list = [
+            find_addr_ref(
+                pool,
+                is_v4=not is_ipv6,
+                normalized_config_adom=normalized_config_adom,
+                normalized_config_global=normalized_config_global,
+            )
+            for pool in translated_src_list
+        ]
+        return translated_src_list, translated_src_refs_list
+
+    rule_src_list, rule_src_refs_list = rule_parse_addresses(
+        native_rule, "src", normalized_config_adom, normalized_config_global, is_nat=True
+    )
+    return rule_src_list, rule_src_refs_list
+
+
+def new_process_nat_rules_for_rulebase(
+    gateway: dict[str, Any],
+    normalized_config_adom: dict[str, Any],
+    normalized_config_global: dict[str, Any],
+    rulebase_to_parse: dict[str, Any],
+    normalized_rulebase: Rulebase,
+) -> None:
+    has_nat_rules = any(
+        any(key in native_rule and native_rule[key] == 1 for key in ["nat", "nat46", "nat64"])
+        for native_rule in rulebase_to_parse.get("data", [])
+    )
+
+    if not has_nat_rules:
+        return
+
+    normalized_nat_rulebase = insert_parent_nat_rulebase(
+        normalized_config_adom,
+        normalized_config_global,
+        normalized_rulebase.uid,
+        normalized_rulebase.mgm_uid,
+    )
+
+    insert_nat_rulebase_link(
+        from_rulebase_uid=normalized_rulebase.uid,
+        to_rulebase_uid=normalized_nat_rulebase.uid,
+        gateway=gateway,
+    )
+
+    parse_nat_rules_in_rulebase(
+        normalized_config_adom,
+        normalized_config_global,
+        rulebase_to_parse,
+        normalized_nat_rulebase,
+    )
+
+
+def normalize_nat_rulebase(
+    rulebase_link: dict[str, Any],
+    native_config: dict[str, Any],
+    normalized_config_adom: dict[str, Any],
+    normalized_config_global: dict[str, Any],
+):
+    normalized_config_adom.setdefault("nat_policies", [])
+    link_type = rulebase_link.get("link_type", rulebase_link.get("type", "ordered"))
+    if link_type == "nat":
+        return
+
+    if not rulebase_link["is_section"]:
+        for nat_type in nat_types:
+            nat_type_string = nat_type + "_" + rulebase_link["to_rulebase_uid"]
+            nat_rulebase = get_native_nat_rulebase(native_config, nat_type_string)
+            parse_nat_rulebase(
+                nat_rulebase,
+                nat_type_string,
+                normalized_config_adom,
+                normalized_config_global,
+            )
+
+            normalized_config_adom["nat_policies"].extend(nat_rulebase)  # pyright: ignore[reportUnknownMemberType]
+
+
+def get_native_nat_rulebase(native_config: dict[str, Any], nat_type_string: str) -> list[dict[str, Any]]:
+    for nat_rulebase in native_config["nat_rulebases"]:
+        if nat_type_string == nat_rulebase["type"]:
+            return nat_rulebase["data"]
+    FWOLogger.warning("no nat data for " + nat_type_string)
+    return []
+
+
+def insert_parent_nat_rulebase(
+    normalized_config_adom: dict[str, Any],
+    _normalized_config_global: dict[str, Any],
+    rulebase_uid: str,
+    mgm_uid: str,
+) -> Rulebase:
+    # Creates a NAT rulebase for the given access rulebase.
+    nat_rulebase_uid = "nat-rulebase-" + rulebase_uid
+    normalized_nat_rulebase = Rulebase(
+        uid=nat_rulebase_uid,
+        mgm_uid=mgm_uid,
+        name="NAT",
+        rules={},
+    )
+
+    # Add to adom policies (avoid duplicates)
+    if not any(rb for rb in normalized_config_adom["policies"] if rb.uid == normalized_nat_rulebase.uid):
+        normalized_config_adom["policies"].append(normalized_nat_rulebase)
+
+    return normalized_nat_rulebase
+
+
+def insert_nat_rulebase_link(
+    from_rulebase_uid: str,
+    to_rulebase_uid: str,
+    gateway: dict[str, Any],
+) -> None:
+    # Creates a RulebaseLink with link_type='nat' connecting access rulebase to NAT rulebase.
+    if not any(
+        link
+        for link in gateway["rulebase_links"]
+        if link.get("to_rulebase_uid") == to_rulebase_uid
+        and link.get("link_type") == "nat"
+        and link.get("from_rulebase_uid") == from_rulebase_uid
+    ):
+        gateway["rulebase_links"].append(
+            {
+                "from_rulebase_uid": from_rulebase_uid,
+                "to_rulebase_uid": to_rulebase_uid,
+                "type": "nat",
+                "is_initial": False,
+                "is_global": False,
+                "is_section": False,
+            }
+        )

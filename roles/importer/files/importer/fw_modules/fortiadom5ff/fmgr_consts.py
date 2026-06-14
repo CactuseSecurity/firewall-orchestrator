@@ -26,3 +26,5 @@ svc_obj_types = [
 
 nat_types = ["central/dnat", "central/dnat6", "firewall/central-snat-map"]
 user_obj_types = ["user/local", "user/group"]
+
+EXPECTED_NATIP_LIST_LENGTH = 2

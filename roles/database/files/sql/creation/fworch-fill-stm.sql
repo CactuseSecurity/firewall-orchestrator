@@ -514,6 +514,8 @@ insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufac
     VALUES (28,'Cisco Asa','9','Cisco','',false,true,false);
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
     VALUES (29,'Cisco Asa on FirePower','9','Cisco','',false,true,false);
+insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
+    VALUES (30,'OPNsense standalone','25ff','Deciso','',false,true,false) ON CONFLICT DO NOTHING;
 
 -- SET statement_timeout = 0;
 -- SET client_encoding = 'UTF8';

@@ -31,7 +31,7 @@ namespace FWO.Test.Fixtures
             ApiConnection = new();
             Logger = new();
             GlobalConfig = new SimulatedGlobalConfig { AutoCalculateInternetZone = true, AutoCalculateUndefinedInternalZone = true, TreatDynamicAndDomainObjectsAsInternet = true };
-            UserConfig = new UserConfig(GlobalConfig, false);
+            UserConfig = UserConfig.ForTextOnly(GlobalConfig, false);
 
             SimulatedUserConfig.DummyTranslate["internet_local_zone"] = "Internet/Local";
             SimulatedUserConfig.DummyTranslate["assess_broadcast"] = "Network objects in source or destination with 255.255.255.255/32";

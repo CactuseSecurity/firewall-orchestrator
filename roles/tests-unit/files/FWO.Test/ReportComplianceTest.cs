@@ -21,7 +21,7 @@ namespace FWO.Test
             _testReport = _complianceReport;
             SimulatedGlobalConfig globalConfig = new();
             globalConfig.ComplianceCheckMaxPrintedViolations = 2;
-            UserConfig userConfig = new(globalConfig);
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
 
             _testDiffReport = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport);
             ;
@@ -152,7 +152,7 @@ namespace FWO.Test
             {
                 ComplianceCheckRelevantManagements = "9,10"
             };
-            UserConfig userConfig = new(globalConfig);
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
             MockReportCompliance report = new(new(""), userConfig, Basics.ReportType.ComplianceReport);
 
             Dictionary<string, object> queryVariables = report.CreateQueryVariablesPublic(0, 100, RuleQueries.getRulesWithCurrentViolationsByChunk);

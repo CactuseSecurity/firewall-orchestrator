@@ -104,7 +104,7 @@ builder.Services.AddSingleton(new GlobalConfigTokenRefreshOptions());
 builder.Services.AddHostedService<GlobalConfigTokenRefreshService>();
 
 // the user's personal config
-builder.Services.AddScoped<UserConfig>(_ => new UserConfig(globalConfig));
+builder.Services.AddScoped<UserConfig>(_ => UserConfig.ForTextOnly(globalConfig));
 
 builder.Services.AddScoped(_ => new NetworkZoneService());
 builder.Services.AddScoped(_ => new DomEventService());

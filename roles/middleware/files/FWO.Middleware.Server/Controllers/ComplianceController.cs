@@ -55,7 +55,7 @@ namespace FWO.Middleware.Server.Controllers
             try
             {
                 GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
-                UserConfig userConfig = new(globalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
+                UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
 
                 ComplianceCheck complianceCheck = new(userConfig, apiConnection);
                 await complianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
@@ -86,7 +86,7 @@ namespace FWO.Middleware.Server.Controllers
             try
             {
                 GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
-                UserConfig userConfig = new(globalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
+                UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
                 ComplianceCheck complianceCheck = new(userConfig, apiConnection);
                 await complianceCheck.RunComplianceCheck(ComplianceCheckType.Variable);
                 await complianceCheck.PersistDataAsync();
@@ -124,7 +124,7 @@ namespace FWO.Middleware.Server.Controllers
                     complianceCheckStatusTracker.SetRunning(jobStatus.JobId);
 
                     GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
-                    UserConfig userConfig = new(globalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
+                    UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
                     ComplianceCheck complianceCheck = new(userConfig, apiConnection);
                     await complianceCheck.RunComplianceCheck(ComplianceCheckType.Variable);
                     await complianceCheck.PersistDataAsync();

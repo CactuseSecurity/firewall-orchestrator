@@ -34,7 +34,7 @@ namespace FWO.Middleware.Server.Jobs
         {
             try
             {
-                ImportChangeNotifier notifyImportChanges = new(apiConnection, globalConfig);
+                using ImportChangeNotifier notifyImportChanges = new(apiConnection, globalConfig);
                 await notifyImportChanges.Run();
             }
             catch (Exception exc)

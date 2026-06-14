@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Api.Client;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Report;
 using FWO.Middleware.Server;
@@ -55,7 +56,7 @@ namespace FWO.Test
             NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.Recertification, globalConfig, apiConnection, ownerGroups);
             FwoOwner owner = new() { NextRecertDate = DateTime.Now.AddDays(21) };
 
-            int emailsSent = await notificationService.SendNotificationsIfDue(owner, null, EmailText, new ReportRecertEvent(new(""), new(globalConfig), Basics.ReportType.RecertificationEvent) { });
+            int emailsSent = await notificationService.SendNotificationsIfDue(owner, null, EmailText, new ReportRecertEvent(new(""), UserConfig.ForTextOnly(globalConfig), Basics.ReportType.RecertificationEvent) { });
             ClassicAssert.AreEqual(1, emailsSent);
 
             notificationService.Notifications[0].LastSent = DateTime.Now;

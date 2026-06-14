@@ -12,6 +12,18 @@ if TYPE_CHECKING:
 else:
     from netaddr_pydantic import IPAddress, IPNetwork  # noqa: TC002
 
+OPNSENSE_UUID_ALIAS = "@uuid"
+
+
+def _normalize_to_str_list(value: Any, separator: str = ",") -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return value.split(separator)
+    if isinstance(value, list):
+        return [str(v) for v in cast("list[object]", value)]
+    return [str(value)]
+
 
 class UserScopeEnum(str, Enum):
     SYSTEM = "system"
@@ -58,7 +70,7 @@ class FilterRuleIPProtoEnum(str, Enum):
 
 
 class OPNsenseIfGroup(BaseModel):
-    uuid: str = Field(alias="@uuid")  # /opnsense/ifgroups/ifgroupentry[x]/@uuid
+    uuid: str = Field(alias=OPNSENSE_UUID_ALIAS)  # /opnsense/ifgroups/ifgroupentry[x]/@uuid
     name: str = Field(alias="ifname")  # /opnsense/ifgroups/ifgroupentry[x]/ifname
     members: list[str]  # /opnsense/ifgroups/ifgroupentry[x]/members
     description: str | None = Field(alias="descr")  # /opnsense/ifgroups/ifgroupentry[x]/descr
@@ -66,17 +78,11 @@ class OPNsenseIfGroup(BaseModel):
     @field_validator("members", mode="before")
     @classmethod
     def normalize_members(cls, value: Any) -> list[str]:
-        if value is None:
-            return []
-        if isinstance(value, str):
-            return [str(v) for v in value.split(",")]
-        if isinstance(value, list):
-            return [str(v) for v in cast("list[object]", value)]
-        return [str(value)]
+        return _normalize_to_str_list(value)
 
 
 class OPNsenseGateway(BaseModel):
-    uuid: str = Field(alias="@uuid")  # /opnsense/OPNsense/Gateways/gateway_item[x]/@uuid
+    uuid: str = Field(alias=OPNSENSE_UUID_ALIAS)  # /opnsense/OPNsense/Gateways/gateway_item[x]/@uuid
     disabled: bool  # /opnsense/OPNsense/Gateways/gateway_item[x]/disabled
     name: str  # /opnsense/OPNsense/Gateways/gateway_item[x]/name
     interface: str  # /opnsense/OPNsense/Gateways/gateway_item[x]/interface
@@ -105,7 +111,7 @@ class OPNsenseNetwork(BaseModel):  # retrievable via host aliases
 
 # https://github.com/opnsense/core/blob/8bc595681e13fec63ef0f6e3fcc292cfff67496c/src/opnsense/mvc/app/models/OPNsense/Firewall/Alias.xml
 class OPNsenseAlias(BaseModel):
-    uuid: str = Field(alias="@uuid")  # /opnsense/OPNsense/Firewall/Aliases/alias[x]/@uuid
+    uuid: str = Field(alias=OPNSENSE_UUID_ALIAS)  # /opnsense/OPNsense/Firewall/Aliases/alias[x]/@uuid
     enabled: bool  # /opnsense/OPNsense/Firewall/Aliases/alias[x]/enabled
     name: str  # /opnsense/OPNsense/Firewall/Aliases/alias[x]/name
     type: AliasTypeEnum  # /opnsense/OPNsense/Firewall/Aliases/alias[x]/type
@@ -118,13 +124,7 @@ class OPNsenseAlias(BaseModel):
     @field_validator("value", mode="before")
     @classmethod
     def normalize_value(cls, value: Any) -> list[str]:
-        if value is None:
-            return []
-        if isinstance(value, str):
-            return [str(v) for v in value.split("\n")]
-        if isinstance(value, list):
-            return [str(v) for v in cast("list[object]", value)]
-        return [str(value)]
+        return _normalize_to_str_list(value, "\n")
 
 
 class OPNsenseHostAlias(OPNsenseAlias):
@@ -158,10 +158,18 @@ class OPNsensePortAlias(OPNsenseAlias):
     )  # /opnsense/OPNsense/Firewall/Aliases/alias[x]/content
 
 
+# union of address members shared by access and NAT rule fields
+AddressMemberList = list[str | OPNsenseHostAlias | OPNsenseNetworkAlias]
+
+
+def _empty_address_member_list() -> AddressMemberList:
+    return []
+
+
 # https://github.com/opnsense/core/blob/8bc595681e13fec63ef0f6e3fcc292cfff67496c/src/opnsense/mvc/app/models/OPNsense/Firewall/Filter.xml
 class OPNsenseAccessRule(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    uuid: str = Field(alias="@uuid")  # /opnsense/filter/rule[x]/@uuid
+    uuid: str = Field(alias=OPNSENSE_UUID_ALIAS)  # /opnsense/filter/rule[x]/@uuid
     disabled: bool = False  # /opnsense/filter/rule[x]/disabled
     action: FilterRuleActionEnum = Field(
         alias="type", default=FilterRuleActionEnum.PASS
@@ -212,13 +220,7 @@ class OPNsenseAccessRule(BaseModel):
     )
     @classmethod
     def normalize_str_list(cls, value: Any) -> list[str]:
-        if value is None:
-            return []
-        if isinstance(value, str):
-            return [str(v) for v in value.split(",")]
-        if isinstance(value, list):
-            return [str(v) for v in cast("list[object]", value)]
-        return [str(value)]
+        return _normalize_to_str_list(value)
 
     @field_validator("source_neg", "dest_neg", "interface_neg", "logging", mode="before")
     @classmethod
@@ -249,11 +251,11 @@ class OPNsenseNATRule(BaseModel):
     protocol: str = "Any"  # /opnsense/nat/outbound/rule[x]/protocol
     source_net: list[str | OPNsenseHostAlias | OPNsenseNetworkAlias] = Field(
         validation_alias=AliasPath("source", "network"),
-        default_factory=lambda: cast("list[str | OPNsenseHostAlias | OPNsenseNetworkAlias]", []),
+        default_factory=_empty_address_member_list,
     )  # /opnsense/nat/outbound/rule[x]/source[/network]
     source_addr: list[str | OPNsenseHostAlias | OPNsenseNetworkAlias] = Field(
         validation_alias=AliasPath("source", "address"),
-        default_factory=lambda: cast("list[str | OPNsenseHostAlias | OPNsenseNetworkAlias]", []),
+        default_factory=_empty_address_member_list,
     )  # /opnsense/nat/outbound/rule[x]/source[/address]
     source_neg: bool = Field(
         validation_alias=AliasPath("source", "not"), default=False
@@ -263,11 +265,11 @@ class OPNsenseNATRule(BaseModel):
     )  # /opnsense/nat/outbound/rule[x]/source/port
     dest_net: list[str | OPNsenseHostAlias | OPNsenseNetworkAlias] = Field(
         validation_alias=AliasPath("destination", "network"),
-        default_factory=lambda: cast("list[str | OPNsenseHostAlias | OPNsenseNetworkAlias]", []),
+        default_factory=_empty_address_member_list,
     )  # /opnsense/nat/outbound/rule[x]/source[/network]
     dest_addr: list[str | OPNsenseHostAlias | OPNsenseNetworkAlias] = Field(
         validation_alias=AliasPath("destination", "address"),
-        default_factory=lambda: cast("list[str | OPNsenseHostAlias | OPNsenseNetworkAlias]", []),
+        default_factory=_empty_address_member_list,
     )  # /opnsense/nat/outbound/rule[x]/source[/address]
     dest_neg: bool = Field(
         validation_alias=AliasPath("destination", "not"), default=False
@@ -277,7 +279,7 @@ class OPNsenseNATRule(BaseModel):
     )  # /opnsense/nat/outbound/rule[x]/destination/port
     description: str = Field(alias="descr", default="")  # /opnsense/nat/outbound/rule[x]/description
     xlat_addr: list[str | OPNsenseHostAlias | OPNsenseNetworkAlias] = Field(
-        alias="target", default_factory=lambda: cast("list[str | OPNsenseHostAlias | OPNsenseNetworkAlias]", [])
+        alias="target", default_factory=_empty_address_member_list
     )  # /opnsense/nat/outbound/rule[x]/target
     xlat_port: list[str | OPNsensePortAlias] = Field(
         alias="local-port", default_factory=lambda: cast("list[str | OPNsensePortAlias]", [])
@@ -297,13 +299,7 @@ class OPNsenseNATRule(BaseModel):
     )
     @classmethod
     def normalize_str_list(cls, value: Any) -> list[str]:
-        if value is None:
-            return []
-        if isinstance(value, str):
-            return [str(v) for v in value.split(",")]
-        if isinstance(value, list):
-            return [str(v) for v in cast("list[object]", value)]
-        return [str(value)]
+        return _normalize_to_str_list(value)
 
     @field_validator("source_neg", "dest_neg", "logging", mode="before")
     @classmethod
@@ -329,7 +325,7 @@ class OPNsenseInterface(BaseModel):
 
 # https://github.com/opnsense/core/blob/8bc595681e13fec63ef0f6e3fcc292cfff67496c/src/opnsense/mvc/app/models/OPNsense/Auth/User.xml
 class OPNsenseUser(BaseModel):
-    uuid: str = Field(alias="@uuid")  # /opnsense/system/user/@uuid
+    uuid: str = Field(alias=OPNSENSE_UUID_ALIAS)  # /opnsense/system/user/@uuid
     uid: int  # /opnsense/system/user/uid
     name: str  # /opnsense/system/user/name
     disabled: bool  # /opnsense/system/user/disabled
@@ -342,17 +338,11 @@ class OPNsenseUser(BaseModel):
     @field_validator("privileges", mode="before")
     @classmethod
     def normalize_privileges(cls, value: Any) -> list[str]:
-        if value is None:
-            return []
-        if isinstance(value, str):
-            return [str(v) for v in value.split(",")]
-        if isinstance(value, list):
-            return [str(v) for v in cast("list[object]", value)]
-        return [str(value)]
+        return _normalize_to_str_list(value)
 
 
 class OPNsenseUserGroup(BaseModel):
-    uuid: str = Field(alias="@uuid")  # /opnsense/system/group/@uuid
+    uuid: str = Field(alias=OPNSENSE_UUID_ALIAS)  # /opnsense/system/group/@uuid
     gid: int  # /opnsense/system/group/gid
     name: str  # /opnsense/system/group/name
     scope: UserScopeEnum  # /opnsense/system/group/scope
@@ -363,24 +353,12 @@ class OPNsenseUserGroup(BaseModel):
     @field_validator("privileges", mode="before")
     @classmethod
     def normalize_privileges(cls, value: Any) -> list[str]:
-        if value is None:
-            return []
-        if isinstance(value, str):
-            return [str(v) for v in value.split(",")]
-        if isinstance(value, list):
-            return [str(v) for v in cast("list[object]", value)]
-        return [str(value)]
+        return _normalize_to_str_list(value)
 
     @field_validator("member_uids", mode="before")
     @classmethod
     def normalize_members(cls, value: Any) -> list[int]:
-        if value is None:
-            return []
-        if isinstance(value, str):
-            return [int(v) for v in value.split(",")]
-        if isinstance(value, list):
-            return [int(str(v)) for v in cast("list[object]", value)]
-        return [int(value)]
+        return [int(v) for v in _normalize_to_str_list(value)]
 
 
 class OPNsenseConfig(BaseModel):

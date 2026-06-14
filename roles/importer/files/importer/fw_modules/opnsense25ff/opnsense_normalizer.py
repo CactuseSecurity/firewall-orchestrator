@@ -142,6 +142,46 @@ def _service_ref_name(ref: str | OPNsensePortAlias) -> str:
     return ref.name
 
 
+def _warn_max_depth_reached(depth: int) -> None:
+    FWOLogger.warning(f"[-] depth {depth} reached maximum {MAX_DEPTH}. Abort recursion...")
+
+
+def _member_name_for_string_child(child: str, normalized: dict[str, NetworkObject]) -> str:
+    if child not in normalized:
+        child_obj = _create_network_object_from_string(child)
+        normalized[child_obj.obj_name] = child_obj
+    return child
+
+
+def _create_network_object_from_alias_child(
+    child: OPNsenseHost | OPNsenseNetwork | OPNsenseHostAlias | OPNsenseNetworkAlias,
+    normalized: dict[str, NetworkObject],
+    depth: int,
+) -> NetworkObject | None:
+    if isinstance(child, OPNsenseHost):
+        return _create_network_object_from_host_definition(child)
+    if isinstance(child, OPNsenseNetwork):
+        return _create_network_object_from_net_definition(child)
+    if depth >= MAX_DEPTH:
+        _warn_max_depth_reached(depth)
+        return None
+    return _create_network_object_from_alias(child, normalized, depth + 1)
+
+
+def _member_name_for_alias_child(
+    child: OPNsenseHost | OPNsenseNetwork | OPNsenseHostAlias | OPNsenseNetworkAlias,
+    normalized: dict[str, NetworkObject],
+    depth: int,
+) -> str | None:
+    if child.name in normalized:
+        return child.name
+    child_obj = _create_network_object_from_alias_child(child, normalized, depth)
+    if child_obj is None:
+        return None
+    normalized[child_obj.obj_name] = child_obj
+    return child_obj.obj_name
+
+
 def _create_network_object_from_alias(
     alias: OPNsenseHostAlias | OPNsenseNetworkAlias, normalized: dict[str, NetworkObject], depth: int
 ) -> NetworkObject:
@@ -149,26 +189,11 @@ def _create_network_object_from_alias(
 
     for child in alias.childs:
         if isinstance(child, str):
-            if child in normalized:
-                member.append(child)
-                continue
-            child_obj = _create_network_object_from_string(child)
-            normalized[child_obj.obj_name] = child_obj
-            member.append(child_obj.obj_name)
-        elif child.name not in normalized:
-            if isinstance(child, OPNsenseHost):
-                child_obj = _create_network_object_from_host_definition(child)
-            elif isinstance(child, OPNsenseNetwork):
-                child_obj = _create_network_object_from_net_definition(child)
-            else:
-                if depth >= MAX_DEPTH:
-                    FWOLogger.warning(f"[-] depth {depth} reached maximum {MAX_DEPTH}. Abort recursion...")
-                    continue
-                child_obj = _create_network_object_from_alias(child, normalized, depth + 1)
-            normalized[child_obj.obj_name] = child_obj
-            member.append(child_obj.obj_name)
-        else:
-            member.append(child.name)
+            member.append(_member_name_for_string_child(child, normalized))
+            continue
+        child_name = _member_name_for_alias_child(child, normalized, depth)
+        if child_name is not None:
+            member.append(child_name)
 
     return NetworkObject(
         obj_uid=alias.uuid,
@@ -232,7 +257,7 @@ def _normalize_services_from_port_alias(
                 normalized[svc.svc_name] = svc
                 member.append(svc.svc_name)
             elif depth >= MAX_DEPTH:
-                FWOLogger.warning(f"[-] depth {depth} reached maximum {MAX_DEPTH}. Abort recursion...")
+                _warn_max_depth_reached(depth)
                 continue
         else:
             member.append(child.name)
@@ -503,6 +528,34 @@ def _normalize_network_objects(os_config: OPNsenseConfig) -> dict[str, NetworkOb
     return normalized
 
 
+def _create_rulebase(name: str, mgm_uid: str, rule_uid: str, rule: RuleNormalized) -> Rulebase:
+    return Rulebase(
+        uid=fwo_base_generate_hash_from_dict({"rulebase": name}),
+        name=name,
+        mgm_uid=mgm_uid,
+        is_global=False,
+        rules={rule_uid: rule},
+    )
+
+
+def _access_rule_rulebase_name(rule: OPNsenseAccessRule, os_config: OPNsenseConfig) -> str | None:
+    if rule.is_floating:
+        return "floating"
+    has_single_positive_interface = len(rule.interface) == 1 and not rule.any_interface and not rule.interface_neg
+    if has_single_positive_interface and rule.interface[0] in os_config.interface_groups:
+        return rule.interface[0]
+    return None
+
+
+def _upsert_rulebase_rule(
+    rbs_dict: dict[str, Rulebase], rulebase_name: str, mgm_uid: str, rule_uid: str, rule: RuleNormalized
+) -> None:
+    if rulebase_name not in rbs_dict:
+        rbs_dict[rulebase_name] = _create_rulebase(rulebase_name, mgm_uid, rule_uid, rule)
+        return
+    rbs_dict[rulebase_name].rules[rule_uid] = rule
+
+
 def _create_rulebases_from_access_rules(os_config: OPNsenseConfig, mgm_uid: str) -> list[Rulebase]:
     rbs_dict: dict[str, Rulebase] = {}
     rule_num = 0
@@ -517,39 +570,9 @@ def _create_rulebases_from_access_rules(os_config: OPNsenseConfig, mgm_uid: str)
         r_normalized.rule_num = int(rule_num)
         r_normalized.rule_num_numeric = float(rule_num)
         rule_num += RULE_NUM_NUMERIC_STEPS
-        # update rulebases based on ifgroups
-        if rule.is_floating:
-            # handle floating rules
-            if "floating" in rbs_dict:
-                # update "floating" rulebase
-                rbs_dict["floating"].rules[rule_uid] = r_normalized
-            else:
-                # create "floating" Rulebase
-                rb = Rulebase(
-                    uid=fwo_base_generate_hash_from_dict({"rulebase": "floating"}),
-                    name="floating",
-                    mgm_uid=mgm_uid,
-                    is_global=False,
-                    rules={rule_uid: r_normalized},
-                )
-                rbs_dict[rb.name] = rb
-        elif len(rule.interface) == 1 and not rule.any_interface and not rule.interface_neg:
-            # handle non floating rules with a defined interface
-            iface = rule.interface[0]
-            if iface in os_config.interface_groups:
-                if iface in rbs_dict:
-                    # add rule to existing rulebase
-                    rbs_dict[iface].rules[rule_uid] = r_normalized
-                else:
-                    # create new rulebase for interface group
-                    rb = Rulebase(
-                        uid=fwo_base_generate_hash_from_dict({"rulebase": iface}),
-                        name=iface,
-                        mgm_uid=mgm_uid,
-                        is_global=False,
-                        rules={rule_uid: r_normalized},
-                    )
-                    rbs_dict[rb.name] = rb
+        rulebase_name = _access_rule_rulebase_name(rule, os_config)
+        if rulebase_name is not None:
+            _upsert_rulebase_rule(rbs_dict, rulebase_name, mgm_uid, rule_uid, r_normalized)
     return list(rbs_dict.values())
 
 

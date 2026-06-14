@@ -19,6 +19,7 @@ from netaddr.core import AddrFormatError
 PortRef: TypeAlias = str | OPNsensePortAlias
 AddressRef: TypeAlias = str | OPNsenseHostAlias | OPNsenseNetworkAlias
 RuleRef: TypeAlias = OPNsenseAlias | OPNsenseAccessRule | OPNsenseNATRule
+AliasChild: TypeAlias = str | OPNsenseHost | OPNsenseNetwork | OPNsenseHostAlias | OPNsenseNetworkAlias
 
 
 def is_int(s: str) -> bool:
@@ -142,30 +143,32 @@ def xlinking_rules_to_aliases(config: OPNsenseConfig) -> None:
         _link_address_refs(nat_rule.xlat_addr, host_aliases, net_aliases, nat_rule)
 
 
+def _create_host_alias_child(value: str) -> OPNsenseHost:
+    is_range = is_ip_range(value)
+    start, end = value.split("-", 1) if is_range else (value, value)
+    return OPNsenseHost(
+        name="__h_" + value,
+        is_range=is_range,
+        host=IPAddress(start),
+        host_end=IPAddress(end),
+    )
+
+
+def _resolve_net_or_host_child(value: str, config: OPNsenseConfig) -> AliasChild:
+    if value in config.host_aliases:
+        return config.host_aliases[value]
+    if value in config.net_aliases:
+        return config.net_aliases[value]
+    if is_ip(value) or is_ip_range(value):
+        return _create_host_alias_child(value)
+    if is_ip_subnet(value):
+        return OPNsenseNetwork(name="__n_" + value, net=IPNetwork(value))
+    return value
+
+
 def enrich_opnsense_net_and_hosts(config: OPNsenseConfig) -> None:
 
     for alias_list in [config.host_aliases, config.net_aliases]:
         for alias in alias_list.values():
             for value in alias.value:
-                if value in config.host_aliases:
-                    alias.childs.append(config.host_aliases[value])
-                elif value in config.net_aliases:
-                    alias.childs.append(config.net_aliases[value])
-                elif is_ip(value) or is_ip_range(value):
-                    # single ips or ip ranges
-                    host = OPNsenseHost(
-                        name="__h_" + value,
-                        is_range=is_ip_range(value),
-                        host=IPAddress(value.split("-", 1)[0]),
-                        host_end=IPAddress(value.split("-", 1)[1])
-                        if is_ip_range(value)
-                        else IPAddress(value.split("-", 1)[0]),
-                    )
-                    alias.childs.append(host)
-                elif is_ip_subnet(value):
-                    # ip subnet aliases
-                    net = OPNsenseNetwork(name="__n_" + value, net=IPNetwork(value))
-                    alias.childs.append(net)
-                else:
-                    # arbitrary values
-                    alias.childs.append(value)
+                alias.childs.append(_resolve_net_or_host_child(value, config))

@@ -346,13 +346,23 @@
             {
                 uiUsers = [];
                 sampleUsers = [];
+                Dictionary<int, UiLdapConnection> ldapsById = connectedLdaps
+                    .GroupBy(x => x.Id)
+                    .ToDictionary(g => g.Key, g => g.First());
+                Dictionary<int, string> tenantNamesById = tenants
+                    .GroupBy(x => x.Id)
+                    .ToDictionary(g => g.Key, g => g.First().Name);
                 foreach (UserGetReturnParameters apiUser in middlewareServerResponse.Data)
                 {
                     UiUser user = new(apiUser);
-                    user.LdapConnection = connectedLdaps.FirstOrDefault(x => x.Id == user.LdapConnection.Id) ?? throw new ArgumentNullException(nameof(user.LdapConnection.Id));
+                    user.LdapConnection = ldapsById.TryGetValue(user.LdapConnection.Id, out UiLdapConnection? ldap)
+                        ? ldap
+                        : throw new ArgumentNullException(nameof(user.LdapConnection.Id));
                     if(user.Tenant != null)
                     {
-                        user.Tenant.Name = tenants.FirstOrDefault(x => x.Id == user.Tenant.Id)?.Name ?? throw new ArgumentNullException(nameof(user.Tenant.Id));
+                        user.Tenant.Name = tenantNamesById.TryGetValue(user.Tenant.Id, out string? tenantName)
+                            ? tenantName
+                            : throw new ArgumentNullException(nameof(user.Tenant.Id));
                     }
                     uiUsers.Add(user);
                 }
@@ -393,11 +403,22 @@
             foreach (var user in uiUsers)
             {
                 user.Groups = new ();
-                foreach (var group in groups)
+            }
+            Dictionary<string, List<UiUser>> usersByDn = BuildUsersByNormalizedDn();
+            foreach (var group in groups)
+            {
+                if (group.Users == null)
                 {
-                    if (group.Users != null && group.Users.Exists(x => DistName.DnEquals(x.Dn, user.Dn)))
+                    continue;
+                }
+                foreach (var member in group.Users)
+                {
+                    if (usersByDn.TryGetValue(DistName.NormalizeDnForComparison(member.Dn), out List<UiUser>? matchingUsers))
                     {
-                        user.Groups.Add(group.Name);
+                        foreach (var user in matchingUsers)
+                        {
+                            user.Groups.Add(group.Name);
+                        }
                     }
                 }
             }
@@ -415,11 +436,22 @@
             foreach (var user in uiUsers)
             {
                 user.Roles = new ();
-                foreach (var role in roles)
+            }
+            Dictionary<string, List<UiUser>> usersByDn = BuildUsersByNormalizedDn();
+            foreach (var role in roles)
+            {
+                if (role.Users == null)
                 {
-                    if (role.Users != null && role.Users.Exists(x => DistName.DnEquals(x.Dn, user.Dn)))
+                    continue;
+                }
+                foreach (var member in role.Users)
+                {
+                    if (usersByDn.TryGetValue(DistName.NormalizeDnForComparison(member.Dn), out List<UiUser>? matchingUsers))
                     {
-                        user.Roles.Add(role.Name);
+                        foreach (var user in matchingUsers)
+                        {
+                            user.Roles.Add(role.Name);
+                        }
                     }
                 }
             }
@@ -428,6 +460,32 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("sync_users"), "", true);
         }
+    }
+
+    /// <summary>
+    /// Builds a lookup of UI users keyed by their normalized distinguished name.
+    /// This allows resolving group and role memberships in O(memberships) instead of
+    /// O(users × memberships), and normalizes each user DN only once.
+    /// </summary>
+    /// <returns>Dictionary mapping a normalized DN to all users sharing that DN.</returns>
+    private Dictionary<string, List<UiUser>> BuildUsersByNormalizedDn()
+    {
+        Dictionary<string, List<UiUser>> usersByDn = [];
+        foreach (var user in uiUsers)
+        {
+            string normalizedDn = DistName.NormalizeDnForComparison(user.Dn);
+            if (string.IsNullOrEmpty(normalizedDn))
+            {
+                continue;
+            }
+            if (!usersByDn.TryGetValue(normalizedDn, out List<UiUser>? matchingUsers))
+            {
+                matchingUsers = [];
+                usersByDn[normalizedDn] = matchingUsers;
+            }
+            matchingUsers.Add(user);
+        }
+        return usersByDn;
     }
 
     private async Task Resynchronize()

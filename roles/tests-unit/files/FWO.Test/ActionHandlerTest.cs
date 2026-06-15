@@ -9,6 +9,7 @@ using FWO.Data.Workflow;
 using FWO.Middleware.Client;
 using FWO.Services;
 using FWO.Services.Workflow;
+using NetTools;
 using NUnit.Framework;
 using System.Reflection;
 using System.Text.Json;
@@ -27,6 +28,7 @@ namespace FWO.Test
             public Dictionary<int, ModellingConnection> ConnectionsById { get; set; } = [];
             public Dictionary<long, ModellingAppRole> AppRolesById { get; set; } = [];
             public Dictionary<int, ModellingServiceGroup> ServiceGroupsById { get; set; } = [];
+            public List<ComplianceNetworkZone> MatrixNetworkZones { get; set; } = [];
             public int UpdateNotificationsLastSentAffectedRows { get; set; }
             public List<int> UpdatedNotificationLastSentIds { get; private set; } = [];
             public bool ThrowOnAddAlert { get; set; }
@@ -65,6 +67,17 @@ namespace FWO.Test
                     new ComplianceCriterionWrapper
                     {
                         Content = new ComplianceCriterion { Id = 2, Name = "FailPolicy", CriterionType = nameof(CriterionType.ForbiddenService), Content = "svc-pass" }
+                    }
+                ]
+            };
+            private readonly CompliancePolicy matrixPolicy = new()
+            {
+                Id = 13,
+                Criteria =
+                [
+                    new ComplianceCriterionWrapper
+                    {
+                        Content = new ComplianceCriterion { Id = 1301, Name = "Matrix", CriterionType = nameof(CriterionType.Matrix) }
                     }
                 ]
             };
@@ -160,7 +173,13 @@ namespace FWO.Test
                 if (query == ComplianceQueries.getPolicyById)
                 {
                     int policyId = GetVariable<int>(variables, "id");
-                    return Task.FromResult((T)(object)(policyId == compliantPolicy.Id ? compliantPolicy : nonCompliantPolicy));
+                    return Task.FromResult((T)(object)(policyId == compliantPolicy.Id
+                        ? compliantPolicy
+                        : policyId == matrixPolicy.Id ? matrixPolicy : nonCompliantPolicy));
+                }
+                if (query == ComplianceQueries.getNetworkZonesForMatrix)
+                {
+                    return Task.FromResult((T)(object)MatrixNetworkZones);
                 }
                 if (query == FlowQueries.getFlowSyncNwObjects)
                 {
@@ -289,6 +308,73 @@ namespace FWO.Test
                     new WfReqElement { Field = ElemFieldType.rule.ToString(), RuleUid = $"rule-{id}" }
                 ]
             };
+        }
+
+        private static WfReqTask CreateBundleRequestTask(long id, string sourceIp, string destinationIp, int port = 443)
+        {
+            return new()
+            {
+                Id = id,
+                TicketId = 7,
+                TaskType = WfTaskType.access.ToString(),
+                RequestAction = RequestAction.create.ToString(),
+                RuleAction = 1,
+                ManagementId = 2,
+                Owners = [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 5 } }],
+                Elements =
+                [
+                    CreateBundleNetworkElement(id, ElemFieldType.source, sourceIp),
+                    CreateBundleNetworkElement(id, ElemFieldType.destination, destinationIp),
+                    new()
+                    {
+                        TaskId = id,
+                        Field = ElemFieldType.service.ToString(),
+                        ProtoId = 6,
+                        Port = port,
+                        PortEnd = port,
+                        RequestAction = RequestAction.create.ToString()
+                    }
+                ]
+            };
+        }
+
+        private static WfReqElement CreateBundleNetworkElement(long taskId, ElemFieldType field, string ip)
+        {
+            return new()
+            {
+                TaskId = taskId,
+                Field = field.ToString(),
+                Cidr = new(ip),
+                CidrEnd = new(ip),
+                IpString = ip,
+                IpEnd = ip,
+                RequestAction = RequestAction.create.ToString()
+            };
+        }
+
+        private static List<ComplianceNetworkZone> CreateBundleNetworkZones()
+        {
+            return
+            [
+                new()
+                {
+                    Id = 1,
+                    Name = "Source Zone",
+                    IPRanges = [IPAddressRange.Parse("10.0.0.0/24")]
+                },
+                new()
+                {
+                    Id = 2,
+                    Name = "Destination Zone",
+                    IPRanges = [IPAddressRange.Parse("10.0.1.0/24")]
+                },
+                new()
+                {
+                    Id = 3,
+                    Name = "Other Destination Zone",
+                    IPRanges = [IPAddressRange.Parse("10.0.2.0/24")]
+                }
+            ];
         }
 
         private static WfImplTask CreateEligibleImplementationTask(long id, string title = "Implement request")
@@ -1533,6 +1619,70 @@ namespace FWO.Test
             await handler.BundleTasks(new WfStateAction(), new WfReqTask(), WfObjectScopes.RequestTask, null, null);
 
             Assert.That(apiConn.Queries, Is.Empty);
+        }
+
+        [Test]
+        public async Task BundleTasks_WithCleanZones_LoadsPolicyMatrixZonesAndUpdatesBundleIds()
+        {
+            WfReqTask first = CreateBundleRequestTask(1, "10.0.0.1", "10.0.1.1");
+            WfReqTask second = CreateBundleRequestTask(2, "10.0.0.1", "10.0.1.2");
+            WfReqTask differentZone = CreateBundleRequestTask(3, "10.0.0.1", "10.0.2.1");
+            differentZone.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "old-bundle");
+            WfTicket ticket = CreateTicket(first, second, differentZone);
+            ticket.Id = 7;
+            ActionHandlerTestApiConn apiConn = new()
+            {
+                MatrixNetworkZones = CreateBundleNetworkZones()
+            };
+            ActionHandler handler = new(apiConn, new WfHandler());
+            WfStateAction action = new()
+            {
+                Name = "Bundle",
+                ExternalParams = new BundleTasksActionParams
+                {
+                    BundleType = BundleTaskType.TwoOutOfThree,
+                    CleanZones = true,
+                    PolicyId = 13
+                }.ToExternalParams()
+            };
+
+            await handler.BundleTasks(action, ticket, WfObjectScopes.Ticket, null, null);
+
+            Assert.That(apiConn.Queries, Has.Member(ComplianceQueries.getPolicyById));
+            Assert.That(apiConn.Queries, Has.Member(ComplianceQueries.getNetworkZonesForMatrix));
+            Assert.That(first.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId), Is.EqualTo("bundle-1-2"));
+            Assert.That(second.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId), Is.EqualTo("bundle-1-2"));
+            Assert.That(differentZone.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId), Is.Empty);
+        }
+
+        [Test]
+        public async Task BundleTasks_WithCleanZonesAndPolicyWithoutMatrix_RemovesExistingBundleIds()
+        {
+            WfReqTask first = CreateBundleRequestTask(1, "10.0.0.1", "10.0.1.1");
+            WfReqTask second = CreateBundleRequestTask(2, "10.0.0.1", "10.0.1.2");
+            first.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "old-bundle");
+            second.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "old-bundle");
+            WfTicket ticket = CreateTicket(first, second);
+            ticket.Id = 7;
+            ActionHandlerTestApiConn apiConn = new();
+            ActionHandler handler = new(apiConn, new WfHandler());
+            WfStateAction action = new()
+            {
+                Name = "Bundle",
+                ExternalParams = new BundleTasksActionParams
+                {
+                    BundleType = BundleTaskType.TwoOutOfThree,
+                    CleanZones = true,
+                    PolicyId = 9
+                }.ToExternalParams()
+            };
+
+            await handler.BundleTasks(action, ticket, WfObjectScopes.Ticket, null, null);
+
+            Assert.That(apiConn.Queries, Has.Member(ComplianceQueries.getPolicyById));
+            Assert.That(apiConn.Queries, Has.No.Member(ComplianceQueries.getNetworkZonesForMatrix));
+            Assert.That(first.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId), Is.Empty);
+            Assert.That(second.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId), Is.Empty);
         }
 
         [Test]

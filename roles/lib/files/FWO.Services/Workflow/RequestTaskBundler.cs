@@ -1,4 +1,7 @@
+using FWO.Data;
 using FWO.Data.Workflow;
+using NetTools;
+using System.Net;
 
 namespace FWO.Services.Workflow
 {
@@ -6,19 +9,23 @@ namespace FWO.Services.Workflow
     {
         private const string BundleIdPrefix = "bundle-";
 
-        public Dictionary<long, string> BuildBundleAssignments(IEnumerable<WfReqTask> requestTasks, BundleTaskType bundleType)
+        public Dictionary<long, string> BuildBundleAssignments(IEnumerable<WfReqTask> requestTasks, BundleTaskType bundleType,
+            bool cleanZones = false, IEnumerable<ComplianceNetworkZone>? networkZones = null)
         {
             return bundleType switch
             {
-                BundleTaskType.TwoOutOfThree => BuildTwoOutOfThreeAssignments(requestTasks),
+                BundleTaskType.TwoOutOfThree => BuildTwoOutOfThreeAssignments(requestTasks, cleanZones, networkZones),
                 _ => []
             };
         }
 
-        private Dictionary<long, string> BuildTwoOutOfThreeAssignments(IEnumerable<WfReqTask> requestTasks)
+        private Dictionary<long, string> BuildTwoOutOfThreeAssignments(IEnumerable<WfReqTask> requestTasks, bool cleanZones,
+            IEnumerable<ComplianceNetworkZone>? networkZones)
         {
             Dictionary<long, string> assignments = [];
-            foreach (RequestTaskBundleSignature signature in BundleTwoOutOfThree(requestTasks.Select(RequestTaskBundleSignature.FromTask))
+            List<ComplianceNetworkZone> zoneList = networkZones?.ToList() ?? [];
+            foreach (RequestTaskBundleSignature signature in BundleTwoOutOfThree(requestTasks.Select(task =>
+                    RequestTaskBundleSignature.FromTask(task, cleanZones, zoneList)))
                 .Where(signature => signature.RequestTaskIds.Count > 1))
             {
                 List<long> taskIds = [.. signature.RequestTaskIds.Distinct().Order()];
@@ -66,6 +73,8 @@ namespace FWO.Services.Workflow
             return first.IsTwoOutOfThreeCandidate()
                 && second.IsTwoOutOfThreeCandidate()
                 && first.SameBaseContext(second)
+                && first.SameTimeObject(second)
+                && first.SameZones(second)
                 && first.CountEqualDimensions(second) >= 2;
         }
 
@@ -77,12 +86,17 @@ namespace FWO.Services.Workflow
             public string TaskAction { get; private set; } = "";
             public int? RuleActionId { get; private set; }
             public int? ManagementId { get; private set; }
+            public DateTime? TargetBeginDate { get; private set; }
+            public DateTime? TargetEndDate { get; private set; }
             public List<long> RequestTaskIds { get; private set; } = [];
             public HashSet<string> SourceKeys { get; private set; } = [];
             public HashSet<string> DestinationKeys { get; private set; } = [];
             public HashSet<string> ServiceKeys { get; private set; } = [];
+            public bool CleanZones { get; private set; }
+            public HashSet<string> SourceZoneKeys { get; private set; } = [];
+            public HashSet<string> DestinationZoneKeys { get; private set; } = [];
 
-            public static RequestTaskBundleSignature FromTask(WfReqTask task)
+            public static RequestTaskBundleSignature FromTask(WfReqTask task, bool cleanZones, List<ComplianceNetworkZone> networkZones)
             {
                 return new RequestTaskBundleSignature
                 {
@@ -92,10 +106,15 @@ namespace FWO.Services.Workflow
                     TaskAction = task.RequestAction,
                     RuleActionId = task.RuleAction,
                     ManagementId = task.ManagementId,
+                    TargetBeginDate = task.TargetBeginDate,
+                    TargetEndDate = task.TargetEndDate,
                     RequestTaskIds = task.Id > 0 ? [task.Id] : [],
                     SourceKeys = ElementKeys(task.Elements, ElemFieldType.source),
                     DestinationKeys = ElementKeys(task.Elements, ElemFieldType.destination),
-                    ServiceKeys = ElementKeys(task.Elements, ElemFieldType.service)
+                    ServiceKeys = ElementKeys(task.Elements, ElemFieldType.service),
+                    CleanZones = cleanZones,
+                    SourceZoneKeys = ZoneKeys(task.Elements, ElemFieldType.source, cleanZones, networkZones),
+                    DestinationZoneKeys = ZoneKeys(task.Elements, ElemFieldType.destination, cleanZones, networkZones)
                 };
             }
 
@@ -109,10 +128,15 @@ namespace FWO.Services.Workflow
                     TaskAction = first.TaskAction,
                     RuleActionId = first.RuleActionId,
                     ManagementId = first.ManagementId,
+                    TargetBeginDate = first.TargetBeginDate,
+                    TargetEndDate = first.TargetEndDate,
                     RequestTaskIds = [.. first.RequestTaskIds.Concat(second.RequestTaskIds).Distinct().Order()],
                     SourceKeys = [.. first.SourceKeys.Concat(second.SourceKeys)],
                     DestinationKeys = [.. first.DestinationKeys.Concat(second.DestinationKeys)],
-                    ServiceKeys = [.. first.ServiceKeys.Concat(second.ServiceKeys)]
+                    ServiceKeys = [.. first.ServiceKeys.Concat(second.ServiceKeys)],
+                    CleanZones = first.CleanZones,
+                    SourceZoneKeys = [.. first.SourceZoneKeys],
+                    DestinationZoneKeys = [.. first.DestinationZoneKeys]
                 };
             }
 
@@ -124,6 +148,27 @@ namespace FWO.Services.Workflow
                     && TaskAction == other.TaskAction
                     && RuleActionId == other.RuleActionId
                     && ManagementId == other.ManagementId;
+            }
+
+            public bool SameTimeObject(RequestTaskBundleSignature other)
+            {
+                return TargetBeginDate == other.TargetBeginDate
+                    && TargetEndDate == other.TargetEndDate;
+            }
+
+            public bool SameZones(RequestTaskBundleSignature other)
+            {
+                if (!CleanZones && !other.CleanZones)
+                {
+                    return true;
+                }
+
+                return CleanZones
+                    && other.CleanZones
+                    && SourceZoneKeys.Count > 0
+                    && DestinationZoneKeys.Count > 0
+                    && SourceZoneKeys.SetEquals(other.SourceZoneKeys)
+                    && DestinationZoneKeys.SetEquals(other.DestinationZoneKeys);
             }
 
             public bool IsTwoOutOfThreeCandidate()
@@ -146,6 +191,76 @@ namespace FWO.Services.Workflow
             private static HashSet<string> ElementKeys(IEnumerable<WfReqElement> elements, ElemFieldType field)
             {
                 return [.. elements.Where(element => element.Field == field.ToString() && IsMeaningfulElement(element)).Select(ElementKey)];
+            }
+
+            private static HashSet<string> ZoneKeys(IEnumerable<WfReqElement> elements, ElemFieldType field, bool cleanZones,
+                List<ComplianceNetworkZone> networkZones)
+            {
+                if (!cleanZones || networkZones.Count == 0)
+                {
+                    return [];
+                }
+
+                List<IPAddressRange> ranges = [.. elements
+                    .Where(element => element.Field == field.ToString())
+                    .SelectMany(ElementIpRanges)];
+                if (ranges.Count == 0)
+                {
+                    return [];
+                }
+
+                List<List<IPAddressRange>> unseenRanges = ranges
+                    .Select(range => new List<IPAddressRange> { new(range.Begin, range.End) })
+                    .ToList();
+
+                return [.. networkZones
+                    .Where(zone => zone.OverlapExists(ranges, unseenRanges))
+                    .Select(ZoneKey)];
+            }
+
+            private static IEnumerable<IPAddressRange> ElementIpRanges(WfReqElement element)
+            {
+                IPAddressRange? ipRange = ParseIpRange(element.IpString, element.IpEnd);
+                if (ipRange != null)
+                {
+                    yield return ipRange;
+                    yield break;
+                }
+
+                ipRange = ParseIpRange(element.Cidr?.CidrString, element.CidrEnd?.CidrString);
+                if (ipRange != null)
+                {
+                    yield return ipRange;
+                }
+            }
+
+            private static IPAddressRange? ParseIpRange(string? start, string? end)
+            {
+                if (string.IsNullOrWhiteSpace(start))
+                {
+                    return null;
+                }
+
+                try
+                {
+                    if (!string.IsNullOrWhiteSpace(end)
+                        && IPAddress.TryParse(start, out IPAddress? startIp)
+                        && IPAddress.TryParse(end, out IPAddress? endIp))
+                    {
+                        return new(startIp, endIp);
+                    }
+
+                    return IPAddressRange.Parse(start);
+                }
+                catch (Exception)
+                {
+                    return null;
+                }
+            }
+
+            private static string ZoneKey(ComplianceNetworkZone zone)
+            {
+                return zone.Id > 0 ? zone.Id.ToString() : zone.Name;
             }
 
             private static bool IsMeaningfulElement(WfReqElement element)

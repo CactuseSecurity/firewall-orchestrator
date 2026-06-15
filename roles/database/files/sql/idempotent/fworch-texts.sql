@@ -111,6 +111,8 @@ INSERT INTO txt VALUES ('BundleTasks',	        'German', 	'Aufgaben bündeln');
 INSERT INTO txt VALUES ('BundleTasks',		    'English', 	'Bundle tasks');
 INSERT INTO txt VALUES ('bundle_type',	        'German', 	'Bündelungstyp');
 INSERT INTO txt VALUES ('bundle_type',		    'English', 	'Bundle type');
+INSERT INTO txt VALUES ('clean_zones',	        'German', 	'Saubere Zonen');
+INSERT INTO txt VALUES ('clean_zones',		    'English', 	'Clean zones');
 INSERT INTO txt VALUES ('TwoOutOfThree',	    'German', 	'2 von 3');
 INSERT INTO txt VALUES ('TwoOutOfThree',		'English', 	'2 out of 3');
 INSERT INTO txt VALUES ('UpdateConnectionOwner','German', 	'Verbindungseigent&uuml;mer &auml;ndern');
@@ -6265,6 +6267,8 @@ INSERT INTO txt VALUES ('H5535', 'German',  'Aufgaben b&uuml;ndeln: Der Typ "2 v
 INSERT INTO txt VALUES ('H5535', 'English', 'Bundle tasks: The type "2 out of 3" compares the three parts of an access request task: sources, destinations, and services. If two of these three parts match across several request tasks, the tasks receive the same bundle id in AdditionalInfo and can be processed together afterwards.');
 INSERT INTO txt VALUES ('H5536', 'German',  'Flow-Erzeugung per UI-Meldung best&auml;tigen: Nach der Flow-Erzeugung zeigt die Aktion eine UI-Meldung an. Bei Fehlern verweist die Meldung auf das Workflow-Log mit Details zu nicht aufl&ouml;sbaren Objekten oder Diensten.');
 INSERT INTO txt VALUES ('H5536', 'English', 'Confirm flow creation via UI message: After flow creation, the action shows a UI message. For failures, the message points to the workflow log with details about unresolved objects or services.');
+INSERT INTO txt VALUES ('H5537', 'German',  'Saubere Zonen: Wenn aktiviert, werden Aufgaben nur geb&uuml;ndelt, wenn ihre Quell- und Zielobjekte anhand der ausgew&auml;hlten Policy-Matrix jeweils denselben Netzwerkzonen zugeordnet werden k&ouml;nnen. Ohne ausgew&auml;hlte Policy oder ohne Matrix in der Policy wird keine saubere Zonen&uuml;bereinstimmung angenommen.');
+INSERT INTO txt VALUES ('H5537', 'English', 'Clean zones: When enabled, tasks are bundled only if their source and destination objects can be mapped to the same network zones using the selected policy matrix. Without a selected policy or without a matrix in the policy, no clean zone match is assumed.');
 INSERT INTO txt VALUES ('H5541', 'German',  'In der Status-Matrix werden die verarbeitbaren Status pro Phase und Tasktyp festgelegt.
     Es gibt eine Master-Matrix, welche die Eigenschaften auf Ticket-Ebene beschreibt, sowie und f&uuml;r jeden Tasktyp separate Matrizen.
     In der Installation sind diese Matrizen bereits vorbelegt, sie k&ouml;nnen aber nahezu beliebig &uuml;berschrieben werden.

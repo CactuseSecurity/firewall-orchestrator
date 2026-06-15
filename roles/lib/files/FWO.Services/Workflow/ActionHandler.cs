@@ -384,7 +384,9 @@ namespace FWO.Services.Workflow
             }
 
             BundleTasksActionParams bundleParams = BundleTasksActionParams.FromExternalParams(action.ExternalParams);
-            Dictionary<long, string> bundleAssignments = new RequestTaskBundler().BuildBundleAssignments(ticket.Tasks, bundleParams.BundleType);
+            List<ComplianceNetworkZone> networkZones = await LoadBundleNetworkZones(bundleParams);
+            Dictionary<long, string> bundleAssignments = new RequestTaskBundler().BuildBundleAssignments(ticket.Tasks, bundleParams.BundleType,
+                bundleParams.CleanZones, networkZones);
             foreach (WfReqTask reqTask in ticket.Tasks.Where(task => task.Id > 0))
             {
                 string currentBundleId = reqTask.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId);
@@ -401,6 +403,26 @@ namespace FWO.Services.Workflow
                 }
             }
             Log.WriteInfo("Bundle Tasks", $"Bundled {bundleAssignments.Count} request tasks for flow creation.");
+        }
+
+        private async Task<List<ComplianceNetworkZone>> LoadBundleNetworkZones(BundleTasksActionParams bundleParams)
+        {
+            if (!bundleParams.CleanZones || bundleParams.PolicyId == null || bundleParams.PolicyId <= 0)
+            {
+                return [];
+            }
+
+            CompliancePolicy? policy = await apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = bundleParams.PolicyId.Value });
+            int? matrixId = policy?.Criteria
+                .FirstOrDefault(criterion => criterion.Content.CriterionType == CriterionType.Matrix.ToString())
+                ?.Content.Id;
+            if (matrixId == null || matrixId <= 0)
+            {
+                Log.WriteWarning("Bundle Tasks", $"Clean-zone bundling policy {bundleParams.PolicyId.Value} has no matrix criterion.");
+                return [];
+            }
+
+            return await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId.Value }) ?? [];
         }
 
         private WfTicket? GetTicketForBundling(WfStatefulObject statefulObject, WfObjectScopes scope)

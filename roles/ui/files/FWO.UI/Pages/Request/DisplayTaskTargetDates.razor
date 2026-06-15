@@ -12,7 +12,7 @@
         <div class="form-group row">
             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("time_object")):</label>
             <div class="col-sm-8">
-                <Dropdown ElementType="FlowTimeObject" @bind-SelectedElement="selectedFlowTimeObject" ElementToString="DisplayFlowTimeObject" Elements="flowTimeObjects" Nullable="true">
+                <Dropdown ElementType="FlowTimeObject" @bind-SelectedElement="selectedFlowTimeObject" ElementToString="DisplayFlowTimeObject" Elements="FlowTimeObjects" Nullable="true">
                     <ElementTemplate Context="timeObject">
                         @DisplayFlowTimeObject(timeObject)
                     </ElementTemplate>
@@ -125,7 +125,7 @@
     private bool targetEndDateInitialized = false;
     private bool targetBeginDateValid = true;
     private bool targetEndDateValid = true;
-    private List<FlowTimeObject> flowTimeObjects = [];
+    private List<FlowTimeObject> FlowTimeObjects { get; set; } = [];
     private FlowTimeObject? selectedFlowTimeObjectInt;
     private FlowIntegrationConfig ActiveFlowIntegration => FlowIntegration ?? FlowIntegrationConfig.Parse(userConfig.ReqFlowIntegration);
     private bool AnyDateEditMode => CanEditTargetBeginDate || CanEditTargetEndDate;
@@ -163,7 +163,7 @@
             if (!HideFlowTimeObjectSelection && ShowFlowTimeObjectSelection)
             {
                 List<FlowTimeObject> catalog = await apiConnection.SendQueryAsync<List<FlowTimeObject>>(FlowQueries.getFlowTimeObjectCatalog) ?? [];
-                flowTimeObjects = [.. catalog.Where(IsSelectable)];
+                FlowTimeObjects = [.. catalog.Where(IsSelectable)];
             }
         }
         catch (Exception exception)

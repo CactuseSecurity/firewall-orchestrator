@@ -11,7 +11,7 @@ public sealed class ServiceGroupResponse
     /// Gets the Id value.
     /// </summary>
     [JsonPropertyName("id")]
-    public int Id { get; set; }
+    public long Id { get; set; }
 
     /// <summary>
     /// Gets the Name value.
@@ -46,7 +46,7 @@ public sealed class ServiceGroupResponse
         /// Gets the Id value.
         /// </summary>
         [JsonPropertyName("id")]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         /// <summary>
         /// Gets the Name value.

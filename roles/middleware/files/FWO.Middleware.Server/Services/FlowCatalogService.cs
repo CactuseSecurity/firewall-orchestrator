@@ -88,7 +88,7 @@ public sealed class FlowCatalogService
         FlowNwObject? flowObject = result.FirstOrDefault();
         return flowObject == null
             ? new AddressObjectIdResponse()
-            : new AddressObjectIdResponse { Id = (int)flowObject.Id, Name = flowObject.Name ?? string.Empty };
+            : new AddressObjectIdResponse { Id = flowObject.Id, Name = flowObject.Name ?? string.Empty };
     }
 
     /// <summary>
@@ -112,7 +112,7 @@ public sealed class FlowCatalogService
         FlowSvcObject? flowObject = result.FirstOrDefault();
         return flowObject == null
             ? new ServiceObjectIdResponse()
-            : new ServiceObjectIdResponse { Id = (int)flowObject.Id, Name = flowObject.Name };
+            : new ServiceObjectIdResponse { Id = flowObject.Id, Name = flowObject.Name };
     }
 
     private async Task<List<FlowNwObject>> LoadFlowNwObjectsAsync(bool? visibleInRequest)
@@ -248,7 +248,7 @@ public sealed class FlowCatalogService
     {
         return new AddressObjectResponse
         {
-            Id = (int)flowObject.Id,
+            Id = flowObject.Id,
             Name = flowObject.Name ?? string.Empty,
             IpStart = flowObject.IpStart ?? string.Empty,
             IpEnd = flowObject.IpEnd ?? string.Empty,
@@ -261,14 +261,14 @@ public sealed class FlowCatalogService
     {
         return new AddressGroupResponse
         {
-            Id = (int)flowGroup.Id,
+            Id = flowGroup.Id,
             Name = flowGroup.Name,
             State = flowGroup.State,
             ShowInRequest = flowGroup.ShowInRequestModule,
             Members = flowGroup.NwGroupMembers
                 .Select(member => new AddressGroupResponse.AddressGroupMemberResponse
                 {
-                    Id = (int)member.NwObjectId,
+                    Id = member.NwObjectId,
                     Name = member.NwObject.Name ?? string.Empty
                 })
                 .ToList()
@@ -289,7 +289,7 @@ public sealed class FlowCatalogService
 
         return new ServiceObjectResponse
         {
-            Id = (int)flowObject.Id,
+            Id = flowObject.Id,
             Name = flowObject.Name,
             PortStart = flowObject.PortStart ?? 0,
             PortEnd = flowObject.PortEnd ?? 0,
@@ -303,14 +303,14 @@ public sealed class FlowCatalogService
     {
         return new ServiceGroupResponse
         {
-            Id = (int)flowGroup.Id,
+            Id = flowGroup.Id,
             Name = flowGroup.Name,
             State = flowGroup.State,
             ShowInRequest = flowGroup.ShowInRequestModule,
             Members = flowGroup.SvcGroupMembers
                 .Select(member => new ServiceGroupResponse.ServiceGroupMemberResponse
                 {
-                    Id = (int)member.SvcObjectId,
+                    Id = member.SvcObjectId,
                     Name = member.SvcObject.Name
                 })
                 .ToList()
@@ -321,7 +321,7 @@ public sealed class FlowCatalogService
     {
         return new TimeObjectResponse
         {
-            Id = (int)flowObject.Id,
+            Id = flowObject.Id,
             Name = flowObject.Name,
             StartTime = flowObject.StartTime?.ToString("o", CultureInfo.InvariantCulture) ?? string.Empty,
             EndTime = flowObject.EndTime?.ToString("o", CultureInfo.InvariantCulture) ?? string.Empty,

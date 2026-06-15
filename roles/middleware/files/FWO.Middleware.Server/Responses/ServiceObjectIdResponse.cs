@@ -17,5 +17,5 @@ public sealed class ServiceObjectIdResponse
     /// Gets the Id value.
     /// </summary>
     [JsonPropertyName("id")]
-    public int Id { get; set; }
+    public long Id { get; set; }
 }

@@ -223,6 +223,7 @@ namespace FWO.Services.Workflow
         {
             bool requestTaskActionsChangedState = false;
             List<WfReqTask> requestTasks = [.. ActTicket.Tasks];
+            List<WfReqTask> requestTasksNeedingInitialImplTasks = [];
             foreach (WfReqTask reqtask in requestTasks)
             {
                 StateMatrix reqTaskMatrix = stateMatrixDict.Matrices[reqtask.TaskType];
@@ -237,8 +238,12 @@ namespace FWO.Services.Workflow
                 if (createImplTasks && reqtask.ImplementationTasks.Count == 0 && !stateMatrixDict.Matrices[reqtask.TaskType].PhaseActive[WorkflowPhases.planning]
                     && RequestTaskNeedsInitialImplTasks(reqtask))
                 {
-                    await AutoCreateImplTasks(reqtask);
+                    requestTasksNeedingInitialImplTasks.Add(reqtask);
                 }
+            }
+            foreach (WfReqTask reqtask in RequestTasksForInitialImplCreation(requestTasksNeedingInitialImplTasks))
+            {
+                await AutoCreateImplTasks(reqtask);
             }
             return requestTaskActionsChangedState;
         }

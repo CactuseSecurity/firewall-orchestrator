@@ -108,6 +108,36 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Save_PersistsReqConsiderBundling()
+        {
+            SettingsCustomizing component = new();
+            WorkflowCustomizingApiConn apiConnection = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ReqAvailableTaskTypes = "[]",
+                ReqPriorities = "[]",
+                ReqConsiderBundling = false
+            };
+            SimulatedUserConfig userConfig = new();
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
+            editableConfig.ReqConsiderBundling = true;
+
+            SetMember(component, "apiConnection", apiConnection);
+            SetMember(component, "globalConfig", globalConfig);
+            SetMember(component, "userConfig", userConfig);
+            SetMember(component, "configData", editableConfig);
+            SetMember(component, "taskTypesActiveDict", Enum.GetValues(typeof(WfTaskType)).Cast<WfTaskType>().ToDictionary(type => type, _ => false));
+            SetMember(component, "prioList", new List<WfPriority>());
+
+            Task saveTask = (Task)GetPrivateMethod(typeof(SettingsCustomizing), "Save").Invoke(component, [])!;
+            await saveTask;
+
+            Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+            ConfigItem considerBundlingConfig = apiConnection.LastConfigItems.Single(item => item.Key == "reqConsiderBundling");
+            Assert.That(considerBundlingConfig.Value, Is.EqualTo("True"));
+        }
+
+        [Test]
         public async Task HandleFlowIntegrationChanged_PersistsConfigImmediately()
         {
             SettingsCustomizing component = new();
@@ -176,6 +206,7 @@ namespace FWO.Test
                 IRenderedComponent<SettingsCustomizing> settings = wrapper.FindComponent<SettingsCustomizing>();
                 IRenderedComponent<FlowIntegration> flowIntegration = settings.FindComponent<FlowIntegration>();
                 Assert.That(settings.Markup, Does.Contain("flow_integration"));
+                Assert.That(settings.Markup, Does.Contain("cbx_consider_bundling"));
                 Assert.That(flowIntegration.Instance.ConfigValue, Is.EqualTo(configValue));
             });
         }

@@ -268,20 +268,93 @@ namespace FWO.Services.Workflow
             if (Phase <= WorkflowPhases.approval && !MasterStateMatrix.PhaseActive[WorkflowPhases.planning]
                 && ActTicket.StateId >= MasterStateMatrix.LowestEndState)
             {
+                List<WfReqTask> requestTasksNeedingInitialImplTasks = [];
                 foreach (var reqTask in ActTicket.Tasks)
                 {
                     // Todo: further analysis how many impl tasks currently have to be there and create or update where needed
                     if (reqTask.ImplementationTasks.Count == 0
                         && RequestTaskNeedsInitialImplTasks(reqTask))
                     {
-                        await AutoCreateImplTasks(reqTask);
+                        requestTasksNeedingInitialImplTasks.Add(reqTask);
                     }
                     else
                     {
                         await UpgradeImplTaskStatesToReqTask(reqTask);
                     }
                 }
+                foreach (WfReqTask reqTask in RequestTasksForInitialImplCreation(requestTasksNeedingInitialImplTasks))
+                {
+                    await AutoCreateImplTasks(reqTask);
+                }
             }
+        }
+
+        /// <summary>
+        /// Returns the request tasks that should receive initially generated implementation tasks.
+        /// </summary>
+        private List<WfReqTask> RequestTasksForInitialImplCreation(List<WfReqTask> requestTasks)
+        {
+            if (!userConfig.ReqConsiderBundling)
+            {
+                return requestTasks;
+            }
+
+            List<WfReqTask> effectiveRequestTasks = [];
+            foreach (var bundleGroup in requestTasks.GroupBy(task => task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId)))
+            {
+                List<WfReqTask> bundledTasks = [.. bundleGroup];
+                if (string.IsNullOrWhiteSpace(bundleGroup.Key))
+                {
+                    effectiveRequestTasks.AddRange(bundledTasks);
+                    continue;
+                }
+                effectiveRequestTasks.Add(CreateMergedBundleRequestTask(bundledTasks));
+            }
+            return effectiveRequestTasks;
+        }
+
+        /// <summary>
+        /// Creates a transient request task representing all request task elements in one bundle.
+        /// </summary>
+        private static WfReqTask CreateMergedBundleRequestTask(List<WfReqTask> bundleTasks)
+        {
+            WfReqTask mergedTask = new(bundleTasks[0])
+            {
+                Elements = [.. bundleTasks.SelectMany(task => task.Elements)
+                    .GroupBy(ElementIdentityKey)
+                    .Select(group => group.First())]
+            };
+            mergedTask.SetDeviceList([.. bundleTasks.SelectMany(task => task.GetDeviceList()).Distinct()]);
+            return mergedTask;
+        }
+
+        /// <summary>
+        /// Builds the identity used to collapse duplicate elements across bundled request tasks.
+        /// </summary>
+        private static object ElementIdentityKey(WfReqElement element)
+        {
+            return new
+            {
+                element.Field,
+                element.RequestAction,
+                element.DeviceId,
+                element.IpString,
+                element.IpEnd,
+                element.Port,
+                element.PortEnd,
+                element.ProtoId,
+                element.NetworkId,
+                element.ServiceId,
+                element.FlowNetworkObjectId,
+                element.FlowNetworkGroupId,
+                element.FlowServiceObjectId,
+                element.FlowServiceGroupId,
+                element.UserId,
+                element.OriginalNatId,
+                element.RuleUid,
+                element.GroupName,
+                element.Name
+            };
         }
 
         private bool RequestTaskNeedsInitialImplTasks(WfReqTask reqTask)

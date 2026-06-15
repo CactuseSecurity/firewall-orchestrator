@@ -25,7 +25,7 @@ internal class FlowComplianceServiceTest
             new CompliancePolicy { Id = 1, Name = "Alpha" }
         ];
 
-        FlowComplianceService service = new(apiConnection);
+        FlowComplianceService service = new(apiConnection, new SimulatedGlobalConfig());
 
         List<PolicyIdResponse> result = await service.GetPolicyIdsAsync();
 
@@ -49,7 +49,7 @@ internal class FlowComplianceServiceTest
             new CompliancePolicy { Id = 1, Name = "Alpha" }
         ];
 
-        FlowComplianceController controller = new(new FlowComplianceService(apiConnection));
+        FlowComplianceController controller = new(new FlowComplianceService(apiConnection, new SimulatedGlobalConfig()));
 
         ActionResult<GetPolicyIdsResponse> result = await controller.GetPolicyIds(new GetPolicyIdsRequest());
 
@@ -75,7 +75,7 @@ internal class FlowComplianceServiceTest
         FlowComplianceServiceApiConn apiConnection = new();
         ConfigureComplianceFixture(apiConnection);
 
-        FlowComplianceService service = new(apiConnection);
+        FlowComplianceService service = new(apiConnection, new SimulatedGlobalConfig());
 
         List<FlowComplianceStateResponse> result = await service.GetFlowComplianceStateAsync(BuildComplianceRequest());
 
@@ -86,8 +86,8 @@ internal class FlowComplianceServiceTest
             Assert.That(result[0].Policy.Name, Is.EqualTo("Matrix and Service Policy"));
             Assert.That(result[0].Violations, Has.Count.EqualTo(2));
             Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix", "ForbiddenService" }));
-            Assert.That(apiConnection.SentQueries, Does.Contain(ConfigQueries.getLanguages));
-            Assert.That(apiConnection.SentQueries, Does.Contain(ConfigQueries.getTextsPerLanguage));
+            Assert.That(apiConnection.CountQueries(ConfigQueries.getLanguages), Is.EqualTo(0));
+            Assert.That(apiConnection.CountQueries(ConfigQueries.getTextsPerLanguage), Is.EqualTo(0));
             Assert.That(apiConnection.SentQueries, Does.Contain(ComplianceQueries.getPolicyById));
             Assert.That(apiConnection.SentQueries, Does.Contain(ComplianceQueries.getNetworkZonesForMatrix));
             Assert.That(apiConnection.SentQueries, Does.Contain(DeviceQueries.getManagementNames));
@@ -100,7 +100,7 @@ internal class FlowComplianceServiceTest
         FlowComplianceServiceApiConn apiConnection = new();
         ConfigureComplianceFixture(apiConnection);
 
-        FlowComplianceService service = new(apiConnection);
+        FlowComplianceService service = new(apiConnection, new SimulatedGlobalConfig());
 
         GetFlowComplianceStateRequest request = BuildComplianceRequest();
         request.Policies = [7, 999999];
@@ -124,7 +124,7 @@ internal class FlowComplianceServiceTest
         FlowComplianceServiceApiConn apiConnection = new();
         ConfigureComplianceFixture(apiConnection);
 
-        FlowComplianceService service = new(apiConnection);
+        FlowComplianceService service = new(apiConnection, new SimulatedGlobalConfig());
 
         GetFlowComplianceStateRequest request = BuildComplianceRequest();
         request.Policies = [7, 8];

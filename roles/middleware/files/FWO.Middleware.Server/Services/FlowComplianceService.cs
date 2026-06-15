@@ -15,13 +15,15 @@ namespace FWO.Middleware.Server.Services;
 public sealed class FlowComplianceService
 {
     private readonly ApiConnection apiConnection;
+    private readonly GlobalConfig globalConfig;
 
     /// <summary>
     /// Initializes a new instance of the type.
     /// </summary>
-    public FlowComplianceService(ApiConnection apiConnection)
+    public FlowComplianceService(ApiConnection apiConnection, GlobalConfig globalConfig)
     {
         this.apiConnection = apiConnection;
+        this.globalConfig = globalConfig;
     }
 
     /// <summary>
@@ -51,7 +53,6 @@ public sealed class FlowComplianceService
             return [];
         }
 
-        GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection);
         UserConfig userConfig = new(globalConfig, false);
 
         Rule rule = BuildSyntheticRule(request);

@@ -14,6 +14,8 @@ namespace FWO.Middleware.Server.Services;
 /// </summary>
 public sealed class FlowComplianceService
 {
+    private const int InvalidPolicyId = 0;
+
     private readonly ApiConnection apiConnection;
     private readonly GlobalConfig globalConfig;
 
@@ -57,14 +59,44 @@ public sealed class FlowComplianceService
 
         Rule rule = BuildSyntheticRule(request);
         List<FlowComplianceStateResponse> results = [];
-        ComplianceCheck complianceCheck = new(userConfig, apiConnection);
+        List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames) ?? [];
+        Dictionary<int, List<ComplianceNetworkZone>> networkZonesByCriterion = [];
+
         foreach (int policyId in request.Policies.Distinct())
         {
-            await complianceCheck.AreRulesCompliant([policyId], [rule]);
+            CompliancePolicy policy = await apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = policyId });
+            ComplianceCheck complianceCheck = new(userConfig, apiConnection);
+
+            if (policy is not { Id: > InvalidPolicyId } || policy.Criteria.Count == 0)
+            {
+                results.Add(ToResponse(policyId, complianceCheck));
+                continue;
+            }
+
+            await EnsureNetworkZonesLoadedAsync(policy, networkZonesByCriterion);
+            await complianceCheck.AreRulesCompliant(policy, [rule], managements, networkZonesByCriterion);
             results.Add(ToResponse(policyId, complianceCheck));
         }
 
         return results;
+    }
+
+    private async Task EnsureNetworkZonesLoadedAsync(CompliancePolicy policy, IDictionary<int, List<ComplianceNetworkZone>> networkZonesByCriterion)
+    {
+        foreach (int matrixId in policy.Criteria
+                     .Where(wrapper => wrapper.Content.CriterionType == nameof(CriterionType.Matrix) && wrapper.Content.Id > 0)
+                     .Select(wrapper => wrapper.Content.Id)
+                     .Distinct())
+        {
+            if (networkZonesByCriterion.ContainsKey(matrixId))
+            {
+                continue;
+            }
+
+            networkZonesByCriterion[matrixId] = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
+                ComplianceQueries.getNetworkZonesForMatrix,
+                new { criterionId = matrixId }) ?? [];
+        }
     }
 
     private static Rule BuildSyntheticRule(GetFlowComplianceStateRequest request)

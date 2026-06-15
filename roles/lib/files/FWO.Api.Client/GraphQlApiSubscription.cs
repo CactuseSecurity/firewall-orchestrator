@@ -110,6 +110,7 @@ namespace FWO.Api.Client
             if (exception.Message.Contains("JWTExpired"))
             {
                 throw exception;
+
             }
 
             ExternalExceptionHandler(exception);

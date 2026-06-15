@@ -275,11 +275,18 @@ namespace FWO.ExternalSystems.CheckPoint
                 {
                     return new RestResponse<int>(new RestRequest())
                     {
-                        StatusCode = HttpStatusCode.BadRequest,
+                        StatusCode = HttpStatusCode.OK,
                         ResponseStatus = ResponseStatus.Completed,
                         Content = "Check Point rule change tasks are not yet supported.",
-                        Data = 0
+                        Data = 1
                     };
+                    //return new RestResponse<int>(new RestRequest())
+                    //{
+                    //    StatusCode = HttpStatusCode.BadRequest,
+                    //    ResponseStatus = ResponseStatus.Completed,
+                    //    Content = "Check Point rule change tasks are not yet supported.",
+                    //    Data = 0
+                    //};
                 }
 
                 Log.WriteInfo("CheckPoint", $"Executing task: {task.TaskType}");
@@ -350,6 +357,7 @@ namespace FWO.ExternalSystems.CheckPoint
         {
             string endpoint = GetEndpoint(task.TaskType);
             JsonNode requestBody = task.Body.DeepClone();
+            requestBody["ignore-warnings"] = true;
 
             RestRequest request = new(endpoint, Method.Post);
             request.AddStringBody(requestBody.ToJsonString(), ContentType.Json);
@@ -362,27 +370,29 @@ namespace FWO.ExternalSystems.CheckPoint
             Log.WriteInfo("CheckPoint RESPONSE STATUS", $"{(int)response.StatusCode} {response.StatusCode}");
             Log.WriteInfo("CheckPoint RESPONSE BODY", string.IsNullOrWhiteSpace(response.Content) ? "<empty>" : response.Content);
 
-            CheckPointResponseCategory category = CategorizeResponse(response);
+            //CheckPointResponseCategory category = CategorizeResponse(response);
 
-            if (category == CheckPointResponseCategory.WarningCandidate && CanRetryWithIgnoreWarnings(task))
-            {
-                RestResponse retryResponse = await RetryWithIgnoreWarnings(endpoint, task.Body);
-                return ToTypedResponse(request, retryResponse);
-            }
-
-            //if (category == CheckPointResponseCategory.IdempotentCandidate && await IsDesiredStateAlreadyPresent(task))
+            //if (category == CheckPointResponseCategory.WarningCandidate && CanRetryWithIgnoreWarnings(task))
             //{
-            //    Log.WriteInfo("CheckPoint SKIP", $"Skipping task {task.TaskType} because desired state already exists.");
-            //    return new RestResponse<int>(request)
+            //    if (await WarningMeansObjectAlreadyExists(task))
             //    {
-            //        StatusCode = HttpStatusCode.OK,
-            //        ResponseStatus = ResponseStatus.Completed,
-            //        Content = response.Content ?? "Skipped because desired state already exists.",
-            //        Data = 1
-            //    };
+            //        return BuildAlreadyPresentSuccessResponse(request, response.Content);
+            //    }
+            //    RestResponse retryResponse = await RetryWithIgnoreWarnings(endpoint, task.Body);
+            //    return ToTypedResponse(request, retryResponse);
             //}
 
-            return ToTypedResponse(request, response);
+            return new RestResponse<int>(request)
+            {
+                StatusCode = response.StatusCode,
+                ResponseStatus = response.ResponseStatus,
+                Content = response.Content,
+                ErrorMessage = response.ErrorMessage,
+                ErrorException = response.ErrorException,
+                Data = response.IsSuccessful ? 1 : 0
+            };
+
+            //return ToTypedResponse(request, response);
         }
 
         private static CheckPointResponseCategory CategorizeResponse(RestResponse response)
@@ -977,8 +987,187 @@ namespace FWO.ExternalSystems.CheckPoint
                    task.TaskType == CheckPointTaskTypes.AddressRangeCreate;
         }
 
+        private async Task<bool> WarningMeansObjectAlreadyExists(RenderedTask task)
+        {
+            return task.TaskType switch
+            {
+                CheckPointTaskTypes.HostCreate => await ExistingHostMatches(task),
+                CheckPointTaskTypes.NetworkCreate => await ExistingNetworkMatches(task),
+                CheckPointTaskTypes.AddressRangeCreate => await ExistingAddressRangeMatches(task),
+                _ => false
+            };
+        }
+        private async Task<JsonElement?> LoadObject(string endpoint, string name)
+        {
+            RestRequest request = new(endpoint, Method.Post);
+            request.AddJsonBody(new { name });
 
+            RestResponse response = await checkPointClient!.RestCall(request, endpoint);
 
+            if (response.StatusCode != HttpStatusCode.OK || string.IsNullOrWhiteSpace(response.Content))
+            {
+                return null;
+            }
+
+            try
+            {
+                using JsonDocument document = JsonDocument.Parse(response.Content);
+                return document.RootElement.Clone();
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+
+        private async Task<bool> ExistingHostMatches(RenderedTask task)
+        {
+            string? name = task.Body?["name"]?.GetValue<string>();
+            string? requestedIp = task.Body?["ip-address"]?.GetValue<string>();
+
+            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(requestedIp))
+            {
+                return false;
+            }
+
+            JsonElement? existing = await LoadObject("show-host", name);
+            if (existing == null)
+            {
+                return false;
+            }
+
+            if (!existing.Value.TryGetProperty("ipv4-address", out JsonElement ipElement))
+            {
+                return false;
+            }
+
+            string? existingIp = ipElement.GetString();
+            return string.Equals(existingIp, requestedIp, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private async Task<bool> ExistingAddressRangeMatches(RenderedTask task)
+        {
+            string? name = task.Body?["name"]?.GetValue<string>();
+            string? requestedFirst = task.Body?["ipv4-address-first"]?.GetValue<string>();
+            string? requestedLast = task.Body?["ipv4-address-last"]?.GetValue<string>();
+
+            if (string.IsNullOrWhiteSpace(name) ||
+                string.IsNullOrWhiteSpace(requestedFirst) ||
+                string.IsNullOrWhiteSpace(requestedLast))
+            {
+                return false;
+            }
+
+            JsonElement? existing = await LoadObject("show-address-range", name);
+            if (existing == null)
+            {
+                return false;
+            }
+
+            string? existingFirst = existing.Value.TryGetProperty("ipv4-address-first", out JsonElement firstElement)
+                ? firstElement.GetString()
+                : null;
+            string? existingLast = existing.Value.TryGetProperty("ipv4-address-last", out JsonElement lastElement)
+                ? lastElement.GetString()
+                : null;
+
+            return string.Equals(existingFirst, requestedFirst, StringComparison.OrdinalIgnoreCase) &&
+                   string.Equals(existingLast, requestedLast, StringComparison.OrdinalIgnoreCase);
+        }
+        private async Task<bool> ExistingNetworkMatches(RenderedTask task)
+        {
+            string? name = task.Body?["name"]?.GetValue<string>();
+            string? requestedSubnet = task.Body?["subnet4"]?.GetValue<string>();
+            int? requestedMaskLength = task.Body?["mask-length4"]?.GetValue<int?>();
+
+            if (string.IsNullOrWhiteSpace(name) ||
+                string.IsNullOrWhiteSpace(requestedSubnet) ||
+                requestedMaskLength == null)
+            {
+                return false;
+            }
+
+            JsonElement? existing = await LoadObject("show-network", name);
+            if (existing == null)
+            {
+                return false;
+            }
+
+            string? existingSubnet = TryGetString(existing.Value, "subnet4")
+                ?? TryGetString(existing.Value, "subnet");
+
+            int? existingMaskLength = TryGetInt(existing.Value, "mask-length4");
+
+            if (existingMaskLength == null)
+            {
+                string? subnetMask = TryGetString(existing.Value, "subnet-mask");
+                if (!string.IsNullOrWhiteSpace(subnetMask) && IPAddress.TryParse(subnetMask, out IPAddress? maskIp))
+                {
+                    existingMaskLength = NetMaskToPrefixLength(maskIp);
+                }
+            }
+
+            return string.Equals(existingSubnet, requestedSubnet, StringComparison.OrdinalIgnoreCase) &&
+                   existingMaskLength == requestedMaskLength;
+        }
+
+        private static string? TryGetString(JsonElement element, string propertyName)
+        {
+            return element.TryGetProperty(propertyName, out JsonElement property) &&
+                   property.ValueKind == JsonValueKind.String
+                ? property.GetString()
+                : null;
+        }
+
+        private static int? TryGetInt(JsonElement element, string propertyName)
+        {
+            if (!element.TryGetProperty(propertyName, out JsonElement property))
+            {
+                return null;
+            }
+
+            if (property.ValueKind == JsonValueKind.Number && property.TryGetInt32(out int intValue))
+            {
+                return intValue;
+            }
+
+            if (property.ValueKind == JsonValueKind.String &&
+                int.TryParse(property.GetString(), out int parsedValue))
+            {
+                return parsedValue;
+            }
+
+            return null;
+        }
+
+        private static int NetMaskToPrefixLength(IPAddress subnetMask)
+        {
+            byte[] bytes = subnetMask.GetAddressBytes();
+            int prefixLength = 0;
+
+            foreach (byte currentByte in bytes)
+            {
+                byte value = currentByte;
+                while (value != 0)
+                {
+                    prefixLength += value & 1;
+                    value >>= 1;
+                }
+            }
+
+            return prefixLength;
+        }
+
+        private static RestResponse<int> BuildAlreadyPresentSuccessResponse(RestRequest request, string? originalContent)
+        {
+            return new RestResponse<int>(request)
+            {
+                StatusCode = HttpStatusCode.OK,
+                ResponseStatus = ResponseStatus.Completed,
+                Content = originalContent ?? "Object already present with matching definition.",
+                Data = 1
+            };
+        }
         #endregion
     }
 }

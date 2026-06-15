@@ -157,21 +157,24 @@ namespace FWO.ExternalSystems.CheckPoint
                 ObjectType.Host => new JsonObject
                 {
                     ["name"] = request.Name,
-                    ["ip-address"] = request.IpAddress
+                    ["ip-address"] = request.IpAddress,
+                    ["ignore-warnings"] = true
                 },
 
                 ObjectType.Network => new JsonObject
                 {
                     ["name"] = request.Name,
                     ["subnet4"] = request.Subnet,
-                    ["mask-length4"] = request.MaskLength
+                    ["mask-length4"] = request.MaskLength,
+                    ["ignore-warnings"] = true
                 },
 
                 ObjectType.IPRange => new JsonObject
                 {
                     ["name"] = request.Name,
                     ["ip-address-first"] = request.StartIp,
-                    ["ip-address-last"] = request.EndIp
+                    ["ip-address-last"] = request.EndIp,
+                    ["ignore-warnings"] = true
                 },
 
                 _ => throw new ConfigException("Unsupported CheckPoint object type.")
@@ -357,7 +360,6 @@ namespace FWO.ExternalSystems.CheckPoint
         {
             string endpoint = GetEndpoint(task.TaskType);
             JsonNode requestBody = task.Body.DeepClone();
-            requestBody["ignore-warnings"] = true;
 
             RestRequest request = new(endpoint, Method.Post);
             request.AddStringBody(requestBody.ToJsonString(), ContentType.Json);

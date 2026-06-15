@@ -55,7 +55,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
             }
 
             GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection);
-            UserConfig userConfig = new(globalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
+            UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
 
             string requestId = HttpContext.Request.Headers["X-Request-Id"].FirstOrDefault()
                                ?? Guid.NewGuid().ToString();

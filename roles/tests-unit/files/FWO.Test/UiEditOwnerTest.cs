@@ -274,7 +274,7 @@ namespace FWO.Test
             await (Task)GetPrivateMethod("HandleSave").Invoke(editOwner.Instance, null)!;
 
             Assert.That(owner.Id, Is.EqualTo(apiConn.CreatedOwnerId));
-            Assert.That(apiConn.GetInitialOwnerRecertCalls, Is.EqualTo(1));
+            Assert.That(apiConn.GetOwnerRecertCalls, Is.EqualTo(1));
             Assert.That(apiConn.RecertifyOwnerCalls, Is.EqualTo(1));
             Assert.That(apiConn.SetOwnerLastRecertCalls, Is.EqualTo(1));
         }
@@ -442,7 +442,7 @@ namespace FWO.Test
     internal sealed class EditOwnerTestApiConn : SimulatedApiConnection
     {
         public int CreatedOwnerId { get; set; } = 77;
-        public int GetInitialOwnerRecertCalls { get; private set; }
+        public int GetOwnerRecertCalls { get; private set; }
         public int RecertifyOwnerCalls { get; private set; }
         public int SetOwnerLastRecertCalls { get; private set; }
 
@@ -489,9 +489,9 @@ namespace FWO.Test
                 return Task.FromResult((QueryResponseType)(object)new List<ConfigItem>());
             }
 
-            if (query == RecertQueries.getInitialOwnerRecert)
+            if (query == RecertQueries.getOwnerRecert)
             {
-                GetInitialOwnerRecertCalls++;
+                GetOwnerRecertCalls++;
                 return Task.FromResult((QueryResponseType)(object)new List<OwnerRecertification>());
             }
 

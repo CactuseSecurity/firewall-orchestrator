@@ -1255,7 +1255,7 @@ namespace FWO.Test
             ];
             SimulatedGlobalConfig globalConfig = new() { ComplianceCheckRelevantManagements = "1" };
             ActionHandlerTestPolicyChecker policyChecker = new() { Result = true };
-            WfHandler wfHandler = new((_, _, _, _) => { }, new UserConfig(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request, policyChecker);
+            WfHandler wfHandler = new((_, _, _, _) => { }, UserConfig.ForTextOnly(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request, policyChecker);
             ActionHandler handler = new(apiConn, wfHandler, null, true);
             await handler.Init();
             WfTicket ticket = CreateTicket(CreateEligibleRequestTask(11));
@@ -1284,7 +1284,7 @@ namespace FWO.Test
             ];
             SimulatedGlobalConfig globalConfig = new() { ComplianceCheckRelevantManagements = "1" };
             ActionHandlerTestPolicyChecker policyChecker = new() { Result = false };
-            WfHandler wfHandler = new((_, _, _, _) => { }, new UserConfig(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request, policyChecker);
+            WfHandler wfHandler = new((_, _, _, _) => { }, UserConfig.ForTextOnly(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request, policyChecker);
             ActionHandler handler = new(apiConn, wfHandler, null, true);
             await handler.Init();
             WfTicket ticket = CreateTicket(CreateEligibleRequestTask(12));
@@ -1307,7 +1307,7 @@ namespace FWO.Test
             ActionHandlerTestApiConn apiConn = new();
             apiConn.States = [new WfState { Id = 1 }, new WfState { Id = 2 }, new WfState { Id = 3 }];
             SimulatedGlobalConfig globalConfig = new() { ComplianceCheckRelevantManagements = "1" };
-            WfHandler wfHandler = new((_, _, _, _) => { }, new UserConfig(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request, new ActionHandlerTestPolicyChecker() { Result = true });
+            WfHandler wfHandler = new((_, _, _, _) => { }, UserConfig.ForTextOnly(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request, new ActionHandlerTestPolicyChecker() { Result = true });
             ActionHandler handler = new(apiConn, wfHandler, null, true);
             await handler.Init();
             WfTicket ticket = CreateTicket(CreateEligibleRequestTask(13));
@@ -1329,7 +1329,7 @@ namespace FWO.Test
             ActionHandlerTestApiConn apiConn = new();
             apiConn.States = [new WfState { Id = 1 }, new WfState { Id = 2 }, new WfState { Id = 3 }];
             SimulatedGlobalConfig globalConfig = new() { ComplianceCheckRelevantManagements = "1" };
-            WfHandler wfHandler = new((_, _, _, _) => { }, new UserConfig(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request, new ActionHandlerTestPolicyChecker() { Result = true });
+            WfHandler wfHandler = new((_, _, _, _) => { }, UserConfig.ForTextOnly(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request, new ActionHandlerTestPolicyChecker() { Result = true });
             ActionHandler handler = new(apiConn, wfHandler, null, true);
             await handler.Init();
             WfTicket ticket = CreateTicket(CreateEligibleRequestTask(14));
@@ -1351,7 +1351,7 @@ namespace FWO.Test
             apiConn.States = [new WfState { Id = 1 }, new WfState { Id = 2 }, new WfState { Id = 3 }];
             SimulatedGlobalConfig globalConfig = new() { ComplianceCheckRelevantManagements = "1" };
             ActionHandlerTestPolicyChecker policyChecker = new() { Result = true };
-            WfHandler wfHandler = new((_, _, _, _) => { }, new UserConfig(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request, policyChecker);
+            WfHandler wfHandler = new((_, _, _, _) => { }, UserConfig.ForTextOnly(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request, policyChecker);
             ActionHandler handler = new(apiConn, wfHandler, null, true);
             await handler.Init();
             WfReqTask eligibleTask = CreateEligibleRequestTask(15);
@@ -1386,7 +1386,7 @@ namespace FWO.Test
             ActionHandlerTestApiConn apiConn = new();
             apiConn.States = [new WfState { Id = 1 }, new WfState { Id = 2 }, new WfState { Id = 3 }];
             SimulatedGlobalConfig globalConfig = new() { ComplianceCheckRelevantManagements = "1" };
-            WfHandler wfHandler = new(new UserConfig(globalConfig, false), apiConn, WorkflowPhases.request, null, new ActionHandlerTestPolicyChecker() { Result = true });
+            WfHandler wfHandler = new(UserConfig.ForTextOnly(globalConfig, false), apiConn, WorkflowPhases.request, null, new ActionHandlerTestPolicyChecker() { Result = true });
             ActionHandler handler = new(apiConn, wfHandler, null, true);
             await handler.Init();
             WfTicket ticket = CreateTicket(CreateEligibleRequestTask(17));

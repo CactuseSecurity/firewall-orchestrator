@@ -24,6 +24,23 @@ namespace FWO.Config.Api
         public UiUser User { private set; get; }
         public string ExecutionMode { get; private set; } = GlobalConst.kUserRolesSelection;
 
+        /// <summary>
+        /// Creates a text-only user configuration for unauthenticated UI/bootstrap display.
+        /// This does not load direct configuration properties for operational code.
+        /// </summary>
+        public static UserConfig ForTextOnly(GlobalConfig globalConfig, bool registerOnChangeHandler = true)
+        {
+            return new UserConfig(globalConfig, registerOnChangeHandler);
+        }
+
+        /// <summary>
+        /// Creates an initialized configuration for middleware and scheduled jobs that need global settings.
+        /// </summary>
+        public static UserConfig ForGlobalSettings(GlobalConfig globalConfig, ApiConnection apiConnection, string language = GlobalConst.kEnglish, bool owningApiConnection = false)
+        {
+            return new UserConfig(globalConfig, apiConnection, new UiUser { DbId = 0, Language = language }, owningApiConnection);
+        }
+
         public static async Task<UserConfig> ConstructAsync(GlobalConfig globalConfig, ApiConnection apiConnection, int userId, bool owningApiConnection = false)
         {
             UiUser[] users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDbId, new { userId = userId });
@@ -47,7 +64,7 @@ namespace FWO.Config.Api
         }
 
         // Warning: only for Texts, ConfigItems contain Default content, correct ConfigItems are only in this.globalConfig
-        public UserConfig(GlobalConfig globalConfig, bool registerOnChangeHandler = true) : base()
+        private UserConfig(GlobalConfig globalConfig, bool registerOnChangeHandler = true) : base()
         {
             User = new UiUser();
             Translate = globalConfig.LangDict[globalConfig.DefaultLanguage];

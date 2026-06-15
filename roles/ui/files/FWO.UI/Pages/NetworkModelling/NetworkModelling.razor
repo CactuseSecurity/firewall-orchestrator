@@ -636,7 +636,8 @@ else
     {
         try
         {
-            List<ExternalRequest> lastRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getLastRequest, new{ticketId = intTicket.Id});
+            List<ExternalRequest> lastRequests = await apiConnection.RunWithBestRole(authenticationStateTask!.Result.User, [Roles.Modeller, Roles.Admin, Roles.Auditor],
+                async () => await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getLastRequest, new{ticketId = intTicket.Id}));
             if(lastRequests != null && lastRequests.Count > 0)
             {
                 bool shortened = false;

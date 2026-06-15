@@ -45,7 +45,7 @@ namespace FWO.Middleware.Server.Jobs
         {
             try
             {
-                AppDataImport import = new(apiConnection, globalConfig);
+                using AppDataImport import = new(apiConnection, globalConfig);
                 List<string> failedImports = await import.Run();
                 if (failedImports.Count > 0)
                 {
@@ -64,7 +64,7 @@ namespace FWO.Middleware.Server.Jobs
             {
                 if (globalConfig.DnsLookup)
                 {
-                    UserConfig userConfig = new(globalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
+                    using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
                     userConfig.User.Name = Roles.MiddlewareServer;
                     await AppServerHelper.AdjustAppServerNames(apiConnection, userConfig);
                 }

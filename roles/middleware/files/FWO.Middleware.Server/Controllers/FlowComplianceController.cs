@@ -8,9 +8,10 @@ using Microsoft.AspNetCore.Mvc;
 namespace FWO.Middleware.Server.Controllers;
 
 /// <summary>
-/// Provides flow compliance endpoints.
+/// Provides read-only flow compliance endpoints.
+/// These endpoints are role-authorized, but they are not filtered on a modeller or owner basis.
 /// </summary>
-[Authorize(Roles = $"{Roles.Admin}")]
+[Authorize]
 [ApiController]
 [Route("api/flow")]
 public class FlowComplianceController : ControllerBase
@@ -27,8 +28,10 @@ public class FlowComplianceController : ControllerBase
     }
 
     /// <summary>
-    /// Returns the compliance state for the requested flows.
+    /// Returns the compliance state for the requested flows using shared compliance data.
+    /// This evaluation is not scoped to a modeller or owner.
     /// </summary>
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getFlowComplianceState")]
     public async Task<ActionResult<List<FlowComplianceStateResponse>>> GetFlowComplianceState([FromBody] GetFlowComplianceStateRequest request)
     {
@@ -42,7 +45,9 @@ public class FlowComplianceController : ControllerBase
 
     /// <summary>
     /// Returns the policy identifiers for the current dataset.
+    /// This lookup is not scoped to a modeller or owner.
     /// </summary>
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getPolicyIds")]
     public async Task<ActionResult<GetPolicyIdsResponse>> GetPolicyIds([FromBody] GetPolicyIdsRequest request)
     {

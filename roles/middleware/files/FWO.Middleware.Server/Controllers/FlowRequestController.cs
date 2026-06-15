@@ -10,7 +10,7 @@ namespace FWO.Middleware.Server.Controllers;
 /// <summary>
 /// Provides flow request endpoints that are not implemented yet.
 /// </summary>
-[Authorize(Roles = $"{Roles.Admin}")]
+[Authorize]
 [ApiController]
 [Route("api/flow")]
 public class FlowRequestController : ControllerBase
@@ -18,6 +18,7 @@ public class FlowRequestController : ControllerBase
     /// <summary>
     /// Generates an address object name.
     /// </summary>
+    [Authorize(Roles = $"{Roles.Admin}")]
     [HttpPost("generateAddressObjectName")]
     public ActionResult<GenerateAddressObjectNameResponse> GenerateAddressObjectName([FromBody] GenerateAddressObjectNameRequest request)
     {
@@ -27,6 +28,7 @@ public class FlowRequestController : ControllerBase
     /// <summary>
     /// Generates a service object name.
     /// </summary>
+    [Authorize(Roles = $"{Roles.Admin}")]
     [HttpPost("generateServiceObjectName")]
     public ActionResult<GenerateServiceObjectNameResponse> GenerateServiceObjectName([FromBody] GenerateServiceObjectNameRequest request)
     {
@@ -35,7 +37,9 @@ public class FlowRequestController : ControllerBase
 
     /// <summary>
     /// Checks whether a network object definition is valid.
+    /// This validation helper is not scoped to a modeller or owner.
     /// </summary>
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getNetObjectValidity")]
     public ActionResult<NetObjectValidityResponse> GetNetObjectValidity([FromBody] GetNetObjectValidityRequest request)
     {
@@ -44,7 +48,9 @@ public class FlowRequestController : ControllerBase
 
     /// <summary>
     /// Checks whether a network group definition is valid.
+    /// This validation helper is not scoped to a modeller or owner.
     /// </summary>
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getNetGroupValidity")]
     public ActionResult<NetGroupValidityResponse> GetNetGroupValidity([FromBody] List<GetNetGroupValidityRequestItem> request)
     {
@@ -54,6 +60,7 @@ public class FlowRequestController : ControllerBase
     /// <summary>
     /// Creates a new request.
     /// </summary>
+    [Authorize(Roles = $"{Roles.Admin}")]
     [HttpPost("createRequest")]
     public ActionResult<CreateRequestResponse> CreateRequest([FromBody] CreateRequestRequest request)
     {
@@ -63,6 +70,7 @@ public class FlowRequestController : ControllerBase
     /// <summary>
     /// Returns the status of an existing request.
     /// </summary>
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getRequestStatus")]
     public ActionResult<GetRequestStatusResponse> GetRequestStatus([FromBody] GetRequestStatusRequest request)
     {

@@ -8,9 +8,10 @@ using Microsoft.AspNetCore.Mvc;
 namespace FWO.Middleware.Server.Controllers;
 
 /// <summary>
-/// Provides flow catalog endpoints.
+/// Provides read-only flow catalog endpoints.
+/// These endpoints are role-authorized, but they are not filtered on a modeller or owner basis.
 /// </summary>
-[Authorize(Roles = $"{Roles.Admin}")]
+[Authorize]
 [ApiController]
 [Route("api/flow")]
 public class FlowCatalogController : ControllerBase
@@ -55,8 +56,10 @@ public class FlowCatalogController : ControllerBase
     }
 
     /// <summary>
-    /// Returns address objects for the requested visibility filter.
+    /// Returns address objects for the requested visibility filter from the shared flow catalog.
+    /// This lookup is not scoped to a modeller or owner.
     /// </summary>
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getAddressObjects")]
     public async Task<ActionResult<List<AddressObjectResponse>>> GetAddressObjects([FromBody] GetAddressObjectsRequest request)
     {
@@ -69,8 +72,10 @@ public class FlowCatalogController : ControllerBase
     }
 
     /// <summary>
-    /// Returns address groups for the requested visibility filter.
+    /// Returns address groups for the requested visibility filter from the shared flow catalog.
+    /// This lookup is not scoped to a modeller or owner.
     /// </summary>
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getAddressGroups")]
     public async Task<ActionResult<List<AddressGroupResponse>>> GetAddressGroups([FromBody] GetAddressGroupsRequest request)
     {
@@ -83,8 +88,10 @@ public class FlowCatalogController : ControllerBase
     }
 
     /// <summary>
-    /// Returns service objects for the requested visibility filter.
+    /// Returns service objects for the requested visibility filter from the shared flow catalog.
+    /// This lookup is not scoped to a modeller or owner.
     /// </summary>
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getServiceObjects")]
     public async Task<ActionResult<List<ServiceObjectResponse>>> GetServiceObjects([FromBody] GetServiceObjectsRequest request)
     {
@@ -97,8 +104,10 @@ public class FlowCatalogController : ControllerBase
     }
 
     /// <summary>
-    /// Returns service groups for the requested visibility filter.
+    /// Returns service groups for the requested visibility filter from the shared flow catalog.
+    /// This lookup is not scoped to a modeller or owner.
     /// </summary>
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getServiceGroups")]
     public async Task<ActionResult<List<ServiceGroupResponse>>> GetServiceGroups([FromBody] GetServiceGroupsRequest request)
     {
@@ -111,8 +120,10 @@ public class FlowCatalogController : ControllerBase
     }
 
     /// <summary>
-    /// Returns time objects for the requested visibility filter.
+    /// Returns time objects for the requested visibility filter from the shared flow catalog.
+    /// This lookup is not scoped to a modeller or owner.
     /// </summary>
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getTimeObjects")]
     public async Task<ActionResult<List<TimeObjectResponse>>> GetTimeObjects([FromBody] GetTimeObjectsRequest request)
     {
@@ -125,8 +136,10 @@ public class FlowCatalogController : ControllerBase
     }
 
     /// <summary>
-    /// Resolves a service object identifier from the supplied lookup request.
+    /// Resolves a service object identifier from the supplied lookup request against the shared flow catalog.
+    /// This lookup is not scoped to a modeller or owner.
     /// </summary>
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getServiceObjectId")]
     public async Task<ActionResult<ServiceObjectIdResponse>> GetServiceObjectId([FromBody] GetServiceObjectIdRequest request)
     {
@@ -144,8 +157,10 @@ public class FlowCatalogController : ControllerBase
     }
 
     /// <summary>
-    /// Resolves an address object identifier from the supplied lookup request.
+    /// Resolves an address object identifier from the supplied lookup request against the shared flow catalog.
+    /// This lookup is not scoped to a modeller or owner.
     /// </summary>
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getAddressObjectId")]
     public async Task<ActionResult<AddressObjectIdResponse>> GetAddressObjectId([FromBody] GetAddressObjectIdRequest request)
     {

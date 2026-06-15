@@ -55,7 +55,7 @@ public sealed class FlowComplianceService
             return [];
         }
 
-        UserConfig userConfig = new UserConfig(globalConfig, false);
+        UserConfig userConfig = UserConfig.ForTextOnly(globalConfig, false);
 
         Rule rule = BuildSyntheticRule(request);
         List<FlowComplianceStateResponse> results = [];

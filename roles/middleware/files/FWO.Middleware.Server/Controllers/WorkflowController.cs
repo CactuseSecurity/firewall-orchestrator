@@ -153,7 +153,7 @@ namespace FWO.Middleware.Server.Controllers
         private async Task<WorkflowActionResult> ExecuteActionsInMiddlewareContext(ApiConnection actionApiConnection, WorkflowActionParameters parameters,
             WfObjectScopes scope, WorkflowPhases phase, long lockTicketId, WorkflowActionResult result)
         {
-            using UserConfig userConfig = new(globalConfig, actionApiConnection, new UiUser { DbId = 0, Language = globalConfig.DefaultLanguage }, false);
+            using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, actionApiConnection, globalConfig.DefaultLanguage);
             WfHandler wfHandler = CreateWorkflowHandler(actionApiConnection, userConfig, phase, result);
             if (!await InitWorkflowHandler(wfHandler, result))
             {

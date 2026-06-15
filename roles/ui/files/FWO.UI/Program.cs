@@ -98,7 +98,7 @@ builder.Services.AddSingleton<GlobalConfig>(_ => globalConfig);
 builder.Services.AddSingleton<IUrlSanitizer, UrlSanitizer>();
 
 // the user's personal config
-builder.Services.AddScoped<UserConfig>(_ => new UserConfig(globalConfig));
+builder.Services.AddScoped<UserConfig>(_ => UserConfig.ForTextOnly(globalConfig));
 
 builder.Services.AddScoped(_ => new NetworkZoneService());
 builder.Services.AddScoped(_ => new DomEventService());

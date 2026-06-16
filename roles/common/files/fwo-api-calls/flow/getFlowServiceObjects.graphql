@@ -1,0 +1,5 @@
+query getServiceObjects($where: flow_svcobject_bool_exp = {}) {
+  svcobjects: flow_svcobject(where: $where, order_by: [{ name: asc }, { svcobj_id: asc }]) {
+    ...flowSvcObjectDetails
+  }
+}

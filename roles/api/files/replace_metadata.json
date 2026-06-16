@@ -14460,6 +14460,21 @@
               ],
               "insert_permissions": [
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "recertified",
+                      "comment",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "check": {},
@@ -14531,6 +14546,40 @@
                 },
                 {
                   "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "report_id",
+                      "recertified",
+                      "comment",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "report_id",
+                      "recertified",
+                      "comment",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
                   "permission": {
                     "columns": [
                       "id",
@@ -30663,6 +30712,30 @@
                 },
                 {
                   "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id",
+                      "state_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id",
+                      "state_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
                   "permission": {
                     "columns": [
                       "name",

@@ -220,7 +220,7 @@ namespace FWO.Middleware.Server
 
         private RuleDisplayHtml CreateRuleDisplayHtml()
         {
-            UserConfig displayUserConfig = new(GlobalConfig, false);
+            UserConfig displayUserConfig = UserConfig.ForTextOnly(GlobalConfig, false);
             return new RuleDisplayHtml(displayUserConfig);
         }
 

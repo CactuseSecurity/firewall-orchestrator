@@ -49,6 +49,7 @@ class OwnerLineParserContext:
 class ExtractAppDataCsvOptions:
     base_dir: str = "."
     recert_active_app_list: list[str] | None = None
+    isolation_completed_app_list: list[str] | None = None
     default_recert_active_state: bool = False
     column_patterns: dict[str, str] | None = None
     valid_app_id_prefixes: list[str] | None = None
@@ -754,6 +755,26 @@ def parse_app_line(
     return count_skips
 
 
+ISOLATION_COMPLETED_KEY: str = "Isolated"
+ISOLATION_NOT_COMPLETED_VALUE: str = "Nein"
+
+
+def _mark_apps_without_completed_isolation(
+    app_list: list[Owner],
+    isolation_completed_app_list: list[str] | None,
+) -> None:
+    """Flag every app that is not listed as fully isolated in the additional information section."""
+    if isolation_completed_app_list is None:
+        return
+    isolation_completed_app_set: set[str] = set(isolation_completed_app_list)
+    for app in app_list:
+        if app.app_id_external in isolation_completed_app_set:
+            continue
+        if app.additional_information is None:
+            app.additional_information = {}
+        app.additional_information[ISOLATION_COMPLETED_KEY] = ISOLATION_NOT_COMPLETED_VALUE
+
+
 def extract_app_data_from_csv(
     csv_file: str,
     app_list: list[Owner],
@@ -861,6 +882,8 @@ def extract_app_data_from_csv(
             app.recert_active = True
             # Set initial recertification to standard period of days.
             app.days_until_first_recert = app.recert_period_days
+
+    _mark_apps_without_completed_isolation(app_list, resolved_options.isolation_completed_app_list)
 
 
 def read_ip_data_from_csv(

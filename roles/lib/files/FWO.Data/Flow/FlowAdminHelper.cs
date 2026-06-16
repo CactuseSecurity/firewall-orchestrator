@@ -54,6 +54,33 @@ namespace FWO.Data.Flow
         }
 
         /// <summary>
+        /// Returns true when the object does not have an IP address or range and can therefore be used as a custom
+        /// firewall object candidate.
+        /// </summary>
+        public static bool HasNoTechnicalAddress(NetworkObject candidate)
+        {
+            return string.IsNullOrWhiteSpace(candidate.IP) &&
+                   string.IsNullOrWhiteSpace(candidate.IpEnd);
+        }
+
+        /// <summary>
+        /// Formats the technical details of a network object for duplicate resolution views.
+        /// </summary>
+        public static string FormatNetworkObjectTechnicalDetails(NetworkObject candidate)
+        {
+            string details = HasNoTechnicalAddress(candidate)
+                ? (candidate.Name ?? "")
+                : DisplayBase.DisplayIpWithName(candidate);
+            string technicalId = string.IsNullOrWhiteSpace(candidate.Uid)
+                ? $"#{candidate.Id}"
+                : candidate.Uid;
+
+            return string.IsNullOrWhiteSpace(details)
+                ? technicalId
+                : $"{details} [{technicalId}]";
+        }
+
+        /// <summary>
         /// Filters custom flow object candidates by a case-insensitive search string.
         /// </summary>
         public static List<NetworkObject> FilterCustomObjectCandidates(IEnumerable<NetworkObject>? candidates, string? searchText)

@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Data.Middleware;
+using FWO.Services;
 using FWO.Ui.Services;
 using NSubstitute;
 using NUnit.Framework;
@@ -62,7 +63,7 @@ namespace FWO.Test
                 new GlobalConfigApiConnection(apiConnection),
                 tokenProvider,
                 new GlobalConfigTokenState(initialTokenPair),
-                new GlobalConfigTokenRefreshOptions
+                new TokenRefreshOptions
                 {
                     RefreshLeadTime = TimeSpan.FromMinutes(2),
                     RefreshCheckInterval = TimeSpan.FromMinutes(1)

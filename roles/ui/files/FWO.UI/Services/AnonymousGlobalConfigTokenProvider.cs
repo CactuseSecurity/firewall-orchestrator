@@ -1,8 +1,6 @@
 using FWO.Data.Middleware;
-using FWO.Logging;
 using FWO.Middleware.Client;
 using RestSharp;
-using System.Text.Json;
 
 namespace FWO.Ui.Services
 {
@@ -42,7 +40,7 @@ namespace FWO.Ui.Services
             ObjectDisposedException.ThrowIf(disposed, this);
 
             RestResponse<TokenPair> response = await middlewareClient.CreateInitialJWT(cancellationToken);
-            TokenPair? tokenPair = response.Data ?? ParseTokenPairResponse(response);
+            TokenPair? tokenPair = response.Data ?? TokenPairResponseParser.Parse(response, "Global Config Token Refresh");
 
             if (!response.IsSuccessful || tokenPair == null || string.IsNullOrWhiteSpace(tokenPair.AccessToken))
             {
@@ -50,24 +48,6 @@ namespace FWO.Ui.Services
             }
 
             return tokenPair;
-        }
-
-        private static TokenPair? ParseTokenPairResponse(RestResponse<TokenPair> response)
-        {
-            if (string.IsNullOrWhiteSpace(response.Content))
-            {
-                return null;
-            }
-
-            try
-            {
-                return JsonSerializer.Deserialize<TokenPair>(response.Content);
-            }
-            catch (JsonException exception)
-            {
-                Log.WriteWarning("Global Config Token Refresh", $"Failed to deserialize anonymous token pair: {exception.Message}");
-                return null;
-            }
         }
 
         /// <summary>

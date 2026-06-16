@@ -100,7 +100,7 @@ builder.Services.AddSingleton<IUrlSanitizer, UrlSanitizer>();
 builder.Services.AddSingleton(new GlobalConfigApiConnection(globalConfigApiConnection));
 builder.Services.AddSingleton(new GlobalConfigTokenState(tokenPair));
 builder.Services.AddSingleton<IAnonymousGlobalConfigTokenProvider>(_ => new AnonymousGlobalConfigTokenProvider(MiddlewareUri));
-builder.Services.AddSingleton(new GlobalConfigTokenRefreshOptions());
+builder.Services.AddSingleton(new TokenRefreshOptions());
 builder.Services.AddHostedService<GlobalConfigTokenRefreshService>();
 
 // the user's personal config

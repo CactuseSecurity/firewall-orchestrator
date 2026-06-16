@@ -2,7 +2,7 @@ mutation resetFlowDB {
   update_import_control(where: {} _set: {flow_sync_done: false}) {
     affected_rows
   }
-  update_rule(where: {} _set: {flow_access_id: null, flow_active: false}) {
+  update_rule(where: {} _set: {flow_access_id: null}) {
     affected_rows
   }
   update_object(where: {} _set: {flow_nwgrp_id: null, flow_nwobj_id: null, flow_active: false}) {

@@ -332,11 +332,19 @@ namespace FWO.Data.Flow
             Accesses[access.Hash] = access;
         }
 
+        /// <summary>
+        /// Checks if there are any inconsistencies between the stored hashes and the hashes calculated from the
+        /// current state of the objects using the current hash calculation logic.
+        /// Network objects, service objects and time objects where the hash cannot be calculated automatically
+        /// (manually created flow objects) are excluded from this check. For groups and accesses, all base
+        /// objects contained within the group/access are expected to have valid hashes.
+        /// </summary>
+        /// <returns></returns>
         public bool HasHashInconsistencies()
         {
-            return NwObjects.Values.Any(fo => fo.TryCalculateHash() != null && fo.TryCalculateHash() != fo.Hash)
-                || SvcObjects.Values.Any(fs => fs.TryCalculateHash() != null && fs.TryCalculateHash() != fs.Hash)
-                || TimeObjects.Values.Any(fto => fto.TryCalculateHash() != null && fto.TryCalculateHash() != fto.Hash)
+            return NwObjects.Values.Any(fo => fo.TryCalculateHash() is string h && h != fo.Hash)
+                || SvcObjects.Values.Any(fs => fs.TryCalculateHash() is string h && h != fs.Hash)
+                || TimeObjects.Values.Any(fto => fto.TryCalculateHash() is string h && h != fto.Hash)
                 || NwGroups.Values.Any(g => g.TryCalculateHash() != g.Hash)
                 || SvcGroups.Values.Any(g => g.TryCalculateHash() != g.Hash)
                 || Accesses.Values.Any(fa => fa.TryCalculateHash() != fa.Hash);

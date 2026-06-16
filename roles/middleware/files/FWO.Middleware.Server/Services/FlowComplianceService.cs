@@ -69,13 +69,13 @@ public sealed class FlowComplianceService
 
             if (policy is not { Id: > InvalidPolicyId } || policy.Criteria.Count == 0)
             {
-                results.Add(ToResponse(policyId, complianceCheck));
+                results.Add(ToResponse(policyId, policy, complianceCheck));
                 continue;
             }
 
             await EnsureNetworkZonesLoadedAsync(policy, networkZonesByCriterion);
             await complianceCheck.AreRulesCompliant(policy, [rule], managements, networkZonesByCriterion);
-            results.Add(ToResponse(policyId, complianceCheck));
+            results.Add(ToResponse(policyId, policy, complianceCheck));
         }
 
         return results;
@@ -145,15 +145,15 @@ public sealed class FlowComplianceService
         };
     }
 
-    private static FlowComplianceStateResponse ToResponse(int policyId, ComplianceCheck complianceCheck)
+    private static FlowComplianceStateResponse ToResponse(int policyId, CompliancePolicy? policy, ComplianceCheck complianceCheck)
     {
-        bool policyResolved = complianceCheck.Policy is { Id: > 0 };
+        bool policyResolved = policy is { Id: > 0 };
         return new FlowComplianceStateResponse
         {
             Policy = new FlowComplianceStateResponse.CompliancePolicyResponse
             {
-                Id = policyResolved ? complianceCheck.Policy!.Id : policyId,
-                Name = policyResolved ? complianceCheck.Policy!.Name : string.Empty
+                Id = policyResolved ? policy!.Id : policyId,
+                Name = policyResolved ? policy!.Name : string.Empty
             },
             Violations = complianceCheck.CurrentViolationsInCheck
                 .Select(violation => new FlowComplianceStateResponse.ComplianceViolationResponse

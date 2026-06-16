@@ -95,6 +95,25 @@ internal class FlowComplianceServiceTest
     }
 
     [Test]
+    public async Task GetFlowComplianceStateAsync_PreservesPolicyNameWhenFlowIsCompliant()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        ConfigureComplianceFixture(apiConnection);
+
+        FlowComplianceService service = new(apiConnection, new SimulatedGlobalConfig());
+
+        List<FlowComplianceStateResponse> result = await service.GetFlowComplianceStateAsync(BuildCompliantMatrixOnlyRequest());
+
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result[0].Policy.Id, Is.EqualTo(8));
+            Assert.That(result[0].Policy.Name, Is.EqualTo("Matrix Only Policy"));
+            Assert.That(result[0].Violations, Is.Empty);
+        });
+    }
+
+    [Test]
     public async Task GetFlowComplianceStateAsync_DoesNotReuseViolationsForUnknownPolicies()
     {
         FlowComplianceServiceApiConn apiConnection = new();
@@ -184,6 +203,39 @@ internal class FlowComplianceServiceTest
                 }
             ],
             Policies = [7]
+        };
+    }
+
+    private static GetFlowComplianceStateRequest BuildCompliantMatrixOnlyRequest()
+    {
+        return new GetFlowComplianceStateRequest
+        {
+            Source =
+            [
+                new GetFlowComplianceStateRequest.IpRangeRequest
+                {
+                    IpStart = "128.0.0.1",
+                    IpEnd = "128.0.0.1"
+                }
+            ],
+            Destination =
+            [
+                new GetFlowComplianceStateRequest.IpRangeRequest
+                {
+                    IpStart = "128.0.0.1",
+                    IpEnd = "128.0.0.1"
+                }
+            ],
+            Service =
+            [
+                new GetFlowComplianceStateRequest.ServiceRangeRequest
+                {
+                    PortStart = 443,
+                    PortEnd = 443,
+                    Protocol = "TCP"
+                }
+            ],
+            Policies = [8]
         };
     }
 

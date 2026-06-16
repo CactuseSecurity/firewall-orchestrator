@@ -1110,6 +1110,51 @@ def parse_nat_ip(
     return [parsed_ip], [uid]
 
 
+def prepare_translated_nat_fields(
+    rule_src_list: list[str],
+    rule_dst_list: list[str],
+    rule_svc_list: list[str],
+    translated_src_list: list[str],
+    translated_src_refs_list: list[str],
+    translated_dst_list: list[str],
+    translated_dst_refs_list: list[str],
+    translated_svc_list: list[str],
+    translated_svc_refs_list: list[str],
+    native_rule: dict[str, Any],
+    is_snat: bool,
+    is_dnat: bool,
+) -> tuple[list[str], list[str], list[str], list[str], list[str], list[str]]:
+    translated_dst_list_local = list(translated_dst_list)
+    translated_dst_refs_list_local = list(translated_dst_refs_list)
+    translated_svc_list_local = list(translated_svc_list)
+    translated_svc_refs_list_local = list(translated_svc_refs_list)
+
+    if set(translated_src_list) == set(rule_src_list):
+        translated_src_list = ["Original"]
+        translated_src_refs_list = ["Original"]
+
+    if is_snat and native_rule.get("ippool") == 0:
+        translated_src_list = ["Outgoing Interface IP"]
+        translated_src_refs_list = ["Outgoing_Interface_IP"]
+
+    if set(translated_dst_list_local) == set(rule_dst_list) and not is_dnat:
+        translated_dst_list_local = ["Original"]
+        translated_dst_refs_list_local = ["Original"]
+
+    if set(translated_svc_list_local) == set(rule_svc_list):
+        translated_svc_list_local = ["Original"]
+        translated_svc_refs_list_local = ["Original"]
+
+    return (
+        translated_src_list,
+        translated_src_refs_list,
+        translated_dst_list_local,
+        translated_dst_refs_list_local,
+        translated_svc_list_local,
+        translated_svc_refs_list_local,
+    )
+
+
 def parse_nat_rules_in_rulebase(
     normalized_config_adom: dict[str, Any],
     normalized_config_global: dict[str, Any],
@@ -1164,30 +1209,32 @@ def parse_nat_rules_in_rulebase(
         # replace it with the standard placeholder object "Original".
         ensure_original_objects(normalized_config_adom, normalized_config_global)
 
-        translated_dst_list_local = list(rule_dst_list)
-        translated_dst_refs_list_local = list(rule_dst_refs_list)
-        translated_svc_list_local = list(rule_svc_list)
-        translated_svc_refs_list_local = list(rule_svc_refs_list)
+        translated_dst_list = list(rule_dst_list)
+        translated_dst_refs_list = list(rule_dst_refs_list)
+        translated_svc_list = list(rule_svc_list)
+        translated_svc_refs_list = list(rule_svc_refs_list)
 
-        # If translation did not change the source, mark it as Original
-        if set(translated_src_list) == set(rule_src_list):
-            translated_src_list = ["Original"]
-            translated_src_refs_list = ["Original"]
-
-        # If this is a SNAT rule with no IP pool, the translated source is the outgoing interface IP
-        if is_snat and native_rule.get("ippool") == 0:
-            translated_src_list = ["Outgoing Interface IP"]
-            translated_src_refs_list = ["Outgoing_Interface_IP"]
-
-        # If translated destination equals original destination, use Original placeholder
-        if set(translated_dst_list_local) == set(rule_dst_list) and not is_dnat:
-            translated_dst_list_local = ["Original"]
-            translated_dst_refs_list_local = ["Original"]
-
-        # If translated service equals original service, use Original placeholder
-        if set(translated_svc_list_local) == set(rule_svc_list):
-            translated_svc_list_local = ["Original"]
-            translated_svc_refs_list_local = ["Original"]
+        (
+            translated_src_list,
+            translated_src_refs_list,
+            translated_dst_list_local,
+            translated_dst_refs_list_local,
+            translated_svc_list_local,
+            translated_svc_refs_list_local,
+        ) = prepare_translated_nat_fields(
+            rule_src_list,
+            rule_dst_list,
+            rule_svc_list,
+            translated_src_list,
+            translated_src_refs_list,
+            translated_dst_list,
+            translated_dst_refs_list,
+            translated_svc_list,
+            translated_svc_refs_list,
+            native_rule,
+            is_snat,
+            is_dnat,
+        )
 
         if native_rule.get("rtp-nat") == 1:
             translated_src_list, translated_src_refs_list = parse_nat_ip(

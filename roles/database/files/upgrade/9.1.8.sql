@@ -65,6 +65,8 @@ SET flow_timeobj_id = NULL,
 WHERE flow_timeobj_id IS NOT NULL
     OR flow_active = TRUE;
 
+-- Intentional full reset of flow data during upgrade 9.1.8.
+-- Flow tables are repopulated by the next flow sync.
 DELETE FROM flow.access;
 DELETE FROM flow.nwobject;
 DELETE FROM flow.nwgroup;

@@ -531,7 +531,7 @@ namespace FWO.Test
             apiConn.ExistingAccesses.Add(new FlowAccess
             {
                 Id = 900,
-                Hash = FlowHashGenerator.GenerateAccessHash([sourceHash], [destinationHash], [serviceHash])
+                Hash = FlowHashGenerator.GenerateAccessHash([sourceHash], [destinationHash], [serviceHash], []) // TODO: include timeObjectHashes
             });
             FlowDbCreator flowDbCreator = new(apiConn);
             WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);

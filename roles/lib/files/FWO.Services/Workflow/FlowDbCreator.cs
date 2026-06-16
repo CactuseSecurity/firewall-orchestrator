@@ -597,7 +597,8 @@ namespace FWO.Services.Workflow
             string hash = FlowHashGenerator.GenerateAccessHash(
                 sources.SelectMany(reference => reference.Hashes).Distinct(),
                 destinations.SelectMany(reference => reference.Hashes).Distinct(),
-                services.SelectMany(reference => reference.Hashes).Distinct());
+                services.SelectMany(reference => reference.Hashes).Distinct(),
+                []); //TODO: include timeObjectHashes
 
             if (context.Accesses.TryGetValue(hash, out FlowAccess? existingAccess))
             {

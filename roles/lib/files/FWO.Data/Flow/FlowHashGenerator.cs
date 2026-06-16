@@ -72,7 +72,8 @@ namespace FWO.Data.Flow
         public static string GenerateAccessHash(
             IEnumerable<string> sourceHashes,
             IEnumerable<string> destinationHashes,
-            IEnumerable<string> serviceHashes)
+            IEnumerable<string> serviceHashes,
+            IEnumerable<string> timeObjectHashes)
         {
             if (!sourceHashes.Any() || !destinationHashes.Any() || !serviceHashes.Any())
             {
@@ -83,6 +84,7 @@ namespace FWO.Data.Flow
             var sortedSources = sourceHashes.OrderBy(h => h).ToList();
             var sortedDestinations = destinationHashes.OrderBy(h => h).ToList();
             var sortedServices = serviceHashes.OrderBy(h => h).ToList();
+            var sortedTimeObjects = timeObjectHashes.OrderBy(h => h).ToList();
 
             // Concatenate in deterministic order
             string combined = string.Concat(
@@ -90,7 +92,9 @@ namespace FWO.Data.Flow
                 ":::",
                 string.Join("|", sortedDestinations),
                 ":::",
-                string.Join("|", sortedServices)
+                string.Join("|", sortedServices),
+                ":::",
+                string.Join("|", sortedTimeObjects)
             );
 
             return ComputeSha256(combined);

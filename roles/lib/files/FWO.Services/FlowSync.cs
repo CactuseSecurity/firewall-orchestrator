@@ -122,6 +122,12 @@ namespace FWO.Services
 
             var flowData = await GetFlowSyncDataAsync(mgmId);
 
+            if (flowData.HasHashInconsistencies())
+            {
+                Log.WriteError(LogMessageTitle, $"Hash inconsistencies found for management {mgmId}.");
+                return;
+            }
+
             // Process simple objects first, as they are used in groups and accesses
             await ProcessNetworkObjectsAsync(managementData.NetworkObjects.Where(o => o.Type.Name != ObjectType.Group), flowData, useManagementNamesForFlow);
             await ProcessServiceObjectsAsync(managementData.ServiceObjects.Where(s => s.Type.Name != ServiceType.Group), flowData, useManagementNamesForFlow);
@@ -919,6 +925,7 @@ namespace FWO.Services
             var sourceHashes = new HashSet<string>();
             var destinationHashes = new HashSet<string>();
             var serviceHashes = new HashSet<string>();
+            var timeObjectHashes = new HashSet<string>();
 
             foreach (var location in rule.Froms)
             {
@@ -953,13 +960,13 @@ namespace FWO.Services
                 return false;
             }
 
-            if (!TryAddRuleTimeObjects(rule.RuleTimes, flowData, timeIds))
+            if (!TryAddRuleTimeObjects(rule.RuleTimes, flowData, timeIds, timeObjectHashes))
             {
                 Log.WriteDebug(LogMessageTitle, $"Skipping rule {rule.Id} because time objects do not have valid hashes and cannot be added to the flow access.");
                 return false;
             }
 
-            string accessHash = FlowHashGenerator.GenerateAccessHash(sourceHashes, destinationHashes, serviceHashes);
+            string accessHash = FlowHashGenerator.GenerateAccessHash(sourceHashes, destinationHashes, serviceHashes, timeObjectHashes);
             var alreadyExists = flowData.Accesses.TryGetValue(accessHash, out var existingAccess);
             var alreadyBeingInserted = pendingAccessInserts.ContainsKey(accessHash);
 
@@ -1100,7 +1107,8 @@ namespace FWO.Services
         private static bool TryAddRuleTimeObjects(
             IEnumerable<RuleTime> ruleTimes,
             FlowSyncFlowData flowData,
-            HashSet<long> timeIds)
+            HashSet<long> timeIds,
+            HashSet<string> timeObjectHashes)
         {
             foreach (var ruleTime in ruleTimes)
             {
@@ -1118,6 +1126,7 @@ namespace FWO.Services
                     throw new InvalidOperationException($"Time object {ruleTime.TimeObj.Id} expected to have a corresponding flow object, but it was not found. Hash: {timeHash}");
                 }
                 timeIds.Add(flowTimeObj.Id);
+                timeObjectHashes.Add(timeHash);
             }
 
             return true;

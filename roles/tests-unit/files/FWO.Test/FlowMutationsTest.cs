@@ -4,6 +4,7 @@ using NUnit.Framework;
 namespace FWO.Test
 {
     [TestFixture]
+    [Parallelizable]
     internal class FlowMutationsTest
     {
         [Test]
@@ -16,6 +17,14 @@ namespace FWO.Test
             Assert.That(FlowMutations.updateFlowSvcGroup, Does.Contain("mutation updateFlowSvcGroup"));
             Assert.That(FlowMutations.updateFlowSvcObject, Does.Contain("mutation updateFlowSvcObject"));
             Assert.That(FlowMutations.updateFlowTimeObject, Does.Contain("mutation updateFlowTimeObject"));
+        }
+
+        [Test]
+        public void ResetFlowDbMutation_LoadsDeleteAndResetStatements()
+        {
+            Assert.That(FlowMutations.resetFlowDB, Does.Contain("mutation resetFlowDB"));
+            Assert.That(FlowMutations.resetFlowDB, Does.Contain("update_import_control"));
+            Assert.That(FlowMutations.resetFlowDB, Does.Contain("delete_flow_nwobject"));
         }
     }
 }

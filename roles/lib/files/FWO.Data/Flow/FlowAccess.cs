@@ -46,6 +46,33 @@ namespace FWO.Data.Flow
 
         [JsonProperty("rules"), JsonPropertyName("rules")]
         public List<Rule>? Rules { get; set; }
+
+        public string? TryCalculateHash()
+        {
+            // Attempt to generate deterministic hash based on member objects' hashes
+            List<string> sourceHashes = Sources?.Select(s => s.NwObject.TryCalculateHash()).OfType<string>().ToList() ?? [];
+            List<string> destinationHashes = Destinations?.Select(d => d.NwObject.TryCalculateHash()).OfType<string>().ToList() ?? [];
+            List<string> serviceHashes = Services?.Select(s => s.SvcObject.TryCalculateHash()).OfType<string>().ToList() ?? [];
+            List<string> timeObjectHashes = TimeObjects?.Select(t => t.TimeObject.TryCalculateHash()).OfType<string>().ToList() ?? [];
+
+            if ((Sources != null && sourceHashes.Count < Sources.Count) ||
+                (Destinations != null && destinationHashes.Count < Destinations.Count) ||
+                (Services != null && serviceHashes.Count < Services.Count) ||
+                (TimeObjects != null && timeObjectHashes.Count < TimeObjects.Count))
+            {
+                // Not all member objects have deterministic hashes - cannot generate access hash
+                return null;
+            }
+            try
+            {
+                return FlowHashGenerator.GenerateAccessHash(sourceHashes, destinationHashes, serviceHashes, timeObjectHashes);
+            }
+            catch (ArgumentException)
+            {
+                // Cannot generate deterministic hash for this access (e.g. due to non-deterministic member objects)
+                return null;
+            }
+        }
     }
 
     public class FlowAccessInsertResult

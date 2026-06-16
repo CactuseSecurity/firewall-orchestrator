@@ -142,6 +142,43 @@ namespace FWO.Test
         }
 
         [Test]
+        public void EditOwner_MainResponsibleType_IsRequired()
+        {
+            OwnerResponsibleType type = new() { Id = GlobalConst.kOwnerResponsibleTypeMain, Name = "main", Active = true };
+            bool required = (bool)GetPrivateStaticMethod("IsRequiredResponsibleType").Invoke(null, [type])!;
+            Assert.That(required, Is.True);
+        }
+
+        [Test]
+        public void EditOwner_SupportingResponsibleType_IsNotRequired()
+        {
+            OwnerResponsibleType type = new() { Id = GlobalConst.kOwnerResponsibleTypeSupporting, Name = "supporting", Active = true };
+            bool required = (bool)GetPrivateStaticMethod("IsRequiredResponsibleType").Invoke(null, [type])!;
+            Assert.That(required, Is.False);
+        }
+
+        [Test]
+        public async Task EditOwner_SupportingResponsibleLabel_HasNoMandatoryMarker()
+        {
+            await using BunitContext context = new();
+            FwoOwner owner = new() { Id = 0, Name = "Owner A" };
+            List<OwnerResponsibleType> types =
+            [
+                new OwnerResponsibleType { Id = GlobalConst.kOwnerResponsibleTypeMain, Name = "main", Active = true },
+                new OwnerResponsibleType { Id = GlobalConst.kOwnerResponsibleTypeSupporting, Name = "supporting", Active = true }
+            ];
+            IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, responsibleTypes: types);
+
+            string mainLabel = (string)GetPrivateMethod("GetResponsibleTypeEditLabel")
+                .Invoke(editOwner.Instance, [types[0]])!;
+            string supportingLabel = (string)GetPrivateMethod("GetResponsibleTypeEditLabel")
+                .Invoke(editOwner.Instance, [types[1]])!;
+
+            Assert.That(mainLabel, Does.EndWith("*"));
+            Assert.That(supportingLabel, Does.Not.Contain("*"));
+        }
+
+        [Test]
         public async Task EditOwner_AddOwnerResponsible_DoesNotDuplicateExistingDn()
         {
             await using BunitContext context = new();

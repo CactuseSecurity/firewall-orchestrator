@@ -82,6 +82,7 @@ create table flow.access
     owner_id integer,
     state varchar(32) NOT NULL DEFAULT 'requested',
     removed_date Timestamp with time zone,
+    allows_traffic boolean NOT NULL DEFAULT TRUE,
     check (state in ('requested', 'denied', 'implemented', 'removed'))
 );
 

@@ -73,7 +73,8 @@ namespace FWO.Data.Flow
             IEnumerable<string> sourceHashes,
             IEnumerable<string> destinationHashes,
             IEnumerable<string> serviceHashes,
-            IEnumerable<string> timeObjectHashes)
+            IEnumerable<string> timeObjectHashes,
+            bool allowsTraffic)
         {
             if (!sourceHashes.Any() || !destinationHashes.Any() || !serviceHashes.Any())
             {
@@ -94,7 +95,9 @@ namespace FWO.Data.Flow
                 ":::",
                 string.Join("|", sortedServices),
                 ":::",
-                string.Join("|", sortedTimeObjects)
+                string.Join("|", sortedTimeObjects),
+                ":::",
+                allowsTraffic.ToString()
             );
 
             return ComputeSha256(combined);

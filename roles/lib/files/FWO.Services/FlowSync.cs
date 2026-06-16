@@ -966,7 +966,8 @@ namespace FWO.Services
                 return false;
             }
 
-            string accessHash = FlowHashGenerator.GenerateAccessHash(sourceHashes, destinationHashes, serviceHashes, timeObjectHashes);
+            bool allowsTraffic = !rule.IsDropRule();
+            string accessHash = FlowHashGenerator.GenerateAccessHash(sourceHashes, destinationHashes, serviceHashes, timeObjectHashes, allowsTraffic);
             var alreadyExists = flowData.Accesses.TryGetValue(accessHash, out var existingAccess);
             var alreadyBeingInserted = pendingAccessInserts.ContainsKey(accessHash);
 
@@ -990,6 +991,7 @@ namespace FWO.Services
                     OwnerId = rule.OwnerId,
                     State = FlowState.Implemented,
                     RemovedDate = null,
+                    AllowsTraffic = allowsTraffic,
                     AccessSources = FlowAccessInsertHelper.BuildMembersContainer(sourceIds.Select(id => new NwRef { NwObjId = id })),
                     AccessSourceGroups = FlowAccessInsertHelper.BuildMembersContainer(sourceGroupIds.Select(id => new NwGroupRef { NwGroupId = id })),
                     AccessDestinations = FlowAccessInsertHelper.BuildMembersContainer(destinationIds.Select(id => new NwRef { NwObjId = id })),

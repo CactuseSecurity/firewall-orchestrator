@@ -78,6 +78,7 @@ query getFlowSyncData($mgmId: Int!) {
     owner_id
     state
     removed_date
+    allows_traffic
     access_sources(order_by: { nwobj_id: asc }) {
       access_id
       nwobj_id

@@ -160,6 +160,9 @@ namespace FWO.Data.Flow
         [JsonProperty("removed_date"), JsonPropertyName("removed_date")]
         public DateTime? RemovedDate { get; set; }
 
+        [JsonProperty("allows_traffic"), JsonPropertyName("allows_traffic")]
+        public bool AllowsTraffic { get; set; } = true;
+
         [JsonProperty("access_sources"), JsonPropertyName("access_sources")]
         public FlowAccessInsertMembersContainer? AccessSources { get; set; }
 

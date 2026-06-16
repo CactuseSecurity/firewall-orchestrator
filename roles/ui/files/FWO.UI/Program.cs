@@ -64,11 +64,11 @@ builder.Services.AddScoped<ExecutionModeStorage>();
 
 // Create "anonymous" (empty) jwt
 MiddlewareClient middlewareClient = new(MiddlewareUri);
-ApiConnection apiConn = new GraphQlApiConnection(ApiUri);
 
-RestResponse<TokenPair> createJWTResponse = middlewareClient.CreateInitialJWT().Result;
+RestResponse<TokenPair> createJWTResponse = await middlewareClient.CreateInitialJWT();
 bool connectionEstablished = createJWTResponse.IsSuccessful;
 int connectionAttemptsCount = 1;
+
 while (!connectionEstablished)
 {
     Log.WriteError("Middleware Server Connection",
@@ -76,8 +76,10 @@ while (!connectionEstablished)
     + $"Uri: {createJWTResponse.ResponseUri?.AbsoluteUri}, "
     + $"HttpStatus: {createJWTResponse.StatusDescription}, "
     + $"Error: {createJWTResponse.ErrorMessage}");
+
     Thread.Sleep(500 * connectionAttemptsCount++);
-    createJWTResponse = middlewareClient.CreateInitialJWT().Result;
+
+    createJWTResponse = await middlewareClient.CreateInitialJWT();
     connectionEstablished = createJWTResponse.IsSuccessful;
 }
 
@@ -89,15 +91,14 @@ if (string.IsNullOrEmpty(createJWTResponse.Content))
 TokenPair tokenPair = System.Text.Json.JsonSerializer.Deserialize<TokenPair>(createJWTResponse.Content) ?? throw new ArgumentException("failed to deserialize token pair");
 
 string jwt = tokenPair.AccessToken ?? throw new ArgumentException("Received empty jwt.");
-apiConn.SetAuthHeader(jwt);
 
 // Get all non-confidential configuration settings and add to a global service (for all users)
-GlobalConfig globalConfig = Task.Run(async () => await GlobalConfig.ConstructAsync(jwt, true, true)).Result;
+GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt, true, true);
 builder.Services.AddSingleton<GlobalConfig>(_ => globalConfig);
 builder.Services.AddSingleton<IUrlSanitizer, UrlSanitizer>();
 
 // the user's personal config
-builder.Services.AddScoped<UserConfig>(_ => new UserConfig(globalConfig));
+builder.Services.AddScoped<UserConfig>(_ => UserConfig.ForTextOnly(globalConfig));
 
 builder.Services.AddScoped(_ => new NetworkZoneService());
 builder.Services.AddScoped(_ => new DomEventService());

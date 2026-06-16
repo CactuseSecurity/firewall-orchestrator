@@ -10,8 +10,16 @@ import traceback
 import fwo_globals
 import urllib3
 from common import import_management  # type: ignore[import-not-found]
-from fwo_const import FWO_CONFIG_FILENAME, IMPORTER_BASE_DIR
-from fwo_exceptions import FwLoginFailedError, FwoApiFailedLockImportError
+from fwo_api import FwoApi
+from fwo_api_call import FwoApiCall
+from fwo_base import init_service_provider, register_global_state
+from fwo_const import BASE_DIR, IMPORTER_BASE_DIR, FWO_CONFIG_FILENAME 
+from fwo_exceptions import (
+    FwLoginFailedError,
+    FwoApiFailedLockImportError,
+    FwoApiLoginFailedError,
+    ShutdownRequestedError,
+)
 from fwo_log import FWOLogger
 from model_controllers.management_controller import (
     ManagementController,
@@ -21,12 +29,16 @@ from states.import_state import ImportState
 
 
 def wait_with_shutdown_check(sleep_time: int):
-    counter = 0
-    while counter < sleep_time:
+    def exit_if_shutdown_requested():
         if fwo_globals.shutdown_requested:
             FWOLogger.info("import_main_loop - shutdown requested. Exiting...")
             raise SystemExit("import_main_loop - shutdown requested")
+
+    exit_if_shutdown_requested()
+    counter = 0
+    while counter < sleep_time:
         time.sleep(1)
+        exit_if_shutdown_requested()
         counter += 1
 
 
@@ -66,6 +78,8 @@ def import_single_management(
             global_state=global_state,
             import_state=import_state,
         )
+    except (KeyboardInterrupt, ShutdownRequestedError) as e:
+        raise SystemExit("import_main_loop - shutdown requested") from e
     except (FwoApiFailedLockImportError, FwLoginFailedError):
         FWOLogger.info(
             f"import_main_loop - minor error while importing mgm_id={mgm_details['id']}, {traceback.format_exc()!s}"

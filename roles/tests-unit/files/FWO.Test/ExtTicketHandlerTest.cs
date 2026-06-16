@@ -155,7 +155,7 @@ namespace FWO.Test
             {
                 DefaultLanguage = "English"
             };
-            UserConfig localUserConfig = new(localGlobalConfig, registerOnChangeHandler: false);
+            UserConfig localUserConfig = UserConfig.ForTextOnly(localGlobalConfig, registerOnChangeHandler: false);
 
             using (ExternalRequestHandler externalRequestHandler = new(localUserConfig, apiConnection, null))
             {

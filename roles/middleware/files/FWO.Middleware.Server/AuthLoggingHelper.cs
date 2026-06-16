@@ -39,7 +39,7 @@ namespace FWO.Middleware.Server
 
             List<string> normalizedGroups = groups
                 .Where(groupDn => !string.IsNullOrWhiteSpace(groupDn))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Distinct(DistName.DnComparer)
                 .OrderBy(groupDn => groupDn, StringComparer.OrdinalIgnoreCase)
                 .ToList();
             int totalGroups = normalizedGroups.Count;

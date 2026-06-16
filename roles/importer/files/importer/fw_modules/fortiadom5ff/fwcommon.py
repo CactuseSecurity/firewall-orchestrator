@@ -194,8 +194,12 @@ def normalize_config(native_config: dict[str, Any]) -> FwConfigManagerListContro
             is_global_loop_iteration,
         )
 
-        normalized_time_objects = normalized_config_adom.get("time_objects", {})
-        if not isinstance(normalized_time_objects, dict):
+        raw_time_objects = normalized_config_adom.get("time_objects")
+
+        normalized_time_objects: dict[str, TimeObject]
+        if isinstance(raw_time_objects, dict):
+            normalized_time_objects = cast("dict[str, TimeObject]", raw_time_objects)
+        else:
             normalized_time_objects = {}
 
         normalized_config = FwConfigNormalized(
@@ -205,7 +209,7 @@ def normalize_config(native_config: dict[str, Any]) -> FwConfigManagerListContro
             zone_objects=convert_list_to_dict(normalized_config_adom.get("zone_objects", []), "zone_name"),
             rulebases=normalized_config_adom.get("policies", []),
             gateways=normalized_config_adom.get("gateways", []),
-            time_objects=cast("dict[str, TimeObject]", normalized_time_objects),
+            time_objects=normalized_time_objects,
         )
 
         # TODO: identify the correct manager

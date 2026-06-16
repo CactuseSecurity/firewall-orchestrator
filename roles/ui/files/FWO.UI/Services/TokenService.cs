@@ -206,6 +206,14 @@ namespace FWO.Ui.Services
                     return null;
                 }
             }
+            catch (TaskCanceledException)
+            {
+                return null;
+            }
+            catch (OperationCanceledException)
+            {
+                return null;
+            }
             catch (Exception ex)
             {
                 Log.WriteError("Token Refresh", "Error refreshing access token", ex);

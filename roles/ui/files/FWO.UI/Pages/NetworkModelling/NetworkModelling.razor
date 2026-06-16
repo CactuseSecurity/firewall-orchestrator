@@ -636,7 +636,8 @@ else
     {
         try
         {
-            List<ExternalRequest> lastRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getLastRequest, new{ticketId = intTicket.Id});
+            List<ExternalRequest> lastRequests = await apiConnection.RunWithBestRole(authenticationStateTask!.Result.User, [Roles.Modeller, Roles.Admin, Roles.Auditor],
+                async () => await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getLastRequest, new{ticketId = intTicket.Id}));
             if(lastRequests != null && lastRequests.Count > 0)
             {
                 bool shortened = false;
@@ -658,7 +659,8 @@ else
 
     private async void HandleSubscriptionError(Exception exception)
     {
-        await InvokeAsync(() => DisplayMessageInUi(exception, userConfig.GetText("ticket"), userConfig.GetText("update_subscription_error"), true));
+        await InvokeAsync(() => GraphqlSubscriptionExceptionHandler.Handle(exception,
+            () => DisplayMessageInUi(exception, userConfig.GetText("ticket"), userConfig.GetText("update_subscription_error"), true)));
     }
 
     public void Dispose()

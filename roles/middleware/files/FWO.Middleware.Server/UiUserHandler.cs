@@ -3,11 +3,11 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api.Data;
 using FWO.Data;
+using FWO.Data.Enums;
 using FWO.Logging;
 using Newtonsoft.Json;
 using System.Reflection;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 
 namespace FWO.Middleware.Server
 {
@@ -63,6 +63,46 @@ namespace FWO.Middleware.Server
             return expirationTime;
         }
 
+        /// <summary>
+        /// Get configured unit for token lifetimes.
+        /// </summary>
+        public static async Task<TokenLifetimeUnit> GetExpirationUnit(ApiConnection apiConnection, string lifetimeUnitKey)
+        {
+            TokenLifetimeUnit defaultUnit = TokenLifetimeUnit.Hours;
+            PropertyInfo? property = typeof(ConfigData).GetProperty(lifetimeUnitKey);
+            string? lifetimeUnitKeyDbName = GetLifetimeKeyDbName(property);
+            if (string.IsNullOrEmpty(lifetimeUnitKeyDbName))
+            {
+                return defaultUnit;
+            }
+
+            try
+            {
+                List<ConfigItem> resultList = await apiConnection.SendQueryAsync<List<ConfigItem>>(ConfigQueries.getConfigItemByKey, new { key = lifetimeUnitKeyDbName });
+                if (resultList.Count > 0 && !string.IsNullOrWhiteSpace(resultList[0].Value))
+                {
+                    string value = resultList[0].Value!;
+                    if (Enum.TryParse(value, true, out TokenLifetimeUnit parsedUnit))
+                    {
+                        return parsedUnit;
+                    }
+
+                    if (int.TryParse(value, out int parsedIndex) && Enum.IsDefined(typeof(TokenLifetimeUnit), parsedIndex))
+                    {
+                        return (TokenLifetimeUnit)parsedIndex;
+                    }
+                }
+
+                return GetDefaultExpirationUnit(property, defaultUnit);
+            }
+            catch (Exception exeption)
+            {
+                Log.WriteError("Get ExpirationUnit Error", "Error while trying to find config value in database. Taking default value", exeption);
+            }
+
+            return GetDefaultExpirationUnit(property, defaultUnit);
+        }
+
         private static string? GetLifetimeKeyDbName(PropertyInfo? property)
         {
             return property?.GetCustomAttribute<JsonPropertyAttribute>()?.PropertyName;
@@ -81,10 +121,22 @@ namespace FWO.Middleware.Server
             // if no value is set in DB, take the default from config file and if that is not set, take the hardcoded constant
             return lifetimeKey switch
             {
-                nameof(ConfigData.AccessTokenLifetimeHours) => defaultConfigValue.AccessTokenLifetimeHours > 0 ? defaultConfigValue.AccessTokenLifetimeHours : expirationTime,
-                nameof(ConfigData.RefreshTokenLifetimeDays) => defaultConfigValue.RefreshTokenLifetimeDays > 0 ? defaultConfigValue.RefreshTokenLifetimeDays : expirationTime,
+                nameof(ConfigData.AccessTokenLifetime) => defaultConfigValue.AccessTokenLifetime > 0 ? defaultConfigValue.AccessTokenLifetime : expirationTime,
+                nameof(ConfigData.RefreshTokenLifetime) => defaultConfigValue.RefreshTokenLifetime > 0 ? defaultConfigValue.RefreshTokenLifetime : expirationTime,
                 _ => expirationTime,
             };
+        }
+
+        private static TokenLifetimeUnit GetDefaultExpirationUnit(PropertyInfo? property, TokenLifetimeUnit fallbackUnit)
+        {
+            ConfigData defaultConfigValue = new();
+            object? propertyValue = property?.GetValue(defaultConfigValue);
+            if (propertyValue is TokenLifetimeUnit tokenLifetimeUnit)
+            {
+                return tokenLifetimeUnit;
+            }
+
+            return fallbackUnit;
         }
 
         /// <summary>
@@ -162,14 +214,6 @@ namespace FWO.Middleware.Server
                     user.Ownerships.Add(owner.Id);
                 }
 
-                // now handle memberships via groups
-                List<FwoOwner> allOwners = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
-                List<ConfigItem> configResult;
-                configResult = await apiConn.SendQueryAsync<List<ConfigItem>>(ConfigQueries.getConfigItemByKey,
-                    new { key = "ownerLdapGroupNames" });
-                string? namingConvention = configResult.Count > 0 ? configResult[0].Value : string.Empty;
-
-
                 List<string> groupsOfUser = user.Groups ?? [];
                 if (groupsOfUser.Count > 0)
                 {
@@ -182,26 +226,11 @@ namespace FWO.Middleware.Server
                     }
                 }
 
-                foreach (string group in groupsOfUser)
-                {
-                    string groupName = new DistName(group).Group;
-                    if (!MatchesNamingConvention(groupName, namingConvention))
-                    {
-                        continue; // skip groups that do not match the naming convention
-                    }
-                    FwoOwner? owner = FindOwnerWithMatchingGroupName(groupName, allOwners);
-
-                    if (owner != null)
-                    {
-                        user.Ownerships.Add(owner.Id);
-                    }
-                }
-
                 List<string> ownerDns = [user.Dn];
                 ownerDns.AddRange(groupsOfUser);
                 ownerDns = ownerDns
                     .Where(dn => !string.IsNullOrWhiteSpace(dn))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Distinct(DistName.DnComparer)
                     .ToList();
                 List<FwoOwner> recertOwnerships = ownerDns.Count == 0
                     ? []
@@ -217,70 +246,6 @@ namespace FWO.Middleware.Server
             {
                 Log.WriteError("Get ownerships", $"Ownerships could not be detemined for User {user.Name}.", exeption);
             }
-        }
-
-        private static bool MatchesNamingConvention(string userIn, string? namingConvention)
-        {
-            if (string.IsNullOrEmpty(namingConvention))
-            {
-                return true; // no naming convention defined, so all cn match
-            }
-            string regexPattern = ReplacePlaceholdersWithPattern(namingConvention);
-            string cn = userIn;
-
-            if (userIn.Contains(','))
-            {
-                // the userIn is a DN, so extract the CN part
-                cn = userIn.ExtractCommonNameFromDn();
-            }
-
-            // turn naming convention into a regex pattern
-            if (Regex.IsMatch(cn, regexPattern, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100)))
-            {
-                return true; // cn matches the naming convention
-            }
-            return false; // cn does not match the naming convention
-        }
-
-        private static string ReplacePlaceholdersWithPattern(string input)
-        {
-            // Pattern: finds @@...@@ – non-greedy
-            string pattern = "@@(.*?)@@";
-
-            // Replaces each match with the regex expression
-            string replaced = Regex.Replace(input, pattern, "(.*?)", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
-
-            return replaced;
-        }
-        private static FwoOwner? FindOwnerWithMatchingGroupName(string groupName, List<FwoOwner> apps)
-        {
-            foreach (FwoOwner app in apps)
-            {
-                foreach (string dn in app.GetAllOwnerResponsibles())
-                {
-                    if (MatchesGroupName(dn, groupName))
-                    {
-                        return app;
-                    }
-                }
-            }
-            return null;
-        }
-
-        private static bool MatchesGroupName(string dn, string groupName)
-        {
-            if (string.IsNullOrWhiteSpace(dn))
-            {
-                return false;
-            }
-            string[] groupDnParts = dn.Split(',', StringSplitOptions.RemoveEmptyEntries);
-            if (groupDnParts.Length == 0)
-            {
-                return false;
-            }
-            string[] cnParts = groupDnParts[0].Split('=', StringSplitOptions.RemoveEmptyEntries);
-            // note: this only works for flat groups! TODO: make this universal by checking group membership
-            return cnParts.Length == 2 && cnParts[1].Equals(groupName, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>

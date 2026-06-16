@@ -24,7 +24,7 @@ namespace FWO.Test
 
             SimulatedGlobalConfig globalConfig = new();
             globalConfig.ComplianceCheckSortMatrixByID = sortById;
-            _userConfig = new(globalConfig);
+            _userConfig = UserConfig.ForTextOnly(globalConfig);
 
             // Set up NetworkZoneService.
 

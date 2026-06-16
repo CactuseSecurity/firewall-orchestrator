@@ -206,7 +206,9 @@ namespace FWO.Ui.Auth
                 throw new AuthenticationException("not_authorized");
             }
 
-            apiConnection.SetAuthHeader(jwtString);
+            using CancellationTokenSource cts = new(TimeSpan.FromSeconds(30));
+
+            await apiConnection.ReconnectSubscriptionsAsync(jwtString, cts.Token);
             middlewareClient.SetAuthenticationToken(jwtString);
 
             ClaimsIdentity identity = new

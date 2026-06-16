@@ -60,9 +60,8 @@ class FwConfigImport:
         # calculate differences and write them to the database via API
         self.update_diffs(global_state, import_state, management_state, single_manager)
 
-    def import_management_set(
-        self, global_state: GlobalState, import_state: ImportState, mgr_set: FwConfigManagerListController
-    ):
+    def import_management_set(self, service_provider: ServiceProvider, mgr_set: FwConfigManagerListController):
+        self.import_state.state.rollback_required = True
         for manager in sorted(mgr_set.ManagerSet, key=lambda m: not getattr(m, "IsSuperManager", False)):
             """
             the following loop is a preparation for future functionality

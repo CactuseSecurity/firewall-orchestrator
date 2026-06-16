@@ -51,6 +51,9 @@ namespace FWO.Data
         [JsonProperty("next_recert_date"), JsonPropertyName("next_recert_date")]
         public DateTime? NextRecertDate { get; set; }
 
+        [JsonProperty("changelog_owners"), JsonPropertyName("changelog_owners")]
+        public List<OwnerChange> ChangelogOwners { get; set; } = [];
+
         [JsonProperty("decomm_date"), JsonPropertyName("decomm_date")]
         public DateTime? DecommDate { get; set; }
 
@@ -79,7 +82,9 @@ namespace FWO.Data
             LastRecertifierId = owner.LastRecertifierId;
             LastRecertifierDn = owner.LastRecertifierDn;
             NextRecertDate = owner.NextRecertDate;
+            ChangelogOwners = owner.ChangelogOwners.Select(change => new OwnerChange(change)).ToList();
             DecommDate = owner.DecommDate;
+            RecertActive = owner.RecertActive;
             RecertOverdue = owner.RecertOverdue;
             RecertUpcoming = owner.RecertUpcoming;
             LastRecertId = owner.LastRecertId;
@@ -119,6 +124,42 @@ namespace FWO.Data
                 return Id.CompareTo(secondOwner.Id);
             }
             return Name?.CompareTo(secondOwner.Name) ?? -1;
+        }
+
+        public bool UsesCreationDateFallback()
+        {
+            return LastRecertified == null && NextRecertDate == null && GetOwnerCreationDateHint() != null;
+        }
+
+        public DateTime? GetEffectiveLastRecertified()
+        {
+            return LastRecertified ?? GetOwnerCreationDateHint();
+        }
+
+        public DateTime? GetEffectiveNextRecertDate(int defaultRecertInterval)
+        {
+            if (NextRecertDate != null)
+            {
+                return NextRecertDate;
+            }
+
+            DateTime? ownerCreationDate = GetOwnerCreationDateHint();
+            if (ownerCreationDate == null)
+            {
+                return null;
+            }
+            int recertInterval = RecertInterval ?? defaultRecertInterval;
+            return recertInterval > 0 ? ownerCreationDate.Value.AddDays(recertInterval) : null;
+        }
+
+        private DateTime? GetOwnerCreationDateHint()
+        {
+            DateTime ownerCreationDate = ChangelogOwners
+                .Where(change => change.ChangeAction == ChangelogActionType.INSERT && change.ChangeImport.Time != default)
+                .Select(change => change.ChangeImport.Time)
+                .OrderBy(time => time)
+                .FirstOrDefault();
+            return ownerCreationDate == default ? null : ownerCreationDate;
         }
     }
 

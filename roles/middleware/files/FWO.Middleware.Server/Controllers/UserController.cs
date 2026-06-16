@@ -222,11 +222,22 @@ namespace FWO.Middleware.Server.Controllers
         /// <param name="parameters">UserChangePasswordParameters</param>
         /// <returns>error message, empty if Ok</returns>
         [HttpPatch("EditPassword")]
+        [Authorize]
         public async Task<ActionResult<string>> ChangePassword([FromBody] UserChangePasswordParameters parameters)
         {
+            if (User.Identity?.IsAuthenticated != true)
+            {
+                return Unauthorized();
+            }
+
             // the demo user (currently auditor) can't change his password
             if (CallerCanUseRole(User, parameters.ExecutionMode, Roles.Auditor))
                 return Unauthorized();
+
+            if (!CallerCanChangePassword(User, parameters.UserId))
+            {
+                return Forbid();
+            }
 
             UiUser user = await ResolveUser(parameters.UserId) ?? throw new ArgumentException(WrongUserId);
 
@@ -252,6 +263,19 @@ namespace FWO.Middleware.Server.Controllers
             return errorMsg;
         }
 
+        /// <summary>
+        /// Checks whether the authenticated caller may change the requested user's password.
+        /// </summary>
+        private static bool CallerCanChangePassword(ClaimsPrincipal caller, int targetUserId)
+        {
+            if (caller.IsInRole(Roles.Admin))
+            {
+                return true;
+            }
+
+            string? userIdClaim = caller.FindFirstValue("x-hasura-user-id");
+            return int.TryParse(userIdClaim, out int callerUserId) && callerUserId == targetUserId;
+        }
         private static bool CallerCanUseRole(ClaimsPrincipal user, string executionMode, string role)
         {
             return ExecutionModeHelper.HasAnyRoleInExecutionMode(ExecutionModeHelper.GetUserRoles(user), executionMode, [role]);

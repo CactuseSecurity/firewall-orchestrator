@@ -628,6 +628,9 @@ namespace FWO.Test
             StringAssert.Contains("query getOwners", query.FullQuery);
             StringAssert.Contains("owner (where:", query.FullQuery);
             StringAssert.Contains("order_by: { next_recert_date: desc, name: asc }", query.FullQuery);
+            StringAssert.Contains("changelog_owners(where: {change_action: {_eq: \"I\"}}", query.FullQuery);
+            StringAssert.Contains("order_by: {import_control: {stop_time: asc_nulls_last}, log_owner_id: asc}", query.FullQuery);
+            StringAssert.Contains("time: stop_time", query.FullQuery);
             Assert.That(query.QueryVariables["selectedOwners"], Is.EqualTo(new[] { 1 }));
             Assert.That(query.QueryVariables.ContainsKey("refDate"), Is.True);
         }
@@ -1009,9 +1012,11 @@ namespace FWO.Test
 
             DynGraphqlQuery query = Compiler.Compile(template);
 
-            StringAssert.Contains("rule: { rule_metadatum:{ rule_last_hit:", query.RuleWhereStatement);
+            StringAssert.Contains("rule: { rule_metadatum: { rule_last_hit:", query.RuleWhereStatement);
+            StringAssert.Contains("ruleByOldRuleId: { rule_metadatum: { rule_last_hit:", query.RuleWhereStatement);
+            StringAssert.DoesNotContain("rule: { rule: {", query.RuleWhereStatement);
+            StringAssert.DoesNotContain("ruleByOldRuleId: { rule: {", query.RuleWhereStatement);
             StringAssert.DoesNotContain("_is_null: true", query.RuleWhereStatement);
-            StringAssert.DoesNotContain("_or:", query.RuleWhereStatement);
         }
 
         [Test]
@@ -1026,9 +1031,12 @@ namespace FWO.Test
 
             DynGraphqlQuery query = Compiler.Compile(template);
 
-            StringAssert.Contains("rule: { rule_metadatum: { rule_last_hit:", query.RuleWhereStatement);
+            StringAssert.Contains("rule: { _or: [", query.RuleWhereStatement);
+            StringAssert.Contains("ruleByOldRuleId: { _or: [", query.RuleWhereStatement);
+            StringAssert.Contains("rule_metadatum: { rule_last_hit:", query.RuleWhereStatement);
             StringAssert.Contains("_is_null: true", query.RuleWhereStatement);
-            StringAssert.Contains("_or:", query.RuleWhereStatement);
+            StringAssert.DoesNotContain("rule: { rule: {", query.RuleWhereStatement);
+            StringAssert.DoesNotContain("ruleByOldRuleId: { rule: {", query.RuleWhereStatement);
         }
 
         [Test]

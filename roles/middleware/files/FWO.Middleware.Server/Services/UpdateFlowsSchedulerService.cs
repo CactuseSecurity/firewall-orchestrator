@@ -37,20 +37,17 @@ namespace FWO.Middleware.Server.Services
                     SchedulerName,
                     JobKeyName,
                     TriggerKeyName,
-                    ConfigQueries.subscribeImportNotifyConfigChanges))
+                    ConfigQueries.subscribeFlowSyncConfigChanges))
         { }
 
         /// <inheritdoc />
-        protected override int SleepTime => 0;
+        protected override int SleepTime => globalConfig.FlowSyncSleepTime;
 
         /// <inheritdoc />
         protected override DateTime StartAt => DateTime.Now.AddSeconds(1);
 
         /// <inheritdoc />
-        protected override TimeSpan Interval => TimeSpan.FromSeconds(1);
-
-        /// <inheritdoc />
-        protected override bool IsActive => false;
+        protected override TimeSpan Interval => TimeSpan.FromSeconds(globalConfig.FlowSyncSleepTime);
 
         /// <inheritdoc />
         protected override string IntervalLogSuffix => "s";

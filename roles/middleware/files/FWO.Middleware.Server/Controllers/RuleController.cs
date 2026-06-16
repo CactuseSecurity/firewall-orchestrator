@@ -1,5 +1,7 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
@@ -46,8 +48,14 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
     {
         try
         {
+            string? filterSelectionValidationError = ValidateFilterSelection(request.Query.OwnerId, request.Query.IpAddress);
+            if (filterSelectionValidationError is not null)
+            {
+                return BadRequest(filterSelectionValidationError);
+            }
+
             GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection);
-            UserConfig userConfig = new(globalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
+            UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
 
             string requestId = HttpContext.Request.Headers["X-Request-Id"].FirstOrDefault()
                                ?? Guid.NewGuid().ToString();
@@ -55,68 +63,120 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
             LogSiemEntry(request, requestId);
 
             List<RuleDetail> rules;
-
             if (request.Query.OwnerId is not null)
             {
-                rules = await FetchRulesByOwnerId(request.Query.OwnerId ?? -1, userConfig);
-            }
-            else if (!string.IsNullOrWhiteSpace(request.Query.IpAddress))
-            {
-                if (!IPAddress.TryParse(request.Query.IpAddress, out IPAddress? ipAddress))
-                {
-                    return BadRequest(
-                        "The IPAddress must be a valid IPv4 address.");
-                }
-
-                RuleFilter queryFilter = request.Query.Filter ?? new RuleFilter();
-                if (string.IsNullOrEmpty(queryFilter.Action))
-                {
-                    return BadRequest(
-                        "The field Action must be filled with either \"accept\", \"deny\" or \"any\".");
-                }
-
-                if (queryFilter.MinPrefixLength < 0 || queryFilter.MinPrefixLength > 32)
-                {
-                    return BadRequest(
-                        $"The value for MinPrefixLength {queryFilter.MinPrefixLength} must be between 0 and 32.");
-                }
-
-                if (string.IsNullOrEmpty(queryFilter.InField))
-                {
-                    return BadRequest(
-                        $"The field InField must be filled with either \"{FilterFields.Source}\", \"{FilterFields.Destination}\" or \"{FilterFields.Both}\".");
-                }
-
-                rules = await FilterRules(
-                    ipAddress,
-                    queryFilter.Action,
-                    queryFilter.MinPrefixLength,
-                    queryFilter.InField,
-                    userConfig
-                );
+                rules = await FetchRulesByOwnerId(
+                    request.Query.OwnerId.Value,
+                    userConfig,
+                    request.Query.FieldSourceMapping);
             }
             else
             {
-                return BadRequest("Either OwnerId or IpAddress must be provided.");
+                (List<RuleDetail>? fetchedRules, string? validationError) = await FetchRulesByIpAddress(
+                    request.Query.IpAddress,
+                    request.Query.Filter,
+                    userConfig,
+                    request.Query.FieldSourceMapping);
+
+                if (validationError is not null)
+                {
+                    return BadRequest(validationError);
+                }
+
+                rules = fetchedRules ?? [];
             }
 
-            var response = new RulesByFilterResponse
-            {
-                Request_Id = requestId,
-                Result = new RuleResult
-                {
-                    Count = rules.Count,
-                    Rules = rules
-                }
-            };
-
-            return Ok(response);
+            return Ok(CreateRulesByFilterResponse(requestId, rules));
         }
         catch (Exception exception)
         {
             Log.WriteError("Get Rules By Filter", "Error while fetching rules.", exception);
             return StatusCode(500, "Internal server error");
         }
+    }
+
+    private static string? ValidateFilterSelection(int? ownerId, string? ipAddress)
+    {
+        bool hasOwnerId = ownerId is not null;
+        bool hasIpAddress = !string.IsNullOrWhiteSpace(ipAddress);
+
+        if (hasOwnerId && hasIpAddress)
+        {
+            return "Exactly one of OwnerId or IpAddress must be provided.";
+        }
+
+        if (!hasOwnerId && !hasIpAddress)
+        {
+            return "Either OwnerId or IpAddress must be provided.";
+        }
+
+        return null;
+    }
+
+    private async Task<(List<RuleDetail>? Rules, string? Error)> FetchRulesByIpAddress(
+        string? ipAddress,
+        RuleFilter? queryFilter,
+        UserConfig userConfig,
+        FieldSourceMapping? fieldSourceMapping)
+    {
+        if (!IPAddress.TryParse(ipAddress, out IPAddress? parsedIpAddress) || parsedIpAddress.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
+        {
+            return (null, "The IPAddress must be a valid IPv4 address.");
+        }
+
+        RuleFilter effectiveFilter = queryFilter ?? new RuleFilter();
+        string? validationError = ValidateIpFilter(effectiveFilter);
+        if (validationError is not null)
+        {
+            return (null, validationError);
+        }
+
+        return (await FilterRules(
+            parsedIpAddress,
+            effectiveFilter.Action,
+            effectiveFilter.MinPrefixLength,
+            effectiveFilter.InField,
+            userConfig,
+            fieldSourceMapping), null);
+    }
+
+    private static string? ValidateIpFilter(RuleFilter queryFilter)
+    {
+        if (string.IsNullOrWhiteSpace(queryFilter.Action) ||
+            (queryFilter.Action != RuleActions.Accept &&
+             queryFilter.Action != RuleActions.Deny &&
+             queryFilter.Action != RuleActions.Any))
+        {
+            return "The field Action must be filled with either \"accept\", \"deny\" or \"any\".";
+        }
+
+        if (queryFilter.MinPrefixLength < 0 || queryFilter.MinPrefixLength > 32)
+        {
+            return $"The value for MinPrefixLength {queryFilter.MinPrefixLength} must be between 0 and 32.";
+        }
+
+        if (string.IsNullOrWhiteSpace(queryFilter.InField) ||
+            (queryFilter.InField != FilterFields.Source &&
+             queryFilter.InField != FilterFields.Destination &&
+             queryFilter.InField != FilterFields.Both))
+        {
+            return $"The field InField must be filled with either \"{FilterFields.Source}\", \"{FilterFields.Destination}\" or \"{FilterFields.Both}\".";
+        }
+
+        return null;
+    }
+
+    private static RulesByFilterResponse CreateRulesByFilterResponse(string requestId, List<RuleDetail> rules)
+    {
+        return new RulesByFilterResponse
+        {
+            Request_Id = requestId,
+            Result = new RuleResult
+            {
+                Count = rules.Count,
+                Rules = rules
+            }
+        };
     }
 
     private void LogSiemEntry(RulesByFilterRequest request, string requestId)
@@ -143,13 +203,15 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
     }
 
     private async Task<List<RuleDetail>> FetchRulesByOwnerId(int ownerId,
-        UserConfig userConfig)
+        UserConfig userConfig,
+        FieldSourceMapping? fieldSourceMapping)
     {
         var ruleIDs = await GetRuleIdsByOwnerId(ownerId);
-        return await GetRulesByIdsAsync(ruleIDs, userConfig);
+        return await GetRulesByIdsAsync(ruleIDs, userConfig, fieldSourceMapping);
     }
 
-    private async Task<List<RuleDetail>> GetRulesByIdsAsync(List<int> ruleIds, UserConfig userConfig)
+    private async Task<List<RuleDetail>> GetRulesByIdsAsync(List<int> ruleIds, UserConfig userConfig,
+        FieldSourceMapping? fieldSourceMapping)
     {
         if (ruleIds.Count == 0)
             return new List<RuleDetail>();
@@ -162,7 +224,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         };
 
         var result = await apiConnection.SendQueryAsync<List<Rule>>(query, variables);
-        return ConvertRuleList(result, userConfig);
+        return ConvertRuleList(result, userConfig, fieldSourceMapping);
     }
 
     private async Task<List<int>> GetRuleIdsByOwnerId(int ownerId)
@@ -183,7 +245,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
     }
 
     private async Task<List<RuleDetail>> FilterRules(IPAddress ipAddress, string action, int minPrefix,
-        string inField, UserConfig userConfig)
+        string inField, UserConfig userConfig, FieldSourceMapping? fieldSourceMapping)
     {
         IpFilterHelper ipHelper = new IpFilterHelper();
 
@@ -216,52 +278,62 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
             }
         }
 
-        return ConvertRuleList(ruleItems, userConfig);
+        return ConvertRuleList(ruleItems, userConfig, fieldSourceMapping);
     }
 
-    private static List<RuleDetail> ConvertRuleList(List<Rule> inputList, UserConfig userConfig)
+    private static List<RuleDetail> ConvertRuleList(List<Rule> inputList, UserConfig userConfig,
+        FieldSourceMapping? fieldSourceMapping)
     {
-        const string notFound = "Not Found in Database";
+        string notFound = RuleFieldSourceResolver.NotFoundValue;
+        FieldSource ownerInformationSource = RuleFieldSourceResolver.ResolveOwnerInformationSource(fieldSourceMapping);
+        FieldSource changeIdSource = RuleFieldSourceResolver.ResolveChangeIdSource(fieldSourceMapping);
+        string ownerCustomFieldKey = userConfig.GlobalConfig?.CustomFieldOwnerKey ?? "";
+        string changeIdCustomFieldKey = userConfig.GlobalConfig?.CustomFieldChangeIdKey ?? "";
 
-        return inputList.Select(item => new RuleDetail
+        return inputList.Select(item =>
         {
-            Uid = item.Uid ?? notFound,
-            Manager = item.MgmtId.ToString(),
-            Source = FlattenRuleNetworkObjects(item.Froms.Select(r => r.Object).ToList())
-                .Select(s => new NetworkObjectCopy
-                {
-                    Name = s.Name,
-                    Type = s.Type.Name,
-                    Ip = DisplayBase.DisplayIp(s.IP, s.IpEnd)
-                })
-                .ToList(),
-            SourceShort = DisplaySourceOrDestinationPlain(item, isSource: true, userConfig),
-            Destination = FlattenRuleNetworkObjects(item.Tos.Select(r => r.Object).ToList())
-                .Select(d => new NetworkObjectCopy
-                {
-                    Name = d.Name,
-                    Type = d.Type.Name,
-                    Ip = DisplayBase.DisplayIp(d.IP, d.IpEnd)
-                })
-                .ToList(),
-            DestinationShort = DisplaySourceOrDestinationPlain(item, isSource: false, userConfig),
-            Service = item.Services
-                .Select(s => new ServiceObject
-                {
-                    Name = s.Content.Name,
-                    Protocol = s.Content.Protocol?.Name ?? notFound,
-                    Port = s.Content.SourcePort ?? -1
-                })
-                .ToList(),
-            ServiceShort = DisplayServicesPlain(item, userConfig),
-            ChangeID = CustomFieldResolver.ExtractCustomFieldValue<string>(item, userConfig.GlobalConfig?.CustomFieldChangeIdKey ?? "", out _) ?? notFound,
-            Name = item.Name ?? notFound,
-            CreationDate = item.CreatedImport?.StartTime?.ToString() ?? notFound,
-            LastHitDate = item.Metadata.LastHit?.ToString() ?? notFound,
-            Action = item.Action,
-            OwnerInformation = item.RuleOwner.FirstOrDefault()?.OwnerId.ToString() ?? notFound,
-            Comment = item.Comment ?? notFound,
-            Time = item.RuleTimes.Where(ruleTimeObject => ruleTimeObject.TimeObj is not null).Select(ruleTimeObject => ruleTimeObject.TimeObj!.Name).ToList()
+            List<NetworkService> flattenedServices = FlattenRuleServices(item.Services.Select(s => s.Content).ToList());
+
+            return new RuleDetail
+            {
+                Uid = item.Uid ?? notFound,
+                Manager = item.MgmtId.ToString(),
+                Source = FlattenRuleNetworkObjects(item.Froms.Select(r => r.Object).ToList())
+                    .Select(s => new NetworkObjectCopy
+                    {
+                        Name = s.Name,
+                        Type = s.Type.Name,
+                        Ip = DisplayBase.DisplayIp(s.IP, s.IpEnd)
+                    })
+                    .ToList(),
+                SourceShort = DisplaySourceOrDestinationPlain(item, isSource: true, userConfig),
+                Destination = FlattenRuleNetworkObjects(item.Tos.Select(r => r.Object).ToList())
+                    .Select(d => new NetworkObjectCopy
+                    {
+                        Name = d.Name,
+                        Type = d.Type.Name,
+                        Ip = DisplayBase.DisplayIp(d.IP, d.IpEnd)
+                    })
+                    .ToList(),
+                DestinationShort = DisplaySourceOrDestinationPlain(item, isSource: false, userConfig),
+                Service = flattenedServices
+                    .Select(s => new ServiceObject
+                    {
+                        Name = s.Name,
+                        Protocol = s.Protocol?.Name ?? notFound,
+                        Port = s.DestinationPort ?? -1
+                    })
+                    .ToList(),
+                ServiceShort = DisplayServicesPlain(flattenedServices, item.ServiceNegated, userConfig),
+                ChangeID = RuleFieldSourceResolver.ResolveChangeId(item, changeIdSource, changeIdCustomFieldKey, notFound),
+                Name = item.Name ?? notFound,
+                CreationDate = item.CreatedImport?.StartTime?.ToString() ?? notFound,
+                LastHitDate = item.Metadata.LastHit?.ToString() ?? notFound,
+                Action = item.Action,
+                OwnerInformation = RuleFieldSourceResolver.ResolveOwnerInformation(item, ownerInformationSource, ownerCustomFieldKey, notFound),
+                Comment = item.Comment ?? notFound,
+                Time = item.RuleTimes.Where(ruleTimeObject => ruleTimeObject.TimeObj is not null).Select(ruleTimeObject => ruleTimeObject.TimeObj!.Name).ToList()
+            };
         }).ToList();
     }
 
@@ -326,17 +398,16 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         return result;
     }
 
-    private static string DisplayServicesPlain(Rule rule, UserConfig userConfig)
+    private static string DisplayServicesPlain(IEnumerable<NetworkService> services, bool serviceNegated, UserConfig userConfig)
     {
         StringBuilder result = new();
-        if (rule.ServiceNegated)
+        if (serviceNegated)
         {
             result.AppendLine(userConfig.GetText("negated") + "<br>");
         }
 
         string joined = string.Join(Environment.NewLine,
-            Array.ConvertAll(rule.Services,
-                service => DisplayBase.DisplayService(service.Content, false, service.Content.Name).ToString()));
+            services.Select(service => DisplayBase.DisplayService(service, false, service.Name).ToString()));
         result.Append(joined);
 
         return result.ToString();
@@ -344,13 +415,28 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
 
     private static List<NetworkObject> FlattenRuleNetworkObjects(List<NetworkObject> list)
     {
-        return list
-            .SelectMany(obj =>
-                new[] { obj }
-                    .Concat(obj.ObjectGroupFlats
-                        .Select(g => g.Object)
-                    )
-            ).OfType<NetworkObject>().ToList();
+        return NetworkObject.FlattenRuleNetworkObjects(list)
+            .Where(HasType)
+            .Distinct()
+            .ToList();
+    }
+
+    private static List<NetworkService> FlattenRuleServices(List<NetworkService> list)
+    {
+        return NetworkService.FlattenRuleServices(list)
+            .Where(HasType)
+            .Distinct()
+            .ToList();
+    }
+
+    private static bool HasType(NetworkObject networkObject)
+    {
+        return !string.IsNullOrWhiteSpace(networkObject.Type?.Name);
+    }
+
+    private static bool HasType(NetworkService networkService)
+    {
+        return !string.IsNullOrWhiteSpace(networkService.Type?.Name);
     }
 
     private static string? SanitizeRuleAction(string action)
@@ -400,6 +486,7 @@ public class RulesByFilterQuery
     public string? IpAddress { get; set; }
 
     public RuleFilter? Filter { get; set; }
+    public FieldSourceMapping? FieldSourceMapping { get; set; }
 }
 
 public class RulesByFilterResponse
@@ -413,6 +500,56 @@ public class RuleFilter
     public int MinPrefixLength { get; set; }
     public string InField { get; set; } = "";
     public string Action { get; set; } = "";
+}
+
+public class FieldSourceMapping
+{
+    public FieldSource OwnerInformation { get; set; } = FieldSource.Database;
+    public FieldSource ChangeId { get; set; } = FieldSource.CustomField;
+}
+
+[System.Text.Json.Serialization.JsonConverter(typeof(FieldSourceJsonConverter))]
+public enum FieldSource
+{
+    Database,
+    CustomField
+}
+
+public sealed class FieldSourceJsonConverter : System.Text.Json.Serialization.JsonConverter<FieldSource>
+{
+    /// <summary>
+    /// Reads a field source value from JSON.
+    /// </summary>
+    public override FieldSource Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType != JsonTokenType.String)
+        {
+            throw new System.Text.Json.JsonException(
+                $"Field source values must be strings with one of: {nameof(FieldSource.Database)}, {nameof(FieldSource.CustomField)}.");
+        }
+
+        string? value = reader.GetString();
+        if (string.Equals(value, nameof(FieldSource.Database), StringComparison.OrdinalIgnoreCase))
+        {
+            return FieldSource.Database;
+        }
+
+        if (string.Equals(value, nameof(FieldSource.CustomField), StringComparison.OrdinalIgnoreCase))
+        {
+            return FieldSource.CustomField;
+        }
+
+        throw new System.Text.Json.JsonException(
+            $"Invalid field source value '{value}'. Allowed values are {nameof(FieldSource.Database)} and {nameof(FieldSource.CustomField)}.");
+    }
+
+    /// <summary>
+    /// Writes a field source value to JSON.
+    /// </summary>
+    public override void Write(Utf8JsonWriter writer, FieldSource value, JsonSerializerOptions options)
+    {
+        writer.WriteStringValue(value.ToString());
+    }
 }
 
 public class RuleResult

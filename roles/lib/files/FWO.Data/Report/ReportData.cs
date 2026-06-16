@@ -20,6 +20,8 @@ namespace FWO.Data.Report
         public IEnumerable<IRuleViewData> RuleViewData = [];
         public int ElementsCount { get; set; }
         public int RecertificationDisplayPeriod { get; set; } = 0;
+        public bool MergeOwnerRecertTables { get; set; } = false;
+        public string OwnerAdditionalInfoKey { get; set; } = "";
 
         public ReportData()
         { }
@@ -35,6 +37,8 @@ namespace FWO.Data.Report
             WorkflowStateNames = reportData.WorkflowStateNames;
             WorkflowFilter = reportData.WorkflowFilter;
             RecertificationDisplayPeriod = reportData.RecertificationDisplayPeriod;
+            MergeOwnerRecertTables = reportData.MergeOwnerRecertTables;
+            OwnerAdditionalInfoKey = reportData.OwnerAdditionalInfoKey;
         }
     }
 }

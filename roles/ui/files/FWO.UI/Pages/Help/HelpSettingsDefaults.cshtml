@@ -1,4 +1,4 @@
-﻿@page "/help/settings/defaults"
+@page "/help/settings/defaults"
 @model FWO.Ui.Pages.Help.MainModel
 @{
     Layout = "HelpLayout";
@@ -31,7 +31,14 @@
         <li>@(Html.Raw(userConfig.GetText("H5565")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5454")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5457")))</li>
-        <li>@(Html.Raw(userConfig.GetText("accesstoken_lifetime")))</li>
-        <li>@(Html.Raw(userConfig.GetText("refreshtoken_lifetime")))</li>
+        <li>
+            @(Html.Raw(userConfig.GetText("accesstoken_lifetime")))
+            (@userConfig.GetText("Minutes2") / @userConfig.GetText("Hours") / @userConfig.GetText("Days"))
+        </li>
+        <li>
+            @(Html.Raw(userConfig.GetText("refreshtoken_lifetime")))
+            (@userConfig.GetText("Minutes2") / @userConfig.GetText("Hours") / @userConfig.GetText("Days"))
+        </li>
+        <li>@(Html.Raw(userConfig.GetText("U9037")))</li>
     </ul>
 </div>

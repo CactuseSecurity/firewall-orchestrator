@@ -5,6 +5,7 @@ using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
+using FWO.Data.Enums;
 using FWO.Mail;
 using FWO.Basics.Enums;
 
@@ -107,6 +108,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("updateRuleOwnerMappingSleepTime"), JsonPropertyName("updateRuleOwnerMappingSleepTime")]
         public int UpdateRuleOwnerMappingSleepTime { get; set; } = 60;
+
+        [JsonProperty("flowSyncSleepTime"), JsonPropertyName("flowSyncSleepTime")]
+        public int FlowSyncSleepTime { get; set; } = 0;
 
         [JsonProperty("externalRequestSleepTime"), JsonPropertyName("externalRequestSleepTime")]
         public int ExternalRequestSleepTime { get; set; } = 60;
@@ -357,8 +361,8 @@ namespace FWO.Config.Api.Data
         [JsonProperty("modReqInterfaceName"), JsonPropertyName("modReqInterfaceName")]
         public string ModReqInterfaceName { get; set; } = "";
 
-        [JsonProperty("flowNamingSourceManagementId"), JsonPropertyName("flowNamingSourceManagementId")]
-        public int? FlowNamingSourceManagementId { get; set; }
+        [JsonProperty("flowNamingSourceManagementRanking"), JsonPropertyName("flowNamingSourceManagementRanking")]
+        public string FlowNamingSourceManagementRanking { get; set; } = "[]";
 
         [JsonProperty("modReqEmailReceiver"), JsonPropertyName("modReqEmailReceiver")]
         public string ModReqEmailReceiver { get; set; } = nameof(EmailRecipientOption.None);
@@ -586,11 +590,18 @@ namespace FWO.Config.Api.Data
         [JsonProperty("importedMatrixReadOnly"), JsonPropertyName("importedMatrixReadOnly")]
         public bool ImportedMatrixReadOnly { get; set; } = true;
 
-        [JsonProperty("accessTokenLifetimeHours"), JsonPropertyName("accessTokenLifetimeHours")]
-        public int AccessTokenLifetimeHours { get; set; } = 7;
+        [JsonProperty("accessTokenLifetime"), JsonPropertyName("accessTokenLifetime")]
+        public int AccessTokenLifetime { get; set; } = 1;
 
-        [JsonProperty("refreshTokenLifetimeDays"), JsonPropertyName("refreshTokenLifetimeDays")]
-        public int RefreshTokenLifetimeDays { get; set; } = 7;
+        [JsonProperty("accessTokenLifetimeUnit"), JsonPropertyName("accessTokenLifetimeUnit")]
+        public TokenLifetimeUnit AccessTokenLifetimeUnit { get; set; } = TokenLifetimeUnit.Hours;
+
+        [JsonProperty("refreshTokenLifetime"), JsonPropertyName("refreshTokenLifetime")]
+        public int RefreshTokenLifetime { get; set; } = 1;
+
+        [JsonProperty("refreshTokenLifetimeUnit"), JsonPropertyName("refreshTokenLifetimeUnit")]
+        public TokenLifetimeUnit RefreshTokenLifetimeUnit { get; set; } = TokenLifetimeUnit.Days;
+
         [JsonProperty("complianceCheckElementsPerFetch"), JsonPropertyName("complianceCheckElementsPerFetch")]
         public int ComplianceCheckElementsPerFetch { get; set; } = 500;
 

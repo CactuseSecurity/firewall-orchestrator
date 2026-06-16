@@ -499,10 +499,9 @@ class FwConfigImportObject:
         return [
             {
                 "user_uid": uid,
-                "mgm_id": management_state.mgm_id,
-                "user_create": import_state.import_id,
-                "user_last_seen": import_state.import_id,
-                "usr_typ_id": global_state.stm_mapper.lookup_user_obj_type_id(
+                "mgm_id": mgm_id,
+                "user_create": self.import_state.state.import_id,
+                "usr_typ_id": self.import_state.state.lookup_user_obj_type_id(
                     management_state.normalized_config.users[uid]["user_typ"]
                 ),
                 "user_name": management_state.normalized_config.users[uid]["user_name"],
@@ -520,7 +519,6 @@ class FwConfigImportObject:
             {
                 "mgm_id": management_state.mgm_id,
                 "zone_create": import_state.import_id,
-                "zone_last_seen": import_state.import_id,
                 "zone_name": management_state.normalized_config.zone_objects[uid]["zone_name"],
             }
             for uid in new_zone_names
@@ -808,7 +806,6 @@ class FwConfigImportObject:
                 {
                     f"{prefix}_flat_id": group_id,
                     f"{prefix}_flat_member_id": flat_member_id,
-                    "import_created": import_state.import_id,
                     "import_last_seen": import_state.import_id,  # to be removed in the future
                 }
             )
@@ -835,7 +832,6 @@ class FwConfigImportObject:
                     f"{prefix}_id": group_id,
                     f"{prefix}_member_id": member_id,
                     "import_created": import_state.import_id,
-                    "import_last_seen": import_state.import_id,  # to be removed in the future
                 }
             )
 

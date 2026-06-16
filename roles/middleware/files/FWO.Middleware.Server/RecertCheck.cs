@@ -191,7 +191,7 @@ namespace FWO.Middleware.Server
             List<Rule> rules = [];
             try
             {
-                UserConfig userConfig = new(globalConfig);
+                using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
 
                 DeviceFilter deviceFilter = new()
                 {
@@ -274,7 +274,7 @@ namespace FWO.Middleware.Server
             List<string> userDns = await ResolveOwnerUserDns(owner);
             foreach (var userDn in userDns)
             {
-                UiUser? uiuser = uiUsers.FirstOrDefault(x => x.Dn == userDn);
+                UiUser? uiuser = uiUsers.FirstOrDefault(x => DistName.DnEquals(x.Dn, userDn));
                 if (uiuser != null && uiuser.Email != null && uiuser.Email != "")
                 {
                     tos.Add(uiuser.Email);
@@ -291,7 +291,7 @@ namespace FWO.Middleware.Server
                 return [];
             }
 
-            HashSet<string> resolvedUsers = new(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> resolvedUsers = new(DistName.DnComparer);
             object resolvedLock = new();
             List<Task> ldapRequests = [];
 
@@ -350,7 +350,7 @@ namespace FWO.Middleware.Server
                     SelectedOwner = owner
                 }
             };
-            using UserConfig userConfig = new(globalConfig);
+            using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnectionMiddlewareServer, globalConfig.DefaultLanguage);
             return await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", reportParams), apiConnectionMiddlewareServer, userConfig, DefaultInit.DoNothing);
         }
 

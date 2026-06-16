@@ -1,6 +1,5 @@
 using FWO.Api.Client;
 using FWO.Logging;
-using Microsoft.Extensions.Hosting;
 
 namespace FWO.Middleware.Server.Services
 {

@@ -12,6 +12,44 @@
   become: true
 
 - name: create api documentation using 2fd/graphdoc
-  shell: "export NODE_OPTIONS='--max-old-space-size=4096' && graphdoc -x 'x-hasura-admin-secret: {{ api_hasura_admin_secret }}' --force -e https://{{ api_network_listening_ip_address }}:{{ api_port }}/v1/graphql -o {{ ui_start_dir }}/wwwroot/api_schema"
+  block:
+    - name: create temporary graphdoc config
+      tempfile:
+        state: file
+        suffix: .json
+      register: graphdoc_config
+
+    - name: write temporary graphdoc config
+      copy:
+        dest: "{{ graphdoc_config.path }}"
+        mode: "0600"
+        content: |
+          {
+            "graphdoc": {
+              "endpoint": "https://{{ api_network_listening_ip_address }}:{{ api_port }}/v1/graphql",
+              "output": "{{ ui_start_dir }}/wwwroot/api_schema",
+              "header": "x-hasura-admin-secret: {{ api_hasura_admin_secret }}"
+            }
+          }
+      no_log: true
+
+    - name: run graphdoc
+      command:
+        argv:
+          - graphdoc
+          - --config
+          - "{{ graphdoc_config.path }}"
+          - --force
+      environment:
+        NODE_OPTIONS: "--max-old-space-size=4096"
+
+  always:
+    - name: remove temporary graphdoc config
+      file:
+        path: "{{ graphdoc_config.path | default('') }}"
+        state: absent
+      when: graphdoc_config is defined and graphdoc_config.path is defined
+      no_log: true
+
   become: true
   become_user: "{{ fworch_user }}"

@@ -5,7 +5,6 @@ fragment userDetailsChangesNew on usr {
   user_create_time: import_control {
     time: start_time
   }
-  user_last_seen
   user_name
   user_comment
   user_lastname

@@ -25,6 +25,8 @@ namespace FWO.Api.Client
 
         public abstract void SetAuthHeader(string jwt);
 
+        public abstract Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct);
+
         public abstract void SetRole(string role);
 
         public virtual void SetExecutionMode(System.Security.Claims.ClaimsPrincipal user, string role) { }

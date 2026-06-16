@@ -46,13 +46,7 @@ namespace FWO.Middleware.Server.Jobs
             {
                 ExtStateHandler extStateHandler = new(apiConnection);
                 ModellingVarianceAnalysis? varianceAnalysis = null;
-                UserConfig userConfig = new(globalConfig)
-                {
-                    RuleRecognitionOption = globalConfig.RuleRecognitionOption,
-                    ModNamingConvention = globalConfig.ModNamingConvention,
-                    ModModelledMarkerLocation = globalConfig.ModModelledMarkerLocation,
-                    ModModelledMarker = globalConfig.ModModelledMarker
-                };
+                using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
 
                 List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
                 ReportBase? report = await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", new() { ReportType = (int)ReportType.Connections, ModellingFilter = new() { SelectedOwners = owners } }), apiConnection, userConfig, DefaultInit.DoNothing);

@@ -44,7 +44,6 @@ namespace FWO.Test
         [Test]
         public void FlowQueries_LoadFlowSyncQueries()
         {
-            Assert.That(FlowQueries.getFlowSyncData, Does.Contain("query getFlowSyncData"));
             Assert.That(FlowQueries.getFlowSyncNwObjects, Does.Contain("query getFlowSyncNwObjects"));
             Assert.That(FlowQueries.getFlowSyncNwGroups, Does.Contain("query getFlowSyncNwGroups"));
             Assert.That(FlowQueries.getFlowSyncSvcObjects, Does.Contain("query getFlowSyncSvcObjects"));

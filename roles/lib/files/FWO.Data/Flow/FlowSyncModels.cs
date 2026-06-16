@@ -254,6 +254,7 @@ namespace FWO.Data.Flow
         public readonly Dictionary<long, FlowNwGroup> NwGroupsById = [];
         public readonly Dictionary<long, FlowSvcObject> SvcObjectsById = [];
         public readonly Dictionary<long, FlowSvcGroup> SvcGroupsById = [];
+        public readonly Dictionary<long, FlowTimeObject> TimeObjectsById = [];
 
         public Dictionary<long, string> NwObjectHashes { get; private set; } = [];
         public Dictionary<long, string> SvcObjectHashes { get; private set; } = [];
@@ -272,6 +273,7 @@ namespace FWO.Data.Flow
             NwGroupsById = nwGroups.ToDictionary(group => group.Id);
             SvcObjectsById = svcObjects.ToDictionary(flowObject => flowObject.Id);
             SvcGroupsById = svcGroups.ToDictionary(group => group.Id);
+            TimeObjectsById = timeObjects.ToDictionary(timeObject => timeObject.Id);
 
             NwObjectHashes = nwObjects.SelectMany(fo => (fo.Objects ?? Enumerable.Empty<NetworkObject>())
                     .Select(o => new { o.Id, ParentHash = fo.Hash }))
@@ -285,6 +287,20 @@ namespace FWO.Data.Flow
             AccessHashes = accesses.SelectMany(fa => (fa.Rules ?? Enumerable.Empty<Rule>())
                     .Select(r => new { r.Id, ParentHash = fa.Hash }))
                 .ToDictionary(x => x.Id, x => x.ParentHash);
+
+            // link group members to actual detailed objects from corresponding object lists
+            nwGroups.ForEach(g => g.NwGroupMembers.ForEach(m => m.NwObject = NwObjectsById[m.NwObjectId]));
+            svcGroups.ForEach(g => g.SvcGroupMembers.ForEach(m => m.SvcObject = SvcObjectsById[m.SvcObjectId]));
+            accesses.ForEach(a =>
+            {
+                a.Sources?.ForEach(s => s.NwObject = NwObjectsById[s.NwObjectId]);
+                a.SourceGroups?.ForEach(sg => sg.NwGroup = NwGroupsById[sg.NwGroupId]);
+                a.Destinations?.ForEach(d => d.NwObject = NwObjectsById[d.NwObjectId]);
+                a.DestinationGroups?.ForEach(dg => dg.NwGroup = NwGroupsById[dg.NwGroupId]);
+                a.Services?.ForEach(s => s.SvcObject = SvcObjectsById[s.SvcObjectId]);
+                a.ServiceGroups?.ForEach(sg => sg.SvcGroup = SvcGroupsById[sg.SvcGroupId]);
+                a.TimeObjects?.ForEach(to => to.TimeObject = TimeObjectsById[to.TimeObjectId]);
+            });
         }
 
         public void Add(FlowNwObject flowObject)

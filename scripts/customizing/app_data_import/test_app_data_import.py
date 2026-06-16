@@ -918,7 +918,7 @@ class AppDataImportTests(unittest.TestCase):
                 {"cost_center": "CC-100", "owner_type": "Business"},
             )
 
-    def test_extract_app_data_from_csv_marks_apps_without_completed_isolation(self) -> None:
+    def test_extract_app_data_from_csv_marks_isolation_completion_for_all_apps(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"
             with open(owner_csv_path, "w", encoding="utf-8") as fh:
@@ -943,7 +943,10 @@ class AppDataImportTests(unittest.TestCase):
 
             self.assertEqual(len(app_list), 2)
             apps_by_id: dict[str, Owner] = {app.app_id_external: app for app in app_list}
-            self.assertIsNone(apps_by_id["APP-020"].additional_information)
+            self.assertEqual(
+                apps_by_id["APP-020"].additional_information,
+                {"Isolated": "Ja"},
+            )
             self.assertEqual(
                 apps_by_id["APP-021"].additional_information,
                 {"Isolated": "Nein"},

@@ -81,6 +81,26 @@ public static class FlowComplianceRequestValidator
         return true;
     }
 
+    /// <summary>
+    /// Validates a single IP range using the same semantics as flow compliance requests.
+    /// </summary>
+    public static bool TryValidateIpRange(string ipStart, string ipEnd, string collectionName, int itemIndex, out string? errorMessage)
+    {
+        (bool isValid, string? validationError) = ValidateIpRange(ipStart, ipEnd, collectionName, itemIndex);
+        errorMessage = validationError;
+        return isValid;
+    }
+
+    /// <summary>
+    /// Validates a single service range using the same semantics as flow compliance requests.
+    /// </summary>
+    public static bool TryValidateServiceRange(int portStart, int portEnd, string collectionName, int itemIndex, out string? errorMessage)
+    {
+        (bool isValid, string? validationError) = ValidateServiceRange(portStart, portEnd, collectionName, itemIndex);
+        errorMessage = validationError;
+        return isValid;
+    }
+
     private static bool TryValidateItemList<TItem>(
         IEnumerable<TItem> items,
         string collectionName,
@@ -154,12 +174,22 @@ public static class FlowComplianceRequestValidator
 
     private static (bool IsValid, string? ErrorMessage) TryValidateIpRange(GetFlowComplianceStateRequest.IpRangeRequest ipRange, string collectionName, int itemIndex)
     {
-        if (!IPAddress.TryParse(ipRange.IpStart, out IPAddress? ipStart))
+        return ValidateIpRange(ipRange.IpStart, ipRange.IpEnd, collectionName, itemIndex);
+    }
+
+    private static (bool IsValid, string? ErrorMessage) TryValidateServiceRange(GetFlowComplianceStateRequest.ServiceRangeRequest serviceRange, string collectionName, int itemIndex)
+    {
+        return ValidateServiceRange(serviceRange.PortStart, serviceRange.PortEnd, collectionName, itemIndex);
+    }
+
+    private static (bool IsValid, string? ErrorMessage) ValidateIpRange(string ipStartValue, string ipEndValue, string collectionName, int itemIndex)
+    {
+        if (!IPAddress.TryParse(ipStartValue, out IPAddress? ipStart))
         {
             return (false, $"'{collectionName}' entry at index {itemIndex} has an invalid 'ipStart' value.");
         }
 
-        if (!IPAddress.TryParse(ipRange.IpEnd, out IPAddress? ipEnd))
+        if (!IPAddress.TryParse(ipEndValue, out IPAddress? ipEnd))
         {
             return (false, $"'{collectionName}' entry at index {itemIndex} has an invalid 'ipEnd' value.");
         }
@@ -177,19 +207,19 @@ public static class FlowComplianceRequestValidator
         return (true, null);
     }
 
-    private static (bool IsValid, string? ErrorMessage) TryValidateServiceRange(GetFlowComplianceStateRequest.ServiceRangeRequest serviceRange, string collectionName, int itemIndex)
+    private static (bool IsValid, string? ErrorMessage) ValidateServiceRange(int portStart, int portEnd, string collectionName, int itemIndex)
     {
-        if (serviceRange.PortStart < MinimumPort || serviceRange.PortStart > MaximumPort)
+        if (portStart < MinimumPort || portStart > MaximumPort)
         {
             return (false, $"'{collectionName}' entry at index {itemIndex} has an invalid 'portStart' value. Allowed range is {MinimumPort}-{MaximumPort}.");
         }
 
-        if (serviceRange.PortEnd < MinimumPort || serviceRange.PortEnd > MaximumPort)
+        if (portEnd < MinimumPort || portEnd > MaximumPort)
         {
             return (false, $"'{collectionName}' entry at index {itemIndex} has an invalid 'portEnd' value. Allowed range is {MinimumPort}-{MaximumPort}.");
         }
 
-        if (serviceRange.PortStart > serviceRange.PortEnd)
+        if (portStart > portEnd)
         {
             return (false, $"'{collectionName}' entry at index {itemIndex} must satisfy 'portStart' <= 'portEnd'.");
         }

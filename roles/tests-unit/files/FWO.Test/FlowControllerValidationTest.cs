@@ -139,6 +139,22 @@ internal class FlowControllerValidationTest
     }
 
     [Test]
+    public async Task FlowControllerValidation_GetServiceObjectId_RejectsInvalidPortRange()
+    {
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+
+        ActionResult<ServiceObjectIdResponse> result = await controller.GetServiceObjectId(new GetServiceObjectIdRequest
+        {
+            PortStart = 1024,
+            PortEnd = 443,
+            Protocol = "tcp"
+        });
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("'portStart' <= 'portEnd'"));
+    }
+
+    [Test]
     public async Task FlowControllerValidation_GetAddressObjectId_RejectsMissingIpBounds()
     {
         FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
@@ -151,6 +167,21 @@ internal class FlowControllerValidationTest
 
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
         Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("'ipStart'"));
+    }
+
+    [Test]
+    public async Task FlowControllerValidation_GetAddressObjectId_RejectsInvalidIpRange()
+    {
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+
+        ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
+        {
+            IpStart = "banana",
+            IpEnd = "10.0.0.2"
+        });
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("invalid 'ipStart'"));
     }
 
     private static IEnumerable<TestCaseData> RequestCases()

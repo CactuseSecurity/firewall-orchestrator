@@ -153,6 +153,11 @@ public class FlowCatalogController : ControllerBase
             return BadRequest("'protocol' is required.");
         }
 
+        if (!FlowComplianceRequestValidator.TryValidateServiceRange(request.PortStart, request.PortEnd, "service", 0, out string? serviceErrorMessage))
+        {
+            return BadRequest(serviceErrorMessage);
+        }
+
         return Ok(await flowCatalogService.GetServiceObjectIdAsync(request.Protocol, request.PortStart, request.PortEnd, request.Filter?.VisibleInRequest));
     }
 
@@ -172,6 +177,11 @@ public class FlowCatalogController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.IpStart) || string.IsNullOrWhiteSpace(request.IpEnd))
         {
             return BadRequest("'ipStart' and 'ipEnd' are required.");
+        }
+
+        if (!FlowComplianceRequestValidator.TryValidateIpRange(request.IpStart, request.IpEnd, "address", 0, out string? addressErrorMessage))
+        {
+            return BadRequest(addressErrorMessage);
         }
 
         return Ok(await flowCatalogService.GetAddressObjectIdAsync(request.IpStart, request.IpEnd, request.Filter?.VisibleInRequest));

@@ -456,3 +456,8 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 - Tenant settings role handling now mirrors the backend per operation: the page stays viewable for admin/auditor/fw-admin, adding/deleting tenants and saving device visibility are admin-only (matching the REST and Hasura permissions), and editing existing tenants is allowed for admin/fw-admin.
 - Remaining hardcoded strings on the scheduler monitoring page were moved into the localization texts.
 - The shared confirm dialogs now raise DisplayChanged(false) after a successful action, so the parent's bound visibility state no longer remains stale.
+
+# 9.1.8 - 16.06.2026 DEVELOP
+- flow db: access flows now include time objects and allow/deny flag in their functional definition
+- flow sync: add hash consistency check
+- this update resets the flow db!

@@ -756,23 +756,25 @@ def parse_app_line(
 
 
 ISOLATION_COMPLETED_KEY: str = "Isolated"
+ISOLATION_COMPLETED_VALUE: str = "Ja"
 ISOLATION_NOT_COMPLETED_VALUE: str = "Nein"
 
 
-def _mark_apps_without_completed_isolation(
+def _add_isolation_completion_information(
     app_list: list[Owner],
     isolation_completed_app_list: list[str] | None,
 ) -> None:
-    """Flag every app that is not listed as fully isolated in the additional information section."""
+    """Set the isolation completion state for every app in the additional information section."""
     if isolation_completed_app_list is None:
         return
     isolation_completed_app_set: set[str] = set(isolation_completed_app_list)
     for app in app_list:
-        if app.app_id_external in isolation_completed_app_set:
-            continue
         if app.additional_information is None:
             app.additional_information = {}
-        app.additional_information[ISOLATION_COMPLETED_KEY] = ISOLATION_NOT_COMPLETED_VALUE
+        if app.app_id_external in isolation_completed_app_set:
+            app.additional_information[ISOLATION_COMPLETED_KEY] = ISOLATION_COMPLETED_VALUE
+        else:
+            app.additional_information[ISOLATION_COMPLETED_KEY] = ISOLATION_NOT_COMPLETED_VALUE
 
 
 def extract_app_data_from_csv(
@@ -883,7 +885,7 @@ def extract_app_data_from_csv(
             # Set initial recertification to standard period of days.
             app.days_until_first_recert = app.recert_period_days
 
-    _mark_apps_without_completed_isolation(app_list, resolved_options.isolation_completed_app_list)
+    _add_isolation_completion_information(app_list, resolved_options.isolation_completed_app_list)
 
 
 def read_ip_data_from_csv(

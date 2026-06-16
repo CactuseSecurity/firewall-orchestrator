@@ -534,16 +534,18 @@ def ensure_original_objects(normalized_config_adom: dict[str, Any], normalized_c
             )
         )
 
-    if not any(obj.get("obj_name") == "Outgoing Interface IP" for obj in combined_nw):
+    outgoing_interface_ip_name = "Outgoing Interface IP"
+
+    if not any(obj.get("obj_name") == outgoing_interface_ip_name for obj in combined_nw):
         normalized_config_adom["network_objects"].append(
             create_network_object(
-                name="Outgoing Interface IP",
+                name=outgoing_interface_ip_name,
                 obj_type="network",
                 ip=ANY_IP_START,
                 ip_end=ANY_IP_END,
                 uid="Outgoing_Interface_IP",
                 color="black",
-                comment='"Outgoing Interface IP" network object created by FWO importer for NAT purposes',
+                comment=f'"{outgoing_interface_ip_name}" network object created by FWO importer for NAT purposes',
                 zone="global",
             )
         )
@@ -1123,6 +1125,7 @@ def prepare_translated_nat_fields(
     native_rule: dict[str, Any],
     is_snat: bool,
     is_dnat: bool,
+    normalized_config_adom: dict[str, Any],
 ) -> tuple[list[str], list[str], list[str], list[str], list[str], list[str]]:
     translated_dst_list_local = list(translated_dst_list)
     translated_dst_refs_list_local = list(translated_dst_refs_list)
@@ -1144,6 +1147,11 @@ def prepare_translated_nat_fields(
     if set(translated_svc_list_local) == set(rule_svc_list):
         translated_svc_list_local = ["Original"]
         translated_svc_refs_list_local = ["Original"]
+
+    if native_rule.get("rtp-nat") == 1:
+        translated_src_list, translated_src_refs_list = parse_nat_ip(
+            native_rule.get("natip", []), native_rule, normalized_config_adom
+        )
 
     return (
         translated_src_list,
@@ -1234,12 +1242,8 @@ def parse_nat_rules_in_rulebase(
             native_rule,
             is_snat,
             is_dnat,
+            normalized_config_adom,
         )
-
-        if native_rule.get("rtp-nat") == 1:
-            translated_src_list, translated_src_refs_list = parse_nat_ip(
-                native_rule.get("natip", []), native_rule, normalized_config_adom
-            )
 
         # Create original rule (match phase)
         rule_original_uid = f"{rule_uid}-original"
@@ -1324,6 +1328,14 @@ def parse_nat_rules_in_rulebase(
         rule_num += 1
 
 
+def _as_list(val: Any) -> list[Any] | None:  # pyright: ignore[reportUnknownParameterType]
+    if isinstance(val, list) and val:
+        return val  # pyright: ignore[reportUnknownVariableType]
+    if isinstance(val, str) and val:
+        return [val]
+    return None
+
+
 def extract_nat_config_fields(native_rule: dict[str, Any]) -> str:
     """
     Extracts NAT-specific configuration fields from a native rule.
@@ -1333,27 +1345,21 @@ def extract_nat_config_fields(native_rule: dict[str, Any]) -> str:
 
     if native_rule.get("ippool") == 1:
         nat_config["ippool"] = 1
-        poolname6 = native_rule.get("poolname6")
-        if isinstance(poolname6, list) and poolname6:
+        poolname6 = _as_list(native_rule.get("poolname6"))
+        if poolname6 is not None:
             nat_config["poolname6"] = poolname6
-        elif isinstance(poolname6, str) and poolname6:
-            nat_config["poolname6"] = [poolname6]
 
-        poolname = native_rule.get("poolname")
-        if isinstance(poolname, list) and poolname:
+        poolname = _as_list(native_rule.get("poolname"))
+        if poolname is not None:
             nat_config["poolname"] = poolname
-        elif isinstance(poolname, str) and poolname:
-            nat_config["poolname"] = [poolname]
 
     if "fixedport" in native_rule:
         nat_config["fixedport"] = native_rule.get("fixedport")
 
-    if "nat" in native_rule and native_rule["nat"] == 1:
-        nat_config["nat_type"] = "nat"
-    elif "nat46" in native_rule and native_rule["nat46"] == 1:
-        nat_config["nat_type"] = "nat46"
-    elif "nat64" in native_rule and native_rule["nat64"] == 1:
-        nat_config["nat_type"] = "nat64"
+    for key, name in (("nat", "nat"), ("nat46", "nat46"), ("nat64", "nat64")):
+        if native_rule.get(key) == 1:
+            nat_config["nat_type"] = name
+            break
 
     return json.dumps(nat_config, sort_keys=True) if nat_config else "{}"
 

@@ -337,7 +337,9 @@ namespace FWO.Data.Flow
             return NwObjects.Values.Any(fo => fo.TryCalculateHash() != null && fo.TryCalculateHash() != fo.Hash)
                 || SvcObjects.Values.Any(fs => fs.TryCalculateHash() != null && fs.TryCalculateHash() != fs.Hash)
                 || TimeObjects.Values.Any(fto => fto.TryCalculateHash() != null && fto.TryCalculateHash() != fto.Hash)
-                || Accesses.Values.Any(fa => fa.TryCalculateHash() != null && fa.TryCalculateHash() != fa.Hash);
+                || NwGroups.Values.Any(g => g.TryCalculateHash() != g.Hash)
+                || SvcGroups.Values.Any(g => g.TryCalculateHash() != g.Hash)
+                || Accesses.Values.Any(fa => fa.TryCalculateHash() != fa.Hash);
         }
     }
 }

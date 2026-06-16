@@ -38,15 +38,7 @@ namespace FWO.Data.Flow
         public string? TryCalculateHash()
         {
             // Attempt to generate deterministic hash based on member objects' hashes
-            List<string> memberHashes = [.. NwGroupMembers
-                .Select(m => m.NwObject.TryCalculateHash())
-                .OfType<string>() // Filter out nulls (members without deterministic hashes)
-            ];
-            if (memberHashes.Count < NwGroupMembers.Count)
-            {
-                // Not all members have deterministic hashes - cannot generate group hash
-                return null;
-            }
+            List<string> memberHashes = [.. NwGroupMembers.Select(m => m.NwObject.Hash)];
             try
             {
                 return FlowHashGenerator.GenerateGroupHash(memberHashes);
@@ -76,15 +68,7 @@ namespace FWO.Data.Flow
         public string? TryCalculateHash()
         {
             // Attempt to generate deterministic hash based on member services' hashes
-            List<string> memberHashes = [.. SvcGroupMembers
-                .Select(m => m.SvcObject.TryCalculateHash())
-                .OfType<string>() // Filter out nulls (members without deterministic hashes)
-            ];
-            if (memberHashes.Count < SvcGroupMembers.Count)
-            {
-                // Not all members have deterministic hashes - cannot generate group hash
-                return null;
-            }
+            List<string> memberHashes = [.. SvcGroupMembers.Select(m => m.SvcObject.Hash)];
             try
             {
                 return FlowHashGenerator.GenerateGroupHash(memberHashes);

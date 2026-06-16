@@ -11,7 +11,10 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol, TextIO, TypeAlias, cas
 # Returns True if the OS is Linux, macOS (Darwin), or BSD-based systems
 is_unix = sys.platform in ("linux", "darwin", "freebsd")
 if is_unix:
-    import fcntl as fcntl_module
+    try:
+        import fcntl as fcntl_module
+    except ImportError:
+        fcntl_module = None
 else:
     fcntl_module = None
 

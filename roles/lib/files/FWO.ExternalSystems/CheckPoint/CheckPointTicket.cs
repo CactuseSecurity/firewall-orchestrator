@@ -792,152 +792,19 @@ namespace FWO.ExternalSystems.CheckPoint
 
         private static bool CanCheckDesiredState(RenderedTask task)
         {
-            return task.TaskType == CheckPointTaskTypes.GroupCreate ||
-                   task.TaskType == CheckPointTaskTypes.HostCreate ||
+            return task.TaskType == CheckPointTaskTypes.HostCreate ||
                    task.TaskType == CheckPointTaskTypes.NetworkCreate ||
-                   task.TaskType == CheckPointTaskTypes.AddressRangeCreate ||
-                   task.TaskType == CheckPointTaskTypes.GroupAddMembers ||
-                   task.TaskType == CheckPointTaskTypes.GroupRemoveMembers;
+                   task.TaskType == CheckPointTaskTypes.AddressRangeCreate;
         }
         private async Task<bool> IsDesiredStateAlreadyPresent(RenderedTask task)
         {
             return task.TaskType switch
             {
-                CheckPointTaskTypes.GroupCreate => await GroupCreateAlreadySatisfied(task),
                 CheckPointTaskTypes.HostCreate => await ExistingHostMatches(task),
                 CheckPointTaskTypes.NetworkCreate => await ExistingNetworkMatches(task),
                 CheckPointTaskTypes.AddressRangeCreate => await ExistingAddressRangeMatches(task),
-                CheckPointTaskTypes.GroupAddMembers => await GroupAlreadyContainsMembers(task),
-                CheckPointTaskTypes.GroupRemoveMembers => await GroupAlreadyExcludesMembers(task),
                 _ => false
             };
-        }
-
-        private async Task<bool> GroupAlreadyContainsMembers(RenderedTask task)
-        {
-            JsonElement? group = await LoadGroup(task);
-            if (group == null)
-            {
-                return false;
-            }
-
-            List<string> existingMembers = ExtractGroupMembers(group.Value);
-            List<string> requestedMembers = ExtractRequestedMembers(task, "add");
-
-            return requestedMembers.All(member =>
-                existingMembers.Contains(member, StringComparer.OrdinalIgnoreCase));
-        }
-
-        private async Task<bool> GroupCreateAlreadySatisfied(RenderedTask task)
-        {
-            JsonElement? group = await LoadGroup(task);
-            if (group == null)
-            {
-                return false;
-            }
-
-            List<string> existingMembers = ExtractGroupMembers(group.Value);
-            List<string> requestedMembers = ExtractRequestedMembers(task, "add");
-
-            return requestedMembers.All(member =>
-                existingMembers.Contains(member, StringComparer.OrdinalIgnoreCase));
-        }
-
-        private async Task<bool> GroupAlreadyExcludesMembers(RenderedTask task)
-        {
-            JsonElement? group = await LoadGroup(task);
-            if (group == null)
-            {
-                return false;
-            }
-
-            List<string> existingMembers = ExtractGroupMembers(group.Value);
-            List<string> requestedMembers = ExtractRequestedMembers(task, "remove");
-
-            return requestedMembers.Count > 0 &&
-                   requestedMembers.All(member =>
-                       !existingMembers.Contains(member, StringComparer.OrdinalIgnoreCase));
-        }
-
-        private async Task<JsonElement?> LoadGroup(RenderedTask task)
-        {
-            string? groupName = task.Body?["name"]?.GetValue<string>();
-            if (string.IsNullOrWhiteSpace(groupName))
-            {
-                return null;
-            }
-
-            RestRequest request = new("show-group", Method.Post);
-            request.AddJsonBody(new { name = groupName });
-
-            RestResponse response = await checkPointClient!.RestCall(request, "show-group");
-
-            if (response.StatusCode != HttpStatusCode.OK || string.IsNullOrWhiteSpace(response.Content))
-            {
-                return null;
-            }
-
-            try
-            {
-                using JsonDocument document = JsonDocument.Parse(response.Content);
-                return document.RootElement.Clone();
-            }
-            catch (JsonException)
-            {
-                return null;
-            }
-        }
-
-        private static List<string> ExtractGroupMembers(JsonElement group)
-        {
-            List<string> members = [];
-
-            if (group.TryGetProperty("members", out JsonElement membersElement) &&
-                membersElement.ValueKind == JsonValueKind.Array)
-            {
-                foreach (JsonElement member in membersElement.EnumerateArray())
-                {
-                    if (member.ValueKind == JsonValueKind.Object &&
-                        member.TryGetProperty("name", out JsonElement nameElement))
-                    {
-                        string? name = nameElement.GetString();
-                        if (!string.IsNullOrWhiteSpace(name))
-                        {
-                            members.Add(name);
-                        }
-                    }
-                    else if (member.ValueKind == JsonValueKind.String)
-                    {
-                        string? name = member.GetString();
-                        if (!string.IsNullOrWhiteSpace(name))
-                        {
-                            members.Add(name);
-                        }
-                    }
-                }
-            }
-
-            return members;
-        }
-
-        private static List<string> ExtractRequestedMembers(RenderedTask task, string operation)
-        {
-            List<string> members = [];
-
-            JsonNode? operationNode = task.Body?["members"]?[operation];
-            if (operationNode is JsonArray memberArray)
-            {
-                foreach (JsonNode? member in memberArray)
-                {
-                    string? name = member?.GetValue<string>();
-                    if (!string.IsNullOrWhiteSpace(name))
-                    {
-                        members.Add(name);
-                    }
-                }
-            }
-
-            return members;
         }
 
         private static bool CanRetryWithIgnoreWarnings(RenderedTask task)

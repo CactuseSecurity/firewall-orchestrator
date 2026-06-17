@@ -19,6 +19,7 @@ namespace FWO.Middleware.Server.Services
         private readonly GlobalConfig globalConfig;
         private GraphQlApiSubscription<List<ConfigItem>>? configSubscription;
         private IScheduler? scheduler;
+        private ScheduleFingerprint? lastAppliedSchedule;
         private bool disposed = false;
 
         private const string JobKeyName = "DailyCheckJob";
@@ -61,13 +62,26 @@ namespace FWO.Middleware.Server.Services
             try
             {
                 globalConfig.SubscriptionUpdateHandler([.. config]);
+                ScheduleFingerprint scheduleKey = GetScheduleFingerprint();
+                if (scheduleKey == lastAppliedSchedule)
+                {
+                    Log.WriteDebug(SchedulerName, "Config emission with unchanged schedule - skipping reschedule.");
+                    return;
+                }
+
                 await ScheduleJob();
+                lastAppliedSchedule = scheduleKey;
                 Log.WriteInfo(SchedulerName, "Job rescheduled due to config change");
             }
             catch (Exception ex)
             {
                 Log.WriteError(SchedulerName, "Failed to reschedule job", ex);
             }
+        }
+
+        private ScheduleFingerprint GetScheduleFingerprint()
+        {
+            return new ScheduleFingerprint(globalConfig.DailyCheckStartAt, TimeSpan.FromDays(1));
         }
 
         private async Task ScheduleJob()
@@ -137,5 +151,7 @@ namespace FWO.Middleware.Server.Services
                 }
             }
         }
+
+        private readonly record struct ScheduleFingerprint(DateTime StartAt, TimeSpan Interval);
     }
 }

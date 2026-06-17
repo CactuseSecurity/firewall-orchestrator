@@ -21,6 +21,7 @@ namespace FWO.Middleware.Server.Services
         private readonly QuartzSchedulerOptions options;
         private GraphQlApiSubscription<List<ConfigItem>>? configSubscription;
         private IScheduler? scheduler;
+        private ScheduleFingerprint? lastAppliedSchedule;
         private bool disposed;
 
         /// <summary>
@@ -68,6 +69,11 @@ namespace FWO.Middleware.Server.Services
         protected virtual bool IsActive => true;
 
         /// <summary>
+        /// Configured start time value used to detect schedule changes.
+        /// </summary>
+        protected virtual DateTime? StartAtScheduleKey => StartAt;
+
+        /// <summary>
         /// Log suffix for the interval (e.g., "h", "m", "s").
         /// </summary>
         protected virtual string IntervalLogSuffix => "h";
@@ -110,13 +116,26 @@ namespace FWO.Middleware.Server.Services
             try
             {
                 globalConfig.SubscriptionUpdateHandler([.. config]);
+                ScheduleFingerprint scheduleKey = GetScheduleFingerprint();
+                if (scheduleKey == lastAppliedSchedule)
+                {
+                    Log.WriteDebug(options.SchedulerName, "Config emission with unchanged schedule - skipping reschedule.");
+                    return;
+                }
+
                 await ScheduleJob();
+                lastAppliedSchedule = scheduleKey;
                 Log.WriteInfo(options.SchedulerName, "Job rescheduled due to config change");
             }
             catch (Exception ex)
             {
                 Log.WriteError(options.SchedulerName, "Failed to reschedule job", ex);
             }
+        }
+
+        private ScheduleFingerprint GetScheduleFingerprint()
+        {
+            return new ScheduleFingerprint(IsActive, SleepTime, StartAtScheduleKey, Interval);
         }
 
         private async Task ScheduleJob()
@@ -239,5 +258,7 @@ namespace FWO.Middleware.Server.Services
             }
             return ValueTask.CompletedTask;
         }
+
+        private readonly record struct ScheduleFingerprint(bool IsActive, int SleepTime, DateTime? StartAt, TimeSpan Interval);
     }
 }

@@ -10,14 +10,10 @@ import traceback
 import fwo_globals
 import urllib3
 from common import import_management  # type: ignore[import-not-found]
-from fwo_api import FwoApi
-from fwo_api_call import FwoApiCall
-from fwo_base import init_service_provider, register_global_state
-from fwo_const import BASE_DIR, IMPORTER_BASE_DIR, FWO_CONFIG_FILENAME 
+from fwo_const import FWO_CONFIG_FILENAME, IMPORTER_BASE_DIR
 from fwo_exceptions import (
     FwLoginFailedError,
     FwoApiFailedLockImportError,
-    FwoApiLoginFailedError,
     ShutdownRequestedError,
 )
 from fwo_log import FWOLogger

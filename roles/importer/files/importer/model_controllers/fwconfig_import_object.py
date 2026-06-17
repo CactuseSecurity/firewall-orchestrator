@@ -499,9 +499,9 @@ class FwConfigImportObject:
         return [
             {
                 "user_uid": uid,
-                "mgm_id": mgm_id,
-                "user_create": self.import_state.state.import_id,
-                "usr_typ_id": self.import_state.state.lookup_user_obj_type_id(
+                "mgm_id": management_state.mgm_id,
+                "user_create": import_state.import_id,
+                "usr_typ_id": global_state.stm_mapper.lookup_user_obj_type_id(
                     management_state.normalized_config.users[uid]["user_typ"]
                 ),
                 "user_name": management_state.normalized_config.users[uid]["user_name"],

@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     import os
     from collections.abc import Generator
 
-    from models.import_state import ImportState
+    from states.import_state import ImportState
 
     from importer.services.uid2id_mapper import Uid2IdMapper
 
@@ -242,7 +242,6 @@ class ChangeLogger:
     def create_changelog_import_object(
         self,
         typ: str,
-        import_state: ImportState,
         import_id: int,
         mgm_id: int,
         change_action: str,

@@ -36,10 +36,11 @@ class ImportState:
     is_initial_import: bool = False
     responsible_for_importing: bool = True
     input_file: str | None = None
+    rollback_required: bool = False
 
     def __init__(self, mgm_id: int, fwo_api: FwoApi, fwo_api_call: FwoApiCall, input_file: str | None = None):
         self.input_file = input_file
-
+        self.rollback_required = False
         self.statistics_controller: ImportStatisticsController = ImportStatisticsController()
         self.start_time: int = int(time.time())
         self.management_map: dict[str, int] = {}

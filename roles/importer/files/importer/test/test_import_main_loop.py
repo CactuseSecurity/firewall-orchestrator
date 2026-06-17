@@ -1,9 +1,7 @@
 import fwo_globals
 import pytest
-from fwo_api_call import FwoApiCall
-from fwo_exceptions import FwoApiLoginFailedError, ShutdownRequestedError
-from model_controllers.import_state_controller import ImportStateController
 from fwo_api import FwoApi
+from fwo_exceptions import FwoApiLoginFailedError, ShutdownRequestedError
 from model_controllers.management_controller import ManagementController
 from pytest_mock.plugin import MockerFixture
 from states.global_state import GlobalState
@@ -174,16 +172,16 @@ class TestImportSingleManagement:
     def test_import_single_management_exits_on_shutdown_during_import(
         self,
         mocker: MockerFixture,
-        import_state_controller: ImportStateController,
-        api_call: FwoApiCall,
+        import_state: ImportState,
+        global_state: GlobalState,
     ):
         # Arrange
         fwo_globals.shutdown_requested = False
         mocker.patch("importer.import_main_loop.wait_with_shutdown_check")
         mocker.patch.object(
-            ImportStateController,
+            import_state,
             "initialize_import",
-            return_value=import_state_controller,
+            return_value=import_state,
         )
         mocker.patch("importer.import_main_loop.register_global_state")
         mocker.patch.object(
@@ -196,15 +194,9 @@ class TestImportSingleManagement:
         # Act
         with pytest.raises(SystemExit) as excinfo:
             import_single_management(
+                global_state=global_state,
+                import_state=import_state,
                 mgm_id=1,
-                fwo_api_call=api_call,
-                verify_certificates=True,
-                api_fetch_limit=100,
-                clear=False,
-                suppress_certificate_warnings=False,
-                force=False,
-                fwo_major_version=9,
-                sleep_timer=0,
             )
 
         # Assert

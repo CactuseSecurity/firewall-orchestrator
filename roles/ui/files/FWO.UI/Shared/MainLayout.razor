@@ -193,37 +193,14 @@
 
     private List<string> GetAmbientRolesForLocation(string location)
     {
-        string relativePath = Uri.TryCreate(location, UriKind.Absolute, out _)
-            ? NavigationManager.ToBaseRelativePath(location)
-            : location;
-        string path = relativePath.Split(['?', '#'])[0].Trim('/').ToLowerInvariant();
+        string path = GetRelativeLocationPath(location);
         if (path.StartsWith("networkmodelling"))
         {
             return [Roles.Modeller, Roles.Admin, Roles.Auditor];
         }
         if (path.StartsWith("request"))
         {
-            if (path.StartsWith("request/tickets") || path.StartsWith("request/ticketsoverview"))
-            {
-                return [Roles.Requester, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
-            }
-            if (path.StartsWith("request/approvals"))
-            {
-                return [Roles.Approver, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
-            }
-            if (path.StartsWith("request/plannings"))
-            {
-                return [Roles.Planner, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
-            }
-            if (path.StartsWith("request/implementations"))
-            {
-                return [Roles.Implementer, Roles.Reviewer, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
-            }
-            if (path.StartsWith("request/reviews"))
-            {
-                return [Roles.Reviewer, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
-            }
-            return [Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+            return GetRequestAmbientRoles(path);
         }
         if (path.StartsWith("report"))
         {
@@ -247,15 +224,53 @@
         }
         if (path.StartsWith("settings/user"))
         {
-            return [Roles.Modeller, Roles.Recertifier, Roles.ReporterViewAll, Roles.Reporter,
-                Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer,
-                Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+            return GetUserSettingsAmbientRoles();
         }
         if (path.StartsWith("settings"))
         {
             return [Roles.Admin, Roles.FwAdmin, Roles.Auditor];
         }
         return [];
+    }
+
+    private string GetRelativeLocationPath(string location)
+    {
+        string relativePath = Uri.TryCreate(location, UriKind.Absolute, out _)
+            ? NavigationManager.ToBaseRelativePath(location)
+            : location;
+        return relativePath.Split(['?', '#'])[0].Trim('/').ToLowerInvariant();
+    }
+
+    private static List<string> GetRequestAmbientRoles(string path)
+    {
+        if (path.StartsWith("request/tickets") || path.StartsWith("request/ticketsoverview"))
+        {
+            return [Roles.Requester, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+        }
+        if (path.StartsWith("request/approvals"))
+        {
+            return [Roles.Approver, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+        }
+        if (path.StartsWith("request/plannings"))
+        {
+            return [Roles.Planner, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+        }
+        if (path.StartsWith("request/implementations"))
+        {
+            return [Roles.Implementer, Roles.Reviewer, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+        }
+        if (path.StartsWith("request/reviews"))
+        {
+            return [Roles.Reviewer, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+        }
+        return [Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+    }
+
+    private static List<string> GetUserSettingsAmbientRoles()
+    {
+        return [Roles.Modeller, Roles.Recertifier, Roles.ReporterViewAll, Roles.Reporter,
+            Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer,
+            Roles.Admin, Roles.FwAdmin, Roles.Auditor];
     }
 
     private async Task CheckAndRefreshTokenAsync()

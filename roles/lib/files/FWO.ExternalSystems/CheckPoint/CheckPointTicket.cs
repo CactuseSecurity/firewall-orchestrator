@@ -378,7 +378,7 @@ namespace FWO.ExternalSystems.CheckPoint
 
             if (CanCheckDesiredState(task) && await IsDesiredStateAlreadyPresent(task))
             {
-                Log.WriteInfo("CheckPoint SKIP", $"Skipping {task.TaskType}: desired state already present.");
+                Log.WriteWarning("CheckPoint SKIP", $"Skipping {task.TaskType}: desired state already present.");
                 return BuildAlreadyPresentSuccessResponse(request, response.Content);
             }
 

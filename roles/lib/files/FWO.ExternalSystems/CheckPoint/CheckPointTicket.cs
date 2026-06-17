@@ -157,24 +157,21 @@ namespace FWO.ExternalSystems.CheckPoint
                 ObjectType.Host => new JsonObject
                 {
                     ["name"] = request.Name,
-                    ["ip-address"] = request.IpAddress,
-                    ["ignore-warnings"] = true
+                    ["ip-address"] = request.IpAddress
                 },
 
                 ObjectType.Network => new JsonObject
                 {
                     ["name"] = request.Name,
                     ["subnet4"] = request.Subnet,
-                    ["mask-length4"] = request.MaskLength,
-                    ["ignore-warnings"] = true
+                    ["mask-length4"] = request.MaskLength
                 },
 
                 ObjectType.IPRange => new JsonObject
                 {
                     ["name"] = request.Name,
                     ["ip-address-first"] = request.StartIp,
-                    ["ip-address-last"] = request.EndIp,
-                    ["ignore-warnings"] = true
+                    ["ip-address-last"] = request.EndIp
                 },
 
                 _ => throw new ConfigException("Unsupported CheckPoint object type.")
@@ -372,34 +369,31 @@ namespace FWO.ExternalSystems.CheckPoint
             Log.WriteInfo("CheckPoint RESPONSE STATUS", $"{(int)response.StatusCode} {response.StatusCode}");
             Log.WriteInfo("CheckPoint RESPONSE BODY", string.IsNullOrWhiteSpace(response.Content) ? "<empty>" : response.Content);
 
-            //CheckPointResponseCategory category = CategorizeResponse(response);
+            CheckPointResponseCategory category = CategorizeResponse(response);
 
-            //if (category == CheckPointResponseCategory.WarningCandidate && CanRetryWithIgnoreWarnings(task))
-            //{
-            //    if (await WarningMeansObjectAlreadyExists(task))
-            //    {
-            //        return BuildAlreadyPresentSuccessResponse(request, response.Content);
-            //    }
-            //    RestResponse retryResponse = await RetryWithIgnoreWarnings(endpoint, task.Body);
-            //    return ToTypedResponse(request, retryResponse);
-            //}
-
-            return new RestResponse<int>(request)
+            if (category == CheckPointResponseCategory.Success)
             {
-                StatusCode = response.StatusCode,
-                ResponseStatus = response.ResponseStatus,
-                Content = response.Content,
-                ErrorMessage = response.ErrorMessage,
-                ErrorException = response.ErrorException,
-                Data = response.IsSuccessful ? 1 : 0
-            };
+                return ToTypedResponse(request, response);
+            }
 
-            //return ToTypedResponse(request, response);
+            if (CanCheckDesiredState(task) && await IsDesiredStateAlreadyPresent(task))
+            {
+                Log.WriteInfo("CheckPoint SKIP", $"Skipping {task.TaskType}: desired state already present.");
+                return BuildAlreadyPresentSuccessResponse(request, response.Content);
+            }
+
+            if (category == CheckPointResponseCategory.WarningCandidate && CanRetryWithIgnoreWarnings(task))
+            {
+                RestResponse retryResponse = await RetryWithIgnoreWarnings(endpoint, task.Body);
+                return ToTypedResponse(request, retryResponse);
+            }
+
+            return ToTypedResponse(request, response);
         }
 
         private static CheckPointResponseCategory CategorizeResponse(RestResponse response)
         {
-            if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created || response.StatusCode == HttpStatusCode.Accepted)
+            if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created)
             {
                 return CheckPointResponseCategory.Success;
             }
@@ -411,17 +405,12 @@ namespace FWO.ExternalSystems.CheckPoint
                 return CheckPointResponseCategory.HardError;
             }
 
-            //if (content.Contains("already exists", StringComparison.OrdinalIgnoreCase) || content.Contains("more than one object named", StringComparison.OrdinalIgnoreCase) || content.Contains("is already defined", StringComparison.OrdinalIgnoreCase))
-            //{
-            //    return CheckPointResponseCategory.IdempotentCandidate;
-            //}
-
             if (content.Contains("multiple IP", StringComparison.OrdinalIgnoreCase) || content.Contains("same IP address", StringComparison.OrdinalIgnoreCase))
             {
                 return CheckPointResponseCategory.WarningCandidate;
             }
 
-            return CheckPointResponseCategory.UnknownError;
+            return CheckPointResponseCategory.HardError;
         }
 
         private async Task<RestResponse> RetryWithIgnoreWarnings(string endpoint, JsonNode originalBody)
@@ -789,12 +778,6 @@ namespace FWO.ExternalSystems.CheckPoint
                 || taskType == nameof(WfTaskType.rule_delete);
         }
 
-
-
-
-
-
-
         private static bool IsSynchronousSuccess(RestResponse<int> response)
         {
             return response.StatusCode == HttpStatusCode.OK ||
@@ -803,70 +786,31 @@ namespace FWO.ExternalSystems.CheckPoint
         private enum CheckPointResponseCategory
         {
             Success,
-            IdempotentCandidate,
-            HardError,
             WarningCandidate,
-            UnknownError
+            HardError
+        }
+
+        private static bool CanCheckDesiredState(RenderedTask task)
+        {
+            return task.TaskType == CheckPointTaskTypes.GroupCreate ||
+                   task.TaskType == CheckPointTaskTypes.HostCreate ||
+                   task.TaskType == CheckPointTaskTypes.NetworkCreate ||
+                   task.TaskType == CheckPointTaskTypes.AddressRangeCreate ||
+                   task.TaskType == CheckPointTaskTypes.GroupAddMembers ||
+                   task.TaskType == CheckPointTaskTypes.GroupRemoveMembers;
         }
         private async Task<bool> IsDesiredStateAlreadyPresent(RenderedTask task)
         {
             return task.TaskType switch
             {
-                CheckPointTaskTypes.GroupCreate => await GroupExists(task),
-                CheckPointTaskTypes.HostCreate => await HostExists(task),
-                CheckPointTaskTypes.NetworkCreate => await NetworkExists(task),
-                CheckPointTaskTypes.AddressRangeCreate => await AddressRangeExists(task),
+                CheckPointTaskTypes.GroupCreate => await GroupCreateAlreadySatisfied(task),
+                CheckPointTaskTypes.HostCreate => await ExistingHostMatches(task),
+                CheckPointTaskTypes.NetworkCreate => await ExistingNetworkMatches(task),
+                CheckPointTaskTypes.AddressRangeCreate => await ExistingAddressRangeMatches(task),
                 CheckPointTaskTypes.GroupAddMembers => await GroupAlreadyContainsMembers(task),
                 CheckPointTaskTypes.GroupRemoveMembers => await GroupAlreadyExcludesMembers(task),
                 _ => false
             };
-        }
-
-        private async Task<bool> GroupExists(RenderedTask task)
-        {
-            return await ObjectExists("show-group", task);
-        }
-
-        private async Task<bool> HostExists(RenderedTask task)
-        {
-            return await ObjectExists("show-host", task);
-        }
-
-        private async Task<bool> NetworkExists(RenderedTask task)
-        {
-            return await ObjectExists("show-network", task);
-        }
-
-        private async Task<bool> AddressRangeExists(RenderedTask task)
-        {
-            return await ObjectExists("show-address-range", task);
-        }
-
-        private async Task<bool> ObjectExists(string endpoint, RenderedTask task)
-        {
-            string? name = task.Body?["name"]?.GetValue<string>();
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                return false;
-            }
-
-            RestRequest request = new(endpoint, Method.Post);
-            request.AddJsonBody(new { name });
-
-            RestResponse response = await checkPointClient!.RestCall(request, endpoint);
-
-            if (response.StatusCode == HttpStatusCode.NotFound)
-            {
-                return false;
-            }
-
-            if (response.StatusCode == HttpStatusCode.OK)
-            {
-                return true;
-            }
-
-            Log.WriteWarning("CheckPoint Exists Check", response.Content ?? $"Unexpected response for {endpoint}");
-            return false;
         }
 
         private async Task<bool> GroupAlreadyContainsMembers(RenderedTask task)
@@ -880,9 +824,23 @@ namespace FWO.ExternalSystems.CheckPoint
             List<string> existingMembers = ExtractGroupMembers(group.Value);
             List<string> requestedMembers = ExtractRequestedMembers(task, "add");
 
-            return requestedMembers.Count > 0 &&
-                   requestedMembers.All(member =>
-                       existingMembers.Contains(member, StringComparer.OrdinalIgnoreCase));
+            return requestedMembers.All(member =>
+                existingMembers.Contains(member, StringComparer.OrdinalIgnoreCase));
+        }
+
+        private async Task<bool> GroupCreateAlreadySatisfied(RenderedTask task)
+        {
+            JsonElement? group = await LoadGroup(task);
+            if (group == null)
+            {
+                return false;
+            }
+
+            List<string> existingMembers = ExtractGroupMembers(group.Value);
+            List<string> requestedMembers = ExtractRequestedMembers(task, "add");
+
+            return requestedMembers.All(member =>
+                existingMembers.Contains(member, StringComparer.OrdinalIgnoreCase));
         }
 
         private async Task<bool> GroupAlreadyExcludesMembers(RenderedTask task)
@@ -989,16 +947,6 @@ namespace FWO.ExternalSystems.CheckPoint
                    task.TaskType == CheckPointTaskTypes.AddressRangeCreate;
         }
 
-        private async Task<bool> WarningMeansObjectAlreadyExists(RenderedTask task)
-        {
-            return task.TaskType switch
-            {
-                CheckPointTaskTypes.HostCreate => await ExistingHostMatches(task),
-                CheckPointTaskTypes.NetworkCreate => await ExistingNetworkMatches(task),
-                CheckPointTaskTypes.AddressRangeCreate => await ExistingAddressRangeMatches(task),
-                _ => false
-            };
-        }
         private async Task<JsonElement?> LoadObject(string endpoint, string name)
         {
             RestRequest request = new(endpoint, Method.Post);

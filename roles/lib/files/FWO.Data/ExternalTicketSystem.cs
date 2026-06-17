@@ -25,7 +25,7 @@ namespace FWO.Data
         public const int AlgoSecId = 3;
         public const int ServiceNowId = 4;
 
-        public static readonly IReadOnlyList<ExternalTicketSystemTypeDefinition> AllBuildInTicketTypes =
+        public static readonly IReadOnlyList<ExternalTicketSystemTypeDefinition> AllBuiltInTicketTypes =
         [
             new() { Id = GenericId, Name = "Generic", IsBuiltIn = true },
             new() { Id = TufinSecureChangeId, Name = "Tufin SecureChange", IsBuiltIn = true },
@@ -35,7 +35,7 @@ namespace FWO.Data
 
         public static ExternalTicketSystemTypeDefinition GetById(int typeId)
         {
-            return AllBuildInTicketTypes.FirstOrDefault(type => type.Id == typeId) ?? new ExternalTicketSystemTypeDefinition
+            return AllBuiltInTicketTypes.FirstOrDefault(type => type.Id == typeId) ?? new ExternalTicketSystemTypeDefinition
             {
                 Id = typeId,
                 Name = typeId.ToString(),
@@ -44,14 +44,7 @@ namespace FWO.Data
         }
     }
 
-    [Obsolete("Use ExternalTicketSystem.TypeId and BuiltInExternalTicketSystemTypes instead.")]
-    public enum ExternalTicketSystemType
-    {
-        Generic,
-        TufinSecureChange,
-        AlgoSec,
-        ServiceNow
-    }
+
 
     public class ExternalTicketSystem
     {
@@ -60,23 +53,6 @@ namespace FWO.Data
 
         [JsonProperty(nameof(TypeId)), JsonPropertyName(nameof(TypeId))]
         public int TypeId { get; set; } = BuiltInExternalTicketSystemTypes.GenericId;
-
-        // Keep reading existing config entries that still store the legacy enum.
-        [JsonProperty(nameof(ExternalTicketSystemType)), JsonPropertyName(nameof(ExternalTicketSystemType))]
-        public ExternalTicketSystemType LegacyType
-        {
-            set
-            {
-                TypeId = value switch
-                {
-                    ExternalTicketSystemType.Generic => BuiltInExternalTicketSystemTypes.GenericId,
-                    ExternalTicketSystemType.TufinSecureChange => BuiltInExternalTicketSystemTypes.TufinSecureChangeId,
-                    ExternalTicketSystemType.AlgoSec => BuiltInExternalTicketSystemTypes.AlgoSecId,
-                    ExternalTicketSystemType.ServiceNow => BuiltInExternalTicketSystemTypes.ServiceNowId,
-                    _ => BuiltInExternalTicketSystemTypes.GenericId
-                };
-            }
-        }
 
         [JsonProperty(nameof(Authorization)), JsonPropertyName(nameof(Authorization))]
         public string Authorization { get; set; } = "Basic xyz"; // replace xyz with b64encode(username:password)

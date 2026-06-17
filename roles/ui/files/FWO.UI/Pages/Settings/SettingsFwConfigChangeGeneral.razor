@@ -9,9 +9,9 @@
 
 <div class="input-group">
     <h3>@(userConfig.GetText("fwconfigchangegeneral"))</h3>
-    @*     <HelpLink Page="settings/extticketing" /> *@
+    <HelpLink Page="settings/fwconfigchangegeneral" />
 </div>
-@* @(userConfig.GetText("H5598")) *@
+@(userConfig.GetText("H5680"))
 <hr />
 
 @if (configData != null)
@@ -178,7 +178,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("ext_ticket_settings"), "", true);
+             DisplayMessageInUi(exception, userConfig.GetText("fwconfigchange"), "", true);
         }
     }
 

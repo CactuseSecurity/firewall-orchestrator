@@ -1510,6 +1510,10 @@ INSERT INTO txt VALUES ('ext_icmp_template',    'German',	'Template ICMP');
 INSERT INTO txt VALUES ('ext_icmp_template',    'English',	'Template ICMP');
 INSERT INTO txt VALUES ('ext_ip_protocol_template','German','Template Ip-Protokoll');
 INSERT INTO txt VALUES ('ext_ip_protocol_template','English','Template Ip Protocol');
+INSERT INTO txt VALUES ('ext_ticket_template_ph_mgm', 'German',  'Beispiel: @@TASKS@@');
+INSERT INTO txt VALUES ('ext_ticket_template_ph_mgm', 'English', 'Example: @@TASKS@@');
+INSERT INTO txt VALUES ('ext_task_template_ph_mgm', 'German',  'Beispiel: {"name":"@@GROUPNAME@@","members":@@MEMBERS@@,"comments":"@@REASON@@"}');
+INSERT INTO txt VALUES ('ext_task_template_ph_mgm', 'English', 'Example: {"name":"@@GROUPNAME@@","members":@@MEMBERS@@,"comments":"@@REASON@@"}');
 INSERT INTO txt VALUES ('ext_ticket_template_ph','German',	'Ticket Template im JSON-Format, Bspw. f&uuml;r Tufin Secure Change:
 {
     "ticket": {
@@ -3022,10 +3026,18 @@ INSERT INTO txt VALUES ('fwconfigchange',       'German', 	'FW Konfigurations&au
 INSERT INTO txt VALUES ('fwconfigchange',       'English', 	'FW Config Change');
 INSERT INTO txt VALUES ('fwconfigchangegeneral','German', 	'Allgemein');
 INSERT INTO txt VALUES ('fwconfigchangegeneral','English', 	'General');
-INSERT INTO txt VALUES ('ext_ticketing',        'German', 	'Externes Ticket-System');
-INSERT INTO txt VALUES ('ext_ticketing',        'English', 	'External ticket tool');
 INSERT INTO txt VALUES ('ext_ticket_templates', 'German', 	'Externe Ticket-Vorlagen');
 INSERT INTO txt VALUES ('ext_ticket_templates', 'English', 	'External ticket templates');
+INSERT INTO txt VALUES ('add_ext_ticket_system', 'German',  'Externes Ticket-System anlegen');
+INSERT INTO txt VALUES ('add_ext_ticket_system', 'English', 'Add external ticket system');
+INSERT INTO txt VALUES ('new_ext_ticket_system', 'German',  'Externes Ticket-System anlegen');
+INSERT INTO txt VALUES ('new_ext_ticket_system', 'English', 'Create external ticket system');
+INSERT INTO txt VALUES ('edit_ext_ticket_system', 'German',  'Externes Ticket-System bearbeiten');
+INSERT INTO txt VALUES ('edit_ext_ticket_system', 'English', 'Edit external ticket system');
+INSERT INTO txt VALUES ('delete_ext_ticket_system', 'German',  'Externes Ticket-System löschen');
+INSERT INTO txt VALUES ('delete_ext_ticket_system', 'English', 'Delete external ticket system');
+INSERT INTO txt VALUES ('delete_ext_ticket_system_confirm', 'German',  'Soll dieses externe Ticket-System gelöscht werden:');
+INSERT INTO txt VALUES ('delete_ext_ticket_system_confirm', 'English', 'Delete this external ticket system:');
 INSERT INTO txt VALUES ('ext_ticket_settings',  'German', 	'Einstellungen externes Ticket-System');
 INSERT INTO txt VALUES ('ext_ticket_settings',  'English', 	'Settings external ticket tool');
 INSERT INTO txt VALUES ('modIconify',           'German', 	'Nutzung von Piktogrammen');
@@ -6464,8 +6476,8 @@ INSERT INTO txt VALUES ('H5596g', 'German', 'Template Ip-Protokoll: Template f&u
 INSERT INTO txt VALUES ('H5596g', 'English','Template Ip-Protokoll: Template for protocol types not TCP, UDP, ICMP, e.g. ESP. Available placeholders: @@PROTOCOLNAME@@, @@PROTOCOLID@@, @@SERVICENAME@@.');
 INSERT INTO txt VALUES ('H5597', 'German',  'Typ des externen Ticketing Systems: Aktuell wird nur TufinSecureChange unterst&uuml;tzt.');
 INSERT INTO txt VALUES ('H5597', 'English', 'Type of external ticketing system: Currently only TufinSecureChange is supported.');
-INSERT INTO txt VALUES ('H5598', 'German',  'Hier werden die Einstellungen f&uuml;r die Anbindung an externe Ticket-Systeme verwaltet.');
-INSERT INTO txt VALUES ('H5598', 'English', 'On this page the settings for the connection to external ticket systems are administrated.');
+INSERT INTO txt VALUES ('H5598', 'German',  'Hier werden die globalen Einstellungen für externe Requests sowie die konfigurierten externen Ticket-Systeme und deren Vorlagen verwaltet.');
+INSERT INTO txt VALUES ('H5598', 'English', 'This page is used to manage global external request settings as well as configured external ticket systems and their templates.');
 INSERT INTO txt VALUES ('H5599', 'German',  'Tasktyp: Typ des Tasks im externen Auftragssystem.');
 INSERT INTO txt VALUES ('H5599', 'English', 'Task Type: Type of the task in the external ticket system.');
 
@@ -6752,6 +6764,24 @@ INSERT INTO txt VALUES ('H5678', 'German',  'Trage hier die Schl&uuml;ssel ein, 
 INSERT INTO txt VALUES ('H5678', 'English', 'Enter the keys that represent the ChangeId field. You can add multiple keys by clicking the + button.');
 INSERT INTO txt VALUES ('H5679', 'German',  'Integrationsmodus: Legt fest, ob Modelling voll integriert arbeitet oder Workflow-Benachrichtigungen erzeugt. Im Workflow-Benachrichtigungsmodus werden Verbindungen beantragt, solange "requested_on_fw" nicht gesetzt ist. "Implemented" und "Rejected" k&ouml;nnen sp&auml;ter f&uuml;r erneute Beantragung nach &Auml;nderungen genutzt werden.');
 INSERT INTO txt VALUES ('H5679', 'English', 'Integration Mode: Defines whether Modelling works fully integrated or creates workflow notifications. In workflow notification mode, connections are requested while "requested_on_fw" is not set. "Implemented" and "Rejected" can later be used for re-requesting after changes.');
+INSERT INTO txt VALUES ('H5680', 'German',  'Hier wird festgelegt, für welche Managements und Änderungskategorien externe Ticket-Systeme verwendet werden.');
+INSERT INTO txt VALUES ('H5680', 'English', 'This page defines for which managements and change categories external ticket systems are used.');
+INSERT INTO txt VALUES ('H5681', 'German',  'Pro Management kann die Verarbeitung für Konfigurationsänderungen aktiviert oder deaktiviert werden.');
+INSERT INTO txt VALUES ('H5681', 'English', 'For each management, processing for configuration changes can be enabled or disabled.');
+INSERT INTO txt VALUES ('H5682', 'German',  'Für jede Änderungskategorie kann ein konfiguriertes externes Ticket-System ausgewählt werden.');
+INSERT INTO txt VALUES ('H5682', 'English', 'A configured external ticket system can be selected for each change category.');
+INSERT INTO txt VALUES ('H5683', 'German',  'Die verfügbaren Ticket-Systeme werden auf der Seite Externe Ticket-Vorlagen gepflegt.');
+INSERT INTO txt VALUES ('H5683', 'English', 'The available ticket systems are maintained on the External ticket templates page.');
+INSERT INTO txt VALUES ('H5684', 'German',  'Im oberen Bereich werden die globalen Laufzeitparameter für externe Requests gepflegt. Darunter können externe Ticket-Systeme angelegt, bearbeitet und gelöscht werden.');
+INSERT INTO txt VALUES ('H5684', 'English', 'The upper section contains global runtime parameters for external requests. Below that, external ticket systems can be created, edited, and deleted.');
+INSERT INTO txt VALUES ('H5685', 'German',  'Im Bearbeitungsdialog werden pro Ticket-System die Templates je Task-Typ gepflegt. Diese Vorlagen steuern, wie Anfragen und Aufgaben an das externe System übergeben werden.');
+INSERT INTO txt VALUES ('H5685', 'English', 'The edit dialog maintains templates per task type for each ticket system. These templates control how requests and tasks are sent to the external system.');
+INSERT INTO txt VALUES ('H5686', 'German',  'Für NetworkObjectModify bei vom Management bereitgestellten Ticket-Systemen. Dieses Template beschreibt den Ticket-Inhalt für die direkte Umsetzung auf der Firewall.');
+INSERT INTO txt VALUES ('H5686', 'English', 'For NetworkObjectModify with management-provided ticket systems. This template defines the ticket content for direct implementation on the firewall.');
+INSERT INTO txt VALUES ('H5687', 'German',  'Für NetworkObjectModify bei vom Management bereitgestellten Ticket-Systemen. Dieses Template beschreibt den zu übergebenden Aufgabeninhalt.');
+INSERT INTO txt VALUES ('H5687', 'English', 'For NetworkObjectModify with management-provided ticket systems. This template defines the task content to be sent.');
+INSERT INTO txt VALUES ('H5688', 'German',  'Für vom Management bereitgestellte Ticket-Systeme wird dieses Template im Fall NetworkObjectModify derzeit nicht verwendet.');
+INSERT INTO txt VALUES ('H5688', 'English', 'For management-provided ticket systems, this template is currently not used in the NetworkObjectModify case.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

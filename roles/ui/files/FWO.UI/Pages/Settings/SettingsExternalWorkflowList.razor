@@ -11,11 +11,11 @@
 
 @if (InitComplete && configData != null)
 {
-    <div class="input-group">
-        <h3></h3>
-        @*     <HelpLink Page="settings/extticketing" /> *@
-    </div>
-    @* @(userConfig.GetText("H5598")) *@
+        <div class="input-group">
+            <h3>@(userConfig.GetText("ext_ticket_templates"))</h3>
+            <HelpLink Page="settings/exttickettemplates" />
+        </div>
+        @(userConfig.GetText("H5598"))
     <hr />
     <div class="row">
         <div class="col-sm-12">
@@ -55,13 +55,13 @@
                 <div class="col-sm-12">
                     <AuthorizeView Roles="@Roles.Admin">
                         <Authorized>
-                            <button type="button" class="btn btn-sm btn-success" @onclick="AddExternalTicketSystem">@(DisplayService.DisplayButton(userConfig, "add_owner_lc_state", Icons.Add))</button>@* Todo change Text *@
+                            <button type="button" class="btn btn-sm btn-success" @onclick="AddExternalTicketSystem">@(DisplayService.DisplayButton(userConfig, "add_ext_ticket_system", Icons.Add))</button>
                         </Authorized>
                     </AuthorizeView>
                 </div>
             </div>
             <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" @ref="tableExternalTicketSystems" TableItem="ExternalTicketSystem" Items="extTicketSystems" PageSize="0" ColumnReorder="true">
-                <Column TableItem="ExternalTicketSystem" Title="ExternalTicketSystems" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                <Column TableItem="ExternalTicketSystem" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                     <Template Context="item">
                         <div class="btn-group">
                             <AuthorizeView Roles="@Roles.Admin">
@@ -82,7 +82,7 @@
             </Table>
         </div>
     </div>
-    <PopUp Title="@(curExternalTicketSystem == null ? "Create External Ticket System" : "Edit External Ticket System")" Show="@editMode" Size="PopupSize.XLarge" OnClose="() => editMode = false">
+    <PopUp Title="@(curExternalTicketSystem == null ? userConfig.GetText("new_ext_ticket_system") : userConfig.GetText("edit_ext_ticket_system"))" Show="@editMode" Size="PopupSize.XLarge" OnClose="() => editMode = false">
         <Body>
             @if (editMode && configData != null)
             {
@@ -149,7 +149,7 @@
                         @foreach (var template in editModel.Templates)
                         {
                             <Tab Title="@(template.TaskType)" Position=pos++>
-                                <ExtTicketTemplates Template="template" />
+                                <ExtTicketTemplates Template="template" IsBuiltIn="selectedType.IsBuiltIn" />
                             </Tab>
                         }
                         <Tab Title="  +  " Position=pos>
@@ -159,7 +159,7 @@
                                     <Dropdown ElementType="string" @bind-SelectedElement="newTemplate.TaskType" Elements="AvailableTaskTypesForNewTemplate" />
                                 </div>
                             </div>
-                            <ExtTicketTemplates Template="newTemplate" />
+                            <ExtTicketTemplates Template="newTemplate" IsBuiltIn="selectedType.IsBuiltIn" />
                         </Tab>
                     </TabSet>
                 </div>
@@ -183,8 +183,7 @@
 
     </PopUp>
 
-    <ConfirmDelete @bind-Display="DeleteExternalTicketSystemMode" PerformAction="DeleteExternalTicketSystem" Title="@userConfig.GetText("delete_owner_lc_state")" DeleteMessage="@(userConfig.GetText("U5219") + externalTicketSystemToDelete.Name + "?")" />@* Todo change Text *@
-
+<ConfirmDelete @bind-Display="DeleteExternalTicketSystemMode" PerformAction="DeleteExternalTicketSystem" Title="@userConfig.GetText("delete_ext_ticket_system")" DeleteMessage="@(userConfig.GetText("delete_ext_ticket_system_confirm") + " " + externalTicketSystemToDelete.Name + "?")" />
 }
 else
 {
@@ -210,7 +209,7 @@ else
     private DateTime extReqStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private ExternalTicketTemplate newTemplate = new();
     private List<string> actTaskTypes = [];
-    private List<ExternalTicketSystemTypeDefinition> availableExternalTicketTypes = BuiltInExternalTicketSystemTypes.AllBuildInTicketTypes.ToList();
+    private List<ExternalTicketSystemTypeDefinition> availableExternalTicketTypes = BuiltInExternalTicketSystemTypes.AllBuiltInTicketTypes.ToList();
     private ExternalTicketSystemTypeDefinition selectedType = BuiltInExternalTicketSystemTypes.GetById(BuiltInExternalTicketSystemTypes.GenericId);
 
 
@@ -353,11 +352,11 @@ else
             StateHasChanged();
 
 
-            DisplayMessageInUi(null, userConfig.GetText("ext_ticket_settings"), userConfig.GetText("U5301"), false);
+            DisplayMessageInUi(null, userConfig.GetText("ext_ticket_templates"), userConfig.GetText("U5301"), false);
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("ext_ticket_settings"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("ext_ticket_templates"), "", true);
         }
     }
 
@@ -367,7 +366,7 @@ else
         {
             configData.ExternalRequestStartAt = extReqStartDate.Date.Add(extReqStartTime.TimeOfDay);
             await globalConfig.WriteToDatabase(configData, apiConnection);
-            DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);     //TODO TEXT
+            DisplayMessageInUi(null, userConfig.GetText("ext_ticket_templates"), userConfig.GetText("U5301"), false);
         }
     }
 
@@ -452,7 +451,7 @@ else
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("delete_owner_lc_state"), "", true); // TODO Text
+                DisplayMessageInUi(exception, userConfig.GetText("delete_ext_ticket_system"), "", true);
             }
         }
     }

@@ -1,0 +1,45 @@
+# Browser smoke test for UI ambient role coverage.
+# Enable with run_ui_ambient_role_smoke=true after installing the requirements
+# from files/ui/ambient_role_smoke/requirements.txt and the Chromium browser.
+
+- block:
+
+  - name: set ambient role smoke test directory
+    set_fact:
+      ui_ambient_role_smoke_dir: "/tmp/fworch-ambient-role-smoke"
+
+  - name: copy ambient role smoke tests
+    copy:
+      src: ui/ambient_role_smoke/
+      dest: "{{ ui_ambient_role_smoke_dir }}/"
+      mode: "0644"
+
+  - name: check ambient role smoke test dependencies
+    command: python3 -c "import pytest, playwright.sync_api"
+    register: ui_ambient_role_smoke_deps
+    changed_when: false
+    failed_when: false
+
+  - name: fail when ambient role smoke dependencies are missing
+    fail:
+      msg: >
+        UI ambient role smoke tests require pytest, playwright, and a Playwright
+        Chromium browser. Install {{ ui_ambient_role_smoke_dir }}/requirements.txt
+        and run 'python3 -m playwright install chromium' on the frontend host.
+    when: ui_ambient_role_smoke_deps.rc != 0
+
+  - name: run ambient role smoke tests
+    command: "python3 -m pytest -q {{ ui_ambient_role_smoke_dir }}"
+    changed_when: false
+    environment:
+      FWO_UI_BASE_URL: "https://{{ ui_hostname }}/"
+      FWO_UI_USERNAME: "{{ ui_ambient_role_smoke_username | default('user1' ~ test_postfix) }}"
+      FWO_UI_PASSWORD: "{{ ui_ambient_role_smoke_password | default(test_user1_pw) }}"
+      FWO_UI_ROUTES: "{{ ui_ambient_role_smoke_routes | default('/settings/user,/settings/language,/settings/report,/settings/modellingpersonal,/settings/recertificationpersonal,/report/generation,/report/archive,/networkmodelling,/certification') }}"
+      FWO_UI_HEADLESS: "{{ ui_ambient_role_smoke_headless | default('true') }}"
+      FWO_UI_IGNORE_HTTPS_ERRORS: "{{ ui_ambient_role_smoke_ignore_https_errors | default('true') }}"
+      FWO_UI_TIMEOUT_MS: "{{ ui_ambient_role_smoke_timeout_ms | default('30000') }}"
+
+  when:
+    - "'frontends' in group_names"
+    - run_ui_ambient_role_smoke | default(false) | bool

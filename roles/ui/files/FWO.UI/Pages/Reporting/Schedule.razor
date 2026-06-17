@@ -13,7 +13,7 @@
 <button type="button" class="btn btn-sm btn-success mb-1" @onclick="OnAddReportScheduleButtonClick">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
 
 <div class="vheight75">
-    <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ReportSchedule" Items="reportSchedules" PageSize="0">
+    <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ReportSchedule" Items="visibleReportSchedules" PageSize="0">
         <Column TableItem="ReportSchedule" Title="@(userConfig.GetText("actions"))">
             <Template>
                 @if (context.ScheduleOwningUser.DbId == uiUserDbId || userConfig.CanUseAnyRole(Roles.Admin))
@@ -223,6 +223,7 @@
 {
     private GraphQlApiSubscription<List<ReportSchedule>>? reportSchedulesSubscription;
     private List<ReportSchedule> reportSchedules = [];
+    private List<ReportSchedule> visibleReportSchedules => FilterVisibleReportSchedules(reportSchedules);
     private ReportSchedule reportScheduleInEdit = new ();
     private DateTime actDate = DateTime.Today;
     private DateTime actTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
@@ -256,11 +257,12 @@
 
             if(reportVisibility.ModellingRelated)
             {
-                modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection, DisplayMessageInUi);
+                modOwnerList = await apiConnection.RunWithModellingRole(authenticationStateTask!.Result.User,
+                    async () => await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection, DisplayMessageInUi));
             }
 
             // Initial fetch to speed up loading before subscription is established
-            reportSchedules = (await apiConnection.SendQueryAsync<List<ReportSchedule>>(ReportQueries.getReportSchedules));
+            reportSchedules = await apiConnection.SendQueryAsync<List<ReportSchedule>>(ReportQueries.getReportSchedules);
             reportSchedulesSubscription = apiConnection.GetSubscription<List<ReportSchedule>>(HandleSubscriptionError, OnReportScheduleUpdate, ReportQueries.subscribeReportScheduleChanges);
             reportTemplates = await apiConnection.SendQueryAsync<List<ReportTemplate>>(ReportQueries.getReportTemplates, new { userId = uiUserDbId });
             reportTemplates = reportTemplates.Where(rt =>
@@ -524,6 +526,16 @@
         scheduleEmailRecipients = "";
         scheduleEmailSubject = "";
         scheduleEmailBody = "";
+    }
+
+    private List<ReportSchedule> FilterVisibleReportSchedules(List<ReportSchedule> schedules)
+    {
+        if (userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor, Roles.FwAdmin, Roles.ReporterViewAll))
+        {
+            return schedules;
+        }
+
+        return [.. schedules.Where(schedule => schedule.ScheduleOwningUser.DbId == uiUserDbId)];
     }
 
     public void Dispose()

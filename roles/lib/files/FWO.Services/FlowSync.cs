@@ -122,15 +122,21 @@ namespace FWO.Services
 
             var flowData = await GetFlowSyncDataAsync(mgmId);
 
+            if (flowData.HasHashInconsistencies())
+            {
+                Log.WriteError(LogMessageTitle, $"Hash inconsistencies found for management {mgmId}.");
+                return;
+            }
+
             // Process simple objects first, as they are used in groups and accesses
-            await ProcessNetworkObjectsAsync(managementData.NetworkObjects.Where(o => o.Type.Name != ObjectType.Group), flowData, useManagementNamesForFlow);
-            await ProcessServiceObjectsAsync(managementData.ServiceObjects.Where(s => s.Type.Name != ServiceType.Group), flowData, useManagementNamesForFlow);
-            await ProcessTimeObjectsAsync(managementData.TimeObjects, flowData, useManagementNamesForFlow);
+            await ProcessNetworkObjectsAsync(mgmId, managementData.NetworkObjects.Where(o => o.Type.Name != ObjectType.Group), flowData, useManagementNamesForFlow);
+            await ProcessServiceObjectsAsync(mgmId, managementData.ServiceObjects.Where(s => s.Type.Name != ServiceType.Group), flowData, useManagementNamesForFlow);
+            await ProcessTimeObjectsAsync(mgmId, managementData.TimeObjects, flowData, useManagementNamesForFlow);
             // Refresh flow data to include newly inserted objects
             flowData = await GetFlowSyncDataAsync(mgmId);
             // Process groups next, as they are used in accesses
-            await ProcessNetworkGroupsAsync(managementData.NetworkObjects.Where(o => o.Type.Name == ObjectType.Group), flowData, useManagementNamesForFlow);
-            await ProcessServiceGroupsAsync(managementData.ServiceObjects.Where(s => s.Type.Name == ServiceType.Group), flowData, useManagementNamesForFlow);
+            await ProcessNetworkGroupsAsync(mgmId, managementData.NetworkObjects.Where(o => o.Type.Name == ObjectType.Group), flowData, useManagementNamesForFlow);
+            await ProcessServiceGroupsAsync(mgmId, managementData.ServiceObjects.Where(s => s.Type.Name == ServiceType.Group), flowData, useManagementNamesForFlow);
             // Refresh flow data to include newly inserted groups
             flowData = await GetFlowSyncDataAsync(mgmId);
             // Finally, process accesses which reference all object types
@@ -147,7 +153,7 @@ namespace FWO.Services
         /// <summary>
         /// Inserts missing flow network objects and updates normalized object mappings.
         /// </summary>
-        private async Task ProcessNetworkObjectsAsync(IEnumerable<NetworkObject> nwObjects, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
+        private async Task ProcessNetworkObjectsAsync(int mgmId, IEnumerable<NetworkObject> nwObjects, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
         {
             Dictionary<string, FlowNwObjectInsert> pendingNwObjInserts = [];
             Dictionary<string, List<FlowMappingUpdate>> newFLowMappings = [];
@@ -179,7 +185,7 @@ namespace FWO.Services
                     newFLowMappings.GetValueOrDefault(inserted.Hash, []).ForEach(m => m.FlowId = inserted.Id);
                 }
 
-                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedObjects.Count} new flow network objects for management. Skipped (non-technical): {skippedNwObjects}.");
+                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedObjects.Count} new flow network objects for management {mgmId}. Skipped (non-technical): {skippedNwObjects}.");
             }
 
             // update normalized objects with flow mappings and flow_active status
@@ -259,7 +265,7 @@ namespace FWO.Services
         /// <summary>
         /// Inserts missing flow service objects and updates normalized service mappings.
         /// </summary>
-        private async Task ProcessServiceObjectsAsync(IEnumerable<NetworkService> svcObjects, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
+        private async Task ProcessServiceObjectsAsync(int mgmId, IEnumerable<NetworkService> svcObjects, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
         {
             Dictionary<string, FlowSvcObjectInsert> pendingSvcObjInserts = [];
             Dictionary<string, List<FlowMappingUpdate>> newFLowMappings = [];
@@ -290,7 +296,7 @@ namespace FWO.Services
                     newFLowMappings.GetValueOrDefault(inserted.Hash, []).ForEach(m => m.FlowId = inserted.Id);
                 }
 
-                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedObjects.Count} new flow service objects for management. Skipped (missing proto): {skippedSvcObjects}.");
+                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedObjects.Count} new flow service objects for management {mgmId}. Skipped (missing proto): {skippedSvcObjects}.");
             }
 
             // update normalized services with flow mappings and flow_active status
@@ -308,7 +314,7 @@ namespace FWO.Services
 
                 var updateCount = await SendUpdateManyAsync(FlowQueries.updateServiceFlowMappings, updates);
 
-                Log.WriteInfo(LogMessageTitle, $"Updated flow mappings for {updateCount} service objects");
+                Log.WriteInfo(LogMessageTitle, $"Updated flow mappings for {updateCount} service objects of management {mgmId}.");
             }
         }
 
@@ -370,7 +376,7 @@ namespace FWO.Services
         /// <summary>
         /// Inserts missing flow time objects and updates normalized time object mappings.
         /// </summary>
-        private async Task ProcessTimeObjectsAsync(IEnumerable<TimeObject> timeObjects, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
+        private async Task ProcessTimeObjectsAsync(int mgmId, IEnumerable<TimeObject> timeObjects, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
         {
             Dictionary<string, FlowTimeObjectInsert> pendingTimeObjInserts = [];
             Dictionary<string, List<FlowMappingUpdate>> newFLowMappings = [];
@@ -397,7 +403,7 @@ namespace FWO.Services
                     newFLowMappings.GetValueOrDefault(inserted.Hash, []).ForEach(m => m.FlowId = inserted.Id);
                 }
 
-                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedObjects.Count} new flow time objects for management. Skipped (neither start nor end time specified): {skippedTimeObjects}.");
+                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedObjects.Count} new flow time objects for management {mgmId}. Skipped (neither start nor end time specified): {skippedTimeObjects}.");
             }
 
             if (newFLowMappings.Count != 0)
@@ -414,7 +420,7 @@ namespace FWO.Services
 
                 var updateCount = await SendUpdateManyAsync(FlowQueries.updateTimeObjectFlowMappings, updates);
 
-                Log.WriteInfo(LogMessageTitle, $"Updated flow mappings for {updateCount} time objects");
+                Log.WriteInfo(LogMessageTitle, $"Updated flow mappings for {updateCount} time objects of management {mgmId}");
             }
         }
 
@@ -477,7 +483,7 @@ namespace FWO.Services
         /// <summary>
         /// Inserts missing flow network groups, including their member references, and updates normalized group mappings.
         /// </summary>
-        private async Task ProcessNetworkGroupsAsync(IEnumerable<NetworkObject> nwGroups, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
+        private async Task ProcessNetworkGroupsAsync(int mgmId, IEnumerable<NetworkObject> nwGroups, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
         {
             Dictionary<string, FlowNwGroupInsert> pendingNwGroupInserts = [];
             Dictionary<string, List<FlowMappingUpdate>> newFLowMappings = [];
@@ -508,7 +514,7 @@ namespace FWO.Services
                     newFLowMappings.GetValueOrDefault(inserted.Hash, []).ForEach(m => m.FlowId = inserted.Id);
                 }
 
-                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedGroups.Count} new flow network groups for management. Skipped (contains non-technical or empty): {skippedNwGroups}.");
+                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedGroups.Count} new flow network groups for management {mgmId}. Skipped (contains non-technical or empty): {skippedNwGroups}.");
             }
 
             // update normalized objects with flow mappings and flow_active status
@@ -525,7 +531,7 @@ namespace FWO.Services
                 }
                 await SendUpdateManyAsync(FlowQueries.updateObjectFlowMappings, updates);
 
-                Log.WriteInfo(LogMessageTitle, $"Updated flow mappings for {newFLowMappings.Count} network groups");
+                Log.WriteInfo(LogMessageTitle, $"Updated flow mappings for {newFLowMappings.Count} network groups of management {mgmId}");
             }
         }
 
@@ -592,7 +598,7 @@ namespace FWO.Services
         /// <summary>
         /// Inserts missing flow service groups, including their member references, and updates normalized group mappings.
         /// </summary>
-        private async Task ProcessServiceGroupsAsync(IEnumerable<NetworkService> svcGroups, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
+        private async Task ProcessServiceGroupsAsync(int mgmId, IEnumerable<NetworkService> svcGroups, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
         {
             Dictionary<string, FlowSvcGroupInsert> pendingSvcGroupInserts = [];
             Dictionary<string, List<FlowMappingUpdate>> newFLowMappings = [];
@@ -622,7 +628,7 @@ namespace FWO.Services
                     newFLowMappings.GetValueOrDefault(inserted.Hash, []).ForEach(m => m.FlowId = inserted.Id);
                 }
 
-                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedGroups.Count} new flow service groups for management. Skipped (contains non-technical or empty): {skippedSvcGroups}.");
+                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedGroups.Count} new flow service groups for management {mgmId}. Skipped (contains non-technical or empty): {skippedSvcGroups}.");
             }
 
             // update normalized services with flow mappings and flow_active status
@@ -639,7 +645,7 @@ namespace FWO.Services
                 }
                 await SendUpdateManyAsync(FlowQueries.updateServiceFlowMappings, updates);
 
-                Log.WriteInfo(LogMessageTitle, $"Updated flow mappings for {newFLowMappings.Count} service groups");
+                Log.WriteInfo(LogMessageTitle, $"Updated flow mappings for {newFLowMappings.Count} service groups of management {mgmId}");
             }
         }
 
@@ -919,6 +925,7 @@ namespace FWO.Services
             var sourceHashes = new HashSet<string>();
             var destinationHashes = new HashSet<string>();
             var serviceHashes = new HashSet<string>();
+            var timeObjectHashes = new HashSet<string>();
 
             foreach (var location in rule.Froms)
             {
@@ -953,13 +960,14 @@ namespace FWO.Services
                 return false;
             }
 
-            if (!TryAddRuleTimeObjects(rule.RuleTimes, flowData, timeIds))
+            if (!TryAddRuleTimeObjects(rule.RuleTimes, flowData, timeIds, timeObjectHashes))
             {
                 Log.WriteDebug(LogMessageTitle, $"Skipping rule {rule.Id} because time objects do not have valid hashes and cannot be added to the flow access.");
                 return false;
             }
 
-            string accessHash = FlowHashGenerator.GenerateAccessHash(sourceHashes, destinationHashes, serviceHashes);
+            bool allowsTraffic = !rule.IsDropRule();
+            string accessHash = FlowHashGenerator.GenerateAccessHash(sourceHashes, destinationHashes, serviceHashes, timeObjectHashes, allowsTraffic);
             var alreadyExists = flowData.Accesses.TryGetValue(accessHash, out var existingAccess);
             var alreadyBeingInserted = pendingAccessInserts.ContainsKey(accessHash);
 
@@ -983,6 +991,7 @@ namespace FWO.Services
                     OwnerId = rule.OwnerId,
                     State = FlowState.Implemented,
                     RemovedDate = null,
+                    AllowsTraffic = allowsTraffic,
                     AccessSources = FlowAccessInsertHelper.BuildMembersContainer(sourceIds.Select(id => new NwRef { NwObjId = id })),
                     AccessSourceGroups = FlowAccessInsertHelper.BuildMembersContainer(sourceGroupIds.Select(id => new NwGroupRef { NwGroupId = id })),
                     AccessDestinations = FlowAccessInsertHelper.BuildMembersContainer(destinationIds.Select(id => new NwRef { NwObjId = id })),
@@ -1100,7 +1109,8 @@ namespace FWO.Services
         private static bool TryAddRuleTimeObjects(
             IEnumerable<RuleTime> ruleTimes,
             FlowSyncFlowData flowData,
-            HashSet<long> timeIds)
+            HashSet<long> timeIds,
+            HashSet<string> timeObjectHashes)
         {
             foreach (var ruleTime in ruleTimes)
             {
@@ -1118,6 +1128,7 @@ namespace FWO.Services
                     throw new InvalidOperationException($"Time object {ruleTime.TimeObj.Id} expected to have a corresponding flow object, but it was not found. Hash: {timeHash}");
                 }
                 timeIds.Add(flowTimeObj.Id);
+                timeObjectHashes.Add(timeHash);
             }
 
             return true;

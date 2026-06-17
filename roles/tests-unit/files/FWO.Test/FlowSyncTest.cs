@@ -121,7 +121,8 @@ namespace FWO.Test
                         Hash = insert.AccessHash ?? "",
                         OwnerId = insert.OwnerId,
                         State = insert.State ?? "",
-                        RemovedDate = insert.RemovedDate
+                        RemovedDate = insert.RemovedDate,
+                        AllowsTraffic = insert.AllowsTraffic
                     })];
                     FlowAccesses.AddRange(inserted);
                     return Task.FromResult((T)(object)new FlowAccessInsertResult { Returning = inserted });
@@ -226,11 +227,47 @@ namespace FWO.Test
             Assert.That(apiConn.InsertedAccesses, Has.Count.EqualTo(1));
             Assert.That(apiConn.InsertedAccesses[0].OwnerId, Is.EqualTo(5));
             Assert.That(apiConn.InsertedAccesses[0].State, Is.EqualTo(FlowState.Implemented));
+            Assert.That(apiConn.InsertedAccesses[0].AllowsTraffic, Is.True);
             Assert.That(apiConn.NetworkObjectMappingUpdates, Has.Count.EqualTo(2));
             Assert.That(apiConn.ServiceObjectMappingUpdates, Has.Count.EqualTo(1));
             Assert.That(apiConn.RuleMappingUpdates, Has.Count.EqualTo(1));
             Assert.That(apiConn.RemovedMappingsCleared, Is.True);
             Assert.That(apiConn.CompletedImportControlId, Is.EqualTo(9));
+        }
+
+        [Test]
+        public async Task Run_CreatesBlockingFlowAccessForDenyRule()
+        {
+            NetworkObject source = CreateNetworkObject(1, "src", "10.0.0.1", "10.0.0.1");
+            NetworkObject destination = CreateNetworkObject(2, "dst", "10.0.1.1", "10.0.1.1");
+            NetworkService service = CreateService(3, "https", 6, 443, 443);
+            Rule rule = new()
+            {
+                Id = 4,
+                OwnerId = 5,
+                Action = "deny",
+                Froms = [new NetworkLocation(new NetworkUser(), source)],
+                Tos = [new NetworkLocation(new NetworkUser(), destination)],
+                Services = [new ServiceWrapper { Content = service }]
+            };
+            FlowSyncTestApiConn apiConn = new()
+            {
+                PendingImports = [new ImportControl { ControlId = 9, MgmId = 7 }],
+                ManagementData = new FlowSyncManagementData
+                {
+                    Id = 7,
+                    NetworkObjects = [source, destination],
+                    ServiceObjects = [service],
+                    Rules = [rule]
+                }
+            };
+            FlowSync flowSync = new(apiConn, new GlobalConfig());
+
+            bool result = await flowSync.Run();
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.InsertedAccesses, Has.Count.EqualTo(1));
+            Assert.That(apiConn.InsertedAccesses[0].AllowsTraffic, Is.False);
         }
 
         [Test]

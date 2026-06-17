@@ -33,7 +33,7 @@ namespace FWO.Middleware.Server.Jobs
         /// </summary>
         /// <param name="apiConnectionScheduler">API connection used by the scheduler.</param>
         /// <param name="jwtWriter">JWT writer to authorize users.</param>
-        /// <param name="tokenLifetimeProvider">Provider for delegated token lifetime defaults.</param>
+        /// <param name="tokenLifetimeProvider">Provider for token lifetime defaults.</param>
         public ReportJob(ApiConnection apiConnectionScheduler, JwtWriter jwtWriter, TokenLifetimeProvider? tokenLifetimeProvider = null)
         {
             this.apiConnectionScheduler = apiConnectionScheduler;

@@ -188,7 +188,6 @@
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Recertifier, Roles.Modeller, Roles.Admin, Roles.Auditor]);
             rulesFound = false;
 
             ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);

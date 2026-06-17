@@ -6,7 +6,6 @@
 @using FWO.Data
 @using FWO.Data.Flow
 @using FWO.Middleware.Client
-@using Microsoft.AspNetCore.Components.Authorization
 
 @attribute [Authorize(Roles = $"{Roles.Admin}")]
 
@@ -365,9 +364,6 @@ else
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
-
     private List<FlowNwObject> flowNwObjects = [];
     private List<Management> selectableManagements = [];
     private List<Management> namingManagementRanking = [];
@@ -405,7 +401,6 @@ else
                 return;
             }
 
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin]);
             configData = await globalConfig.GetEditableConfig();
             selectableManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowSelectableManagements);
             InitializeNamingManagementRanking();

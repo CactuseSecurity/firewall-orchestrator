@@ -63,6 +63,9 @@ else
 
 @code
 {
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
     private readonly List<WfTaskType> availableRealTaskTypes = [.. Enum.GetValues(typeof(WfTaskType)).Cast<WfTaskType>().Where(taskType => taskType != WfTaskType.master)];
     private readonly List<WorkflowReferenceDate> availableReferenceDates = [.. Enum.GetValues(typeof(WorkflowReferenceDate)).Cast<WorkflowReferenceDate>()];
     private readonly List<WorkflowLabelFilterMode> availableLabelFilterModes = [.. Enum.GetValues(typeof(WorkflowLabelFilterMode)).Cast<WorkflowLabelFilterMode>()];
@@ -100,11 +103,15 @@ else
     {
         try
         {
-            allStates = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
-            List<WfStateAction> actions = await apiConnection.SendQueryAsync<List<WfStateAction>>(RequestQueries.getActions);
-            masterStateMatrix = GlobalStateMatrix.Create();
-            await masterStateMatrix.Init(apiConnection, WfTaskType.master);
-            await masterRequestStateMatrix.Init(WorkflowPhases.request, apiConnection, WfTaskType.master);
+            List<WfStateAction> actions = [];
+            await RunWithWorkflowReportRole(async () =>
+            {
+                allStates = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
+                actions = await apiConnection.SendQueryAsync<List<WfStateAction>>(RequestQueries.getActions);
+                masterStateMatrix = GlobalStateMatrix.Create();
+                await masterStateMatrix.Init(apiConnection, WfTaskType.master);
+                await masterRequestStateMatrix.Init(WorkflowPhases.request, apiConnection, WfTaskType.master);
+            });
             availablePhases =
             [
                 .. Enum.GetValues(typeof(WorkflowPhases)).Cast<WorkflowPhases>()
@@ -125,6 +132,17 @@ else
             availablePhases = [];
             availableLabelNames = BuildAvailableLabelNames([]);
         }
+    }
+
+    private async Task RunWithWorkflowReportRole(Func<Task> action)
+    {
+        if (authenticationStateTask == null)
+        {
+            await action();
+            return;
+        }
+
+        await apiConnection.RunWithWorkflowRole(authenticationStateTask.Result.User, action);
     }
 
     protected override void OnParametersSet()

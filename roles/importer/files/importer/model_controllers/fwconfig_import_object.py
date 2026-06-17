@@ -806,7 +806,7 @@ class FwConfigImportObject:
                 {
                     f"{prefix}_flat_id": group_id,
                     f"{prefix}_flat_member_id": flat_member_id,
-                    "import_last_seen": import_state.import_id,  # to be removed in the future
+                    "import_created": import_state.import_id,
                 }
             )
 

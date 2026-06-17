@@ -23,7 +23,6 @@ namespace FWO.Api.Client.Queries
         public static readonly string getFlowServiceObjects;
         public static readonly string getFlowTimeObjects;
         // Flow sync specific queries/mutations
-        public static readonly string getFlowSyncData;
         public static readonly string getFlowSyncNwObjects;
         public static readonly string getFlowSyncNwGroups;
         public static readonly string getFlowSyncSvcObjects;
@@ -111,7 +110,6 @@ namespace FWO.Api.Client.Queries
                     GetQueryText("flow/getFlowTimeObjects.graphql");
 
                 // Flow sync specific files
-                getFlowSyncData = GetQueryText("flowSync/getFlowSyncData.graphql");
                 getFlowSyncNwObjects = GetQueryText("flowSync/getFlowSyncNwObjects.graphql");
                 getFlowSyncNwGroups = GetQueryText("flowSync/getFlowSyncNwGroups.graphql");
                 getFlowSyncSvcObjects = GetQueryText("flowSync/getFlowSyncSvcObjects.graphql");

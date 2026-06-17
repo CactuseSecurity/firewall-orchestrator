@@ -34,6 +34,21 @@ namespace FWO.Data.Flow
 
         [JsonProperty("objects"), JsonPropertyName("objects")]
         public List<NetworkObject>? Objects { get; set; }
+
+        public string? TryCalculateHash()
+        {
+            // Attempt to generate deterministic hash based on member objects' hashes
+            List<string> memberHashes = [.. NwGroupMembers.Select(m => m.NwObject.Hash)];
+            try
+            {
+                return FlowHashGenerator.GenerateGroupHash(memberHashes);
+            }
+            catch (ArgumentException)
+            {
+                // Cannot generate deterministic hash for this group
+                return null;
+            }
+        }
     }
 
     public class FlowSvcGroup : FlowGroup
@@ -49,6 +64,21 @@ namespace FWO.Data.Flow
 
         [JsonProperty("services"), JsonPropertyName("services")]
         public List<NetworkService>? Services { get; set; }
+
+        public string? TryCalculateHash()
+        {
+            // Attempt to generate deterministic hash based on member services' hashes
+            List<string> memberHashes = [.. SvcGroupMembers.Select(m => m.SvcObject.Hash)];
+            try
+            {
+                return FlowHashGenerator.GenerateGroupHash(memberHashes);
+            }
+            catch (ArgumentException)
+            {
+                // Cannot generate deterministic hash for this group
+                return null;
+            }
+        }
     }
 
     public class FlowNwGroupMember

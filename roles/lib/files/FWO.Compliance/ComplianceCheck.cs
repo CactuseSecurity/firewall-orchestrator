@@ -233,10 +233,8 @@ namespace FWO.Compliance
                     return false;
                 }
 
-                RulesInCheck = [];
-                CurrentViolationsInCheck.Clear();
-                _currentViolations.Clear();
-                await LoadNetworkZones();
+                PrepareRuleComplianceState();
+                await LoadNetworkZonesAsync();
                 await CalculateCompliance(selectedRules.Select(rule => new Rule(rule)).ToList());
                 CurrentViolationsInCheck = _currentViolations.ToList();
 
@@ -247,6 +245,44 @@ namespace FWO.Compliance
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Evaluates the provided rules against a preloaded policy using request-scoped reference data.
+        /// </summary>
+        /// <param name="policy">Compliance policy to evaluate.</param>
+        /// <param name="rulesToCheck">Rules to check for compliance.</param>
+        /// <param name="managements">Managements valid for the current request.</param>
+        /// <param name="networkZonesByCriterion">Network zones valid for the current request, keyed by matrix criterion id.</param>
+        public async Task<bool> AreRulesCompliant(
+            CompliancePolicy policy,
+            IEnumerable<Rule> rulesToCheck,
+            IEnumerable<Management> managements,
+            IReadOnlyDictionary<int, List<ComplianceNetworkZone>> networkZonesByCriterion)
+        {
+            GlobalConfig? globalConfig = _userConfig.GlobalConfig;
+            if (globalConfig == null)
+            {
+                Logger.TryWriteInfo("Compliance Check", "Global config is necessary for compliance check, but was not found. Aborting compliance check.", true);
+                return false;
+            }
+
+            List<Rule> selectedRules = rulesToCheck.Select(rule => new Rule(rule)).ToList();
+            if (selectedRules.Count == 0 || policy.Criteria.Count == 0)
+            {
+                return false;
+            }
+
+            ApplyGlobalConfig(globalConfig);
+            Managements = managements.ToList();
+            Policy = policy;
+
+            PrepareRuleComplianceState();
+            LoadPreloadedNetworkZones(networkZonesByCriterion);
+            await CalculateCompliance(selectedRules);
+            CurrentViolationsInCheck = _currentViolations.ToList();
+
+            return CurrentViolationsInCheck.Count == 0;
         }
 
         /// <summary>
@@ -739,7 +775,7 @@ namespace FWO.Compliance
 
                 // Load data for evaluation.
 
-                await LoadNetworkZones();
+                await LoadNetworkZonesAsync();
 
                 // Perform check.
 
@@ -1233,14 +1269,31 @@ namespace FWO.Compliance
             return Task.FromResult(networkObjectsWithIpRange);
         }
 
+        /// <summary>
+        /// Resets per-evaluation state before checking a policy.
+        /// </summary>
+        private void PrepareRuleComplianceState()
+        {
+            RulesInCheck = [];
+            CurrentViolationsInCheck.Clear();
+            _currentViolations.Clear();
+            _networkZonesByCriterion.Clear();
+        }
+
+
+        /// <summary>
+        /// Loads managements for the current compliance evaluation.
+        /// </summary>
+        private async Task LoadManagementsAsync()
+        {
+            Managements = await _apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
+        }
 
         /// <summary>
         /// Loads all network zones referenced by the policy matrix criterion.
         /// </summary>
-        private async Task LoadNetworkZones()
+        private async Task LoadNetworkZonesAsync()
         {
-            _networkZonesByCriterion.Clear();
-
             if (Policy != null)
             {
                 List<int> matrixIds = [.. Policy.Criteria
@@ -1260,6 +1313,36 @@ namespace FWO.Compliance
                     ? firstMatrixZones
                     : [];
             }
+        }
+
+        /// <summary>
+        /// Loads pre-fetched network zones for the current policy evaluation.
+        /// </summary>
+        /// <param name="networkZonesByCriterion">Request-scoped network zone cache.</param>
+        private void LoadPreloadedNetworkZones(IReadOnlyDictionary<int, List<ComplianceNetworkZone>> networkZonesByCriterion)
+        {
+            if (Policy == null)
+            {
+                NetworkZones = [];
+                return;
+            }
+
+            List<int> matrixIds = [.. Policy.Criteria
+                .Where(c => c.Content.CriterionType == CriterionType.Matrix.ToString() && c.Content.Id > 0)
+                .Select(c => c.Content.Id)
+                .Distinct()];
+
+            foreach (int matrixId in matrixIds)
+            {
+                if (networkZonesByCriterion.TryGetValue(matrixId, out List<ComplianceNetworkZone>? networkZones))
+                {
+                    _networkZonesByCriterion[matrixId] = networkZones;
+                }
+            }
+
+            NetworkZones = matrixIds.Count > 0 && _networkZonesByCriterion.TryGetValue(matrixIds[0], out List<ComplianceNetworkZone>? firstMatrixZones)
+                ? firstMatrixZones
+                : [];
         }
 
 

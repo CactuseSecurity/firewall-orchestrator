@@ -46,6 +46,9 @@ namespace FWO.Middleware.Server.Services
         protected override DateTime StartAt => DateTime.Now.AddSeconds(1);
 
         /// <inheritdoc/>
+        protected override DateTime? StartAtScheduleKey => null;
+
+        /// <inheritdoc/>
         protected override TimeSpan Interval => TimeSpan.FromSeconds(globalConfig.UpdateRuleOwnerMappingSleepTime);
 
         /// <inheritdoc/>

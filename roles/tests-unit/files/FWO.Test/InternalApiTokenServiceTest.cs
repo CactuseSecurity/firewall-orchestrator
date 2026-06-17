@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Middleware.Server;
 using FWO.Middleware.Server.Services;
+using FWO.Services;
 using Microsoft.IdentityModel.Tokens;
 using NSubstitute;
 using NUnit.Framework;
@@ -43,12 +44,13 @@ namespace FWO.Test
         {
             InternalApiTokenService tokenService = CreateTokenService();
             ApiConnection apiConnection = Substitute.For<ApiConnection>();
+            InternalApiTokenRefreshService refreshService = new(tokenService, apiConnection);
             JwtSecurityTokenHandler tokenHandler = new();
 
             string initialToken = tokenService.CreateInitialMiddlewareToken();
             JwtSecurityToken initialParsedToken = tokenHandler.ReadJwtToken(initialToken);
 
-            string refreshedToken = await tokenService.EnsureFreshTokenAsync(apiConnection, force: true);
+            string refreshedToken = await refreshService.EnsureFreshTokenAsync(force: true);
             JwtSecurityToken parsedToken = tokenHandler.ReadJwtToken(refreshedToken);
 
             Assert.That(parsedToken.Claims.Any(claim => claim.Type == "x-hasura-default-role" && claim.Value == "middleware-server"), Is.True);
@@ -62,10 +64,11 @@ namespace FWO.Test
         {
             InternalApiTokenService tokenService = CreateTokenService();
             ApiConnection apiConnection = Substitute.For<ApiConnection>();
+            InternalApiTokenRefreshService refreshService = new(tokenService, apiConnection);
 
             string initialToken = tokenService.CreateInitialMiddlewareToken();
 
-            string currentToken = await tokenService.EnsureFreshTokenAsync(apiConnection);
+            string currentToken = await refreshService.EnsureFreshTokenAsync();
 
             Assert.That(currentToken, Is.EqualTo(initialToken));
             await apiConnection.DidNotReceive().ReconnectSubscriptionsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
@@ -74,14 +77,16 @@ namespace FWO.Test
         [Test]
         public async Task EnsureFreshTokenAsync_WithShortLifetimeAfterWaiting_RotatesTokenNearExpiry()
         {
-            InternalApiTokenService tokenService = CreateTokenService(
-                new ShortInternalLifetimeProvider(),
-                new InternalApiTokenServiceOptions
+            InternalApiTokenService tokenService = CreateTokenService(new ShortInternalLifetimeProvider());
+            ApiConnection apiConnection = Substitute.For<ApiConnection>();
+            InternalApiTokenRefreshService refreshService = new(
+                tokenService,
+                apiConnection,
+                new TokenRefreshOptions
                 {
                     RefreshLeadTime = TimeSpan.FromSeconds(1),
                     RefreshCheckInterval = TimeSpan.FromMilliseconds(200)
                 });
-            ApiConnection apiConnection = Substitute.For<ApiConnection>();
             JwtSecurityTokenHandler tokenHandler = new();
 
             string initialToken = tokenService.CreateInitialMiddlewareToken();
@@ -89,7 +94,7 @@ namespace FWO.Test
 
             await Task.Delay(TimeSpan.FromMilliseconds(2300));
 
-            string refreshedToken = await tokenService.EnsureFreshTokenAsync(apiConnection);
+            string refreshedToken = await refreshService.EnsureFreshTokenAsync();
             JwtSecurityToken refreshedParsedToken = tokenHandler.ReadJwtToken(refreshedToken);
 
             Assert.That(refreshedParsedToken.ValidTo, Is.GreaterThan(initialParsedToken.ValidTo));
@@ -97,12 +102,12 @@ namespace FWO.Test
             await apiConnection.Received(1).ReconnectSubscriptionsAsync(refreshedToken, Arg.Any<CancellationToken>());
         }
 
-        private static InternalApiTokenService CreateTokenService(TokenLifetimeProvider? tokenLifetimeProvider = null, InternalApiTokenServiceOptions? options = null)
+        private static InternalApiTokenService CreateTokenService(TokenLifetimeProvider? tokenLifetimeProvider = null)
         {
             using RSA rsa = RSA.Create(2048);
             RsaSecurityKey signingKey = new(rsa.ExportParameters(true));
             JwtWriter jwtWriter = new(signingKey);
-            return new InternalApiTokenService(jwtWriter, tokenLifetimeProvider ?? new TokenLifetimeProvider(), options);
+            return new InternalApiTokenService(jwtWriter, tokenLifetimeProvider ?? new TokenLifetimeProvider());
         }
     }
 }

@@ -18,11 +18,11 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<TokenPair>(request);
         }
 
-        public async Task<RestResponse<TokenPair>> CreateInitialJWT()
+        public async Task<RestResponse<TokenPair>> CreateInitialJWT(CancellationToken cancellationToken = default)
         {
             RestRequest request = new("AuthenticationToken/GetTokenPair", Method.Post);
             request.AddJsonBody(new object());
-            return await restClient.ExecuteAsync<TokenPair>(request);
+            return await restClient.ExecuteAsync<TokenPair>(request, cancellationToken);
         }
 
         public async Task<RestResponse<int>> TestConnection(LdapGetUpdateParameters parameters)

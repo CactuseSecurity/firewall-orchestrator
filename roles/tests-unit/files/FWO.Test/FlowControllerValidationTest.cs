@@ -290,10 +290,6 @@ internal class FlowControllerValidationTest
         {
         }
 
-        public override void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
-        {
-        }
-
         public override void SwitchBack()
         {
         }

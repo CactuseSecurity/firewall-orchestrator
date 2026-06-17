@@ -61,7 +61,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        List<UiUser> users = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUserByDbId, new { userId = userConfig.UserId });
+        List<string> userRoles = ExecutionModeHelper.GetSelectableRoles(userConfig.User.Roles);
+        List<UiUser> users = await apiConnection.RunWithBestRole(authenticationStateTask!.Result.User, userRoles,
+            async () => await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUserByDbId, new { userId = userConfig.UserId }));
         user = users.FirstOrDefault();
         selectableExecutionModes = ExecutionModeHelper.GetSelectableExecutionModes(userConfig.User.Roles);
         selectedExecutionMode = ExecutionModeHelper.GetSelectedExecutionMode(userConfig.User.Roles, apiConnection.GetExecutionMode());

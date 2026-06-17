@@ -113,19 +113,34 @@ namespace FWO.Test
         }
 
         [Test]
-        public void SetProperRoleDoesNotKeepAdminForMixedRoleUserInNormalMode()
+        public void SetAmbientRoleDoesNotFallBackToElevatedRoleForMixedUserInNormalMode()
         {
             using GraphQlApiConnection connection = new("http://localhost");
             ClaimsPrincipal user = new(new ClaimsIdentity(
             [
-                new Claim(ClaimTypes.Role, Roles.Admin),
+                new Claim(ClaimTypes.Role, Roles.Auditor),
                 new Claim(ClaimTypes.Role, Roles.Modeller)
             ], "test", ClaimTypes.Name, ClaimTypes.Role));
+            connection.SetExecutionMode(user, GlobalConst.kUserRolesSelection);
 
-            connection.SetRole(Roles.Admin);
-            connection.SetProperRole(user, [Roles.Admin, Roles.Modeller]);
+            connection.SetAmbientRole(user, [Roles.Admin, Roles.FwAdmin, Roles.Auditor]);
 
-            Assert.That(connection.GetActRole(), Is.EqualTo(Roles.Modeller));
+            Assert.That(connection.GetActRole(), Is.Empty);
+        }
+
+        [Test]
+        public void SetAmbientRoleAllowsElevatedRoleForElevatedOnlyUser()
+        {
+            using GraphQlApiConnection connection = new("http://localhost");
+            ClaimsPrincipal user = new(new ClaimsIdentity(
+            [
+                new Claim(ClaimTypes.Role, Roles.Auditor)
+            ], "test", ClaimTypes.Name, ClaimTypes.Role));
+            connection.SetExecutionMode(user, GlobalConst.kUserRolesSelection);
+
+            connection.SetAmbientRole(user, [Roles.Admin, Roles.FwAdmin, Roles.Auditor]);
+
+            Assert.That(connection.GetActRole(), Is.EqualTo(Roles.Auditor));
         }
 
         [Test]
@@ -225,22 +240,6 @@ namespace FWO.Test
             connection.SetBestRole(user, [Roles.Admin]);
 
             Assert.That(connection.GetActRole(), Is.EqualTo(Roles.Admin));
-        }
-
-        [Test]
-        public void SetProperRoleKeepsCurrentRegularRoleInNormalMode()
-        {
-            using GraphQlApiConnection connection = new("http://localhost");
-            ClaimsPrincipal user = new(new ClaimsIdentity(
-            [
-                new Claim(ClaimTypes.Role, Roles.Admin),
-                new Claim(ClaimTypes.Role, Roles.Modeller)
-            ], "test", ClaimTypes.Name, ClaimTypes.Role));
-
-            connection.SetRole(Roles.Modeller);
-            connection.SetProperRole(user, [Roles.Admin, Roles.Modeller]);
-
-            Assert.That(connection.GetActRole(), Is.EqualTo(Roles.Modeller));
         }
 
         [Test]
@@ -372,26 +371,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public void SetProperRoleKeepsForcedAuditorRole()
-        {
-            using GraphQlApiConnection connection = new("http://localhost");
-            ClaimsPrincipal user = new(new ClaimsIdentity(
-            [
-                new Claim(ClaimTypes.Role, Roles.Auditor),
-                new Claim(ClaimTypes.Role, Roles.Reporter)
-            ], "test", ClaimTypes.Name, ClaimTypes.Role));
-
-            connection.SetExecutionMode(user, Roles.Auditor);
-            connection.SetProperRole(user, [Roles.Reporter]);
-
-            Assert.That(connection.GetActRole(), Is.EqualTo(Roles.Auditor));
-
-            connection.SwitchBack();
-
-            Assert.That(connection.GetActRole(), Is.EqualTo(Roles.Auditor));
-        }
-
-        [Test]
         public async Task RunWithBestRoleKeepsForcedAuditorRole()
         {
             using GraphQlApiConnection connection = new("http://localhost");
@@ -486,25 +465,6 @@ namespace FWO.Test
 
             Assert.Throws<System.Security.Authentication.AuthenticationException>(() =>
                 connection.SetBestRole(user, [Roles.Admin]));
-
-            connection.SwitchBack();
-
-            Assert.That(connection.GetActRole(), Is.EqualTo(""));
-        }
-
-        [Test]
-        public void SetProperRoleDoesNotPushRoleWhenNoTargetRoleIsAllowed()
-        {
-            using GraphQlApiConnection connection = new("http://localhost");
-            ClaimsPrincipal user = new(new ClaimsIdentity(
-            [
-                new Claim(ClaimTypes.Role, Roles.Reporter)
-            ], "test", ClaimTypes.Name, ClaimTypes.Role));
-
-            connection.SetRole(Roles.Auditor);
-
-            Assert.Throws<System.Security.Authentication.AuthenticationException>(() =>
-                connection.SetProperRole(user, [Roles.Admin]));
 
             connection.SwitchBack();
 

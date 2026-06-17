@@ -178,7 +178,6 @@ else
                 return;
             }
 
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.Auditor]);
             ConfiguredImplementationStatuses = ConfiguredStatusNames();
             await States.Init(apiConnection);
             ExtStateHandler = new(apiConnection);

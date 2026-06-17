@@ -76,61 +76,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task RunWithProperRoleReturnsResultAndSwitchesBack()
-        {
-            TrackingApiConnection connection = new();
-            ClaimsPrincipal user = CreateUser("requester");
-
-            int result = await connection.RunWithProperRole(user, ["requester"], async () =>
-            {
-                Assert.That(connection.ActiveRole, Is.EqualTo("requester"));
-                await Task.CompletedTask;
-                return 42;
-            });
-
-            Assert.That(result, Is.EqualTo(42));
-            Assert.That(connection.ActiveRole, Is.Empty);
-            Assert.That(connection.ProperRoleCalls, Is.EqualTo(1));
-            Assert.That(connection.SwitchBackCount, Is.EqualTo(1));
-        }
-
-        [Test]
-        public void RunWithProperRoleSwitchesBackAfterException()
-        {
-            TrackingApiConnection connection = new();
-            ClaimsPrincipal user = CreateUser("requester");
-
-            Assert.ThrowsAsync<InvalidOperationException>(async () => await connection.RunWithProperRole(user, ["requester"], async () =>
-            {
-                Assert.That(connection.ActiveRole, Is.EqualTo("requester"));
-                await Task.CompletedTask;
-                throw new InvalidOperationException("test");
-            }));
-
-            Assert.That(connection.ActiveRole, Is.Empty);
-            Assert.That(connection.ProperRoleCalls, Is.EqualTo(1));
-            Assert.That(connection.SwitchBackCount, Is.EqualTo(1));
-        }
-
-        [Test]
-        public void RunWithProperRoleResultSwitchesBackAfterException()
-        {
-            TrackingApiConnection connection = new();
-            ClaimsPrincipal user = CreateUser("requester");
-
-            Assert.ThrowsAsync<InvalidOperationException>(async () => await connection.RunWithProperRole<int>(user, ["requester"], async () =>
-            {
-                Assert.That(connection.ActiveRole, Is.EqualTo("requester"));
-                await Task.CompletedTask;
-                throw new InvalidOperationException("test");
-            }));
-
-            Assert.That(connection.ActiveRole, Is.Empty);
-            Assert.That(connection.ProperRoleCalls, Is.EqualTo(1));
-            Assert.That(connection.SwitchBackCount, Is.EqualTo(1));
-        }
-
-        [Test]
         public async Task SendQuerySafeWrapsSendQueryResult()
         {
             TrackingApiConnection connection = new() { QueryResult = "query-result" };
@@ -183,7 +128,6 @@ namespace FWO.Test
 
             public string ActiveRole { get; private set; } = "";
             public int BestRoleCalls { get; private set; }
-            public int ProperRoleCalls { get; private set; }
             public int SwitchBackCount { get; private set; }
             public int DisposeCount { get; private set; }
             public object? QueryResult { get; set; }
@@ -220,12 +164,6 @@ namespace FWO.Test
             public override void SetBestRole(ClaimsPrincipal user, List<string> targetRoleList)
             {
                 BestRoleCalls++;
-                SetRole(targetRoleList.First());
-            }
-
-            public override void SetProperRole(ClaimsPrincipal user, List<string> targetRoleList)
-            {
-                ProperRoleCalls++;
                 SetRole(targetRoleList.First());
             }
 

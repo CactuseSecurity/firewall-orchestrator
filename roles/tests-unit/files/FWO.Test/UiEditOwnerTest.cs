@@ -142,6 +142,43 @@ namespace FWO.Test
         }
 
         [Test]
+        public void EditOwner_MainResponsibleType_IsRequired()
+        {
+            OwnerResponsibleType type = new() { Id = GlobalConst.kOwnerResponsibleTypeMain, Name = "main", Active = true };
+            bool required = (bool)GetPrivateStaticMethod("IsRequiredResponsibleType").Invoke(null, [type])!;
+            Assert.That(required, Is.True);
+        }
+
+        [Test]
+        public void EditOwner_SupportingResponsibleType_IsNotRequired()
+        {
+            OwnerResponsibleType type = new() { Id = GlobalConst.kOwnerResponsibleTypeSupporting, Name = "supporting", Active = true };
+            bool required = (bool)GetPrivateStaticMethod("IsRequiredResponsibleType").Invoke(null, [type])!;
+            Assert.That(required, Is.False);
+        }
+
+        [Test]
+        public async Task EditOwner_SupportingResponsibleLabel_HasNoMandatoryMarker()
+        {
+            await using BunitContext context = new();
+            FwoOwner owner = new() { Id = 0, Name = "Owner A" };
+            List<OwnerResponsibleType> types =
+            [
+                new OwnerResponsibleType { Id = GlobalConst.kOwnerResponsibleTypeMain, Name = "main", Active = true },
+                new OwnerResponsibleType { Id = GlobalConst.kOwnerResponsibleTypeSupporting, Name = "supporting", Active = true }
+            ];
+            IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, responsibleTypes: types);
+
+            string mainLabel = (string)GetPrivateMethod("GetResponsibleTypeEditLabel")
+                .Invoke(editOwner.Instance, [types[0]])!;
+            string supportingLabel = (string)GetPrivateMethod("GetResponsibleTypeEditLabel")
+                .Invoke(editOwner.Instance, [types[1]])!;
+
+            Assert.That(mainLabel, Does.EndWith("*"));
+            Assert.That(supportingLabel, Does.Not.Contain("*"));
+        }
+
+        [Test]
         public async Task EditOwner_AddOwnerResponsible_DoesNotDuplicateExistingDn()
         {
             await using BunitContext context = new();
@@ -274,7 +311,7 @@ namespace FWO.Test
             await (Task)GetPrivateMethod("HandleSave").Invoke(editOwner.Instance, null)!;
 
             Assert.That(owner.Id, Is.EqualTo(apiConn.CreatedOwnerId));
-            Assert.That(apiConn.GetInitialOwnerRecertCalls, Is.EqualTo(1));
+            Assert.That(apiConn.GetOwnerRecertCalls, Is.EqualTo(1));
             Assert.That(apiConn.RecertifyOwnerCalls, Is.EqualTo(1));
             Assert.That(apiConn.SetOwnerLastRecertCalls, Is.EqualTo(1));
         }
@@ -442,7 +479,7 @@ namespace FWO.Test
     internal sealed class EditOwnerTestApiConn : SimulatedApiConnection
     {
         public int CreatedOwnerId { get; set; } = 77;
-        public int GetInitialOwnerRecertCalls { get; private set; }
+        public int GetOwnerRecertCalls { get; private set; }
         public int RecertifyOwnerCalls { get; private set; }
         public int SetOwnerLastRecertCalls { get; private set; }
 
@@ -489,9 +526,9 @@ namespace FWO.Test
                 return Task.FromResult((QueryResponseType)(object)new List<ConfigItem>());
             }
 
-            if (query == RecertQueries.getInitialOwnerRecert)
+            if (query == RecertQueries.getOwnerRecert)
             {
-                GetInitialOwnerRecertCalls++;
+                GetOwnerRecertCalls++;
                 return Task.FromResult((QueryResponseType)(object)new List<OwnerRecertification>());
             }
 

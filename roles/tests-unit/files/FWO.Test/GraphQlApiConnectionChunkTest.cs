@@ -23,6 +23,7 @@ namespace FWO.Test
         private sealed class StubHttpMessageHandler : HttpMessageHandler
         {
             private readonly Queue<HttpResponseMessage> responses;
+            public List<string?> HasuraRoles { get; } = [];
             public int RequestCount { get; private set; }
 
             public StubHttpMessageHandler(IEnumerable<HttpResponseMessage> responses)
@@ -33,6 +34,9 @@ namespace FWO.Test
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
                 RequestCount++;
+                HasuraRoles.Add(request.Headers.TryGetValues("x-hasura-role", out IEnumerable<string>? values)
+                    ? values.FirstOrDefault()
+                    : null);
                 if (responses.Count == 0)
                 {
                     throw new InvalidOperationException("No stub response queued.");
@@ -286,6 +290,37 @@ namespace FWO.Test
 
             Assert.That(result, Is.EqualTo(new[] { 1, 2, 3 }));
             Assert.That(handler.RequestCount, Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task SendQueryAsync_SendsSelectedRoleHeader_WhenChunkingEnabled()
+        {
+            StubHttpMessageHandler handler =
+            new([
+                JsonResponse("{\"data\":{\"items\":[1,2]}}"),
+                JsonResponse("{\"data\":{\"items\":[3]}}")
+            ]);
+
+            using GraphQlApiConnection connection = CreateConnectionWithHandler(handler);
+            connection.SetRole(Roles.Modeller);
+            Dictionary<string, object> variables = new()
+            {
+                ["objects"] = new List<int> { 10, 20, 30 }
+            };
+
+            await connection.SendQueryAsync<List<int>>(
+                "query FetchItems($objects: [Int!]) { items }",
+                variables,
+                chunkingOptions: new QueryChunkingOptions
+                {
+                    Enabled = true,
+                    ChunkVariableName = "objects",
+                    ChunkSize = 2,
+                    MergeMode = ChunkMergeMode.TopLevelArrayConcat
+                });
+
+            Assert.That(handler.RequestCount, Is.EqualTo(2));
+            Assert.That(handler.HasuraRoles, Is.EqualTo(new[] { Roles.Modeller, Roles.Modeller }));
         }
 
         [Test]

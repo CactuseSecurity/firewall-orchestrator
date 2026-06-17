@@ -2128,8 +2128,10 @@ INSERT INTO txt VALUES ('managements',			'German', 	'Managements');
 INSERT INTO txt VALUES ('managements',			'English', 	'Managements');
 INSERT INTO txt VALUES ('flow_objects',			'German', 	'Flow-Objekte');
 INSERT INTO txt VALUES ('flow_objects',			'English', 	'Flow Objects');
-INSERT INTO txt VALUES ('flow_naming',			'German', 	'Flow-Namensquelle');
-INSERT INTO txt VALUES ('flow_naming',			'English', 	'Flow naming source');
+INSERT INTO txt VALUES ('flow',					'German', 	'Flow');
+INSERT INTO txt VALUES ('flow',					'English', 	'Flow');
+INSERT INTO txt VALUES ('flow_naming',			'German', 	'Flow-Namensquellen-Rangfolge');
+INSERT INTO txt VALUES ('flow_naming',			'English', 	'Flow naming source ranking');
 INSERT INTO txt VALUES ('current',			'German', 	'Aktuell');
 INSERT INTO txt VALUES ('current',			'English', 	'Current');
 INSERT INTO txt VALUES ('flow_object',			'German', 	'Flow-Objekt');
@@ -2138,8 +2140,8 @@ INSERT INTO txt VALUES ('duplicate_objects',	'German', 	'Doppelte Objekte');
 INSERT INTO txt VALUES ('duplicate_objects',	'English', 	'Duplicate objects');
 INSERT INTO txt VALUES ('no_duplicate_conflicts',	'German', 	'Keine doppelten Zuordnungen gefunden');
 INSERT INTO txt VALUES ('no_duplicate_conflicts',	'English', 	'No duplicate conflicts found');
-INSERT INTO txt VALUES ('custom_objects',		'German', 	'Benutzerdefinierte Objekte');
-INSERT INTO txt VALUES ('custom_objects',		'English', 	'Custom objects');
+INSERT INTO txt VALUES ('custom_objects',		'German', 	'Benutzerdefinierte Netzwerkobjekte');
+INSERT INTO txt VALUES ('custom_objects',		'English', 	'Custom Network Objects');
 INSERT INTO txt VALUES ('create_custom_flow_object',	'German', 	'Benutzerdefiniertes Flow-Objekt anlegen');
 INSERT INTO txt VALUES ('create_custom_flow_object',	'English', 	'Create custom flow object');
 INSERT INTO txt VALUES ('recalculate_flow_names',	'German', 	'Flow-Namen neu berechnen');
@@ -2150,6 +2152,16 @@ INSERT INTO txt VALUES ('edit_flow_object',		'German', 	'Flow-Objekt bearbeiten'
 INSERT INTO txt VALUES ('edit_flow_object',		'English', 	'Edit Flow Object');
 INSERT INTO txt VALUES ('show_in_request_module',	'German', 	'Im Request-Modul anzeigen');
 INSERT INTO txt VALUES ('show_in_request_module',	'English', 	'Show in request module');
+INSERT INTO txt VALUES ('move_up',			'German', 	'Nach oben');
+INSERT INTO txt VALUES ('move_up',			'English', 	'Move up');
+INSERT INTO txt VALUES ('move_down',			'German', 	'Nach unten');
+INSERT INTO txt VALUES ('move_down',			'English', 	'Move down');
+INSERT INTO txt VALUES ('H5016',				'German', 	'Diese Seite zeigt den Flow-Netzwerkobjekt-Katalog und die dazu passenden Werkzeuge zur Bereinigung und Pflege.');
+INSERT INTO txt VALUES ('H5016',				'English', 	'This page shows the flow network object catalog and the matching tools for cleanup and maintenance.');
+INSERT INTO txt VALUES ('H5017',				'German', 	'Im Katalog werden Flow-Objekte, doppelte Zuordnungen und benutzerdefinierte Netzwerkobjekte zusammengefasst.');
+INSERT INTO txt VALUES ('H5017',				'English', 	'The catalog brings flow objects, duplicate mappings, and custom network objects together in one place.');
+INSERT INTO txt VALUES ('H5018',				'German', 	'Verwenden Sie die Seite, um Namensquellen zu setzen, Konflikte zu lösen und bei Bedarf einzelne Zuordnungen manuell anzulegen.');
+INSERT INTO txt VALUES ('H5018',				'English', 	'Use the page to set naming sources, resolve conflicts, and create individual mappings manually when needed.');
 INSERT INTO txt VALUES ('gateways',		    	'German', 	'Gateways');
 INSERT INTO txt VALUES ('gateways',		    	'English', 	'Gateways');
 INSERT INTO txt VALUES ('authorization',		'German', 	'Berechtigungen');
@@ -2508,6 +2520,8 @@ INSERT INTO txt VALUES ('impChangeNotifyStartAt',  'German','&Auml;nderungsbenac
 INSERT INTO txt VALUES ('impChangeNotifyStartAt',  'English','Change notification start at');
 INSERT INTO txt VALUES ('updateRuleOwnerMappingSleepTime','German','Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierungs-Intervall (in Sekunden)');
 INSERT INTO txt VALUES ('updateRuleOwnerMappingSleepTime','English','Update Rule Owner Mapping sleep time (in seconds)');
+INSERT INTO txt VALUES ('flowSyncSleepTime', 'German', 	'Flow-Sync-Intervall (in Sekunden)');
+INSERT INTO txt VALUES ('flowSyncSleepTime', 'English', 'Flow sync sleep time (in seconds)');
 INSERT INTO txt VALUES ('externalRequestSleepTime','German','Externes Auftrags-Intervall (in Sekunden)');
 INSERT INTO txt VALUES ('externalRequestSleepTime','English','External Request sleep time (in seconds)');
 INSERT INTO txt VALUES ('externalRequestStartAt',  'German','Externer Auftrags-Start');
@@ -3343,6 +3357,14 @@ INSERT INTO txt VALUES ('scheduler_now', 	              'German',   'Jetzt');
 INSERT INTO txt VALUES ('scheduler_now', 	              'English',  'Now');
 INSERT INTO txt VALUES ('scheduler_interval_description', 'German',   'Alle');
 INSERT INTO txt VALUES ('scheduler_interval_description', 'English',  'Every');
+INSERT INTO txt VALUES ('scheduler_job', 	              'German',   'Job');
+INSERT INTO txt VALUES ('scheduler_job', 	              'English',  'Job');
+INSERT INTO txt VALUES ('scheduler_fetch_jobs', 	      'German',   'Scheduler-Jobs abrufen');
+INSERT INTO txt VALUES ('scheduler_fetch_jobs', 	      'English',  'Fetch scheduler jobs');
+INSERT INTO txt VALUES ('scheduler_job_fetch_failed',     'German',   'Abruf der Jobs fehlgeschlagen.');
+INSERT INTO txt VALUES ('scheduler_job_fetch_failed',     'English',  'Job fetch failed.');
+INSERT INTO txt VALUES ('scheduler_job_trigger_failed',   'German',   'Ausl&ouml;sen des Jobs fehlgeschlagen.');
+INSERT INTO txt VALUES ('scheduler_job_trigger_failed',   'English',  'Job trigger failed.');
 INSERT INTO txt VALUES ('orphaned_app_roles',   'German', 	'Verwaiste App Regeln');
 INSERT INTO txt VALUES ('orphaned_app_roles',	'English', 	'Orphaned App Roles');
 INSERT INTO txt VALUES ('orphaned_app_servers', 'German',   'Verwaiste App Server');
@@ -3379,6 +3401,14 @@ INSERT INTO txt VALUES ('api_general',          'German', 	'API allgemein');
 INSERT INTO txt VALUES ('api_general',          'English', 	'API general');
 INSERT INTO txt VALUES ('api_user_mgmt',        'German', 	'User Management');
 INSERT INTO txt VALUES ('api_user_mgmt',        'English', 	'User Management');
+INSERT INTO txt VALUES ('flow_api',             'German',   'Flow API');
+INSERT INTO txt VALUES ('flow_api',             'English',  'Flow API');
+INSERT INTO txt VALUES ('flow_catalog_api',     'German',   'Flow-Katalog');
+INSERT INTO txt VALUES ('flow_catalog_api',     'English',  'Flow Catalog');
+INSERT INTO txt VALUES ('flow_compliance_api',  'German',   'Flow-Compliance');
+INSERT INTO txt VALUES ('flow_compliance_api',  'English',  'Flow Compliance');
+INSERT INTO txt VALUES ('flow_request_api',     'German',   'Flow-Antr&auml;ge');
+INSERT INTO txt VALUES ('flow_request_api',     'English',  'Flow Requests');
 INSERT INTO txt VALUES ('api_user_mgmt_head',   'German', 	'REST Dokumentation');
 INSERT INTO txt VALUES ('api_user_mgmt_head',   'English', 	'REST Documentation');
 INSERT INTO txt VALUES ('api_umgmt_auth',       'German', 	'Authentisierung');
@@ -6088,6 +6118,10 @@ INSERT INTO txt VALUES ('H5485', 'German',  '&Auml;nderungsbenachrichtigungs-Int
 INSERT INTO txt VALUES ('H5485', 'English', 'Change notification sleep time (in seconds): Time between the checks for imported changes.');
 INSERT INTO txt VALUES ('H5485a', 'German', 'Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierungs-Intervall (in Sekunden): Zeit zwischen den Checks auf importierte &Auml;nderungen.');
 INSERT INTO txt VALUES ('H5485a', 'English','Update Rule Owner Mapping sleep time (in seconds): Time between the checks for imported changes.');
+INSERT INTO txt VALUES ('H5485b', 'German', 'Flow-Sync-Intervall (in Sekunden): Zeit zwischen dem Pr&uuml;fen der import_control-Tabelle und dem Aktualisieren des Flow-Schemas bei Bedarf. 0 deaktiviert den Job.');
+INSERT INTO txt VALUES ('H5485b', 'English','Flow sync sleep time (in seconds): Time between checking the import_control table and updating the flow schema if required. 0 disables the job.');
+INSERT INTO txt VALUES ('H5485c', 'German', 'Einstellungen f&uuml;r Trigger zur Synchronisierung von Flow-Daten');
+INSERT INTO txt VALUES ('H5485c', 'English','Flow Sync Event Trigger Settings');
 INSERT INTO txt VALUES ('H5486', 'German',  '&Auml;nderungsbenachrichtigungs-Start: Startzeit f&uuml;r die Checks auf importierte &Auml;nderungen.');
 INSERT INTO txt VALUES ('H5486', 'English', 'Change notification start at: Start time for the import change checks.');
 INSERT INTO txt VALUES ('H5486a', 'German', 'Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierungs-Start: Startzeit f&uuml;r die Checks auf importierte &Auml;nderungen.');
@@ -6479,14 +6513,14 @@ INSERT INTO txt VALUES ('H5610', 'English', 'App Role Pattern: Defines the begin
     According to an network area name (e.g. "NAxx"), an App Role name (e.g. "ARxx") is preset in the length of the fixed part defined above.
     If the length of the pattern is greater than the fixed part length, the surplus part is ignored.
 ');
-INSERT INTO txt VALUES ('H5611', 'German',  'Pfad und Name von Appdaten-Import (ohne Endung): Hier werden die vollst&auml;ndigen Pfade f&uuml;r eventuell vorhandene Importskripte und -dateien eingegeben.
-    Der Importprozess pr&uuml;ft f&uuml;r jede der eingegebenen Datenquellen zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden ist, und f&uuml;hrt dieses ggf. aus.
+INSERT INTO txt VALUES ('H5611', 'German',  'Pfad und Name von Appdaten-Import (ohne Endung): Hier werden Importskripte und -dateien unter /usr/local/fworch/scripts/customizing eingetragen.
+    Der gespeicherte Wert enth&auml;lt keine Dateiendung. Beim Speichern wird gepr&uuml;ft, dass der Eintrag unterhalb des Customizing-Verzeichnisses liegt und keine unzul&auml;ssige Dateiendung verwendet. Der Importprozess pr&uuml;ft f&uuml;r jede eingetragene Datenquelle zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden und zul&auml;ssig ist, und f&uuml;hrt dieses ggf. aus.
     Anschliessend wird eine Datei desselben Namens mit der Endung .json gesucht und ggf. importiert.
     Es gibt f&uuml;r den Import pro Datenquelle also sowohl die M&ouml;glichkeit, eine direkt zu importierende Datei zur Verf&uuml;gung zu stellen, als auch ein Skript zur Datenabholung,
     welches die ben&ouml;tigte Import-Datei erst erzeugt. Die Struktur der Importdatei wird unter <a href="/help/API/appdataimport">Import-Schnittstellen</a> beschrieben.
 ');
-INSERT INTO txt VALUES ('H5611', 'English', 'Path and Name of App data import (without ending): Here the full paths of provided import scripts and files are inserted.
-    The import process checks for each data source, if a script of this name with ending .py exists and executes it.
+INSERT INTO txt VALUES ('H5611', 'English', 'Path and Name of App data import (without ending): Import scripts and files below /usr/local/fworch/scripts/customizing are entered here.
+    The stored value contains no file extension. Saving checks that the entry stays below the customizing directory and does not use a disallowed extension. The import process checks each configured data source for an existing and allowed script of this name with ending .py and executes it if present.
     Then a file of this name with ending .json is searched and imported if found.
     Thus there is the possibility for each data source to provide a file for direct import or a script to catch the import data and create the app data import file.
     The structure of the import file is described at <a href="/help/API/appdataimport">Import Interfaces</a>.
@@ -6501,13 +6535,13 @@ INSERT INTO txt VALUES ('H5612', 'English', 'Import App data sleep time (in hour
 ');
 INSERT INTO txt VALUES ('H5613', 'German',  'Import Appdaten-Start: Legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die Appdaten-Importe gerechnet werden.');
 INSERT INTO txt VALUES ('H5613', 'English', 'Import App data start at: Defines a referential time from which the App data import intervals are calculated.');
-INSERT INTO txt VALUES ('H5614', 'German',  'Pfad und Name von Subnetzdaten-Import (ohne Endung): Hier wird der vollst&auml;ndige Pfad f&uuml;r ein eventuell vorhandenes Importskript oder einer Import-Datei eingegeben.
-    Der Importprozess pr&uuml;ft zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden ist, und f&uuml;hrt dieses ggf. aus. Anschliessend wird eine Datei desselben Namens mit der Endung .json
+INSERT INTO txt VALUES ('H5614', 'German',  'Pfad und Name von Subnetzdaten-Import (ohne Endung): Hier wird ein Importskript oder eine Import-Datei unter /usr/local/fworch/scripts/customizing eingetragen.
+    Der gespeicherte Wert enth&auml;lt keine Dateiendung. Beim Speichern wird gepr&uuml;ft, dass der Eintrag unterhalb des Customizing-Verzeichnisses liegt und keine unzul&auml;ssige Dateiendung verwendet. Der Importprozess pr&uuml;ft zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden und zul&auml;ssig ist, und f&uuml;hrt dieses ggf. aus. Anschliessend wird eine Datei desselben Namens mit der Endung .json
     gesucht und ggf. importiert. Es gibt f&uuml;r den Import also sowohl die M&ouml;glichkeit, eine direkt zu importierende Datei zur Verf&uuml;gung zu stellen, als auch ein Skript zur Datenabholung,
     welches die ben&ouml;tigte Import-Datei erst erzeugt. Die Struktur der Importdatei wird unter <a href="/help/API/subnetdataimport">Import-Schnittstellen</a> beschrieben.
 ');
-INSERT INTO txt VALUES ('H5614', 'English', 'Path and Name of subnet data import (without ending): Here the full path of a provided import script or file is inserted.
-    The import process checks, if a script of this name with ending .py exists and executes it.
+INSERT INTO txt VALUES ('H5614', 'English', 'Path and Name of subnet data import (without ending): An import script or file below /usr/local/fworch/scripts/customizing is entered here.
+    The stored value contains no file extension. Saving checks that the entry stays below the customizing directory and does not use a disallowed extension. The import process checks if an existing and allowed script of this name with ending .py is present and executes it if found.
     Then a file of this name with ending .json is searched and imported if found.
     Thus there is the possibility to provide a file for direct import or a script to catch the import data and create the subnet data import file.
     The structure of the import file is described at <a href="/help/API/subnetdataimport">Import Interfaces</a>.
@@ -6956,6 +6990,122 @@ INSERT INTO txt VALUES ('H6935', 'German',  '<ul><li><code>OwnerId</code>: Gibt 
 INSERT INTO txt VALUES ('H6935', 'English', '<ul><li><code>OwnerId</code>: Returns all rules for the specified owner.</li><li><code>IpAddress</code>: Finds rules by the provided IP address.</li><li><code>Filter.Action</code>: Required for IP-based filtering; allowed values are <code>accept</code>, <code>deny</code>, and <code>any</code>.</li><li><code>Filter.MinPrefixLength</code>: Minimum prefix length of the matching network object, from 0 to 32.</li><li><code>Filter.InField</code>: Defines whether source, destination, or both are evaluated.</li><li><code>FieldSourceMapping.OwnerInformation</code>: <code>Database</code> uses the standard database mapping, <code>CustomField</code> reads from the customer-specific custom field.</li><li><code>FieldSourceMapping.ChangeId</code>: <code>Database</code> is not supported yet, <code>CustomField</code> uses the customer-specific field.</li></ul>');
 INSERT INTO txt VALUES ('H6936', 'German',  'Hinweis: Wenn <code>FieldSourceMapping.ChangeId</code> auf <code>Database</code> gesetzt wird, liefert der aktuelle Serverwert <code>Not Found in Database</code> zurück. Ungültige Enum-Werte werden bereits beim Einlesen der Anfrage abgelehnt.');
 INSERT INTO txt VALUES ('H6936', 'English', 'Note: when <code>FieldSourceMapping.ChangeId</code> is set to <code>Database</code>, the current server value returned is <code>Not Found in Database</code>. Invalid enum values are rejected while parsing the request.');
+INSERT INTO txt VALUES ('H6940', 'German',  'Die Flow-REST-API wird unter dem gemeinsamen Pr&auml;fix <code>/api/flow</code> bereitgestellt.
+    Die Endpunkte sind aus Gr&uuml;nden der Lesbarkeit auf drei Controller verteilt, geh&ouml;ren aber fachlich zusammen.
+    <ul>
+        <li><b>FlowCatalogController</b>: Lesezugriffe auf Adress-, Dienst- und Zeitobjekte f&uuml;r Flow- und Request-bezogene Auswahllisten sowie Id-Aufl&ouml;sungen.</li>
+        <li><b>FlowComplianceController</b>: Policy-Auswahl und Compliance-Pr&uuml;fung f&uuml;r synthetische Flows.</li>
+        <li><b>FlowRequestController</b>: Endpunkte rund um Namensvorschl&auml;ge, Validierung und Request-Erzeugung; ein gro&szlig;er Teil ist noch nicht implementiert.</li>
+    </ul>
+    Die folgenden Seiten dokumentieren die drei Controller getrennt, damit die einzelnen Endpunkte schneller auffindbar bleiben.
+    <ul>
+        <li><a href="/help/API/flow/catalog">Flow-Katalog</a></li>
+        <li><a href="/help/API/flow/compliance">Flow-Compliance</a></li>
+        <li><a href="/help/API/flow/request">Flow-Antr&auml;ge</a></li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H6940', 'English', 'The Flow REST API is exposed below the shared <code>/api/flow</code> prefix.
+    The endpoints are split across three controllers for readability, but they belong to one functional API area.
+    <ul>
+        <li><b>FlowCatalogController</b>: Read-only lookups for address, service, and time objects that support flow and request selection workflows as well as id resolution.</li>
+        <li><b>FlowComplianceController</b>: Policy selection and compliance checks for synthetic flows.</li>
+        <li><b>FlowRequestController</b>: Endpoints for naming suggestions, validation helpers, and request creation; a large part of this controller is not implemented yet.</li>
+    </ul>
+    The following pages document the three controllers separately so the individual endpoints stay easy to find.
+    <ul>
+        <li><a href="/help/API/flow/catalog">Flow Catalog</a></li>
+        <li><a href="/help/API/flow/compliance">Flow Compliance</a></li>
+        <li><a href="/help/API/flow/request">Flow Requests</a></li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H6941', 'German',  'Der <b>FlowCatalogController</b> stellt lesende Katalogabfragen unter <code>/api/flow</code> bereit.
+    Alle Endpunkte verwenden <code>POST</code>.
+    <table class="table table-sm">
+        <thead><tr><th>Endpunkt</th><th>Zweck</th><th>Wichtige Request-Felder</th></tr></thead>
+        <tbody>
+            <tr><td><code>getAddressObjects</code></td><td>Liefert sichtbare Adressobjekte.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getAddressGroups</code></td><td>Liefert sichtbare Adressgruppen.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getServiceObjects</code></td><td>Liefert sichtbare Dienstobjekte.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getServiceGroups</code></td><td>Liefert sichtbare Dienstgruppen.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getTimeObjects</code></td><td>Liefert sichtbare Zeitobjekte.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getServiceObjectId</code></td><td>L&ouml;st ein Dienstobjekt anhand von Protokoll und Portbereich auf.</td><td><code>protocol</code> erforderlich, dazu <code>portStart</code>, <code>portEnd</code> und optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getAddressObjectId</code></td><td>L&ouml;st ein Adressobjekt anhand eines IP-Bereichs auf.</td><td><code>ipStart</code> und <code>ipEnd</code> erforderlich, optional <code>filter.visibleInRequest</code>.</td></tr>
+        </tbody>
+    </table>
+    Die Filterstruktur ist f&uuml;r diese Endpunkte bewusst klein gehalten und dient vor allem dazu, nur Objekte zur&uuml;ckzugeben, die im Request-Kontext sichtbar sein sollen.
+');
+INSERT INTO txt VALUES ('H6941', 'English', 'The <b>FlowCatalogController</b> exposes read-only catalog lookups below <code>/api/flow</code>.
+    All endpoints use <code>POST</code>.
+    <table class="table table-sm">
+        <thead><tr><th>Endpoint</th><th>Purpose</th><th>Important request fields</th></tr></thead>
+        <tbody>
+            <tr><td><code>getAddressObjects</code></td><td>Returns visible address objects.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getAddressGroups</code></td><td>Returns visible address groups.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getServiceObjects</code></td><td>Returns visible service objects.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getServiceGroups</code></td><td>Returns visible service groups.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getTimeObjects</code></td><td>Returns visible time objects.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getServiceObjectId</code></td><td>Resolves a service object from protocol and port range.</td><td><code>protocol</code> is required, together with <code>portStart</code>, <code>portEnd</code>, and optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getAddressObjectId</code></td><td>Resolves an address object from an IP range.</td><td><code>ipStart</code> and <code>ipEnd</code> are required, with optional <code>filter.visibleInRequest</code>.</td></tr>
+        </tbody>
+    </table>
+    The filter structure is intentionally small for these endpoints and is mainly used to restrict results to objects that should be visible in the request context.
+');
+INSERT INTO txt VALUES ('H6942', 'German',  'Der <b>FlowComplianceController</b> stellt Policy- und Compliance-Funktionen unter <code>/api/flow</code> bereit.
+    Alle Endpunkte verwenden <code>POST</code>.
+    <table class="table table-sm">
+        <thead><tr><th>Endpunkt</th><th>Zweck</th><th>Wichtige Request-Felder</th></tr></thead>
+        <tbody>
+            <tr><td><code>getPolicyIds</code></td><td>Liefert die verf&uuml;gbaren Policy-Ids und Namen.</td><td>Leerer Request-Body <code>{}</code> ist zul&auml;ssig.</td></tr>
+            <tr><td><code>getFlowComplianceState</code></td><td>Pr&uuml;ft einen oder mehrere synthetische Flows gegen ausgew&auml;hlte Policies.</td><td><code>source</code>, <code>destination</code>, <code>service</code> und <code>policies</code>.</td></tr>
+        </tbody>
+    </table>
+    F&uuml;r <code>getFlowComplianceState</code> werden Quellen und Ziele als IP-Bereiche sowie Dienste als Portbereiche mit Protokoll &uuml;bergeben.
+    Die Antwort liefert pro angefragter Policy einen Block mit <code>policy</code> und <code>violations</code>.
+    Ist ein Flow konform, ist die Liste <code>violations</code> leer.
+');
+INSERT INTO txt VALUES ('H6942', 'English', 'The <b>FlowComplianceController</b> provides policy lookup and compliance functions below <code>/api/flow</code>.
+    All endpoints use <code>POST</code>.
+    <table class="table table-sm">
+        <thead><tr><th>Endpoint</th><th>Purpose</th><th>Important request fields</th></tr></thead>
+        <tbody>
+            <tr><td><code>getPolicyIds</code></td><td>Returns available policy ids and names.</td><td>An empty request body <code>{}</code> is allowed.</td></tr>
+            <tr><td><code>getFlowComplianceState</code></td><td>Checks one or more synthetic flows against selected policies.</td><td><code>source</code>, <code>destination</code>, <code>service</code>, and <code>policies</code>.</td></tr>
+        </tbody>
+    </table>
+    For <code>getFlowComplianceState</code>, sources and destinations are passed as IP ranges and services as port ranges with protocol.
+    The response returns one block per requested policy with <code>policy</code> and <code>violations</code>.
+    When a flow is compliant, the <code>violations</code> list is empty.
+');
+INSERT INTO txt VALUES ('H6943', 'German',  'Der <b>FlowRequestController</b> reserviert Endpunkte f&uuml;r Flow-bezogene Request-Funktionen unter <code>/api/flow</code>.
+    Der Controller ist bereits strukturiert, die meisten Endpunkte liefern derzeit jedoch <code>501 Not Implemented</code>.
+    <table class="table table-sm">
+        <thead><tr><th>Endpunkt</th><th>Zweck</th><th>Aktueller Stand</th></tr></thead>
+        <tbody>
+            <tr><td><code>generateAddressObjectName</code></td><td>Namensvorschlag f&uuml;r ein Adressobjekt.</td><td>Noch nicht implementiert.</td></tr>
+            <tr><td><code>generateServiceObjectName</code></td><td>Namensvorschlag f&uuml;r ein Dienstobjekt.</td><td>Noch nicht implementiert.</td></tr>
+            <tr><td><code>getNetObjectValidity</code></td><td>Validiert eine Netzwerkobjekt-Definition.</td><td>Noch nicht implementiert.</td></tr>
+            <tr><td><code>getNetGroupValidity</code></td><td>Validiert eine Netzwerkgruppen-Definition.</td><td>Noch nicht implementiert.</td></tr>
+            <tr><td><code>createRequest</code></td><td>Erzeugt einen neuen Flow-bezogenen Request.</td><td>Noch nicht implementiert.</td></tr>
+            <tr><td><code>getRequestStatus</code></td><td>Liefert den Status eines vorhandenen Requests.</td><td>Noch nicht implementiert.</td></tr>
+        </tbody>
+    </table>
+    Diese Seite dokumentiert daher vor allem die vorgesehene API-Oberfl&auml;che. Sobald die Implementierung vorliegt, sollte die Beschreibung um konkrete Request- und Response-Beispiele erweitert werden.
+');
+INSERT INTO txt VALUES ('H6943', 'English', 'The <b>FlowRequestController</b> reserves endpoints for flow-related request functions below <code>/api/flow</code>.
+    The controller structure already exists, but most endpoints currently return <code>501 Not Implemented</code>.
+    <table class="table table-sm">
+        <thead><tr><th>Endpoint</th><th>Purpose</th><th>Current state</th></tr></thead>
+        <tbody>
+            <tr><td><code>generateAddressObjectName</code></td><td>Naming suggestion for an address object.</td><td>Not implemented yet.</td></tr>
+            <tr><td><code>generateServiceObjectName</code></td><td>Naming suggestion for a service object.</td><td>Not implemented yet.</td></tr>
+            <tr><td><code>getNetObjectValidity</code></td><td>Validates a network object definition.</td><td>Not implemented yet.</td></tr>
+            <tr><td><code>getNetGroupValidity</code></td><td>Validates a network group definition.</td><td>Not implemented yet.</td></tr>
+            <tr><td><code>createRequest</code></td><td>Creates a new flow-related request.</td><td>Not implemented yet.</td></tr>
+            <tr><td><code>getRequestStatus</code></td><td>Returns the status of an existing request.</td><td>Not implemented yet.</td></tr>
+        </tbody>
+    </table>
+    This page therefore mainly documents the intended API surface. Once the implementation exists, the description should be extended with concrete request and response examples.
+');
 INSERT INTO txt VALUES ('H6921', 'German',  'Der Import von Applikationsdaten wird aus einer oder mehreren .json-Dateien mit den in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> definierten Pfaden und Namen gespeist.
     Dort kann auch jeweils ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Dateien hinterlegt werden. Die .json-Datei hat die folgende Struktur:
 ');

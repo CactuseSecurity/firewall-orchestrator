@@ -144,6 +144,9 @@ namespace FWO.Middleware.Server.Jobs
             public bool SampleGroupExisting;
             public bool SampleOwnerExisting;
 
+            /// <summary>
+            /// Performs the AnyFlagSet operation.
+            /// </summary>
             public readonly bool AnyFlagSet()
             {
                 return SampleManagementExisting || SampleCredentialExisting || SampleUserExisting
@@ -235,7 +238,7 @@ namespace FWO.Middleware.Server.Jobs
         {
             int emailsSent = 0;
             List<UserGroup> OwnerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnection);
-            UserConfig userConfig = new(globalConfig);
+            using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
             WfHandler wfHandler = new(userConfig, apiConnection, WorkflowPhases.implementation, OwnerGroups, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
             await wfHandler.Init();
             NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, OwnerGroups);

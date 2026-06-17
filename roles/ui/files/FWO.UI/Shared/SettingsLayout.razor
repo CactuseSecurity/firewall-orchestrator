@@ -29,17 +29,6 @@
                     </NavLink>
                 </li>
             </ExecutionModeAuthorizeView>
-            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}")">
-                <hr />
-                <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5011"))">
-                    <h5>Flow</h5>
-                </li>
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="settings/flows/networkobjects">
-                        <span class="@Icons.Settings"></span> @(userConfig.GetText("network_objects"))
-                    </NavLink>
-                </li>
-            </ExecutionModeAuthorizeView>
             <hr />
             <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5012"))">
@@ -148,6 +137,17 @@
                         <span class="@Icons.Settings"></span> @(userConfig.GetText("customizing"))
                     </NavLink>
                 </li>
+                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}")">
+                    <hr />
+                    <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5011"))">
+                        <h5>@(userConfig.GetText("flow"))</h5>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="settings/flows/networkobjects">
+                            <span class="@Icons.Settings"></span> @(userConfig.GetText("network_objects"))
+                        </NavLink>
+                    </li>
+                </ExecutionModeAuthorizeView>
                 <hr />
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5013"))">
                     <h5>@(userConfig.GetText("defaults"))</h5>

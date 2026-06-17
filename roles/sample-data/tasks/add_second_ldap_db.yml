@@ -36,10 +36,12 @@
         {%- endif %}
 
   - name: add new sample database to ldap
-    command: "ldapmodify {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D cn=config -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/second_db.ldif"
+    command: "ldapmodify {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D cn=config -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/second_db.ldif"
+    no_log: true
 
   - name: enhance sample ldap with test users and groups
-    command: "ldapmodify {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/{{ item }}.ldif"
+    command: "ldapmodify {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/{{ item }}.ldif"
+    no_log: true
     loop:
       - ext_role
       - ext_user

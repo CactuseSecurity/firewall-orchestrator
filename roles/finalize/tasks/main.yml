@@ -51,8 +51,7 @@
     executable: python3
   become: true
   when: "'apiserver' in group_names"
-  with_fileglob:
-    - "scripts/customizing/api/*.py"
+  loop: "{{ lookup('ansible.builtin.fileglob', 'scripts/customizing/api/*.py', wantlist=True, errors='ignore') }}"
 
 # Do general cleanup
 # - name: delete ldif files

@@ -33,7 +33,6 @@ class ServiceObjectForImport:
     svc_rpcnr: str | None
     mgm_id: int
     svc_create: int
-    svc_last_seen: int
     svc_typ_id: int
 
     def __init__(self, svc_object: ServiceObject, mgm_id: int, import_id: int, color_id: int, typ_id: int):
@@ -51,7 +50,6 @@ class ServiceObjectForImport:
         self.svc_rpcnr = svc_object.rpc_nr
         self.mgm_id = mgm_id
         self.svc_create = import_id
-        self.svc_last_seen = import_id
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -65,7 +63,6 @@ class ServiceObjectForImport:
             "svc_member_names": self.svc_member_names,
             "svc_comment": self.svc_comment,
             "svc_create": self.svc_create,
-            "svc_last_seen": self.svc_last_seen,
             "svc_typ_id": self.svc_typ_id,
             "svc_rpcnr": self.svc_rpcnr,
             "svc_timeout": self.svc_timeout,

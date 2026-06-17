@@ -280,8 +280,7 @@ else
 
 
             if ((!string.IsNullOrWhiteSpace(newTemplate.TicketTemplate) || !string.IsNullOrWhiteSpace(newTemplate.TasksTemplate)) &&
-                !string.IsNullOrWhiteSpace(newTemplate.TaskType) &&
-                editModel.Templates.All(template => template.TaskType != newTemplate.TaskType))
+                !string.IsNullOrWhiteSpace(newTemplate.TaskType) && editModel.Templates.All(template => template.TaskType != newTemplate.TaskType))
             {
                 editModel.Templates.Add(new ExternalTicketTemplate
                 {

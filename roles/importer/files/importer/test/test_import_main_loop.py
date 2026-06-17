@@ -179,12 +179,6 @@ class TestImportSingleManagement:
         fwo_globals.shutdown_requested = False
         mocker.patch("importer.import_main_loop.wait_with_shutdown_check")
         mocker.patch.object(
-            import_state,
-            "initialize_import",
-            return_value=import_state,
-        )
-        mocker.patch("importer.import_main_loop.register_global_state")
-        mocker.patch.object(
             ManagementController,
             "get_mgm_details",
             return_value=MockObjectsFactory.get_mock_mgm_details(),

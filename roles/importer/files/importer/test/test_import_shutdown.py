@@ -21,13 +21,14 @@ class TestHandleShutdownException:
         # Arrange
         import_state.import_id = -1
         import_state.rollback_required = False
+        mock_delete_import = cast("MockAssertions", mocker.patch.object(import_state, "delete_import"))
         mock_rollback = cast("MockAssertions", mocker.patch("common.roll_back_exception_handler"))
 
         # Act
         handle_shutdown_exception(global_state, import_state, config_importer=None, exc=None)
 
         # Assert
-        cast("MockAssertions", import_state.delete_import).assert_not_called()
+        mock_delete_import.assert_not_called()
         mock_rollback.assert_not_called()
 
     def test_shutdown_before_import_data_changes_deletes_import_lock(
@@ -36,13 +37,14 @@ class TestHandleShutdownException:
         # Arrange
         import_state.import_id = 7
         import_state.rollback_required = False
+        mock_delete_import = cast("MockAssertions", mocker.patch.object(import_state, "delete_import"))
         mock_rollback = cast("MockAssertions", mocker.patch("common.roll_back_exception_handler"))
 
         # Act
         handle_shutdown_exception(global_state, import_state, config_importer=None, exc=None)
 
         # Assert
-        cast("MockAssertions", import_state.delete_import).assert_called_once()
+        mock_delete_import.assert_called_once()
         mock_rollback.assert_not_called()
 
     def test_shutdown_after_import_data_changes_rolls_back(
@@ -51,6 +53,7 @@ class TestHandleShutdownException:
         # Arrange
         import_state.import_id = 7
         import_state.rollback_required = True
+        mock_delete_import = cast("MockAssertions", mocker.patch.object(import_state, "delete_import"))
         mock_rollback = cast("MockAssertions", mocker.patch("common.roll_back_exception_handler"))
 
         # Act
@@ -58,7 +61,7 @@ class TestHandleShutdownException:
 
         # Assert
         mock_rollback.assert_called_once()
-        cast("MockAssertions", import_state.delete_import).assert_not_called()
+        mock_delete_import.assert_not_called()
 
 
 class TestRollbackRequiredTracking:

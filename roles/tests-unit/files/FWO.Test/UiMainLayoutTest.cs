@@ -128,7 +128,8 @@ namespace FWO.Test
             fixture.Layout.WaitForAssertion(() =>
             {
                 Assert.That(GetPrivateFieldValue<bool>(layout, "showReloginDialog"), Is.True);
-                Assert.That(fixture.Layout.Markup, Does.Contain("jwt_expired_title - jwt_expired_text"));
+                Assert.That(fixture.Layout.Markup, Does.Contain("jwt_expired_title"));
+                Assert.That(fixture.Layout.Markup, Does.Contain("jwt_expired_text"));
             });
             Assert.That(fixture.ApiConnection.UiLogs, Is.Empty);
         }

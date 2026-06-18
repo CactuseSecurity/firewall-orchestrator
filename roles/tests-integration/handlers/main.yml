@@ -56,6 +56,24 @@
       {%- endif %}
   listen: "test importer handler"
 
+- name: delete ui ambient smoke role memberships from ldap
+  command: "ldapmodify {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x"
+  args:
+    stdin: |
+      dn: cn={{ item }},ou=role,{{ openldap_path }}
+      changetype: modify
+      delete: uniquemember
+      uniquemember: uid=user1{{ sample_postfix }},ou=tenant1{{ sample_postfix }},ou=operator,ou=user,{{ openldap_path }}
+  loop: "{{ ui_ambient_role_smoke_roles | default(['reporter', 'modeller', 'recertifier']) }}"
+  register: delete_ui_ambient_role_smoke_role_result
+  failed_when:
+    - delete_ui_ambient_role_smoke_role_result.rc != 0
+    - "'No such attribute' not in delete_ui_ambient_role_smoke_role_result.stderr"
+  changed_when: delete_ui_ambient_role_smoke_role_result.rc == 0
+  listen: "test importer handler"
+  become: true
+  when: run_ui_ambient_role_smoke | default(false) | bool
+
 - name: delete integration test user from ldap
   command: "ldapdelete {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x uid={{ integration_test_user_name }},ou=tenant0,ou=operator,ou=user,{{ openldap_path }}"
   listen: "test importer handler"

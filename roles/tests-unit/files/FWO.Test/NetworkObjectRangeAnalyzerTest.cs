@@ -49,11 +49,25 @@ namespace FWO.Test
         }
 
         [Test]
-        public void MatchesIpFilter_ShouldIgnoreObjectsBelowPrefixThresholdAndKeepSearching()
+        public void MatchesIpFilter_ShouldRejectWhenAnyObjectFallsBelowPrefixThreshold()
         {
             List<NetworkObject> objects =
             [
                 CreateNetworkObject("Broad", "10.0.0.0/8", "10.255.255.255/8"),
+                CreateNetworkObject("Host", "10.1.2.3/32", "10.1.2.3/32")
+            ];
+
+            bool matches = _analyzer.MatchesIpFilter(IPAddress.Parse("10.1.2.3"), 24, objects);
+
+            ClassicAssert.IsFalse(matches);
+        }
+
+        [Test]
+        public void MatchesIpFilter_ShouldAcceptWhenAllObjectsMeetThresholdAndContainIp()
+        {
+            List<NetworkObject> objects =
+            [
+                CreateNetworkObject("Subnet", "10.1.2.0/24", "10.1.2.255/24"),
                 CreateNetworkObject("Host", "10.1.2.3/32", "10.1.2.3/32")
             ];
 

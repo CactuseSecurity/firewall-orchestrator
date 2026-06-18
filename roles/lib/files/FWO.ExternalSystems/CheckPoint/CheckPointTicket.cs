@@ -789,7 +789,8 @@ namespace FWO.ExternalSystems.CheckPoint
 
         private static bool CanCheckDesiredState(RenderedTask task)
         {
-            return task.TaskType == CheckPointTaskTypes.HostCreate ||
+            return task.TaskType == CheckPointTaskTypes.GroupCreate || 
+                   task.TaskType == CheckPointTaskTypes.HostCreate ||
                    task.TaskType == CheckPointTaskTypes.NetworkCreate ||
                    task.TaskType == CheckPointTaskTypes.AddressRangeCreate;
         }
@@ -797,6 +798,7 @@ namespace FWO.ExternalSystems.CheckPoint
         {
             return task.TaskType switch
             {
+                CheckPointTaskTypes.GroupCreate => await GroupExists(task),
                 CheckPointTaskTypes.HostCreate => await ExistingHostMatches(task),
                 CheckPointTaskTypes.NetworkCreate => await ExistingNetworkMatches(task),
                 CheckPointTaskTypes.AddressRangeCreate => await ExistingAddressRangeMatches(task),
@@ -832,6 +834,18 @@ namespace FWO.ExternalSystems.CheckPoint
             {
                 return null;
             }
+        }
+
+        private async Task<bool> GroupExists(RenderedTask task)
+        {
+            string? name = task.Body?["name"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return false;
+            }
+
+            JsonElement? existing = await LoadObject("show-group", name);
+            return existing != null;
         }
 
         private async Task<bool> ExistingHostMatches(RenderedTask task)

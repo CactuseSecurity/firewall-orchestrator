@@ -10,6 +10,7 @@ using NetTools;
 using NSubstitute;
 using NUnit.Framework;
 using System.Collections.Concurrent;
+using System.Net;
 using System.Reflection;
 
 namespace FWO.Test
@@ -159,6 +160,74 @@ namespace FWO.Test
             bool compliant = await ComplianceCheck.AreRulesCompliant([1], ComplianceCheck.RulesInCheck!);
 
             Assert.That(compliant, Is.False);
+        }
+
+        [Test]
+        public async Task AreRulesCompliant_LongLivedInstanceRefreshesManagementsAndNetworkZones()
+        {
+            await SetUpBasic(setupRelevantManagements: true);
+
+            CompliancePolicy policy = new()
+            {
+                Id = 1,
+                Criteria =
+                [
+                    new ComplianceCriterionWrapper
+                    {
+                        Content = new ComplianceCriterion
+                        {
+                            Id = 101,
+                            Name = "Matrix A",
+                            CriterionType = nameof(CriterionType.Matrix)
+                        }
+                    }
+                ]
+            };
+
+            List<ComplianceNetworkZone> permissiveZones =
+            [
+                new ComplianceNetworkZone
+                {
+                    Id = 1,
+                    CriterionId = 101,
+                    Name = "Combined Zone",
+                    IPRanges =
+                    [
+                        new IPAddressRange(IPAddress.Parse("128.0.0.0"), IPAddress.Parse("198.0.0.0"))
+                    ]
+                }
+            ];
+            permissiveZones[0].AllowedCommunicationDestinations = [permissiveZones[0]];
+
+            List<ComplianceNetworkZone> restrictiveZones = CreateNetworkZones(true, true, 101);
+
+            ApiConnection.AsSub()
+                .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
+                .Returns(policy);
+
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames)
+                .Returns(
+                    [new Management { Id = 1, Name = "Mgmt1" }],
+                    [new Management { Id = 2, Name = "Mgmt2" }]);
+
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, Arg.Any<object>())
+                .Returns(permissiveZones, restrictiveZones);
+
+            Rule rule = CreateSimpleRule(99, destinationHigh: true);
+
+            bool firstRunCompliant = await ComplianceCheck.AreRulesCompliant([1], [rule]);
+            bool secondRunCompliant = await ComplianceCheck.AreRulesCompliant([1], [rule]);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstRunCompliant, Is.True);
+                Assert.That(secondRunCompliant, Is.False);
+                Assert.That(ComplianceCheck.Managements!.Single().Id, Is.EqualTo(2));
+                ApiConnection.AsSub().Received(2).SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
+                ApiConnection.AsSub().Received(2).SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, Arg.Any<object>());
+            });
         }
 
         [Test]

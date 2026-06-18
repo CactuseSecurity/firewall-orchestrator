@@ -31,6 +31,7 @@ namespace FWO.Test
             public long? CompletedImportControlId { get; private set; }
 
             public FlowSyncManagementData ManagementData { get; set; } = new();
+            public Dictionary<int, FlowSyncManagementData> ManagementDataById { get; set; } = [];
             public List<ImportControl> PendingImports { get; set; } = [];
 
             public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
@@ -41,6 +42,12 @@ namespace FWO.Test
                 }
                 if (query == FlowQueries.getFlowSyncManagementData)
                 {
+                    int mgmId = GetVariable<int>(variables, "mgmId");
+                    if (ManagementDataById.TryGetValue(mgmId, out FlowSyncManagementData? managementData))
+                    {
+                        return Task.FromResult((T)(object)new List<FlowSyncManagementData> { managementData });
+                    }
+
                     return Task.FromResult((T)(object)new List<FlowSyncManagementData> { ManagementData });
                 }
                 if (query == FlowQueries.getFlowSyncNwObjects)
@@ -114,7 +121,8 @@ namespace FWO.Test
                         Hash = insert.AccessHash ?? "",
                         OwnerId = insert.OwnerId,
                         State = insert.State ?? "",
-                        RemovedDate = insert.RemovedDate
+                        RemovedDate = insert.RemovedDate,
+                        AllowsTraffic = insert.AllowsTraffic
                     })];
                     FlowAccesses.AddRange(inserted);
                     return Task.FromResult((T)(object)new FlowAccessInsertResult { Returning = inserted });
@@ -219,11 +227,47 @@ namespace FWO.Test
             Assert.That(apiConn.InsertedAccesses, Has.Count.EqualTo(1));
             Assert.That(apiConn.InsertedAccesses[0].OwnerId, Is.EqualTo(5));
             Assert.That(apiConn.InsertedAccesses[0].State, Is.EqualTo(FlowState.Implemented));
+            Assert.That(apiConn.InsertedAccesses[0].AllowsTraffic, Is.True);
             Assert.That(apiConn.NetworkObjectMappingUpdates, Has.Count.EqualTo(2));
             Assert.That(apiConn.ServiceObjectMappingUpdates, Has.Count.EqualTo(1));
             Assert.That(apiConn.RuleMappingUpdates, Has.Count.EqualTo(1));
             Assert.That(apiConn.RemovedMappingsCleared, Is.True);
             Assert.That(apiConn.CompletedImportControlId, Is.EqualTo(9));
+        }
+
+        [Test]
+        public async Task Run_CreatesBlockingFlowAccessForDenyRule()
+        {
+            NetworkObject source = CreateNetworkObject(1, "src", "10.0.0.1", "10.0.0.1");
+            NetworkObject destination = CreateNetworkObject(2, "dst", "10.0.1.1", "10.0.1.1");
+            NetworkService service = CreateService(3, "https", 6, 443, 443);
+            Rule rule = new()
+            {
+                Id = 4,
+                OwnerId = 5,
+                Action = "deny",
+                Froms = [new NetworkLocation(new NetworkUser(), source)],
+                Tos = [new NetworkLocation(new NetworkUser(), destination)],
+                Services = [new ServiceWrapper { Content = service }]
+            };
+            FlowSyncTestApiConn apiConn = new()
+            {
+                PendingImports = [new ImportControl { ControlId = 9, MgmId = 7 }],
+                ManagementData = new FlowSyncManagementData
+                {
+                    Id = 7,
+                    NetworkObjects = [source, destination],
+                    ServiceObjects = [service],
+                    Rules = [rule]
+                }
+            };
+            FlowSync flowSync = new(apiConn, new GlobalConfig());
+
+            bool result = await flowSync.Run();
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.InsertedAccesses, Has.Count.EqualTo(1));
+            Assert.That(apiConn.InsertedAccesses[0].AllowsTraffic, Is.False);
         }
 
         [Test]
@@ -302,6 +346,62 @@ namespace FWO.Test
             Assert.That(pendingInserts[hash].Name, Is.Null);
             Assert.That(mappings[hash].Select(mapping => mapping.Id), Is.EqualTo(new long[] { 1, 2 }));
             Assert.That(mappings[hash].Last().FlowActive, Is.False);
+        }
+
+        [Test]
+        public async Task Run_UsesSavedRankingToChooseNamingSourceManagement()
+        {
+            string sharedHash = FlowHashGenerator.GenerateNwObjectHash("10.0.0.1", "10.0.0.1");
+            NetworkObject firstManagementObject = CreateNetworkObject(1, "first-name", "10.0.0.1", "10.0.0.1");
+            NetworkObject secondManagementObject = CreateNetworkObject(2, "second-name", "10.0.0.1", "10.0.0.1");
+            FlowSyncTestApiConn apiConn = new()
+            {
+                PendingImports =
+                [
+                    new ImportControl { ControlId = 10, MgmId = 1 },
+                    new ImportControl { ControlId = 20, MgmId = 2 }
+                ],
+                ManagementDataById =
+                {
+                    [1] = new FlowSyncManagementData { Id = 1, NetworkObjects = [firstManagementObject] },
+                    [2] = new FlowSyncManagementData { Id = 2, NetworkObjects = [secondManagementObject] }
+                }
+            };
+            FlowSync flowSync = new(apiConn, new GlobalConfig { FlowNamingSourceManagementRanking = "[2,1]" });
+
+            bool result = await flowSync.Run();
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.InsertedNetworkObjects, Has.Count.EqualTo(1));
+            Assert.That(apiConn.InsertedNetworkObjects[0].NwObjHash, Is.EqualTo(sharedHash));
+            Assert.That(apiConn.InsertedNetworkObjects[0].Name, Is.EqualTo("second-name"));
+        }
+
+        [Test]
+        public async Task Run_DoesNotNameImportedObjectsWhenNoRankingIsSaved()
+        {
+            FlowSyncTestApiConn apiConn = new()
+            {
+                PendingImports =
+                [
+                    new ImportControl { ControlId = 10, MgmId = 1 }
+                ],
+                ManagementDataById =
+                {
+                    [1] = new FlowSyncManagementData
+                    {
+                        Id = 1,
+                        NetworkObjects = [CreateNetworkObject(1, "unnamed-source", "10.0.0.1", "10.0.0.1")]
+                    }
+                }
+            };
+            FlowSync flowSync = new(apiConn, new GlobalConfig { FlowNamingSourceManagementRanking = "[]" });
+
+            bool result = await flowSync.Run();
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.InsertedNetworkObjects, Has.Count.EqualTo(1));
+            Assert.That(apiConn.InsertedNetworkObjects[0].Name, Is.Null);
         }
 
         private static T InvokePrivateStatic<T>(string methodName, params object[] parameters)

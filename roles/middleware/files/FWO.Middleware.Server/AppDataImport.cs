@@ -17,7 +17,7 @@ namespace FWO.Middleware.Server
     /// <summary>
     /// Class handling the App Data Import
     /// </summary>
-    public class AppDataImport : DataImportBase
+    public class AppDataImport : DataImportBase, IDisposable
     {
         private List<ModellingImportAppData> ImportedApps = [];
         private List<FwoOwner> ExistingApps = [];
@@ -34,6 +34,7 @@ namespace FWO.Middleware.Server
         private bool hasImmediateAppDecommNotificationForImport;
         private ModellingNamingConvention NamingConvention = new();
         private UserConfig userConfig = new();
+        private bool disposed = false;
         private const string LogMessageTitle = "Import App Data";
         private const string LevelFile = "Import File";
         private const string LevelApp = "App";
@@ -46,13 +47,39 @@ namespace FWO.Middleware.Server
         { }
 
         /// <summary>
+        /// Dispose method to clean up resources.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Protected dispose method.
+        /// </summary>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposed)
+            {
+                if (disposing)
+                {
+                    userConfig.Dispose();
+                }
+                disposed = true;
+            }
+        }
+
+        /// <summary>
         /// Run the App Data Import
         /// </summary>
         public async Task<List<string>> Run()
         {
+            ObjectDisposedException.ThrowIf(disposed, this);
             NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(globalConfig.ModNamingConvention) ?? new();
             List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportAppDataPath) ?? throw new JsonException("Config Data could not be deserialized.");
-            userConfig = new(globalConfig);
+            userConfig.Dispose();
+            userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
             userConfig.User.Name = Roles.MiddlewareServer;
             userConfig.AutoReplaceAppServer = globalConfig.AutoReplaceAppServer;
             await InitLdap();
@@ -1279,6 +1306,8 @@ namespace FWO.Middleware.Server
 
         private async Task InitRecert(ModellingImportAppData incomingApp, int appId)
         {
+            Log.WriteDebug(LogMessageTitle,
+                $"Initial owner recert check for app id={appId}, extAppId=\"{incomingApp.ExtAppId}\", recertActive={incomingApp.RecertActive}, recertificationMode={userConfig.RecertificationMode}.");
             if (userConfig.RecertificationMode == RecertificationMode.OwnersAndRules && incomingApp.RecertActive)
             {
                 RecertHandler recertHandler = new(apiConnection, userConfig);
@@ -1287,6 +1316,11 @@ namespace FWO.Middleware.Server
                     Id = appId,
                     RecertInterval = incomingApp.RecertInterval
                 });
+            }
+            else
+            {
+                Log.WriteDebug(LogMessageTitle,
+                    $"Initial owner recert skipped for app id={appId}, extAppId=\"{incomingApp.ExtAppId}\".");
             }
         }
 

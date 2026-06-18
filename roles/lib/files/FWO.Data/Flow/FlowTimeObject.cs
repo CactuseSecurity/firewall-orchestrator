@@ -31,6 +31,19 @@ namespace FWO.Data.Flow
 
         [JsonProperty("time_objects"), JsonPropertyName("time_objects")]
         public List<TimeObject>? TimeObjects { get; set; }
+
+        public string? TryCalculateHash()
+        {
+            try
+            {
+                return FlowHashGenerator.GenerateTimeObjectHash(StartTime, EndTime);
+            }
+            catch (ArgumentException)
+            {
+                // Cannot generate deterministic hash for this object (e.g. custom time object without defined start/end times)
+                return null;
+            }
+        }
     }
 
     public class FlowTimeObjectInsertResult

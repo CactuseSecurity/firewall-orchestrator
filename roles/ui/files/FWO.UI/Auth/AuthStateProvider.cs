@@ -222,11 +222,16 @@ namespace FWO.Ui.Auth
             user = new ClaimsPrincipal(identity);
 
             string userDn = user.FindFirstValue("x-hasura-uuid") ?? "";
-
-            await userConfig.SetUserInformation(userDn, apiConnection);
+            string defaultRole = user.FindFirstValue("x-hasura-default-role") ?? "";
 
             userConfig.User.Jwt = jwtString;
-            userConfig.User.Tenant = await GetTenantFromJwt(userConfig.User.Jwt, apiConnection);
+            await apiConnection.RunWithRole(defaultRole, async () =>
+            {
+                await userConfig.SetUserInformation(userDn, apiConnection);
+                userConfig.User.Tenant = await GetTenantFromJwt(jwtString, apiConnection);
+            });
+
+            userConfig.User.Jwt = jwtString;
             userConfig.User.Roles = await GetAllowedRoles(userConfig.User.Jwt);
             userConfig.User.Ownerships = await GetAssignedOwners(userConfig.User.Jwt);
             userConfig.User.RecertOwnerships = await GetRecertifiableOwners(userConfig.User.Jwt);

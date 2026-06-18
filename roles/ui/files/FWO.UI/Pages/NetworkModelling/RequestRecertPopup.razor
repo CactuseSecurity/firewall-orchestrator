@@ -242,7 +242,9 @@
             AnalyseRemainingRules = userConfig.ModRecertExpectAllModelled,
             RulesForDeletedConns = true
         };
-        VarianceResult = await varianceAnalysis.AnalyseRulesVsModelledConnections(ModelledConnections, modellingFilter, true, true);
+        ModellingVarianceResult varianceResult = await varianceAnalysis.AnalyseRulesVsModelledConnections(ModelledConnections, modellingFilter, true, true);
+        (bool appZoneModelled, List<ModellingAppZone?> mgmIdsWithDifferingAZ) = await varianceAnalysis.CheckExistingAppZone();
+        (VarianceResult, AppZoneModelled, MgmIdsWithDifferingAZ) = (varianceResult, appZoneModelled, mgmIdsWithDifferingAZ);
         RulesFromDeletedConns = [];
         foreach(var mgt in VarianceResult.DeletedModelsRules.Keys)
         {
@@ -253,7 +255,6 @@
         {
             UnmodelledRules.AddRange(VarianceResult.UnModelledRules[mgt]);
         }
-        (AppZoneModelled, MgmIdsWithDifferingAZ) = await varianceAnalysis.CheckExistingAppZone();
 
         return MissingAppRoles.Count == 0 && DifferingAppRoles.Count == 0 && RulesFromDeletedConns.Count == 0 && UnmodelledRules.Count == 0
             && VarianceResult.ConnsNotImplemented.Count == 0 && VarianceResult.RuleDifferences.Count == 0
@@ -274,7 +275,7 @@
         WorkInProgress = true;
         try
         {
-            await DoRecertification();
+            await apiConnection.RunWithRecertificationRole(authenticationStateTask!.Result.User, DoRecertification);
             Close();
         }
         catch (Exception exception)

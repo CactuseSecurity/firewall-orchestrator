@@ -199,12 +199,41 @@ def login(page: Page, base_url: str, credentials: Credentials) -> None:
     username_input.fill(username)
     password_input.fill(password)
     submit_button.click()
-    expect(username_input).to_have_count(0, timeout=30_000)
+    try:
+        expect(username_input).to_have_count(0, timeout=30_000)
+    except AssertionError as assertion_error:
+        fail_with_login_diagnostics(page, username, login_url, login_response, assertion_error)
     if login_response is not None:
         login_status: int = login_response.status
         if login_status >= 400:
             pytest.fail(f"Login page returned HTTP {login_status}: {login_url}")
     wait_for_ui_to_settle(page)
+
+
+def fail_with_login_diagnostics(
+    page: Page,
+    username: str,
+    login_url: str,
+    login_response: Response | None,
+    assertion_error: AssertionError,
+) -> None:
+    login_status: str = "no response"
+    if login_response is not None:
+        login_status = str(login_response.status)
+    body_text: str = page.locator("body").inner_text(timeout=5_000)
+    visible_lines: list[str] = []
+    for line in body_text.splitlines():
+        visible_line: str = line.strip()
+        if visible_line:
+            visible_lines.append(visible_line)
+    visible_text: str = "\n".join(visible_lines)
+    pytest.fail(
+        "Login form was still visible after submitting credentials for "
+        f"{username} at {login_url}. Current URL: {page.url}. "
+        f"Login page status: {login_status}.\n"
+        f"Visible page text:\n{visible_text}\n"
+        f"Original assertion: {assertion_error}"
+    )
 
 
 def go_to_route(page: Page, base_url: str, route: str) -> None:

@@ -1,12 +1,13 @@
 # Browser smoke test for UI ambient role coverage.
-# Enable with run_ui_ambient_role_smoke=true after installing the requirements
-# from files/ui/ambient_role_smoke/requirements.txt and the Chromium browser.
+# Enable with run_ui_ambient_role_smoke=true.
 
 - block:
 
   - name: set ambient role smoke test directory
     set_fact:
       ui_ambient_role_smoke_dir: "/tmp/fworch-ambient-role-smoke"
+      ui_ambient_role_smoke_venv: "/tmp/fworch-ambient-role-smoke/venv"
+      ui_ambient_role_smoke_browser_dir: "/tmp/fworch-ambient-role-smoke/ms-playwright"
 
   - name: copy ambient role smoke tests
     copy:
@@ -14,24 +15,36 @@
       dest: "{{ ui_ambient_role_smoke_dir }}/"
       mode: "0644"
 
-  - name: check ambient role smoke test dependencies
-    command: python3 -c "import pytest, playwright.sync_api"
-    register: ui_ambient_role_smoke_deps
-    changed_when: false
-    failed_when: false
+  - name: install ambient role smoke virtualenv package
+    package:
+      name: python3-venv
+      state: present
+    become: true
+    environment: "{{ proxy_env }}"
 
-  - name: fail when ambient role smoke dependencies are missing
-    fail:
-      msg: >
-        UI ambient role smoke tests require pytest, playwright, and a Playwright
-        Chromium browser. Install {{ ui_ambient_role_smoke_dir }}/requirements.txt
-        and run 'python3 -m playwright install chromium' on the frontend host.
-    when: ui_ambient_role_smoke_deps.rc != 0
+  - name: install ambient role smoke python requirements
+    pip:
+      requirements: "{{ ui_ambient_role_smoke_dir }}/requirements.txt"
+      virtualenv: "{{ ui_ambient_role_smoke_venv }}"
+      virtualenv_command: python3 -m venv
+    environment: "{{ proxy_env }}"
+
+  - name: install ambient role smoke browser dependencies
+    command: "{{ ui_ambient_role_smoke_venv }}/bin/python -m playwright install-deps chromium"
+    become: true
+    changed_when: false
+    environment: "{{ proxy_env }}"
+
+  - name: install ambient role smoke chromium browser
+    command: "{{ ui_ambient_role_smoke_venv }}/bin/python -m playwright install chromium"
+    changed_when: false
+    environment: "{{ proxy_env | combine({'PLAYWRIGHT_BROWSERS_PATH': ui_ambient_role_smoke_browser_dir}) }}"
 
   - name: run ambient role smoke tests
-    command: "python3 -m pytest -q {{ ui_ambient_role_smoke_dir }}"
+    command: "{{ ui_ambient_role_smoke_venv }}/bin/python -m pytest -q {{ ui_ambient_role_smoke_dir }}"
     changed_when: false
     environment:
+      PLAYWRIGHT_BROWSERS_PATH: "{{ ui_ambient_role_smoke_browser_dir }}"
       FWO_UI_BASE_URL: "https://{{ ui_hostname }}/"
       FWO_UI_USERNAME: "{{ ui_ambient_role_smoke_username | default('user1' ~ test_postfix) }}"
       FWO_UI_PASSWORD: "{{ ui_ambient_role_smoke_password | default(test_user1_pw) }}"

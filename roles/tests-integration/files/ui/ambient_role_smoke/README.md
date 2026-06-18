@@ -3,7 +3,17 @@
 These tests exercise the Blazor UI with a multi-role user and fail when a routed
 page issues GraphQL calls without an explicit or ambient role.
 
-Run them against an installed FWO instance:
+Run them against an installed FWO instance through Ansible:
+
+```bash
+scripts/run-ui-ambient-role-smoke.sh
+```
+
+The Ansible task creates a temporary virtualenv under
+`/tmp/fworch-ambient-role-smoke`, installs `requirements.txt`, installs
+Playwright Chromium, and runs pytest from that virtualenv.
+
+For direct local pytest runs without Ansible:
 
 ```bash
 python3 -m venv /tmp/fwo-ui-smoke

@@ -457,6 +457,6 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 - Remaining hardcoded strings on the scheduler monitoring page were moved into the localization texts.
 - The shared confirm dialogs now raise DisplayChanged(false) after a successful action, so the parent's bound visibility state no longer remains stale.
 
-# 9.1.8 - 09.06.2026 DEVELOP
+# 9.1.9 - 18.06.2026 DEVELOP
 - change internal logic to handle src/dst zones as security-relevant
 - backfill existing rule source and destination zone text fields from rule zone links

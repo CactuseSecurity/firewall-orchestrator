@@ -10,8 +10,9 @@ scripts/run-ui-ambient-role-smoke.sh
 ```
 
 The Ansible task creates a temporary virtualenv under
-`/tmp/fworch-ambient-role-smoke`, installs `requirements.txt`, installs
-Playwright Chromium, and runs pytest from that virtualenv.
+`/tmp/fworch-ambient-role-smoke`, installs `requirements.txt`, and runs pytest
+from that virtualenv with the Chrome executable installed by FWO for PDF
+export.
 
 For direct local pytest runs without Ansible:
 
@@ -31,6 +32,8 @@ Optional environment variables:
 - `FWO_UI_HEADLESS`: set to `false` to show the browser.
 - `FWO_UI_IGNORE_HTTPS_ERRORS`: defaults to `true` for test installations.
 - `FWO_UI_TIMEOUT_MS`: Playwright timeout in milliseconds.
+- `FWO_UI_BROWSER_EXECUTABLE`: browser path for Playwright; Ansible sets this
+  to `/usr/local/fworch/bin/chrome`.
 
 The default route set expects a user that can access reporting, modelling,
 recertification, workflow, monitoring, compliance, network analysis, and personal

@@ -146,9 +146,13 @@ def routes() -> list[str]:
 def browser() -> Generator[Browser, None, None]:
     headless_value: str = os.environ.get("FWO_UI_HEADLESS", "true")
     headless: bool = headless_value.lower() != "false"
+    executable_path: str = os.environ.get("FWO_UI_BROWSER_EXECUTABLE", "").strip()
     with sync_playwright() as playwright_context:
         active_playwright: Playwright = playwright_context
-        browser_instance: Browser = active_playwright.chromium.launch(headless=headless)
+        browser_instance: Browser = active_playwright.chromium.launch(
+            executable_path=executable_path or None,
+            headless=headless,
+        )
         try:
             yield browser_instance
         finally:

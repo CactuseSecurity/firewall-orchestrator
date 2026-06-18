@@ -7,7 +7,7 @@
     set_fact:
       ui_ambient_role_smoke_dir: "/tmp/fworch-ambient-role-smoke"
       ui_ambient_role_smoke_venv: "/tmp/fworch-ambient-role-smoke/venv"
-      ui_ambient_role_smoke_browser_dir: "/tmp/fworch-ambient-role-smoke/ms-playwright"
+      ui_ambient_role_smoke_browser_executable: "{{ fworch_home }}/bin/chrome"
 
   - name: copy ambient role smoke tests
     copy:
@@ -29,22 +29,24 @@
       virtualenv_command: python3 -m venv
     environment: "{{ proxy_env }}"
 
-  - name: install ambient role smoke browser dependencies
-    command: "{{ ui_ambient_role_smoke_venv }}/bin/python -m playwright install-deps chromium"
-    become: true
-    changed_when: false
-    environment: "{{ proxy_env }}"
+  - name: check ambient role smoke browser executable
+    stat:
+      path: "{{ ui_ambient_role_smoke_browser_executable }}"
+    register: ui_ambient_role_smoke_browser
 
-  - name: install ambient role smoke chromium browser
-    command: "{{ ui_ambient_role_smoke_venv }}/bin/python -m playwright install chromium"
-    changed_when: false
-    environment: "{{ proxy_env | combine({'PLAYWRIGHT_BROWSERS_PATH': ui_ambient_role_smoke_browser_dir}) }}"
+  - name: fail when ambient role smoke browser executable is missing
+    fail:
+      msg: >
+        UI ambient role smoke tests require the Chrome executable installed by
+        the lib role at {{ ui_ambient_role_smoke_browser_executable }}.
+        Run the frontend/lib installation before running this smoke test.
+    when: not ui_ambient_role_smoke_browser.stat.exists
 
   - name: run ambient role smoke tests
     command: "{{ ui_ambient_role_smoke_venv }}/bin/python -m pytest -q {{ ui_ambient_role_smoke_dir }}"
     changed_when: false
     environment:
-      PLAYWRIGHT_BROWSERS_PATH: "{{ ui_ambient_role_smoke_browser_dir }}"
+      FWO_UI_BROWSER_EXECUTABLE: "{{ ui_ambient_role_smoke_browser_executable }}"
       FWO_UI_BASE_URL: "https://{{ ui_hostname }}/"
       FWO_UI_USERNAME: "{{ ui_ambient_role_smoke_username | default('user1' ~ test_postfix) }}"
       FWO_UI_PASSWORD: "{{ ui_ambient_role_smoke_password | default(test_user1_pw) }}"

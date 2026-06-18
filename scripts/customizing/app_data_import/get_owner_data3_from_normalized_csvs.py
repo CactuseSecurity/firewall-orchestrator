@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # revision history:
-__version__ = "2026-04-07-01"
+__version__ = "2026-06-16-01"
 
 # breaking change: /usr/local/fworch needs to be in the python path
 # just add "export PYTHONPATH="$PYTHONPATH:/usr/local/fworch/"" to /etc/environment
@@ -23,6 +23,8 @@ __version__ = "2026-04-07-01"
 #   - generalizing fallback responsible pattern to grouped add_users_by_pattern entries
 # 2026-04-07-01:
 #   - adding optional additional_information import from configured owner CSV columns
+# 2026-06-16-01:
+#   - always adding Isolated additional_information as Ja/Nein when isolation completion data is configured
 
 # reads the main app data from multiple csv files contained in a git repo
 # users will reside in external ldap groups with standardized names

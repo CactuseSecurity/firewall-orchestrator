@@ -107,9 +107,6 @@
 @code
 {
     [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
-
-    [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private bool editMode = false;
@@ -136,9 +133,6 @@
                 return;
             }
 
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User,
-                [ Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter,
-                Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Auditor ]);
             matrices = await apiConnection.SendQueryAsync<List<ComplianceCriterion>>(ComplianceQueries.getMatrices);
             await InitMatrix();
         }

@@ -1193,6 +1193,7 @@
                     "columns": [
                       "access_id",
                       "access_hash",
+                      "allows_traffic",
                       "state",
                       "owner_id",
                       "requester_id",
@@ -1209,6 +1210,7 @@
                     "columns": [
                       "access_id",
                       "access_hash",
+                      "allows_traffic",
                       "state",
                       "owner_id",
                       "requester_id",
@@ -1224,6 +1226,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "allows_traffic",
                       "owner_id",
                       "removed_date",
                       "requester_id",

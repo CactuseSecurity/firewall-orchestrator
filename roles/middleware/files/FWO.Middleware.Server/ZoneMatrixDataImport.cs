@@ -27,15 +27,42 @@ namespace FWO.Middleware.Server
         private const string LevelZone = "Zone";
         private struct Counters
         {
+            /// <summary>
+            /// Gets the AllZones value.
+            /// </summary>
             public int AllZones = 0;
+            /// <summary>
+            /// Gets the NewZoneSuccess value.
+            /// </summary>
             public int NewZoneSuccess = 0;
+            /// <summary>
+            /// Gets the UpdateZoneSuccess value.
+            /// </summary>
             public int UpdateZoneSuccess = 0;
+            /// <summary>
+            /// Gets the ZoneFail value.
+            /// </summary>
             public int ZoneFail = 0;
+            /// <summary>
+            /// Gets the DeleteZoneSuccess value.
+            /// </summary>
             public int DeleteZoneSuccess = 0;
+            /// <summary>
+            /// Gets the DeleteZoneFail value.
+            /// </summary>
             public int DeleteZoneFail = 0;
+            /// <summary>
+            /// Gets the InsertConnection value.
+            /// </summary>
             public int InsertConnection = 0;
+            /// <summary>
+            /// Gets the RemoveConnection value.
+            /// </summary>
             public int RemoveConnection = 0;
 
+            /// <summary>
+            /// Initializes a new instance of the type.
+            /// </summary>
             public Counters() { }
         }
         Counters counters = new();

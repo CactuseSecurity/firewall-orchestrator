@@ -1,6 +1,75 @@
-ALTER TABLE request.ticket ADD COLUMN IF NOT EXISTS locked boolean NOT NULL DEFAULT FALSE;
-ALTER TABLE request.reqtask ADD COLUMN IF NOT EXISTS locked boolean NOT NULL DEFAULT FALSE;
+DO
+$$
+BEGIN
+    IF EXISTS
+    (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'flow'
+            AND table_name = 'nwobject'
+            AND column_name = 'ip_start'
+            AND udt_name = 'inet'
+    ) THEN
+        ALTER TABLE flow.nwobject
+            ALTER COLUMN ip_start TYPE cidr
+            USING ip_start::cidr;
+    END IF;
 
-insert into config (config_key, config_value, config_user) VALUES ('reqFlowIntegration', '{"select_objects":"both","select_services":"both","select_time_objects":"both","time_object_precision":"seconds"}', 0) ON CONFLICT DO NOTHING;
-delete from config where config_key = 'reqAllowObjectSearch';
-insert into config (config_key, config_value, config_user) VALUES ('reqConsiderBundling', 'False', 0) ON CONFLICT DO NOTHING;
+    IF EXISTS
+    (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'flow'
+            AND table_name = 'nwobject'
+            AND column_name = 'ip_end'
+            AND udt_name = 'inet'
+    ) THEN
+        ALTER TABLE flow.nwobject
+            ALTER COLUMN ip_end TYPE cidr
+            USING ip_end::cidr;
+    END IF;
+END;
+$$;
+
+ALTER TABLE flow.access
+    ADD COLUMN IF NOT EXISTS allows_traffic boolean NOT NULL DEFAULT TRUE;
+
+-- ! RESET flow data ! --
+UPDATE import_control
+SET flow_sync_done = FALSE
+WHERE flow_sync_done = TRUE;
+
+UPDATE rule
+SET flow_access_id = NULL
+WHERE flow_access_id IS NOT NULL;
+
+UPDATE object
+SET flow_nwgrp_id = NULL,
+    flow_nwobj_id = NULL,
+    flow_active = FALSE
+WHERE flow_nwgrp_id IS NOT NULL
+    OR flow_nwobj_id IS NOT NULL
+    OR flow_active = TRUE;
+
+UPDATE service
+SET flow_svcgrp_id = NULL,
+    flow_svcobj_id = NULL,
+    flow_active = FALSE
+WHERE flow_svcgrp_id IS NOT NULL
+    OR flow_svcobj_id IS NOT NULL
+    OR flow_active = TRUE;
+
+UPDATE time_object
+SET flow_timeobj_id = NULL,
+    flow_active = FALSE
+WHERE flow_timeobj_id IS NOT NULL
+    OR flow_active = TRUE;
+
+-- Intentional full reset of flow data during upgrade 9.1.8.
+-- Flow tables are repopulated by the next flow sync.
+DELETE FROM flow.access;
+DELETE FROM flow.nwobject;
+DELETE FROM flow.nwgroup;
+DELETE FROM flow.svcobject;
+DELETE FROM flow.svcgroup;
+DELETE FROM flow.timeobject;

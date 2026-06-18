@@ -161,6 +161,9 @@ namespace FWO.Data.Flow
         [JsonProperty("removed_date"), JsonPropertyName("removed_date")]
         public DateTime? RemovedDate { get; set; }
 
+        [JsonProperty("allows_traffic"), JsonPropertyName("allows_traffic")]
+        public bool AllowsTraffic { get; set; } = true;
+
         [JsonProperty("access_sources"), JsonPropertyName("access_sources")]
         public FlowAccessInsertMembersContainer? AccessSources { get; set; }
 
@@ -253,6 +256,7 @@ namespace FWO.Data.Flow
         public readonly Dictionary<long, FlowSvcObject> SvcObjectsById = [];
         public readonly Dictionary<long, FlowSvcGroup> SvcGroupsById = [];
         public readonly Dictionary<int, string> ProtocolNamesById = [];
+        public readonly Dictionary<long, FlowTimeObject> TimeObjectsById = [];
 
         public Dictionary<long, string> NwObjectHashes { get; private set; } = [];
         public Dictionary<long, string> SvcObjectHashes { get; private set; } = [];
@@ -273,6 +277,7 @@ namespace FWO.Data.Flow
             SvcObjectsById = svcObjects.ToDictionary(flowObject => flowObject.Id);
             SvcGroupsById = svcGroups.ToDictionary(group => group.Id);
             ProtocolNamesById = (ipProtocols ?? []).Where(protocol => !string.IsNullOrWhiteSpace(protocol.Name)).ToDictionary(protocol => protocol.Id, protocol => protocol.Name);
+            TimeObjectsById = timeObjects.ToDictionary(timeObject => timeObject.Id);
 
             NwObjectHashes = nwObjects.SelectMany(fo => (fo.Objects ?? Enumerable.Empty<NetworkObject>())
                     .Select(o => new { o.Id, ParentHash = fo.Hash }))
@@ -286,6 +291,20 @@ namespace FWO.Data.Flow
             AccessHashes = accesses.SelectMany(fa => (fa.Rules ?? Enumerable.Empty<Rule>())
                     .Select(r => new { r.Id, ParentHash = fa.Hash }))
                 .ToDictionary(x => x.Id, x => x.ParentHash);
+
+            // link group members to actual detailed objects from corresponding object lists
+            nwGroups.ForEach(g => g.NwGroupMembers.ForEach(m => m.NwObject = NwObjectsById[m.NwObjectId]));
+            svcGroups.ForEach(g => g.SvcGroupMembers.ForEach(m => m.SvcObject = SvcObjectsById[m.SvcObjectId]));
+            accesses.ForEach(a =>
+            {
+                a.Sources?.ForEach(s => s.NwObject = NwObjectsById[s.NwObjectId]);
+                a.SourceGroups?.ForEach(sg => sg.NwGroup = NwGroupsById[sg.NwGroupId]);
+                a.Destinations?.ForEach(d => d.NwObject = NwObjectsById[d.NwObjectId]);
+                a.DestinationGroups?.ForEach(dg => dg.NwGroup = NwGroupsById[dg.NwGroupId]);
+                a.Services?.ForEach(s => s.SvcObject = SvcObjectsById[s.SvcObjectId]);
+                a.ServiceGroups?.ForEach(sg => sg.SvcGroup = SvcGroupsById[sg.SvcGroupId]);
+                a.TimeObjects?.ForEach(to => to.TimeObject = TimeObjectsById[to.TimeObjectId]);
+            });
         }
 
         public void Add(FlowNwObject flowObject)
@@ -320,6 +339,24 @@ namespace FWO.Data.Flow
         public void Add(FlowAccess access)
         {
             Accesses[access.Hash] = access;
+        }
+
+        /// <summary>
+        /// Checks if there are any inconsistencies between the stored hashes and the hashes calculated from the
+        /// current state of the objects using the current hash calculation logic.
+        /// Network objects, service objects and time objects where the hash cannot be calculated automatically
+        /// (manually created flow objects) are excluded from this check. For groups and accesses, all base
+        /// objects contained within the group/access are expected to have valid hashes.
+        /// </summary>
+        /// <returns></returns>
+        public bool HasHashInconsistencies()
+        {
+            return NwObjects.Values.Any(fo => fo.TryCalculateHash() is string h && h != fo.Hash)
+                || SvcObjects.Values.Any(fs => fs.TryCalculateHash() is string h && h != fs.Hash)
+                || TimeObjects.Values.Any(fto => fto.TryCalculateHash() is string h && h != fto.Hash)
+                || NwGroups.Values.Any(g => g.TryCalculateHash() != g.Hash)
+                || SvcGroups.Values.Any(g => g.TryCalculateHash() != g.Hash)
+                || Accesses.Values.Any(fa => fa.TryCalculateHash() != fa.Hash);
         }
     }
 }

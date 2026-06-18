@@ -103,9 +103,6 @@
 @code
 {
     [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
-
-    [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private int PageSize { get; set; }
@@ -137,7 +134,6 @@
         {
             if (userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
             {
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.Auditor]);
                 managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
                 await RefreshAlerts();
             }
@@ -285,7 +281,6 @@
         // Todo: refresh necessary?
         if (userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.Auditor]);
             managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
         }
 

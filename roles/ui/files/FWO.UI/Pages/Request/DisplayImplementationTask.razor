@@ -330,9 +330,6 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
     
-    [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
-
     [Parameter]
     public WorkflowPhases Phase { get; set; } = WorkflowPhases.planning;
 

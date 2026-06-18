@@ -34,6 +34,19 @@ namespace FWO.Data.Flow
 
         [JsonProperty("services"), JsonPropertyName("services")]
         public List<NetworkService>? Services { get; set; }
+
+        public string? TryCalculateHash()
+        {
+            try
+            {
+                return FlowHashGenerator.GenerateSvcObjectHash(ProtoId, PortStart, PortEnd);
+            }
+            catch (ArgumentException)
+            {
+                // Cannot generate deterministic hash for this object (e.g. protocol-only object)
+                return null;
+            }
+        }
     }
 
     public class FlowSvcObjectInsertResult

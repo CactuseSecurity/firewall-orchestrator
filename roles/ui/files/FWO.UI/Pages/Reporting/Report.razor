@@ -378,7 +378,7 @@
                 InitDone = true;
                 return;
             }
-            SetProperRoleForReport();
+            apiConnection.SetBestRoleForReport(authenticationStateTask!.Result.User, actReportFilters.ReportType);
             actReportFilters.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
             if(parsedAppId != null && reportVisibility.ModellingRelated)
             {
@@ -420,7 +420,7 @@
             UpdateRightSidebarVisibility(newReportType);
 
             actReportFilters.ReportType = newReportType;
-            SetProperRoleForReport();
+            apiConnection.SetBestRoleForReport(authenticationStateTask!.Result.User, actReportFilters.ReportType);
             actReportFilters.SetDisplayedTimeSelection();
             AdjustDeviceSelection();
             ResetReport();
@@ -441,29 +441,6 @@
         if(index > 0)
         {
             NavigationManager.NavigateTo(NavigationManager.Uri.Substring(0, index + PageName.ReportGeneration.Length));
-        }
-    }
-
-    private void SetProperRoleForReport()
-    {
-        ReportType reportType = actReportFilters.ReportType;
-        if(reportType == ReportType.Owners || reportType.IsComplianceReport())
-        {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.Auditor]);
-        }
-        else if(reportType.IsModellingReport())
-        {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.Modeller, Roles.Recertifier, Roles.Auditor]);
-        }
-        else if(reportType.IsWorkflowReport())
-        {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.Auditor, Roles.Requester,
-                Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer]);
-        }
-        else if(reportType.IsDeviceRelatedReport())
-        {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter,
-                Roles.Recertifier, Roles.Auditor]);
         }
     }
 
@@ -603,7 +580,7 @@
         try
         {
             processing = true;
-            SetProperRoleForReport();
+            apiConnection.SetBestRoleForReport(authenticationStateTask!.Result.User, actReportFilters.ReportType);
             await PrepareReportGeneration();
             ReportTemplate temp = ConstructReportTemplate();
             

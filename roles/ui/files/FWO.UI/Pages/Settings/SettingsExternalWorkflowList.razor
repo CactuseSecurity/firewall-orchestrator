@@ -11,11 +11,11 @@
 
 @if (InitComplete && configData != null)
 {
-        <div class="input-group">
-            <h3>@(userConfig.GetText("ext_ticket_templates"))</h3>
-            <HelpLink Page="settings/exttickettemplates" />
-        </div>
-        @(userConfig.GetText("H5598"))
+    <div class="input-group">
+        <h3>@(userConfig.GetText("ext_ticket_templates"))</h3>
+        <HelpLink Page="settings/exttickettemplates" />
+    </div>
+    @(userConfig.GetText("H5598"))
     <hr />
     <div class="row">
         <div class="col-sm-12">
@@ -79,6 +79,11 @@
                 </Column>
                 <Column TableItem="ExternalTicketSystem" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
                 <Column TableItem="ExternalTicketSystem" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+                <Column TableItem="ExternalTicketSystem" Title="@(userConfig.GetText("ext_ticket_system_type"))" Field="@(x => x.TypeId)" Sortable="true" Filterable="true">
+                    <Template Context="item">
+                        @FormatExternalTicketSystemType(item)
+                    </Template>
+                </Column>
             </Table>
         </div>
     </div>
@@ -183,7 +188,7 @@
 
     </PopUp>
 
-<ConfirmDelete @bind-Display="DeleteExternalTicketSystemMode" PerformAction="DeleteExternalTicketSystem" Title="@userConfig.GetText("delete_ext_ticket_system")" DeleteMessage="@(userConfig.GetText("delete_ext_ticket_system_confirm") + " " + externalTicketSystemToDelete.Name + "?")" />
+    <ConfirmDelete @bind-Display="DeleteExternalTicketSystemMode" PerformAction="DeleteExternalTicketSystem" Title="@userConfig.GetText("delete_ext_ticket_system")" DeleteMessage="@(userConfig.GetText("delete_ext_ticket_system_confirm") + " " + externalTicketSystemToDelete.Name + "?")" />
 }
 else
 {
@@ -514,6 +519,14 @@ else
                 Name = typeId.ToString(),
                 IsBuiltIn = false
             };
+    }
+
+    private string FormatExternalTicketSystemType(ExternalTicketSystem system)
+    {
+        ExternalTicketSystemTypeDefinition type = ResolveSelectedType(system.TypeId);
+        return string.IsNullOrWhiteSpace(type.Version)
+            ? type.Name
+           : $"{type.Name} {type.Version}";
     }
 
     private List<string> AvailableTaskTypesForNewTemplate =>

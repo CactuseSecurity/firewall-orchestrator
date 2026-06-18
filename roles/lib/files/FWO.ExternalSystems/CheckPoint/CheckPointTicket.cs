@@ -1,10 +1,12 @@
 using FWO.Basics;
+using FWO.Basics.Comparer;
 using FWO.Basics.Exceptions;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.ExternalSystems.Tufin.SecureChange;
 using FWO.Logging;
+using NetTools;
 using RestSharp;
 using System.Net;
 using System.Text.Json;
@@ -163,8 +165,8 @@ namespace FWO.ExternalSystems.CheckPoint
                 ObjectType.Network => new JsonObject
                 {
                     ["name"] = request.Name,
-                    ["subnet4"] = request.Subnet,
-                    ["mask-length4"] = request.MaskLength
+                    ["subnet"] = request.Subnet,
+                    ["mask-length"] = request.MaskLength
                 },
 
                 ObjectType.IPRange => new JsonObject
@@ -250,14 +252,14 @@ namespace FWO.ExternalSystems.CheckPoint
 
         public override async Task<RestResponse<int>> CreateExternalTicket()
         {
-            checkPointClient ??= new CheckPointClient(
-                TicketSystem,
-                OnManagement ?? throw new ProcessingFailedException("No management context available for Check Point request."));
+            checkPointClient ??= new CheckPointClient(TicketSystem, OnManagement ?? throw new ProcessingFailedException("No management context available for Check Point request."));
 
             try
             {
                 EnsureExecutionPlanLoaded();
-                return await ExecuteAllSteps();
+                RestResponse<int> response = await ExecuteAllSteps();
+                TicketId = checkPointClient.CurrentSessionId;
+                return response;
             }
             finally
             {
@@ -310,11 +312,6 @@ namespace FWO.ExternalSystems.CheckPoint
 
             return lastResponse ?? throw new ProcessingFailedException("No response received from CheckPoint.");
         }
-
-
-
-
-
 
         private string SerializeExecutionPlan()
         {
@@ -853,20 +850,29 @@ namespace FWO.ExternalSystems.CheckPoint
                 return false;
             }
 
-            if (!existing.Value.TryGetProperty("ipv4-address", out JsonElement ipElement))
+            string? existingIp = TryGetString(existing.Value, "ipv4-address")
+                ?? TryGetString(existing.Value, "ipv6-address");
+
+            if (string.IsNullOrWhiteSpace(existingIp))
             {
                 return false;
             }
 
-            string? existingIp = ipElement.GetString();
-            return string.Equals(existingIp, requestedIp, StringComparison.OrdinalIgnoreCase);
+            if (!IPAddress.TryParse(requestedIp.StripOffNetmask(), out IPAddress? requestedAddress) ||
+                !IPAddress.TryParse(existingIp.StripOffNetmask(), out IPAddress? existingAddress))
+            {
+                return false;
+            }
+
+            IPAdressComparer comparer = new();
+            return comparer.Compare(existingAddress, requestedAddress) == 0;
         }
 
         private async Task<bool> ExistingAddressRangeMatches(RenderedTask task)
         {
             string? name = task.Body?["name"]?.GetValue<string>();
-            string? requestedFirst = task.Body?["ipv4-address-first"]?.GetValue<string>();
-            string? requestedLast = task.Body?["ipv4-address-last"]?.GetValue<string>();
+            string? requestedFirst = task.Body?["ip-address-first"]?.GetValue<string>();
+            string? requestedLast = task.Body?["ip-address-last"]?.GetValue<string>();
 
             if (string.IsNullOrWhiteSpace(name) ||
                 string.IsNullOrWhiteSpace(requestedFirst) ||
@@ -881,25 +887,48 @@ namespace FWO.ExternalSystems.CheckPoint
                 return false;
             }
 
-            string? existingFirst = existing.Value.TryGetProperty("ipv4-address-first", out JsonElement firstElement)
-                ? firstElement.GetString()
-                : null;
-            string? existingLast = existing.Value.TryGetProperty("ipv4-address-last", out JsonElement lastElement)
-                ? lastElement.GetString()
-                : null;
+            string? existingFirst = TryGetString(existing.Value, "ipv4-address-first")
+                ?? TryGetString(existing.Value, "ipv6-address-first")
+                ?? TryGetString(existing.Value, "ip-address-first");
 
-            return string.Equals(existingFirst, requestedFirst, StringComparison.OrdinalIgnoreCase) &&
-                   string.Equals(existingLast, requestedLast, StringComparison.OrdinalIgnoreCase);
+            string? existingLast = TryGetString(existing.Value, "ipv4-address-last")
+                ?? TryGetString(existing.Value, "ipv6-address-last")
+                ?? TryGetString(existing.Value, "ip-address-last");
+
+            if (string.IsNullOrWhiteSpace(existingFirst) || string.IsNullOrWhiteSpace(existingLast))
+            {
+                return false;
+            }
+
+            if (!IPAddress.TryParse(requestedFirst.StripOffNetmask(), out IPAddress? requestedFirstAddress) ||
+                !IPAddress.TryParse(requestedLast.StripOffNetmask(), out IPAddress? requestedLastAddress) ||
+                !IPAddress.TryParse(existingFirst.StripOffNetmask(), out IPAddress? existingFirstAddress) ||
+                !IPAddress.TryParse(existingLast.StripOffNetmask(), out IPAddress? existingLastAddress))
+            {
+                return false;
+            }
+
+            IPAddressRange requestedRange = new(requestedFirstAddress, requestedLastAddress);
+            IPAddressRange existingRange = new(existingFirstAddress, existingLastAddress);
+
+            IPAddressRangeComparer comparer = new();
+            return comparer.Compare(existingRange, requestedRange) == 0;
         }
+
         private async Task<bool> ExistingNetworkMatches(RenderedTask task)
         {
             string? name = task.Body?["name"]?.GetValue<string>();
-            string? requestedSubnet = task.Body?["subnet4"]?.GetValue<string>();
-            int? requestedMaskLength = task.Body?["mask-length4"]?.GetValue<int?>();
+            string? requestedSubnet = task.Body?["subnet"]?.GetValue<string>();
+            int? requestedMaskLength = task.Body?["mask-length"]?.GetValue<int?>();
 
             if (string.IsNullOrWhiteSpace(name) ||
                 string.IsNullOrWhiteSpace(requestedSubnet) ||
                 requestedMaskLength == null)
+            {
+                return false;
+            }
+
+            if (!IPAddress.TryParse(requestedSubnet.StripOffNetmask(), out IPAddress? requestedSubnetAddress))
             {
                 return false;
             }
@@ -910,12 +939,17 @@ namespace FWO.ExternalSystems.CheckPoint
                 return false;
             }
 
-            string? existingSubnet = TryGetString(existing.Value, "subnet4")
-                ?? TryGetString(existing.Value, "subnet");
+            bool isIpv6 = requestedSubnetAddress.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6;
 
-            int? existingMaskLength = TryGetInt(existing.Value, "mask-length4");
+            string? existingSubnet = isIpv6
+                ? TryGetString(existing.Value, "subnet6")
+                : TryGetString(existing.Value, "subnet4") ?? TryGetString(existing.Value, "subnet");
 
-            if (existingMaskLength == null)
+            int? existingMaskLength = isIpv6
+                ? TryGetInt(existing.Value, "mask-length6")
+                : TryGetInt(existing.Value, "mask-length4") ?? TryGetInt(existing.Value, "mask-length");
+
+            if (!isIpv6 && existingMaskLength == null)
             {
                 string? subnetMask = TryGetString(existing.Value, "subnet-mask");
                 if (!string.IsNullOrWhiteSpace(subnetMask) && IPAddress.TryParse(subnetMask, out IPAddress? maskIp))
@@ -924,7 +958,18 @@ namespace FWO.ExternalSystems.CheckPoint
                 }
             }
 
-            return string.Equals(existingSubnet, requestedSubnet, StringComparison.OrdinalIgnoreCase) &&
+            if (string.IsNullOrWhiteSpace(existingSubnet) || existingMaskLength == null)
+            {
+                return false;
+            }
+
+            if (!IPAddress.TryParse(existingSubnet.StripOffNetmask(), out IPAddress? existingSubnetAddress))
+            {
+                return false;
+            }
+
+            IPAdressComparer comparer = new();
+            return comparer.Compare(existingSubnetAddress, requestedSubnetAddress) == 0 &&
                    existingMaskLength == requestedMaskLength;
         }
 

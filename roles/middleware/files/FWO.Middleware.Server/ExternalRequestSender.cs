@@ -210,11 +210,22 @@ namespace FWO.Middleware.Server
 
             if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created)
             {
+                request.ExtTicketId = ticket.TicketId;
                 request.ExtRequestState = ExtStates.ExtReqDone.ToString();
                 await UpdateRequestCreation(request);
 
-                using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
-                await extReqHandler.HandleStateChange(request);
+                try
+                {
+                    using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
+                    await extReqHandler.HandleStateChange(request);
+                }
+                catch (Exception exception)
+                {
+                    Log.WriteError(
+                        LogMessageTitle,
+                        $"{RequestInfo(request)} completed in CheckPoint, but follow-up processing failed.",
+                        exception);
+                }
 
                 Log.WriteDebug(LogMessageTitle, $"{RequestInfo(request)}. CheckPoint request completed synchronously.");
                 return;
@@ -341,8 +352,7 @@ namespace FWO.Middleware.Server
             (request.ExtRequestState, request.LastMessage) = await PollState(request);
             await UpdateRequestProcess(request);
 
-            if (request.ExtRequestState == ExtStates.ExtReqDone.ToString() ||
-                request.ExtRequestState == ExtStates.ExtReqRejected.ToString())
+            if (request.ExtRequestState == ExtStates.ExtReqDone.ToString() || request.ExtRequestState == ExtStates.ExtReqRejected.ToString())
             {
                 using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
                 await extReqHandler.HandleStateChange(request);
@@ -374,7 +384,7 @@ namespace FWO.Middleware.Server
                 throw;
             }
         }
-              
+
         private async Task UpdateRequestCreation(ExternalRequest request)
         {
             request.LastCreationResponse = request.LastMessage;

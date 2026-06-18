@@ -242,25 +242,58 @@ namespace FWO.ExternalSystems.CheckPoint
 
         private CheckPointObjectRequest ToCheckPointObjectRequest(WfReqElement element)
         {
-            string startIp = GetStartIp(element.IpString ?? "", element.IpEnd ?? "");       // IP erkennung
-            string endIp = GetEndIp(element.IpString ?? "", element.IpEnd ?? "");
+            string ipString = element.IpString ?? "";
+            string ipEndString = element.IpEnd ?? "";
 
-            startIp = startIp.Split('/')[0];
-            endIp = endIp.Split('/')[0];
+            string objectType = IpOperations.GetObjectType(ipString, ipEndString);
+            IPAddressRange range = BuildRange(ipString, ipEndString, objectType);
 
             return new()
             {
-                NetworkObjectType = IpOperations.GetObjectType(startIp, endIp),
+                NetworkObjectType = objectType,
                 Name = element.Name ?? "",
                 RequestAction = element.RequestAction ?? nameof(RequestAction.create),
-                Range = new IPAddressRange(
-                    IPAddress.Parse(startIp),
-                    IPAddress.Parse(endIp)),
+                Range = range,
                 Comment = ""
             };
         }
 
-        
+        private static IPAddressRange BuildRange(string ipString, string ipEndString, string objectType)
+        {
+            if (string.IsNullOrWhiteSpace(ipString))
+            {
+                throw new ConfigException("Missing IP information for Check Point object request.");
+            }
+
+            if (objectType == ObjectType.IPRange)
+            {
+                string rangeStart = string.IsNullOrWhiteSpace(ipEndString)
+                    ? IpOperations.SplitIpToRange(ipString).Item1
+                    : ipString;
+
+                string rangeEnd = string.IsNullOrWhiteSpace(ipEndString)
+                    ? IpOperations.SplitIpToRange(ipString).Item2
+                    : ipEndString;
+
+                return new IPAddressRange(
+                    IPAddress.Parse(rangeStart.StripOffNetmask()),
+                    IPAddress.Parse(rangeEnd.StripOffNetmask()));
+            }
+
+            if (objectType == ObjectType.Network)
+            {
+                (string networkStart, string networkEnd) = IpOperations.SplitIpToRange(ipString);
+
+                return new IPAddressRange(
+                    IPAddress.Parse(networkStart.StripOffNetmask()),
+                    IPAddress.Parse(networkEnd.StripOffNetmask()));
+            }
+
+            string hostIp = ipString.StripOffNetmask();
+            IPAddress hostAddress = IPAddress.Parse(hostIp);
+            return new IPAddressRange(hostAddress, hostAddress);
+        }
+
         private string ConvertServiceElement(ExternalTicketTemplate template, NwServiceElement service)
         {
             string fallback = ConvertServiceElement(service);

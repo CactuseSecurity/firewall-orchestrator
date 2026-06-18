@@ -15,6 +15,7 @@ namespace FWO.ExternalSystems.CheckPoint
         private readonly Management Management;
 
         private string? SessionId;
+        public string? CurrentSessionId => SessionId;
 
         public CheckPointClient(ExternalTicketSystem ticketSystem, Management management)
             : base(BuildBaseUrl(ticketSystem, management), ticketSystem.ResponseTimeout)

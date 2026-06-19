@@ -1,0 +1,35 @@
+mutation resetFlowDB {
+  update_import_control(where: {} _set: {flow_sync_done: false}) {
+    affected_rows
+  }
+  update_rule(where: {} _set: {flow_access_id: null}) {
+    affected_rows
+  }
+  update_object(where: {} _set: {flow_nwgrp_id: null, flow_nwobj_id: null, flow_active: false}) {
+    affected_rows
+  }
+  update_service(where: {} _set: {flow_svcgrp_id: null, flow_svcobj_id: null, flow_active: false}) {
+    affected_rows
+  }
+  update_time_object(where: {} _set: {flow_timeobj_id: null, flow_active: false}) {
+    affected_rows
+  }
+  delete_flow_access(where: {}) {
+    affected_rows
+  }
+  delete_flow_nwobject(where: {}) {
+    affected_rows
+  }
+  delete_flow_nwgroup(where: {}) {
+    affected_rows
+  }
+  delete_flow_svcobject(where: {}) {
+    affected_rows
+  }
+  delete_flow_svcgroup(where: {}) {
+    affected_rows
+  }
+  delete_flow_timeobject(where: {}) {
+    affected_rows
+  }
+}

@@ -147,42 +147,74 @@
     private StateMatrix stateMatrix = new();
     private List<Module> availableModules { get; set; } = [];
     private bool InitComplete = false;
+    private bool disposed = false;
     private string displayedExecutionMode = GlobalConst.kUserRolesSelection;
 
 
     protected override async Task OnInitializedAsync()
     {
-        userConfig.OnChange += OnChange;
-        apiConnection.OnExecutionModeChanged += OnExecutionModeChanged;
-        displayedExecutionMode = userConfig.ExecutionMode;
         try
         {
+            userConfig.OnChange += OnChange;
+            apiConnection.OnExecutionModeChanged += OnExecutionModeChanged;
+            displayedExecutionMode = userConfig.ExecutionMode;
+
             if (RequiresWorkflowStateInitialization())
             {
                 await stateMatrix.Init(WorkflowPhases.request, apiConnection);
 
+                if (disposed)
+                {
+                    return;
+                }
+
                 ConfigureFirstWorkflowPage();
+            }
+
+            if (disposed)
+            {
+                return;
             }
 
             availableModules = string.IsNullOrEmpty(userConfig.AvailableModules) ? [.. Enum.GetValues(typeof(Module)).Cast<Module>()]
                 : JsonSerializer.Deserialize<List<Module>>(userConfig.AvailableModules) ?? throw new JsonException("Config data could not be parsed.");
         }
+        catch (ObjectDisposedException)
+        {
+            return;
+        }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
+            if (!disposed)
+            {
+                DisplayMessageInUi(exception, GetTextOrDefault("init_environment"), "", true);
+            }
         }
         InitComplete = true;
     }
 
     private void OnExecutionModeChanged(object? sender, string executionMode)
     {
-        Task.Run(async () => await InvokeAsync(() =>
+        if (disposed)
         {
+            return;
+        }
+
+        _ = InvokeAsync(() =>
+        {
+            if (disposed)
+            {
+                return;
+            }
+
             displayedExecutionMode = executionMode;
             firstWorkflowPage = "";
-            ConfigureFirstWorkflowPage();
+            if (stateMatrix.PhaseActive.Count > 0)
+            {
+                ConfigureFirstWorkflowPage();
+            }
             StateHasChanged();
-        }));
+        });
     }
 
     private void ConfigureFirstWorkflowPage()
@@ -219,12 +251,23 @@
         collapseNavMenu = !collapseNavMenu;
     }
 
-    private void OnChange(Config _, ConfigItem[] __)
-	{
-		availableModules = string.IsNullOrEmpty(userConfig.AvailableModules) ? [.. Enum.GetValues(typeof(Module)).Cast<Module>()]
-			: JsonSerializer.Deserialize<List<Module>>(userConfig.AvailableModules) ?? throw new JsonException("Config data could not be parsed.");
+    private void OnChange(Config config, ConfigItem[] configItems)
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        availableModules = string.IsNullOrEmpty(userConfig.AvailableModules) ? [.. Enum.GetValues(typeof(Module)).Cast<Module>()]
+            : JsonSerializer.Deserialize<List<Module>>(userConfig.AvailableModules) ?? throw new JsonException("Config data could not be parsed.");
         displayedExecutionMode = userConfig.ExecutionMode;
-        Task.Run(async () => await InvokeAsync(StateHasChanged));
+        _ = InvokeAsync(() =>
+        {
+            if (!disposed)
+            {
+                StateHasChanged();
+            }
+        });
     }
 
     private bool RequiresWorkflowStateInitialization()
@@ -265,9 +308,22 @@
         return executionMode == GlobalConst.kUserRolesSelection ? userConfig.GetText("user_roles") : executionMode;
     }
 
-	public void Dispose()
-	{
-		userConfig.OnChange -= OnChange;
+    private string GetTextOrDefault(string key)
+    {
+        try
+        {
+            return userConfig.GetText(key);
+        }
+        catch (ObjectDisposedException)
+        {
+            return key;
+        }
+    }
+
+    public void Dispose()
+    {
+        disposed = true;
+        userConfig.OnChange -= OnChange;
         apiConnection.OnExecutionModeChanged -= OnExecutionModeChanged;
-	}
+    }
 }

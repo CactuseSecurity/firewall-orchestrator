@@ -60,24 +60,20 @@ namespace FWO.Data.Networking
         }
 
         /// <summary>
-        /// Checks whether any object contains the given IPv4 address while still meeting the minimum prefix length.
+        /// Checks whether all supported IPv4 objects contain the given IPv4 address and meet the minimum prefix length.
         /// </summary>
         public bool MatchesIpFilter(IPAddress ipAddress, int minPrefix, IEnumerable<NetworkObject> objects)
         {
-            foreach (NetworkObjectRangeAnalysis analysis in AnalyzeMany(objects))
+            List<NetworkObjectRangeAnalysis> analyses = AnalyzeMany(objects);
+            if (analyses.Count == 0)
             {
-                if (!analysis.IsSupported || analysis.PrefixLength < minPrefix)
-                {
-                    continue;
-                }
-
-                if (IsIpInRange(ipAddress, analysis.Start, analysis.End))
-                {
-                    return true;
-                }
+                return false;
             }
 
-            return false;
+            return analyses.All(analysis =>
+                analysis.IsSupported
+                && analysis.PrefixLength >= minPrefix
+                && IsIpInRange(ipAddress, analysis.Start, analysis.End));
         }
 
         /// <summary>

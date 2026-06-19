@@ -74,7 +74,7 @@ insert into config (config_key, config_value, config_user) VALUES ('reqAutoCreat
 insert into config (config_key, config_value, config_user) VALUES ('reqConsiderBundling', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqOwnerBased', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqUseFlowDb', 'False', 0);
-insert into config (config_key, config_value, config_user) VALUES ('reqFlowIntegration', '{"select_objects":"both","select_services":"both","select_time_objects":"both","time_object_precision":"seconds"}', 0);
+insert into config (config_key, config_value, config_user) VALUES ('reqFlowIntegration', '{"select_objects":"Both","select_services":"Both","select_time_objects":"Both","time_object_precision":"seconds"}', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqAllowManualOwnerAdmin', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqActivatePathAnalysis', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqShowCompliance', 'False', 0);

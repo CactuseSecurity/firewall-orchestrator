@@ -5,9 +5,9 @@ namespace FWO.Data.Workflow
 {
     public static class FlowIntegrationObjectSelectionOptions
     {
-        public const string FromFlowDb = "from_flowdb";
-        public const string Manually = "manually";
-        public const string Both = "both";
+        public const string FromFlowDb = "FromFlowDb";
+        public const string Manually = "Manually";
+        public const string Both = "Both";
 
         public static readonly List<string> All =
         [

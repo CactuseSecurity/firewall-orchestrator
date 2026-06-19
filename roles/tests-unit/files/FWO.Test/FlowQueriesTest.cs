@@ -7,20 +7,6 @@ namespace FWO.Test
     internal class FlowQueriesTest
     {
         [Test]
-        public void FlowQueries_LoadObjectCatalogQuery()
-        {
-            Assert.That(FlowQueries.getFlowObjectCatalog, Does.Contain("query getFlowObjectCatalog"));
-            Assert.That(FlowQueries.getFlowObjectCatalog, Does.Contain("fragment flowNwObjectDetails"));
-        }
-
-        [Test]
-        public void FlowQueries_LoadAccessCatalogQuery()
-        {
-            Assert.That(FlowQueries.getFlowAccessCatalog, Does.Contain("query getFlowAccessCatalog"));
-            Assert.That(FlowQueries.getFlowAccessCatalog, Does.Contain("fragment flowAccessDetails"));
-        }
-
-        [Test]
         public void FlowQueries_LoadCustomObjectCandidatesQuery()
         {
             Assert.That(FlowQueries.getFlowCustomObjectCandidates, Does.Contain("query getFlowCustomObjectCandidates"));
@@ -49,13 +35,6 @@ namespace FWO.Test
         {
             Assert.That(FlowQueries.getFlowNwObjectCatalog, Does.Contain("query getFlowNwObjectCatalog"));
             Assert.That(FlowQueries.getFlowNwObjectCatalog, Does.Contain("fragment flowNwObjectDetails"));
-        }
-
-        [Test]
-        public void FlowQueries_LoadSvcObjectCatalogQuery()
-        {
-            Assert.That(FlowQueries.getFlowSvcObjectCatalog, Does.Contain("query getFlowSvcObjectCatalog"));
-            Assert.That(FlowQueries.getFlowSvcObjectCatalog, Does.Contain("fragment flowSvcObjectDetails"));
         }
 
         [Test]

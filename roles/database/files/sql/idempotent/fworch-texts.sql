@@ -75,6 +75,12 @@ INSERT INTO txt VALUES ('AnyActivity',          'German',   'Beliebige Aktivit&a
 INSERT INTO txt VALUES ('AnyActivity',          'English',  'Any Activity');
 INSERT INTO txt VALUES ('None',			        'German', 	'Keine(r/s)');
 INSERT INTO txt VALUES ('None',			        'English', 	'None');
+INSERT INTO txt VALUES ('FromFlowDb',            'German',   'aus Flow DB');
+INSERT INTO txt VALUES ('FromFlowDb',            'English',  'from Flow DB');
+INSERT INTO txt VALUES ('Manually',              'German',   'manuell');
+INSERT INTO txt VALUES ('Manually',              'English',  'manually');
+INSERT INTO txt VALUES ('Both',                  'German',   'beides');
+INSERT INTO txt VALUES ('Both',                  'English',  'both');
 INSERT INTO txt VALUES ('RequestedConnections', 'German',   'Beantragte Verbindungen');
 INSERT INTO txt VALUES ('RequestedConnections', 'English',  'Requested Connections');
 INSERT INTO txt VALUES ('requested_connections','German',   'Beantragte Verbindungen');
@@ -2630,12 +2636,6 @@ INSERT INTO txt VALUES ('select_time_objects',  'German',   'Zeitobjekte ausw&au
 INSERT INTO txt VALUES ('select_time_objects',  'English',  'Select time objects');
 INSERT INTO txt VALUES ('time_object_precision','German',   'Zeitobjekt-Genauigkeit');
 INSERT INTO txt VALUES ('time_object_precision','English',  'Time object precision');
-INSERT INTO txt VALUES ('flow_integration_from_flowdb','German','aus Flow DB');
-INSERT INTO txt VALUES ('flow_integration_from_flowdb','English','from Flow DB');
-INSERT INTO txt VALUES ('flow_integration_manually','German','manuell');
-INSERT INTO txt VALUES ('flow_integration_manually','English','manually');
-INSERT INTO txt VALUES ('flow_integration_both','German','beides');
-INSERT INTO txt VALUES ('flow_integration_both','English','both');
 INSERT INTO txt VALUES ('reqAllowManualOwnerAdmin','German', 'Manuelle Eigent&uuml;merverwaltung erlauben');
 INSERT INTO txt VALUES ('reqAllowManualOwnerAdmin','English','Allow manual owner administration');
 INSERT INTO txt VALUES ('ruleOwnershipMode',    'German',   'Regel-Eigent&uuml;merschaftsmodus');

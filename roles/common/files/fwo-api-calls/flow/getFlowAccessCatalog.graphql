@@ -1,5 +1,0 @@
-query getFlowAccessCatalog {
-  flow_access(order_by: [{ access_id: asc }]) {
-    ...flowAccessDetails
-  }
-}

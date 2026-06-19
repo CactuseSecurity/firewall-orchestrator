@@ -8,9 +8,9 @@
                 <div class="form-group row mt-2">
                     <label class="col-form-label col-sm-4">@(userConfig.GetText("select_objects")):</label>
                     <div class="col-sm-8">
-                        <Dropdown ElementType="string" @bind-SelectedElement="actConfig.SelectObjects" ElementToString="DisplaySelectObjectsOption" Elements="FlowIntegrationObjectSelectionOptions.All">
+                        <Dropdown ElementType="string" @bind-SelectedElement="actConfig.SelectObjects" ElementToString="@(option => userConfig.GetText(option))" Elements="FlowIntegrationObjectSelectionOptions.All">
                             <ElementTemplate Context="option">
-                                @(DisplaySelectObjectsOption(option))
+                                @(userConfig.GetText(option))
                             </ElementTemplate>
                         </Dropdown>
                     </div>
@@ -18,9 +18,9 @@
                 <div class="form-group row mt-2">
                     <label class="col-form-label col-sm-4">@(userConfig.GetText("select_services")):</label>
                     <div class="col-sm-8">
-                        <Dropdown ElementType="string" @bind-SelectedElement="actConfig.SelectServices" ElementToString="DisplaySelectObjectsOption" Elements="FlowIntegrationObjectSelectionOptions.All">
+                        <Dropdown ElementType="string" @bind-SelectedElement="actConfig.SelectServices" ElementToString="@(option => userConfig.GetText(option))" Elements="FlowIntegrationObjectSelectionOptions.All">
                             <ElementTemplate Context="option">
-                                @(DisplaySelectObjectsOption(option))
+                                @(userConfig.GetText(option))
                             </ElementTemplate>
                         </Dropdown>
                     </div>
@@ -28,9 +28,9 @@
                 <div class="form-group row mt-2">
                     <label class="col-form-label col-sm-4">@(userConfig.GetText("select_time_objects")):</label>
                     <div class="col-sm-8">
-                        <Dropdown ElementType="string" @bind-SelectedElement="actConfig.SelectTimeObjects" ElementToString="DisplaySelectObjectsOption" Elements="FlowIntegrationObjectSelectionOptions.All">
+                        <Dropdown ElementType="string" @bind-SelectedElement="actConfig.SelectTimeObjects" ElementToString="@(option => userConfig.GetText(option))" Elements="FlowIntegrationObjectSelectionOptions.All">
                             <ElementTemplate Context="option">
-                                @(DisplaySelectObjectsOption(option))
+                                @(userConfig.GetText(option))
                             </ElementTemplate>
                         </Dropdown>
                     </div>
@@ -38,9 +38,9 @@
                 <div class="form-group row mt-2">
                     <label class="col-form-label col-sm-4">@(userConfig.GetText("time_object_precision")):</label>
                     <div class="col-sm-8">
-                        <Dropdown ElementType="string" @bind-SelectedElement="actConfig.TimeObjectPrecision" ElementToString="DisplayTimePrecisionOption" Elements="FlowIntegrationTimePrecisionOptions.All">
+                        <Dropdown ElementType="string" @bind-SelectedElement="actConfig.TimeObjectPrecision" ElementToString="@(option => userConfig.GetText(option))" Elements="FlowIntegrationTimePrecisionOptions.All">
                             <ElementTemplate Context="option">
-                                @(DisplayTimePrecisionOption(option))
+                                @(userConfig.GetText(option))
                             </ElementTemplate>
                         </Dropdown>
                     </div>
@@ -78,29 +78,6 @@
         {
             actConfig = FlowIntegrationConfig.Parse(ConfigValue);
         }
-    }
-
-    private string DisplaySelectObjectsOption(string option)
-    {
-        return userConfig.GetText(option switch
-        {
-            FlowIntegrationObjectSelectionOptions.FromFlowDb => "flow_integration_from_flowdb",
-            FlowIntegrationObjectSelectionOptions.Manually => "flow_integration_manually",
-            FlowIntegrationObjectSelectionOptions.Both => "flow_integration_both",
-            _ => "undefined"
-        });
-    }
-
-    private string DisplayTimePrecisionOption(string option)
-    {
-        return userConfig.GetText(option switch
-        {
-            FlowIntegrationTimePrecisionOptions.Date => "date",
-            FlowIntegrationTimePrecisionOptions.Hours => "hours",
-            FlowIntegrationTimePrecisionOptions.Minutes => "minutes",
-            FlowIntegrationTimePrecisionOptions.Seconds => "seconds",
-            _ => "undefined"
-        });
     }
 
     private async Task Confirm()

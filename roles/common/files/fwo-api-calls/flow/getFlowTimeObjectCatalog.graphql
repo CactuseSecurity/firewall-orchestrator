@@ -1,5 +1,0 @@
-query getFlowTimeObjectCatalog {
-  timeobjects: flow_timeobject(order_by: [{ name: asc }, { timeobj_id: asc }]) {
-    ...flowTimeObjectDetails
-  }
-}

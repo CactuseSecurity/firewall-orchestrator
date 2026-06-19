@@ -4,13 +4,11 @@ namespace FWO.Api.Client.Queries
 {
     public class FlowQueries : Queries
     {
-        public static readonly string flowAccessDetailsFragment;
         public static readonly string flowNwGroupDetailsFragment;
         public static readonly string flowNwObjectDetailsFragment;
         public static readonly string flowSvcGroupDetailsFragment;
         public static readonly string flowSvcObjectDetailsFragment;
         public static readonly string flowTimeObjectDetailsFragment;
-        public static readonly string getFlowAccessCatalog;
         public static readonly string getFlowAddressGroups;
         public static readonly string getFlowAddressObjectId;
         public static readonly string getFlowAddressObjects;
@@ -19,9 +17,6 @@ namespace FWO.Api.Client.Queries
         public static readonly string getFlowRequestNwObjectCatalog;
         public static readonly string getFlowRequestSvcObjectCatalog;
         public static readonly string getFlowRequestTimeObjectCatalog;
-        public static readonly string getFlowSvcObjectCatalog;
-        public static readonly string getFlowTimeObjectCatalog;
-        public static readonly string getFlowObjectCatalog;
         public static readonly string getFlowSelectableManagements;
         public static readonly string getFlowServiceGroups;
         public static readonly string getFlowServiceObjectId;
@@ -59,16 +54,11 @@ namespace FWO.Api.Client.Queries
         {
             try
             {
-                flowAccessDetailsFragment = GetQueryText("flow/fragments/flowAccessDetails.graphql");
                 flowNwGroupDetailsFragment = GetQueryText("flow/fragments/flowNwGroupDetails.graphql");
                 flowNwObjectDetailsFragment = GetQueryText("flow/fragments/flowNwObjectDetails.graphql");
                 flowSvcGroupDetailsFragment = GetQueryText("flow/fragments/flowSvcGroupDetails.graphql");
                 flowSvcObjectDetailsFragment = GetQueryText("flow/fragments/flowSvcObjectDetails.graphql");
                 flowTimeObjectDetailsFragment = GetQueryText("flow/fragments/flowTimeObjectDetails.graphql");
-
-                getFlowAccessCatalog =
-                    flowAccessDetailsFragment +
-                    GetQueryText("flow/getFlowAccessCatalog.graphql");
 
                 getFlowAddressGroups =
                     flowNwGroupDetailsFragment +
@@ -96,22 +86,6 @@ namespace FWO.Api.Client.Queries
 
                 getFlowRequestTimeObjectCatalog =
                     GetQueryText("flow/getFlowRequestTimeObjectCatalog.graphql");
-
-                getFlowSvcObjectCatalog =
-                    flowSvcObjectDetailsFragment +
-                    GetQueryText("flow/getFlowSvcObjectCatalog.graphql");
-
-                getFlowTimeObjectCatalog =
-                    flowTimeObjectDetailsFragment +
-                    GetQueryText("flow/getFlowTimeObjectCatalog.graphql");
-
-                getFlowObjectCatalog =
-                    flowNwObjectDetailsFragment +
-                    flowNwGroupDetailsFragment +
-                    flowSvcObjectDetailsFragment +
-                    flowSvcGroupDetailsFragment +
-                    flowTimeObjectDetailsFragment +
-                    GetQueryText("flow/getFlowObjectCatalog.graphql");
 
                 getFlowSelectableManagements =
                     GetQueryText("flow/getFlowSelectableManagements.graphql");

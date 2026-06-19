@@ -164,7 +164,17 @@ namespace FWO.Services.Workflow
             List<IpProtocol> ipProtocols = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols) ?? [];
             List<RuleAction> ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions) ?? [];
 
-            return new FlowSyncFlowData(nwObjects, nwGroups, svcObjects, svcGroups, timeObjects, accesses, ipProtocols, ruleActions);
+            return new FlowSyncFlowData(new FlowSyncFlowDataInput
+            {
+                NwObjects = nwObjects,
+                NwGroups = nwGroups,
+                SvcObjects = svcObjects,
+                SvcGroups = svcGroups,
+                TimeObjects = timeObjects,
+                Accesses = accesses,
+                IpProtocols = ipProtocols,
+                RuleActions = ruleActions
+            });
         }
 
         private async Task<bool> PersistGroupPayload(FlowCreationPayload payload, FlowSyncFlowData context, FlowGroupMaps groupMaps)

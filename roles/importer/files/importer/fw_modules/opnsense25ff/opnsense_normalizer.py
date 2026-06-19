@@ -22,7 +22,6 @@ from fw_modules.opnsense25ff.opnsense_model import (
 from fw_modules.opnsense25ff.opnsense_parser import parse_opnsense_config
 from fwo_base import ConfigAction, sort_and_join
 from fwo_base import generate_hash_from_dict as fwo_base_generate_hash_from_dict
-from fwo_const import RULE_NUM_NUMERIC_STEPS
 from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.import_state_controller import ImportStateController
@@ -558,7 +557,6 @@ def _upsert_rulebase_rule(
 
 def _create_rulebases_from_access_rules(os_config: OPNsenseConfig, mgm_uid: str) -> list[Rulebase]:
     rbs_dict: dict[str, Rulebase] = {}
-    rule_num = 0
 
     for rule in os_config.access_rules:
         r_normalized = _create_normalized_rule_from_access_rule(rule)
@@ -566,10 +564,6 @@ def _create_rulebases_from_access_rules(os_config: OPNsenseConfig, mgm_uid: str)
         if rule_uid is None:
             FWOLogger.warning(f"[*] skipping OPNsense rule without uid:\n    {rule}")
             continue
-        # update rule priority
-        r_normalized.rule_num = int(rule_num)
-        r_normalized.rule_num_numeric = float(rule_num)
-        rule_num += RULE_NUM_NUMERIC_STEPS
         rulebase_name = _access_rule_rulebase_name(rule, os_config)
         if rulebase_name is not None:
             _upsert_rulebase_rule(rbs_dict, rulebase_name, mgm_uid, rule_uid, r_normalized)

@@ -12,6 +12,8 @@ from fw_modules.opnsense25ff.opnsense_normalizer import (
     _create_rulebases_from_access_rules,  # pyright: ignore[reportPrivateUsage]
 )
 from fwo_const import RULE_NUM_NUMERIC_STEPS
+from model_controllers.fwconfig_import_ruleorder import update_rule_order_diffs
+from models.fwconfig_normalized import FwConfigNormalized
 
 
 def test_enrich_opnsense_net_and_hosts_keeps_child_types() -> None:
@@ -74,16 +76,34 @@ def test_create_rulebases_from_access_rules_groups_expected_rules() -> None:
             "descr": "grouped interface rule",
         }
     )
+    second_grouped_rule = OPNsenseAccessRule.model_validate(
+        {
+            "@uuid": "second-grouped-rule-uid",
+            "interface": [interface_group.name],
+            "type": FilterRuleActionEnum.PASS,
+            "descr": "second grouped interface rule",
+        }
+    )
     config = OPNsenseConfig(
         hostname="opnsense-test",
         interface_groups={interface_group.name: interface_group},
-        access_rules=[floating_rule, unmatched_rule, grouped_rule],
+        access_rules=[floating_rule, unmatched_rule, grouped_rule, second_grouped_rule],
     )
 
-    rulebases = {rulebase.name: rulebase for rulebase in _create_rulebases_from_access_rules(config, "mgm-uid")}
+    rulebase_list = _create_rulebases_from_access_rules(config, "mgm-uid")
+    rulebases = {rulebase.name: rulebase for rulebase in rulebase_list}
 
     assert set(rulebases) == {"floating", "lan_group"}
     assert set(rulebases["floating"].rules) == {"floating-rule-uid"}
-    assert set(rulebases["lan_group"].rules) == {"grouped-rule-uid"}
+    assert set(rulebases["lan_group"].rules) == {"grouped-rule-uid", "second-grouped-rule-uid"}
     assert rulebases["floating"].rules["floating-rule-uid"].rule_num == 0
-    assert rulebases["lan_group"].rules["grouped-rule-uid"].rule_num == 2 * RULE_NUM_NUMERIC_STEPS
+    assert rulebases["floating"].rules["floating-rule-uid"].rule_num_numeric == 0
+    assert rulebases["lan_group"].rules["grouped-rule-uid"].rule_num == 0
+    assert rulebases["lan_group"].rules["grouped-rule-uid"].rule_num_numeric == 0
+
+    normalized_config = FwConfigNormalized(rulebases=rulebase_list)
+    update_rule_order_diffs(FwConfigNormalized(), normalized_config)
+
+    assert rulebases["floating"].rules["floating-rule-uid"].rule_num_numeric == RULE_NUM_NUMERIC_STEPS
+    assert rulebases["lan_group"].rules["grouped-rule-uid"].rule_num_numeric == RULE_NUM_NUMERIC_STEPS
+    assert rulebases["lan_group"].rules["second-grouped-rule-uid"].rule_num_numeric == 2 * RULE_NUM_NUMERIC_STEPS

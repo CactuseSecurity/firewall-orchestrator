@@ -1,9 +1,9 @@
-namespace FWO.Middleware.Server.Services
+namespace FWO.Services
 {
     /// <summary>
-    /// Timing options for refreshing the shared middleware-server JWT.
+    /// Timing options shared by the background services that rotate short-lived tokens before they expire.
     /// </summary>
-    public class InternalApiTokenServiceOptions
+    public class TokenRefreshOptions
     {
         /// <summary>
         /// Time before token expiry at which a refresh should begin.

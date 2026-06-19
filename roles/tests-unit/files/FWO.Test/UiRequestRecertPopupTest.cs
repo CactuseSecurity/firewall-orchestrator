@@ -23,7 +23,7 @@ namespace FWO.Test
     internal class UiRequestRecertPopupTest
     {
         [Test]
-        public void CheckImplementation_RunsVarianceQueriesWithBestRole()
+        public void CheckImplementation_RunsVarianceQueriesWithAmbientRole()
         {
             RequestRecertPopupTestApiConn apiConn = new();
             SimulatedUserConfig userConfig = CreateUserConfig();
@@ -32,15 +32,16 @@ namespace FWO.Test
             {
                 Connections = [CreateConnection(41)]
             };
+            apiConn.SetAmbientRole(CreatePrincipal(Roles.Auditor), [Roles.Modeller, Roles.Admin, Roles.Auditor]);
 
             using BunitContext context = new();
             IRenderedComponent<CascadingAuthenticationState> wrapper = RenderPopup(context, apiConn, userConfig, appHandler);
 
             wrapper.WaitForAssertion(() =>
             {
-                Assert.That(apiConn.WasOnlySentWithBestRole(DeviceQueries.getManagementNames), Is.True);
-                Assert.That(apiConn.WasOnlySentWithBestRole(ModellingQueries.getNwGroupObjects), Is.True);
-                Assert.That(apiConn.WasOnlySentWithBestRole(ModellingQueries.getAppZonesByAppId), Is.True);
+                Assert.That(apiConn.WasOnlySentWithRole(DeviceQueries.getManagementNames, Roles.Auditor), Is.True);
+                Assert.That(apiConn.WasOnlySentWithRole(ModellingQueries.getNwGroupObjects, Roles.Auditor), Is.True);
+                Assert.That(apiConn.WasOnlySentWithRole(ModellingQueries.getAppZonesByAppId, Roles.Auditor), Is.True);
             });
         }
 
@@ -95,14 +96,22 @@ namespace FWO.Test
             };
         }
 
+        private static ClaimsPrincipal CreatePrincipal(params string[] roles)
+        {
+            return new ClaimsPrincipal(new ClaimsIdentity(
+                roles.Select(role => new Claim(ClaimTypes.Role, role)),
+                "Test",
+                ClaimTypes.Name,
+                ClaimTypes.Role));
+        }
+
         private sealed class RequestRecertPopupAuthStateProvider : AuthenticationStateProvider
         {
             private readonly ClaimsPrincipal principal;
 
             public RequestRecertPopupAuthStateProvider(params string[] roles)
             {
-                List<Claim> claims = [.. roles.Select(role => new Claim(ClaimTypes.Role, role))];
-                principal = new ClaimsPrincipal(new ClaimsIdentity(claims, "Test"));
+                principal = CreatePrincipal(roles);
             }
 
             public override Task<AuthenticationState> GetAuthenticationStateAsync()
@@ -113,28 +122,45 @@ namespace FWO.Test
 
         private sealed class RequestRecertPopupTestApiConn : SimulatedApiConnection
         {
-            private int bestRoleDepth;
-            private readonly List<(string Query, bool WithBestRole)> queries = [];
+            private string activeRole = "";
+            private readonly Stack<string> previousRoles = new();
+            private readonly List<(string Query, string Role)> queries = [];
 
             public override void SetBestRole(ClaimsPrincipal user, List<string> targetRoleList)
             {
-                bestRoleDepth++;
+                SetRole(targetRoleList.First(role => user.IsInRole(role)));
+            }
+
+            public override void SetRole(string role)
+            {
+                previousRoles.Push(activeRole);
+                activeRole = role;
+            }
+
+            public override string GetActRole()
+            {
+                return activeRole;
+            }
+
+            public override void SetAmbientRole(ClaimsPrincipal user, List<string> targetRoleList)
+            {
+                activeRole = targetRoleList.FirstOrDefault(role => user.IsInRole(role)) ?? "";
             }
 
             public override void SwitchBack()
             {
-                bestRoleDepth--;
+                activeRole = previousRoles.TryPop(out string? previousRole) ? previousRole : "";
             }
 
-            public bool WasOnlySentWithBestRole(string query)
+            public bool WasOnlySentWithRole(string query, string role)
             {
-                List<(string Query, bool WithBestRole)> matchingQueries = [.. queries.Where(q => q.Query == query)];
-                return matchingQueries.Count > 0 && matchingQueries.All(q => q.WithBestRole);
+                List<(string Query, string Role)> matchingQueries = [.. queries.Where(q => q.Query == query)];
+                return matchingQueries.Count > 0 && matchingQueries.All(q => q.Role == role);
             }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
-                queries.Add((query, bestRoleDepth > 0));
+                queries.Add((query, activeRole));
                 if (query == ExtRequestQueries.getLatestTicketId)
                 {
                     return Task.FromResult((QueryResponseType)(object)new List<TicketId>());

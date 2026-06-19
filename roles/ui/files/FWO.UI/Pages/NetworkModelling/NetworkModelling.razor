@@ -236,8 +236,6 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // if use has modeller role, choose it before all others for this menu
-        apiConnection.SetBestRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
         extStateHandler = new(apiConnection);
         await states.Init(apiConnection);
         await InitAppList();
@@ -543,7 +541,6 @@ else
     {
         if(userConfig.ModRolloutActive)
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Recertifier, Roles.Admin, Roles.Auditor ]);
             List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketId, new{ownerId = selectedApp.Id});
             if(ticketIds.Count == 0)
             {
@@ -553,7 +550,6 @@ else
             else
             {
                 WfTicket? intTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketIds[0].Id });
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Recertifier, Roles.Admin, Roles.Auditor ]);
                 if(intTicket != null)
                 {
                     await SubscribeAndSetStatusFromTicket(intTicket);
@@ -636,8 +632,7 @@ else
     {
         try
         {
-            List<ExternalRequest> lastRequests = await apiConnection.RunWithBestRole(authenticationStateTask!.Result.User, [Roles.Modeller, Roles.Admin, Roles.Auditor],
-                async () => await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getLastRequest, new{ticketId = intTicket.Id}));
+            List<ExternalRequest> lastRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getLastRequest, new{ticketId = intTicket.Id});
             if(lastRequests != null && lastRequests.Count > 0)
             {
                 bool shortened = false;

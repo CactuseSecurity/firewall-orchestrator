@@ -6,14 +6,13 @@ namespace FWO.Middleware.Server.Services
 {
     /// <summary>
     /// Maintains a short-lived middleware-server token for the shared internal API connection.
+    /// The refresh loop and lead-time decision are provided by <see cref="InternalApiTokenRefreshService"/>.
     /// </summary>
     public class InternalApiTokenService
     {
         private readonly JwtWriter jwtWriter;
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
-        private readonly InternalApiTokenServiceOptions options;
         private readonly JwtSecurityTokenHandler tokenHandler = new();
-        private readonly SemaphoreSlim refreshLock = new(1, 1);
 
         private string currentToken = "";
         private DateTime currentTokenExpiresUtc = DateTime.MinValue;
@@ -21,17 +20,21 @@ namespace FWO.Middleware.Server.Services
         /// <summary>
         /// Creates a new internal API token service.
         /// </summary>
-        public InternalApiTokenService(JwtWriter jwtWriter, TokenLifetimeProvider tokenLifetimeProvider, InternalApiTokenServiceOptions? options = null)
+        public InternalApiTokenService(JwtWriter jwtWriter, TokenLifetimeProvider tokenLifetimeProvider)
         {
             this.jwtWriter = jwtWriter;
             this.tokenLifetimeProvider = tokenLifetimeProvider;
-            this.options = options ?? new InternalApiTokenServiceOptions();
         }
 
         /// <summary>
-        /// Gets the interval used by the background refresh loop.
+        /// Gets the current middleware-server JWT, or an empty string when none has been created yet.
         /// </summary>
-        public TimeSpan RefreshCheckInterval => options.RefreshCheckInterval;
+        public string CurrentToken => currentToken;
+
+        /// <summary>
+        /// Gets the UTC expiry of the current middleware-server JWT, or null when none has been created yet.
+        /// </summary>
+        public DateTime? CurrentTokenExpiresUtc => string.IsNullOrWhiteSpace(currentToken) ? null : currentTokenExpiresUtc;
 
         /// <summary>
         /// Creates the first middleware-server JWT and stores its expiry metadata.
@@ -42,39 +45,19 @@ namespace FWO.Middleware.Server.Services
         }
 
         /// <summary>
-        /// Ensures that the shared internal API connection uses a fresh middleware-server JWT.
+        /// Mints a fresh middleware-server JWT, applies it to the shared internal API connection, and audits the rotation.
         /// </summary>
-        public async Task<string> EnsureFreshTokenAsync(ApiConnection apiConnection, bool force = false, CancellationToken cancellationToken = default)
+        /// <param name="apiConnection">Connection whose subscriptions are reconnected with the refreshed token.</param>
+        /// <param name="cancellationToken">Token used to cancel the reconnect.</param>
+        /// <returns>The refreshed middleware-server JWT.</returns>
+        public async Task<string> RefreshAndApplyAsync(ApiConnection apiConnection, CancellationToken cancellationToken = default)
         {
-            if (!force && !NeedsRefresh())
-            {
-                return currentToken;
-            }
+            string refreshedToken = CreateNewMiddlewareToken();
+            await apiConnection.ReconnectSubscriptionsAsync(refreshedToken, cancellationToken);
 
-            await refreshLock.WaitAsync(cancellationToken);
-            try
-            {
-                if (!force && !NeedsRefresh())
-                {
-                    return currentToken;
-                }
+            Log.WriteAudit(nameof(InternalApiTokenService), BuildTokenAuditText(refreshedToken, "Rotated internal middleware JWT."));
 
-                string refreshedToken = CreateNewMiddlewareToken();
-                await apiConnection.ReconnectSubscriptionsAsync(refreshedToken, cancellationToken);
-
-                Log.WriteAudit(nameof(InternalApiTokenService), BuildTokenAuditText(refreshedToken, "Rotated internal middleware JWT."));
-
-                return refreshedToken;
-            }
-            finally
-            {
-                refreshLock.Release();
-            }
-        }
-
-        private bool NeedsRefresh()
-        {
-            return string.IsNullOrWhiteSpace(currentToken) || currentTokenExpiresUtc <= DateTime.UtcNow.Add(options.RefreshLeadTime);
+            return refreshedToken;
         }
 
         private string CreateNewMiddlewareToken()

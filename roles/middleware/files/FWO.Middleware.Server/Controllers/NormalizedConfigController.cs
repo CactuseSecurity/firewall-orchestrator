@@ -40,7 +40,7 @@ namespace FWO.Middleware.Server.Controllers
                 UiUser targetUser = new() { Name = User.FindFirstValue("unique_name") ?? "", Dn = User.FindFirstValue("x-hasura-uuid") ?? "" };
                 string jwt = await authManager.AuthorizeUserAsync(targetUser, validatePassword: false);
                 using ApiConnection apiConnectionUserContext = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwt);
-                apiConnectionUserContext.SetProperRole(User, [Roles.Admin, Roles.Auditor, Roles.Reporter, Roles.ReporterViewAll, Roles.Modeller, Roles.Recertifier, Roles.Importer]);
+                apiConnectionUserContext.SetBestRole(User, [Roles.Admin, Roles.Auditor, Roles.Reporter, Roles.ReporterViewAll, Roles.Modeller, Roles.Recertifier, Roles.Importer]);
 
                 NormalizedConfig normalizedConfig = await NormalizedConfigGenerator.Generate([.. parameters.ManagementIds], parameters.ConfigTime, apiConnectionUserContext);
 

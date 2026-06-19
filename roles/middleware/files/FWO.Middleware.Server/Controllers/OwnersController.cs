@@ -27,6 +27,9 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
     /// Returns all owners visible to the caller with optional AND-combined filters.
     /// </summary>
     /// <remarks>
+    /// Requires one of the roles <c>admin</c>, <c>auditor</c>, or <c>modeller</c>.
+    /// Modeller callers only receive owners listed in their <c>x-hasura-editable-owners</c> JWT claim.
+    ///
     /// Example request bodies:
     /// <code>
     /// {}
@@ -53,6 +56,8 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
     [HttpPost("get")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(List<GetOwnerResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
     [Authorize(Roles = $"{Roles.Auditor}, {Roles.Admin}, {Roles.Modeller}")]
     public async Task<ActionResult<List<GetOwnerResponse>>> Get([FromBody] GetOwnersRequest? request)

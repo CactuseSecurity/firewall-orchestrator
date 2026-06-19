@@ -310,6 +310,7 @@ namespace FWO.Services.Workflow
         private static Dictionary<string, object?> BuildReqTaskInsertVariables(WfReqTask reqtask)
         {
             Dictionary<string, object?> variables = BuildReqTaskUpdateVariables(reqtask);
+            variables["taskNumber"] = reqtask.TaskNumber;
             variables["taskType"] = reqtask.TaskType;
             variables["locked"] = reqtask.Locked;
             return variables;
@@ -320,7 +321,6 @@ namespace FWO.Services.Workflow
             return new Dictionary<string, object?>
             {
                 ["title"] = reqtask.Title,
-                ["taskNumber"] = reqtask.TaskNumber,
                 ["state"] = reqtask.StateId,
                 ["requestAction"] = reqtask.RequestAction,
                 ["ruleAction"] = reqtask.RuleAction,

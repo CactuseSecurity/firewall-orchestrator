@@ -142,7 +142,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void BuildReqTaskUpdateVariables_DoesNotIncludeTaskType()
+        public void BuildReqTaskUpdateVariables_DoesNotIncludeCreationOnlyFields()
         {
             WfReqTask reqTask = new()
             {
@@ -165,9 +165,31 @@ namespace FWO.Test
             Dictionary<string, object?> variables = (Dictionary<string, object?>)buildMethod!.Invoke(null, [reqTask])!;
 
             Assert.That(variables.ContainsKey("taskType"), Is.False);
+            Assert.That(variables.ContainsKey("taskNumber"), Is.False);
             Assert.That(variables["title"], Is.EqualTo("Access request"));
             Assert.That(variables["state"], Is.EqualTo(0));
             Assert.That(variables["managementId"], Is.EqualTo(5));
+        }
+
+        [Test]
+        public void BuildReqTaskInsertVariables_IncludesCreationOnlyFields()
+        {
+            WfReqTask reqTask = new()
+            {
+                Title = "Access request",
+                TaskNumber = 3,
+                TaskType = WfTaskType.access.ToString(),
+                Locked = true
+            };
+
+            MethodInfo? buildMethod = typeof(WfDbAccess).GetMethod("BuildReqTaskInsertVariables", BindingFlags.NonPublic | BindingFlags.Static);
+            Assert.That(buildMethod, Is.Not.Null);
+
+            Dictionary<string, object?> variables = (Dictionary<string, object?>)buildMethod!.Invoke(null, [reqTask])!;
+
+            Assert.That(variables["taskNumber"], Is.EqualTo(3));
+            Assert.That(variables["taskType"], Is.EqualTo(WfTaskType.access.ToString()));
+            Assert.That(variables["locked"], Is.True);
         }
 
         [Test]

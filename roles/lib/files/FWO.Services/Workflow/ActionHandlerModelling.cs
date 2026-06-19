@@ -36,7 +36,7 @@ namespace FWO.Services.Workflow
                 {
                     updatedObjects += await UpdateModellingConnections(stateMarker, state, stateSetAt, ticketId, scopedTasks, scope);
                     updatedObjects += await UpdateModellingGroups(stateMarker, state, stateSetAt, scopedTasks);
-                }, useBestRole: true);
+                });
             }
             catch (Exception exc)
             {
@@ -45,7 +45,7 @@ namespace FWO.Services.Workflow
             return updatedObjects;
         }
 
-        private async Task RunWithModellingRole(Func<Task> action, bool allowAuditor = false, bool useBestRole = false)
+        private async Task RunWithModellingRole(Func<Task> action, bool allowAuditor = false)
         {
             if (useInMwServer)
             {
@@ -54,14 +54,7 @@ namespace FWO.Services.Workflow
             }
 
             List<string> targetRoles = allowAuditor ? [Roles.Modeller, Roles.Admin, Roles.Auditor] : [Roles.Modeller, Roles.Admin];
-            if (useBestRole)
-            {
-                await apiConnection.RunWithBestRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), targetRoles, action);
-            }
-            else
-            {
-                await apiConnection.RunWithProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), targetRoles, action);
-            }
+            await apiConnection.RunWithBestRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), targetRoles, action);
         }
 
         private List<WfReqTask> GetScopedRequestTasks(WfStatefulObject statefulObject, WfObjectScopes scope)

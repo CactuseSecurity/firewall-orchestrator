@@ -212,12 +212,10 @@
 
     private async Task<bool> CheckRequestRunning()
     {
-        WfTicket? intTicket = await apiConnection.RunWithBestRole(authenticationStateTask!.Result.User, [Roles.Modeller, Roles.Admin, Roles.Auditor],
-            async () => await ModellingAppHandler.GetLatestFWRequestTicket(AppHandler!.Application, apiConnection));
+        WfTicket? intTicket = await ModellingAppHandler.GetLatestFWRequestTicket(AppHandler!.Application, apiConnection);
         if(intTicket != null)
         {
-           ExtStateHandler extStateHandler = await apiConnection.RunWithBestRole(authenticationStateTask!.Result.User, [Roles.Modeller, Roles.Admin, Roles.Auditor],
-               () => Task.FromResult(new ExtStateHandler(apiConnection)));
+           ExtStateHandler extStateHandler = new(apiConnection);
            return extStateHandler.IsInProgress(intTicket.StateId) && intTicket.Tasks.Any(t => extStateHandler.IsInProgress(t.StateId));
         }
         return false;
@@ -236,21 +234,17 @@
 
     private async Task<bool> CheckImplementation()
     {
-        (VarianceResult, AppZoneModelled, MgmIdsWithDifferingAZ) = await apiConnection.RunWithBestRole(authenticationStateTask!.Result.User, [Roles.Modeller, Roles.Admin, Roles.Auditor],
-            async () =>
-            {
-                ExtStateHandler extStateHandler = new(apiConnection);
-                ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, AppHandler!.Application, DisplayMessageInUi);
-                ModellingFilter modellingFilter = new()
-                {
-                    SelectedOwner = AppHandler!.Application,
-                    AnalyseRemainingRules = userConfig.ModRecertExpectAllModelled,
-                    RulesForDeletedConns = true
-                };
-                ModellingVarianceResult varianceResult = await varianceAnalysis.AnalyseRulesVsModelledConnections(ModelledConnections, modellingFilter, true, true);
-                (bool appZoneModelled, List<ModellingAppZone?> mgmIdsWithDifferingAZ) = await varianceAnalysis.CheckExistingAppZone();
-                return (varianceResult, appZoneModelled, mgmIdsWithDifferingAZ);
-            });
+        ExtStateHandler extStateHandler = new(apiConnection);
+        ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, AppHandler!.Application, DisplayMessageInUi);
+        ModellingFilter modellingFilter = new()
+        {
+            SelectedOwner = AppHandler!.Application,
+            AnalyseRemainingRules = userConfig.ModRecertExpectAllModelled,
+            RulesForDeletedConns = true
+        };
+        ModellingVarianceResult varianceResult = await varianceAnalysis.AnalyseRulesVsModelledConnections(ModelledConnections, modellingFilter, true, true);
+        (bool appZoneModelled, List<ModellingAppZone?> mgmIdsWithDifferingAZ) = await varianceAnalysis.CheckExistingAppZone();
+        (VarianceResult, AppZoneModelled, MgmIdsWithDifferingAZ) = (varianceResult, appZoneModelled, mgmIdsWithDifferingAZ);
         RulesFromDeletedConns = [];
         foreach(var mgt in VarianceResult.DeletedModelsRules.Keys)
         {
@@ -281,7 +275,7 @@
         WorkInProgress = true;
         try
         {
-            await DoRecertification();
+            await apiConnection.RunWithRecertificationRole(authenticationStateTask!.Result.User, DoRecertification);
             Close();
         }
         catch (Exception exception)

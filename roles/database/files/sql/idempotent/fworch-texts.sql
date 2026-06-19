@@ -2148,6 +2148,12 @@ INSERT INTO txt VALUES ('recalculate_flow_names',	'German', 	'Flow-Namen neu ber
 INSERT INTO txt VALUES ('recalculate_flow_names',	'English', 	'Recalculate flow names');
 INSERT INTO txt VALUES ('recalculate_flow_names_confirm',	'German', 	'Diese Aktion schreibt die Flow-Namen anhand der gew&auml;hlten Namensquelle neu. Wirklich fortfahren?');
 INSERT INTO txt VALUES ('recalculate_flow_names_confirm',	'English', 	'This will rewrite flow names using the selected naming source. Continue?');
+INSERT INTO txt VALUES ('reset_flow_db',		'German', 	'Flow-Datenbank zur&uuml;cksetzen');
+INSERT INTO txt VALUES ('reset_flow_db',		'English', 	'Reset flow database');
+INSERT INTO txt VALUES ('reset_flow_db_hint',	'German', 	'L&ouml;scht alle Flow-Objekte, Gruppen und Regeln und markiert Importe f&uuml;r eine vollst&auml;ndige Neu-Synchronisation.');
+INSERT INTO txt VALUES ('reset_flow_db_hint',	'English', 	'Deletes all flow objects, groups, and accesses and marks imports for a full re-synchronization.');
+INSERT INTO txt VALUES ('reset_flow_db_confirm',	'German', 	'Diese Aktion leert die komplette Flow-Datenbank und setzt alle Flow-Zuordnungen zur&uuml;ck. Wirklich fortfahren?');
+INSERT INTO txt VALUES ('reset_flow_db_confirm',	'English', 	'This will clear the complete flow database and reset all flow mappings. Continue?');
 INSERT INTO txt VALUES ('edit_flow_object',		'German', 	'Flow-Objekt bearbeiten');
 INSERT INTO txt VALUES ('edit_flow_object',		'English', 	'Edit Flow Object');
 INSERT INTO txt VALUES ('show_in_request_module',	'German', 	'Im Request-Modul anzeigen');
@@ -2162,6 +2168,8 @@ INSERT INTO txt VALUES ('H5017',				'German', 	'Im Katalog werden Flow-Objekte, 
 INSERT INTO txt VALUES ('H5017',				'English', 	'The catalog brings flow objects, duplicate mappings, and custom network objects together in one place.');
 INSERT INTO txt VALUES ('H5018',				'German', 	'Verwenden Sie die Seite, um Namensquellen zu setzen, Konflikte zu lösen und bei Bedarf einzelne Zuordnungen manuell anzulegen.');
 INSERT INTO txt VALUES ('H5018',				'English', 	'Use the page to set naming sources, resolve conflicts, and create individual mappings manually when needed.');
+INSERT INTO txt VALUES ('H5019',				'German', 	'Die Seite enth&auml;lt au&szlig;erdem einen gef&auml;hrlichen Reset f&uuml;r die komplette Flow-Datenbank, der nur vor einer vollst&auml;ndigen Neu-Synchronisation verwendet werden sollte.');
+INSERT INTO txt VALUES ('H5019',				'English', 	'The page also includes a dangerous reset for the complete flow database, which should only be used before a full re-synchronization.');
 INSERT INTO txt VALUES ('gateways',		    	'German', 	'Gateways');
 INSERT INTO txt VALUES ('gateways',		    	'English', 	'Gateways');
 INSERT INTO txt VALUES ('authorization',		'German', 	'Berechtigungen');
@@ -3697,6 +3705,8 @@ INSERT INTO txt VALUES ('U5326', 'German',  'Verwaltung aller durch FW-&Auml;nde
 INSERT INTO txt VALUES ('U5326', 'English', 'Set the settings for all events triggerd by FW changes');
 INSERT INTO txt VALUES ('U5327', 'German',  'Verwaltung der Benachrichtigungs-Einstellungen f&uuml;r Regelablauf und aktive Regeln.');
 INSERT INTO txt VALUES ('U5327', 'English', 'Administration of notification settings for rule expiry and active rules.');
+INSERT INTO txt VALUES ('U5330', 'German',  'Flow-Datenbank zur&uuml;ckgesetzt.');
+INSERT INTO txt VALUES ('U5330', 'English', 'Flow database reset.');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');

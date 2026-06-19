@@ -26,6 +26,8 @@ namespace FWO.Api.Client
 
         private readonly AsyncLocal<List<string>?> roleStack = new();
         private string defaultRole = "";
+        private List<string> allowedRoles = [];
+        private string ambientRole = "";
         private string forcedExecutionMode = "";
         private bool restrictElevatedRoleSwitches = false;
 
@@ -74,7 +76,7 @@ namespace FWO.Api.Client
             ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
             ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
 
-            defaultRole = GetDefaultRoleFromJwt(jwt);
+            UpdateJwtRoleState(jwt);
             ApplyAuthHeader(graphQlClient, jwt);
             ApplyAuthHeader(graphQlSubscriptionClient, jwt);
 
@@ -101,6 +103,7 @@ namespace FWO.Api.Client
         {
             forcedExecutionMode = IsForcedExecutionMode(role) ? role : "";
             restrictElevatedRoleSwitches = restrictElevatedRoles;
+            ambientRole = "";
             roleStack.Value = null;
         }
 
@@ -118,6 +121,21 @@ namespace FWO.Api.Client
             InvokeOnExecutionModeChanged(this, GetExecutionMode());
         }
 
+        public override void SetAmbientRole(ClaimsPrincipal user, List<string> targetRoleList)
+        {
+            if (targetRoleList.Count == 0)
+            {
+                ambientRole = "";
+                return;
+            }
+
+            bool includeElevatedRoles = !HasSelectableUserRole(user);
+            ambientRole = IsForcedExecutionMode(user)
+                ? forcedExecutionMode
+                : GetFirstAllowedRole(user, targetRoleList, includeElevatedRoles)
+                    ?? "";
+        }
+
         public override string GetExecutionMode()
         {
             return forcedExecutionMode == "" ? GlobalConst.kUserRolesSelection : forcedExecutionMode;
@@ -128,7 +146,7 @@ namespace FWO.Api.Client
             return role == GetActRole();
         }
 
-        public string GetActRole()
+        public override string GetActRole()
         {
             ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
 
@@ -136,6 +154,10 @@ namespace FWO.Api.Client
             if (roles != null && roles.Count > 0)
             {
                 return roles[^1];
+            }
+            if (!string.IsNullOrWhiteSpace(ambientRole))
+            {
+                return ambientRole;
             }
             return GetBaselineRole();
         }
@@ -147,33 +169,6 @@ namespace FWO.Api.Client
                 ? forcedExecutionMode
                 : GetFirstAllowedRole(user, targetRoleList, includeElevatedRoles)
                     ?? throw new AuthenticationException($"User has none of the required roles: {string.Join(", ", targetRoleList)}");
-            PushRole(targetRole);
-        }
-
-        public override void SetProperRole(ClaimsPrincipal user, List<string> targetRoleList)
-        {
-            string actRole = GetActRole();
-            string? targetRole = null;
-            bool includeElevatedRoles = !HasSelectableUserRole(user);
-
-            if (IsForcedExecutionMode(user))
-            {
-                targetRole = forcedExecutionMode;
-            }
-            else if ((includeElevatedRoles || !IsForcedExecutionMode(actRole)) && targetRoleList.Contains(actRole))
-            {
-                targetRole = actRole;
-            }
-            else
-            {
-                targetRole = GetFirstAllowedRole(user, targetRoleList, includeElevatedRoles);
-            }
-
-            if (targetRole == null)
-            {
-                throw new AuthenticationException($"User has none of the required roles: {string.Join(", ", targetRoleList)}");
-            }
-
             PushRole(targetRole);
         }
 
@@ -207,7 +202,55 @@ namespace FWO.Api.Client
 
         private string GetBaselineRole()
         {
-            return IsForcedExecutionMode(forcedExecutionMode) ? forcedExecutionMode : defaultRole;
+            if (IsForcedExecutionMode(forcedExecutionMode))
+            {
+                return forcedExecutionMode;
+            }
+            if (restrictElevatedRoleSwitches && IsForcedExecutionMode(defaultRole))
+            {
+                return "";
+            }
+            return defaultRole;
+        }
+
+        private string GetRequestRole()
+        {
+            string role = GetActRole();
+            if (!string.IsNullOrWhiteSpace(role) && HasExplicitRole())
+            {
+                return role;
+            }
+            if (IsForcedExecutionMode(forcedExecutionMode))
+            {
+                return role;
+            }
+            if (!string.IsNullOrWhiteSpace(ambientRole))
+            {
+                return ambientRole;
+            }
+            if (!string.IsNullOrWhiteSpace(role))
+            {
+                return role;
+            }
+            if (RequiresExplicitRole())
+            {
+                throw new AuthenticationException("GraphQL API call requires an explicit role for users with multiple application roles. Use RunWithBestRole or RunWithRole.");
+            }
+            return role;
+        }
+
+        private bool HasExplicitRole()
+        {
+            List<string>? roles = roleStack.Value;
+            return roles != null && roles.Any(role => !string.IsNullOrWhiteSpace(role));
+        }
+
+        private bool RequiresExplicitRole()
+        {
+            return allowedRoles
+                .Where(role => !FWO.Basics.RoleGroups.IsTechnicalOrAnonymous(role))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Count() > 1;
         }
 
         public override void SwitchBack()
@@ -236,16 +279,20 @@ namespace FWO.Api.Client
             return ExecutionModeHelper.GetUserRoles(user).Contains(role, StringComparer.OrdinalIgnoreCase);
         }
 
-        private static string GetDefaultRoleFromJwt(string jwt)
+        private void UpdateJwtRoleState(string jwt)
         {
+            defaultRole = "";
+            allowedRoles = [];
             try
             {
                 JwtSecurityToken token = new JwtSecurityTokenHandler().ReadJwtToken(jwt);
-                return token.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-default-role")?.Value ?? "";
+                defaultRole = token.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-default-role")?.Value ?? "";
+                allowedRoles = JwtClaimParser.ExtractStringClaimValues(token.Claims, "x-hasura-allowed-roles");
             }
             catch
             {
-                return "";
+                defaultRole = "";
+                allowedRoles = [];
             }
         }
 
@@ -270,9 +317,10 @@ namespace FWO.Api.Client
                     return await SendChunkedQueryAsync<QueryResponseType>(query, variables, operationName, chunkingOptions);
                 }
 
-                Log.WriteDebug("API call", $"Sending API call {operationName} in role {GetActRole()}: {query.Substring(0, Math.Min(query.Length, 70)).Replace(Environment.NewLine, "")}... " +
+                string requestRole = GetRequestRole();
+                Log.WriteDebug("API call", $"Sending API call {operationName} in role {requestRole}: {query.Substring(0, Math.Min(query.Length, 70)).Replace(Environment.NewLine, "")}... " +
                     (variables != null ? "with variables: <redacted>" : ""));
-                GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(CreateHttpRequest(query, variables, operationName));
+                GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(CreateHttpRequest(requestRole, query, variables, operationName));
                 // Log.WriteDebug("API call", "API response received.");
 
                 if (response.Errors != null)
@@ -317,9 +365,10 @@ namespace FWO.Api.Client
             {
                 ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
 
-                Log.WriteDebug("API call", $"Sending API call {operationName} in role {GetActRole()}: {query.Substring(0, Math.Min(query.Length, 70)).Replace(Environment.NewLine, "")}... " +
+                string requestRole = GetRequestRole();
+                Log.WriteDebug("API call", $"Sending API call {operationName} in role {requestRole}: {query.Substring(0, Math.Min(query.Length, 70)).Replace(Environment.NewLine, "")}... " +
                     (variables != null ? "with variables: <redacted>" : ""));
-                GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(CreateHttpRequest(query, variables, operationName));
+                GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(CreateHttpRequest(requestRole, query, variables, operationName));
 
                 if (response.Errors != null)
                 {
@@ -415,7 +464,7 @@ namespace FWO.Api.Client
 
                 GraphQLHttpClient oldSubscriptionClient = graphQlSubscriptionClient;
                 GraphQLHttpClient newSubscriptionClient = CreateClient(ApiServerUri);
-                defaultRole = GetDefaultRoleFromJwt(jwt);
+                UpdateJwtRoleState(jwt);
                 ApplyAuthHeader(graphQlClient, jwt);
                 ApplyAuthHeader(newSubscriptionClient, jwt);
 
@@ -562,7 +611,8 @@ namespace FWO.Api.Client
             ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
 
             object chunkedVariables = ReplaceChunkVariable(variables!, chunkingOptions.ChunkVariableName, [.. batch]);
-            GraphQLResponse<dynamic> chunkResponse = await graphQlClient.SendQueryAsync<dynamic>(CreateHttpRequest(query, chunkedVariables, operationName));
+            string requestRole = GetRequestRole();
+            GraphQLResponse<dynamic> chunkResponse = await graphQlClient.SendQueryAsync<dynamic>(CreateHttpRequest(requestRole, query, chunkedVariables, operationName));
 
             if (chunkResponse.Errors != null)
             {
@@ -787,14 +837,14 @@ namespace FWO.Api.Client
             subscriptions.RemoveAll(_ => _.GetType() == typeof(T));
         }
 
-        private GraphQLHttpRequest CreateHttpRequest(string query, object? variables, string? operationName)
+        private GraphQLHttpRequest CreateHttpRequest(string role, string query, object? variables, string? operationName)
         {
-            return new RoleGraphQLHttpRequest(GetActRole(), query, variables, operationName);
+            return new RoleGraphQLHttpRequest(role, query, variables, operationName);
         }
 
         private object CreateWebSocketConnectionInitPayload(GraphQLHttpClient client)
         {
-            string role = GetActRole();
+            string role = GetRequestRole();
             Dictionary<string, object?> headers = new()
             {
                 ["authorization"] = client.HttpClient.DefaultRequestHeaders.Authorization?.ToString()
@@ -809,7 +859,7 @@ namespace FWO.Api.Client
 
         private GraphQLRequest CreateSubscriptionRequest(string query, object? variables, string? operationName)
         {
-            string role = GetActRole();
+            string role = GetRequestRole();
             GraphQLRequest request = new(query, variables, operationName);
             if (!string.IsNullOrWhiteSpace(role))
             {

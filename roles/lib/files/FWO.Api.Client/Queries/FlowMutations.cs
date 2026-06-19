@@ -5,6 +5,7 @@ namespace FWO.Api.Client.Queries
     public class FlowMutations : Queries
     {
         public static readonly string insertFlowNwObject;
+        public static readonly string resetFlowDB;
         public static readonly string upsertFlowNwObjectMapping;
         public static readonly string updateFlowNwGroup;
         public static readonly string updateFlowNwObject;
@@ -18,6 +19,7 @@ namespace FWO.Api.Client.Queries
             try
             {
                 insertFlowNwObject = GetQueryText("flow/mutations/insertFlowNwObject.graphql");
+                resetFlowDB = GetQueryText("flow/mutations/resetFlowDB.graphql");
                 upsertFlowNwObjectMapping = GetQueryText("flow/mutations/upsertFlowNwObjectMapping.graphql");
                 updateFlowNwGroup = GetQueryText("flow/mutations/updateFlowNwGroup.graphql");
                 updateFlowNwObject = GetQueryText("flow/mutations/updateFlowNwObject.graphql");

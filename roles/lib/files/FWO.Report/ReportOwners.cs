@@ -17,6 +17,8 @@ namespace FWO.Report
     {
         private Dictionary<int, string> ownerLifeCycleStates = [];
         private List<OwnerResponsibleType> ownerResponsibleTypes = [];
+        private string OwnerLifeCycleStateIdHeader => $"{userConfig.GetText("owner_lc_state")} {userConfig.GetText("id")}";
+        private string OwnerLifeCycleStateNameHeader => $"{userConfig.GetText("owner_lc_state")} {userConfig.GetText("name")}";
         private IEnumerable<FwoOwner> OrderedOwners => ReportData.OwnerData
             .Select(ownerReport => ownerReport.Owner)
             .OrderBy(owner => owner.ExtAppId ?? "")
@@ -73,6 +75,8 @@ namespace FWO.Report
             report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("criticality")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("state")}</th>");
+            report.AppendLine($"<th>{OwnerLifeCycleStateIdHeader}</th>");
+            report.AppendLine($"<th>{OwnerLifeCycleStateNameHeader}</th>");
             foreach (OwnerResponsibleType type in ownerResponsibleTypes)
             {
                 report.AppendLine($"<th>{EncodeHtml(type.Name)}</th>");
@@ -87,6 +91,8 @@ namespace FWO.Report
             report.Append(OutputCsv(userConfig.GetText("name")));
             report.Append(OutputCsv(userConfig.GetText("criticality")));
             report.Append(OutputCsv(userConfig.GetText("state")));
+            report.Append(OutputCsv(OwnerLifeCycleStateIdHeader));
+            report.Append(OutputCsv(OwnerLifeCycleStateNameHeader));
             foreach (OwnerResponsibleType type in ownerResponsibleTypes)
             {
                 report.Append(OutputCsv(type.Name));
@@ -102,6 +108,8 @@ namespace FWO.Report
             report.AppendLine($"<td>{EncodeHtml(owner.Name)}</td>");
             report.AppendLine($"<td>{EncodeHtml(owner.Criticality)}</td>");
             report.AppendLine($"<td>{EncodeHtml(GetOwnerState(owner))}</td>");
+            report.AppendLine($"<td>{EncodeHtml(owner.OwnerLifeCycleStateId?.ToString())}</td>");
+            report.AppendLine($"<td>{EncodeHtml(GetOwnerStateName(owner))}</td>");
             foreach (OwnerResponsibleType type in ownerResponsibleTypes)
             {
                 report.AppendLine($"<td>{FormatHtmlCell(OwnerRecertDisplay.FormatResponsibles(owner, type.Id, "\n"))}</td>");
@@ -116,6 +124,8 @@ namespace FWO.Report
             report.Append(OutputCsv(owner.Name));
             report.Append(OutputCsv(owner.Criticality));
             report.Append(OutputCsv(GetOwnerState(owner)));
+            report.Append(OutputCsv(owner.OwnerLifeCycleStateId?.ToString()));
+            report.Append(OutputCsv(GetOwnerStateName(owner)));
             foreach (OwnerResponsibleType type in ownerResponsibleTypes)
             {
                 report.Append(OutputCsv(OwnerRecertDisplay.FormatResponsibles(owner, type.Id, "; ")));
@@ -132,6 +142,16 @@ namespace FWO.Report
             }
 
             return "";
+        }
+
+        private string GetOwnerStateName(FwoOwner owner)
+        {
+            if (!string.IsNullOrWhiteSpace(owner.OwnerLifeCycleState?.Name))
+            {
+                return owner.OwnerLifeCycleState.Name;
+            }
+
+            return GetOwnerState(owner);
         }
 
         private static string GetAdditionalInfo(FwoOwner owner, string separator = "\n")

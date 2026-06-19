@@ -24,6 +24,9 @@ namespace FWO.Data
         [JsonProperty("owner_lifecycle_state_id"), JsonPropertyName("owner_lifecycle_state_id")]
         public int? OwnerLifeCycleStateId { get; set; }
 
+        [JsonProperty("owner_lifecycle_state"), JsonPropertyName("owner_lifecycle_state")]
+        public OwnerLifeCycleState? OwnerLifeCycleState { get; set; }
+
         [JsonProperty("active"), JsonPropertyName("active")]
         public bool Active { get; set; } = true;
 
@@ -74,6 +77,8 @@ namespace FWO.Data
             RecertCheckParamString = owner.RecertCheckParamString;
             AdditionalInfo = owner.AdditionalInfo == null ? null : new Dictionary<string, string>(owner.AdditionalInfo);
             Criticality = owner.Criticality;
+            OwnerLifeCycleStateId = owner.OwnerLifeCycleStateId;
+            OwnerLifeCycleState = owner.OwnerLifeCycleState == null ? null : new OwnerLifeCycleState(owner.OwnerLifeCycleState);
             Active = owner.Active;
             ImportSource = owner.ImportSource;
             CommSvcPossible = owner.CommSvcPossible;

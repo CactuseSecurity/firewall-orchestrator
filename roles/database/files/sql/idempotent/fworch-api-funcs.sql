@@ -610,7 +610,7 @@ DROP FUNCTION IF EXISTS public.get_rulebase_for_owner;
 DROP VIEW IF EXISTS public.rule_api;
 CREATE OR REPLACE VIEW public.rule_api AS
     SELECT
-        rule_id, last_change_admin, rule_name, mgm_id, parent_rule_id, parent_rule_type, active, rule_num, rule_num_numeric,
+        rule_id, last_change_admin, rule_name, mgm_id, parent_rule_id, parent_rule_type, active, rule_num_numeric,
         rule_ruleid, rule_uid, rule_disabled, rule_src_neg, rule_dst_neg, rule_svc_neg, action_id, track_id,
         rule_src, rule_dst, rule_svc, rule_src_refs, rule_dst_refs, rule_svc_refs, rule_from_zone, rule_to_zone,
         rule_action, rule_track, rule_installon, rule_time, rule_comment, rule_head_text, rule_implied, rule_create,

@@ -457,6 +457,9 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 - Remaining hardcoded strings on the scheduler monitoring page were moved into the localization texts.
 - The shared confirm dialogs now raise DisplayChanged(false) after a successful action, so the parent's bound visibility state no longer remains stale.
 
+# 9.1.9 - 19.06.2026 DEVELOP
+- remove deprecated, unused rule.rule_num column (rule ordering is handled by rule_num_numeric)
+
 # 9.1.8 - 16.06.2026 DEVELOP
 - flow db: access flows now include time objects and allow/deny flag in their functional definition
 - flow sync: add hash consistency check

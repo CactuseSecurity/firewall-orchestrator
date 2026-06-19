@@ -356,7 +356,6 @@ def parse_single_rule(
         last_hit = None
 
     rule: dict[str, Any] = {
-        "rule_num": 0,
         "rule_num_numeric": 0,
         "rulebase_name": sanitize(layer_name),
         "rule_disabled": not bool(native_rule["enabled"]),

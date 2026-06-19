@@ -15,7 +15,6 @@ from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
 )
 def test_last_hit_normalizes_supported_timestamp_formats(last_hit: str, expected: str):
     rule = RuleNormalized(
-        rule_num=1,
         rule_num_numeric=1.0,
         rule_disabled=False,
         rule_src_neg=False,
@@ -43,7 +42,6 @@ def test_last_hit_rejects_invalid_timestamp_with_updated_message():
         match=r"Rule last_hit value 'not-a-timestamp' must be an ISO 8601 timestamp like YYYY-MM-DDTHH:MM\[:SS\]\[Z\|±HH:MM\|±HHMM\]; timestamps without a timezone are treated as UTC",
     ):
         RuleNormalized(
-            rule_num=1,
             rule_num_numeric=1.0,
             rule_disabled=False,
             rule_src_neg=False,

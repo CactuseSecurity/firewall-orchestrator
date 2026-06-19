@@ -235,10 +235,7 @@
 
     private string GetRelativeLocationPath(string location)
     {
-        string relativePath = Uri.TryCreate(location, UriKind.Absolute, out _)
-            ? NavigationManager.ToBaseRelativePath(location)
-            : location;
-        return relativePath.Split(['?', '#'])[0].Trim('/').ToLowerInvariant();
+        return NavigationPathHelper.GetBaseRelativePath(location, NavigationManager.BaseUri);
     }
 
     private static List<string> GetRequestAmbientRoles(string path)

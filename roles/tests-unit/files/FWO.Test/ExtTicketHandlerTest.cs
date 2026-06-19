@@ -153,7 +153,7 @@ namespace FWO.Test
         [SetUp]
         public void Initialize()
         {
-
+            ExtTicketHandlerTestApiConn.ResetTicketTasks();
         }
 
         [Test]
@@ -179,43 +179,129 @@ namespace FWO.Test
             string extQueryVars = "{\"BundledTasks\":[1,2,3]}";
 
             ClassicAssert.AreEqual(3, ExternalRequestHandler.GetLastTaskNumber(extQueryVars, 0));
-        }
+        }        
 
         [Test]
-        [Ignore("Temporarily disabled")]
-        public async Task SendFirstRequestUsesFirstConfiguredExternalTicketSystem()
+        public async Task HandleStateChangeUsesConfiguredSystemForRuleChanges()
         {
+            ExternalTicketSystem tufinSystem = new()
+            {
+                Id = 1,
+                TypeId = BuiltInExternalTicketSystemTypes.TufinSecureChangeId,
+                Authorization = "xyz",
+                Name = "Tufin",
+                Url = "https://tufin-test.xxx.de/securechangeworkflow/api/securechange/",
+                Templates = ticketSystem.Templates
+            };
+
+            ExternalTicketSystem cpSystem = new()
+            {
+                Id = 3,
+                TypeId = 9,
+                Authorization = "X-chkp-sid: xyz",
+                Name = "CheckPoint",
+                Url = "https://checkpoint-test.xxx.de/web_api/",
+                Templates = checkPointTicketSystem.Templates
+            };
+
             SimulatedUserConfig localUserConfig = new()
             {
                 ExternalRequestWaitCycles = 3,
-                ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(new List<ExternalTicketSystem> { ticketSystem, customTicketSystem }),
+                ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(new List<ExternalTicketSystem> { tufinSystem, cpSystem }),
                 FwConfigChangeMgmSettings = System.Text.Json.JsonSerializer.Serialize(new List<ManagementFwConfigChangeState>
+        {
+            new()
+            {
+                Id = 1,
+                Name = "Checkpoint",
+                Enabled = true,
+                SelectedChanges = new()
                 {
-                    new()
-                    {
-                        Id = 1,
-                        Name = "Checkpoint",
-                        Enabled = true,
-                        SelectedChanges = new()
-                        {
-                            [ManagementFwConfigChangeCategories.ObjectChanges] = customTicketSystem.Id.ToString(),
-                            [ManagementFwConfigChangeCategories.RuleChanges] = ticketSystem.Id.ToString()
-                        }
-                    }
-                }),
+                    [ManagementFwConfigChangeCategories.ObjectChanges] = cpSystem.Id.ToString(),
+                    [ManagementFwConfigChangeCategories.RuleChanges] = tufinSystem.Id.ToString()
+                }
+            }
+        }),
                 ReqPriorities = reqPrios,
                 ModNamingConvention = namingConvention,
                 ModRolloutBundleTasks = true
             };
+
             ExtTicketHandlerTestApiConn localApiConnection = new();
 
-            using ExternalRequestHandler externalRequestHandler = new(localUserConfig, localApiConnection, null);
-            bool created = await externalRequestHandler.SendFirstRequest(123);
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
 
-            ClassicAssert.AreEqual(true, created);
-            ClassicAssert.AreEqual(true, localApiConnection.AddedExtTicketSystem?.Contains("\"Name\":\"Tufin"), localApiConnection.AddedExtTicketSystem ?? "");
-            ClassicAssert.AreEqual(true, localApiConnection.AddedExtTicketSystem?.Contains("\"TypeId\":2"), localApiConnection.AddedExtTicketSystem ?? "");
-            ClassicAssert.AreEqual(true, localApiConnection.AddExtRequestVars?.Contains("extRequestState = ExtReqInitialized"));
+            await handler.HandleStateChange(new ExternalRequest
+            {
+                Id = 2,
+                TicketId = 123,
+                TaskNumber = 2,
+                ExtRequestState = ExtStates.ExtReqDone.ToString(),
+                ExtTicketId = "4712",
+                ExtQueryVariables = "{\"BundledTasks\":[2,3]}"
+            });
+
+            StringAssert.Contains("taskNumber = 4", localApiConnection.AddExtRequestVars ?? "");
+            StringAssert.Contains("\"Name\":\"Tufin\"", localApiConnection.AddedExtTicketSystem ?? "");
+            StringAssert.Contains("\"TypeId\":2", localApiConnection.AddedExtTicketSystem ?? "");
+        }
+
+        [Test]
+        public async Task HandleStateChangeDoneCreatesNextBundledRequest()
+        {
+            ExternalTicketSystem tufinSystem = new()
+            {
+                Id = 1,
+                TypeId = BuiltInExternalTicketSystemTypes.TufinSecureChangeId,
+                Authorization = "xyz",
+                Name = "Tufin",
+                Url = "https://tufin-test.xxx.de/securechangeworkflow/api/securechange/",
+                Templates = ticketSystem.Templates
+            };
+
+            SimulatedUserConfig localUserConfig = new()
+            {
+                ExternalRequestWaitCycles = 3,
+                ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(new List<ExternalTicketSystem> { tufinSystem }),
+                FwConfigChangeMgmSettings = System.Text.Json.JsonSerializer.Serialize(new List<ManagementFwConfigChangeState>
+        {
+            new()
+            {
+                Id = 1,
+                Name = "Checkpoint",
+                Enabled = true,
+                SelectedChanges = new()
+                {
+                    [ManagementFwConfigChangeCategories.ObjectChanges] = tufinSystem.Id.ToString(),
+                    [ManagementFwConfigChangeCategories.RuleChanges] = tufinSystem.Id.ToString()
+                }
+            }
+        }),
+                ReqPriorities = reqPrios,
+                ModNamingConvention = namingConvention,
+                ModRolloutBundleTasks = true
+            };
+
+            ExtTicketHandlerTestApiConn localApiConnection = new();
+
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+
+            ExternalRequest externalRequest = new()
+            {
+                Id = 2,
+                TicketId = 123,
+                TaskNumber = 2,
+                ExtRequestState = ExtStates.ExtReqDone.ToString(),
+                ExtTicketId = "4712",
+                ExtQueryVariables = "{\"BundledTasks\":[2,3]}"
+            };
+
+            await handler.HandleStateChange(externalRequest);
+
+            StringAssert.Contains("taskNumber = 4", localApiConnection.AddExtRequestVars ?? "");
+            StringAssert.Contains("extQueryVariables = {\"BundledTasks\":[4,5]}", localApiConnection.AddExtRequestVars ?? "");
+            ClassicAssert.AreEqual(true, localApiConnection.History.Any(h => h.Contains("changeType = 11") && h.Contains("Task2")));
+            ClassicAssert.AreEqual(true, localApiConnection.History.Any(h => h.Contains("changeType = 11") && h.Contains("Task3")));
         }
 
         [Test]
@@ -237,10 +323,35 @@ namespace FWO.Test
         }
 
         [Test]
-        [Ignore("Temporarily disabled")]
         public async Task TestHandleStateChange()
         {
-            using ExternalRequestHandler externalRequestHandler = new(userConfig, apiConnection, null);
+            SimulatedUserConfig localUserConfig = new()
+            {
+                ExternalRequestWaitCycles = 3,
+                ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(new List<ExternalTicketSystem> { ticketSystem }),
+                FwConfigChangeMgmSettings = System.Text.Json.JsonSerializer.Serialize(new List<ManagementFwConfigChangeState>
+        {
+            new()
+            {
+                Id = 1,
+                Name = "Checkpoint",
+                Enabled = true,
+                SelectedChanges = new()
+                {
+                    [ManagementFwConfigChangeCategories.ObjectChanges] = ticketSystem.Id.ToString(),
+                    [ManagementFwConfigChangeCategories.RuleChanges] = ticketSystem.Id.ToString()
+                }
+            }
+        }),
+                ReqPriorities = reqPrios,
+                ModNamingConvention = namingConvention,
+                ModRolloutBundleTasks = true
+            };
+
+            ExtTicketHandlerTestApiConn.ResetTicketTasks();
+            ExtTicketHandlerTestApiConn localApiConnection = new();
+
+            using ExternalRequestHandler externalRequestHandler = new(localUserConfig, localApiConnection, null);
             ExternalRequest externalRequest = new()
             {
                 Id = 1,
@@ -258,15 +369,15 @@ namespace FWO.Test
             await externalRequestHandler.HandleStateChange(externalRequest);
 
             // { appId = , changeType = 11, objectType = 1, objectId = 1, changeText = Implemented Task1 on , changer = Tufin, changeSource = manual }
-            ClassicAssert.AreEqual(3, apiConnection.History.Count);
-            ClassicAssert.AreEqual(true, apiConnection.History[0].Contains("changeType = 11"));
-            ClassicAssert.AreEqual(true, apiConnection.History[0].Contains("Task1"));
+            ClassicAssert.AreEqual(3, localApiConnection.History.Count);
+            ClassicAssert.AreEqual(true, localApiConnection.History[0].Contains("changeType = 11"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[0].Contains("Task1"));
 
             // { appId = , changeType = 10, objectType = 1, objectId = 1, changeText = Requested Task2 on , changer = , changeSource = manual }
-            ClassicAssert.AreEqual(true, apiConnection.History[1].Contains("changeType = 10"));
-            ClassicAssert.AreEqual(true, apiConnection.History[1].Contains("Task2"));
-            ClassicAssert.AreEqual(true, apiConnection.History[2].Contains("changeType = 10"));
-            ClassicAssert.AreEqual(true, apiConnection.History[2].Contains("Task3"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[1].Contains("changeType = 10"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[1].Contains("Task2"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[2].Contains("changeType = 10"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[2].Contains("Task3"));
 
             // { ownerId = , ticketId = 123, taskNumber = 2, extTicketSystem = {"Id":1,"ExternalTicketSystemType":1,"Authorization":"xyz","Name":"Tufin","Url":"https://tufin-test.xxx.de/securechangeworkflow/api/securechange/",
             // "LookupRequesterId":false,"Templates":[{"TaskType":"NetworkObjectModify","TicketTemplate":"{\u0022ticket\u0022:{\u0022subject\u0022:\u0022@@TICKET_SUBJECT@@\u0022,\u0022priority\u0022:\u0022@@PRIORITY@@\u0022,
@@ -292,60 +403,60 @@ namespace FWO.Test
             // \u0022object_name\u0022: \u0022ARxx12345-101\u0022, \u0022management_name\u0022: \u0022\u0022}]},\u0022services\u0022:{\u0022service\u0022:[{\u0022@type\u0022: \u0022PROTOCOL\u0022, \u0022protocol\u0022: \u0022TCP\u0022, \u0022port\u0022: 1000, \u0022name\u0022: \u0022Svc1\u0022}]},
             // \u0022labels\u0022:\u0022\u0022,\u0022comment\u0022: \u0022\u0022}]},{\u0022@xsi.type\u0022: \u0022text_area\u0022,\u0022name\u0022: \u0022Grund f\u00FCr den Antrag\u0022,\u0022read_only\u0022: false,\u0022text\u0022: \u0022Kommunikationsprofil der Anwendung\u0022},{\u0022@xsi.type\u0022: \u0022text_field\u0022,
             // \u0022name\u0022: \u0022Anwendungs-ID\u0022,\u0022text\u0022: \u0022\u0022},{\u0022@xsi.type\u0022: \u0022checkbox\u0022,\u0022name\u0022: \u0022hinterlegt\u0022,\u0022value\u0022: true}]}}}}]}}}}","TicketId":""}, extQueryVariables = , extRequestState = ExtReqInitialized, waitCycles = 0 }
-            ClassicAssert.AreEqual(true, apiConnection.AddExtRequestVars != null);
-            ClassicAssert.AreEqual(true, apiConnection.AddExtRequestVars?.Contains("taskNumber = 2"));
-            ClassicAssert.AreEqual(true, apiConnection.AddExtRequestVars?.Contains("extQueryVariables = {\"BundledTasks\":[2,3]}"));
+            ClassicAssert.AreEqual(true, localApiConnection.AddExtRequestVars != null);
+            ClassicAssert.AreEqual(true, localApiConnection.AddExtRequestVars?.Contains("taskNumber = 2"));
+            ClassicAssert.AreEqual(true, localApiConnection.AddExtRequestVars?.Contains("extQueryVariables = {\"BundledTasks\":[2,3]}"));
 
             externalRequest.Id = 2;
             externalRequest.TaskNumber = 2;
             externalRequest.ExtQueryVariables = "{\"BundledTasks\":[2,3]}";
             await externalRequestHandler.HandleStateChange(externalRequest);
 
-            ClassicAssert.AreEqual(7, apiConnection.History.Count);
-            ClassicAssert.AreEqual(true, apiConnection.History[3].Contains("changeType = 11"));
-            ClassicAssert.AreEqual(true, apiConnection.History[3].Contains("Task2"));
-            ClassicAssert.AreEqual(true, apiConnection.History[4].Contains("changeType = 11"));
-            ClassicAssert.AreEqual(true, apiConnection.History[4].Contains("Task3"));
-            ClassicAssert.AreEqual(true, apiConnection.History[5].Contains("changeType = 10"));
-            ClassicAssert.AreEqual(true, apiConnection.History[5].Contains("Task4"));
-            ClassicAssert.AreEqual(true, apiConnection.History[6].Contains("changeType = 10"));
-            ClassicAssert.AreEqual(true, apiConnection.History[6].Contains("Task5"));
-            ClassicAssert.AreEqual(true, apiConnection.AddExtRequestVars?.Contains("taskNumber = 4"));
-            ClassicAssert.AreEqual(true, apiConnection.AddExtRequestVars?.Contains("extQueryVariables = {\"BundledTasks\":[4,5]}"));
-            ClassicAssert.AreEqual(true, apiConnection.AddExtRequestVars?.Contains("AR4"));
-            ClassicAssert.AreEqual(false, apiConnection.AddExtRequestVars?.Contains("AR5"));
+            ClassicAssert.AreEqual(7, localApiConnection.History.Count);
+            ClassicAssert.AreEqual(true, localApiConnection.History[3].Contains("changeType = 11"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[3].Contains("Task2"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[4].Contains("changeType = 11"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[4].Contains("Task3"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[5].Contains("changeType = 10"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[5].Contains("Task4"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[6].Contains("changeType = 10"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[6].Contains("Task5"));
+            ClassicAssert.AreEqual(true, localApiConnection.AddExtRequestVars?.Contains("taskNumber = 4"));
+            ClassicAssert.AreEqual(true, localApiConnection.AddExtRequestVars?.Contains("extQueryVariables = {\"BundledTasks\":[4,5]}"));
+            ClassicAssert.AreEqual(true, localApiConnection.AddExtRequestVars?.Contains("AR4"));
+            ClassicAssert.AreEqual(false, localApiConnection.AddExtRequestVars?.Contains("AR5"));
 
             externalRequest.Id = 3;
             externalRequest.TaskNumber = 4;
             externalRequest.ExtQueryVariables = "{\"BundledTasks\":[4,5]}";
             await externalRequestHandler.HandleStateChange(externalRequest);
 
-            ClassicAssert.AreEqual(12, apiConnection.History.Count);
-            ClassicAssert.AreEqual(true, apiConnection.History[7].Contains("changeType = 11"));
-            ClassicAssert.AreEqual(true, apiConnection.History[7].Contains("Task4"));
-            ClassicAssert.AreEqual(true, apiConnection.History[8].Contains("changeType = 11"));
-            ClassicAssert.AreEqual(true, apiConnection.History[8].Contains("Task5"));
-            ClassicAssert.AreEqual(true, apiConnection.History[9].Contains("changeType = 10"));
-            ClassicAssert.AreEqual(true, apiConnection.History[9].Contains("Task6"));
-            ClassicAssert.AreEqual(true, apiConnection.History[10].Contains("changeType = 10"));
-            ClassicAssert.AreEqual(true, apiConnection.History[10].Contains("Task7"));
-            ClassicAssert.AreEqual(true, apiConnection.History[11].Contains("changeType = 10"));
-            ClassicAssert.AreEqual(true, apiConnection.History[11].Contains("Task8"));
-            ClassicAssert.AreEqual(true, apiConnection.AddExtRequestVars?.Contains("taskNumber = 6"));
-            ClassicAssert.AreEqual(true, apiConnection.AddExtRequestVars?.Contains("extQueryVariables = {\"BundledTasks\":[6,7,8]}"));
-            ClassicAssert.AreEqual(true, apiConnection.AddExtRequestVars?.Contains("AR6"));
-            ClassicAssert.AreEqual(false, apiConnection.AddExtRequestVars?.Contains("AR7"));
-            ClassicAssert.AreEqual(true, apiConnection.AddExtRequestVars?.Contains("AR8"));
+            ClassicAssert.AreEqual(12, localApiConnection.History.Count);
+            ClassicAssert.AreEqual(true, localApiConnection.History[7].Contains("changeType = 11"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[7].Contains("Task4"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[8].Contains("changeType = 11"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[8].Contains("Task5"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[9].Contains("changeType = 10"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[9].Contains("Task6"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[10].Contains("changeType = 10"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[10].Contains("Task7"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[11].Contains("changeType = 10"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[11].Contains("Task8"));
+            ClassicAssert.AreEqual(true, localApiConnection.AddExtRequestVars?.Contains("taskNumber = 6"));
+            ClassicAssert.AreEqual(true, localApiConnection.AddExtRequestVars?.Contains("extQueryVariables = {\"BundledTasks\":[6,7,8]}"));
+            ClassicAssert.AreEqual(true, localApiConnection.AddExtRequestVars?.Contains("AR6"));
+            ClassicAssert.AreEqual(false, localApiConnection.AddExtRequestVars?.Contains("AR7"));
+            ClassicAssert.AreEqual(true, localApiConnection.AddExtRequestVars?.Contains("AR8"));
 
-            userConfig.ModRolloutBundleTasks = false;
+            localUserConfig.ModRolloutBundleTasks = false;
             await externalRequestHandler.HandleStateChange(externalRequest);
-            ClassicAssert.AreEqual(15, apiConnection.History.Count);
-            ClassicAssert.AreEqual(true, apiConnection.History[12].Contains("changeType = 11"));
-            ClassicAssert.AreEqual(true, apiConnection.History[12].Contains("Task4"));
-            ClassicAssert.AreEqual(true, apiConnection.History[13].Contains("changeType = 11"));
-            ClassicAssert.AreEqual(true, apiConnection.History[13].Contains("Task5"));
-            ClassicAssert.AreEqual(true, apiConnection.History[14].Contains("changeType = 10"));
-            ClassicAssert.AreEqual(true, apiConnection.History[14].Contains("Task5"));
+            ClassicAssert.AreEqual(15, localApiConnection.History.Count);
+            ClassicAssert.AreEqual(true, localApiConnection.History[12].Contains("changeType = 11"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[12].Contains("Task4"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[13].Contains("changeType = 11"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[13].Contains("Task5"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[14].Contains("changeType = 10"));
+            ClassicAssert.AreEqual(true, localApiConnection.History[14].Contains("Task5"));
         }
     }
 }

@@ -335,7 +335,7 @@ namespace FWO.ExternalSystems.CheckPoint
 
             try
             {
-                CheckPointExecutionPlan? plan = JsonSerializer.Deserialize<CheckPointExecutionPlan>(TicketText);    // prove plan
+                CheckPointExecutionPlan? plan = JsonSerializer.Deserialize<CheckPointExecutionPlan>(TicketText);
 
                 if (plan?.Steps == null || plan.Steps.Count == 0)
                 {
@@ -606,25 +606,6 @@ namespace FWO.ExternalSystems.CheckPoint
                     ElemFieldType.service.ToString());
         }
 
-        private static string? TryGetJsonValue(string? content, params string[] propertyNames)
-        {
-            if (string.IsNullOrWhiteSpace(content))
-            {
-                return null;
-            }
-
-            try
-            {
-                using JsonDocument document = JsonDocument.Parse(content);
-
-                return FindJsonValue(document.RootElement, propertyNames);
-            }
-            catch (JsonException)
-            {
-                return null;
-            }
-        }
-
         private static string? FindJsonValue(JsonElement element, params string[] propertyNames)
         {
             if (element.ValueKind == JsonValueKind.Object)
@@ -688,46 +669,6 @@ namespace FWO.ExternalSystems.CheckPoint
             {
                 return new ExtMgtData();
             }
-        }
-
-        private static bool IsResponseError(RestResponse response, string expectedMessageFragment, string? expectedCode = null)
-        {
-            if (response.StatusCode != HttpStatusCode.BadRequest || string.IsNullOrWhiteSpace(response.Content))
-            {
-                return false;
-            }
-
-            try
-            {
-                using JsonDocument document = JsonDocument.Parse(response.Content);
-
-                if (!string.IsNullOrWhiteSpace(expectedCode) && !HasMatchingCode(document.RootElement, expectedCode))
-                {
-                    return false;
-                }
-
-                return HasMatchingMessage(document.RootElement, expectedMessageFragment);
-            }
-            catch (JsonException)
-            {
-                return response.Content.Contains(expectedMessageFragment, StringComparison.OrdinalIgnoreCase);
-            }
-        }
-
-        private static bool HasMatchingCode(JsonElement element, string expectedCode)
-        {
-            if (element.ValueKind != JsonValueKind.Object)
-            {
-                return false;
-            }
-
-            if (!element.TryGetProperty("code", out JsonElement codeElement))
-            {
-                return false;
-            }
-
-            string? code = codeElement.GetString();
-            return string.Equals(code, expectedCode, StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool HasMatchingMessage(JsonElement element, string expectedMessageFragment)

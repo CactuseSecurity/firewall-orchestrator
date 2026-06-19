@@ -151,7 +151,7 @@ namespace FWO.Test
             ResetTicketTasks();
         }
 
-        private static void ResetTicketTasks()
+        public static void ResetTicketTasks()
         {
             reqTask1.StateId = 0;
             reqTask1.AdditionalInfo = "{\"ConnId\":\"1\"}";

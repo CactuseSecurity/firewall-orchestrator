@@ -28,7 +28,7 @@ namespace FWO.Test
         [Test]
         public void Analyze_ShouldReturnSubnetPrefixForIpv4Range()
         {
-            NetworkObject networkObject = CreateNetworkObject("Subnet", "10.1.0.0/24", "10.1.255.255/24");
+            NetworkObject networkObject = CreateNetworkObject("Subnet", "10.1.0.0/32", "10.1.255.255/32");
 
             NetworkObjectRangeAnalysis analysis = _analyzer.Analyze(networkObject);
 
@@ -53,7 +53,7 @@ namespace FWO.Test
         {
             List<NetworkObject> objects =
             [
-                CreateNetworkObject("Broad", "10.0.0.0/8", "10.255.255.255/8"),
+                CreateNetworkObject("Broad", "10.0.0.0/32", "10.255.255.255/32"),
                 CreateNetworkObject("Host", "10.1.2.3/32", "10.1.2.3/32")
             ];
 
@@ -67,7 +67,7 @@ namespace FWO.Test
         {
             List<NetworkObject> objects =
             [
-                CreateNetworkObject("Subnet", "10.1.2.0/24", "10.1.2.255/24"),
+                CreateNetworkObject("Subnet", "10.1.2.0/32", "10.1.2.255/32"),
                 CreateNetworkObject("Host", "10.1.2.3/32", "10.1.2.3/32")
             ];
 
@@ -82,7 +82,7 @@ namespace FWO.Test
             List<NetworkObject> objects =
             [
                 CreateNetworkObject("Host", "10.1.2.3/32", "10.1.2.3/32"),
-                CreateNetworkObject("Broad", "10.0.0.0/8", "10.255.255.255/8")
+                CreateNetworkObject("Broad", "10.0.0.0/32", "10.255.255.255/32")
             ];
 
             bool exceedsThreshold = _analyzer.ExceedsPrefixThreshold(24, objects);

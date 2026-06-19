@@ -103,18 +103,18 @@ namespace FWO.Data.Workflow
             {
                 if (implElem.Field == field.ToString())
                 {
-                    elements.Add(new NwObjectElement()
+                    NwObjectElement element = new()
                     {
                         ElemId = implElem.Id,
                         TaskId = implElem.ImplTaskId,
-                        Cidr = new Cidr(implElem.Cidr != null ? implElem.Cidr.CidrString : ""),
-                        IpString = implElem.IpString ?? "",
                         NetworkId = implElem.NetworkId,
                         FlowNetworkObjectId = implElem.FlowNetworkObjectId,
                         FlowNetworkGroupId = implElem.FlowNetworkGroupId,
                         Name = implElem.Name,
                         GroupName = implElem.GroupName ?? ""
-                    });
+                    };
+                    ApplyNetworkAddress(element, implElem.Cidr, implElem.CidrEnd, implElem.IpString, implElem.IpEnd);
+                    elements.Add(element);
                 }
             }
             return elements;

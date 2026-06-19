@@ -201,6 +201,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public void WfReqTask_GetElements_PreservesCidrRange_WhenIpStringsAreEmpty()
+        {
+            WfReqTask task = new();
+            task.Elements.Add(new WfReqElement
+            {
+                Id = 1,
+                TaskId = 10,
+                Field = ElemFieldType.source.ToString(),
+                Cidr = new Cidr("11.0.0.0/32"),
+                CidrEnd = new Cidr("11.0.0.255/32"),
+                IpString = "",
+                IpEnd = ""
+            });
+
+            NwObjectElement nwObject = task.GetNwObjectElements(ElemFieldType.source).Single();
+
+            Assert.That(nwObject.Cidr.CidrString, Is.EqualTo("11.0.0.0/32"));
+            Assert.That(nwObject.CidrEnd.CidrString, Is.EqualTo("11.0.0.255/32"));
+            Assert.That(nwObject.IpString, Is.EqualTo("11.0.0.0/32"));
+            Assert.That(nwObject.IpEndString, Is.EqualTo("11.0.0.255/32"));
+        }
+
+        [Test]
         public void WfReqTask_GetFirstCommentText_ReturnsFirstOrEmpty()
         {
             WfReqTask task = new();
@@ -312,6 +335,7 @@ namespace FWO.Test
                 ImplTaskId = 10,
                 Field = ElemFieldType.source.ToString(),
                 Cidr = new Cidr("10.0.0.1/32"),
+                CidrEnd = new Cidr("10.0.0.2/32"),
                 IpString = "10.0.0.1/32",
                 NetworkId = 12,
                 FlowNetworkObjectId = 112,
@@ -341,6 +365,7 @@ namespace FWO.Test
             Assert.That(nwObjects[0].ElemId, Is.EqualTo(1));
             Assert.That(nwObjects[0].TaskId, Is.EqualTo(10));
             Assert.That(nwObjects[0].Cidr.CidrString, Is.EqualTo("10.0.0.1/32"));
+            Assert.That(nwObjects[0].CidrEnd.CidrString, Is.EqualTo("10.0.0.2/32"));
             Assert.That(nwObjects[0].IpString, Is.EqualTo("10.0.0.1/32"));
             Assert.That(nwObjects[0].NetworkId, Is.EqualTo(12));
             Assert.That(nwObjects[0].FlowNetworkObjectId, Is.EqualTo(112));
@@ -356,6 +381,29 @@ namespace FWO.Test
             Assert.That(rules, Has.Count.EqualTo(1));
             Assert.That(rules[0].RuleUid, Is.EqualTo("uid"));
             Assert.That(rules[0].Name, Is.EqualTo("rule"));
+        }
+
+        [Test]
+        public void WfImplTask_GetElements_PreservesCidrRange_WhenIpStringsAreEmpty()
+        {
+            WfImplTask task = new();
+            task.ImplElements.Add(new WfImplElement
+            {
+                Id = 1,
+                ImplTaskId = 10,
+                Field = ElemFieldType.source.ToString(),
+                Cidr = new Cidr("11.0.0.0/32"),
+                CidrEnd = new Cidr("11.0.0.255/32"),
+                IpString = "",
+                IpEnd = ""
+            });
+
+            NwObjectElement nwObject = task.GetNwObjectElements(ElemFieldType.source).Single();
+
+            Assert.That(nwObject.Cidr.CidrString, Is.EqualTo("11.0.0.0/32"));
+            Assert.That(nwObject.CidrEnd.CidrString, Is.EqualTo("11.0.0.255/32"));
+            Assert.That(nwObject.IpString, Is.EqualTo("11.0.0.0/32"));
+            Assert.That(nwObject.IpEndString, Is.EqualTo("11.0.0.255/32"));
         }
 
         [Test]

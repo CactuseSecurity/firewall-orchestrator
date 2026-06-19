@@ -19,6 +19,28 @@ namespace FWO.Test
         }
 
         [Test]
+        public void NwObjectElement_CtorWithCidrRange_SetsCidrAndCidrEnd()
+        {
+            NwObjectElement element = new("10.0.0.0/32-10.0.0.255/32", 12);
+
+            Assert.That(element.TaskId, Is.EqualTo(12));
+            Assert.That(element.Cidr.CidrString, Is.EqualTo("10.0.0.0/32"));
+            Assert.That(element.CidrEnd.CidrString, Is.EqualTo("10.0.0.255/32"));
+        }
+
+        [Test]
+        public void NwObjectElement_IpStringSetterWithCidrRange_SetsCidrAndCidrEnd()
+        {
+            NwObjectElement element = new()
+            {
+                IpString = "10.0.0.0/32-10.0.0.255/32"
+            };
+
+            Assert.That(element.Cidr.CidrString, Is.EqualTo("10.0.0.0/32"));
+            Assert.That(element.CidrEnd.CidrString, Is.EqualTo("10.0.0.255/32"));
+        }
+
+        [Test]
         public void NwObjectElement_CtorWithIpRange_SetsCidrAndCidrEnd()
         {
             IPAddressRange range = new(System.Net.IPAddress.Parse("10.0.0.1"), System.Net.IPAddress.Parse("10.0.0.2"));

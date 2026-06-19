@@ -487,6 +487,24 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CreateWorkflowEmailContent_UsesProtocolNameForUnnamedRequestService()
+        {
+            WfReqTask reqTask = CreateEligibleRequestTask(12, title: "Request scope task");
+            reqTask.TaskNumber = 5;
+            WfReqElement serviceElement = reqTask.Elements.First(element => element.Field == ElemFieldType.service.ToString());
+            serviceElement.Name = null;
+            serviceElement.Port = 443;
+            serviceElement.ProtoId = 6;
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler { userConfig = new SimulatedUserConfig() });
+
+            Task<WorkflowEmailContent?> task = (Task<WorkflowEmailContent?>)GetPrivateMethod("CreateWorkflowEmailContent")
+                .Invoke(handler, [EmailAttachedContent.RequestedConnections, reqTask, WfObjectScopes.RequestTask])!;
+            WorkflowEmailContent? content = await task;
+
+            Assert.That(content?.PlainText, Does.Contain("443/tcp"));
+        }
+
+        [Test]
         public async Task CreateWorkflowEmailContent_UsesImplementationTaskForImplementationTaskScope()
         {
             WfImplTask implTask = CreateEligibleImplementationTask(22, "Implementation scope task");
@@ -497,6 +515,23 @@ namespace FWO.Test
             WorkflowEmailContent? content = await task;
 
             Assert.That(content?.PlainText, Does.Contain("4 | Implementation scope task | create | impl-src | impl-dst | impl-https"));
+        }
+
+        [Test]
+        public async Task CreateWorkflowEmailContent_UsesProtocolNameForUnnamedImplementationService()
+        {
+            WfImplTask implTask = CreateEligibleImplementationTask(22, "Implementation scope task");
+            WfImplElement serviceElement = implTask.ImplElements.First(element => element.Field == ElemFieldType.service.ToString());
+            serviceElement.Name = null;
+            serviceElement.Port = 8443;
+            serviceElement.ProtoId = 6;
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler { userConfig = new SimulatedUserConfig() });
+
+            Task<WorkflowEmailContent?> task = (Task<WorkflowEmailContent?>)GetPrivateMethod("CreateWorkflowEmailContent")
+                .Invoke(handler, [EmailAttachedContent.RequestedConnections, implTask, WfObjectScopes.ImplementationTask])!;
+            WorkflowEmailContent? content = await task;
+
+            Assert.That(content?.PlainText, Does.Contain("8443/tcp"));
         }
 
         [Test]

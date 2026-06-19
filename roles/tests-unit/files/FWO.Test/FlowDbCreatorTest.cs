@@ -316,7 +316,36 @@ namespace FWO.Test
             Assert.That(payloads, Has.Count.EqualTo(1));
             Assert.That(payloads[0].TimeStart, Is.EqualTo(targetBegin));
             Assert.That(payloads[0].TimeEnd, Is.EqualTo(targetEnd));
-            Assert.That(payloads[0].TimeName, Is.EqualTo("2026-06-08 - 2026-07-09"));
+            Assert.That(payloads[0].TimeName, Is.EqualTo("2026-06-08 00:00:00 - 2026-07-09 23:59:00"));
+        }
+
+        [Test]
+        public void BuildFlowCreationPayloads_NormalizesTargetDatesAtConfiguredPrecision()
+        {
+            WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
+            task.TargetBeginDate = new DateTime(2026, 6, 8, 12, 34, 56, 789, DateTimeKind.Utc);
+            task.TargetEndDate = new DateTime(2026, 7, 9, 23, 59, 58, 123, DateTimeKind.Utc);
+
+            FlowCreationPayload datePayload = FlowDbCreator.BuildFlowCreationPayloads(task, WfObjectScopes.RequestTask, null, null, FlowIntegrationTimePrecisionOptions.Date).Single();
+            FlowCreationPayload hourPayload = FlowDbCreator.BuildFlowCreationPayloads(task, WfObjectScopes.RequestTask, null, null, FlowIntegrationTimePrecisionOptions.Hours).Single();
+            FlowCreationPayload minutePayload = FlowDbCreator.BuildFlowCreationPayloads(task, WfObjectScopes.RequestTask, null, null, FlowIntegrationTimePrecisionOptions.Minutes).Single();
+            FlowCreationPayload secondPayload = FlowDbCreator.BuildFlowCreationPayloads(task, WfObjectScopes.RequestTask, null, null, FlowIntegrationTimePrecisionOptions.Seconds).Single();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(datePayload.TimeStart, Is.EqualTo(new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc)));
+                Assert.That(datePayload.TimeEnd, Is.EqualTo(new DateTime(2026, 7, 9, 0, 0, 0, DateTimeKind.Utc)));
+                Assert.That(datePayload.TimeName, Is.EqualTo("2026-06-08 - 2026-07-09"));
+                Assert.That(hourPayload.TimeStart, Is.EqualTo(new DateTime(2026, 6, 8, 12, 0, 0, DateTimeKind.Utc)));
+                Assert.That(hourPayload.TimeEnd, Is.EqualTo(new DateTime(2026, 7, 9, 23, 0, 0, DateTimeKind.Utc)));
+                Assert.That(hourPayload.TimeName, Is.EqualTo("2026-06-08 12 h - 2026-07-09 23 h"));
+                Assert.That(minutePayload.TimeStart, Is.EqualTo(new DateTime(2026, 6, 8, 12, 34, 0, DateTimeKind.Utc)));
+                Assert.That(minutePayload.TimeEnd, Is.EqualTo(new DateTime(2026, 7, 9, 23, 59, 0, DateTimeKind.Utc)));
+                Assert.That(minutePayload.TimeName, Is.EqualTo("2026-06-08 12:34 - 2026-07-09 23:59"));
+                Assert.That(secondPayload.TimeStart, Is.EqualTo(new DateTime(2026, 6, 8, 12, 34, 56, DateTimeKind.Utc)));
+                Assert.That(secondPayload.TimeEnd, Is.EqualTo(new DateTime(2026, 7, 9, 23, 59, 58, DateTimeKind.Utc)));
+                Assert.That(secondPayload.TimeName, Is.EqualTo("2026-06-08 12:34:56 - 2026-07-09 23:59:58"));
+            });
         }
 
         [Test]
@@ -385,7 +414,7 @@ namespace FWO.Test
             Assert.That(result, Is.True);
             Assert.That(apiConn.InsertedTimeObjects, Has.Count.EqualTo(1));
             FlowTimeObject insertedTimeObject = apiConn.InsertedTimeObjects.Single();
-            Assert.That(insertedTimeObject.Name, Is.EqualTo("2026-06-08 - 2026-07-09"));
+            Assert.That(insertedTimeObject.Name, Is.EqualTo("2026-06-08 00:00:00 - 2026-07-09 23:59:00"));
             Assert.That(insertedTimeObject.StartTime, Is.EqualTo(targetBegin));
             Assert.That(insertedTimeObject.EndTime, Is.EqualTo(targetEnd));
             Assert.That(insertedTimeObject.State, Is.EqualTo(FlowState.Requested));
@@ -419,6 +448,35 @@ namespace FWO.Test
             WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
             task.TargetBeginDate = targetBegin;
             task.TargetEndDate = targetEnd;
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.InsertedTimeObjects, Is.Empty);
+            TimeRef timeRef = (TimeRef)apiConn.InsertedAccess!.AccessTimeObjects!.Data.Single();
+            Assert.That(timeRef.TimeObjId, Is.EqualTo(77));
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_HashesNormalizedTimeObjectsAtConfiguredPrecision()
+        {
+            DateTime rawBegin = new(2026, 6, 8, 8, 15, 30, DateTimeKind.Utc);
+            DateTime rawEnd = new(2026, 6, 8, 17, 45, 15, DateTimeKind.Utc);
+            DateTime normalizedBegin = new(2026, 6, 8, 8, 0, 0, DateTimeKind.Utc);
+            DateTime normalizedEnd = new(2026, 6, 8, 17, 0, 0, DateTimeKind.Utc);
+            FlowDbCreatorTestApiConn apiConn = new();
+            apiConn.ExistingTimeObjects.Add(new FlowTimeObject
+            {
+                Id = 77,
+                Name = "Existing hourly time",
+                StartTime = normalizedBegin,
+                EndTime = normalizedEnd,
+                Hash = FlowHashGenerator.GenerateTimeObjectHash(normalizedBegin, normalizedEnd)
+            });
+            FlowDbCreator flowDbCreator = new(apiConn, FlowIntegrationTimePrecisionOptions.Hours);
+            WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
+            task.TargetBeginDate = rawBegin;
+            task.TargetEndDate = rawEnd;
 
             bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
 
@@ -853,8 +911,8 @@ namespace FWO.Test
             List<FlowCreationPayload> beginPayloads = FlowDbCreator.BuildFlowCreationPayloads(beginOnlyTask, WfObjectScopes.RequestTask, null, null);
             List<FlowCreationPayload> endPayloads = FlowDbCreator.BuildFlowCreationPayloads(endOnlyTask, WfObjectScopes.RequestTask, null, null);
 
-            Assert.That(beginPayloads[0].TimeName, Is.EqualTo(">= 2026-06-08"));
-            Assert.That(endPayloads[0].TimeName, Is.EqualTo("<= 2026-07-09"));
+            Assert.That(beginPayloads[0].TimeName, Is.EqualTo(">= 2026-06-08 00:00:00"));
+            Assert.That(endPayloads[0].TimeName, Is.EqualTo("<= 2026-07-09 23:59:00"));
         }
 
         [Test]

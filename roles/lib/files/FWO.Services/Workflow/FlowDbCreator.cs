@@ -4,6 +4,7 @@ using FWO.Data;
 using FWO.Data.Flow;
 using FWO.Data.Workflow;
 using FWO.Logging;
+using System.Globalization;
 
 namespace FWO.Services.Workflow
 {
@@ -14,16 +15,18 @@ namespace FWO.Services.Workflow
     {
         private const string LogMessageTitle = "Create Flow";
         private readonly ApiConnection apiConnection;
+        private readonly string timeObjectPrecision;
 
-        public FlowDbCreator(ApiConnection apiConnection)
+        public FlowDbCreator(ApiConnection apiConnection, string timeObjectPrecision = FlowIntegrationTimePrecisionOptions.Seconds)
         {
             this.apiConnection = apiConnection;
+            this.timeObjectPrecision = NormalizeTimeObjectPrecision(timeObjectPrecision);
         }
 
         public async Task<bool?> CreateFlowInFlowDb(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope,
             FwoOwner? owner, long? ticketId)
         {
-            List<FlowCreationPayload> payloads = BuildFlowCreationPayloads(statefulObject, scope, owner, ticketId);
+            List<FlowCreationPayload> payloads = BuildFlowCreationPayloads(statefulObject, scope, owner, ticketId, timeObjectPrecision);
             if (payloads.Count == 0)
             {
                 Log.WriteWarning(LogMessageTitle, $"Flow creation action '{action.Name}' found no request task flow data.");
@@ -36,23 +39,26 @@ namespace FWO.Services.Workflow
         }
 
         public static List<FlowCreationPayload> BuildFlowCreationPayloads(WfStatefulObject statefulObject, WfObjectScopes scope,
-            FwoOwner? owner, long? ticketId)
+            FwoOwner? owner, long? ticketId, string timeObjectPrecision = FlowIntegrationTimePrecisionOptions.Seconds)
         {
+            string normalizedPrecision = NormalizeTimeObjectPrecision(timeObjectPrecision);
             return scope switch
             {
-                WfObjectScopes.Ticket when statefulObject is WfTicket ticket => BuildTicketFlowPayloads(ticket, owner, ticketId),
-                WfObjectScopes.RequestTask when statefulObject is WfReqTask reqTask => [BuildRequestTaskFlowPayload(reqTask, owner, ticketId)],
+                WfObjectScopes.Ticket when statefulObject is WfTicket ticket => BuildTicketFlowPayloads(ticket, owner, ticketId, normalizedPrecision),
+                WfObjectScopes.RequestTask when statefulObject is WfReqTask reqTask => [BuildRequestTaskFlowPayload(reqTask, owner, ticketId, normalizedPrecision)],
                 _ => []
             };
         }
 
-        private static List<FlowCreationPayload> BuildTicketFlowPayloads(WfTicket ticket, FwoOwner? owner, long? ticketId)
+        private static List<FlowCreationPayload> BuildTicketFlowPayloads(WfTicket ticket, FwoOwner? owner, long? ticketId, string timeObjectPrecision)
         {
-            return [.. ticket.Tasks.Where(IsFlowRelevantTask).Select(task => BuildRequestTaskFlowPayload(task, owner, ticketId ?? ticket.Id))];
+            return [.. ticket.Tasks.Where(IsFlowRelevantTask).Select(task => BuildRequestTaskFlowPayload(task, owner, ticketId ?? ticket.Id, timeObjectPrecision))];
         }
 
-        private static FlowCreationPayload BuildRequestTaskFlowPayload(WfReqTask task, FwoOwner? owner, long? ticketId)
+        private static FlowCreationPayload BuildRequestTaskFlowPayload(WfReqTask task, FwoOwner? owner, long? ticketId, string timeObjectPrecision)
         {
+            DateTime? timeStart = NormalizeTimeObjectDate(task.TargetBeginDate, timeObjectPrecision);
+            DateTime? timeEnd = NormalizeTimeObjectDate(task.TargetEndDate, timeObjectPrecision);
             return new FlowCreationPayload
             {
                 TicketId = ticketId ?? task.TicketId,
@@ -63,9 +69,9 @@ namespace FWO.Services.Workflow
                 ManagementId = task.ManagementId,
                 BundleId = task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId),
                 GroupName = task.GetAddInfoValue(AdditionalInfoKeys.GrpName),
-                TimeStart = task.TargetBeginDate,
-                TimeEnd = task.TargetEndDate,
-                TimeName = BuildTimeObjectName(task),
+                TimeStart = timeStart,
+                TimeEnd = timeEnd,
+                TimeName = BuildTimeObjectName(timeStart, timeEnd, timeObjectPrecision),
                 Sources = BuildFlowObjects(task.Elements, ElemFieldType.source),
                 Destinations = BuildFlowObjects(task.Elements, ElemFieldType.destination),
                 Services = BuildFlowServices(task.Elements),
@@ -822,26 +828,56 @@ namespace FWO.Services.Workflow
             return $"{portLabel}/{protocolLabel}";
         }
 
-        private static string BuildTimeObjectName(WfReqTask task)
+        private static string BuildTimeObjectName(DateTime? timeStart, DateTime? timeEnd, string timeObjectPrecision)
         {
-            if (task.TargetBeginDate.HasValue && task.TargetEndDate.HasValue)
+            if (timeStart.HasValue && timeEnd.HasValue)
             {
-                return $"{FormatTimeObjectDate(task.TargetBeginDate.Value)} - {FormatTimeObjectDate(task.TargetEndDate.Value)}";
+                return $"{FormatTimeObjectDate(timeStart.Value, timeObjectPrecision)} - {FormatTimeObjectDate(timeEnd.Value, timeObjectPrecision)}";
             }
-            if (task.TargetBeginDate.HasValue)
+            if (timeStart.HasValue)
             {
-                return $">= {FormatTimeObjectDate(task.TargetBeginDate.Value)}";
+                return $">= {FormatTimeObjectDate(timeStart.Value, timeObjectPrecision)}";
             }
-            if (task.TargetEndDate.HasValue)
+            if (timeEnd.HasValue)
             {
-                return $"<= {FormatTimeObjectDate(task.TargetEndDate.Value)}";
+                return $"<= {FormatTimeObjectDate(timeEnd.Value, timeObjectPrecision)}";
             }
             return "";
         }
 
-        private static string FormatTimeObjectDate(DateTime date)
+        private static string FormatTimeObjectDate(DateTime date, string timeObjectPrecision)
         {
-            return date.ToString("yyyy-MM-dd");
+            return timeObjectPrecision switch
+            {
+                FlowIntegrationTimePrecisionOptions.Date => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                FlowIntegrationTimePrecisionOptions.Hours => date.ToString("yyyy-MM-dd HH 'h'", CultureInfo.InvariantCulture),
+                FlowIntegrationTimePrecisionOptions.Minutes => date.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
+                _ => date.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+            };
+        }
+
+        private static DateTime? NormalizeTimeObjectDate(DateTime? date, string timeObjectPrecision)
+        {
+            if (!date.HasValue)
+            {
+                return null;
+            }
+
+            DateTime value = date.Value;
+            return timeObjectPrecision switch
+            {
+                FlowIntegrationTimePrecisionOptions.Date => new DateTime(value.Year, value.Month, value.Day, 0, 0, 0, value.Kind),
+                FlowIntegrationTimePrecisionOptions.Hours => new DateTime(value.Year, value.Month, value.Day, value.Hour, 0, 0, value.Kind),
+                FlowIntegrationTimePrecisionOptions.Minutes => new DateTime(value.Year, value.Month, value.Day, value.Hour, value.Minute, 0, value.Kind),
+                _ => new DateTime(value.Year, value.Month, value.Day, value.Hour, value.Minute, value.Second, value.Kind)
+            };
+        }
+
+        private static string NormalizeTimeObjectPrecision(string timeObjectPrecision)
+        {
+            return FlowIntegrationTimePrecisionOptions.All.Contains(timeObjectPrecision)
+                ? timeObjectPrecision
+                : FlowIntegrationTimePrecisionOptions.Seconds;
         }
 
         private sealed class FlowNetworkReference

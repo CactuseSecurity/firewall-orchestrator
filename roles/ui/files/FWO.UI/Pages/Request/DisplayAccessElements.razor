@@ -389,12 +389,12 @@ else
             {
                 if (NeedsNetworkFlowCatalog())
                 {
-                    List<FlowNwObject> flowNwObjects = await apiConnection.SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowNwObjectCatalog) ?? [];
+                    List<FlowNwObject> flowNwObjects = await apiConnection.SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowRequestNwObjectCatalog) ?? [];
                     nwObjects = [.. flowNwObjects.Where(IsSelectable).Select(ToNetworkObject)];
                 }
                 if (NeedsServiceFlowCatalog())
                 {
-                    List<FlowSvcObject> flowSvcObjects = await apiConnection.SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowSvcObjectCatalog) ?? [];
+                    List<FlowSvcObject> flowSvcObjects = await apiConnection.SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowRequestSvcObjectCatalog) ?? [];
                     nwServices = [.. flowSvcObjects.Where(IsSelectable).Select(ToNetworkService)];
                 }
             }

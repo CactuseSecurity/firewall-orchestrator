@@ -108,7 +108,8 @@ namespace FWO.Services.Workflow
             {
                 ActReqTask.Start = ActImplTask.Start;
             }
-            await UpdateActTicketStateFromImplTasks();
+            await UpdateReqTaskStatesFromActImplTask();
+            await UpdateActTicketStateFromReqTasks();
             SetImplTaskOpt(action);
         }
 
@@ -282,7 +283,7 @@ namespace FWO.Services.Workflow
                         await UpgradeImplTaskStatesToReqTask(reqTask);
                     }
                 }
-                foreach (WfReqTask reqTask in RequestTasksForInitialImplCreation(requestTasksNeedingInitialImplTasks))
+                foreach (WfReqTask reqTask in await RequestTasksForInitialImplCreation(requestTasksNeedingInitialImplTasks))
                 {
                     await AutoCreateImplTasks(reqTask);
                 }
@@ -292,15 +293,25 @@ namespace FWO.Services.Workflow
         /// <summary>
         /// Returns the request tasks that should receive initially generated implementation tasks.
         /// </summary>
-        private List<WfReqTask> RequestTasksForInitialImplCreation(List<WfReqTask> requestTasks)
+        private async Task<List<WfReqTask>> RequestTasksForInitialImplCreation(List<WfReqTask> requestTasks)
         {
+            List<WfReqTask> requestTasksWithDetails = [];
+            foreach (WfReqTask reqTask in requestTasks)
+            {
+                WfReqTask detailedReqTask = await LoadReqTaskDetailsForImplCreation(reqTask);
+                if (TaskHasRequiredContentForImplCreation(detailedReqTask))
+                {
+                    requestTasksWithDetails.Add(detailedReqTask);
+                }
+            }
+
             if (!userConfig.ReqConsiderBundling)
             {
-                return requestTasks;
+                return requestTasksWithDetails;
             }
 
             List<WfReqTask> effectiveRequestTasks = [];
-            foreach (var bundleGroup in requestTasks.GroupBy(task => task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId)))
+            foreach (var bundleGroup in requestTasksWithDetails.GroupBy(task => task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId)))
             {
                 List<WfReqTask> bundledTasks = [.. bundleGroup];
                 if (string.IsNullOrWhiteSpace(bundleGroup.Key))
@@ -311,6 +322,30 @@ namespace FWO.Services.Workflow
                 effectiveRequestTasks.Add(CreateMergedBundleRequestTask(bundledTasks));
             }
             return effectiveRequestTasks;
+        }
+
+        private async Task<WfReqTask> LoadReqTaskDetailsForImplCreation(WfReqTask reqTask)
+        {
+            if (reqTask.Elements.Count > 0 || reqTask.Id <= 0 || reqTask.TicketId <= 0 || dbAcc == null)
+            {
+                return reqTask;
+            }
+
+            WfReqTask detailedReqTask = await LoadReqTaskDetails(reqTask, true);
+            detailedReqTask.StateId = reqTask.StateId;
+            detailedReqTask.Start = reqTask.Start;
+            detailedReqTask.Stop = reqTask.Stop;
+            detailedReqTask.CurrentHandler = reqTask.CurrentHandler;
+            detailedReqTask.RecentHandler = reqTask.RecentHandler;
+            detailedReqTask.AssignedGroup = reqTask.AssignedGroup;
+            detailedReqTask.ImplementationTasks = reqTask.ImplementationTasks;
+            SyncActTicketFromReqTask(detailedReqTask);
+            return detailedReqTask;
+        }
+
+        private bool TaskHasRequiredContentForImplCreation(WfReqTask reqTask)
+        {
+            return dbAcc == null || reqTask.TaskType != WfTaskType.access.ToString() || reqTask.Elements.Count > 0;
         }
 
         /// <summary>

@@ -32,6 +32,7 @@ namespace FWO.Test
             public Dictionary<int, List<FlowTimeObject>> ExistingTimeObjectsByManagement { get; } = [];
             public Dictionary<int, List<FlowAccess>> ExistingAccessesByManagement { get; } = [];
             public List<IpProtocol> IpProtocols { get; } = [new() { Id = 6, Name = "tcp" }, new() { Id = 17, Name = "udp" }];
+            public List<RuleAction> AvailableRuleActions { get; } = [];
             public List<int> QueriedManagementIds { get; } = [];
             public List<long> UpdatedRequestTaskIds { get; } = [];
             public List<RequestElementFlowUpdate> UpdatedRequestElements { get; } = [];
@@ -85,6 +86,10 @@ namespace FWO.Test
                 if (query == StmQueries.getIpProtocols)
                 {
                     return Task.FromResult((T)(object)IpProtocols);
+                }
+                if (query == StmQueries.getRuleActions)
+                {
+                    return Task.FromResult((T)(object)AvailableRuleActions);
                 }
                 if (query == FlowQueries.insertFlowNwObjects)
                 {
@@ -189,7 +194,8 @@ namespace FWO.Test
                         Id = InsertedAccessId,
                         Hash = InsertedAccess.AccessHash ?? "",
                         OwnerId = InsertedAccess.OwnerId,
-                        State = InsertedAccess.State ?? ""
+                        State = InsertedAccess.State ?? "",
+                        AllowsTraffic = InsertedAccess.AllowsTraffic
                     };
                     return Task.FromResult((T)(object)new FlowAccessInsertResult { Returning = [inserted] });
                 }
@@ -339,6 +345,7 @@ namespace FWO.Test
             FlowAccessInsert insertedAccess = apiConn.InsertedAccess!;
             Assert.That(insertedAccess.OwnerId, Is.EqualTo(5));
             Assert.That(insertedAccess.State, Is.EqualTo(FlowState.Requested));
+            Assert.That(insertedAccess.AllowsTraffic, Is.True);
             Assert.That(apiConn.UpdatedRequestTaskIds, Is.EqualTo(new List<long> { 11 }));
             Assert.That(apiConn.UpdatedRequestElements.Select(update => update.Id), Is.EquivalentTo(new long[] { 111, 112, 113 }));
             Assert.That(apiConn.UpdatedRequestElements.Single(update => update.Id == 111).FlowNetworkObjectId, Is.EqualTo(101));
@@ -385,6 +392,13 @@ namespace FWO.Test
             Assert.That(insertedTimeObject.ShowInRequestModule, Is.True);
             TimeRef timeRef = (TimeRef)apiConn.InsertedAccess!.AccessTimeObjects!.Data.Single();
             Assert.That(timeRef.TimeObjId, Is.EqualTo(insertedTimeObject.Id));
+            string expectedAccessHash = FlowHashGenerator.GenerateAccessHash(
+                [FlowHashGenerator.GenerateNwObjectHash("10.0.0.1", "10.0.0.1")],
+                [FlowHashGenerator.GenerateNwObjectHash("10.0.1.1", "10.0.1.1")],
+                [FlowHashGenerator.GenerateSvcObjectHash(6, 443, 443)],
+                [insertedTimeObject.Hash],
+                true);
+            Assert.That(apiConn.InsertedAccess.AccessHash, Is.EqualTo(expectedAccessHash));
         }
 
         [Test]
@@ -438,6 +452,33 @@ namespace FWO.Test
             Assert.That(insertedAccess.AccessSources!.Data, Has.Count.EqualTo(1));
             Assert.That(insertedAccess.AccessDestinations!.Data, Has.Count.EqualTo(2));
             Assert.That(insertedAccess.AccessServices!.Data, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_DoesNotMergeBundledRequestTasksWithDifferentTimeObjects()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask first = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
+            WfReqTask second = CreateAccessTask(12, "10.0.0.1", "10.0.1.1", 443);
+            first.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-11-12");
+            second.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-11-12");
+            first.TargetEndDate = new DateTime(2026, 7, 9, 23, 59, 0, DateTimeKind.Utc);
+            second.TargetEndDate = new DateTime(2026, 8, 9, 23, 59, 0, DateTimeKind.Utc);
+            WfTicket ticket = new()
+            {
+                Id = 7,
+                Tasks = [first, second]
+            };
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, ticket, WfObjectScopes.Ticket, null, ticket.Id);
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.InsertedAccesses, Has.Count.EqualTo(2));
+            Assert.That(apiConn.InsertedTimeObjects, Has.Count.EqualTo(2));
+            Assert.That(apiConn.UpdatedRequestTaskIds, Is.EquivalentTo(new long[] { 11, 12 }));
+            Assert.That(apiConn.InsertedAccesses.Select(access => ((TimeRef)access.AccessTimeObjects!.Data.Single()).TimeObjId),
+                Is.EquivalentTo(apiConn.InsertedTimeObjects.Select(timeObject => timeObject.Id)));
         }
 
         [Test]
@@ -636,7 +677,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task CreateFlowInFlowDb_ReusesExistingAccessWithoutInsert()
+        public async Task CreateFlowInFlowDb_CreatesSeparateAccessWhenOnlyTimeObjectDiffers()
         {
             const string sourceHash = "source-hash";
             const string destinationHash = "destination-hash";
@@ -649,7 +690,7 @@ namespace FWO.Test
             apiConn.ExistingAccesses.Add(new FlowAccess
             {
                 Id = 900,
-                Hash = FlowHashGenerator.GenerateAccessHash([sourceHash], [destinationHash], [serviceHash], [], true) // TODO: include timeObjectHashes and allowsTraffic
+                Hash = FlowHashGenerator.GenerateAccessHash([sourceHash], [destinationHash], [serviceHash], [], true)
             });
             FlowDbCreator flowDbCreator = new(apiConn);
             WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
@@ -661,10 +702,35 @@ namespace FWO.Test
             bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
 
             Assert.That(result, Is.True);
-            Assert.That(apiConn.InsertedAccessCount, Is.EqualTo(0));
-            Assert.That(apiConn.InsertedTimeObjects, Is.Empty);
+            Assert.That(apiConn.InsertedAccessCount, Is.EqualTo(1));
+            FlowTimeObject insertedTimeObject = apiConn.InsertedTimeObjects.Single();
+            TimeRef timeRef = (TimeRef)apiConn.InsertedAccess!.AccessTimeObjects!.Data.Single();
+            Assert.That(timeRef.TimeObjId, Is.EqualTo(insertedTimeObject.Id));
+            Assert.That(apiConn.InsertedAccess.AccessHash, Is.EqualTo(FlowHashGenerator.GenerateAccessHash([sourceHash], [destinationHash], [serviceHash], [insertedTimeObject.Hash], true)));
             Assert.That(apiConn.UpdatedRequestTaskIds, Is.EqualTo(new List<long> { 11 }));
             Assert.That(apiConn.UpdatedRequestElements.Select(update => update.Id), Is.EquivalentTo(new long[] { 111, 112, 113 }));
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_SetsAllowsTrafficFalseForBlockingRuleActions()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            apiConn.AvailableRuleActions.Add(new RuleAction { Id = 99, Name = "block", Allowed = false });
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
+            task.RuleAction = 99;
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.InsertedAccess!.AllowsTraffic, Is.False);
+            string expectedAccessHash = FlowHashGenerator.GenerateAccessHash(
+                [FlowHashGenerator.GenerateNwObjectHash("10.0.0.1", "10.0.0.1")],
+                [FlowHashGenerator.GenerateNwObjectHash("10.0.1.1", "10.0.1.1")],
+                [FlowHashGenerator.GenerateSvcObjectHash(6, 443, 443)],
+                [],
+                false);
+            Assert.That(apiConn.InsertedAccess.AccessHash, Is.EqualTo(expectedAccessHash));
         }
 
         [Test]

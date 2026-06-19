@@ -257,6 +257,7 @@ namespace FWO.Data.Flow
         public readonly Dictionary<long, FlowSvcGroup> SvcGroupsById = [];
         public readonly Dictionary<int, string> ProtocolNamesById = [];
         public readonly Dictionary<long, FlowTimeObject> TimeObjectsById = [];
+        public readonly Dictionary<int, RuleAction> RuleActionsById = [];
 
         public Dictionary<long, string> NwObjectHashes { get; private set; } = [];
         public Dictionary<long, string> SvcObjectHashes { get; private set; } = [];
@@ -264,7 +265,7 @@ namespace FWO.Data.Flow
         public Dictionary<long, string> AccessHashes { get; private set; } = [];
 
         public FlowSyncFlowData(List<FlowNwObject> nwObjects, List<FlowNwGroup> nwGroups, List<FlowSvcObject> svcObjects, List<FlowSvcGroup> svcGroups,
-            List<FlowTimeObject> timeObjects, List<FlowAccess> accesses, List<IpProtocol>? ipProtocols = null)
+            List<FlowTimeObject> timeObjects, List<FlowAccess> accesses, List<IpProtocol>? ipProtocols = null, List<RuleAction>? ruleActions = null)
         {
             NwObjects = nwObjects.ToDictionary(fo => fo.Hash, fo => fo);
             NwGroups = nwGroups.ToDictionary(fg => fg.Hash, fg => fg);
@@ -278,6 +279,7 @@ namespace FWO.Data.Flow
             SvcGroupsById = svcGroups.ToDictionary(group => group.Id);
             ProtocolNamesById = (ipProtocols ?? []).Where(protocol => !string.IsNullOrWhiteSpace(protocol.Name)).ToDictionary(protocol => protocol.Id, protocol => protocol.Name);
             TimeObjectsById = timeObjects.ToDictionary(timeObject => timeObject.Id);
+            RuleActionsById = (ruleActions ?? []).ToDictionary(action => action.Id);
 
             NwObjectHashes = nwObjects.SelectMany(fo => (fo.Objects ?? Enumerable.Empty<NetworkObject>())
                     .Select(o => new { o.Id, ParentHash = fo.Hash }))
@@ -333,6 +335,7 @@ namespace FWO.Data.Flow
 
         public void Add(FlowTimeObject timeObject)
         {
+            TimeObjectsById[timeObject.Id] = timeObject;
             TimeObjects[timeObject.Hash] = timeObject;
         }
 

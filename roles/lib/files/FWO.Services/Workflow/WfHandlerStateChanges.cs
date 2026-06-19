@@ -79,8 +79,7 @@ namespace FWO.Services.Workflow
                 }
                 await UpdateActImplTaskState();
                 ResetImplTaskList();
-                SyncReqTaskStopTime();
-                await UpdateReqTaskStateFromImplTasks(ActReqTask);
+                await UpdateReqTaskStatesFromActImplTask();
                 await UpdateActTicketStateFromReqTasks();
                 DisplayPromoteImplTaskMode = false;
             }
@@ -241,7 +240,7 @@ namespace FWO.Services.Workflow
                     requestTasksNeedingInitialImplTasks.Add(reqtask);
                 }
             }
-            foreach (WfReqTask reqtask in RequestTasksForInitialImplCreation(requestTasksNeedingInitialImplTasks))
+            foreach (WfReqTask reqtask in await RequestTasksForInitialImplCreation(requestTasksNeedingInitialImplTasks))
             {
                 await AutoCreateImplTasks(reqtask);
             }
@@ -287,6 +286,40 @@ namespace FWO.Services.Workflow
             SyncActTicketFromReqTask(reqTask);
         }
 
+        private async Task UpdateReqTaskStatesFromActImplTask()
+        {
+            SyncReqTaskStopTime(ActReqTask);
+            await UpdateReqTaskStateFromImplTasks(ActReqTask);
+
+            List<WfReqTask> bundledTasks = [.. GetBundledRequestTasks(ActReqTask).Where(task => task.Id != ActReqTask.Id)];
+            foreach (WfReqTask bundledTask in bundledTasks)
+            {
+                bundledTask.StateId = ActReqTask.StateId;
+                if (bundledTask.Stop == null && ActReqTask.Stop != null)
+                {
+                    bundledTask.Stop = ActReqTask.Stop;
+                }
+                if (dbAcc != null)
+                {
+                    await dbAcc.UpdateReqTaskStateInDb(bundledTask);
+                }
+                SyncActTicketFromReqTask(bundledTask);
+            }
+        }
+
+        private List<WfReqTask> GetBundledRequestTasks(WfReqTask reqTask)
+        {
+            if (!userConfig.ReqConsiderBundling)
+            {
+                return [reqTask];
+            }
+
+            string bundleId = reqTask.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId);
+            return string.IsNullOrWhiteSpace(bundleId)
+                ? [reqTask]
+                : [.. ActTicket.Tasks.Where(task => task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId) == bundleId)];
+        }
+
         private async Task UpdateActImplTaskState()
         {
             if (dbAcc != null)
@@ -320,19 +353,19 @@ namespace FWO.Services.Workflow
             }
         }
 
-        private void SyncReqTaskStopTime()
+        private static void SyncReqTaskStopTime(WfReqTask reqTask)
         {
             bool openImplTask = false;
-            foreach (var impltask in ActReqTask.ImplementationTasks)
+            foreach (var impltask in reqTask.ImplementationTasks)
             {
                 if (impltask.Stop == null)
                 {
                     openImplTask = true;
                 }
             }
-            if (!openImplTask && ActReqTask.Stop == null)
+            if (!openImplTask && reqTask.Stop == null)
             {
-                ActReqTask.Stop = ActImplTask.Stop;
+                reqTask.Stop = reqTask.ImplementationTasks.FirstOrDefault(task => task.Stop != null)?.Stop;
             }
         }
     }

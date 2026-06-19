@@ -162,7 +162,7 @@
         {
             if (!HideFlowTimeObjectSelection && ShowFlowTimeObjectSelection)
             {
-                List<FlowTimeObject> catalog = await apiConnection.SendQueryAsync<List<FlowTimeObject>>(FlowQueries.getFlowTimeObjectCatalog) ?? [];
+                List<FlowTimeObject> catalog = await apiConnection.SendQueryAsync<List<FlowTimeObject>>(FlowQueries.getFlowRequestTimeObjectCatalog) ?? [];
                 FlowTimeObjects = [.. catalog.Where(IsSelectable)];
             }
         }

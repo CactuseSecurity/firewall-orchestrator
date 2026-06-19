@@ -162,8 +162,9 @@ namespace FWO.Services.Workflow
             List<FlowTimeObject> timeObjects = await apiConnection.SendQueryAsync<List<FlowTimeObject>>(FlowQueries.getFlowSyncTimeObjects, new { mgmId }) ?? [];
             List<FlowAccess> accesses = await apiConnection.SendQueryAsync<List<FlowAccess>>(FlowQueries.getFlowSyncAccesses, new { mgmId }) ?? [];
             List<IpProtocol> ipProtocols = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols) ?? [];
+            List<RuleAction> ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions) ?? [];
 
-            return new FlowSyncFlowData(nwObjects, nwGroups, svcObjects, svcGroups, timeObjects, accesses, ipProtocols);
+            return new FlowSyncFlowData(nwObjects, nwGroups, svcObjects, svcGroups, timeObjects, accesses, ipProtocols, ruleActions);
         }
 
         private async Task<bool> PersistGroupPayload(FlowCreationPayload payload, FlowSyncFlowData context, FlowGroupMaps groupMaps)
@@ -599,12 +600,15 @@ namespace FWO.Services.Workflow
         private async Task<long> ResolveAccessId(FlowCreationPayload payload, List<FlowNetworkReference> sources,
             List<FlowNetworkReference> destinations, List<FlowServiceReference> services, FlowSyncFlowData context)
         {
+            FlowTimeObject? timeObject = await ResolveOrCreateTimeObject(payload, context);
+            List<string> timeObjectHashes = timeObject == null ? [] : [timeObject.Hash];
+            bool allowsTraffic = AllowsTraffic(payload, context);
             string hash = FlowHashGenerator.GenerateAccessHash(
                 sources.SelectMany(reference => reference.Hashes).Distinct(),
                 destinations.SelectMany(reference => reference.Hashes).Distinct(),
                 services.SelectMany(reference => reference.Hashes).Distinct(),
-                timeObjectHashes: [], //TODO: include timeObjectHashes
-                allowsTraffic: true //TODO: determine wether it is an access or drop/deny rule
+                timeObjectHashes: timeObjectHashes,
+                allowsTraffic: allowsTraffic
                 );
 
             if (context.Accesses.TryGetValue(hash, out FlowAccess? existingAccess))
@@ -612,7 +616,6 @@ namespace FWO.Services.Workflow
                 return existingAccess!.Id;
             }
 
-            FlowTimeObject? timeObject = await ResolveOrCreateTimeObject(payload, context);
             FlowAccessInsert insert = new()
             {
                 AccessHash = hash,
@@ -620,6 +623,7 @@ namespace FWO.Services.Workflow
                 OwnerId = payload.OwnerId,
                 State = FlowState.Requested,
                 RemovedDate = null,
+                AllowsTraffic = allowsTraffic,
                 AccessSources = FlowAccessInsertHelper.BuildMembersContainer(sources.Where(reference => reference.ObjectId.HasValue).Select(reference => reference.ObjectId!.Value).Distinct().Select(id => new NwRef { NwObjId = id })),
                 AccessSourceGroups = FlowAccessInsertHelper.BuildMembersContainer(sources.Where(reference => reference.GroupId.HasValue).Select(reference => reference.GroupId!.Value).Distinct().Select(id => new NwGroupRef { NwGroupId = id })),
                 AccessDestinations = FlowAccessInsertHelper.BuildMembersContainer(destinations.Where(reference => reference.ObjectId.HasValue).Select(reference => reference.ObjectId!.Value).Distinct().Select(id => new NwRef { NwObjId = id })),
@@ -632,6 +636,16 @@ namespace FWO.Services.Workflow
             FlowAccess inserted = (await apiConnection.SendQueryAsync<FlowAccessInsertResult>(FlowQueries.insertFlowAccesses, new { objects = new[] { insert } })).Returning.First();
             context.Add(inserted);
             return inserted.Id;
+        }
+
+        /// <summary>
+        /// Returns whether the workflow rule action represents allowed traffic.
+        /// </summary>
+        private static bool AllowsTraffic(FlowCreationPayload payload, FlowSyncFlowData context)
+        {
+            return !payload.RuleActionId.HasValue
+                || !context.RuleActionsById.TryGetValue(payload.RuleActionId.Value, out RuleAction? ruleAction)
+                || ruleAction.Allowed;
         }
 
         private async Task<FlowTimeObject?> ResolveOrCreateTimeObject(FlowCreationPayload payload, FlowSyncFlowData context)

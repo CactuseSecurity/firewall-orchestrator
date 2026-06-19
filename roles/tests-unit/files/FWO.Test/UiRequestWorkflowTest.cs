@@ -1586,8 +1586,8 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConn.Queries, Does.Contain(FlowQueries.getFlowNwObjectCatalog));
-                Assert.That(apiConn.Queries, Does.Contain(FlowQueries.getFlowSvcObjectCatalog));
+                Assert.That(apiConn.Queries, Does.Contain(FlowQueries.getFlowRequestNwObjectCatalog));
+                Assert.That(apiConn.Queries, Does.Contain(FlowQueries.getFlowRequestSvcObjectCatalog));
                 Assert.That(loadedObjects.Select(obj => obj.Name), Is.EqualTo(new[] { "Flow Source" }));
                 Assert.That(loadedObjects.Single().FlowNetworkObjectId, Is.EqualTo(101));
                 Assert.That(loadedServices.Select(svc => svc.Name), Is.EqualTo(new[] { "Flow Service" }));
@@ -2266,7 +2266,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConn.Queries, Does.Contain(FlowQueries.getFlowTimeObjectCatalog));
+                Assert.That(apiConn.Queries, Does.Contain(FlowQueries.getFlowRequestTimeObjectCatalog));
                 Assert.That(displayText, Is.EqualTo("Business Hours"));
                 Assert.That(displayText, Does.Not.Contain("2026-08-01"));
                 Assert.That(displayText, Does.Not.Contain("08:00"));
@@ -2411,15 +2411,15 @@ namespace FWO.Test
                 {
                     return Task.FromResult((QueryResponseType)(object)new List<Management>());
                 }
-                if (query == FlowQueries.getFlowNwObjectCatalog)
+                if (query == FlowQueries.getFlowRequestNwObjectCatalog)
                 {
                     return Task.FromResult((QueryResponseType)(object)FlowNwObjects);
                 }
-                if (query == FlowQueries.getFlowSvcObjectCatalog)
+                if (query == FlowQueries.getFlowRequestSvcObjectCatalog)
                 {
                     return Task.FromResult((QueryResponseType)(object)FlowSvcObjects);
                 }
-                if (query == FlowQueries.getFlowTimeObjectCatalog)
+                if (query == FlowQueries.getFlowRequestTimeObjectCatalog)
                 {
                     return Task.FromResult((QueryResponseType)(object)FlowTimeObjects);
                 }

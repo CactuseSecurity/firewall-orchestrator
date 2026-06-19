@@ -209,6 +209,10 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)new List<IpProtocol> { new() { Id = 6, Name = "tcp" }, new() { Id = 17, Name = "udp" } });
                 }
+                if (query == StmQueries.getRuleActions)
+                {
+                    return Task.FromResult((T)(object)new List<RuleAction> { new() { Id = 1, Name = "accept", Allowed = true } });
+                }
                 throw new AssertionException($"Unexpected query: {query}");
             }
 

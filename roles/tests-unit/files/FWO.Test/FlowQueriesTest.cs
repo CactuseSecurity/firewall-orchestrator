@@ -59,6 +59,23 @@ namespace FWO.Test
         }
 
         [Test]
+        public void FlowQueries_LoadRequestCatalogQueries()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(FlowQueries.getFlowRequestNwObjectCatalog, Does.Contain("query getFlowRequestNwObjectCatalog"));
+                Assert.That(FlowQueries.getFlowRequestNwObjectCatalog, Does.Not.Contain("fragment flowNwObjectDetails"));
+                Assert.That(FlowQueries.getFlowRequestNwObjectCatalog, Does.Not.Contain("objects("));
+                Assert.That(FlowQueries.getFlowRequestSvcObjectCatalog, Does.Contain("query getFlowRequestSvcObjectCatalog"));
+                Assert.That(FlowQueries.getFlowRequestSvcObjectCatalog, Does.Not.Contain("fragment flowSvcObjectDetails"));
+                Assert.That(FlowQueries.getFlowRequestSvcObjectCatalog, Does.Not.Contain("services("));
+                Assert.That(FlowQueries.getFlowRequestTimeObjectCatalog, Does.Contain("query getFlowRequestTimeObjectCatalog"));
+                Assert.That(FlowQueries.getFlowRequestTimeObjectCatalog, Does.Not.Contain("fragment flowTimeObjectDetails"));
+                Assert.That(FlowQueries.getFlowRequestTimeObjectCatalog, Does.Not.Contain("time_objects("));
+            });
+        }
+
+        [Test]
         public void FlowQueries_LoadSelectableManagementsQuery()
         {
             Assert.That(FlowQueries.getFlowSelectableManagements, Does.Contain("query getFlowSelectableManagements"));

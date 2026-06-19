@@ -212,6 +212,7 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
+                    int newStateId = reqtask.StateId;
                     returnId = returnIds[0].NewIdLong;
                     reqtask.Id = returnId;
                     foreach (var element in reqtask.Elements)
@@ -228,6 +229,7 @@ namespace FWO.Services.Workflow
                     {
                         await AssignOwnerInDb(returnId, owner.Owner.Id);
                     }
+                    reqtask.MarkCreatedStateChanged(newStateId);
                     await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
                 }
             }
@@ -457,8 +459,10 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
+                    int newStateId = approval.StateId;
                     returnId = returnIds[0].NewIdLong;
                     approval.Id = returnId;
+                    approval.MarkCreatedStateChanged(newStateId);
                     await ActionHandler.DoStateChangeActions(approval, WfObjectScopes.Approval);
                 }
             }
@@ -513,6 +517,7 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
+                    int newStateId = impltask.StateId;
                     returnId = returnIds[0].NewIdLong;
                     impltask.Id = returnId;
                     foreach (var element in impltask.ImplElements)
@@ -528,6 +533,7 @@ namespace FWO.Services.Workflow
                             await AssignCommentToImplTaskInDb(returnId, comment.Comment.Id);
                         }
                     }
+                    impltask.MarkCreatedStateChanged(newStateId);
                     await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);
                 }
             }

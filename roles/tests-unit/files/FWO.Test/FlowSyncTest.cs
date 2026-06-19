@@ -275,6 +275,8 @@ namespace FWO.Test
         {
             string nwHash = FlowHashGenerator.GenerateNwObjectHash("10.0.0.1", "10.0.0.1");
             string svcHash = FlowHashGenerator.GenerateSvcObjectHash(6, 443, 443);
+            DateTime timeEnd = new(2026, 7, 9, 23, 59, 0, DateTimeKind.Utc);
+            string timeHash = FlowHashGenerator.GenerateTimeObjectHash(null, timeEnd);
             FlowNwObject nwObject = new()
             {
                 Id = 10,
@@ -287,8 +289,16 @@ namespace FWO.Test
                 Hash = svcHash,
                 Services = [CreateService(2, "https", 6, 443, 443)]
             };
+            FlowTimeObject timeObject = new()
+            {
+                Id = 30,
+                EndTime = timeEnd,
+                Hash = timeHash,
+                TimeObjects = [new TimeObject { Id = 3 }]
+            };
+            RuleAction blockedAction = new() { Id = 99, Name = "block", Allowed = false };
 
-            FlowSyncFlowData flowData = new([nwObject], [], [svcObject], [], [], []);
+            FlowSyncFlowData flowData = new([nwObject], [], [svcObject], [], [timeObject], [], ruleActions: [blockedAction]);
 
             Assert.That(flowData.NwObjects[nwHash].Id, Is.EqualTo(10));
             Assert.That(flowData.NwObjectsById[10].Hash, Is.EqualTo(nwHash));
@@ -296,6 +306,65 @@ namespace FWO.Test
             Assert.That(flowData.SvcObjects[svcHash].Id, Is.EqualTo(20));
             Assert.That(flowData.SvcObjectsById[20].Hash, Is.EqualTo(svcHash));
             Assert.That(flowData.SvcObjectHashes[2], Is.EqualTo(svcHash));
+            Assert.That(flowData.TimeObjects[timeHash].Id, Is.EqualTo(30));
+            Assert.That(flowData.TimeObjectsById[30].Hash, Is.EqualTo(timeHash));
+            Assert.That(flowData.TimeObjectHashes[3], Is.EqualTo(timeHash));
+            Assert.That(flowData.RuleActionsById[99].Allowed, Is.False);
+        }
+
+        [Test]
+        public void FlowSyncFlowData_AddTimeObject_UpdatesHashAndIdIndexes()
+        {
+            DateTime timeEnd = new(2026, 7, 9, 23, 59, 0, DateTimeKind.Utc);
+            string timeHash = FlowHashGenerator.GenerateTimeObjectHash(null, timeEnd);
+            FlowSyncFlowData flowData = new([], [], [], [], [], []);
+            FlowTimeObject timeObject = new()
+            {
+                Id = 30,
+                EndTime = timeEnd,
+                Hash = timeHash
+            };
+
+            flowData.Add(timeObject);
+
+            Assert.That(flowData.TimeObjects[timeHash], Is.SameAs(timeObject));
+            Assert.That(flowData.TimeObjectsById[30], Is.SameAs(timeObject));
+        }
+
+        [Test]
+        public void FlowAccess_TryCalculateHash_IncludesTimeObjectAndAllowsTraffic()
+        {
+            string sourceHash = FlowHashGenerator.GenerateNwObjectHash("10.0.0.1", "10.0.0.1");
+            string destinationHash = FlowHashGenerator.GenerateNwObjectHash("10.0.1.1", "10.0.1.1");
+            string serviceHash = FlowHashGenerator.GenerateSvcObjectHash(6, 443, 443);
+            DateTime timeEnd = new(2026, 7, 9, 23, 59, 0, DateTimeKind.Utc);
+            string timeHash = FlowHashGenerator.GenerateTimeObjectHash(null, timeEnd);
+            FlowAccess access = new()
+            {
+                AllowsTraffic = false,
+                Sources = [new FlowAccessSource { NwObject = new FlowNwObject { Hash = sourceHash } }],
+                Destinations = [new FlowAccessDestination { NwObject = new FlowNwObject { Hash = destinationHash } }],
+                Services = [new FlowAccessService { SvcObject = new FlowSvcObject { Hash = serviceHash } }],
+                TimeObjects = [new FlowAccessTimeObject { TimeObject = new FlowTimeObject { Hash = timeHash } }]
+            };
+
+            string? hash = access.TryCalculateHash();
+
+            Assert.That(hash, Is.EqualTo(FlowHashGenerator.GenerateAccessHash([sourceHash], [destinationHash], [serviceHash], [timeHash], false)));
+            Assert.That(hash, Is.Not.EqualTo(FlowHashGenerator.GenerateAccessHash([sourceHash], [destinationHash], [serviceHash], [], true)));
+        }
+
+        [Test]
+        public void FlowAccess_TryCalculateHash_ReturnsNullForIncompleteAccess()
+        {
+            FlowAccess access = new()
+            {
+                Sources = [new FlowAccessSource { NwObject = new FlowNwObject { Hash = "source" } }]
+            };
+
+            string? hash = access.TryCalculateHash();
+
+            Assert.That(hash, Is.Null);
         }
 
         [Test]

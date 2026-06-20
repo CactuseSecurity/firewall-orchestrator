@@ -153,6 +153,26 @@ namespace FWO.Services.Workflow
             };
         }
 
+        private static void AuditUnexpectedStateTransition(WfStatefulObject statefulObject, WfObjectScopes scope, StateMatrix stateMatrix)
+        {
+            if (!statefulObject.StateChanged() || statefulObject.StateChangedByCreation())
+            {
+                return;
+            }
+
+            int oldStateId = statefulObject.ChangedFrom();
+            int newStateId = statefulObject.StateId;
+            List<int> allowedTransitions = stateMatrix.getAllowedTransitions(oldStateId, allowAutomaticOnlyStates: true);
+            if (allowedTransitions.Contains(newStateId))
+            {
+                return;
+            }
+
+            string configuredTransitions = allowedTransitions.Count == 0 ? "none" : string.Join(", ", allowedTransitions);
+            Log.WriteWarning("Workflow State",
+                $"Persisting workflow state transition {oldStateId}->{newStateId} for {scope} {GetStatefulObjectId(statefulObject)} that is not configured in the state matrix. Configured transitions: {configuredTransitions}.");
+        }
+
 
         // synchronization between the different objects
 
@@ -165,6 +185,7 @@ namespace FWO.Services.Workflow
             await AutoCreateOrUpdateImplTasks();
             if (dbAcc != null)
             {
+                AuditUnexpectedStateTransition(ActTicket, WfObjectScopes.Ticket, MasterStateMatrix);
                 await dbAcc.UpdateTicketStateInDb(ActTicket);
             }
             int idx = TicketList.FindIndex(x => x.Id == ActTicket.Id);
@@ -213,6 +234,7 @@ namespace FWO.Services.Workflow
         {
             if (dbAcc != null)
             {
+                AuditUnexpectedStateTransition(ActReqTask, WfObjectScopes.RequestTask, ActStateMatrix);
                 await dbAcc.UpdateReqTaskStateInDb(ActReqTask);
             }
             SyncActTicketFromReqTask(ActReqTask);
@@ -260,9 +282,11 @@ namespace FWO.Services.Workflow
 
             if (dbAcc != null)
             {
+                AuditUnexpectedStateTransition(reqTask, WfObjectScopes.RequestTask, reqTaskMatrix);
                 await dbAcc.UpdateReqTaskStateInDb(reqTask);
                 foreach (WfApproval approval in approvalsToUpdate)
                 {
+                    AuditUnexpectedStateTransition(approval, WfObjectScopes.Approval, reqTaskMatrix);
                     await dbAcc.UpdateApprovalInDb(approval);
                 }
             }
@@ -281,6 +305,7 @@ namespace FWO.Services.Workflow
             }
             if (dbAcc != null)
             {
+                AuditUnexpectedStateTransition(reqTask, WfObjectScopes.RequestTask, stateMatrixDict.Matrices[reqTask.TaskType]);
                 await dbAcc.UpdateReqTaskStateInDb(reqTask);
             }
             SyncActTicketFromReqTask(reqTask);
@@ -301,6 +326,7 @@ namespace FWO.Services.Workflow
                 }
                 if (dbAcc != null)
                 {
+                    AuditUnexpectedStateTransition(bundledTask, WfObjectScopes.RequestTask, stateMatrixDict.Matrices[bundledTask.TaskType]);
                     await dbAcc.UpdateReqTaskStateInDb(bundledTask);
                 }
                 SyncActTicketFromReqTask(bundledTask);
@@ -324,6 +350,7 @@ namespace FWO.Services.Workflow
         {
             if (dbAcc != null)
             {
+                AuditUnexpectedStateTransition(ActImplTask, WfObjectScopes.ImplementationTask, ActStateMatrix);
                 await dbAcc.UpdateImplTaskStateInDb(ActImplTask);
             }
             int index = ActReqTask.ImplementationTasks.FindIndex(x => x.Id == ActImplTask.Id);
@@ -347,6 +374,7 @@ namespace FWO.Services.Workflow
                     if (impltask.StateId < reqTask.StateId)
                     {
                         impltask.StateId = reqTask.StateId;
+                        AuditUnexpectedStateTransition(impltask, WfObjectScopes.ImplementationTask, stateMatrixDict.Matrices[reqTask.TaskType]);
                         await dbAcc.UpdateImplTaskStateInDb(impltask);
                     }
                 }

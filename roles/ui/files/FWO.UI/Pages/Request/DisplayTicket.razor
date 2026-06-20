@@ -411,6 +411,7 @@
 
     private bool CanEditTicketField(string fieldKey)
     {
+        // A locked ticket still allows header metadata edits; the lock protects request-task content and structure.
         return ApproverAllowedChangesAccess.CanEditTicketField(GetApproverAllowedChanges(), Phase == WorkflowPhases.approval,
             WfHandler.EditTicketMode, WfHandler.ReadOnlyMode, fieldKey);
     }

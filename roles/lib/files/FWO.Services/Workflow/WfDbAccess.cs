@@ -164,6 +164,7 @@ namespace FWO.Services.Workflow
         {
             try
             {
+                // Ticket locking is task-scoped: header metadata remains writable while request-task updates are guarded separately.
                 var Variables = BuildTicketVariables(ticket);
                 Variables["id"] = ticket.Id;
                 long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateTicket, Variables)).UpdatedIdLong;

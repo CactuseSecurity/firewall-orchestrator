@@ -46,6 +46,7 @@ namespace FWO.Data.Workflow
         public int? Priority { get; set; }
 
         [JsonProperty("locked"), JsonPropertyName("locked")]
+        // Locks request-task content and structure, but not ticket header metadata such as title, priority, deadline, or reason.
         public bool Locked { get; set; }
 
 

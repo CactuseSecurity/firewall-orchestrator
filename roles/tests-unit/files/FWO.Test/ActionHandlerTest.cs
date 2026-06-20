@@ -846,6 +846,17 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task InitWithPreloadedStates_DoesNotFetchStates()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            ActionHandler handler = new(apiConn, new WfHandler());
+
+            await handler.Init([new WfState { Id = 1 }]);
+
+            Assert.That(apiConn.Queries, Does.Not.Contain(RequestQueries.getStates));
+        }
+
+        [Test]
         public async Task GetRelevantActions_FiltersRequestTaskTypeAndHandlesUnknownState()
         {
             ActionHandlerTestApiConn apiConn = new()

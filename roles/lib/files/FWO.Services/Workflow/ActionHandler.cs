@@ -45,7 +45,16 @@ namespace FWO.Services.Workflow
 
         public async Task Init()
         {
-            states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
+            await Init(await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates));
+        }
+
+        /// <summary>
+        /// Initializes workflow actions from an already loaded state list.
+        /// </summary>
+        public Task Init(List<WfState> preloadedStates)
+        {
+            states = preloadedStates;
+            return Task.CompletedTask;
         }
 
         public List<WfStateAction> GetOfferedActions(WfStatefulObject statefulObject, WfObjectScopes scope, WorkflowPhases phase)

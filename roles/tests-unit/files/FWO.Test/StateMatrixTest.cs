@@ -1,3 +1,4 @@
+using FWO.Api.Client;
 using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 using NUnit.Framework;
@@ -7,6 +8,34 @@ namespace FWO.Test
     [TestFixture]
     internal class StateMatrixTest
     {
+        private sealed class TestGlobalStateMatrix : GlobalStateMatrix
+        {
+            public List<WfTaskType> InitializedTaskTypes { get; } = [];
+
+            public override Task Init(ApiConnection apiConnection, WfTaskType taskType = WfTaskType.master, bool reset = false)
+            {
+                InitializedTaskTypes.Add(taskType);
+                GlobalMatrix = new Dictionary<WorkflowPhases, StateMatrix>
+                {
+                    [WorkflowPhases.request] = CreateMatrix(0, 1, 10, true),
+                    [WorkflowPhases.approval] = CreateMatrix(10, 11, 20, false),
+                    [WorkflowPhases.implementation] = CreateMatrix(20, 21, 30, false)
+                };
+                return Task.CompletedTask;
+            }
+        }
+
+        private static StateMatrix CreateMatrix(int lowestInputState, int lowestStartedState, int lowestEndState, bool active)
+        {
+            return new()
+            {
+                LowestInputState = lowestInputState,
+                LowestStartedState = lowestStartedState,
+                LowestEndState = lowestEndState,
+                Active = active
+            };
+        }
+
         [Test]
         public void GetNextActivePhase_ReturnsNextActivePhase()
         {
@@ -79,6 +108,38 @@ namespace FWO.Test
             matrix.Matrix[1] = [2, 3];
 
             Assert.That(matrix.getAllowedTransitions(1, allowAutomaticOnlyStates: true), Is.EqualTo(new List<int> { 2, 3 }));
+        }
+
+        [Test]
+        public async Task StateMatrixDictInitWithPreloadedStates_ReusesStateListForEveryTaskType()
+        {
+            Func<GlobalStateMatrix> originalFactory = GlobalStateMatrix.Factory;
+            List<TestGlobalStateMatrix> matrices = [];
+            GlobalStateMatrix.Factory = () =>
+            {
+                TestGlobalStateMatrix matrix = new();
+                matrices.Add(matrix);
+                return matrix;
+            };
+
+            try
+            {
+                StateMatrixDict dict = new();
+                List<WfState> states = [new() { Id = 3, AutomaticOnly = true }];
+
+                await dict.Init(WorkflowPhases.request, new SimulatedApiConnection(), states);
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(dict.Matrices, Has.Count.EqualTo(Enum.GetValues(typeof(WfTaskType)).Length));
+                    Assert.That(dict.Matrices.Values.All(matrix => matrix.AutomaticOnlyStates.SetEquals([3])), Is.True);
+                    Assert.That(matrices.SelectMany(matrix => matrix.InitializedTaskTypes), Is.EquivalentTo(Enum.GetValues(typeof(WfTaskType))));
+                });
+            }
+            finally
+            {
+                GlobalStateMatrix.Factory = originalFactory;
+            }
         }
 
         [Test]

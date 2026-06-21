@@ -1,5 +1,5 @@
 query getRulesEnforcedOnGateways($gwIds: [Int!]!) {
-  rule_enforced_on_gateway(
+  firewall_rule_enforced_on_gateway(
     where: { dev_id: { _in: $gwIds }, removed: { _is_null: true } }
   ) {
     rule {

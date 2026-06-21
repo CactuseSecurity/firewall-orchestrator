@@ -1,4 +1,4 @@
-fragment networkObjectOverview on object {
+fragment networkObjectOverview on firewall_nw_object {
   obj_ip
   obj_ip_end
   obj_name

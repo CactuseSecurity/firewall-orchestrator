@@ -78,7 +78,7 @@ query getManagementForNormalizedConfig(
   }
 }
 
-fragment networkObjectFragment on object {
+fragment networkObjectFragment on firewall_nw_object {
   obj_id
   obj_uid
   obj_name
@@ -95,7 +95,7 @@ fragment networkObjectFragment on object {
   obj_comment
 }
 
-fragment serviceObjectFragment on service {
+fragment serviceObjectFragment on firewall_nw_service {
   svc_id
   svc_uid
   svc_name
@@ -115,7 +115,7 @@ fragment serviceObjectFragment on service {
   svc_rpcnr
 }
 
-fragment userObjectFragment on usr {
+fragment userObjectFragment on firewall_nw_user {
   user_id
   user_uid
   user_name
@@ -137,7 +137,7 @@ fragment timeObjectFragment on time_object {
   end_time
 }
 
-fragment rulebaseFragment on rulebase {
+fragment rulebaseFragment on firewall_rulebase {
   id
   name
   uid
@@ -153,7 +153,7 @@ fragment rulebaseFragment on rulebase {
   }
 }
 
-fragment ruleFragment on rule {
+fragment ruleFragment on firewall_rule {
   rule_id
   rule_uid
   rule_name
@@ -215,7 +215,7 @@ fragment deviceFragment on device {
   hideInUi: hide_in_gui
 }
 
-fragment ruleBaseLinkFragment on rulebase_link {
+fragment ruleBaseLinkFragment on firewall_rulebase_link {
   gw_id
   rule {
     rule_uid

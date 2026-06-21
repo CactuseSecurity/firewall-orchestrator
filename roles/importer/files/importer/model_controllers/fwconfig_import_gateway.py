@@ -235,7 +235,7 @@ class FwConfigImportGateway:
                 f"marked {sum(affected_tables.values())!s} entries as removed for gateways {gw_uids_to_remove!s}"
             )
             self._global_state.import_state.state.stats.statistics.rulebase_link_delete_count += affected_tables.get(
-                "update_rulebase_link", 0
+                "update_firewall_rulebase_link", 0
             )
         except Exception:
             FWOLogger.error(

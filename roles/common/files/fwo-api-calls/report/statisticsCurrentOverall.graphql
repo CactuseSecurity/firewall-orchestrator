@@ -1,21 +1,21 @@
 
 query statisticsCurrentOverall {
-  object_aggregate(where: { active: { _eq: true } }) {
+  firewall_nw_object_aggregate(where: { active: { _eq: true } }) {
     aggregate {
       count
     }
   }
-  service_aggregate(where: { active: { _eq: true } }) {
+  firewall_nw_service_aggregate(where: { active: { _eq: true } }) {
     aggregate {
       count
     }
   }
-  usr_aggregate(where: { active: { _eq: true } }) {
+  firewall_nw_user_aggregate(where: { active: { _eq: true } }) {
     aggregate {
       count
     }
   }
-  rule_aggregate(where: { active: { _eq: true } }) {
+  firewall_rule_aggregate(where: { active: { _eq: true } }) {
     aggregate {
       count
     }

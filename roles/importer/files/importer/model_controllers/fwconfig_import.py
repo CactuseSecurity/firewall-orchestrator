@@ -145,15 +145,21 @@ class FwConfigImport:
                 f"marked {sum(affected_tables.values())!s} entries as removed for sub-managers {mgr_uids_to_remove!s}"
             )
             self.import_state.state.stats.statistics.network_object_delete_count += affected_tables.get(
-                "update_object", 0
+                "update_firewall_nw_object", 0
             )
             self.import_state.state.stats.statistics.service_object_delete_count += affected_tables.get(
-                "update_service", 0
+                "update_firewall_nw_service", 0
             )
-            self.import_state.state.stats.statistics.user_object_delete_count += affected_tables.get("update_usr", 0)
-            self.import_state.state.stats.statistics.zone_object_delete_count += affected_tables.get("update_zone", 0)
-            self.import_state.state.stats.statistics.rule_delete_count += affected_tables.get("update_rule", 0)
-            self.import_state.state.stats.statistics.rulebase_delete_count += affected_tables.get("update_rulebase", 0)
+            self.import_state.state.stats.statistics.user_object_delete_count += affected_tables.get(
+                "update_firewall_nw_user", 0
+            )
+            self.import_state.state.stats.statistics.zone_object_delete_count += affected_tables.get(
+                "update_firewall_zone", 0
+            )
+            self.import_state.state.stats.statistics.rule_delete_count += affected_tables.get("update_firewall_rule", 0)
+            self.import_state.state.stats.statistics.rulebase_delete_count += affected_tables.get(
+                "update_firewall_rulebase", 0
+            )
         except Exception:
             FWOLogger.exception(
                 f"failed to mark sub-managers as removed for super manager mgm id {self.import_state.state.mgm_details.mgm_id!s}: {traceback.format_exc()!s}"
@@ -495,9 +501,9 @@ class FwConfigImport:
         try:
             result = self.import_state.api_call.call(mutation, query_variables=query_variables, analyze_payload=True)
 
-            removed_nwobj_ids = result["data"]["update_object"]["returning"]
-            removed_nwsvc_ids = result["data"]["update_service"]["returning"]
-            removed_user_ids = result["data"]["update_usr"]["returning"]
+            removed_nwobj_ids = result["data"]["update_firewall_nw_object"]["returning"]
+            removed_nwsvc_ids = result["data"]["update_firewall_nw_service"]["returning"]
+            removed_user_ids = result["data"]["update_firewall_nw_user"]["returning"]
             FWOLogger.info(
                 f"removed {len(removed_nwobj_ids)!s} network objects, {len(removed_nwsvc_ids)!s} service objects and {len(removed_user_ids)!s} user objects from DB to fix consistency issues"
             )
@@ -519,7 +525,7 @@ class FwConfigImport:
 
         mutation = """
             mutation markRulesRemoved($importId: bigint!, $mgmId: Int!, $uids: [String!]!) {
-                update_rule(where: {removed: { _is_null: true }, rule_uid: {_in: $uids}, mgm_id: {_eq: $mgmId}}, _set: {removed: $importId}) {
+                update_firewall_rule(where: {removed: { _is_null: true }, rule_uid: {_in: $uids}, mgm_id: {_eq: $mgmId}}, _set: {removed: $importId}) {
                     affected_rows
                     returning { rule_id }
                 }
@@ -533,7 +539,7 @@ class FwConfigImport:
         try:
             result = self.import_state.api_call.call(mutation, query_variables=query_variables, analyze_payload=True)
 
-            removed_rule_ids = result["data"]["update_rule"]["returning"]
+            removed_rule_ids = result["data"]["update_firewall_rule"]["returning"]
             FWOLogger.info(f"marked {len(removed_rule_ids)!s} rules as removed in DB to fix consistency issues")
             self.import_state.state.stats.statistics.inconsistent_rule_delete_count += len(removed_rule_ids)
         except Exception:
@@ -556,7 +562,7 @@ class FwConfigImport:
         try:
             result = self.import_state.api_call.call(mutation, query_variables=query_variables)
 
-            removed_links = result["data"]["update_rulebase_link"]["affected_rows"]
+            removed_links = result["data"]["update_firewall_rulebase_link"]["affected_rows"]
             FWOLogger.info(f"removed {removed_links!s} inconsistent rulebase links from DB to fix consistency issues")
             self.import_state.state.stats.statistics.inconsistent_rulebase_link_delete_count += removed_links
         except Exception:
@@ -587,7 +593,7 @@ class FwConfigImport:
                 )
             rule_uid_to_id_create = {
                 rule["rule_uid"]: (rule["rule_id"], rule["rule_create"])
-                for rule in fetch_rule_ids_result["data"]["rule"]
+                for rule in fetch_rule_ids_result["data"]["firewall_rule"]
             }
         except Exception:
             FWOLogger.exception(
@@ -610,7 +616,7 @@ class FwConfigImport:
         try:
             result = self.import_state.api_call.call(mutation, query_variables=query_variables, analyze_payload=True)
 
-            added_refs = result["data"]["insert_rule_enforced_on_gateway"]["affected_rows"]
+            added_refs = result["data"]["insert_firewall_rule_enforced_on_gateway"]["affected_rows"]
             FWOLogger.info(
                 f"added {added_refs!s} missing rule enforced on gateway references to DB to fix consistency issues"
             )
@@ -643,7 +649,7 @@ class FwConfigImport:
                 raise FwoImporterError(
                     f"failed to get rules enforced on gateways for mgm id {self.import_state.state.mgm_details.current_mgm_id!s}: {result['errors']!s}"
                 )
-            rules_enforced_on_gw = result["data"]["rule_enforced_on_gateway"]
+            rules_enforced_on_gw = result["data"]["firewall_rule_enforced_on_gateway"]
         except Exception:
             FWOLogger.exception(
                 f"failed to get rules enforced on gateways for mgm id {self.import_state.state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
@@ -688,7 +694,7 @@ class FwConfigImport:
                     raise FwoImporterError(
                         f"failed to remove inconsistent rule enforced on gateway references for mgm id {self.import_state.state.mgm_details.current_mgm_id!s}: {result['errors']!s}"
                     )
-                removed_refs = result["data"]["update_rule_enforced_on_gateway"]["affected_rows"]
+                removed_refs = result["data"]["update_firewall_rule_enforced_on_gateway"]["affected_rows"]
                 FWOLogger.info(
                     f"removed {removed_refs!s} inconsistent rule enforced on gateway references from DB to fix consistency issues"
                 )
@@ -781,7 +787,7 @@ class FwConfigImport:
                 new_rule_id = entry["new_rule_id"]
                 correct_old_rule_id = max(
                     rule["rule_id"]
-                    for rule in get_rule_ids_result["data"]["rule"]
+                    for rule in get_rule_ids_result["data"]["firewall_rule"]
                     if rule["rule_uid"] == rule_uid and rule["rule_id"] < new_rule_id
                 )
                 correct_old_rule_ids[entry["log_rule_id"]] = correct_old_rule_id

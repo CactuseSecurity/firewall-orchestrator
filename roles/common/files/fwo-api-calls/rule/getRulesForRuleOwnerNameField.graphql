@@ -1,5 +1,5 @@
 query getRulesForRuleOwnerNameField {
-  rule(where: { removed: { _is_null: true  } }) {
+  firewall_rule(where: { removed: { _is_null: true  } }) {
     rule_id
     rule_name
     removed

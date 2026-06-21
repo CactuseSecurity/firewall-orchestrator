@@ -1,4 +1,4 @@
-fragment ruleOverview on rule {
+fragment ruleOverview on firewall_rule {
   rule_id
   rule_uid
   dev_id

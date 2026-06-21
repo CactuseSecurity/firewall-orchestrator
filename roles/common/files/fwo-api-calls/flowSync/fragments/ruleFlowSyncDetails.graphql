@@ -1,4 +1,4 @@
-fragment ruleFlowSyncDetails on rule {
+fragment ruleFlowSyncDetails on firewall_rule {
   rule_id
   rule_uid
   mgm_id

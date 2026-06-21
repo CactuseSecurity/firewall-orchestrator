@@ -1,4 +1,4 @@
-fragment natRuleOverview on rule {
+fragment natRuleOverview on firewall_rule {
   ...ruleOverview
   translate: ruleByXlateRule {
     rule_src

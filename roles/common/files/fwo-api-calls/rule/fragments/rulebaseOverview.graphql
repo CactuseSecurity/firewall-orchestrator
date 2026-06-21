@@ -1,4 +1,4 @@
-fragment rulebaseOverview on rulebase {
+fragment rulebaseOverview on firewall_rulebase {
   id
   uid
   name

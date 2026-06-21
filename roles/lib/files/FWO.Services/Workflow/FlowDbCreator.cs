@@ -4,6 +4,7 @@ using FWO.Data;
 using FWO.Data.Flow;
 using FWO.Data.Workflow;
 using FWO.Logging;
+using System.Globalization;
 
 namespace FWO.Services.Workflow
 {
@@ -14,16 +15,18 @@ namespace FWO.Services.Workflow
     {
         private const string LogMessageTitle = "Create Flow";
         private readonly ApiConnection apiConnection;
+        private readonly string timeObjectPrecision;
 
-        public FlowDbCreator(ApiConnection apiConnection)
+        public FlowDbCreator(ApiConnection apiConnection, string timeObjectPrecision = FlowIntegrationTimePrecisionOptions.Seconds)
         {
             this.apiConnection = apiConnection;
+            this.timeObjectPrecision = NormalizeTimeObjectPrecision(timeObjectPrecision);
         }
 
         public async Task<bool?> CreateFlowInFlowDb(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope,
             FwoOwner? owner, long? ticketId)
         {
-            List<FlowCreationPayload> payloads = BuildFlowCreationPayloads(statefulObject, scope, owner, ticketId);
+            List<FlowCreationPayload> payloads = BuildFlowCreationPayloads(statefulObject, scope, owner, ticketId, timeObjectPrecision);
             if (payloads.Count == 0)
             {
                 Log.WriteWarning(LogMessageTitle, $"Flow creation action '{action.Name}' found no request task flow data.");
@@ -36,23 +39,26 @@ namespace FWO.Services.Workflow
         }
 
         public static List<FlowCreationPayload> BuildFlowCreationPayloads(WfStatefulObject statefulObject, WfObjectScopes scope,
-            FwoOwner? owner, long? ticketId)
+            FwoOwner? owner, long? ticketId, string timeObjectPrecision = FlowIntegrationTimePrecisionOptions.Seconds)
         {
+            string normalizedPrecision = NormalizeTimeObjectPrecision(timeObjectPrecision);
             return scope switch
             {
-                WfObjectScopes.Ticket when statefulObject is WfTicket ticket => BuildTicketFlowPayloads(ticket, owner, ticketId),
-                WfObjectScopes.RequestTask when statefulObject is WfReqTask reqTask => [BuildRequestTaskFlowPayload(reqTask, owner, ticketId)],
+                WfObjectScopes.Ticket when statefulObject is WfTicket ticket => BuildTicketFlowPayloads(ticket, owner, ticketId, normalizedPrecision),
+                WfObjectScopes.RequestTask when statefulObject is WfReqTask reqTask => [BuildRequestTaskFlowPayload(reqTask, owner, ticketId, normalizedPrecision)],
                 _ => []
             };
         }
 
-        private static List<FlowCreationPayload> BuildTicketFlowPayloads(WfTicket ticket, FwoOwner? owner, long? ticketId)
+        private static List<FlowCreationPayload> BuildTicketFlowPayloads(WfTicket ticket, FwoOwner? owner, long? ticketId, string timeObjectPrecision)
         {
-            return [.. ticket.Tasks.Where(IsFlowRelevantTask).Select(task => BuildRequestTaskFlowPayload(task, owner, ticketId ?? ticket.Id))];
+            return [.. ticket.Tasks.Where(IsFlowRelevantTask).Select(task => BuildRequestTaskFlowPayload(task, owner, ticketId ?? ticket.Id, timeObjectPrecision))];
         }
 
-        private static FlowCreationPayload BuildRequestTaskFlowPayload(WfReqTask task, FwoOwner? owner, long? ticketId)
+        private static FlowCreationPayload BuildRequestTaskFlowPayload(WfReqTask task, FwoOwner? owner, long? ticketId, string timeObjectPrecision)
         {
+            DateTime? timeStart = NormalizeTimeObjectDate(task.TargetBeginDate, timeObjectPrecision);
+            DateTime? timeEnd = NormalizeTimeObjectDate(task.TargetEndDate, timeObjectPrecision);
             return new FlowCreationPayload
             {
                 TicketId = ticketId ?? task.TicketId,
@@ -63,6 +69,9 @@ namespace FWO.Services.Workflow
                 ManagementId = task.ManagementId,
                 BundleId = task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId),
                 GroupName = task.GetAddInfoValue(AdditionalInfoKeys.GrpName),
+                TimeStart = timeStart,
+                TimeEnd = timeEnd,
+                TimeName = BuildTimeObjectName(timeStart, timeEnd, timeObjectPrecision),
                 Sources = BuildFlowObjects(task.Elements, ElemFieldType.source),
                 Destinations = BuildFlowObjects(task.Elements, ElemFieldType.destination),
                 Services = BuildFlowServices(task.Elements),
@@ -156,9 +165,22 @@ namespace FWO.Services.Workflow
             List<FlowNwGroup> nwGroups = await apiConnection.SendQueryAsync<List<FlowNwGroup>>(FlowQueries.getFlowSyncNwGroups, new { mgmId }) ?? [];
             List<FlowSvcObject> svcObjects = await apiConnection.SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowSyncSvcObjects, new { mgmId }) ?? [];
             List<FlowSvcGroup> svcGroups = await apiConnection.SendQueryAsync<List<FlowSvcGroup>>(FlowQueries.getFlowSyncSvcGroups, new { mgmId }) ?? [];
+            List<FlowTimeObject> timeObjects = await apiConnection.SendQueryAsync<List<FlowTimeObject>>(FlowQueries.getFlowSyncTimeObjects, new { mgmId }) ?? [];
             List<FlowAccess> accesses = await apiConnection.SendQueryAsync<List<FlowAccess>>(FlowQueries.getFlowSyncAccesses, new { mgmId }) ?? [];
+            List<IpProtocol> ipProtocols = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols) ?? [];
+            List<RuleAction> ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions) ?? [];
 
-            return new FlowSyncFlowData(nwObjects, nwGroups, svcObjects, svcGroups, [], accesses);
+            return new FlowSyncFlowData(new FlowSyncFlowDataInput
+            {
+                NwObjects = nwObjects,
+                NwGroups = nwGroups,
+                SvcObjects = svcObjects,
+                SvcGroups = svcGroups,
+                TimeObjects = timeObjects,
+                Accesses = accesses,
+                IpProtocols = ipProtocols,
+                RuleActions = ruleActions
+            });
         }
 
         private async Task<bool> PersistGroupPayload(FlowCreationPayload payload, FlowSyncFlowData context, FlowGroupMaps groupMaps)
@@ -547,7 +569,7 @@ namespace FWO.Services.Workflow
 
             FlowSvcObjectInsert insert = new()
             {
-                Name = BuildServiceObjectName(snapshot),
+                Name = BuildServiceObjectName(snapshot, context),
                 PortStart = snapshot.Port,
                 PortEnd = portEnd,
                 IpProtoId = protoId,
@@ -594,12 +616,15 @@ namespace FWO.Services.Workflow
         private async Task<long> ResolveAccessId(FlowCreationPayload payload, List<FlowNetworkReference> sources,
             List<FlowNetworkReference> destinations, List<FlowServiceReference> services, FlowSyncFlowData context)
         {
+            FlowTimeObject? timeObject = await ResolveOrCreateTimeObject(payload, context);
+            List<string> timeObjectHashes = timeObject == null ? [] : [timeObject.Hash];
+            bool allowsTraffic = AllowsTraffic(payload, context);
             string hash = FlowHashGenerator.GenerateAccessHash(
                 sources.SelectMany(reference => reference.Hashes).Distinct(),
                 destinations.SelectMany(reference => reference.Hashes).Distinct(),
                 services.SelectMany(reference => reference.Hashes).Distinct(),
-                timeObjectHashes: [], //TODO: include timeObjectHashes
-                allowsTraffic: true //TODO: determine wether it is an access or drop/deny rule
+                timeObjectHashes: timeObjectHashes,
+                allowsTraffic: allowsTraffic
                 );
 
             if (context.Accesses.TryGetValue(hash, out FlowAccess? existingAccess))
@@ -614,18 +639,69 @@ namespace FWO.Services.Workflow
                 OwnerId = payload.OwnerId,
                 State = FlowState.Requested,
                 RemovedDate = null,
+                AllowsTraffic = allowsTraffic,
                 AccessSources = FlowAccessInsertHelper.BuildMembersContainer(sources.Where(reference => reference.ObjectId.HasValue).Select(reference => reference.ObjectId!.Value).Distinct().Select(id => new NwRef { NwObjId = id })),
                 AccessSourceGroups = FlowAccessInsertHelper.BuildMembersContainer(sources.Where(reference => reference.GroupId.HasValue).Select(reference => reference.GroupId!.Value).Distinct().Select(id => new NwGroupRef { NwGroupId = id })),
                 AccessDestinations = FlowAccessInsertHelper.BuildMembersContainer(destinations.Where(reference => reference.ObjectId.HasValue).Select(reference => reference.ObjectId!.Value).Distinct().Select(id => new NwRef { NwObjId = id })),
                 AccessDestinationGroups = FlowAccessInsertHelper.BuildMembersContainer(destinations.Where(reference => reference.GroupId.HasValue).Select(reference => reference.GroupId!.Value).Distinct().Select(id => new NwGroupRef { NwGroupId = id })),
                 AccessServices = FlowAccessInsertHelper.BuildMembersContainer(services.Where(reference => reference.ObjectId.HasValue).Select(reference => reference.ObjectId!.Value).Distinct().Select(id => new SvcRef { SvcObjId = id })),
                 AccessServiceGroups = FlowAccessInsertHelper.BuildMembersContainer(services.Where(reference => reference.GroupId.HasValue).Select(reference => reference.GroupId!.Value).Distinct().Select(id => new SvcGroupRef { SvcGroupId = id })),
-                AccessTimeObjects = FlowAccessInsertHelper.BuildMembersContainer(Array.Empty<TimeRef>())
+                AccessTimeObjects = FlowAccessInsertHelper.BuildMembersContainer(BuildTimeRefs(timeObject))
             };
 
             FlowAccess inserted = (await apiConnection.SendQueryAsync<FlowAccessInsertResult>(FlowQueries.insertFlowAccesses, new { objects = new[] { insert } })).Returning.First();
             context.Add(inserted);
             return inserted.Id;
+        }
+
+        /// <summary>
+        /// Returns whether the workflow rule action represents allowed traffic.
+        /// </summary>
+        private static bool AllowsTraffic(FlowCreationPayload payload, FlowSyncFlowData context)
+        {
+            return !payload.RuleActionId.HasValue
+                || !context.RuleActionsById.TryGetValue(payload.RuleActionId.Value, out RuleAction? ruleAction)
+                || ruleAction.Allowed;
+        }
+
+        private async Task<FlowTimeObject?> ResolveOrCreateTimeObject(FlowCreationPayload payload, FlowSyncFlowData context)
+        {
+            if (!payload.TimeStart.HasValue && !payload.TimeEnd.HasValue)
+            {
+                return null;
+            }
+
+            string hash = FlowHashGenerator.GenerateTimeObjectHash(payload.TimeStart, payload.TimeEnd);
+            if (context.TimeObjects.TryGetValue(hash, out FlowTimeObject? existingTimeObject))
+            {
+                return existingTimeObject;
+            }
+
+            FlowTimeObjectInsert insert = new()
+            {
+                Name = payload.TimeName,
+                StartTime = payload.TimeStart,
+                EndTime = payload.TimeEnd,
+                TimeObjHash = hash,
+                State = FlowState.Requested,
+                RemovedDate = null,
+                ShowInRequestModule = true
+            };
+
+            FlowTimeObject inserted = (await apiConnection.SendQueryAsync<FlowTimeObjectInsertResult>(FlowQueries.insertFlowTimeObjects, new { objects = new[] { insert } })).Returning.First();
+            inserted.Name = payload.TimeName;
+            inserted.StartTime = payload.TimeStart;
+            inserted.EndTime = payload.TimeEnd;
+            inserted.Hash = hash;
+            inserted.State = FlowState.Requested;
+            inserted.ShowInRequestModule = true;
+            context.Add(inserted);
+            return inserted;
+        }
+
+        private static IEnumerable<TimeRef> BuildTimeRefs(FlowTimeObject? timeObject)
+        {
+            return timeObject == null ? Array.Empty<TimeRef>() : new[] { new TimeRef { TimeObjId = timeObject.Id } };
         }
 
         private async Task UpdateNetworkElementFlowIds(List<FlowObjectSnapshot> snapshots, List<FlowNetworkReference> references, long? parentGroupId = null)
@@ -739,14 +815,69 @@ namespace FWO.Services.Workflow
             return string.IsNullOrWhiteSpace(snapshot.IpEnd) || snapshot.IpEnd == snapshot.Ip ? snapshot.Ip ?? "" : $"{snapshot.Ip}-{snapshot.IpEnd}";
         }
 
-        private static string BuildServiceObjectName(FlowServiceSnapshot snapshot)
+        private static string BuildServiceObjectName(FlowServiceSnapshot snapshot, FlowSyncFlowData context)
         {
             if (!string.IsNullOrWhiteSpace(snapshot.Name))
             {
                 return snapshot.Name!;
             }
             string portLabel = snapshot.PortEnd.HasValue && snapshot.PortEnd != snapshot.Port ? $"{snapshot.Port}-{snapshot.PortEnd}" : $"{snapshot.Port}";
-            return $"{snapshot.ProtoId}/{portLabel}";
+            string protocolLabel = snapshot.ProtoId.HasValue && context.ProtocolNamesById.TryGetValue(snapshot.ProtoId.Value, out string? protocolName)
+                ? protocolName
+                : $"{snapshot.ProtoId}";
+            return $"{portLabel}/{protocolLabel}";
+        }
+
+        private static string BuildTimeObjectName(DateTime? timeStart, DateTime? timeEnd, string timeObjectPrecision)
+        {
+            if (timeStart.HasValue && timeEnd.HasValue)
+            {
+                return $"{FormatTimeObjectDate(timeStart.Value, timeObjectPrecision)} - {FormatTimeObjectDate(timeEnd.Value, timeObjectPrecision)}";
+            }
+            if (timeStart.HasValue)
+            {
+                return $">= {FormatTimeObjectDate(timeStart.Value, timeObjectPrecision)}";
+            }
+            if (timeEnd.HasValue)
+            {
+                return $"<= {FormatTimeObjectDate(timeEnd.Value, timeObjectPrecision)}";
+            }
+            return "";
+        }
+
+        private static string FormatTimeObjectDate(DateTime date, string timeObjectPrecision)
+        {
+            return timeObjectPrecision switch
+            {
+                FlowIntegrationTimePrecisionOptions.Date => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                FlowIntegrationTimePrecisionOptions.Hours => date.ToString("yyyy-MM-dd HH 'h'", CultureInfo.InvariantCulture),
+                FlowIntegrationTimePrecisionOptions.Minutes => date.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
+                _ => date.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+            };
+        }
+
+        private static DateTime? NormalizeTimeObjectDate(DateTime? date, string timeObjectPrecision)
+        {
+            if (!date.HasValue)
+            {
+                return null;
+            }
+
+            DateTime value = date.Value;
+            return timeObjectPrecision switch
+            {
+                FlowIntegrationTimePrecisionOptions.Date => new DateTime(value.Year, value.Month, value.Day, 0, 0, 0, value.Kind),
+                FlowIntegrationTimePrecisionOptions.Hours => new DateTime(value.Year, value.Month, value.Day, value.Hour, 0, 0, value.Kind),
+                FlowIntegrationTimePrecisionOptions.Minutes => new DateTime(value.Year, value.Month, value.Day, value.Hour, value.Minute, 0, value.Kind),
+                _ => new DateTime(value.Year, value.Month, value.Day, value.Hour, value.Minute, value.Second, value.Kind)
+            };
+        }
+
+        private static string NormalizeTimeObjectPrecision(string timeObjectPrecision)
+        {
+            return FlowIntegrationTimePrecisionOptions.All.Contains(timeObjectPrecision)
+                ? timeObjectPrecision
+                : FlowIntegrationTimePrecisionOptions.Seconds;
         }
 
         private sealed class FlowNetworkReference

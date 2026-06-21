@@ -16,7 +16,7 @@
                 <div class="form-group row">
                     <div class="col-sm-2">
                         <div class="form-group row">
-                            <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                            <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("impl_task_id")):</label>
                             <div class="col-sm-6">
                                 <label class="col-sm-12 border bg-secondary">@WfHandler.ActImplTask.Id</label>
                             </div>
@@ -192,36 +192,11 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-sm-3">
-                            <div class="form-group row">
-                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_from")):</label>
-                                <div class="col-sm-8">
-                                    @if (WfHandler.EditImplTaskMode)
-                                    {
-                                        <input type="date" class="form-control form-control-sm" @bind="WfHandler.ActImplTask.TargetBeginDate" />
-                                    }
-                                    else
-                                    {
-                                        <label class="col-sm-12 h-100 border bg-secondary">@WfHandler.ActImplTask.TargetBeginDate?.ToString("d")</label>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-sm-3">
-                            <div class="form-group row">
-                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_to")):</label>
-                                <div class="col-sm-8">
-                                    @if (WfHandler.EditImplTaskMode)
-                                    {
-                                        <input type="date" class="form-control form-control-sm" @bind="WfHandler.ActImplTask.TargetEndDate" />
-                                    }
-                                    else
-                                    {
-                                        <label class="col-sm-12 h-100 border bg-secondary">@WfHandler.ActImplTask.TargetEndDate?.ToString("d")</label>
-                                    }
-                                </div>
-                            </div>
-                        </div>
+                        <DisplayTaskTargetDates @bind-TargetBeginDate="WfHandler.ActImplTask.TargetBeginDate"
+                            @bind-TargetEndDate="WfHandler.ActImplTask.TargetEndDate"
+                            CanEditTargetBeginDate="WfHandler.EditImplTaskMode"
+                            CanEditTargetEndDate="WfHandler.EditImplTaskMode"
+                            TargetDatesValidChanged="SetTargetDatesValid" />
                     </div>
                     <DisplayAccessElements Sources="actSources" @bind-SourcesToAdd="sourcesToAdd" @bind-SourcesToDelete="sourcesToDelete"
                         Destinations="actDestinations" @bind-DestinationsToAdd="destinationsToAdd" @bind-DestinationsToDelete="destinationsToDelete"
@@ -315,7 +290,7 @@
                     {
                         <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
                             <Authorized>
-                                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteImplTask">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.Save))</button>
+                                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteImplTask">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                             </Authorized>
                             <NotAuthorized>
                                 <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
@@ -398,6 +373,7 @@
     private bool newOwnerAssigned = false;
     private string? actGrpName;
     private bool firstParamSet = false;
+    private bool targetDatesValid = true;
 
     private List<WfStateAction> offeredActions = new ();
     private string allComments = "";
@@ -485,9 +461,13 @@
         {
             return element.GroupName;
         }
-        if (!string.IsNullOrWhiteSpace(element.Name) && string.IsNullOrWhiteSpace(element.IpString))
+        if (!string.IsNullOrWhiteSpace(element.Name))
         {
             return element.Name;
+        }
+        if (HasId(element.FlowNetworkObjectId) || HasId(element.FlowNetworkGroupId))
+        {
+            return element.FlowNetworkObjectId?.ToString() ?? element.FlowNetworkGroupId?.ToString() ?? "";
         }
         return NwObjDisplay.DisplayIp(element.IpString, element.IpEndString);
     }
@@ -498,11 +478,20 @@
         {
             return element.GroupName;
         }
-        if (!string.IsNullOrWhiteSpace(element.Name) && element.Port == 0)
+        if (!string.IsNullOrWhiteSpace(element.Name))
         {
             return element.Name;
         }
+        if (HasId(element.FlowServiceObjectId) || HasId(element.FlowServiceGroupId))
+        {
+            return element.FlowServiceObjectId?.ToString() ?? element.FlowServiceGroupId?.ToString() ?? "";
+        }
         return DisplayBase.DisplayService(element, ipProtos);
+    }
+
+    private static bool HasId(long? id)
+    {
+        return id.HasValue && id.Value != 0;
     }
 
     private async Task Close()
@@ -667,6 +656,11 @@
         await InvokeAsync(StateHasChanged);
         try
         {
+            if (!RejectInvalidTargetDates())
+            {
+                return;
+            }
+
             if (WfHandler.ActImplTask.Sanitize())
             {
                 DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("U0001"), true);
@@ -732,6 +726,24 @@
             }
         }
         return true;
+    }
+
+    private bool RejectInvalidTargetDates()
+    {
+        if (!targetDatesValid ||
+            (WfHandler.ActImplTask.TargetBeginDate.HasValue && WfHandler.ActImplTask.TargetEndDate.HasValue &&
+                WfHandler.ActImplTask.TargetBeginDate.Value > WfHandler.ActImplTask.TargetEndDate.Value))
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5119"), true);
+            return false;
+        }
+
+        return true;
+    }
+
+    private void SetTargetDatesValid(bool datesValid)
+    {
+        targetDatesValid = datesValid;
     }
 
     private void InitPromoteImplTask()

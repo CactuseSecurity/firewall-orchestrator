@@ -8,6 +8,8 @@ namespace FWO.Data.Workflow
         public int? PortEnd { get; set; }
         public int ProtoId { get; set; }
         public long? ServiceId { get; set; }
+        public long? FlowServiceObjectId { get; set; }
+        public long? FlowServiceGroupId { get; set; }
         public string? Name { get; set; }
         public string? GroupName { get; set; }
         public string RequestAction { get; set; } = Workflow.RequestAction.create.ToString();
@@ -23,6 +25,8 @@ namespace FWO.Data.Workflow
                 PortEnd = PortEnd,
                 ProtoId = ProtoId,
                 ServiceId = ServiceId,
+                FlowServiceObjectId = FlowServiceObjectId,
+                FlowServiceGroupId = FlowServiceGroupId,
                 Name = Name,
                 GroupName = GroupName,
                 RequestAction = RequestAction

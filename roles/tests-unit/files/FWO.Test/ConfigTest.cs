@@ -309,6 +309,27 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ConfigData_DefaultsReqConsiderBundlingToFalse()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.ReqConsiderBundling, Is.False);
+        }
+
+        [Test]
+        public void Update_ParsesReqConsiderBundling()
+        {
+            SimulatedUserConfig userConfig = new();
+
+            InvokeUpdate(userConfig,
+            [
+                new() { Key = "reqConsiderBundling", Value = "True", User = 0 }
+            ]);
+
+            Assert.That(userConfig.ReqConsiderBundling, Is.True);
+        }
+
+        [Test]
         public void ConfigData_DefaultsModIntegrationModeToFullyIntegrated()
         {
             ConfigData configData = new();

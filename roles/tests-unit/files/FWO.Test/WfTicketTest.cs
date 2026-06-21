@@ -190,7 +190,8 @@ namespace FWO.Test
                 ExternalTicketId = "ext",
                 ExternalTicketSource = 3,
                 Deadline = new DateTime(2024, 4, 5),
-                Priority = 4
+                Priority = 4,
+                Locked = true
             };
             original.AssignedGroup = "cn=grp,dc=example,dc=com";
             original.SetOptComment("comment");
@@ -210,6 +211,7 @@ namespace FWO.Test
             Assert.That(copy.ExternalTicketSource, Is.EqualTo(original.ExternalTicketSource));
             Assert.That(copy.Deadline, Is.EqualTo(original.Deadline));
             Assert.That(copy.Priority, Is.EqualTo(original.Priority));
+            Assert.That(copy.Locked, Is.EqualTo(original.Locked));
             Assert.That(copy.AssignedGroup, Is.EqualTo(original.AssignedGroup));
             Assert.That(copy.OptComment(), Is.EqualTo(original.OptComment()));
         }

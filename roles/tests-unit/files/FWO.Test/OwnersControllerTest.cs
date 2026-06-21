@@ -130,6 +130,113 @@ namespace FWO.Test
             Assert.That(owners.Select(owner => owner.Type), Is.EqualTo(new[] { "standard", "infrastructure", "infrastructure" }));
         }
 
+        [Test]
+        public async Task GetMapsOwnerLifecycleState()
+        {
+            OwnersApiConnection apiConnection = new()
+            {
+                Owners =
+                [
+                    new FwoOwner
+                    {
+                        Id = 1,
+                        Name = "Application",
+                        ExtAppId = "APP-0001",
+                        OwnerLifeCycleState = new OwnerLifeCycleState { Id = 5, Name = "Active", ActiveState = true }
+                    },
+                    new FwoOwner { Id = 2, Name = "Network", ExtAppId = "COM-0002" }
+                ]
+            };
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Auditor));
+
+            ActionResult<List<GetOwnerResponse>> result = await controller.Get(new GetOwnersRequest());
+
+            OkObjectResult okResult = (OkObjectResult)result.Result!;
+            List<GetOwnerResponse> owners = (List<GetOwnerResponse>)okResult.Value!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(owners[0].OwnerLifecycleState, Is.Not.Null);
+                Assert.That(owners[0].OwnerLifecycleState!.Id, Is.EqualTo(5));
+                Assert.That(owners[0].OwnerLifecycleState!.Name, Is.EqualTo("Active"));
+                Assert.That(owners[1].OwnerLifecycleState, Is.Null);
+            });
+        }
+
+        [Test]
+        public async Task GetOmitsDetailFieldsByDefault()
+        {
+            OwnersApiConnection apiConnection = new()
+            {
+                Owners =
+                [
+                    new FwoOwner { Id = 1, Name = "Application", ExtAppId = "APP-0001", TenantId = 7, Criticality = "high", Active = false }
+                ]
+            };
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Auditor));
+
+            ActionResult<List<GetOwnerResponse>> result = await controller.Get(new GetOwnersRequest());
+
+            OkObjectResult okResult = (OkObjectResult)result.Result!;
+            List<GetOwnerResponse> owners = (List<GetOwnerResponse>)okResult.Value!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(owners[0].TenantId, Is.Null);
+                Assert.That(owners[0].Criticality, Is.Null);
+                Assert.That(owners[0].Active, Is.Null);
+            });
+        }
+
+        [Test]
+        public async Task GetReturnsDetailFieldsWhenRequested()
+        {
+            OwnersApiConnection apiConnection = new()
+            {
+                Owners =
+                [
+                    new FwoOwner
+                    {
+                        Id = 1,
+                        Name = "Application",
+                        ExtAppId = "APP-0001",
+                        IsDefault = true,
+                        TenantId = 7,
+                        RecertInterval = 365,
+                        Criticality = "high",
+                        OwnerLifeCycleStateId = 5,
+                        Active = false,
+                        ImportSource = "import",
+                        CommSvcPossible = true,
+                        LastRecertifierId = 11,
+                        LastRecertifierDn = "cn=user",
+                        RecertActive = true,
+                        AdditionalInfo = new Dictionary<string, string> { ["key"] = "value" }
+                    }
+                ]
+            };
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Auditor));
+
+            ActionResult<List<GetOwnerResponse>> result = await controller.Get(new GetOwnersRequest { ShowDetails = true });
+
+            OkObjectResult okResult = (OkObjectResult)result.Result!;
+            GetOwnerResponse owner = ((List<GetOwnerResponse>)okResult.Value!)[0];
+            Assert.Multiple(() =>
+            {
+                Assert.That(owner.IsDefault, Is.True);
+                Assert.That(owner.TenantId, Is.EqualTo(7));
+                Assert.That(owner.RecertInterval, Is.EqualTo(365));
+                Assert.That(owner.Criticality, Is.EqualTo("high"));
+                Assert.That(owner.OwnerLifecycleStateId, Is.EqualTo(5));
+                Assert.That(owner.Active, Is.False);
+                Assert.That(owner.ImportSource, Is.EqualTo("import"));
+                Assert.That(owner.CommonServicePossible, Is.True);
+                Assert.That(owner.LastRecertifier, Is.EqualTo(11));
+                Assert.That(owner.LastRecertifierDn, Is.EqualTo("cn=user"));
+                Assert.That(owner.RecertActive, Is.True);
+                Assert.That(owner.AdditionalInfo, Is.Not.Null);
+                Assert.That(owner.AdditionalInfo!["key"], Is.EqualTo("value"));
+            });
+        }
+
         private static OwnersController CreateController(ApiConnection apiConnection, ClaimsPrincipal user)
         {
             return new OwnersController(apiConnection)

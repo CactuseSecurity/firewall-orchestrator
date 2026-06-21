@@ -36,4 +36,11 @@ public sealed class GetOwnersRequest
     /// </summary>
     [JsonPropertyName("appIdExternal")]
     public string? AppIdExternal { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether all owner fields should be returned.
+    /// When <c>false</c> (default) only the core fields are returned.
+    /// </summary>
+    [JsonPropertyName("showDetails")]
+    public bool ShowDetails { get; set; }
 }

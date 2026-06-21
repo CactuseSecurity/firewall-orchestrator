@@ -43,13 +43,18 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
     /// <code>
     /// {"name":"Finance*","appIdExternal":"APP-?"}
     /// </code>
+    /// <code>
+    /// {"showDetails":true}
+    /// </code>
     /// Example response:
     /// <code>
     /// [
-    ///   {"id":42,"name":"Finance Portal","appIdExternal":"APP-4711","type":"standard"},
-    ///   {"id":43,"name":"Finance Network","appIdExternal":"NET-4712","type":"infrastructure"}
+    ///   {"id":42,"name":"Finance Portal","appIdExternal":"APP-4711","type":"standard","ownerLifecycleState":{"id":1,"name":"Active"}},
+    ///   {"id":43,"name":"Finance Network","appIdExternal":"NET-4712","type":"infrastructure","ownerLifecycleState":null}
     /// ]
     /// </code>
+    /// Set <c>showDetails</c> to <c>true</c> to additionally return all owner fields (tenant id, recertification
+    /// data, criticality, lifecycle state id, additional info, etc.). By default only the core fields are returned.
     /// The <c>name</c> and <c>appIdExternal</c> filters are case-insensitive and accept <c>*</c> for any
     /// character sequence and <c>?</c> for a single character. Plain text without wildcards is matched as a contains search.
     /// </remarks>
@@ -64,11 +69,12 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
     {
         try
         {
+            GetOwnersRequest effectiveRequest = request ?? new GetOwnersRequest();
             List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(
                 OwnerQueries.getOwnersFiltered,
-                BuildQueryVariables(request ?? new GetOwnersRequest(), User)) ?? [];
+                BuildQueryVariables(effectiveRequest, User)) ?? [];
 
-            return Ok(owners.Select(ToResponse).ToList());
+            return Ok(owners.Select(owner => ToResponse(owner, effectiveRequest.ShowDetails)).ToList());
         }
         catch (Exception exception)
         {
@@ -100,15 +106,55 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
     /// <summary>
     /// Converts an owner to the REST response shape.
     /// </summary>
-    internal static GetOwnerResponse ToResponse(FwoOwner owner)
+    /// <param name="owner">The owner to convert.</param>
+    /// <param name="showDetails">Whether to include all owner detail fields.</param>
+    internal static GetOwnerResponse ToResponse(FwoOwner owner, bool showDetails)
     {
-        return new GetOwnerResponse
+        GetOwnerResponse response = new()
         {
             Id = owner.Id,
             Name = owner.Name,
             AppIdExternal = owner.ExtAppId,
-            Type = IsStandardOwner(owner.ExtAppId) ? StandardOwnerType : InfrastructureOwnerType
+            Type = IsStandardOwner(owner.ExtAppId) ? StandardOwnerType : InfrastructureOwnerType,
+            OwnerLifecycleState = owner.OwnerLifeCycleState is null
+                ? null
+                : new OwnerLifecycleStateResponse
+                {
+                    Id = owner.OwnerLifeCycleState.Id,
+                    Name = owner.OwnerLifeCycleState.Name
+                }
         };
+
+        if (showDetails)
+        {
+            AddDetails(response, owner);
+        }
+
+        return response;
+    }
+
+    /// <summary>
+    /// Populates the full set of owner fields on the response.
+    /// </summary>
+    private static void AddDetails(GetOwnerResponse response, FwoOwner owner)
+    {
+        response.IsDefault = owner.IsDefault;
+        response.TenantId = owner.TenantId;
+        response.RecertInterval = owner.RecertInterval;
+        response.LastRecertCheck = owner.LastRecertCheck;
+        response.RecertCheckParams = owner.RecertCheckParamString;
+        response.Criticality = owner.Criticality;
+        response.OwnerLifecycleStateId = owner.OwnerLifeCycleStateId;
+        response.Active = owner.Active;
+        response.ImportSource = owner.ImportSource;
+        response.CommonServicePossible = owner.CommSvcPossible;
+        response.LastRecertified = owner.LastRecertified;
+        response.LastRecertifier = owner.LastRecertifierId;
+        response.LastRecertifierDn = owner.LastRecertifierDn;
+        response.NextRecertDate = owner.NextRecertDate;
+        response.RecertActive = owner.RecertActive;
+        response.DecommDate = owner.DecommDate;
+        response.AdditionalInfo = owner.AdditionalInfo;
     }
 
     private static List<Dictionary<string, object>> BuildFilterPredicates(GetOwnersRequest request)

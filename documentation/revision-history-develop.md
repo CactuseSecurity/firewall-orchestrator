@@ -457,6 +457,9 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 - Remaining hardcoded strings on the scheduler monitoring page were moved into the localization texts.
 - The shared confirm dialogs now raise DisplayChanged(false) after a successful action, so the parent's bound visibility state no longer remains stale.
 
+# 9.1.10 - 21.06.2026 DEVELOP
+- remove deprecated, unused direct rule zone columns; rule zones remain available through rule_from_zone and rule_to_zone link tables
+
 # 9.1.9 - 19.06.2026 DEVELOP
 - remove deprecated, unused rule.rule_num column (rule ordering is handled by rule_num_numeric)
 

@@ -1,5 +1,5 @@
 import pytest
-from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
+from models.rule import Rule, RuleAction, RuleNormalized, RuleTrack, RuleType
 
 
 @pytest.mark.parametrize(
@@ -59,3 +59,8 @@ def test_last_hit_rejects_invalid_timestamp_with_updated_message():
             rule_type=RuleType.ACCESS,
             last_hit="not-a-timestamp",
         )
+
+
+def test_rule_db_model_does_not_use_direct_zone_columns():
+    assert "rule_from_zone" not in Rule.model_fields
+    assert "rule_to_zone" not in Rule.model_fields

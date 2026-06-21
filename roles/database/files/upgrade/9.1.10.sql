@@ -1,3 +1,13 @@
+-- remove deprecated, unused direct zone columns from rule.
+-- Zones are represented by the rule_from_zone and rule_to_zone link tables.
+DROP FUNCTION IF EXISTS public.get_rulebase_for_owner(rulebase, integer);
+DROP VIEW IF EXISTS public.rule_api CASCADE;
+DROP VIEW IF EXISTS v_active_access_allow_rules CASCADE;
+DROP MATERIALIZED VIEW IF EXISTS view_rule_with_owner CASCADE;
+
+ALTER TABLE "rule" DROP COLUMN IF EXISTS "rule_from_zone";
+ALTER TABLE "rule" DROP COLUMN IF EXISTS "rule_to_zone";
+
 /*
     logic for checking overlap of ip ranges:
     not (end_ip1 < start_ip2 or start_ip1 > end_ip2)

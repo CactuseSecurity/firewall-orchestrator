@@ -8,10 +8,10 @@ Create index IF NOT EXISTS idx_changelog_service02 on changelog_service (mgm_id)
 Create index IF NOT EXISTS idx_changelog_user01 on changelog_user (change_type_id);
 Create index IF NOT EXISTS idx_changelog_user02 on changelog_user (mgm_id);
 Create index IF NOT EXISTS idx_import_control01 on import_control (control_id);
-Create index IF NOT EXISTS idx_object01 on object (mgm_id);
-Create index IF NOT EXISTS idx_object02 on object (obj_name,mgm_id,zone_id,active);
-Create index IF NOT EXISTS idx_object03 on object (obj_uid,mgm_id,zone_id,active);
-Create index IF NOT EXISTS idx_object04 on object (obj_ip);
+Create index IF NOT EXISTS idx_object01 on firewall.nw_object (mgm_id);
+Create index IF NOT EXISTS idx_object02 on firewall.nw_object (obj_name,mgm_id,zone_id,active);
+Create index IF NOT EXISTS idx_object03 on firewall.nw_object (obj_uid,mgm_id,zone_id,active);
+Create index IF NOT EXISTS idx_object04 on firewall.nw_object (obj_ip);
 Create index IF NOT EXISTS idx_objgrp_flat01 on objgrp_flat (objgrp_flat_id);
 Create index IF NOT EXISTS idx_objgrp_flat02 on objgrp_flat (objgrp_flat_member_id);
 Create index IF NOT EXISTS idx_rule01 on rule (rule_uid,mgm_id,dev_id,active,nat_rule,xlate_rule);
@@ -22,11 +22,11 @@ Create index IF NOT EXISTS idx_rule_from01 on rule_from (rule_id);
 Create index IF NOT EXISTS idx_rule_service01 on rule_service (rule_id);
 Create index IF NOT EXISTS idx_rule_service02 on rule_service (svc_id);
 Create index IF NOT EXISTS idx_rule_to01 on rule_to (rule_id);
-Create index IF NOT EXISTS idx_service01 on service (mgm_id);
-Create index IF NOT EXISTS idx_service02 on service (svc_color_id);
+Create index IF NOT EXISTS idx_service01 on firewall.nw_service (mgm_id);
+Create index IF NOT EXISTS idx_service02 on firewall.nw_service (svc_color_id);
 Create index IF NOT EXISTS idx_svcgrp_flat01 on svcgrp_flat (svcgrp_flat_id);
 Create index IF NOT EXISTS idx_svcgrp_flat02 on svcgrp_flat (svcgrp_flat_member_id);
-Create index IF NOT EXISTS idx_usr01 on usr (mgm_id);
+Create index IF NOT EXISTS idx_usr01 on firewall.nw_user (mgm_id);
 Create index IF NOT EXISTS idx_usergrp_flat01 on usergrp_flat (usergrp_flat_id);
 Create index IF NOT EXISTS idx_usergrp_flat02 on usergrp_flat (usergrp_flat_member_id);
 Create index IF NOT EXISTS idx_zone01 on zone (zone_name,mgm_id);
@@ -52,11 +52,11 @@ Create index "import_control_start_time_idx" on "import_control" using btree ("s
 
 
 Create index "IX_relationship23" on "rule" ("action_id");
-Create index "IX_relationship9" on "object" ("obj_typ_id");
+Create index "IX_relationship9" on firewall."nw_object" ("obj_typ_id");
 Create index "IX_relationship24" on "rule" ("track_id");
-Create index "IX_Relationship33" on "service" ("ip_proto_id");
-Create index "IX_Relationship36" on "service" ("svc_typ_id");
-Create index "IX_Relationship37" on "object" ("zone_id");
+Create index "IX_Relationship33" on firewall."nw_service" ("ip_proto_id");
+Create index "IX_Relationship36" on firewall."nw_service" ("svc_typ_id");
+Create index "IX_Relationship37" on firewall."nw_object" ("zone_id");
 Create index "IX_Relationship90" on "rule" ("rule_from_zone");
 Create index "IX_Relationship95" on "rule_from" ("user_id");
 Create index "IX_relationship26" on "rule_from" ("obj_id");
@@ -73,15 +73,15 @@ Create index "IX_Relationship79" on "changelog_user" ("new_user_id");
 Create index "IX_Relationship80" on "changelog_user" ("old_user_id");
 
 
-Create index "IX_Relationship120" on "objgrp" ("import_created");
-Create index "IX_Relationship122" on "svcgrp" ("import_created");
-Create index "IX_Relationship50" on "usergrp" ("usergrp_id");
-Create index "IX_Relationship51" on "usergrp" ("usergrp_member_id");
-Create index "IX_Relationship153" on "usergrp" ("import_created");
+Create index "IX_Relationship120" on firewall."nw_object_group" ("import_created");
+Create index "IX_Relationship122" on firewall."nw_service_group" ("import_created");
+Create index "IX_Relationship50" on firewall."nw_user_group" ("usergrp_id");
+Create index "IX_Relationship51" on firewall."nw_user_group" ("usergrp_member_id");
+Create index "IX_Relationship153" on firewall."nw_user_group" ("import_created");
 
 
-Create index "IX_relationship20" on "svcgrp" ("svcgrp_member_id");
-Create index "IX_relationship14" on "objgrp" ("objgrp_member_id");
+Create index "IX_relationship20" on firewall."nw_service_group" ("svcgrp_member_id");
+Create index "IX_relationship14" on firewall."nw_object_group" ("objgrp_member_id");
 
 Create index "IX_Relationship107" on "objgrp_flat" ("import_created");
 Create index "IX_Relationship124" on "svcgrp_flat" ("import_created");
@@ -92,8 +92,8 @@ CREATE INDEX IF NOT EXISTS idx_rule_removed ON "rule" ("removed");
 Create index "IX_Relationship168" on "rule_from" ("rf_create");
 Create index "IX_Relationship170" on "rule_to" ("rt_create");
 Create index "IX_Relationship172" on "rule_service" ("rs_create");
-Create index "IX_Relationship174" on "object" ("obj_create");
-Create index "IX_Relationship176" on "service" ("svc_create");
+Create index "IX_Relationship174" on firewall."nw_object" ("obj_create");
+Create index "IX_Relationship176" on firewall."nw_service" ("svc_create");
 Create index "IX_Relationship178" on "zone" ("zone_create");
 
 create unique index if not exists only_one_default_owner on owner(is_default) 
@@ -123,8 +123,8 @@ Create index idx_flow_nwgroup_member_nwobj on flow.nwgroup_member (nwobj_id);
 
 Create index idx_flow_svcgroup_member_svcobj on flow.svcgroup_member (svcobj_id);
 
-Create unique index if not exists service_flow_svcobj_id_active_only_one_per_mgm on service (mgm_id, flow_svcobj_id) where flow_active = true;
-Create unique index if not exists service_flow_svcgrp_id_active_only_one_per_mgm on service (mgm_id, flow_svcgrp_id) where flow_active = true;
+Create unique index if not exists service_flow_svcobj_id_active_only_one_per_mgm on firewall.nw_service (mgm_id, flow_svcobj_id) where flow_active = true;
+Create unique index if not exists service_flow_svcgrp_id_active_only_one_per_mgm on firewall.nw_service (mgm_id, flow_svcgrp_id) where flow_active = true;
 Create unique index if not exists time_object_flow_timeobj_id_active_only_one_per_mgm on time_object (mgm_id, flow_timeobj_id) where flow_active = true;
-Create unique index if not exists object_flow_nwobj_id_active_only_one_per_mgm on object (mgm_id, flow_nwobj_id) where flow_active = true;
-Create unique index if not exists object_flow_nwgrp_id_active_only_one_per_mgm on object (mgm_id, flow_nwgrp_id) where flow_active = true;
+Create unique index if not exists object_flow_nwobj_id_active_only_one_per_mgm on firewall.nw_object (mgm_id, flow_nwobj_id) where flow_active = true;
+Create unique index if not exists object_flow_nwgrp_id_active_only_one_per_mgm on firewall.nw_object (mgm_id, flow_nwgrp_id) where flow_active = true;

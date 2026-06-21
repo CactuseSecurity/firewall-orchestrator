@@ -129,7 +129,8 @@ else
     {
         try
         {
-            availableRealTaskTypes = JsonSerializer.Deserialize<List<WfTaskType>>(userConfig.ReqAvailableTaskTypes) ?? [];
+            availableRealTaskTypes = JsonSerializer.Deserialize<List<WfTaskType>>(userConfig.ReqAvailableTaskTypes,
+                new JsonSerializerOptions { Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() } }) ?? [];
             availableRealTaskTypes = [.. availableRealTaskTypes.Where(taskType => taskType != WfTaskType.master)];
             SelectedTaskTypes = [.. availableRealTaskTypes];
             selectedTaskTypesForUi = [];

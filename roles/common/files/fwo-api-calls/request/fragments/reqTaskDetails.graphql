@@ -35,6 +35,7 @@ fragment reqTaskDetails on request_reqtask {
   target_end_date
   devices
   flow_access_id
+  locked
   on_management: management {
     id: mgm_id
     name: mgm_name

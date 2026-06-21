@@ -16,7 +16,8 @@ namespace FWO.Test
                 Reason = "reason",
                 AdditionalInfo = "{\"key\":\"value\"}",
                 LastRecertDate = new DateTime(2024, 1, 2),
-                ManagementId = 5
+                ManagementId = 5,
+                Locked = true
             };
             original.SelectedDevices = "[1,2,3]";
 
@@ -27,6 +28,7 @@ namespace FWO.Test
             Assert.That(copy.AdditionalInfo, Is.EqualTo(original.AdditionalInfo));
             Assert.That(copy.LastRecertDate, Is.EqualTo(original.LastRecertDate));
             Assert.That(copy.ManagementId, Is.EqualTo(original.ManagementId));
+            Assert.That(copy.Locked, Is.EqualTo(original.Locked));
             Assert.That(copy.GetDeviceList(), Is.EqualTo(original.GetDeviceList()));
         }
 
@@ -149,11 +151,25 @@ namespace FWO.Test
                 CidrEnd = new Cidr("10.0.0.2/32"),
                 IpString = "10.0.0.1/32",
                 NetworkId = 12,
+                FlowNetworkObjectId = 112,
+                FlowNetworkGroupId = 113,
                 RequestAction = "create",
                 Name = "obj",
                 GroupName = "grp"
             });
-            task.Elements.Add(new WfReqElement { Id = 2, TaskId = 10, Field = ElemFieldType.service.ToString(), Port = 80, ProtoId = 6, Name = "svc", GroupName = "svcgrp" });
+            task.Elements.Add(new WfReqElement
+            {
+                Id = 2,
+                TaskId = 10,
+                Field = ElemFieldType.service.ToString(),
+                Port = 80,
+                ProtoId = 6,
+                ServiceId = 14,
+                FlowServiceObjectId = 114,
+                FlowServiceGroupId = 115,
+                Name = "svc",
+                GroupName = "svcgrp"
+            });
             task.Elements.Add(new WfReqElement { Id = 3, TaskId = 10, Field = ElemFieldType.rule.ToString(), RuleUid = "uid", Name = "rule" });
 
             List<NwObjectElement> nwObjects = task.GetNwObjectElements(ElemFieldType.source);
@@ -167,16 +183,44 @@ namespace FWO.Test
             Assert.That(nwObjects[0].CidrEnd.CidrString, Is.EqualTo("10.0.0.2/32"));
             Assert.That(nwObjects[0].IpString, Is.EqualTo("10.0.0.1/32"));
             Assert.That(nwObjects[0].NetworkId, Is.EqualTo(12));
+            Assert.That(nwObjects[0].FlowNetworkObjectId, Is.EqualTo(112));
+            Assert.That(nwObjects[0].FlowNetworkGroupId, Is.EqualTo(113));
             Assert.That(nwObjects[0].RequestAction, Is.EqualTo("create"));
             Assert.That(nwObjects[0].Name, Is.EqualTo("obj"));
             Assert.That(nwObjects[0].GroupName, Is.EqualTo("grp"));
             Assert.That(services, Has.Count.EqualTo(1));
             Assert.That(services[0].Port, Is.EqualTo(80));
+            Assert.That(services[0].ServiceId, Is.EqualTo(14));
+            Assert.That(services[0].FlowServiceObjectId, Is.EqualTo(114));
+            Assert.That(services[0].FlowServiceGroupId, Is.EqualTo(115));
             Assert.That(services[0].Name, Is.EqualTo("svc"));
             Assert.That(services[0].GroupName, Is.EqualTo("svcgrp"));
             Assert.That(rules, Has.Count.EqualTo(1));
             Assert.That(rules[0].RuleUid, Is.EqualTo("uid"));
             Assert.That(rules[0].Name, Is.EqualTo("rule"));
+        }
+
+        [Test]
+        public void WfReqTask_GetElements_PreservesCidrRange_WhenIpStringsAreEmpty()
+        {
+            WfReqTask task = new();
+            task.Elements.Add(new WfReqElement
+            {
+                Id = 1,
+                TaskId = 10,
+                Field = ElemFieldType.source.ToString(),
+                Cidr = new Cidr("11.0.0.0/32"),
+                CidrEnd = new Cidr("11.0.0.255/32"),
+                IpString = "",
+                IpEnd = ""
+            });
+
+            NwObjectElement nwObject = task.GetNwObjectElements(ElemFieldType.source).Single();
+
+            Assert.That(nwObject.Cidr.CidrString, Is.EqualTo("11.0.0.0/32"));
+            Assert.That(nwObject.CidrEnd.CidrString, Is.EqualTo("11.0.0.255/32"));
+            Assert.That(nwObject.IpString, Is.EqualTo("11.0.0.0/32"));
+            Assert.That(nwObject.IpEndString, Is.EqualTo("11.0.0.255/32"));
         }
 
         [Test]
@@ -241,7 +285,17 @@ namespace FWO.Test
                 TaskType = WfTaskType.rule_delete.ToString(),
                 RequestAction = "delete"
             };
-            reqTask.Elements.Add(new WfReqElement { DeviceId = 9, Field = ElemFieldType.rule.ToString() });
+            reqTask.Elements.Add(new WfReqElement
+            {
+                DeviceId = 9,
+                Field = ElemFieldType.rule.ToString(),
+                Name = "Flow snapshot",
+                IpString = "10.0.0.1/32",
+                IpEnd = "10.0.0.2/32",
+                Port = 443,
+                ProtoId = 6,
+                FlowNetworkObjectId = 101
+            });
             reqTask.Comments.Add(new WfCommentDataHelper(new WfComment { CommentText = "comment", Scope = WfObjectScopes.RequestTask.ToString() }));
 
             WfImplTask implTask = new(reqTask, copyComments: true);
@@ -250,6 +304,12 @@ namespace FWO.Test
             Assert.That(implTask.TicketId, Is.EqualTo(20));
             Assert.That(implTask.DeviceId, Is.EqualTo(9));
             Assert.That(implTask.ImplElements, Has.Count.EqualTo(1));
+            Assert.That(implTask.ImplElements[0].Name, Is.EqualTo("Flow snapshot"));
+            Assert.That(implTask.ImplElements[0].IpString, Is.EqualTo("10.0.0.1/32"));
+            Assert.That(implTask.ImplElements[0].IpEnd, Is.EqualTo("10.0.0.2/32"));
+            Assert.That(implTask.ImplElements[0].Port, Is.EqualTo(443));
+            Assert.That(implTask.ImplElements[0].ProtoId, Is.EqualTo(6));
+            Assert.That(implTask.ImplElements[0].FlowNetworkObjectId, Is.Null);
             Assert.That(implTask.Comments, Has.Count.EqualTo(1));
             Assert.That(implTask.Comments[0].Comment.Scope, Is.EqualTo(WfObjectScopes.ImplementationTask.ToString()));
         }
@@ -275,8 +335,11 @@ namespace FWO.Test
                 ImplTaskId = 10,
                 Field = ElemFieldType.source.ToString(),
                 Cidr = new Cidr("10.0.0.1/32"),
+                CidrEnd = new Cidr("10.0.0.2/32"),
                 IpString = "10.0.0.1/32",
                 NetworkId = 12,
+                FlowNetworkObjectId = 112,
+                FlowNetworkGroupId = 113,
                 Name = "obj",
                 GroupName = "AR-Impl"
             });
@@ -287,6 +350,9 @@ namespace FWO.Test
                 Field = ElemFieldType.service.ToString(),
                 Port = 80,
                 ProtoId = 6,
+                ServiceId = 14,
+                FlowServiceObjectId = 114,
+                FlowServiceGroupId = 115,
                 GroupName = "SG-Impl"
             });
             task.ImplElements.Add(new WfImplElement { Id = 3, ImplTaskId = 10, Field = ElemFieldType.rule.ToString(), RuleUid = "uid", Name = "rule" });
@@ -299,16 +365,45 @@ namespace FWO.Test
             Assert.That(nwObjects[0].ElemId, Is.EqualTo(1));
             Assert.That(nwObjects[0].TaskId, Is.EqualTo(10));
             Assert.That(nwObjects[0].Cidr.CidrString, Is.EqualTo("10.0.0.1/32"));
+            Assert.That(nwObjects[0].CidrEnd.CidrString, Is.EqualTo("10.0.0.2/32"));
             Assert.That(nwObjects[0].IpString, Is.EqualTo("10.0.0.1/32"));
             Assert.That(nwObjects[0].NetworkId, Is.EqualTo(12));
+            Assert.That(nwObjects[0].FlowNetworkObjectId, Is.EqualTo(112));
+            Assert.That(nwObjects[0].FlowNetworkGroupId, Is.EqualTo(113));
             Assert.That(nwObjects[0].Name, Is.EqualTo("obj"));
             Assert.That(nwObjects[0].GroupName, Is.EqualTo("AR-Impl"));
             Assert.That(services, Has.Count.EqualTo(1));
             Assert.That(services[0].Port, Is.EqualTo(80));
+            Assert.That(services[0].ServiceId, Is.EqualTo(14));
+            Assert.That(services[0].FlowServiceObjectId, Is.EqualTo(114));
+            Assert.That(services[0].FlowServiceGroupId, Is.EqualTo(115));
             Assert.That(services[0].GroupName, Is.EqualTo("SG-Impl"));
             Assert.That(rules, Has.Count.EqualTo(1));
             Assert.That(rules[0].RuleUid, Is.EqualTo("uid"));
             Assert.That(rules[0].Name, Is.EqualTo("rule"));
+        }
+
+        [Test]
+        public void WfImplTask_GetElements_PreservesCidrRange_WhenIpStringsAreEmpty()
+        {
+            WfImplTask task = new();
+            task.ImplElements.Add(new WfImplElement
+            {
+                Id = 1,
+                ImplTaskId = 10,
+                Field = ElemFieldType.source.ToString(),
+                Cidr = new Cidr("11.0.0.0/32"),
+                CidrEnd = new Cidr("11.0.0.255/32"),
+                IpString = "",
+                IpEnd = ""
+            });
+
+            NwObjectElement nwObject = task.GetNwObjectElements(ElemFieldType.source).Single();
+
+            Assert.That(nwObject.Cidr.CidrString, Is.EqualTo("11.0.0.0/32"));
+            Assert.That(nwObject.CidrEnd.CidrString, Is.EqualTo("11.0.0.255/32"));
+            Assert.That(nwObject.IpString, Is.EqualTo("11.0.0.0/32"));
+            Assert.That(nwObject.IpEndString, Is.EqualTo("11.0.0.255/32"));
         }
 
         [Test]

@@ -1,7 +1,6 @@
 mutation updateRequestTask(
   $id: bigint!
   $title: String!
-  $taskNumber: Int
   $state: Int
   $requestAction: action_enum
   $ruleAction: Int
@@ -18,7 +17,6 @@ mutation updateRequestTask(
     pk_columns: { id: $id }
     _set: {
     title: $title
-    task_number: $taskNumber
     state_id: $state
     request_action: $requestAction
     rule_action: $ruleAction

@@ -458,10 +458,8 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 - The shared confirm dialogs now raise DisplayChanged(false) after a successful action, so the parent's bound visibility state no longer remains stale.
 
 # 9.1.10 - 21.06.2026 DEVELOP
-- remove deprecated, unused direct rule zone columns; rule zones remain available through rule_from_zone and rule_to_zone link tables
-
-# 9.1.9 - 19.06.2026 DEVELOP
 - remove deprecated, unused rule.rule_num column (rule ordering is handled by rule_num_numeric)
+- remove deprecated, unused direct rule zone columns (rule_from_zone, rule_to_zone); rule zones remain available through the rule_from_zone and rule_to_zone link tables
 
 # 9.1.8 - 16.06.2026 DEVELOP
 - flow db: access flows now include time objects and allow/deny flag in their functional definition
@@ -471,9 +469,3 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 # 9.1.9 - 18.06.2026 DEVELOP
 - request workflow: add locked tickets and request tasks for automatically created change requests
 - further integration flow into workflow
-
-# 9.1.10 - 21.06.2026
-- removing unused rule fields:
-  - rule_num
-  - rule_to_zone
-  - rule_from_zone

@@ -106,14 +106,31 @@ namespace FWO.Services.Workflow
                 return null;
             }
 
+            Dictionary<int, string> protocolNamesById = await GetProtocolNamesByIdForEmailContent();
             return scope switch
             {
-                WfObjectScopes.Ticket when statefulObject is WfTicket ticket => WorkflowEmailContent.FromRequestTasks((await GetTicketForEmailContent(ticket)).Tasks, wfHandler.userConfig),
-                WfObjectScopes.RequestTask when statefulObject is WfReqTask reqTask => WorkflowEmailContent.FromRequestTasks([reqTask], wfHandler.userConfig),
-                WfObjectScopes.ImplementationTask when statefulObject is WfImplTask implTask => WorkflowEmailContent.FromImplementationTasks([implTask], wfHandler.userConfig),
-                WfObjectScopes.Approval when wfHandler.ActReqTask.Id > 0 => WorkflowEmailContent.FromRequestTasks([wfHandler.ActReqTask], wfHandler.userConfig),
+                WfObjectScopes.Ticket when statefulObject is WfTicket ticket => WorkflowEmailContent.FromRequestTasks((await GetTicketForEmailContent(ticket)).Tasks, wfHandler.userConfig, protocolNamesById),
+                WfObjectScopes.RequestTask when statefulObject is WfReqTask reqTask => WorkflowEmailContent.FromRequestTasks([reqTask], wfHandler.userConfig, protocolNamesById),
+                WfObjectScopes.ImplementationTask when statefulObject is WfImplTask implTask => WorkflowEmailContent.FromImplementationTasks([implTask], wfHandler.userConfig, protocolNamesById),
+                WfObjectScopes.Approval when wfHandler.ActReqTask.Id > 0 => WorkflowEmailContent.FromRequestTasks([wfHandler.ActReqTask], wfHandler.userConfig, protocolNamesById),
                 _ => null
             };
+        }
+
+        private async Task<Dictionary<int, string>> GetProtocolNamesByIdForEmailContent()
+        {
+            try
+            {
+                List<IpProtocol> protocols = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
+                return protocols
+                    .Where(protocol => !string.IsNullOrWhiteSpace(protocol.Name))
+                    .ToDictionary(protocol => protocol.Id, protocol => protocol.Name);
+            }
+            catch (Exception exc)
+            {
+                Log.WriteWarning("SendEmail", $"Could not load protocol names for workflow email content. Falling back to protocol ids. {exc.Message}");
+                return [];
+            }
         }
 
         private async Task<WfTicket> GetTicketForEmailContent(WfTicket ticket)

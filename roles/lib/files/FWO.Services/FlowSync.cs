@@ -41,7 +41,15 @@ namespace FWO.Services
             var timeObjects = await apiConnection.SendQueryAsync<List<FlowTimeObject>>(FlowQueries.getFlowSyncTimeObjects, new { mgmId }) ?? [];
             var accesses = await apiConnection.SendQueryAsync<List<FlowAccess>>(FlowQueries.getFlowSyncAccesses, new { mgmId }) ?? [];
 
-            return new FlowSyncFlowData(nwObjects, nwGroups, svcObjects, svcGroups, timeObjects, accesses);
+            return new FlowSyncFlowData(new FlowSyncFlowDataInput
+            {
+                NwObjects = nwObjects,
+                NwGroups = nwGroups,
+                SvcObjects = svcObjects,
+                SvcGroups = svcGroups,
+                TimeObjects = timeObjects,
+                Accesses = accesses
+            });
         }
 
         /// <summary>

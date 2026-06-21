@@ -462,5 +462,9 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 - flow sync: add hash consistency check
 - this update resets the flow db!
 
-# 9.1.9 - 21.06.2026 DEVELOP
+# 9.1.9 - 18.06.2026 DEVELOP
+- request workflow: add locked tickets and request tasks for automatically created change requests
+- further integration flow into workflow
+
+# 9.2.1 - 26.06.2026 DEVELOP
 - db: the firewall configuration tables (rule, object, service, user, zone and related rule tables) were moved from the public schema into a new firewall schema; nine of them were renamed (object->nw_object, service->nw_service, usr->nw_user, objgrp->nw_object_group, svcgrp->nw_service_group, usergrp->nw_user_group, rule_svc_resolved->rule_nw_service_resolved, rule_nwobj_resolved->rule_nw_object_resolved, rule_user_resolved->rule_nw_user_resolved)

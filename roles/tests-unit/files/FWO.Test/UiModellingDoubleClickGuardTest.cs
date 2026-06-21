@@ -45,9 +45,16 @@ namespace FWO.Test
             yield return new TestCaseData(typeof(OrphanedRequestedInterfaceTicketsPopup), "RejectTickets", new object[] { new List<long> { 1 } });
             yield return new TestCaseData(typeof(OrphanedRequestedInterfaceTicketsPopup), "CloseTicketsAsDone", new object[] { new List<long> { 1 } });
             yield return new TestCaseData(typeof(DisplayTicket), "PerformAction", new object[] { new WfStateAction() });
+            yield return new TestCaseData(typeof(DisplayTicket), "StartRequestPhase", new object[] { new WfReqTask() });
+            yield return new TestCaseData(typeof(DisplayTicket), "StartImplementationPhase", new object[] { new WfImplTask() });
             yield return new TestCaseData(typeof(DisplayRequestTask), "PerformAction", new object[] { new WfStateAction() });
             yield return new TestCaseData(typeof(DisplayRequestTask), "ConfApproveTask", new object[] { new WfTicket() });
+            yield return new TestCaseData(typeof(DisplayRequestTask), "StartImplementationPhase", new object[] { new WfImplTask() });
             yield return new TestCaseData(typeof(DisplayImplementationTask), "PerformAction", new object[] { new WfStateAction() });
+            yield return new TestCaseData(typeof(RequestPlannings), "StartPlanTask", new object[] { new WfReqTask() });
+            yield return new TestCaseData(typeof(RequestApprovals), "StartApproveTask", new object[] { new WfReqTask() });
+            yield return new TestCaseData(typeof(RequestImplementations), "StartImplementTask", new object[] { new WfImplTask() });
+            yield return new TestCaseData(typeof(RequestReviews), "StartReviewTask", new object[] { new WfImplTask() });
         }
 
         private static object CreateComponentWithRunningGuard(Type componentType)
@@ -59,7 +66,7 @@ namespace FWO.Test
 
         private static async Task InvokePrivateTask(object component, string methodName, object[]? args = null)
         {
-            MethodInfo method = component.GetType().GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance)
+            MethodInfo method = component.GetType().GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
                 ?? throw new MissingMethodException(component.GetType().FullName, methodName);
             Task task = (Task)(method.Invoke(component, args) ?? throw new AssertionException($"{methodName} did not return a Task."));
             await task;

@@ -53,6 +53,9 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
     ///   {"id":43,"name":"Finance Network","appIdExternal":"NET-4712","type":"infrastructure","ownerLifecycleState":null}
     /// ]
     /// </code>
+    /// The <c>type</c> field is derived from the owner's <c>appIdExternal</c>: it is <c>standard</c> when the
+    /// external app id contains <c>app</c> (case-insensitive), and <c>infrastructure</c> otherwise (including
+    /// owners without an external app id).
     /// Set <c>showDetails</c> to <c>true</c> to additionally return all owner fields (tenant id, recertification
     /// data, criticality, lifecycle state id, additional info, etc.). By default only the core fields are returned.
     /// By default owners with an inactive lifecycle state are excluded; set <c>showOnlyActiveState</c> to
@@ -220,9 +223,7 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
 
     private static bool IsStandardOwner(string? appIdExternal)
     {
-        // Application owners use the "APP" external-app-id prefix, infrastructure/common owners use "COM"
-        // (matching the modelling naming convention in ModellingManagedIdString).
-        return appIdExternal?.StartsWith("APP", StringComparison.OrdinalIgnoreCase) == true;
+        return appIdExternal?.Contains("app", StringComparison.OrdinalIgnoreCase) == true;
     }
 
     private static string BuildLikePattern(string value)

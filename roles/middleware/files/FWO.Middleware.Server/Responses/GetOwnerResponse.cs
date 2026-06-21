@@ -27,7 +27,8 @@ public sealed class GetOwnerResponse
     public string? AppIdExternal { get; set; }
 
     /// <summary>
-    /// Gets or sets the owner type.
+    /// Gets or sets the owner type, derived from <see cref="AppIdExternal"/>:
+    /// <c>standard</c> when the external app id contains <c>app</c> (case-insensitive), <c>infrastructure</c> otherwise.
     /// </summary>
     [JsonPropertyName("type")]
     public string Type { get; set; } = string.Empty;

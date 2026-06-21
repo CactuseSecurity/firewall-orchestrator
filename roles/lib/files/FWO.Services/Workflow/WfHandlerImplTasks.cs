@@ -319,6 +319,10 @@ namespace FWO.Services.Workflow
                     effectiveRequestTasks.AddRange(bundledTasks);
                     continue;
                 }
+                if (BundleHasImplementationTasks(ActTicket, bundledTasks[0]))
+                {
+                    continue;
+                }
                 effectiveRequestTasks.Add(CreateMergedBundleRequestTask(bundledTasks));
             }
             return effectiveRequestTasks;
@@ -390,6 +394,54 @@ namespace FWO.Services.Workflow
                 element.GroupName,
                 element.Name
             };
+        }
+
+        public bool CanAutoCreateInitialImplTasks(WfReqTask reqTask)
+        {
+            return reqTask.ImplementationTasks.Count == 0
+                && (reqTask.TaskType != WfTaskType.access.ToString() || userConfig.ReqAutoCreateImplTasks != AutoCreateImplTaskOptions.never)
+                && stateMatrixDict.Matrices.TryGetValue(reqTask.TaskType, out StateMatrix? matrix)
+                && !matrix.PhaseActive[WorkflowPhases.planning]
+                && RequestTaskNeedsInitialImplTasks(reqTask);
+        }
+
+        public bool CanAutoCreateInitialImplTasks(WfTicket ticket, WfReqTask reqTask)
+        {
+            return CanAutoCreateInitialImplTasks(reqTask)
+                && !BundleHasImplementationTasks(ticket, reqTask);
+        }
+
+        public async Task<bool> AutoCreateInitialImplTasksForMonitoring(WfTicket ticket, WfReqTask reqTask)
+        {
+            SetTicketEnv(ticket);
+            WfReqTask taskToUpdate = ActTicket.Tasks.FirstOrDefault(task => task.Id == reqTask.Id) ?? reqTask;
+            if (!CanAutoCreateInitialImplTasks(ActTicket, taskToUpdate))
+            {
+                return false;
+            }
+
+            int previousImplTaskCount = taskToUpdate.ImplementationTasks.Count;
+            bool implementationTasksCreated = false;
+            foreach (WfReqTask task in await RequestTasksForInitialImplCreation([taskToUpdate]))
+            {
+                int taskPreviousImplTaskCount = task.ImplementationTasks.Count;
+                await AutoCreateImplTasks(task);
+                implementationTasksCreated = implementationTasksCreated || task.ImplementationTasks.Count > taskPreviousImplTaskCount;
+                SyncActTicketFromReqTask(task);
+            }
+            return implementationTasksCreated || taskToUpdate.ImplementationTasks.Count > previousImplTaskCount;
+        }
+
+        private bool BundleHasImplementationTasks(WfTicket ticket, WfReqTask reqTask)
+        {
+            if (!userConfig.ReqConsiderBundling)
+            {
+                return false;
+            }
+
+            string bundleId = reqTask.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId);
+            return !string.IsNullOrWhiteSpace(bundleId)
+                && ticket.Tasks.Any(task => task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId) == bundleId && task.ImplementationTasks.Count > 0);
         }
 
         private bool RequestTaskNeedsInitialImplTasks(WfReqTask reqTask)

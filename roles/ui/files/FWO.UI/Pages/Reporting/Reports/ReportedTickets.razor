@@ -7,6 +7,14 @@
 @if (Tickets.Count > 0)
 {
     <Table class="table table-bordered th-bg-secondary sticky-header bs-overflow" TableItem="WfTicket" Items="SortedTickets" PageSize="0" ColumnReorder="true">
+        @if (ShowStateChangeButtons)
+        {
+            <Column TableItem="WfTicket" Title="@(userConfig.GetText("actions"))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+                <Template Context="ticket">
+                    <button type="button" class="btn btn-sm btn-danger" @onclick:stopPropagation @onclick="async () => await ChangeTicketState(ticket)">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
+                </Template>
+            </Column>
+        }
         <Column TableItem="WfTicket" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
         <Column TableItem="WfTicket" Title="@(userConfig.GetText("name"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
         <Column TableItem="WfTicket" Title="@(userConfig.GetText("tasks"))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
@@ -48,9 +56,26 @@
                 <div class="p-2">
                     <div class="small fw-bold mb-2">@(userConfig.GetText("tasks"))</div>
                     <Table class="table table-sm table-bordered mb-0" TableItem="WfReqTask" Items="GetDisplayedTasks(ticket)" PageSize="0">
+                        @if (ShowStateChangeButtons)
+                        {
+                            <Column TableItem="WfReqTask" Title="@(userConfig.GetText("actions"))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+                                <Template Context="task">
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick:stopPropagation @onclick="async () => await ChangeReqTaskState(ticket, task)">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
+                                    @if (CanAutoCreateImplementationTasks(ticket, task))
+                                    {
+                                        <button type="button" class="btn btn-sm btn-warning" @onclick:stopPropagation @onclick="async () => await AutoCreateImplementationTasks(ticket, task)">@(DisplayService.DisplayButton(userConfig, "auto_create_impltasks", Icons.Create))</button>
+                                    }
+                                </Template>
+                            </Column>
+                        }
                         <Column TableItem="WfReqTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="false" Filterable="false" />
                         <Column TableItem="WfReqTask" Title="@(userConfig.GetText("task_number"))" Field="@(x => x.TaskNumber)" Sortable="false" Filterable="false" />
                         <Column TableItem="WfReqTask" Title="@(userConfig.GetText("name"))" Field="@(x => x.Title)" Sortable="false" Filterable="false" />
+                        <Column TableItem="WfReqTask" Title="@(userConfig.GetText("flow_bundle_id"))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+                            <Template Context="task">
+                                @(task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId))
+                            </Template>
+                        </Column>
                         <Column TableItem="WfReqTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="false" Filterable="false">
                             <Template Context="task">
                                 @(ResolveStateName(task.StateId))
@@ -67,6 +92,14 @@
                                         <div class="mb-2">
                                             <div class="small fw-bold">@(userConfig.GetText("implementation"))</div>
                                             <Table class="table table-sm table-bordered mb-0" TableItem="WfImplTask" Items="GetDisplayedImplementationTasks(task)" PageSize="0">
+                                                @if (ShowStateChangeButtons)
+                                                {
+                                                    <Column TableItem="WfImplTask" Title="@(userConfig.GetText("actions"))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+                                                        <Template Context="implTask">
+                                                            <button type="button" class="btn btn-sm btn-danger" @onclick:stopPropagation @onclick="async () => await ChangeImplTaskState(ticket, task, implTask)">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
+                                                        </Template>
+                                                    </Column>
+                                                }
                                                 <Column TableItem="WfImplTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="false" Filterable="false" />
                                                 <Column TableItem="WfImplTask" Title="@(userConfig.GetText("task_number"))" Field="@(x => x.TaskNumber)" Sortable="false" Filterable="false" />
                                                 <Column TableItem="WfImplTask" Title="@(userConfig.GetText("name"))" Field="@(x => x.Title)" Sortable="false" Filterable="false" />
@@ -85,6 +118,14 @@
                                         <div>
                                             <div class="small fw-bold">@(userConfig.GetText("approval"))</div>
                                             <Table class="table table-sm table-bordered mb-0" TableItem="WfApproval" Items="GetDisplayedApprovals(task)" PageSize="0">
+                                                @if (ShowStateChangeButtons)
+                                                {
+                                                    <Column TableItem="WfApproval" Title="@(userConfig.GetText("actions"))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+                                                        <Template Context="approval">
+                                                            <button type="button" class="btn btn-sm btn-danger" @onclick:stopPropagation @onclick="async () => await ChangeApprovalState(ticket, task, approval)">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
+                                                        </Template>
+                                                    </Column>
+                                                }
                                                 <Column TableItem="WfApproval" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="false" Filterable="false" />
                                                 <Column TableItem="WfApproval" Title="@(userConfig.GetText("name"))" Field="@(x => x.ApproverGroup)" Sortable="false" Filterable="false" />
                                                 <Column TableItem="WfApproval" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="false" Filterable="false">
@@ -142,12 +183,36 @@
     [Parameter]
     public string TimeRangeEnd { get; set; } = "";
 
+    [Parameter]
+    public bool ShowStateChangeButtons { get; set; }
+
+    [Parameter]
+    public Func<WfTicket, Task> ChangeTicketState { get; set; } = _ => Task.CompletedTask;
+
+    [Parameter]
+    public Func<WfTicket, WfReqTask, Task> ChangeReqTaskState { get; set; } = (_, _) => Task.CompletedTask;
+
+    [Parameter]
+    public Func<WfTicket, WfReqTask, WfImplTask, Task> ChangeImplTaskState { get; set; } = (_, _, _) => Task.CompletedTask;
+
+    [Parameter]
+    public Func<WfTicket, WfReqTask, WfApproval, Task> ChangeApprovalState { get; set; } = (_, _, _) => Task.CompletedTask;
+
+    [Parameter]
+    public Func<WfTicket, WfReqTask, bool> CanAutoCreateImplementationTasks { get; set; } = (_, _) => false;
+
+    [Parameter]
+    public Func<WfTicket, WfReqTask, Task> AutoCreateImplementationTasks { get; set; } = (_, _) => Task.CompletedTask;
+
+    [Parameter]
+    public bool SortDescendingById { get; set; }
+
     private IEnumerable<WfTicket> SortedTickets => HasReferenceDateColumn()
         ? Tickets
             .OrderByDescending(ticket => GetStoredTicketReferenceDate(ticket).HasValue)
             .ThenByDescending(GetStoredTicketReferenceDate)
             .ThenByDescending(ticket => ticket.Id)
-        : Tickets.OrderBy(ticket => ticket.Id);
+        : SortDescendingById ? Tickets.OrderByDescending(ticket => ticket.Id) : Tickets.OrderBy(ticket => ticket.Id);
 
     private string ResolveStateName(int stateId)
     {

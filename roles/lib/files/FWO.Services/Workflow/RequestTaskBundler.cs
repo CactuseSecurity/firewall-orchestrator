@@ -19,6 +19,26 @@ namespace FWO.Services.Workflow
             };
         }
 
+        /// <summary>
+        /// Returns clean-zone bundling candidate task ids whose source or destination IPs do not resolve to configured zones.
+        /// </summary>
+        public List<long> FindTasksWithUnresolvedCleanZones(IEnumerable<WfReqTask> requestTasks, bool cleanZones,
+            IEnumerable<ComplianceNetworkZone>? networkZones = null)
+        {
+            List<ComplianceNetworkZone> zoneList = networkZones?.ToList() ?? [];
+            if (!cleanZones || zoneList.Count == 0)
+            {
+                return [];
+            }
+
+            return [.. requestTasks
+                .Select(task => RequestTaskBundleSignature.FromTask(task, cleanZones, zoneList))
+                .Where(signature => signature.HasUnresolvedCleanZones())
+                .SelectMany(signature => signature.RequestTaskIds)
+                .Distinct()
+                .Order()];
+        }
+
         private Dictionary<long, string> BuildTwoOutOfThreeAssignments(IEnumerable<WfReqTask> requestTasks, bool cleanZones,
             IEnumerable<ComplianceNetworkZone>? networkZones)
         {
@@ -179,6 +199,16 @@ namespace FWO.Services.Workflow
                     && ServiceKeys.Count > 0;
             }
 
+            /// <summary>
+            /// Checks whether the candidate lacks resolved source or destination zones in clean-zone mode.
+            /// </summary>
+            public bool HasUnresolvedCleanZones()
+            {
+                return CleanZones
+                    && IsTwoOutOfThreeCandidate()
+                    && (SourceZoneKeys.Count == 0 || DestinationZoneKeys.Count == 0);
+            }
+
             public int CountEqualDimensions(RequestTaskBundleSignature other)
             {
                 int equalDimensions = 0;
@@ -209,13 +239,17 @@ namespace FWO.Services.Workflow
                     return [];
                 }
 
-                List<List<IPAddressRange>> unseenRanges = ranges
-                    .Select(range => new List<IPAddressRange> { new(range.Begin, range.End) })
-                    .ToList();
-
                 return [.. networkZones
-                    .Where(zone => zone.OverlapExists(ranges, unseenRanges))
+                    .Where(zone => zone.OverlapExists(ranges, CloneUnseenRanges(ranges)))
                     .Select(ZoneKey)];
+            }
+
+            /// <summary>
+            /// Creates a fresh mutable unseen-range structure for one zone overlap check.
+            /// </summary>
+            private static List<List<IPAddressRange>> CloneUnseenRanges(List<IPAddressRange> ranges)
+            {
+                return [.. ranges.Select(range => new List<IPAddressRange> { new(range.Begin, range.End) })];
             }
 
             private static IEnumerable<IPAddressRange> ElementIpRanges(WfReqElement element)

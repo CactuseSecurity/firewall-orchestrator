@@ -395,7 +395,9 @@ namespace FWO.Services.Workflow
 
             BundleTasksActionParams bundleParams = BundleTasksActionParams.FromExternalParams(action.ExternalParams);
             List<ComplianceNetworkZone> networkZones = await LoadBundleNetworkZones(bundleParams);
-            Dictionary<long, string> bundleAssignments = new RequestTaskBundler().BuildBundleAssignments(ticket.Tasks, bundleParams.BundleType,
+            RequestTaskBundler bundler = new();
+            LogUnresolvedCleanZoneTasks(action, ticket.Tasks, bundleParams, networkZones, bundler);
+            Dictionary<long, string> bundleAssignments = bundler.BuildBundleAssignments(ticket.Tasks, bundleParams.BundleType,
                 bundleParams.CleanZones, networkZones);
             foreach (WfReqTask reqTask in ticket.Tasks.Where(task => task.Id > 0))
             {
@@ -413,6 +415,28 @@ namespace FWO.Services.Workflow
                 }
             }
             Log.WriteInfo("Bundle Tasks", $"Bundled {bundleAssignments.Count} request tasks for flow creation.");
+        }
+
+        /// <summary>
+        /// Logs clean-zone bundling candidates whose source or destination IPs do not resolve to configured zones.
+        /// </summary>
+        private static void LogUnresolvedCleanZoneTasks(WfStateAction action, IEnumerable<WfReqTask> requestTasks,
+            BundleTasksActionParams bundleParams, List<ComplianceNetworkZone> networkZones, RequestTaskBundler bundler)
+        {
+            List<long> unresolvedTaskIds = bundler.FindTasksWithUnresolvedCleanZones(requestTasks, bundleParams.CleanZones, networkZones);
+            if (unresolvedTaskIds.Count > 0)
+            {
+                Log.WriteWarning("Bundle Tasks", BuildUnresolvedCleanZoneTasksWarning(action.Name, unresolvedTaskIds));
+            }
+        }
+
+        /// <summary>
+        /// Builds the warning for clean-zone bundling candidates without resolved source or destination zones.
+        /// </summary>
+        private static string BuildUnresolvedCleanZoneTasksWarning(string actionName, IEnumerable<long> unresolvedTaskIds)
+        {
+            return $"Task bundling action '{actionName}' skipped clean-zone bundling for request tasks "
+                + $"{string.Join(", ", unresolvedTaskIds)} because source or destination IPs could not be resolved to configured matrix zones.";
         }
 
         private async Task<List<ComplianceNetworkZone>> LoadBundleNetworkZones(BundleTasksActionParams bundleParams)

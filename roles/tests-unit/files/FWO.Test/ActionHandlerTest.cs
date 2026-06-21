@@ -1736,6 +1736,15 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildUnresolvedCleanZoneTasksWarning_ListsAffectedTaskIds()
+        {
+            string warning = (string)GetPrivateStaticMethod("BuildUnresolvedCleanZoneTasksWarning").Invoke(null, ["Bundle", new List<long> { 1, 3 }])!;
+
+            Assert.That(warning, Is.EqualTo("Task bundling action 'Bundle' skipped clean-zone bundling for request tasks 1, 3 "
+                + "because source or destination IPs could not be resolved to configured matrix zones."));
+        }
+
+        [Test]
         public void GetTicketForBundling_ReturnsScopedOrActiveTicket()
         {
             WfTicket scopedTicket = CreateTicket(CreateEligibleRequestTask(21));

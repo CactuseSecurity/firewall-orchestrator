@@ -114,6 +114,43 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildBundleAssignments_AssignsCommonIdWhenCleanZonesOverlapMultipleZones()
+        {
+            WfReqTask first = CreateTask(1, "10.0.0.1", "10.0.1.1", 443);
+            WfReqTask second = CreateTask(2, "10.0.0.1", "10.0.1.2", 443);
+
+            Dictionary<long, string> assignments = new RequestTaskBundler().BuildBundleAssignments([first, second],
+                BundleTaskType.TwoOutOfThree, cleanZones: true, CreateOverlappingComplianceZones());
+
+            Assert.That(assignments.Keys, Is.EquivalentTo(new long[] { 1, 2 }));
+            Assert.That(assignments[1], Is.EqualTo(assignments[2]));
+        }
+
+        [Test]
+        public void BuildBundleAssignments_KeepsTasksSeparateWhenCleanZoneIpsDoNotResolve()
+        {
+            WfReqTask first = CreateTask(1, "10.0.9.1", "10.0.8.1", 443);
+            WfReqTask second = CreateTask(2, "10.0.9.1", "10.0.8.2", 443);
+
+            Dictionary<long, string> assignments = new RequestTaskBundler().BuildBundleAssignments([first, second],
+                BundleTaskType.TwoOutOfThree, cleanZones: true, CreateComplianceZones());
+
+            Assert.That(assignments, Is.Empty);
+        }
+
+        [Test]
+        public void FindTasksWithUnresolvedCleanZones_ReturnsCleanZoneCandidatesWithoutZoneMatches()
+        {
+            WfReqTask unresolved = CreateTask(1, "10.0.9.1", "10.0.8.1", 443);
+            WfReqTask resolved = CreateTask(2, "10.0.0.1", "10.0.1.1", 443);
+
+            List<long> unresolvedTaskIds = new RequestTaskBundler().FindTasksWithUnresolvedCleanZones([unresolved, resolved],
+                cleanZones: true, CreateComplianceZones());
+
+            Assert.That(unresolvedTaskIds, Is.EqualTo(new long[] { 1 }));
+        }
+
+        [Test]
         public void BuildBundleAssignments_IgnoresNonAccessTasks()
         {
             WfReqTask first = CreateGroupTask(1, "AR-First", "10.0.0.1");
@@ -220,6 +257,31 @@ namespace FWO.Test
                     Id = 3,
                     Name = "Other Destination Zone",
                     IPRanges = [IPAddressRange.Parse("10.0.2.0/24")]
+                }
+            ];
+        }
+
+        private static List<ComplianceNetworkZone> CreateOverlappingComplianceZones()
+        {
+            return
+            [
+                new()
+                {
+                    Id = 1,
+                    Name = "Broad Source Zone",
+                    IPRanges = [IPAddressRange.Parse("10.0.0.0/24")]
+                },
+                new()
+                {
+                    Id = 2,
+                    Name = "Narrow Source Zone",
+                    IPRanges = [IPAddressRange.Parse("10.0.0.1/32")]
+                },
+                new()
+                {
+                    Id = 3,
+                    Name = "Destination Zone",
+                    IPRanges = [IPAddressRange.Parse("10.0.1.0/24")]
                 }
             ];
         }

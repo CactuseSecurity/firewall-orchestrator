@@ -95,5 +95,23 @@ namespace FWO.Data.Workflow
             FreeText = FreeText.SanitizeOpt(ref shortened);
             return shortened;
         }
+
+        protected static void ApplyNetworkAddress(NwObjectElement element, Cidr? cidr, Cidr? cidrEnd, string? ipString, string? ipEnd)
+        {
+            if (cidr != null && cidr.Valid)
+            {
+                element.Cidr = new Cidr(cidr.CidrString);
+                element.CidrEnd = cidrEnd != null && cidrEnd.Valid ? new Cidr(cidrEnd.CidrString) : new Cidr();
+                return;
+            }
+            if (!string.IsNullOrWhiteSpace(ipString))
+            {
+                element.IpString = ipString;
+            }
+            if (!string.IsNullOrWhiteSpace(ipEnd))
+            {
+                element.IpEndString = ipEnd;
+            }
+        }
     }
 }

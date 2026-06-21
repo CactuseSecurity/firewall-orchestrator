@@ -89,6 +89,8 @@ namespace FWO.Test
                 }
                 if (query == RequestQueries.updateTicketState
                     || query == RequestQueries.updateRequestTaskState
+                    || query == RequestQueries.updateImplementationTask
+                    || query == RequestQueries.updateImplementationTaskState
                     || query == RequestQueries.updateRequestTaskAdditionalInfo
                     || query == RequestQueries.updateApproval)
                 {
@@ -145,6 +147,7 @@ namespace FWO.Test
                     StateId = GetVariable<int>(variables, "state"),
                     Reason = GetVariable<string>(variables, "reason") ?? "",
                     Priority = GetVariable<int>(variables, "priority"),
+                    Locked = GetVariable<bool>(variables, "locked"),
                     Requester = new UiUser { DbId = GetVariable<int>(variables, "requesterId"), Name = "Requester" }
                 };
                 long taskId = ticketId * 10;
@@ -161,7 +164,8 @@ namespace FWO.Test
                         RequestAction = taskWriter.RequestAction,
                         Reason = taskWriter.Reason,
                         AdditionalInfo = taskWriter.AdditionalInfo,
-                        ManagementId = taskWriter.ManagementId
+                        ManagementId = taskWriter.ManagementId,
+                        Locked = taskWriter.Locked
                     };
                     task.Elements.AddRange(taskWriter.Elements.WfElementList.Select(element => new WfReqElement
                     {
@@ -235,7 +239,9 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(ticket.Id, Is.GreaterThan(0));
+                Assert.That(ticket.Locked, Is.True);
                 Assert.That(writtenTask.Title, Is.EqualTo("Allow web"));
+                Assert.That(writtenTask.Locked, Is.True);
                 Assert.That(writtenTask.StateId, Is.EqualTo(7));
                 Assert.That(writtenTask.Owners.WfOwnerList.Single().OwnerId, Is.EqualTo(owner.Id));
                 Assert.That(writtenTask.Approvals.WfApprovalList.Single().StateId, Is.EqualTo(7));
@@ -259,6 +265,7 @@ namespace FWO.Test
             {
                 Assert.That(ticketId, Is.GreaterThan(0));
                 Assert.That(writtenTask.TaskType, Is.EqualTo(WfTaskType.new_interface.ToString()));
+                Assert.That(writtenTask.Locked, Is.True);
                 Assert.That(writtenTask.Owners.WfOwnerList.Single().OwnerId, Is.EqualTo(owner.Id));
                 Assert.That(writtenTask.GetAddInfoIntValueOrZero(AdditionalInfoKeys.ReqOwner), Is.EqualTo(requestingOwner.Id));
             });
@@ -335,6 +342,51 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task PromoteNewInterfaceImplTasks_PromotesSelectedRequestTasks()
+        {
+            WfImplTask firstImplTask = CreateImplementationTask(21, 11);
+            WfImplTask ignoredImplTask = CreateImplementationTask(22, 12);
+            WfImplTask secondImplTask = CreateImplementationTask(23, 13);
+            TicketCreatorTestApiConn apiConn = new()
+            {
+                TicketById = new WfTicket
+                {
+                    Id = 42,
+                    StateId = 210,
+                    Tasks =
+                    [
+                        CreateNewInterfaceTask(11, firstImplTask),
+                        CreateNewInterfaceTask(12, ignoredImplTask),
+                        CreateNewInterfaceTask(13, secondImplTask)
+                    ]
+                },
+                ExtStates = [new WfExtState { Name = ExtStates.Rejected.ToString(), StateId = 249 }]
+            };
+            TicketCreator ticketCreator = CreateTicketCreator(apiConn);
+
+            int promotedCount = await ticketCreator.PromoteNewInterfaceImplTasks(42, ExtStates.Rejected, [11, 13], "reject relevant");
+
+            List<long> updatedImplTaskIds = apiConn.Queries
+                .Select((query, index) => new { query, index })
+                .Where(entry => entry.query == RequestQueries.updateImplementationTaskState)
+                .Where(entry => GetVariable<int>(apiConn.Variables[entry.index], "state") == 249)
+                .Select(entry => GetVariable<long>(apiConn.Variables[entry.index], "id"))
+                .ToList();
+            List<long> updatedRequestTaskIds = apiConn.Queries
+                .Select((query, index) => new { query, index })
+                .Where(entry => entry.query == RequestQueries.updateRequestTaskState)
+                .Select(entry => GetVariable<long>(apiConn.Variables[entry.index], "id"))
+                .ToList();
+            Assert.Multiple(() =>
+            {
+                Assert.That(promotedCount, Is.EqualTo(2));
+                Assert.That(updatedImplTaskIds, Is.EqualTo(new List<long> { 21, 23 }));
+                Assert.That(updatedRequestTaskIds, Is.EqualTo(new List<long> { 11, 13 }));
+                Assert.That(apiConn.Queries.Count(query => query == RequestQueries.addCommentToImplTask), Is.EqualTo(2));
+            });
+        }
+
+        [Test]
         public async Task CreateUnusedRuleDeleteTicket_CreatesRuleDeleteTasksAndTicketComment()
         {
             TicketCreatorTestApiConn apiConn = new();
@@ -347,6 +399,7 @@ namespace FWO.Test
             {
                 Assert.That(tasks, Has.Count.EqualTo(2));
                 Assert.That(tasks.Select(task => task.TaskType), Is.All.EqualTo(WfTaskType.rule_delete.ToString()));
+                Assert.That(tasks.Select(task => task.Locked), Is.All.True);
                 Assert.That(tasks.Select(task => task.Elements.WfElementList.Single().RuleUid), Is.EqualTo(new[] { "rule-1", "rule-2" }));
                 Assert.That(apiConn.Queries, Does.Contain(RequestQueries.newComment));
                 Assert.That(apiConn.Queries, Does.Contain(RequestQueries.addCommentToTicket));
@@ -397,6 +450,30 @@ namespace FWO.Test
             };
             return new TicketCreator(apiConn, userConfig, new ClaimsPrincipal(), null!,
                 WorkflowPhases.request, null, DefaultInit.DoNothing);
+        }
+
+        private static WfReqTask CreateNewInterfaceTask(long id, WfImplTask implTask)
+        {
+            return new WfReqTask
+            {
+                Id = id,
+                TicketId = 42,
+                StateId = 210,
+                TaskType = WfTaskType.new_interface.ToString(),
+                ImplementationTasks = { implTask }
+            };
+        }
+
+        private static WfImplTask CreateImplementationTask(long id, long requestTaskId)
+        {
+            return new WfImplTask
+            {
+                Id = id,
+                TicketId = 42,
+                ReqTaskId = requestTaskId,
+                StateId = 210,
+                TaskType = WfTaskType.new_interface.ToString()
+            };
         }
 
         private static TValue GetVariable<TValue>(object? variables, string propertyName)

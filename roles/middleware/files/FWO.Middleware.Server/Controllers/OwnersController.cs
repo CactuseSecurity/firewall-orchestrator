@@ -55,6 +55,8 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
     /// </code>
     /// Set <c>showDetails</c> to <c>true</c> to additionally return all owner fields (tenant id, recertification
     /// data, criticality, lifecycle state id, additional info, etc.). By default only the core fields are returned.
+    /// By default owners with an inactive lifecycle state are excluded; set <c>showOnlyActiveState</c> to
+    /// <c>false</c> to also include them. Owners without any lifecycle state are always returned.
     /// The <c>name</c> and <c>appIdExternal</c> filters are case-insensitive and accept <c>*</c> for any
     /// character sequence and <c>?</c> for a single character. Plain text without wildcards is matched as a contains search.
     /// </remarks>
@@ -165,7 +167,29 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
         AddEqualsPredicate(predicates, "active", request.Active);
         AddWildcardPredicate(predicates, "name", request.Name);
         AddWildcardPredicate(predicates, "app_id_external", request.AppIdExternal);
+        AddActiveStatePredicate(predicates, request.ShowOnlyActiveState);
         return predicates;
+    }
+
+    /// <summary>
+    /// Excludes owners whose lifecycle state is inactive, while keeping owners without a lifecycle state.
+    /// Applied by default unless <paramref name="showOnlyActiveState"/> is explicitly <c>false</c>.
+    /// </summary>
+    private static void AddActiveStatePredicate(List<Dictionary<string, object>> predicates, bool? showOnlyActiveState)
+    {
+        if (showOnlyActiveState == false)
+        {
+            return;
+        }
+
+        predicates.Add(new Dictionary<string, object>
+        {
+            ["_or"] = new List<Dictionary<string, object>>
+            {
+                new() { ["owner_lifecycle_state"] = new Dictionary<string, object> { ["active_state"] = new Dictionary<string, object> { ["_eq"] = true } } },
+                new() { ["owner_lifecycle_state_id"] = new Dictionary<string, object> { ["_is_null"] = true } }
+            }
+        });
     }
 
     private static void AddEqualsPredicate(List<Dictionary<string, object>> predicates, string fieldName, object? value)

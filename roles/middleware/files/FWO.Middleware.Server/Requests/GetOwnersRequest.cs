@@ -43,4 +43,12 @@ public sealed class GetOwnersRequest
     /// </summary>
     [JsonPropertyName("showDetails")]
     public bool? ShowDetails { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether owners with an inactive lifecycle state should be excluded.
+    /// When <c>null</c> or <c>true</c> (default) owners whose lifecycle state is inactive are filtered out;
+    /// owners without a lifecycle state are kept. Set to <c>false</c> to also include owners with an inactive state.
+    /// </summary>
+    [JsonPropertyName("showOnlyActiveState")]
+    public bool? ShowOnlyActiveState { get; set; }
 }

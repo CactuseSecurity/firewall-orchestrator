@@ -65,6 +65,32 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GetExcludesInactiveLifecycleStateByDefault()
+        {
+            OwnersApiConnection apiConnection = new();
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            await controller.Get(new GetOwnersRequest());
+
+            string variables = SerializeVariables(apiConnection.Variables);
+            Assert.That(variables, Does.Contain("\"owner_lifecycle_state\":{\"active_state\":{\"_eq\":true}}"));
+            Assert.That(variables, Does.Contain("\"owner_lifecycle_state_id\":{\"_is_null\":true}"));
+            Assert.That(variables, Does.Contain("\"_or\""));
+        }
+
+        [Test]
+        public async Task GetIncludesInactiveLifecycleStateWhenDisabled()
+        {
+            OwnersApiConnection apiConnection = new();
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            await controller.Get(new GetOwnersRequest { ShowOnlyActiveState = false });
+
+            string variables = SerializeVariables(apiConnection.Variables);
+            Assert.That(variables, Does.Not.Contain("active_state"));
+        }
+
+        [Test]
         public async Task GetConvertsWildcardFiltersToLikePatterns()
         {
             OwnersApiConnection apiConnection = new();

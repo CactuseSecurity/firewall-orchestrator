@@ -461,3 +461,7 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 - flow db: access flows now include time objects and allow/deny flag in their functional definition
 - flow sync: add hash consistency check
 - this update resets the flow db!
+
+# 9.1.9 - 18.06.2026 DEVELOP
+- request workflow: add locked tickets and request tasks for automatically created change requests
+- further integration flow into workflow

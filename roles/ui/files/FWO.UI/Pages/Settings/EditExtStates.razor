@@ -29,7 +29,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "ok", Icons.Confirm))</button>
         </div>
     </Footer>
 </PopUp>
@@ -51,13 +51,13 @@
         <div class="btn-group">
             <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-primary" @onclick="ApplySelection">@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="ApplySelection">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                 </NotAuthorized> 
             </ExecutionModeAuthorizeView>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseSelect">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseSelect">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>
 </PopUp>

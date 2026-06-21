@@ -253,11 +253,11 @@ namespace FWO.Config.Api.Data
         [JsonProperty("reqReducedView"), JsonPropertyName("reqReducedView")]
         public bool ReqReducedView { get; set; } = false;
 
-        [JsonProperty("reqAllowObjectSearch"), JsonPropertyName("reqAllowObjectSearch")]
-        public bool ReqAllowObjectSearch { get; set; } = false;
-
         [JsonProperty("reqUseFlowDb"), JsonPropertyName("reqUseFlowDb")]
         public bool ReqUseFlowDb { get; set; } = false;
+
+        [JsonProperty("reqFlowIntegration"), JsonPropertyName("reqFlowIntegration")]
+        public string ReqFlowIntegration { get; set; } = System.Text.Json.JsonSerializer.Serialize(new FlowIntegrationConfig());
 
         [JsonProperty("reqAllowManualOwnerAdmin"), JsonPropertyName("reqAllowManualOwnerAdmin")]
         public bool AllowManualOwnerAdmin { get; set; } = false;
@@ -267,6 +267,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("reqAutoCreateImplTasks"), JsonPropertyName("reqAutoCreateImplTasks")]
         public AutoCreateImplTaskOptions ReqAutoCreateImplTasks { get; set; } = AutoCreateImplTaskOptions.never;
+
+        [JsonProperty("reqConsiderBundling"), JsonPropertyName("reqConsiderBundling")]
+        public bool ReqConsiderBundling { get; set; } = false;
 
         [JsonProperty("reqActivatePathAnalysis"), JsonPropertyName("reqActivatePathAnalysis")]
         public bool ReqActivatePathAnalysis { get; set; } = true;

@@ -79,8 +79,7 @@ namespace FWO.Services.Workflow
                 }
                 await UpdateActImplTaskState();
                 ResetImplTaskList();
-                SyncReqTaskStopTime();
-                await UpdateReqTaskStateFromImplTasks(ActReqTask);
+                await UpdateReqTaskStatesFromActImplTask();
                 await UpdateActTicketStateFromReqTasks();
                 DisplayPromoteImplTaskMode = false;
             }
@@ -154,6 +153,26 @@ namespace FWO.Services.Workflow
             };
         }
 
+        private static void AuditUnexpectedStateTransition(WfStatefulObject statefulObject, WfObjectScopes scope, StateMatrix stateMatrix)
+        {
+            if (!statefulObject.StateChanged() || statefulObject.StateChangedByCreation())
+            {
+                return;
+            }
+
+            int oldStateId = statefulObject.ChangedFrom();
+            int newStateId = statefulObject.StateId;
+            List<int> allowedTransitions = stateMatrix.getAllowedTransitions(oldStateId, allowAutomaticOnlyStates: true);
+            if (allowedTransitions.Contains(newStateId))
+            {
+                return;
+            }
+
+            string configuredTransitions = allowedTransitions.Count == 0 ? "none" : string.Join(", ", allowedTransitions);
+            Log.WriteWarning("Workflow State",
+                $"Persisting workflow state transition {oldStateId}->{newStateId} for {scope} {GetStatefulObjectId(statefulObject)} that is not configured in the state matrix. Configured transitions: {configuredTransitions}.");
+        }
+
 
         // synchronization between the different objects
 
@@ -166,6 +185,7 @@ namespace FWO.Services.Workflow
             await AutoCreateOrUpdateImplTasks();
             if (dbAcc != null)
             {
+                AuditUnexpectedStateTransition(ActTicket, WfObjectScopes.Ticket, MasterStateMatrix);
                 await dbAcc.UpdateTicketStateInDb(ActTicket);
             }
             int idx = TicketList.FindIndex(x => x.Id == ActTicket.Id);
@@ -214,6 +234,7 @@ namespace FWO.Services.Workflow
         {
             if (dbAcc != null)
             {
+                AuditUnexpectedStateTransition(ActReqTask, WfObjectScopes.RequestTask, ActStateMatrix);
                 await dbAcc.UpdateReqTaskStateInDb(ActReqTask);
             }
             SyncActTicketFromReqTask(ActReqTask);
@@ -223,6 +244,7 @@ namespace FWO.Services.Workflow
         {
             bool requestTaskActionsChangedState = false;
             List<WfReqTask> requestTasks = [.. ActTicket.Tasks];
+            List<WfReqTask> requestTasksNeedingInitialImplTasks = [];
             foreach (WfReqTask reqtask in requestTasks)
             {
                 StateMatrix reqTaskMatrix = stateMatrixDict.Matrices[reqtask.TaskType];
@@ -237,8 +259,12 @@ namespace FWO.Services.Workflow
                 if (createImplTasks && reqtask.ImplementationTasks.Count == 0 && !stateMatrixDict.Matrices[reqtask.TaskType].PhaseActive[WorkflowPhases.planning]
                     && RequestTaskNeedsInitialImplTasks(reqtask))
                 {
-                    await AutoCreateImplTasks(reqtask);
+                    requestTasksNeedingInitialImplTasks.Add(reqtask);
                 }
+            }
+            foreach (WfReqTask reqtask in await RequestTasksForInitialImplCreation(requestTasksNeedingInitialImplTasks))
+            {
+                await AutoCreateImplTasks(reqtask);
             }
             return requestTaskActionsChangedState;
         }
@@ -256,9 +282,11 @@ namespace FWO.Services.Workflow
 
             if (dbAcc != null)
             {
+                AuditUnexpectedStateTransition(reqTask, WfObjectScopes.RequestTask, reqTaskMatrix);
                 await dbAcc.UpdateReqTaskStateInDb(reqTask);
                 foreach (WfApproval approval in approvalsToUpdate)
                 {
+                    AuditUnexpectedStateTransition(approval, WfObjectScopes.Approval, reqTaskMatrix);
                     await dbAcc.UpdateApprovalInDb(approval);
                 }
             }
@@ -277,15 +305,52 @@ namespace FWO.Services.Workflow
             }
             if (dbAcc != null)
             {
+                AuditUnexpectedStateTransition(reqTask, WfObjectScopes.RequestTask, stateMatrixDict.Matrices[reqTask.TaskType]);
                 await dbAcc.UpdateReqTaskStateInDb(reqTask);
             }
             SyncActTicketFromReqTask(reqTask);
+        }
+
+        private async Task UpdateReqTaskStatesFromActImplTask()
+        {
+            SyncReqTaskStopTime(ActReqTask);
+            await UpdateReqTaskStateFromImplTasks(ActReqTask);
+
+            List<WfReqTask> bundledTasks = [.. GetBundledRequestTasks(ActReqTask).Where(task => task.Id != ActReqTask.Id)];
+            foreach (WfReqTask bundledTask in bundledTasks)
+            {
+                bundledTask.StateId = ActReqTask.StateId;
+                if (bundledTask.Stop == null && ActReqTask.Stop != null)
+                {
+                    bundledTask.Stop = ActReqTask.Stop;
+                }
+                if (dbAcc != null)
+                {
+                    AuditUnexpectedStateTransition(bundledTask, WfObjectScopes.RequestTask, stateMatrixDict.Matrices[bundledTask.TaskType]);
+                    await dbAcc.UpdateReqTaskStateInDb(bundledTask);
+                }
+                SyncActTicketFromReqTask(bundledTask);
+            }
+        }
+
+        private List<WfReqTask> GetBundledRequestTasks(WfReqTask reqTask)
+        {
+            if (!userConfig.ReqConsiderBundling)
+            {
+                return [reqTask];
+            }
+
+            string bundleId = reqTask.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId);
+            return string.IsNullOrWhiteSpace(bundleId)
+                ? [reqTask]
+                : [.. ActTicket.Tasks.Where(task => task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId) == bundleId)];
         }
 
         private async Task UpdateActImplTaskState()
         {
             if (dbAcc != null)
             {
+                AuditUnexpectedStateTransition(ActImplTask, WfObjectScopes.ImplementationTask, ActStateMatrix);
                 await dbAcc.UpdateImplTaskStateInDb(ActImplTask);
             }
             int index = ActReqTask.ImplementationTasks.FindIndex(x => x.Id == ActImplTask.Id);
@@ -309,25 +374,26 @@ namespace FWO.Services.Workflow
                     if (impltask.StateId < reqTask.StateId)
                     {
                         impltask.StateId = reqTask.StateId;
+                        AuditUnexpectedStateTransition(impltask, WfObjectScopes.ImplementationTask, stateMatrixDict.Matrices[reqTask.TaskType]);
                         await dbAcc.UpdateImplTaskStateInDb(impltask);
                     }
                 }
             }
         }
 
-        private void SyncReqTaskStopTime()
+        private static void SyncReqTaskStopTime(WfReqTask reqTask)
         {
             bool openImplTask = false;
-            foreach (var impltask in ActReqTask.ImplementationTasks)
+            foreach (var impltask in reqTask.ImplementationTasks)
             {
                 if (impltask.Stop == null)
                 {
                     openImplTask = true;
                 }
             }
-            if (!openImplTask && ActReqTask.Stop == null)
+            if (!openImplTask && reqTask.Stop == null)
             {
-                ActReqTask.Stop = ActImplTask.Stop;
+                reqTask.Stop = reqTask.ImplementationTasks.FirstOrDefault(task => task.Stop != null)?.Stop;
             }
         }
     }

@@ -39,7 +39,8 @@ namespace FWO.Services.Workflow
                 StateId = (int)stateId,
                 Title = title,
                 Requester = userConfig.User,
-                Reason = reason
+                Reason = reason,
+                Locked = true
             },
                 ObjAction.add);
             foreach (var reqTask in reqTasks)
@@ -56,7 +57,8 @@ namespace FWO.Services.Workflow
                     OnManagement = reqTask.OnManagement,
                     Elements = reqTask.Elements,
                     Comments = reqTask.Comments,
-                    AdditionalInfo = reqTask.AdditionalInfo
+                    AdditionalInfo = reqTask.AdditionalInfo,
+                    Locked = true
                 },
                     ObjAction.add);
                 await wfHandler.AddApproval(JsonSerializer.Serialize(new ApprovalParams() { StateId = (int)stateId }));
@@ -110,7 +112,8 @@ namespace FWO.Services.Workflow
                 StateId = stateId,
                 Title = userConfig.ModReqTicketTitle + ": " + interfaceName,
                 Requester = userConfig.User,
-                Reason = reason
+                Reason = reason,
+                Locked = true
             },
                 ObjAction.add);
             Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ReqOwner, requestingOwner.Id.ToString() } };
@@ -121,7 +124,8 @@ namespace FWO.Services.Workflow
                 TaskType = WfTaskType.new_interface.ToString(),
                 Owners = [new() { Owner = owner }],
                 Reason = reason,
-                AdditionalInfo = JsonSerializer.Serialize(addInfo)
+                AdditionalInfo = JsonSerializer.Serialize(addInfo),
+                Locked = true
             },
                 ObjAction.add);
             await wfHandler.AddApproval(JsonSerializer.Serialize(new ApprovalParams() { StateId = wfHandler.MasterStateMatrix.LowestEndState }));
@@ -149,26 +153,40 @@ namespace FWO.Services.Workflow
             }
         }
 
+        /// <summary>
+        /// Promotes the first new-interface implementation task of the given ticket.
+        /// </summary>
         public async Task<bool> PromoteNewInterfaceImplTask(long ticketId, ExtStates extState, string comment = "")
+        {
+            return await PromoteNewInterfaceImplTasks(ticketId, extState, null, comment) > 0;
+        }
+
+        /// <summary>
+        /// Promotes selected new-interface implementation tasks of the given ticket.
+        /// </summary>
+        public async Task<int> PromoteNewInterfaceImplTasks(long ticketId, ExtStates extState, IEnumerable<long>? requestTaskIds, string comment = "")
         {
             ExtStateHandler extStateHandler = new(apiConnection);
             await wfHandler.Init();
-            WfImplTask? implTask = await FindNewInterfaceImplTask(ticketId);
-            if (implTask != null)
+            List<WfImplTask> implTasks = await FindNewInterfaceImplTasks(ticketId, requestTaskIds);
+            int? newState = extStateHandler.GetInternalStateId(extState);
+            if (newState == null)
+            {
+                return 0;
+            }
+
+            int promotedCount = 0;
+            foreach (WfImplTask implTask in implTasks)
             {
                 await wfHandler.ContinueImplPhase(implTask);
                 if (comment != "")
                 {
                     await wfHandler.ConfAddCommentToImplTask(comment);
                 }
-                int? newState = extStateHandler.GetInternalStateId(extState);
-                if (newState != null)
-                {
-                    await wfHandler.PromoteImplTask(new() { StateId = (int)newState });
-                    return true;
-                }
+                await wfHandler.PromoteImplTask(new() { StateId = (int)newState });
+                promotedCount++;
             }
-            return false;
+            return promotedCount;
         }
 
         public async Task CreateDecertRuleDeleteTicket(int deviceId, List<string> ruleUids, string comment = "", DateTime? deadline = null)
@@ -203,7 +221,8 @@ namespace FWO.Services.Workflow
                 Requester = userConfig.User,
                 Reason = ticketReason,
                 Priority = priority,
-                Deadline = deadline
+                Deadline = deadline,
+                Locked = true
             };
             foreach (var ruleUid in ruleUids)
             {
@@ -213,7 +232,8 @@ namespace FWO.Services.Workflow
                     Title = taskTitle + " " + ruleUid,
                     TaskType = WfTaskType.rule_delete.ToString(),
                     RequestAction = RequestAction.delete.ToString(),
-                    Reason = taskReason
+                    Reason = taskReason,
+                    Locked = true
                 };
                 wfHandler.ActReqTask.Elements.Add(new WfReqElement()
                 {
@@ -246,17 +266,36 @@ namespace FWO.Services.Workflow
 
         private async Task<WfImplTask?> FindNewInterfaceImplTask(long ticketId)
         {
+            return (await FindNewInterfaceImplTasks(ticketId, null)).FirstOrDefault();
+        }
+
+        private async Task<List<WfImplTask>> FindNewInterfaceImplTasks(long ticketId, IEnumerable<long>? requestTaskIds)
+        {
             WfTicket? ticket = await wfHandler.ResolveTicket(ticketId);
             if (ticket != null)
             {
-                WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == WfTaskType.new_interface.ToString());
-                if (reqTask != null)
+                HashSet<long>? requestedTaskIds = requestTaskIds?.ToHashSet();
+                List<WfImplTask> implTasks = [];
+                foreach (WfReqTask reqTask in ticket.Tasks.Where(x => x.TaskType == WfTaskType.new_interface.ToString()))
                 {
+                    if (requestedTaskIds != null && !requestedTaskIds.Contains(reqTask.Id))
+                    {
+                        continue;
+                    }
                     wfHandler.SetReqTaskEnv(reqTask);
-                    return reqTask.ImplementationTasks.FirstOrDefault(x => x.ReqTaskId == reqTask.Id);
+                    WfImplTask? implTask = reqTask.ImplementationTasks.FirstOrDefault(x => x.ReqTaskId == reqTask.Id);
+                    if (implTask != null)
+                    {
+                        implTasks.Add(implTask);
+                    }
+                    if (requestedTaskIds == null)
+                    {
+                        break;
+                    }
                 }
+                return implTasks;
             }
-            return null;
+            return [];
         }
 
         private static void LogMessage(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)

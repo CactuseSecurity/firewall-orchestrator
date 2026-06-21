@@ -405,6 +405,28 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="col-sm-4">
+                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5537"))">
+                                    <label class="col-sm-10 col-form-label col-form-label-sm" for="cleanBundleZones">@(userConfig.GetText("clean_zones")):</label>
+                                    <div class="col-sm-2">
+                                        <input id="cleanBundleZones" class="form-check-input mt-2" type="checkbox" @bind="cleanBundleZones" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5537"))">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("policies")):</label>
+                                    <div class="col-sm-8">
+                                        <Dropdown ElementType="CompliancePolicy" @bind-SelectedElement="selectedBundlePolicy"
+                                                ElementToString="@(p => p.Name)" Elements="policies" Nullable="true"
+                                                NoneSelectedText="@(userConfig.GetText("None"))">
+                                            <ElementTemplate Context="policy">
+                                                @policy.Name
+                                            </ElementTemplate>
+                                        </Dropdown>
+                                    </div>
+                                </div>
+                            </div>
                             break;
                         default:
                             break;
@@ -480,6 +502,8 @@ else
     private UiUser? selectedUserGroup;
     private ToBeCalled selectedToBeCalled = ToBeCalled.PolicyCheck;
     private BundleTaskType selectedBundleTaskType = BundleTaskType.TwoOutOfThree;
+    private bool cleanBundleZones;
+    private CompliancePolicy? selectedBundlePolicy;
 
     private bool EditActionMode = false;
     private bool AddActionMode = false;
@@ -563,6 +587,8 @@ else
         selectedPolicies = [];
         selectedToBeCalled = ToBeCalled.PolicyCheck;
         selectedBundleTaskType = BundleTaskType.TwoOutOfThree;
+        cleanBundleZones = false;
+        selectedBundlePolicy = null;
         selectedModIntegrationState = null;
         selectedSuccessState = null;
         selectedErrorState = null;
@@ -630,7 +656,7 @@ else
                 LoadCreateFlowParams(action.ExternalParams);
                 break;
             case nameof(StateActionTypes.BundleTasks):
-                selectedBundleTaskType = BundleTasksActionParams.FromExternalParams(action.ExternalParams).BundleType;
+                LoadBundleTasksParams(action.ExternalParams);
                 break;
             default:
                 break;
@@ -654,6 +680,14 @@ else
         }
 
         toState = parsedToState ?? -1;
+    }
+
+    private void LoadBundleTasksParams(string externalParams)
+    {
+        BundleTasksActionParams bundleParams = BundleTasksActionParams.FromExternalParams(externalParams);
+        selectedBundleTaskType = bundleParams.BundleType;
+        cleanBundleZones = bundleParams.CleanZones;
+        selectedBundlePolicy = policies.FirstOrDefault(policy => policy.Id == bundleParams.PolicyId);
     }
 
     private void LoadEmailParams(string externalParams)
@@ -963,7 +997,12 @@ else
 
     private string BundleTasksExternalParams()
     {
-        return new BundleTasksActionParams { BundleType = selectedBundleTaskType }.ToExternalParams();
+        return new BundleTasksActionParams
+        {
+            BundleType = selectedBundleTaskType,
+            CleanZones = cleanBundleZones,
+            PolicyId = selectedBundlePolicy?.Id
+        }.ToExternalParams();
     }
 
     private async Task<int> UpdateAction(WfStateAction action, string externalParams)

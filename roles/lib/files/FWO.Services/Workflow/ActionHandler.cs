@@ -45,7 +45,16 @@ namespace FWO.Services.Workflow
 
         public async Task Init()
         {
-            states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
+            await Init(await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates));
+        }
+
+        /// <summary>
+        /// Initializes workflow actions from an already loaded state list.
+        /// </summary>
+        public Task Init(List<WfState> preloadedStates)
+        {
+            states = preloadedStates;
+            return Task.CompletedTask;
         }
 
         public List<WfStateAction> GetOfferedActions(WfStatefulObject statefulObject, WfObjectScopes scope, WorkflowPhases phase)
@@ -360,7 +369,8 @@ namespace FWO.Services.Workflow
                 return;
             }
 
-            FlowDbCreator flowDbCreator = new(apiConnection);
+            string timeObjectPrecision = FlowIntegrationConfig.Parse(wfHandler.userConfig.ReqFlowIntegration).TimeObjectPrecision;
+            FlowDbCreator flowDbCreator = new(apiConnection, timeObjectPrecision);
             bool? success = await flowDbCreator.CreateFlowInFlowDb(action, statefulObject, scope, owner, ticketId);
             if (success != null)
             {
@@ -384,7 +394,11 @@ namespace FWO.Services.Workflow
             }
 
             BundleTasksActionParams bundleParams = BundleTasksActionParams.FromExternalParams(action.ExternalParams);
-            Dictionary<long, string> bundleAssignments = new RequestTaskBundler().BuildBundleAssignments(ticket.Tasks, bundleParams.BundleType);
+            List<ComplianceNetworkZone> networkZones = await LoadBundleNetworkZones(bundleParams);
+            RequestTaskBundler bundler = new();
+            LogUnresolvedCleanZoneTasks(action, ticket.Tasks, bundleParams, networkZones, bundler);
+            Dictionary<long, string> bundleAssignments = bundler.BuildBundleAssignments(ticket.Tasks, bundleParams.BundleType,
+                bundleParams.CleanZones, networkZones);
             foreach (WfReqTask reqTask in ticket.Tasks.Where(task => task.Id > 0))
             {
                 string currentBundleId = reqTask.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId);
@@ -401,6 +415,48 @@ namespace FWO.Services.Workflow
                 }
             }
             Log.WriteInfo("Bundle Tasks", $"Bundled {bundleAssignments.Count} request tasks for flow creation.");
+        }
+
+        /// <summary>
+        /// Logs clean-zone bundling candidates whose source or destination IPs do not resolve to configured zones.
+        /// </summary>
+        private static void LogUnresolvedCleanZoneTasks(WfStateAction action, IEnumerable<WfReqTask> requestTasks,
+            BundleTasksActionParams bundleParams, List<ComplianceNetworkZone> networkZones, RequestTaskBundler bundler)
+        {
+            List<long> unresolvedTaskIds = bundler.FindTasksWithUnresolvedCleanZones(requestTasks, bundleParams.CleanZones, networkZones);
+            if (unresolvedTaskIds.Count > 0)
+            {
+                Log.WriteWarning("Bundle Tasks", BuildUnresolvedCleanZoneTasksWarning(action.Name, unresolvedTaskIds));
+            }
+        }
+
+        /// <summary>
+        /// Builds the warning for clean-zone bundling candidates without resolved source or destination zones.
+        /// </summary>
+        private static string BuildUnresolvedCleanZoneTasksWarning(string actionName, IEnumerable<long> unresolvedTaskIds)
+        {
+            return $"Task bundling action '{actionName}' skipped clean-zone bundling for request tasks "
+                + $"{string.Join(", ", unresolvedTaskIds)} because source or destination IPs could not be resolved to configured matrix zones.";
+        }
+
+        private async Task<List<ComplianceNetworkZone>> LoadBundleNetworkZones(BundleTasksActionParams bundleParams)
+        {
+            if (!bundleParams.CleanZones || bundleParams.PolicyId == null || bundleParams.PolicyId <= 0)
+            {
+                return [];
+            }
+
+            CompliancePolicy? policy = await apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = bundleParams.PolicyId.Value });
+            int? matrixId = policy?.Criteria
+                .FirstOrDefault(criterion => criterion.Content.CriterionType == CriterionType.Matrix.ToString())
+                ?.Content.Id;
+            if (matrixId == null || matrixId <= 0)
+            {
+                Log.WriteWarning("Bundle Tasks", $"Clean-zone bundling policy {bundleParams.PolicyId.Value} has no matrix criterion.");
+                return [];
+            }
+
+            return await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId.Value }) ?? [];
         }
 
         private WfTicket? GetTicketForBundling(WfStatefulObject statefulObject, WfObjectScopes scope)

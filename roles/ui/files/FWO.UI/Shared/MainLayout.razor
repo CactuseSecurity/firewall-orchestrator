@@ -498,78 +498,85 @@
 
     private void DisplayMessageInUi(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
     {
-        int severity = 0;
-        string cause = "";
-        string description = "";
-        MessageType messageType = MessageType.Info;
-
-        if (exception == null)
+        try
         {
-            cause = title;
-            description = message;
-            if (ErrorFlag)
-            {
-                // User message to be displayed as error
-                Log.WriteWarning(title, message);
-                messageType = MessageType.Warning;
-                severity = 1;
-            }
-            else
-            {
-                // User message is no error
-                messageType = MessageType.Success;
-            }
-        }
-        else
-        {
-            messageType = MessageType.Error;
+            int severity = 0;
+            string cause = "";
+            string description = "";
+            MessageType messageType = MessageType.Info;
 
-            // first some recurring specific messages
-            if (exception.Message.Contains("JWTExpired"))
+            if (exception == null)
             {
-                Log.WriteError("Auth Token Error", "JWT expired in session.", exception);
-                if (!showReloginDialog)
+                cause = title;
+                description = message;
+                if (ErrorFlag)
                 {
-                    ShowReloginDialog(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), reloginAbortable: false);
-                }
-                return;
-            }
-            else if (exception.Message == "no such type exists in the schema: 'cidr'")
-            {
-                // this is the default error message when user's access rights are not sufficient for API access
-                severity = 2;
-                cause = userConfig.GetText("api_access");
-                description = userConfig.GetText("E0004");
-            }
-            else
-            {
-                string role = "";
-                if (apiConnection is GraphQlApiConnection)
-                {
-                    role = ((GraphQlApiConnection)apiConnection).GetActRole();
+                    // User message to be displayed as error
+                    Log.WriteWarning(title, message);
+                    messageType = MessageType.Warning;
+                    severity = 1;
                 }
                 else
                 {
-                    try
-                    {
-                        JwtReader jwtReader = new(userConfig.User.Jwt);
-                        Task.Run(async () => await jwtReader.Validate());
-                        role = jwtReader.GetRole();
-                    }
-                    catch (Exception) { }
+                    // User message is no error
+                    messageType = MessageType.Success;
                 }
-
-                Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception, userConfig.User.Name, role);
-
-                severity = 2;
-                cause = (title != "" ? title : userConfig.GetText("unspecified_error"));
-                description = $"{(message != "" ? message : userConfig.GetText("E0001"))}" + (ErrorFlag ? $": {exception.Message}" : "") + " . " + userConfig.GetText("E0002");
             }
+            else
+            {
+                messageType = MessageType.Error;
+
+                // first some recurring specific messages
+                if (exception.Message.Contains("JWTExpired"))
+                {
+                    Log.WriteError("Auth Token Error", "JWT expired in session.", exception);
+                    if (!showReloginDialog)
+                    {
+                        ShowReloginDialog(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), reloginAbortable: false);
+                    }
+                    return;
+                }
+                else if (exception.Message == "no such type exists in the schema: 'cidr'")
+                {
+                    // this is the default error message when user's access rights are not sufficient for API access
+                    severity = 2;
+                    cause = userConfig.GetText("api_access");
+                    description = userConfig.GetText("E0004");
+                }
+                else
+                {
+                    string role = "";
+                    if (apiConnection is GraphQlApiConnection)
+                    {
+                        role = ((GraphQlApiConnection)apiConnection).GetActRole();
+                    }
+                    else
+                    {
+                        try
+                        {
+                            JwtReader jwtReader = new(userConfig.User.Jwt);
+                            Task.Run(async () => await jwtReader.Validate());
+                            role = jwtReader.GetRole();
+                        }
+                        catch (Exception) { }
+                    }
+
+                    Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception, userConfig.User.Name, role);
+
+                    severity = 2;
+                    cause = (title != "" ? title : userConfig.GetText("unspecified_error"));
+                    description = $"{(message != "" ? message : userConfig.GetText("E0001"))}" + (ErrorFlag ? $": {exception.Message}" : "") + " . " + userConfig.GetText("E0002");
+                }
+            }
+
+            ShowMessage(cause, description, messageType);
+
+            Task.Run(async () => await AddUiLogEntry(severity, cause, description));
         }
-
-        ShowMessage(cause, description, messageType);
-
-        Task.Run(async () => await AddUiLogEntry(severity, cause, description));
+        catch (Exception displayException)
+        {
+            Log.WriteError("Display UI Message", "Could not display UI message.", displayException);
+        }
     }
 
     public async Task AddUiLogEntry(int severity, string cause, string description)

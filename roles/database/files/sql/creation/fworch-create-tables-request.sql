@@ -35,7 +35,8 @@ create table request.reqtask
 	devices varchar,
 	additional_info varchar,
 	mgm_id int,
-	flow_access_id bigint
+	flow_access_id bigint,
+	locked boolean NOT NULL DEFAULT FALSE
 );
 
 create table request.reqelement 
@@ -98,7 +99,8 @@ create table request.ticket
 	external_ticket_id varchar,
 	external_ticket_source int,
 	ticket_deadline Timestamp,
-	ticket_priority int
+	ticket_priority int,
+	locked boolean NOT NULL DEFAULT FALSE
 );
 
 create table request.comment 

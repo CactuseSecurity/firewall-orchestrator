@@ -221,9 +221,9 @@ ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_request_ticket_foreig
 ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_request_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_stm_action_foreign_key FOREIGN KEY (rule_action) REFERENCES stm_action(action_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_stm_track_foreign_key FOREIGN KEY (rule_tracking) REFERENCES stm_track(track_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_service_foreign_key FOREIGN KEY (svc_grp_id) REFERENCES service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_object_foreign_key FOREIGN KEY (nw_obj_grp_id) REFERENCES object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_usergrp_foreign_key FOREIGN KEY (user_grp_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_service_foreign_key FOREIGN KEY (svc_grp_id) REFERENCES firewall.nw_service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_object_foreign_key FOREIGN KEY (nw_obj_grp_id) REFERENCES firewall.nw_object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_usergrp_foreign_key FOREIGN KEY (user_grp_id) REFERENCES firewall.nw_user(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_current_handler_foreign_key FOREIGN KEY (current_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_recent_handler_foreign_key FOREIGN KEY (recent_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_management_foreign_key FOREIGN KEY (mgm_id) REFERENCES management(mgm_id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -231,10 +231,10 @@ ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_flow_access_foreign_k
 --- request.reqelement ---
 ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_request_reqtask_foreign_key FOREIGN KEY (task_id) REFERENCES request.reqtask(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_proto_foreign_key FOREIGN KEY (ip_proto_id) REFERENCES stm_ip_proto(ip_proto_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_service_foreign_key FOREIGN KEY (service_id) REFERENCES service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_object_foreign_key FOREIGN KEY (network_object_id) REFERENCES object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_service_foreign_key FOREIGN KEY (service_id) REFERENCES firewall.nw_service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_object_foreign_key FOREIGN KEY (network_object_id) REFERENCES firewall.nw_object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_request_reqelement_foreign_key FOREIGN KEY (original_nat_id) REFERENCES request.reqelement(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_usr_foreign_key FOREIGN KEY (user_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_usr_foreign_key FOREIGN KEY (user_id) REFERENCES firewall.nw_user(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_device_foreign_key FOREIGN KEY (device_id) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_flow_nwobject_foreign_key FOREIGN KEY (flow_nwobj_id) REFERENCES flow.nwobject(nwobj_id) ON UPDATE RESTRICT ON DELETE SET NULL;
 ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_flow_nwgroup_foreign_key FOREIGN KEY (flow_nwgrp_id) REFERENCES flow.nwgroup(nwgrp_id) ON UPDATE RESTRICT ON DELETE SET NULL;
@@ -291,20 +291,20 @@ ALTER TABLE request.state_action ADD CONSTRAINT request_state_action_action_fore
 ALTER TABLE request.ext_state ADD CONSTRAINT request_ext_state_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- request.implelement ---
 ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_request_implelement_foreign_key FOREIGN KEY (original_nat_id) REFERENCES request.implelement(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_service_foreign_key FOREIGN KEY (service_id) REFERENCES service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_object_foreign_key FOREIGN KEY (network_object_id) REFERENCES object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_service_foreign_key FOREIGN KEY (service_id) REFERENCES firewall.nw_service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_object_foreign_key FOREIGN KEY (network_object_id) REFERENCES firewall.nw_object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_proto_foreign_key FOREIGN KEY (ip_proto_id) REFERENCES stm_ip_proto(ip_proto_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_request_impltask_foreign_key FOREIGN KEY (implementation_task_id) REFERENCES request.impltask(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_usr_foreign_key FOREIGN KEY (user_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_usr_foreign_key FOREIGN KEY (user_id) REFERENCES firewall.nw_user(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- request.impltask
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_request_reqtask_foreign_key FOREIGN KEY (reqtask_id) REFERENCES request.reqtask(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_request_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_device_foreign_key FOREIGN KEY (device_id) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_stm_action_foreign_key FOREIGN KEY (rule_action) REFERENCES stm_action(action_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_stm_tracking_foreign_key FOREIGN KEY (rule_tracking) REFERENCES stm_track(track_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_service_foreign_key FOREIGN KEY (svc_grp_id) REFERENCES service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_object_foreign_key FOREIGN KEY (nw_obj_grp_id) REFERENCES object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_usergrp_foreign_key FOREIGN KEY (user_grp_id) REFERENCES usr(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_service_foreign_key FOREIGN KEY (svc_grp_id) REFERENCES firewall.nw_service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_object_foreign_key FOREIGN KEY (nw_obj_grp_id) REFERENCES firewall.nw_object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_usergrp_foreign_key FOREIGN KEY (user_grp_id) REFERENCES firewall.nw_user(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_current_handler_foreign_key FOREIGN KEY (current_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_recent_handler_foreign_key FOREIGN KEY (recent_handler) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 

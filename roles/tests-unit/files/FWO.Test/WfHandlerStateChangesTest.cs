@@ -1,5 +1,8 @@
-using FWO.Basics;
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Services;
 using FWO.Services.Workflow;
 using NUnit.Framework;
 using System.Reflection;
@@ -14,6 +17,14 @@ namespace FWO.Test
             FieldInfo? field = typeof(WfHandler).GetField("stateMatrixDict", BindingFlags.NonPublic | BindingFlags.Instance);
             StateMatrixDict dict = (StateMatrixDict)(field?.GetValue(handler) ?? new StateMatrixDict());
             dict.Matrices[taskType] = matrix;
+        }
+
+        private static void SetDbAccess(WfHandler handler, ApiConnection apiConnection)
+        {
+            ActionHandler actionHandler = new(apiConnection, handler);
+            actionHandler.Init([]).GetAwaiter().GetResult();
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, handler.userConfig, apiConnection, actionHandler, true);
+            typeof(WfHandler).GetField("dbAcc", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(handler, dbAccess);
         }
 
         [Test]
@@ -581,6 +592,45 @@ namespace FWO.Test
             await (Task)(method?.Invoke(handler, [true]) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.That(handler.ActTicket.StateId, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task ChangeTicketStateForMonitoring_LocalOnly_DoesNotTriggerActions()
+        {
+            WfHandler handler = new();
+            SetDbAccess(handler, new MonitoringStateChangeApiConn());
+            handler.MasterStateMatrix = new StateMatrix
+            {
+                LowestInputState = 0,
+                LowestStartedState = 2,
+                LowestEndState = 5,
+                MinTicketCompleted = 99,
+                PhaseActive = new() { { WorkflowPhases.planning, false } }
+            };
+            WfTicket ticket = new() { Id = 1, StateId = 1 };
+            ticket.ResetStateChanged();
+
+            await handler.ChangeTicketStateForMonitoring(ticket, 2, MonitoringStateChangeMode.LocalOnly);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ticket.StateId, Is.EqualTo(2));
+                Assert.That(ticket.StateChanged(), Is.True);
+            });
+        }
+
+        private sealed class MonitoringStateChangeApiConn : SimulatedApiConnection
+        {
+            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (query == RequestQueries.updateTicketState)
+                {
+                    long id = Convert.ToInt64(variables?.GetType().GetProperty("id")?.GetValue(variables));
+                    return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = id });
+                }
+
+                throw new AssertionException($"Unexpected query: {query}");
+            }
         }
     }
 }

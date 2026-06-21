@@ -320,6 +320,7 @@ else
         selectedAutoCreateReqTask = reqTask;
         autoCreateImplTasksConfirmMessage = $"{userConfig.GetText("auto_create_impltasks")} {reqTask.Title}?";
         confirmAutoCreateImplTasks = true;
+        StateHasChanged();
         return Task.CompletedTask;
     }
 
@@ -406,5 +407,6 @@ else
         selectedImplTask = null;
         selectedApproval = null;
         selectedScope = WfObjectScopes.None;
+        StateHasChanged();
     }
 }

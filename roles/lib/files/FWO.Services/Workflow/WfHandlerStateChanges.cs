@@ -274,7 +274,7 @@ namespace FWO.Services.Workflow
             if (dbAcc != null)
             {
                 AuditUnexpectedStateTransition(ActTicket, WfObjectScopes.Ticket, MasterStateMatrix);
-                await dbAcc.UpdateTicketStateInDb(ActTicket);
+                await dbAcc.UpdateTicketStateInDb(ActTicket, triggerActions);
             }
             int idx = TicketList.FindIndex(x => x.Id == ActTicket.Id);
             if (idx >= 0)
@@ -308,22 +308,12 @@ namespace FWO.Services.Workflow
             await UpdateActTicketState(triggerActions);
         }
 
-        private async Task UpdateActTicketStateFromImplTasks()
-        {
-            List<WfReqTask> tasks = [.. ActTicket.Tasks];
-            foreach (WfReqTask reqTask in tasks)
-            {
-                await UpdateReqTaskStateFromImplTasks(reqTask);
-            }
-            await UpdateActTicketStateFromReqTasks();
-        }
-
         public async Task UpdateActReqTaskState(bool triggerActions = true)
         {
             if (dbAcc != null)
             {
                 AuditUnexpectedStateTransition(ActReqTask, WfObjectScopes.RequestTask, ActStateMatrix);
-                await dbAcc.UpdateReqTaskStateInDb(ActReqTask);
+                await dbAcc.UpdateReqTaskStateInDb(ActReqTask, triggerActions);
             }
             SyncActTicketFromReqTask(ActReqTask);
         }
@@ -371,11 +361,11 @@ namespace FWO.Services.Workflow
             if (dbAcc != null)
             {
                 AuditUnexpectedStateTransition(reqTask, WfObjectScopes.RequestTask, reqTaskMatrix);
-                await dbAcc.UpdateReqTaskStateInDb(reqTask);
+                await dbAcc.UpdateReqTaskStateInDb(reqTask, triggerActions);
                 foreach (WfApproval approval in approvalsToUpdate)
                 {
                     AuditUnexpectedStateTransition(approval, WfObjectScopes.Approval, reqTaskMatrix);
-                    await dbAcc.UpdateApprovalInDb(approval);
+                    await dbAcc.UpdateApprovalInDb(approval, triggerActions);
                 }
             }
         }
@@ -394,7 +384,7 @@ namespace FWO.Services.Workflow
             if (dbAcc != null)
             {
                 AuditUnexpectedStateTransition(reqTask, WfObjectScopes.RequestTask, stateMatrixDict.Matrices[reqTask.TaskType]);
-                await dbAcc.UpdateReqTaskStateInDb(reqTask);
+                await dbAcc.UpdateReqTaskStateInDb(reqTask, triggerActions);
             }
             SyncActTicketFromReqTask(reqTask);
         }
@@ -415,7 +405,7 @@ namespace FWO.Services.Workflow
                 if (dbAcc != null)
                 {
                     AuditUnexpectedStateTransition(bundledTask, WfObjectScopes.RequestTask, stateMatrixDict.Matrices[bundledTask.TaskType]);
-                    await dbAcc.UpdateReqTaskStateInDb(bundledTask);
+                    await dbAcc.UpdateReqTaskStateInDb(bundledTask, triggerActions);
                 }
                 SyncActTicketFromReqTask(bundledTask);
             }
@@ -439,7 +429,7 @@ namespace FWO.Services.Workflow
             if (dbAcc != null)
             {
                 AuditUnexpectedStateTransition(ActImplTask, WfObjectScopes.ImplementationTask, ActStateMatrix);
-                await dbAcc.UpdateImplTaskStateInDb(ActImplTask);
+                await dbAcc.UpdateImplTaskStateInDb(ActImplTask, triggerActions);
             }
             int index = ActReqTask.ImplementationTasks.FindIndex(x => x.Id == ActImplTask.Id);
             if (index >= 0)

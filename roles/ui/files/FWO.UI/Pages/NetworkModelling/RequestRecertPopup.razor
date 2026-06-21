@@ -119,11 +119,15 @@
                         }
                         else
                         {
-                            <button type="button" class="btn btn-sm btn-success" disabled>@(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))</button>
+                            <div data-toggle="tooltip" title="@(userConfig.PureLine("C9032"))">
+                                <button type="button" class="btn btn-sm btn-success" disabled>@(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))</button>
+                            </div>
                         }
                     </Authorized>
                     <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-success" disabled>@(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))</button>
+                        <div data-toggle="tooltip" title="@(userConfig.PureLine("C9031"))">
+                            <button type="button" class="btn btn-sm btn-success" disabled>@(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))</button>
+                        </div>
                     </NotAuthorized>
                 </ExecutionModeAuthorizeView>
             }

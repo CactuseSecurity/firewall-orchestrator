@@ -84,7 +84,7 @@
                             }
                             else
                             {
-                                <div data-toggle="tooltip" title="@(userConfig.PureLine("C9012"))">
+                                <div data-toggle="tooltip" title="@GetRecertificationDisabledTooltip()">
                                     <button type="button" class="btn btn-sm btn-success" disabled>
                                         @(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))
                                     </button>
@@ -476,6 +476,11 @@ else
     private bool HasRecertWriteAccess()
     {
         return userConfig.CanUseAnyRole(Roles.Admin, Roles.Recertifier);
+    }
+
+    private string GetRecertificationDisabledTooltip()
+    {
+        return userConfig.PureLine(HasRecertWriteAccess() ? "C9032" : "C9031");
     }
 
     private bool IsModellingWriteAllowedForSelectedApp()

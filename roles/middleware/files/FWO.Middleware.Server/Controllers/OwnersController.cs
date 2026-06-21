@@ -74,7 +74,7 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
                 OwnerQueries.getOwnersFiltered,
                 BuildQueryVariables(effectiveRequest, User)) ?? [];
 
-            return Ok(owners.Select(owner => ToResponse(owner, effectiveRequest.ShowDetails)).ToList());
+            return Ok(owners.Select(owner => ToResponse(owner, effectiveRequest.ShowDetails == true)).ToList());
         }
         catch (Exception exception)
         {

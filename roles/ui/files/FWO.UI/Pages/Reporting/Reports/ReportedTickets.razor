@@ -73,7 +73,7 @@
                         <Column TableItem="WfReqTask" Title="@(userConfig.GetText("name"))" Field="@(x => x.Title)" Sortable="false" Filterable="false" />
                         <Column TableItem="WfReqTask" Title="@(userConfig.GetText("flow_bundle_id"))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
                             <Template Context="task">
-                                @(task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId))
+                                @(GetFlowBundleId(task))
                             </Template>
                         </Column>
                         <Column TableItem="WfReqTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="false" Filterable="false">
@@ -217,6 +217,11 @@
     private string ResolveStateName(int stateId)
     {
         return StateNames.TryGetValue(stateId, out string? stateName) ? stateName : stateId.ToString();
+    }
+
+    private string GetFlowBundleId(WfReqTask task)
+    {
+        return task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId);
     }
 
     private bool HasLabelColumn()

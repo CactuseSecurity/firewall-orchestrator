@@ -171,6 +171,12 @@ namespace FWO.Data.Workflow
         [JsonPropertyName("bundle_type")]
         public BundleTaskType BundleType { get; set; } = BundleTaskType.TwoOutOfThree;
 
+        [JsonPropertyName("clean_zones")]
+        public bool CleanZones { get; set; }
+
+        [JsonPropertyName("policy_id")]
+        public int? PolicyId { get; set; }
+
         private static readonly System.Text.Json.JsonSerializerOptions SerializerOptions = new()
         {
             Converters = { new JsonStringEnumConverter() }

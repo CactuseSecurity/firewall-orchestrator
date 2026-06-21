@@ -1,7 +1,6 @@
--- remove deprecated, unused rule.rule_num column (ordering is handled by rule_num_numeric)
--- the rule_api view and get_rulebase_for_owner function depend on rule_num and are
--- recreated (without rule_num) afterwards by the idempotent fworch-api-funcs.sql script.
-DROP FUNCTION IF EXISTS public.get_rulebase_for_owner(rulebase, integer);
-DROP VIEW IF EXISTS public.rule_api CASCADE;
+ALTER TABLE request.ticket ADD COLUMN IF NOT EXISTS locked boolean NOT NULL DEFAULT FALSE;
+ALTER TABLE request.reqtask ADD COLUMN IF NOT EXISTS locked boolean NOT NULL DEFAULT FALSE;
 
-ALTER TABLE rule DROP COLUMN IF EXISTS rule_num;
+insert into config (config_key, config_value, config_user) VALUES ('reqFlowIntegration', '{"select_objects":"Both","select_services":"Both","select_time_objects":"Both","time_object_precision":"seconds"}', 0) ON CONFLICT DO NOTHING;
+delete from config where config_key = 'reqAllowObjectSearch';
+insert into config (config_key, config_value, config_user) VALUES ('reqConsiderBundling', 'False', 0) ON CONFLICT DO NOTHING;

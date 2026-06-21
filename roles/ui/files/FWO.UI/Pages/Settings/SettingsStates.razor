@@ -108,13 +108,13 @@
             <div class="btn-group">
                 <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                     <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="SaveState">@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="SaveState">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                     </NotAuthorized> 
                 </ExecutionModeAuthorizeView>
-                <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
             </div>
         </Footer>
     </PopUp>
@@ -140,18 +140,18 @@
                     <Authorized>
                         @if(selectedAction != null)
                         {
-                            <button type="button" class="btn btn-sm btn-primary" @onclick="AddActionToState">@(userConfig.GetText("add"))</button>
+                            <button type="button" class="btn btn-sm btn-primary" @onclick="AddActionToState">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                         }
                         else
                         {
-                            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("add"))</button>
+                            <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                         }
                     </Authorized>
                     <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("add"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                     </NotAuthorized> 
                 </ExecutionModeAuthorizeView>
-                <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelSelect">@(userConfig.GetText("cancel"))</button>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelSelect">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
             </div>
         </Footer>
     </PopUp>

@@ -9,11 +9,26 @@ namespace FWO.Services.Workflow
             return
             [
                 .. payloads
-                    .GroupBy(payload => new { payload.BundleId, ManagementId = payload.ManagementId ?? 0 })
+                    .GroupBy(BuildMergeKey)
                     .SelectMany(group => string.IsNullOrWhiteSpace(group.Key.BundleId)
                         ? group.Select(payload => new FlowCreationPayload(payload))
                         : [MergeGroup(group)])
             ];
+        }
+
+        private static FlowPayloadMergeKey BuildMergeKey(FlowCreationPayload payload)
+        {
+            return new FlowPayloadMergeKey(
+                payload.BundleId,
+                payload.TicketId,
+                payload.OwnerId,
+                payload.TaskType,
+                payload.TaskAction,
+                payload.RuleActionId,
+                payload.ManagementId ?? 0,
+                payload.GroupName,
+                payload.TimeStart,
+                payload.TimeEnd);
         }
 
         private static FlowCreationPayload MergeGroup(IEnumerable<FlowCreationPayload> payloads)
@@ -53,5 +68,8 @@ namespace FWO.Services.Workflow
         {
             return payload.OriginRequestTaskIds.Count > 0 ? payload.OriginRequestTaskIds.Min() : long.MaxValue;
         }
+
+        private sealed record FlowPayloadMergeKey(string BundleId, long? TicketId, int? OwnerId, string TaskType, string TaskAction, int? RuleActionId,
+            int ManagementId, string GroupName, DateTime? TimeStart, DateTime? TimeEnd);
     }
 }

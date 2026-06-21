@@ -144,7 +144,8 @@ namespace FWO.Test
                 [
                     new FwoOwner { Id = 1, Name = "Application", ExtAppId = "APP-0001" },
                     new FwoOwner { Id = 2, Name = "Network", ExtAppId = "COM-0002" },
-                    new FwoOwner { Id = 3, Name = "Empty" }
+                    new FwoOwner { Id = 3, Name = "Empty" },
+                    new FwoOwner { Id = 4, Name = "ContainsApp", ExtAppId = "MAPP-0004" }
                 ]
             };
             OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Auditor));
@@ -153,7 +154,9 @@ namespace FWO.Test
 
             OkObjectResult okResult = (OkObjectResult)result.Result!;
             List<GetOwnerResponse> owners = (List<GetOwnerResponse>)okResult.Value!;
-            Assert.That(owners.Select(owner => owner.Type), Is.EqualTo(new[] { "standard", "infrastructure", "infrastructure" }));
+            // owner type is derived from the external-app-id prefix (APP = standard), not a substring,
+            // so "MAPP-0004" must not be classified as standard
+            Assert.That(owners.Select(owner => owner.Type), Is.EqualTo(new[] { "standard", "infrastructure", "infrastructure", "infrastructure" }));
         }
 
         [Test]

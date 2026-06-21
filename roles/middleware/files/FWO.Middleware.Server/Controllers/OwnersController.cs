@@ -220,7 +220,9 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
 
     private static bool IsStandardOwner(string? appIdExternal)
     {
-        return appIdExternal?.Contains("app", StringComparison.OrdinalIgnoreCase) == true;
+        // Application owners use the "APP" external-app-id prefix, infrastructure/common owners use "COM"
+        // (matching the modelling naming convention in ModellingManagedIdString).
+        return appIdExternal?.StartsWith("APP", StringComparison.OrdinalIgnoreCase) == true;
     }
 
     private static string BuildLikePattern(string value)

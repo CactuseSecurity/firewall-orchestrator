@@ -201,6 +201,34 @@ namespace FWO.Test
         }
 
         [Test]
+        public void FromRequestTasksBuildsProtocolNamesFromSuppliedProtocolMap()
+        {
+            WfReqTask task = new()
+            {
+                Id = 7,
+                TaskNumber = 101,
+                Title = "Open web",
+                RequestAction = RequestAction.create.ToString(),
+                Elements =
+                {
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), Name = "src-a" },
+                    new WfReqElement { Field = ElemFieldType.destination.ToString(), IpString = "10.0.0.1" },
+                    new WfReqElement { Field = ElemFieldType.service.ToString(), Name = "1000/TCP", Port = 1000, ProtoId = 6 },
+                    new WfReqElement { Field = ElemFieldType.service.ToString(), Port = 4000, PortEnd = 5000, ProtoId = 17 }
+                }
+            };
+
+            Dictionary<int, string> protocolNamesById = new()
+            {
+                { 6, "TCP" },
+                { 17, "UDP" }
+            };
+            WorkflowEmailContent content = WorkflowEmailContent.FromRequestTasks([task], new EmailNotificationUserConfig(), protocolNamesById);
+
+            Assert.That(content.PlainText, Does.Contain("1000/TCP, 4000-5000/UDP"));
+        }
+
+        [Test]
         public void FromRequestTasksBuildsSeparateGroupSectionWithMembers()
         {
             WfReqTask accessTask = new()

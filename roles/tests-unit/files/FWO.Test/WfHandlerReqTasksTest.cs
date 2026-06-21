@@ -301,6 +301,18 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AddReqTask_LockedTicketDoesNotAddTask()
+        {
+            WfHandler handler = new();
+            handler.ActTicket = new WfTicket { Id = 7, Locked = true };
+            handler.ActReqTask = new WfReqTask { TaskNumber = 1, TaskType = WfTaskType.access.ToString() };
+
+            await handler.AddReqTask();
+
+            Assert.That(handler.ActTicket.Tasks, Is.Empty);
+        }
+
+        [Test]
         public async Task ChangeReqTask_ReplacesTaskByTaskNumber()
         {
             WfHandler handler = new();
@@ -319,6 +331,19 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ChangeReqTask_LockedTaskDoesNotReplaceTask()
+        {
+            WfHandler handler = new();
+            WfReqTask oldTask = new() { Id = 11, TaskNumber = 2, Title = "Old" };
+            handler.ActTicket = new WfTicket { Tasks = { oldTask } };
+            handler.ActReqTask = new WfReqTask { Id = 11, TaskNumber = 2, Title = "New", Locked = true };
+
+            await handler.ChangeReqTask();
+
+            Assert.That(handler.ActTicket.Tasks[0], Is.SameAs(oldTask));
+        }
+
+        [Test]
         public async Task ChangeOwner_ReplacesTaskByTaskNumber()
         {
             WfHandler handler = new();
@@ -334,6 +359,25 @@ namespace FWO.Test
                 Assert.That(handler.ActTicket.Tasks[0], Is.SameAs(handler.ActReqTask));
                 Assert.That(handler.ActTicket.Tasks[0].Owners[0].Owner.Id, Is.EqualTo(2));
             });
+        }
+
+        [Test]
+        public async Task ChangeOwner_LockedTaskDoesNotReplaceTask()
+        {
+            WfHandler handler = new();
+            WfReqTask oldTask = new() { Id = 11, TaskNumber = 2, Owners = [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 1 } }] };
+            handler.ActTicket = new WfTicket { Tasks = { oldTask } };
+            handler.ActReqTask = new WfReqTask
+            {
+                Id = 11,
+                TaskNumber = 2,
+                Locked = true,
+                Owners = [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 2 } }]
+            };
+
+            await handler.ChangeOwner();
+
+            Assert.That(handler.ActTicket.Tasks[0], Is.SameAs(oldTask));
         }
 
         [Test]
@@ -480,6 +524,24 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(handler.ActTicket.Tasks.Select(task => task.Id), Is.EqualTo(new long[] { 12 }));
+                Assert.That(handler.DisplayDeleteReqTaskMode, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task ConfDeleteReqTask_LockedTicketKeepsTaskAndClearsFlag()
+        {
+            WfHandler handler = new();
+            WfReqTask reqTask = new() { Id = 11 };
+            handler.ActTicket = new WfTicket { Locked = true, Tasks = { reqTask } };
+            handler.ActReqTask = reqTask;
+            handler.DisplayDeleteReqTaskMode = true;
+
+            await handler.ConfDeleteReqTask();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActTicket.Tasks, Has.Count.EqualTo(1));
                 Assert.That(handler.DisplayDeleteReqTaskMode, Is.False);
             });
         }

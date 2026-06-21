@@ -1,0 +1,94 @@
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("flow_integration"))" Show="@Display" Size=PopupSize.Small OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <form>
+                <div class="form-group row mt-2">
+                    <label class="col-form-label col-sm-4">@(userConfig.GetText("select_objects")):</label>
+                    <div class="col-sm-8">
+                        <Dropdown ElementType="string" @bind-SelectedElement="actConfig.SelectObjects" ElementToString="@(option => userConfig.GetText(option))" Elements="FlowIntegrationObjectSelectionOptions.All">
+                            <ElementTemplate Context="option">
+                                @(userConfig.GetText(option))
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-form-label col-sm-4">@(userConfig.GetText("select_services")):</label>
+                    <div class="col-sm-8">
+                        <Dropdown ElementType="string" @bind-SelectedElement="actConfig.SelectServices" ElementToString="@(option => userConfig.GetText(option))" Elements="FlowIntegrationObjectSelectionOptions.All">
+                            <ElementTemplate Context="option">
+                                @(userConfig.GetText(option))
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-form-label col-sm-4">@(userConfig.GetText("select_time_objects")):</label>
+                    <div class="col-sm-8">
+                        <Dropdown ElementType="string" @bind-SelectedElement="actConfig.SelectTimeObjects" ElementToString="@(option => userConfig.GetText(option))" Elements="FlowIntegrationObjectSelectionOptions.All">
+                            <ElementTemplate Context="option">
+                                @(userConfig.GetText(option))
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-form-label col-sm-4">@(userConfig.GetText("time_object_precision")):</label>
+                    <div class="col-sm-8">
+                        <Dropdown ElementType="string" @bind-SelectedElement="actConfig.TimeObjectPrecision" ElementToString="@(option => userConfig.GetText(option))" Elements="FlowIntegrationTimePrecisionOptions.All">
+                            <ElementTemplate Context="option">
+                                @(userConfig.GetText(option))
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Confirm">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public string ConfigValue { get; set; } = "";
+
+    [Parameter]
+    public EventCallback<string> ConfigValueChanged { get; set; }
+
+    private FlowIntegrationConfig actConfig = new();
+
+    protected override void OnParametersSet()
+    {
+        if (Display)
+        {
+            actConfig = FlowIntegrationConfig.Parse(ConfigValue);
+        }
+    }
+
+    private async Task Confirm()
+    {
+        await ConfigValueChanged.InvokeAsync(actConfig.ToConfigValue());
+        Close();
+    }
+
+    private void Close()
+    {
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

@@ -17,6 +17,7 @@ fragment ticketOverview on request_ticket {
   external_ticket_source
   ticket_deadline
   ticket_priority
+  locked
   reqtasks: reqtasks {
     ...reqTaskOverview
   }

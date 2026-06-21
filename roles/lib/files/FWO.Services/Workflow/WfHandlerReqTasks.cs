@@ -242,6 +242,11 @@ namespace FWO.Services.Workflow
 
         public async Task AddReqTask()
         {
+            if (ActTicket.Locked)
+            {
+                return;
+            }
+
             if (ActTicket.Id > 0) // ticket already created -> write directly to db
             {
                 ActReqTask.TicketId = ActTicket.Id;
@@ -255,6 +260,11 @@ namespace FWO.Services.Workflow
 
         public async Task ChangeReqTask()
         {
+            if (ActReqTask.Locked)
+            {
+                return;
+            }
+
             if (ActReqTask.Id > 0 && dbAcc != null)
             {
                 await dbAcc.UpdateReqTaskInDb(ActReqTask);
@@ -264,6 +274,11 @@ namespace FWO.Services.Workflow
 
         public async Task ChangeOwner()
         {
+            if (ActReqTask.Locked)
+            {
+                return;
+            }
+
             if (ActReqTask.Id > 0 && dbAcc != null)
             {
                 await dbAcc.UpdateOwnersInDb(ActReqTask);
@@ -273,6 +288,12 @@ namespace FWO.Services.Workflow
 
         public async Task ConfDeleteReqTask()
         {
+            if (ActTicket.Locked)
+            {
+                DisplayDeleteReqTaskMode = false;
+                return;
+            }
+
             if (ActReqTask.Id > 0 && dbAcc != null)
             {
                 await dbAcc.DeleteReqTaskFromDb(ActReqTask);

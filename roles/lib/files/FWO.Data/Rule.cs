@@ -246,7 +246,7 @@ namespace FWO.Data
 
         public bool IsDropRule()
         {
-            return Action == RuleActions.Drop || Action == RuleActions.Reject || Action == RuleActions.Deny;
+            return RuleActions.IsDropAction(Action);
         }
 
         /// <summary>

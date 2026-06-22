@@ -2,6 +2,7 @@ from typing import Any, cast
 
 import pytest
 from fw_modules.opnsense25ff.opnsense_constants import PREDEFINED_RULE_UID_PREFIX
+from fw_modules.opnsense25ff.opnsense_model import FilterRuleIPProtoEnum
 from fw_modules.opnsense25ff.opnsense_parser import parse_opnsense_config
 from fwo_exceptions import FwoImporterError
 
@@ -270,3 +271,29 @@ def test_parse_opnsense_config_reads_mvc_filter_rules() -> None:
     assert mvc_rules[0].dest_port == ["https"]
     assert mvc_rules[1].dest_address == ["Any"]
     assert mvc_rules[1].dest_network == []
+    # "0" negation strings from MVC rules must not be treated as truthy
+    assert all(not rule.source_neg for rule in mvc_rules)
+    assert all(not rule.dest_neg for rule in mvc_rules)
+    assert all(not rule.interface_neg for rule in mvc_rules)
+
+
+def test_parse_opnsense_config_honors_mvc_negation_flags() -> None:
+    native_config = _native_config_with_mvc_filter_rules()
+    opnsense = cast("dict[str, Any]", native_config["opnsense"])
+    https_rule = cast(
+        "dict[str, Any]",
+        opnsense["OPNsense"]["Firewall"]["Filter"]["rules"]["rule"][1],
+    )
+    https_rule["source_not"] = "1"
+    https_rule["destination_not"] = "1"
+    https_rule["interfacenot"] = "1"
+    https_rule["ipprotocol"] = "inet6"
+
+    config = parse_opnsense_config(native_config)
+
+    negated_rule = next(rule for rule in config.access_rules if rule.uuid == "mvc-https")
+    assert negated_rule.source_neg
+    assert negated_rule.dest_neg
+    assert negated_rule.interface_neg
+    # the IP protocol of MVC rules must survive normalization (not silently default to IPv4)
+    assert negated_rule.ipprotocol == FilterRuleIPProtoEnum.INET6

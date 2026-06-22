@@ -224,10 +224,8 @@ class OPNsenseAccessRule(BaseModel):
     @field_validator("source_neg", "dest_neg", "interface_neg", "logging", mode="before")
     @classmethod
     def normalize_negate(cls, value: Any) -> bool:
-        if value is None:
-            return False
-        if value == "1":
-            return True
+        if isinstance(value, str):
+            return value.strip().lower() in {"1", "yes", "true"}
         return bool(value)
 
     @field_validator("is_floating", mode="before")
@@ -303,10 +301,8 @@ class OPNsenseNATRule(BaseModel):
     @field_validator("source_neg", "dest_neg", "logging", mode="before")
     @classmethod
     def normalize_negate(cls, value: Any) -> bool:
-        if value is None:
-            return False
-        if value == "1":
-            return True
+        if isinstance(value, str):
+            return value.strip().lower() in {"1", "yes", "true"}
         return bool(value)
 
 

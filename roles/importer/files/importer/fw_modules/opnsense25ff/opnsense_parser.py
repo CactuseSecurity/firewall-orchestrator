@@ -183,7 +183,7 @@ def _normalize_mvc_filter_rule(rule: dict[str, Any]) -> dict[str, Any]:
         "type": rule.get("action"),
         "descr": rule.get("description"),
         "direction": rule.get("direction"),
-        "ipproto": rule.get("ipprotocol"),
+        "ipprotocol": rule.get("ipprotocol"),
         "protocol": rule.get("protocol"),
         "log": rule.get("log"),
         "interfacenot": rule.get("interfacenot"),

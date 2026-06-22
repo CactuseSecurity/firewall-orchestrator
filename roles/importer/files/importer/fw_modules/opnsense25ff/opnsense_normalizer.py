@@ -4,10 +4,16 @@ import json
 from typing import Any
 
 import fw_modules.opnsense25ff.opnsense_helper as os_helper
-from fw_modules.opnsense25ff.opnsense_constants import BUILTIN_SERVICE_PORTS, MAX_DEPTH
+from fw_modules.opnsense25ff.opnsense_constants import (
+    BUILTIN_SERVICE_PORTS,
+    IP_PROTO_NUMBERS,
+    MAX_DEPTH,
+    PORT_BASED_PROTOCOLS,
+)
 from fw_modules.opnsense25ff.opnsense_model import (
     AliasTypeEnum,
     FilterRuleActionEnum,
+    FilterRuleIPProtoEnum,
     OPNsenseAccessRule,
     OPNsenseAlias,
     OPNsenseConfig,
@@ -142,6 +148,25 @@ def _service_ref_name(ref: str | OPNsensePortAlias) -> str:
     return ref.name
 
 
+def _is_port_based_protocol(protocol: str) -> bool:
+    return protocol.lower() in PORT_BASED_PROTOCOLS
+
+
+def _protocol_service_name(rule: OPNsenseAccessRule) -> str:
+    # OPNsense keeps "ICMP" in the protocol field even for IPv6 rules; disambiguate via the IP protocol.
+    if rule.protocol.lower() == "icmp" and rule.ipprotocol == FilterRuleIPProtoEnum.INET6:
+        return "ICMPv6"
+    return rule.protocol.upper()
+
+
+def _rule_service_names(rule: OPNsenseAccessRule) -> list[str]:
+    # Port-based protocols (TCP/UDP and the "any" default) derive their services from the
+    # destination ports. Non-port protocols (e.g. ICMP, ESP, GRE) become a protocol service.
+    if _is_port_based_protocol(rule.protocol):
+        return [_service_ref_name(ref) for ref in rule.dest_port]
+    return [_protocol_service_name(rule)]
+
+
 def _warn_max_depth_reached(depth: int) -> None:
     FWOLogger.warning(f"[-] depth {depth} reached maximum {MAX_DEPTH}. Abort recursion...")
 
@@ -225,6 +250,23 @@ def _create_any_svc_object() -> ServiceObject:
     )
 
 
+def _create_service_from_protocol(name: str) -> ServiceObject:
+    return ServiceObject(
+        svc_uid=fwo_base_generate_hash_from_dict({"svc_obj": name}),
+        svc_name=name,
+        svc_port=None,
+        svc_port_end=None,
+        svc_color="",
+        svc_typ="simple",
+        ip_proto=IP_PROTO_NUMBERS.get(name.lower()),
+        svc_member_refs=None,
+        svc_member_names=None,
+        svc_comment=name,
+        svc_timeout=None,
+        rpc_nr=None,
+    )
+
+
 def _create_services_from_port_definition(port: OPNsensePort) -> ServiceObject:
     return ServiceObject(
         svc_uid=fwo_base_generate_hash_from_dict({"svc_obj": port.name}),
@@ -300,7 +342,7 @@ def _create_normalized_rule_from_access_rule(rule: OPNsenseAccessRule) -> RuleNo
 
     rule_source_objects = [_network_ref_name(ref) for ref in rule.source_address + rule.source_network]
     rule_dest_objects = [_network_ref_name(ref) for ref in rule.dest_address + rule.dest_network]
-    rule_service_objects = [_service_ref_name(ref) for ref in rule.dest_port]
+    rule_service_objects = _rule_service_names(rule)
     rule_name = rule.description or ""
 
     return RuleNormalized(
@@ -338,34 +380,44 @@ def _create_normalized_rule_from_access_rule(rule: OPNsenseAccessRule) -> RuleNo
 # ──────────────────────────────────────────────────────────
 
 
+def _port_service_from_dest_port(dest_port: str) -> ServiceObject | None:
+    builtin_service_port = BUILTIN_SERVICE_PORTS.get(dest_port.lower())
+    if builtin_service_port is not None:
+        return _create_services_from_port_definition(
+            OPNsensePort(name=dest_port, is_range=False, port=builtin_service_port, port_end=None)
+        )
+    plain_portlist_candidate = dest_port.split("-", 1)
+    if not os_helper.is_int(plain_portlist_candidate[0]):
+        return None
+    port = int(plain_portlist_candidate[0])
+    if len(plain_portlist_candidate) == 1:
+        return _create_services_from_port_definition(
+            OPNsensePort(name=dest_port, is_range=False, port=port, port_end=None)
+        )
+    if os_helper.is_int(plain_portlist_candidate[1]):
+        return _create_services_from_port_definition(
+            OPNsensePort(name=dest_port, is_range=True, port=port, port_end=int(plain_portlist_candidate[1]))
+        )
+    return None
+
+
 def _update_service_objects_from_access_rules(
     rules: list[OPNsenseAccessRule], svc_objs: dict[str, ServiceObject]
 ) -> None:
 
     for rule in rules:
+        # non-port protocols (ICMP, ESP, GRE, ...) become a dedicated protocol service
+        if not _is_port_based_protocol(rule.protocol):
+            protocol_name = _protocol_service_name(rule)
+            if protocol_name not in svc_objs:
+                svc_objs[protocol_name] = _create_service_from_protocol(protocol_name)
+            continue
+
         # add all plain ports or port-ranges not currently normalized
         for dest_port in {ref for ref in rule.dest_port if isinstance(ref, str)} - set(svc_objs.keys()):
-            builtin_service_port = BUILTIN_SERVICE_PORTS.get(dest_port.lower())
-            if builtin_service_port is not None:
-                svc = _create_services_from_port_definition(
-                    OPNsensePort(name=dest_port, is_range=False, port=builtin_service_port, port_end=None)
-                )
+            svc = _port_service_from_dest_port(dest_port)
+            if svc is not None:
                 svc_objs[svc.svc_name] = svc
-                continue
-            plain_portlist_candidate = dest_port.split("-", 1)
-            if os_helper.is_int(plain_portlist_candidate[0]):
-                port = int(plain_portlist_candidate[0])
-                if len(plain_portlist_candidate) == 1:
-                    svc = _create_services_from_port_definition(
-                        OPNsensePort(name=dest_port, is_range=False, port=port, port_end=None)
-                    )
-                    svc_objs[svc.svc_name] = svc
-                elif os_helper.is_int(plain_portlist_candidate[1]):
-                    port_end = int(plain_portlist_candidate[1])
-                    svc = _create_services_from_port_definition(
-                        OPNsensePort(name=dest_port, is_range=True, port=port, port_end=port_end)
-                    )
-                    svc_objs[svc.svc_name] = svc
 
 
 def _normalize_services(os_config: OPNsenseConfig) -> dict[str, ServiceObject]:

@@ -107,6 +107,46 @@ def test_normalize_services_adds_builtin_named_ports() -> None:
     assert services["https"].svc_port_end == 443
 
 
+def test_normalize_services_creates_protocol_service_for_icmp() -> None:
+    rule = OPNsenseAccessRule.model_validate(
+        {
+            "@uuid": "r-icmp",
+            "type": "pass",
+            "descr": "allow ping to fw",
+            "protocol": "ICMP",
+            "destination": {"network": "(self)"},
+        }
+    )
+    config = OPNsenseConfig(hostname="fw", access_rules=[rule])
+
+    services = _normalize_services(config)
+
+    assert "ICMP" in services
+    assert services["ICMP"].svc_port is None
+    assert services["ICMP"].ip_proto == 1
+    assert _create_normalized_rule_from_access_rule(rule).rule_svc == "ICMP"
+
+
+def test_normalize_services_disambiguates_icmpv6() -> None:
+    rule = OPNsenseAccessRule.model_validate(
+        {
+            "@uuid": "r-icmp6",
+            "type": "pass",
+            "descr": "allow ping6 to fw",
+            "protocol": "ICMP",
+            "ipprotocol": "inet6",
+            "destination": {"network": "(self)"},
+        }
+    )
+    config = OPNsenseConfig(hostname="fw", access_rules=[rule])
+
+    services = _normalize_services(config)
+
+    assert "ICMPv6" in services
+    assert services["ICMPv6"].ip_proto == 58
+    assert _create_normalized_rule_from_access_rule(rule).rule_svc == "ICMPv6"
+
+
 @pytest.mark.parametrize(
     ("os_action", "expected"),
     [

@@ -1,6 +1,9 @@
 from typing import Any, cast
 
+import pytest
+from fw_modules.opnsense25ff.opnsense_constants import PREDEFINED_RULE_UID_PREFIX
 from fw_modules.opnsense25ff.opnsense_parser import parse_opnsense_config
+from fwo_exceptions import FwoImporterError
 
 
 def _native_config() -> dict[str, Any]:
@@ -104,6 +107,51 @@ def _native_config_with_singletons() -> dict[str, Any]:
     return config
 
 
+def _native_config_with_mvc_filter_rules() -> dict[str, Any]:
+    config = _native_config()
+    opnsense = cast("dict[str, Any]", config["opnsense"])
+    opnsense["OPNsense"]["Firewall"]["Filter"] = {
+        "rules": {
+            "rule": [
+                {
+                    "@uuid": "mvc-cleanup",
+                    "enabled": "1",
+                    "sequence": "100",
+                    "action": "reject",
+                    "interface": None,
+                    "direction": "in",
+                    "ipprotocol": "inet",
+                    "protocol": "any",
+                    "source_net": "any",
+                    "source_not": "0",
+                    "destination_net": "any",
+                    "destination_not": "0",
+                    "log": "1",
+                    "description": "clean-up",
+                },
+                {
+                    "@uuid": "mvc-https",
+                    "enabled": "1",
+                    "sequence": "50",
+                    "action": "pass",
+                    "interface": None,
+                    "direction": "in",
+                    "ipprotocol": "inet",
+                    "protocol": "TCP",
+                    "source_net": "any",
+                    "source_not": "0",
+                    "destination_net": "(self)",
+                    "destination_not": "0",
+                    "destination_port": "https",
+                    "log": "1",
+                    "description": "allow https to fw",
+                },
+            ]
+        }
+    }
+    return config
+
+
 def test_parse_opnsense_config_builds_structured_model() -> None:
     config = parse_opnsense_config(_native_config())
 
@@ -159,13 +207,66 @@ def test_parse_opnsense_config_defaults_missing_interface_description() -> None:
     assert config.interfaces["lan"].description == ""
 
 
-def test_parse_opnsense_config_accepts_rule_without_uuid() -> None:
+def test_parse_opnsense_config_generates_uid_for_predefined_rule_without_uuid() -> None:
+    native_config = _native_config()
+    opnsense = cast("dict[str, Any]", native_config["opnsense"])
+    filter_config = cast("dict[str, Any]", opnsense["filter"])
+    rules = cast("list[dict[str, Any]]", filter_config["rule"])
+    rules[0].pop("@uuid")
+    rules[0]["ipprotocol"] = "inet"
+    rules[0]["source"] = {"network": "lan"}
+    rules[0]["destination"] = {"any": None}
+
+    config = parse_opnsense_config(native_config)
+
+    rule_uid = config.access_rules[0].uuid
+    assert rule_uid == f"{PREDEFINED_RULE_UID_PREFIX}lan-inet"
+    assert rule_uid == parse_opnsense_config(native_config).access_rules[0].uuid
+    assert config.access_rules[0].source_address == []
+    assert config.access_rules[0].source_network == ["lan"]
+    assert config.access_rules[0].dest_address == ["Any"]
+    assert config.access_rules[0].dest_network == []
+
+
+def test_parse_opnsense_config_keeps_predefined_uid_when_non_identity_content_changes() -> None:
+    native_config = _native_config()
+    opnsense = cast("dict[str, Any]", native_config["opnsense"])
+    filter_config = cast("dict[str, Any]", opnsense["filter"])
+    rules = cast("list[dict[str, Any]]", filter_config["rule"])
+    rules[0].pop("@uuid")
+    rules[0]["ipprotocol"] = "inet"
+    rules[0]["source"] = {"network": "lan"}
+    rules[0]["destination"] = {"any": None}
+    initial_uid = parse_opnsense_config(native_config).access_rules[0].uuid
+
+    rules[0]["descr"] = "Changed rule description"
+    rules[0]["type"] = "reject"
+
+    assert parse_opnsense_config(native_config).access_rules[0].uuid == initial_uid
+
+
+def test_parse_opnsense_config_rejects_unknown_uuidless_rule() -> None:
     native_config = _native_config()
     opnsense = cast("dict[str, Any]", native_config["opnsense"])
     filter_config = cast("dict[str, Any]", opnsense["filter"])
     rules = cast("list[dict[str, Any]]", filter_config["rule"])
     rules[0].pop("@uuid")
 
-    config = parse_opnsense_config(native_config)
+    with pytest.raises(FwoImporterError, match="has no uuid and is not a predefined rule"):
+        parse_opnsense_config(native_config)
 
-    assert config.access_rules[0].uuid is None
+
+def test_parse_opnsense_config_reads_mvc_filter_rules() -> None:
+    config = parse_opnsense_config(_native_config_with_mvc_filter_rules())
+
+    mvc_rules = config.access_rules[1:]
+    assert [rule.uuid for rule in mvc_rules] == ["mvc-https", "mvc-cleanup"]
+    assert [rule.description for rule in mvc_rules] == ["allow https to fw", "clean-up"]
+    assert all(rule.is_floating for rule in mvc_rules)
+    assert mvc_rules[0].source_address == ["Any"]
+    assert mvc_rules[0].source_network == []
+    assert mvc_rules[0].dest_address == []
+    assert mvc_rules[0].dest_network == ["(self)"]
+    assert mvc_rules[0].dest_port == ["https"]
+    assert mvc_rules[1].dest_address == ["Any"]
+    assert mvc_rules[1].dest_network == []

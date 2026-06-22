@@ -5,14 +5,13 @@ from __future__ import annotations
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Literal, cast
 
+from fw_modules.opnsense25ff.opnsense_constants import OPNSENSE_UUID_ALIAS
 from pydantic import AliasPath, BaseModel, ConfigDict, Field, field_validator
 
 if TYPE_CHECKING:
     from netaddr import IPAddress, IPNetwork
 else:
     from netaddr_pydantic import IPAddress, IPNetwork  # noqa: TC002
-
-OPNSENSE_UUID_ALIAS = "@uuid"
 
 
 def _normalize_to_str_list(value: Any, separator: str = ",") -> list[str]:

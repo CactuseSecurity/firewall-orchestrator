@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Any, TypeGuard, cast
 
 import fw_modules.opnsense25ff.opnsense_helper as os_helper
+from fw_modules.opnsense25ff.opnsense_constants import OPNSENSE_UUID_ALIAS, PREDEFINED_RULE_UID_PREFIX
 from fw_modules.opnsense25ff.opnsense_model import (
     AliasTypeEnum,
     OPNsenseAccessRule,
@@ -19,6 +20,7 @@ from fw_modules.opnsense25ff.opnsense_model import (
     OPNsenseUser,
     OPNsenseUserGroup,
 )
+from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
 
 
@@ -117,19 +119,139 @@ def _parse_opnsense_if_groups(config: dict[str, Any]) -> dict[str, OPNsenseIfGro
     return ifgroups_parsed
 
 
+def _single_interface_name(rule: dict[str, Any]) -> str | None:
+    rule_interface = rule.get("interface")
+    if isinstance(rule_interface, str) and rule_interface:
+        return rule_interface
+    if isinstance(rule_interface, list):
+        interface_names = cast("list[object]", rule_interface)
+        if len(interface_names) == 1 and isinstance(interface_names[0], str):
+            return interface_names[0]
+    return None
+
+
+def _predefined_rule_uid(rule: dict[str, Any]) -> str | None:
+    interface_name = _single_interface_name(rule)
+    ipprotocol = rule.get("ipprotocol")
+    source = _get_dict(rule, "source")
+    destination = _get_dict(rule, "destination")
+
+    if (
+        interface_name is not None
+        and ipprotocol in {"inet", "inet6"}
+        and source.get("network") == interface_name
+        and "any" in destination
+    ):
+        return f"{PREDEFINED_RULE_UID_PREFIX}{interface_name}-{ipprotocol}"
+    return None
+
+
+def _ensure_rule_uid(rule: dict[str, Any], rule_index: int) -> dict[str, Any]:
+    if rule.get(OPNSENSE_UUID_ALIAS):
+        return rule
+
+    predefined_rule_uid = _predefined_rule_uid(rule)
+    if predefined_rule_uid is not None:
+        return {**rule, OPNSENSE_UUID_ALIAS: predefined_rule_uid}
+
+    raise FwoImporterError(f"OPNsense rule at position {rule_index + 1} has no uuid and is not a predefined rule")
+
+
+def _normalize_mvc_filter_rule(rule: dict[str, Any]) -> dict[str, Any]:
+    source: dict[str, Any] = {
+        "not": rule.get("source_not"),
+    }
+    if rule.get("source_port"):
+        source["port"] = rule.get("source_port")
+    if rule.get("source_net") == "any":
+        source["any"] = None
+    else:
+        source["network"] = rule.get("source_net")
+
+    destination: dict[str, Any] = {
+        "not": rule.get("destination_not"),
+    }
+    if rule.get("destination_port"):
+        destination["port"] = rule.get("destination_port")
+    if rule.get("destination_net") == "any":
+        destination["any"] = None
+    else:
+        destination["network"] = rule.get("destination_net")
+
+    normalized_rule: dict[str, Any] = {
+        OPNSENSE_UUID_ALIAS: rule.get(OPNSENSE_UUID_ALIAS),
+        "type": rule.get("action"),
+        "descr": rule.get("description"),
+        "direction": rule.get("direction"),
+        "ipproto": rule.get("ipprotocol"),
+        "protocol": rule.get("protocol"),
+        "log": rule.get("log"),
+        "interfacenot": rule.get("interfacenot"),
+        "source": source,
+        "destination": destination,
+    }
+
+    if str(rule.get("enabled", "1")) == "0":
+        normalized_rule["disabled"] = True
+
+    rule_interface = rule.get("interface")
+    if rule_interface:
+        normalized_rule["interface"] = rule_interface
+    else:
+        normalized_rule["floating"] = "yes"
+
+    return normalized_rule
+
+
+def _get_legacy_filter_rules(config: dict[str, Any]) -> list[dict[str, Any]]:
+    return _as_dict_list(_get_value(config, "opnsense", "filter", "rule"))
+
+
+def _get_mvc_filter_rules(config: dict[str, Any]) -> list[dict[str, Any]]:
+    mvc_rules = _as_dict_list(_get_value(config, "opnsense", "OPNsense", "Firewall", "Filter", "rules", "rule"))
+    return sorted(mvc_rules, key=lambda rule: int(str(rule.get("sequence") or "0")))
+
+
+def _has_rule_endpoint_value(endpoint: dict[str, Any], key: str) -> bool:
+    value = endpoint.get(key)
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return value != ""
+    if isinstance(value, list):
+        return len(cast("list[object]", value)) > 0
+    return True
+
+
+def _apply_endpoint_any_defaults(rule: OPNsenseAccessRule, raw_rule: dict[str, Any]) -> None:
+    source = _get_dict(raw_rule, "source")
+    if "any" in source:
+        rule.source_address = ["Any"]
+        rule.source_network = []
+    elif _has_rule_endpoint_value(source, "network") and not _has_rule_endpoint_value(source, "address"):
+        rule.source_address = []
+
+    destination = _get_dict(raw_rule, "destination")
+    if "any" in destination:
+        rule.dest_address = ["Any"]
+        rule.dest_network = []
+    elif _has_rule_endpoint_value(destination, "network") and not _has_rule_endpoint_value(destination, "address"):
+        rule.dest_address = []
+
+
 def _parse_opnsense_access_rules(config: dict[str, Any]) -> list[OPNsenseAccessRule]:
-    rules = _get_value(config, "opnsense", "filter", "rule")
+    legacy_rules = _get_legacy_filter_rules(config)
+    mvc_rules = [_normalize_mvc_filter_rule(rule) for rule in _get_mvc_filter_rules(config)]
+    rules = legacy_rules + mvc_rules
 
     rules_parsed: list[OPNsenseAccessRule] = []
 
-    for rule in _as_dict_list(rules):
-        rule_parsed = OPNsenseAccessRule.model_validate(rule)
+    for rule_index, rule in enumerate(rules):
+        rule_with_uid = _ensure_rule_uid(rule, rule_index)
+        rule_parsed = OPNsenseAccessRule.model_validate(rule_with_uid)
         if "Any" in rule_parsed.interface:
             rule_parsed.any_interface = True
-        if "any" in _get_dict(rule, "source"):
-            rule_parsed.source_address = ["Any"]
-        if "any" in _get_dict(rule, "dest"):
-            rule_parsed.dest_address = ["Any"]
+        _apply_endpoint_any_defaults(rule_parsed, rule_with_uid)
         rules_parsed.append(rule_parsed)
 
     return rules_parsed

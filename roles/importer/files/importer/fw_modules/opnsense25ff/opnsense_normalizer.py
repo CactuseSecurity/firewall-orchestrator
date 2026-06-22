@@ -4,6 +4,7 @@ import json
 from typing import Any
 
 import fw_modules.opnsense25ff.opnsense_helper as os_helper
+from fw_modules.opnsense25ff.opnsense_constants import BUILTIN_SERVICE_PORTS, MAX_DEPTH
 from fw_modules.opnsense25ff.opnsense_model import (
     AliasTypeEnum,
     FilterRuleActionEnum,
@@ -35,7 +36,6 @@ from models.rulebase_link import RulebaseLinkUidBased
 from models.serviceobject import ServiceObject
 from netaddr import IPAddress, IPNetwork
 
-MAX_DEPTH: int = 10
 # ───────────────────────── helper ────────────────────────
 
 
@@ -345,6 +345,13 @@ def _update_service_objects_from_access_rules(
     for rule in rules:
         # add all plain ports or port-ranges not currently normalized
         for dest_port in {ref for ref in rule.dest_port if isinstance(ref, str)} - set(svc_objs.keys()):
+            builtin_service_port = BUILTIN_SERVICE_PORTS.get(dest_port.lower())
+            if builtin_service_port is not None:
+                svc = _create_services_from_port_definition(
+                    OPNsensePort(name=dest_port, is_range=False, port=builtin_service_port, port_end=None)
+                )
+                svc_objs[svc.svc_name] = svc
+                continue
             plain_portlist_candidate = dest_port.split("-", 1)
             if os_helper.is_int(plain_portlist_candidate[0]):
                 port = int(plain_portlist_candidate[0])
@@ -542,7 +549,9 @@ def _access_rule_rulebase_name(rule: OPNsenseAccessRule, os_config: OPNsenseConf
     if rule.is_floating:
         return "floating"
     has_single_positive_interface = len(rule.interface) == 1 and not rule.any_interface and not rule.interface_neg
-    if has_single_positive_interface and rule.interface[0] in os_config.interface_groups:
+    if has_single_positive_interface and (
+        rule.interface[0] in os_config.interfaces or rule.interface[0] in os_config.interface_groups
+    ):
         return rule.interface[0]
     return None
 

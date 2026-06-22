@@ -10,6 +10,7 @@ from fw_modules.opnsense25ff.opnsense_model import (
     OPNsenseHost,
     OPNsenseHostAlias,
     OPNsenseIfGroup,
+    OPNsenseInterface,
     OPNsenseNetwork,
     OPNsensePort,
     OPNsensePortAlias,
@@ -17,8 +18,10 @@ from fw_modules.opnsense25ff.opnsense_model import (
 from fw_modules.opnsense25ff.opnsense_normalizer import (
     _create_network_object_from_alias,
     _create_normalized_rule_from_access_rule,
+    _create_rulebases_from_access_rules,
     _get_gateway_name,
     _get_rulebase_links_from_rulebases,
+    _normalize_services,
     _normalize_services_from_port_alias,
     _resolve_named_refs_in_rules,
     _update_network_objects_from_access_rules,
@@ -87,6 +90,23 @@ def test_normalize_services_from_port_alias_builds_nested_group() -> None:
     assert "outer-ports" in normalized  # the group registers itself too
 
 
+def test_normalize_services_adds_builtin_named_ports() -> None:
+    rule = OPNsenseAccessRule.model_validate(
+        {
+            "@uuid": "r-https",
+            "type": "pass",
+            "descr": "allow https to fw",
+            "destination": {"network": "(self)", "port": "https"},
+        }
+    )
+    config = OPNsenseConfig(hostname="fw", access_rules=[rule])
+
+    services = _normalize_services(config)
+
+    assert services["https"].svc_port == 443
+    assert services["https"].svc_port_end == 443
+
+
 @pytest.mark.parametrize(
     ("os_action", "expected"),
     [
@@ -138,6 +158,24 @@ def test_create_normalized_rule_maps_src_dst_svc_and_custom_fields() -> None:
     assert custom["os_rule_direction"] == "in"
 
 
+def test_create_normalized_rule_does_not_add_any_when_source_network_is_set() -> None:
+    rule = OPNsenseAccessRule.model_validate(
+        {
+            "@uuid": "r",
+            "type": "pass",
+            "descr": "default lan",
+            "interface": "lan",
+            "source": {"network": "lan"},
+            "destination": {"any": None},
+        }
+    )
+    rule.source_address = []
+    normalized = _create_normalized_rule_from_access_rule(rule)
+
+    assert normalized.rule_src == "lan"
+    assert normalized.rule_src_refs == "lan"
+
+
 def test_get_rulebase_links_orders_and_marks_initial() -> None:
     rbs = [Rulebase(uid=f"rb{i}", name=f"rb{i}", mgm_uid="m", is_global=False, rules={}) for i in range(3)]
 
@@ -151,6 +189,52 @@ def test_get_rulebase_links_orders_and_marks_initial() -> None:
     assert (links[2].from_rulebase_uid, links[2].to_rulebase_uid) == ("rb1", "rb2")
     assert all(link.link_type == "ordered" for link in links)
     assert [link.is_initial for link in links] == [True, False, False]
+
+
+def test_create_rulebases_from_access_rules_uses_physical_interface() -> None:
+    rule = OPNsenseAccessRule.model_validate(
+        {
+            "@uuid": "r-lan",
+            "type": "pass",
+            "descr": "Default allow LAN to any rule",
+            "interface": "lan",
+            "source": {"network": "lan"},
+            "destination": {"any": None},
+        }
+    )
+    config = OPNsenseConfig(
+        hostname="fw",
+        interfaces={"lan": OPNsenseInterface.model_validate({"enable": "1", "if": "em0", "ipaddr": "10.1.1.87"})},
+        access_rules=[rule],
+    )
+
+    rulebases = _create_rulebases_from_access_rules(config, "mgm-uid")
+
+    assert len(rulebases) == 1
+    assert rulebases[0].name == "lan"
+    assert "r-lan" in rulebases[0].rules
+
+
+def test_create_rulebases_from_access_rules_keeps_rule_uid() -> None:
+    rule = OPNsenseAccessRule.model_validate(
+        {
+            "@uuid": "opnsense-default-rule-lan-inet",
+            "type": "pass",
+            "descr": "Default allow LAN to any rule",
+            "interface": "lan",
+            "source": {"network": "lan"},
+            "destination": {"any": None},
+        }
+    )
+    config = OPNsenseConfig(
+        hostname="fw",
+        interfaces={"lan": OPNsenseInterface.model_validate({"enable": "1", "if": "em0", "ipaddr": "10.1.1.87"})},
+        access_rules=[rule],
+    )
+
+    rulebases = _create_rulebases_from_access_rules(config, "mgm-uid")
+
+    assert "opnsense-default-rule-lan-inet" in rulebases[0].rules
 
 
 def test_update_network_objects_detects_ips_subnets_ranges_and_ifgroups() -> None:

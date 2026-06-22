@@ -81,6 +81,42 @@ namespace FWO.Data.Flow
         }
 
         /// <summary>
+        /// Formats the technical details of a flow network object for duplicate resolution views.
+        /// </summary>
+        public static string FormatFlowNwObjectTechnicalDetails(FlowNwObject candidate)
+        {
+            return DisplayBase.DisplayIp(candidate.IpStart ?? "", candidate.IpEnd ?? "");
+        }
+
+        /// <summary>
+        /// Formats a compact duplicate overview for a list of network objects.
+        /// </summary>
+        public static string FormatDuplicateObjectSummary(IEnumerable<NetworkObject>? objects, int maxItems = 5)
+        {
+            List<NetworkObject> duplicateObjects = [.. (objects ?? [])];
+            if (duplicateObjects.Count == 0)
+            {
+                return "-";
+            }
+
+            int previewCount = Math.Max(maxItems, 0);
+            IEnumerable<string> details = duplicateObjects
+                .Take(previewCount)
+                .Select(FormatNetworkObjectTechnicalDetails);
+
+            string summary = string.Join(", ", details);
+            if (duplicateObjects.Count <= previewCount)
+            {
+                return summary;
+            }
+
+            int remainingCount = duplicateObjects.Count - previewCount;
+            return string.IsNullOrWhiteSpace(summary)
+                ? $"... and {remainingCount} more"
+                : $"{summary}, ... and {remainingCount} more";
+        }
+
+        /// <summary>
         /// Filters custom flow object candidates by a case-insensitive search string.
         /// </summary>
         public static List<NetworkObject> FilterCustomObjectCandidates(IEnumerable<NetworkObject>? candidates, string? searchText)

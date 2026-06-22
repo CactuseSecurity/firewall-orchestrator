@@ -175,5 +175,62 @@ namespace FWO.Test
 
             Assert.That(details, Is.EqualTo("uid-42"));
         }
+
+        [Test]
+        public void FormatFlowNwObjectTechnicalDetails_UsesIpRangeWhenAvailable()
+        {
+            FlowNwObject candidate = new()
+            {
+                Id = 42,
+                Name = "flow-candidate",
+                IpStart = "192.0.2.10",
+                IpEnd = "",
+                Hash = "hash-42"
+            };
+
+            string details = FlowAdminHelper.FormatFlowNwObjectTechnicalDetails(candidate);
+
+            Assert.That(details, Is.EqualTo("192.0.2.10"));
+        }
+
+        [Test]
+        public void FormatFlowNwObjectTechnicalDetails_ReturnsEmptyForObjectsWithoutIpData()
+        {
+            FlowNwObject candidate = new()
+            {
+                Id = 42,
+                Name = "flow-candidate",
+                IpStart = "",
+                IpEnd = "",
+                Hash = "hash-42"
+            };
+
+            string details = FlowAdminHelper.FormatFlowNwObjectTechnicalDetails(candidate);
+
+            Assert.That(details, Is.EqualTo(""));
+        }
+
+        [Test]
+        public void FormatDuplicateObjectSummary_TruncatesLongLists()
+        {
+            List<NetworkObject> candidates =
+            [
+                new NetworkObject { Id = 1, Name = "one", IP = "", IpEnd = "", Uid = "uid-1" },
+                new NetworkObject { Id = 2, Name = "two", IP = "", IpEnd = "", Uid = "uid-2" },
+                new NetworkObject { Id = 3, Name = "three", IP = "", IpEnd = "", Uid = "uid-3" }
+            ];
+
+            string summary = FlowAdminHelper.FormatDuplicateObjectSummary(candidates, 2);
+
+            Assert.That(summary, Is.EqualTo("one [uid-1], two [uid-2], ... and 1 more"));
+        }
+
+        [Test]
+        public void FormatDuplicateObjectSummary_ReturnsPlaceholderForEmptyLists()
+        {
+            string summary = FlowAdminHelper.FormatDuplicateObjectSummary([], 2);
+
+            Assert.That(summary, Is.EqualTo("-"));
+        }
     }
 }

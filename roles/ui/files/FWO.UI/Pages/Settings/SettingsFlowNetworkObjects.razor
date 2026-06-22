@@ -100,7 +100,8 @@
            ColumnReorder="true">
         <Column TableItem="FlowNwObjectDuplicateGroup" Title="@(userConfig.GetText("flow_object"))" Field="@(group => group.FlowNwObjectName)" Sortable="true" Filterable="true" Context="group">
             <Template>
-                @($"{group.FlowNwObjectName} (#{group.FlowNwObjectId})")
+                <div>@($"{group.FlowNwObjectName} (#{group.FlowNwObjectId})")</div>
+                <div class="text-muted small">@BuildFlowNwObjectTechnicalDetails(group.FlowNwObjectId)</div>
             </Template>
         </Column>
         <Column TableItem="FlowNwObjectDuplicateGroup" Title="@(userConfig.GetText("management"))" Field="@(group => group.ManagementName)" Sortable="true" Filterable="true" />
@@ -226,6 +227,7 @@ else
         {
             <div class="mb-2">
                 <div><span class="fw-bold">@(userConfig.GetText("flow_object")):</span> @SelectedDuplicateGroup.FlowNwObjectName (#@SelectedDuplicateGroup.FlowNwObjectId)</div>
+                <div class="text-muted small">@BuildFlowNwObjectTechnicalDetails(SelectedDuplicateGroup.FlowNwObjectId)</div>
                 <div><span class="fw-bold">@(userConfig.GetText("management")):</span> @SelectedDuplicateGroup.ManagementName</div>
             </div>
             <Table TableClass="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
@@ -997,7 +999,16 @@ else
 
     private static string BuildDuplicateObjectSummary(FlowNwObjectDuplicateGroup group)
     {
-        return string.Join(", ", group.Objects.Select(FlowAdminHelper.FormatNetworkObjectTechnicalDetails));
+        return FlowAdminHelper.FormatDuplicateObjectSummary(group.Objects, 5);
+    }
+
+    private string BuildFlowNwObjectTechnicalDetails(long flowNwObjectId)
+    {
+        FlowNwObject? flowNwObject = flowNwObjects.FirstOrDefault(item => item.Id == flowNwObjectId);
+        string details = flowNwObject == null
+            ? ""
+            : FlowAdminHelper.FormatFlowNwObjectTechnicalDetails(flowNwObject);
+        return string.IsNullOrWhiteSpace(details) ? "-" : details;
     }
 
     private static string GetCustomObjectSelectionLabel(CustomObjectManagementSelection selection)

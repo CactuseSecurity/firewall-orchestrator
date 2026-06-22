@@ -17,11 +17,13 @@ from fw_modules.opnsense25ff.opnsense_model import (
 from fw_modules.opnsense25ff.opnsense_normalizer import (
     _create_network_object_from_alias,
     _create_normalized_rule_from_access_rule,
+    _get_gateway_name,
     _get_rulebase_links_from_rulebases,
     _normalize_services_from_port_alias,
     _resolve_named_refs_in_rules,
     _update_network_objects_from_access_rules,
 )
+from model_controllers.import_state_controller import ImportStateController
 from models.networkobject import NetworkObject
 from models.rule import RuleAction, RuleTrack, RuleType
 from models.rulebase import Rulebase
@@ -233,3 +235,10 @@ def test_resolve_named_refs_replaces_names_with_uids() -> None:
     assert rb.rules["r"].rule_src_refs == "SRC-UID"
     assert rb.rules["r"].rule_dst_refs == "DST-UID"
     assert rb.rules["r"].rule_svc_refs == "SVC-UID"
+
+
+def test_get_gateway_name_prefers_configured_device_name(import_state_controller: ImportStateController) -> None:
+    import_state_controller.state.mgm_details.devices = [{"name": "configured-gateway-uid"}]
+    native_config = OPNsenseConfig(hostname="native-hostname")
+
+    assert _get_gateway_name(native_config, import_state_controller) == "configured-gateway-uid"

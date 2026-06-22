@@ -27,6 +27,7 @@ class OPNsense25common(FwCommon):
 def get_config(
     config_in: FwConfigManagerListController, import_state: ImportStateController
 ) -> tuple[int, FwConfigManagerListController]:
+    ensure_device_name(import_state)
 
     # retrieve full opnsense config into full_config
     # curl -kv -u "$key:$secret" 'https://{opensense}/api/core/backup/download/this'
@@ -60,3 +61,21 @@ def get_config(
             msg = f"[-] get_config: API request failed: {e}"
             FWOLogger.error(msg)
             raise FwoNativeConfigFetchError(msg) from e
+
+
+def ensure_device_name(import_state: ImportStateController) -> None:
+    mgm_details = import_state.state.mgm_details
+    gw_map = import_state.state.gateway_map.get(mgm_details.current_mgm_id, {})
+    gateway_uid = next(iter(gw_map.keys()), None)
+
+    if (
+        mgm_details.devices
+        and "name" in mgm_details.devices[0]
+        and (gateway_uid is None or mgm_details.devices[0]["name"] in gw_map)
+    ):
+        return
+
+    if gateway_uid is None:
+        gateway_uid = mgm_details.name or mgm_details.hostname
+
+    mgm_details.devices = [{"name": gateway_uid}]

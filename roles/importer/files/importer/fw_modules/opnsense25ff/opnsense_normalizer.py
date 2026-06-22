@@ -22,6 +22,7 @@ from fw_modules.opnsense25ff.opnsense_model import (
 from fw_modules.opnsense25ff.opnsense_parser import parse_opnsense_config
 from fwo_base import ConfigAction, sort_and_join
 from fwo_base import generate_hash_from_dict as fwo_base_generate_hash_from_dict
+from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.import_state_controller import ImportStateController
@@ -589,6 +590,19 @@ def _get_rulebase_links_from_rulebases(rbs: list[Rulebase]) -> list[RulebaseLink
     return rb_links
 
 
+def _get_gateway_name(native_config: OPNsenseConfig, import_state: ImportStateController) -> str:
+    mgm_details = import_state.state.mgm_details
+    if mgm_details.devices and "name" in mgm_details.devices[0] and mgm_details.devices[0]["name"]:
+        return str(mgm_details.devices[0]["name"])
+    if mgm_details.name:
+        return mgm_details.name
+    if native_config.hostname:
+        return native_config.hostname
+    if mgm_details.hostname:
+        return mgm_details.hostname
+    raise FwoImporterError("Management details must contain a device name, management name, or hostname.")
+
+
 def _resolve_named_refs_in_rules(
     rbs: list[Rulebase], nw_objs: dict[str, NetworkObject], svc_obj: dict[str, ServiceObject]
 ) -> None:
@@ -691,9 +705,10 @@ def normalize_opnsense_config(
     svc_objects = new_svc_objects
 
     FWOLogger.debug("[*] creating this gateway...")
+    gateway_name = _get_gateway_name(native_config, import_state)
     os_gateway = Gateway(
-        Uid=native_config.hostname,
-        Name=native_config.hostname,
+        Uid=gateway_name,
+        Name=gateway_name,
         Routing=[],
         Interfaces=[],
         RulebaseLinks=rulebase_links,

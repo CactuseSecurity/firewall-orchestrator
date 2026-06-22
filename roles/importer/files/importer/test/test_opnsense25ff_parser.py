@@ -157,3 +157,15 @@ def test_parse_opnsense_config_defaults_missing_interface_description() -> None:
     config = parse_opnsense_config(native_config)
 
     assert config.interfaces["lan"].description == ""
+
+
+def test_parse_opnsense_config_accepts_rule_without_uuid() -> None:
+    native_config = _native_config()
+    opnsense = cast("dict[str, Any]", native_config["opnsense"])
+    filter_config = cast("dict[str, Any]", opnsense["filter"])
+    rules = cast("list[dict[str, Any]]", filter_config["rule"])
+    rules[0].pop("@uuid")
+
+    config = parse_opnsense_config(native_config)
+
+    assert config.access_rules[0].uuid is None

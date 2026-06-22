@@ -169,7 +169,7 @@ def _empty_address_member_list() -> AddressMemberList:
 # https://github.com/opnsense/core/blob/8bc595681e13fec63ef0f6e3fcc292cfff67496c/src/opnsense/mvc/app/models/OPNsense/Firewall/Filter.xml
 class OPNsenseAccessRule(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    uuid: str = Field(alias=OPNSENSE_UUID_ALIAS)  # /opnsense/filter/rule[x]/@uuid
+    uuid: str | None = Field(alias=OPNSENSE_UUID_ALIAS, default=None)  # /opnsense/filter/rule[x]/@uuid
     disabled: bool = False  # /opnsense/filter/rule[x]/disabled
     action: FilterRuleActionEnum = Field(
         alias="type", default=FilterRuleActionEnum.PASS

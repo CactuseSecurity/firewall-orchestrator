@@ -125,8 +125,8 @@ namespace FWO.Data
                 ParentRuleUid = rule.ParentRule?.Uid,
                 LastHit = lastHit.HasValue ? NormalizedConfig.FormatDatetimeZ(lastHit.Value, convertToUtc: true) : null,
                 RuleComment = rule.Comment,
-                RuleSrcZone = rule.RuleFromZones?.Length > 0 ? string.Join("|", rule.RuleFromZones.Select(z => z.Content.Name).Distinct().Order()) : null,
-                RuleDstZone = rule.RuleToZones?.Length > 0 ? string.Join("|", rule.RuleToZones.Select(z => z.Content.Name).Distinct().Order()) : null,
+                RuleSrcZone = rule.SourceZone,
+                RuleDstZone = rule.DestinationZone,
                 RuleHeadText = rule.SectionHeader
             };
         }

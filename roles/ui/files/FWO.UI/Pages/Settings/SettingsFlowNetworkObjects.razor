@@ -973,9 +973,9 @@ else
         ]).ToLowerInvariant();
     }
 
-    private static string BuildDuplicateObjectSummary(FlowNwObjectDuplicateGroup group)
+    private string BuildDuplicateObjectSummary(FlowNwObjectDuplicateGroup group)
     {
-        return FlowAdminHelper.FormatDuplicateObjectSummary(group.Objects, 5);
+        return FlowAdminHelper.FormatDuplicateObjectSummary(group.Objects, 5, userConfig.GetText("none"), userConfig.GetText("duplicate_objects_more"));
     }
 
     private string BuildFlowNwObjectTechnicalDetails(long flowNwObjectId)

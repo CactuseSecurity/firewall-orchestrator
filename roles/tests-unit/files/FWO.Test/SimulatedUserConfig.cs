@@ -92,6 +92,7 @@ namespace FWO.Test
             {"type","Type"},
             {"ip_address","IP Address"},
             {"members","Members"},
+            {"duplicate_objects_more","... and @@COUNT@@ more"},
             {"requested_connections","Requested Connections"},
             {"group_requests","Group Requests"},
             {"network_objects","Network Objects"},

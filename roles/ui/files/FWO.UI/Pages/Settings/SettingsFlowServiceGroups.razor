@@ -39,7 +39,7 @@
         <Column TableItem="FlowSvcGroupDuplicateGroup" Title="@(userConfig.GetText("management"))" Field="@(group => group.ManagementName)" Sortable="true" Filterable="true" />
         <Column TableItem="FlowSvcGroupDuplicateGroup" Title="@(userConfig.GetText("objects"))" Field="@(group => group.Services.Count)" Sortable="true" Filterable="false" Context="group">
             <Template>
-                @FlowAdminHelper.FormatDuplicateObjectSummary(group.Services)
+                @FlowAdminHelper.FormatDuplicateObjectSummary(group.Services, 5, userConfig.GetText("none"), userConfig.GetText("duplicate_objects_more"))
             </Template>
         </Column>
         <Column TableItem="FlowSvcGroupDuplicateGroup" Title="@(userConfig.GetText("actions"))" Field="@(group => group.ManagementId)" Sortable="false" Filterable="false" Context="group">
@@ -342,7 +342,7 @@ else
     private string BuildFlowSvcGroupTechnicalDetails(long flowSvcGroupId)
     {
         FlowSvcGroup? flowSvcGroup = flowSvcGroups.FirstOrDefault(item => item.Id == flowSvcGroupId);
-        string details = flowSvcGroup == null ? "" : FlowAdminHelper.FormatFlowSvcGroupTechnicalDetails(flowSvcGroup);
+        string details = flowSvcGroup == null ? "" : FlowAdminHelper.FormatFlowSvcGroupTechnicalDetails(flowSvcGroup, userConfig.GetText("members"));
         return string.IsNullOrWhiteSpace(details) ? "-" : details;
     }
 }

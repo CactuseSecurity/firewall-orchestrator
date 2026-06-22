@@ -284,9 +284,9 @@ namespace FWO.Data.Flow
         /// <summary>
         /// Formats the technical details of a flow network group for overview and duplicate resolution views.
         /// </summary>
-        public static string FormatFlowNwGroupTechnicalDetails(FlowNwGroup candidate)
+        public static string FormatFlowNwGroupTechnicalDetails(FlowNwGroup candidate, string membersLabel)
         {
-            return $"{candidate.NwGroupMembers.Count} members";
+            return $"{candidate.NwGroupMembers.Count} {membersLabel}";
         }
 
         /// <summary>
@@ -307,9 +307,9 @@ namespace FWO.Data.Flow
         /// <summary>
         /// Formats the technical details of a flow service group for overview and duplicate resolution views.
         /// </summary>
-        public static string FormatFlowSvcGroupTechnicalDetails(FlowSvcGroup candidate)
+        public static string FormatFlowSvcGroupTechnicalDetails(FlowSvcGroup candidate, string membersLabel)
         {
-            return $"{candidate.SvcGroupMembers.Count} members";
+            return $"{candidate.SvcGroupMembers.Count} {membersLabel}";
         }
 
         /// <summary>
@@ -334,102 +334,47 @@ namespace FWO.Data.Flow
         /// <summary>
         /// Formats a compact duplicate overview for a list of network objects.
         /// </summary>
-        public static string FormatDuplicateObjectSummary(IEnumerable<NetworkObject>? objects, int maxItems = 5)
+        public static string FormatDuplicateObjectSummary(IEnumerable<NetworkObject>? objects, int maxItems, string emptyLabel, string moreTemplate)
         {
-            List<NetworkObject> duplicateObjects = [.. (objects ?? [])];
-            if (duplicateObjects.Count == 0)
-            {
-                return "-";
-            }
-
-            int previewCount = Math.Max(maxItems, 0);
-            IEnumerable<string> details = duplicateObjects
-                .Take(previewCount)
-                .Select(FormatNetworkObjectTechnicalDetails);
-
-            string summary = string.Join(", ", details);
-            if (duplicateObjects.Count <= previewCount)
-            {
-                return summary;
-            }
-
-            int remainingCount = duplicateObjects.Count - previewCount;
-            return string.IsNullOrWhiteSpace(summary)
-                ? $"... and {remainingCount} more"
-                : $"{summary}, ... and {remainingCount} more";
+            return FormatDuplicateObjectSummary(objects, maxItems, emptyLabel, moreTemplate, FormatNetworkObjectTechnicalDetails);
         }
 
         /// <summary>
         /// Formats a compact duplicate overview for a list of network services.
         /// </summary>
-        public static string FormatDuplicateObjectSummary(IEnumerable<NetworkService>? objects, int maxItems = 5)
+        public static string FormatDuplicateObjectSummary(IEnumerable<NetworkService>? objects, int maxItems, string emptyLabel, string moreTemplate)
         {
-            List<NetworkService> duplicateObjects = [.. (objects ?? [])];
-            if (duplicateObjects.Count == 0)
-            {
-                return "-";
-            }
-
-            int previewCount = Math.Max(maxItems, 0);
-            IEnumerable<string> details = duplicateObjects
-                .Take(previewCount)
-                .Select(FormatNetworkServiceTechnicalDetails);
-
-            string summary = string.Join(", ", details);
-            if (duplicateObjects.Count <= previewCount)
-            {
-                return summary;
-            }
-
-            int remainingCount = duplicateObjects.Count - previewCount;
-            return string.IsNullOrWhiteSpace(summary)
-                ? $"... and {remainingCount} more"
-                : $"{summary}, ... and {remainingCount} more";
+            return FormatDuplicateObjectSummary(objects, maxItems, emptyLabel, moreTemplate, FormatNetworkServiceTechnicalDetails);
         }
 
         /// <summary>
         /// Formats a compact duplicate overview for a list of time objects.
         /// </summary>
-        public static string FormatDuplicateObjectSummary(IEnumerable<TimeObject>? objects, int maxItems = 5)
+        public static string FormatDuplicateObjectSummary(IEnumerable<TimeObject>? objects, int maxItems, string emptyLabel, string moreTemplate)
         {
-            List<TimeObject> duplicateObjects = [.. (objects ?? [])];
-            if (duplicateObjects.Count == 0)
-            {
-                return "-";
-            }
-
-            int previewCount = Math.Max(maxItems, 0);
-            IEnumerable<string> details = duplicateObjects
-                .Take(previewCount)
-                .Select(FormatTimeObjectTechnicalDetails);
-
-            string summary = string.Join(", ", details);
-            if (duplicateObjects.Count <= previewCount)
-            {
-                return summary;
-            }
-
-            int remainingCount = duplicateObjects.Count - previewCount;
-            return string.IsNullOrWhiteSpace(summary)
-                ? $"... and {remainingCount} more"
-                : $"{summary}, ... and {remainingCount} more";
+            return FormatDuplicateObjectSummary(objects, maxItems, emptyLabel, moreTemplate, FormatTimeObjectTechnicalDetails);
         }
 
         /// <summary>
         /// Formats a compact duplicate overview for a list of flow network objects.
         /// </summary>
-        public static string FormatDuplicateObjectSummary(IEnumerable<FlowNwObject>? objects, int maxItems = 5)
+        public static string FormatDuplicateObjectSummary(IEnumerable<FlowNwObject>? objects, int maxItems, string emptyLabel, string moreTemplate)
         {
-            List<FlowNwObject> duplicateObjects = [.. (objects ?? [])];
+            return FormatDuplicateObjectSummary(objects, maxItems, emptyLabel, moreTemplate, FormatFlowNwObjectTechnicalDetails);
+        }
+
+        private static string FormatDuplicateObjectSummary<T>(IEnumerable<T>? objects, int maxItems, string emptyLabel, string moreTemplate, Func<T, string> technicalDetailsFormatter)
+        {
+            List<T> duplicateObjects = [.. (objects ?? [])];
             if (duplicateObjects.Count == 0)
             {
-                return "-";
+                return emptyLabel;
             }
 
             int previewCount = Math.Max(maxItems, 0);
             IEnumerable<string> details = duplicateObjects
                 .Take(previewCount)
-                .Select(candidate => FlowAdminHelper.FormatFlowNwObjectTechnicalDetails(candidate));
+                .Select(technicalDetailsFormatter);
 
             string summary = string.Join(", ", details);
             if (duplicateObjects.Count <= previewCount)
@@ -438,9 +383,10 @@ namespace FWO.Data.Flow
             }
 
             int remainingCount = duplicateObjects.Count - previewCount;
+            string moreText = moreTemplate.Replace("@@COUNT@@", remainingCount.ToString(CultureInfo.InvariantCulture));
             return string.IsNullOrWhiteSpace(summary)
-                ? $"... and {remainingCount} more"
-                : $"{summary}, ... and {remainingCount} more";
+                ? moreText
+                : $"{summary}, {moreText}";
         }
 
         /// <summary>

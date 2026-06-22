@@ -39,7 +39,7 @@
         <Column TableItem="FlowSvcObjectDuplicateGroup" Title="@(userConfig.GetText("management"))" Field="@(group => group.ManagementName)" Sortable="true" Filterable="true" />
         <Column TableItem="FlowSvcObjectDuplicateGroup" Title="@(userConfig.GetText("objects"))" Field="@(group => group.Services.Count)" Sortable="true" Filterable="false" Context="group">
             <Template>
-                @FlowAdminHelper.FormatDuplicateObjectSummary(group.Services)
+                @FlowAdminHelper.FormatDuplicateObjectSummary(group.Services, 5, userConfig.GetText("none"), userConfig.GetText("duplicate_objects_more"))
             </Template>
         </Column>
         <Column TableItem="FlowSvcObjectDuplicateGroup" Title="@(userConfig.GetText("actions"))" Field="@(group => group.ManagementId)" Sortable="false" Filterable="false" Context="group">

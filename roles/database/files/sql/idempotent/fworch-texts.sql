@@ -762,6 +762,8 @@ INSERT INTO txt VALUES ('ip_addresses',		    'German', 	'IP-Adressen');
 INSERT INTO txt VALUES ('ip_addresses',		    'English', 	'IP Addresses');
 INSERT INTO txt VALUES ('members',		        'German', 	'Mitglieder');
 INSERT INTO txt VALUES ('members',		        'English', 	'Members');
+INSERT INTO txt VALUES ('duplicate_objects_more',	'German', 	'... und @@COUNT@@ weitere');
+INSERT INTO txt VALUES ('duplicate_objects_more',	'English', 	'... and @@COUNT@@ more');
 INSERT INTO txt VALUES ('templates',			'German', 	'Vorlagen');
 INSERT INTO txt VALUES ('templates',			'English', 	'Templates');
 INSERT INTO txt VALUES ('creation_date',		'German', 	'Erstelldatum');

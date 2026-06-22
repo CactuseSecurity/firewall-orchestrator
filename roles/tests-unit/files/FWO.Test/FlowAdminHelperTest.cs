@@ -110,6 +110,25 @@ namespace FWO.Test
         }
 
         [Test]
+        public void FormatFlowNwGroupTechnicalDetails_UsesLocalizedMembersLabel()
+        {
+            FlowNwGroup candidate = new()
+            {
+                Id = 11,
+                Name = "group-1",
+                NwGroupMembers =
+                [
+                    new FlowNwGroupMember { NwObject = new FlowNwObject { Id = 101, Name = "obj-a" } },
+                    new FlowNwGroupMember { NwObject = new FlowNwObject { Id = 102, Name = "obj-b" } }
+                ]
+            };
+
+            string details = FlowAdminHelper.FormatFlowNwGroupTechnicalDetails(candidate, "Members");
+
+            Assert.That(details, Is.EqualTo("2 Members"));
+        }
+
+        [Test]
         public void BuildDuplicateGroups_FindsInactiveFlowSvcObjectConflicts()
         {
             List<FlowSvcObject> flowObjects =
@@ -153,6 +172,25 @@ namespace FWO.Test
             Assert.That(groups, Has.Count.EqualTo(1));
             Assert.That(groups[0].FlowSvcObjectId, Is.EqualTo(21));
             Assert.That(groups[0].Services, Has.Count.EqualTo(2));
+        }
+
+        [Test]
+        public void FormatFlowSvcGroupTechnicalDetails_UsesLocalizedMembersLabel()
+        {
+            FlowSvcGroup candidate = new()
+            {
+                Id = 31,
+                Name = "svc-group-1",
+                SvcGroupMembers =
+                [
+                    new FlowSvcGroupMember { SvcObject = new FlowSvcObject { Id = 301, Name = "svc-a" } },
+                    new FlowSvcGroupMember { SvcObject = new FlowSvcObject { Id = 302, Name = "svc-b" } }
+                ]
+            };
+
+            string details = FlowAdminHelper.FormatFlowSvcGroupTechnicalDetails(candidate, "Members");
+
+            Assert.That(details, Is.EqualTo("2 Members"));
         }
 
         [Test]
@@ -514,7 +552,7 @@ namespace FWO.Test
                 new NetworkObject { Id = 3, Name = "three", IP = "", IpEnd = "", Uid = "uid-3" }
             ];
 
-            string summary = FlowAdminHelper.FormatDuplicateObjectSummary(candidates, 2);
+            string summary = FlowAdminHelper.FormatDuplicateObjectSummary(candidates, 2, "None", "... and @@COUNT@@ more");
 
             Assert.That(summary, Is.EqualTo("one [uid-1], two [uid-2], ... and 1 more"));
         }
@@ -522,9 +560,9 @@ namespace FWO.Test
         [Test]
         public void FormatDuplicateObjectSummary_ReturnsPlaceholderForEmptyLists()
         {
-            string summary = FlowAdminHelper.FormatDuplicateObjectSummary(Array.Empty<NetworkObject>(), 2);
+            string summary = FlowAdminHelper.FormatDuplicateObjectSummary(Array.Empty<NetworkObject>(), 2, "None", "... and @@COUNT@@ more");
 
-            Assert.That(summary, Is.EqualTo("-"));
+            Assert.That(summary, Is.EqualTo("None"));
         }
     }
 }

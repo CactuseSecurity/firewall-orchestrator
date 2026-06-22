@@ -11,6 +11,7 @@ using FWO.Middleware.Client;
 using FWO.Services.Workflow;
 using FWO.Ui.Pages.Monitoring;
 using FWO.Ui.Pages.Reporting.Reports;
+using FWO.Ui.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
@@ -654,6 +655,80 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task StateChangePopup_RenderedVisible_ShowsStateModeAndHelp()
+        {
+            await using BunitContext context = CreatePopupContext(Roles.Admin, out _);
+
+            IRenderedComponent<MonitorWorkflowStateChangePopup> component = RenderStateChangePopup(context);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("Change state: Ticket 42"));
+                Assert.That(component.Markup, Does.Contain("Promote to"));
+                Assert.That(component.Markup, Does.Contain("Implementation"));
+                Assert.That(component.Markup, Does.Contain("State change mode"));
+                Assert.That(component.Markup, Does.Contain("Local only"));
+                Assert.That(component.Markup, Does.Contain("Mode help"));
+            });
+        }
+
+        [Test]
+        public async Task StateChangePopup_RenderedHidden_DoesNotRenderPopupBody()
+        {
+            await using BunitContext context = CreatePopupContext(Roles.Admin, out _);
+
+            IRenderedComponent<MonitorWorkflowStateChangePopup> component = RenderStateChangePopup(context, display: false);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Not.Contain("Change state: Ticket 42"));
+                Assert.That(component.Markup, Does.Not.Contain("Promote to"));
+                Assert.That(component.FindAll("button"), Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task StateChangePopup_SaveAndCancelButtons_InvokeCallbacks()
+        {
+            await using BunitContext context = CreatePopupContext(Roles.Admin, out _);
+            bool applied = false;
+            bool closed = false;
+            IRenderedComponent<MonitorWorkflowStateChangePopup> component = RenderStateChangePopup(context,
+                applyStateChange: () =>
+                {
+                    applied = true;
+                    return Task.CompletedTask;
+                },
+                closeStateDialog: () => closed = true);
+
+            component.WaitForAssertion(() => Assert.That(component.Find("button.btn-primary").HasAttribute("disabled"), Is.False));
+            component.Find("button.btn-primary").Click();
+            component.Find("button.btn-secondary").Click();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(applied, Is.True);
+                Assert.That(closed, Is.True);
+                Assert.That(component.Instance.Display, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task StateChangePopup_AuditorGetsDisabledSaveButton()
+        {
+            await using BunitContext context = CreatePopupContext(Roles.Auditor, out _);
+
+            IRenderedComponent<MonitorWorkflowStateChangePopup> component = RenderStateChangePopup(context);
+
+            component.WaitForAssertion(() =>
+            {
+                var saveButtons = component.FindAll("button.btn-primary");
+                Assert.That(saveButtons, Has.Count.EqualTo(1));
+                Assert.That(saveButtons[0].HasAttribute("disabled"), Is.True);
+            });
+        }
+
         private static void AssertPopup(MonitorWorkflow component, WfObjectScopes scope, string objectName, int targetStateId)
         {
             Assert.Multiple(() =>
@@ -664,6 +739,37 @@ namespace FWO.Test
                 Assert.That(GetPrivateField<int>(component, "selectedTargetStateId"), Is.EqualTo(targetStateId));
                 Assert.That(GetPrivateField<MonitoringStateChangeMode>(component, "selectedStateChangeMode"), Is.EqualTo(MonitoringStateChangeMode.LocalOnly));
             });
+        }
+
+        private static BunitContext CreatePopupContext(string role, out MonitorWorkflowUserConfig userConfig)
+        {
+            BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddAuthorizationCore();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddScoped<DomEventService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new MonitoringTestAuthStateProvider(role));
+            userConfig = new MonitorWorkflowUserConfig();
+            userConfig.User.Roles = [role];
+            userConfig.SetExecutionMode(role);
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            return context;
+        }
+
+        private static IRenderedComponent<MonitorWorkflowStateChangePopup> RenderStateChangePopup(BunitContext context, bool display = true,
+            Func<Task>? applyStateChange = null, Action? closeStateDialog = null)
+        {
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters => parameters
+                .AddChildContent<MonitorWorkflowStateChangePopup>(child => child
+                    .Add(p => p.Display, display)
+                    .Add(p => p.ObjectName, "Ticket 42")
+                    .Add(p => p.TargetStateId, 3)
+                    .Add(p => p.StateChangeMode, MonitoringStateChangeMode.LocalOnly)
+                    .Add(p => p.AvailableTargetStateIds, new List<int> { 2, 3 })
+                    .Add(p => p.StateNames, new Dictionary<int, string> { [2] = "Approved", [3] = "Implementation" })
+                    .Add(p => p.ApplyStateChange, applyStateChange ?? (() => Task.CompletedTask))
+                    .Add(p => p.CloseStateDialog, closeStateDialog ?? (() => { }))));
+            return wrapper.FindComponent<MonitorWorkflowStateChangePopup>();
         }
     }
 
@@ -709,6 +815,10 @@ namespace FWO.Test
                 "confirm" => "Confirm",
                 "promote_to" => "Promote to",
                 "state_change_mode" => "State change mode",
+                "LocalOnly" => "Local only",
+                "CascadeParents" => "Cascade parents",
+                "TriggerActions" => "Trigger actions",
+                "H7031" => "Mode help",
                 "access" => "Access",
                 "group_create" => "Group Create",
                 _ => base.GetText(key)

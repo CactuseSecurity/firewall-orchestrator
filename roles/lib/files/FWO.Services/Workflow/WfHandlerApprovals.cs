@@ -159,16 +159,16 @@ namespace FWO.Services.Workflow
             DisplayAssignApprovalMode = false;
         }
 
-        private async Task UpdateActApproval()
+        private async Task UpdateActApproval(bool triggerActions = true)
         {
             if (dbAcc != null)
             {
-                await dbAcc.UpdateApprovalInDb(ActApproval);
+                await dbAcc.UpdateApprovalInDb(ActApproval, triggerActions);
             }
             ActReqTask.Approvals[ActReqTask.Approvals.FindIndex(x => x.Id == ActApproval.Id)] = ActApproval;
         }
 
-        private async Task UpdateActReqTaskStateFromApprovals()
+        private async Task UpdateActReqTaskStateFromApprovals(bool triggerActions = true)
         {
             if (ActReqTask.Approvals.Count > 0)
             {
@@ -179,7 +179,7 @@ namespace FWO.Services.Workflow
                 }
                 ActReqTask.StateId = ActStateMatrix.getDerivedStateFromSubStates(approvalStates);
             }
-            await UpdateActReqTaskState();
+            await UpdateActReqTaskState(triggerActions);
 
             // in the case impl tasks are already existing
             foreach (var implTask in ActReqTask.ImplementationTasks)
@@ -187,7 +187,7 @@ namespace FWO.Services.Workflow
                 implTask.StateId = ActReqTask.StateId;
                 if (dbAcc != null)
                 {
-                    await dbAcc.UpdateImplTaskStateInDb(implTask);
+                    await dbAcc.UpdateImplTaskStateInDb(implTask, triggerActions);
                 }
             }
         }

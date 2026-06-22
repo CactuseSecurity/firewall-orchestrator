@@ -72,7 +72,7 @@ namespace FWO.Test
                 Assert.That(apiConnection.InsertedServiceObject.PortStart, Is.EqualTo(80));
                 Assert.That(apiConnection.InsertedServiceObject.PortEnd, Is.EqualTo(80));
                 Assert.That(apiConnection.InsertedServiceObject.IpProtoId, Is.EqualTo(6));
-                Assert.That(apiConnection.InsertedServiceObject.SvcObjHash, Is.Not.Null.And.Length.EqualTo(32));
+                Assert.That(apiConnection.InsertedServiceObject.SvcObjHash, Is.EqualTo(FlowHashGenerator.GenerateSvcObjectHash(6, 80, 80)));
                 Assert.That(apiConnection.MappingCalls, Is.EqualTo(new List<(long ServiceId, long FlowSvcobjId, bool ActiveOnMgm)>
                 {
                     (11, 900, true)

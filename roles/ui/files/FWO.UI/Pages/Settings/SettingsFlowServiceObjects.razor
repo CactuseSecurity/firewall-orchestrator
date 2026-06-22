@@ -485,6 +485,9 @@ else
             workInProgress = true;
             StateHasChanged();
 
+            string hash = firstSignature.DestinationPortStart.HasValue && firstSignature.DestinationPortEnd.HasValue
+                ? FlowHashGenerator.GenerateSvcObjectHash(firstSignature.ProtoId, firstSignature.DestinationPortStart, firstSignature.DestinationPortEnd)
+                : FlowHashGenerator.GenerateRandomHash();
             FlowSvcObjectInsertResult createdObjects = await apiConnection.SendQueryAsync<FlowSvcObjectInsertResult>(FlowQueries.insertFlowSvcObjects, new
             {
                 objects = new[]
@@ -495,7 +498,7 @@ else
                         PortStart = firstSignature.DestinationPortStart,
                         PortEnd = firstSignature.DestinationPortEnd,
                         IpProtoId = firstSignature.ProtoId,
-                        SvcObjHash = FlowHashGenerator.GenerateRandomHash(),
+                        SvcObjHash = hash,
                         State = FlowState.Implemented,
                         RemovedDate = null,
                         ShowInRequestModule = NewCustomFlowSvcObject.ShowInRequestModule

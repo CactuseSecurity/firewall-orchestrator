@@ -27,7 +27,7 @@ else
         <div class="row col-sm-4">
             <label class="form-label col-sm-3">@(userConfig.GetText("task_type"))</label>
             <div class="col-sm-6">
-                <Dropdown ElementType="WfTaskType?" SelectedElements="selectedTaskTypesForUi" SelectedElementsChanged="TaskTypesChanged"
+                <Dropdown ElementType="WfTaskType?" SelectedElements="SelectedTaskTypesForUi" SelectedElementsChanged="TaskTypesChanged"
                           ElementToString="TaskTypeToString" Elements="availableTaskTypes" Multiselect="true" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
                     <ElementTemplate>
                         @(TaskTypeToString(context))
@@ -38,7 +38,7 @@ else
         <div class="row col-sm-4">
             <label class="form-label col-sm-3">@(userConfig.GetText("state"))</label>
             <div class="col-sm-6">
-                <Dropdown ElementType="int?" SelectedElements="selectedStateIdsForUi" SelectedElementsChanged="StateIdsChanged"
+                <Dropdown ElementType="int?" SelectedElements="SelectedStateIdsForUi" SelectedElementsChanged="StateIdsChanged"
                           ElementToString="@(stateId => StateIdToString(stateId))" Elements="availableStateIds" Multiselect="true" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
                     <ElementTemplate>
                         @(StateIdToString(context))
@@ -79,10 +79,10 @@ else
                                  @bind-TargetStateId="selectedTargetStateId" @bind-StateChangeMode="selectedStateChangeMode"
                                  AvailableTargetStateIds="availableTargetStateIds" StateNames="StateNames"
                                  ApplyStateChange="ApplyStateChange" CloseStateDialog="CloseStateDialog" />
-<Confirm @bind-Display="confirmAutoCreateImplTasks" PerformAction="ConfirmAutoCreateImplementationTasks"
+<Confirm @bind-Display="ConfirmAutoCreateImplTasksDisplay" PerformAction="ConfirmAutoCreateImplementationTasks"
          Title="@(userConfig.GetText("auto_create_impltasks"))" Message="@autoCreateImplTasksConfirmMessage"
          AllowedRoles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")" />
-<InProgress Display="workInProgress" />
+<InProgress Display="WorkInProgress" />
 
 @code
 {
@@ -96,16 +96,16 @@ else
     private List<WfTaskType> availableRealTaskTypes = [];
     private List<WfTaskType?> availableTaskTypes => [null, .. availableRealTaskTypes.Cast<WfTaskType?>()];
     private List<WfTaskType> SelectedTaskTypes { get; set; } = [];
-    private IEnumerable<WfTaskType?> selectedTaskTypesForUi = [];
+    private IEnumerable<WfTaskType?> SelectedTaskTypesForUi { get; set; } = [];
     private List<WfState> allStates = [];
     private List<int?> availableStateIds => [null, .. allStates.Select(state => (int?)state.Id)];
     private List<int> SelectedStateIds { get; set; } = [];
-    private IEnumerable<int?> selectedStateIdsForUi = [];
+    private IEnumerable<int?> SelectedStateIdsForUi { get; set; } = [];
     private WfHandler wfHandler = new();
     private bool InitComplete;
     private bool showStateDialog;
-    private bool confirmAutoCreateImplTasks;
-    private bool workInProgress;
+    private bool ConfirmAutoCreateImplTasksDisplay { get; set; }
+    private bool WorkInProgress { get; set; }
     private int selectedTargetStateId;
     private MonitoringStateChangeMode selectedStateChangeMode;
     private WfTicket? selectedTicket;
@@ -133,7 +133,7 @@ else
                 new JsonSerializerOptions { Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() } }) ?? [];
             availableRealTaskTypes = [.. availableRealTaskTypes.Where(taskType => taskType != WfTaskType.master)];
             SelectedTaskTypes = [.. availableRealTaskTypes];
-            selectedTaskTypesForUi = [];
+            SelectedTaskTypesForUi = [];
             allStates = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
             StateNames = allStates.ToDictionary(state => state.Id, state => state.Name);
 
@@ -164,13 +164,13 @@ else
     {
         try
         {
-            workInProgress = true;
+            WorkInProgress = true;
             StateHasChanged();
             await LoadTickets();
         }
         finally
         {
-            workInProgress = false;
+            WorkInProgress = false;
         }
     }
 
@@ -181,9 +181,15 @@ else
 
     private string StateIdToString(int? stateId)
     {
-        return stateId == null
-            ? userConfig.GetText("all")
-            : StateNames.TryGetValue((int)stateId, out string? stateName) ? stateName : stateId.ToString() ?? "";
+        if (stateId == null)
+        {
+            return userConfig.GetText("all");
+        }
+        if (StateNames.TryGetValue((int)stateId, out string? stateName))
+        {
+            return stateName;
+        }
+        return stateId.ToString() ?? "";
     }
 
     private Task TaskTypesChanged(IEnumerable<WfTaskType?> taskTypes)
@@ -192,7 +198,7 @@ else
         SelectedTaskTypes = taskTypeList.Count == 0 || taskTypeList.Contains(null)
             ? [.. availableRealTaskTypes]
             : [.. taskTypeList.Where(taskType => taskType.HasValue).Select(taskType => taskType!.Value)];
-        selectedTaskTypesForUi = SelectedTaskTypes.Count == availableRealTaskTypes.Count ? [] : [.. SelectedTaskTypes.Cast<WfTaskType?>()];
+        SelectedTaskTypesForUi = SelectedTaskTypes.Count == availableRealTaskTypes.Count ? [] : [.. SelectedTaskTypes.Cast<WfTaskType?>()];
         CurrentPage = 0;
         return FetchTicketPage();
     }
@@ -203,7 +209,7 @@ else
         SelectedStateIds = stateIdList.Count == 0 || stateIdList.Contains(null)
             ? []
             : [.. stateIdList.Where(stateId => stateId.HasValue).Select(stateId => stateId!.Value)];
-        selectedStateIdsForUi = SelectedStateIds.Count == 0 ? [] : [.. SelectedStateIds.Select(stateId => (int?)stateId)];
+        SelectedStateIdsForUi = SelectedStateIds.Count == 0 ? [] : [.. SelectedStateIds.Select(stateId => (int?)stateId)];
         CurrentPage = 0;
         return FetchTicketPage();
     }
@@ -334,7 +340,7 @@ else
         selectedAutoCreateTicket = ticket;
         selectedAutoCreateReqTask = reqTask;
         autoCreateImplTasksConfirmMessage = $"{userConfig.GetText("auto_create_impltasks")} {reqTask.Title}?";
-        confirmAutoCreateImplTasks = true;
+        ConfirmAutoCreateImplTasksDisplay = true;
         StateHasChanged();
         return Task.CompletedTask;
     }
@@ -348,7 +354,7 @@ else
                 return;
             }
 
-            workInProgress = true;
+            WorkInProgress = true;
             bool implementationTasksCreated = await wfHandler.AutoCreateInitialImplTasksForMonitoring(selectedAutoCreateTicket, selectedAutoCreateReqTask);
             await FetchTicketPage();
             DisplayMessageInUi(null, userConfig.GetText("auto_create_impltasks"),
@@ -360,7 +366,7 @@ else
         }
         finally
         {
-            workInProgress = false;
+            WorkInProgress = false;
             selectedAutoCreateTicket = null;
             selectedAutoCreateReqTask = null;
         }
@@ -375,7 +381,7 @@ else
                 return;
             }
 
-            workInProgress = true;
+            WorkInProgress = true;
             switch (selectedScope)
             {
                 case WfObjectScopes.Ticket:
@@ -410,7 +416,7 @@ else
         }
         finally
         {
-            workInProgress = false;
+            WorkInProgress = false;
         }
     }
 

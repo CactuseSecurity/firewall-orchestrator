@@ -207,12 +207,24 @@
     [Parameter]
     public bool SortDescendingById { get; set; }
 
-    private IEnumerable<WfTicket> SortedTickets => HasReferenceDateColumn()
-        ? Tickets
-            .OrderByDescending(ticket => GetStoredTicketReferenceDate(ticket).HasValue)
-            .ThenByDescending(GetStoredTicketReferenceDate)
-            .ThenByDescending(ticket => ticket.Id)
-        : SortDescendingById ? Tickets.OrderByDescending(ticket => ticket.Id) : Tickets.OrderBy(ticket => ticket.Id);
+    private IEnumerable<WfTicket> SortedTickets
+    {
+        get
+        {
+            if (HasReferenceDateColumn())
+            {
+                return Tickets
+                    .OrderByDescending(ticket => GetStoredTicketReferenceDate(ticket).HasValue)
+                    .ThenByDescending(GetStoredTicketReferenceDate)
+                    .ThenByDescending(ticket => ticket.Id);
+            }
+            if (SortDescendingById)
+            {
+                return Tickets.OrderByDescending(ticket => ticket.Id);
+            }
+            return Tickets.OrderBy(ticket => ticket.Id);
+        }
+    }
 
     private string ResolveStateName(int stateId)
     {

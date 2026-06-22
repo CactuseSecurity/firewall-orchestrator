@@ -319,7 +319,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(GetPrivateProperty<List<WfTaskType>>(component, "SelectedTaskTypes"), Is.EqualTo(new List<WfTaskType> { WfTaskType.access, WfTaskType.group_create }));
-                Assert.That(GetPrivateField<IEnumerable<WfTaskType?>>(component, "selectedTaskTypesForUi"), Is.Empty);
+                Assert.That(GetPrivateProperty<IEnumerable<WfTaskType?>>(component, "SelectedTaskTypesForUi"), Is.Empty);
             });
         }
 
@@ -336,7 +336,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(GetPrivateProperty<List<int>>(component, "SelectedStateIds"), Is.EqualTo(new List<int> { 2, 4 }));
-                Assert.That(GetPrivateField<IEnumerable<int?>>(component, "selectedStateIdsForUi"), Is.EqualTo(new int?[] { 2, 4 }));
+                Assert.That(GetPrivateProperty<IEnumerable<int?>>(component, "SelectedStateIdsForUi"), Is.EqualTo(new int?[] { 2, 4 }));
                 Assert.That(GetPrivateProperty<int>(component, "CurrentPage"), Is.EqualTo(0));
                 Assert.That(GetVariable<List<int>>(filteredVariables, "stateIds"), Is.EqualTo(new List<int> { 2, 4 }));
             });
@@ -349,7 +349,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(GetPrivateProperty<List<int>>(component, "SelectedStateIds"), Is.Empty);
-                Assert.That(GetPrivateField<IEnumerable<int?>>(component, "selectedStateIdsForUi"), Is.Empty);
+                Assert.That(GetPrivateProperty<IEnumerable<int?>>(component, "SelectedStateIdsForUi"), Is.Empty);
                 Assert.That(GetVariable<List<int>>(allStateVariables, "stateIds"), Is.EqualTo(new List<int> { 1, 2, 3, 4 }));
             });
         }
@@ -469,7 +469,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(GetPrivateField<bool>(component, "confirmAutoCreateImplTasks"), Is.True);
+                Assert.That(GetPrivateProperty<bool>(component, "ConfirmAutoCreateImplTasksDisplay"), Is.True);
                 Assert.That(GetPrivateField<WfTicket?>(component, "selectedAutoCreateTicket"), Is.SameAs(ticket));
                 Assert.That(GetPrivateField<WfReqTask?>(component, "selectedAutoCreateReqTask"), Is.SameAs(reqTask));
                 Assert.That(reqTask.ImplementationTasks, Is.Empty);
@@ -506,14 +506,14 @@ namespace FWO.Test
         {
             MonitorWorkflowApiConn apiConn = new();
             MonitorWorkflow component = CreateComponent(apiConn);
-            SetPrivateField(component, "workInProgress", true);
+            SetPrivateProperty(component, "WorkInProgress", true);
 
             await (Task)GetPrivateMethod("ConfirmAutoCreateImplementationTasks").Invoke(component, null)!;
 
             Assert.Multiple(() =>
             {
                 Assert.That(apiConn.Variables, Is.Empty);
-                Assert.That(GetPrivateField<bool>(component, "workInProgress"), Is.False);
+                Assert.That(GetPrivateProperty<bool>(component, "WorkInProgress"), Is.False);
                 Assert.That(GetPrivateField<WfTicket?>(component, "selectedAutoCreateTicket"), Is.Null);
                 Assert.That(GetPrivateField<WfReqTask?>(component, "selectedAutoCreateReqTask"), Is.Null);
             });
@@ -531,7 +531,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(apiConn.Variables, Is.Empty);
-                Assert.That(GetPrivateField<bool>(component, "workInProgress"), Is.False);
+                Assert.That(GetPrivateProperty<bool>(component, "WorkInProgress"), Is.False);
             });
         }
 

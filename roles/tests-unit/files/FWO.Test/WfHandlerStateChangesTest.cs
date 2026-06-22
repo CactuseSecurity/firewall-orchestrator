@@ -6,6 +6,7 @@ using FWO.Services;
 using FWO.Services.Workflow;
 using NUnit.Framework;
 using System.Reflection;
+using System.Security.Claims;
 
 namespace FWO.Test
 {
@@ -25,6 +26,22 @@ namespace FWO.Test
             actionHandler.Init([]).GetAwaiter().GetResult();
             WfDbAccess dbAccess = new(DefaultInit.DoNothing, handler.userConfig, apiConnection, actionHandler, true);
             typeof(WfHandler).GetField("dbAcc", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(handler, dbAccess);
+        }
+
+        private static async Task<string> CaptureConsoleOutput(Func<Task> action)
+        {
+            using StringWriter logOutput = new();
+            TextWriter originalConsoleOut = Console.Out;
+            try
+            {
+                Console.SetOut(logOutput);
+                await action();
+                return logOutput.ToString();
+            }
+            finally
+            {
+                Console.SetOut(originalConsoleOut);
+            }
         }
 
         [Test]
@@ -616,6 +633,79 @@ namespace FWO.Test
             {
                 Assert.That(ticket.StateId, Is.EqualTo(2));
                 Assert.That(ticket.StateChanged(), Is.True);
+            });
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task ChangeTicketStateForMonitoring_WritesWarningAuditLog()
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig(),
+                AuthUser = new ClaimsPrincipal(new ClaimsIdentity([new Claim("x-hasura-uuid", "admin-user")], "test")),
+                MasterStateMatrix = new StateMatrix
+                {
+                    Matrix = new() { [1] = [2] },
+                    MinTicketCompleted = 99,
+                    PhaseActive = new() { { WorkflowPhases.planning, false } }
+                }
+            };
+            WfTicket ticket = new() { Id = 42, StateId = 1 };
+            ticket.ResetStateChanged();
+
+            string logOutput = await CaptureConsoleOutput(async () =>
+                await handler.ChangeTicketStateForMonitoring(ticket, 2, MonitoringStateChangeMode.LocalOnly));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(logOutput, Does.Contain("Warning - Workflow Monitoring"));
+                Assert.That(logOutput, Does.Contain("admin-user"));
+                Assert.That(logOutput, Does.Contain("Ticket 42"));
+                Assert.That(logOutput, Does.Contain("from state 1 to 2"));
+                Assert.That(logOutput, Does.Contain("LocalOnly"));
+            });
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task AutoCreateInitialImplTasksForMonitoring_WritesWarningAuditLogWhenTaskCreated()
+        {
+            WfHandler handler = new()
+            {
+                AuthUser = new ClaimsPrincipal(new ClaimsIdentity([new Claim("x-hasura-uuid", "admin-user")], "test")),
+                userConfig = new SimulatedUserConfig
+                {
+                    ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices,
+                    ReqConsiderBundling = false
+                }
+            };
+            SetMatrix(handler, WfTaskType.group_create.ToString(), new StateMatrix
+            {
+                MinImplTasksNeeded = 3,
+                MinTicketCompleted = 99,
+                PhaseActive = new() { { WorkflowPhases.planning, false } }
+            });
+            WfReqTask reqTask = new()
+            {
+                Id = 7,
+                TicketId = 42,
+                StateId = 4,
+                TaskType = WfTaskType.group_create.ToString()
+            };
+            WfTicket ticket = new() { Id = 42, Tasks = [reqTask] };
+
+            string logOutput = await CaptureConsoleOutput(async () =>
+                await handler.AutoCreateInitialImplTasksForMonitoring(ticket, reqTask));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(logOutput, Does.Contain("Warning - Workflow Monitoring"));
+                Assert.That(logOutput, Does.Contain("admin-user"));
+                Assert.That(logOutput, Does.Contain("implementation task creation"));
+                Assert.That(logOutput, Does.Contain("created 1 implementation task"));
+                Assert.That(logOutput, Does.Contain("request task 7"));
+                Assert.That(logOutput, Does.Contain("ticket 42"));
             });
         }
 

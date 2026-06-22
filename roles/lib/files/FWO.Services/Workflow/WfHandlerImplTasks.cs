@@ -422,12 +422,20 @@ namespace FWO.Services.Workflow
 
             int previousImplTaskCount = taskToUpdate.ImplementationTasks.Count;
             bool implementationTasksCreated = false;
+            int createdImplTaskCount = 0;
             foreach (WfReqTask task in await RequestTasksForInitialImplCreation([taskToUpdate]))
             {
                 int taskPreviousImplTaskCount = task.ImplementationTasks.Count;
                 await AutoCreateImplTasks(task);
-                implementationTasksCreated = implementationTasksCreated || task.ImplementationTasks.Count > taskPreviousImplTaskCount;
+                int taskCreatedImplTaskCount = Math.Max(0, task.ImplementationTasks.Count - taskPreviousImplTaskCount);
+                createdImplTaskCount += taskCreatedImplTaskCount;
+                implementationTasksCreated = implementationTasksCreated || taskCreatedImplTaskCount > 0;
                 SyncActTicketFromReqTask(task);
+            }
+            createdImplTaskCount = Math.Max(createdImplTaskCount, taskToUpdate.ImplementationTasks.Count - previousImplTaskCount);
+            if (createdImplTaskCount > 0)
+            {
+                LogMonitoringImplementationTasksCreated(ActTicket.Id, taskToUpdate.Id, createdImplTaskCount);
             }
             return implementationTasksCreated || taskToUpdate.ImplementationTasks.Count > previousImplTaskCount;
         }

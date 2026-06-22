@@ -168,8 +168,10 @@ namespace FWO.Services.Workflow
         public async Task ChangeTicketStateForMonitoring(WfTicket ticket, int targetStateId, MonitoringStateChangeMode mode)
         {
             SetTicketEnv(ticket);
+            int oldStateId = ActTicket.StateId;
             ActTicket.StateId = targetStateId;
             await UpdateActTicketState(mode == MonitoringStateChangeMode.TriggerActions, false);
+            LogMonitoringStateChange(WfObjectScopes.Ticket, ActTicket.Id, ActTicket.Id, oldStateId, targetStateId, mode);
         }
 
         /// <summary>
@@ -179,6 +181,7 @@ namespace FWO.Services.Workflow
         {
             SetTicketEnv(ticket);
             SetReqTaskEnv(reqTask);
+            int oldStateId = ActReqTask.StateId;
             ActReqTask.StateId = targetStateId;
             await UpdateActReqTaskState(mode == MonitoringStateChangeMode.TriggerActions);
 
@@ -186,6 +189,7 @@ namespace FWO.Services.Workflow
             {
                 await UpdateActTicketStateFromReqTasks(mode == MonitoringStateChangeMode.TriggerActions);
             }
+            LogMonitoringStateChange(WfObjectScopes.RequestTask, ActReqTask.Id, ActTicket.Id, oldStateId, targetStateId, mode);
         }
 
         /// <summary>
@@ -196,6 +200,7 @@ namespace FWO.Services.Workflow
             SetTicketEnv(ticket);
             SetReqTaskEnv(reqTask);
             SetImplTaskEnv(implTask);
+            int oldStateId = ActImplTask.StateId;
             ActImplTask.StateId = targetStateId;
             await UpdateActImplTaskState(mode == MonitoringStateChangeMode.TriggerActions);
             ResetImplTaskList();
@@ -205,6 +210,7 @@ namespace FWO.Services.Workflow
                 await UpdateReqTaskStatesFromActImplTask(mode == MonitoringStateChangeMode.TriggerActions);
                 await UpdateActTicketStateFromReqTasks(mode == MonitoringStateChangeMode.TriggerActions);
             }
+            LogMonitoringStateChange(WfObjectScopes.ImplementationTask, ActImplTask.Id, ActTicket.Id, oldStateId, targetStateId, mode);
         }
 
         /// <summary>
@@ -215,6 +221,7 @@ namespace FWO.Services.Workflow
             SetTicketEnv(ticket);
             SetReqTaskEnv(reqTask);
             await SetApprovalEnv(approval, false);
+            int oldStateId = ActApproval.StateId;
             ActApproval.StateId = targetStateId;
             await UpdateActApproval(mode == MonitoringStateChangeMode.TriggerActions);
 
@@ -224,6 +231,31 @@ namespace FWO.Services.Workflow
                 SyncActTicketFromReqTask(ActReqTask);
                 await UpdateActTicketStateFromReqTasks(mode == MonitoringStateChangeMode.TriggerActions);
             }
+            LogMonitoringStateChange(WfObjectScopes.Approval, ActApproval.Id, ActTicket.Id, oldStateId, targetStateId, mode);
+        }
+
+        private void LogMonitoringStateChange(WfObjectScopes scope, long objectId, long ticketId, int oldStateId, int newStateId, MonitoringStateChangeMode mode)
+        {
+            Log.WriteWarning("Workflow Monitoring",
+                $"Admin monitoring state change by {MonitoringActor()}: {scope} {objectId} on ticket {ticketId} changed from state {oldStateId} to {newStateId} with mode {mode}.");
+        }
+
+        private void LogMonitoringImplementationTasksCreated(long ticketId, long reqTaskId, int createdCount)
+        {
+            Log.WriteWarning("Workflow Monitoring",
+                $"Admin monitoring implementation task creation by {MonitoringActor()}: created {createdCount} implementation task(s) for request task {reqTaskId} on ticket {ticketId}.");
+        }
+
+        private string MonitoringActor()
+        {
+            foreach (string? actor in new[] { AuthUser?.FindFirst("x-hasura-uuid")?.Value, AuthUser?.Identity?.Name, userConfig.User.Name, userConfig.User.Dn })
+            {
+                if (!string.IsNullOrWhiteSpace(actor))
+                {
+                    return actor;
+                }
+            }
+            return userConfig.User.DbId > 0 ? userConfig.User.DbId.ToString() : "unknown";
         }
 
         private static string GetStatefulObjectId(WfStatefulObject statefulObject)

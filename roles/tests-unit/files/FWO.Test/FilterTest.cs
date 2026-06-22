@@ -1204,6 +1204,22 @@ namespace FWO.Test
 
         [Test]
         [Parallelizable]
+        public void StatisticsQueryCountsRulesPerGatewayNotPerManagement()
+        {
+            ReportTemplate t = new();
+            t.ReportParams.ReportType = (int)ReportType.Statistics;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            // Per gateway rule counts must be derived from rules enforced on that gateway,
+            // otherwise every gateway of a management shows the same (summed) rule count (issue #4768).
+            StringAssert.Contains("rules_aggregate: rule_enforced_on_gateways_aggregate(where:", query.FullQuery);
+            StringAssert.Contains("unusedRules_Count: rule_enforced_on_gateways_aggregate(where:", query.FullQuery);
+            StringAssert.DoesNotContain("rules_aggregate: management {", query.FullQuery);
+        }
+
+        [Test]
+        [Parallelizable]
         public void ReportTypeFilter_RejectsUnknownReportType()
         {
             ReportTemplate template = new()

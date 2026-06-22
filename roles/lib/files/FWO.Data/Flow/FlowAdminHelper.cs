@@ -7,7 +7,7 @@ namespace FWO.Data.Flow
     {
         /// <summary>
         /// Builds the list of unresolved duplicate flow object links.
-        /// A group only qualifies if it has multiple linked objects and none of them are active.
+        /// A group only qualifies if it has multiple linked objects and none of them are active. 
         /// </summary>
         public static List<FlowNwObjectDuplicateGroup> BuildDuplicateGroups(IEnumerable<FlowNwObject>? flowObjects)
         {

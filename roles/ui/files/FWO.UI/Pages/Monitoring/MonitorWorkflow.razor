@@ -51,7 +51,7 @@ else
         </div>
     </div>
 
-    @if (FilteredTickets.Count == 0)
+    @if (tickets.Count == 0)
     {
         <div>@(userConfig.GetText("no_workflow_tickets"))</div>
     }
@@ -64,7 +64,7 @@ else
                 <button type="button" class="btn btn-sm btn-secondary" disabled>@(CurrentPage + 1)</button>
                 <button type="button" class="btn btn-sm btn-secondary" disabled="@(!HasNextPage)" @onclick="NextPage">&gt;</button>
             </div>
-            <ReportedTickets Tickets="FilteredTickets" StateNames="StateNames" SelectedReportType="ReportType.TicketReport"
+            <ReportedTickets Tickets="tickets" StateNames="StateNames" SelectedReportType="ReportType.TicketReport"
                              DetailedView="true" ShowFullTicket="true" TaskTypes="SelectedTaskTypes" ShowStateChangeButtons="true"
                              SortDescendingById="true"
                              ChangeTicketState="OpenTicketStateChange" ChangeReqTaskState="OpenReqTaskStateChange"
@@ -81,7 +81,7 @@ else
                                  ApplyStateChange="ApplyStateChange" CloseStateDialog="CloseStateDialog" />
 <Confirm @bind-Display="ConfirmAutoCreateImplTasksDisplay" PerformAction="ConfirmAutoCreateImplementationTasks"
          Title="@(userConfig.GetText("auto_create_impltasks"))" Message="@autoCreateImplTasksConfirmMessage"
-         AllowedRoles="@($"{Roles.Admin}, {Roles.FwAdmin}")" />
+         AllowedRoles="@Roles.Admin" />
 <InProgress Display="WorkInProgress" />
 
 @code
@@ -103,6 +103,7 @@ else
     private IEnumerable<int?> SelectedStateIdsForUi { get; set; } = [];
     private WfHandler wfHandler = new();
     private bool InitComplete;
+    private const int kDefaultPageSize = 20;
     private bool showStateDialog;
     private bool ConfirmAutoCreateImplTasksDisplay { get; set; }
     private bool WorkInProgress { get; set; }
@@ -119,11 +120,9 @@ else
     private string autoCreateImplTasksConfirmMessage = "";
     private List<int> availableTargetStateIds => [.. allStates.Select(state => state.Id)];
     private Dictionary<int, string> StateNames { get; set; } = [];
-    private int PageSize { get; set; } = 20;
+    private int PageSize { get; set; } = kDefaultPageSize;
     private int CurrentPage { get; set; }
     private bool HasNextPage { get; set; }
-
-    private List<WfTicket> FilteredTickets => tickets;
 
     protected override async Task OnInitializedAsync()
     {
@@ -216,7 +215,7 @@ else
 
     private async Task UpdatePageSize(int pageSize)
     {
-        PageSize = pageSize > 0 ? pageSize : 20;
+        PageSize = pageSize > 0 ? pageSize : kDefaultPageSize;
         CurrentPage = 0;
         await FetchTicketPage();
     }
@@ -256,6 +255,7 @@ else
             List<WfTicket> fetchedTickets = [];
             if (authenticationStateTask == null)
             {
+                // Unit tests can instantiate this page without a cascading authentication state; production rendering supplies one.
                 fetchedTickets = await apiConnection.SendQueryAsync<List<WfTicket>>(RequestQueries.getFullTicketsPaged, variables);
             }
             else

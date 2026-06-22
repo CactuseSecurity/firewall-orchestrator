@@ -32,7 +32,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.FwAdmin}")">
+            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="Apply">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                 </Authorized>

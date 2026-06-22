@@ -714,10 +714,11 @@ namespace FWO.Test
             });
         }
 
-        [Test]
-        public async Task StateChangePopup_AuditorGetsDisabledSaveButton()
+        [TestCase(Roles.Auditor)]
+        [TestCase(Roles.FwAdmin)]
+        public async Task StateChangePopup_NonAdminGetsDisabledSaveButton(string role)
         {
-            await using BunitContext context = CreatePopupContext(Roles.Auditor, out _);
+            await using BunitContext context = CreatePopupContext(role, out _);
 
             IRenderedComponent<MonitorWorkflowStateChangePopup> component = RenderStateChangePopup(context);
 

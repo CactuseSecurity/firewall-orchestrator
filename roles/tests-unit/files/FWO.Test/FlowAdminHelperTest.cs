@@ -399,6 +399,25 @@ namespace FWO.Test
         }
 
         [Test]
+        public void FormatFlowSvcObjectTechnicalDetails_UsesProtocolNameWhenAvailable()
+        {
+            FlowSvcObject candidate = new()
+            {
+                Id = 53,
+                Name = "svc-object",
+                PortStart = 80,
+                PortEnd = 443,
+                ProtoId = 6
+            };
+
+            string details = FlowAdminHelper.FormatFlowSvcObjectTechnicalDetails(candidate, [new IpProtocol { Id = 6, Name = "TCP" }]);
+
+            Assert.That(details, Does.Contain("80-443"));
+            Assert.That(details, Does.Contain("TCP"));
+            Assert.That(details, Does.Not.Contain("6"));
+        }
+
+        [Test]
         public void FormatTimeObjectTechnicalDetails_IncludesTechnicalIdentifier()
         {
             TimeObject candidate = new()

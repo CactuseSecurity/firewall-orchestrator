@@ -89,7 +89,7 @@ else
         </Column>
         <Column TableItem="FlowSvcObject" Title="@(userConfig.GetText("details"))" Field="@(svcObject => svcObject.Id)" Sortable="false" Filterable="false" Context="svcObject">
             <Template>
-                @FlowAdminHelper.FormatFlowSvcObjectTechnicalDetails(svcObject)
+                @FlowAdminHelper.FormatFlowSvcObjectTechnicalDetails(svcObject, ipProtos)
             </Template>
         </Column>
         <Pager ShowPageNumber="true" ShowTotalCount="true" />
@@ -221,7 +221,7 @@ else
         @if (SelectedDuplicateGroup != null)
         {
             <div><span class="fw-bold">@(userConfig.GetText("flow_object")):</span> @SelectedDuplicateGroup.FlowSvcObjectName (#@SelectedDuplicateGroup.FlowSvcObjectId)</div>
-            <div class="text-muted small">@BuildFlowSvcObjectTechnicalDetails(SelectedDuplicateGroup.FlowSvcObjectId)</div>
+                <div class="text-muted small">@BuildFlowSvcObjectTechnicalDetails(SelectedDuplicateGroup.FlowSvcObjectId)</div>
             <div><span class="fw-bold">@(userConfig.GetText("management")):</span> @SelectedDuplicateGroup.ManagementName</div>
         }
     </SummaryContent>
@@ -256,6 +256,7 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<FlowSvcObject> flowSvcObjects = [];
+    private List<IpProtocol> ipProtos = [];
     private List<Management> selectableManagements = [];
     private List<Management> customServiceManagements = [];
     private List<CustomObjectManagementSelection> customServiceObjectSelections = [];
@@ -282,6 +283,7 @@ else
             StateHasChanged();
 
             flowSvcObjects = await apiConnection.SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowServiceObjects) ?? [];
+            ipProtos = DisplayBase.CustomSortProtocols(await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols) ?? []);
             selectableManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowSelectableManagements) ?? [];
 
             List<int> managementIds = [.. selectableManagements.Select(management => management.Id)];
@@ -542,7 +544,7 @@ else
     private string BuildFlowSvcObjectTechnicalDetails(long flowSvcObjectId)
     {
         FlowSvcObject? flowSvcObject = flowSvcObjects.FirstOrDefault(item => item.Id == flowSvcObjectId);
-        string details = flowSvcObject == null ? "" : FlowAdminHelper.FormatFlowSvcObjectTechnicalDetails(flowSvcObject);
+        string details = flowSvcObject == null ? "" : FlowAdminHelper.FormatFlowSvcObjectTechnicalDetails(flowSvcObject, ipProtos);
         return string.IsNullOrWhiteSpace(details) ? "-" : details;
     }
 

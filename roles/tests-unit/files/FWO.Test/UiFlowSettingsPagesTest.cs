@@ -44,6 +44,7 @@ namespace FWO.Test
             IRenderedComponent<SettingsFlowServiceObjects> component = RenderPage<SettingsFlowServiceObjects>(context);
 
             component.WaitForAssertion(() => Assert.That(component.Markup, Does.Contain("Flow Service Object")));
+            component.WaitForAssertion(() => Assert.That(component.Markup, Does.Contain("TCP")));
         }
 
         [Test]
@@ -384,6 +385,13 @@ namespace FWO.Test
             Name = "Management"
         };
 
+        private static readonly List<IpProtocol> kIpProtocols =
+        [
+            new() { Id = 1, Name = "ICMP" },
+            new() { Id = 6, Name = "TCP" },
+            new() { Id = 17, Name = "UDP" }
+        ];
+
         private static readonly Management kServiceManagement = new()
         {
             Id = 10,
@@ -479,6 +487,7 @@ namespace FWO.Test
                 string q when q == FlowQueries.getFlowServiceGroups => new List<FlowSvcGroup> { kFlowSvcGroup },
                 string q when q == FlowQueries.getFlowAddressGroups => new List<FlowNwGroup> { kFlowNwGroup },
                 string q when q == FlowQueries.getFlowTimeObjects => new List<FlowTimeObject> { kFlowTimeObject },
+                string q when q == StmQueries.getIpProtocols => new List<IpProtocol>(kIpProtocols),
                 string q when q == FlowQueries.getFlowSelectableManagements => new List<Management> { kManagement },
                 string q when q == FlowQueries.getFlowCustomServiceCandidates => new List<Management> { kServiceManagement },
                 string q when q == FlowQueries.getFlowCustomObjectCandidates => new List<Management> { kNetworkManagement },
@@ -492,6 +501,13 @@ namespace FWO.Test
 
     internal sealed class FlowServiceObjectsCustomCreateApiConn : SimulatedApiConnection
     {
+        private static readonly List<IpProtocol> kIpProtocols =
+        [
+            new() { Id = 1, Name = "ICMP" },
+            new() { Id = 6, Name = "TCP" },
+            new() { Id = 17, Name = "UDP" }
+        ];
+
         public List<string> Queries { get; } = [];
         public FlowSvcObjectInsert? InsertedServiceObject { get; private set; }
         public List<(long ServiceId, long FlowSvcobjId, bool ActiveOnMgm)> MappingCalls { get; } = [];
@@ -561,6 +577,10 @@ namespace FWO.Test
                     new() { Id = 10, Name = "Management" },
                     new() { Id = 20, Name = "Management 2" }
                 });
+            }
+            if (query == StmQueries.getIpProtocols)
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<IpProtocol>(kIpProtocols));
             }
             if (query == FlowQueries.getFlowCustomServiceCandidates)
             {
@@ -657,6 +677,13 @@ namespace FWO.Test
 
     internal sealed class FlowServiceObjectsProtocolOnlyApiConn : SimulatedApiConnection
     {
+        private static readonly List<IpProtocol> kIpProtocols =
+        [
+            new() { Id = 1, Name = "ICMP" },
+            new() { Id = 6, Name = "TCP" },
+            new() { Id = 17, Name = "UDP" }
+        ];
+
         public List<string> Queries { get; } = [];
         public FlowSvcObjectInsert? InsertedServiceObject { get; private set; }
         public List<(long ServiceId, long FlowSvcobjId, bool ActiveOnMgm)> MappingCalls { get; } = [];
@@ -699,6 +726,10 @@ namespace FWO.Test
             if (query == FlowQueries.getFlowSelectableManagements)
             {
                 return Task.FromResult((QueryResponseType)(object)new List<Management> { new() { Id = 10, Name = "Management" } });
+            }
+            if (query == StmQueries.getIpProtocols)
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<IpProtocol>(kIpProtocols));
             }
             if (query == FlowQueries.getFlowCustomServiceCandidates)
             {
@@ -793,6 +824,13 @@ namespace FWO.Test
 
     internal sealed class FlowServiceObjectsDuplicateResolverApiConn : SimulatedApiConnection
     {
+        private static readonly List<IpProtocol> kIpProtocols =
+        [
+            new() { Id = 1, Name = "ICMP" },
+            new() { Id = 6, Name = "TCP" },
+            new() { Id = 17, Name = "UDP" }
+        ];
+
         public List<string> Queries { get; } = [];
         public List<(long ServiceId, long FlowSvcobjId, bool ActiveOnMgm)> MappingCalls { get; } = [];
 
@@ -848,6 +886,10 @@ namespace FWO.Test
             if (query == FlowQueries.getFlowSelectableManagements)
             {
                 return Task.FromResult((QueryResponseType)(object)new List<Management> { new() { Id = 10, Name = "Management" } });
+            }
+            if (query == StmQueries.getIpProtocols)
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<IpProtocol>(kIpProtocols));
             }
             if (query == FlowQueries.getFlowCustomServiceCandidates)
             {

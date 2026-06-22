@@ -256,10 +256,11 @@ namespace FWO.Data.Flow
         /// <summary>
         /// Formats the technical details of a flow service object for overview and duplicate resolution views.
         /// </summary>
-        public static string FormatFlowSvcObjectTechnicalDetails(FlowSvcObject candidate)
+        public static string FormatFlowSvcObjectTechnicalDetails(FlowSvcObject candidate, IEnumerable<IpProtocol>? protocols = null)
         {
             string portRange = DisplayBase.DisplayPort(candidate.PortStart, candidate.PortEnd);
-            string protocol = candidate.ProtoId > 0 ? candidate.ProtoId.ToString(CultureInfo.InvariantCulture) : "";
+            string protocol = protocols?.FirstOrDefault(protocol => protocol.Id == candidate.ProtoId)?.Name
+                ?? (candidate.ProtoId > 0 ? candidate.ProtoId.ToString(CultureInfo.InvariantCulture) : "");
             return string.IsNullOrWhiteSpace(protocol)
                 ? portRange
                 : string.IsNullOrWhiteSpace(portRange)

@@ -188,16 +188,6 @@ fragment ruleFragment on rule {
     rule_last_hit
   }
   rule_comment
-  rule_from_zones {
-    zone {
-      zone_name
-    }
-  }
-  rule_to_zones {
-    zone {
-      zone_name
-    }
-  }
   section_header: rule_head_text
 }
 

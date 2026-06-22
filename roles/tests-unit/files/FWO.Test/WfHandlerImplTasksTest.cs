@@ -454,6 +454,54 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AutoCreateOrUpdateImplTasks_ConsiderBundlingTrue_SkipsBundleWhenAnyBundledTaskAlreadyHasImplTask()
+        {
+            WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "src-1");
+            WfReqTask secondTask = CreateBundledAccessTask(12, "bundle-11-12", "src-2");
+            secondTask.ImplementationTasks.Add(new WfImplTask { Id = 21, ReqTaskId = secondTask.Id });
+            WfHandler handler = CreateBundlingHandler(considerBundling: true, firstTask, secondTask);
+
+            await InvokeAutoCreateOrUpdateImplTasks(handler);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstTask.ImplementationTasks, Is.Empty);
+                Assert.That(secondTask.ImplementationTasks, Has.Count.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public void CanAutoCreateInitialImplTasks_ReturnsFalseWhenBundledSiblingAlreadyHasImplTask()
+        {
+            WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "src-1");
+            WfReqTask secondTask = CreateBundledAccessTask(12, "bundle-11-12", "src-2");
+            secondTask.ImplementationTasks.Add(new WfImplTask { Id = 21, ReqTaskId = secondTask.Id });
+            WfHandler handler = CreateBundlingHandler(considerBundling: true, firstTask, secondTask);
+
+            bool canAutoCreate = handler.CanAutoCreateInitialImplTasks(handler.ActTicket, firstTask);
+
+            Assert.That(canAutoCreate, Is.False);
+        }
+
+        [Test]
+        public async Task AutoCreateInitialImplTasksForMonitoring_ReturnsFalseWhenBundledSiblingAlreadyHasImplTask()
+        {
+            WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "src-1");
+            WfReqTask secondTask = CreateBundledAccessTask(12, "bundle-11-12", "src-2");
+            secondTask.ImplementationTasks.Add(new WfImplTask { Id = 21, ReqTaskId = secondTask.Id });
+            WfHandler handler = CreateBundlingHandler(considerBundling: true, firstTask, secondTask);
+
+            bool created = await handler.AutoCreateInitialImplTasksForMonitoring(handler.ActTicket, firstTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(created, Is.False);
+                Assert.That(firstTask.ImplementationTasks, Is.Empty);
+                Assert.That(secondTask.ImplementationTasks, Has.Count.EqualTo(1));
+            });
+        }
+
+        [Test]
         public async Task AutoCreateOrUpdateImplTasks_ConsiderBundlingTrue_DeduplicatesCommonElements()
         {
             WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "shared-source");
@@ -541,7 +589,7 @@ namespace FWO.Test
         {
             MethodInfo method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.Instance | BindingFlags.NonPublic)
                 ?? throw new MissingMethodException(typeof(WfHandler).FullName, "UpdateRequestTasksFromTicket");
-            Task task = (Task)(method.Invoke(handler, [true]) ?? throw new InvalidOperationException("UpdateRequestTasksFromTicket returned null."));
+            Task task = (Task)(method.Invoke(handler, [true, true]) ?? throw new InvalidOperationException("UpdateRequestTasksFromTicket returned null."));
             await task;
         }
 

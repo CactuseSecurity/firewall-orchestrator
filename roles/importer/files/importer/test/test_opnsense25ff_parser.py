@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 from fw_modules.opnsense25ff.opnsense_parser import parse_opnsense_config
 
@@ -143,3 +143,17 @@ def test_parse_opnsense_config_handles_singleton_sections() -> None:
     assert [rule.uuid for rule in config.access_rules] == ["r1"]
     assert list(config.port_aliases) == ["web"]
     assert [gateway.name for gateway in config.gateways] == ["wan_gateway"]
+
+
+def test_parse_opnsense_config_defaults_missing_interface_description() -> None:
+    native_config = _native_config()
+    opnsense = cast("dict[str, Any]", native_config["opnsense"])
+    interfaces = cast("dict[str, Any]", opnsense["interfaces"])
+    assert isinstance(interfaces, dict)
+    lan_interface = cast("dict[str, Any]", interfaces["lan"])
+    assert isinstance(lan_interface, dict)
+    lan_interface.pop("descr")
+
+    config = parse_opnsense_config(native_config)
+
+    assert config.interfaces["lan"].description == ""

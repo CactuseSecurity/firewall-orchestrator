@@ -315,7 +315,7 @@ class OPNsenseInterface(BaseModel):
     name: str = ""  # /opnsense/interfaces[x]            (identifier)
     enabled: bool = Field(alias="enable", default=True)  # /opnsense/interfaces[x]/enable
     hw_interface: str = Field(alias="if")  # /opnsense/interfaces[x]/if         (assigned hardware interface)
-    description: str = Field(alias="descr")  # /opnsense/interfaces[x]/descr
+    description: str = Field(alias="descr", default="")  # /opnsense/interfaces[x]/descr
     ip4_address: IPAddress | None = Field(alias="ipaddr", default=None)  # /opnsense/interfaces[x]/ipaddr
     ip4_subnet: int | None = Field(alias="subnet", default=None)  # /opnsense/interfaces[x]/subnet
     ip6_address: IPAddress | None = Field(alias="ipaddrv6", default=None)  # /opnsense/interfaces[x]/ipaddrv6

@@ -47,7 +47,7 @@ else
             </div>
         </div>
         <div class="col-sm-2">
-            <button type="button" class="btn btn-sm btn-primary" @onclick="LoadTickets">@(DisplayService.DisplayButton(userConfig, "refresh", Icons.Refresh))</button>
+            <button type="button" class="btn btn-sm btn-primary" data-toggle="tooltip" title="@(userConfig.PureLine("H7032"))" @onclick="RefreshTickets">@(DisplayService.DisplayButton(userConfig, "refresh", Icons.Refresh))</button>
         </div>
     </div>
 
@@ -158,6 +158,20 @@ else
             WorkflowPhases.request, null);
         await wfHandler.Init(false, null, true, true);
         await FetchTicketPage();
+    }
+
+    private async Task RefreshTickets()
+    {
+        try
+        {
+            workInProgress = true;
+            StateHasChanged();
+            await LoadTickets();
+        }
+        finally
+        {
+            workInProgress = false;
+        }
     }
 
     private string TaskTypeToString(WfTaskType? taskType)

@@ -7264,11 +7264,19 @@ INSERT INTO txt VALUES ('H7016', 'English', 'The "Workflow" chapter provides an 
 ');
 INSERT INTO txt VALUES ('H7030', 'German', 'Die Workflow-Ticket-&Uuml;berwachung zeigt Tickets mit ihren Antrags- und Umsetzungsaufgaben.
     Die Filter f&uuml;r Aufgabentyp und Status greifen auf allen Ebenen: Ein Ticket wird angezeigt, wenn es mindestens eine Aufgabe eines gew&auml;hlten Typs enth&auml;lt und wenn das Ticket selbst, eine Antragsaufgabe, eine Umsetzungsaufgabe oder eine Genehmigung einen der gew&auml;hlten Status besitzt.
-    &Uuml;ber "Status &auml;ndern" kann der Zielstatus gew&auml;hlt werden. "Nur lokaler Status" &auml;ndert nur das ausgew&auml;hlte Objekt, "Eltern-Status mitziehen" berechnet die Elternobjekte nach den Workflow-Regeln neu, und "Aktionen ausl&ouml;sen" f&uuml;hrt zus&auml;tzlich die konfigurierten Statusaktionen aus.
 ');
 INSERT INTO txt VALUES ('H7030', 'English', 'Workflow ticket monitoring shows tickets with their request and implementation tasks.
     The task type and state filters apply across all levels: a ticket is shown when it contains at least one task of a selected type and when the ticket itself, a request task, an implementation task, or an approval has one of the selected states.
-    "Change state" opens a dialog for selecting the target state. "Local state only" changes only the selected object, "Cascade parent states" recalculates parent objects according to the workflow rules, and "Trigger actions" also runs the configured state actions.
+');
+INSERT INTO txt VALUES ('H7031', 'German', '&Uuml;ber "Status &auml;ndern" kann der Zielstatus gew&auml;hlt werden. "Nur lokaler Status" &auml;ndert nur das ausgew&auml;hlte Objekt, "Eltern-Status mitziehen" berechnet die Elternobjekte nach den Workflow-Regeln neu, und "Aktionen ausl&ouml;sen" f&uuml;hrt zus&auml;tzlich die konfigurierten Statusaktionen aus.');
+INSERT INTO txt VALUES ('H7031', 'English', '"Change state" opens a dialog for selecting the target state. "Local state only" changes only the selected object, "Cascade parent states" recalculates parent objects according to the workflow rules, and "Trigger actions" also runs the configured state actions.');
+INSERT INTO txt VALUES ('H7032', 'German', 'Besitzt ein Auftrag keine Implementierungsaufgaben obwohl ein entsprechender Status bereits erreicht wurde, so wird eine Schaltfl&auml;che zu deren Erzeugung angeboten
+    (dabei wird ber&uuml;cksichtigt, dass geb&uuml;ndelte Auftr&auml;ge u.U. keine eigenen Implementierungsaufgaben haben).
+    Die Implementierungsaufgaben werden dann entsprechend den konfigurierten Vorgaben erzeugt.
+');
+INSERT INTO txt VALUES ('H7032', 'English', 'When a request task contains no implementation tasks although it should have regarding the state, a button to create them is offered
+    (it is taken into account that bundled request tasks may have no implementation tasks).
+    The implementation tasks are then created regarding the respective settings.
 ');
 INSERT INTO txt VALUES ('H7101', 'German', 'Verschiedene Komponenten des Firewall Orchestrator k&ouml;nnen Alarme ausl&ouml;sen, wenn eine &Uuml;berpr&uuml;fung oder ein Eingreifen durch einen Administrator erforderich ist.
     Je nach Alarmtyp werden unter "Details" weitere Informationen oder Handlungsoptionen angeboten. Durch Auswahl der "Best&auml;tigen"-Schaltfl&auml;che verschwindet der Alarm aus der &Uuml;bersicht, der Best&auml;tigende wird mit Zeitstempel im Alarm protokolliert.

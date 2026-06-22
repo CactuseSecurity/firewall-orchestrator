@@ -79,7 +79,7 @@ namespace FWO.ExternalSystems.CheckPoint
                 if (task.TaskType == nameof(WfTaskType.group_create))
                 {
                     AddEmptyGroupCreateStep(ticketTask);
-                    AddPublishTask();
+                    //AddPublishTask();
 
                     AddMemberObjectSteps(ticketTask);
                     AddBundledMemberAddStep(ticketTask);
@@ -106,7 +106,7 @@ namespace FWO.ExternalSystems.CheckPoint
             foreach (CheckPointObjectRequest request in ticketTask.GetRequiredMemberObjectSteps())
             {
                 renderedTasks.Add(new RenderedTask(GetTaskType(request), RenderObjectBody(request)));
-                AddPublishTask();
+                //AddPublishTask();
             }
         }
         private void AddEmptyGroupCreateStep(CheckPointTicketTask ticketTask)
@@ -121,7 +121,7 @@ namespace FWO.ExternalSystems.CheckPoint
                 return;
             }
             renderedTasks.Add(new RenderedTask(CheckPointTaskTypes.GroupAddMembers, ticketTask.RenderGroupMembersAddBody(membersToAdd)));
-            AddPublishTask();
+            //AddPublishTask();
 
         }
         private void AddBundledMemberRemoveStep(CheckPointTicketTask ticketTask)
@@ -132,7 +132,7 @@ namespace FWO.ExternalSystems.CheckPoint
                 return;
             }
             renderedTasks.Add(new RenderedTask(CheckPointTaskTypes.GroupRemoveMembers, ticketTask.RenderGroupMembersRemoveBody(membersToRemove)));
-            AddPublishTask();
+            //AddPublishTask();
 
         }
         private static string GetTaskType(CheckPointObjectRequest request)

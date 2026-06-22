@@ -462,5 +462,5 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 - flow sync: add hash consistency check
 - this update resets the flow db!
 
-# 9.1.9 - 16.06.2026 DEVELOP
+# 9.1.10 - 16.06.2026 DEVELOP
 - credentials field in management for writing on Firewalls

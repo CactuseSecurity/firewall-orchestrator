@@ -82,9 +82,9 @@ namespace FWO.Middleware.Client
                 return false;
             }
 
-            catch (SecurityTokenExpiredException)
+            catch (SecurityTokenExpiredException expiredException)
             {
-                Log.WriteDebug(JwtValidation, "Jwt lifetime expired: {jwtString}.");
+                Log.WriteError(JwtValidation, $"Jwt lifetime expired: {jwtString}.", expiredException);
                 return false;
             }
             catch (SecurityTokenInvalidSignatureException InvalidSignatureException)

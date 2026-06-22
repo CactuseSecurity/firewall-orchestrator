@@ -112,6 +112,17 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>
+        /// Checks whether a access token is available for the current session.
+        /// </summary>
+        /// <returns>True if a access token is available; otherwise false.</returns>
+        public async Task<bool> HasAccessToken()
+        {
+            await initializationTask.Value;
+
+            return currentTokenPair != null && !string.IsNullOrWhiteSpace(currentTokenPair.AccessToken);
+        }
+
+        /// <summary>
         /// Gets the current access and refresh token expiration timestamps.
         /// </summary>
         /// <returns>The current access and refresh token expiration timestamps, or null values when no token pair is stored.</returns>
@@ -166,7 +177,7 @@ namespace FWO.Ui.Services
         {
             await initializationTask.Value;
 
-            if (currentTokenPair is null || string.IsNullOrEmpty(currentTokenPair.RefreshToken))
+            if (currentTokenPair is null || !await HasRefreshToken())
             {
                 Log.WriteWarning("Token Refresh", "No refresh token available");
 

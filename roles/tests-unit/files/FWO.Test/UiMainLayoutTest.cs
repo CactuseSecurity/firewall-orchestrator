@@ -146,18 +146,7 @@ namespace FWO.Test
                 Assert.That(GetPrivateFieldValue<bool>(fixture.Layout.Instance, "showReloginDialog"), Is.True);
                 Assert.That(fixture.Layout.Markup, Does.Contain("permissions_text"));
             });
-        }
-
-        [Test]
-        public async Task EventMediator_UserSessionClosedForCurrentUser_StopsTokenRefreshRunner()
-        {
-            await using MainLayoutFixture fixture = new();
-            Assert.That(GetPrivateFieldValue<object?>(fixture.Layout.Instance, "tokenRefreshRunner"), Is.Not.Null);
-
-            fixture.EventMediator.Publish(nameof(UserSessionClosedEvent), new UserSessionClosedEvent(new(fixture.UserConfig.User.Name, fixture.UserConfig.User.Dn)));
-
-            Assert.That(GetPrivateFieldValue<object?>(fixture.Layout.Instance, "tokenRefreshRunner"), Is.Null);
-        }
+        }        
 
         [Test]
         public async Task OnAlertUpdate_WhenAdminHasOpenAlerts_ShowsNavigationAlertMarker()

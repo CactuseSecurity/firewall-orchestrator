@@ -75,32 +75,32 @@ namespace FWO.Ui.Auth
 
             try
             {
-                if (!string.IsNullOrWhiteSpace(storedTokenPair.AccessToken)
-                    && await TryApplyJwt(storedTokenPair.AccessToken, apiConnection, middlewareClient, userConfig, circuitHandler))
+                if (!await tokenService.IsAccessTokenExpired())
                 {
-                    return true;
+                    return await TryApplyJwt(storedTokenPair.AccessToken, apiConnection, middlewareClient, userConfig, circuitHandler);
                 }
 
-                if (!string.IsNullOrWhiteSpace(storedTokenPair.RefreshToken))
-                {
-                    TokenPair? refreshedTokenPair = await tokenService.RefreshTokenPair(force: true);
+                TokenPair? refreshedTokenPair = await tokenService.RefreshTokenPair();
 
-                    if (refreshedTokenPair != null
-                        && !string.IsNullOrWhiteSpace(refreshedTokenPair.AccessToken)
-                        && await TryApplyJwt(refreshedTokenPair.AccessToken, apiConnection, middlewareClient, userConfig, circuitHandler))
-                    {
-                        return true;
-                    }
+                if (refreshedTokenPair == null ||
+                    string.IsNullOrWhiteSpace(refreshedTokenPair.AccessToken) ||
+                    string.IsNullOrWhiteSpace(refreshedTokenPair.RefreshToken))
+                {
+                    await HandleExpiredSessionAsync();
+                    return false;
                 }
+
+                return await TryApplyJwt(refreshedTokenPair.AccessToken, apiConnection, middlewareClient, userConfig, circuitHandler);
             }
             catch (AuthenticationException)
             {
-                await Deauthenticate();
+                await HandleExpiredSessionAsync();
+                return false;
+            }
+            catch (Exception)
+            {
                 throw;
             }
-
-            await Deauthenticate();
-            return false;
         }
 
         public async Task Authenticate(string jwtString, ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
@@ -119,30 +119,30 @@ namespace FWO.Ui.Auth
         /// <param name="userConfig">Current user configuration to rebuild from the refreshed JWT.</param>
         /// <param name="circuitHandler">Circuit-scoped user context that should be updated after refresh.</param>
         /// <returns>True if a valid JWT could be refreshed and applied; otherwise false.</returns>
-        public async Task<bool> RefreshAuthenticationState(ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
-        {
-            if (!await tokenService.HasRefreshToken())
-            {
-                return false;
-            }
+        //public async Task<bool> RefreshAuthenticationState(ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
+        //{
+        //    if (!await tokenService.HasAccessToken() || !await tokenService.HasRefreshToken())
+        //    {
+        //        return false;
+        //    }
 
-            TokenPair? refreshedTokenPair = await tokenService.RefreshTokenPair();
+        //    TokenPair? refreshedTokenPair = await tokenService.RefreshTokenPair();
 
-            if (refreshedTokenPair == null || string.IsNullOrWhiteSpace(refreshedTokenPair.AccessToken))
-            {
-                PublishJwtExpiredForAuthenticatedUser();
-                return false;
-            }
+        //    if (refreshedTokenPair == null || string.IsNullOrWhiteSpace(refreshedTokenPair.AccessToken))
+        //    {
+        //        PublishJwtExpiredForAuthenticatedUser();
+        //        return false;
+        //    }
 
-            bool jwtApplied = await TryApplyJwt(refreshedTokenPair.AccessToken, apiConnection, middlewareClient, userConfig, circuitHandler);
+        //    bool jwtApplied = await TryApplyJwt(refreshedTokenPair.AccessToken, apiConnection, middlewareClient, userConfig, circuitHandler);
 
-            if (!jwtApplied)
-            {
-                PublishJwtExpiredForAuthenticatedUser();
-            }
+        //    if (!jwtApplied)
+        //    {
+        //        PublishJwtExpiredForAuthenticatedUser();
+        //    }
 
-            return jwtApplied;
-        }
+        //    return jwtApplied;
+        //}
 
         /// <summary>
         /// Deauthenticate the current user and clear session storage.
@@ -177,7 +177,7 @@ namespace FWO.Ui.Auth
         }
 
         /// <summary>
-        /// Validates a JWT and applies its claims to the UI authentication state.
+        /// Validates a JWT and applies its claims to the UI authentication state. Throws AuthenticationException if jwt could not be validated.
         /// </summary>
         /// <param name="jwtString">The JWT to validate and apply.</param>
         /// <param name="apiConnection">API connection that should receive the JWT.</param>
@@ -191,7 +191,7 @@ namespace FWO.Ui.Auth
 
             if (!await jwtReader.Validate())
             {
-                return false;
+                throw new AuthenticationException("JWT could not be validated.");
             }
 
             // importer is not allowed to login
@@ -250,6 +250,12 @@ namespace FWO.Ui.Auth
             }
 
             return true;
+        }
+
+        private async Task HandleExpiredSessionAsync()
+        {
+            PublishJwtExpiredForAuthenticatedUser();
+            await Deauthenticate();
         }
 
         private async Task RestoreExecutionMode(ApiConnection apiConnection, UserConfig userConfig)

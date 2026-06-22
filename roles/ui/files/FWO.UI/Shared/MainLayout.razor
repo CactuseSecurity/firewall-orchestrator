@@ -274,7 +274,7 @@
     {
         try
         {
-            if (!await tokenService.HasRefreshToken())
+            if (!await tokenService.HasAccessToken() || !await tokenService.HasRefreshToken())
             {
                 return;
             }
@@ -285,7 +285,7 @@
 
                 CircuitHandlerService circuitHandlerService = (CircuitHandlerService)circuitHandler;
 
-                bool refreshed = await ((AuthStateProvider)authenticationProvider).RefreshAuthenticationState(apiConnection, middlewareClient, userConfig, circuitHandlerService);
+                bool refreshed = await ((AuthStateProvider)authenticationProvider).RestoreAuthenticationState(apiConnection, middlewareClient, userConfig, circuitHandlerService);
 
                 if (refreshed)
                 {
@@ -339,7 +339,7 @@
             return;
         }
 
-        tokenRefreshRunner = new(() => InvokeAsync(CheckAndRefreshTokenAsync), TokenRefreshCheckInterval);
+        tokenRefreshRunner = new(() => InvokeAsync(CheckAndRefreshTokenAsync), TokenRefreshCheckInterval, $"[{nameof(tokenRefreshRunner)}:{userConfig.User.Dn}]");
         tokenRefreshRunner.Start();
     }
 

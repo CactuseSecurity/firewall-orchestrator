@@ -156,6 +156,75 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildDuplicateGroups_FindsInactiveFlowSvcObjectConflictsAcrossMultipleManagements()
+        {
+            List<FlowSvcObject> flowObjects =
+            [
+                new FlowSvcObject
+                {
+                    Id = 21,
+                    Name = "svc-object-1"
+                }
+            ];
+            List<Management> managements =
+            [
+                new Management
+                {
+                    Id = 2,
+                    Name = "mgm-2",
+                    Services =
+                    [
+                        new NetworkService
+                        {
+                            Id = 201,
+                            Name = "svc-a",
+                            FlowServiceObjectId = 21,
+                            FlowActive = false,
+                            Protocol = new NetworkProtocol { Id = 6, Name = "TCP" }
+                        },
+                        new NetworkService
+                        {
+                            Id = 202,
+                            Name = "svc-b",
+                            FlowServiceObjectId = 21,
+                            FlowActive = false,
+                            Protocol = new NetworkProtocol { Id = 6, Name = "TCP" }
+                        }
+                    ]
+                },
+                new Management
+                {
+                    Id = 3,
+                    Name = "mgm-3",
+                    Services =
+                    [
+                        new NetworkService
+                        {
+                            Id = 301,
+                            Name = "svc-c",
+                            FlowServiceObjectId = 21,
+                            FlowActive = false,
+                            Protocol = new NetworkProtocol { Id = 17, Name = "UDP" }
+                        },
+                        new NetworkService
+                        {
+                            Id = 302,
+                            Name = "svc-d",
+                            FlowServiceObjectId = 21,
+                            FlowActive = false,
+                            Protocol = new NetworkProtocol { Id = 17, Name = "UDP" }
+                        }
+                    ]
+                }
+            ];
+
+            List<FlowSvcObjectDuplicateGroup> groups = FlowAdminHelper.BuildDuplicateGroups(flowObjects, managements);
+
+            Assert.That(groups, Has.Count.EqualTo(2));
+            Assert.That(groups.Select(group => group.ManagementName), Is.EqualTo(new[] { "mgm-2", "mgm-3" }));
+        }
+
+        [Test]
         public void BuildDuplicateGroups_FindsInactiveFlowSvcGroupConflicts()
         {
             List<FlowSvcGroup> flowGroups =

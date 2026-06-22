@@ -43,14 +43,23 @@ namespace FWO.Data.Flow
         /// </summary>
         public static List<FlowNwGroupDuplicateGroup> BuildDuplicateGroups(IEnumerable<FlowNwGroup>? flowGroups, IEnumerable<Management>? managements)
         {
+            Dictionary<long, FlowNwGroup> flowGroupLookup = (flowGroups ?? []).ToDictionary(flowGroup => flowGroup.Id);
             List<FlowNwGroupDuplicateGroup> duplicateGroups = [];
 
-            foreach (FlowNwGroup flowGroup in flowGroups ?? [])
+            foreach (Management management in managements ?? [])
             {
-                foreach (Management management in managements ?? [])
+                foreach (IGrouping<long, NetworkObject> linkedObjectsByFlowGroup in (management.Objects ?? [])
+                    .Where(nwObject => nwObject.FlowNetworkGroupId.HasValue)
+                    .GroupBy(nwObject => nwObject.FlowNetworkGroupId!.Value))
                 {
-                    List<NetworkObject> linkedObjects = [.. (management.Objects ?? [])
-                        .Where(nwObject => nwObject.FlowNetworkGroupId == flowGroup.Id)];
+                    if (!flowGroupLookup.TryGetValue(linkedObjectsByFlowGroup.Key, out FlowNwGroup? flowGroup))
+                    {
+                        continue;
+                    }
+
+                    List<NetworkObject> linkedObjects = [.. linkedObjectsByFlowGroup
+                        .OrderBy(nwObject => nwObject.Name ?? "", StringComparer.OrdinalIgnoreCase)
+                        .ThenBy(nwObject => nwObject.Id)];
                     if (linkedObjects.Count <= 1 || linkedObjects.Any(nwObject => nwObject.FlowActive))
                     {
                         continue;
@@ -82,14 +91,23 @@ namespace FWO.Data.Flow
         /// </summary>
         public static List<FlowSvcObjectDuplicateGroup> BuildDuplicateGroups(IEnumerable<FlowSvcObject>? flowObjects, IEnumerable<Management>? managements)
         {
+            Dictionary<long, FlowSvcObject> flowObjectLookup = (flowObjects ?? []).ToDictionary(flowObject => flowObject.Id);
             List<FlowSvcObjectDuplicateGroup> duplicateGroups = [];
 
-            foreach (FlowSvcObject flowObject in flowObjects ?? [])
+            foreach (Management management in managements ?? [])
             {
-                foreach (Management management in managements ?? [])
+                foreach (IGrouping<long, NetworkService> linkedServicesByFlowObject in (management.Services ?? [])
+                    .Where(service => service.FlowServiceObjectId.HasValue)
+                    .GroupBy(service => service.FlowServiceObjectId!.Value))
                 {
-                    List<NetworkService> linkedServices = [.. (management.Services ?? [])
-                        .Where(service => service.FlowServiceObjectId == flowObject.Id)];
+                    if (!flowObjectLookup.TryGetValue(linkedServicesByFlowObject.Key, out FlowSvcObject? flowObject))
+                    {
+                        continue;
+                    }
+
+                    List<NetworkService> linkedServices = [.. linkedServicesByFlowObject
+                        .OrderBy(service => service.Name ?? "", StringComparer.OrdinalIgnoreCase)
+                        .ThenBy(service => service.Id)];
                     if (linkedServices.Count <= 1 || linkedServices.Any(service => service.FlowActive))
                     {
                         continue;
@@ -121,14 +139,23 @@ namespace FWO.Data.Flow
         /// </summary>
         public static List<FlowSvcGroupDuplicateGroup> BuildDuplicateGroups(IEnumerable<FlowSvcGroup>? flowGroups, IEnumerable<Management>? managements)
         {
+            Dictionary<long, FlowSvcGroup> flowGroupLookup = (flowGroups ?? []).ToDictionary(flowGroup => flowGroup.Id);
             List<FlowSvcGroupDuplicateGroup> duplicateGroups = [];
 
-            foreach (FlowSvcGroup flowGroup in flowGroups ?? [])
+            foreach (Management management in managements ?? [])
             {
-                foreach (Management management in managements ?? [])
+                foreach (IGrouping<long, NetworkService> linkedServicesByFlowGroup in (management.Services ?? [])
+                    .Where(service => service.FlowServiceGroupId.HasValue)
+                    .GroupBy(service => service.FlowServiceGroupId!.Value))
                 {
-                    List<NetworkService> linkedServices = [.. (management.Services ?? [])
-                        .Where(service => service.FlowServiceGroupId == flowGroup.Id)];
+                    if (!flowGroupLookup.TryGetValue(linkedServicesByFlowGroup.Key, out FlowSvcGroup? flowGroup))
+                    {
+                        continue;
+                    }
+
+                    List<NetworkService> linkedServices = [.. linkedServicesByFlowGroup
+                        .OrderBy(service => service.Name ?? "", StringComparer.OrdinalIgnoreCase)
+                        .ThenBy(service => service.Id)];
                     if (linkedServices.Count <= 1 || linkedServices.Any(service => service.FlowActive))
                     {
                         continue;
@@ -160,14 +187,23 @@ namespace FWO.Data.Flow
         /// </summary>
         public static List<FlowTimeObjectDuplicateGroup> BuildDuplicateGroups(IEnumerable<FlowTimeObject>? flowObjects, IEnumerable<Management>? managements)
         {
+            Dictionary<long, FlowTimeObject> flowObjectLookup = (flowObjects ?? []).ToDictionary(flowObject => flowObject.Id);
             List<FlowTimeObjectDuplicateGroup> duplicateGroups = [];
 
-            foreach (FlowTimeObject flowObject in flowObjects ?? [])
+            foreach (Management management in managements ?? [])
             {
-                foreach (Management management in managements ?? [])
+                foreach (IGrouping<long, TimeObject> linkedTimeObjectsByFlowObject in (management.TimeObjects ?? [])
+                    .Where(timeObject => timeObject.FlowTimeObjectId.HasValue)
+                    .GroupBy(timeObject => timeObject.FlowTimeObjectId!.Value))
                 {
-                    List<TimeObject> linkedTimeObjects = [.. (management.TimeObjects ?? [])
-                        .Where(timeObject => timeObject.FlowTimeObjectId == flowObject.Id)];
+                    if (!flowObjectLookup.TryGetValue(linkedTimeObjectsByFlowObject.Key, out FlowTimeObject? flowObject))
+                    {
+                        continue;
+                    }
+
+                    List<TimeObject> linkedTimeObjects = [.. linkedTimeObjectsByFlowObject
+                        .OrderBy(timeObject => timeObject.Name ?? "", StringComparer.OrdinalIgnoreCase)
+                        .ThenBy(timeObject => timeObject.Id)];
                     if (linkedTimeObjects.Count <= 1 || linkedTimeObjects.Any(timeObject => timeObject.FlowActive))
                     {
                         continue;

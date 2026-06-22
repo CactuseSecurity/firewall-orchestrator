@@ -466,5 +466,9 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 - request workflow: add locked tickets and request tasks for automatically created change requests
 - further integration flow into workflow
 
+# 9.1.10 - 22.06.2026 DEVELOP
+- change internal logic to handle src/dst zones as security-relevant
+- backfill existing rule source and destination zone text fields from rule zone links
+
 # 9.2.1 - 26.06.2026 DEVELOP
 - db: the firewall configuration tables (rule, object, service, user, zone and related rule tables) were moved from the public schema into a new firewall schema; nine of them were renamed (object->nw_object, service->nw_service, usr->nw_user, objgrp->nw_object_group, svcgrp->nw_service_group, usergrp->nw_user_group, rule_svc_resolved->rule_nw_service_resolved, rule_nwobj_resolved->rule_nw_object_resolved, rule_user_resolved->rule_nw_user_resolved)

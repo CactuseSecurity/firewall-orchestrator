@@ -5,7 +5,6 @@
 @using FWO.Config.Api.Data
 @using FWO.Data
 @using FWO.Data.Flow
-@using FWO.Middleware.Client
 @using Microsoft.AspNetCore.Components.Authorization
 @using Newtonsoft.Json
 @using System.Text.Json.Serialization
@@ -361,29 +360,11 @@ else
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("recalculate_flow_names"))" Show="@RecalculateConfirmMode" Size=PopupSize.Small OnClose="CloseRecalculateConfirm">
-    <Body>
-        <p>@(userConfig.GetText("recalculate_flow_names_confirm"))</p>
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-warning" @onclick="RecalculateFlowNames">@(DisplayService.DisplayButton(userConfig, "recalculate_flow_names", Icons.Refresh))</button>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseRecalculateConfirm">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
-        </div>
-    </Footer>
-</PopUp>
+<Confirm @bind-Display="RecalculateConfirmMode" PerformAction="RecalculateFlowNames" Title="@(userConfig.GetText("recalculate_flow_names"))"
+         Message="@(userConfig.GetText("recalculate_flow_names_confirm"))" />
 
-<PopUp Title="@(userConfig.GetText("reset_flow_db"))" Show="@ResetFlowDbConfirmMode" Size=PopupSize.Small OnClose="CloseResetFlowDbConfirm">
-    <Body>
-        <p>@(userConfig.GetText("reset_flow_db_confirm"))</p>
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-danger" @onclick="ResetFlowDb">@(DisplayService.DisplayButton(userConfig, "reset_flow_db", Icons.Refresh))</button>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseResetFlowDbConfirm">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
-        </div>
-    </Footer>
-</PopUp>
+<Confirm @bind-Display="ResetFlowDbConfirmMode" PerformAction="ResetFlowDb" Title="@(userConfig.GetText("reset_flow_db"))"
+         Message="@(userConfig.GetText("reset_flow_db_confirm"))" />
 
 <InProgress Display="workInProgress"/>
 
@@ -539,11 +520,6 @@ else
         RecalculateConfirmMode = true;
     }
 
-    private void CloseRecalculateConfirm()
-    {
-        RecalculateConfirmMode = false;
-    }
-
     private async Task RecalculateFlowNames()
     {
         try
@@ -592,11 +568,6 @@ else
     private void OpenResetFlowDbConfirm()
     {
         ResetFlowDbConfirmMode = true;
-    }
-
-    private void CloseResetFlowDbConfirm()
-    {
-        ResetFlowDbConfirmMode = false;
     }
 
     private async Task ResetFlowDb()

@@ -11,6 +11,7 @@ fragment reqTaskOverview on request_reqtask {
   start
   stop
   flow_access_id
+  locked
   reason
   additional_info
   on_management: management {

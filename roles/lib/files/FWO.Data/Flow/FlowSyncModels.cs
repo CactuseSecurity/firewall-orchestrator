@@ -1,3 +1,4 @@
+using FWO.Data;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 
@@ -242,6 +243,18 @@ namespace FWO.Data.Flow
         public long TimeObjId { get; set; }
     }
 
+    public class FlowSyncFlowDataInput
+    {
+        public List<FlowNwObject> NwObjects { get; init; } = [];
+        public List<FlowNwGroup> NwGroups { get; init; } = [];
+        public List<FlowSvcObject> SvcObjects { get; init; } = [];
+        public List<FlowSvcGroup> SvcGroups { get; init; } = [];
+        public List<FlowTimeObject> TimeObjects { get; init; } = [];
+        public List<FlowAccess> Accesses { get; init; } = [];
+        public List<IpProtocol>? IpProtocols { get; init; }
+        public List<RuleAction>? RuleActions { get; init; }
+    }
+
     public class FlowSyncFlowData
     {
         public readonly Dictionary<string, FlowNwObject> NwObjects = [];
@@ -254,15 +267,24 @@ namespace FWO.Data.Flow
         public readonly Dictionary<long, FlowNwGroup> NwGroupsById = [];
         public readonly Dictionary<long, FlowSvcObject> SvcObjectsById = [];
         public readonly Dictionary<long, FlowSvcGroup> SvcGroupsById = [];
+        public readonly Dictionary<int, string> ProtocolNamesById = [];
         public readonly Dictionary<long, FlowTimeObject> TimeObjectsById = [];
+        public readonly Dictionary<int, RuleAction> RuleActionsById = [];
 
         public Dictionary<long, string> NwObjectHashes { get; private set; } = [];
         public Dictionary<long, string> SvcObjectHashes { get; private set; } = [];
         public Dictionary<long, string> TimeObjectHashes { get; private set; } = [];
         public Dictionary<long, string> AccessHashes { get; private set; } = [];
 
-        public FlowSyncFlowData(List<FlowNwObject> nwObjects, List<FlowNwGroup> nwGroups, List<FlowSvcObject> svcObjects, List<FlowSvcGroup> svcGroups, List<FlowTimeObject> timeObjects, List<FlowAccess> accesses)
+        public FlowSyncFlowData(FlowSyncFlowDataInput input)
         {
+            List<FlowNwObject> nwObjects = input.NwObjects;
+            List<FlowNwGroup> nwGroups = input.NwGroups;
+            List<FlowSvcObject> svcObjects = input.SvcObjects;
+            List<FlowSvcGroup> svcGroups = input.SvcGroups;
+            List<FlowTimeObject> timeObjects = input.TimeObjects;
+            List<FlowAccess> accesses = input.Accesses;
+
             NwObjects = nwObjects.ToDictionary(fo => fo.Hash, fo => fo);
             NwGroups = nwGroups.ToDictionary(fg => fg.Hash, fg => fg);
             SvcObjects = svcObjects.ToDictionary(fs => fs.Hash, fs => fs);
@@ -273,7 +295,9 @@ namespace FWO.Data.Flow
             NwGroupsById = nwGroups.ToDictionary(group => group.Id);
             SvcObjectsById = svcObjects.ToDictionary(flowObject => flowObject.Id);
             SvcGroupsById = svcGroups.ToDictionary(group => group.Id);
+            ProtocolNamesById = (input.IpProtocols ?? []).Where(protocol => !string.IsNullOrWhiteSpace(protocol.Name)).ToDictionary(protocol => protocol.Id, protocol => protocol.Name);
             TimeObjectsById = timeObjects.ToDictionary(timeObject => timeObject.Id);
+            RuleActionsById = (input.RuleActions ?? []).ToDictionary(action => action.Id);
 
             NwObjectHashes = nwObjects.SelectMany(fo => (fo.Objects ?? Enumerable.Empty<NetworkObject>())
                     .Select(o => new { o.Id, ParentHash = fo.Hash }))
@@ -325,6 +349,12 @@ namespace FWO.Data.Flow
         {
             SvcGroupsById[group.Id] = group;
             SvcGroups[group.Hash] = group;
+        }
+
+        public void Add(FlowTimeObject timeObject)
+        {
+            TimeObjectsById[timeObject.Id] = timeObject;
+            TimeObjects[timeObject.Hash] = timeObject;
         }
 
         public void Add(FlowAccess access)

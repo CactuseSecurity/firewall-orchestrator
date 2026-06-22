@@ -64,9 +64,8 @@ namespace FWO.Data.Flow
         }
 
         /// <summary>
-        /// Generates single access hash from source, destination, and service hashes.
-        /// SHA256 of concatenated hashes ensures deduplication across equivalent access triples.
-        /// Time objects are not considered in access hash.
+        /// Generates single access hash from source, destination, service, and time object hashes.
+        /// SHA256 of concatenated hashes ensures deduplication across equivalent access definitions.
         /// Throws exception if any of the input collections are empty, as access must have at least one source, destination, and service.
         /// </summary>
         public static string GenerateAccessHash(

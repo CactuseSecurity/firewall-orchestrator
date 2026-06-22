@@ -15,15 +15,15 @@
             @foreach(var service in Services)
             {
                 <div class="list-group-item border bg-secondary">
-                    <label>@DisplayBase.DisplayService(service, IpProtos)</label>
+                    <label>@DisplayServiceElement(service)</label>
                 </div>
             }
         }
         else
         {
-            <EditList ElementType="NwServiceElement" Elements="Services.Where(x => (x.ServiceId == null || x.ServiceId == 0)).ToArray()" ElementsToAdd="ServicesToAdd" ElementsToDelete="ServicesToDelete" StdLayout="false">
+            <EditList ElementType="NwServiceElement" Elements="Services.ToArray()" ElementsToAdd="ServicesToAdd" ElementsToDelete="ServicesToDelete" StdLayout="false">
                 <Display>
-                    <div class="border bg-transparent">@DisplayBase.DisplayService(context, IpProtos)</div>
+                    <div class="border bg-transparent">@DisplayServiceElement(context)</div>
                 </Display>
             </EditList>
             <div class="row col-sm-12 mt-1">
@@ -79,6 +79,18 @@
     private int? actPortEnd;
     private int actProtoId = 0;
 
+    private string DisplayServiceElement(NwServiceElement element)
+    {
+        if (!string.IsNullOrWhiteSpace(element.GroupName))
+        {
+            return element.GroupName;
+        }
+        if (!string.IsNullOrWhiteSpace(element.Name))
+        {
+            return element.Name;
+        }
+        return DisplayBase.DisplayService(element, IpProtos);
+    }
 
     protected override void OnParametersSet()
     {

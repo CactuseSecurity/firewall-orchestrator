@@ -51,6 +51,34 @@ def _native_config_with_secrets() -> dict[str, Any]:
     }
 
 
+def _native_config_with_singletons() -> dict[str, Any]:
+    return {
+        "opnsense": {
+            "system": {
+                "user": {
+                    "name": "root",
+                    "password": _PLACEHOLDER,
+                    "apikeys": {"k": "v"},
+                    "otp_seed": _PLACEHOLDER,
+                }
+            },
+            "OPNsense": {
+                "IPsec": {"preSharedKeys": {"preSharedKey": {"ident": "a", "Key": _PLACEHOLDER}}},
+                "Firewall": {
+                    "Alias": {
+                        "geoip": {"url": "http://example.com/geoip"},
+                        "aliases": {"alias": {"name": "a1", "username": "u", "password": _PLACEHOLDER}},
+                    }
+                },
+            },
+            "Deciso": {"UserPortal": {"group_options": {"otp_seed": _PLACEHOLDER}}},
+            "virtualip": {"vip": {"password": _PLACEHOLDER}},
+            "ca": {"prv": _PLACEHOLDER},
+            "cert": {"prv": _PLACEHOLDER},
+        }
+    }
+
+
 def test_remove_opnsense_sensitive_data_strips_user_secrets() -> None:
     out = remove_opnsense_sensitive_data(_native_config_with_secrets())
 
@@ -92,3 +120,26 @@ def test_remove_opnsense_sensitive_data_drops_excluded_sections_and_private_keys
     assert "password" not in opnsense["virtualip"]["vip"][0]
     assert "prv" not in opnsense["ca"][0]
     assert "prv" not in opnsense["cert"][0]
+
+
+def test_remove_opnsense_sensitive_data_handles_singleton_sections() -> None:
+    out = remove_opnsense_sensitive_data(_native_config_with_singletons())
+    opnsense = out["opnsense"]
+
+    user = opnsense["system"]["user"]
+    assert user["name"] == "root"
+    assert "password" not in user
+    assert "apikeys" not in user
+    assert "otp_seed" not in user
+
+    assert "Key" not in opnsense["OPNsense"]["IPsec"]["preSharedKeys"]["preSharedKey"]
+    assert "geoip" not in opnsense["OPNsense"]["Firewall"]["Alias"]
+
+    alias = opnsense["OPNsense"]["Firewall"]["Alias"]["aliases"]["alias"]
+    assert "username" not in alias
+    assert "password" not in alias
+
+    assert "password" not in opnsense["virtualip"]["vip"]
+    assert "prv" not in opnsense["ca"]
+    assert "prv" not in opnsense["cert"]
+    assert opnsense["Deciso"]["UserPortal"]["group_options"].get("otp_seed") is None

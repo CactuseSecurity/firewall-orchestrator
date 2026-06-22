@@ -1,7 +1,7 @@
 from typing import Any
 
 import pytest
-from models.rule import Rule, RuleAction, RuleNormalized, RuleTrack, RuleType
+from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
 
 
 def _base_rule(**overrides: Any) -> RuleNormalized:

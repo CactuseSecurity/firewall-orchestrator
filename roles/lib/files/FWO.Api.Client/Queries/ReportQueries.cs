@@ -22,7 +22,6 @@ namespace FWO.Api.Client.Queries
         public static readonly string getReportsById;
         public static readonly string getRelevantImportIdsAtTime;
         public static readonly string getRelevantImportIdsInTimeRange;
-        public static readonly string statisticsReportCurrent;
 
         public static readonly string subscribeGeneratedReportsChanges;
         public static readonly string getGeneratedReport;
@@ -54,8 +53,6 @@ namespace FWO.Api.Client.Queries
                 getReportTemplates = GetQueryText("report/getReportTemplates.graphql");
                 getRelevantImportIdsAtTime = GetQueryText("report/getRelevantImportIdsAtTime.graphql");
                 getRelevantImportIdsInTimeRange = GetQueryText("report/getRelevantImportIdsInTimeRange.graphql");
-                statisticsReportCurrent = GetQueryText("report/statisticsCurrent.graphql");
-                statisticsReportCurrent = GetQueryText("report/statisticsCurrentOverall.graphql");
                 updateReportTemplate = GetQueryText("report/updateReportTemplate.graphql");
                 deleteReportTemplate = GetQueryText("report/deleteReportTemplate.graphql");
                 subscribeReportScheduleChanges = GetQueryText("report/subscribeReportScheduleChanges.graphql");

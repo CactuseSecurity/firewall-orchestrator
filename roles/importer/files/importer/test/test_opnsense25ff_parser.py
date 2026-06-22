@@ -81,6 +81,29 @@ def _native_config() -> dict[str, Any]:
     }
 
 
+def _native_config_with_singletons() -> dict[str, Any]:
+    config = _native_config()
+    opnsense = config["opnsense"]
+
+    opnsense["system"]["group"] = opnsense["system"]["group"][0]
+    opnsense["system"]["user"] = opnsense["system"]["user"][0]
+    opnsense["ifgroups"]["ifgroupentry"] = opnsense["ifgroups"]["ifgroupentry"][0]
+    opnsense["filter"]["rule"] = opnsense["filter"]["rule"][0]
+    opnsense["OPNsense"]["Firewall"]["Alias"]["aliases"]["alias"] = opnsense["OPNsense"]["Firewall"]["Alias"][
+        "aliases"
+    ]["alias"][0]
+    opnsense["OPNsense"]["Gateways"]["gateway_item"] = {
+        "@uuid": "gw1",
+        "disabled": "0",
+        "name": "wan_gateway",
+        "interface": "wan",
+        "gateway": "198.51.100.1",
+        "defaultgw": "1",
+    }
+
+    return config
+
+
 def test_parse_opnsense_config_builds_structured_model() -> None:
     config = parse_opnsense_config(_native_config())
 
@@ -109,3 +132,14 @@ def test_parse_opnsense_config_enriches_aliases() -> None:
     assert len(config.port_aliases["web"].childs) == 2
     # host alias enrichment resolves the literal IP into a child
     assert len(config.host_aliases["internal"].childs) == 1
+
+
+def test_parse_opnsense_config_handles_singleton_sections() -> None:
+    config = parse_opnsense_config(_native_config_with_singletons())
+
+    assert [user.name for user in config.users] == ["root"]
+    assert [group.name for group in config.user_groups] == ["admins"]
+    assert list(config.interface_groups) == ["lan_group"]
+    assert [rule.uuid for rule in config.access_rules] == ["r1"]
+    assert list(config.port_aliases) == ["web"]
+    assert [gateway.name for gateway in config.gateways] == ["wan_gateway"]

@@ -150,7 +150,6 @@ namespace FWO.Report
             {
                 return owner.OwnerLifeCycleState.Name;
             }
-
             return GetOwnerState(owner);
         }
 

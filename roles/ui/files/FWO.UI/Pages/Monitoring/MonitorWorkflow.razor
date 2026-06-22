@@ -47,7 +47,7 @@ else
             </div>
         </div>
         <div class="col-sm-2">
-            <button type="button" class="btn btn-sm btn-primary" data-toggle="tooltip" title="@(userConfig.PureLine("H7032"))" @onclick="RefreshTickets">@(DisplayService.DisplayButton(userConfig, "refresh", Icons.Refresh))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="RefreshTickets">@(DisplayService.DisplayButton(userConfig, "refresh", Icons.Refresh))</button>
         </div>
     </div>
 
@@ -81,7 +81,7 @@ else
                                  ApplyStateChange="ApplyStateChange" CloseStateDialog="CloseStateDialog" />
 <Confirm @bind-Display="ConfirmAutoCreateImplTasksDisplay" PerformAction="ConfirmAutoCreateImplementationTasks"
          Title="@(userConfig.GetText("auto_create_impltasks"))" Message="@autoCreateImplTasksConfirmMessage"
-         AllowedRoles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")" />
+         AllowedRoles="@($"{Roles.Admin}, {Roles.FwAdmin}")" />
 <InProgress Display="WorkInProgress" />
 
 @code
@@ -123,7 +123,7 @@ else
     private int CurrentPage { get; set; }
     private bool HasNextPage { get; set; }
 
-    private List<WfTicket> FilteredTickets => [.. tickets.OrderByDescending(ticket => ticket.Id)];
+    private List<WfTicket> FilteredTickets => tickets;
 
     protected override async Task OnInitializedAsync()
     {
@@ -247,6 +247,7 @@ else
             var variables = new
             {
                 limit = fetchLimit,
+                // Offset pagination is acceptable here for admin monitoring; rows can shift if workflow tickets change between page loads.
                 offset = CurrentPage * PageSize,
                 taskTypes = SelectedTaskTypes.Select(taskType => taskType.ToString()).ToList(),
                 stateIds = SelectedStateIds.Count == 0 ? allStates.Select(state => state.Id).ToList() : SelectedStateIds
@@ -358,7 +359,7 @@ else
             bool implementationTasksCreated = await wfHandler.AutoCreateInitialImplTasksForMonitoring(selectedAutoCreateTicket, selectedAutoCreateReqTask);
             await FetchTicketPage();
             DisplayMessageInUi(null, userConfig.GetText("auto_create_impltasks"),
-                implementationTasksCreated ? userConfig.GetText("impltask_created") : userConfig.GetText("found_no_changes"), !implementationTasksCreated);
+                implementationTasksCreated ? userConfig.GetText("impltask_created") : userConfig.GetText("found_no_changes"), false);
         }
         catch (Exception exception)
         {

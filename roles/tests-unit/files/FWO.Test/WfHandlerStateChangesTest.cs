@@ -606,7 +606,7 @@ namespace FWO.Test
             };
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateActTicketStateFromReqTasks", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [true]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, [true, true]) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.That(handler.ActTicket.StateId, Is.EqualTo(1));
         }
@@ -633,6 +633,51 @@ namespace FWO.Test
             {
                 Assert.That(ticket.StateId, Is.EqualTo(2));
                 Assert.That(ticket.StateChanged(), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task ChangeReqTaskStateForMonitoring_CascadeParents_DoesNotCreateImplTasks()
+        {
+            WfHandler handler = new()
+            {
+                MasterStateMatrix = new StateMatrix
+                {
+                    LowestEndState = 2,
+                    MinTicketCompleted = 99,
+                    PhaseActive = new() { { WorkflowPhases.planning, false } }
+                }
+            };
+            SetMatrix(handler, WfTaskType.group_create.ToString(), new StateMatrix
+            {
+                MinImplTasksNeeded = 2,
+                MinTicketCompleted = 99,
+                PhaseActive = new() { { WorkflowPhases.planning, false } }
+            });
+            WfReqTask reqTask = new()
+            {
+                Id = 7,
+                TicketId = 1,
+                TaskType = WfTaskType.group_create.ToString(),
+                StateId = 1
+            };
+            WfTicket ticket = new()
+            {
+                Id = 1,
+                StateId = 1,
+                Tasks = { reqTask }
+            };
+
+            await handler.ChangeReqTaskStateForMonitoring(ticket, reqTask, 2, MonitoringStateChangeMode.CascadeParents);
+
+            WfReqTask syncedReqTask = handler.ActTicket.Tasks.Single(task => task.Id == reqTask.Id);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ticket.StateId, Is.EqualTo(2));
+                Assert.That(handler.ActReqTask.StateId, Is.EqualTo(2));
+                Assert.That(syncedReqTask.StateId, Is.EqualTo(2));
+                Assert.That(handler.ActReqTask.ImplementationTasks, Is.Empty);
+                Assert.That(syncedReqTask.ImplementationTasks, Is.Empty);
             });
         }
 

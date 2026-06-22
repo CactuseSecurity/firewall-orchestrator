@@ -187,7 +187,7 @@ namespace FWO.Services.Workflow
 
             if (mode != MonitoringStateChangeMode.LocalOnly)
             {
-                await UpdateActTicketStateFromReqTasks(mode == MonitoringStateChangeMode.TriggerActions);
+                await UpdateActTicketStateFromReqTasks(mode == MonitoringStateChangeMode.TriggerActions, false);
             }
             LogMonitoringStateChange(WfObjectScopes.RequestTask, ActReqTask.Id, ActTicket.Id, oldStateId, targetStateId, mode);
         }
@@ -208,7 +208,7 @@ namespace FWO.Services.Workflow
             if (mode != MonitoringStateChangeMode.LocalOnly)
             {
                 await UpdateReqTaskStatesFromActImplTask(mode == MonitoringStateChangeMode.TriggerActions);
-                await UpdateActTicketStateFromReqTasks(mode == MonitoringStateChangeMode.TriggerActions);
+                await UpdateActTicketStateFromReqTasks(mode == MonitoringStateChangeMode.TriggerActions, false);
             }
             LogMonitoringStateChange(WfObjectScopes.ImplementationTask, ActImplTask.Id, ActTicket.Id, oldStateId, targetStateId, mode);
         }
@@ -229,7 +229,7 @@ namespace FWO.Services.Workflow
             {
                 await UpdateActReqTaskStateFromApprovals(mode == MonitoringStateChangeMode.TriggerActions);
                 SyncActTicketFromReqTask(ActReqTask);
-                await UpdateActTicketStateFromReqTasks(mode == MonitoringStateChangeMode.TriggerActions);
+                await UpdateActTicketStateFromReqTasks(mode == MonitoringStateChangeMode.TriggerActions, false);
             }
             LogMonitoringStateChange(WfObjectScopes.Approval, ActApproval.Id, ActTicket.Id, oldStateId, targetStateId, mode);
         }
@@ -324,7 +324,7 @@ namespace FWO.Services.Workflow
             }
         }
 
-        private async Task UpdateActTicketStateFromReqTasks(bool triggerActions = true)
+        private async Task UpdateActTicketStateFromReqTasks(bool triggerActions = true, bool syncImplementationTasks = true)
         {
             if (ActTicket.Tasks.Count > 0)
             {
@@ -337,7 +337,7 @@ namespace FWO.Services.Workflow
                 Log.WriteDebug("UpdateActTicketStateFromReqTasks", $"Ticket {ActTicket.Id}: derived state {derivedState} from request task states {string.Join(", ", taskStates)}.");
                 ActTicket.StateId = derivedState;
             }
-            await UpdateActTicketState(triggerActions);
+            await UpdateActTicketState(triggerActions, syncImplementationTasks);
         }
 
         public async Task UpdateActReqTaskState(bool triggerActions = true)

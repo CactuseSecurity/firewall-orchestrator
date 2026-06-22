@@ -22,6 +22,7 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
 {
     private const string StandardOwnerType = "standard";
     private const string InfrastructureOwnerType = "infrastructure";
+    private const int kMaxFilterTextLength = 256;
 
     /// <summary>
     /// Returns all owners visible to the caller with optional AND-combined filters.
@@ -61,11 +62,15 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
     /// By default owners with an inactive lifecycle state are excluded; set <c>showOnlyActiveState</c> to
     /// <c>false</c> to also include them. Owners without any lifecycle state are always returned.
     /// The <c>name</c> and <c>appIdExternal</c> filters are case-insensitive and accept <c>*</c> for any
-    /// character sequence and <c>?</c> for a single character. Plain text without wildcards is matched as a contains search.
+    /// character sequence and <c>?</c> for a single character. Plain text without wildcards is matched as a contains
+    /// search, and literal <c>%</c>, <c>_</c>, and <c>\</c> characters are matched verbatim.
+    /// Unknown request properties are rejected with <c>400 Bad Request</c>, as are non-positive ids and text
+    /// filters that exceed 256 characters or contain control characters.
     /// </remarks>
     [HttpPost("get")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(List<GetOwnerResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
@@ -75,6 +80,11 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
         try
         {
             GetOwnersRequest effectiveRequest = request ?? new GetOwnersRequest();
+            if (ValidateRequest(effectiveRequest) is string validationError)
+            {
+                return BadRequest(validationError);
+            }
+
             List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(
                 OwnerQueries.getOwnersFiltered,
                 BuildQueryVariables(effectiveRequest, User)) ?? [];
@@ -86,6 +96,44 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
             Log.WriteError("Get Owners", "Error while fetching owners.", exception);
             return StatusCode(500, "Internal server error");
         }
+    }
+
+    /// <summary>
+    /// Validates and sanitizes the supplied filter values before they are used to build the query.
+    /// </summary>
+    /// <param name="request">The request to validate.</param>
+    /// <returns>An error message describing the first invalid value, or <c>null</c> when the request is valid.</returns>
+    internal static string? ValidateRequest(GetOwnersRequest request)
+    {
+        if (request.OwnerId is <= 0)
+        {
+            return "ownerId must be a positive integer.";
+        }
+        if (request.OwnerLifeCycleStateId is <= 0)
+        {
+            return "ownerLifecycleStateId must be a positive integer.";
+        }
+        return ValidateFilterText(request.Name, "name") ?? ValidateFilterText(request.AppIdExternal, "appIdExternal");
+    }
+
+    /// <summary>
+    /// Ensures a text filter stays within the allowed length and contains no control characters.
+    /// </summary>
+    private static string? ValidateFilterText(string? value, string fieldName)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+        if (value.Length > kMaxFilterTextLength)
+        {
+            return $"{fieldName} must not exceed {kMaxFilterTextLength} characters.";
+        }
+        if (value.Any(char.IsControl))
+        {
+            return $"{fieldName} must not contain control characters.";
+        }
+        return null;
     }
 
     /// <summary>
@@ -226,11 +274,21 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
         return appIdExternal?.Contains("app", StringComparison.OrdinalIgnoreCase) == true;
     }
 
+    /// <summary>
+    /// Builds an <c>_ilike</c> pattern from a user-supplied filter value.
+    /// Literal SQL wildcards (<c>\</c>, <c>%</c>, <c>_</c>) in the input are escaped so they are matched verbatim,
+    /// while the documented <c>*</c> and <c>?</c> wildcards are translated to <c>%</c> and <c>_</c>.
+    /// Plain text without <c>*</c>/<c>?</c> is wrapped for a contains search.
+    /// </summary>
     private static string BuildLikePattern(string value)
     {
         string trimmedValue = value.Trim();
-        string pattern = trimmedValue.Replace('*', '%').Replace('?', '_');
-        bool hasWildcard = pattern.Contains('%') || pattern.Contains('_');
+        bool hasWildcard = trimmedValue.Contains('*') || trimmedValue.Contains('?');
+        string escapedValue = trimmedValue
+            .Replace("\\", "\\\\")
+            .Replace("%", "\\%")
+            .Replace("_", "\\_");
+        string pattern = escapedValue.Replace('*', '%').Replace('?', '_');
         return hasWildcard ? pattern : $"%{pattern}%";
     }
 }

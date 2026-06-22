@@ -108,6 +108,62 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GetEscapesLiteralSqlWildcardsInFilters()
+        {
+            OwnersApiConnection apiConnection = new();
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            await controller.Get(new GetOwnersRequest
+            {
+                Name = "APP_1",
+                AppIdExternal = "50%"
+            });
+
+            string variables = SerializeVariables(apiConnection.Variables);
+            Assert.Multiple(() =>
+            {
+                Assert.That(variables, Does.Contain($"\"name\":{{\"_ilike\":{JsonSerializer.Serialize("%APP\\_1%")}}}"));
+                Assert.That(variables, Does.Contain($"\"app_id_external\":{{\"_ilike\":{JsonSerializer.Serialize("%50\\%%")}}}"));
+            });
+        }
+
+        [Test]
+        public async Task GetReturnsBadRequestForNonPositiveOwnerId()
+        {
+            OwnersApiConnection apiConnection = new();
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            ActionResult<List<GetOwnerResponse>> result = await controller.Get(new GetOwnersRequest { OwnerId = 0 });
+
+            Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+            Assert.That(apiConnection.Query, Is.Empty);
+        }
+
+        [Test]
+        public async Task GetReturnsBadRequestForControlCharacterInName()
+        {
+            OwnersApiConnection apiConnection = new();
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            ActionResult<List<GetOwnerResponse>> result = await controller.Get(new GetOwnersRequest { Name = "badname" });
+
+            Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+            Assert.That(apiConnection.Query, Is.Empty);
+        }
+
+        [Test]
+        public async Task GetReturnsBadRequestForOverlongFilter()
+        {
+            OwnersApiConnection apiConnection = new();
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            ActionResult<List<GetOwnerResponse>> result = await controller.Get(new GetOwnersRequest { AppIdExternal = new string('a', 257) });
+
+            Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+            Assert.That(apiConnection.Query, Is.Empty);
+        }
+
+        [Test]
         public async Task GetRestrictsModellerToEditableOwnerIds()
         {
             OwnersApiConnection apiConnection = new();

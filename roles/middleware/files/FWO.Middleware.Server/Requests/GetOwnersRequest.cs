@@ -4,7 +4,10 @@ namespace FWO.Middleware.Server.Requests;
 
 /// <summary>
 /// Represents owner lookup filters for the owners/get endpoint.
+/// Unknown properties are rejected so callers are notified of typos or unsupported filters
+/// instead of having them silently ignored.
 /// </summary>
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed class GetOwnersRequest
 {
     /// <summary>

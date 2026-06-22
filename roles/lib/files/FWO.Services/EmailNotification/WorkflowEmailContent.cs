@@ -16,14 +16,22 @@ namespace FWO.Services
         /// </summary>
         public static WorkflowEmailContent FromRequestTasks(IEnumerable<WfReqTask> tasks, UserConfig userConfig)
         {
+            return FromRequestTasks(tasks, userConfig, null);
+        }
+
+        /// <summary>
+        /// Builds requested connection content from request tasks.
+        /// </summary>
+        public static WorkflowEmailContent FromRequestTasks(IEnumerable<WfReqTask> tasks, UserConfig userConfig, Dictionary<int, string>? protocolNamesById)
+        {
             List<WfReqTask> taskList = [.. tasks];
             List<WorkflowEmailSection> sections = [];
-            List<WorkflowConnectionRow> accessRows = [.. taskList.Where(task => !IsGroupTask(task)).Select(BuildRequestRow).Where(row => row.HasContent())];
+            List<WorkflowConnectionRow> accessRows = [.. taskList.Where(task => !IsGroupTask(task)).Select(task => BuildRequestRow(task, protocolNamesById)).Where(row => row.HasContent())];
             if (accessRows.Count > 0)
             {
                 sections.Add(BuildAccessSection(accessRows, userConfig));
             }
-            List<WorkflowGroupRow> groupRows = [.. taskList.Where(IsGroupTask).Select(task => BuildGroupRequestRow(task, userConfig)).Where(row => row.HasContent())];
+            List<WorkflowGroupRow> groupRows = [.. taskList.Where(IsGroupTask).Select(task => BuildGroupRequestRow(task, userConfig, protocolNamesById)).Where(row => row.HasContent())];
             if (groupRows.Count > 0)
             {
                 sections.Add(BuildGroupSection(groupRows, userConfig));
@@ -36,7 +44,15 @@ namespace FWO.Services
         /// </summary>
         public static WorkflowEmailContent FromImplementationTasks(IEnumerable<WfImplTask> tasks, UserConfig userConfig)
         {
-            List<WorkflowConnectionRow> rows = [.. tasks.Select(BuildImplementationRow).Where(row => row.HasContent())];
+            return FromImplementationTasks(tasks, userConfig, null);
+        }
+
+        /// <summary>
+        /// Builds requested connection content from implementation tasks.
+        /// </summary>
+        public static WorkflowEmailContent FromImplementationTasks(IEnumerable<WfImplTask> tasks, UserConfig userConfig, Dictionary<int, string>? protocolNamesById)
+        {
+            List<WorkflowConnectionRow> rows = [.. tasks.Select(task => BuildImplementationRow(task, protocolNamesById)).Where(row => row.HasContent())];
             WorkflowEmailSection section = BuildAccessSection(rows, userConfig);
             return FromSections(section.Rows.Count > 0 ? [section] : []);
         }
@@ -90,33 +106,33 @@ namespace FWO.Services
             };
         }
 
-        private static WorkflowConnectionRow BuildRequestRow(WfReqTask task)
+        private static WorkflowConnectionRow BuildRequestRow(WfReqTask task, Dictionary<int, string>? protocolNamesById)
         {
             return new()
             {
                 Task = BuildTaskReference(task.TaskNumber, task.Id),
                 Title = task.Title,
                 Action = task.RequestAction,
-                Source = BuildElementList(task.Elements, ElemFieldType.source),
-                Destination = BuildElementList(task.Elements, ElemFieldType.destination),
-                Services = BuildElementList(task.Elements, ElemFieldType.service)
+                Source = BuildElementList(task.Elements, ElemFieldType.source, protocolNamesById),
+                Destination = BuildElementList(task.Elements, ElemFieldType.destination, protocolNamesById),
+                Services = BuildElementList(task.Elements, ElemFieldType.service, protocolNamesById)
             };
         }
 
-        private static WorkflowConnectionRow BuildImplementationRow(WfImplTask task)
+        private static WorkflowConnectionRow BuildImplementationRow(WfImplTask task, Dictionary<int, string>? protocolNamesById)
         {
             return new()
             {
                 Task = BuildTaskReference(task.TaskNumber, task.Id),
                 Title = task.Title,
                 Action = task.ImplAction,
-                Source = BuildElementList(task.ImplElements, ElemFieldType.source),
-                Destination = BuildElementList(task.ImplElements, ElemFieldType.destination),
-                Services = BuildElementList(task.ImplElements, ElemFieldType.service)
+                Source = BuildElementList(task.ImplElements, ElemFieldType.source, protocolNamesById),
+                Destination = BuildElementList(task.ImplElements, ElemFieldType.destination, protocolNamesById),
+                Services = BuildElementList(task.ImplElements, ElemFieldType.service, protocolNamesById)
             };
         }
 
-        private static WorkflowGroupRow BuildGroupRequestRow(WfReqTask task, UserConfig userConfig)
+        private static WorkflowGroupRow BuildGroupRequestRow(WfReqTask task, UserConfig userConfig, Dictionary<int, string>? protocolNamesById)
         {
             return new()
             {
@@ -124,7 +140,7 @@ namespace FWO.Services
                 Type = userConfig.GetText(task.TaskType),
                 Title = task.Title,
                 Action = task.RequestAction,
-                Members = BuildGroupMemberList(task)
+                Members = BuildGroupMemberList(task, protocolNamesById)
             };
         }
 
@@ -140,36 +156,28 @@ namespace FWO.Services
             return taskNumber > 0 ? taskNumber.ToString() : id.ToString();
         }
 
-        private static string BuildElementList(IEnumerable<WfElementBase> elements, ElemFieldType field)
+        private static string BuildElementList(IEnumerable<WfElementBase> elements, ElemFieldType field, Dictionary<int, string>? protocolNamesById)
         {
             return string.Join(", ", elements
                 .Where(element => element.Field == field.ToString())
-                .Select(BuildElementText)
+                .Select(element => BuildElementText(element, protocolNamesById))
                 .Where(text => !string.IsNullOrWhiteSpace(text))
                 .Distinct());
         }
 
-        private static string BuildElementList(IEnumerable<WfElementBase> elements)
-        {
-            return string.Join(", ", elements
-                .Select(BuildElementText)
-                .Where(text => !string.IsNullOrWhiteSpace(text))
-                .Distinct());
-        }
-
-        private static string BuildGroupMemberList(WfReqTask task)
+        private static string BuildGroupMemberList(WfReqTask task, Dictionary<int, string>? protocolNamesById)
         {
             List<WfElementBase> elements = [.. task.Elements, .. task.RemovedElements];
             return string.Join(", ", elements
-                .Select(BuildGroupMemberText)
+                .Select(element => BuildGroupMemberText(element, protocolNamesById))
                 .Where(text => !string.IsNullOrWhiteSpace(text))
                 .Distinct());
         }
 
-        private static string BuildGroupMemberText(WfElementBase element)
+        private static string BuildGroupMemberText(WfElementBase element, Dictionary<int, string>? protocolNamesById)
         {
             string memberText = element.Field == ElemFieldType.service.ToString()
-                ? BuildGroupServiceMemberText(element)
+                ? BuildGroupServiceMemberText(element, protocolNamesById)
                 : BuildGroupObjectMemberText(element);
             string elementAction = GetElementAction(element);
             if (string.IsNullOrWhiteSpace(elementAction) || elementAction == RequestAction.create.ToString())
@@ -199,20 +207,20 @@ namespace FWO.Services
             return displayName;
         }
 
-        private static string BuildGroupServiceMemberText(WfElementBase element)
+        private static string BuildGroupServiceMemberText(WfElementBase element, Dictionary<int, string>? protocolNamesById)
         {
             string displayName = FirstNonEmpty(element.Name, BuildPortRange(element), element.GroupName);
             if (element.ProtoId != null && string.IsNullOrWhiteSpace(element.Name))
             {
-                return $"{displayName}/{element.ProtoId}";
+                return $"{displayName}/{GetProtocolLabel(element.ProtoId.Value, protocolNamesById)}";
             }
             return displayName;
         }
 
-        private static string BuildElementText(WfElementBase element)
+        private static string BuildElementText(WfElementBase element, Dictionary<int, string>? protocolNamesById)
         {
             return element.Field == ElemFieldType.service.ToString()
-                ? BuildServiceText(element)
+                ? BuildServiceText(element, protocolNamesById)
                 : BuildObjectOrRuleText(element);
         }
 
@@ -226,14 +234,21 @@ namespace FWO.Services
             return displayName;
         }
 
-        private static string BuildServiceText(WfElementBase element)
+        private static string BuildServiceText(WfElementBase element, Dictionary<int, string>? protocolNamesById)
         {
             string displayName = FirstNonEmpty(element.Name, element.GroupName, BuildPortRange(element));
             if (element.ProtoId != null && string.IsNullOrWhiteSpace(element.Name))
             {
-                return $"{displayName}/{element.ProtoId}";
+                return $"{displayName}/{GetProtocolLabel(element.ProtoId.Value, protocolNamesById)}";
             }
             return displayName;
+        }
+
+        private static string GetProtocolLabel(int protocolId, Dictionary<int, string>? protocolNamesById)
+        {
+            return protocolNamesById != null && protocolNamesById.TryGetValue(protocolId, out string? protocolName) && !string.IsNullOrWhiteSpace(protocolName)
+                ? protocolName
+                : protocolId.ToString();
         }
 
         private static string BuildIpRange(WfElementBase element)

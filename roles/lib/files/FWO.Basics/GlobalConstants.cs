@@ -210,6 +210,14 @@ namespace FWO.Basics
         public const string Any = "any";
         public const string Reject = "reject";
         public const string Drop = "drop";
+
+        /// <summary>
+        /// Returns whether the normalized action name blocks traffic.
+        /// </summary>
+        public static bool IsDropAction(string? action)
+        {
+            return action == Drop || action == Reject || action == Deny;
+        }
     }
 
     public enum ChunkMergeMode

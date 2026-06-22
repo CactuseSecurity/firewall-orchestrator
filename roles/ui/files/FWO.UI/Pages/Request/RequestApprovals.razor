@@ -22,6 +22,7 @@ else
 {
    <Loading/>
 }
+<InProgress Display="WorkInProgress"/>
 
 @code
 {
@@ -38,6 +39,7 @@ else
     private WfStateDict states = new ();
     private List<int>? OwnerIds = null;
     private bool InitComplete = false;
+    private bool WorkInProgress = false;
 
 
     protected override async Task OnInitializedAsync()
@@ -90,13 +92,24 @@ else
 
     public async Task StartApproveTask(WfReqTask reqTask)
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
+        WorkInProgress = true;
         try
         {
+            await InvokeAsync(StateHasChanged);
             await wfHandler.StartWorkOnReqTask(reqTask, ObjAction.approve);
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("start_work"), "", true);
+        }
+        finally
+        {
+            WorkInProgress = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 }

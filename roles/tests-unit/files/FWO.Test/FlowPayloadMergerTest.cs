@@ -41,6 +41,43 @@ namespace FWO.Test
             Assert.That(result.SelectMany(payload => payload.OriginRequestTaskIds), Is.EquivalentTo(new long[] { 1, 2 }));
         }
 
+        [Test]
+        public void MergeBundled_DoesNotMergePayloadsWithDifferentTimeObjects()
+        {
+            FlowCreationPayload first = CreatePayload(1, "10.0.0.1", "10.0.1.1", 443);
+            FlowCreationPayload second = CreatePayload(2, "10.0.0.1", "10.0.1.2", 443);
+            first.BundleId = "flow-1-2";
+            second.BundleId = "flow-1-2";
+            first.TimeEnd = new DateTime(2026, 7, 9, 23, 59, 0, DateTimeKind.Utc);
+            second.TimeEnd = new DateTime(2026, 8, 9, 23, 59, 0, DateTimeKind.Utc);
+
+            List<FlowCreationPayload> result = new FlowPayloadMerger().MergeBundled([first, second]);
+
+            Assert.That(result, Has.Count.EqualTo(2));
+            Assert.That(result.Select(payload => payload.TimeEnd), Is.EquivalentTo(new[]
+            {
+                new DateTime(2026, 7, 9, 23, 59, 0, DateTimeKind.Utc),
+                new DateTime(2026, 8, 9, 23, 59, 0, DateTimeKind.Utc)
+            }));
+            Assert.That(result.SelectMany(payload => payload.OriginRequestTaskIds), Is.EquivalentTo(new long[] { 1, 2 }));
+        }
+
+        [Test]
+        public void MergeBundled_DoesNotMergePayloadsWithDifferentRuleActions()
+        {
+            FlowCreationPayload first = CreatePayload(1, "10.0.0.1", "10.0.1.1", 443);
+            FlowCreationPayload second = CreatePayload(2, "10.0.0.1", "10.0.1.2", 443);
+            first.BundleId = "flow-1-2";
+            second.BundleId = "flow-1-2";
+            second.RuleActionId = 99;
+
+            List<FlowCreationPayload> result = new FlowPayloadMerger().MergeBundled([first, second]);
+
+            Assert.That(result, Has.Count.EqualTo(2));
+            Assert.That(result.Select(payload => payload.RuleActionId), Is.EquivalentTo(new int?[] { 1, 99 }));
+            Assert.That(result.SelectMany(payload => payload.OriginRequestTaskIds), Is.EquivalentTo(new long[] { 1, 2 }));
+        }
+
         private static FlowCreationPayload CreatePayload(long taskId, string sourceIp, string destinationIp, int port)
         {
             return new()

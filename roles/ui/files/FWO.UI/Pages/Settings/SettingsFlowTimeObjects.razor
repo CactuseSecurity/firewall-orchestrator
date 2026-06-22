@@ -63,6 +63,7 @@ else
                  TotalCount="flowTimeObjects.Count"
                  PageSize="25"
                  SearchLabel="@(userConfig.GetText("search_name"))"
+                 ClearSearchLabel="@(userConfig.GetText("clear_input"))"
                  @bind-SearchText="objectSearchText">
     <ChildContent>
         <Column TableItem="FlowTimeObject" Title="@(userConfig.GetText("actions"))" Field="@(timeObject => timeObject.Id)" Sortable="false" Filterable="false" Context="timeObject">

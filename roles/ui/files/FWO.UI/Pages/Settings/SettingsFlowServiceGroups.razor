@@ -63,6 +63,7 @@ else
                  TotalCount="flowSvcGroups.Count"
                  PageSize="25"
                  SearchLabel="@(userConfig.GetText("search_name"))"
+                 ClearSearchLabel="@(userConfig.GetText("clear_input"))"
                  @bind-SearchText="groupSearchText">
     <ChildContent>
         <Column TableItem="FlowSvcGroup" Title="@(userConfig.GetText("actions"))" Field="@(svcGroup => svcGroup.Id)" Sortable="false" Filterable="false" Context="svcGroup">

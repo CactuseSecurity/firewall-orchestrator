@@ -7,8 +7,13 @@
         <input type="text" class="form-control" value="@SearchText" @oninput="HandleSearchInput" />
         @if (!string.IsNullOrWhiteSpace(SearchText))
         {
-            <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearSearch">
+            <button type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    title="@ClearSearchLabel"
+                    aria-label="@ClearSearchLabel"
+                    @onclick="ClearSearch">
                 <span class="@Icons.Cancel"></span>
+                <span class="visually-hidden">@ClearSearchLabel</span>
             </button>
         }
     </div>
@@ -36,6 +41,9 @@
 
     [Parameter, EditorRequired]
     public string SearchLabel { get; set; } = "";
+
+    [Parameter]
+    public string ClearSearchLabel { get; set; } = "";
 
     [Parameter]
     public string SearchText { get; set; } = "";

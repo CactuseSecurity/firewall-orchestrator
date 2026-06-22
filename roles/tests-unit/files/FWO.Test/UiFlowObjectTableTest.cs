@@ -50,6 +50,7 @@ namespace FWO.Test
                 .Add(p => p.TotalCount, 2)
                 .Add(p => p.PageSize, 25)
                 .Add(p => p.SearchLabel, "Search")
+                .Add(p => p.ClearSearchLabel, "Clear input")
                 .Add(p => p.SearchText, searchText)
                 .Add(p => p.SearchTextChanged, EventCallback.Factory.Create<string>(this, value =>
                 {
@@ -80,6 +81,7 @@ namespace FWO.Test
                 .Add(p => p.TotalCount, 2)
                 .Add(p => p.PageSize, 25)
                 .Add(p => p.SearchLabel, "Search")
+                .Add(p => p.ClearSearchLabel, "Clear input")
                 .Add(p => p.SearchText, searchText)
                 .Add(p => p.SearchTextChanged, EventCallback.Factory.Create<string>(this, value =>
                 {
@@ -99,6 +101,9 @@ namespace FWO.Test
 
             Assert.That(cut.Find("input").GetAttribute("value"), Is.EqualTo("one"));
             Assert.That(cut.Markup, Does.Contain("1 / 2"));
+            Assert.That(cut.Markup, Does.Contain("Clear input"));
+            Assert.That(cut.Find("button.btn-outline-secondary").GetAttribute("title"), Is.EqualTo("Clear input"));
+            Assert.That(cut.Find("button.btn-outline-secondary").GetAttribute("aria-label"), Is.EqualTo("Clear input"));
 
             cut.Find("button.btn-outline-secondary").Click();
 

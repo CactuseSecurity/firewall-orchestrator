@@ -150,6 +150,7 @@ else
                  TotalCount="flowNwObjects.Count"
                  PageSize="25"
                  SearchLabel="@(userConfig.GetText("search_name"))"
+                 ClearSearchLabel="@(userConfig.GetText("clear_input"))"
                  @bind-SearchText="objectSearchText">
     <ChildContent>
         <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("actions"))" Field="@(nwObject => nwObject.Id)" Sortable="false" Filterable="false" Context="nwObject">

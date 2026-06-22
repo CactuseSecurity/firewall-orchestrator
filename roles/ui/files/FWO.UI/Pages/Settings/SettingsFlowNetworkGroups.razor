@@ -63,6 +63,7 @@ else
                  TotalCount="flowNwGroups.Count"
                  PageSize="25"
                  SearchLabel="@(userConfig.GetText("search_name"))"
+                 ClearSearchLabel="@(userConfig.GetText("clear_input"))"
                  @bind-SearchText="groupSearchText">
     <ChildContent>
         <Column TableItem="FlowNwGroup" Title="@(userConfig.GetText("actions"))" Field="@(nwGroup => nwGroup.Id)" Sortable="false" Filterable="false" Context="nwGroup">

@@ -70,6 +70,7 @@ else
                  TotalCount="flowSvcObjects.Count"
                  PageSize="25"
                  SearchLabel="@(userConfig.GetText("search_name"))"
+                 ClearSearchLabel="@(userConfig.GetText("clear_input"))"
                  @bind-SearchText="objectSearchText">
     <ChildContent>
         <Column TableItem="FlowSvcObject" Title="@(userConfig.GetText("actions"))" Field="@(svcObject => svcObject.Id)" Sortable="false" Filterable="false" Context="svcObject">

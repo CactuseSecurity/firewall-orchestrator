@@ -73,10 +73,8 @@ class RuleNormalized(BaseModel):  # noqa: PLW1641
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, RuleNormalized):
             return NotImplemented
-        # Compare all fields except 'last_hit' and zones
-        # Zones are excluded because they are currently not written to the rule directly,
-        #  only linked through rule_from_zone and rule_to_zone tables (similar to _resolved tables)
-        exclude = {"last_hit", "rule_src_zone", "rule_dst_zone"}
+        # Compare all fields except 'last_hit'
+        exclude = {"last_hit"}
         self_dict = self.model_dump(exclude=exclude)
         other_dict = other.model_dump(exclude=exclude)
         return self_dict == other_dict
@@ -144,6 +142,7 @@ class Rule(BaseModel):
     rule_dst: str
     rule_dst_neg: bool
     rule_dst_refs: str
+    rule_src_zone: str | None = None
     rule_head_text: str | None = None
     rule_implied: bool = False
     rule_installon: str | None = None
@@ -156,6 +155,7 @@ class Rule(BaseModel):
     rule_svc_neg: bool
     rule_svc_refs: str
     rule_time: str | None = None
+    rule_dst_zone: str | None = None
     track_id: int
     xlate_rule: int | None = None
     rule_track: str

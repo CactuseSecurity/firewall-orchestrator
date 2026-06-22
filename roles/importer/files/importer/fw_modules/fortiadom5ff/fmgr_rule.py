@@ -197,8 +197,8 @@ def add_implicit_deny_rule(
         parent_rule_uid=None,
         last_hit=None,
         rule_comment=None,
-        rule_src_zone=LIST_DELIMITER.join(rule_src_zones),
-        rule_dst_zone=LIST_DELIMITER.join(rule_dst_zones),
+        rule_src_zone=LIST_DELIMITER.join(sorted(set(rule_src_zones))),
+        rule_dst_zone=LIST_DELIMITER.join(sorted(set(rule_dst_zones))),
         rule_head_text=None,
     )
 

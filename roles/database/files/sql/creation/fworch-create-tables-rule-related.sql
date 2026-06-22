@@ -23,6 +23,8 @@ Create table "rule"
 	"rule_src_refs" Text,
 	"rule_dst_refs" Text,
 	"rule_svc_refs" Text,
+	"rule_src_zone" Text,
+	"rule_dst_zone" Text,
 	"rule_action" Text NOT NULL,
 	"rule_track" Text NOT NULL,
 	"rule_installon" Varchar,

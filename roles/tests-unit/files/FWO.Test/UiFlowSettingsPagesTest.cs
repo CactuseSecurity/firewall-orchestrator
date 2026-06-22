@@ -105,11 +105,16 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task FlowServiceObjectsPage_CreateCustomObject_RejectsProtocolOnlyService()
+        public async Task FlowServiceObjectsPage_CreateCustomObject_AllowsProtocolOnlyService()
         {
             await using BunitContext context = CreateProtocolOnlyServiceCreateContext(out FlowServiceObjectsProtocolOnlyApiConn apiConnection);
 
             IRenderedComponent<SettingsFlowServiceObjects> component = RenderPage<SettingsFlowServiceObjects>(context);
+            string? errorMessage = null;
+            SetMember(component.Instance, "DisplayMessageInUi", new Action<Exception?, string, string, bool>((exception, _, message, _) =>
+            {
+                errorMessage = exception?.Message ?? message;
+            }));
             component.WaitForAssertion(() => Assert.That(component.FindAll("button.btn.btn-sm.btn-primary"), Is.Not.Empty));
 
             component.FindAll("button.btn.btn-sm.btn-primary").First().Click();
@@ -121,11 +126,20 @@ namespace FWO.Test
 
             component.WaitForAssertion(() =>
             {
-                Assert.That(apiConnection.Queries, Does.Not.Contain(FlowQueries.insertFlowSvcObjects));
-                Assert.That(apiConnection.Queries, Does.Not.Contain(FlowMutations.upsertFlowSvcObjectMapping));
-                Assert.That(apiConnection.InsertedServiceObject, Is.Null);
-                Assert.That(apiConnection.MappingCalls, Is.Empty);
-            });
+                Assert.That(apiConnection.Queries, Does.Contain(FlowQueries.insertFlowSvcObjects));
+                Assert.That(apiConnection.Queries, Does.Contain(FlowMutations.upsertFlowSvcObjectMapping));
+                Assert.That(apiConnection.InsertedServiceObject, Is.Not.Null);
+                Assert.That(apiConnection.InsertedServiceObject!.Name, Is.EqualTo("Protocol Only"));
+                Assert.That(apiConnection.InsertedServiceObject.PortStart, Is.Null);
+                Assert.That(apiConnection.InsertedServiceObject.PortEnd, Is.Null);
+                Assert.That(apiConnection.InsertedServiceObject.IpProtoId, Is.EqualTo(1));
+                Assert.That(apiConnection.InsertedServiceObject.SvcObjHash, Is.Not.Null.And.Length.EqualTo(32));
+                Assert.That(apiConnection.MappingCalls, Is.EqualTo(new List<(long ServiceId, long FlowSvcobjId, bool ActiveOnMgm)>
+                {
+                    (11, 900, true)
+                }));
+                Assert.That(errorMessage, Is.Null, errorMessage);
+            }, TimeSpan.FromSeconds(3));
         }
 
         [Test]
@@ -286,6 +300,26 @@ namespace FWO.Test
             return context.Render<CascadingAuthenticationState>(parameters => parameters
                 .AddChildContent<TComponent>())
                 .FindComponent<TComponent>();
+        }
+
+        private static void SetMember(object instance, string memberName, object? value)
+        {
+            Type type = instance.GetType();
+            PropertyInfo? property = type.GetProperty(memberName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (property != null)
+            {
+                property.SetValue(instance, value);
+                return;
+            }
+
+            FieldInfo? field = type.GetField(memberName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (field != null)
+            {
+                field.SetValue(instance, value);
+                return;
+            }
+
+            throw new MissingFieldException(type.FullName, memberName);
         }
 
         private sealed class FlowSettingsPagesAuthStateProvider(params string[] roles) : AuthenticationStateProvider
@@ -539,8 +573,8 @@ namespace FWO.Test
                 InsertedServiceObject = new FlowSvcObjectInsert
                 {
                     Name = GetAnonymousProperty<string>(firstObject, "Name"),
-                    PortStart = GetAnonymousProperty<int?>(firstObject, "PortStart"),
-                    PortEnd = GetAnonymousProperty<int?>(firstObject, "PortEnd"),
+                    PortStart = GetAnonymousNullableProperty<int>(firstObject, "PortStart"),
+                    PortEnd = GetAnonymousNullableProperty<int>(firstObject, "PortEnd"),
                     IpProtoId = GetAnonymousProperty<int>(firstObject, "IpProtoId"),
                     SvcObjHash = GetAnonymousProperty<string>(firstObject, "SvcObjHash"),
                     State = GetAnonymousProperty<string>(firstObject, "State"),
@@ -595,6 +629,18 @@ namespace FWO.Test
 
             return (T)(variables.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase)?.GetValue(variables)
                 ?? throw new InvalidOperationException($"Missing property {propertyName}"));
+        }
+
+        private static T? GetAnonymousNullableProperty<T>(object? variables, string propertyName)
+            where T : struct
+        {
+            if (variables == null)
+            {
+                throw new InvalidOperationException($"Missing variables for {propertyName}");
+            }
+
+            object? value = variables.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase)?.GetValue(variables);
+            return value == null ? null : (T)value;
         }
 
         private static object?[] GetAnonymousArray(object? variables, string propertyName)
@@ -664,7 +710,14 @@ namespace FWO.Test
                 object? firstObject = insertedObjects.FirstOrDefault();
                 InsertedServiceObject = new FlowSvcObjectInsert
                 {
-                    Name = GetAnonymousProperty<string>(firstObject, "Name")
+                    Name = GetAnonymousProperty<string>(firstObject, "Name"),
+                    PortStart = GetAnonymousNullableProperty<int>(firstObject, "PortStart"),
+                    PortEnd = GetAnonymousNullableProperty<int>(firstObject, "PortEnd"),
+                    IpProtoId = GetAnonymousProperty<int>(firstObject, "IpProtoId"),
+                    SvcObjHash = GetAnonymousProperty<string>(firstObject, "SvcObjHash"),
+                    State = GetAnonymousProperty<string>(firstObject, "State"),
+                    RemovedDate = null,
+                    ShowInRequestModule = GetAnonymousProperty<bool>(firstObject, "ShowInRequestModule")
                 };
                 return Task.FromResult((QueryResponseType)(object)new FlowSvcObjectInsertResult
                 {
@@ -673,7 +726,13 @@ namespace FWO.Test
                         new FlowSvcObject
                         {
                             Id = 900,
-                            Name = InsertedServiceObject.Name ?? ""
+                            Name = InsertedServiceObject.Name ?? "",
+                            PortStart = InsertedServiceObject.PortStart,
+                            PortEnd = InsertedServiceObject.PortEnd,
+                            ProtoId = InsertedServiceObject.IpProtoId,
+                            Hash = InsertedServiceObject.SvcObjHash ?? "",
+                            State = InsertedServiceObject.State ?? FlowState.Implemented,
+                            ShowInRequestModule = InsertedServiceObject.ShowInRequestModule
                         }
                     ]
                 });
@@ -706,6 +765,18 @@ namespace FWO.Test
 
             return (T)(variables.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase)?.GetValue(variables)
                 ?? throw new InvalidOperationException($"Missing property {propertyName}"));
+        }
+
+        private static T? GetAnonymousNullableProperty<T>(object? variables, string propertyName)
+            where T : struct
+        {
+            if (variables == null)
+            {
+                throw new InvalidOperationException($"Missing variables for {propertyName}");
+            }
+
+            object? value = variables.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase)?.GetValue(variables);
+            return value == null ? null : (T)value;
         }
 
         private static object?[] GetAnonymousArray(object? variables, string propertyName)

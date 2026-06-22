@@ -597,7 +597,15 @@ else
     private static bool TryBuildCustomServiceSignature(NetworkService service, out CustomServiceSignature signature)
     {
         int? protoId = service.ProtoId ?? service.Protocol?.Id;
-        if (!protoId.HasValue || !service.DestinationPort.HasValue)
+        if (!protoId.HasValue)
+        {
+            signature = default;
+            return false;
+        }
+
+        int? destinationPortStart = service.DestinationPort;
+        int? destinationPortEnd = service.DestinationPortEnd ?? service.DestinationPort;
+        if (destinationPortStart.HasValue != destinationPortEnd.HasValue)
         {
             signature = default;
             return false;
@@ -605,8 +613,8 @@ else
 
         signature = new CustomServiceSignature(
             protoId.Value,
-            service.DestinationPort.Value,
-            service.DestinationPortEnd ?? service.DestinationPort.Value);
+            destinationPortStart,
+            destinationPortEnd);
         return true;
     }
 
@@ -623,5 +631,5 @@ else
                     .Contains(SearchText.Trim().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase))];
     }
 
-    private readonly record struct CustomServiceSignature(int ProtoId, int DestinationPortStart, int DestinationPortEnd);
+    private readonly record struct CustomServiceSignature(int ProtoId, int? DestinationPortStart, int? DestinationPortEnd);
 }

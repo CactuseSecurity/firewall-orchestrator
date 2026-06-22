@@ -80,7 +80,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task FlowServiceObjectsPage_CreateCustomObject_WithMixedSelection_UsesFirstSelectionPayload()
+        public async Task FlowServiceObjectsPage_CreateCustomObject_RejectsMixedTechnicalDefinitionSelection()
         {
             await using BunitContext context = CreateCustomServiceCreateContext(out FlowServiceObjectsCustomCreateApiConn apiConnection);
 
@@ -97,14 +97,10 @@ namespace FWO.Test
 
             component.WaitForAssertion(() =>
             {
-                Assert.That(apiConnection.InsertedServiceObject, Is.Not.Null);
-                Assert.That(apiConnection.InsertedServiceObject!.PortStart, Is.EqualTo(80));
-                Assert.That(apiConnection.InsertedServiceObject.PortEnd, Is.EqualTo(80));
-                Assert.That(apiConnection.InsertedServiceObject.IpProtoId, Is.EqualTo(6));
-                Assert.That(apiConnection.InsertedServiceObject.SvcObjHash, Is.Not.Null.And.Length.EqualTo(32));
-                Assert.That(apiConnection.MappingCalls.Select(call => call.ServiceId), Is.EqualTo(new[] { 11L, 21L }));
-                Assert.That(apiConnection.MappingCalls, Has.All.Matches<(long ServiceId, long FlowSvcobjId, bool ActiveOnMgm)>(call =>
-                    call.FlowSvcobjId == 900 && call.ActiveOnMgm));
+                Assert.That(apiConnection.InsertedServiceObject, Is.Null);
+                Assert.That(apiConnection.MappingCalls, Is.Empty);
+                Assert.That(apiConnection.Queries, Does.Not.Contain(FlowQueries.insertFlowSvcObjects));
+                Assert.That(apiConnection.Queries, Does.Not.Contain(FlowMutations.upsertFlowSvcObjectMapping));
             });
         }
 

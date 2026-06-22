@@ -469,8 +469,11 @@ else
                 return;
             }
 
-            NetworkService firstSelectedService = selectedManagements[0].SelectedService!;
-            if (firstSelectedService.ProtoId == null || !firstSelectedService.DestinationPort.HasValue)
+            if (!TryBuildCustomServiceSignature(selectedManagements[0].SelectedService!, out CustomServiceSignature firstSignature) ||
+                selectedManagements.Any(selection =>
+                    selection.SelectedService == null ||
+                    !TryBuildCustomServiceSignature(selection.SelectedService, out CustomServiceSignature signature) ||
+                    signature != firstSignature))
             {
                 DisplayMessageInUi(null, userConfig.GetText("create_custom_flow_object"), userConfig.GetText("E5102"), true);
                 return;
@@ -486,9 +489,9 @@ else
                     new FlowSvcObjectInsert
                     {
                         Name = NewCustomFlowSvcObject.Name.Trim(),
-                        PortStart = firstSelectedService.DestinationPort,
-                        PortEnd = firstSelectedService.DestinationPortEnd,
-                        IpProtoId = firstSelectedService.ProtoId.Value,
+                        PortStart = firstSignature.DestinationPortStart,
+                        PortEnd = firstSignature.DestinationPortEnd,
+                        IpProtoId = firstSignature.ProtoId,
                         SvcObjHash = FlowHashGenerator.GenerateRandomHash(),
                         State = FlowState.Implemented,
                         RemovedDate = null,
@@ -591,6 +594,22 @@ else
         ]).ToLowerInvariant();
     }
 
+    private static bool TryBuildCustomServiceSignature(NetworkService service, out CustomServiceSignature signature)
+    {
+        int? protoId = service.ProtoId ?? service.Protocol?.Id;
+        if (!protoId.HasValue || !service.DestinationPort.HasValue)
+        {
+            signature = default;
+            return false;
+        }
+
+        signature = new CustomServiceSignature(
+            protoId.Value,
+            service.DestinationPort.Value,
+            service.DestinationPortEnd ?? service.DestinationPort.Value);
+        return true;
+    }
+
     private sealed class CustomObjectManagementSelection
     {
         public Management Management { get; set; } = new();
@@ -603,4 +622,6 @@ else
                 : [.. Candidates.Where(service => BuildCustomServiceSearchText(service)
                     .Contains(SearchText.Trim().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase))];
     }
+
+    private readonly record struct CustomServiceSignature(int ProtoId, int DestinationPortStart, int DestinationPortEnd);
 }

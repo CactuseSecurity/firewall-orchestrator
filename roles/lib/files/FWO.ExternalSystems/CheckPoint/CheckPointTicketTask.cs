@@ -80,26 +80,38 @@ namespace FWO.ExternalSystems.CheckPoint
             };
         }
 
-        internal JsonNode RenderGroupMemberAddBody(string memberName)
+        internal JsonNode RenderGroupMembersAddBody(List<string> memberNames)
         {
+            JsonArray membersToAdd = new();
+            foreach (string memberName in memberNames)
+            {
+                membersToAdd.Add(memberName);
+            }
+
             return new JsonObject
             {
                 ["name"] = GetGroupName(),
                 ["members"] = new JsonObject
                 {
-                    ["add"] = new JsonArray(memberName)
+                    ["add"] = membersToAdd
                 }
             };
         }
 
-        internal JsonNode RenderGroupMemberRemoveBody(string memberName)
+        internal JsonNode RenderGroupMembersRemoveBody(List<string> memberNames)
         {
+            JsonArray membersToRemove = new();
+            foreach (string memberName in memberNames)
+            {
+                membersToRemove.Add(memberName);
+            }
+
             return new JsonObject
             {
                 ["name"] = GetGroupName(),
                 ["members"] = new JsonObject
                 {
-                    ["remove"] = new JsonArray(memberName)
+                    ["remove"] = membersToRemove
                 }
             };
         }

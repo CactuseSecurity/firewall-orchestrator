@@ -201,6 +201,8 @@ namespace FWO.Test
             using JsonDocument document = JsonDocument.Parse(ticket.TicketText);
             List<JsonElement> planSteps = [.. document.RootElement.GetProperty("Steps").EnumerateArray()];
 
+            ClassicAssert.AreEqual(7, planSteps.Count);
+
             ClassicAssert.AreEqual(CheckPointTaskTypes.HostCreate, planSteps[0].GetProperty("TaskType").GetString());
             ClassicAssert.AreEqual(CheckPointTaskTypes.Publish, planSteps[1].GetProperty("TaskType").GetString());
             ClassicAssert.AreEqual(CheckPointTaskTypes.GroupAddMembers, planSteps[2].GetProperty("TaskType").GetString());

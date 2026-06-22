@@ -112,39 +112,6 @@ namespace FWO.Ui.Auth
         }
 
         /// <summary>
-        /// Refreshes the token pair and applies the resulting JWT to the UI authentication state.
-        /// </summary>
-        /// <param name="apiConnection">API connection that should receive the refreshed JWT.</param>
-        /// <param name="middlewareClient">Middleware client that should receive the refreshed JWT.</param>
-        /// <param name="userConfig">Current user configuration to rebuild from the refreshed JWT.</param>
-        /// <param name="circuitHandler">Circuit-scoped user context that should be updated after refresh.</param>
-        /// <returns>True if a valid JWT could be refreshed and applied; otherwise false.</returns>
-        //public async Task<bool> RefreshAuthenticationState(ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
-        //{
-        //    if (!await tokenService.HasAccessToken() || !await tokenService.HasRefreshToken())
-        //    {
-        //        return false;
-        //    }
-
-        //    TokenPair? refreshedTokenPair = await tokenService.RefreshTokenPair();
-
-        //    if (refreshedTokenPair == null || string.IsNullOrWhiteSpace(refreshedTokenPair.AccessToken))
-        //    {
-        //        PublishJwtExpiredForAuthenticatedUser();
-        //        return false;
-        //    }
-
-        //    bool jwtApplied = await TryApplyJwt(refreshedTokenPair.AccessToken, apiConnection, middlewareClient, userConfig, circuitHandler);
-
-        //    if (!jwtApplied)
-        //    {
-        //        PublishJwtExpiredForAuthenticatedUser();
-        //    }
-
-        //    return jwtApplied;
-        //}
-
-        /// <summary>
         /// Deauthenticate the current user and clear session storage.
         /// </summary>
         /// <returns></returns>

@@ -13,7 +13,7 @@ namespace FWO.Data.Workflow
         public string IpString
         {
             get { return Cidr.CidrString; }
-            set { Cidr = new Cidr(value); }
+            set { SetCidrRange(value); }
         }
         public Cidr Cidr { get; set; } = new();
 
@@ -33,6 +33,8 @@ namespace FWO.Data.Workflow
 
         public long TaskId { get; set; }
         public long? NetworkId { get; set; }
+        public long? FlowNetworkObjectId { get; set; }
+        public long? FlowNetworkGroupId { get; set; }
         public string GroupName { get; set; } = "";
         public string RequestAction { get; set; } = Workflow.RequestAction.create.ToString();
 
@@ -41,7 +43,7 @@ namespace FWO.Data.Workflow
 
         public NwObjectElement(string cidrString, long taskId)
         {
-            Cidr = new Cidr(cidrString);
+            SetCidrRange(cidrString);
             TaskId = taskId;
         }
 
@@ -65,6 +67,8 @@ namespace FWO.Data.Workflow
                 Cidr = new Cidr(Cidr.CidrString),
                 CidrEnd = new Cidr(CidrEnd.CidrString),
                 NetworkId = NetworkId,
+                FlowNetworkObjectId = FlowNetworkObjectId,
+                FlowNetworkGroupId = FlowNetworkGroupId,
                 GroupName = GroupName,
                 RequestAction = RequestAction,
                 Name = Name
@@ -86,6 +90,19 @@ namespace FWO.Data.Workflow
                 Name = Name
             };
             return element;
+        }
+
+        private void SetCidrRange(string cidrString)
+        {
+            if (string.IsNullOrWhiteSpace(cidrString))
+            {
+                Cidr = new Cidr();
+                CidrEnd = new Cidr();
+                return;
+            }
+            string[] rangeParts = cidrString.Split('-', 2, StringSplitOptions.TrimEntries);
+            Cidr = new Cidr(rangeParts[0]);
+            CidrEnd = rangeParts.Length > 1 ? new Cidr(rangeParts[1]) : new Cidr();
         }
     }
 }

@@ -85,18 +85,19 @@ namespace FWO.Data.Workflow
             {
                 if (reqElem.Field == field.ToString())
                 {
-                    elements.Add(new NwObjectElement()
+                    NwObjectElement element = new()
                     {
                         ElemId = reqElem.Id,
                         TaskId = reqElem.TaskId,
-                        Cidr = new Cidr(reqElem.Cidr != null ? reqElem.Cidr.CidrString : ""),
-                        CidrEnd = new Cidr(reqElem.CidrEnd != null ? reqElem.CidrEnd.CidrString : ""),
-                        IpString = reqElem.IpString ?? "",
                         NetworkId = reqElem.NetworkId,
+                        FlowNetworkObjectId = reqElem.FlowNetworkObjectId,
+                        FlowNetworkGroupId = reqElem.FlowNetworkGroupId,
                         RequestAction = reqElem.RequestAction,
                         Name = reqElem.Name,
                         GroupName = reqElem.GroupName ?? ""
-                    });
+                    };
+                    ApplyNetworkAddress(element, reqElem.Cidr, reqElem.CidrEnd, reqElem.IpString, reqElem.IpEnd);
+                    elements.Add(element);
                 }
             }
             return elements;
@@ -117,6 +118,8 @@ namespace FWO.Data.Workflow
                         PortEnd = reqElem.PortEnd,
                         ProtoId = reqElem.ProtoId ?? 0,
                         ServiceId = reqElem.ServiceId,
+                        FlowServiceObjectId = reqElem.FlowServiceObjectId,
+                        FlowServiceGroupId = reqElem.FlowServiceGroupId,
                         Name = reqElem.Name,
                         GroupName = reqElem.GroupName,
                         RequestAction = reqElem.RequestAction

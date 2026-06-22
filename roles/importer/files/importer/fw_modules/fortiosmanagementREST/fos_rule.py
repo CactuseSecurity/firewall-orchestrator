@@ -110,9 +110,9 @@ def normalize_rule_zones(rule: Rule) -> tuple[str | None, str | None]:
     rule_dst_zone_names = [fos_zone.normalize_zone_name(intf.name) for intf in rule.dstintf]
 
     if rule_src_zone_names:
-        rule_src_zone = fwo_const.LIST_DELIMITER.join(rule_src_zone_names)
+        rule_src_zone = fwo_const.LIST_DELIMITER.join(sorted(set(rule_src_zone_names)))
     if rule_dst_zone_names:
-        rule_dst_zone = fwo_const.LIST_DELIMITER.join(rule_dst_zone_names)
+        rule_dst_zone = fwo_const.LIST_DELIMITER.join(sorted(set(rule_dst_zone_names)))
 
     return rule_src_zone, rule_dst_zone
 

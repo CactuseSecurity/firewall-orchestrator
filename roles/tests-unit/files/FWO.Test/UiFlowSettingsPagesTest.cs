@@ -86,6 +86,11 @@ namespace FWO.Test
             await using BunitContext context = CreateCustomServiceCreateContext(out FlowServiceObjectsCustomCreateApiConn apiConnection);
 
             IRenderedComponent<SettingsFlowServiceObjects> component = RenderPage<SettingsFlowServiceObjects>(context);
+            string? errorMessage = null;
+            SetMember(component.Instance, "DisplayMessageInUi", new Action<Exception?, string, string, bool>((exception, _, message, _) =>
+            {
+                errorMessage = exception?.Message ?? message;
+            }));
             component.WaitForAssertion(() => Assert.That(component.FindAll("button.btn.btn-sm.btn-primary"), Is.Not.Empty));
 
             component.FindAll("button.btn.btn-sm.btn-primary").First().Click();
@@ -98,8 +103,62 @@ namespace FWO.Test
 
             component.WaitForAssertion(() =>
             {
+                Assert.That(errorMessage, Is.EqualTo("Selected services must share the same protocol and port range"));
                 Assert.That(apiConnection.InsertedServiceObject, Is.Null);
                 Assert.That(apiConnection.MappingCalls, Is.Empty);
+                Assert.That(apiConnection.Queries, Does.Not.Contain(FlowQueries.insertFlowSvcObjects));
+                Assert.That(apiConnection.Queries, Does.Not.Contain(FlowMutations.upsertFlowSvcObjectMapping));
+            });
+        }
+
+        [Test]
+        public async Task FlowServiceObjectsPage_CreateCustomObject_ShowsNameMissingError()
+        {
+            await using BunitContext context = CreateCustomServiceCreateContext(out FlowServiceObjectsCustomCreateApiConn apiConnection);
+
+            IRenderedComponent<SettingsFlowServiceObjects> component = RenderPage<SettingsFlowServiceObjects>(context);
+            string? errorMessage = null;
+            SetMember(component.Instance, "DisplayMessageInUi", new Action<Exception?, string, string, bool>((exception, _, message, _) =>
+            {
+                errorMessage = exception?.Message ?? message;
+            }));
+            component.WaitForAssertion(() => Assert.That(component.FindAll("button.btn.btn-sm.btn-primary"), Is.Not.Empty));
+
+            component.FindAll("button.btn.btn-sm.btn-primary").First().Click();
+            component.WaitForAssertion(() => Assert.That(component.FindAll("input.form-control.form-control-sm"), Is.Not.Empty));
+
+            component.FindAll("button.btn.btn-sm.btn-primary").Last().Click();
+
+            component.WaitForAssertion(() =>
+            {
+                Assert.That(errorMessage, Is.EqualTo("Please enter a name for the custom flow object"));
+                Assert.That(apiConnection.Queries, Does.Not.Contain(FlowQueries.insertFlowSvcObjects));
+                Assert.That(apiConnection.Queries, Does.Not.Contain(FlowMutations.upsertFlowSvcObjectMapping));
+            });
+        }
+
+        [Test]
+        public async Task FlowServiceObjectsPage_CreateCustomObject_ShowsNoServiceSelectedError()
+        {
+            await using BunitContext context = CreateCustomServiceCreateContext(out FlowServiceObjectsCustomCreateApiConn apiConnection);
+
+            IRenderedComponent<SettingsFlowServiceObjects> component = RenderPage<SettingsFlowServiceObjects>(context);
+            string? errorMessage = null;
+            SetMember(component.Instance, "DisplayMessageInUi", new Action<Exception?, string, string, bool>((exception, _, message, _) =>
+            {
+                errorMessage = exception?.Message ?? message;
+            }));
+            component.WaitForAssertion(() => Assert.That(component.FindAll("button.btn.btn-sm.btn-primary"), Is.Not.Empty));
+
+            component.FindAll("button.btn.btn-sm.btn-primary").First().Click();
+            component.WaitForAssertion(() => Assert.That(component.FindAll("input.form-control.form-control-sm"), Is.Not.Empty));
+
+            component.FindAll("input.form-control.form-control-sm").First().Change("Custom Service");
+            component.FindAll("button.btn.btn-sm.btn-primary").Last().Click();
+
+            component.WaitForAssertion(() =>
+            {
+                Assert.That(errorMessage, Is.EqualTo("Please select at least one service"));
                 Assert.That(apiConnection.Queries, Does.Not.Contain(FlowQueries.insertFlowSvcObjects));
                 Assert.That(apiConnection.Queries, Does.Not.Contain(FlowMutations.upsertFlowSvcObjectMapping));
             });

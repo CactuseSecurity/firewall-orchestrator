@@ -461,14 +461,14 @@ else
         {
             if (string.IsNullOrWhiteSpace(NewCustomFlowSvcObject.Name))
             {
-                DisplayMessageInUi(null, userConfig.GetText("create_custom_flow_object"), userConfig.GetText("E5102"), true);
+                DisplayMessageInUi(null, userConfig.GetText("create_custom_flow_object"), userConfig.GetText("E5121"), true);
                 return;
             }
 
             List<CustomObjectManagementSelection> selectedManagements = [.. customServiceObjectSelections.Where(selection => selection.SelectedService != null)];
             if (selectedManagements.Count == 0)
             {
-                DisplayMessageInUi(null, userConfig.GetText("create_custom_flow_object"), userConfig.GetText("E5102"), true);
+                DisplayMessageInUi(null, userConfig.GetText("create_custom_flow_object"), userConfig.GetText("E5122"), true);
                 return;
             }
 
@@ -478,7 +478,7 @@ else
                     !TryBuildCustomServiceSignature(selection.SelectedService, out CustomServiceSignature signature) ||
                     signature != firstSignature))
             {
-                DisplayMessageInUi(null, userConfig.GetText("create_custom_flow_object"), userConfig.GetText("E5102"), true);
+                DisplayMessageInUi(null, userConfig.GetText("create_custom_flow_object"), userConfig.GetText("E5123"), true);
                 return;
             }
 

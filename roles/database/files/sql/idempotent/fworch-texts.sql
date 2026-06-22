@@ -2198,8 +2198,8 @@ INSERT INTO txt VALUES ('H5020',				'German', 	'Bei doppelten Zuordnungen werden
 INSERT INTO txt VALUES ('H5020',				'English', 	'For duplicate mappings, the catalog and resolver dialog also show the technical details of the flow object. In the catalog view, long lists are shortened and finished with a note about additional objects.');
 INSERT INTO txt VALUES ('H5021',				'German', 	'Diese Seite verwaltet Flow-Netzwerkgruppen und zeigt die doppelten Zuordnungen der zugrunde liegenden Netzwerkobjekte.');
 INSERT INTO txt VALUES ('H5021',				'English', 	'This page manages flow network groups and shows duplicate mappings for the underlying network objects.');
-INSERT INTO txt VALUES ('H5022',				'German', 	'Diese Seite verwaltet Flow-Serviceobjekte, zeigt doppelte Zuordnungen der zugrunde liegenden Services und erlaubt das Anlegen eigener Serviceobjekte.');
-INSERT INTO txt VALUES ('H5022',				'English', 	'This page manages flow service objects, shows duplicate mappings for the underlying services, and allows creating custom service objects.');
+INSERT INTO txt VALUES ('H5022',				'German', 	'Diese Seite verwaltet Flow-Serviceobjekte, zeigt doppelte Zuordnungen der zugrunde liegenden Services und erlaubt das Anlegen eigener Serviceobjekte. Beim Anlegen eines eigenen Objekts müssen ein Name gesetzt, mindestens ein Dienst ausgewählt und alle ausgewählten Dienste auf derselben technischen Signatur gehalten werden.');
+INSERT INTO txt VALUES ('H5022',				'English', 	'This page manages flow service objects, shows duplicate mappings for the underlying services, and allows creating custom service objects. When creating a custom object, enter a name, select at least one service, and keep the selected services on the same technical signature.');
 INSERT INTO txt VALUES ('H5023',				'German', 	'Diese Seite verwaltet Flow-Dienstgruppen und zeigt die doppelten Zuordnungen der zugrunde liegenden Services.');
 INSERT INTO txt VALUES ('H5023',				'English', 	'This page manages flow service groups and shows duplicate mappings for the underlying services.');
 INSERT INTO txt VALUES ('H5024',				'German', 	'Diese Seite verwaltet Flow-Zeitobjekte und zeigt die doppelten Zuordnungen der zugrunde liegenden Zeitobjekte.');
@@ -3981,6 +3981,12 @@ INSERT INTO txt VALUES ('E5111', 'German',  'Es gibt bereits ein Gateway mit der
 INSERT INTO txt VALUES ('E5111', 'English', 'There is already a gateway in the same configuration with import enabled');
 INSERT INTO txt VALUES ('E5112', 'German',  'Gateway konnte nicht angelegt werden');
 INSERT INTO txt VALUES ('E5112', 'English', 'Gateway could not be created');
+INSERT INTO txt VALUES ('E5121', 'German',  'Bitte einen Namen für das benutzerdefinierte Flow-Objekt eingeben');
+INSERT INTO txt VALUES ('E5121', 'English', 'Please enter a name for the custom flow object');
+INSERT INTO txt VALUES ('E5122', 'German',  'Bitte mindestens einen Dienst auswählen');
+INSERT INTO txt VALUES ('E5122', 'English', 'Please select at least one service');
+INSERT INTO txt VALUES ('E5123', 'German',  'Die ausgewählten Dienste müssen dasselbe Protokoll und denselben Portbereich haben');
+INSERT INTO txt VALUES ('E5123', 'English', 'Selected services must share the same protocol and port range');
 INSERT INTO txt VALUES ('E5117', 'German',  'L&ouml;schen der Login-Daten nicht m&ouml;glich, da diese von einem Management verwendet werden. Dort zuerst andere Login-Daten ausw&auml;hlen');
 INSERT INTO txt VALUES ('E5117', 'English', 'Deletion of credentials not allowed as they are in use by one or more management devices. Change the management credentials before deleting them.');
 INSERT INTO txt VALUES ('E5118', 'German',  'Die obere Grenze muss gr&ouml;sser als die untere Grenze des Portbereichs sein.');

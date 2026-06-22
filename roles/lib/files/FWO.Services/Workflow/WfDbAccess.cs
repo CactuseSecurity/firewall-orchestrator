@@ -474,7 +474,7 @@ namespace FWO.Services.Workflow
             return returnId;
         }
 
-        public async Task UpdateApprovalInDb(WfApproval approval)
+        public async Task UpdateApprovalInDb(WfApproval approval, bool triggerActions = true)
         {
             try
             {
@@ -493,7 +493,10 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(approval, WfObjectScopes.Approval);
+                    if (triggerActions)
+                    {
+                        await ActionHandler.DoStateChangeActions(approval, WfObjectScopes.Approval);
+                    }
                 }
             }
             catch (Exception exception)
@@ -879,7 +882,7 @@ namespace FWO.Services.Workflow
 
         // State changes
 
-        public async Task UpdateTicketStateInDb(WfTicket ticket)
+        public async Task UpdateTicketStateInDb(WfTicket ticket, bool triggerActions = true)
         {
             try
             {
@@ -898,7 +901,10 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket));
+                    if (triggerActions)
+                    {
+                        await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket));
+                    }
                 }
             }
             catch (Exception exception)
@@ -907,7 +913,7 @@ namespace FWO.Services.Workflow
             }
         }
 
-        public async Task UpdateReqTaskStateInDb(WfReqTask reqtask)
+        public async Task UpdateReqTaskStateInDb(WfReqTask reqtask, bool triggerActions = true)
         {
             try
             {
@@ -928,7 +934,10 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
+                    if (triggerActions)
+                    {
+                        await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
+                    }
                 }
             }
             catch (Exception exception)
@@ -942,7 +951,7 @@ namespace FWO.Services.Workflow
             return !string.IsNullOrWhiteSpace(ticket.Requester?.Dn) ? ticket.Requester.Dn : ticket.RequesterDn;
         }
 
-        public async Task UpdateImplTaskStateInDb(WfImplTask impltask)
+        public async Task UpdateImplTaskStateInDb(WfImplTask impltask, bool triggerActions = true)
         {
             try
             {
@@ -963,7 +972,10 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);
+                    if (triggerActions)
+                    {
+                        await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);
+                    }
                 }
             }
             catch (Exception exception)

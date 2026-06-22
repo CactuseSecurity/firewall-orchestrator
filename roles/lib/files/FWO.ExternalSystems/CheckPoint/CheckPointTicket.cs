@@ -408,7 +408,9 @@ namespace FWO.ExternalSystems.CheckPoint
                 return CheckPointResponseCategory.HardError;
             }
 
-            if (content.Contains("multiple IP", StringComparison.OrdinalIgnoreCase) || content.Contains("same IP address", StringComparison.OrdinalIgnoreCase))
+            if (content.Contains("multiple IP", StringComparison.OrdinalIgnoreCase)    || content.Contains("same IP address", StringComparison.OrdinalIgnoreCase)    
+                || content.Contains("same IPv6 address", StringComparison.OrdinalIgnoreCase)    || content.Contains("same IPv4 address", StringComparison.OrdinalIgnoreCase)    
+                || content.Contains("More than one object has the same", StringComparison.OrdinalIgnoreCase))
             {
                 return CheckPointResponseCategory.WarningCandidate;
             }

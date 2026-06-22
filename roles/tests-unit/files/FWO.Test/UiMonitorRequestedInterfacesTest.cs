@@ -632,6 +632,7 @@ namespace FWO.Test
                 Assert.That(markup, Does.Contain("if-removed-a"));
                 Assert.That(markup, Does.Contain("if-removed-b"));
                 Assert.That(markup, Does.Contain("if-missing-conn"));
+                Assert.That(markup, Does.Contain("Ticket has multiple request tasks"));
                 Assert.That(markup, Does.Contain("Missing connection ID"));
                 Assert.That(markup, Does.Contain("Requested interface not found"));
                 Assert.That(markup, Does.Contain("777"));
@@ -768,6 +769,57 @@ namespace FWO.Test
                 Assert.That(markup, Does.Contain("901"));
                 Assert.That(markup, Does.Contain("902"));
                 Assert.That(markup, Does.Contain("Duplicate-looking open interface request"));
+                Assert.That(markup, Does.Not.Contain("Close Tickets as rejected"));
+                Assert.That(markup, Does.Not.Contain("Close Tickets as done"));
+            });
+        }
+
+        [Test]
+        public async Task OrphanedRequestedInterfaceTicketsPopup_LoadsMultipleTasksWithoutBulkActions()
+        {
+            MonitorRequestedInterfacesTestApiConn apiConn = new()
+            {
+                TicketsByParametersResult =
+                [
+                    new WfTicket
+                    {
+                        Id = 904,
+                        StateId = 10,
+                        Tasks =
+                        {
+                            CreateTask(14, WfTaskType.new_interface, "if-a"),
+                            CreateTask(15, WfTaskType.new_interface, "if-b")
+                        }
+                    }
+                ],
+                ConnectionById =
+                {
+                    [14] = [new ModellingConnection { Id = 14, TicketId = 904, IsInterface = true, IsRequested = true }],
+                    [15] = [new ModellingConnection { Id = 15, TicketId = 904, IsInterface = true, IsRequested = true }]
+                },
+                States =
+                [
+                    new WfState { Id = 10, Name = "In Progress" },
+                ]
+            };
+            await using BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<ApiConnection>(apiConn);
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+
+            IRenderedComponent<OrphanedRequestedInterfaceTicketsPopup> component =
+                context.Render<OrphanedRequestedInterfaceTicketsPopup>(parameters => parameters
+                    .Add(p => p.Display, true));
+
+            component.WaitForAssertion(() =>
+            {
+                string markup = component.Markup;
+                Assert.That(markup, Does.Contain("904"));
+                Assert.That(markup, Does.Contain("if-a"));
+                Assert.That(markup, Does.Contain("if-b"));
+                Assert.That(markup, Does.Contain("Ticket has multiple request tasks"));
                 Assert.That(markup, Does.Not.Contain("Close Tickets as rejected"));
                 Assert.That(markup, Does.Not.Contain("Close Tickets as done"));
             });

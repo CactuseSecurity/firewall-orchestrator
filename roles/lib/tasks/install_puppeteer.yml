@@ -31,171 +31,193 @@
         chrome_versions_github_api
       }}
 
-- name: fail when no chrome metadata available
+- name: record whether chrome metadata is available
+  set_fact:
+    chrome_metadata_available: "{{ (chrome_versions.status | default(-1)) == 200 }}"
+
+# Detect any currently installed Chrome before deciding whether the missing
+# metadata is fatal, so we can fall back to an existing install if present.
+- name: check if chrome is installed (via symlinked bin)
+  stat:
+    path: "{{ fworch_home }}/bin/chrome"
+  register: chrome_bin
+  become: true
+
+- name: fail when no chrome metadata available and no existing chrome to fall back on
   fail:
-    msg: "Could not fetch Chrome for Testing version metadata via primary URL or GitHub API."
-  when: chrome_versions.status | default(-1) != 200
+    msg: >-
+      Could not fetch Chrome for Testing version metadata via primary URL or
+      GitHub API, and no existing Chrome installation was found to fall back on.
+  when: not chrome_metadata_available and not chrome_bin.stat.exists
 
-# Parse once, regardless of Content-Type
-- name: normalize/parse JSON response
-  set_fact:
-    chrome_versions_parsed: >-
-      {{
-        chrome_versions.json
-        if (chrome_versions.json is defined)
-        else (chrome_versions.content | trim | from_json)
-      }}
+- name: keep existing chrome when metadata is unavailable
+  debug:
+    msg: >-
+      Could not fetch Chrome for Testing version metadata; keeping the
+      already-installed Chrome at {{ fworch_home }}/bin/chrome and skipping the
+      version check/update.
+  when: not chrome_metadata_available and chrome_bin.stat.exists
 
-# Pick the Stable channel (some users accidentally use 'stable', so be flexible)
-- name: select Stable channel
-  set_fact:
-    chrome_for_testing_stable: "{{ chrome_versions_parsed.channels.Stable | default(chrome_versions_parsed.channels.stable) }}" # Chrome for Testing feed
-
-# Base path for all Chrome installs
-- name: set chrome root dir
-  set_fact:
-    chrome_root_dir: "/usr/local/fworch/bin/Chrome"
-
-# Extract downloads + version from Stable
-- name: parse latest stable versions for chrome #and headless shell
-  set_fact:
-    stable_chrome_versions: "{{ chrome_for_testing_stable.downloads }}"
-    chrome_dest: "{{ chrome_root_dir }}/Linux-{{ chrome_for_testing_stable.version }}"
-
-# (Optional) sanity checks to fail early with a clear message
-- name: validate parsed data
-  assert:
-    that:
-      - chrome_versions_parsed is mapping
-      - chrome_for_testing_stable is mapping
-      - chrome_for_testing_stable.version is defined
-      - chrome_for_testing_stable.downloads is defined
-    fail_msg: "Failed to parse Chrome for Testing JSON or locate the Stable channel."
-
+# Everything below depends on the fetched version metadata. Skip the whole
+# block when we are falling back to an already-installed Chrome.
 - block:
-    - name: ensure chrome root directory exists
-      file:
-        path: "{{ chrome_root_dir }}"
-        state: directory
-        mode: "0755"
-
-    - name: find existing chrome installations
-      find:
-        paths: "{{ chrome_root_dir }}"
-        file_type: directory
-        patterns: "Linux-*"
-        recurse: false
-      register: chrome_installs
-
-    - name: remove outdated chrome versions
-      file:
-        path: "{{ item.path }}"
-        state: absent
-      loop: "{{ chrome_installs.files | default([]) }}"
-      when: item.path != chrome_dest
-      loop_control:
-        label: "{{ item.path }}"
-
-  become: true
-
-- block:
-    - name: install unzip
-      package:
-        name: unzip
-        state: present
-
-    - name: create chrome install path
-      file:
-        path: "{{ chrome_dest }}"
-        state: directory
-        mode: "0755"
-
-    # Figure out the target (remote) Chrome URL and MAJOR version
-    - name: set chrome URL and archive path
+    # Parse once, regardless of Content-Type
+    - name: normalize/parse JSON response
       set_fact:
-        chrome_url: >-
-          {{ stable_chrome_versions['chrome']
-             | selectattr('platform', 'match', 'linux64')
-             | map(attribute='url') | first }}
-        chrome_archive: >-
-          {{ chrome_dest }}/{{ (
-              stable_chrome_versions['chrome']
-              | selectattr('platform','match','linux64')
-              | map(attribute='url') | first
-            ) | urlsplit('path') | basename }}
+        chrome_versions_parsed: >-
+          {{
+            chrome_versions.json
+            if (chrome_versions.json is defined)
+            else (chrome_versions.content | trim | from_json)
+          }}
 
-    # If your data has an explicit 'version' attribute, prefer that.
-    # Otherwise, fall back to parsing the version from the URL.
-    - name: derive target chrome major version
+    # Pick the Stable channel (some users accidentally use 'stable', so be flexible)
+    - name: select Stable channel
       set_fact:
-        target_version_full: >-
-          {{ (stable_chrome_versions['chrome']
-              | selectattr('platform','match','linux64')
-              | map(attribute='version') | first) | default('', true) }}
-        target_major_fallback: "{{ chrome_url | regex_search('\\d+') }}"
-    - name: finalize target major version
+        chrome_for_testing_stable: "{{ chrome_versions_parsed.channels.Stable | default(chrome_versions_parsed.channels.stable) }}" # Chrome for Testing feed
+
+    # Base path for all Chrome installs
+    - name: set chrome root dir
       set_fact:
-        target_major: >-
-          {{ (target_version_full | regex_search('\\d+'))
-             | default(target_major_fallback, true) | int }}
+        chrome_root_dir: "/usr/local/fworch/bin/Chrome"
 
-    # Detect currently installed Chrome major version (if present)
-    - name: check if chrome is installed (via symlinked bin)
-      stat:
-        path: "{{ fworch_home }}/bin/chrome"
-      register: chrome_bin
-
-    - name: read installed chrome version
-      command: "{{ fworch_home }}/bin/chrome --version"
-      register: installed_ver
-      changed_when: false
-      failed_when: false
-      when: chrome_bin.stat.exists
-
-    - name: parse installed major version (defaults to 0 when absent)
+    # Extract downloads + version from Stable
+    - name: parse latest stable versions for chrome #and headless shell
       set_fact:
-        installed_major: >-
-          {{ (installed_ver.stdout | default('') | regex_search('\\d+'))
-             | default(0, true) | int }}
+        stable_chrome_versions: "{{ chrome_for_testing_stable.downloads }}"
+        chrome_dest: "{{ chrome_root_dir }}/Linux-{{ chrome_for_testing_stable.version }}"
 
-    - name: decide if update is needed (only on major bump)
-      set_fact:
-        chrome_major_update_needed: "{{ target_major != installed_major }}"
+    # (Optional) sanity checks to fail early with a clear message
+    - name: validate parsed data
+      assert:
+        that:
+          - chrome_versions_parsed is mapping
+          - chrome_for_testing_stable is mapping
+          - chrome_for_testing_stable.version is defined
+          - chrome_for_testing_stable.downloads is defined
+        fail_msg: "Failed to parse Chrome for Testing JSON or locate the Stable channel."
 
-    # Only download when the MAJOR version changed or Chrome isn't installed
-    - name: download google chrome archive (only on major change)
-      get_url:
-        url: "{{ chrome_url }}"
-        dest: "{{ chrome_archive }}"
-        mode: "0644"
-        force: no
-        timeout: 60
-      register: chrome_pkg
-      when: chrome_major_update_needed or (not chrome_bin.stat.exists)
+    - block:
+        - name: ensure chrome root directory exists
+          file:
+            path: "{{ chrome_root_dir }}"
+            state: directory
+            mode: "0755"
 
-    - name: unpack chrome when archive downloaded
-      unarchive:
-        src: "{{ chrome_archive }}"
-        dest: "{{ chrome_dest }}"
-        remote_src: yes
-      when: chrome_pkg is defined and chrome_pkg.changed
+        - name: find existing chrome installations
+          find:
+            paths: "{{ chrome_root_dir }}"
+            file_type: directory
+            patterns: "Linux-*"
+            recurse: false
+          register: chrome_installs
 
-    - name: create symlinks {{ chrome_dest }}/chrome-linux64 to {{ fworch_home }}/bin/*
-      file:
-        src: "{{ chrome_dest }}/chrome-linux64/{{ item }}"
-        dest: "{{ fworch_home }}/bin/{{ item }}"
-        state: link
-      loop:
-        - chrome
-        - chrome-wrapper
-        - chrome_crashpad_handler
-        - chrome_sandbox
+        - name: remove outdated chrome versions
+          file:
+            path: "{{ item.path }}"
+            state: absent
+          loop: "{{ chrome_installs.files | default([]) }}"
+          when: item.path != chrome_dest
+          loop_control:
+            label: "{{ item.path }}"
 
-    - name: add {{ fworch_home }}/bin to every users path
-      copy:
-        dest: /etc/profile.d/custom_path.sh
-        content: 'export PATH="{{ fworch_home }}/bin:$PATH"'
-        mode: "0644"
+      become: true
 
-  become: true
-  environment: "{{ proxy_env }}"
+    - block:
+        - name: install unzip
+          package:
+            name: unzip
+            state: present
+
+        - name: create chrome install path
+          file:
+            path: "{{ chrome_dest }}"
+            state: directory
+            mode: "0755"
+
+        # Figure out the target (remote) Chrome URL and MAJOR version
+        - name: set chrome URL and archive path
+          set_fact:
+            chrome_url: >-
+              {{ stable_chrome_versions['chrome']
+                 | selectattr('platform', 'match', 'linux64')
+                 | map(attribute='url') | first }}
+            chrome_archive: >-
+              {{ chrome_dest }}/{{ (
+                  stable_chrome_versions['chrome']
+                  | selectattr('platform','match','linux64')
+                  | map(attribute='url') | first
+                ) | urlsplit('path') | basename }}
+
+        # If your data has an explicit 'version' attribute, prefer that.
+        # Otherwise, fall back to parsing the version from the URL.
+        - name: derive target chrome major version
+          set_fact:
+            target_version_full: >-
+              {{ (stable_chrome_versions['chrome']
+                  | selectattr('platform','match','linux64')
+                  | map(attribute='version') | first) | default('', true) }}
+            target_major_fallback: "{{ chrome_url | regex_search('\\d+') }}"
+        - name: finalize target major version
+          set_fact:
+            target_major: >-
+              {{ (target_version_full | regex_search('\\d+'))
+                 | default(target_major_fallback, true) | int }}
+
+        # Detect currently installed Chrome major version (if present)
+        - name: read installed chrome version
+          command: "{{ fworch_home }}/bin/chrome --version"
+          register: installed_ver
+          changed_when: false
+          failed_when: false
+          when: chrome_bin.stat.exists
+
+        - name: parse installed major version (defaults to 0 when absent)
+          set_fact:
+            installed_major: >-
+              {{ (installed_ver.stdout | default('') | regex_search('\\d+'))
+                 | default(0, true) | int }}
+
+        - name: decide if update is needed (only on major bump)
+          set_fact:
+            chrome_major_update_needed: "{{ target_major != installed_major }}"
+
+        # Only download when the MAJOR version changed or Chrome isn't installed
+        - name: download google chrome archive (only on major change)
+          get_url:
+            url: "{{ chrome_url }}"
+            dest: "{{ chrome_archive }}"
+            mode: "0644"
+            force: no
+            timeout: 60
+          register: chrome_pkg
+          when: chrome_major_update_needed or (not chrome_bin.stat.exists)
+
+        - name: unpack chrome when archive downloaded
+          unarchive:
+            src: "{{ chrome_archive }}"
+            dest: "{{ chrome_dest }}"
+            remote_src: yes
+          when: chrome_pkg is defined and chrome_pkg.changed
+
+        - name: create symlinks {{ chrome_dest }}/chrome-linux64 to {{ fworch_home }}/bin/*
+          file:
+            src: "{{ chrome_dest }}/chrome-linux64/{{ item }}"
+            dest: "{{ fworch_home }}/bin/{{ item }}"
+            state: link
+          loop:
+            - chrome
+            - chrome-wrapper
+            - chrome_crashpad_handler
+            - chrome_sandbox
+
+        - name: add {{ fworch_home }}/bin to every users path
+          copy:
+            dest: /etc/profile.d/custom_path.sh
+            content: 'export PATH="{{ fworch_home }}/bin:$PATH"'
+            mode: "0644"
+
+      become: true
+      environment: "{{ proxy_env }}"
+
+  when: chrome_metadata_available

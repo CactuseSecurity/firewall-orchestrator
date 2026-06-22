@@ -25,10 +25,10 @@ Both physical and virtual systems are supported
 
 Supported operating systms: 
 - Ubuntu >=22.04 (LTS only)
-- Debian >=11
 - RHEL 8, 9, 10
+- Debian >=11
 
-Recommended: Ubuntu 22.04, Debian 12, RHEL 9
+Recommended: Ubuntu 24.04, Debian 12
 
 ### Requirements Network Connection
 - For software download during installation and upgrade:

@@ -2,8 +2,7 @@
 
 This catalogue lists the features of Firewall Orchestrator grouped by functional
 area, together with the version in which they were first introduced. It is
-compiled from the revision histories
-([main](revision-history-main.md), [develop](revision-history-develop.md)).
+compiled from the [revision history](revision-history.md).
 
 Where a feature was first introduced on the `develop` branch and later shipped in
 a `main` release, the released (main) version is given as the introduction

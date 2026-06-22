@@ -459,7 +459,9 @@ namespace FWO.Api.Client
             {
                 ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
                 ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
-                List<ApiSubscription> activeSubscriptions = subscriptions.Where(subscription => !subscription.IsDisposed).ToList();
+
+                List<ApiSubscription> activeSubscriptions = [.. subscriptions.Where(subscription => !subscription.IsDisposed)];
+
                 Log.WriteInfo(LogCategory, $"Reconnecting {activeSubscriptions.Count} API subscriptions after JWT refresh.");
 
                 GraphQLHttpClient oldSubscriptionClient = graphQlSubscriptionClient;

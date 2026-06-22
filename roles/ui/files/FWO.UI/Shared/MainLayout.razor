@@ -113,7 +113,7 @@
     private List<UIMessage> UIMessages = [];
     private Queue<UIMessage> UIMessageQue = [];
     private Timer? UIMessageQueTimer;
-    private static readonly TimeSpan TokenRefreshCheckInterval = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan TokenRefreshCheckInterval = TimeSpan.FromSeconds(15);
     private PeriodicTaskRunner? tokenRefreshRunner;
     private IDisposable? locationChangingRegistration;
     private string? LastLocation;
@@ -122,7 +122,7 @@
     {
         EventMediator.Subscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent), _ => OnPermissionsChanged(_.EventArgs));
         EventMediator.Subscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent), _ => OnJwtExpired(_.EventArgs));
-        EventMediator.Subscribe<UserSessionClosedEvent>(nameof(UserSessionClosedEvent), _ => OnUserSessionClosed(_.EventArgs));
+        //EventMediator.Subscribe<UserSessionClosedEvent>(nameof(UserSessionClosedEvent), _ => OnUserSessionClosed(_.EventArgs));
         apiConnection.OnExecutionModeChanged += OnExecutionModeChanged;
 
         DisplayMessageInUiFunction = DisplayMessageInUi;
@@ -632,6 +632,6 @@
         CircuitHandlerService circuitHandlerService = (CircuitHandlerService)circuitHandler;
         EventMediator.Unsubscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent));
         EventMediator.Unsubscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent));
-        EventMediator.Unsubscribe<UserSessionClosedEvent>(nameof(UserSessionClosedEvent));
+        //EventMediator.Unsubscribe<UserSessionClosedEvent>(nameof(UserSessionClosedEvent));
     }
 }

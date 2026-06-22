@@ -117,6 +117,8 @@ namespace FWO.Api.Client
 
         internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
         {
+            Log.WriteInfo("GraphQL Subscription", $"Recreating {Request.OperationName} {Request.Query?.Split('(')[0]}");
+
             return new GraphQlApiSubscription<SubscriptionResponseType>(
                 _apiConnection,
                 graphQlClient,

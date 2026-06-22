@@ -144,52 +144,39 @@ else
     </div>
 </div>
 
-<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
-    <div class="input-group input-group-sm cwidth-400">
-        <span class="input-group-text">@(userConfig.GetText("search_name"))</span>
-        <input type="text" class="form-control" @bind="objectSearchText" @bind:event="oninput" />
-        @if (!string.IsNullOrWhiteSpace(objectSearchText))
-        {
-            <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearObjectSearch">
-                @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))
-            </button>
-        }
-    </div>
-</div>
-
-<div class="text-muted small mb-2">
-    @($"{FilteredFlowNwObjects.Count} / {flowNwObjects.Count}")
-</div>
-
-<Table TableClass="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
-       TableItem="FlowNwObject"
-       Items="FilteredFlowNwObjects"
-       PageSize="25"
-       ColumnReorder="true">
-    <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("actions"))" Field="@(nwObject => nwObject.Id)" Sortable="false" Filterable="false" Context="nwObject">
-        <Template>
-            <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditNwObject(nwObject)">
-                @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
-            </button>
-        </Template>
-    </Column>
-    <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("id"))" Field="@(nwObject => nwObject.Id)" Sortable="true" Filterable="true" />
-    <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("name"))" Field="@(nwObject => nwObject.Name)" Sortable="true" Filterable="true" />
-    <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("state"))" Field="@(nwObject => nwObject.State)" Sortable="true" Filterable="true" />
-    <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("show_in_request_module"))" Field="@(nwObject => nwObject.ShowInRequestModule)" Sortable="true" Context="nwObject">
-        <Template>
-            @nwObject.ShowInRequestModule.ShowAsHtml()
-        </Template>
-    </Column>
-    <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("ip"))" Field="@(nwObject => nwObject.IpStart)" Sortable="true" Filterable="true" Context="nwObject">
-        <Template>
-            @(string.IsNullOrWhiteSpace(nwObject.IpStart) && string.IsNullOrWhiteSpace(nwObject.IpEnd)
-                ? "-"
-                : DisplayBase.DisplayIp(nwObject.IpStart ?? "", nwObject.IpEnd ?? ""))
-        </Template>
-    </Column>
-    <Pager ShowPageNumber="true" ShowTotalCount="true" />
-</Table>
+<FlowObjectTable TItem="FlowNwObject"
+                 FilteredItems="FilteredFlowNwObjects"
+                 FilteredCount="FilteredFlowNwObjects.Count"
+                 TotalCount="flowNwObjects.Count"
+                 PageSize="25"
+                 SearchLabel="@(userConfig.GetText("search_name"))"
+                 @bind-SearchText="objectSearchText">
+    <ChildContent>
+        <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("actions"))" Field="@(nwObject => nwObject.Id)" Sortable="false" Filterable="false" Context="nwObject">
+            <Template>
+                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditNwObject(nwObject)">
+                    @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                </button>
+            </Template>
+        </Column>
+        <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("id"))" Field="@(nwObject => nwObject.Id)" Sortable="true" Filterable="true" />
+        <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("name"))" Field="@(nwObject => nwObject.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("state"))" Field="@(nwObject => nwObject.State)" Sortable="true" Filterable="true" />
+        <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("show_in_request_module"))" Field="@(nwObject => nwObject.ShowInRequestModule)" Sortable="true" Context="nwObject">
+            <Template>
+                @nwObject.ShowInRequestModule.ShowAsHtml()
+            </Template>
+        </Column>
+        <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("ip"))" Field="@(nwObject => nwObject.IpStart)" Sortable="true" Filterable="true" Context="nwObject">
+            <Template>
+                @(string.IsNullOrWhiteSpace(nwObject.IpStart) && string.IsNullOrWhiteSpace(nwObject.IpEnd)
+                    ? "-"
+                    : DisplayBase.DisplayIp(nwObject.IpStart ?? "", nwObject.IpEnd ?? ""))
+            </Template>
+        </Column>
+        <Pager ShowPageNumber="true" ShowTotalCount="true" />
+    </ChildContent>
+</FlowObjectTable>
 
 <PopUp Title="@(userConfig.GetText("edit_flow_object"))" Show="@EditNwObjectMode" Size=PopupSize.Small OnClose="CloseNwObjectEditor">
     <Body>
@@ -221,55 +208,48 @@ else
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("duplicate_objects"))" Show="@ResolveDuplicateMode" Size=PopupSize.Auto OnClose="CloseDuplicateResolver">
-    <Body>
+<FlowDuplicateResolver TItem="NetworkObject"
+                       Title="@(userConfig.GetText("duplicate_objects"))"
+                       Show="@ResolveDuplicateMode"
+                       Size=PopupSize.Auto
+                       OnClose="CloseDuplicateResolver"
+                       OnResolve="ResolveDuplicateMapping"
+                       CanResolve="@(SelectedDuplicateObject != null)"
+                       Items="@(SelectedDuplicateGroup?.Objects ?? [])"
+                       PageSize="10"
+                       TableRowClass="@(nwObject => nwObject == SelectedDuplicateObject ? "table-warning" : "")">
+    <SummaryContent>
         @if (SelectedDuplicateGroup != null)
         {
-            <div class="mb-2">
-                <div><span class="fw-bold">@(userConfig.GetText("flow_object")):</span> @SelectedDuplicateGroup.FlowNwObjectName (#@SelectedDuplicateGroup.FlowNwObjectId)</div>
-                <div class="text-muted small">@BuildFlowNwObjectTechnicalDetails(SelectedDuplicateGroup.FlowNwObjectId)</div>
-                <div><span class="fw-bold">@(userConfig.GetText("management")):</span> @SelectedDuplicateGroup.ManagementName</div>
-            </div>
-            <Table TableClass="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
-                   TableItem="NetworkObject"
-                   Items="SelectedDuplicateGroup.Objects"
-                   PageSize="10"
-                   ColumnReorder="true">
-                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("uid"))" Field="@(nwObject => nwObject.Uid)" Sortable="true" Filterable="true" />
-                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("details"))" Sortable="false" Filterable="false" Context="nwObject">
-                    <Template>
-                        <span class="d-inline-block rounded px-2 py-1 @(nwObject == SelectedDuplicateObject ? "bg-warning-subtle fw-bold" : "")">
-                            @FlowAdminHelper.FormatNetworkObjectTechnicalDetails(nwObject)
-                        </span>
-                    </Template>
-                </Column>
-                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("state"))" Field="@(nwObject => nwObject.FlowActive)" Sortable="true" Filterable="true" Context="nwObject">
-                    <Template>
-                        @nwObject.FlowActive.ShowAsHtml()
-                    </Template>
-                </Column>
-                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("actions"))" Field="@(nwObject => nwObject.Id)" Sortable="false" Filterable="false" Context="nwObject">
-                    <Template>
-                        <button type="button" class="btn btn-sm @(nwObject == SelectedDuplicateObject ? "btn-success" : "btn-outline-primary")" @onclick:stopPropagation="true" @onclick="() => SelectDuplicateObject(nwObject)">
-                            @(DisplayService.DisplayButton(userConfig, "select", Icons.Select))
-                        </button>
-                    </Template>
-                </Column>
-                <Pager ShowPageNumber="true" ShowTotalCount="true" />
-            </Table>
+            <div><span class="fw-bold">@(userConfig.GetText("flow_object")):</span> @SelectedDuplicateGroup.FlowNwObjectName (#@SelectedDuplicateGroup.FlowNwObjectId)</div>
+            <div class="text-muted small">@BuildFlowNwObjectTechnicalDetails(SelectedDuplicateGroup.FlowNwObjectId)</div>
+            <div><span class="fw-bold">@(userConfig.GetText("management")):</span> @SelectedDuplicateGroup.ManagementName</div>
         }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-warning" disabled="@(SelectedDuplicateObject == null)" @onclick="ResolveDuplicateMapping">
-                @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
-            </button>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseDuplicateResolver">
-                @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))
-            </button>
-        </div>
-    </Footer>
-</PopUp>
+    </SummaryContent>
+    <ChildContent>
+        <Column TableItem="NetworkObject" Title="@(userConfig.GetText("uid"))" Field="@(nwObject => nwObject.Uid)" Sortable="true" Filterable="true" />
+        <Column TableItem="NetworkObject" Title="@(userConfig.GetText("details"))" Sortable="false" Filterable="false" Context="nwObject">
+            <Template>
+                <span class="d-inline-block rounded px-2 py-1 @(nwObject == SelectedDuplicateObject ? "bg-warning-subtle fw-bold" : "")">
+                    @FlowAdminHelper.FormatNetworkObjectTechnicalDetails(nwObject)
+                </span>
+            </Template>
+        </Column>
+        <Column TableItem="NetworkObject" Title="@(userConfig.GetText("state"))" Field="@(nwObject => nwObject.FlowActive)" Sortable="true" Filterable="true" Context="nwObject">
+            <Template>
+                @nwObject.FlowActive.ShowAsHtml()
+            </Template>
+        </Column>
+        <Column TableItem="NetworkObject" Title="@(userConfig.GetText("actions"))" Field="@(nwObject => nwObject.Id)" Sortable="false" Filterable="false" Context="nwObject">
+            <Template>
+                <button type="button" class="btn btn-sm @(nwObject == SelectedDuplicateObject ? "btn-success" : "btn-outline-primary")" @onclick:stopPropagation="true" @onclick="() => SelectDuplicateObject(nwObject)">
+                    @(DisplayService.DisplayButton(userConfig, "select", Icons.Select))
+                </button>
+            </Template>
+        </Column>
+        <Pager ShowPageNumber="true" ShowTotalCount="true" />
+    </ChildContent>
+</FlowDuplicateResolver>
 
 <PopUp Title="@(userConfig.GetText("create_custom_flow_object"))" Show="@CreateCustomObjectMode" Size=PopupSize.XLarge OnClose="CloseCreateCustomObject">
     <Body>
@@ -604,11 +584,6 @@ else
             : [.. flowNwObjects.Where(nwObject =>
                 BuildFlowNwObjectSearchText(nwObject)
                     .Contains(objectSearchText.Trim().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase))];
-
-    private void ClearObjectSearch()
-    {
-        objectSearchText = "";
-    }
 
     private void EditNwObject(FlowNwObject nwObject)
     {

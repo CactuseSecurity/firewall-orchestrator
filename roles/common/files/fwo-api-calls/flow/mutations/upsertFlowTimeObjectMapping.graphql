@@ -1,0 +1,23 @@
+mutation upsertFlowTimeObjectMapping(
+  $timeObjId: bigint!
+  $flowTimeobjId: bigint!
+  $activeOnMgm: Boolean!
+) {
+  update_time_object_by_pk(
+    pk_columns: { time_obj_id: $timeObjId }
+    _set: {
+      flow_timeobj_id: $flowTimeobjId
+      flow_active: $activeOnMgm
+    }
+  ) {
+    time_obj_id
+    time_obj_name
+    time_obj_uid
+    start_time
+    end_time
+    active
+    removed
+    flow_timeobj_id
+    flow_active
+  }
+}

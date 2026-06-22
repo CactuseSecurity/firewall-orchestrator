@@ -1,0 +1,350 @@
+@page "/settings/flows/timeobjects"
+
+@using FWO.Api.Client.Queries
+@using FWO.Config.Api
+@using FWO.Data
+@using FWO.Data.Flow
+@using Microsoft.AspNetCore.Components.Authorization
+
+@attribute [Authorize(Roles = $"{Roles.Admin}")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<InProgress Display="workInProgress" />
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("time_objects"))</h3>
+    <HelpLink Page="settings/flows/timeobjects" />
+</div>
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-4 mb-2">
+    <h4 class="mb-0">@(userConfig.GetText("duplicate_objects"))</h4>
+</div>
+<div class="text-muted small mb-2">@DuplicateGroups.Count</div>
+
+@if (DuplicateGroups.Count > 0)
+{
+    <Table TableClass="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
+           TableItem="FlowTimeObjectDuplicateGroup"
+           Items="DuplicateGroups"
+           PageSize="10"
+           ColumnReorder="true">
+        <Column TableItem="FlowTimeObjectDuplicateGroup" Title="@(userConfig.GetText("flow_object"))" Field="@(group => group.FlowTimeObjectName)" Sortable="true" Filterable="true" Context="group">
+            <Template>
+                <div>@($"{group.FlowTimeObjectName} (#{group.FlowTimeObjectId})")</div>
+                <div class="text-muted small">@BuildFlowTimeObjectTechnicalDetails(group.FlowTimeObjectId)</div>
+            </Template>
+        </Column>
+        <Column TableItem="FlowTimeObjectDuplicateGroup" Title="@(userConfig.GetText("management"))" Field="@(group => group.ManagementName)" Sortable="true" Filterable="true" />
+        <Column TableItem="FlowTimeObjectDuplicateGroup" Title="@(userConfig.GetText("objects"))" Field="@(group => group.TimeObjects.Count)" Sortable="true" Filterable="false" Context="group">
+            <Template>
+                @FlowAdminHelper.FormatDuplicateObjectSummary(group.TimeObjects)
+            </Template>
+        </Column>
+        <Column TableItem="FlowTimeObjectDuplicateGroup" Title="@(userConfig.GetText("actions"))" Field="@(group => group.ManagementId)" Sortable="false" Filterable="false" Context="group">
+            <Template>
+                <button type="button" class="btn btn-sm btn-warning" @onclick:stopPropagation="true" @onclick="() => OpenDuplicateResolver(group)">
+                    @(DisplayService.DisplayButton(userConfig, "select", Icons.Select))
+                </button>
+            </Template>
+        </Column>
+        <Pager ShowPageNumber="true" ShowTotalCount="true" />
+    </Table>
+}
+else
+{
+    <div class="text-muted small mb-3">@(userConfig.GetText("no_duplicate_conflicts"))</div>
+}
+
+<FlowObjectTable TItem="FlowTimeObject"
+                 FilteredItems="FilteredFlowTimeObjects"
+                 FilteredCount="FilteredFlowTimeObjects.Count"
+                 TotalCount="flowTimeObjects.Count"
+                 PageSize="25"
+                 SearchLabel="@(userConfig.GetText("search_name"))"
+                 @bind-SearchText="objectSearchText">
+    <ChildContent>
+        <Column TableItem="FlowTimeObject" Title="@(userConfig.GetText("actions"))" Field="@(timeObject => timeObject.Id)" Sortable="false" Filterable="false" Context="timeObject">
+            <Template>
+                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditTimeObject(timeObject)">
+                    @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                </button>
+            </Template>
+        </Column>
+        <Column TableItem="FlowTimeObject" Title="@(userConfig.GetText("id"))" Field="@(timeObject => timeObject.Id)" Sortable="true" Filterable="true" />
+        <Column TableItem="FlowTimeObject" Title="@(userConfig.GetText("name"))" Field="@(timeObject => timeObject.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="FlowTimeObject" Title="@(userConfig.GetText("state"))" Field="@(timeObject => timeObject.State)" Sortable="true" Filterable="true" />
+        <Column TableItem="FlowTimeObject" Title="@(userConfig.GetText("show_in_request_module"))" Field="@(timeObject => timeObject.ShowInRequestModule)" Sortable="true" Context="timeObject">
+            <Template>
+                @timeObject.ShowInRequestModule.ShowAsHtml()
+            </Template>
+        </Column>
+        <Column TableItem="FlowTimeObject" Title="@(userConfig.GetText("details"))" Field="@(timeObject => timeObject.Id)" Sortable="false" Filterable="false" Context="timeObject">
+            <Template>
+                @FlowAdminHelper.FormatFlowTimeObjectTechnicalDetails(timeObject)
+            </Template>
+        </Column>
+        <Pager ShowPageNumber="true" ShowTotalCount="true" />
+    </ChildContent>
+</FlowObjectTable>
+
+<PopUp Title="@(userConfig.GetText("edit_flow_object"))" Show="@EditMode" Size=PopupSize.Small OnClose="CloseEditor">
+    <Body>
+        @if (EditMode)
+        {
+            <form onsubmit="return false">
+                <div class="form-group row">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                    <label class="col-sm-8 col-form-label col-form-label-sm">@EditFlowTimeObject.Id</label>
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" @bind="EditFlowTimeObject.Name" />
+                    </div>
+                </div>
+                <div class="form-check form-check-inline mt-3">
+                    <input class="form-check-input" id="flowTimeObjectShowInRequestModule" type="checkbox" @bind="EditFlowTimeObject.ShowInRequestModule">
+                    <label class="form-check-label" for="flowTimeObjectShowInRequestModule"><small>@(userConfig.GetText("show_in_request_module"))</small></label>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="SaveTimeObject">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseEditor">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<FlowDuplicateResolver TItem="TimeObject"
+                       Title="@(userConfig.GetText("duplicate_objects"))"
+                       Show="@ResolveDuplicateMode"
+                       Size=PopupSize.Auto
+                       OnClose="CloseDuplicateResolver"
+                       OnResolve="ResolveDuplicateMapping"
+                       CanResolve="@(SelectedDuplicateTimeObject != null)"
+                       Items="@(SelectedDuplicateGroup?.TimeObjects ?? [])"
+                       PageSize="10"
+                       TableRowClass="@(timeObject => timeObject == SelectedDuplicateTimeObject ? "table-warning" : "")">
+    <SummaryContent>
+        @if (SelectedDuplicateGroup != null)
+        {
+            <div><span class="fw-bold">@(userConfig.GetText("flow_object")):</span> @SelectedDuplicateGroup.FlowTimeObjectName (#@SelectedDuplicateGroup.FlowTimeObjectId)</div>
+            <div class="text-muted small">@BuildFlowTimeObjectTechnicalDetails(SelectedDuplicateGroup.FlowTimeObjectId)</div>
+            <div><span class="fw-bold">@(userConfig.GetText("management")):</span> @SelectedDuplicateGroup.ManagementName</div>
+        }
+    </SummaryContent>
+    <ChildContent>
+        <Column TableItem="TimeObject" Title="@(userConfig.GetText("uid"))" Field="@(timeObject => timeObject.Uid)" Sortable="true" Filterable="true" />
+        <Column TableItem="TimeObject" Title="@(userConfig.GetText("details"))" Field="@(timeObject => timeObject.Name)" Sortable="false" Filterable="false" Context="timeObject">
+            <Template>
+                <span class="d-inline-block rounded px-2 py-1 @(timeObject == SelectedDuplicateTimeObject ? "bg-warning-subtle fw-bold" : "")">
+                    @FlowAdminHelper.FormatTimeObjectTechnicalDetails(timeObject)
+                </span>
+            </Template>
+        </Column>
+        <Column TableItem="TimeObject" Title="@(userConfig.GetText("state"))" Field="@(timeObject => timeObject.FlowActive)" Sortable="true" Filterable="true" Context="timeObject">
+            <Template>
+                @timeObject.FlowActive.ShowAsHtml()
+            </Template>
+        </Column>
+        <Column TableItem="TimeObject" Title="@(userConfig.GetText("actions"))" Field="@(timeObject => timeObject.Id)" Sortable="false" Filterable="false" Context="timeObject">
+            <Template>
+                <button type="button" class="btn btn-sm @(timeObject == SelectedDuplicateTimeObject ? "btn-success" : "btn-outline-primary")" @onclick:stopPropagation="true" @onclick="() => SelectDuplicateTimeObject(timeObject)">
+                    @(DisplayService.DisplayButton(userConfig, "select", Icons.Select))
+                </button>
+            </Template>
+        </Column>
+        <Pager ShowPageNumber="true" ShowTotalCount="true" />
+    </ChildContent>
+</FlowDuplicateResolver>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private List<FlowTimeObject> flowTimeObjects = [];
+    private List<Management> selectableManagements = [];
+    private List<Management> customTimeManagements = [];
+    private FlowTimeObjectDuplicateGroup? SelectedDuplicateGroup;
+    private TimeObject? SelectedDuplicateTimeObject;
+    private bool workInProgress = false;
+    private bool EditMode = false;
+    private bool ResolveDuplicateMode = false;
+    private string objectSearchText = "";
+    private FlowTimeObject EditFlowTimeObject = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        try
+        {
+            workInProgress = true;
+            StateHasChanged();
+
+            flowTimeObjects = await apiConnection.SendQueryAsync<List<FlowTimeObject>>(FlowQueries.getFlowTimeObjects) ?? [];
+            selectableManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowSelectableManagements) ?? [];
+
+            List<int> managementIds = [.. selectableManagements.Select(management => management.Id)];
+            customTimeManagements = managementIds.Count == 0
+                ? []
+                : await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowCustomTimeObjectCandidates, new
+                {
+                    management_id = managementIds
+                }) ?? [];
+
+            workInProgress = false;
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("time_objects"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
+    private List<FlowTimeObjectDuplicateGroup> DuplicateGroups =>
+        FlowAdminHelper.BuildDuplicateGroups(flowTimeObjects, customTimeManagements);
+
+    private List<FlowTimeObject> FilteredFlowTimeObjects =>
+        string.IsNullOrWhiteSpace(objectSearchText)
+            ? flowTimeObjects
+            : [.. flowTimeObjects.Where(timeObject => BuildFlowTimeObjectSearchText(timeObject)
+                .Contains(objectSearchText.Trim().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase))];
+
+    private void EditTimeObject(FlowTimeObject timeObject)
+    {
+        EditFlowTimeObject = new FlowTimeObject
+        {
+            Id = timeObject.Id,
+            Name = timeObject.Name,
+            StartTime = timeObject.StartTime,
+            EndTime = timeObject.EndTime,
+            Hash = timeObject.Hash,
+            State = timeObject.State,
+            RemovedDate = timeObject.RemovedDate,
+            ShowInRequestModule = timeObject.ShowInRequestModule
+        };
+        EditMode = true;
+    }
+
+    private void CloseEditor()
+    {
+        EditMode = false;
+    }
+
+    private void OpenDuplicateResolver(FlowTimeObjectDuplicateGroup group)
+    {
+        SelectedDuplicateGroup = group;
+        SelectedDuplicateTimeObject = group.TimeObjects.FirstOrDefault();
+        ResolveDuplicateMode = true;
+    }
+
+    private void CloseDuplicateResolver()
+    {
+        ResolveDuplicateMode = false;
+        SelectedDuplicateGroup = null;
+        SelectedDuplicateTimeObject = null;
+    }
+
+    private void SelectDuplicateTimeObject(TimeObject timeObject)
+    {
+        SelectedDuplicateTimeObject = timeObject;
+    }
+
+    private async Task ResolveDuplicateMapping()
+    {
+        try
+        {
+            if (SelectedDuplicateGroup == null || SelectedDuplicateTimeObject == null)
+            {
+                return;
+            }
+
+            workInProgress = true;
+            StateHasChanged();
+
+            foreach (TimeObject candidate in SelectedDuplicateGroup.TimeObjects)
+            {
+                await apiConnection.SendQueryAsync<TimeObject>(FlowMutations.upsertFlowTimeObjectMapping, new
+                {
+                    timeObjId = candidate.Id,
+                    flowTimeobjId = SelectedDuplicateGroup.FlowTimeObjectId,
+                    activeOnMgm = candidate.Id == SelectedDuplicateTimeObject.Id
+                });
+            }
+
+            CloseDuplicateResolver();
+            await Refresh();
+            workInProgress = false;
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("duplicate_objects"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task SaveTimeObject()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(EditFlowTimeObject.Name))
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_flow_object"), userConfig.GetText("E5102"), true);
+                return;
+            }
+
+            workInProgress = true;
+            StateHasChanged();
+
+            await apiConnection.SendQueryAsync<FlowTimeObject>(FlowMutations.updateFlowTimeObject, new
+            {
+                timeobjId = EditFlowTimeObject.Id,
+                name = EditFlowTimeObject.Name.Trim(),
+                showInRequestModule = EditFlowTimeObject.ShowInRequestModule
+            });
+
+            EditMode = false;
+            await Refresh();
+            workInProgress = false;
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("edit_flow_object"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
+    private static string BuildFlowTimeObjectSearchText(FlowTimeObject timeObject)
+    {
+        return string.Join(' ', [
+            timeObject.Id.ToString(),
+            timeObject.Name ?? "",
+            timeObject.State,
+            timeObject.ShowInRequestModule.ToString(),
+            timeObject.StartTime?.ToString("o") ?? "",
+            timeObject.EndTime?.ToString("o") ?? ""
+        ]).ToLowerInvariant();
+    }
+
+    private string BuildFlowTimeObjectTechnicalDetails(long flowTimeObjectId)
+    {
+        FlowTimeObject? flowTimeObject = flowTimeObjects.FirstOrDefault(item => item.Id == flowTimeObjectId);
+        string details = flowTimeObject == null ? "" : FlowAdminHelper.FormatFlowTimeObjectTechnicalDetails(flowTimeObject);
+        return string.IsNullOrWhiteSpace(details) ? "-" : details;
+    }
+}

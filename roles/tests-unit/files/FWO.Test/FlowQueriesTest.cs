@@ -20,6 +20,8 @@ namespace FWO.Test
             Assert.That(FlowQueries.getFlowAddressObjects, Does.Contain("fragment flowNwObjectDetails"));
             Assert.That(FlowQueries.getFlowAddressGroups, Does.Contain("query getAddressGroups"));
             Assert.That(FlowQueries.getFlowAddressGroups, Does.Contain("fragment flowNwGroupDetails"));
+            Assert.That(FlowQueries.getFlowCustomServiceCandidates, Does.Contain("query getFlowCustomServiceCandidates"));
+            Assert.That(FlowQueries.getFlowCustomTimeObjectCandidates, Does.Contain("query getFlowCustomTimeObjectCandidates"));
             Assert.That(FlowQueries.getFlowServiceObjects, Does.Contain("query getServiceObjects"));
             Assert.That(FlowQueries.getFlowServiceObjects, Does.Contain("fragment flowSvcObjectDetails"));
             Assert.That(FlowQueries.getFlowServiceGroups, Does.Contain("query getServiceGroups"));

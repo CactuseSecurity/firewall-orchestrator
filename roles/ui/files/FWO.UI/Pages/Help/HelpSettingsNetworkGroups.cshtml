@@ -1,0 +1,17 @@
+@page "/help/settings/flows/networkgroups"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml");
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("network_groups")</h3>
+    <p>@userConfig.GetText("H5021")</p>
+</div>

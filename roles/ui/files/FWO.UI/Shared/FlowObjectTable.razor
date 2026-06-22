@@ -4,7 +4,7 @@
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
     <div class="input-group input-group-sm cwidth-400">
         <span class="input-group-text">@SearchLabel</span>
-        <input type="text" class="form-control" @bind="SearchText" @bind:event="oninput" />
+        <input type="text" class="form-control" value="@SearchText" @oninput="HandleSearchInput" />
         @if (!string.IsNullOrWhiteSpace(SearchText))
         {
             <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearSearch">
@@ -58,6 +58,12 @@
     private async Task ClearSearch()
     {
         SearchText = "";
+        await SearchTextChanged.InvokeAsync(SearchText);
+    }
+
+    private async Task HandleSearchInput(ChangeEventArgs args)
+    {
+        SearchText = args.Value?.ToString() ?? "";
         await SearchTextChanged.InvokeAsync(SearchText);
     }
 }

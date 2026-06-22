@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Security.Claims;
+using System.Linq;
 using System.Reflection;
 
 namespace FWO.Test
@@ -65,8 +66,93 @@ namespace FWO.Test
             {
                 Assert.That(apiConnection.Queries, Does.Contain(FlowQueries.insertFlowSvcObjects));
                 Assert.That(apiConnection.Queries, Does.Contain(FlowMutations.upsertFlowSvcObjectMapping));
-                Assert.That(apiConnection.InsertedServiceObjectName, Is.EqualTo("Custom Service"));
-                Assert.That(apiConnection.MappedServiceIds, Is.EqualTo(new List<long> { 11 }));
+                Assert.That(apiConnection.InsertedServiceObject, Is.Not.Null);
+                Assert.That(apiConnection.InsertedServiceObject!.Name, Is.EqualTo("Custom Service"));
+                Assert.That(apiConnection.InsertedServiceObject.PortStart, Is.EqualTo(80));
+                Assert.That(apiConnection.InsertedServiceObject.PortEnd, Is.EqualTo(80));
+                Assert.That(apiConnection.InsertedServiceObject.IpProtoId, Is.EqualTo(6));
+                Assert.That(apiConnection.InsertedServiceObject.SvcObjHash, Is.Not.Null.And.Length.EqualTo(32));
+                Assert.That(apiConnection.MappingCalls, Is.EqualTo(new List<(long ServiceId, long FlowSvcobjId, bool ActiveOnMgm)>
+                {
+                    (11, 900, true)
+                }));
+            });
+        }
+
+        [Test]
+        public async Task FlowServiceObjectsPage_CreateCustomObject_WithMixedSelection_UsesFirstSelectionPayload()
+        {
+            await using BunitContext context = CreateCustomServiceCreateContext(out FlowServiceObjectsCustomCreateApiConn apiConnection);
+
+            IRenderedComponent<SettingsFlowServiceObjects> component = RenderPage<SettingsFlowServiceObjects>(context);
+            component.WaitForAssertion(() => Assert.That(component.FindAll("button.btn.btn-sm.btn-primary"), Is.Not.Empty));
+
+            component.FindAll("button.btn.btn-sm.btn-primary").First().Click();
+            component.WaitForAssertion(() => Assert.That(component.FindAll("input.form-control.form-control-sm"), Is.Not.Empty));
+
+            component.FindAll("input.form-control.form-control-sm").First().Change("Custom Service");
+            component.FindAll("button.btn-outline-primary").First().Click();
+            component.FindAll("button.btn-outline-primary").Last().Click();
+            component.FindAll("button.btn.btn-sm.btn-primary").Last().Click();
+
+            component.WaitForAssertion(() =>
+            {
+                Assert.That(apiConnection.InsertedServiceObject, Is.Not.Null);
+                Assert.That(apiConnection.InsertedServiceObject!.PortStart, Is.EqualTo(80));
+                Assert.That(apiConnection.InsertedServiceObject.PortEnd, Is.EqualTo(80));
+                Assert.That(apiConnection.InsertedServiceObject.IpProtoId, Is.EqualTo(6));
+                Assert.That(apiConnection.InsertedServiceObject.SvcObjHash, Is.Not.Null.And.Length.EqualTo(32));
+                Assert.That(apiConnection.MappingCalls.Select(call => call.ServiceId), Is.EqualTo(new[] { 11L, 21L }));
+                Assert.That(apiConnection.MappingCalls, Has.All.Matches<(long ServiceId, long FlowSvcobjId, bool ActiveOnMgm)>(call =>
+                    call.FlowSvcobjId == 900 && call.ActiveOnMgm));
+            });
+        }
+
+        [Test]
+        public async Task FlowServiceObjectsPage_CreateCustomObject_RejectsProtocolOnlyService()
+        {
+            await using BunitContext context = CreateProtocolOnlyServiceCreateContext(out FlowServiceObjectsProtocolOnlyApiConn apiConnection);
+
+            IRenderedComponent<SettingsFlowServiceObjects> component = RenderPage<SettingsFlowServiceObjects>(context);
+            component.WaitForAssertion(() => Assert.That(component.FindAll("button.btn.btn-sm.btn-primary"), Is.Not.Empty));
+
+            component.FindAll("button.btn.btn-sm.btn-primary").First().Click();
+            component.WaitForAssertion(() => Assert.That(component.FindAll("input.form-control.form-control-sm"), Is.Not.Empty));
+
+            component.FindAll("input.form-control.form-control-sm").First().Change("Protocol Only");
+            component.FindAll("button.btn-outline-primary").First().Click();
+            component.FindAll("button.btn.btn-sm.btn-primary").Last().Click();
+
+            component.WaitForAssertion(() =>
+            {
+                Assert.That(apiConnection.Queries, Does.Not.Contain(FlowQueries.insertFlowSvcObjects));
+                Assert.That(apiConnection.Queries, Does.Not.Contain(FlowMutations.upsertFlowSvcObjectMapping));
+                Assert.That(apiConnection.InsertedServiceObject, Is.Null);
+                Assert.That(apiConnection.MappingCalls, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task FlowServiceObjectsPage_ResolveDuplicateMapping_SendsExpectedMutations()
+        {
+            await using BunitContext context = CreateDuplicateResolverContext(out FlowServiceObjectsDuplicateResolverApiConn apiConnection);
+
+            IRenderedComponent<SettingsFlowServiceObjects> component = RenderPage<SettingsFlowServiceObjects>(context);
+            component.WaitForAssertion(() => Assert.That(component.FindAll("button.btn.btn-sm.btn-warning"), Is.Not.Empty));
+
+            component.FindAll("button.btn.btn-sm.btn-warning").First().Click();
+            component.WaitForAssertion(() => Assert.That(component.FindAll("button.btn-outline-primary"), Is.Not.Empty));
+            component.FindAll("button.btn-outline-primary").Last().Click();
+            component.FindAll("button.btn.btn-sm.btn-warning").Last().Click();
+
+            component.WaitForAssertion(() =>
+            {
+                Assert.That(apiConnection.Queries, Does.Contain(FlowMutations.upsertFlowSvcObjectMapping));
+                Assert.That(apiConnection.MappingCalls, Is.EqualTo(new List<(long ServiceId, long FlowSvcobjId, bool ActiveOnMgm)>
+                {
+                    (11, 100, false),
+                    (12, 100, true)
+                }));
             });
         }
 
@@ -115,6 +201,42 @@ namespace FWO.Test
             context.Services.AddLocalization();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
             apiConnection = new FlowServiceObjectsCustomCreateApiConn();
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+            context.Services.AddScoped<DomEventService>();
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig
+            {
+                User = { Roles = [Roles.Admin] }
+            });
+            context.Services.AddSingleton<AuthenticationStateProvider>(new FlowSettingsPagesAuthStateProvider(Roles.Admin));
+            return context;
+        }
+
+        private static BunitContext CreateProtocolOnlyServiceCreateContext(out FlowServiceObjectsProtocolOnlyApiConn apiConnection)
+        {
+            BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddAuthorizationCore();
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            apiConnection = new FlowServiceObjectsProtocolOnlyApiConn();
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+            context.Services.AddScoped<DomEventService>();
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig
+            {
+                User = { Roles = [Roles.Admin] }
+            });
+            context.Services.AddSingleton<AuthenticationStateProvider>(new FlowSettingsPagesAuthStateProvider(Roles.Admin));
+            return context;
+        }
+
+        private static BunitContext CreateDuplicateResolverContext(out FlowServiceObjectsDuplicateResolverApiConn apiConnection)
+        {
+            BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddAuthorizationCore();
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            apiConnection = new FlowServiceObjectsDuplicateResolverApiConn();
             context.Services.AddSingleton<ApiConnection>(apiConnection);
             context.Services.AddScoped<DomEventService>();
             context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig
@@ -341,8 +463,271 @@ namespace FWO.Test
     internal sealed class FlowServiceObjectsCustomCreateApiConn : SimulatedApiConnection
     {
         public List<string> Queries { get; } = [];
-        public string InsertedServiceObjectName { get; private set; } = "";
-        public List<long> MappedServiceIds { get; } = [];
+        public FlowSvcObjectInsert? InsertedServiceObject { get; private set; }
+        public List<(long ServiceId, long FlowSvcobjId, bool ActiveOnMgm)> MappingCalls { get; } = [];
+
+        private readonly FlowSvcObject flowSvcObject = new()
+        {
+            Id = 100,
+            Name = "Flow Service Object",
+            PortStart = 80,
+            PortEnd = 80,
+            ProtoId = 6,
+            State = FlowState.Requested,
+            ShowInRequestModule = true
+        };
+
+        private readonly Management managementOne = new()
+        {
+            Id = 10,
+            Name = "Management",
+            Services =
+            [
+                new()
+                {
+                    Id = 11,
+                    Name = "Service A",
+                    Uid = "svc-a",
+                    DestinationPort = 80,
+                    DestinationPortEnd = 80,
+                    ProtoId = 6,
+                    FlowServiceObjectId = null,
+                    FlowActive = false
+                }
+            ]
+        };
+
+        private readonly Management managementTwo = new()
+        {
+            Id = 20,
+            Name = "Management 2",
+            Services =
+            [
+                new()
+                {
+                    Id = 21,
+                    Name = "Service B",
+                    Uid = "svc-b",
+                    DestinationPort = 443,
+                    DestinationPortEnd = 443,
+                    ProtoId = 6,
+                    FlowServiceObjectId = null,
+                    FlowActive = false
+                }
+            ]
+        };
+
+        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+        {
+            Queries.Add(query);
+            if (query == FlowQueries.getFlowServiceObjects)
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<FlowSvcObject> { flowSvcObject });
+            }
+            if (query == FlowQueries.getFlowSelectableManagements)
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<Management>
+                {
+                    new() { Id = 10, Name = "Management" },
+                    new() { Id = 20, Name = "Management 2" }
+                });
+            }
+            if (query == FlowQueries.getFlowCustomServiceCandidates)
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<Management> { managementOne, managementTwo });
+            }
+            if (query == FlowQueries.insertFlowSvcObjects && typeof(QueryResponseType) == typeof(FlowSvcObjectInsertResult))
+            {
+                object?[] insertedObjects = GetAnonymousArray(variables, "objects");
+                object? firstObject = insertedObjects.FirstOrDefault();
+                InsertedServiceObject = new FlowSvcObjectInsert
+                {
+                    Name = GetAnonymousProperty<string>(firstObject, "Name"),
+                    PortStart = GetAnonymousProperty<int?>(firstObject, "PortStart"),
+                    PortEnd = GetAnonymousProperty<int?>(firstObject, "PortEnd"),
+                    IpProtoId = GetAnonymousProperty<int>(firstObject, "IpProtoId"),
+                    SvcObjHash = GetAnonymousProperty<string>(firstObject, "SvcObjHash"),
+                    State = GetAnonymousProperty<string>(firstObject, "State"),
+                    RemovedDate = null,
+                    ShowInRequestModule = GetAnonymousProperty<bool>(firstObject, "ShowInRequestModule")
+                };
+                return Task.FromResult((QueryResponseType)(object)new FlowSvcObjectInsertResult
+                {
+                    Returning =
+                    [
+                        new FlowSvcObject
+                        {
+                            Id = 900,
+                            Name = InsertedServiceObject.Name ?? "",
+                            PortStart = InsertedServiceObject.PortStart,
+                            PortEnd = InsertedServiceObject.PortEnd,
+                            ProtoId = InsertedServiceObject.IpProtoId,
+                            Hash = InsertedServiceObject.SvcObjHash ?? "",
+                            State = InsertedServiceObject.State ?? FlowState.Implemented,
+                            ShowInRequestModule = InsertedServiceObject.ShowInRequestModule
+                        }
+                    ]
+                });
+            }
+            if (query == FlowMutations.upsertFlowSvcObjectMapping && typeof(QueryResponseType) == typeof(NetworkService))
+            {
+                long serviceId = GetAnonymousProperty<long>(variables, "svcId");
+                long flowSvcobjId = GetAnonymousProperty<long>(variables, "flowSvcobjId");
+                bool activeOnMgm = GetAnonymousProperty<bool>(variables, "activeOnMgm");
+                MappingCalls.Add((serviceId, flowSvcobjId, activeOnMgm));
+                return Task.FromResult((QueryResponseType)(object)new NetworkService
+                {
+                    Id = serviceId,
+                    Name = serviceId == 11 ? "Service A" : "Service B",
+                    Uid = serviceId == 11 ? "svc-a" : "svc-b",
+                    DestinationPort = serviceId == 11 ? 80 : 443,
+                    DestinationPortEnd = serviceId == 11 ? 80 : 443,
+                    ProtoId = 6,
+                    FlowServiceObjectId = 900,
+                    FlowActive = activeOnMgm
+                });
+            }
+            throw new InvalidOperationException($"Unexpected query: {query}");
+        }
+
+        private static T GetAnonymousProperty<T>(object? variables, string propertyName)
+        {
+            if (variables == null)
+            {
+                throw new InvalidOperationException($"Missing variables for {propertyName}");
+            }
+
+            return (T)(variables.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase)?.GetValue(variables)
+                ?? throw new InvalidOperationException($"Missing property {propertyName}"));
+        }
+
+        private static object?[] GetAnonymousArray(object? variables, string propertyName)
+        {
+            if (variables == null)
+            {
+                throw new InvalidOperationException($"Missing variables for {propertyName}");
+            }
+
+            return (object?[])(variables.GetType().GetProperty(propertyName)?.GetValue(variables)
+                ?? throw new InvalidOperationException($"Missing property {propertyName}"));
+        }
+    }
+
+    internal sealed class FlowServiceObjectsProtocolOnlyApiConn : SimulatedApiConnection
+    {
+        public List<string> Queries { get; } = [];
+        public FlowSvcObjectInsert? InsertedServiceObject { get; private set; }
+        public List<(long ServiceId, long FlowSvcobjId, bool ActiveOnMgm)> MappingCalls { get; } = [];
+
+        private readonly FlowSvcObject flowSvcObject = new()
+        {
+            Id = 100,
+            Name = "Flow Service Object",
+            State = FlowState.Requested,
+            ShowInRequestModule = true
+        };
+
+        private readonly Management management = new()
+        {
+            Id = 10,
+            Name = "Management",
+            Services =
+            [
+                new()
+                {
+                    Id = 11,
+                    Name = "Protocol Only Service",
+                    Uid = "svc-proto-only",
+                    DestinationPort = null,
+                    DestinationPortEnd = null,
+                    ProtoId = 1,
+                    FlowServiceObjectId = null,
+                    FlowActive = false
+                }
+            ]
+        };
+
+        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+        {
+            Queries.Add(query);
+            if (query == FlowQueries.getFlowServiceObjects)
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<FlowSvcObject> { flowSvcObject });
+            }
+            if (query == FlowQueries.getFlowSelectableManagements)
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<Management> { new() { Id = 10, Name = "Management" } });
+            }
+            if (query == FlowQueries.getFlowCustomServiceCandidates)
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<Management> { management });
+            }
+            if (query == FlowQueries.insertFlowSvcObjects && typeof(QueryResponseType) == typeof(FlowSvcObjectInsertResult))
+            {
+                object?[] insertedObjects = GetAnonymousArray(variables, "objects");
+                object? firstObject = insertedObjects.FirstOrDefault();
+                InsertedServiceObject = new FlowSvcObjectInsert
+                {
+                    Name = GetAnonymousProperty<string>(firstObject, "Name")
+                };
+                return Task.FromResult((QueryResponseType)(object)new FlowSvcObjectInsertResult
+                {
+                    Returning =
+                    [
+                        new FlowSvcObject
+                        {
+                            Id = 900,
+                            Name = InsertedServiceObject.Name ?? ""
+                        }
+                    ]
+                });
+            }
+            if (query == FlowMutations.upsertFlowSvcObjectMapping && typeof(QueryResponseType) == typeof(NetworkService))
+            {
+                long serviceId = GetAnonymousProperty<long>(variables, "svcId");
+                long flowSvcobjId = GetAnonymousProperty<long>(variables, "flowSvcobjId");
+                bool activeOnMgm = GetAnonymousProperty<bool>(variables, "activeOnMgm");
+                MappingCalls.Add((serviceId, flowSvcobjId, activeOnMgm));
+                return Task.FromResult((QueryResponseType)(object)new NetworkService
+                {
+                    Id = serviceId,
+                    Name = "Protocol Only Service",
+                    Uid = "svc-proto-only",
+                    ProtoId = 1,
+                    FlowServiceObjectId = 900,
+                    FlowActive = activeOnMgm
+                });
+            }
+            throw new InvalidOperationException($"Unexpected query: {query}");
+        }
+
+        private static T GetAnonymousProperty<T>(object? variables, string propertyName)
+        {
+            if (variables == null)
+            {
+                throw new InvalidOperationException($"Missing variables for {propertyName}");
+            }
+
+            return (T)(variables.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase)?.GetValue(variables)
+                ?? throw new InvalidOperationException($"Missing property {propertyName}"));
+        }
+
+        private static object?[] GetAnonymousArray(object? variables, string propertyName)
+        {
+            if (variables == null)
+            {
+                throw new InvalidOperationException($"Missing variables for {propertyName}");
+            }
+
+            return (object?[])(variables.GetType().GetProperty(propertyName)?.GetValue(variables)
+                ?? throw new InvalidOperationException($"Missing property {propertyName}"));
+        }
+    }
+
+    internal sealed class FlowServiceObjectsDuplicateResolverApiConn : SimulatedApiConnection
+    {
+        public List<string> Queries { get; } = [];
+        public List<(long ServiceId, long FlowSvcobjId, bool ActiveOnMgm)> MappingCalls { get; } = [];
 
         private readonly FlowSvcObject flowSvcObject = new()
         {
@@ -369,7 +754,7 @@ namespace FWO.Test
                     DestinationPort = 80,
                     DestinationPortEnd = 80,
                     ProtoId = 6,
-                    FlowServiceObjectId = null,
+                    FlowServiceObjectId = 100,
                     FlowActive = false
                 },
                 new()
@@ -380,7 +765,7 @@ namespace FWO.Test
                     DestinationPort = 80,
                     DestinationPortEnd = 80,
                     ProtoId = 6,
-                    FlowServiceObjectId = null,
+                    FlowServiceObjectId = 100,
                     FlowActive = false
                 }
             ]
@@ -401,32 +786,12 @@ namespace FWO.Test
             {
                 return Task.FromResult((QueryResponseType)(object)new List<Management> { management });
             }
-            if (query == FlowQueries.insertFlowSvcObjects && typeof(QueryResponseType) == typeof(FlowSvcObjectInsertResult))
-            {
-                object?[] insertedObjects = GetAnonymousArray(variables, "objects");
-                object? firstObject = insertedObjects.FirstOrDefault();
-                InsertedServiceObjectName = GetAnonymousProperty<string>(firstObject, "Name");
-                return Task.FromResult((QueryResponseType)(object)new FlowSvcObjectInsertResult
-                {
-                    Returning =
-                    [
-                        new FlowSvcObject
-                        {
-                            Id = 900,
-                            Name = InsertedServiceObjectName,
-                            PortStart = 80,
-                            PortEnd = 80,
-                            ProtoId = 6,
-                            State = FlowState.Implemented,
-                            ShowInRequestModule = true
-                        }
-                    ]
-                });
-            }
             if (query == FlowMutations.upsertFlowSvcObjectMapping && typeof(QueryResponseType) == typeof(NetworkService))
             {
                 long serviceId = GetAnonymousProperty<long>(variables, "svcId");
-                MappedServiceIds.Add(serviceId);
+                long flowSvcobjId = GetAnonymousProperty<long>(variables, "flowSvcobjId");
+                bool activeOnMgm = GetAnonymousProperty<bool>(variables, "activeOnMgm");
+                MappingCalls.Add((serviceId, flowSvcobjId, activeOnMgm));
                 return Task.FromResult((QueryResponseType)(object)new NetworkService
                 {
                     Id = serviceId,
@@ -436,9 +801,10 @@ namespace FWO.Test
                     DestinationPortEnd = 80,
                     ProtoId = 6,
                     FlowServiceObjectId = 900,
-                    FlowActive = true
+                    FlowActive = activeOnMgm
                 });
             }
+
             throw new InvalidOperationException($"Unexpected query: {query}");
         }
 
@@ -450,17 +816,6 @@ namespace FWO.Test
             }
 
             return (T)(variables.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase)?.GetValue(variables)
-                ?? throw new InvalidOperationException($"Missing property {propertyName}"));
-        }
-
-        private static object?[] GetAnonymousArray(object? variables, string propertyName)
-        {
-            if (variables == null)
-            {
-                throw new InvalidOperationException($"Missing variables for {propertyName}");
-            }
-
-            return (object?[])(variables.GetType().GetProperty(propertyName)?.GetValue(variables)
                 ?? throw new InvalidOperationException($"Missing property {propertyName}"));
         }
     }

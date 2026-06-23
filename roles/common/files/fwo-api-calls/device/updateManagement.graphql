@@ -4,7 +4,7 @@ mutation updateManagement(
   $uid: String
   $devTypeId: Int!
   $importCredentialId: Int!
-  $exportCredentialId: Int!
+  $exportCredentialId: Int
   $hostname: String!
   $port: Int!
   $importDisabled: Boolean!

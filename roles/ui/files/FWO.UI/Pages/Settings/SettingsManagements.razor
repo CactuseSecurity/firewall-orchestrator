@@ -482,7 +482,9 @@
                 devTypeId = actManagement.DeviceType.Id,
                 hostname = actManagement.Hostname,
                 importCredentialId = actManagement.ImportCredential.Id,
-                exportCredentialId = actManagement.ExportCredential.Id,
+                exportCredentialId = actManagement.ExportCredential.Id > 0
+                    ? actManagement.ExportCredential.Id
+                    : (int?)null,
                 port = actManagement.Port,
                 importDisabled = actManagement.ImportDisabled,
                 forceInitialImport = actManagement.ForceInitialImport,
@@ -527,7 +529,9 @@
                 devTypeId = actManagement.DeviceType.Id,
                 hostname = actManagement.Hostname,
                 importCredentialId = actManagement.ImportCredential.Id,
-                exportCredentialId = actManagement.ExportCredential.Id,
+                exportCredentialId = actManagement.ExportCredential.Id > 0
+                    ? actManagement.ExportCredential.Id
+                    : (int?)null,
                 port = actManagement.Port,
                 importDisabled = actManagement.ImportDisabled,
                 forceInitialImport = actManagement.ForceInitialImport,

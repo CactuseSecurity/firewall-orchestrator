@@ -224,6 +224,7 @@ namespace FWO.ExternalSystems.CheckPoint
             renderedTasks.Add(new RenderedTask(CheckPointTaskTypes.Publish, body));
         }
 
+        // TODO RuleChange: install-policy execution will be added once Check Point rule changes are implemented.
         private void AddInstallPolicyTasks()
         {
             List<CheckPointInstallPolicyTarget> targets = GetInstallPolicyTargets();

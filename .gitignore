@@ -70,5 +70,6 @@ cov.xml
 .DS_Store
 .dotnet
 **/.codex/
+**/.claude/
 FWO.local.runsettings
 **/*.lscache

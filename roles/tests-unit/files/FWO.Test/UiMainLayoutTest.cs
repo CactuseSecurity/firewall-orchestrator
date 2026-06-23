@@ -13,7 +13,6 @@ using FWO.Ui.Services;
 using FWO.Ui.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -146,7 +145,7 @@ namespace FWO.Test
                 Assert.That(GetPrivateFieldValue<bool>(fixture.Layout.Instance, "showReloginDialog"), Is.True);
                 Assert.That(fixture.Layout.Markup, Does.Contain("permissions_text"));
             });
-        }        
+        }
 
         [Test]
         public async Task OnAlertUpdate_WhenAdminHasOpenAlerts_ShowsNavigationAlertMarker()
@@ -170,6 +169,23 @@ namespace FWO.Test
             await fixture.Layout.Instance.setAlert("Failure", "Description");
 
             Assert.That(fixture.ApiConnection.Alerts, Is.EqualTo(new[] { ("Failure", "Description") }));
+        }
+
+        [Test]
+        public async Task OnInitializedAsync_StartsTokenRefreshCoordinator_AndDisposeStopsIt()
+        {
+            MainLayoutFixture fixture = new();
+            try
+            {
+                Assert.That(fixture.TokenRefreshCoordinator.StartCallCount, Is.EqualTo(1));
+                Assert.That(fixture.TokenRefreshCoordinator.StopCallCount, Is.EqualTo(0));
+            }
+            finally
+            {
+                await fixture.DisposeAsync();
+            }
+
+            Assert.That(fixture.TokenRefreshCoordinator.StopCallCount, Is.EqualTo(1));
         }
 
         [Test]
@@ -200,6 +216,7 @@ namespace FWO.Test
             public MainLayoutTestApiConnection ApiConnection { get; } = new();
             public SimulatedUserConfig UserConfig { get; }
             public EventMediator EventMediator { get; } = new();
+            public MainLayoutTokenRefreshCoordinatorStub TokenRefreshCoordinator { get; } = new();
             public IRenderedComponent<MainLayout> Layout { get; }
 
             public MainLayoutFixture(int maxMessages = 3, IEnumerable<string>? roles = null)
@@ -226,7 +243,7 @@ namespace FWO.Test
                 context.Services.AddSingleton<ISessionStorage>(sessionStorage);
                 context.Services.AddSingleton(new TokenService(middlewareClient, sessionStorage));
                 context.Services.AddSingleton<IEventMediator>(EventMediator);
-                context.Services.AddSingleton<CircuitHandler>(new CircuitHandlerService(EventMediator));
+                context.Services.AddSingleton<ITokenRefreshCoordinator>(TokenRefreshCoordinator);
                 context.Services.AddSingleton(new KeyboardInputService());
                 context.Services.AddSingleton((ProtectedSessionStorage)RuntimeHelpers.GetUninitializedObject(typeof(ProtectedSessionStorage)));
                 context.Services.AddSingleton<AuthenticationStateProvider>(new MainLayoutAuthStateProvider(UserConfig.User.Name, UserConfig.User.Dn, userRoles));
@@ -259,6 +276,27 @@ namespace FWO.Test
             public override Task<AuthenticationState> GetAuthenticationStateAsync()
             {
                 return Task.FromResult(new AuthenticationState(principal));
+            }
+        }
+
+        private sealed class MainLayoutTokenRefreshCoordinatorStub : ITokenRefreshCoordinator
+        {
+            public int StartCallCount { get; private set; }
+            public int StopCallCount { get; private set; }
+
+            public Task StartAsync()
+            {
+                StartCallCount++;
+                return Task.CompletedTask;
+            }
+
+            public void Stop()
+            {
+                StopCallCount++;
+            }
+
+            public void Dispose()
+            {
             }
         }
     }

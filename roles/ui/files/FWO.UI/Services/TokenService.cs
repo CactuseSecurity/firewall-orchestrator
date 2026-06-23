@@ -258,23 +258,23 @@ namespace FWO.Ui.Services
         {
             await initializationTask.Value;
 
-            string? refreshToken = currentTokenPair?.RefreshToken;
-
             try
             {
-                if (!string.IsNullOrWhiteSpace(refreshToken))
+                if (!await HasRefreshToken())
                 {
-                    RefreshTokenRequest revokeTokenRequest = new()
-                    {
-                        RefreshToken = refreshToken
-                    };
+                    throw new AggregateException($"{nameof(RevokeTokens)} called but no refresh token was found!");
+                }
 
-                    RestResponse response = await middlewareClient.RevokeRefreshToken(revokeTokenRequest);
+                RefreshTokenRequest revokeTokenRequest = new()
+                {
+                    RefreshToken = currentTokenPair?.RefreshToken!
+                };
 
-                    if (!response.IsSuccessful)
-                    {
-                        Log.WriteWarning("Token Revoke", $"Server-side revoke failed during logout: {response.StatusCode} {response.ErrorMessage ?? response.Content}");
-                    }
+                RestResponse response = await middlewareClient.RevokeRefreshToken(revokeTokenRequest);
+
+                if (!response.IsSuccessful)
+                {
+                    Log.WriteWarning("Token Revoke", $"Server-side revoke failed during logout: {response.StatusCode} {response.ErrorMessage ?? response.Content}");
                 }
             }
             catch (Exception ex)
@@ -293,11 +293,12 @@ namespace FWO.Ui.Services
         /// <returns></returns>
         private async Task ClearStoredTokenPair()
         {
-            currentTokenPair = null;
+            await initializationTask.Value;
 
             try
             {
                 await sessionStorage.DeleteAsync(TOKEN_PAIR_KEY);
+                currentTokenPair = null;
             }
             catch (Exception ex)
             {

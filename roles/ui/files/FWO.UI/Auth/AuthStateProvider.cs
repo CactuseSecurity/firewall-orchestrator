@@ -27,7 +27,7 @@ namespace FWO.Ui.Auth
             return await Task.FromResult(new AuthenticationState(user));
         }
 
-        public async Task<RestResponse<TokenPair>> Authenticate(string username, string password, ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
+        public async Task<RestResponse<TokenPair>> Authenticate(string username, string password, ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig)
         {
             // There is no jwt in session storage. Get one from auth module.
             AuthenticationTokenGetParameters authenticationParameters = new() { Username = username, Password = password };
@@ -48,7 +48,7 @@ namespace FWO.Ui.Auth
                     throw new ArgumentException("no refresh token in response");
                 }
 
-                await ApplyTokenPair(tokenPair, apiConnection, middlewareClient, userConfig, circuitHandler);
+                await ApplyTokenPair(tokenPair, apiConnection, middlewareClient, userConfig);
 
                 Log.WriteAudit("AuthenticateUser", $"User \"{username}\" with DN: \"{userConfig.User.Dn}\" successfully authenticated.");
             }
@@ -62,9 +62,8 @@ namespace FWO.Ui.Auth
         /// <param name="apiConnection">API connection that should receive the restored JWT.</param>
         /// <param name="middlewareClient">Middleware client that should receive the restored JWT.</param>
         /// <param name="userConfig">Current user configuration to rebuild from the restored JWT.</param>
-        /// <param name="circuitHandler">Circuit-scoped user context that should be updated after restore.</param>
         /// <returns>True if a valid stored or refreshed JWT could be applied; otherwise false.</returns>
-        public async Task<bool> RestoreAuthenticationState(ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
+        public async Task<bool> RestoreAuthenticationState(ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig)
         {
             TokenPair? storedTokenPair = await tokenService.GetTokenPair();
 
@@ -77,7 +76,7 @@ namespace FWO.Ui.Auth
             {
                 if (!await tokenService.IsAccessTokenExpired())
                 {
-                    return await TryApplyJwt(storedTokenPair.AccessToken, apiConnection, middlewareClient, userConfig, circuitHandler);
+                    return await TryApplyJwt(storedTokenPair.AccessToken, apiConnection, middlewareClient, userConfig);
                 }
 
                 TokenPair? refreshedTokenPair = await tokenService.RefreshTokenPair();
@@ -90,7 +89,7 @@ namespace FWO.Ui.Auth
                     return false;
                 }
 
-                return await TryApplyJwt(refreshedTokenPair.AccessToken, apiConnection, middlewareClient, userConfig, circuitHandler);
+                return await TryApplyJwt(refreshedTokenPair.AccessToken, apiConnection, middlewareClient, userConfig);
             }
             catch (AuthenticationException)
             {
@@ -103,9 +102,9 @@ namespace FWO.Ui.Auth
             }
         }
 
-        public async Task Authenticate(string jwtString, ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
+        public async Task Authenticate(string jwtString, ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig)
         {
-            if (!await TryApplyJwt(jwtString, apiConnection, middlewareClient, userConfig, circuitHandler))
+            if (!await TryApplyJwt(jwtString, apiConnection, middlewareClient, userConfig))
             {
                 await Deauthenticate();
             }
@@ -150,9 +149,8 @@ namespace FWO.Ui.Auth
         /// <param name="apiConnection">API connection that should receive the JWT.</param>
         /// <param name="middlewareClient">Middleware client that should receive the JWT.</param>
         /// <param name="userConfig">Current user configuration to rebuild from the JWT claims.</param>
-        /// <param name="circuitHandler">Circuit-scoped user context to update after the JWT is applied.</param>
         /// <returns>True if the JWT was valid and applied successfully; otherwise false.</returns>
-        private async Task<bool> TryApplyJwt(string jwtString, ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
+        private async Task<bool> TryApplyJwt(string jwtString, ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig)
         {
             JwtReader jwtReader = new(jwtString);
 
@@ -209,8 +207,6 @@ namespace FWO.Ui.Auth
 
             await RestoreExecutionMode(apiConnection, userConfig);
 
-            circuitHandler.User = userConfig.User;
-
             if (!userConfig.User.PasswordMustBeChanged)
             {
                 NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
@@ -248,11 +244,10 @@ namespace FWO.Ui.Auth
         /// <param name="apiConnection">API connection that should receive the JWT.</param>
         /// <param name="middlewareClient">Middleware client that should receive the JWT.</param>
         /// <param name="userConfig">Current user configuration to rebuild from the JWT claims.</param>
-        /// <param name="circuitHandler">Circuit-scoped user context to update after the JWT is applied.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        private async Task ApplyTokenPair(TokenPair tokenPair, ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
+        private async Task ApplyTokenPair(TokenPair tokenPair, ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig)
         {
-            await Authenticate(tokenPair.AccessToken, apiConnection, middlewareClient, userConfig, circuitHandler);
+            await Authenticate(tokenPair.AccessToken, apiConnection, middlewareClient, userConfig);
             await tokenService.SetTokenPair(tokenPair);
         }
 

@@ -47,7 +47,6 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
 builder.Services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
-builder.Services.AddScoped<CircuitHandler, CircuitHandlerService>();
 builder.Services.AddScoped<KeyboardInputService, KeyboardInputService>();
 builder.Services.AddScoped<IEventMediator, EventMediator>();
 builder.Services.AddScoped<IRuleTreeBuilder>(_ => new RuleTreeBuilder());
@@ -60,6 +59,8 @@ builder.Services.AddScoped<ApiConnection>(_ => new GraphQlApiConnection(ApiUri))
 builder.Services.AddScoped<MiddlewareClient>(_ => new MiddlewareClient(MiddlewareUri));
 builder.Services.AddScoped<ISessionStorage, SessionStorageWrapper>();
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<ITokenRefreshCoordinator, TokenRefreshCoordinator>();
+builder.Services.AddSingleton<IPeriodicTaskRunnerFactory, PeriodicTaskRunnerFactory>();
 builder.Services.AddScoped<ExecutionModeStorage>();
 
 // Create "anonymous" (empty) jwt

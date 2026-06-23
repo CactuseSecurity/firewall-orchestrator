@@ -71,7 +71,7 @@ namespace FWO.Test
             int publishCount = 0;
             eventMediator.Subscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent), _ => publishCount++);
 
-            bool refreshed = await authStateProvider.RestoreAuthenticationState(new MockApiConnection(), mockMiddlewareClient, new UserConfig(), new CircuitHandlerService(eventMediator));
+            bool refreshed = await authStateProvider.RestoreAuthenticationState(new MockApiConnection(), mockMiddlewareClient, new UserConfig());
 
             Assert.That(refreshed, Is.False);
             Assert.That(publishCount, Is.EqualTo(0));
@@ -112,7 +112,7 @@ namespace FWO.Test
                 publishedUserDn = _.EventArgs?.UserDn;
             });
 
-            bool restored = await authStateProvider.RestoreAuthenticationState(new TestApiConnection(), mockMiddlewareClient, new UserConfig(), new CircuitHandlerService(eventMediator));
+            bool restored = await authStateProvider.RestoreAuthenticationState(new TestApiConnection(), mockMiddlewareClient, new UserConfig());
             AuthenticationState authenticationState = await authStateProvider.GetAuthenticationStateAsync();
 
             Assert.That(restored, Is.False);
@@ -149,7 +149,7 @@ namespace FWO.Test
             };
 
             AuthenticationException ex = Assert.ThrowsAsync<AuthenticationException>(async () =>
-                await InvokeApplyTokenPair(authStateProvider, rejectedTokenPair, new MockApiConnection(), mockMiddlewareClient, new UserConfig(), new CircuitHandlerService(eventMediator)))
+                await InvokeApplyTokenPair(authStateProvider, rejectedTokenPair, new MockApiConnection(), mockMiddlewareClient, new UserConfig()))
                 ?? throw new AssertionException("Expected AuthenticationException.");
 
             Assert.That(ex.Message, Is.EqualTo("not_authorized"));
@@ -173,8 +173,6 @@ namespace FWO.Test
             AuthStateProvider authStateProvider = new(tokenService, eventMediator);
             UserConfig userConfig = new();
             TestApiConnection apiConnection = new();
-            CircuitHandlerService circuitHandler = new(eventMediator);
-
             await tokenService.SetTokenPair(new TokenPair
             {
                 AccessToken = GenerateJwtToken(privateKey, Roles.Reporter, DateTime.UtcNow.AddMinutes(-5), BuildJwtClaims()),
@@ -194,7 +192,7 @@ namespace FWO.Test
 
             mockMiddlewareClient.NextRefreshTokenResponse = refreshedTokenPair;
 
-            bool restored = await authStateProvider.RestoreAuthenticationState(apiConnection, mockMiddlewareClient, userConfig, circuitHandler);
+            bool restored = await authStateProvider.RestoreAuthenticationState(apiConnection, mockMiddlewareClient, userConfig);
             AuthenticationState authenticationState = await authStateProvider.GetAuthenticationStateAsync();
             TokenPair? storedTokenPair = await tokenService.GetTokenPair();
 
@@ -208,7 +206,6 @@ namespace FWO.Test
             Assert.That(userConfig.User.Roles, Is.EquivalentTo(new[] { Roles.Reporter }));
             Assert.That(userConfig.User.Ownerships, Is.EquivalentTo(new[] { 3, 7 }));
             Assert.That(userConfig.User.RecertOwnerships, Is.EquivalentTo(new[] { 9 }));
-            Assert.That(circuitHandler.User?.Dn, Is.EqualTo(TestApiConnection.TestUserDn));
         }
 
         [Test]
@@ -236,7 +233,7 @@ namespace FWO.Test
                 RefreshTokenExpires = DateTime.UtcNow.AddDays(1)
             });
 
-            bool restored = await authStateProvider.RestoreAuthenticationState(new TestApiConnection(), mockMiddlewareClient, userConfig, new CircuitHandlerService(eventMediator));
+            bool restored = await authStateProvider.RestoreAuthenticationState(new TestApiConnection(), mockMiddlewareClient, userConfig);
             TokenPair? storedTokenPair = await tokenService.GetTokenPair();
 
             Assert.That(restored, Is.True);
@@ -273,7 +270,7 @@ namespace FWO.Test
             });
             await executionModeStorage.SetExecutionMode(Roles.Admin);
 
-            bool restored = await authStateProvider.RestoreAuthenticationState(apiConnection, mockMiddlewareClient, userConfig, new CircuitHandlerService(eventMediator));
+            bool restored = await authStateProvider.RestoreAuthenticationState(apiConnection, mockMiddlewareClient, userConfig);
 
             Assert.Multiple(() =>
             {
@@ -293,9 +290,9 @@ namespace FWO.Test
             UserField.SetValue(authStateProvider, principal);
         }
 
-        private static async Task InvokeApplyTokenPair(AuthStateProvider authStateProvider, TokenPair tokenPair, ApiConnection apiConnection, MockMiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
+        private static async Task InvokeApplyTokenPair(AuthStateProvider authStateProvider, TokenPair tokenPair, ApiConnection apiConnection, MockMiddlewareClient middlewareClient, UserConfig userConfig)
         {
-            Task applyTask = (Task)(ApplyTokenPairMethod.Invoke(authStateProvider, new object[] { tokenPair, apiConnection, middlewareClient, userConfig, circuitHandler })
+            Task applyTask = (Task)(ApplyTokenPairMethod.Invoke(authStateProvider, new object[] { tokenPair, apiConnection, middlewareClient, userConfig })
                 ?? throw new InvalidOperationException("ApplyTokenPair returned null."));
 
             await applyTask;

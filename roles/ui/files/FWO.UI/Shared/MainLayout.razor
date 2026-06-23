@@ -10,8 +10,6 @@
 @using FWO.Ui.Services
 @using System.Timers
 @using System.Security.Claims;
-@using Microsoft.AspNetCore.Components.Server.Circuits;
-@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using RestSharp
 
 @inject ApiConnection apiConnection
@@ -20,9 +18,7 @@
 @inject MiddlewareClient middlewareClient
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider authenticationProvider
-@inject ProtectedSessionStorage sessionStorage
-@inject CircuitHandler circuitHandler
-@inject TokenService tokenService
+@inject ITokenRefreshCoordinator tokenRefreshCoordinator
 @inject IEventMediator EventMediator
 
 @implements IDisposable
@@ -113,21 +109,15 @@
     private List<UIMessage> UIMessages = [];
     private Queue<UIMessage> UIMessageQue = [];
     private Timer? UIMessageQueTimer;
-    private static readonly TimeSpan TokenRefreshCheckInterval = TimeSpan.FromSeconds(15);
-    private PeriodicTaskRunner? tokenRefreshRunner;
     private IDisposable? locationChangingRegistration;
     private string? LastLocation;
 
     protected override async Task OnInitializedAsync()
     {
         EventMediator.Subscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent), _ => OnPermissionsChanged(_.EventArgs));
-        EventMediator.Subscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent), _ => OnJwtExpired(_.EventArgs));
-        //EventMediator.Subscribe<UserSessionClosedEvent>(nameof(UserSessionClosedEvent), _ => OnUserSessionClosed(_.EventArgs));
         apiConnection.OnExecutionModeChanged += OnExecutionModeChanged;
 
-        DisplayMessageInUiFunction = DisplayMessageInUi;
-
-        await CheckAndRefreshTokenAsync();
+        DisplayMessageInUiFunction = DisplayMessageInUi;        
 
         locationChangingRegistration = NavigationManager.RegisterLocationChangingHandler(OnLocationChanging);
         NavigationManager.LocationChanged += OnLocationChanged;
@@ -151,7 +141,7 @@
 
         UIMessageQueTimer.Elapsed += OnUIMessageTimerTick;
 
-        StartTokenRefreshRunner();
+        await tokenRefreshCoordinator.StartAsync();
     }
 
     private ValueTask OnLocationChanging(LocationChangingContext context)
@@ -160,14 +150,13 @@
         return ValueTask.CompletedTask;
     }
 
-    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
         if (LastLocation != e.Location)
         {
             LastLocation = e.Location;
 
             UpdateAmbientModuleRole();
-            await CheckAndRefreshTokenAsync();
         }
     }
 
@@ -270,35 +259,6 @@
             Roles.Admin, Roles.FwAdmin, Roles.Auditor];
     }
 
-    private async Task CheckAndRefreshTokenAsync()
-    {
-        try
-        {
-            if (!await tokenService.HasAccessToken() || !await tokenService.HasRefreshToken())
-            {
-                return;
-            }
-
-            if (await tokenService.IsAccessTokenExpired())
-            {
-                Log.WriteDebug("Token Check", "Access token expired, attempting refresh...");
-
-                CircuitHandlerService circuitHandlerService = (CircuitHandlerService)circuitHandler;
-
-                bool refreshed = await ((AuthStateProvider)authenticationProvider).RestoreAuthenticationState(apiConnection, middlewareClient, userConfig, circuitHandlerService);
-
-                if (refreshed)
-                {
-                    user = (await authenticationProvider.GetAuthenticationStateAsync()).User;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.WriteError("Token Check", "Error during token check/refresh", ex);
-        }
-    }
-
     private async Task KeyHandler(KeyboardEventArgs ev)
     {
         if (ev.Code == "Enter")
@@ -314,39 +274,6 @@
         {
             ShowReloginDialog(userConfig.GetText("permissions"), userConfig.GetText("permissions_text"), reloginAbortable: false);
         }
-    }
-
-    private void OnJwtExpired(JwtExpiredEventArgs? e)
-    {
-        if (user?.Identity?.IsAuthenticated == true && !string.IsNullOrWhiteSpace(e?.UserDn) && DistName.DnEquals(e.UserDn, userConfig.User.Dn))
-        {
-            ShowReloginDialog(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), reloginAbortable: false);
-        }
-    }
-
-    private void OnUserSessionClosed(UserSessionClosedEventArgs? e)
-    {
-        if (DistName.DnEquals(e?.UserDn, userConfig.User.Dn))
-        {
-            StopTokenRefreshRunner();
-        }
-    }
-
-    private void StartTokenRefreshRunner()
-    {
-        if (tokenRefreshRunner != null)
-        {
-            return;
-        }
-
-        tokenRefreshRunner = new(() => InvokeAsync(CheckAndRefreshTokenAsync), TokenRefreshCheckInterval, $"[{nameof(tokenRefreshRunner)}:{userConfig.User.Dn}]");
-        tokenRefreshRunner.Start();
-    }
-
-    private void StopTokenRefreshRunner()
-    {
-        tokenRefreshRunner?.Dispose();
-        tokenRefreshRunner = null;
     }
 
     private void ShowReloginDialog(string title, string text, bool reloginAbortable)
@@ -372,7 +299,7 @@
         try
         {
             RestResponse<TokenPair> authResponse = await ((AuthStateProvider)authenticationProvider)
-                .Authenticate(userConfig.User.Name, password, apiConnection, middlewareClient, userConfig, ((CircuitHandlerService)circuitHandler));
+                .Authenticate(userConfig.User.Name, password, apiConnection, middlewareClient, userConfig);
 
             if (authResponse.StatusCode == System.Net.HttpStatusCode.OK)
             {
@@ -628,10 +555,7 @@
         locationChangingRegistration?.Dispose();
         NavigationManager.LocationChanged -= OnLocationChanged;
         apiConnection.OnExecutionModeChanged -= OnExecutionModeChanged;
-        StopTokenRefreshRunner();
-        CircuitHandlerService circuitHandlerService = (CircuitHandlerService)circuitHandler;
         EventMediator.Unsubscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent));
-        EventMediator.Unsubscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent));
-        //EventMediator.Unsubscribe<UserSessionClosedEvent>(nameof(UserSessionClosedEvent));
+        tokenRefreshCoordinator.Stop();
     }
 }

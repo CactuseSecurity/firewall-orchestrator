@@ -3,7 +3,6 @@
 @using FWO.Middleware.Client
 @using FWO.Ui.Auth
 @using FWO.Ui.Services
-@using Microsoft.AspNetCore.Components.Server.Circuits;
 @using RestSharp
 @using System.Net
 @using System.Security.Authentication
@@ -13,7 +12,6 @@
 @inject ApiConnection ApiConnection
 @inject UserConfig userConfig
 @inject GlobalConfig globalConfig
-@inject CircuitHandler circuitHandler
 
 @if (showLoginForm)
 {
@@ -148,7 +146,7 @@
             try
             {
                 bool restored = await ((AuthStateProvider)AuthService)
-                    .RestoreAuthenticationState(ApiConnection, middlewareClient, userConfig, ((CircuitHandlerService)circuitHandler));
+                    .RestoreAuthenticationState(ApiConnection, middlewareClient, userConfig);
 
                 if (restored)
                 {
@@ -210,7 +208,7 @@
 
             try
             {
-                RestResponse<TokenPair> authResponse = await ((AuthStateProvider)AuthService).Authenticate(Username, Password, ApiConnection, middlewareClient, userConfig, ((CircuitHandlerService)circuitHandler));
+                RestResponse<TokenPair> authResponse = await ((AuthStateProvider)AuthService).Authenticate(Username, Password, ApiConnection, middlewareClient, userConfig);
 
                 if (authResponse.StatusCode == HttpStatusCode.OK)
                 {

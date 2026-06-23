@@ -5,7 +5,7 @@ namespace FWO.Ui.Services
     /// <summary>
     /// Runs an asynchronous callback repeatedly with a fixed interval until disposed.
     /// </summary>
-    public sealed class PeriodicTaskRunner : IDisposable
+    public sealed class PeriodicTaskRunner : IPeriodicTaskRunner
     {
         private readonly Func<Task> callback;
         private readonly TimeSpan interval;

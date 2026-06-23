@@ -91,11 +91,6 @@ namespace FWO.Ui.Auth
 
                 return await TryApplyJwt(refreshedTokenPair.AccessToken, apiConnection, middlewareClient, userConfig);
             }
-            catch (AuthenticationException)
-            {
-                await HandleExpiredSessionAsync();
-                return false;
-            }
             catch (Exception)
             {
                 throw;

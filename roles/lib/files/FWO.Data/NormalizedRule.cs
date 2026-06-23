@@ -136,7 +136,7 @@ namespace FWO.Data
                 RuleComment = rule.Comment,
                 RuleSrcZone = rule.SourceZone,
                 RuleDstZone = rule.DestinationZone,
-                RuleHeadText = rule.SectionHeader
+                RuleHeadText = rule.SectionHeader,
                 XlateRule = rule.TranslatedRule?.Uid ?? rule.XlateRule,
                 NatRule = rule.NatRule,
                 AccessRule = rule.AccessRule

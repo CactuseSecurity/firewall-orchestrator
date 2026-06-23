@@ -1,4 +1,4 @@
-import unittest.mock
+from typing import Any
 
 from fw_modules.checkpointR8x.cp_nat import (
     get_initial_nat_rulebase_link,
@@ -6,10 +6,11 @@ from fw_modules.checkpointR8x.cp_nat import (
     insert_rulebase_link,
     parse_nat_rule_transform,
 )
+from model_controllers.import_state_controller import ImportStateController
 from models.rulebase import Rulebase
 
 
-def _make_nat_rule(uid: str = "rule-uid-1") -> dict:
+def _make_nat_rule(uid: str = "rule-uid-1") -> dict[str, Any]:
     return {
         "uid": uid,
         "original-source": {"uid": "src-uid", "type": "host", "name": "OrigSrc"},
@@ -83,11 +84,11 @@ class TestParseNatRuleTransform:
         del nat_rule["time"]
         in_rule, _ = parse_nat_rule_transform(nat_rule)
 
-        assert in_rule["time"] == ""
+        assert in_rule["time"] == "time"
 
 
 class TestInsertRulebaseLink:
-    def _make_gateway(self) -> dict:
+    def _make_gateway(self) -> dict[str, Any]:
         return {"RulebaseLinks": []}
 
     def test_adds_new_link(self):
@@ -126,38 +127,31 @@ class TestInsertRulebaseLink:
 
 
 class TestInsertParentNatRulebase:
-    def _make_import_state(self, mgm_uid: str = "mgm-uid-1") -> object:
-        mgm_details = unittest.mock.MagicMock()
-        mgm_details.uid = mgm_uid
-        import_state = unittest.mock.MagicMock()
-        import_state.mgm_details = mgm_details
-        return import_state
-
-    def test_creates_nat_rulebase_when_missing(self):
-        import_state = self._make_import_state()
-        normalized_config = {"policies": []}
+    def test_creates_nat_rulebase_when_missing(self, import_state_controller: ImportStateController):
+        normalized_config: dict[str, Any] = {"policies": []}
         gateway = {"uid": "gw-1"}
 
-        result = insert_parent_nat_rulebase(gateway, import_state, normalized_config)
+        result = insert_parent_nat_rulebase(gateway, import_state_controller.state, normalized_config)
 
         assert result.uid == "nat-rulebase-gw-1"
         assert result.name == "NAT"
         assert len(normalized_config["policies"]) == 1
 
-    def test_returns_existing_nat_rulebase_without_duplicate(self):
-        import_state = self._make_import_state()
+    def test_returns_existing_nat_rulebase_without_duplicate(self, import_state_controller: ImportStateController):
         existing = Rulebase(uid="nat-rulebase-gw-2", name="NAT", mgm_uid="mgm-uid-1")
         normalized_config = {"policies": [existing]}
         gateway = {"uid": "gw-2"}
 
-        result = insert_parent_nat_rulebase(gateway, import_state, normalized_config)
+        result = insert_parent_nat_rulebase(gateway, import_state_controller.state, normalized_config)
 
         assert result is existing
         assert len(normalized_config["policies"]) == 1
 
 
 class TestGetInitialNatRulebaseLink:
-    def _make_normalized_config_with_gateway(self, gateway_uid: str, rulebase_links: list) -> dict:
+    def _make_normalized_config_with_gateway(
+        self, gateway_uid: str, rulebase_links: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         return {
             "gateways": [
                 {

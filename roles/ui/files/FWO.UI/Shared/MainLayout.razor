@@ -110,26 +110,24 @@
     private Queue<UIMessage> UIMessageQue = [];
     private Timer? UIMessageQueTimer;
     private IDisposable? locationChangingRegistration;
-    private string? LastLocation;
 
     protected override async Task OnInitializedAsync()
     {
         EventMediator.Subscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent), _ => OnPermissionsChanged(_.EventArgs));
         apiConnection.OnExecutionModeChanged += OnExecutionModeChanged;
 
-        DisplayMessageInUiFunction = DisplayMessageInUi;        
+        DisplayMessageInUiFunction = DisplayMessageInUi;
 
         locationChangingRegistration = NavigationManager.RegisterLocationChangingHandler(OnLocationChanging);
-        NavigationManager.LocationChanged += OnLocationChanged;
 
         user = authenticationStateTask!.Result.User;
         ClaimsPrincipal authUser = user;
-        UpdateAmbientModuleRole();
+        UpdateAmbientModuleRole(NavigationManager.Uri);
 
         if (userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
         {
-            alertSubscription = await apiConnection.RunWithMonitoringRole(authUser,
-                () => Task.FromResult(apiConnection.GetSubscription<List<Alert>>(GraphqlExceptionHandler.Handle, OnAlertUpdate, MonitorQueries.subscribeAlertChanges)));
+            var sub = async () => await Task.FromResult(apiConnection.GetSubscription<List<Alert>>(GraphqlExceptionHandler.Handle, OnAlertUpdate, MonitorQueries.subscribeAlertChanges));
+            alertSubscription = await apiConnection.RunWithMonitoringRole(authUser, sub);
         }
 
         UIMessageQueTimer = new()
@@ -150,22 +148,7 @@
         return ValueTask.CompletedTask;
     }
 
-    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
-    {
-        if (LastLocation != e.Location)
-        {
-            LastLocation = e.Location;
-
-            UpdateAmbientModuleRole();
-        }
-    }
-
     private void OnExecutionModeChanged(object? sender, string executionMode)
-    {
-        Task.Run(async () => await InvokeAsync(UpdateAmbientModuleRole));
-    }
-
-    private void UpdateAmbientModuleRole()
     {
         UpdateAmbientModuleRole(NavigationManager.Uri);
     }
@@ -183,6 +166,12 @@
     private List<string> GetAmbientRolesForLocation(string location)
     {
         string path = GetRelativeLocationPath(location);
+
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return [];
+        }
+
         if (path.StartsWith("networkmodelling"))
         {
             return [Roles.Modeller, Roles.Admin, Roles.Auditor];
@@ -553,7 +542,6 @@
 
         alertSubscription?.Dispose();
         locationChangingRegistration?.Dispose();
-        NavigationManager.LocationChanged -= OnLocationChanged;
         apiConnection.OnExecutionModeChanged -= OnExecutionModeChanged;
         EventMediator.Unsubscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent));
         tokenRefreshCoordinator.Stop();

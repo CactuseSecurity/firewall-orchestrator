@@ -31,6 +31,7 @@ else
 {
     <Loading/>
 }
+<InProgress Display="WorkInProgress"/>
 
 @code
 {
@@ -47,6 +48,7 @@ else
     private WfStateDict states = new ();
     private List<FwoOwner> Owners = new();
     private bool InitComplete = false;
+    private bool WorkInProgress = false;
 
     private bool DisplayTickets = true;
     private Device selectedDeviceOpt = new ();
@@ -57,12 +59,11 @@ else
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Admin, Roles.Reviewer, Roles.Auditor ]);
             await states.Init(apiConnection);
 
             if(userConfig.ReqOwnerBased)
             {
-                Owners = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
+                Owners = await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection, DisplayMessageInUi);
             }
             wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.review, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection)){};
             await Reset();
@@ -145,13 +146,24 @@ else
     
     private async Task StartReviewTask(WfImplTask implTask)
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
+        WorkInProgress = true;
         try
         {
+            await InvokeAsync(StateHasChanged);
             await wfHandler.StartWorkOnImplTask(implTask, ObjAction.review);
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("start_work"), "", true);
+        }
+        finally
+        {
+            WorkInProgress = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 }

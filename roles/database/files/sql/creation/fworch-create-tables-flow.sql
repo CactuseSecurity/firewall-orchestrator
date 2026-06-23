@@ -9,8 +9,8 @@ create table flow.nwobject
 (
     nwobj_id BIGSERIAL PRIMARY KEY,
     name varchar,
-    ip_start inet, -- null for e.g. FQDN-based objects
-    ip_end inet,
+    ip_start cidr, -- null for e.g. FQDN-based objects
+    ip_end cidr,
     nwobj_hash varchar(64) NOT NULL UNIQUE,
     state varchar(32) NOT NULL DEFAULT 'requested',
     removed_date Timestamp with time zone,
@@ -82,6 +82,7 @@ create table flow.access
     owner_id integer,
     state varchar(32) NOT NULL DEFAULT 'requested',
     removed_date Timestamp with time zone,
+    allows_traffic boolean NOT NULL DEFAULT TRUE,
     check (state in ('requested', 'denied', 'implemented', 'removed'))
 );
 

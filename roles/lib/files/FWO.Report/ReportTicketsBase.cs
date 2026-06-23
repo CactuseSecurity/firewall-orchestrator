@@ -41,16 +41,15 @@ namespace FWO.Report
         {
             int ticketCountBeforeFilter = tickets.Count;
             if (!userConfig.ReqOwnerBased
-                || userConfig.User.Roles.Contains(Roles.Admin)
-                || userConfig.User.Roles.Contains(Roles.Auditor))
+                || userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor))
             {
-                Log.WriteDebug("Workflow Report Filter", $"Skipping owner-based filtering: reqOwnerBased={userConfig.ReqOwnerBased}, userId={userConfig.User.DbId}, roles=[{string.Join(", ", userConfig.User.Roles)}], ticketCount={ticketCountBeforeFilter}");
+                Log.WriteDebug("Workflow Report Filter", $"Skipping owner-based filtering: reqOwnerBased={userConfig.ReqOwnerBased}, userId={userConfig.User.DbId}, executionMode={userConfig.ExecutionMode}, roles=[{string.Join(", ", userConfig.User.Roles)}], ticketCount={ticketCountBeforeFilter}");
                 return tickets;
             }
 
             if (userConfig.User.Ownerships.Count == 0)
             {
-                Log.WriteDebug("Workflow Report Filter", $"Owner-based filtering removed all tickets because no ownerships were available: reqOwnerBased={userConfig.ReqOwnerBased}, userId={userConfig.User.DbId}, roles=[{string.Join(", ", userConfig.User.Roles)}], ticketCountBefore={ticketCountBeforeFilter}");
+                Log.WriteDebug("Workflow Report Filter", $"Owner-based filtering removed all tickets because no ownerships were available: reqOwnerBased={userConfig.ReqOwnerBased}, userId={userConfig.User.DbId}, executionMode={userConfig.ExecutionMode}, roles=[{string.Join(", ", userConfig.User.Roles)}], ticketCountBefore={ticketCountBeforeFilter}");
                 return [];
             }
 
@@ -60,7 +59,7 @@ namespace FWO.Report
                 .ConvertAll(ticket => ticket.Id);
 
             List<WfTicket> visibleTickets = [.. tickets.Where(ticket => ticket.IsVisibleForOwner(registeredTickets, userConfig.User.Ownerships, userConfig.User.DbId))];
-            Log.WriteDebug("Workflow Report Filter", $"Applied owner-based filtering: reqOwnerBased={userConfig.ReqOwnerBased}, userId={userConfig.User.DbId}, roles=[{string.Join(", ", userConfig.User.Roles)}], ownershipCount={userConfig.User.Ownerships.Count}, ownerIds=[{string.Join(", ", userConfig.User.Ownerships)}], registeredTicketCount={registeredTickets.Count}, ticketCountBefore={ticketCountBeforeFilter}, ticketCountAfter={visibleTickets.Count}");
+            Log.WriteDebug("Workflow Report Filter", $"Applied owner-based filtering: reqOwnerBased={userConfig.ReqOwnerBased}, userId={userConfig.User.DbId}, executionMode={userConfig.ExecutionMode}, roles=[{string.Join(", ", userConfig.User.Roles)}], ownershipCount={userConfig.User.Ownerships.Count}, ownerIds=[{string.Join(", ", userConfig.User.Ownerships)}], registeredTicketCount={registeredTickets.Count}, ticketCountBefore={ticketCountBeforeFilter}, ticketCountAfter={visibleTickets.Count}");
             return visibleTickets;
         }
 

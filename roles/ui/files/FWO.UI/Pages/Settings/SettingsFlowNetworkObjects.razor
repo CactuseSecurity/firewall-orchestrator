@@ -5,8 +5,9 @@
 @using FWO.Config.Api.Data
 @using FWO.Data
 @using FWO.Data.Flow
-@using FWO.Middleware.Client
 @using Microsoft.AspNetCore.Components.Authorization
+@using Newtonsoft.Json
+@using System.Text.Json.Serialization
 
 @attribute [Authorize(Roles = $"{Roles.Admin}")]
 
@@ -65,6 +66,19 @@
             <div class="text-muted small">
                 @($"{userConfig.GetText("current")}: {SelectedNamingManagement?.Name ?? "-"}")
             </div>
+        </div>
+    </div>
+</div>
+
+@* Danger button: completely reset flow db *@
+<div class="mb-2">
+    <label class="form-label form-label-sm mb-1">@(userConfig.GetText("reset_flow_db")):</label>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <button type="button" class="btn btn-sm btn-danger" @onclick="OpenResetFlowDbConfirm">
+            @(DisplayService.DisplayButton(userConfig, "reset_flow_db", Icons.Refresh))
+        </button>
+        <div class="text-muted small">
+            @(userConfig.GetText("reset_flow_db_hint"))
         </div>
     </div>
 </div>
@@ -346,17 +360,11 @@ else
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("recalculate_flow_names"))" Show="@RecalculateConfirmMode" Size=PopupSize.Small OnClose="CloseRecalculateConfirm">
-    <Body>
-        <p>@(userConfig.GetText("recalculate_flow_names_confirm"))</p>
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-warning" @onclick="RecalculateFlowNames">@(DisplayService.DisplayButton(userConfig, "recalculate_flow_names", Icons.Refresh))</button>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseRecalculateConfirm">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
-        </div>
-    </Footer>
-</PopUp>
+<Confirm @bind-Display="RecalculateConfirmMode" PerformAction="RecalculateFlowNames" Title="@(userConfig.GetText("recalculate_flow_names"))"
+         Message="@(userConfig.GetText("recalculate_flow_names_confirm"))" />
+
+<Confirm @bind-Display="ResetFlowDbConfirmMode" PerformAction="ResetFlowDb" Title="@(userConfig.GetText("reset_flow_db"))"
+         Message="@(userConfig.GetText("reset_flow_db_confirm"))" />
 
 <InProgress Display="workInProgress"/>
 
@@ -364,9 +372,6 @@ else
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
-
-    [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     private List<FlowNwObject> flowNwObjects = [];
     private List<Management> selectableManagements = [];
@@ -381,6 +386,7 @@ else
     private string objectSearchText = "";
     private bool EditNwObjectMode = false;
     private bool RecalculateConfirmMode = false;
+    private bool ResetFlowDbConfirmMode = false;
     private bool ResolveDuplicateMode = false;
     private bool CreateCustomObjectMode = false;
     private FlowNwObject EditFlowNwObject = new();
@@ -405,7 +411,6 @@ else
                 return;
             }
 
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin]);
             configData = await globalConfig.GetEditableConfig();
             selectableManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowSelectableManagements);
             InitializeNamingManagementRanking();
@@ -515,11 +520,6 @@ else
         RecalculateConfirmMode = true;
     }
 
-    private void CloseRecalculateConfirm()
-    {
-        RecalculateConfirmMode = false;
-    }
-
     private async Task RecalculateFlowNames()
     {
         try
@@ -560,6 +560,34 @@ else
         {
             workInProgress = false;
             DisplayMessageInUi(exception, userConfig.GetText("recalculate_flow_names"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
+    private void OpenResetFlowDbConfirm()
+    {
+        ResetFlowDbConfirmMode = true;
+    }
+
+    private async Task ResetFlowDb()
+    {
+        try
+        {
+            ResetFlowDbConfirmMode = false;
+            workInProgress = true;
+            StateHasChanged();
+
+            await apiConnection.SendQueryAsync<ResetFlowDbMutationResult>(FlowMutations.resetFlowDB);
+
+            workInProgress = false;
+            await Refresh();
+            DisplayMessageInUi(null, userConfig.GetText("reset_flow_db"), userConfig.GetText("U5330"), false);
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("reset_flow_db"), "", true);
         }
 
         StateHasChanged();
@@ -1004,5 +1032,41 @@ else
             string.IsNullOrWhiteSpace(SearchText)
                 ? Candidates
                 : FlowAdminHelper.FilterCustomObjectCandidates(Candidates, SearchText);
+    }
+
+    private sealed class ResetFlowDbMutationResult
+    {
+        [JsonProperty("update_import_control"), JsonPropertyName("update_import_control")]
+        public MutationResult UpdateImportControl { get; set; } = new();
+
+        [JsonProperty("update_rule"), JsonPropertyName("update_rule")]
+        public MutationResult UpdateRule { get; set; } = new();
+
+        [JsonProperty("update_object"), JsonPropertyName("update_object")]
+        public MutationResult UpdateObject { get; set; } = new();
+
+        [JsonProperty("update_service"), JsonPropertyName("update_service")]
+        public MutationResult UpdateService { get; set; } = new();
+
+        [JsonProperty("update_time_object"), JsonPropertyName("update_time_object")]
+        public MutationResult UpdateTimeObject { get; set; } = new();
+
+        [JsonProperty("delete_flow_access"), JsonPropertyName("delete_flow_access")]
+        public MutationResult DeleteFlowAccess { get; set; } = new();
+
+        [JsonProperty("delete_flow_nwobject"), JsonPropertyName("delete_flow_nwobject")]
+        public MutationResult DeleteFlowNwObject { get; set; } = new();
+
+        [JsonProperty("delete_flow_nwgroup"), JsonPropertyName("delete_flow_nwgroup")]
+        public MutationResult DeleteFlowNwGroup { get; set; } = new();
+
+        [JsonProperty("delete_flow_svcobject"), JsonPropertyName("delete_flow_svcobject")]
+        public MutationResult DeleteFlowSvcObject { get; set; } = new();
+
+        [JsonProperty("delete_flow_svcgroup"), JsonPropertyName("delete_flow_svcgroup")]
+        public MutationResult DeleteFlowSvcGroup { get; set; } = new();
+
+        [JsonProperty("delete_flow_timeobject"), JsonPropertyName("delete_flow_timeobject")]
+        public MutationResult DeleteFlowTimeObject { get; set; } = new();
     }
 }

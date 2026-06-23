@@ -24,7 +24,6 @@ namespace FWO.Test
             public override void SetAuthHeader(string jwt) { }
             public override void SetRole(string role) { }
             public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList) { }
-            public override void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList) { }
             public override void SwitchBack() { }
 
             public override Task<ApiResponse<QueryResponseType>> SendQuerySafeAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
@@ -307,6 +306,27 @@ namespace FWO.Test
             ConfigData configData = new();
 
             Assert.That(configData.FlowSyncSleepTime, Is.Zero);
+        }
+
+        [Test]
+        public void ConfigData_DefaultsReqConsiderBundlingToFalse()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.ReqConsiderBundling, Is.False);
+        }
+
+        [Test]
+        public void Update_ParsesReqConsiderBundling()
+        {
+            SimulatedUserConfig userConfig = new();
+
+            InvokeUpdate(userConfig,
+            [
+                new() { Key = "reqConsiderBundling", Value = "True", User = 0 }
+            ]);
+
+            Assert.That(userConfig.ReqConsiderBundling, Is.True);
         }
 
         [Test]

@@ -31,6 +31,19 @@ namespace FWO.Data.Flow
 
         [JsonProperty("objects"), JsonPropertyName("objects")]
         public List<NetworkObject>? Objects { get; set; }
+
+        public string? TryCalculateHash()
+        {
+            try
+            {
+                return FlowHashGenerator.GenerateNwObjectHash(IpStart, IpEnd);
+            }
+            catch (ArgumentException)
+            {
+                // Cannot generate deterministic hash for this object (e.g. FQDN or dynamic object)
+                return null;
+            }
+        }
     }
 
     public class FlowNwObjectInsert

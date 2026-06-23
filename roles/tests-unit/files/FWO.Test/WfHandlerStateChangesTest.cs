@@ -1,7 +1,12 @@
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Services;
 using FWO.Services.Workflow;
 using NUnit.Framework;
 using System.Reflection;
+using System.Security.Claims;
 
 namespace FWO.Test
 {
@@ -13,6 +18,30 @@ namespace FWO.Test
             FieldInfo? field = typeof(WfHandler).GetField("stateMatrixDict", BindingFlags.NonPublic | BindingFlags.Instance);
             StateMatrixDict dict = (StateMatrixDict)(field?.GetValue(handler) ?? new StateMatrixDict());
             dict.Matrices[taskType] = matrix;
+        }
+
+        private static void SetDbAccess(WfHandler handler, ApiConnection apiConnection)
+        {
+            ActionHandler actionHandler = new(apiConnection, handler);
+            actionHandler.Init([]).GetAwaiter().GetResult();
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, handler.userConfig, apiConnection, actionHandler, true);
+            typeof(WfHandler).GetField("dbAcc", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(handler, dbAccess);
+        }
+
+        private static async Task<string> CaptureConsoleOutput(Func<Task> action)
+        {
+            using StringWriter logOutput = new();
+            TextWriter originalConsoleOut = Console.Out;
+            try
+            {
+                Console.SetOut(logOutput);
+                await action();
+                return logOutput.ToString();
+            }
+            finally
+            {
+                Console.SetOut(originalConsoleOut);
+            }
         }
 
         [Test]
@@ -113,6 +142,97 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task PromoteImplTask_PromotesAllBundledRequestTasks()
+        {
+            WfHandler handler = CreateImplementationHandler(considerBundling: true);
+            WfImplTask implTask = new() { Id = 3, ReqTaskId = 7, StateId = 2 };
+            WfReqTask firstReqTask = CreateBundledReqTask(7, implTask);
+            WfReqTask secondReqTask = CreateBundledReqTask(8);
+            firstReqTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-7-8");
+            secondReqTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-7-8");
+            handler.ActImplTask = implTask;
+            handler.ActReqTask = firstReqTask;
+            handler.ActTicket = new WfTicket { Id = 1, Tasks = { firstReqTask, secondReqTask } };
+
+            await handler.PromoteImplTask(new WfStatefulObject { StateId = 5 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstReqTask.StateId, Is.EqualTo(5));
+                Assert.That(secondReqTask.StateId, Is.EqualTo(5));
+                Assert.That(firstReqTask.Stop, Is.Not.Null);
+                Assert.That(secondReqTask.Stop, Is.EqualTo(firstReqTask.Stop));
+                Assert.That(handler.ActTicket.StateId, Is.EqualTo(5));
+            });
+        }
+
+        [Test]
+        public async Task PromoteImplTask_IgnoresBundleMarkersWhenBundlingDisabled()
+        {
+            WfHandler handler = CreateImplementationHandler(considerBundling: false);
+            WfImplTask implTask = new() { Id = 3, ReqTaskId = 7, StateId = 2 };
+            WfReqTask firstReqTask = CreateBundledReqTask(7, implTask);
+            WfReqTask secondReqTask = CreateBundledReqTask(8);
+            firstReqTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-7-8");
+            secondReqTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-7-8");
+            handler.ActImplTask = implTask;
+            handler.ActReqTask = firstReqTask;
+            handler.ActTicket = new WfTicket { Id = 1, Tasks = { firstReqTask, secondReqTask } };
+
+            await handler.PromoteImplTask(new WfStatefulObject { StateId = 5 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstReqTask.StateId, Is.EqualTo(5));
+                Assert.That(secondReqTask.StateId, Is.EqualTo(0));
+                Assert.That(secondReqTask.Stop, Is.Null);
+            });
+        }
+
+        [Test]
+        public async Task StartWorkOnImplTask_PromotesAllBundledRequestTasks()
+        {
+            const string taskType = "access";
+            StateMatrix matrix = new()
+            {
+                LowestInputState = 0,
+                LowestStartedState = 2,
+                LowestEndState = 5,
+                PhaseActive = new() { { WorkflowPhases.planning, false } }
+            };
+            matrix.Matrix[0] = [2];
+            WfHandler handler = new()
+            {
+                Phase = WorkflowPhases.implementation,
+                userConfig = new SimulatedUserConfig { ReqConsiderBundling = true },
+                MasterStateMatrix = new StateMatrix
+                {
+                    LowestInputState = 0,
+                    LowestStartedState = 2,
+                    LowestEndState = 5
+                }
+            };
+            SetMatrix(handler, taskType, matrix);
+            WfImplTask implTask = new() { Id = 3, TicketId = 1, ReqTaskId = 7, TaskType = taskType, StateId = 0 };
+            WfReqTask firstReqTask = CreateBundledReqTask(7, implTask);
+            WfReqTask secondReqTask = CreateBundledReqTask(8);
+            firstReqTask.TaskType = taskType;
+            secondReqTask.TaskType = taskType;
+            firstReqTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-7-8");
+            secondReqTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-7-8");
+            handler.TicketList.Add(new WfTicket { Id = 1, Tasks = { firstReqTask, secondReqTask } });
+
+            await handler.StartWorkOnImplTask(implTask, ObjAction.implement);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstReqTask.StateId, Is.EqualTo(2));
+                Assert.That(secondReqTask.StateId, Is.EqualTo(2));
+                Assert.That(handler.ActTicket.StateId, Is.EqualTo(2));
+            });
+        }
+
+        [Test]
         public async Task AutoPromote_TicketScope_UsesProvidedState()
         {
             WfHandler handler = new();
@@ -198,6 +318,41 @@ namespace FWO.Test
             Assert.That(handler.ActReqTask.ImplementationTasks[0].StateId, Is.EqualTo(4));
         }
 
+        private static WfHandler CreateImplementationHandler(bool considerBundling)
+        {
+            return new()
+            {
+                Phase = WorkflowPhases.implementation,
+                userConfig = new SimulatedUserConfig { ReqConsiderBundling = considerBundling },
+                MasterStateMatrix = new StateMatrix
+                {
+                    LowestInputState = 0,
+                    LowestStartedState = 2,
+                    LowestEndState = 5
+                },
+                ActStateMatrix = new StateMatrix
+                {
+                    LowestInputState = 0,
+                    LowestStartedState = 2,
+                    LowestEndState = 5
+                }
+            };
+        }
+
+        private static WfReqTask CreateBundledReqTask(long id, WfImplTask? implTask = null)
+        {
+            WfReqTask reqTask = new()
+            {
+                Id = id,
+                TicketId = 1
+            };
+            if (implTask != null)
+            {
+                reqTask.ImplementationTasks.Add(implTask);
+            }
+            return reqTask;
+        }
+
         [Test]
         public async Task AutoPromote_ApprovalScope_UpdatesApprovalAndReqTask()
         {
@@ -263,7 +418,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [false]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, [false, true]) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.That(reqTask.StateId, Is.EqualTo(4));
             Assert.That(reqTask.Approvals[0].StateId, Is.EqualTo(4));
@@ -301,7 +456,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [false]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, [false, true]) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.That(reqTask.StateId, Is.EqualTo(6));
             Assert.That(reqTask.Approvals[0].StateId, Is.EqualTo(6));
@@ -337,7 +492,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            bool requestTaskActionsChangedState = await (Task<bool>)(method?.Invoke(handler, [false]) ?? throw new InvalidOperationException("Method not found."));
+            bool requestTaskActionsChangedState = await (Task<bool>)(method?.Invoke(handler, [false, true]) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.That(reqTask.StateId, Is.EqualTo(1));
             Assert.That(reqTask.Approvals[0].StateId, Is.EqualTo(1));
@@ -374,7 +529,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [true]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, [true, true]) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.Multiple(() =>
             {
@@ -413,7 +568,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [true]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, [true, true]) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.Multiple(() =>
             {
@@ -451,9 +606,166 @@ namespace FWO.Test
             };
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateActTicketStateFromReqTasks", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, []) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, [true, true]) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.That(handler.ActTicket.StateId, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task ChangeTicketStateForMonitoring_LocalOnly_DoesNotTriggerActions()
+        {
+            WfHandler handler = new();
+            SetDbAccess(handler, new MonitoringStateChangeApiConn());
+            handler.MasterStateMatrix = new StateMatrix
+            {
+                LowestInputState = 0,
+                LowestStartedState = 2,
+                LowestEndState = 5,
+                MinTicketCompleted = 99,
+                PhaseActive = new() { { WorkflowPhases.planning, false } }
+            };
+            WfTicket ticket = new() { Id = 1, StateId = 1 };
+            ticket.ResetStateChanged();
+
+            await handler.ChangeTicketStateForMonitoring(ticket, 2, MonitoringStateChangeMode.LocalOnly);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ticket.StateId, Is.EqualTo(2));
+                Assert.That(ticket.StateChanged(), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task ChangeReqTaskStateForMonitoring_CascadeParents_DoesNotCreateImplTasks()
+        {
+            WfHandler handler = new()
+            {
+                MasterStateMatrix = new StateMatrix
+                {
+                    LowestEndState = 2,
+                    MinTicketCompleted = 99,
+                    PhaseActive = new() { { WorkflowPhases.planning, false } }
+                }
+            };
+            SetMatrix(handler, WfTaskType.group_create.ToString(), new StateMatrix
+            {
+                MinImplTasksNeeded = 2,
+                MinTicketCompleted = 99,
+                PhaseActive = new() { { WorkflowPhases.planning, false } }
+            });
+            WfReqTask reqTask = new()
+            {
+                Id = 7,
+                TicketId = 1,
+                TaskType = WfTaskType.group_create.ToString(),
+                StateId = 1
+            };
+            WfTicket ticket = new()
+            {
+                Id = 1,
+                StateId = 1,
+                Tasks = { reqTask }
+            };
+
+            await handler.ChangeReqTaskStateForMonitoring(ticket, reqTask, 2, MonitoringStateChangeMode.CascadeParents);
+
+            WfReqTask syncedReqTask = handler.ActTicket.Tasks.Single(task => task.Id == reqTask.Id);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ticket.StateId, Is.EqualTo(2));
+                Assert.That(handler.ActReqTask.StateId, Is.EqualTo(2));
+                Assert.That(syncedReqTask.StateId, Is.EqualTo(2));
+                Assert.That(handler.ActReqTask.ImplementationTasks, Is.Empty);
+                Assert.That(syncedReqTask.ImplementationTasks, Is.Empty);
+            });
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task ChangeTicketStateForMonitoring_WritesWarningAuditLog()
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig(),
+                AuthUser = new ClaimsPrincipal(new ClaimsIdentity([new Claim("x-hasura-uuid", "admin-user")], "test")),
+                MasterStateMatrix = new StateMatrix
+                {
+                    Matrix = new() { [1] = [2] },
+                    MinTicketCompleted = 99,
+                    PhaseActive = new() { { WorkflowPhases.planning, false } }
+                }
+            };
+            WfTicket ticket = new() { Id = 42, StateId = 1 };
+            ticket.ResetStateChanged();
+
+            string logOutput = await CaptureConsoleOutput(async () =>
+                await handler.ChangeTicketStateForMonitoring(ticket, 2, MonitoringStateChangeMode.LocalOnly));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(logOutput, Does.Contain("Warning - Workflow Monitoring"));
+                Assert.That(logOutput, Does.Contain("admin-user"));
+                Assert.That(logOutput, Does.Contain("Ticket 42"));
+                Assert.That(logOutput, Does.Contain("from state 1 to 2"));
+                Assert.That(logOutput, Does.Contain("LocalOnly"));
+            });
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task AutoCreateInitialImplTasksForMonitoring_WritesWarningAuditLogWhenTaskCreated()
+        {
+            WfHandler handler = new()
+            {
+                AuthUser = new ClaimsPrincipal(new ClaimsIdentity([new Claim("x-hasura-uuid", "admin-user")], "test")),
+                userConfig = new SimulatedUserConfig
+                {
+                    ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices,
+                    ReqConsiderBundling = false
+                }
+            };
+            SetMatrix(handler, WfTaskType.group_create.ToString(), new StateMatrix
+            {
+                MinImplTasksNeeded = 3,
+                MinTicketCompleted = 99,
+                PhaseActive = new() { { WorkflowPhases.planning, false } }
+            });
+            WfReqTask reqTask = new()
+            {
+                Id = 7,
+                TicketId = 42,
+                StateId = 4,
+                TaskType = WfTaskType.group_create.ToString()
+            };
+            WfTicket ticket = new() { Id = 42, Tasks = [reqTask] };
+
+            string logOutput = await CaptureConsoleOutput(async () =>
+                await handler.AutoCreateInitialImplTasksForMonitoring(ticket, reqTask));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(logOutput, Does.Contain("Warning - Workflow Monitoring"));
+                Assert.That(logOutput, Does.Contain("admin-user"));
+                Assert.That(logOutput, Does.Contain("implementation task creation"));
+                Assert.That(logOutput, Does.Contain("created 1 implementation task"));
+                Assert.That(logOutput, Does.Contain("request task 7"));
+                Assert.That(logOutput, Does.Contain("ticket 42"));
+            });
+        }
+
+        private sealed class MonitoringStateChangeApiConn : SimulatedApiConnection
+        {
+            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (query == RequestQueries.updateTicketState)
+                {
+                    long id = Convert.ToInt64(variables?.GetType().GetProperty("id")?.GetValue(variables));
+                    return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = id });
+                }
+
+                throw new AssertionException($"Unexpected query: {query}");
+            }
         }
     }
 }

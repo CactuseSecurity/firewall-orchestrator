@@ -402,7 +402,7 @@
                 return;
             }
 
-            bool addOwnerMode = ActOwner.Id <= 0;
+            bool addOwnerMode = ActOwner.IsNew;
             if (addOwnerMode)
             {
                 await AddOwnerInDb();
@@ -553,8 +553,7 @@
 
     private static bool IsRequiredResponsibleType(OwnerResponsibleType type)
     {
-        return type.Id == GlobalConst.kOwnerResponsibleTypeMain
-            || type.Id == GlobalConst.kOwnerResponsibleTypeSupporting;
+        return type.Id == GlobalConst.kOwnerResponsibleTypeMain;
     }
 
     private bool CheckValues()
@@ -564,7 +563,7 @@
             DisplayMessageInUi(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5102"), true);
             return false;
         }
-        if (ActOwner.Id <= 0 && ExistingOwners.Exists(x => x.Name == ActOwner.Name))
+        if (ActOwner.IsNew && ExistingOwners.Exists(x => x.Name == ActOwner.Name))
         {
             DisplayMessageInUi(null, userConfig.GetText("add_owner"), userConfig.GetText("E5235"), true);
             return false;

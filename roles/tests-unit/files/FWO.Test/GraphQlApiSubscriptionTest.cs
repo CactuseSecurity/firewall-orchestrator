@@ -321,9 +321,6 @@ namespace FWO.Test
             public override void SetBestRole(ClaimsPrincipal user, List<string> targetRoleList)
             { }
 
-            public override void SetProperRole(ClaimsPrincipal user, List<string> targetRoleList)
-            { }
-
             public override void SwitchBack()
             { }
 

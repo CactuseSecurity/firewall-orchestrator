@@ -4,6 +4,7 @@ mutation insertFlowAccesses($objects: [flow_access_insert_input!]!) {
     returning {
       access_id
       access_hash
+      allows_traffic
     }
   }
 }

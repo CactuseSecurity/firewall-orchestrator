@@ -1,5 +1,8 @@
+using FWO.Api.Client;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Services;
 using FWO.Services.Workflow;
 using NUnit.Framework;
 using System.Reflection;
@@ -417,12 +420,266 @@ namespace FWO.Test
             Assert.That(reqTask.ImplementationTasks[0].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
         }
 
+        [Test]
+        public async Task AutoCreateOrUpdateImplTasks_ConsiderBundlingFalse_CreatesPerRequestTask()
+        {
+            WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "src-1");
+            WfReqTask secondTask = CreateBundledAccessTask(12, "bundle-11-12", "src-2");
+            WfHandler handler = CreateBundlingHandler(considerBundling: false, firstTask, secondTask);
+
+            await InvokeAutoCreateOrUpdateImplTasks(handler);
+
+            Assert.That(firstTask.ImplementationTasks, Has.Count.EqualTo(1));
+            Assert.That(secondTask.ImplementationTasks, Has.Count.EqualTo(1));
+            Assert.That(firstTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(new[] { "src-1" }));
+            Assert.That(secondTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(new[] { "src-2" }));
+        }
+
+        [Test]
+        public async Task AutoCreateOrUpdateImplTasks_ConsiderBundlingTrue_MergesBundledRequestTasks()
+        {
+            WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "src-1");
+            WfReqTask secondTask = CreateBundledAccessTask(12, "bundle-11-12", "src-2");
+            WfReqTask unbundledTask = CreateBundledAccessTask(13, "", "src-3");
+            WfHandler handler = CreateBundlingHandler(considerBundling: true, firstTask, secondTask, unbundledTask);
+
+            await InvokeAutoCreateOrUpdateImplTasks(handler);
+
+            Assert.That(firstTask.ImplementationTasks, Has.Count.EqualTo(1));
+            Assert.That(secondTask.ImplementationTasks, Is.Empty);
+            Assert.That(unbundledTask.ImplementationTasks, Has.Count.EqualTo(1));
+            Assert.That(firstTask.ImplementationTasks[0].ReqTaskId, Is.EqualTo(11));
+            Assert.That(firstTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(new[] { "src-1", "src-2" }));
+            Assert.That(unbundledTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(new[] { "src-3" }));
+        }
+
+        [Test]
+        public async Task AutoCreateOrUpdateImplTasks_ConsiderBundlingTrue_SkipsBundleWhenAnyBundledTaskAlreadyHasImplTask()
+        {
+            WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "src-1");
+            WfReqTask secondTask = CreateBundledAccessTask(12, "bundle-11-12", "src-2");
+            secondTask.ImplementationTasks.Add(new WfImplTask { Id = 21, ReqTaskId = secondTask.Id });
+            WfHandler handler = CreateBundlingHandler(considerBundling: true, firstTask, secondTask);
+
+            await InvokeAutoCreateOrUpdateImplTasks(handler);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstTask.ImplementationTasks, Is.Empty);
+                Assert.That(secondTask.ImplementationTasks, Has.Count.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public void CanAutoCreateInitialImplTasks_ReturnsFalseWhenBundledSiblingAlreadyHasImplTask()
+        {
+            WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "src-1");
+            WfReqTask secondTask = CreateBundledAccessTask(12, "bundle-11-12", "src-2");
+            secondTask.ImplementationTasks.Add(new WfImplTask { Id = 21, ReqTaskId = secondTask.Id });
+            WfHandler handler = CreateBundlingHandler(considerBundling: true, firstTask, secondTask);
+
+            bool canAutoCreate = handler.CanAutoCreateInitialImplTasks(handler.ActTicket, firstTask);
+
+            Assert.That(canAutoCreate, Is.False);
+        }
+
+        [Test]
+        public async Task AutoCreateInitialImplTasksForMonitoring_ReturnsFalseWhenBundledSiblingAlreadyHasImplTask()
+        {
+            WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "src-1");
+            WfReqTask secondTask = CreateBundledAccessTask(12, "bundle-11-12", "src-2");
+            secondTask.ImplementationTasks.Add(new WfImplTask { Id = 21, ReqTaskId = secondTask.Id });
+            WfHandler handler = CreateBundlingHandler(considerBundling: true, firstTask, secondTask);
+
+            bool created = await handler.AutoCreateInitialImplTasksForMonitoring(handler.ActTicket, firstTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(created, Is.False);
+                Assert.That(firstTask.ImplementationTasks, Is.Empty);
+                Assert.That(secondTask.ImplementationTasks, Has.Count.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task AutoCreateOrUpdateImplTasks_ConsiderBundlingTrue_DeduplicatesCommonElements()
+        {
+            WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "shared-source");
+            firstTask.Elements[0].IpString = "10.0.0.1";
+            firstTask.Elements.Add(CreateBundleElement(11, ElemFieldType.destination, "dst-1", "10.0.1.1"));
+            WfReqTask secondTask = CreateBundledAccessTask(12, "bundle-11-12", "shared-source");
+            secondTask.Elements[0].IpString = "10.0.0.1";
+            secondTask.Elements.Add(CreateBundleElement(12, ElemFieldType.destination, "dst-2", "10.0.1.2"));
+            WfHandler handler = CreateBundlingHandler(considerBundling: true, firstTask, secondTask);
+
+            await InvokeAutoCreateOrUpdateImplTasks(handler);
+
+            Assert.That(firstTask.ImplementationTasks, Has.Count.EqualTo(1));
+            Assert.That(firstTask.ImplementationTasks[0].ImplElements.Select(element => element.Name),
+                Is.EqualTo(new[] { "shared-source", "dst-1", "dst-2" }));
+        }
+
+        [Test]
+        public async Task UpdateRequestTasksFromTicket_ConsiderBundlingTrue_MergesBundledRequestTasks()
+        {
+            WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "src-1");
+            WfReqTask secondTask = CreateBundledAccessTask(12, "bundle-11-12", "src-2");
+            WfHandler handler = CreateBundlingHandler(considerBundling: true, firstTask, secondTask);
+
+            await InvokeUpdateRequestTasksFromTicket(handler);
+
+            Assert.That(firstTask.ImplementationTasks, Has.Count.EqualTo(1));
+            Assert.That(secondTask.ImplementationTasks, Is.Empty);
+            Assert.That(firstTask.ImplementationTasks[0].ReqTaskId, Is.EqualTo(11));
+            Assert.That(firstTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(new[] { "src-1", "src-2" }));
+        }
+
+        [Test]
+        public async Task RequestTasksForInitialImplCreation_LoadsMissingTaskDetailsBeforeBundling()
+        {
+            WfReqTask overviewFirstTask = CreateBundledAccessTask(11, "bundle-11-12", "overview-1");
+            WfReqTask overviewSecondTask = CreateBundledAccessTask(12, "bundle-11-12", "overview-2");
+            overviewFirstTask.Elements.Clear();
+            overviewSecondTask.Elements.Clear();
+            WfReqTask fullFirstTask = CreateBundledAccessTask(11, "bundle-11-12", "src-1");
+            WfReqTask fullSecondTask = CreateBundledAccessTask(12, "bundle-11-12", "src-2");
+            WfTicket fullTicket = new() { Id = 7, Tasks = { fullFirstTask, fullSecondTask } };
+            WfHandler handler = CreateBundlingHandler(considerBundling: true, overviewFirstTask, overviewSecondTask);
+            SetDbAccess(handler, new RequestTaskDetailsApiConn(fullTicket));
+
+            List<WfReqTask> requestTasks = await InvokeRequestTasksForInitialImplCreation(handler, [overviewFirstTask, overviewSecondTask]);
+
+            Assert.That(requestTasks, Has.Count.EqualTo(1));
+            Assert.That(requestTasks[0].Elements.Select(element => element.Name), Is.EqualTo(new[] { "src-1", "src-2" }));
+        }
+
+        [Test]
+        public async Task RequestTasksForInitialImplCreation_SkipsAccessTasksWithoutElements()
+        {
+            WfReqTask overviewTask = CreateBundledAccessTask(11, "", "overview");
+            overviewTask.Elements.Clear();
+            WfReqTask fullTask = CreateBundledAccessTask(11, "", "full");
+            fullTask.Elements.Clear();
+            WfTicket fullTicket = new() { Id = 7, Tasks = { fullTask } };
+            WfHandler handler = CreateBundlingHandler(considerBundling: false, overviewTask);
+            SetDbAccess(handler, new RequestTaskDetailsApiConn(fullTicket));
+
+            List<WfReqTask> requestTasks = await InvokeRequestTasksForInitialImplCreation(handler, [overviewTask]);
+
+            Assert.That(requestTasks, Is.Empty);
+        }
+
         private static async Task InvokeAutoCreateImplTasks(WfHandler handler, WfReqTask reqTask)
         {
             MethodInfo method = typeof(WfHandler).GetMethod("AutoCreateImplTasks", BindingFlags.Instance | BindingFlags.NonPublic)
                 ?? throw new MissingMethodException(typeof(WfHandler).FullName, "AutoCreateImplTasks");
             Task task = (Task)(method.Invoke(handler, [reqTask]) ?? throw new InvalidOperationException("AutoCreateImplTasks returned null."));
             await task;
+        }
+
+        private static async Task InvokeAutoCreateOrUpdateImplTasks(WfHandler handler)
+        {
+            MethodInfo method = typeof(WfHandler).GetMethod("AutoCreateOrUpdateImplTasks", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new MissingMethodException(typeof(WfHandler).FullName, "AutoCreateOrUpdateImplTasks");
+            Task task = (Task)(method.Invoke(handler, []) ?? throw new InvalidOperationException("AutoCreateOrUpdateImplTasks returned null."));
+            await task;
+        }
+
+        private static async Task InvokeUpdateRequestTasksFromTicket(WfHandler handler)
+        {
+            MethodInfo method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new MissingMethodException(typeof(WfHandler).FullName, "UpdateRequestTasksFromTicket");
+            Task task = (Task)(method.Invoke(handler, [true, true]) ?? throw new InvalidOperationException("UpdateRequestTasksFromTicket returned null."));
+            await task;
+        }
+
+        private static async Task<List<WfReqTask>> InvokeRequestTasksForInitialImplCreation(WfHandler handler, List<WfReqTask> requestTasks)
+        {
+            MethodInfo method = typeof(WfHandler).GetMethod("RequestTasksForInitialImplCreation", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new MissingMethodException(typeof(WfHandler).FullName, "RequestTasksForInitialImplCreation");
+            Task<List<WfReqTask>> task = (Task<List<WfReqTask>>)(method.Invoke(handler, [requestTasks])
+                ?? throw new InvalidOperationException("RequestTasksForInitialImplCreation returned null."));
+            return await task;
+        }
+
+        private static void SetDbAccess(WfHandler handler, SimulatedApiConnection apiConnection)
+        {
+            ActionHandler actionHandler = new(apiConnection, handler);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, handler.userConfig, apiConnection, actionHandler, false);
+            FieldInfo? field = typeof(WfHandler).GetField("dbAcc", BindingFlags.NonPublic | BindingFlags.Instance);
+            field?.SetValue(handler, dbAccess);
+        }
+
+        private static WfHandler CreateBundlingHandler(bool considerBundling, params WfReqTask[] requestTasks)
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig
+                {
+                    ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices,
+                    ReqConsiderBundling = considerBundling
+                },
+                MasterStateMatrix = new StateMatrix
+                {
+                    LowestEndState = 3,
+                    PhaseActive = new() { { WorkflowPhases.planning, false } }
+                },
+                ActTicket = new WfTicket { Id = 7, StateId = 3, Tasks = [.. requestTasks] }
+            };
+            SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix
+            {
+                LowestInputState = 0,
+                LowestStartedState = 2,
+                LowestEndState = 10,
+                MinImplTasksNeeded = 3,
+                MinTicketCompleted = 99,
+                PhaseActive = new() { { WorkflowPhases.planning, false } }
+            });
+            return handler;
+        }
+
+        private static WfReqTask CreateBundledAccessTask(long id, string bundleId, string elementName)
+        {
+            WfReqTask reqTask = new()
+            {
+                Id = id,
+                TicketId = 7,
+                StateId = 4,
+                Title = $"Access {id}",
+                TaskType = WfTaskType.access.ToString(),
+                Elements =
+                [
+                    CreateBundleElement(id, ElemFieldType.source, elementName, $"10.0.0.{id}")
+                ]
+            };
+            if (!string.IsNullOrWhiteSpace(bundleId))
+            {
+                reqTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, bundleId);
+            }
+            return reqTask;
+        }
+
+        private static WfReqElement CreateBundleElement(long taskId, ElemFieldType field, string name, string ip)
+        {
+            return new WfReqElement
+            {
+                TaskId = taskId,
+                Field = field.ToString(),
+                Name = name,
+                IpString = ip
+            };
+        }
+
+        private sealed class RequestTaskDetailsApiConn(WfTicket fullTicket) : SimulatedApiConnection
+        {
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (typeof(QueryResponseType) == typeof(WfTicket))
+                {
+                    return Task.FromResult((QueryResponseType)(object)fullTicket);
+                }
+                throw new InvalidOperationException($"Unexpected query: {query}");
+            }
         }
     }
 }

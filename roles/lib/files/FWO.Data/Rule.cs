@@ -50,6 +50,9 @@ namespace FWO.Data
         [JsonProperty("rule_src_refs"), JsonPropertyName("rule_src_refs")]
         public string SourceRefs { get; set; } = "";
 
+        [JsonProperty("rule_src_zone"), JsonPropertyName("rule_src_zone")]
+        public string SourceZone { get; set; } = "";
+
         [JsonProperty("rule_from_zones"), JsonPropertyName("rule_from_zones")]
         public ZoneWrapper[] RuleFromZones { get; set; } = [];
 
@@ -64,6 +67,9 @@ namespace FWO.Data
 
         [JsonProperty("rule_dst_refs"), JsonPropertyName("rule_dst_refs")]
         public string DestinationRefs { get; set; } = "";
+
+        [JsonProperty("rule_dst_zone"), JsonPropertyName("rule_dst_zone")]
+        public string DestinationZone { get; set; } = "";
 
         [JsonProperty("rule_to_zones"), JsonPropertyName("rule_to_zones")]
         public ZoneWrapper[] RuleToZones { get; set; } = [];
@@ -258,7 +264,7 @@ namespace FWO.Data
 
         public bool IsDropRule()
         {
-            return Action == RuleActions.Drop || Action == RuleActions.Reject || Action == RuleActions.Deny;
+            return RuleActions.IsDropAction(Action);
         }
 
         /// <summary>

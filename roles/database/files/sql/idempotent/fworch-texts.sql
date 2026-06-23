@@ -75,6 +75,12 @@ INSERT INTO txt VALUES ('AnyActivity',          'German',   'Beliebige Aktivit&a
 INSERT INTO txt VALUES ('AnyActivity',          'English',  'Any Activity');
 INSERT INTO txt VALUES ('None',			        'German', 	'Keine(r/s)');
 INSERT INTO txt VALUES ('None',			        'English', 	'None');
+INSERT INTO txt VALUES ('FromFlowDb',            'German',   'aus Flow DB');
+INSERT INTO txt VALUES ('FromFlowDb',            'English',  'from Flow DB');
+INSERT INTO txt VALUES ('Manually',              'German',   'manuell');
+INSERT INTO txt VALUES ('Manually',              'English',  'manually');
+INSERT INTO txt VALUES ('Both',                  'German',   'beides');
+INSERT INTO txt VALUES ('Both',                  'English',  'both');
 INSERT INTO txt VALUES ('RequestedConnections', 'German',   'Beantragte Verbindungen');
 INSERT INTO txt VALUES ('RequestedConnections', 'English',  'Requested Connections');
 INSERT INTO txt VALUES ('requested_connections','German',   'Beantragte Verbindungen');
@@ -111,6 +117,10 @@ INSERT INTO txt VALUES ('BundleTasks',	        'German', 	'Aufgaben bündeln');
 INSERT INTO txt VALUES ('BundleTasks',		    'English', 	'Bundle tasks');
 INSERT INTO txt VALUES ('bundle_type',	        'German', 	'Bündelungstyp');
 INSERT INTO txt VALUES ('bundle_type',		    'English', 	'Bundle type');
+INSERT INTO txt VALUES ('flow_bundle_id',	    'German', 	'B&uuml;ndel-ID');
+INSERT INTO txt VALUES ('flow_bundle_id',	    'English', 	'Bundle ID');
+INSERT INTO txt VALUES ('clean_zones',	        'German', 	'Saubere Zonen');
+INSERT INTO txt VALUES ('clean_zones',		    'English', 	'Clean zones');
 INSERT INTO txt VALUES ('TwoOutOfThree',	    'German', 	'2 von 3');
 INSERT INTO txt VALUES ('TwoOutOfThree',		'English', 	'2 out of 3');
 INSERT INTO txt VALUES ('UpdateConnectionOwner','German', 	'Verbindungseigent&uuml;mer &auml;ndern');
@@ -828,6 +838,10 @@ INSERT INTO txt VALUES ('seconds',		        'German', 	'Sekunden');
 INSERT INTO txt VALUES ('seconds',		        'English', 	'seconds');
 INSERT INTO txt VALUES ('minutes',		        'German', 	'Minuten');
 INSERT INTO txt VALUES ('minutes',		        'English', 	'minutes');
+INSERT INTO txt VALUES ('hours',		        'German', 	'Stunden');
+INSERT INTO txt VALUES ('hours',		        'English', 	'hours');
+INSERT INTO txt VALUES ('date',		            'German', 	'Datum');
+INSERT INTO txt VALUES ('date',		            'English', 	'date');
 INSERT INTO txt VALUES ('change_time',		    'German', 	'&Auml;nderungszeit');
 INSERT INTO txt VALUES ('change_time',		    'English', 	'Change Time');
 INSERT INTO txt VALUES ('change_type',		    'German', 	'&Auml;nderungstyp');
@@ -1188,8 +1202,10 @@ INSERT INTO txt VALUES ('review', 			    'German',	'Review');
 INSERT INTO txt VALUES ('review', 			    'English',	'Review');
 INSERT INTO txt VALUES ('verification', 		'German',	'Verifizierung');
 INSERT INTO txt VALUES ('verification', 		'English',	'Verification');
-INSERT INTO txt VALUES ('obj', 			        'German', 	'Obj');
-INSERT INTO txt VALUES ('obj', 			        'English', 	'Obj');
+INSERT INTO txt VALUES ('object_catalog', 	    'German', 	'Objekt Kat.');
+INSERT INTO txt VALUES ('object_catalog', 		'English', 	'Object Cat.');
+INSERT INTO txt VALUES ('service_catalog', 	    'German', 	'Service Kat.');
+INSERT INTO txt VALUES ('service_catalog', 		'English', 	'Service Cat.');
 INSERT INTO txt VALUES ('view', 			    'German', 	'Ansicht');
 INSERT INTO txt VALUES ('view', 			    'English', 	'View');
 INSERT INTO txt VALUES ('all_gateways',         'German', 	'Alle Gateways');
@@ -1274,6 +1290,10 @@ INSERT INTO txt VALUES ('select_owner',         'German',   'Eigent&uuml;mer aus
 INSERT INTO txt VALUES ('select_owner',         'English',  'Select Owner');
 INSERT INTO txt VALUES ('ticket_id',            'German', 	'Ticket-Id');
 INSERT INTO txt VALUES ('ticket_id',            'English',  'Ticket Id');
+INSERT INTO txt VALUES ('req_task_id',          'German', 	'Aufgaben-Id');
+INSERT INTO txt VALUES ('req_task_id',          'English',  'Request Task Id');
+INSERT INTO txt VALUES ('impl_task_id',         'German', 	'Impl.-Id');
+INSERT INTO txt VALUES ('impl_task_id',         'English',  'Impl. Id');
 INSERT INTO txt VALUES ('requesting_owner',     'German',   'Beantragender Eigent&uuml;mer');
 INSERT INTO txt VALUES ('requesting_owner',     'English',  'Requesting Owner');
 INSERT INTO txt VALUES ('port_range',		    'German', 	'Port(bereich)');
@@ -2136,6 +2156,8 @@ INSERT INTO txt VALUES ('current',			'German', 	'Aktuell');
 INSERT INTO txt VALUES ('current',			'English', 	'Current');
 INSERT INTO txt VALUES ('flow_object',			'German', 	'Flow-Objekt');
 INSERT INTO txt VALUES ('flow_object',			'English', 	'Flow object');
+INSERT INTO txt VALUES ('time_object',			'German', 	'Zeitobjekt');
+INSERT INTO txt VALUES ('time_object',			'English', 	'Time object');
 INSERT INTO txt VALUES ('duplicate_objects',	'German', 	'Doppelte Objekte');
 INSERT INTO txt VALUES ('duplicate_objects',	'English', 	'Duplicate objects');
 INSERT INTO txt VALUES ('no_duplicate_conflicts',	'German', 	'Keine doppelten Zuordnungen gefunden');
@@ -2148,6 +2170,12 @@ INSERT INTO txt VALUES ('recalculate_flow_names',	'German', 	'Flow-Namen neu ber
 INSERT INTO txt VALUES ('recalculate_flow_names',	'English', 	'Recalculate flow names');
 INSERT INTO txt VALUES ('recalculate_flow_names_confirm',	'German', 	'Diese Aktion schreibt die Flow-Namen anhand der gew&auml;hlten Namensquelle neu. Wirklich fortfahren?');
 INSERT INTO txt VALUES ('recalculate_flow_names_confirm',	'English', 	'This will rewrite flow names using the selected naming source. Continue?');
+INSERT INTO txt VALUES ('reset_flow_db',		'German', 	'Flow-Datenbank zur&uuml;cksetzen');
+INSERT INTO txt VALUES ('reset_flow_db',		'English', 	'Reset flow database');
+INSERT INTO txt VALUES ('reset_flow_db_hint',	'German', 	'L&ouml;scht alle Flow-Objekte, Gruppen und Regeln und markiert Importe f&uuml;r eine vollst&auml;ndige Neu-Synchronisation.');
+INSERT INTO txt VALUES ('reset_flow_db_hint',	'English', 	'Deletes all flow objects, groups, and accesses and marks imports for a full re-synchronization.');
+INSERT INTO txt VALUES ('reset_flow_db_confirm',	'German', 	'Diese Aktion leert die komplette Flow-Datenbank und setzt alle Flow-Zuordnungen zur&uuml;ck. Wirklich fortfahren?');
+INSERT INTO txt VALUES ('reset_flow_db_confirm',	'English', 	'This will clear the complete flow database and reset all flow mappings. Continue?');
 INSERT INTO txt VALUES ('edit_flow_object',		'German', 	'Flow-Objekt bearbeiten');
 INSERT INTO txt VALUES ('edit_flow_object',		'English', 	'Edit Flow Object');
 INSERT INTO txt VALUES ('show_in_request_module',	'German', 	'Im Request-Modul anzeigen');
@@ -2162,6 +2190,8 @@ INSERT INTO txt VALUES ('H5017',				'German', 	'Im Katalog werden Flow-Objekte, 
 INSERT INTO txt VALUES ('H5017',				'English', 	'The catalog brings flow objects, duplicate mappings, and custom network objects together in one place.');
 INSERT INTO txt VALUES ('H5018',				'German', 	'Verwenden Sie die Seite, um Namensquellen zu setzen, Konflikte zu lösen und bei Bedarf einzelne Zuordnungen manuell anzulegen.');
 INSERT INTO txt VALUES ('H5018',				'English', 	'Use the page to set naming sources, resolve conflicts, and create individual mappings manually when needed.');
+INSERT INTO txt VALUES ('H5019',				'German', 	'Die Seite enth&auml;lt au&szlig;erdem einen gef&auml;hrlichen Reset f&uuml;r die komplette Flow-Datenbank, der nur vor einer vollst&auml;ndigen Neu-Synchronisation verwendet werden sollte.');
+INSERT INTO txt VALUES ('H5019',				'English', 	'The page also includes a dangerous reset for the complete flow database, which should only be used before a full re-synchronization.');
 INSERT INTO txt VALUES ('gateways',		    	'German', 	'Gateways');
 INSERT INTO txt VALUES ('gateways',		    	'English', 	'Gateways');
 INSERT INTO txt VALUES ('authorization',		'German', 	'Berechtigungen');
@@ -2594,10 +2624,18 @@ INSERT INTO txt VALUES ('reqOwnerBased',        'German', 	'Eigent&uuml;merbasie
 INSERT INTO txt VALUES ('reqOwnerBased',        'English', 	'Owner based');
 INSERT INTO txt VALUES ('reqReducedView',       'German', 	'Eingeschr&auml;nkte Darstellung');
 INSERT INTO txt VALUES ('reqReducedView',       'English', 	'Reduced view');
-INSERT INTO txt VALUES ('reqAllowObjectSearch', 'German', 	'Objektsuche erlauben');
-INSERT INTO txt VALUES ('reqAllowObjectSearch', 'English', 	'Allow object search');
 INSERT INTO txt VALUES ('reqUseFlowDb',         'German', 	'Flow DB verwenden');
 INSERT INTO txt VALUES ('reqUseFlowDb',         'English', 	'Use Flow DB');
+INSERT INTO txt VALUES ('flow_integration',     'German',   'Flow Integration');
+INSERT INTO txt VALUES ('flow_integration',     'English',  'Flow integration');
+INSERT INTO txt VALUES ('select_objects',       'German',   'Objekte ausw&auml;hlen');
+INSERT INTO txt VALUES ('select_objects',       'English',  'Select objects');
+INSERT INTO txt VALUES ('select_services',      'German',   'Dienste ausw&auml;hlen');
+INSERT INTO txt VALUES ('select_services',      'English',  'Select services');
+INSERT INTO txt VALUES ('select_time_objects',  'German',   'Zeitobjekte ausw&auml;hlen');
+INSERT INTO txt VALUES ('select_time_objects',  'English',  'Select time objects');
+INSERT INTO txt VALUES ('time_object_precision','German',   'Zeitobjekt-Genauigkeit');
+INSERT INTO txt VALUES ('time_object_precision','English',  'Time object precision');
 INSERT INTO txt VALUES ('reqAllowManualOwnerAdmin','German', 'Manuelle Eigent&uuml;merverwaltung erlauben');
 INSERT INTO txt VALUES ('reqAllowManualOwnerAdmin','English','Allow manual owner administration');
 INSERT INTO txt VALUES ('ruleOwnershipMode',    'German',   'Regel-Eigent&uuml;merschaftsmodus');
@@ -2606,6 +2644,8 @@ INSERT INTO txt VALUES ('reqPriorities',        'German', 	'Priorit&auml;ten');
 INSERT INTO txt VALUES ('reqPriorities',        'English', 	'Priorities');
 INSERT INTO txt VALUES ('reqAutoCreateImplTasks','German', 	'Autom. Erzeugen von Implementierungs-Auftr&auml;gen');
 INSERT INTO txt VALUES ('reqAutoCreateImplTasks','English', 'Auto-create implementation tasks');
+INSERT INTO txt VALUES ('reqConsiderBundling',  'German', 	'B&uuml;ndelung ber&uuml;cksichtigen');
+INSERT INTO txt VALUES ('reqConsiderBundling',  'English',  'Consider bundling');
 INSERT INTO txt VALUES ('reqActivatePathAnalysis','German', 'Pfadanalyse aktivieren');
 INSERT INTO txt VALUES ('reqActivatePathAnalysis','English','Activate Path Analysis');
 INSERT INTO txt VALUES ('reqShowCompliance',    'German',   'Compliance-Modul anzeigen');
@@ -3293,6 +3333,18 @@ INSERT INTO txt VALUES ('ext_ticket_system',    'German',	'Externes Ticketing Sy
 INSERT INTO txt VALUES ('ext_ticket_system',    'English',	'External ticketing system');
 INSERT INTO txt VALUES ('ext_request_tickets',  'German',   'Interne Tickets f&uuml;r Ext. Auftr.');
 INSERT INTO txt VALUES ('ext_request_tickets',  'English',  'Internal Tickets for Ext. Req.');
+INSERT INTO txt VALUES ('state_change_mode',    'German',   'Art der Status&auml;nderung');
+INSERT INTO txt VALUES ('state_change_mode',    'English',  'State change mode');
+INSERT INTO txt VALUES ('LocalOnly',            'German',   'Nur lokaler Status');
+INSERT INTO txt VALUES ('LocalOnly',            'English',  'Local state only');
+INSERT INTO txt VALUES ('CascadeParents',       'German',   'Eltern-Status mitziehen');
+INSERT INTO txt VALUES ('CascadeParents',       'English',  'Cascade parent states');
+INSERT INTO txt VALUES ('TriggerActions',       'German',   'Aktionen ausl&ouml;sen');
+INSERT INTO txt VALUES ('TriggerActions',       'English',  'Trigger actions');
+INSERT INTO txt VALUES ('state_changed',        'German',   'Status wurde ge&auml;ndert');
+INSERT INTO txt VALUES ('state_changed',        'English',  'State has been changed');
+INSERT INTO txt VALUES ('no_workflow_tickets',  'German',   'Keine Workflow-Tickets gefunden');
+INSERT INTO txt VALUES ('no_workflow_tickets',  'English',  'No workflow tickets found');
 INSERT INTO txt VALUES ('reinit_ext_request',   'German',   'Externe Auftr&auml;ge neu anstossen');
 INSERT INTO txt VALUES ('reinit_ext_request',   'English',  'Reinit External Requests');
 INSERT INTO txt VALUES ('reject_ticket',        'German',   'Auftrag als abgelehnt schliessen');
@@ -3391,6 +3443,14 @@ INSERT INTO txt VALUES ('api_general',          'German', 	'API allgemein');
 INSERT INTO txt VALUES ('api_general',          'English', 	'API general');
 INSERT INTO txt VALUES ('api_user_mgmt',        'German', 	'User Management');
 INSERT INTO txt VALUES ('api_user_mgmt',        'English', 	'User Management');
+INSERT INTO txt VALUES ('flow_api',             'German',   'Flow API');
+INSERT INTO txt VALUES ('flow_api',             'English',  'Flow API');
+INSERT INTO txt VALUES ('flow_catalog_api',     'German',   'Flow-Katalog');
+INSERT INTO txt VALUES ('flow_catalog_api',     'English',  'Flow Catalog');
+INSERT INTO txt VALUES ('flow_compliance_api',  'German',   'Flow-Compliance');
+INSERT INTO txt VALUES ('flow_compliance_api',  'English',  'Flow Compliance');
+INSERT INTO txt VALUES ('flow_request_api',     'German',   'Flow-Antr&auml;ge');
+INSERT INTO txt VALUES ('flow_request_api',     'English',  'Flow Requests');
 INSERT INTO txt VALUES ('api_user_mgmt_head',   'German', 	'REST Dokumentation');
 INSERT INTO txt VALUES ('api_user_mgmt_head',   'English', 	'REST Documentation');
 INSERT INTO txt VALUES ('api_umgmt_auth',       'German', 	'Authentisierung');
@@ -3689,6 +3749,8 @@ INSERT INTO txt VALUES ('U5326', 'German',  'Verwaltung aller durch FW-&Auml;nde
 INSERT INTO txt VALUES ('U5326', 'English', 'Set the settings for all events triggerd by FW changes');
 INSERT INTO txt VALUES ('U5327', 'German',  'Verwaltung der Benachrichtigungs-Einstellungen f&uuml;r Regelablauf und aktive Regeln.');
 INSERT INTO txt VALUES ('U5327', 'English', 'Administration of notification settings for rule expiry and active rules.');
+INSERT INTO txt VALUES ('U5330', 'German',  'Flow-Datenbank zur&uuml;ckgesetzt.');
+INSERT INTO txt VALUES ('U5330', 'English', 'Flow database reset.');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');
@@ -3921,6 +3983,8 @@ INSERT INTO txt VALUES ('E5117', 'German',  'L&ouml;schen der Login-Daten nicht 
 INSERT INTO txt VALUES ('E5117', 'English', 'Deletion of credentials not allowed as they are in use by one or more management devices. Change the management credentials before deleting them.');
 INSERT INTO txt VALUES ('E5118', 'German',  'Die obere Grenze muss gr&ouml;sser als die untere Grenze des Portbereichs sein.');
 INSERT INTO txt VALUES ('E5118', 'English', 'Upper limit has to be greater than lower limit in Port range.');
+INSERT INTO txt VALUES ('E5119', 'German',  'Inkonsistente Eingaben im G&uuml;ltigkeitsbereich.');
+INSERT INTO txt VALUES ('E5119', 'English', 'Inconsistent validity range.');
 
 INSERT INTO txt VALUES ('E5201', 'German',  'LDAP-Verbindung konnte nicht angelegt werden');
 INSERT INTO txt VALUES ('E5201', 'English', 'LDAP connection could not be created');
@@ -4206,6 +4270,8 @@ INSERT INTO txt VALUES ('E9027', 'German',  'Angeforderte Schnittstelle gel&ouml
 INSERT INTO txt VALUES ('E9027', 'English', 'Requested interface removed');
 INSERT INTO txt VALUES ('E9028', 'German',  'Angeforderte Schnittstelle ist bereits ver&ouml;ffentlicht');
 INSERT INTO txt VALUES ('E9028', 'English', 'Requested interface is already published');
+INSERT INTO txt VALUES ('E9029', 'German',  'Ticket enth&auml;lt mehrere Anforderungsaufgaben');
+INSERT INTO txt VALUES ('E9029', 'English', 'Ticket has multiple request tasks');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');
@@ -6235,6 +6301,8 @@ INSERT INTO txt VALUES ('H5535', 'German',  'Aufgaben b&uuml;ndeln: Der Typ "2 v
 INSERT INTO txt VALUES ('H5535', 'English', 'Bundle tasks: The type "2 out of 3" compares the three parts of an access request task: sources, destinations, and services. If two of these three parts match across several request tasks, the tasks receive the same bundle id in AdditionalInfo and can be processed together afterwards.');
 INSERT INTO txt VALUES ('H5536', 'German',  'Flow-Erzeugung per UI-Meldung best&auml;tigen: Nach der Flow-Erzeugung zeigt die Aktion eine UI-Meldung an. Bei Fehlern verweist die Meldung auf das Workflow-Log mit Details zu nicht aufl&ouml;sbaren Objekten oder Diensten.');
 INSERT INTO txt VALUES ('H5536', 'English', 'Confirm flow creation via UI message: After flow creation, the action shows a UI message. For failures, the message points to the workflow log with details about unresolved objects or services.');
+INSERT INTO txt VALUES ('H5537', 'German',  'Saubere Zonen: Wenn aktiviert, werden Aufgaben nur geb&uuml;ndelt, wenn ihre Quell- und Zielobjekte anhand der ausgew&auml;hlten Policy-Matrix jeweils denselben Netzwerkzonen zugeordnet werden k&ouml;nnen. Ohne ausgew&auml;hlte Policy oder ohne Matrix in der Policy wird keine saubere Zonen&uuml;bereinstimmung angenommen.');
+INSERT INTO txt VALUES ('H5537', 'English', 'Clean zones: When enabled, tasks are bundled only if their source and destination objects can be mapped to the same network zones using the selected policy matrix. Without a selected policy or without a matrix in the policy, no clean zone match is assumed.');
 INSERT INTO txt VALUES ('H5541', 'German',  'In der Status-Matrix werden die verarbeitbaren Status pro Phase und Tasktyp festgelegt.
     Es gibt eine Master-Matrix, welche die Eigenschaften auf Ticket-Ebene beschreibt, sowie und f&uuml;r jeden Tasktyp separate Matrizen.
     In der Installation sind diese Matrizen bereits vorbelegt, sie k&ouml;nnen aber nahezu beliebig &uuml;berschrieben werden.
@@ -6301,10 +6369,8 @@ INSERT INTO txt VALUES ('H5563', 'English', 'Priorities and Deadlines: The 5 ini
     For each priority an own interval (in days) for ticket and approval deadlines can be set, which is used by the automatic computation of the deadlines.
     The value 0 is interpreted as setting no deadline.
 ');
-INSERT INTO txt VALUES ('H5564', 'German',  'Objektsuche erlauben: Beim Definieren der Ip-Adressen oder Dienste wird das Durchsuchen und Ausw&auml;hlen bereits vorhandener Objekte unterst&uuml;tzt (noch nicht implementiert).');
-INSERT INTO txt VALUES ('H5564', 'English', 'Allow object search: During definition of IP addresses or services the search of already existing objects is supported (not implemented yet).');
-INSERT INTO txt VALUES ('H5564a', 'German', 'Flow DB verwenden: Aktiviert die Nutzung der Flow DB im Workflow-Modul, sobald die zugeh&ouml;rige Funktionalit&auml;t implementiert ist.');
-INSERT INTO txt VALUES ('H5564a', 'English','Use Flow DB: Enables use of the Flow DB in the workflow module once the corresponding functionality is implemented.');
+INSERT INTO txt VALUES ('H5564', 'German', 'Flow DB verwenden: Aktiviert die Nutzung der Flow DB im Workflow-Modul. &Uuml;ber Flow Integration wird festgelegt, ob Objekte, Dienste und Zeitobjekte aus der Flow DB, manuell oder aus beiden Quellen ausgew&auml;hlt werden. Zus&auml;tzlich kann die Genauigkeit von Zeitobjekten festgelegt werden.');
+INSERT INTO txt VALUES ('H5564', 'English','Use Flow DB: Enables use of the Flow DB in the workflow module. Flow integration defines whether objects, services, and time objects are selected from the Flow DB, manually, or from both sources. The precision for time objects can also be configured.');
 INSERT INTO txt VALUES ('H5565', 'German',  'Manuelle Eigent&uuml;merverwaltung erlauben: Es wird das manuelle Anlegen und Verwalten von Eigent&uuml;mern durch den Administrator gestattet.');
 INSERT INTO txt VALUES ('H5565', 'English', 'Allow manual owner administration: The manual creation and administration of owners can be permitted.');
 INSERT INTO txt VALUES ('H5566', 'German',  'Autom. Erzeugen von Implementierungs-Auftr&auml;gen: Ist die Planungs-Phase nicht aktiviert, so m&uuml;ssen aus den vorhandenen fachlichen Auftr&auml;gen automatisch jeweils ein oder mehrere Implementierungs-Auftr&auml;ge erzeugt werden.
@@ -6343,6 +6409,8 @@ INSERT INTO txt VALUES ('H5576', 'German',  'Erlaubte &Auml;nderungen durch Gene
 INSERT INTO txt VALUES ('H5576', 'English', 'Allowed changes by approver: Defines which ticket and task fields an approver may edit during the approval phase. Fields already copied to implementation tasks can no longer be changed afterwards.');
 INSERT INTO txt VALUES ('H5577', 'German',  'Ein Auftrag f&uuml;r alle Ger&auml;te: Wie bei Ger&auml;t im Antrag eingeben wird die Ger&auml;teauswahl bereits im Antrag gepflegt. Der Unterschied ist nur: Falls dort Alle gew&auml;hlt ist, wird genau ein Implementierungs-Auftrag angelegt statt eines pro vorhandenem Ger&auml;t.');
 INSERT INTO txt VALUES ('H5577', 'English', 'One task for all devices: As with Enter device in request, the device selection is already maintained in the request. The only difference is this: if all is selected there, exactly one implementation task is created instead of one per existing device.');
+INSERT INTO txt VALUES ('H5578', 'German',  'B&uuml;ndelung ber&uuml;cksichtigen: Wenn aktiviert, werden automatisch erzeugte Implementierungs-Auftr&auml;ge f&uuml;r Antrags-Auftr&auml;ge mit derselben Flow-B&uuml;ndel-ID auf einem zusammengef&uuml;hrten Auftrag erzeugt. Auftr&auml;ge ohne B&uuml;ndel-ID werden weiterhin einzeln behandelt.');
+INSERT INTO txt VALUES ('H5578', 'English', 'Consider bundling: When enabled, automatically created implementation tasks for request tasks with the same flow bundle id are created from one merged task. Tasks without a bundle id are still handled individually.');
 INSERT INTO txt VALUES ('H5581', 'German',  'In diesem Abschnitt k&ouml;nnen die vorhandenen Eigent&uuml;mer eingesehen und administriert (falls in den <a href="/help/settings/workflowcustomizing">Einstellungen</a> aktiviert) werden.
     Die Eigent&uuml;merschaft muss Nutzern entweder direkt oder &uuml;ber Eigent&uuml;mergruppen zugeordnet werden.
     Es ist geplant, die Eigent&uuml;merschaft mit der Zust&auml;ndigkeit bei der Antragsstellung zu verkn&uuml;pfen.
@@ -6959,6 +7027,122 @@ INSERT INTO txt VALUES ('H6935', 'German',  '<ul><li><code>OwnerId</code>: Gibt 
 INSERT INTO txt VALUES ('H6935', 'English', '<ul><li><code>OwnerId</code>: Returns all rules for the specified owner.</li><li><code>IpAddress</code>: Finds rules by the provided IP address.</li><li><code>Filter.Action</code>: Required for IP-based filtering; allowed values are <code>accept</code>, <code>deny</code>, and <code>any</code>.</li><li><code>Filter.MinPrefixLength</code>: Minimum prefix length of the matching network object, from 0 to 32.</li><li><code>Filter.InField</code>: Defines whether source, destination, or both are evaluated.</li><li><code>FieldSourceMapping.OwnerInformation</code>: <code>Database</code> uses the standard database mapping, <code>CustomField</code> reads from the customer-specific custom field.</li><li><code>FieldSourceMapping.ChangeId</code>: <code>Database</code> is not supported yet, <code>CustomField</code> uses the customer-specific field.</li></ul>');
 INSERT INTO txt VALUES ('H6936', 'German',  'Hinweis: Wenn <code>FieldSourceMapping.ChangeId</code> auf <code>Database</code> gesetzt wird, liefert der aktuelle Serverwert <code>Not Found in Database</code> zurück. Ungültige Enum-Werte werden bereits beim Einlesen der Anfrage abgelehnt.');
 INSERT INTO txt VALUES ('H6936', 'English', 'Note: when <code>FieldSourceMapping.ChangeId</code> is set to <code>Database</code>, the current server value returned is <code>Not Found in Database</code>. Invalid enum values are rejected while parsing the request.');
+INSERT INTO txt VALUES ('H6940', 'German',  'Die Flow-REST-API wird unter dem gemeinsamen Pr&auml;fix <code>/api/flow</code> bereitgestellt.
+    Die Endpunkte sind aus Gr&uuml;nden der Lesbarkeit auf drei Controller verteilt, geh&ouml;ren aber fachlich zusammen.
+    <ul>
+        <li><b>FlowCatalogController</b>: Lesezugriffe auf Adress-, Dienst- und Zeitobjekte f&uuml;r Flow- und Request-bezogene Auswahllisten sowie Id-Aufl&ouml;sungen.</li>
+        <li><b>FlowComplianceController</b>: Policy-Auswahl und Compliance-Pr&uuml;fung f&uuml;r synthetische Flows.</li>
+        <li><b>FlowRequestController</b>: Endpunkte rund um Namensvorschl&auml;ge, Validierung und Request-Erzeugung; ein gro&szlig;er Teil ist noch nicht implementiert.</li>
+    </ul>
+    Die folgenden Seiten dokumentieren die drei Controller getrennt, damit die einzelnen Endpunkte schneller auffindbar bleiben.
+    <ul>
+        <li><a href="/help/API/flow/catalog">Flow-Katalog</a></li>
+        <li><a href="/help/API/flow/compliance">Flow-Compliance</a></li>
+        <li><a href="/help/API/flow/request">Flow-Antr&auml;ge</a></li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H6940', 'English', 'The Flow REST API is exposed below the shared <code>/api/flow</code> prefix.
+    The endpoints are split across three controllers for readability, but they belong to one functional API area.
+    <ul>
+        <li><b>FlowCatalogController</b>: Read-only lookups for address, service, and time objects that support flow and request selection workflows as well as id resolution.</li>
+        <li><b>FlowComplianceController</b>: Policy selection and compliance checks for synthetic flows.</li>
+        <li><b>FlowRequestController</b>: Endpoints for naming suggestions, validation helpers, and request creation; a large part of this controller is not implemented yet.</li>
+    </ul>
+    The following pages document the three controllers separately so the individual endpoints stay easy to find.
+    <ul>
+        <li><a href="/help/API/flow/catalog">Flow Catalog</a></li>
+        <li><a href="/help/API/flow/compliance">Flow Compliance</a></li>
+        <li><a href="/help/API/flow/request">Flow Requests</a></li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H6941', 'German',  'Der <b>FlowCatalogController</b> stellt lesende Katalogabfragen unter <code>/api/flow</code> bereit.
+    Alle Endpunkte verwenden <code>POST</code>.
+    <table class="table table-sm">
+        <thead><tr><th>Endpunkt</th><th>Zweck</th><th>Wichtige Request-Felder</th></tr></thead>
+        <tbody>
+            <tr><td><code>getAddressObjects</code></td><td>Liefert sichtbare Adressobjekte.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getAddressGroups</code></td><td>Liefert sichtbare Adressgruppen.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getServiceObjects</code></td><td>Liefert sichtbare Dienstobjekte.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getServiceGroups</code></td><td>Liefert sichtbare Dienstgruppen.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getTimeObjects</code></td><td>Liefert sichtbare Zeitobjekte.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getServiceObjectId</code></td><td>L&ouml;st ein Dienstobjekt anhand von Protokoll und Portbereich auf.</td><td><code>protocol</code> erforderlich, dazu <code>portStart</code>, <code>portEnd</code> und optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getAddressObjectId</code></td><td>L&ouml;st ein Adressobjekt anhand eines IP-Bereichs auf.</td><td><code>ipStart</code> und <code>ipEnd</code> erforderlich, optional <code>filter.visibleInRequest</code>.</td></tr>
+        </tbody>
+    </table>
+    Die Filterstruktur ist f&uuml;r diese Endpunkte bewusst klein gehalten und dient vor allem dazu, nur Objekte zur&uuml;ckzugeben, die im Request-Kontext sichtbar sein sollen.
+');
+INSERT INTO txt VALUES ('H6941', 'English', 'The <b>FlowCatalogController</b> exposes read-only catalog lookups below <code>/api/flow</code>.
+    All endpoints use <code>POST</code>.
+    <table class="table table-sm">
+        <thead><tr><th>Endpoint</th><th>Purpose</th><th>Important request fields</th></tr></thead>
+        <tbody>
+            <tr><td><code>getAddressObjects</code></td><td>Returns visible address objects.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getAddressGroups</code></td><td>Returns visible address groups.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getServiceObjects</code></td><td>Returns visible service objects.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getServiceGroups</code></td><td>Returns visible service groups.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getTimeObjects</code></td><td>Returns visible time objects.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getServiceObjectId</code></td><td>Resolves a service object from protocol and port range.</td><td><code>protocol</code> is required, together with <code>portStart</code>, <code>portEnd</code>, and optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getAddressObjectId</code></td><td>Resolves an address object from an IP range.</td><td><code>ipStart</code> and <code>ipEnd</code> are required, with optional <code>filter.visibleInRequest</code>.</td></tr>
+        </tbody>
+    </table>
+    The filter structure is intentionally small for these endpoints and is mainly used to restrict results to objects that should be visible in the request context.
+');
+INSERT INTO txt VALUES ('H6942', 'German',  'Der <b>FlowComplianceController</b> stellt Policy- und Compliance-Funktionen unter <code>/api/flow</code> bereit.
+    Alle Endpunkte verwenden <code>POST</code>.
+    <table class="table table-sm">
+        <thead><tr><th>Endpunkt</th><th>Zweck</th><th>Wichtige Request-Felder</th></tr></thead>
+        <tbody>
+            <tr><td><code>getPolicyIds</code></td><td>Liefert die verf&uuml;gbaren Policy-Ids und Namen.</td><td>Leerer Request-Body <code>{}</code> ist zul&auml;ssig.</td></tr>
+            <tr><td><code>getFlowComplianceState</code></td><td>Pr&uuml;ft einen oder mehrere synthetische Flows gegen ausgew&auml;hlte Policies.</td><td><code>source</code>, <code>destination</code>, <code>service</code> und <code>policies</code>.</td></tr>
+        </tbody>
+    </table>
+    F&uuml;r <code>getFlowComplianceState</code> werden Quellen und Ziele als IP-Bereiche sowie Dienste als Portbereiche mit Protokoll &uuml;bergeben.
+    Die Antwort liefert pro angefragter Policy einen Block mit <code>policy</code> und <code>violations</code>.
+    Ist ein Flow konform, ist die Liste <code>violations</code> leer.
+');
+INSERT INTO txt VALUES ('H6942', 'English', 'The <b>FlowComplianceController</b> provides policy lookup and compliance functions below <code>/api/flow</code>.
+    All endpoints use <code>POST</code>.
+    <table class="table table-sm">
+        <thead><tr><th>Endpoint</th><th>Purpose</th><th>Important request fields</th></tr></thead>
+        <tbody>
+            <tr><td><code>getPolicyIds</code></td><td>Returns available policy ids and names.</td><td>An empty request body <code>{}</code> is allowed.</td></tr>
+            <tr><td><code>getFlowComplianceState</code></td><td>Checks one or more synthetic flows against selected policies.</td><td><code>source</code>, <code>destination</code>, <code>service</code>, and <code>policies</code>.</td></tr>
+        </tbody>
+    </table>
+    For <code>getFlowComplianceState</code>, sources and destinations are passed as IP ranges and services as port ranges with protocol.
+    The response returns one block per requested policy with <code>policy</code> and <code>violations</code>.
+    When a flow is compliant, the <code>violations</code> list is empty.
+');
+INSERT INTO txt VALUES ('H6943', 'German',  'Der <b>FlowRequestController</b> reserviert Endpunkte f&uuml;r Flow-bezogene Request-Funktionen unter <code>/api/flow</code>.
+    Der Controller ist bereits strukturiert, die meisten Endpunkte liefern derzeit jedoch <code>501 Not Implemented</code>.
+    <table class="table table-sm">
+        <thead><tr><th>Endpunkt</th><th>Zweck</th><th>Aktueller Stand</th></tr></thead>
+        <tbody>
+            <tr><td><code>generateAddressObjectName</code></td><td>Namensvorschlag f&uuml;r ein Adressobjekt.</td><td>Noch nicht implementiert.</td></tr>
+            <tr><td><code>generateServiceObjectName</code></td><td>Namensvorschlag f&uuml;r ein Dienstobjekt.</td><td>Noch nicht implementiert.</td></tr>
+            <tr><td><code>getNetObjectValidity</code></td><td>Validiert eine Netzwerkobjekt-Definition.</td><td>Noch nicht implementiert.</td></tr>
+            <tr><td><code>getNetGroupValidity</code></td><td>Validiert eine Netzwerkgruppen-Definition.</td><td>Noch nicht implementiert.</td></tr>
+            <tr><td><code>createRequest</code></td><td>Erzeugt einen neuen Flow-bezogenen Request.</td><td>Noch nicht implementiert.</td></tr>
+            <tr><td><code>getRequestStatus</code></td><td>Liefert den Status eines vorhandenen Requests.</td><td>Noch nicht implementiert.</td></tr>
+        </tbody>
+    </table>
+    Diese Seite dokumentiert daher vor allem die vorgesehene API-Oberfl&auml;che. Sobald die Implementierung vorliegt, sollte die Beschreibung um konkrete Request- und Response-Beispiele erweitert werden.
+');
+INSERT INTO txt VALUES ('H6943', 'English', 'The <b>FlowRequestController</b> reserves endpoints for flow-related request functions below <code>/api/flow</code>.
+    The controller structure already exists, but most endpoints currently return <code>501 Not Implemented</code>.
+    <table class="table table-sm">
+        <thead><tr><th>Endpoint</th><th>Purpose</th><th>Current state</th></tr></thead>
+        <tbody>
+            <tr><td><code>generateAddressObjectName</code></td><td>Naming suggestion for an address object.</td><td>Not implemented yet.</td></tr>
+            <tr><td><code>generateServiceObjectName</code></td><td>Naming suggestion for a service object.</td><td>Not implemented yet.</td></tr>
+            <tr><td><code>getNetObjectValidity</code></td><td>Validates a network object definition.</td><td>Not implemented yet.</td></tr>
+            <tr><td><code>getNetGroupValidity</code></td><td>Validates a network group definition.</td><td>Not implemented yet.</td></tr>
+            <tr><td><code>createRequest</code></td><td>Creates a new flow-related request.</td><td>Not implemented yet.</td></tr>
+            <tr><td><code>getRequestStatus</code></td><td>Returns the status of an existing request.</td><td>Not implemented yet.</td></tr>
+        </tbody>
+    </table>
+    This page therefore mainly documents the intended API surface. Once the implementation exists, the description should be extended with concrete request and response examples.
+');
 INSERT INTO txt VALUES ('H6921', 'German',  'Der Import von Applikationsdaten wird aus einer oder mehreren .json-Dateien mit den in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> definierten Pfaden und Namen gespeist.
     Dort kann auch jeweils ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Dateien hinterlegt werden. Die .json-Datei hat die folgende Struktur:
 ');
@@ -7073,6 +7257,26 @@ INSERT INTO txt VALUES ('H7015', 'German', 'Das Kapitel "Modellierung" zeigt die
 ');
 INSERT INTO txt VALUES ('H7015', 'English', 'The "Modelling" chapter shows app roles, app servers, network areas, service groups and services per owner
     and allows removing orphaned entries from connections.
+');
+INSERT INTO txt VALUES ('H7016', 'German', 'Das Kapitel "Workflow" bietet eine &Uuml;bersicht &uuml;ber alle Workflow-Tickets und erlaubt administrative Status&auml;nderungen.
+');
+INSERT INTO txt VALUES ('H7016', 'English', 'The "Workflow" chapter provides an overview of all workflow tickets and allows administrative state changes.
+');
+INSERT INTO txt VALUES ('H7030', 'German', 'Die Workflow-Ticket-&Uuml;berwachung zeigt Tickets mit ihren Antrags- und Umsetzungsaufgaben.
+    Die Filter f&uuml;r Aufgabentyp und Status greifen auf allen Ebenen: Ein Ticket wird angezeigt, wenn es mindestens eine Aufgabe eines gew&auml;hlten Typs enth&auml;lt und wenn das Ticket selbst, eine Antragsaufgabe, eine Umsetzungsaufgabe oder eine Genehmigung einen der gew&auml;hlten Status besitzt.
+');
+INSERT INTO txt VALUES ('H7030', 'English', 'Workflow ticket monitoring shows tickets with their request and implementation tasks.
+    The task type and state filters apply across all levels: a ticket is shown when it contains at least one task of a selected type and when the ticket itself, a request task, an implementation task, or an approval has one of the selected states.
+');
+INSERT INTO txt VALUES ('H7031', 'German', '&Uuml;ber "Status &auml;ndern" kann der Zielstatus gew&auml;hlt werden. "Nur lokaler Status" &auml;ndert nur das ausgew&auml;hlte Objekt, "Eltern-Status mitziehen" berechnet die Elternobjekte nach den Workflow-Regeln neu, und "Aktionen ausl&ouml;sen" f&uuml;hrt zus&auml;tzlich die konfigurierten Statusaktionen aus.');
+INSERT INTO txt VALUES ('H7031', 'English', '"Change state" opens a dialog for selecting the target state. "Local state only" changes only the selected object, "Cascade parent states" recalculates parent objects according to the workflow rules, and "Trigger actions" also runs the configured state actions.');
+INSERT INTO txt VALUES ('H7032', 'German', 'Besitzt ein Auftrag keine Implementierungsaufgaben obwohl ein entsprechender Status bereits erreicht wurde, so wird eine Schaltfl&auml;che zu deren Erzeugung angeboten
+    (dabei wird ber&uuml;cksichtigt, dass geb&uuml;ndelte Auftr&auml;ge u.U. keine eigenen Implementierungsaufgaben haben).
+    Die Implementierungsaufgaben werden dann entsprechend den konfigurierten Vorgaben erzeugt.
+');
+INSERT INTO txt VALUES ('H7032', 'English', 'When a request task contains no implementation tasks although it should have regarding the state, a button to create them is offered
+    (it is taken into account that bundled request tasks may have no implementation tasks).
+    The implementation tasks are then created regarding the respective settings.
 ');
 INSERT INTO txt VALUES ('H7101', 'German', 'Verschiedene Komponenten des Firewall Orchestrator k&ouml;nnen Alarme ausl&ouml;sen, wenn eine &Uuml;berpr&uuml;fung oder ein Eingreifen durch einen Administrator erforderich ist.
     Je nach Alarmtyp werden unter "Details" weitere Informationen oder Handlungsoptionen angeboten. Durch Auswahl der "Best&auml;tigen"-Schaltfl&auml;che verschwindet der Alarm aus der &Uuml;bersicht, der Best&auml;tigende wird mit Zeitstempel im Alarm protokolliert.
@@ -7458,12 +7662,14 @@ INSERT INTO txt VALUES ('H8312', 'German',  'Antrag stellen (Rolle: requester), 
     Antr&auml;ge k&ouml;nnen nur von Nutzern mit entsprechenden Rechten gestellt werden, definiert durch die Rolle (weitere Einschr&auml;nkungen auf die Eigent&uuml;merschaft ist in sp&auml;teren Versionen vorgesehen).
     Solange noch kein Status des Ausgangsbereichs erreicht wurde, k&ouml;nnen Tickets beliebig ge&auml;ndert und fachliche Auftr&auml;ge angeh&auml;ngt, ge&auml;ndert oder gel&ouml;scht werden.
     Um Inkonsistenzen zu vermeiden, werden angelegte Auftr&auml;ge erst beim ersten Speichern des Tickets mit erzeugt. Vorher sind sie nur lokal vorhanden und gehen beim Abbruch der Antragstellung verloren.
+    Von automatischen Schnittstellen erzeugte Tickets k&ouml;nnen gesperrt sein. Die Sperre sch&uuml;tzt dann die fachlichen Auftr&auml;ge und deren Struktur, w&auml;hrend Kopfdaten des Tickets wie Titel, Priorit&auml;t, Deadline und Grund weiterhin korrigiert werden k&ouml;nnen.
     In sp&auml;teren Phasen sind keine inhaltlichen &Auml;nderungen an Ticket und fachlichen Auftr&auml;gen mehr m&ouml;glich, lediglich an Metadaten wie Status, Start und Stop sowie Kommentierungen.
 ');
 INSERT INTO txt VALUES ('H8312', 'English', 'Create ticket (Role: requester), preselected:
     Requests can only be created by users with according rights, defined by the roles (further restrictions on ownership are envisaged for later releases).
     As long as no state in the exit range is reached, tickets can be changed arbitrarily, and request task can be added, changed or deleted.
     To avoid inconsistencies, already built request tasks are created with the first saving of the ticket. Before, they exist only locally and get lost on cancellation of ticket creation.
+    Tickets created by automatic interfaces can be locked. This lock protects request tasks and their structure, while ticket header data such as title, priority, deadline, and reason can still be corrected.
     In later phases no changes of the ticket and request tasks contents are possible, only changes on metadata like state, start and stop, as well as adding comments can be done.
 ');
 INSERT INTO txt VALUES ('H8313', 'German',  'Genehmigungen (Rolle: approver), voreingestellt:

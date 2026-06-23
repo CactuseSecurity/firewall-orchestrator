@@ -52,6 +52,11 @@
                     <span class="@Icons.Export"></span> @(userConfig.GetText("external_requests"))
                 </a>
                 <p></p>
+                <h5>@(userConfig.GetText("workflow"))</h5>
+                <a class="nav-link" href="/help/monitoring/workflow/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Workflow"></span> @(userConfig.GetText("tickets"))
+                </a>
+                <p></p>
                 <h5>@(userConfig.GetText("personal"))</h5>
                 <a class="nav-link" href="/help/monitoring/ui_messages/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.UiMessages"></span> @(userConfig.GetText("ui_messages"))

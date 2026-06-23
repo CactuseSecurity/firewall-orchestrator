@@ -86,9 +86,6 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
-
     private GraphQlApiSubscription<List<ReportFile>>? archivedReportsSubscription;
     private List<ReportFile> archivedReports = [];
     private List<ReportFile> visibleReports = [];
@@ -143,7 +140,8 @@
 
     private void SetVisibleReports()
     {
-        visibleReports = [.. selectedReportType == ReportType.Undefined ? archivedReports : archivedReports.Where(r => r.Type == (int)selectedReportType)];
+        List<ReportFile> userVisibleReports = FilterVisibleArchivedReports(archivedReports);
+        visibleReports = [.. selectedReportType == ReportType.Undefined ? userVisibleReports : userVisibleReports.Where(r => r.Type == (int)selectedReportType)];
         if(selectedReportType == ReportType.RecertificationEvent)
         {
             ownerList = [.. availableOwnersList.Where(v => v.Id == 0 || v.ExtAppId == null || visibleReports.Any(r => r.Name.Contains(v.ExtAppId)))];
@@ -159,6 +157,16 @@
         visibleReportTypes = [.. ReportTypeGroups.ReportTypeSelection(reportVisibility)
             .Where(v => visibleReports.Any(r => r.Type == (int)v)
                 && userConfig.CanUseReportType(v))];
+    }
+
+    private List<ReportFile> FilterVisibleArchivedReports(List<ReportFile> reports)
+    {
+        if (userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor, Roles.FwAdmin, Roles.ReporterViewAll))
+        {
+            return reports;
+        }
+
+        return [.. reports.Where(report => report.OwningUserId == userConfig.User.DbId)];
     }
 
     private string DisplayArchiveReportType(ReportType reportType)

@@ -146,8 +146,8 @@ namespace FWO.Report.Filter
                         {{
                             name: dev_name
                             id: dev_id
-                            rules_aggregate: management {{ rules_aggregate(where: {{ {query.RuleWhereStatement} }}) {{ aggregate {{ count }} }} }}
-                            unusedRules_Count: management {{ rules_aggregate(where: {{ {unusedRulesWhereStatement} }}) {{ aggregate {{ count }} }} }}
+                            rules_aggregate: rule_enforced_on_gateways_aggregate(where: {{ {query.RulebaseLinkWhereStatement} rule: {{ {query.RuleWhereStatement} }} }}) {{ aggregate {{ count }} }}
+                            unusedRules_Count: rule_enforced_on_gateways_aggregate(where: {{ {query.RulebaseLinkWhereStatement} rule: {{ {unusedRulesWhereStatement} }} }}) {{ aggregate {{ count }} }}
                         }}
                     }}
                 }}";

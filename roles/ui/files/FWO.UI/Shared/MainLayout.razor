@@ -115,6 +115,7 @@
     private Timer? UIMessageQueTimer;
     private static readonly TimeSpan TokenRefreshCheckInterval = TimeSpan.FromSeconds(30);
     private PeriodicTaskRunner? tokenRefreshRunner;
+    private IDisposable? locationChangingRegistration;
     private string? LastLocation;
 
     protected override async Task OnInitializedAsync()
@@ -122,16 +123,24 @@
         EventMediator.Subscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent), _ => OnPermissionsChanged(_.EventArgs));
         EventMediator.Subscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent), _ => OnJwtExpired(_.EventArgs));
         EventMediator.Subscribe<UserSessionClosedEvent>(nameof(UserSessionClosedEvent), _ => OnUserSessionClosed(_.EventArgs));
+        apiConnection.OnExecutionModeChanged += OnExecutionModeChanged;
 
         DisplayMessageInUiFunction = DisplayMessageInUi;
 
         await CheckAndRefreshTokenAsync();
 
+        locationChangingRegistration = NavigationManager.RegisterLocationChangingHandler(OnLocationChanging);
         NavigationManager.LocationChanged += OnLocationChanged;
 
         user = authenticationStateTask!.Result.User;
+        ClaimsPrincipal authUser = user;
+        UpdateAmbientModuleRole();
 
-        alertSubscription = apiConnection.GetSubscription<List<Alert>>(GraphqlExceptionHandler.Handle, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
+        if (userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
+        {
+            alertSubscription = await apiConnection.RunWithMonitoringRole(authUser,
+                () => Task.FromResult(apiConnection.GetSubscription<List<Alert>>(GraphqlExceptionHandler.Handle, OnAlertUpdate, MonitorQueries.subscribeAlertChanges)));
+        }
 
         UIMessageQueTimer = new()
         {
@@ -145,14 +154,120 @@
         StartTokenRefreshRunner();
     }
 
+    private ValueTask OnLocationChanging(LocationChangingContext context)
+    {
+        UpdateAmbientModuleRole(context.TargetLocation);
+        return ValueTask.CompletedTask;
+    }
+
     private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
         if (LastLocation != e.Location)
         {
             LastLocation = e.Location;
 
+            UpdateAmbientModuleRole();
             await CheckAndRefreshTokenAsync();
         }
+    }
+
+    private void OnExecutionModeChanged(object? sender, string executionMode)
+    {
+        Task.Run(async () => await InvokeAsync(UpdateAmbientModuleRole));
+    }
+
+    private void UpdateAmbientModuleRole()
+    {
+        UpdateAmbientModuleRole(NavigationManager.Uri);
+    }
+
+    private void UpdateAmbientModuleRole(string location)
+    {
+        if (authenticationStateTask == null)
+        {
+            return;
+        }
+
+        apiConnection.SetAmbientRole(authenticationStateTask.Result.User, GetAmbientRolesForLocation(location));
+    }
+
+    private List<string> GetAmbientRolesForLocation(string location)
+    {
+        string path = GetRelativeLocationPath(location);
+        if (path.StartsWith("networkmodelling"))
+        {
+            return [Roles.Modeller, Roles.Admin, Roles.Auditor];
+        }
+        if (path.StartsWith("request"))
+        {
+            return GetRequestAmbientRoles(path);
+        }
+        if (path.StartsWith("report"))
+        {
+            return [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller, Roles.Recertifier, Roles.Admin, Roles.Auditor, Roles.FwAdmin];
+        }
+        if (path.StartsWith("certification"))
+        {
+            return [Roles.Recertifier, Roles.Modeller, Roles.Admin, Roles.Auditor];
+        }
+        if (path.StartsWith("monitoring"))
+        {
+            return [Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+        }
+        if (path.StartsWith("compliance"))
+        {
+            return [Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+        }
+        if (path.StartsWith("network_analysis"))
+        {
+            return [Roles.Planner, Roles.FwAdmin, Roles.Admin, Roles.Auditor];
+        }
+        if (path.StartsWith("settings/user"))
+        {
+            return GetUserSettingsAmbientRoles();
+        }
+        if (path.StartsWith("settings"))
+        {
+            return [Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+        }
+        return [];
+    }
+
+    private string GetRelativeLocationPath(string location)
+    {
+        return NavigationPathHelper.GetBaseRelativePath(location, NavigationManager.BaseUri);
+    }
+
+    private static List<string> GetRequestAmbientRoles(string path)
+    {
+        if (path.StartsWith("request/tickets") || path.StartsWith("request/ticketsoverview"))
+        {
+            return [Roles.Requester, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+        }
+        if (path.StartsWith("request/approvals"))
+        {
+            return [Roles.Approver, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+        }
+        if (path.StartsWith("request/plannings"))
+        {
+            return [Roles.Planner, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+        }
+        if (path.StartsWith("request/implementations"))
+        {
+            return [Roles.Implementer, Roles.Reviewer, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+        }
+        if (path.StartsWith("request/reviews"))
+        {
+            return [Roles.Reviewer, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+        }
+        return [Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+    }
+
+    private static List<string> GetUserSettingsAmbientRoles()
+    {
+        return [Roles.Modeller, Roles.Recertifier, Roles.ReporterViewAll, Roles.Reporter,
+            Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer,
+            Roles.Admin, Roles.FwAdmin, Roles.Auditor];
     }
 
     private async Task CheckAndRefreshTokenAsync()
@@ -313,15 +428,18 @@
                 Type = type
             };
 
-            Timer messageTimer = new Timer(showtime.Value);
-            messageTimer.Elapsed += (sender, e) => HideMessage(sender, e, uiMessage.Id);
-            messageTimer.AutoReset = false;
-
-            uiMessage.ShowTimer = messageTimer;
+            Timer? messageTimer = null;
+            if (showtime > 0)
+            {
+                messageTimer = new Timer(showtime.Value);
+                messageTimer.Elapsed += (sender, e) => HideMessage(sender, e, uiMessage.Id);
+                messageTimer.AutoReset = false;
+                uiMessage.ShowTimer = messageTimer;
+            }
 
             if (UIMessages.Count < userConfig.MaxMessages)
             {
-                messageTimer.Start();
+                messageTimer?.Start();
                 UIMessages.Add(uiMessage);
                 InvokeAsync(StateHasChanged);
             }
@@ -355,7 +473,7 @@
         if (UIMessageQue.Count > 0 && UIMessages.Count < userConfig.MaxMessages)
         {
             UIMessage uiMessage = UIMessageQue.Dequeue();
-            uiMessage.ShowTimer!.Start();
+            uiMessage.ShowTimer?.Start();
             UIMessages.Add(uiMessage);
 
             InvokeAsync(StateHasChanged);
@@ -380,80 +498,85 @@
 
     private void DisplayMessageInUi(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
     {
-        int severity = 0;
-        string cause = "";
-        string description = "";
-        MessageType messageType = MessageType.Info;
-
-        if (exception == null)
+        try
         {
-            cause = title;
-            description = message;
-            if (ErrorFlag)
-            {
-                // User message to be displayed as error
-                Log.WriteWarning(title, message);
-                messageType = MessageType.Warning;
-                severity = 1;
-            }
-            else
-            {
-                // User message is no error
-                messageType = MessageType.Success;
-            }
-        }
-        else
-        {
-            messageType = MessageType.Error;
+            int severity = 0;
+            string cause = "";
+            string description = "";
+            MessageType messageType = MessageType.Info;
 
-            // first some recurring specific messages
-            if (exception.Message.Contains("JWTExpired"))
+            if (exception == null)
             {
-                Log.WriteError("Auth Token Error", "JWT expired in session.", exception);
-                // TODO: Improve error handling for jwt expiry / api unreachable, so that no action leads to unhandled exception
-                if (!showReloginDialog)
+                cause = title;
+                description = message;
+                if (ErrorFlag)
                 {
-                    showReloginDialog = true;
-                    ShowMessage(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), MessageType.Info, showtime: -1);
-                }
-                return;
-            }
-            else if (exception.Message == "no such type exists in the schema: 'cidr'")
-            {
-                // this is the default error message when user's access rights are not sufficient for API access
-                severity = 2;
-                cause = userConfig.GetText("api_access");
-                description = userConfig.GetText("E0004");
-            }
-            else
-            {
-                string role = "";
-                if (apiConnection is GraphQlApiConnection)
-                {
-                    role = ((GraphQlApiConnection)apiConnection).GetActRole();
+                    // User message to be displayed as error
+                    Log.WriteWarning(title, message);
+                    messageType = MessageType.Warning;
+                    severity = 1;
                 }
                 else
                 {
-                    try
-                    {
-                        JwtReader jwtReader = new(userConfig.User.Jwt);
-                        Task.Run(async () => await jwtReader.Validate());
-                        role = jwtReader.GetRole();
-                    }
-                    catch (Exception) { }
+                    // User message is no error
+                    messageType = MessageType.Success;
                 }
-
-                Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception, userConfig.User.Name, role);
-
-                severity = 2;
-                cause = (title != "" ? title : userConfig.GetText("unspecified_error"));
-                description = $"{(message != "" ? message : userConfig.GetText("E0001"))}" + (ErrorFlag ? $": {exception.Message}" : "") + " . " + userConfig.GetText("E0002");
             }
+            else
+            {
+                messageType = MessageType.Error;
+
+                // first some recurring specific messages
+                if (exception.Message.Contains("JWTExpired"))
+                {
+                    Log.WriteError("Auth Token Error", "JWT expired in session.", exception);
+                    if (!showReloginDialog)
+                    {
+                        ShowReloginDialog(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), reloginAbortable: false);
+                    }
+                    return;
+                }
+                else if (exception.Message == "no such type exists in the schema: 'cidr'")
+                {
+                    // this is the default error message when user's access rights are not sufficient for API access
+                    severity = 2;
+                    cause = userConfig.GetText("api_access");
+                    description = userConfig.GetText("E0004");
+                }
+                else
+                {
+                    string role = "";
+                    if (apiConnection is GraphQlApiConnection)
+                    {
+                        role = ((GraphQlApiConnection)apiConnection).GetActRole();
+                    }
+                    else
+                    {
+                        try
+                        {
+                            JwtReader jwtReader = new(userConfig.User.Jwt);
+                            Task.Run(async () => await jwtReader.Validate());
+                            role = jwtReader.GetRole();
+                        }
+                        catch (Exception) { }
+                    }
+
+                    Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception, userConfig.User.Name, role);
+
+                    severity = 2;
+                    cause = (title != "" ? title : userConfig.GetText("unspecified_error"));
+                    description = $"{(message != "" ? message : userConfig.GetText("E0001"))}" + (ErrorFlag ? $": {exception.Message}" : "") + " . " + userConfig.GetText("E0002");
+                }
+            }
+
+            ShowMessage(cause, description, messageType);
+
+            Task.Run(async () => await AddUiLogEntry(severity, cause, description));
         }
-
-        ShowMessage(cause, description, messageType);
-
-        Task.Run(async () => await AddUiLogEntry(severity, cause, description));
+        catch (Exception displayException)
+        {
+            Log.WriteError("Display UI Message", "Could not display UI message.", displayException);
+        }
     }
 
     public async Task AddUiLogEntry(int severity, string cause, string description)
@@ -502,7 +625,9 @@
         }
 
         alertSubscription?.Dispose();
+        locationChangingRegistration?.Dispose();
         NavigationManager.LocationChanged -= OnLocationChanged;
+        apiConnection.OnExecutionModeChanged -= OnExecutionModeChanged;
         StopTokenRefreshRunner();
         CircuitHandlerService circuitHandlerService = (CircuitHandlerService)circuitHandler;
         EventMediator.Unsubscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent));

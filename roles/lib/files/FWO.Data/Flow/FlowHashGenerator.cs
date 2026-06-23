@@ -64,25 +64,35 @@ namespace FWO.Data.Flow
         }
 
         /// <summary>
-        /// Generates single access hash from source, destination, and service hashes.
-        /// SHA256 of concatenated hashes ensures deduplication across equivalent access triples.
-        /// Time objects are not considered in access hash.
+        /// Generates single access hash from source, destination, service, and time object hashes.
+        /// SHA256 of concatenated hashes ensures deduplication across equivalent access definitions.
         /// Throws exception if any of the input collections are empty, as access must have at least one source, destination, and service.
         /// </summary>
         public static string GenerateAccessHash(
             IEnumerable<string> sourceHashes,
             IEnumerable<string> destinationHashes,
-            IEnumerable<string> serviceHashes)
+            IEnumerable<string> serviceHashes,
+            IEnumerable<string> timeObjectHashes,
+            bool allowsTraffic)
         {
             if (!sourceHashes.Any() || !destinationHashes.Any() || !serviceHashes.Any())
             {
                 throw new ArgumentException("Access must have at least one source, destination, and service hash");
+            }
+            if (sourceHashes.Any(h => string.IsNullOrWhiteSpace(h)) || destinationHashes.Any(h => string.IsNullOrWhiteSpace(h)) || serviceHashes.Any(h => string.IsNullOrWhiteSpace(h)))
+            {
+                throw new ArgumentException("Source, destination, and service hashes cannot be empty or whitespace");
+            }
+            if (timeObjectHashes.Any(h => string.IsNullOrWhiteSpace(h)))
+            {
+                throw new ArgumentException("Time object hashes cannot be empty or whitespace");
             }
 
             // Sort hashes to ensure same access (even if in different order) produces same hash
             var sortedSources = sourceHashes.OrderBy(h => h).ToList();
             var sortedDestinations = destinationHashes.OrderBy(h => h).ToList();
             var sortedServices = serviceHashes.OrderBy(h => h).ToList();
+            var sortedTimeObjects = timeObjectHashes.OrderBy(h => h).ToList();
 
             // Concatenate in deterministic order
             string combined = string.Concat(
@@ -90,7 +100,11 @@ namespace FWO.Data.Flow
                 ":::",
                 string.Join("|", sortedDestinations),
                 ":::",
-                string.Join("|", sortedServices)
+                string.Join("|", sortedServices),
+                ":::",
+                string.Join("|", sortedTimeObjects),
+                ":::",
+                allowsTraffic.ToString()
             );
 
             return ComputeSha256(combined);
@@ -106,6 +120,10 @@ namespace FWO.Data.Flow
             if (!memberHashes.Any())
             {
                 throw new ArgumentException("Group must have at least one member hash");
+            }
+            if (memberHashes.Any(h => string.IsNullOrWhiteSpace(h)))
+            {
+                throw new ArgumentException("Member hashes cannot be empty or whitespace");
             }
             // Sort member hashes to ensure same group (even if members in different order) produces same hash
             var sortedMembers = memberHashes.OrderBy(h => h).ToList();

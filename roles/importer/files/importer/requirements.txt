@@ -27,5 +27,5 @@ pre-commit==4.6.0
 pyright==1.1.410
 
 # OPNsense import
-xmltodict>=1.0.4
-netaddr_pydantic>=0.2.1
+xmltodict==1.0.4
+netaddr_pydantic==0.2.1

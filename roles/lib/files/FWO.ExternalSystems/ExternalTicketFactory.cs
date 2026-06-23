@@ -16,7 +16,7 @@ namespace FWO.ExternalSystems
             {
                 return new CheckPointTicket(ticketSystem, checkPointClient);
             }
-            throw new NotSupportedException("Ticket system has no supported request templates.");
+            throw new NotSupportedException("Automatic external request handling is supported only for Tufin SecureChange and Check Point.");
         }
     }
 }

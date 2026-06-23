@@ -67,8 +67,6 @@ namespace FWO.ExternalSystems.CheckPoint
             foreach (WfReqTask task in tasks)
             {
                 string taskType = GetCheckPointTaskType(task);
-                Log.WriteInfo("DEBUG", $"TaskNumber: {task.TaskNumber}");
-                Log.WriteInfo("DEBUG", $"Generated AR: AR{task.TaskNumber}");
 
                 ExternalTicketTemplate template = ResolveTemplate(taskType, task);
                 CheckPointTicketTask ticketTask = new(task, ipProtos, namingConvention);
@@ -234,18 +232,7 @@ namespace FWO.ExternalSystems.CheckPoint
 
             foreach (CheckPointInstallPolicyTarget target in targets)
             {
-                //string body = template.TicketTemplate
-                //    .Replace(
-                //        Placeholder.POLICY_PACKAGE,
-                //        target.PolicyPackage)
-                //    .Replace(
-                //        Placeholder.TARGETS,
-                //        JsonSerializer.Serialize(target.Targets));
 
-                //renderedTasks.Add(new RenderedTask(
-                //    CheckPointTaskTypes.InstallPolicy,
-                //    template.Endpoint
-                //    ));
             }
         }
 

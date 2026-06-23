@@ -120,13 +120,8 @@ namespace FWO.Test
                         [
                             new(){ Id = 7, TicketId = 7, ExtTicketSystem = serializedCheckPointTicketSystem, ExtRequestState = ExtStates.ExtReqInitialized.ToString(),
                                 ExtRequestType = WfTaskType.access.ToString(), ExtRequestContent = "{\"source\":[\"src-group\"]}",
-                                ExtQueryVariables = System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object>
-                                {
-                                    [ExternalVarKeys.CheckPointInstallPolicyTargets] = new List<CheckPointInstallPolicyTarget>
-                                    {
-                                        new() { PolicyPackage = "Standard", Targets = ["gw1"] }
-                                    }
-                                }) }
+                                ExtQueryVariables = ""
+                            }
                         ]
                     };
                     GraphQLResponse<dynamic> checkPointResponse = new() { Data = checkPointRequests };

@@ -48,25 +48,22 @@ namespace FWO.Test
             using JsonDocument document = JsonDocument.Parse(ticket.TicketText);
             List<JsonElement> planSteps = [.. document.RootElement.GetProperty("Steps").EnumerateArray()];
 
-            ClassicAssert.AreEqual(7, planSteps.Count);
+            ClassicAssert.AreEqual(4, planSteps.Count);
 
             ClassicAssert.AreEqual(CheckPointTaskTypes.GroupCreate, planSteps[0].GetProperty("TaskType").GetString());
-            ClassicAssert.AreEqual(CheckPointTaskTypes.Publish, planSteps[1].GetProperty("TaskType").GetString());
-            ClassicAssert.AreEqual(CheckPointTaskTypes.HostCreate, planSteps[2].GetProperty("TaskType").GetString());
+            ClassicAssert.AreEqual(CheckPointTaskTypes.HostCreate, planSteps[1].GetProperty("TaskType").GetString());
+            ClassicAssert.AreEqual(CheckPointTaskTypes.GroupAddMembers, planSteps[2].GetProperty("TaskType").GetString());
             ClassicAssert.AreEqual(CheckPointTaskTypes.Publish, planSteps[3].GetProperty("TaskType").GetString());
-            ClassicAssert.AreEqual(CheckPointTaskTypes.GroupAddMembers, planSteps[4].GetProperty("TaskType").GetString());
-            ClassicAssert.AreEqual(CheckPointTaskTypes.Publish, planSteps[5].GetProperty("TaskType").GetString());
-            ClassicAssert.AreEqual(CheckPointTaskTypes.Publish, planSteps[6].GetProperty("TaskType").GetString());
 
             JsonElement createGroupBody = planSteps[0].GetProperty("Body");
             ClassicAssert.AreEqual("cp-group", createGroupBody.GetProperty("name").GetString());
             ClassicAssert.IsFalse(createGroupBody.TryGetProperty("members", out _));
 
-            JsonElement hostBody = planSteps[2].GetProperty("Body");
+            JsonElement hostBody = planSteps[1].GetProperty("Body");
             ClassicAssert.AreEqual("member-host", hostBody.GetProperty("name").GetString());
             ClassicAssert.AreEqual("10.0.0.1", hostBody.GetProperty("ip-address").GetString());
 
-            JsonElement addMemberBody = planSteps[4].GetProperty("Body");
+            JsonElement addMemberBody = planSteps[2].GetProperty("Body");
             ClassicAssert.AreEqual("cp-group", addMemberBody.GetProperty("name").GetString());
             JsonElement members = addMemberBody.GetProperty("members");
             ClassicAssert.AreEqual("member-host", members.GetProperty("add")[0].GetString());
@@ -160,11 +157,11 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(HttpStatusCode.OK, response.StatusCode);
             CollectionAssert.AreEqual(
-                new[] { "add-group", "publish", "add-host","show-host", "add-host", "publish", "set-group", "publish", "publish" },
+                new[] { "add-group", "add-host", "show-host", "add-host", "set-group", "publish" },
                 checkPointClient.CalledEndpoints);
 
-            StringAssert.Contains("\"ignore-warnings\":true", checkPointClient.RequestBodies[4] ?? "");
-            StringAssert.Contains("\"name\":\"member-host\"", checkPointClient.RequestBodies[4] ?? "");
+            StringAssert.Contains("\"ignore-warnings\":true", checkPointClient.RequestBodies[3] ?? "");
+            StringAssert.Contains("\"name\":\"member-host\"", checkPointClient.RequestBodies[3] ?? "");
             ClassicAssert.AreEqual(1, checkPointClient.LogoutCalls);
         }
 
@@ -201,20 +198,18 @@ namespace FWO.Test
             using JsonDocument document = JsonDocument.Parse(ticket.TicketText);
             List<JsonElement> planSteps = [.. document.RootElement.GetProperty("Steps").EnumerateArray()];
 
-            ClassicAssert.AreEqual(7, planSteps.Count);
+            ClassicAssert.AreEqual(4, planSteps.Count);
 
             ClassicAssert.AreEqual(CheckPointTaskTypes.HostCreate, planSteps[0].GetProperty("TaskType").GetString());
-            ClassicAssert.AreEqual(CheckPointTaskTypes.Publish, planSteps[1].GetProperty("TaskType").GetString());
-            ClassicAssert.AreEqual(CheckPointTaskTypes.GroupAddMembers, planSteps[2].GetProperty("TaskType").GetString());
+            ClassicAssert.AreEqual(CheckPointTaskTypes.GroupAddMembers, planSteps[1].GetProperty("TaskType").GetString());
+            ClassicAssert.AreEqual(CheckPointTaskTypes.GroupRemoveMembers, planSteps[2].GetProperty("TaskType").GetString());
             ClassicAssert.AreEqual(CheckPointTaskTypes.Publish, planSteps[3].GetProperty("TaskType").GetString());
-            ClassicAssert.AreEqual(CheckPointTaskTypes.GroupRemoveMembers, planSteps[4].GetProperty("TaskType").GetString());
-            ClassicAssert.AreEqual(CheckPointTaskTypes.Publish, planSteps[5].GetProperty("TaskType").GetString());
 
-            JsonElement addMemberBody = planSteps[2].GetProperty("Body");
+            JsonElement addMemberBody = planSteps[1].GetProperty("Body");
             ClassicAssert.AreEqual("cp-group", addMemberBody.GetProperty("name").GetString());
             ClassicAssert.AreEqual("member-add", addMemberBody.GetProperty("members").GetProperty("add")[0].GetString());
 
-            JsonElement removeMemberBody = planSteps[4].GetProperty("Body");
+            JsonElement removeMemberBody = planSteps[2].GetProperty("Body");
             ClassicAssert.AreEqual("cp-group", removeMemberBody.GetProperty("name").GetString());
             ClassicAssert.AreEqual("member-remove", removeMemberBody.GetProperty("members").GetProperty("remove")[0].GetString());
         }

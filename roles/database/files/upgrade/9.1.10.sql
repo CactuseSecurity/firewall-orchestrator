@@ -14,37 +14,63 @@ BEGIN
     LOOP
         SELECT jsonb_agg(
             CASE
-                WHEN elem ? 'ExternalTicketSystemType' AND NOT (elem ? 'TypeId') THEN
+                WHEN jsonb_typeof(elem) = 'object' THEN
                     (
-                        (elem - 'ExternalTicketSystemType')
-                        || jsonb_build_object(
-                            'TypeId',
-                            CASE (elem->>'ExternalTicketSystemType')::int
-                                WHEN 0 THEN 1
-                                WHEN 1 THEN 2
-                                WHEN 2 THEN 3
-                                WHEN 3 THEN 4
-                                ELSE 1
-                            END
-                        )
+                        elem
+                        - 'ExternalTicketSystemType'
+                        ||
+                        CASE
+                            WHEN NOT (elem ? 'TypeId') AND elem ? 'ExternalTicketSystemType' THEN
+                                jsonb_build_object(
+                                    'TypeId',
+                                    CASE (elem->>'ExternalTicketSystemType')::int
+                                        WHEN 0 THEN 1
+                                        WHEN 1 THEN 2
+                                        WHEN 2 THEN 3
+                                        WHEN 3 THEN 4
+                                        ELSE 1
+                                    END
+                                )
+                            ELSE
+                                '{}'::jsonb
+                        END
+                        ||
+                        CASE
+                            WHEN COALESCE(elem->>'Name', '') <> '' THEN
+                                '{}'::jsonb
+                            WHEN elem ? 'ExternalTicketSystemType' AND (elem->>'ExternalTicketSystemType')::int = 1 THEN
+                                jsonb_build_object('Name', 'Tufin SecureChange')
+                            WHEN elem ? 'ExternalTicketSystemType' AND (elem->>'ExternalTicketSystemType')::int = 0 THEN
+                                jsonb_build_object('Name', 'Generic')
+                            WHEN elem ? 'ExternalTicketSystemType' AND (elem->>'ExternalTicketSystemType')::int = 2 THEN
+                                jsonb_build_object('Name', 'AlgoSec')
+                            WHEN elem ? 'ExternalTicketSystemType' AND (elem->>'ExternalTicketSystemType')::int = 3 THEN
+                                jsonb_build_object('Name', 'ServiceNow')
+                            ELSE
+                                '{}'::jsonb
+                        END
+                        ||
+                        CASE
+                            WHEN elem ? 'Templates' THEN
+                                '{}'::jsonb
+                            WHEN COALESCE(elem->>'TicketTemplate', '') <> ''
+                              OR COALESCE(elem->>'TasksTemplate', '') <> '' THEN
+                                jsonb_build_object(
+                                    'Templates',
+                                    jsonb_build_array(
+                                        jsonb_build_object(
+                                            'TaskType', 'AccessRequest',
+                                            'TicketTemplate', COALESCE(elem->>'TicketTemplate', ''),
+                                            'TasksTemplate', COALESCE(elem->>'TasksTemplate', '')
+                                        )
+                                    )
+                                )
+                            ELSE
+                                '{}'::jsonb
+                        END
                     )
-                    ||
-                    CASE
-                        WHEN COALESCE(elem->>'Name', '') <> '' THEN
-                            '{}'::jsonb
-                        WHEN (elem->>'ExternalTicketSystemType')::int = 1 THEN
-                            jsonb_build_object('Name', 'Tufin SecureChange')
-                        WHEN (elem->>'ExternalTicketSystemType')::int = 0 THEN
-                            jsonb_build_object('Name', 'Generic')
-                        WHEN (elem->>'ExternalTicketSystemType')::int = 2 THEN
-                            jsonb_build_object('Name', 'AlgoSec')
-                        WHEN (elem->>'ExternalTicketSystemType')::int = 3 THEN
-                            jsonb_build_object('Name', 'ServiceNow')
-                        ELSE
-                            '{}'::jsonb
-                    END
                 ELSE
-                    elem - 'ExternalTicketSystemType'
+                    elem
             END
         )::text
         INTO migrated_value

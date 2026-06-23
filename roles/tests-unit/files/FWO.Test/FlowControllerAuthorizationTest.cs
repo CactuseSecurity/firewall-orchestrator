@@ -15,6 +15,7 @@ internal class FlowControllerAuthorizationTest
     [TestCase(typeof(FlowCatalogController), nameof(FlowCatalogController.GetServiceGroups))]
     [TestCase(typeof(FlowCatalogController), nameof(FlowCatalogController.GetTimeObjects))]
     [TestCase(typeof(FlowCatalogController), nameof(FlowCatalogController.GetServiceObjectId))]
+    [TestCase(typeof(FlowCatalogController), nameof(FlowCatalogController.GetTimeObjectId))]
     [TestCase(typeof(FlowCatalogController), nameof(FlowCatalogController.GetAddressObjectId))]
     [TestCase(typeof(FlowComplianceController), nameof(FlowComplianceController.GetFlowComplianceState))]
     [TestCase(typeof(FlowComplianceController), nameof(FlowComplianceController.GetPolicyIds))]

@@ -34,6 +34,13 @@ public class FlowCatalogController : ControllerBase
             new RequestKeyDefinition("portEnd", "End port for the service object lookup."),
             new RequestKeyDefinition("protocol", "Protocol name or protocol id for the service object lookup.")
         ]);
+    private static readonly RequestRootValidationSchema TimeObjectIdRootSchema = new(
+        nameof(GetTimeObjectId),
+        [
+            new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
+            new RequestKeyDefinition("startTime", "Start time for the time object lookup."),
+            new RequestKeyDefinition("endTime", "End time for the time object lookup.")
+        ]);
     private static readonly RequestRootValidationSchema AddressObjectIdRootSchema = new(
         nameof(GetAddressObjectId),
         [
@@ -42,6 +49,7 @@ public class FlowCatalogController : ControllerBase
             new RequestKeyDefinition("ipEnd", "End IP address for the address object lookup.")
         ]);
     private static readonly RequestFilterValidationSchema ServiceObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceObjectId));
+    private static readonly RequestFilterValidationSchema TimeObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetTimeObjectId));
     private static readonly RequestFilterValidationSchema AddressObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressObjectId));
 
     private readonly FlowCatalogService flowCatalogService;
@@ -159,6 +167,27 @@ public class FlowCatalogController : ControllerBase
         }
 
         return Ok(await flowCatalogService.GetServiceObjectIdAsync(request.Protocol, request.PortStart, request.PortEnd, request.Filter?.VisibleInRequest));
+    }
+
+    /// <summary>
+    /// Resolves a time object identifier from the supplied lookup request against the shared flow catalog.
+    /// This lookup is not scoped to a modeller or owner.
+    /// </summary>
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+    [HttpPost("getTimeObjectId")]
+    public async Task<ActionResult<TimeObjectIdResponse>> GetTimeObjectId([FromBody] GetTimeObjectIdRequest request)
+    {
+        if (!TryValidateVisibleInRequestRequest(request, TimeObjectIdRootSchema, TimeObjectIdFilterSchema, out ActionResult? errorResult))
+        {
+            return errorResult!;
+        }
+
+        if (request.StartTime > request.EndTime)
+        {
+            return BadRequest("'startTime' must be <= 'endTime'.");
+        }
+
+        return Ok(await flowCatalogService.GetTimeObjectIdAsync(request.StartTime, request.EndTime, request.Filter?.VisibleInRequest));
     }
 
     /// <summary>

@@ -115,6 +115,20 @@ public sealed class FlowCatalogService
             : new ServiceObjectIdResponse { Id = flowObject.Id, Name = flowObject.Name };
     }
 
+    /// <summary>
+    /// Performs the GetTimeObjectIdAsync operation.
+    /// </summary>
+    public async Task<TimeObjectIdResponse> GetTimeObjectIdAsync(DateTimeOffset startTime, DateTimeOffset endTime, bool? visibleInRequest)
+    {
+        List<FlowTimeObject> result = await apiConnection.SendQueryAsync<List<FlowTimeObject>>(
+            FlowQueries.getFlowTimeObjectId,
+            BuildLookupQueryVariables(visibleInRequest, ("start_time", startTime), ("end_time", endTime))) ?? [];
+        FlowTimeObject? flowObject = result.FirstOrDefault();
+        return flowObject == null
+            ? new TimeObjectIdResponse()
+            : new TimeObjectIdResponse { Id = flowObject.Id, Name = flowObject.Name };
+    }
+
     private async Task<List<FlowNwObject>> LoadFlowNwObjectsAsync(bool? visibleInRequest)
     {
         return await apiConnection.SendQueryAsync<List<FlowNwObject>>(

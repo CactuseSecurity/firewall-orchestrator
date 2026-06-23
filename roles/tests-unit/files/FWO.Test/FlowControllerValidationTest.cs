@@ -184,6 +184,21 @@ internal class FlowControllerValidationTest
         Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("invalid 'ipStart'"));
     }
 
+    [Test]
+    public async Task FlowControllerValidation_GetTimeObjectId_RejectsInvalidTimeRange()
+    {
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+
+        ActionResult<TimeObjectIdResponse> result = await controller.GetTimeObjectId(new GetTimeObjectIdRequest
+        {
+            StartTime = new DateTimeOffset(2026, 6, 1, 17, 30, 0, TimeSpan.Zero),
+            EndTime = new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero)
+        });
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("'startTime' must be <= 'endTime'"));
+    }
+
     private static IEnumerable<TestCaseData> RequestCases()
     {
         yield return new TestCaseData(new RequestCase(
@@ -249,6 +264,21 @@ internal class FlowControllerValidationTest
             """{"filter":{"visibleInRequest":false},"ipStart":"10.0.0.1","ipEnd":"10.0.0.2"}""",
             """{"filter":{"visibleInRequest":false},"ipStart":"10.0.0.1","ipEnd":"10.0.0.2","typo":1}""",
             "ipStart"));
+
+        yield return new TestCaseData(new LookupRequestCase(
+            "GetTimeObjectId",
+            json => JsonSerializer.Deserialize<GetTimeObjectIdRequest>(json)!,
+            new RequestRootValidationSchema(
+                "GetTimeObjectId",
+                [
+                    new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
+                    new RequestKeyDefinition("startTime", "Start time for the time object lookup."),
+                    new RequestKeyDefinition("endTime", "End time for the time object lookup.")
+                ]),
+            RequestFilterValidationSchema.ForVisibleInRequest("GetTimeObjectId"),
+            """{"filter":{"visibleInRequest":true},"startTime":"2026-06-01T08:00:00Z","endTime":"2026-06-01T17:30:00Z"}""",
+            """{"filter":{"visibleInRequest":true},"startTime":"2026-06-01T08:00:00Z","endTime":"2026-06-01T17:30:00Z","typo":1}""",
+            "startTime"));
     }
 
     internal sealed record RequestCase(

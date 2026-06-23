@@ -52,4 +52,11 @@ internal class FlowRequestContractTest
     {
         Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<GetAddressObjectIdRequest>(json));
     }
+
+    [TestCase("""{"endTime":"2026-06-01T17:30:00Z"}""")]
+    [TestCase("""{"startTime":"2026-06-01T08:00:00Z"}""")]
+    public void GetTimeObjectIdRequest_RequiresTimeBounds(string json)
+    {
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<GetTimeObjectIdRequest>(json));
+    }
 }

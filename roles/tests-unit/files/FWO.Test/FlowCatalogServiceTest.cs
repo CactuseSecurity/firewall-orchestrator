@@ -143,6 +143,38 @@ internal class FlowCatalogServiceTest
     }
 
     [Test]
+    public async Task GetTimeObjectIdAsync_ReturnsMatchingObjectAndAppliesVisibilityFilter()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        apiConnection.TimeObjects =
+        [
+            new FlowTimeObject
+            {
+                Id = 31,
+                Name = "BusinessHours"
+            }
+        ];
+
+        FlowCatalogService service = new(apiConnection);
+
+        TimeObjectIdResponse result = await service.GetTimeObjectIdAsync(
+            new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 6, 1, 17, 30, 0, TimeSpan.Zero),
+            true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Id, Is.EqualTo(31));
+            Assert.That(result.Name, Is.EqualTo("BusinessHours"));
+            Assert.That(apiConnection.SentQueries[0], Is.EqualTo(FlowQueries.getFlowTimeObjectId));
+            AssertWhereClauseContains(GetWhereClause(apiConnection.SentVariables[0]),
+                ("start_time", new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero)),
+                ("end_time", new DateTimeOffset(2026, 6, 1, 17, 30, 0, TimeSpan.Zero)),
+                ("show_in_request_module", true));
+        });
+    }
+
+    [Test]
     public async Task GetAddressObjectsAsync_MapsShowInRequestFlag()
     {
         FlowCatalogServiceApiConn apiConnection = new();

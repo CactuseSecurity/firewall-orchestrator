@@ -122,11 +122,6 @@ namespace FWO.Data
             return DeviceType.IsCheckPointManagerTypeId(TypeId);
         }
 
-        public bool CanHandleAutomatically()
-        {
-            return IsTufinSecureChange() || IsCheckPoint();
-        }
-
         public bool Sanitize()
         {
             bool shortened = false;

@@ -467,5 +467,6 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 - further integration flow into workflow
 - this update resets the flow db!
 
-# 9.1.10 - 16.06.2026 DEVELOP
+# 9.1.11 - 23.06.2026 DEVELOP
 - credentials field in management for writing on Firewalls
+- migrate old Tufin template to list entry

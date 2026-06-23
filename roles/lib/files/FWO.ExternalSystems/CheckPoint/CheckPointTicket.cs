@@ -283,18 +283,11 @@ namespace FWO.ExternalSystems.CheckPoint
                 {
                     return new RestResponse<int>(new RestRequest())
                     {
-                        StatusCode = HttpStatusCode.OK,
+                        StatusCode = HttpStatusCode.BadRequest,
                         ResponseStatus = ResponseStatus.Completed,
                         Content = "Check Point rule change tasks are not yet supported.",
-                        Data = 1
+                        Data = 0
                     };
-                    //return new RestResponse<int>(new RestRequest())
-                    //{
-                    //    StatusCode = HttpStatusCode.BadRequest,
-                    //    ResponseStatus = ResponseStatus.Completed,
-                    //    Content = "Check Point rule change tasks are not yet supported.",
-                    //    Data = 0
-                    //};
                 }
 
                 Log.WriteInfo("CheckPoint", $"Executing task: {task.TaskType}");

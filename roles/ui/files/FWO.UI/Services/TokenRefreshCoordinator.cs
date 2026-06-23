@@ -160,7 +160,7 @@ namespace FWO.Ui.Services
         private sealed class SessionRefreshRegistry
         {
             private readonly object syncRoot = new();
-            private readonly Dictionary<string, SessionState> sessionStates = new();
+            private readonly Dictionary<string, SessionState> sessionStates = [];
 
             public IDisposable Register(string sessionKey, Func<Task> refreshCallback, IPeriodicTaskRunnerFactory periodicTaskRunnerFactory)
             {

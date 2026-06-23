@@ -119,7 +119,7 @@ class Uid2IdMapper:
 
     def get_user_id(self, uid: str, before_update: bool = False, local_only: bool = False) -> int:
         """
-        Get the ID for a given user UID.
+        Get the ID for a given user UID. additional comment
 
         Args:
             uid (str): The UID of the user.

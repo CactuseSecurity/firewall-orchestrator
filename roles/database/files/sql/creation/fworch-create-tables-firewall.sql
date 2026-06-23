@@ -202,6 +202,8 @@ Create table firewall.rule
 	"rulebase_id" Integer NOT NULL,
 	"removed" BIGINT,
 	"flow_access_id" BIGINT,
+	"rule_src_zone" Text,
+	"rule_dst_zone" Text,
 	primary key ("rule_id")
 );
 

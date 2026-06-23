@@ -108,9 +108,11 @@ fragment ruleFragment on rule {
   rule_src_neg
   rule_src
   rule_src_refs
+  rule_src_zone
   rule_dst_neg
   rule_dst
   rule_dst_refs
+  rule_dst_zone
   rule_svc_neg
   rule_svc
   rule_svc_refs
@@ -131,16 +133,6 @@ fragment ruleFragment on rule {
     rule_last_hit
   }
   rule_comment
-  rule_from_zones {
-    zone {
-      zone_name
-    }
-  }
-  rule_to_zones {
-    zone {
-      zone_name
-    }
-  }
   section_header: rule_head_text
 }
 

@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Compliance;
@@ -73,6 +74,26 @@ namespace FWO.Middleware.Server.Controllers
                 Log.WriteError("Get Compliance Report", "Error while getting report.", exception);
             }
             return "";
+        }
+
+        /// <summary>
+        /// Returns the network zones of the configured designated zone matrix.
+        /// </summary>
+        /// <returns>The matrix zones, or an empty list if no matrix is configured.</returns>
+        [HttpGet("DesignatedZoneMatrix/Zones")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+        public async Task<ActionResult<List<ComplianceNetworkZone>>> GetDesignatedZoneMatrixZones()
+        {
+            try
+            {
+                List<ComplianceNetworkZone> zones = await LoadDesignatedZoneMatrixZonesAsync();
+                return Ok(zones);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Get Designated Zone Matrix Zones", "Error while getting designated zone matrix zones.", exception);
+                return StatusCode(500);
+            }
         }
 
         /// <summary>
@@ -160,6 +181,22 @@ namespace FWO.Middleware.Server.Controllers
             }
 
             return Ok(jobStatus);
+        }
+
+        /// <summary>
+        /// Loads the zones belonging to the configured designated matrix.
+        /// </summary>
+        private async Task<List<ComplianceNetworkZone>> LoadDesignatedZoneMatrixZonesAsync()
+        {
+            GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, false);
+            if (globalConfig.ComplianceDesignatedZoneMatrixId <= 0)
+            {
+                return [];
+            }
+
+            return await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
+                ComplianceQueries.getNetworkZonesForMatrix,
+                new { criterionId = globalConfig.ComplianceDesignatedZoneMatrixId }) ?? [];
         }
 
         private static string ConvertOutput(List<(Rule, (ComplianceNetworkZone, ComplianceNetworkZone))> forbiddenCommunicationsOutput)

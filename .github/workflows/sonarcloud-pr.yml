@@ -7,7 +7,6 @@ on:
       - synchronize
       - reopened
       - ready_for_review
-      - labeled
 
 permissions:
   contents: read
@@ -19,7 +18,7 @@ concurrency:
 jobs:
   analyze:
     name: SonarQube Analyze PR
-    if: ${{ contains(github.event.pull_request.labels.*.name, 'run-sonar') || contains(fromJson(vars.SONAR_TRUSTED_FORK_OWNERS || '[]'), github.event.pull_request.head.repo.owner.login) }}
+    if: ${{ contains(fromJson(vars.SONAR_TRUSTED_FORK_OWNERS || '[]'), github.event.pull_request.head.repo.owner.login) }}
     runs-on: ubuntu-latest
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

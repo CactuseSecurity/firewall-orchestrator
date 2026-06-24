@@ -73,7 +73,7 @@ namespace FWO.Middleware.Client
 
                 JsonWebTokenHandler handler = new();
                 TokenValidationResult tokenValidationResult = await handler.ValidateTokenAsync(jwtString, validationParameters);
-                
+
                 if (tokenValidationResult.IsValid)
                 {
                     jwt = tokenValidationResult.SecurityToken as JsonWebToken;
@@ -88,7 +88,7 @@ namespace FWO.Middleware.Client
                 if (tokenValidationResult.Exception is SecurityTokenExpiredException)
                 {
                     Log.WriteDebug(JwtValidation, $"Jwt lifetime expired: {jwtString}.");
-                    
+
                     return new JwtValidationResult
                     {
                         Status = JwtValidationStatus.Expired
@@ -114,7 +114,7 @@ namespace FWO.Middleware.Client
             catch (SecurityTokenInvalidSignatureException InvalidSignatureException)
             {
                 Log.WriteError(JwtValidation, $"Jwt signature could not be verified. Potential attack: {jwtString}.", InvalidSignatureException);
-                
+
                 return new JwtValidationResult
                 {
                     Status = JwtValidationStatus.Invalid
@@ -123,7 +123,7 @@ namespace FWO.Middleware.Client
             catch (SecurityTokenInvalidAudienceException InvalidAudienceException)
             {
                 Log.WriteError(JwtValidation, $"Jwt audience incorrect: {jwtString}.", InvalidAudienceException);
-                
+
                 return new JwtValidationResult
                 {
                     Status = JwtValidationStatus.Invalid
@@ -132,7 +132,7 @@ namespace FWO.Middleware.Client
             catch (SecurityTokenInvalidIssuerException InvalidIssuerException)
             {
                 Log.WriteError(JwtValidation, $"Jwt issuer incorrect: {jwtString}.", InvalidIssuerException);
-                
+
                 return new JwtValidationResult
                 {
                     Status = JwtValidationStatus.Invalid
@@ -141,7 +141,7 @@ namespace FWO.Middleware.Client
             catch (Exception UnexpectedError)
             {
                 Log.WriteError(JwtValidation, $"Unexpected problem while trying to verify Jwt: {jwtString}.", UnexpectedError);
-                
+
                 return new JwtValidationResult
                 {
                     Status = JwtValidationStatus.Invalid

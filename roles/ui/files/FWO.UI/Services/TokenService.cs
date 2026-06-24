@@ -291,7 +291,7 @@ namespace FWO.Ui.Services
         ///  Clears the stored token pair from memory and session storage
         /// </summary>
         /// <returns></returns>
-        private async Task ClearStoredTokenPair()
+        public async Task ClearStoredTokenPair()
         {
             await initializationTask.Value;
 

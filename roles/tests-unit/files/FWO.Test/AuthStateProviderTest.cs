@@ -78,7 +78,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task RestoreAuthenticationState_WhenRefreshFails_ShouldClearStoredTokenPairAndPublishReloginRequiredEvent()
+        public async Task RestoreAuthenticationState_WhenRefreshFails_ShouldClearStoredTokenPairAndKeepAuthenticatedUserForRelogin()
         {
             using RSA rsa = RSA.Create(2048);
             RsaSecurityKey privateKey = new(rsa.ExportParameters(true));
@@ -116,9 +116,9 @@ namespace FWO.Test
             AuthenticationState authenticationState = await authStateProvider.GetAuthenticationStateAsync();
 
             Assert.That(restored, Is.False);
-            Assert.That(authenticationState.User.Identity?.IsAuthenticated, Is.False);
+            Assert.That(authenticationState.User.Identity?.IsAuthenticated, Is.True);
             Assert.That(mockMiddlewareClient.RefreshTokenCallCount, Is.EqualTo(1));
-            Assert.That(mockMiddlewareClient.RevokeRefreshTokenCallCount, Is.EqualTo(1));
+            Assert.That(mockMiddlewareClient.RevokeRefreshTokenCallCount, Is.EqualTo(0));
             Assert.That(publishCount, Is.EqualTo(1));
             Assert.That(publishedUserDn, Is.EqualTo(TestApiConnection.TestUserDn));
             Assert.That(await tokenService.GetTokenPair(), Is.Null);

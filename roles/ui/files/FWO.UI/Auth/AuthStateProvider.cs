@@ -91,6 +91,11 @@ namespace FWO.Ui.Auth
 
                 return await TryApplyJwt(refreshedTokenPair.AccessToken, apiConnection, middlewareClient, userConfig);
             }
+            catch (AuthenticationException)
+            {
+                await Deauthenticate();
+                throw;
+            }
             catch (Exception)
             {
                 throw;
@@ -151,7 +156,7 @@ namespace FWO.Ui.Auth
 
             if (!await jwtReader.Validate())
             {
-                throw new AuthenticationException("JWT could not be validated.");
+                return false;
             }
 
             // importer is not allowed to login

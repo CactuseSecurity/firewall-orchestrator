@@ -295,10 +295,11 @@ namespace FWO.Ui.Services
         {
             await initializationTask.Value;
 
+            currentTokenPair = null;
+
             try
             {
                 await sessionStorage.DeleteAsync(TOKEN_PAIR_KEY);
-                currentTokenPair = null;
             }
             catch (Exception ex)
             {

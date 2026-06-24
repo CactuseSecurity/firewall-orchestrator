@@ -80,7 +80,7 @@ create table rule_owner
     removed bigint,
     matched_objects jsonb,
     owner_mapping_source_id smallint NOT NULL,
-    primary key (rule_id, owner_id, created)
+    CONSTRAINT pk_rule_owner primary key (rule_id, owner_id, created)
 );
 
 create table recertification

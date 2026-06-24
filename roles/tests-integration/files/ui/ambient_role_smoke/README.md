@@ -9,21 +9,17 @@ Run them against an installed FWO instance through Ansible:
 scripts/run-ui-ambient-role-smoke.sh
 ```
 
-The Ansible task creates a temporary virtualenv under
-`/tmp/fworch-ambient-role-smoke`, installs `requirements.txt`, and runs pytest
-from that virtualenv with the Chrome executable installed by FWO for PDF
-export.
+The Ansible task copies this C# test project to
+`/tmp/fworch-ambient-role-smoke` and runs `dotnet test` with the Chrome
+executable installed by FWO for PDF export.
 
-For direct local pytest runs without Ansible:
+For direct local runs without Ansible:
 
 ```bash
-python3 -m venv /tmp/fwo-ui-smoke
-/tmp/fwo-ui-smoke/bin/pip install -r roles/tests-integration/files/ui/ambient_role_smoke/requirements.txt
-/tmp/fwo-ui-smoke/bin/playwright install chromium
 FWO_UI_BASE_URL=https://fworch.example \
 FWO_UI_USERNAME=user1_test \
 FWO_UI_PASSWORD=secret \
-/tmp/fwo-ui-smoke/bin/pytest -q roles/tests-integration/files/ui/ambient_role_smoke
+dotnet test roles/tests-integration/files/ui/ambient_role_smoke/FWO.Ui.AmbientRoleSmoke.csproj
 ```
 
 Optional environment variables:
@@ -31,7 +27,7 @@ Optional environment variables:
 - `FWO_UI_ROUTES`: comma-separated routes to visit instead of the default route set.
 - `FWO_UI_HEADLESS`: set to `false` to show the browser.
 - `FWO_UI_IGNORE_HTTPS_ERRORS`: defaults to `true` for test installations.
-- `FWO_UI_TIMEOUT_MS`: Playwright timeout in milliseconds.
+- `FWO_UI_TIMEOUT_MS`: browser interaction timeout in milliseconds.
 - `FWO_UI_BROWSER_EXECUTABLE`: browser path for Playwright; Ansible sets this
   to `/usr/local/fworch/bin/chrome`.
 

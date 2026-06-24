@@ -6,7 +6,6 @@
   - name: set ambient role smoke test directory
     set_fact:
       ui_ambient_role_smoke_dir: "/tmp/fworch-ambient-role-smoke"
-      ui_ambient_role_smoke_venv: "/tmp/fworch-ambient-role-smoke/venv"
       ui_ambient_role_smoke_browser_executable: "{{ fworch_home }}/bin/chrome"
 
   - name: copy ambient role smoke tests
@@ -14,20 +13,6 @@
       src: ui/ambient_role_smoke/
       dest: "{{ ui_ambient_role_smoke_dir }}/"
       mode: "0644"
-
-  - name: install ambient role smoke virtualenv package
-    package:
-      name: python3-venv
-      state: present
-    become: true
-    environment: "{{ proxy_env }}"
-
-  - name: install ambient role smoke python requirements
-    pip:
-      requirements: "{{ ui_ambient_role_smoke_dir }}/requirements.txt"
-      virtualenv: "{{ ui_ambient_role_smoke_venv }}"
-      virtualenv_command: python3 -m venv
-    environment: "{{ proxy_env }}"
 
   - name: check ambient role smoke browser executable
     stat:
@@ -45,18 +30,22 @@
   - block:
 
     - name: run ambient role smoke tests
-      command: "{{ ui_ambient_role_smoke_venv }}/bin/python -m pytest -q {{ ui_ambient_role_smoke_dir }}"
+      command: "dotnet test {{ ui_ambient_role_smoke_dir }}/FWO.Ui.AmbientRoleSmoke.csproj --configuration Debug --nologo"
       register: ui_ambient_role_smoke_result
       changed_when: false
-      environment:
-        FWO_UI_BROWSER_EXECUTABLE: "{{ ui_ambient_role_smoke_browser_executable }}"
-        FWO_UI_BASE_URL: "https://{{ ui_hostname }}/"
-        FWO_UI_USERNAME: "{{ ui_ambient_role_smoke_username | default('user1' ~ test_postfix) }}"
-        FWO_UI_PASSWORD: "{{ ui_ambient_role_smoke_password | default(test_user1_pw) }}"
-        FWO_UI_ROUTES: "{{ ui_ambient_role_smoke_routes | default('/settings/user,/settings/language,/settings/report,/settings/modellingpersonal,/settings/recertificationpersonal,/report/generation,/report/archive,/networkmodelling,/certification') }}"
-        FWO_UI_HEADLESS: "{{ ui_ambient_role_smoke_headless | default('true') }}"
-        FWO_UI_IGNORE_HTTPS_ERRORS: "{{ ui_ambient_role_smoke_ignore_https_errors | default('true') }}"
-        FWO_UI_TIMEOUT_MS: "{{ ui_ambient_role_smoke_timeout_ms | default('30000') }}"
+      environment: >-
+        {{
+          proxy_env | combine({
+            'FWO_UI_BROWSER_EXECUTABLE': ui_ambient_role_smoke_browser_executable,
+            'FWO_UI_BASE_URL': 'https://' ~ ui_hostname ~ '/',
+            'FWO_UI_USERNAME': ui_ambient_role_smoke_username | default('user1' ~ test_postfix),
+            'FWO_UI_PASSWORD': ui_ambient_role_smoke_password | default(test_user1_pw),
+            'FWO_UI_ROUTES': ui_ambient_role_smoke_routes | default('/settings/user,/settings/language,/settings/report,/settings/modellingpersonal,/settings/recertificationpersonal,/report/generation,/report/archive,/networkmodelling,/certification'),
+            'FWO_UI_HEADLESS': ui_ambient_role_smoke_headless | default('true'),
+            'FWO_UI_IGNORE_HTTPS_ERRORS': ui_ambient_role_smoke_ignore_https_errors | default('true'),
+            'FWO_UI_TIMEOUT_MS': ui_ambient_role_smoke_timeout_ms | default('30000')
+          })
+        }}
 
     rescue:
 
@@ -78,9 +67,9 @@
       fail:
         msg:
           - "UI ambient role smoke tests failed."
-          - "pytest stdout:"
+          - "dotnet test stdout:"
           - "{{ ui_ambient_role_smoke_result.stdout_lines | default(ansible_failed_result.stdout_lines | default([])) }}"
-          - "pytest stderr:"
+          - "dotnet test stderr:"
           - "{{ ui_ambient_role_smoke_result.stderr_lines | default(ansible_failed_result.stderr_lines | default([])) }}"
           - "systemctl status {{ ui_service_name }}:"
           - "{{ ui_ambient_role_smoke_service_status.stdout_lines | default([]) }}"

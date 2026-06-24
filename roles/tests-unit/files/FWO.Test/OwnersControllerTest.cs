@@ -18,6 +18,11 @@ namespace FWO.Test
     [TestFixture]
     internal class OwnersControllerTest
     {
+        private static readonly string[] kOwnerControllerRoutes = ["api/owners"];
+        private static readonly string[] kModellerRole = [Roles.Modeller];
+        private static readonly string[] kAdminAndModellerRoles = [Roles.Admin, Roles.Modeller];
+        private static readonly string[] kOwnerResponseTypes = ["standard", "infrastructure", "infrastructure"];
+
         [Test]
         public void GetUsesApiOwnersRoute()
         {
@@ -25,7 +30,7 @@ namespace FWO.Test
             MethodInfo getMethod = typeof(OwnersController).GetMethod(nameof(OwnersController.Get))!;
             HttpPostAttribute? httpPost = getMethod.GetCustomAttribute<HttpPostAttribute>();
 
-            Assert.That(controllerRoutes.Select(route => route.Template), Is.EquivalentTo(new[] { "api/owners" }));
+            Assert.That(controllerRoutes.Select(route => route.Template), Is.EquivalentTo(kOwnerControllerRoutes));
             Assert.That(httpPost?.Template, Is.EqualTo("get"));
         }
 
@@ -140,6 +145,18 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GetReturnsBadRequestForNonPositiveLifecycleStateId()
+        {
+            OwnersApiConnection apiConnection = new();
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            ActionResult<List<GetOwnerResponse>> result = await controller.Get(new GetOwnersRequest { OwnerLifeCycleStateId = 0 });
+
+            Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+            Assert.That(apiConnection.Query, Is.Empty);
+        }
+
+        [Test]
         public async Task GetReturnsBadRequestForControlCharacterInName()
         {
             OwnersApiConnection apiConnection = new();
@@ -164,12 +181,20 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GetOwnersRequestRejectsUnknownJsonProperties()
+        {
+            string json = """{"ownerId":1,"unsupported":true}""";
+
+            Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<GetOwnersRequest>(json));
+        }
+
+        [Test]
         public async Task GetRestrictsModellerToEditableOwnerIds()
         {
             OwnersApiConnection apiConnection = new();
             OwnersController controller = CreateController(
                 apiConnection,
-                PrincipalWithRolesAndClaims([Roles.Modeller], new Claim("x-hasura-editable-owners", "{7,8}")));
+                PrincipalWithRolesAndClaims(kModellerRole, new Claim("x-hasura-editable-owners", "{7,8}")));
 
             await controller.Get(new GetOwnersRequest());
 
@@ -183,7 +208,7 @@ namespace FWO.Test
             OwnersApiConnection apiConnection = new();
             OwnersController controller = CreateController(
                 apiConnection,
-                PrincipalWithRolesAndClaims([Roles.Admin, Roles.Modeller], new Claim("x-hasura-editable-owners", "{7,8}")));
+                PrincipalWithRolesAndClaims(kAdminAndModellerRoles, new Claim("x-hasura-editable-owners", "{7,8}")));
 
             await controller.Get(new GetOwnersRequest());
 
@@ -209,7 +234,7 @@ namespace FWO.Test
 
             OkObjectResult okResult = (OkObjectResult)result.Result!;
             List<GetOwnerResponse> owners = (List<GetOwnerResponse>)okResult.Value!;
-            Assert.That(owners.Select(owner => owner.Type), Is.EqualTo(new[] { "standard", "infrastructure", "infrastructure" }));
+            Assert.That(owners.Select(owner => owner.Type), Is.EqualTo(kOwnerResponseTypes));
         }
 
         [Test]
@@ -319,6 +344,50 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task GetTreatsNullRequestAsEmptyRequest()
+        {
+            OwnersApiConnection apiConnection = new();
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            ActionResult<List<GetOwnerResponse>> result = await controller.Get(null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
+                Assert.That(SerializeVariables(apiConnection.Variables), Does.Contain("active_state"));
+            });
+        }
+
+        [Test]
+        public async Task GetReturnsEmptyListWhenApiReturnsNull()
+        {
+            OwnersApiConnection apiConnection = new() { ReturnNullOwners = true };
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Auditor));
+
+            ActionResult<List<GetOwnerResponse>> result = await controller.Get(new GetOwnersRequest());
+
+            OkObjectResult okResult = (OkObjectResult)result.Result!;
+            List<GetOwnerResponse> owners = (List<GetOwnerResponse>)okResult.Value!;
+            Assert.That(owners, Is.Empty);
+        }
+
+        [Test]
+        public async Task GetReturnsInternalServerErrorWhenApiThrows()
+        {
+            OwnersApiConnection apiConnection = new() { ThrowOnQuery = true };
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            ActionResult<List<GetOwnerResponse>> result = await controller.Get(new GetOwnersRequest());
+
+            ObjectResult objectResult = (ObjectResult)result.Result!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(objectResult.StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
+                Assert.That(objectResult.Value, Is.EqualTo("Internal server error"));
+            });
+        }
+
         private static OwnersController CreateController(ApiConnection apiConnection, ClaimsPrincipal user)
         {
             return new OwnersController(apiConnection)
@@ -352,6 +421,8 @@ namespace FWO.Test
             public string Query { get; private set; } = string.Empty;
             public object? Variables { get; private set; }
             public List<FwoOwner> Owners { get; set; } = [];
+            public bool ReturnNullOwners { get; set; }
+            public bool ThrowOnQuery { get; set; }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(
                 string query,
@@ -359,8 +430,17 @@ namespace FWO.Test
                 string? operationName = null,
                 QueryChunkingOptions? chunkingOptions = null)
             {
+                if (ThrowOnQuery)
+                {
+                    throw new InvalidOperationException("owner lookup failed");
+                }
+
                 Query = query;
                 Variables = variables;
+                if (ReturnNullOwners)
+                {
+                    return Task.FromResult(default(QueryResponseType)!);
+                }
                 return Task.FromResult((QueryResponseType)(object)Owners);
             }
         }

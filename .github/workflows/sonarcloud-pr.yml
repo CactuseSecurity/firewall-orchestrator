@@ -1,33 +1,38 @@
-name: SonarCloud
+name: SonarCloud PR
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-      - develop
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+      - labeled
 
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   analyze:
-    name: Analyze
+    name: SonarQube Analyze PR
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'run-sonar') || contains(fromJson(vars.SONAR_TRUSTED_FORK_OWNERS || '[]'), github.event.pull_request.head.repo.owner.login) }}
     runs-on: ubuntu-latest
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
       SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
-
     steps:
-      - name: Checkout repository
+      - name: Checkout PR head
         uses: actions/checkout@v6
         with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Java
         uses: actions/setup-java@v5
@@ -59,13 +64,16 @@ jobs:
         if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
         run: dotnet tool update dotnet-sonarscanner --tool-path .sonar/scanner
 
-      - name: Build and analyze
+      - name: Build and analyze pull request
         run: |
           .sonar/scanner/dotnet-sonarscanner begin \
             /k:"${SONAR_PROJECT_KEY}" \
             /o:"${SONAR_ORGANIZATION}" \
             /d:sonar.token="${SONAR_TOKEN}" \
             /d:sonar.host.url="https://sonarcloud.io" \
-            /d:sonar.qualitygate.wait=true
+            /d:sonar.qualitygate.wait=true \
+            /d:sonar.pullrequest.key="${{ github.event.pull_request.number }}" \
+            /d:sonar.pullrequest.branch="${{ github.event.pull_request.head.ref }}" \
+            /d:sonar.pullrequest.base="${{ github.event.pull_request.base.ref }}"
           dotnet build roles/FWO.sln --configuration Debug --no-incremental
           .sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${SONAR_TOKEN}"

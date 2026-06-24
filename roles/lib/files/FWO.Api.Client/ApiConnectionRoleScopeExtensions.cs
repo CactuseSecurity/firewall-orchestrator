@@ -109,20 +109,20 @@ namespace FWO.Api.Client
 
         private static List<string> GetReportRoles(ReportType reportType)
         {
-            if(reportType == ReportType.Owners || reportType.IsComplianceReport())
+            if (reportType == ReportType.Owners || reportType.IsComplianceReport())
             {
                 return [Roles.Admin, Roles.FwAdmin, Roles.Auditor];
             }
-            if(reportType.IsModellingReport())
+            if (reportType.IsModellingReport())
             {
                 return [Roles.Admin, Roles.Modeller, Roles.Recertifier, Roles.Auditor];
             }
-            if(reportType.IsWorkflowReport())
+            if (reportType.IsWorkflowReport())
             {
                 return [Roles.Admin, Roles.FwAdmin, Roles.Auditor, Roles.Requester,
                     Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer];
             }
-            if(reportType.IsDeviceRelatedReport())
+            if (reportType.IsDeviceRelatedReport())
             {
                 return [Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter,
                     Roles.Recertifier, Roles.Auditor];

@@ -470,6 +470,9 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 - change internal logic to handle src/dst zones as security-relevant
 - backfill existing rule source and destination zone text fields from rule zone links
 
-# 9.3 - 14.06.2026 DEVELOP
+# 9.1.11 - 24.06.2026 DEVELOP
+- fix: rule_owner_mapping - standardize constraint name
+
+# 9.3 - 30.06.2026 DEVELOP
 - new OPNsense standalone (25ff) import module: imports OPNsense firewall configs via the full config.xml core backup API
 - register the OPNsense standalone (25ff) device type

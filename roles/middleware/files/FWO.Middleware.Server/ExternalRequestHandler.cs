@@ -408,7 +408,7 @@ namespace FWO.Middleware.Server
         {
             ExternalTicket ticket = ExternalTicketFactory.Create(actSystem);
             ticket.Subject = ConstructSubject(reqTasks.Count > 0 ? reqTasks[0] : throw new ArgumentException("No Task given"));
-            ticket.Priority = extSystemType == BuiltInExternalTicketSystemTypes.TufinSecureChangeId ? SCTicketPriority.Low.ToString() : "Low";
+            ticket.Priority = SCTicketPriority.Low.ToString();
             ticket.Requester = requester?.Name ?? "";
             ModellingNamingConvention? namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(UserConfig.ModNamingConvention);
             await ticket.CreateRequestString(reqTasks, ipProtos, namingConvention);

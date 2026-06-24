@@ -227,11 +227,4 @@ namespace FWO.Basics
         TopLevelArrayConcat = 2,
         MutationAffectedRowsOnly = 3
     }
-
-    public struct CheckPointTaskTypes
-    {
-        public const string GroupCreate = "group_create";
-        public const string GroupModify = "group_modify";
-        public const string Publish = "publish";
-    }
 }

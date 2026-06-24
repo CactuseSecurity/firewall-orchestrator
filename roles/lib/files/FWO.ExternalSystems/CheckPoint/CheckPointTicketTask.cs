@@ -18,7 +18,19 @@ namespace FWO.ExternalSystems.CheckPoint
 
         public override void FillTaskText(ExternalTicketTemplate template)
         {
-            ExtMgtData extMgt = ReqTask.OnManagement != null && ReqTask.OnManagement.ExtMgtData != null ? JsonSerializer.Deserialize<ExtMgtData>(ReqTask.OnManagement.ExtMgtData) : new();
+            ExtMgtData extMgt = new();
+
+            if (!string.IsNullOrWhiteSpace(ReqTask.OnManagement?.ExtMgtData))
+            {
+                try
+                {
+                    extMgt = JsonSerializer.Deserialize<ExtMgtData>(ReqTask.OnManagement.ExtMgtData);
+                }
+                catch (JsonException)
+                {
+                    extMgt = new();
+                }
+            }
 
             string managementId = extMgt.ExtId ?? ReqTask.ManagementId?.ToString() ?? "0";
             string managementName = extMgt.ExtName ?? ReqTask.OnManagement?.Name ?? "";

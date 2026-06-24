@@ -218,24 +218,6 @@ namespace FWO.ExternalSystems.CheckPoint
             renderedTasks.Add(new RenderedTask(CheckPointTaskTypes.Publish, body));
         }
 
-        // TODO RuleChange: install-policy execution will be added once Check Point rule changes are implemented.
-        private void AddInstallPolicyTasks()
-        {
-            List<CheckPointInstallPolicyTarget> targets = GetInstallPolicyTargets();
-
-            if (targets.Count == 0)
-            {
-                return;
-            }
-
-            ExternalTicketTemplate template = GetTemplate(CheckPointTaskTypes.InstallPolicy) ?? throw new ConfigException("Missing install policy template.");
-
-            foreach (CheckPointInstallPolicyTarget target in targets)
-            {
-
-            }
-        }
-
         #endregion
 
         #region External Processing
@@ -518,30 +500,6 @@ namespace FWO.ExternalSystems.CheckPoint
         public override string GetTaskTypeAsString(WfReqTask task)
         {
             return GetCheckPointTaskType(task);
-        }
-        private List<CheckPointInstallPolicyTarget> GetInstallPolicyTargets()
-        {
-            if (string.IsNullOrWhiteSpace(
-                ExtQueryVariables))
-            {
-                return [];
-            }
-
-            try
-            {
-                using JsonDocument document = JsonDocument.Parse(ExtQueryVariables);
-
-                if (document.RootElement.TryGetProperty(ExternalVarKeys.CheckPointInstallPolicyTargets, out JsonElement targets))
-                {
-                    return JsonSerializer.Deserialize<List<CheckPointInstallPolicyTarget>>(targets.GetRawText()) ?? [];
-                }
-            }
-            catch (JsonException)
-            {
-                return [];
-            }
-
-            return [];
         }
 
         private static string GetCheckPointTaskType(WfReqTask task)

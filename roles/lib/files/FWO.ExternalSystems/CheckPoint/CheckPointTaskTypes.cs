@@ -2,12 +2,6 @@ using FWO.Data.Workflow;
 
 namespace FWO.ExternalSystems.CheckPoint
 {
-    public class CheckPointInstallPolicyTarget
-    {
-        public string PolicyPackage { get; set; } = "";
-        public List<string> Targets { get; set; } = [];
-    }
-
     public static class CheckPointTaskTypes
     {
         public const string GroupCreate = nameof(WfTaskType.group_create);

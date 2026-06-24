@@ -9,6 +9,7 @@ import requests
 import xmltodict
 from fw_modules.opnsense25ff.opnsense_normalizer import normalize_opnsense_config
 from fw_modules.opnsense25ff.opnsense_sanitizer import remove_opnsense_sensitive_data
+from fwo_base import ensure_device_name
 from fwo_exceptions import FwoNativeConfigFetchError
 from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
@@ -61,21 +62,3 @@ def get_config(
             msg = f"[-] get_config: API request failed: {e}"
             FWOLogger.error(msg)
             raise FwoNativeConfigFetchError(msg) from e
-
-
-def ensure_device_name(import_state: ImportStateController) -> None:
-    mgm_details = import_state.state.mgm_details
-    gw_map = import_state.state.gateway_map.get(mgm_details.current_mgm_id, {})
-    gateway_uid = next(iter(gw_map.keys()), None)
-
-    if (
-        mgm_details.devices
-        and "name" in mgm_details.devices[0]
-        and (gateway_uid is None or mgm_details.devices[0]["name"] in gw_map)
-    ):
-        return
-
-    if gateway_uid is None:
-        gateway_uid = mgm_details.name or mgm_details.hostname
-
-    mgm_details.devices = [{"name": gateway_uid}]

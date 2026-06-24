@@ -28,6 +28,10 @@ def _is_dict(value: object) -> TypeGuard[dict[str, Any]]:
     return isinstance(value, dict)
 
 
+def _as_object_list(value: Any) -> list[object]:
+    return cast("list[object]", value)
+
+
 def _get_value(data: dict[str, Any], *keys: str) -> object:
     current: object = data
     for key in keys:
@@ -46,7 +50,7 @@ def _as_dict_list(value: object) -> list[dict[str, Any]]:
     if _is_dict(value):
         return [value]
     if isinstance(value, list):
-        return [item for item in cast("list[object]", value) if _is_dict(item)]
+        return [item for item in _as_object_list(value) if _is_dict(item)]
     return []
 
 
@@ -124,7 +128,7 @@ def _single_interface_name(rule: dict[str, Any]) -> str | None:
     if isinstance(rule_interface, str) and rule_interface:
         return rule_interface
     if isinstance(rule_interface, list):
-        interface_names = cast("list[object]", rule_interface)
+        interface_names = _as_object_list(rule_interface)
         if len(interface_names) == 1 and isinstance(interface_names[0], str):
             return interface_names[0]
     return None
@@ -219,7 +223,7 @@ def _has_rule_endpoint_value(endpoint: dict[str, Any], key: str) -> bool:
     if isinstance(value, str):
         return value != ""
     if isinstance(value, list):
-        return len(cast("list[object]", value)) > 0
+        return len(_as_object_list(value)) > 0
     return True
 
 

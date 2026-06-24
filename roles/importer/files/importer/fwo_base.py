@@ -239,6 +239,24 @@ def write_native_config_to_file(import_state: "ImportState", config_native: dict
         FWOLogger.debug(f"import_management - writing debug config json files duration {time_write_debug_json!s}s")
 
 
+def ensure_device_name(import_state: "ImportStateController") -> None:
+    mgm_details = import_state.state.mgm_details
+    gw_map = import_state.state.gateway_map.get(mgm_details.current_mgm_id, {})
+    gateway_uid = next(iter(gw_map.keys()), None)
+
+    if (
+        mgm_details.devices
+        and "name" in mgm_details.devices[0]
+        and (gateway_uid is None or mgm_details.devices[0]["name"] in gw_map)
+    ):
+        return
+
+    if gateway_uid is None:
+        gateway_uid = mgm_details.name or mgm_details.hostname
+
+    mgm_details.devices = [{"name": gateway_uid}]
+
+
 def init_service_provider() -> ServiceProvider:
     service_provider = ServiceProvider()
     service_provider.register(Services.FWO_CONFIG, fwo_config.read_config, Lifetime.SINGLETON)

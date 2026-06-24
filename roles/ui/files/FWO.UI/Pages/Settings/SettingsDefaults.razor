@@ -188,8 +188,8 @@
     <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("accesstoken_lifetime"))">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("accesstoken_lifetime")):</label>
         <div class="col-sm-8 d-inline-flex">
-            <input class="me-3 form-control" style="max-width: 90px;" type="number" min="1" @bind="accessTokenLifetimeValue" />
-            <select style="max-width: 130px;" @bind="accessTokenLifetimeUnit" class="form-select">
+            <input class="me-3 form-control" style="max-width: 90px;" type="number" min="@DynamicAccessTokenLifetimeMinValue" @bind="accessTokenLifetimeValue" />
+            <select style="max-width: 130px;" class="form-select" value="@accessTokenLifetimeUnit" @onchange="@((e) => SetDynamicTokenLifetimeMinValue(e, ref DynamicAccessTokenLifetimeMinValue, ref accessTokenLifetimeValue, ref accessTokenLifetimeUnit))">
                 @foreach (TokenLifetimeUnit unit in Enum.GetValues(typeof(TokenLifetimeUnit)))
                 {
                     <option value="@unit">@unit.ToString(userConfig)</option>
@@ -200,8 +200,8 @@
     <div class="pt-2 form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("refreshtoken_lifetime"))">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("refreshtoken_lifetime")):</label>
         <div class="col-sm-8 d-inline-flex">
-            <input class="me-3 form-control" style="max-width: 90px;" type="number" min="1" @bind="refreshTokenLifetimeValue" />
-            <select style="max-width: 130px;" @bind="refreshTokenLifetimeUnit" class="form-select">
+            <input class="me-3 form-control" style="max-width: 90px;" type="number" min="@DynamicRefreshTokenLifetimeMinValue" @bind="refreshTokenLifetimeValue" />
+            <select style="max-width: 130px;" class="form-select" value="@refreshTokenLifetimeUnit" @onchange="@((e) => SetDynamicTokenLifetimeMinValue(e, ref DynamicRefreshTokenLifetimeMinValue, ref refreshTokenLifetimeValue, ref refreshTokenLifetimeUnit))">
                 @foreach (TokenLifetimeUnit unit in Enum.GetValues(typeof(TokenLifetimeUnit)))
                 {
                     <option value="@unit">@unit.ToString(userConfig)</option>
@@ -255,6 +255,8 @@ else
     private TokenLifetimeUnit accessTokenLifetimeUnit = TokenLifetimeUnit.Hours;
     private TokenLifetimeUnit refreshTokenLifetimeUnit = TokenLifetimeUnit.Days;
     private bool InitComplete = false;
+    private int DynamicAccessTokenLifetimeMinValue = 1;
+    private int DynamicRefreshTokenLifetimeMinValue = 1;
 
     protected override async Task OnInitializedAsync()
     {
@@ -282,15 +284,35 @@ else
 
             accessTokenLifetimeValue = configData.AccessTokenLifetime;
             accessTokenLifetimeUnit = configData.AccessTokenLifetimeUnit;
+            DynamicAccessTokenLifetimeMinValue = GetTokenLifetimeMinValue(accessTokenLifetimeUnit);
 
             refreshTokenLifetimeValue = configData.RefreshTokenLifetime;
             refreshTokenLifetimeUnit = configData.RefreshTokenLifetimeUnit;
+            DynamicRefreshTokenLifetimeMinValue = GetTokenLifetimeMinValue(refreshTokenLifetimeUnit);
 
             InitComplete = true;
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+    }
+
+    private void SetDynamicTokenLifetimeMinValue(ChangeEventArgs e, 
+        ref int variableMinVal, 
+        ref int tokenLifetimeVal, 
+        ref TokenLifetimeUnit tokenLifetimeUnit)
+    {
+        if (Enum.TryParse<TokenLifetimeUnit>(e.Value?.ToString(), out TokenLifetimeUnit unit))
+        {
+            variableMinVal = GetTokenLifetimeMinValue(unit);
+
+            if (variableMinVal > tokenLifetimeVal)
+            {
+                tokenLifetimeVal = variableMinVal;
+            }
+
+            tokenLifetimeUnit = unit;
         }
     }
 
@@ -304,7 +326,9 @@ else
         int accessTokenLifetimeInMinutes = ConvertTokenLifetimeToMinutes(accessTokenLifetimeValue, accessTokenLifetimeUnit);
         int refreshTokenLifetimeInMinutes = ConvertTokenLifetimeToMinutes(refreshTokenLifetimeValue, refreshTokenLifetimeUnit);
 
-        return refreshTokenLifetimeInMinutes > accessTokenLifetimeInMinutes;
+        return accessTokenLifetimeValue >= GetTokenLifetimeMinValue(accessTokenLifetimeUnit)
+            && refreshTokenLifetimeValue >= GetTokenLifetimeMinValue(refreshTokenLifetimeUnit)
+            && refreshTokenLifetimeInMinutes > accessTokenLifetimeInMinutes;
     }
 
     private async Task Save()
@@ -399,6 +423,17 @@ else
             TokenLifetimeUnit.Hours => safeLifetimeValue * 60,
             TokenLifetimeUnit.Days => safeLifetimeValue * 60 * 24,
             _ => safeLifetimeValue
+        };
+    }
+
+    private static int GetTokenLifetimeMinValue(TokenLifetimeUnit lifetimeUnit)
+    {
+        return lifetimeUnit switch
+        {
+            TokenLifetimeUnit.Minutes => 5,
+            TokenLifetimeUnit.Hours => 1,
+            TokenLifetimeUnit.Days => 1,
+            _ => 1
         };
     }
 }

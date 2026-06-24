@@ -18,20 +18,8 @@ namespace FWO.Test
     [NonParallelizable]
     public class TokenRefreshCoordinatorTest
     {
-        [SetUp]
-        public void SetUp()
-        {
-            TokenRefreshCoordinator.ResetForTests();
-        }
-
-        [TearDown]
-        public void TearDown()
-        {
-            TokenRefreshCoordinator.ResetForTests();
-        }
-
         [Test]
-        public async Task StartAsync_ReusesOneSharedRunnerPerSessionKey()
+        public async Task StartAsync_CreatesSeparateRunnerPerCoordinatorInstance()
         {
             MockProtectedSessionStorage sessionStorage = new();
             TrackingPeriodicTaskRunnerFactory runnerFactory = new();
@@ -41,29 +29,49 @@ namespace FWO.Test
 
             await coordinator1.StartAsync();
 
-            Assert.That(sessionStorage.ContainsKey("token_refresh_coordinator_session_key"), Is.True);
             Assert.That(runnerFactory.CreateCallCount, Is.EqualTo(1));
             Assert.That(runnerFactory.StartCallCount, Is.EqualTo(1));
-
-            string storedSessionKey = await ReadSessionKey(sessionStorage);
-            Assert.That(storedSessionKey, Is.Not.Null.And.Not.Empty);
 
             await coordinator2.StartAsync();
 
-            Assert.That(await ReadSessionKey(sessionStorage), Is.EqualTo(storedSessionKey));
+            Assert.That(runnerFactory.CreateCallCount, Is.EqualTo(2));
+            Assert.That(runnerFactory.StartCallCount, Is.EqualTo(2));
+
+            coordinator1.Stop();
+            Assert.That(runnerFactory.DisposeCallCount, Is.EqualTo(1));
+
+            coordinator2.Stop();
+            Assert.That(runnerFactory.DisposeCallCount, Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task StartAsync_WhenCalledTwiceOnSameInstance_StartsOnlyOneRunner()
+        {
+            TrackingPeriodicTaskRunnerFactory runnerFactory = new();
+            TokenRefreshCoordinator coordinator = CreateCoordinator(new MockProtectedSessionStorage(), runnerFactory);
+
+            await coordinator.StartAsync();
+            await coordinator.StartAsync();
+
             Assert.That(runnerFactory.CreateCallCount, Is.EqualTo(1));
             Assert.That(runnerFactory.StartCallCount, Is.EqualTo(1));
 
-            coordinator1.Stop();
-            Assert.That(runnerFactory.DisposeCallCount, Is.EqualTo(0));
-
-            coordinator2.Stop();
+            coordinator.Stop();
             Assert.That(runnerFactory.DisposeCallCount, Is.EqualTo(1));
         }
 
-        private static async Task<string> ReadSessionKey(MockProtectedSessionStorage sessionStorage)
+        [Test]
+        public void Stop_WhenCalledTwice_DisposesRunnerOnlyOnce()
         {
-            return (await sessionStorage.GetAsync<string>("token_refresh_coordinator_session_key")).Value ?? "";
+            TrackingPeriodicTaskRunnerFactory runnerFactory = new();
+            TokenRefreshCoordinator coordinator = CreateCoordinator(new MockProtectedSessionStorage(), runnerFactory);
+
+            coordinator.StartAsync().GetAwaiter().GetResult();
+
+            coordinator.Stop();
+            coordinator.Stop();
+
+            Assert.That(runnerFactory.DisposeCallCount, Is.EqualTo(1));
         }
 
         private static TokenRefreshCoordinator CreateCoordinator(MockProtectedSessionStorage sessionStorage, TrackingPeriodicTaskRunnerFactory runnerFactory)
@@ -72,7 +80,6 @@ namespace FWO.Test
             TokenService tokenService = new(middlewareClient, sessionStorage);
 
             return new TokenRefreshCoordinator(
-                sessionStorage,
                 tokenService,
                 new TestAuthenticationStateProvider(),
                 new MockApiConnection(),

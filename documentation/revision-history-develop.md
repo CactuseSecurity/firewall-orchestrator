@@ -476,3 +476,6 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 
 # 9.1.11 - 24.06.2026 DEVELOP
 - fix: rule_owner_mapping - standardize constraint name
+
+# 9.1.12 - 24.06.2026
+- cleanup: remove rule_num and zone fields

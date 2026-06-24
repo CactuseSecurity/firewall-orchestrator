@@ -18,13 +18,43 @@ concurrency:
 jobs:
   analyze:
     name: SonarQube Analyze PR
-    if: ${{ contains(fromJson(vars.SONAR_TRUSTED_FORK_OWNERS || '[]'), github.event.pull_request.head.repo.owner.login) }}
     runs-on: ubuntu-latest
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
       SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
     steps:
+      - name: Gate trusted PR sources
+        shell: bash
+        run: |
+          trusted_owners='${{ vars.SONAR_TRUSTED_FORK_OWNERS || '[]' }}'
+          pr_owner='${{ github.event.pull_request.head.repo.owner.login }}'
+          base_repo='${{ github.repository }}'
+          head_repo='${{ github.event.pull_request.head.repo.full_name }}'
+
+          if [ "$head_repo" = "$base_repo" ]; then
+            exit 0
+          fi
+
+          python - <<'PY'
+          import json
+          import os
+          import sys
+
+          trusted = json.loads(os.environ["TRUSTED_OWNERS"])
+          pr_owner = os.environ["PR_OWNER"]
+
+          if pr_owner not in trusted:
+              print(
+                  f"PR owner '{pr_owner}' is not listed in SONAR_TRUSTED_FORK_OWNERS. "
+                  "This privileged Sonar workflow is blocked for untrusted fork PRs."
+              )
+              sys.exit(1)
+          PY
+        env:
+          TRUSTED_OWNERS: ${{ vars.SONAR_TRUSTED_FORK_OWNERS || '[]' }}
+          PR_OWNER: ${{ github.event.pull_request.head.repo.owner.login }}
+
       - name: Checkout PR head
         uses: actions/checkout@v6
         with:

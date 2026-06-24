@@ -148,6 +148,20 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task EventMediator_JwtExpiredForCurrentUser_ShowsReloginDialog()
+        {
+            await using MainLayoutFixture fixture = new();
+
+            fixture.EventMediator.Publish(nameof(JwtExpiredEvent), new JwtExpiredEvent(new(fixture.UserConfig.User.Dn)));
+
+            fixture.Layout.WaitForAssertion(() =>
+            {
+                Assert.That(GetPrivateFieldValue<bool>(fixture.Layout.Instance, "showReloginDialog"), Is.True);
+                Assert.That(fixture.Layout.Markup, Does.Contain("jwt_expired_text"));
+            });
+        }
+
+        [Test]
         public async Task OnAlertUpdate_WhenAdminHasOpenAlerts_ShowsNavigationAlertMarker()
         {
             await using MainLayoutFixture fixture = new(roles: [Roles.Admin]);

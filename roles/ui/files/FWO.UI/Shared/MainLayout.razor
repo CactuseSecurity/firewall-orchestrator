@@ -114,6 +114,7 @@
     protected override async Task OnInitializedAsync()
     {
         EventMediator.Subscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent), _ => OnPermissionsChanged(_.EventArgs));
+        EventMediator.Subscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent), _ => OnJwtExpired(_.EventArgs));
         apiConnection.OnExecutionModeChanged += OnExecutionModeChanged;
 
         DisplayMessageInUiFunction = DisplayMessageInUi;
@@ -262,6 +263,14 @@
         if (DistName.DnEquals(e?.UserDn, userConfig.User.Dn))
         {
             ShowReloginDialog(userConfig.GetText("permissions"), userConfig.GetText("permissions_text"), reloginAbortable: false);
+        }
+    }
+
+    private void OnJwtExpired(JwtExpiredEventArgs? e)
+    {
+        if (user?.Identity?.IsAuthenticated == true && !string.IsNullOrWhiteSpace(e?.UserDn) && DistName.DnEquals(e.UserDn, userConfig.User.Dn))
+        {
+            ShowReloginDialog(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), reloginAbortable: false);
         }
     }
 
@@ -544,6 +553,7 @@
         locationChangingRegistration?.Dispose();
         apiConnection.OnExecutionModeChanged -= OnExecutionModeChanged;
         EventMediator.Unsubscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent));
+        EventMediator.Unsubscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent));
         tokenRefreshCoordinator.Stop();
     }
 }

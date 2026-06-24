@@ -56,13 +56,13 @@ namespace FWO.Ui.Services
             {
                 Log.WriteWarning("Token", $"Unreadable protected session token pair detected, clearing stored data: {ex.Message}");
 
-                await ClearStoredTokenPair();
+                await ClearStoredTokenPairCore();
             }
             catch (Exception ex)
             {
                 Log.WriteWarning("Token", $"Failed to restore token pair from session storage, clearing stored data: {ex.Message}");
 
-                await ClearStoredTokenPair();
+                await ClearStoredTokenPairCore();
             }
         }
 
@@ -295,6 +295,11 @@ namespace FWO.Ui.Services
         {
             await initializationTask.Value;
 
+            await ClearStoredTokenPairCore();
+        }
+
+        private async Task ClearStoredTokenPairCore()
+        {
             currentTokenPair = null;
 
             try

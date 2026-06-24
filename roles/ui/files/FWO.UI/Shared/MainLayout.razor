@@ -114,7 +114,7 @@
     protected override async Task OnInitializedAsync()
     {
         EventMediator.Subscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent), _ => OnPermissionsChanged(_.EventArgs));
-        EventMediator.Subscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent), _ => OnJwtExpired(_.EventArgs));
+        EventMediator.Subscribe<ReloginRequiredEvent>(nameof(ReloginRequiredEvent), _ => OnReloginRequired(_.EventArgs));
         apiConnection.OnExecutionModeChanged += OnExecutionModeChanged;
 
         DisplayMessageInUiFunction = DisplayMessageInUi;
@@ -266,7 +266,7 @@
         }
     }
 
-    private void OnJwtExpired(JwtExpiredEventArgs? e)
+    private void OnReloginRequired(ReloginRequiredEventArgs? e)
     {
         if (user?.Identity?.IsAuthenticated == true && !string.IsNullOrWhiteSpace(e?.UserDn) && DistName.DnEquals(e.UserDn, userConfig.User.Dn))
         {
@@ -477,13 +477,7 @@
                     }
                     else
                     {
-                        try
-                        {
-                            JwtReader jwtReader = new(userConfig.User.Jwt);
-                            Task.Run(async () => await jwtReader.Validate());
-                            role = jwtReader.GetRole();
-                        }
-                        catch (Exception) { }
+                         Task.Run(async () => role = await ValidateUserJwtAndSetRole());                        
                     }
 
                     Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception, userConfig.User.Name, role);
@@ -501,8 +495,24 @@
         catch (Exception displayException)
         {
             Log.WriteError("Display UI Message", "Could not display UI message.", displayException);
+        }       
+    }
+
+    private async Task<string> ValidateUserJwtAndSetRole()
+    {
+        try
+        {
+            JwtReader jwtReader = new(userConfig.User.Jwt);
+            await jwtReader.Validate();
+
+            return jwtReader.GetRole();
+        }
+        catch (Exception)
+        {
+            return "";
         }
     }
+
 
     public async Task AddUiLogEntry(int severity, string cause, string description)
     {
@@ -553,7 +563,7 @@
         locationChangingRegistration?.Dispose();
         apiConnection.OnExecutionModeChanged -= OnExecutionModeChanged;
         EventMediator.Unsubscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent));
-        EventMediator.Unsubscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent));
+        EventMediator.Unsubscribe<ReloginRequiredEvent>(nameof(ReloginRequiredEvent));
         tokenRefreshCoordinator.Stop();
     }
 }

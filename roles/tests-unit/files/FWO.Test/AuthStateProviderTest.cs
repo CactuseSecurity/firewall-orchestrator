@@ -60,7 +60,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task RefreshAuthenticationState_WhenNoSessionExists_ShouldNotPublishJwtExpiredEvent()
+        public async Task RefreshAuthenticationState_WhenNoSessionExists_ShouldNotPublishReloginRequiredEvent()
         {
             MockMiddlewareClient mockMiddlewareClient = new();
             MockProtectedSessionStorage mockSessionStorage = new();
@@ -69,7 +69,7 @@ namespace FWO.Test
             AuthStateProvider authStateProvider = new(tokenService, eventMediator);
 
             int publishCount = 0;
-            eventMediator.Subscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent), _ => publishCount++);
+            eventMediator.Subscribe<ReloginRequiredEvent>(nameof(ReloginRequiredEvent), _ => publishCount++);
 
             bool refreshed = await authStateProvider.RestoreAuthenticationState(new MockApiConnection(), mockMiddlewareClient, new UserConfig());
 
@@ -78,7 +78,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task RestoreAuthenticationState_WhenRefreshFails_ShouldClearStoredTokenPairAndPublishJwtExpiredEvent()
+        public async Task RestoreAuthenticationState_WhenRefreshFails_ShouldClearStoredTokenPairAndPublishReloginRequiredEvent()
         {
             using RSA rsa = RSA.Create(2048);
             RsaSecurityKey privateKey = new(rsa.ExportParameters(true));
@@ -106,7 +106,7 @@ namespace FWO.Test
 
             string? publishedUserDn = null;
             int publishCount = 0;
-            eventMediator.Subscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent), _ =>
+            eventMediator.Subscribe<ReloginRequiredEvent>(nameof(ReloginRequiredEvent), _ =>
             {
                 publishCount++;
                 publishedUserDn = _.EventArgs?.UserDn;
@@ -123,6 +123,45 @@ namespace FWO.Test
             Assert.That(publishedUserDn, Is.EqualTo(TestApiConnection.TestUserDn));
             Assert.That(await tokenService.GetTokenPair(), Is.Null);
             Assert.That(mockSessionStorage.ContainsKey("token_pair"), Is.False);
+        }
+
+        [Test]
+        public async Task RestoreAuthenticationState_WhenStoredAccessTokenIsInvalid_ShouldClearStoredTokenPairWithoutRefresh()
+        {
+            using RSA signingRsa = RSA.Create(2048);
+            using RSA validationRsa = RSA.Create(2048);
+            RsaSecurityKey signingPrivateKey = new(signingRsa.ExportParameters(true));
+            RsaSecurityKey validationPublicKey = new(validationRsa.ExportParameters(false));
+            JwtPrivateKeyField.SetValue(null, signingPrivateKey);
+            JwtPublicKeyField.SetValue(null, validationPublicKey);
+
+            MockMiddlewareClient mockMiddlewareClient = new();
+            MockProtectedSessionStorage mockSessionStorage = new();
+            EventMediator eventMediator = new();
+            TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator);
+
+            await tokenService.SetTokenPair(new TokenPair
+            {
+                AccessToken = GenerateJwtToken(signingPrivateKey, Roles.Reporter, DateTime.UtcNow.AddMinutes(10), BuildJwtClaims()),
+                RefreshToken = "refresh-token",
+                AccessTokenExpires = DateTime.UtcNow.AddMinutes(10),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(1)
+            });
+
+            int publishCount = 0;
+            eventMediator.Subscribe<ReloginRequiredEvent>(nameof(ReloginRequiredEvent), _ => publishCount++);
+
+            bool restored = await authStateProvider.RestoreAuthenticationState(new TestApiConnection(), mockMiddlewareClient, new UserConfig());
+            AuthenticationState authenticationState = await authStateProvider.GetAuthenticationStateAsync();
+
+            Assert.That(restored, Is.False);
+            Assert.That(authenticationState.User.Identity?.IsAuthenticated, Is.False);
+            Assert.That(mockMiddlewareClient.RefreshTokenCallCount, Is.EqualTo(0));
+            Assert.That(mockMiddlewareClient.RevokeRefreshTokenCallCount, Is.EqualTo(1));
+            Assert.That(await tokenService.GetTokenPair(), Is.Null);
+            Assert.That(mockSessionStorage.ContainsKey("token_pair"), Is.False);
+            Assert.That(publishCount, Is.EqualTo(0));
         }
 
         [Test]

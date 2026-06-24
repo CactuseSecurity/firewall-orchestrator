@@ -148,11 +148,11 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task EventMediator_JwtExpiredForCurrentUser_ShowsReloginDialog()
+        public async Task EventMediator_ReloginRequiredForCurrentUser_ShowsReloginDialog()
         {
             await using MainLayoutFixture fixture = new();
 
-            fixture.EventMediator.Publish(nameof(JwtExpiredEvent), new JwtExpiredEvent(new(fixture.UserConfig.User.Dn)));
+            fixture.EventMediator.Publish(nameof(ReloginRequiredEvent), new ReloginRequiredEvent(new(fixture.UserConfig.User.Dn)));
 
             fixture.Layout.WaitForAssertion(() =>
             {

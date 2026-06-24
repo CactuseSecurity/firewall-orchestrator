@@ -262,7 +262,7 @@ namespace FWO.Ui.Services
             {
                 if (!await HasRefreshToken())
                 {
-                    throw new AggregateException($"{nameof(RevokeTokens)} called but no refresh token was found!");
+                    return;
                 }
 
                 RefreshTokenRequest revokeTokenRequest = new()

@@ -55,7 +55,7 @@ namespace FWO.Middleware.Client
             return jwt.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-allowed-roles" && claim.Value == roleName) != null;
         }
 
-        public async Task<bool> Validate()
+        public async Task<JwtValidationResult> ValidateToken()
         {
             try
             {
@@ -77,36 +77,65 @@ namespace FWO.Middleware.Client
                 {
                     jwt = tokenValidationResult.SecurityToken as JsonWebToken;
                     Log.WriteDebug(JwtValidation, "Jwt was successfully validated.");
-                    return true;
+                    return new JwtValidationResult
+                    {
+                        Status = JwtValidationStatus.Success,
+                        Token = jwt
+                    };
                 }
-                return false;
+
+                Log.WriteWarning(JwtValidation, "Jwt validation failed without a token exception.");
+                return new JwtValidationResult
+                {
+                    Status = JwtValidationStatus.Invalid
+                };
             }
 
-            catch (SecurityTokenExpiredException expiredException)
+            catch (SecurityTokenExpiredException)
             {
-                Log.WriteError(JwtValidation, $"Jwt lifetime expired: {jwtString}.", expiredException);
-                return false;
+                Log.WriteDebug(JwtValidation, $"Jwt lifetime expired: {jwtString}.");
+                return new JwtValidationResult
+                {
+                    Status = JwtValidationStatus.Expired
+                };
             }
             catch (SecurityTokenInvalidSignatureException InvalidSignatureException)
             {
                 Log.WriteError(JwtValidation, $"Jwt signature could not be verified. Potential attack: {jwtString}.", InvalidSignatureException);
-                return false;
+                return new JwtValidationResult
+                {
+                    Status = JwtValidationStatus.Invalid
+                };
             }
             catch (SecurityTokenInvalidAudienceException InvalidAudienceException)
             {
                 Log.WriteError(JwtValidation, $"Jwt audience incorrect: {jwtString}.", InvalidAudienceException);
-                return false;
+                return new JwtValidationResult
+                {
+                    Status = JwtValidationStatus.Invalid
+                };
             }
             catch (SecurityTokenInvalidIssuerException InvalidIssuerException)
             {
                 Log.WriteError(JwtValidation, $"Jwt issuer incorrect: {jwtString}.", InvalidIssuerException);
-                return false;
+                return new JwtValidationResult
+                {
+                    Status = JwtValidationStatus.Invalid
+                };
             }
             catch (Exception UnexpectedError)
             {
                 Log.WriteError(JwtValidation, $"Unexpected problem while trying to verify Jwt: {jwtString}.", UnexpectedError);
-                return false;
+                return new JwtValidationResult
+                {
+                    Status = JwtValidationStatus.Invalid
+                };
             }
+        }
+
+        public async Task<bool> Validate()
+        {
+            return (await ValidateToken()).IsSuccess;
         }
 
         public Claim[] GetClaims()

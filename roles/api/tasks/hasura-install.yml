@@ -1,4 +1,4 @@
-# installs Hasura CLI and runs Hasura in a Podman-managed container
+# installs Hasura CLI and runs Hasura in a Podman-managed container, due to docker download issues
 
 - name: Install packages for Hasura CLI download
   package:

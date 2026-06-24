@@ -477,7 +477,7 @@
                     }
                     else
                     {
-                         Task.Run(async () => role = await ValidateUserJwtAndSetRole());                        
+                         role = Task.Run(ValidateUserJwtAndSetRole).GetAwaiter().GetResult();                    
                     }
 
                     Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception, userConfig.User.Name, role);

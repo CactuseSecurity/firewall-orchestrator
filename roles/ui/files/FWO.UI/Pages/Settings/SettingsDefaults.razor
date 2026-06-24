@@ -284,9 +284,11 @@ else
 
             accessTokenLifetimeValue = configData.AccessTokenLifetime;
             accessTokenLifetimeUnit = configData.AccessTokenLifetimeUnit;
+            DynamicAccessTokenLifetimeMinValue = GetTokenLifetimeMinValue(accessTokenLifetimeUnit);
 
             refreshTokenLifetimeValue = configData.RefreshTokenLifetime;
             refreshTokenLifetimeUnit = configData.RefreshTokenLifetimeUnit;
+            DynamicRefreshTokenLifetimeMinValue = GetTokenLifetimeMinValue(refreshTokenLifetimeUnit);
 
             InitComplete = true;
         }
@@ -303,13 +305,7 @@ else
     {
         if (Enum.TryParse<TokenLifetimeUnit>(e.Value?.ToString(), out TokenLifetimeUnit unit))
         {
-            variableMinVal = unit switch
-            {
-                TokenLifetimeUnit.Minutes => 5,
-                TokenLifetimeUnit.Hours => 1,
-                TokenLifetimeUnit.Days => 1,
-                _ => 1
-            };
+            variableMinVal = GetTokenLifetimeMinValue(unit);
 
             if (variableMinVal > tokenLifetimeVal)
             {
@@ -330,7 +326,9 @@ else
         int accessTokenLifetimeInMinutes = ConvertTokenLifetimeToMinutes(accessTokenLifetimeValue, accessTokenLifetimeUnit);
         int refreshTokenLifetimeInMinutes = ConvertTokenLifetimeToMinutes(refreshTokenLifetimeValue, refreshTokenLifetimeUnit);
 
-        return refreshTokenLifetimeInMinutes > accessTokenLifetimeInMinutes;
+        return accessTokenLifetimeValue >= GetTokenLifetimeMinValue(accessTokenLifetimeUnit)
+            && refreshTokenLifetimeValue >= GetTokenLifetimeMinValue(refreshTokenLifetimeUnit)
+            && refreshTokenLifetimeInMinutes > accessTokenLifetimeInMinutes;
     }
 
     private async Task Save()
@@ -425,6 +423,17 @@ else
             TokenLifetimeUnit.Hours => safeLifetimeValue * 60,
             TokenLifetimeUnit.Days => safeLifetimeValue * 60 * 24,
             _ => safeLifetimeValue
+        };
+    }
+
+    private static int GetTokenLifetimeMinValue(TokenLifetimeUnit lifetimeUnit)
+    {
+        return lifetimeUnit switch
+        {
+            TokenLifetimeUnit.Minutes => 5,
+            TokenLifetimeUnit.Hours => 1,
+            TokenLifetimeUnit.Days => 1,
+            _ => 1
         };
     }
 }

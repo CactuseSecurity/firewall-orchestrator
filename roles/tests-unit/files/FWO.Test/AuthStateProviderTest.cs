@@ -118,7 +118,7 @@ namespace FWO.Test
             Assert.That(restored, Is.False);
             Assert.That(authenticationState.User.Identity?.IsAuthenticated, Is.True);
             Assert.That(mockMiddlewareClient.RefreshTokenCallCount, Is.EqualTo(1));
-            Assert.That(mockMiddlewareClient.RevokeRefreshTokenCallCount, Is.EqualTo(0));
+            Assert.That(mockMiddlewareClient.RevokeRefreshTokenCallCount, Is.EqualTo(1));
             Assert.That(publishCount, Is.EqualTo(1));
             Assert.That(publishedUserDn, Is.EqualTo(TestApiConnection.TestUserDn));
             Assert.That(await tokenService.GetTokenPair(), Is.Null);

@@ -272,7 +272,7 @@ namespace FWO.Ui.Auth
         private async Task HandleExpiredSessionAsync()
         {
             PublishReloginRequiredForAuthenticatedUser();
-            await tokenService.ClearStoredTokenPair();
+            await tokenService.RevokeTokens();
         }
 
         /// <summary>

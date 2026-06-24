@@ -5,19 +5,20 @@ namespace FWO.Ui.Services
     /// <summary>
     /// Runs an asynchronous callback repeatedly with a fixed interval until disposed.
     /// </summary>
-    public sealed class PeriodicTaskRunner : IDisposable
+    public sealed class PeriodicTaskRunner : IPeriodicTaskRunner
     {
         private readonly Func<Task> callback;
         private readonly TimeSpan interval;
         private readonly CancellationTokenSource cancellationTokenSource = new();
         private int started;
+        private readonly string TaskName;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PeriodicTaskRunner"/> class.
         /// </summary>
         /// <param name="callback">Callback to execute on each interval.</param>
         /// <param name="interval">Interval between callback executions.</param>
-        public PeriodicTaskRunner(Func<Task> callback, TimeSpan interval)
+        public PeriodicTaskRunner(Func<Task> callback, TimeSpan interval, string taskName = "")
         {
             this.callback = callback ?? throw new ArgumentNullException(nameof(callback));
 
@@ -27,6 +28,7 @@ namespace FWO.Ui.Services
             }
 
             this.interval = interval;
+            TaskName = taskName;
         }
 
         /// <summary>
@@ -34,6 +36,8 @@ namespace FWO.Ui.Services
         /// </summary>
         public void Start()
         {
+            Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)}{(!string.IsNullOrWhiteSpace(TaskName) ? $" {TaskName}" : "")} started.");
+
             if (Interlocked.Exchange(ref started, 1) == 1)
             {
                 return;
@@ -63,15 +67,15 @@ namespace FWO.Ui.Services
             }
             catch (TaskCanceledException)
             {
-                Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)} stopped.");
+                Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)}{(!string.IsNullOrWhiteSpace(TaskName) ? $" {TaskName}" : "")} stopped.");
             }
             catch (OperationCanceledException)
             {
-                Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)} stopped.");
+                Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)}{(!string.IsNullOrWhiteSpace(TaskName) ? $" {TaskName}" : "")} stopped.");
             }
             catch (Exception ex)
             {
-                Log.WriteError(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)} ran into an exception: {ex}", ex);
+                Log.WriteError(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)}{(!string.IsNullOrWhiteSpace(TaskName) ? $" {TaskName}" : "")} ran into an exception: {ex}", ex);
             }
         }
     }

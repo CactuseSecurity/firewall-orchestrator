@@ -267,12 +267,12 @@ namespace FWO.Ui.Auth
         }
 
         /// <summary>
-        /// Clears the current session and notifies the UI when automatic session recovery is no longer possible.
+        /// Clears unusable tokens and notifies the UI when automatic session recovery is no longer possible.
         /// </summary>
         private async Task HandleExpiredSessionAsync()
         {
             PublishReloginRequiredForAuthenticatedUser();
-            await Deauthenticate();
+            await tokenService.RevokeTokens();
         }
 
         /// <summary>

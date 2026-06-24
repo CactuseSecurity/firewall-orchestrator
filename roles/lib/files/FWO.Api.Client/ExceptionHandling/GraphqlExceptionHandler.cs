@@ -14,13 +14,5 @@ namespace FWO.Api.Client.ExceptionHandling
         {
             Log.WriteError("Graphql Exception", exception.Message, exception, callerName: callerName);
         }
-
-        public static void Handle(Exception exception, [CallerMemberName] string callerName = "", params Span<Exception> ignoreExceptions)
-        {
-            if (!ignoreExceptions.Contains(exception))
-            {
-                Log.WriteError("Graphql Exception", exception.Message, exception, callerName: callerName);
-            }
-        }
     }
 }

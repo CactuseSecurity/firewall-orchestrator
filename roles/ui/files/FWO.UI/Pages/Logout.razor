@@ -1,14 +1,9 @@
 ﻿
-@using Microsoft.AspNetCore.Components.Server.Circuits;
-@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
-@using FWO.Ui.Services
 @using FWO.Ui.Auth
 
-@inject ProtectedSessionStorage sessionStorage
 @inject AuthenticationStateProvider AuthService
 @inject NavigationManager NavigationManager
 @inject UserConfig userConfig
-@inject CircuitHandler circuitHandler
 
 @page "/logout"
 
@@ -32,8 +27,6 @@
         finally
         {
             Log.WriteAudit("Logout", $"User \"{user.Name}\" with DN: \"{user.Dn}\" logged out.");
-            ((CircuitHandlerService)circuitHandler).User = null;
-
             NavigationManager.NavigateTo("", forceLoad: true);
         }
     }

@@ -1,0 +1,108 @@
+name: SonarCloud PR
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: SonarQube Analyze PR
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+      SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+    steps:
+      - name: Gate trusted PR sources
+        shell: bash
+        run: |
+          trusted_owners='${{ vars.SONAR_TRUSTED_FORK_OWNERS || '[]' }}'
+          pr_owner='${{ github.event.pull_request.head.repo.owner.login }}'
+          base_repo='${{ github.repository }}'
+          head_repo='${{ github.event.pull_request.head.repo.full_name }}'
+
+          if [ "$head_repo" = "$base_repo" ]; then
+            exit 0
+          fi
+
+          python - <<'PY'
+          import json
+          import os
+          import sys
+
+          trusted = json.loads(os.environ["TRUSTED_OWNERS"])
+          pr_owner = os.environ["PR_OWNER"]
+
+          if pr_owner not in trusted:
+              print(
+                  f"PR owner '{pr_owner}' is not listed in SONAR_TRUSTED_FORK_OWNERS. "
+                  "This privileged Sonar workflow is blocked for untrusted fork PRs."
+              )
+              sys.exit(1)
+          PY
+        env:
+          TRUSTED_OWNERS: ${{ vars.SONAR_TRUSTED_FORK_OWNERS || '[]' }}
+          PR_OWNER: ${{ github.event.pull_request.head.repo.owner.login }}
+
+      - name: Checkout PR head
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Cache SonarCloud scanner
+        id: cache-sonar-scanner
+        uses: actions/cache@v4
+        with:
+          path: .sonar/scanner
+          key: ${{ runner.os }}-sonar-scanner
+          restore-keys: ${{ runner.os }}-sonar-scanner
+
+      - name: Install SonarCloud scanner
+        if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
+        run: dotnet tool update dotnet-sonarscanner --tool-path .sonar/scanner
+
+      - name: Build and analyze pull request
+        run: |
+          .sonar/scanner/dotnet-sonarscanner begin \
+            /k:"${SONAR_PROJECT_KEY}" \
+            /o:"${SONAR_ORGANIZATION}" \
+            /d:sonar.token="${SONAR_TOKEN}" \
+            /d:sonar.host.url="https://sonarcloud.io" \
+            /d:sonar.qualitygate.wait=true \
+            /d:sonar.pullrequest.key="${{ github.event.pull_request.number }}" \
+            /d:sonar.pullrequest.branch="${{ github.event.pull_request.head.ref }}" \
+            /d:sonar.pullrequest.base="${{ github.event.pull_request.base.ref }}"
+          dotnet build roles/FWO.sln --configuration Debug --no-incremental
+          .sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${SONAR_TOKEN}"

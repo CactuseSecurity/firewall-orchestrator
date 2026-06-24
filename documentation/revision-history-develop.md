@@ -471,4 +471,4 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 - backfill existing rule source and destination zone text fields from rule zone links
 
 # 9.1.11 - 24.06.2026 DEVELOP
-- refactor: rule_owner_mapping - standardize constraint name
+- fix: rule_owner_mapping - standardize constraint name

@@ -128,6 +128,7 @@ namespace FWO.Services.Workflow
                 var Variables = BuildTicketVariables(ticket);
                 Variables["requesterId"] = ticket.Requester?.DbId;
                 Variables["requestTasks"] = new WfTicketWriter(ticket);
+                Variables["locked"] = ticket.Locked;
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newTicket, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
@@ -163,6 +164,7 @@ namespace FWO.Services.Workflow
         {
             try
             {
+                // Ticket locking is task-scoped: header metadata remains writable while request-task updates are guarded separately.
                 var Variables = BuildTicketVariables(ticket);
                 Variables["id"] = ticket.Id;
                 long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateTicket, Variables)).UpdatedIdLong;
@@ -211,6 +213,7 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
+                    int newStateId = reqtask.StateId;
                     returnId = returnIds[0].NewIdLong;
                     reqtask.Id = returnId;
                     foreach (var element in reqtask.Elements)
@@ -227,6 +230,7 @@ namespace FWO.Services.Workflow
                     {
                         await AssignOwnerInDb(returnId, owner.Owner.Id);
                     }
+                    reqtask.MarkCreatedStateChanged(newStateId);
                     await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
                 }
             }
@@ -239,6 +243,11 @@ namespace FWO.Services.Workflow
 
         public async Task UpdateReqTaskInDb(WfReqTask reqtask)
         {
+            if (reqtask.Locked)
+            {
+                return;
+            }
+
             try
             {
                 var Variables = BuildReqTaskUpdateVariables(reqtask);
@@ -302,7 +311,9 @@ namespace FWO.Services.Workflow
         private static Dictionary<string, object?> BuildReqTaskInsertVariables(WfReqTask reqtask)
         {
             Dictionary<string, object?> variables = BuildReqTaskUpdateVariables(reqtask);
+            variables["taskNumber"] = reqtask.TaskNumber;
             variables["taskType"] = reqtask.TaskType;
+            variables["locked"] = reqtask.Locked;
             return variables;
         }
 
@@ -311,7 +322,6 @@ namespace FWO.Services.Workflow
             return new Dictionary<string, object?>
             {
                 ["title"] = reqtask.Title,
-                ["taskNumber"] = reqtask.TaskNumber,
                 ["state"] = reqtask.StateId,
                 ["requestAction"] = reqtask.RequestAction,
                 ["ruleAction"] = reqtask.RuleAction,
@@ -450,8 +460,10 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
+                    int newStateId = approval.StateId;
                     returnId = returnIds[0].NewIdLong;
                     approval.Id = returnId;
+                    approval.MarkCreatedStateChanged(newStateId);
                     await ActionHandler.DoStateChangeActions(approval, WfObjectScopes.Approval);
                 }
             }
@@ -462,7 +474,7 @@ namespace FWO.Services.Workflow
             return returnId;
         }
 
-        public async Task UpdateApprovalInDb(WfApproval approval)
+        public async Task UpdateApprovalInDb(WfApproval approval, bool triggerActions = true)
         {
             try
             {
@@ -481,7 +493,10 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(approval, WfObjectScopes.Approval);
+                    if (triggerActions)
+                    {
+                        await ActionHandler.DoStateChangeActions(approval, WfObjectScopes.Approval);
+                    }
                 }
             }
             catch (Exception exception)
@@ -506,6 +521,7 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
+                    int newStateId = impltask.StateId;
                     returnId = returnIds[0].NewIdLong;
                     impltask.Id = returnId;
                     foreach (var element in impltask.ImplElements)
@@ -521,6 +537,7 @@ namespace FWO.Services.Workflow
                             await AssignCommentToImplTaskInDb(returnId, comment.Comment.Id);
                         }
                     }
+                    impltask.MarkCreatedStateChanged(newStateId);
                     await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);
                 }
             }
@@ -695,13 +712,14 @@ namespace FWO.Services.Workflow
 
         private static Dictionary<string, object?> BuildElementBaseVariables(WfElementBase element, Cidr? cidr, Cidr? cidrEnd)
         {
+            bool hasServiceReference = HasId(element.ServiceId) || HasId(element.FlowServiceObjectId) || HasId(element.FlowServiceGroupId);
             return new Dictionary<string, object?>
             {
                 ["ip"] = cidr != null && cidr.Valid ? cidr.CidrString : null,
                 ["ipEnd"] = cidrEnd != null && cidrEnd.Valid ? cidrEnd.CidrString : null,
-                ["port"] = element.Port,
-                ["portEnd"] = element.PortEnd,
-                ["proto"] = element.ProtoId,
+                ["port"] = hasServiceReference && !HasValidPort(element.Port) ? null : element.Port,
+                ["portEnd"] = hasServiceReference && !HasValidPort(element.PortEnd) ? null : element.PortEnd,
+                ["proto"] = hasServiceReference && !HasId(element.ProtoId) ? null : element.ProtoId,
                 ["networkObjId"] = element.NetworkId,
                 ["serviceId"] = element.ServiceId,
                 ["field"] = element.Field,
@@ -711,6 +729,21 @@ namespace FWO.Services.Workflow
                 ["groupName"] = element.GroupName,
                 ["name"] = element.Name
             };
+        }
+
+        private static bool HasId(long? id)
+        {
+            return id.HasValue && id.Value != 0;
+        }
+
+        private static bool HasId(int? id)
+        {
+            return id.HasValue && id.Value != 0;
+        }
+
+        private static bool HasValidPort(int? port)
+        {
+            return port.HasValue && port.Value > 0;
         }
 
 
@@ -849,7 +882,7 @@ namespace FWO.Services.Workflow
 
         // State changes
 
-        public async Task UpdateTicketStateInDb(WfTicket ticket)
+        public async Task UpdateTicketStateInDb(WfTicket ticket, bool triggerActions = true)
         {
             try
             {
@@ -868,7 +901,10 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket));
+                    if (triggerActions)
+                    {
+                        await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket));
+                    }
                 }
             }
             catch (Exception exception)
@@ -877,7 +913,7 @@ namespace FWO.Services.Workflow
             }
         }
 
-        public async Task UpdateReqTaskStateInDb(WfReqTask reqtask)
+        public async Task UpdateReqTaskStateInDb(WfReqTask reqtask, bool triggerActions = true)
         {
             try
             {
@@ -898,7 +934,10 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
+                    if (triggerActions)
+                    {
+                        await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
+                    }
                 }
             }
             catch (Exception exception)
@@ -912,7 +951,7 @@ namespace FWO.Services.Workflow
             return !string.IsNullOrWhiteSpace(ticket.Requester?.Dn) ? ticket.Requester.Dn : ticket.RequesterDn;
         }
 
-        public async Task UpdateImplTaskStateInDb(WfImplTask impltask)
+        public async Task UpdateImplTaskStateInDb(WfImplTask impltask, bool triggerActions = true)
         {
             try
             {
@@ -933,7 +972,10 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);
+                    if (triggerActions)
+                    {
+                        await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);
+                    }
                 }
             }
             catch (Exception exception)

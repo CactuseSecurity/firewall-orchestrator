@@ -10,7 +10,7 @@
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="PuppeteerSharp" Version="25.1.0" />
+		<PackageReference Include="PuppeteerSharp" Version="25.1.2" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\FWO.Api.Client\FWO.Api.Client.csproj" />

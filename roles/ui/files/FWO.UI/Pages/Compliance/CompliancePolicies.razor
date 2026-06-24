@@ -39,9 +39,6 @@
 @code
 {
     [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
-
-    [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private CompliancePolicy SelectedPolicy = new();
@@ -61,7 +58,6 @@
                 return;
             }
 
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Admin, Roles.FwAdmin, Roles.Auditor ]);
             policies = await apiConnection.SendQueryAsync<List<CompliancePolicy>>(ComplianceQueries.getPolicies);
         }
         catch (Exception exception)

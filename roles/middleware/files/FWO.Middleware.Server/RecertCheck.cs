@@ -191,7 +191,7 @@ namespace FWO.Middleware.Server
             List<Rule> rules = [];
             try
             {
-                UserConfig userConfig = new(globalConfig);
+                using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
 
                 DeviceFilter deviceFilter = new()
                 {
@@ -350,7 +350,7 @@ namespace FWO.Middleware.Server
                     SelectedOwner = owner
                 }
             };
-            using UserConfig userConfig = new(globalConfig);
+            using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnectionMiddlewareServer, globalConfig.DefaultLanguage);
             return await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", reportParams), apiConnectionMiddlewareServer, userConfig, DefaultInit.DoNothing);
         }
 

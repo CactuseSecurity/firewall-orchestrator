@@ -36,9 +36,14 @@ namespace FWO.Api.Client
             return "";
         }
 
-        public abstract void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList);
+        public virtual string GetActRole()
+        {
+            return "";
+        }
 
-        public abstract void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList);
+        public virtual void SetAmbientRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList) { }
+
+        public abstract void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList);
 
         public abstract void SwitchBack();
 
@@ -58,32 +63,6 @@ namespace FWO.Api.Client
         public async Task<TResult> RunWithRole<TResult>(string role, Func<Task<TResult>> action)
         {
             SetRole(role);
-            try
-            {
-                return await action();
-            }
-            finally
-            {
-                SwitchBack();
-            }
-        }
-
-        public async Task RunWithProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList, Func<Task> action)
-        {
-            SetProperRole(user, targetRoleList);
-            try
-            {
-                await action();
-            }
-            finally
-            {
-                SwitchBack();
-            }
-        }
-
-        public async Task<TResult> RunWithProperRole<TResult>(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList, Func<Task<TResult>> action)
-        {
-            SetProperRole(user, targetRoleList);
             try
             {
                 return await action();

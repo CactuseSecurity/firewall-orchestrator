@@ -64,6 +64,13 @@ namespace FWO.Data
         public bool RecertUpcoming { get; set; } = false;
         public long? LastRecertId { get; set; }
 
+        /// <summary>
+        /// Indicates whether this owner still has to be created in the database.
+        /// The default super-owner has Id 0 but already exists, so it is never considered new.
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public bool IsNew => Id <= 0 && !IsDefault;
+
         public FwoOwner()
         { }
 
@@ -84,6 +91,7 @@ namespace FWO.Data
             NextRecertDate = owner.NextRecertDate;
             ChangelogOwners = owner.ChangelogOwners.Select(change => new OwnerChange(change)).ToList();
             DecommDate = owner.DecommDate;
+            RecertActive = owner.RecertActive;
             RecertOverdue = owner.RecertOverdue;
             RecertUpcoming = owner.RecertUpcoming;
             LastRecertId = owner.LastRecertId;

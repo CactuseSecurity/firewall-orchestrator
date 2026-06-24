@@ -125,7 +125,7 @@ namespace FWO.Test
             globalConfig.CustomFieldOwnerKey = @"[""owner_key""]";
             globalConfig.CustomFieldChangeIdKey = @"[""change_key""]";
 
-            return new UserConfig(globalConfig, registerOnChangeHandler: false);
+            return UserConfig.ForTextOnly(globalConfig, registerOnChangeHandler: false);
         }
 
         private static Rule CreateRule(int ownerId, string customFields)

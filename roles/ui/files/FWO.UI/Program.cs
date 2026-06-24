@@ -93,12 +93,18 @@ TokenPair tokenPair = System.Text.Json.JsonSerializer.Deserialize<TokenPair>(cre
 string jwt = tokenPair.AccessToken ?? throw new ArgumentException("Received empty jwt.");
 
 // Get all non-confidential configuration settings and add to a global service (for all users)
-GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt, true, true);
+ApiConnection globalConfigApiConnection = new GraphQlApiConnection(ApiUri, jwt);
+GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(globalConfigApiConnection, true, true, owningApiConnection: true);
 builder.Services.AddSingleton<GlobalConfig>(_ => globalConfig);
 builder.Services.AddSingleton<IUrlSanitizer, UrlSanitizer>();
+builder.Services.AddSingleton(new GlobalConfigApiConnection(globalConfigApiConnection));
+builder.Services.AddSingleton(new GlobalConfigTokenState(tokenPair));
+builder.Services.AddSingleton<IAnonymousGlobalConfigTokenProvider>(_ => new AnonymousGlobalConfigTokenProvider(MiddlewareUri));
+builder.Services.AddSingleton(new TokenRefreshOptions());
+builder.Services.AddHostedService<GlobalConfigTokenRefreshService>();
 
 // the user's personal config
-builder.Services.AddScoped<UserConfig>(_ => new UserConfig(globalConfig));
+builder.Services.AddScoped<UserConfig>(_ => UserConfig.ForTextOnly(globalConfig));
 
 builder.Services.AddScoped(_ => new NetworkZoneService());
 builder.Services.AddScoped(_ => new DomEventService());

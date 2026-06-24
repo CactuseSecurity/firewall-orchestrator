@@ -33,6 +33,8 @@ namespace FWO.Data.Workflow
         {
             Id = 0;
             ImplAction = element.RequestAction;
+            IpString = element.IpString;
+            IpEnd = element.IpEnd;
             Cidr = element.Cidr;
             CidrEnd = element.CidrEnd;
             Port = element.Port;
@@ -45,6 +47,7 @@ namespace FWO.Data.Workflow
             OriginalNatId = element.OriginalNatId;
             RuleUid = element.RuleUid;
             GroupName = element.GroupName;
+            Name = element.Name;
         }
     }
 }

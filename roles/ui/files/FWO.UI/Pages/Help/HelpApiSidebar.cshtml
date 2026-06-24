@@ -52,6 +52,21 @@
                 </a>
                 <p></p>
 
+                <h5>@userConfig.GetText("flow_api")</h5>
+                <a class="nav-link" href="/help/API/flow/?lang=@($"{userConfig.User.Language}")">
+                    <span class="@Icons.RestDoku"></span> @userConfig.GetText("flow_api")
+                </a>
+                <a class="nav-link" href="/help/API/flow/catalog/?lang=@($"{userConfig.User.Language}")">
+                    <span class="@Icons.NwObject"></span> @userConfig.GetText("flow_catalog_api")
+                </a>
+                <a class="nav-link" href="/help/API/flow/compliance/?lang=@($"{userConfig.User.Language}")">
+                    <span class="@Icons.Compliance"></span> @userConfig.GetText("flow_compliance_api")
+                </a>
+                <a class="nav-link" href="/help/API/flow/request/?lang=@($"{userConfig.User.Language}")">
+                    <span class="@Icons.Workflow"></span> @userConfig.GetText("flow_request_api")
+                </a>
+                <p></p>
+
                 <h5>@userConfig.GetText("import_interfaces")</h5>
                 <a class="nav-link" href="/help/API/appdataimport/?lang=@($"{userConfig.User.Language}")">
                     <span class="@Icons.UserGroup"></span> @userConfig.GetText("import_app_data")

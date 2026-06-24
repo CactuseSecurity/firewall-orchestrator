@@ -155,15 +155,24 @@ namespace FWO.Middleware.Server
 
         private sealed class RuleOwnerWithRuleTimes
         {
+            /// <summary>
+            /// Performs the new operation.
+            /// </summary>
             [JsonProperty("owner"), JsonPropertyName("owner")]
             public FwoOwner Owner { get; set; } = new();
 
+            /// <summary>
+            /// Performs the new operation.
+            /// </summary>
             [JsonProperty("rule"), JsonPropertyName("rule")]
             public RuleWithExpiry Rule { get; set; } = new();
         }
 
         private sealed class RuleWithExpiry : Rule
         {
+            /// <summary>
+            /// Performs the GetRuleTimesWithEndDate operation.
+            /// </summary>
             public List<RuleExpiryInfo> GetRuleTimesWithEndDate(IReadOnlyDictionary<string, string> initiatorTexts)
             {
                 return RuleTimes
@@ -197,11 +206,23 @@ namespace FWO.Middleware.Server
 
         private sealed class RuleExpiryInfo : Rule
         {
+            /// <summary>
+            /// Initializes a new instance of the type.
+            /// </summary>
             public RuleExpiryInfo(Rule rule) : base(rule)
             { }
 
+            /// <summary>
+            /// Gets the TimeObjectId value.
+            /// </summary>
             public long TimeObjectId { get; set; }
+            /// <summary>
+            /// Gets the EndTime value.
+            /// </summary>
             public DateTime EndTime { get; set; }
+            /// <summary>
+            /// Gets the ExpiryInitiator value.
+            /// </summary>
             public string ExpiryInitiator { get; set; } = "";
         }
     }

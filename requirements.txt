@@ -1,2 +1,5 @@
+# ansible is capped at 12.3.0: 13.x/14.x require Python >=3.12 (ansible-core ~=2.21),
+# which is unavailable on supported platforms such as Debian 12 (Python 3.11).
+# 12.3.0 is the last release that still installs on Python 3.11. See PR #4794.
 ansible==12.3.0
-cryptography==48.0.0
+cryptography==49.0.0

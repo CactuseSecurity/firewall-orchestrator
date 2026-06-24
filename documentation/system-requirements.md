@@ -24,10 +24,10 @@ Both physical and virtual systems are supported
 ### Software Requirements
 
 Supported operating systms: 
-- Ubuntu >=18.04 (LTS only)
-- Debian >=10
+- Ubuntu >=22.04 (LTS only)
+- Debian >=12
 
-Recommended: Ubuntu 20.04, Debian 11
+Recommended: Ubuntu 24.04, Debian 12
 
 ### Requirements Network Connection
 - For software download during installation and upgrade:

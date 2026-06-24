@@ -84,7 +84,7 @@
                             }
                             else
                             {
-                                <div data-toggle="tooltip" title="@(userConfig.PureLine("C9012"))">
+                                <div data-toggle="tooltip" title="@GetRecertificationDisabledTooltip()">
                                     <button type="button" class="btn btn-sm btn-success" disabled>
                                         @(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))
                                     </button>
@@ -236,8 +236,6 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // if use has modeller role, choose it before all others for this menu
-        apiConnection.SetBestRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
         extStateHandler = new(apiConnection);
         await states.Init(apiConnection);
         await InitAppList();
@@ -480,6 +478,11 @@ else
         return userConfig.CanUseAnyRole(Roles.Admin, Roles.Recertifier);
     }
 
+    private string GetRecertificationDisabledTooltip()
+    {
+        return userConfig.PureLine(HasRecertWriteAccess() ? "C9032" : "C9031");
+    }
+
     private bool IsModellingWriteAllowedForSelectedApp()
     {
         return IsModellingWriteAllowedForApp(selectedApp);
@@ -543,7 +546,6 @@ else
     {
         if(userConfig.ModRolloutActive)
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Recertifier, Roles.Admin, Roles.Auditor ]);
             List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketId, new{ownerId = selectedApp.Id});
             if(ticketIds.Count == 0)
             {
@@ -553,7 +555,6 @@ else
             else
             {
                 WfTicket? intTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketIds[0].Id });
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Recertifier, Roles.Admin, Roles.Auditor ]);
                 if(intTicket != null)
                 {
                     await SubscribeAndSetStatusFromTicket(intTicket);

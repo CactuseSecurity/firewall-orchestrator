@@ -153,7 +153,7 @@ namespace FWO.Middleware.Server.Controllers
         private async Task<WorkflowActionResult> ExecuteActionsInMiddlewareContext(ApiConnection actionApiConnection, WorkflowActionParameters parameters,
             WfObjectScopes scope, WorkflowPhases phase, long lockTicketId, WorkflowActionResult result)
         {
-            using UserConfig userConfig = new(globalConfig, actionApiConnection, new UiUser { DbId = 0, Language = globalConfig.DefaultLanguage }, false);
+            using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, actionApiConnection, globalConfig.DefaultLanguage);
             WfHandler wfHandler = CreateWorkflowHandler(actionApiConnection, userConfig, phase, result);
             if (!await InitWorkflowHandler(wfHandler, result))
             {
@@ -180,7 +180,7 @@ namespace FWO.Middleware.Server.Controllers
                 return result;
             }
 
-            if (!ValidateExecutionRequest(User, wfHandler, parameters, scope, phase, statefulObject, result))
+            if (!ValidateExecutionRequest(wfHandler, parameters, scope, phase, statefulObject, result))
             {
                 return result;
             }
@@ -206,12 +206,12 @@ namespace FWO.Middleware.Server.Controllers
             }
         }
 
-        private static bool ValidateExecutionRequest(ClaimsPrincipal user, WfHandler wfHandler, WorkflowActionParameters parameters, WfObjectScopes scope,
-            WorkflowPhases phase, WfStatefulObject statefulObject, WorkflowActionResult result)
+        private static bool ValidateExecutionRequest(WfHandler wfHandler, WorkflowActionParameters parameters, WfObjectScopes scope, WorkflowPhases phase,
+            WfStatefulObject statefulObject, WorkflowActionResult result)
         {
             return parameters.ActionId > 0
                 ? ValidateOfferedAction(wfHandler, parameters, scope, phase, statefulObject, result)
-                : ValidatePersistedStateTransition(user, wfHandler, parameters, statefulObject, result);
+                : ValidatePersistedStateTransition(parameters, statefulObject, result);
         }
 
         private static bool ValidateOfferedAction(WfHandler wfHandler, WorkflowActionParameters parameters, WfObjectScopes scope,
@@ -234,8 +234,7 @@ namespace FWO.Middleware.Server.Controllers
             return true;
         }
 
-        private static bool ValidatePersistedStateTransition(ClaimsPrincipal user, WfHandler wfHandler, WorkflowActionParameters parameters,
-            WfStatefulObject statefulObject, WorkflowActionResult result)
+        private static bool ValidatePersistedStateTransition(WorkflowActionParameters parameters, WfStatefulObject statefulObject, WorkflowActionResult result)
         {
             if (parameters.OldStateId == parameters.NewStateId)
             {
@@ -249,23 +248,7 @@ namespace FWO.Middleware.Server.Controllers
                 return false;
             }
 
-            if (parameters.StateChangedByCreation || CanForceStateTransition(user, parameters.ExecutionMode))
-            {
-                return true;
-            }
-
-            if (!wfHandler.ActStateMatrix.getAllowedTransitions(parameters.OldStateId, true).Contains(parameters.NewStateId))
-            {
-                SetWarning(result, $"State-change action execution rejected because transition {parameters.OldStateId}->{parameters.NewStateId} is not allowed.");
-                return false;
-            }
-
             return true;
-        }
-
-        private static bool CanForceStateTransition(ClaimsPrincipal user, string executionMode)
-        {
-            return CallerCanUseRole(user, executionMode, Roles.Admin) || CallerCanUseRole(user, executionMode, Roles.FwAdmin);
         }
 
         private static async Task<bool> InitWorkflowHandler(WfHandler wfHandler, WorkflowActionResult result)

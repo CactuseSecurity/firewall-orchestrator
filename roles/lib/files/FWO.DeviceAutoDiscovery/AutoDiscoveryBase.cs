@@ -38,15 +38,15 @@ namespace FWO.DeviceAutoDiscovery
             {
                 List<Management> existingManagements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
 
-                bool compareDevicesByUidOnly = SuperManagement.DeviceType.Name == "FortiManager";
+                bool compareManagementsByUid = SuperManagement.DeviceType.Name == "FortiManager";
                 foreach (Management discoveredMgmt in discoveredManagements.Where(x => x.ConfigPath != "global"))
                 {
-                    DiscoverManagementDetails(discoveredMgmt, deltaManagements, existingManagements, compareDevicesByUidOnly);
+                    DiscoverManagementDetails(discoveredMgmt, deltaManagements, existingManagements, compareManagementsByUid, compareManagementsByUid);
                 }
                 // deleted managements
                 foreach (Management existMgmtDisregardingUid in existingManagements.Where(mgt => mgt.SuperManagerId == SuperManagement.Id && mgt.ConfigPath != "global"))
                 {
-                    Management? foundMgmt = FindManagementIfExist(existMgmtDisregardingUid, discoveredManagements);
+                    Management? foundMgmt = FindManagementIfExist(existMgmtDisregardingUid, discoveredManagements, compareManagementsByUid);
                     if (foundMgmt == null && !existMgmtDisregardingUid.ImportDisabled)
                     {
                         existMgmtDisregardingUid.Delete = true;
@@ -65,9 +65,10 @@ namespace FWO.DeviceAutoDiscovery
             Management discoveredMgmt,
             List<Management> deltaManagements,
             List<Management> existingManagements,
-            bool compareDevicesByUidOnly)
+            bool compareDevicesByUidOnly,
+            bool compareManagementsByUid)
         {
-            Management? existMgmtDisregardingUid = FindManagementIfExist(discoveredMgmt, existingManagements);
+            Management? existMgmtDisregardingUid = FindManagementIfExist(discoveredMgmt, existingManagements, compareManagementsByUid);
             if (existMgmtDisregardingUid == null)
             {
                 // new management
@@ -120,8 +121,13 @@ namespace FWO.DeviceAutoDiscovery
             }
         }
 
-        private static Management? FindManagementIfExist(Management mgm, List<Management> mgmtList)
+        private static Management? FindManagementIfExist(Management mgm, List<Management> mgmtList, bool compareManagementsByUid)
         {
+            if (compareManagementsByUid)
+            {
+                return mgmtList.FirstOrDefault(m => ManagementUidMatches(m, mgm));
+            }
+
             Management? existingManagement = mgmtList.FirstOrDefault(m => m.Equals(mgm));
             if (existingManagement != null)
             {
@@ -130,11 +136,22 @@ namespace FWO.DeviceAutoDiscovery
             return null;
         }
 
+        /// <summary>
+        /// Matches FortiManager child managements by ADOM UID within the same super manager.
+        /// </summary>
+        private static bool ManagementUidMatches(Management first, Management second)
+        {
+            return !string.IsNullOrEmpty(first.Uid) &&
+                   !string.IsNullOrEmpty(second.Uid) &&
+                   first.Uid.GenerousCompare(second.Uid) &&
+                   first.SuperManagerId == second.SuperManagerId;
+        }
+
         private static bool CheckDeviceNotInMgmt(Device dev, Management mgmt, bool compareDevicesByUidOnly)
         {
             if (compareDevicesByUidOnly)
             {
-                if (mgmt.Devices.FirstOrDefault(devInMgt => devInMgt.Uid.GenerousCompare(dev.Uid)) != null)
+                if (mgmt.Devices.FirstOrDefault(devInMgt => DeviceUidMatches(devInMgt, dev)) != null)
                 {
                     return false;
                 }
@@ -146,6 +163,16 @@ namespace FWO.DeviceAutoDiscovery
                 return false;
             }
             return true;
+        }
+
+        /// <summary>
+        /// Matches FortiManager gateways by non-empty UID.
+        /// </summary>
+        private static bool DeviceUidMatches(Device first, Device second)
+        {
+            return !string.IsNullOrEmpty(first.Uid) &&
+                   !string.IsNullOrEmpty(second.Uid) &&
+                   first.Uid.GenerousCompare(second.Uid);
         }
 
         protected virtual Management CreateManagement(Management superManagement, string domainName, string domainUid) { return new(); }

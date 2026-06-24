@@ -6,6 +6,7 @@ using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
+using FWO.Middleware.Server;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -18,11 +19,11 @@ namespace FWO.Test
         {
             public int UpsertConfigCallCount { get; private set; }
             public List<ConfigItem> LastConfigItems { get; private set; } = [];
+            public bool IsDisposed { get; private set; }
 
             public override void SetAuthHeader(string jwt) { }
             public override void SetRole(string role) { }
             public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList) { }
-            public override void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList) { }
             public override void SwitchBack() { }
 
             public override Task<ApiResponse<QueryResponseType>> SendQuerySafeAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
@@ -57,7 +58,10 @@ namespace FWO.Test
             }
 
             public override void DisposeSubscriptions<T>() { }
-            protected override void Dispose(bool disposing) { }
+            protected override void Dispose(bool disposing)
+            {
+                IsDisposed = true;
+            }
 
             public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
             {
@@ -92,6 +96,120 @@ namespace FWO.Test
             UserConfig userConfig = new(globalConfig, apiConnection, new UiUser { DbId = 50, Language = "English" });
 
             Assert.That(userConfig.ReqOwnerBased, Is.True);
+        }
+
+        [Test]
+        public void TextOnlyFactory_DoesNotExposePublicGlobalConfigConstructor()
+        {
+            ConstructorInfo? constructor = typeof(UserConfig).GetConstructor(
+                [typeof(GlobalConfig), typeof(bool)]);
+
+            Assert.That(constructor, Is.Null);
+        }
+
+        [Test]
+        public void TextOnlyFactory_DoesNotApplyDirectConfigValues()
+        {
+            SimulatedGlobalConfig globalConfig = new();
+            globalConfig.RawConfigItems =
+            [
+                new() { Key = "reqOwnerBased", Value = "true", User = 0 }
+            ];
+
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
+
+            Assert.That(userConfig.ReqOwnerBased, Is.False);
+        }
+
+        [Test]
+        public void GlobalSettingsFactory_LoadsDirectConfigValues()
+        {
+            SimulatedGlobalConfig globalConfig = new();
+            using UserConfigApiConnection apiConnection =
+                new([new() { Key = "reqOwnerBased", Value = "true", User = 0 }]);
+
+            UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
+
+            Assert.That(userConfig.ReqOwnerBased, Is.True);
+        }
+
+        [Test]
+        public void Dispose_DoesNotDisposeApiConnection_WhenNotOwned()
+        {
+            SimulatedGlobalConfig globalConfig = new();
+            using UserConfigApiConnection apiConnection = new([]);
+            using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
+
+            userConfig.Dispose();
+
+            Assert.That(apiConnection.IsDisposed, Is.False);
+        }
+
+        [Test]
+        public void Dispose_UnsubscribesFromGlobalConfigChange()
+        {
+            SimulatedGlobalConfig globalConfig = new();
+            using UserConfigApiConnection apiConnection = new([]);
+            int initialSubscriberCount = GetOnChangeSubscriberCount(globalConfig);
+            UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
+
+            Assert.That(GetOnChangeSubscriberCount(globalConfig), Is.EqualTo(initialSubscriberCount + 1));
+
+            userConfig.Dispose();
+
+            Assert.That(GetOnChangeSubscriberCount(globalConfig), Is.EqualTo(initialSubscriberCount));
+        }
+
+        [Test]
+        public void Dispose_DisposesApiConnection_WhenOwned()
+        {
+            SimulatedGlobalConfig globalConfig = new();
+            UserConfigApiConnection apiConnection = new([]);
+            using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, owningApiConnection: true);
+
+            userConfig.Dispose();
+
+            Assert.That(apiConnection.IsDisposed, Is.True);
+        }
+
+        [Test]
+        public void ImportChangeNotifier_Dispose_UnsubscribesUserConfigWithoutDisposingApiConnection()
+        {
+            SimulatedGlobalConfig globalConfig = new();
+            using UserConfigApiConnection apiConnection = new([]);
+            int initialSubscriberCount = GetOnChangeSubscriberCount(globalConfig);
+            ImportChangeNotifier notifier = new(apiConnection, globalConfig);
+
+            Assert.That(GetOnChangeSubscriberCount(globalConfig), Is.EqualTo(initialSubscriberCount + 1));
+
+            notifier.Dispose();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetOnChangeSubscriberCount(globalConfig), Is.EqualTo(initialSubscriberCount));
+                Assert.That(apiConnection.IsDisposed, Is.False);
+            });
+        }
+
+        [Test]
+        public void AppDataImport_Dispose_UnsubscribesUserConfigWithoutDisposingApiConnection()
+        {
+            SimulatedGlobalConfig globalConfig = new();
+            using UserConfigApiConnection apiConnection = new([]);
+            int initialSubscriberCount = GetOnChangeSubscriberCount(globalConfig);
+            UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
+            AppDataImport appDataImport = new(apiConnection, globalConfig);
+            SetPrivateField(appDataImport, "userConfig", userConfig);
+
+            Assert.That(GetOnChangeSubscriberCount(globalConfig), Is.EqualTo(initialSubscriberCount + 1));
+
+            appDataImport.Dispose();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetOnChangeSubscriberCount(globalConfig), Is.EqualTo(initialSubscriberCount));
+                Assert.That(apiConnection.IsDisposed, Is.False);
+            });
         }
 
         [Test]
@@ -154,7 +272,7 @@ namespace FWO.Test
                     new() { Key = "OwnerSoruceMappingID", Value = "0", User = 0 }
                 ]
             };
-            UserConfig userConfig = new(globalConfig);
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
             ConfigData editableConfig = await globalConfig.GetEditableConfig();
             editableConfig.OwnerSoruceMappingID = 2;
 
@@ -188,6 +306,27 @@ namespace FWO.Test
             ConfigData configData = new();
 
             Assert.That(configData.FlowSyncSleepTime, Is.Zero);
+        }
+
+        [Test]
+        public void ConfigData_DefaultsReqConsiderBundlingToFalse()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.ReqConsiderBundling, Is.False);
+        }
+
+        [Test]
+        public void Update_ParsesReqConsiderBundling()
+        {
+            SimulatedUserConfig userConfig = new();
+
+            InvokeUpdate(userConfig,
+            [
+                new() { Key = "reqConsiderBundling", Value = "True", User = 0 }
+            ]);
+
+            Assert.That(userConfig.ReqConsiderBundling, Is.True);
         }
 
         [Test]
@@ -303,6 +442,22 @@ namespace FWO.Test
                 ?? throw new MissingMethodException(typeof(FWO.Config.Api.Config).FullName, "Update");
 
             updateMethod.Invoke(config, [configItems]);
+        }
+
+        private static int GetOnChangeSubscriberCount(FWO.Config.Api.Config config)
+        {
+            FieldInfo onChangeField = typeof(FWO.Config.Api.Config).GetField("OnChange", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new MissingFieldException(typeof(FWO.Config.Api.Config).FullName, "OnChange");
+
+            return ((Delegate?)onChangeField.GetValue(config))?.GetInvocationList().Length ?? 0;
+        }
+
+        private static void SetPrivateField(object target, string fieldName, object value)
+        {
+            FieldInfo field = target.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new MissingFieldException(target.GetType().FullName, fieldName);
+
+            field.SetValue(target, value);
         }
     }
 }

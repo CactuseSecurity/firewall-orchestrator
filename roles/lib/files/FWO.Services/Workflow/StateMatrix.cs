@@ -35,16 +35,23 @@ namespace FWO.Services.Workflow
 
         public async Task Init(WorkflowPhases phase, ApiConnection apiConnection, WfTaskType taskType = WfTaskType.master)
         {
-            GlobalStateMatrix glbStateMatrix = new();
+            await Init(phase, apiConnection, await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates), taskType);
+        }
+
+        /// <summary>
+        /// Initializes the state matrix from workflow config and an already loaded state list.
+        /// </summary>
+        public async Task Init(WorkflowPhases phase, ApiConnection apiConnection, List<WfState> preloadedStates, WfTaskType taskType = WfTaskType.master)
+        {
+            GlobalStateMatrix glbStateMatrix = GlobalStateMatrix.Create();
             await glbStateMatrix.Init(apiConnection, taskType);
-            List<WfState> states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
             Matrix = glbStateMatrix.GlobalMatrix[phase].Matrix;
             DerivedStates = glbStateMatrix.GlobalMatrix[phase].DerivedStates;
             LowestInputState = glbStateMatrix.GlobalMatrix[phase].LowestInputState;
             LowestStartedState = glbStateMatrix.GlobalMatrix[phase].LowestStartedState;
             LowestEndState = glbStateMatrix.GlobalMatrix[phase].LowestEndState;
             Active = glbStateMatrix.GlobalMatrix[phase].Active;
-            AutomaticOnlyStates = states.Where(state => state.AutomaticOnly).Select(state => state.Id).ToHashSet();
+            AutomaticOnlyStates = preloadedStates.Where(state => state.AutomaticOnly).Select(state => state.Id).ToHashSet();
             ApprovalLowestEndState = glbStateMatrix.GlobalMatrix[WorkflowPhases.approval].LowestEndState;
             foreach (var phas in glbStateMatrix.GlobalMatrix)
             {
@@ -215,12 +222,20 @@ namespace FWO.Services.Workflow
 
         public async Task Init(WorkflowPhases phase, ApiConnection apiConnection)
         {
+            await Init(phase, apiConnection, await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates));
+        }
+
+        /// <summary>
+        /// Initializes all task-type matrices with an already loaded state list.
+        /// </summary>
+        public async Task Init(WorkflowPhases phase, ApiConnection apiConnection, List<WfState> preloadedStates)
+        {
             Dictionary<string, StateMatrix> matrices = [];
             foreach (WfTaskType taskType in Enum.GetValues(typeof(WfTaskType)))
             {
                 StateMatrix stateMatrix = new();
                 matrices.Add(taskType.ToString(), stateMatrix);
-                await stateMatrix.Init(phase, apiConnection, taskType);
+                await stateMatrix.Init(phase, apiConnection, preloadedStates, taskType);
             }
             Matrices = matrices;
         }

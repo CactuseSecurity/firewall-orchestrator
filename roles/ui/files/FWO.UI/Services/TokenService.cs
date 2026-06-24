@@ -56,13 +56,13 @@ namespace FWO.Ui.Services
             {
                 Log.WriteWarning("Token", $"Unreadable protected session token pair detected, clearing stored data: {ex.Message}");
 
-                await ClearStoredTokenPair();
+                await ClearStoredTokenPairCore();
             }
             catch (Exception ex)
             {
                 Log.WriteWarning("Token", $"Failed to restore token pair from session storage, clearing stored data: {ex.Message}");
 
-                await ClearStoredTokenPair();
+                await ClearStoredTokenPairCore();
             }
         }
 
@@ -109,6 +109,17 @@ namespace FWO.Ui.Services
             await initializationTask.Value;
 
             return currentTokenPair != null && !string.IsNullOrWhiteSpace(currentTokenPair.RefreshToken);
+        }
+
+        /// <summary>
+        /// Checks whether a access token is available for the current session.
+        /// </summary>
+        /// <returns>True if a access token is available; otherwise false.</returns>
+        public async Task<bool> HasAccessToken()
+        {
+            await initializationTask.Value;
+
+            return currentTokenPair != null && !string.IsNullOrWhiteSpace(currentTokenPair.AccessToken);
         }
 
         /// <summary>
@@ -166,7 +177,7 @@ namespace FWO.Ui.Services
         {
             await initializationTask.Value;
 
-            if (currentTokenPair is null || string.IsNullOrEmpty(currentTokenPair.RefreshToken))
+            if (currentTokenPair is null || !await HasRefreshToken())
             {
                 Log.WriteWarning("Token Refresh", "No refresh token available");
 
@@ -247,23 +258,23 @@ namespace FWO.Ui.Services
         {
             await initializationTask.Value;
 
-            string? refreshToken = currentTokenPair?.RefreshToken;
-
             try
             {
-                if (!string.IsNullOrWhiteSpace(refreshToken))
+                if (!await HasRefreshToken())
                 {
-                    RefreshTokenRequest revokeTokenRequest = new()
-                    {
-                        RefreshToken = refreshToken
-                    };
+                    return;
+                }
 
-                    RestResponse response = await middlewareClient.RevokeRefreshToken(revokeTokenRequest);
+                RefreshTokenRequest revokeTokenRequest = new()
+                {
+                    RefreshToken = currentTokenPair?.RefreshToken!
+                };
 
-                    if (!response.IsSuccessful)
-                    {
-                        Log.WriteWarning("Token Revoke", $"Server-side revoke failed during logout: {response.StatusCode} {response.ErrorMessage ?? response.Content}");
-                    }
+                RestResponse response = await middlewareClient.RevokeRefreshToken(revokeTokenRequest);
+
+                if (!response.IsSuccessful)
+                {
+                    Log.WriteWarning("Token Revoke", $"Server-side revoke failed during logout: {response.StatusCode} {response.ErrorMessage ?? response.Content}");
                 }
             }
             catch (Exception ex)
@@ -281,6 +292,13 @@ namespace FWO.Ui.Services
         /// </summary>
         /// <returns></returns>
         private async Task ClearStoredTokenPair()
+        {
+            await initializationTask.Value;
+
+            await ClearStoredTokenPairCore();
+        }
+
+        private async Task ClearStoredTokenPairCore()
         {
             currentTokenPair = null;
 

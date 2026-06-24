@@ -48,6 +48,7 @@ else
     private const int AllId = -1;
     private const int UnselectedId = -2;
     private const int RulesWithoutOwnersId = -3;
+    private bool CanShowRulesWithoutOwners => userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor);
 
     private string OwnerCheckboxLabelClass => UseFormLayout ? "col-sm-3 col-form-label col-form-label-sm" : "form-check-label text-white";
     private string OwnerLabelClass => UseFormLayout ? "col-sm-3 col-form-label col-form-label-sm" : "text-left text-white";
@@ -129,7 +130,11 @@ else
             {
                 ownerList = [.. ownerList.OrderBy(o => o.Name)];
                 ownerList.Insert(0, new() { Id = AllId, Name = userConfig.GetText("all") });
-                ownerList.Insert(1, new() { Id = RulesWithoutOwnersId, Name = userConfig.GetText("show_rules_without_owners") });
+
+                if (CanShowRulesWithoutOwners)
+                {
+                    ownerList.Insert(1, new() { Id = RulesWithoutOwnersId, Name = userConfig.GetText("show_rules_without_owners") });
+                }
             }
             else
             {
@@ -167,12 +172,18 @@ else
     {
         if (RecertFilter.ShowRulesWithoutOwner)
         {
-            FwoOwner? rulesWithoutOwners = ownerList.FirstOrDefault(o => o.Id == RulesWithoutOwnersId);
-            if (rulesWithoutOwners != null)
+            if (CanShowRulesWithoutOwners)
             {
-                selectedOwner = rulesWithoutOwners;
-                return;
+                FwoOwner? rulesWithoutOwners = ownerList.FirstOrDefault(o => o.Id == RulesWithoutOwnersId);
+                if (rulesWithoutOwners != null)
+                {
+                    selectedOwner = rulesWithoutOwners;
+                    return;
+                }
             }
+
+            RecertFilter.ShowRulesWithoutOwner = false;
+            RecertFilter.RecertOwnerList = [];
         }
 
         if(RecertFilter.RecertOwnerList.Count > 0 && !CheckForAll())
@@ -200,6 +211,13 @@ else
         selectedOwner = newOwner;
         if (newOwner.Id == RulesWithoutOwnersId)
         {
+            if (!CanShowRulesWithoutOwners)
+            {
+                RecertFilter.ShowRulesWithoutOwner = false;
+                RecertFilter.RecertOwnerList = [];
+                return;
+            }
+
             RecertFilter.ShowRulesWithoutOwner = true;
             RecertFilter.RecertOwnerList = [];
             return;

@@ -57,8 +57,8 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
     /// The <c>type</c> field is derived from the owner's <c>appIdExternal</c>: it is <c>standard</c> when the
     /// external app id contains <c>app</c> (case-insensitive), and <c>infrastructure</c> otherwise (including
     /// owners without an external app id).
-    /// Set <c>showDetails</c> to <c>true</c> to additionally return all owner fields (tenant id, recertification
-    /// data, criticality, lifecycle state id, additional info, etc.). By default only the core fields are returned.
+    /// Set <c>showDetails</c> to <c>true</c> to additionally return all owner fields (responsibles, tenant id,
+    /// recertification data, criticality, lifecycle state id, additional info, etc.). By default only the core fields are returned.
     /// By default owners with an inactive lifecycle state are excluded; set <c>showOnlyActiveState</c> to
     /// <c>false</c> to also include them. Owners without any lifecycle state are always returned.
     /// The <c>name</c> and <c>appIdExternal</c> filters are case-insensitive and accept <c>*</c> for any
@@ -191,6 +191,13 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
     /// </summary>
     private static void AddDetails(GetOwnerResponse response, FwoOwner owner)
     {
+        response.OwnerResponsibles = owner.OwnerResponsibles
+            .Select(responsible => new OwnerResponsibleResponse
+            {
+                Dn = responsible.Dn,
+                ResponsibleType = responsible.ResponsibleTypeId
+            })
+            .ToList();
         response.IsDefault = owner.IsDefault;
         response.TenantId = owner.TenantId;
         response.RecertInterval = owner.RecertInterval;

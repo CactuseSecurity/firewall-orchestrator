@@ -287,6 +287,7 @@ namespace FWO.Test
             List<GetOwnerResponse> owners = (List<GetOwnerResponse>)okResult.Value!;
             Assert.Multiple(() =>
             {
+                Assert.That(owners[0].OwnerResponsibles, Is.Null);
                 Assert.That(owners[0].TenantId, Is.Null);
                 Assert.That(owners[0].Criticality, Is.Null);
                 Assert.That(owners[0].Active, Is.Null);
@@ -316,7 +317,12 @@ namespace FWO.Test
                         LastRecertifierId = 11,
                         LastRecertifierDn = "cn=user",
                         RecertActive = true,
-                        AdditionalInfo = new Dictionary<string, string> { ["key"] = "value" }
+                        AdditionalInfo = new Dictionary<string, string> { ["key"] = "value" },
+                        OwnerResponsibles =
+                        [
+                            new OwnerResponsible { Dn = "cn=main", ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeMain },
+                            new OwnerResponsible { Dn = "cn=support", ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeSupporting }
+                        ]
                     }
                 ]
             };
@@ -328,6 +334,11 @@ namespace FWO.Test
             GetOwnerResponse owner = ((List<GetOwnerResponse>)okResult.Value!)[0];
             Assert.Multiple(() =>
             {
+                Assert.That(owner.OwnerResponsibles, Has.Count.EqualTo(2));
+                Assert.That(owner.OwnerResponsibles![0].Dn, Is.EqualTo("cn=main"));
+                Assert.That(owner.OwnerResponsibles[0].ResponsibleType, Is.EqualTo(GlobalConst.kOwnerResponsibleTypeMain));
+                Assert.That(owner.OwnerResponsibles[1].Dn, Is.EqualTo("cn=support"));
+                Assert.That(owner.OwnerResponsibles[1].ResponsibleType, Is.EqualTo(GlobalConst.kOwnerResponsibleTypeSupporting));
                 Assert.That(owner.IsDefault, Is.True);
                 Assert.That(owner.TenantId, Is.EqualTo(7));
                 Assert.That(owner.RecertInterval, Is.EqualTo(365));
@@ -341,6 +352,12 @@ namespace FWO.Test
                 Assert.That(owner.RecertActive, Is.True);
                 Assert.That(owner.AdditionalInfo, Is.Not.Null);
                 Assert.That(owner.AdditionalInfo!["key"], Is.EqualTo("value"));
+            });
+            string serializedOwner = JsonSerializer.Serialize(owner);
+            Assert.Multiple(() =>
+            {
+                Assert.That(serializedOwner, Does.Contain("\"ownerResponsibles\""));
+                Assert.That(serializedOwner, Does.Contain("\"responsibleType\""));
             });
         }
 

@@ -40,6 +40,13 @@ public sealed class GetOwnerResponse
     public OwnerLifecycleStateResponse? OwnerLifecycleState { get; set; }
 
     /// <summary>
+    /// Gets or sets the distinguished names responsible for the owner.
+    /// </summary>
+    [JsonPropertyName("ownerResponsibles")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<OwnerResponsibleResponse>? OwnerResponsibles { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether the owner is the default owner.
     /// </summary>
     [JsonPropertyName("isDefault")]
@@ -157,6 +164,24 @@ public sealed class GetOwnerResponse
     [JsonPropertyName("additionalInfo")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Dictionary<string, string>? AdditionalInfo { get; set; }
+}
+
+/// <summary>
+/// Represents one responsible distinguished name assigned to an owner.
+/// </summary>
+public sealed class OwnerResponsibleResponse
+{
+    /// <summary>
+    /// Gets or sets the responsible distinguished name.
+    /// </summary>
+    [JsonPropertyName("dn")]
+    public string Dn { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the owner responsible type id.
+    /// </summary>
+    [JsonPropertyName("responsibleType")]
+    public int ResponsibleType { get; set; }
 }
 
 /// <summary>

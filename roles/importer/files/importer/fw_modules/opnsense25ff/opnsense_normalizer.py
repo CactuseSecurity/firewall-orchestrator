@@ -526,53 +526,68 @@ def _create_network_objects_from_iface_ip(interface: OPNsenseInterface) -> Netwo
     )
 
 
+def _access_rule_network_targets(rule: OPNsenseAccessRule) -> set[str]:
+    return (
+        {_network_ref_name(ref) for ref in rule.source_address}
+        | {_network_ref_name(ref) for ref in rule.dest_address}
+        | set(rule.source_network)
+        | set(rule.dest_network)
+    )
+
+
+def _create_network_object_from_ip_range(target: str) -> NetworkObject:
+    range_start, range_end = target.split("-", 1)
+    return _create_network_object_from_host_definition(
+        OPNsenseHost(
+            name=target,
+            is_range=True,
+            host=IPAddress(range_start),
+            host_end=IPAddress(range_end),
+        )
+    )
+
+
+def _create_plain_network_object_from_target(target: str) -> NetworkObject | None:
+    if os_helper.is_ip(target):
+        return _create_network_object_from_host_definition(
+            OPNsenseHost(name=target, is_range=False, host=IPAddress(target), host_end=None)
+        )
+    if os_helper.is_ip_subnet(target):
+        return _create_network_object_from_net_definition(OPNsenseNetwork(name=target, net=IPNetwork(target)))
+    if os_helper.is_ip_range(target):
+        return _create_network_object_from_ip_range(target)
+    return None
+
+
+def _create_interface_network_object_from_target(target: str, os_config: OPNsenseConfig) -> NetworkObject | None:
+    if target in os_config.interface_groups:
+        return _create_network_objects_from_ifgroup(os_config.interface_groups[target])
+    if target in os_config.interfaces and target not in os_config.interface_groups:
+        return _create_network_objects_from_interface(os_config.interfaces[target])
+
+    interface_name = target.removesuffix("ip")
+    if interface_name in os_config.interfaces:
+        return _create_network_objects_from_iface_ip(os_config.interfaces[interface_name])
+    return None
+
+
+def _create_network_object_from_rule_target(target: str, os_config: OPNsenseConfig) -> NetworkObject | None:
+    obj = _create_plain_network_object_from_target(target)
+    if obj is not None:
+        return obj
+    return _create_interface_network_object_from_target(target, os_config)
+
+
 def _update_network_objects_from_access_rules(os_config: OPNsenseConfig, nw_objs: dict[str, NetworkObject]) -> None:
     for rule in os_config.access_rules:
-        for target in (
-            {_network_ref_name(ref) for ref in rule.source_address}
-            | {_network_ref_name(ref) for ref in rule.dest_address}
-            | set(rule.source_network)
-            | set(rule.dest_network)
-        ) - set(nw_objs.keys() or []):
+        for target in _access_rule_network_targets(rule):
             if target in nw_objs:
                 continue
-            if os_helper.is_ip(target):
-                # plain IP address
-                obj = _create_network_object_from_host_definition(
-                    OPNsenseHost(name=target, is_range=False, host=IPAddress(target), host_end=None)
-                )
-                nw_objs[target] = obj
-            elif os_helper.is_ip_subnet(target):
-                # plain IP subnet
-                obj = _create_network_object_from_net_definition(OPNsenseNetwork(name=target, net=IPNetwork(target)))
-                nw_objs[target] = obj
-            elif os_helper.is_ip_range(target):
-                # plain IP range
-                obj = _create_network_object_from_host_definition(
-                    OPNsenseHost(
-                        name=target,
-                        is_range=True,
-                        host=IPAddress(target.split("-", 1)[0]),
-                        host_end=IPAddress(target.split("-", 1)[1]),
-                    )
-                )
-                nw_objs[target] = obj
-            elif target in os_config.interface_groups:
-                # normalize necessary interface groups
-                obj = _create_network_objects_from_ifgroup(os_config.interface_groups[target])
-                nw_objs[target] = obj
-            elif target in set(os_config.interfaces.keys()) - set(os_config.interface_groups.keys()):
-                # interface objects
-                obj = _create_network_objects_from_interface(os_config.interfaces[target])
-                nw_objs[target] = obj
-            elif target.removesuffix("ip") in os_config.interfaces:
-                # interface address objects
-                interface_name = target.removesuffix("ip")
-                obj = _create_network_objects_from_iface_ip(os_config.interfaces[interface_name])
-                nw_objs[target] = obj
-            else:
-                # currently unknown and not implemented network object
+            obj = _create_network_object_from_rule_target(target, os_config)
+            if obj is None:
                 FWOLogger.warning(f"[*] detected unknown network object {target} in rule:\n    {rule}")
+                continue
+            nw_objs[target] = obj
 
 
 def _normalize_network_objects(os_config: OPNsenseConfig) -> dict[str, NetworkObject]:

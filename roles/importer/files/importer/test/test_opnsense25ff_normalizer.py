@@ -306,6 +306,33 @@ def test_update_network_objects_detects_interface_address_object() -> None:
     assert nw_objs["lanip"].obj_typ == "group"
 
 
+def test_update_network_objects_detects_interface_object() -> None:
+    rule = OPNsenseAccessRule.model_validate(
+        {
+            "@uuid": "r-lan",
+            "type": "pass",
+            "descr": "Default allow LAN",
+            "source": {"network": "lan"},
+        }
+    )
+    config = OPNsenseConfig(
+        hostname="fw",
+        interfaces={
+            "lan": OPNsenseInterface.model_validate(
+                {"name": "lan", "enable": "1", "if": "em0", "descr": "LAN", "ipaddr": "10.1.1.87", "subnet": "24"}
+            )
+        },
+        access_rules=[rule],
+    )
+
+    nw_objs: dict[str, NetworkObject] = {}
+    _update_network_objects_from_access_rules(config, nw_objs)
+
+    assert "lan" in nw_objs
+    assert nw_objs["lan"].obj_name == "lan"
+    assert nw_objs["lan"].obj_typ == "group"
+
+
 def test_update_network_objects_detects_ips_subnets_ranges_and_ifgroups() -> None:
     ifgroup = OPNsenseIfGroup.model_validate({"@uuid": "ifg", "ifname": "lan_group", "members": "lan", "descr": "g"})
     host_rule = OPNsenseAccessRule.model_validate(

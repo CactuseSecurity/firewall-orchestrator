@@ -21,6 +21,7 @@ from fw_modules.opnsense25ff.opnsense_normalizer import (
     _create_rulebases_from_access_rules,
     _get_gateway_name,
     _get_rulebase_links_from_rulebases,
+    _normalize_network_objects,
     _normalize_services,
     _normalize_services_from_port_alias,
     _resolve_named_refs_in_rules,
@@ -275,6 +276,34 @@ def test_create_rulebases_from_access_rules_keeps_rule_uid() -> None:
     rulebases = _create_rulebases_from_access_rules(config, "mgm-uid")
 
     assert "opnsense-default-rule-lan-inet" in rulebases[0].rules
+
+
+def test_update_network_objects_detects_interface_address_object() -> None:
+    rule = OPNsenseAccessRule.model_validate(
+        {
+            "@uuid": "r-lan-ip",
+            "type": "pass",
+            "descr": "Default allow LAN to LAN address",
+            "source": {"network": "lan"},
+            "destination": {"network": "lanip"},
+        }
+    )
+    config = OPNsenseConfig(
+        hostname="fw",
+        interfaces={
+            "lan": OPNsenseInterface.model_validate(
+                {"name": "lan", "enable": "1", "if": "em0", "descr": None, "ipaddr": "10.1.1.87", "subnet": "24"}
+            )
+        },
+        access_rules=[rule],
+    )
+
+    nw_objs = _normalize_network_objects(config)
+    _update_network_objects_from_access_rules(config, nw_objs)
+
+    assert "lanip" in nw_objs
+    assert nw_objs["lanip"].obj_name == "lanip"
+    assert nw_objs["lanip"].obj_typ == "group"
 
 
 def test_update_network_objects_detects_ips_subnets_ranges_and_ifgroups() -> None:

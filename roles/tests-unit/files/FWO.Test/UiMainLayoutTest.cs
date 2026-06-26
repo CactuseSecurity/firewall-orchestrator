@@ -12,6 +12,7 @@ using FWO.Test.Mocks;
 using FWO.Ui.Services;
 using FWO.Ui.Shared;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.Extensions.DependencyInjection;
@@ -51,6 +52,11 @@ namespace FWO.Test
         private static void SetPrivateFieldValue<T>(MainLayout layout, string name, T value)
         {
             GetPrivateField(name).SetValue(layout, value);
+        }
+
+        private static List<string> GetAmbientRolesForRoute(MainLayout layout, string route)
+        {
+            return (List<string>)GetPrivateMethod("GetAmbientRolesForLocation").Invoke(layout, [route])!;
         }
 
         [Test]
@@ -131,6 +137,78 @@ namespace FWO.Test
                 Assert.That(fixture.Layout.Markup, Does.Contain("jwt_expired_text"));
             });
             Assert.That(fixture.ApiConnection.UiLogs, Is.Empty);
+        }
+
+        [Test]
+        public async Task AmbientRoleSmokeRoutesResolveToExpectedRoles()
+        {
+            await using MainLayoutFixture fixture = new();
+            Dictionary<string, List<string>> expectedRouteRoles = new()
+            {
+                ["/settings/user"] = [Roles.Modeller, Roles.Recertifier, Roles.ReporterViewAll, Roles.Reporter,
+                    Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer,
+                    Roles.Admin, Roles.FwAdmin, Roles.Auditor],
+                ["/settings/language"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
+                ["/settings/report"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
+                ["/settings/modellingpersonal"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
+                ["/settings/recertificationpersonal"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
+                ["/report/generation"] = [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller,
+                    Roles.Recertifier, Roles.Admin, Roles.Auditor, Roles.FwAdmin],
+                ["/report/schedule"] = [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller,
+                    Roles.Recertifier, Roles.Admin, Roles.Auditor, Roles.FwAdmin],
+                ["/report/archive"] = [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller,
+                    Roles.Recertifier, Roles.Admin, Roles.Auditor, Roles.FwAdmin],
+                ["/networkmodelling"] = [Roles.Modeller, Roles.Admin, Roles.Auditor],
+                ["/certification"] = [Roles.Recertifier, Roles.Modeller, Roles.Admin, Roles.Auditor],
+                ["/request/tickets"] = [Roles.Requester, Roles.Admin, Roles.FwAdmin, Roles.Auditor],
+                ["/request/ticketsoverview"] = [Roles.Requester, Roles.Admin, Roles.FwAdmin, Roles.Auditor],
+                ["/request/approvals"] = [Roles.Approver, Roles.Admin, Roles.FwAdmin, Roles.Auditor],
+                ["/request/plannings"] = [Roles.Planner, Roles.Admin, Roles.FwAdmin, Roles.Auditor],
+                ["/request/implementations"] = [Roles.Implementer, Roles.Reviewer, Roles.Admin, Roles.FwAdmin,
+                    Roles.Auditor],
+                ["/request/reviews"] = [Roles.Reviewer, Roles.Admin, Roles.FwAdmin, Roles.Auditor],
+                ["/monitoring"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
+                ["/monitoring/import_status"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
+                ["/monitoring/alerts"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
+                ["/monitoring/modelling_requests"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
+                ["/monitoring/requested_interfaces"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
+                ["/compliance/checks"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
+                ["/compliance/matrix"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
+                ["/compliance/policies"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
+                ["/network_analysis"] = [Roles.Planner, Roles.FwAdmin, Roles.Admin, Roles.Auditor],
+            };
+
+            Assert.Multiple(() =>
+            {
+                foreach ((string route, List<string> expectedRoles) in expectedRouteRoles)
+                {
+                    Assert.That(GetAmbientRolesForRoute(fixture.Layout.Instance, route), Is.EqualTo(expectedRoles), route);
+                }
+            });
+        }
+
+        [Test]
+        public async Task NavigationToAmbientRoleSmokeRouteUpdatesApiConnection()
+        {
+            await using MainLayoutFixture fixture = new(roles: [Roles.Reporter, Roles.Modeller, Roles.Recertifier]);
+            fixture.ApiConnection.AmbientRoleRequests.Clear();
+
+            fixture.NavigationManager.NavigateTo("/report/generation");
+
+            fixture.Layout.WaitForAssertion(() =>
+            {
+                Assert.That(fixture.ApiConnection.AmbientRoleRequests.Last(), Is.EqualTo(new[]
+                {
+                    Roles.ReporterViewAll,
+                    Roles.Reporter,
+                    Roles.Modeller,
+                    Roles.Recertifier,
+                    Roles.Admin,
+                    Roles.Auditor,
+                    Roles.FwAdmin
+                }));
+                Assert.That(fixture.ApiConnection.LastAmbientUser?.Identity?.Name, Is.EqualTo("tester"));
+            });
         }
 
         [Test]
@@ -231,6 +309,7 @@ namespace FWO.Test
             public SimulatedUserConfig UserConfig { get; }
             public EventMediator EventMediator { get; } = new();
             public MainLayoutTokenRefreshCoordinatorStub TokenRefreshCoordinator { get; } = new();
+            public NavigationManager NavigationManager { get; }
             public IRenderedComponent<MainLayout> Layout { get; }
 
             public MainLayoutFixture(int maxMessages = 3, IEnumerable<string>? roles = null)
@@ -261,6 +340,7 @@ namespace FWO.Test
                 context.Services.AddSingleton(new KeyboardInputService());
                 context.Services.AddSingleton((ProtectedSessionStorage)RuntimeHelpers.GetUninitializedObject(typeof(ProtectedSessionStorage)));
                 context.Services.AddSingleton<AuthenticationStateProvider>(new MainLayoutAuthStateProvider(UserConfig.User.Name, UserConfig.User.Dn, userRoles));
+                NavigationManager = context.Services.GetRequiredService<NavigationManager>();
 
                 Layout = context.Render<CascadingAuthenticationState>(parameters => parameters.AddChildContent<MainLayout>())
                     .FindComponent<MainLayout>();
@@ -321,6 +401,8 @@ namespace FWO.Test
     {
         public List<UiLogEntry> UiLogs { get; } = [];
         public List<(string Title, string Message)> Alerts { get; } = [];
+        public List<List<string>> AmbientRoleRequests { get; } = [];
+        public ClaimsPrincipal? LastAmbientUser { get; private set; }
         public bool ThrowOnUiLog { get; set; }
 
         public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
@@ -366,6 +448,12 @@ namespace FWO.Test
             }
 
             throw new NotImplementedException($"Unhandled query response type {typeof(QueryResponseType).Name}");
+        }
+
+        public override void SetAmbientRole(ClaimsPrincipal user, List<string> targetRoleList)
+        {
+            LastAmbientUser = user;
+            AmbientRoleRequests.Add([.. targetRoleList]);
         }
 
         public void WaitForLogCount(int expectedCount)

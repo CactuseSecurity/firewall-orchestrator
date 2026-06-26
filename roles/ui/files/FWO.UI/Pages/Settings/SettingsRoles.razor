@@ -63,7 +63,8 @@
     </Table>
 </div>
 
-<SearchUser @bind-Display="AddMode" AddUser="AddUserFromLdap" AddGroup="AddGroupFromLdap" UserSearchMode="true" GroupSearchMode="true" Title="@(actRole.Name)" />
+<SearchUser @bind-Display="AddMode" AddUser="AddUserFromLdap" AddGroup="AddGroupFromLdap" UserSearchMode="true" GroupSearchMode="true"
+            Title="@(actRole.Name)" UseExecutionModeAuthorization="false" />
 <RemoveUser @bind-Display="RemoveUserMode" Remove="RemoveUser" Users="actRole.Users" Title="@(userConfig.GetText("remove_user_group_from_role") + ": " + actRole.Name)" Label="@(userConfig.GetText("user_group"))" />
 
 

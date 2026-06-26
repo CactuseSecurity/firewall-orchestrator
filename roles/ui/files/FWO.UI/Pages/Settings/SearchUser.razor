@@ -40,14 +40,28 @@
                             </Dropdown>
                         </div>
                         <div class="col-sm-2">
-                            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
-                                <Authorized>
-                                    <button type="button" class="btn btn-sm btn-success" @onclick="async () => { await AddUser(selectedUiUser); Close(); }" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
-                                </Authorized>
-                                <NotAuthorized>
-                                    <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
-                                </NotAuthorized>
-                            </ExecutionModeAuthorizeView>
+                            @if(UseExecutionModeAuthorization)
+                            {
+                                <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                                    <Authorized>
+                                        <button type="button" class="btn btn-sm btn-success" @onclick="async () => { await AddUser(selectedUiUser); Close(); }" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                                    </Authorized>
+                                    <NotAuthorized>
+                                        <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
+                                    </NotAuthorized>
+                                </ExecutionModeAuthorizeView>
+                            }
+                            else
+                            {
+                                <AuthorizeView Roles="@Roles.Admin">
+                                    <Authorized>
+                                        <button type="button" class="btn btn-sm btn-success" @onclick="async () => { await AddUser(selectedUiUser); Close(); }" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                                    </Authorized>
+                                    <NotAuthorized>
+                                        <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
+                                    </NotAuthorized>
+                                </AuthorizeView>
+                            }
                         </div>
                     </form>
                 }
@@ -59,14 +73,28 @@
                             <Dropdown ElementType="string" @bind-SelectedElement="selectedInternalGroupDn" Elements="Array.ConvertAll(internalGroups.ToArray(), x => x.Dn).ToList()" />
                         </div>
                         <div class="col-sm-2">
-                            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
-                                <Authorized>
-                                    <button type="button" class="btn btn-sm btn-success" @onclick="async () => { await AddGroup(selectedInternalGroupDn); Close(); }" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
-                                </Authorized>
-                                <NotAuthorized>
-                                    <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
-                                </NotAuthorized>
-                            </ExecutionModeAuthorizeView>
+                            @if(UseExecutionModeAuthorization)
+                            {
+                                <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                                    <Authorized>
+                                        <button type="button" class="btn btn-sm btn-success" @onclick="async () => { await AddGroup(selectedInternalGroupDn); Close(); }" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                                    </Authorized>
+                                    <NotAuthorized>
+                                        <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
+                                    </NotAuthorized>
+                                </ExecutionModeAuthorizeView>
+                            }
+                            else
+                            {
+                                <AuthorizeView Roles="@Roles.Admin">
+                                    <Authorized>
+                                        <button type="button" class="btn btn-sm btn-success" @onclick="async () => { await AddGroup(selectedInternalGroupDn); Close(); }" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
+                                    </Authorized>
+                                    <NotAuthorized>
+                                        <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("assign"))</button>
+                                    </NotAuthorized>
+                                </AuthorizeView>
+                            }
                         </div>
                     </form>
                 }
@@ -109,6 +137,9 @@
 
     [Parameter]
     public bool OwnerGroupsOnly { get; set; } = false;
+
+    [Parameter]
+    public bool UseExecutionModeAuthorization { get; set; } = true;
 
     private List<UserGroup> internalGroups = [];
     private List<UiUser> uiUsers = [];

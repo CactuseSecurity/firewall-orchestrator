@@ -30,6 +30,8 @@ namespace FWO.Test
             new() { Id = 10, Name = "Notify" }
         ];
 
+        private static readonly int[] kExpectedDeleteIds = [1];
+
         private static MethodInfo GetPrivateMethod(string name)
         {
             return typeof(SettingsStates).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance)
@@ -287,7 +289,7 @@ namespace FWO.Test
                 List<object> objects = ((System.Collections.IEnumerable)GetVariable<object>(addVariables, "objects"))
                     .Cast<object>()
                     .ToList();
-                Assert.That(deleteIds, Is.EqualTo(new[] { 1 }));
+                Assert.That(deleteIds, Is.EqualTo(kExpectedDeleteIds));
                 Assert.That(objects.Count, Is.EqualTo(1));
                 Assert.That(GetVariable<string>(objects[0], "name"), Is.EqualTo(ExtStates.Done.ToString()));
                 Assert.That(GetVariable<int>(objects[0], "state_id"), Is.EqualTo(1));

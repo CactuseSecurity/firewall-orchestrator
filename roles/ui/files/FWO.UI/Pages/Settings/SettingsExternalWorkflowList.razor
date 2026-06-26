@@ -60,7 +60,7 @@
                     </AuthorizeView>
                 </div>
             </div>
-            <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" @ref="tableExternalTicketSystems" TableItem="ExternalTicketSystem" Items="extTicketSystems" PageSize="0" ColumnReorder="true">
+            <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ExternalTicketSystem" Items="extTicketSystems" PageSize="0" ColumnReorder="true">
                 <Column TableItem="ExternalTicketSystem" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                     <Template Context="item">
                         <div class="btn-group">
@@ -161,7 +161,7 @@
                             <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5599"))">
                                 <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
                                 <div class="col-sm-4">
-                                    <Dropdown ElementType="string" @bind-SelectedElement="newTemplate.TaskType" Elements="AvailableTaskTypesForNewTemplate" />
+                                    <Dropdown ElementType="string" @bind-SelectedElement="newTemplate.TaskType" Elements="GetAvailableTaskTypesForNewTemplate()" />
                                 </div>
                             </div>
                             <ExtTicketTemplates Template="newTemplate" IsBuiltIn="selectedType.IsBuiltIn" />
@@ -201,7 +201,6 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
     private ConfigData? configData;
     private bool InitComplete = false;
-    private Table<ExternalTicketSystem>? tableExternalTicketSystems;
 
     private ExternalTicketSystem? curExternalTicketSystem = null;
     private ExternalTicketSystem editModel = new();
@@ -214,7 +213,7 @@ else
     private DateTime extReqStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private ExternalTicketTemplate newTemplate = new();
     private List<string> actTaskTypes = [];
-    private List<ExternalTicketSystemTypeDefinition> availableExternalTicketTypes = BuiltInExternalTicketSystemTypes.AllBuiltInTicketTypes.ToList();
+    private readonly List<ExternalTicketSystemTypeDefinition> availableExternalTicketTypes = BuiltInExternalTicketSystemTypes.AllBuiltInTicketTypes.ToList();
     private ExternalTicketSystemTypeDefinition selectedType = BuiltInExternalTicketSystemTypes.GetById(BuiltInExternalTicketSystemTypes.GenericId);
 
 
@@ -282,27 +281,7 @@ else
                 throw new ArgumentException("Data saved before loaded. This should be impossible.");
             }
 
-
-            if ((!string.IsNullOrWhiteSpace(newTemplate.TicketTemplate) || !string.IsNullOrWhiteSpace(newTemplate.TasksTemplate)) &&
-                !string.IsNullOrWhiteSpace(newTemplate.TaskType) && editModel.Templates.All(template => template.TaskType != newTemplate.TaskType))
-            {
-                editModel.Templates.Add(new ExternalTicketTemplate
-                {
-                    TaskType = newTemplate.TaskType,
-                    TicketTemplate = newTemplate.TicketTemplate,
-                    TasksTemplate = newTemplate.TasksTemplate,
-                    ObjectTemplate = newTemplate.ObjectTemplate,
-                    ObjectTemplateShort = newTemplate.ObjectTemplateShort,
-                    IpTemplate = newTemplate.IpTemplate,
-                    NwObjGroupTemplate = newTemplate.NwObjGroupTemplate,
-                    ServiceTemplate = newTemplate.ServiceTemplate,
-                    IcmpTemplate = newTemplate.IcmpTemplate,
-                    IpProtocolTemplate = newTemplate.IpProtocolTemplate
-                });
-            }
-
-            newTemplate = new ExternalTicketTemplate();
-            SyncNewTemplateTaskType();
+            AddNewTemplateIfNeeded();
 
             if (curExternalTicketSystem != null)
             {
@@ -354,7 +333,6 @@ else
             configData.ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(extTicketSystems);
             await globalConfig.WriteToDatabase(configData, apiConnection);
 
-            // editMode = false;
             extTicketSystems = string.IsNullOrWhiteSpace(configData.ExtTicketSystems)
                 ? new List<ExternalTicketSystem>()
                 : JsonSerializer.Deserialize<List<ExternalTicketSystem>>(configData.ExtTicketSystems)
@@ -363,13 +341,36 @@ else
 
             StateHasChanged();
 
-
             DisplayMessageInUi(null, userConfig.GetText("ext_ticket_templates"), userConfig.GetText("U5301"), false);
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("ext_ticket_templates"), "", true);
         }
+    }
+
+    private void AddNewTemplateIfNeeded()
+    {
+        if ((!string.IsNullOrWhiteSpace(newTemplate.TicketTemplate) || !string.IsNullOrWhiteSpace(newTemplate.TasksTemplate)) 
+        && !string.IsNullOrWhiteSpace(newTemplate.TaskType) && editModel.Templates.All(template => template.TaskType != newTemplate.TaskType))
+        {
+            editModel.Templates.Add(new ExternalTicketTemplate
+            {
+                TaskType = newTemplate.TaskType,
+                TicketTemplate = newTemplate.TicketTemplate,
+                TasksTemplate = newTemplate.TasksTemplate,
+                ObjectTemplate = newTemplate.ObjectTemplate,
+                ObjectTemplateShort = newTemplate.ObjectTemplateShort,
+                IpTemplate = newTemplate.IpTemplate,
+                NwObjGroupTemplate = newTemplate.NwObjGroupTemplate,
+                ServiceTemplate = newTemplate.ServiceTemplate,
+                IcmpTemplate = newTemplate.IcmpTemplate,
+                IpProtocolTemplate = newTemplate.IpProtocolTemplate
+            });
+        }
+
+        newTemplate = new ExternalTicketTemplate();
+        SyncNewTemplateTaskType();
     }
 
     private async Task SaveServiceData()
@@ -382,7 +383,7 @@ else
         }
     }
 
-    private void InitTaskTypeList(int extTicketSystemTypeId)
+    private void InitTaskTypeList()
     {
         actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
         SyncNewTemplateTaskType();
@@ -399,7 +400,7 @@ else
 
         newTemplate = new ExternalTicketTemplate();
         selectedType = ResolveSelectedType(editModel.TypeId);
-        InitTaskTypeList(editModel.TypeId);
+        InitTaskTypeList();
         editMode = true;
     }
 
@@ -409,7 +410,7 @@ else
         editModel = Clone(externalTicketSystem);
         newTemplate = new ExternalTicketTemplate();
         selectedType = ResolveSelectedType(editModel.TypeId);
-        InitTaskTypeList(editModel.TypeId);
+        InitTaskTypeList();
         editMode = true;
     }
 
@@ -497,7 +498,7 @@ else
     {
         selectedType = type;
         editModel.TypeId = type.Id;
-        InitTaskTypeList(type.Id);
+        InitTaskTypeList();
     }
 
     private ExternalTicketSystemTypeDefinition ResolveSelectedType(int typeId)
@@ -519,14 +520,14 @@ else
            : $"{type.Name} {type.Version}";
     }
 
-    private List<string> AvailableTaskTypesForNewTemplate =>
-        actTaskTypes
-            .Where(taskType => editModel.Templates.All(template => template.TaskType != taskType))
-            .ToList();
+    private IEnumerable<string> GetAvailableTaskTypesForNewTemplate()
+    {
+        return actTaskTypes
+            .Where(taskType => editModel.Templates.All(template => template.TaskType != taskType));
+    }
 
     private void SyncNewTemplateTaskType()
     {
-        List<string> availableTaskTypes = AvailableTaskTypesForNewTemplate;
-        newTemplate.TaskType = availableTaskTypes.Count > 0 ? availableTaskTypes.First() : "";
+        newTemplate.TaskType = GetAvailableTaskTypesForNewTemplate().FirstOrDefault() ?? "";
     }
 }

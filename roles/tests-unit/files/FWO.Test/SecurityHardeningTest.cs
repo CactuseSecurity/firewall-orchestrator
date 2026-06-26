@@ -25,6 +25,33 @@ namespace FWO.Test
         }
 
         [Test]
+        public void EscapeSearchPattern_PreservesWildcardsButEscapesSegments()
+        {
+            // '*' stays a wildcard; the literal '(' and ')' within segments are escaped
+            string escaped = Ldap.EscapeSearchPattern("*smith*(test)");
+
+            Assert.That(escaped, Is.EqualTo(@"*smith*\28test\29"));
+        }
+
+        [Test]
+        public void EscapeSearchPattern_NeutralizesFilterInjectionWhileKeepingWildcards()
+        {
+            // An injection attempt that abuses parentheses must be escaped,
+            // while the user-supplied leading/trailing wildcards keep working
+            string escaped = Ldap.EscapeSearchPattern("*)(uid=admin)(*");
+
+            Assert.That(escaped, Is.EqualTo(@"*\29\28uid=admin\29\28*"));
+            Assert.That(escaped, Does.Not.Contain(")("));
+        }
+
+        [Test]
+        public void EscapeSearchPattern_ReturnsEmptyForNullOrEmpty()
+        {
+            Assert.That(Ldap.EscapeSearchPattern(null), Is.EqualTo(""));
+            Assert.That(Ldap.EscapeSearchPattern(""), Is.EqualTo(""));
+        }
+
+        [Test]
         public void DisplayAllComments_AsMarkupHtmlEncodesUserControlledText()
         {
             List<WfCommentDataHelper> comments =

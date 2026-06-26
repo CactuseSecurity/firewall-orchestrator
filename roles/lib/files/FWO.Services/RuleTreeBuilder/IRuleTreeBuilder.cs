@@ -13,10 +13,9 @@ namespace FWO.Services.RuleTreeBuilder
         List<RulebaseReport> Rulebases { get; set; }
         Dictionary<(int managementId, int deviceId), RuleTreeItem> RuleTreeCache { get; set; }
         List<Rule> BuildRuleTree(RulebaseReport[] rulebases, RulebaseLink[] links, int managementId, int deviceId);
-        RulebaseLink? GetNextLink();
+        RulebaseLink? GetNextLink(int? previousRulebaseId = null);
         List<int> ProcessLink(RulebaseLink link, List<int>? trail = null);
         void Reset(RulebaseReport[] rulebases, RulebaseLink[] links);
         Dictionary<RuleTreeItem, Rule[]> FlattedRules { get; set; }
     }
 }
-

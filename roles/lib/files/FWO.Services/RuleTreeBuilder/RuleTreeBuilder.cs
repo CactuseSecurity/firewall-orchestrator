@@ -80,9 +80,12 @@ namespace FWO.Services.RuleTreeBuilder
 
             // Iterate links in processing order to build the tree and order numbers.
 
-            while (GetNextLink() is RulebaseLink nextLink)
+            RulebaseLink? previousLink = null;
+
+            while (GetNextLink(previousLink?.NextRulebaseId) is RulebaseLink nextLink)
             {
                 trail = ProcessLink(nextLink, trail);
+                previousLink = nextLink;
             }
 
             // Returns the Rule objects of the flattened rule tree. Will be deprecated  as soon as we have the TreeView component.
@@ -270,10 +273,22 @@ namespace FWO.Services.RuleTreeBuilder
         }
 
         /// <summary>
-        /// Returns the next link to process, preferring initial links.
+        /// Returns the next link to process, preferring the current rulebase chain and then initial links.
         /// </summary>
-        public RulebaseLink? GetNextLink()
+        public RulebaseLink? GetNextLink(int? previousRulebaseId = null)
         {
+            if (previousRulebaseId != null)
+            {
+                RulebaseLink? chainLink = RemainingLinks.FirstOrDefault(link =>
+                    link.LinkType != 3 && link.FromRulebaseId == previousRulebaseId);
+
+                if (chainLink != null)
+                {
+                    RemainingLinks.Remove(chainLink);
+                    return chainLink;
+                }
+            }
+
             // Get initial first
 
             if (RemainingLinks.Any(link => link.IsInitial))
@@ -285,7 +300,7 @@ namespace FWO.Services.RuleTreeBuilder
 
             // Get next link in line
 
-            RulebaseLink? nextLink = RemainingLinks.FirstOrDefault();
+            RulebaseLink? nextLink = RemainingLinks.FirstOrDefault(link => link.LinkType != 3);
 
             if (nextLink != null)
             {
@@ -358,9 +373,9 @@ namespace FWO.Services.RuleTreeBuilder
                 RemainingLinks.Remove(inlineLayerLink);
                 List<int> innerTrail = ProcessLink(inlineLayerLink, trail);
 
-                if (RemainingLinks.FirstOrDefault(x => inlineLayerLink.NextRulebaseId == x.FromRulebaseId) != null)
+                if (RemainingLinks.FirstOrDefault(link => link.LinkType != 3 && link.FromRulebaseId == inlineLayerLink.NextRulebaseId) != null)
                 {
-                    RulebaseLink? nextLink = GetNextLink();
+                    RulebaseLink? nextLink = GetNextLink(inlineLayerLink.NextRulebaseId);
                     if (nextLink != null)
                     {
                         ProcessLink(nextLink, innerTrail);

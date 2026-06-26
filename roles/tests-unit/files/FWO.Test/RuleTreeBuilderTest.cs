@@ -70,6 +70,34 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildRuleTree_EmptySectionWithUnorderedLinks_KeepsRulebaseChainOrder()
+        {
+            // Arrange
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10),
+                Rulebase(2, "Empty-Section"),
+                Rulebase(3, "Section-B", 30)
+            ];
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                SectionLink(gatewayId: 1, fromRulebaseId: 2, nextRulebaseId: 3),
+                SectionLink(gatewayId: 1, fromRulebaseId: 1, nextRulebaseId: 2)
+            ];
+
+            // Act
+            List<Rule> resultRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1);
+            List<string?> sectionHeaders = [.. _ruleTreeBuilder.RuleTree.ElementsFlat
+                .Where(element => element.IsSectionHeader)
+                .Select(element => element.Header)];
+
+            // Assert
+            Assert.That(sectionHeaders, Is.EqualTo(new[] { "Empty-Section", "Section-B" }));
+            Assert.That(resultRules.Where(rule => rule.SectionHeader == "").Select(rule => rule.RulebaseId), Is.EqualTo(new[] { 1, 3 }));
+        }
+
+        [Test]
         public void BuildRuleTree_InlineLayerFromRule_AddsInlineLayerAndRules()
         {
             // Arrange

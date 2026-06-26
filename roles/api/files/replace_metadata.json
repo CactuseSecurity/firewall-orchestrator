@@ -2504,6 +2504,24 @@
                     ]
                   },
                   "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "object_id",
+                      "changer",
+                      "change_text",
+                      "app_id",
+                      "change_type",
+                      "object_type",
+                      "change_time",
+                      "change_source"
+                    ]
+                  },
+                  "comment": ""
                 }
               ],
               "select_permissions": [
@@ -3023,6 +3041,24 @@
                     "filter": {}
                   },
                   "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "comment",
+                      "creator",
+                      "id_string",
+                      "name",
+                      "app_id",
+                      "group_type",
+                      "creation_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ],
               "update_permissions": [
@@ -3313,6 +3349,17 @@
                 },
                 {
                   "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "nwobject_id",
+                      "nwgroup_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
                   "permission": {
                     "columns": [
                       "nwobject_id",
@@ -14682,6 +14729,26 @@
                 },
                 {
                   "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "import_source",
+                      "name",
+                      "ip",
+                      "ip_end",
+                      "custom_type",
+                      "ip_proto_id",
+                      "nw_type",
+                      "owner_id",
+                      "port"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
                   "permission": {
                     "columns": [
                       "id",

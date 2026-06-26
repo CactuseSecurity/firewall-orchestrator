@@ -14524,6 +14524,18 @@
                     "filter": {}
                   },
                   "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "active_state",
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ]
             },

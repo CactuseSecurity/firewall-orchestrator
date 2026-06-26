@@ -167,11 +167,28 @@ namespace FWO.Middleware.Server
             return escaped.ToString();
         }
 
+        /// <summary>
+        /// Escapes an LDAP search pattern according to RFC 4515 while preserving
+        /// '*' characters as substring wildcards. Each segment between wildcards is
+        /// escaped individually, so filter injection is prevented while the
+        /// user-supplied wildcards remain functional.
+        /// </summary>
+        /// <param name="pattern">The raw search pattern, may contain '*' wildcards.</param>
+        /// <returns>An escaped pattern safe to embed in an LDAP filter.</returns>
+        public static string EscapeSearchPattern(string? pattern)
+        {
+            if (string.IsNullOrEmpty(pattern))
+            {
+                return "";
+            }
+            return string.Join("*", Array.ConvertAll(pattern.Split('*'), EscapeFilterValue));
+        }
+
         private string GetUserSearchFilter(string searchPattern)
         {
             string userFilter;
             string searchFilter;
-            string escapedSearchPattern = EscapeFilterValue(searchPattern);
+            string escapedSearchPattern = EscapeSearchPattern(searchPattern);
             if (Type == (int)LdapType.ActiveDirectory)
             {
                 userFilter = "(&(objectclass=user)(!(objectclass=computer)))";
@@ -194,7 +211,7 @@ namespace FWO.Middleware.Server
         {
             string groupFilter;
             string searchFilter;
-            string escapedSearchPattern = EscapeFilterValue(searchPattern);
+            string escapedSearchPattern = EscapeSearchPattern(searchPattern);
             if (Type == (int)LdapType.ActiveDirectory)
             {
                 groupFilter = "(objectClass=group)";

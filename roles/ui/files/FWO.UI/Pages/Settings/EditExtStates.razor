@@ -142,7 +142,6 @@
     public List<WfState> States { get; set; } = [];
 
     private List<WfExtState> dbExtStates = [];
-    private List<WfExtState> allExtStates = [];
     private List<ExtStateGroup> staticExternalStates = [];
     private List<ExtStateGroup> manualExternalStates = [];
     private ExtStateGroup editGroup = new();
@@ -158,15 +157,6 @@
         try
         {
             dbExtStates = await apiConnection.SendQueryAsync<List<WfExtState>>(RequestQueries.getExtStates) ?? [];
-            allExtStates = [..dbExtStates];
-            foreach (string extState in Enum.GetNames<ExtStates>())
-            {
-                if (allExtStates.FirstOrDefault(x => x.Name == extState) == null)
-                {
-                    allExtStates.Add(new() { Name = extState });
-                }
-            }
-
             BuildStateGroups();
             await InvokeAsync(StateHasChanged);
         }
@@ -236,10 +226,11 @@
     {
         try
         {
-            foreach (int id in group.ExistingIds)
+            await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.replaceExtStates, new
             {
-                await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.removeExtState, new { id });
-            }
+                deleteIds = group.ExistingIds,
+                objects = new List<object>()
+            });
 
             await RefreshExtStates();
         }
@@ -289,44 +280,43 @@
 
     private async Task PersistEditingGroup()
     {
-        if (!string.IsNullOrWhiteSpace(editGroup.OriginalName))
+        string trimmedName = editGroup.Name.Trim();
+        string originalName = string.IsNullOrWhiteSpace(editGroup.OriginalName) ? trimmedName : editGroup.OriginalName.Trim();
+        bool nameChanged = !string.Equals(trimmedName, originalName, StringComparison.OrdinalIgnoreCase);
+        List<int?> desiredStateIds = NormalizeSelectedStateIds(editGroup.SelectedStates);
+        List<int?> existingStateIds = dbExtStates
+            .Where(extState => string.Equals(extState.Name, originalName, StringComparison.OrdinalIgnoreCase))
+            .Select(extState => extState.StateId)
+            .Distinct()
+            .OrderBy(stateId => stateId ?? int.MinValue)
+            .ToList();
+
+        if (!nameChanged && existingStateIds.SequenceEqual(desiredStateIds))
         {
-            List<int> idsToDelete = dbExtStates
-                .Where(extState => extState.Name == editGroup.OriginalName && extState.Id.HasValue)
+            return;
+        }
+
+        List<int> deleteIds = nameChanged
+            ? dbExtStates
+                .Where(extState => string.Equals(extState.Name, originalName, StringComparison.OrdinalIgnoreCase) && extState.Id.HasValue)
+                .Select(extState => extState.Id!.Value)
+                .ToList()
+            : dbExtStates
+                .Where(extState => string.Equals(extState.Name, originalName, StringComparison.OrdinalIgnoreCase) &&
+                                  extState.Id.HasValue &&
+                                  !desiredStateIds.Contains(extState.StateId))
                 .Select(extState => extState.Id!.Value)
                 .ToList();
 
-            foreach (int id in idsToDelete)
-            {
-                await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.removeExtState, new { id });
-            }
-        }
+        List<int?> insertStateIds = nameChanged
+            ? desiredStateIds
+            : desiredStateIds.Where(stateId => !existingStateIds.Contains(stateId)).ToList();
 
-        List<int?> selectedStateIds = editGroup.SelectedStates
-            .Select(state => (int?)state.Id)
-            .Distinct()
-            .ToList();
-
-        if (selectedStateIds.Count == 0)
+        await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.replaceExtStates, new
         {
-            await apiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.addExtState, new
-            {
-                name = editGroup.Name.Trim(),
-                stateId = (int?)null
-            });
-        }
-        else
-        {
-            foreach (int? stateId in selectedStateIds)
-            {
-                await apiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.addExtState, new
-                {
-                    name = editGroup.Name.Trim(),
-                    stateId
-                });
-            }
-        }
-
+            deleteIds,
+            objects = BuildReplacementObjects(trimmedName, insertStateIds)
+        });
         await RefreshExtStates();
     }
 
@@ -389,16 +379,44 @@
 
     private Task SetSelectedStates(IEnumerable<WfState> states)
     {
-        editGroup.SelectedStates = states
-            .GroupBy(state => state.Id)
-            .Select(group => group.First())
-            .OrderBy(state => state.Id)
-            .ToList();
+        editGroup.SelectedStates = NormalizeSelectedStates(states);
         return Task.CompletedTask;
     }
 
     private void ResetEditorState()
     {
         editGroup = new ExtStateGroup();
+    }
+
+    private static List<int?> NormalizeSelectedStateIds(IEnumerable<WfState> states)
+    {
+        List<int?> normalized = states
+            .Select(state => (int?)state.Id)
+            .Distinct()
+            .OrderBy(stateId => stateId ?? int.MinValue)
+            .ToList();
+
+        return normalized.Count == 0 ? [null] : normalized;
+    }
+
+    private static List<WfState> NormalizeSelectedStates(IEnumerable<WfState> states)
+    {
+        return states
+            .GroupBy(state => state.Id)
+            .Select(group => group.First())
+            .OrderBy(state => state.Id)
+            .ToList();
+    }
+
+    private static List<object> BuildReplacementObjects(string name, IEnumerable<int?> selectedStateIds)
+    {
+        return selectedStateIds
+            .Select(stateId => new
+            {
+                name,
+                state_id = stateId
+            })
+            .Cast<object>()
+            .ToList();
     }
 }

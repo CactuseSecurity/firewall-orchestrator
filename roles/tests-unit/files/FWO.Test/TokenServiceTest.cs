@@ -5,8 +5,10 @@ using FWO.Test.Mocks;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using FWO.Middleware.Client;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 
 namespace FWO.Test
 {
@@ -119,6 +121,24 @@ namespace FWO.Test
             Assert.That(result1, Is.EqualTo(result2));
             Assert.That(result2, Is.EqualTo(result3));
             Assert.That(result1, Is.EqualTo(TEST_ACCESS_TOKEN));
+        }
+
+        [Test]
+        public async Task GetAccessTokenAsync_WhenStoredTokenPairCannotBeRead_ShouldCompleteAndClearStorage()
+        {
+            // Arrange
+            ThrowingProtectedSessionStorage throwingSessionStorage = new(new CryptographicException("bad payload"));
+            TokenService brokenTokenService = new(mockMiddlewareClient!, throwingSessionStorage);
+
+            // Act
+            Task<string?> tokenTask = brokenTokenService.GetAccessToken();
+            Task completedTask = await Task.WhenAny(tokenTask, Task.Delay(TimeSpan.FromSeconds(2)));
+
+            // Assert
+            Assert.That(completedTask, Is.SameAs(tokenTask), "GetAccessToken should not hang when stored session data is unreadable.");
+            Assert.That(await tokenTask, Is.Null);
+            Assert.That(throwingSessionStorage.DeleteCallCount, Is.EqualTo(1));
+            Assert.That(throwingSessionStorage.ContainsKey("token_pair"), Is.False);
         }
 
         #endregion
@@ -659,6 +679,49 @@ namespace FWO.Test
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private sealed class ThrowingProtectedSessionStorage : ISessionStorage
+        {
+            private readonly Exception exceptionToThrow;
+            private readonly Dictionary<string, object?> storage = new();
+
+            public int DeleteCallCount { get; private set; }
+
+            public ThrowingProtectedSessionStorage(Exception exceptionToThrow)
+            {
+                this.exceptionToThrow = exceptionToThrow;
+                storage["token_pair"] = new TokenPair
+                {
+                    AccessToken = TEST_ACCESS_TOKEN,
+                    RefreshToken = TEST_REFRESH_TOKEN,
+                    AccessTokenExpires = DateTime.UtcNow.AddHours(1),
+                    RefreshTokenExpires = DateTime.UtcNow.AddDays(7)
+                };
+            }
+
+            public ValueTask<ProtectedBrowserStorageResult<TValue>> GetAsync<TValue>(string key)
+            {
+                throw exceptionToThrow;
+            }
+
+            public ValueTask SetAsync(string key, object value)
+            {
+                storage[key] = value;
+                return ValueTask.CompletedTask;
+            }
+
+            public ValueTask DeleteAsync(string key)
+            {
+                DeleteCallCount++;
+                storage.Remove(key);
+                return ValueTask.CompletedTask;
+            }
+
+            public bool ContainsKey(string key)
+            {
+                return storage.ContainsKey(key);
+            }
         }
 
         #endregion

@@ -515,3 +515,6 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 ## 9.1.9 - 18.06.2026
 - request workflow: add locked tickets and request tasks for automatically created change requests
 - further integration flow into workflow
+
+## 9.1.12 - 26.06.2026
+- fix missing recertifier permission for owner recertification in hasura metadata

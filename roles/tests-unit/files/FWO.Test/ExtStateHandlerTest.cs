@@ -28,7 +28,8 @@ namespace FWO.Test
                             new() { Id = 1, Name = "ExtReqInitialized", StateId = null },
                             new() { Id = 2, Name = "ExtReqInitialized", StateId = 1 },
                             new() { Id = 3, Name = "ExtReqDone", StateId = null },
-                            new() { Id = 4, Name = "ExtReqDone", StateId = 631 }
+                            new() { Id = 4, Name = "ExtReqDone", StateId = 631 },
+                            new() { Id = 5, Name = "external_implementation", StateId = 7 }
                         ];
                         return (ApiResponse<QueryResponseType>)(object)new ApiResponse<List<WfExtState>>(extStates);
                     }

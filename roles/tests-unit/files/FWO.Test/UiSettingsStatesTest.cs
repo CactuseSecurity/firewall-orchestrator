@@ -259,8 +259,12 @@ namespace FWO.Test
             component.WaitForAssertion(() => Assert.That(GetPrivateField<List<WfExtState>>(component.Instance, "allExtStates"), Is.Not.Empty));
             WfExtState extState = GetPrivateField<List<WfExtState>>(component.Instance, "allExtStates")
                 .First(state => state.Name == ExtStates.Done.ToString());
-            GetPrivateMethod(typeof(EditExtStates), "EditExtState").Invoke(component.Instance, [extState]);
-            SetPrivateField(component.Instance, "selectedState", kTestStates[1]);
+            GetPrivateMethod(typeof(EditExtStates), "EditExtState").Invoke(component.Instance, new object?[] { extState });
+
+            await component.InvokeAsync(async () =>
+            {
+                await (Task)GetPrivateMethod(typeof(EditExtStates), "SetSelectedStates").Invoke(component.Instance, new object?[] { new List<WfState> { kTestStates[1] } })!;
+            });
 
             await component.InvokeAsync(async () => await (Task)GetPrivateMethod(typeof(EditExtStates), "ApplySelection").Invoke(component.Instance, null)!);
 

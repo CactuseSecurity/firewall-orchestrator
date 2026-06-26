@@ -14454,6 +14454,39 @@
                     "check": {}
                   },
                   "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "last_recert_check",
+                      "last_recertified",
+                      "last_recertifier",
+                      "last_recertifier_dn",
+                      "next_recert_date",
+                      "recert_active"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "_or": [
+                            {
+                              "tenant_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "tenant_id": {
+                                "_eq": "x-hasura-tenant-id"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "check": {}
+                  },
+                  "comment": ""
                 }
               ]
             },

@@ -93,6 +93,7 @@ builder.Services.AddSingleton<JwtWriter>(jwtWriter);
 builder.Services.AddSingleton<List<Ldap>>(connectedLdaps);
 builder.Services.AddSingleton<FlowCatalogService>();
 builder.Services.AddSingleton<FlowComplianceService>();
+builder.Services.AddSingleton<FlowRequestService>();
 
 builder.Services.AddAuthentication(confOptions =>
 {

@@ -278,6 +278,35 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task EditExtStates_NewManualStateCanBeSavedWithoutInternalMapping()
+        {
+            SettingsStatesRenderApiConn apiConnection = new();
+            await using BunitContext context = CreateRenderContext(apiConnection);
+            IRenderedComponent<EditExtStates> component = RenderAuthorized<EditExtStates>(context, parameters => parameters
+                .Add(p => p.Display, true)
+                .Add(p => p.States, kTestStates));
+            component.WaitForAssertion(() => Assert.That(GetPrivateField<List<WfExtState>>(component.Instance, "allExtStates"), Is.Not.Empty));
+
+            await component.InvokeAsync(() =>
+            {
+                GetPrivateMethod(typeof(EditExtStates), "AddManualExtState").Invoke(component.Instance, null);
+                return Task.CompletedTask;
+            });
+            object editGroup = GetPrivateField<object>(component.Instance, "editGroup");
+            editGroup.GetType().GetProperty("Name")!.SetValue(editGroup, "ManualExternalState");
+
+            await component.InvokeAsync(async () => await (Task)GetPrivateMethod(typeof(EditExtStates), "ApplySelection").Invoke(component.Instance, null)!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.Queries, Does.Contain(RequestQueries.addExtState));
+                object addVariables = apiConnection.Variables.First(variables => HasVariableValue(variables, "name", "ManualExternalState"));
+                Assert.That(GetVariable<object?>(addVariables, "stateId"), Is.Null);
+                Assert.That(GetPrivateField<bool>(component.Instance, "SelectStateMode"), Is.False);
+            });
+        }
+
+        [Test]
         public void AddState_SelectsFirstFreeStateId_AndEntersAddMode()
         {
             SettingsStates component = new();

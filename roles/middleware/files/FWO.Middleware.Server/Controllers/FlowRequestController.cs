@@ -1,6 +1,7 @@
 using FWO.Basics;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
+using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -15,6 +16,17 @@ namespace FWO.Middleware.Server.Controllers;
 [Route("api/flow")]
 public class FlowRequestController : ControllerBase
 {
+    private readonly FlowRequestService flowRequestService;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FlowRequestController"/> class.
+    /// </summary>
+    /// <param name="flowRequestService">The flow request service.</param>
+    public FlowRequestController(FlowRequestService flowRequestService)
+    {
+        this.flowRequestService = flowRequestService;
+    }
+
     /// <summary>
     /// Generates an address object name.
     /// </summary>
@@ -72,8 +84,14 @@ public class FlowRequestController : ControllerBase
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getRequestStatus")]
-    public ActionResult<GetRequestStatusResponse> GetRequestStatus([FromBody] GetRequestStatusRequest request)
+    public async Task<ActionResult<GetRequestStatusResponse>> GetRequestStatus([FromBody] GetRequestStatusRequest request)
     {
-        return StatusCode(StatusCodes.Status501NotImplemented);
+        if (request.TicketId <= 0)
+        {
+            return BadRequest("'ticketId' must be greater than 0.");
+        }
+
+        GetRequestStatusResponse? response = await flowRequestService.GetRequestStatusAsync(request.TicketId);
+        return response == null ? NotFound() : Ok(response);
     }
 }

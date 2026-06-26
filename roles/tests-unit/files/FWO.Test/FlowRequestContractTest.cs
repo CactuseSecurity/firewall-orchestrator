@@ -1,5 +1,6 @@
 using System.Text.Json;
 using FWO.Middleware.Server.Requests;
+using FWO.Middleware.Server.Responses;
 using NUnit.Framework;
 
 namespace FWO.Test;
@@ -31,6 +32,24 @@ internal class FlowRequestContractTest
     public void GetRequestStatusRequest_RequiresTicketId()
     {
         Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<GetRequestStatusRequest>("{}"));
+    }
+
+    [Test]
+    public void GetRequestStatusResponse_UsesExpectedJsonNames()
+    {
+        GetRequestStatusResponse response = new()
+        {
+            Status = "implementation",
+            StatusComment = "latest"
+        };
+
+        string json = JsonSerializer.Serialize(response);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(json, Does.Contain("\"status\":\"implementation\""));
+            Assert.That(json, Does.Contain("\"statusComment\":\"latest\""));
+        });
     }
 
     [TestCase("""{"protocol":"tcp","portEnd":443}""")]

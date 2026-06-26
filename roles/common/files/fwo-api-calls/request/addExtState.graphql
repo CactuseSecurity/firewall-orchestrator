@@ -1,6 +1,6 @@
 mutation addExtState(
   $name: String!
-  $stateId: Int!
+  $stateId: Int
   ) {
   insert_request_ext_state(objects: {
     name: $name

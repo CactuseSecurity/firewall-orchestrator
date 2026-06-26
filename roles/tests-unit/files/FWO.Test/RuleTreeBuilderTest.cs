@@ -13,6 +13,9 @@ namespace FWO.Test
     {
         private RuleTreeBuilder _ruleTreeBuilder = default!;
 
+        private static readonly string[] kExpectedSectionHeaders = ["Empty-Section", "Section-B"];
+        private static readonly int[] kExpectedRulebaseIds = [1, 3];
+
         [SetUp]
         public void SetUpTestMethod()
         {
@@ -93,8 +96,8 @@ namespace FWO.Test
                 .Select(element => element.Header)];
 
             // Assert
-            Assert.That(sectionHeaders, Is.EqualTo(new[] { "Empty-Section", "Section-B" }));
-            Assert.That(resultRules.Where(rule => rule.SectionHeader == "").Select(rule => rule.RulebaseId), Is.EqualTo(new[] { 1, 3 }));
+            Assert.That(sectionHeaders, Is.EqualTo(kExpectedSectionHeaders));
+            Assert.That(resultRules.Where(rule => rule.SectionHeader == "").Select(rule => rule.RulebaseId), Is.EqualTo(kExpectedRulebaseIds));
         }
 
         [Test]

@@ -384,24 +384,7 @@ else
 
     private void InitTaskTypeList(int extTicketSystemTypeId)
     {
-        switch (extTicketSystemTypeId)
-        {
-            case BuiltInExternalTicketSystemTypes.GenericId:
-                actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
-                break;
-            case BuiltInExternalTicketSystemTypes.TufinSecureChangeId:
-                actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
-                break;
-            case BuiltInExternalTicketSystemTypes.AlgoSecId:
-                actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
-                break;
-            case BuiltInExternalTicketSystemTypes.ServiceNowId:
-                actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
-                break;
-            default:
-                actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
-                break;
-        }
+        actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
         SyncNewTemplateTaskType();
     }
 

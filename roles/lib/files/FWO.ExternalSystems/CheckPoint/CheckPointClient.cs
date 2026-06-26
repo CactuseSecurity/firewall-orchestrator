@@ -211,7 +211,7 @@ namespace FWO.ExternalSystems.CheckPoint
 
         private sealed class LoginResponse
         {
-            public required string Sid { get; set; }
+            public required string Sid { get; init; }
         }
     }
 }

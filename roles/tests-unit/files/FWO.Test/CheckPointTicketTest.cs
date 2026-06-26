@@ -72,6 +72,8 @@ namespace FWO.Test
         [Test]
         public async Task CreateExternalTicketRetriesGroupMemberObjectCreationWithIgnoreWarnings()
         {
+
+
             ExternalTicketSystem checkPointSystem = new()
             {
                 Id = 1,
@@ -157,7 +159,7 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(HttpStatusCode.OK, response.StatusCode);
             CollectionAssert.AreEqual(
-                new[] { "add-group", "add-host", "show-host", "add-host", "set-group", "publish" },
+                ExpectedGroupCreateRetryEndpoints,
                 checkPointClient.CalledEndpoints);
 
             StringAssert.Contains("\"ignore-warnings\":true", checkPointClient.RequestBodies[3] ?? "");
@@ -262,5 +264,15 @@ namespace FWO.Test
                 ]
             };
         }
+
+        private static readonly string[] ExpectedGroupCreateRetryEndpoints =
+            [
+                "add-group",
+                "add-host",
+                "show-host",
+                "add-host",
+                "set-group",
+                "publish"
+            ];
     }
 }

@@ -28,7 +28,6 @@ namespace FWO.Middleware.Server
         private readonly WfHandler wfHandler;
         private readonly UserConfig UserConfig;
         private bool disposed = false;
-        private int extSystemType = BuiltInExternalTicketSystemTypes.GenericId;
         private ExternalTicketSystem actSystem = new();
         private string actTaskType = "";
         private List<IpProtocol> ipProtos = [];
@@ -330,7 +329,7 @@ namespace FWO.Middleware.Server
             await LogRequestTasks(handledTasks, ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
         }
 
-        private Dictionary<string, List<int>> BuildExtQueryVariables(List<WfReqTask> tasks, List<WfReqTask> handledTasks)
+        private static Dictionary<string, List<int>> BuildExtQueryVariables(List<WfReqTask> tasks, List<WfReqTask> handledTasks)
         {
             Dictionary<string, List<int>> extQueryVariables = [];
 
@@ -400,7 +399,6 @@ namespace FWO.Middleware.Server
             ExternalTicketSystem system = extTicketSystems.FirstOrDefault(s => s.Id == externalTicketSystemId) ?? throw new InvalidOperationException(
                 $"No matching external ticket system found for id {externalTicketSystemId}.");
 
-            extSystemType = system.TypeId;
             actSystem = system;
         }
 

@@ -26,8 +26,6 @@ namespace FWO.ExternalSystems.CheckPoint
     /// </summary>
     public class CheckPointTicket : ExternalTicket
     {
-        private const string Content = "Content: ";
-
         private CheckPointClient? checkPointClient;
 
         private WfReqTask? rootTask;
@@ -152,7 +150,7 @@ namespace FWO.ExternalSystems.CheckPoint
             };
         }
 
-        private static JsonNode RenderObjectBody(CheckPointObjectRequest request)
+        private static JsonObject RenderObjectBody(CheckPointObjectRequest request)
         {
             return request.NetworkObjectType switch
             {
@@ -556,44 +554,41 @@ namespace FWO.ExternalSystems.CheckPoint
 
         private static string? FindJsonValue(JsonElement element, params string[] propertyNames)
         {
-            if (element.ValueKind == JsonValueKind.Object)
+            return element.ValueKind switch
             {
-                foreach (JsonProperty property
-                    in element.EnumerateObject())
+                JsonValueKind.Object => FindJsonValueInObject(element, propertyNames),
+                JsonValueKind.Array => FindJsonValueInArray(element, propertyNames),
+                _ => null
+            };
+        }
+
+        private static string? FindJsonValueInObject(JsonElement element, string[] propertyNames)
+        {
+            foreach (JsonProperty property in element.EnumerateObject())
+            {
+                if (propertyNames.Contains(property.Name, StringComparer.OrdinalIgnoreCase))
                 {
-                    if (propertyNames.Contains(
-                        property.Name,
-                        StringComparer.OrdinalIgnoreCase))
-                    {
-                        return property.Value.ToString();
-                    }
+                    return property.Value.ToString();
+                }
 
-                    string? childValue =
-                        FindJsonValue(
-                            property.Value,
-                            propertyNames);
-
-                    if (!string.IsNullOrWhiteSpace(childValue))
-                    {
-                        return childValue;
-                    }
+                string? childValue = FindJsonValue(property.Value, propertyNames);
+                if (!string.IsNullOrWhiteSpace(childValue))
+                {
+                    return childValue;
                 }
             }
 
-            if (element.ValueKind == JsonValueKind.Array)
-            {
-                foreach (JsonElement child
-                    in element.EnumerateArray())
-                {
-                    string? childValue =
-                        FindJsonValue(
-                            child,
-                            propertyNames);
+            return null;
+        }
 
-                    if (!string.IsNullOrWhiteSpace(childValue))
-                    {
-                        return childValue;
-                    }
+        private static string? FindJsonValueInArray(JsonElement element, string[] propertyNames)
+        {
+            foreach (JsonElement child in element.EnumerateArray())
+            {
+                string? childValue = FindJsonValue(child, propertyNames);
+                if (!string.IsNullOrWhiteSpace(childValue))
+                {
+                    return childValue;
                 }
             }
 
@@ -621,36 +616,45 @@ namespace FWO.ExternalSystems.CheckPoint
 
         private static bool HasMatchingMessage(JsonElement element, string expectedMessageFragment)
         {
-            if (element.ValueKind == JsonValueKind.Object)
+            return element.ValueKind switch
             {
-                foreach (JsonProperty property in element.EnumerateObject())
+                JsonValueKind.Object => HasMatchingMessageInObject(element, expectedMessageFragment),
+                JsonValueKind.Array => HasMatchingMessageInArray(element, expectedMessageFragment),
+                _ => false
+            };
+        }
+
+        private static bool HasMatchingMessageInObject(JsonElement element, string expectedMessageFragment)
+        {
+            foreach (JsonProperty property in element.EnumerateObject())
+            {
+                if (property.NameEquals("message"))
                 {
-                    if (property.NameEquals("message"))
-                    {
-                        string? message = property.Value.GetString();
+                    string? message = property.Value.GetString();
 
-                        if (!string.IsNullOrWhiteSpace(message)
-                            && message.Contains(expectedMessageFragment, StringComparison.OrdinalIgnoreCase))
-                        {
-                            return true;
-                        }
-                    }
-
-                    if (HasMatchingMessage(property.Value, expectedMessageFragment))
+                    if (!string.IsNullOrWhiteSpace(message)
+                        && message.Contains(expectedMessageFragment, StringComparison.OrdinalIgnoreCase))
                     {
                         return true;
                     }
                 }
+
+                if (HasMatchingMessage(property.Value, expectedMessageFragment))
+                {
+                    return true;
+                }
             }
 
-            if (element.ValueKind == JsonValueKind.Array)
+            return false;
+        }
+
+        private static bool HasMatchingMessageInArray(JsonElement element, string expectedMessageFragment)
+        {
+            foreach (JsonElement child in element.EnumerateArray())
             {
-                foreach (JsonElement child in element.EnumerateArray())
+                if (HasMatchingMessage(child, expectedMessageFragment))
                 {
-                    if (HasMatchingMessage(child, expectedMessageFragment))
-                    {
-                        return true;
-                    }
+                    return true;
                 }
             }
 

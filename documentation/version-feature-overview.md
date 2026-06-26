@@ -1,8 +1,8 @@
 # Firewall Orchestrator – Version / Feature Overview
 
 This document lists each Firewall Orchestrator version from **8.0** onwards and
-the features it introduced. It is compiled from the revision histories
-([main](revision-history-main.md), [develop](revision-history-develop.md)).
+the features it introduced. It is compiled from the
+[revision history](revision-history.md).
 
 Entries focus on newly introduced features and capabilities; pure bug fixes,
 dependency bumps and Hasura/.NET maintenance upgrades are generally omitted. A

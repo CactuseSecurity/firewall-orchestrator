@@ -278,6 +278,7 @@ namespace FWO.Test
             {"U9041","Are you sure you want to close @@COUNT@@ ticket(s) as done?" },
             {"state","State" },
             {"criticality","Criticality" },
+            {"owner_lc_state","Production state" },
             {"additional_info","Additional Info" },
             {"active","Active" },
             {"inactive","Inactive" },

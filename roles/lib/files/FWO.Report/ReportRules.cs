@@ -34,6 +34,9 @@ namespace FWO.Report
     public class ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, IRuleTreeBuilder? ruleTreeBuilder = null) : ReportDevicesBase(query, userConfig, reportType)
     {
         private const int ColumnCount = 14;
+        private const int OrderedLinkType = 2;
+        private const int InlineLinkType = 3;
+        private const int DomainLinkType = 5;
         protected bool UseAdditionalFilter = false;
 
         private static Dictionary<(int deviceId, int managementId), Rule[]> _rulesCache = [];
@@ -362,28 +365,87 @@ namespace FWO.Report
 
         public static int GetRuleCount(ManagementReport mgmReport, RulebaseLink? currentRbLink, RulebaseLink[] rulebaseLinks)
         {
-            RulebaseReport? nextRulebase = mgmReport.GetNextRulebase(currentRbLink);
-            if (nextRulebase == null)
+            if (currentRbLink == null)
             {
                 return 0;
             }
+
             int ruleCount = 0;
-            foreach (var rule in nextRulebase.Rules)
+            int currentLayerRulebaseId = currentRbLink.NextRulebaseId;
+
+            while (true)
+            {
+                ruleCount += CountRulebaseWithSections(mgmReport, currentLayerRulebaseId, rulebaseLinks);
+
+                RulebaseLink? nextLayerLink = rulebaseLinks.FirstOrDefault(link =>
+                    link.FromRulebaseId == currentLayerRulebaseId &&
+                    !link.IsSection &&
+                    (link.LinkType == OrderedLinkType || link.LinkType == DomainLinkType));
+
+                if (nextLayerLink == null)
+                {
+                    break;
+                }
+
+                currentLayerRulebaseId = nextLayerLink.NextRulebaseId;
+            }
+
+            return ruleCount;
+        }
+
+        private static int CountRulebaseWithSections(ManagementReport mgmReport, int initialRulebaseId, RulebaseLink[] rulebaseLinks)
+        {
+            int ruleCount = 0;
+            int currentRulebaseId = initialRulebaseId;
+
+            while (true)
+            {
+                RulebaseReport? currentRulebase = mgmReport.Rulebases.FirstOrDefault(rulebase => rulebase.Id == currentRulebaseId);
+                if (currentRulebase == null)
+                {
+                    return ruleCount;
+                }
+
+                ruleCount += CountDirectRulesAndInlineLayers(currentRulebase, mgmReport, rulebaseLinks);
+
+                RulebaseLink? nextSectionLink = rulebaseLinks.FirstOrDefault(link =>
+                    link.FromRulebaseId == currentRulebaseId &&
+                    link.IsSection);
+
+                if (nextSectionLink == null)
+                {
+                    break;
+                }
+
+                currentRulebaseId = nextSectionLink.NextRulebaseId;
+            }
+
+            return ruleCount;
+        }
+
+        private static int CountDirectRulesAndInlineLayers(RulebaseReport rulebase, ManagementReport mgmReport, RulebaseLink[] rulebaseLinks)
+        {
+            int ruleCount = 0;
+
+            foreach (Rule rule in rulebase.Rules)
             {
                 if (!string.IsNullOrEmpty(rule.SectionHeader))
                 {
                     continue;
                 }
-                RulebaseLink? nextRbLink = rulebaseLinks.FirstOrDefault(rbl => rbl.FromRuleId == rule.Id);
-                if (nextRbLink != null)
+
+                ruleCount++;
+
+                RulebaseLink? inlineLink = rulebaseLinks.FirstOrDefault(link =>
+                    link.LinkType == InlineLinkType &&
+                    link.FromRuleId == rule.Id);
+
+                if (inlineLink != null)
                 {
-                    ruleCount += 1 + GetRuleCount(mgmReport, nextRbLink, rulebaseLinks);
-                }
-                else
-                {
-                    ruleCount++;
+                    ruleCount += CountRulebaseWithSections(mgmReport, inlineLink.NextRulebaseId, rulebaseLinks);
                 }
             }
+
             return ruleCount;
         }
 

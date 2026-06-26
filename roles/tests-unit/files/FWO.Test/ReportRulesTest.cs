@@ -85,8 +85,7 @@ namespace FWO.Test
                                 Rules = _rb3.Rules
                             },
                             NextRulebaseId = _rb3.Id,
-                            FromRulebaseId = _rb1.Id,
-                            FromRuleId = 3,     // Last Rule from _rb1
+                            FromRulebaseId = _rb2.Id,
                             LinkType = 2
                     }
                 }

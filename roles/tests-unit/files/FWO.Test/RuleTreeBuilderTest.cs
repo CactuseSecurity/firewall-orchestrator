@@ -65,7 +65,7 @@ namespace FWO.Test
             Assert.That(realRules.Select(rule => rule.RulebaseId), Is.EqualTo(new[] { 1, 2, 3 }));
             Assert.That(flattenedRules.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(new[]
             {
-                "1", "1.1", "1.2", "1.2.1", "2", "2.1"
+                "1", "1.1", string.Empty, "1.2", "2", "2.1"
             }));
         }
 
@@ -92,9 +92,49 @@ namespace FWO.Test
             Assert.That(realRules.Select(rule => rule.RulebaseId), Is.EqualTo(new[] { 1, 2, 3 }));
             Assert.That(realRules.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(new[]
             {
-                "1.1", "1.1.1", "1.1.2.1"
+                "1.1", "1.1.1", "1.1.2"
             }));
+            Assert.That(flattenedRules.Single(rule => rule.SectionHeader == "Inline-Section").DisplayOrderNumberString, Is.EqualTo(string.Empty));
             Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => element.IsSectionHeader), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void BuildRuleTree_InlineLayerRulesBecomeVisibleAgainAfterCollapseAndExpand()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10),
+                Rulebase(2, "Inline-1", 20),
+                Rulebase(3, "Inline-Section", 30)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                InlineLayerLink(gatewayId: 1, fromRulebaseId: 1, fromRuleId: 10, nextRulebaseId: 2),
+                SectionLink(gatewayId: 1, fromRulebaseId: 2, nextRulebaseId: 3)
+            ];
+
+            _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1);
+
+            RuleTreeItem root = _ruleTreeBuilder.RuleTree;
+            RuleTreeItem layerNode = root.Children.Single();
+            RuleTreeItem owningRuleNode = layerNode.Children.Single(child => child.IsRule);
+            RuleTreeItem inlineSectionHeaderNode = root.ElementsFlat.Single(node => node.IsSectionHeader && node.Data.SectionHeader == "Inline-Section");
+            RuleTreeItem inlineRuleNode = root.ElementsFlat.Single(node => node.IsRule && node.Data.RulebaseId == 2);
+            RuleTreeItem inlineSectionRuleNode = root.ElementsFlat.Single(node => node.IsRule && node.Data.RulebaseId == 3);
+
+            RuleTreeItem.SetExpandedRecursively(root, false);
+            layerNode.IsExpanded = true;
+            owningRuleNode.IsExpanded = true;
+
+            Assert.That(inlineRuleNode.IsVisible, Is.True);
+            Assert.That(inlineSectionHeaderNode.IsVisible, Is.True);
+            Assert.That(inlineSectionRuleNode.IsVisible, Is.False);
+
+            inlineSectionHeaderNode.IsExpanded = true;
+
+            Assert.That(inlineSectionRuleNode.IsVisible, Is.True);
         }
 
         [Test]
@@ -269,6 +309,31 @@ namespace FWO.Test
 
             Assert.That(flattenedRules.Select(rule => rule.OrderNumber), Is.EqualTo(new double[] { 1, 2, 3, 4 }));
             Assert.That(flattenedRules.Select(rule => rule.DisplayOrderNumber), Is.EqualTo(new[] { 1, 2, 3, 4 }));
+        }
+
+        [Test]
+        public void BuildRuleTree_SectionHeadersStayUnnumberedWhileRulesContinueSiblingNumbering()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10, 11),
+                Rulebase(2, "Section-A", 20),
+                Rulebase(3, "Section-B", 30)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                SectionLink(gatewayId: 1, fromRulebaseId: 1, nextRulebaseId: 2),
+                SectionLink(gatewayId: 1, fromRulebaseId: 2, nextRulebaseId: 3)
+            ];
+
+            List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1);
+            Rule[] sectionHeaders = flattenedRules.Where(rule => !string.IsNullOrEmpty(rule.SectionHeader)).ToArray();
+            Rule[] realRules = flattenedRules.Where(rule => string.IsNullOrEmpty(rule.SectionHeader)).ToArray();
+
+            Assert.That(sectionHeaders.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(new[] { "1", string.Empty, string.Empty }));
+            Assert.That(realRules.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(new[] { "1.1", "1.2", "1.3", "1.4" }));
         }
 
         private static RulebaseReport Rulebase(int id, string name, params int[] ruleIds)

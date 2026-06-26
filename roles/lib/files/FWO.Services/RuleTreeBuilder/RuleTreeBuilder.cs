@@ -340,7 +340,7 @@ namespace FWO.Services.RuleTreeBuilder
         {
             foreach (Rule rule in rulebase.Rules)
             {
-                if (!SeenRuleIds.Add(rule.Id))
+                if (rule.Id > 0 && !SeenRuleIds.Add(rule.Id))
                 {
                     throw new InvalidOperationException($"Rule id {rule.Id} was encountered more than once while building the rule tree.");
                 }
@@ -597,7 +597,9 @@ namespace FWO.Services.RuleTreeBuilder
         ///
         /// Numbering rules:
         /// - ordered-layer headers consume top-level numbers: 1, 2, 3, ...
-        /// - visible children below any visible node consume the next nested number
+        /// - real rules consume the next nested number within their current visible scope
+        /// - section headers are visible rows but do not consume a dotted display number
+        /// - rules inside a section continue numbering in the surrounding layer/inline scope
         /// - inline-layer roots are structural only and do not consume a number themselves
         /// - children beneath an inline root inherit the owning rule’s position as their base
         ///
@@ -610,61 +612,82 @@ namespace FWO.Services.RuleTreeBuilder
             NextRuleNumber = 1;
 
             List<Rule> flattenedRules = new();
-            FlattenChildren(RuleTree, [], flattenedRules);
+            int rootVisibleChildIndex = 0;
+            FlattenChildren(RuleTree.Children, [], flattenedRules, ref rootVisibleChildIndex);
 
             return flattenedRules;
         }
 
         /// <summary>
-        /// Recursively flattens the children of one parent node. Visible children consume the next
-        /// nested display number under <paramref name="parentPosition"/>. Inline-layer roots do
-        /// not consume a number; their descendants continue numbering beneath the owning rule’s
-        /// position.
+        /// Recursively flattens one ordered sequence of sibling nodes into the final report row
+        /// order. The <paramref name="visibleChildIndex"/> parameter is passed by reference so
+        /// numbering can continue across transparent structural nodes such as section headers and
+        /// inline-layer roots.
+        ///
+        /// Transparent nodes behave as follows:
+        /// - inline-layer roots are skipped as rows and simply forward their descendants into the
+        ///   current numbering scope
+        /// - section headers are emitted as visible rows but do not increment the dotted display
+        ///   number; their children continue numbering in the surrounding scope
+        ///
+        /// Numbered nodes (ordered-layer headers and real rules) increment the current scope,
+        /// receive a new dotted position, and then start a fresh nested child scope for their own
+        /// descendants.
         ///
         /// The method is the central place where visible tree order turns into dotted numbering,
         /// flat-list order, and cached <see cref="RuleTree.ElementsFlat"/> entries.
         /// </summary>
-        private void FlattenChildren(RuleTreeItem parentNode, List<int> parentPosition, List<Rule> flattenedRules)
+        private void FlattenChildren(IEnumerable<RuleTreeItem> childNodes, List<int> parentPosition, List<Rule> flattenedRules, ref int visibleChildIndex)
         {
-            int visibleChildIndex = 0;
-
-            foreach (RuleTreeItem childNode in parentNode.Children)
+            foreach (RuleTreeItem childNode in childNodes)
             {
                 if (childNode.IsInlineLayerRoot)
                 {
-                    FlattenChildren(childNode, parentPosition, flattenedRules);
+                    FlattenChildren(childNode.Children, parentPosition, flattenedRules, ref visibleChildIndex);
+                    continue;
+                }
+
+                if (childNode.IsSectionHeader)
+                {
+                    childNode.Position = [.. parentPosition];
+                    AssignRuleNumbers(childNode, parentPosition, assignDisplayNumber: false);
+                    RuleTree.ElementsFlat.Add(childNode);
+                    flattenedRules.Add(childNode.Data!);
+                    FlattenChildren(childNode.Children, parentPosition, flattenedRules, ref visibleChildIndex);
                     continue;
                 }
 
                 visibleChildIndex++;
                 List<int> childPosition = [.. parentPosition, visibleChildIndex];
-
                 childNode.Position = childPosition;
-                AssignRuleNumbers(childNode, childPosition);
+                AssignRuleNumbers(childNode, childPosition, assignDisplayNumber: true);
                 RuleTree.ElementsFlat.Add(childNode);
                 flattenedRules.Add(childNode.Data!);
 
-                FlattenChildren(childNode, childPosition, flattenedRules);
+                int nestedVisibleChildIndex = 0;
+                FlattenChildren(childNode.Children, childPosition, flattenedRules, ref nestedVisibleChildIndex);
             }
         }
 
         /// <summary>
         /// Assigns display numbering information to the placeholder rule or real rule stored in a
-        /// visible tree node. The method updates both the dotted display string and the numeric
-        /// order values consumed by report exports, then advances <see cref="NextRuleNumber"/>.
+        /// visible tree node. Ordered-layer headers and real rules receive a dotted display
+        /// string, while section headers intentionally stay unnumbered in the UI even though they
+        /// still receive sequential numeric order values for stable sorting and export ordering.
+        /// The method then advances <see cref="NextRuleNumber"/>.
         /// </summary>
-        private void AssignRuleNumbers(RuleTreeItem node, List<int> position)
+        private void AssignRuleNumbers(RuleTreeItem node, List<int> position, bool assignDisplayNumber)
         {
             if (node.Data == null)
             {
                 throw new InvalidOperationException("Visible rule-tree nodes must always carry a rule payload.");
             }
 
-            string displayOrder = string.Join(".", position);
-            node.Data.DisplayOrderNumberString = displayOrder;
+            node.Data.DisplayOrderNumberString = assignDisplayNumber ? string.Join(".", position) : string.Empty;
             node.Data.DisplayOrderNumber = NextRuleNumber;
             node.Data.OrderNumber = NextRuleNumber;
             NextRuleNumber++;
         }
+
     }
 }

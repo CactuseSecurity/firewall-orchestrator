@@ -20,14 +20,14 @@
                             </ElementTemplate>
                         </Dropdown>
                     </div>
-                    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                    <AuthorizeView Roles="@Roles.Admin">
                         <Authorized>
                             <button type="button" class="btn btn-sm btn-success col-sm-2" @onclick="async () => { await AddUser(selectedLdapUser); Close(); }" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                         </Authorized>
                         <NotAuthorized>
                             <button type="button" class="btn btn-sm btn-success col-sm-2" disabled>@(userConfig.GetText("assign"))</button>
                         </NotAuthorized>
-                    </ExecutionModeAuthorizeView>
+                    </AuthorizeView>
                 </div>
             }
             @if(GroupSelect)
@@ -37,14 +37,14 @@
                     <div class="col-sm-8">
                         <Dropdown ElementType="string" @bind-SelectedElement="selectedLdapGroup" Elements="LdapGroups" />
                     </div>
-                    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                    <AuthorizeView Roles="@Roles.Admin">
                         <Authorized>
                             <button type="button" class="btn btn-sm btn-success col-sm-2" @onclick="async () => { await AddGroup(selectedLdapGroup); Close(); }" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                         </Authorized>
                         <NotAuthorized>
                             <button type="button" class="btn btn-sm btn-success col-sm-2" disabled>@(userConfig.GetText("assign"))</button>
                         </NotAuthorized>
-                    </ExecutionModeAuthorizeView>
+                    </AuthorizeView>
                 </div>
             }
         }

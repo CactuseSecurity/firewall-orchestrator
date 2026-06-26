@@ -581,6 +581,7 @@ namespace FWO.Test
                                 Name = "Owner One",
                                 Criticality = "High",
                                 OwnerLifeCycleStateId = 1,
+                                OwnerLifeCycleState = new OwnerLifeCycleState() { Id = 1, Name = "Active", ActiveState = true },
                                 AdditionalInfo = new Dictionary<string, string>() { { "department", "IT" }, { "region", "EU" } },
                                 OwnerResponsibles =
                                 [
@@ -601,11 +602,14 @@ namespace FWO.Test
 
             string csv = report.ExportToCsv();
             string html = RemoveLinebreaks(report.ExportToHtml());
+            string json = report.ExportToJson();
 
-            StringAssert.Contains("\"Id\",\"Name\",\"Criticality\",\"State\",\"Main\",\"Backup\",\"Additional Info\",", csv);
-            StringAssert.Contains("\"APP-1\",\"Owner One\",\"High\",\"Active\",\"user1\",\"user2\",\"department: IT; region: EU\",", csv);
-            StringAssert.Contains("<th>Id</th><th>Name</th><th>Criticality</th><th>State</th><th>Main</th><th>Backup</th><th>Additional Info</th>", html);
-            StringAssert.Contains("<td>APP-1</td><td>Owner One</td><td>High</td><td>Active</td><td>user1</td><td>user2</td><td>department: IT<br>region: EU</td>", html);
+            StringAssert.Contains("\"Id\",\"Name\",\"Criticality\",\"State\",\"Production state Id\",\"Production state Name\",\"Main\",\"Backup\",\"Additional Info\",", csv);
+            StringAssert.Contains("\"APP-1\",\"Owner One\",\"High\",\"Active\",\"1\",\"Active\",\"user1\",\"user2\",\"department: IT; region: EU\",", csv);
+            StringAssert.Contains("<th>Id</th><th>Name</th><th>Criticality</th><th>State</th><th>Production state Id</th><th>Production state Name</th><th>Main</th><th>Backup</th><th>Additional Info</th>", html);
+            StringAssert.Contains("<td>APP-1</td><td>Owner One</td><td>High</td><td>Active</td><td>1</td><td>Active</td><td>user1</td><td>user2</td><td>department: IT<br>region: EU</td>", html);
+            StringAssert.Contains("\"owner_lifecycle_state_id\": 1", json);
+            StringAssert.Contains("\"name\": \"Active\"", json);
         }
 
         private static void SetPrivateField<T>(object target, string fieldName, T value)

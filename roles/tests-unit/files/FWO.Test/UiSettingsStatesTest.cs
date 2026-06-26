@@ -257,9 +257,10 @@ namespace FWO.Test
                 .Add(p => p.Display, true)
                 .Add(p => p.States, kTestStates));
             component.WaitForAssertion(() => Assert.That(GetPrivateField<List<WfExtState>>(component.Instance, "allExtStates"), Is.Not.Empty));
-            WfExtState extState = GetPrivateField<List<WfExtState>>(component.Instance, "allExtStates")
-                .First(state => state.Name == ExtStates.Done.ToString());
-            GetPrivateMethod(typeof(EditExtStates), "EditExtState").Invoke(component.Instance, new object?[] { extState });
+            object staticGroup = ((System.Collections.IEnumerable)GetPrivateField<object>(component.Instance, "staticExternalStates"))
+                .Cast<object>()
+                .First(group => GetVariable<string>(group, "Name") == ExtStates.Done.ToString());
+            GetPrivateMethod(typeof(EditExtStates), "EditExtStateGroup").Invoke(component.Instance, new object?[] { staticGroup });
 
             await component.InvokeAsync(async () =>
             {

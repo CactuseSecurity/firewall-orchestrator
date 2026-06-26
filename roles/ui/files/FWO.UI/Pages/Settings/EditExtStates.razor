@@ -159,7 +159,7 @@
         {
             dbExtStates = await apiConnection.SendQueryAsync<List<WfExtState>>(RequestQueries.getExtStates) ?? [];
             allExtStates = [..dbExtStates];
-            foreach (string extState in Enum.GetNames(typeof(ExtStates)))
+            foreach (string extState in Enum.GetNames<ExtStates>())
             {
                 if (allExtStates.FirstOrDefault(x => x.Name == extState) == null)
                 {
@@ -178,7 +178,7 @@
 
     private void BuildStateGroups()
     {
-        string[] staticStateNames = Enum.GetNames(typeof(ExtStates));
+        string[] staticStateNames = Enum.GetNames<ExtStates>();
         HashSet<string> staticNames = new(staticStateNames);
         staticExternalStates = staticStateNames
             .Select(name => BuildGroup(name, true))
@@ -214,30 +214,8 @@
         };
     }
 
-    private ExtStateGroup? FindGroup(string name)
-    {
-        return staticExternalStates.FirstOrDefault(group => group.Name == name)
-            ?? manualExternalStates.FirstOrDefault(group => group.Name == name);
-    }
-
     private void EditExtStateGroup(ExtStateGroup group)
     {
-        editGroup = CloneGroup(group);
-        SelectStateMode = true;
-    }
-
-    private void EditExtState(WfExtState extState)
-    {
-        ExtStateGroup group = FindGroup(extState.Name) ?? new ExtStateGroup
-        {
-            Name = extState.Name,
-            OriginalName = extState.Name,
-            IsStatic = Enum.GetNames(typeof(ExtStates)).Contains(extState.Name),
-            SelectedStates = extState.StateId.HasValue
-                ? States.Where(state => state.Id == extState.StateId.Value).ToList()
-                : []
-        };
-
         editGroup = CloneGroup(group);
         SelectStateMode = true;
     }
@@ -380,11 +358,12 @@
 
     private string GetEditPopupTitle()
     {
-        return editGroup.IsStatic
-            ? userConfig.GetText("edit_external_state")
-            : string.IsNullOrWhiteSpace(editGroup.OriginalName)
-                ? userConfig.GetText("add_external_state")
-                : userConfig.GetText("edit_external_state");
+        if (editGroup.IsStatic || !string.IsNullOrWhiteSpace(editGroup.OriginalName))
+        {
+            return userConfig.GetText("edit_external_state");
+        }
+
+        return userConfig.GetText("add_external_state");
     }
 
     private bool CanSaveEditingGroup()

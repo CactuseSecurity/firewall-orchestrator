@@ -1,443 +1,670 @@
-using System.Data;
-using System.Diagnostics;
-using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Report;
+using FWO.Logging;
 using Rule = FWO.Data.Rule;
 
 namespace FWO.Services.RuleTreeBuilder
 {
     /// <summary>
-    /// Builds a rule tree and order numbers from rulebases and their links.
+    /// Builds rule trees by traversing the rulebase-link graph that importers normalize for a
+    /// device. The builder does not rely on the incoming order of <see cref="RulebaseLink"/>
+    /// records. Instead, it reconstructs the visible tree exclusively from the graph semantics:
+    /// exactly one initial link points at the first ordered layer, ordered/domain links chain
+    /// top-level layers, section links chain rulebases that belong to the same layer or inline
+    /// layer, and inline links attach nested rulebases to specific rules through
+    /// <see cref="RulebaseLink.FromRuleId"/>.
+    ///
+    /// The tree-building pass focuses only on structural correctness. Hierarchical display
+    /// numbers are intentionally not assigned while the tree is being assembled. After the full
+    /// tree exists, a second pass flattens the visible nodes in display order and derives dotted
+    /// order strings as well as sequential <see cref="Rule.OrderNumber"/> values. This keeps
+    /// numbering independent from traversal bookkeeping and guarantees that numbers reflect the
+    /// final tree shape rather than transient state.
+    ///
+    /// The builder is scoped as a service, so per-build state is reinitialized inside
+    /// <see cref="BuildRuleTree"/>. Legacy queue-style traversal state is deliberately removed in
+    /// favor of explicit graph lookups and explicit parent references. The only state preserved
+    /// across builds is the cache of completed trees and their flattened rule rows.
     /// </summary>
     public class RuleTreeBuilder : IRuleTreeBuilder
     {
-        #region Properties & fields
+        private const string LogMessageTitle = "Rule Tree Builder";
+        private const int OrderedLinkType = 2;
+        private const int InlineLinkType = 3;
+        private const int ConcatenatedLinkType = 4;
+        private const int DomainLinkType = 5;
 
         /// <summary>
-        /// The root item for the tree structure.
+        /// Gets or sets the root node of the most recently built rule tree. The root itself is
+        /// never rendered. Its direct children are ordered-layer header nodes and it serves as
+        /// the anchor for collapse/expand handling in the UI.
         /// </summary>
-        public RuleTreeItem RuleTree { get; set; } = new();
+        public RuleTreeItem RuleTree { get; set; } = new() { IsRoot = true };
 
         /// <summary>
-        /// Cache for generated rule trees.
+        /// Gets or sets the cache of generated rule trees keyed by management and device. Report
+        /// generation uses this cache to reuse the tree for later rendering passes and collapse
+        /// toggles instead of rebuilding the structure.
         /// </summary>
         public Dictionary<(int managementId, int deviceId), RuleTreeItem> RuleTreeCache { get; set; } = new();
 
         /// <summary>
-        /// Lookup for flat rule lists of rule tree items
+        /// Gets or sets the flattened rule-row cache keyed by the corresponding root node. The
+        /// flattened representation contains visible ordered-layer headers, section headers, and
+        /// rules in final display order.
         /// </summary>
-        public Dictionary<RuleTreeItem, Rule[]> FlattedRules { get; set; } = new();
+        public Dictionary<RuleTreeItem, Rule[]> FlattenedRules { get; set; } = new();
 
         /// <summary>
-        /// The number of order numbers that were created during the process.
+        /// Gets or sets the rulebase lookup for the build currently in progress. The lookup is
+        /// recreated for every call to <see cref="BuildRuleTree"/> so that the builder can remain
+        /// a reusable scoped service while still behaving like a fresh single-use traversal
+        /// object.
         /// </summary>
-        public int CreatedOrderNumbersCount { get; set; }
+        public Dictionary<int, RulebaseReport> RulebasesById { get; set; } = new();
 
         /// <summary>
-        /// A counter to easily create the order number for the ordered layers on the top level.
+        /// Gets or sets the list of links that have not yet been consumed by the graph traversal.
+        /// A link is considered consumed as soon as the traversal resolves it as the initial
+        /// entry point, a next ordered/domain layer, a section successor, or an inline-layer
+        /// attachment. Links left in this list after the build finishes are treated as
+        /// unresolved-data warnings rather than hard failures.
         /// </summary>
-        public int OrderedLayerCount { get; set; }
+        public List<RulebaseLink> LinksToBeProcessed { get; set; } = new();
 
         /// <summary>
-        /// Links that are still available to be processed.
+        /// Gets or sets the lookup from a rule id to inline-layer links originating from that
+        /// rule. Inline links are never discovered by array order. They are resolved only while
+        /// emitting the owning rule, ensuring that inline layers appear exactly at the rule node
+        /// they belong to.
         /// </summary>
-        public List<RulebaseLink> RemainingLinks { get; set; } = new();
+        public Dictionary<long, List<RulebaseLink>> InlineLinksByFromRuleId { get; set; } = new();
 
         /// <summary>
-        /// Rulebases available to the current build.
+        /// Gets or sets the lookup from a rulebase id to structural successor links. Structural
+        /// links are all non-inline links that express graph relationships between rulebases:
+        /// sections/concatenations inside a layer and ordered/domain links between layers.
         /// </summary>
-        public List<RulebaseReport> Rulebases { get; set; } = new();
+        public Dictionary<int, List<RulebaseLink>> StructuralLinksByFromRulebaseId { get; set; } = new();
 
         /// <summary>
-        /// Inline layer links that are still available to be processed.
+        /// Gets or sets the set of rule ids that have already been emitted into the current tree.
+        /// Duplicate real rules are considered invalid input because the rewritten builder no
+        /// longer clones or silently tolerates duplicates; it fails fast so malformed graph data
+        /// is surfaced immediately.
         /// </summary>
-        public List<RulebaseLink> RemainingInlineLayerLinks { get; set; } = new();
-
-        #endregion
-
-        #region Constructor
+        public HashSet<long> SeenRuleIds { get; set; } = new();
 
         /// <summary>
-        /// Creates a new builder with an initialized root node.
+        /// Gets or sets the sequential rule-number counter used during the final flattening pass.
+        /// The value starts at 1 for every build and is assigned to visible rows only after the
+        /// tree has been completely assembled.
+        /// </summary>
+        public int NextRuleNumber { get; set; } = 1;
+
+        /// <summary>
+        /// Creates a reusable builder service. The constructor only initializes stable cache
+        /// containers and the root placeholder. All per-build graph state is populated inside
+        /// <see cref="BuildRuleTree"/> so the existing DI registration can continue to reuse the
+        /// service instance across reports without retaining stale traversal state.
         /// </summary>
         public RuleTreeBuilder()
         {
-            RuleTree.IsRoot = true;
         }
 
-        #endregion
-
-        #region Methods - Public
-
         /// <summary>
-        /// Builds the rule tree and returns the flattened list of rule data.
+        /// Builds a rule tree for one management/device pair from normalized rulebases and
+        /// rulebase links. The method creates a fresh per-build graph view, traverses ordered
+        /// layers, sections, and inline layers by following their graph relationships, then
+        /// performs a second pass that flattens the visible nodes and assigns final display
+        /// numbers. The returned list contains exactly the visible report rows in display order:
+        /// ordered-layer header placeholders, section-header placeholders, and real rules.
+        ///
+        /// The build is intentionally strict about invalid structural data. It throws when the
+        /// graph lacks exactly one initial link, when a required target rulebase cannot be
+        /// resolved, when an ambiguous “next layer” or “next section” relationship exists, or
+        /// when the same real rule id would be emitted twice. Links that are merely unreachable
+        /// from the initial graph entry point do not fail the build; they stay in
+        /// <see cref="LinksToBeProcessed"/> and are reported as a warning after traversal
+        /// completes.
         /// </summary>
         public List<Rule> BuildRuleTree(RulebaseReport[] rulebases, RulebaseLink[] links, int managementId, int deviceId)
         {
-            Reset(rulebases, links);
-            List<int>? trail = null;
+            InitializeBuildState(rulebases, links);
 
-            // Iterate links in processing order to build the tree and order numbers.
-
-            while (GetNextLink() is RulebaseLink nextLink)
-            {
-                trail = ProcessLink(nextLink, trail);
-            }
-
-            // Returns the Rule objects of the flattened rule tree. Will be deprecated  as soon as we have the TreeView component.
-
-            List<Rule> allRules = new();
-
-            for (int i = 0; i < RuleTree.ElementsFlat.Count; i++)
-            {
-                RuleTreeItem treeItem = RuleTree.ElementsFlat[i];
-
-                if ((treeItem.IsRule || treeItem.IsSectionHeader || treeItem.IsOrderedLayerHeader) && treeItem.Data != null)
-                {
-                    allRules.Add(treeItem.Data);
-                }
-            }
+            TraverseOrderedLayers();
+            List<Rule> flattenedRules = FlattenTreeAndAssignDisplayNumbers();
 
             RuleTreeCache[(managementId, deviceId)] = RuleTree;
-            FlattedRules[RuleTree] = allRules.ToArray();
+            FlattenedRules[RuleTree] = flattenedRules.ToArray();
 
-            return allRules;
+            if (LinksToBeProcessed.Count > 0)
+            {
+                Log.WriteWarning(
+                    LogMessageTitle,
+                    $"Finished building the rule tree with {LinksToBeProcessed.Count} unresolved rulebase link(s).");
+            }
+
+            return flattenedRules;
         }
 
         /// <summary>
-        /// Processes a single link and its rulebase, returning the updated trail.
+        /// Initializes all mutable state required for exactly one build. This method replaces the
+        /// former public reset workflow and deliberately recreates every traversal lookup from
+        /// scratch so the builder behaves like a fresh single-use object while preserving its DI
+        /// friendly public constructor.
+        ///
+        /// The initialization step prepares:
+        /// - a rulebase lookup by id
+        /// - the working list of links that still need to be consumed
+        /// - an inline-link lookup by <see cref="RulebaseLink.FromRuleId"/>
+        /// - a structural-link lookup by <see cref="RulebaseLink.FromRulebaseId"/>
+        /// - the duplicate-rule guard set
+        /// - a fresh root tree node
+        /// - the final numbering counter reset to 1
+        ///
+        /// No traversal decisions are made here. The method merely establishes the graph view
+        /// that later traversal helpers query.
         /// </summary>
-        public List<int> ProcessLink(RulebaseLink link, List<int>? trail = null)
+        private void InitializeBuildState(RulebaseReport[] rulebases, RulebaseLink[] links)
         {
-            // Initialize trail if no trail is provided.
-
-            if (trail == null || link.LinkType == 2)
+            RulebasesById = rulebases.ToDictionary(rulebase => rulebase.Id);
+            LinksToBeProcessed = links.ToList();
+            InlineLinksByFromRuleId = BuildInlineLinkLookup(links);
+            StructuralLinksByFromRulebaseId = BuildStructuralLinkLookup(links);
+            SeenRuleIds = new HashSet<long>();
+            NextRuleNumber = 1;
+            RuleTree = new RuleTreeItem
             {
-                trail = new();
-            }
-
-            // Get next rulebase.
-
-            RulebaseReport? rulebase = Rulebases.FirstOrDefault(rb => rb.Id == link.NextRulebaseId);
-
-            if (rulebase == null)
-            {
-                throw new InvalidOperationException("Rulebase for link could not be found.");
-            }
-
-            // Create tree item for the rulebase link type.
-
-            if (link.LinkType == 2)
-            {
-                trail = ProcessOrderedLayerLink(link, rulebase, trail);
-            }
-            else if (RemainingInlineLayerLinks.Contains(link))
-            {
-                trail = ProcessInlineLayerLink(link, rulebase, trail);
-            }
-            else if (link.IsSection)
-            {
-                trail = ProcessSectionLink(link, rulebase, trail);
-            }
-            else if (link.LinkType == 4)
-            {
-                trail = ProcessConcatenationLink(link, rulebase, trail);
-            }
-
-            // Create tree items for rules and then process inline layers.
-
-            trail = ProcessRulebase(rulebase, link, trail);
-
-            return trail;
+                IsRoot = true,
+                IsExpanded = true,
+                IsVisible = true
+            };
+            RuleTree.ElementsFlat.Clear();
         }
 
         /// <summary>
-        /// Processes an inline layer link by adding its root item to the tree.
+        /// Builds the inline-link lookup for the current rulebase-link set. Each key represents a
+        /// rule id, and the value contains the inline-layer links that originate from that rule.
+        /// Inline layers are attached while the owning rule is emitted, so indexing them up front
+        /// avoids global scanning and prevents accidental dependency on link ordering.
         /// </summary>
-        public List<int> ProcessInlineLayerLink(RulebaseLink link, RulebaseReport rulebase, List<int> trail)
+        private static Dictionary<long, List<RulebaseLink>> BuildInlineLinkLookup(IEnumerable<RulebaseLink> links)
         {
-            RuleTreeItem inlineLayerItem = new RuleTreeItem();
-
-            inlineLayerItem.Header = rulebase.Name ?? "";
-            inlineLayerItem.IsInlineLayerRoot = true;
-            SetParentForTreeItem(inlineLayerItem, link);
-            RuleTree.LastAddedItem = inlineLayerItem;
-
-            return trail;
+            return links
+                .Where(link => link.LinkType == InlineLinkType && link.FromRuleId.HasValue)
+                .GroupBy(link => (long)link.FromRuleId!.Value)
+                .ToDictionary(group => group.Key, group => group.ToList());
         }
 
         /// <summary>
-        /// Processes a section link by adding a section header rule to the tree.
+        /// Builds the structural-link lookup for the current rulebase-link set. Structural links
+        /// are all non-inline links that connect one rulebase to another through
+        /// <see cref="RulebaseLink.FromRulebaseId"/> and are therefore suitable for layer and
+        /// section traversal.
+        ///
+        /// The lookup does not attempt to interpret the links yet. Traversal helpers later decide
+        /// whether a given successor is a section chain element or a next ordered/domain layer.
         /// </summary>
-        public List<int> ProcessSectionLink(RulebaseLink link, RulebaseReport rulebase, List<int> trail)
+        private static Dictionary<int, List<RulebaseLink>> BuildStructuralLinkLookup(IEnumerable<RulebaseLink> links)
         {
-            RuleTreeItem sectionLinkItem = new();
-
-            sectionLinkItem.Header = rulebase.Name ?? "";
-            sectionLinkItem.IsSectionHeader = true;
-            SetParentForTreeItem(sectionLinkItem, link);
-            Rule newRule = new();
-            CreatedOrderNumbersCount++;
-            newRule.OrderNumber = CreatedOrderNumbersCount;
-            newRule.SectionHeader = rulebase.Name;
-            sectionLinkItem.Data = newRule;
-            RuleTree.LastAddedItem = sectionLinkItem;
-            RuleTree.ElementsFlat.Add(sectionLinkItem);
-
-            return trail;
+            return links
+                .Where(link => link.LinkType != InlineLinkType && link.FromRulebaseId.HasValue)
+                .GroupBy(link => link.FromRulebaseId!.Value)
+                .ToDictionary(group => group.Key, group => group.ToList());
         }
 
         /// <summary>
-        /// Processes an ordered layer link and adds its header to the tree.
+        /// Traverses the ordered-layer chain for the current device. The traversal begins by
+        /// resolving exactly one initial link, removing it from <see cref="LinksToBeProcessed"/>,
+        /// and taking its target rulebase as the first layer. After each layer has been processed,
+        /// the traversal resolves at most one ordered/domain successor from the original layer
+        /// rulebase id and continues until no next layer exists.
+        ///
+        /// This method intentionally ignores the physical order of the incoming link array. The
+        /// only valid ordering is the one implied by graph edges:
+        /// initial -> ordered/domain successor -> ordered/domain successor -> ...
+        ///
+        /// Sections are not advanced here. They are considered content of the current layer and
+        /// are therefore handled inside <see cref="ProcessOrderedLayer"/>.
         /// </summary>
-        public List<int> ProcessOrderedLayerLink(RulebaseLink link, RulebaseReport rulebase, List<int> trail)
+        private void TraverseOrderedLayers()
         {
-            RuleTreeItem orderedLayerItem = new();
+            RulebaseLink initialLink = FindInitialLink();
+            RemoveLinkFromProcessingQueue(initialLink);
 
-            orderedLayerItem.Header = rulebase.Name ?? "";
-            orderedLayerItem.IsOrderedLayerHeader = true;
-            SetParentForTreeItem(orderedLayerItem, link);
-            Rule newRule = new();
-            CreatedOrderNumbersCount++;
-            newRule.OrderNumber = CreatedOrderNumbersCount;
-            newRule.SectionHeader = rulebase.Name;
-            orderedLayerItem.Data = newRule;
-            trail.Add(GetOrderLayerCount());
-            orderedLayerItem.Position = trail.ToList();
-            RuleTree.LastAddedItem = orderedLayerItem;
-            RuleTree.ElementsFlat.Add(orderedLayerItem);
+            int currentLayerRulebaseId = initialLink.NextRulebaseId;
 
-            return trail;
-        }
-
-        /// <summary>
-        /// Processes a concatenation link (currently handled like a section link).
-        /// </summary>
-        public List<int> ProcessConcatenationLink(RulebaseLink link, RulebaseReport rulebase, List<int> trail)
-        {
-            return ProcessSectionLink(link, rulebase, trail); // TODO: Differentiate between concatenation and section if needed
-        }
-
-        /// <summary>
-        /// Processes all rules of the rulebase and attaches them to the tree.
-        /// </summary>
-        public List<int> ProcessRulebase(RulebaseReport rulebase, RulebaseLink link, List<int> trail)
-        {
-            if (RuleTree.LastAddedItem != null)
+            while (true)
             {
-                RuleTreeItem lastAddedItem = RuleTree.LastAddedItem;
+                ProcessOrderedLayer(currentLayerRulebaseId, RuleTree);
 
-                lastAddedItem.IsExpanded = true;
-                lastAddedItem.IsVisible = true;
-
-                for (int i = 0; i < rulebase.Rules.Count(); i++)
+                RulebaseLink? nextLayerLink = FindNextLayerLink(currentLayerRulebaseId);
+                if (nextLayerLink == null)
                 {
-                    Rule newRule = GetUniqueRuleObject(rulebase.Rules[i]);
-
-                    RuleTreeItem ruleItem = new()
-                    {
-                        IsRule = true,
-                        Data = newRule,
-                        IsExpanded = true,
-                        IsVisible = true
-                    };
-
-                    SetParentForTreeItem(ruleItem, link, lastAddedItem);
-
-                    trail = EnsureTrailStartsWithZeroForFirstRule(link, lastAddedItem, trail, i);
-
-                    // Increment the lowest level for the next rule order number.
-
-                    int bottomLevelNumber = trail.Last() + 1;
-                    trail[trail.Count - 1] = bottomLevelNumber;
-
-                    newRule.DisplayOrderNumberString = string.Join(".", trail);
-                    ruleItem.Position = trail.ToList();
-                    CreatedOrderNumbersCount++;
-                    newRule.OrderNumber = CreatedOrderNumbersCount;
-
-                    RuleTree.ElementsFlat.Add(ruleItem);
-                    RuleTree.LastAddedItem = ruleItem;
-
-                    ProcessInlineLayerLinksForRule(rulebase, i, trail);
+                    break;
                 }
 
-                RuleTree.LastAddedItem = lastAddedItem;
-            }
-
-            return trail;
-        }
-
-        /// <summary>
-        /// Returns the next link to process, preferring initial links.
-        /// </summary>
-        public RulebaseLink? GetNextLink()
-        {
-            // Get initial first
-
-            if (RemainingLinks.Any(link => link.IsInitial))
-            {
-                RulebaseLink initialLink = RemainingLinks.First(link => link.IsInitial);
-                RemainingLinks.Remove(initialLink);
-                return initialLink;
-            }
-
-            // Get next link in line
-
-            RulebaseLink? nextLink = RemainingLinks.FirstOrDefault();
-
-            if (nextLink != null)
-            {
-                RemainingLinks.Remove(nextLink);
-            }
-
-            return nextLink;
-        }
-
-        /// <summary>
-        /// Resets all state for a new build.
-        /// </summary>
-        public void Reset(RulebaseReport[] rulebases, RulebaseLink[] links)
-        {
-            RemainingLinks = links.ToList();
-            Rulebases = rulebases.ToList();
-            RemainingInlineLayerLinks = links.Where(link => link.LinkType == 3).ToList();
-            RuleTree = new RuleTreeItem() { IsRoot = true };
-            RuleTree.LastAddedItem = RuleTree;
-            CreatedOrderNumbersCount = 0;
-            OrderedLayerCount = 0;
-            FlattedRules.Clear();
-        }
-
-
-        #endregion
-
-        #region Methods - Private
-
-        /// <summary>
-        /// Ensures a rule with a duplicate ID gets cloned instead of reused.
-        /// </summary>
-        private Rule GetUniqueRuleObject(Rule rule)
-        {
-            if (RuleTree.ElementsFlat.FirstOrDefault(treeItem => treeItem.Data != null && treeItem.Data.Id == rule.Id)?.Data is Rule existingRule)
-            {
-                return rule.CreateClone();
-            }
-            else
-            {
-                return rule;
+                RemoveLinkFromProcessingQueue(nextLayerLink);
+                currentLayerRulebaseId = nextLayerLink.NextRulebaseId;
             }
         }
 
         /// <summary>
-        /// Ensures the trail starts with a zero for the first rule in a sequence.
+        /// Processes one ordered layer by creating its visible header node below the supplied
+        /// parent node, emitting the layer’s direct rules as children of that header, and then
+        /// traversing the section chain that belongs to the layer.
+        ///
+        /// The ordered-layer node is the stable parent for everything that belongs “inside” the
+        /// layer:
+        /// - direct rules of the layer
+        /// - section headers chained from the layer rulebase
+        /// - rules inside those sections
+        ///
+        /// By passing the parent node explicitly rather than inferring it from mutable global
+        /// state, the method guarantees that sections remain siblings under the current layer even
+        /// when the source links arrive in random order.
         /// </summary>
-        private List<int> EnsureTrailStartsWithZeroForFirstRule(RulebaseLink link, RuleTreeItem lastAddedItem, List<int> trail, int index)
+        private void ProcessOrderedLayer(int layerRulebaseId, RuleTreeItem parentNode)
         {
-            if (index == 0
-                    && (!(link.LinkType == 4)
-                        || lastAddedItem.Parent?.Children.Count() == 1))
-            {
-                trail = trail.ToList();
-                trail.Add(0);
-            }
+            RulebaseReport rulebase = ResolveRulebase(layerRulebaseId);
+            RuleTreeItem orderedLayerNode = CreateOrderedLayerNode(rulebase);
+            AttachChild(parentNode, orderedLayerNode);
 
-            return trail;
+            EmitRules(rulebase, orderedLayerNode);
+            TraverseSections(layerRulebaseId, orderedLayerNode);
         }
 
         /// <summary>
-        /// Processes any inline layer link that starts from the current rule.
+        /// Traverses the section chain that belongs to one ordered layer or inline layer. The
+        /// method starts from the owning rulebase id and repeatedly resolves the single section
+        /// successor whose <see cref="RulebaseLink.FromRulebaseId"/> matches the current rulebase
+        /// and whose <see cref="RulebaseLink.IsSection"/> flag is true.
+        ///
+        /// The supplied <paramref name="parentNode"/> stays constant during the entire traversal.
+        /// Every discovered section header is attached directly beneath that parent so that all
+        /// sections of one layer remain siblings in the tree. The graph walk advances through
+        /// section rulebase ids only to preserve chain order; it does not change the UI parent.
+        ///
+        /// If more than one section successor exists for the current rulebase, the method throws
+        /// because the traversal would otherwise have to guess which branch reflects the intended
+        /// display order.
         /// </summary>
-        private void ProcessInlineLayerLinksForRule(RulebaseReport rulebase, int ruleIndex, List<int> trail)
+        private void TraverseSections(int layerRulebaseId, RuleTreeItem parentNode)
         {
-            if (RemainingInlineLayerLinks.Any(l => l.LinkType == 3 && l.FromRuleId == rulebase.Rules[ruleIndex].Id))
-            {
-                RulebaseLink inlineLayerLink = RemainingInlineLayerLinks.First(l => l.LinkType == 3 && l.FromRuleId == rulebase.Rules[ruleIndex].Id);
-                RemainingInlineLayerLinks.Remove(inlineLayerLink);
-                RemainingLinks.Remove(inlineLayerLink);
-                List<int> innerTrail = ProcessLink(inlineLayerLink, trail);
+            int currentRulebaseId = layerRulebaseId;
 
-                if (RemainingLinks.FirstOrDefault(x => inlineLayerLink.NextRulebaseId == x.FromRulebaseId) != null)
+            while (true)
+            {
+                RulebaseLink? nextSectionLink = FindNextSectionLink(currentRulebaseId);
+                if (nextSectionLink == null)
                 {
-                    RulebaseLink? nextLink = GetNextLink();
-                    if (nextLink != null)
-                    {
-                        ProcessLink(nextLink, innerTrail);
-                    }
+                    break;
                 }
+
+                RemoveLinkFromProcessingQueue(nextSectionLink);
+                currentRulebaseId = nextSectionLink.NextRulebaseId;
+                ProcessSection(currentRulebaseId, parentNode);
             }
         }
 
         /// <summary>
-        /// Determines the correct parent for a tree item based on the link type.
+        /// Processes one section rulebase by creating a visible section-header node beneath the
+        /// supplied parent node and emitting the section’s rules under that header.
+        ///
+        /// The parent node is explicit on purpose. For sections inside ordered layers it is the
+        /// ordered-layer header node; for sections inside inline layers it is the inline-layer
+        /// root node. This makes parent ownership obvious and avoids the former “last added item”
+        /// heuristics.
         /// </summary>
-        private void SetParentForTreeItem(RuleTreeItem item, RulebaseLink link, RuleTreeItem? parentOverride = null)
+        private void ProcessSection(int sectionRulebaseId, RuleTreeItem parentNode)
         {
-            if (item.IsRule && parentOverride != null)
+            RulebaseReport rulebase = ResolveRulebase(sectionRulebaseId);
+            RuleTreeItem sectionNode = CreateSectionNode(rulebase);
+            AttachChild(parentNode, sectionNode);
+
+            EmitRules(rulebase, sectionNode);
+        }
+
+        /// <summary>
+        /// Emits the direct rules of one rulebase under the supplied parent node in native rule
+        /// order. Each emitted rule becomes a child node in the tree and then acts as the anchor
+        /// for any inline layers originating from that rule.
+        ///
+        /// Duplicate real rules are not tolerated. If a rule id has already been emitted
+        /// elsewhere in the current tree, the method throws immediately instead of cloning the
+        /// rule or trying to preserve legacy behavior. This keeps malformed normalized data from
+        /// silently producing inconsistent trees.
+        /// </summary>
+        private void EmitRules(RulebaseReport rulebase, RuleTreeItem parentNode)
+        {
+            foreach (Rule rule in rulebase.Rules)
             {
-                SetParentForTreeItem(parentOverride, item);
+                if (!SeenRuleIds.Add(rule.Id))
+                {
+                    throw new InvalidOperationException($"Rule id {rule.Id} was encountered more than once while building the rule tree.");
+                }
+
+                RuleTreeItem ruleNode = CreateRuleNode(rule);
+                AttachChild(parentNode, ruleNode);
+
+                TraverseInlineLayers(rule.Id, ruleNode);
+            }
+        }
+
+        /// <summary>
+        /// Resolves and emits all inline layers attached to one already-emitted rule. Inline
+        /// layers are discovered exclusively through <see cref="RulebaseLink.FromRuleId"/>, so
+        /// this method is called exactly at the point where the owning rule node is available.
+        ///
+        /// For each inline link the method:
+        /// - removes the link from <see cref="LinksToBeProcessed"/>
+        /// - resolves the inline rulebase
+        /// - creates an inline-layer root node below the owning rule node
+        /// - emits the inline layer’s direct rules below that root
+        /// - traverses any section chain that starts from the inline layer rulebase
+        ///
+        /// The inline-layer root is structural only and is not itself added to the flattened
+        /// report output later. Its children inherit their hierarchical display numbers from the
+        /// owning rule during the final flattening pass.
+        /// </summary>
+        private void TraverseInlineLayers(long ruleId, RuleTreeItem parentNode)
+        {
+            if (!InlineLinksByFromRuleId.TryGetValue(ruleId, out List<RulebaseLink>? inlineLinks))
+            {
                 return;
             }
 
-            if (RuleTree.LastAddedItem is RuleTreeItem lastAddedItem && (lastAddedItem.Parent is RuleTreeItem parent || lastAddedItem.IsRoot))
+            foreach (RulebaseLink inlineLink in inlineLinks
+                .Where(LinksToBeProcessed.Contains)
+                .OrderBy(link => link.NextRulebaseId))
             {
-                if (RemainingInlineLayerLinks.Contains(link))
-                {
-                    SetParentForTreeItem(lastAddedItem, item);
-                }
-                else if (link.IsSection)
-                {
-                    SetParentForSectionTreeItem(lastAddedItem, item);
-                }
-                else if (link.LinkType == 2)
-                {
-                    SetParentForTreeItem(RuleTree, item);
-                }
-                else if (link.LinkType == 4 && lastAddedItem.Parent != null)
-                {
-                    SetParentForTreeItem((RuleTreeItem)lastAddedItem.Parent, item);
-                }
+                RemoveLinkFromProcessingQueue(inlineLink);
+
+                RulebaseReport rulebase = ResolveRulebase(inlineLink.NextRulebaseId);
+                RuleTreeItem inlineLayerNode = CreateInlineLayerNode(rulebase);
+                AttachChild(parentNode, inlineLayerNode);
+
+                EmitRules(rulebase, inlineLayerNode);
+                TraverseSections(rulebase.Id, inlineLayerNode);
             }
         }
 
         /// <summary>
-        /// Sets the parent for a section item, handling root and section headers.
+        /// Resolves the single initial link for the current device graph. The rewritten builder
+        /// requires exactly one initial link because ordered-layer traversal must have a unique
+        /// graph entry point. Missing or multiple initial links are treated as hard data errors.
         /// </summary>
-        private void SetParentForSectionTreeItem(RuleTreeItem lastAddedItem, RuleTreeItem item)
+        private RulebaseLink FindInitialLink()
         {
-            if (lastAddedItem.IsRoot)
+            List<RulebaseLink> initialLinks = LinksToBeProcessed.Where(link => link.IsInitial).ToList();
+
+            return initialLinks.Count switch
             {
-                SetParentForTreeItem(RuleTree, item);
+                1 => initialLinks[0],
+                0 => throw new InvalidOperationException("Exactly one initial rulebase link is required, but none were found."),
+                _ => throw new InvalidOperationException("Exactly one initial rulebase link is required, but multiple were found.")
+            };
+        }
+
+        /// <summary>
+        /// Resolves the ordered/domain successor for a top-level layer. The method inspects the
+        /// structural links that originate from the supplied rulebase id, filters them to links
+        /// that represent a next top-level layer, and returns the single remaining candidate.
+        ///
+        /// Section links are explicitly excluded because sections are handled inside the current
+        /// layer. Concatenated non-section links are also excluded from next-layer traversal; the
+        /// new implementation does not preserve that legacy quirk and instead leaves such links in
+        /// <see cref="LinksToBeProcessed"/>, which later produces a warning.
+        /// </summary>
+        private RulebaseLink? FindNextLayerLink(int fromRulebaseId)
+        {
+            if (!StructuralLinksByFromRulebaseId.TryGetValue(fromRulebaseId, out List<RulebaseLink>? candidates))
+            {
+                return null;
             }
-            else if (lastAddedItem.IsSectionHeader == true && lastAddedItem.Parent != null)
+
+            List<RulebaseLink> nextLayerCandidates = candidates
+                .Where(LinksToBeProcessed.Contains)
+                .Where(link => !link.IsSection)
+                .Where(link => link.LinkType == OrderedLinkType || link.LinkType == DomainLinkType)
+                .ToList();
+
+            return nextLayerCandidates.Count switch
             {
-                SetParentForTreeItem((RuleTreeItem)lastAddedItem.Parent, item);
+                0 => null,
+                1 => nextLayerCandidates[0],
+                _ => throw new InvalidOperationException(
+                    $"Rulebase {fromRulebaseId} has multiple ordered/domain successors, so the next layer is ambiguous.")
+            };
+        }
+
+        /// <summary>
+        /// Resolves the next section successor in a section chain. The method looks at structural
+        /// links whose <see cref="RulebaseLink.FromRulebaseId"/> matches the supplied rulebase id
+        /// and returns the single remaining link marked with <see cref="RulebaseLink.IsSection"/>.
+        ///
+        /// Returning at most one successor is central to preserving section order without relying
+        /// on input ordering. If multiple section successors exist, the graph no longer encodes a
+        /// unique display order and the build therefore fails.
+        /// </summary>
+        private RulebaseLink? FindNextSectionLink(int fromRulebaseId)
+        {
+            if (!StructuralLinksByFromRulebaseId.TryGetValue(fromRulebaseId, out List<RulebaseLink>? candidates))
+            {
+                return null;
             }
-            else
+
+            List<RulebaseLink> nextSectionCandidates = candidates
+                .Where(LinksToBeProcessed.Contains)
+                .Where(link => link.IsSection)
+                .ToList();
+
+            return nextSectionCandidates.Count switch
             {
-                SetParentForTreeItem(lastAddedItem, item);
+                0 => null,
+                1 => nextSectionCandidates[0],
+                _ => throw new InvalidOperationException(
+                    $"Rulebase {fromRulebaseId} has multiple section successors, so the section chain is ambiguous.")
+            };
+        }
+
+        /// <summary>
+        /// Removes a consumed link from the working processing queue. Link consumption is tracked
+        /// by physical removal from <see cref="LinksToBeProcessed"/>, as agreed in the plan, so
+        /// unresolved leftovers can be detected simply by inspecting the queue after traversal.
+        /// </summary>
+        private void RemoveLinkFromProcessingQueue(RulebaseLink link)
+        {
+            LinksToBeProcessed.Remove(link);
+        }
+
+        /// <summary>
+        /// Resolves a rulebase id through <see cref="RulebasesById"/> and throws if the target is
+        /// missing. Every traversal stage relies on this helper so that missing targets fail
+        /// consistently whether they are referenced by an ordered layer, a section, or an inline
+        /// layer.
+        /// </summary>
+        private RulebaseReport ResolveRulebase(int rulebaseId)
+        {
+            if (!RulebasesById.TryGetValue(rulebaseId, out RulebaseReport? rulebase))
+            {
+                throw new InvalidOperationException($"Rulebase {rulebaseId} referenced by the rulebase-link graph could not be found.");
+            }
+
+            return rulebase;
+        }
+
+        /// <summary>
+        /// Creates an ordered-layer header node and its synthetic placeholder rule. Ordered-layer
+        /// headers are visible report rows, so the placeholder rule carries the layer name in
+        /// <see cref="Rule.SectionHeader"/> and later receives display numbering during the
+        /// flattening pass.
+        /// </summary>
+        private static RuleTreeItem CreateOrderedLayerNode(RulebaseReport rulebase)
+        {
+            return new RuleTreeItem
+            {
+                Header = rulebase.Name ?? string.Empty,
+                Data = CreateHeaderPlaceholderRule(rulebase.Name),
+                IsOrderedLayerHeader = true,
+                IsExpanded = true,
+                IsVisible = true
+            };
+        }
+
+        /// <summary>
+        /// Creates a section header node and its synthetic placeholder rule. The placeholder rule
+        /// is rendered exactly like an ordered-layer header row later, but it remains a child of
+        /// the layer or inline-layer node that owns the section chain.
+        /// </summary>
+        private static RuleTreeItem CreateSectionNode(RulebaseReport rulebase)
+        {
+            return new RuleTreeItem
+            {
+                Header = rulebase.Name ?? string.Empty,
+                Data = CreateHeaderPlaceholderRule(rulebase.Name),
+                IsSectionHeader = true,
+                IsExpanded = true,
+                IsVisible = true
+            };
+        }
+
+        /// <summary>
+        /// Creates an inline-layer root node. Inline-layer roots are structural grouping nodes and
+        /// therefore do not receive a placeholder rule. Their header remains useful for debugging
+        /// and tree serialization, but they are skipped during flattening so only the rules inside
+        /// the inline layer become visible report rows.
+        /// </summary>
+        private static RuleTreeItem CreateInlineLayerNode(RulebaseReport rulebase)
+        {
+            return new RuleTreeItem
+            {
+                Header = rulebase.Name ?? string.Empty,
+                IsInlineLayerRoot = true,
+                IsExpanded = true,
+                IsVisible = true
+            };
+        }
+
+        /// <summary>
+        /// Creates a visible rule node for a real rule record. The rule object itself is kept as
+        /// the node payload; numbering and position are filled in later by the final flattening
+        /// pass after the complete tree shape is known.
+        /// </summary>
+        private static RuleTreeItem CreateRuleNode(Rule rule)
+        {
+            return new RuleTreeItem
+            {
+                Data = rule,
+                IsRule = true,
+                IsExpanded = true,
+                IsVisible = true
+            };
+        }
+
+        /// <summary>
+        /// Creates the synthetic rule object used for visible ordered-layer and section header
+        /// rows. The placeholder carries the header text in <see cref="Rule.SectionHeader"/> so
+        /// existing report rendering continues to treat these nodes as header rows without any UI
+        /// changes.
+        /// </summary>
+        private static Rule CreateHeaderPlaceholderRule(string? header)
+        {
+            return new Rule
+            {
+                SectionHeader = header ?? string.Empty
+            };
+        }
+
+        /// <summary>
+        /// Attaches a child node to its parent and preserves the fully connected tree structure
+        /// needed by UI expand/collapse behavior. This explicit parent/child wiring replaces the
+        /// legacy “last added item” inference so that every caller always controls exactly where
+        /// the new node is inserted.
+        /// </summary>
+        private static void AttachChild(RuleTreeItem parentNode, RuleTreeItem childNode)
+        {
+            childNode.Parent = parentNode;
+            parentNode.Children.Add(childNode);
+        }
+
+        /// <summary>
+        /// Flattens the finished tree into the exact row sequence used by reports and assigns
+        /// dotted display numbers and sequential numeric order values in that same pass. The
+        /// method clears the root’s flat-node cache and rebuilds it from the visible tree order so
+        /// the cache always mirrors the completed tree.
+        ///
+        /// Numbering rules:
+        /// - ordered-layer headers consume top-level numbers: 1, 2, 3, ...
+        /// - visible children below any visible node consume the next nested number
+        /// - inline-layer roots are structural only and do not consume a number themselves
+        /// - children beneath an inline root inherit the owning rule’s position as their base
+        ///
+        /// This ensures that display numbering reflects the final rendered structure rather than
+        /// the order in which traversal happened to discover nodes.
+        /// </summary>
+        private List<Rule> FlattenTreeAndAssignDisplayNumbers()
+        {
+            RuleTree.ElementsFlat.Clear();
+            NextRuleNumber = 1;
+
+            List<Rule> flattenedRules = new();
+            FlattenChildren(RuleTree, [], flattenedRules);
+
+            return flattenedRules;
+        }
+
+        /// <summary>
+        /// Recursively flattens the children of one parent node. Visible children consume the next
+        /// nested display number under <paramref name="parentPosition"/>. Inline-layer roots do
+        /// not consume a number; their descendants continue numbering beneath the owning rule’s
+        /// position.
+        ///
+        /// The method is the central place where visible tree order turns into dotted numbering,
+        /// flat-list order, and cached <see cref="RuleTree.ElementsFlat"/> entries.
+        /// </summary>
+        private void FlattenChildren(RuleTreeItem parentNode, List<int> parentPosition, List<Rule> flattenedRules)
+        {
+            int visibleChildIndex = 0;
+
+            foreach (RuleTreeItem childNode in parentNode.Children)
+            {
+                if (childNode.IsInlineLayerRoot)
+                {
+                    FlattenChildren(childNode, parentPosition, flattenedRules);
+                    continue;
+                }
+
+                visibleChildIndex++;
+                List<int> childPosition = [.. parentPosition, visibleChildIndex];
+
+                childNode.Position = childPosition;
+                AssignRuleNumbers(childNode, childPosition);
+                RuleTree.ElementsFlat.Add(childNode);
+                flattenedRules.Add(childNode.Data!);
+
+                FlattenChildren(childNode, childPosition, flattenedRules);
             }
         }
 
         /// <summary>
-        /// Assigns parent-child relationship and updates last-added pointer.
+        /// Assigns display numbering information to the placeholder rule or real rule stored in a
+        /// visible tree node. The method updates both the dotted display string and the numeric
+        /// order values consumed by report exports, then advances <see cref="NextRuleNumber"/>.
         /// </summary>
-        private void SetParentForTreeItem(RuleTreeItem parent, RuleTreeItem item)
+        private void AssignRuleNumbers(RuleTreeItem node, List<int> position)
         {
-            item.Parent = parent;
-            parent.Children.Add(item);
-            parent.LastAddedItem = item;
-        }
+            if (node.Data == null)
+            {
+                throw new InvalidOperationException("Visible rule-tree nodes must always carry a rule payload.");
+            }
 
-        /// <summary>
-        /// Counts top-level ordered layer headers to build their order number.
-        /// </summary>
-        private int GetOrderLayerCount()
-        {
-            return RuleTree.Children.Count(treeItem => ((RuleTreeItem)treeItem).IsOrderedLayerHeader);
+            string displayOrder = string.Join(".", position);
+            node.Data.DisplayOrderNumberString = displayOrder;
+            node.Data.DisplayOrderNumber = NextRuleNumber;
+            node.Data.OrderNumber = NextRuleNumber;
+            NextRuleNumber++;
         }
-
-        #endregion
     }
 }

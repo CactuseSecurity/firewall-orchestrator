@@ -157,8 +157,6 @@ namespace FWO.Report
             {
                 foreach (DeviceReport deviceReport in managementReport.Devices)
                 {
-                    scopedRuleTreeBuilder.Reset(managementReport.Rulebases, deviceReport.RulebaseLinks);
-
                     List<Rule> allRules = scopedRuleTreeBuilder.BuildRuleTree(managementReport.Rulebases, deviceReport.RulebaseLinks, managementReport.Id, deviceReport.Id);
                     ApplyPreferredCollapseState(scopedRuleTreeBuilder, managementReport.Id, deviceReport.Id);
 
@@ -354,7 +352,7 @@ namespace FWO.Report
         {
             if (ruleTreeBuilder.RuleTreeCache.TryGetValue((managementReport.Id, deviceReport.Id), out RuleTreeItem? ruleTreeFromCache))
             {
-                return ruleTreeBuilder.FlattedRules[ruleTreeFromCache];
+                return ruleTreeBuilder.FlattenedRules[ruleTreeFromCache];
             }
             else
             {

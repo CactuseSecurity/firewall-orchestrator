@@ -111,7 +111,6 @@ namespace FWO.Test
                 .GetField("_rulesCache", BindingFlags.NonPublic | BindingFlags.Static)!
                 .SetValue(null, new Dictionary<(int, int), Rule[]> { [(_deviceReport.Id, _managementReport.Id)] = _rules });
 
-            _ruleTreeBuilder.Reset(_managementReport.Rulebases, _deviceReport.RulebaseLinks);
         }
 
         [TearDown]
@@ -271,9 +270,8 @@ namespace FWO.Test
                 .SetValue(null, new Dictionary<(int, int), Rule[]> { [(device.Id, management.Id)] = rules });
 
             RuleTreeBuilder ruleTreeBuilder = new RuleTreeBuilder();
-            ruleTreeBuilder.Reset(management.Rulebases, device.RulebaseLinks);
             ruleTreeBuilder.RuleTreeCache[(management.Id, device.Id)] = ruleTreeBuilder.RuleTree;
-            ruleTreeBuilder.FlattedRules[ruleTreeBuilder.RuleTree] = rules;
+            ruleTreeBuilder.FlattenedRules[ruleTreeBuilder.RuleTree] = rules;
 
             var result = ReportRules.GetAllRulesOfGateway(device, management, ruleTreeBuilder);
 

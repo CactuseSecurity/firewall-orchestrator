@@ -14,11 +14,6 @@ fragment ownerDetails on owner {
   additional_info
   criticality
   owner_lifecycle_state_id
-  owner_lifecycle_state {
-    id
-    name
-    active_state
-  }
   active
   import_source
   common_service_possible

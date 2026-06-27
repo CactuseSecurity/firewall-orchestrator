@@ -21,6 +21,6 @@ pytest==9.1.1
 pytest-mock==3.15.1
 
 # Linting
-ruff==0.15.18
+ruff==0.15.20
 pre-commit==4.6.0
 pyright==1.1.410

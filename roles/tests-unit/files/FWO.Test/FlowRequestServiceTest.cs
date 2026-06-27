@@ -6,6 +6,7 @@ using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NUnit.Framework;
 
@@ -99,6 +100,19 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
+    public void GetRequestStatusAsync_ThrowsWhenExternalStatesCannotBeLoaded()
+    {
+        FlowRequestService service = new(new FlowRequestServiceApiConn
+        {
+            Ticket = new WfTicket { Id = 42, StateId = 7 },
+            States = [new WfState { Id = 7, Name = "implementation" }],
+            ExtStateErrors = ["external state query failed"]
+        });
+
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await service.GetRequestStatusAsync(42));
+    }
+
+    [Test]
     public async Task GetRequestStatusAsync_IgnoresNullCommentWrappers()
     {
         FlowRequestService service = new(new FlowRequestServiceApiConn
@@ -163,6 +177,27 @@ internal class FlowRequestServiceTest
         });
     }
 
+    [Test]
+    public async Task GetRequestStatus_ReturnsInternalServerErrorWhenExternalStatesCannotBeLoaded()
+    {
+        FlowRequestController controller = new(new FlowRequestService(new FlowRequestServiceApiConn
+        {
+            Ticket = new WfTicket { Id = 42, StateId = 7 },
+            States = [new WfState { Id = 7, Name = "implementation" }],
+            ExtStateErrors = ["external state query failed"]
+        }));
+
+        ActionResult<GetRequestStatusResponse> result = await controller.GetRequestStatus(new GetRequestStatusRequest { TicketId = 42 });
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        ObjectResult errorResult = (ObjectResult)result.Result!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(errorResult.StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
+            Assert.That(errorResult.Value, Is.EqualTo("Internal server error"));
+        });
+    }
+
     private static WfCommentDataHelper NewComment(string text, DateTime creationDate)
     {
         return new WfCommentDataHelper(new WfComment
@@ -184,6 +219,7 @@ internal class FlowRequestServiceTest
         public WfTicket? Ticket { get; set; }
         public List<WfState> States { get; set; } = [];
         public List<WfExtState> ExtStates { get; set; } = [];
+        public string[]? ExtStateErrors { get; set; }
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
@@ -211,6 +247,10 @@ internal class FlowRequestServiceTest
 
             if (typeof(QueryResponseType) == typeof(List<WfExtState>))
             {
+                if (ExtStateErrors != null)
+                {
+                    return Task.FromResult((ApiResponse<QueryResponseType>)(object)new ApiResponse<List<WfExtState>>(ExtStateErrors));
+                }
                 return Task.FromResult((ApiResponse<QueryResponseType>)(object)new ApiResponse<List<WfExtState>>(ExtStates));
             }
 

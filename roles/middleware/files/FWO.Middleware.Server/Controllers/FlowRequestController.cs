@@ -1,4 +1,5 @@
 using FWO.Basics;
+using FWO.Logging;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
@@ -84,6 +85,10 @@ public class FlowRequestController : ControllerBase
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getRequestStatus")]
+    [ProducesResponseType(typeof(GetRequestStatusResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<GetRequestStatusResponse>> GetRequestStatus([FromBody] GetRequestStatusRequest request)
     {
         if (request.TicketId <= 0)
@@ -91,7 +96,15 @@ public class FlowRequestController : ControllerBase
             return BadRequest("'ticketId' must be greater than 0.");
         }
 
-        GetRequestStatusResponse? response = await flowRequestService.GetRequestStatusAsync(request.TicketId);
-        return response == null ? NotFound() : Ok(response);
+        try
+        {
+            GetRequestStatusResponse? response = await flowRequestService.GetRequestStatusAsync(request.TicketId);
+            return response == null ? NotFound() : Ok(response);
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Get Request Status", "Error while fetching workflow ticket status.", exception);
+            return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error");
+        }
     }
 }

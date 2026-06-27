@@ -36,13 +36,15 @@ public sealed class FlowRequestService
         WfStateDict states = await GetStateDictAsync();
         string status = states.GetName(ticket.StateId);
         ApiResponse<List<WfExtState>> extStateResponse = await apiConnection.SendQuerySafeAsync<List<WfExtState>>(RequestQueries.getExtStates);
-        if (!extStateResponse.HasErrors && extStateResponse.Result != null)
+        if (extStateResponse.HasErrors || extStateResponse.Result == null)
         {
-            string? mappedStatus = ExtStateHandler.GetPreferredExternalStateName(extStateResponse.Result, ticket.StateId, true);
-            if (!string.IsNullOrWhiteSpace(mappedStatus))
-            {
-                status = mappedStatus;
-            }
+            throw new InvalidOperationException("Could not fetch external workflow states.");
+        }
+
+        string? mappedStatus = ExtStateHandler.GetPreferredExternalStateName(extStateResponse.Result, ticket.StateId, true);
+        if (!string.IsNullOrWhiteSpace(mappedStatus))
+        {
+            status = mappedStatus;
         }
 
         return new GetRequestStatusResponse

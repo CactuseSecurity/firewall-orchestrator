@@ -1,0 +1,8 @@
+fragment ownerDetailsWithLifecycleState on owner {
+  ...ownerDetails
+  owner_lifecycle_state {
+    id
+    name
+    active_state
+  }
+}

@@ -15,6 +15,26 @@ namespace FWO.Test
         }
 
         [Test]
+        public void OwnerDetailsDoesNotSelectLifecycleStateRelation()
+        {
+            string fragment = OwnerQueries.ownerDetailsFragment;
+
+            Assert.That(fragment, Does.Contain("owner_lifecycle_state_id"));
+            Assert.That(fragment, Does.Not.Contain("owner_lifecycle_state {"));
+        }
+
+        [Test]
+        public void GetOwnersFilteredUsesLifecycleStateOwnerDetailsFragment()
+        {
+            string query = OwnerQueries.getOwnersFiltered;
+
+            Assert.That(query, Does.Contain("fragment ownerDetailsWithLifecycleState on owner"));
+            Assert.That(query, Does.Contain("...ownerDetailsWithLifecycleState"));
+            Assert.That(query, Does.Contain("owner_responsibles {"));
+            Assert.That(query, Does.Contain("owner_lifecycle_state {"));
+        }
+
+        [Test]
         public void GetOwnerResponsibleTypesIncludesAllowWriteAccess()
         {
             string query = OwnerQueries.getOwnerResponsibleTypes;

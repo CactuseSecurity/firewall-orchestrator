@@ -36,7 +36,6 @@
 
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
-    private AuthenticationState? authenticationState;
 
     [Parameter]
     public string? AppId { get; set; }
@@ -46,7 +45,7 @@
     protected override async Task OnInitializedAsync()
     {
         uiUserDbId = userConfig.User.DbId;
-        authenticationState = await authenticationStateTask!;
+        await authenticationStateTask!;
         availableModules = string.IsNullOrEmpty(userConfig.AvailableModules) ? [.. Enum.GetValues(typeof(Module)).Cast<Module>()]
                 : JsonSerializer.Deserialize<List<Module>>(userConfig.AvailableModules) ?? throw new JsonException("Config data could not be parsed.");
  

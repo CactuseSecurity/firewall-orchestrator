@@ -491,8 +491,21 @@
       x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
       x-hasura-role: "admin"
     body: "{{ lookup('file','replace_metadata.json') | from_json }}"
+  register: api_metadata_import_result
+  failed_when: false
   when: not api_rollback_is_running | bool
   environment:
     http_proxy: ""
     https_proxy: ""
   no_log: true
+
+- name: fail when API metadata import failed
+  fail:
+    msg: |-
+      API metadata import via Hasura metadata API failed.
+      Status: {{ api_metadata_import_result.status | default('unknown') }}
+      Message: {{ api_metadata_import_result.msg | default('none') }}
+      Response: {{ api_metadata_import_result.content | default(api_metadata_import_result.json | default({}) | to_nice_json) }}
+  when:
+    - not api_rollback_is_running | bool
+    - api_metadata_import_result.status | default(0) | int != 200

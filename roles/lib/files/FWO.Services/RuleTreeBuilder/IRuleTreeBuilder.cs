@@ -17,7 +17,7 @@ namespace FWO.Services.RuleTreeBuilder
         /// <summary>
         /// Gets or sets the cache of fully built rule trees keyed by management and device.
         /// </summary>
-        Dictionary<(int managementId, int deviceId), RuleTreeItem> RuleTreeCache { get; set; }
+        Dictionary<(int managementId, int deviceId), RuleTreeItem> RuleTreeCache { get; set; } // TODO: redundant? deviceId implies managementId
 
         /// <summary>
         /// Gets or sets the cache of flattened rule rows keyed by the corresponding rule tree root.

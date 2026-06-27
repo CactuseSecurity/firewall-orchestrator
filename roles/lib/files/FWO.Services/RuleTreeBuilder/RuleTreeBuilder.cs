@@ -22,9 +22,8 @@ namespace FWO.Services.RuleTreeBuilder
     /// final tree shape rather than transient state.
     ///
     /// The builder is scoped as a service, so per-build state is reinitialized inside
-    /// <see cref="BuildRuleTree"/>. Legacy queue-style traversal state is deliberately removed in
-    /// favor of explicit graph lookups and explicit parent references. The only state preserved
-    /// across builds is the cache of completed trees and their flattened rule rows.
+    /// <see cref="BuildRuleTree"/>. The only state preserved across builds is the cache of
+    /// completed trees and their flattened rule rows.
     /// </summary>
     public class RuleTreeBuilder : IRuleTreeBuilder
     {
@@ -46,14 +45,14 @@ namespace FWO.Services.RuleTreeBuilder
         /// generation uses this cache to reuse the tree for later rendering passes and collapse
         /// toggles instead of rebuilding the structure.
         /// </summary>
-        public Dictionary<(int managementId, int deviceId), RuleTreeItem> RuleTreeCache { get; set; } = new();
+        public Dictionary<(int managementId, int deviceId), RuleTreeItem> RuleTreeCache { get; set; } = [];
 
         /// <summary>
         /// Gets or sets the flattened rule-row cache keyed by the corresponding root node. The
         /// flattened representation contains visible ordered-layer headers, section headers, and
         /// rules in final display order.
         /// </summary>
-        public Dictionary<RuleTreeItem, Rule[]> FlattenedRules { get; set; } = new();
+        public Dictionary<RuleTreeItem, Rule[]> FlattenedRules { get; set; } = [];
 
         /// <summary>
         /// Gets or sets the rulebase lookup for the build currently in progress. The lookup is
@@ -61,7 +60,7 @@ namespace FWO.Services.RuleTreeBuilder
         /// a reusable scoped service while still behaving like a fresh single-use traversal
         /// object.
         /// </summary>
-        public Dictionary<int, RulebaseReport> RulebasesById { get; set; } = new();
+        public Dictionary<int, RulebaseReport> RulebasesById { get; set; } = [];
 
         /// <summary>
         /// Gets or sets the list of links that have not yet been consumed by the graph traversal.
@@ -70,22 +69,23 @@ namespace FWO.Services.RuleTreeBuilder
         /// attachment. Links left in this list after the build finishes are treated as
         /// unresolved-data warnings rather than hard failures.
         /// </summary>
-        public List<RulebaseLink> LinksToBeProcessed { get; set; } = new();
+        public List<RulebaseLink> LinksToBeProcessed { get; set; } = [];
 
         /// <summary>
-        /// Gets or sets the lookup from a rule id to inline-layer links originating from that
-        /// rule. Inline links are never discovered by array order. They are resolved only while
-        /// emitting the owning rule, ensuring that inline layers appear exactly at the rule node
-        /// they belong to.
+        /// Gets or sets the lookup from a rule id to the single inline-layer link originating
+        /// from that rule. The normalized graph model allows at most one inline layer per rule,
+        /// so the lookup is intentionally one-to-one. Inline links are never discovered by array
+        /// order. They are resolved only while emitting the owning rule, ensuring that the inline
+        /// layer appears exactly at the rule node it belongs to.
         /// </summary>
-        public Dictionary<long, List<RulebaseLink>> InlineLinksByFromRuleId { get; set; } = new();
+        public Dictionary<long, RulebaseLink> InlineLinkByFromRuleId { get; set; } = [];
 
         /// <summary>
         /// Gets or sets the lookup from a rulebase id to structural successor links. Structural
         /// links are all non-inline links that express graph relationships between rulebases:
         /// sections/concatenations inside a layer and ordered/domain links between layers.
         /// </summary>
-        public Dictionary<int, List<RulebaseLink>> StructuralLinksByFromRulebaseId { get; set; } = new();
+        public Dictionary<int, List<RulebaseLink>> StructuralLinksByFromRulebaseId { get; set; } = [];
 
         /// <summary>
         /// Gets or sets the set of rule ids that have already been emitted into the current tree.
@@ -93,14 +93,14 @@ namespace FWO.Services.RuleTreeBuilder
         /// longer clones or silently tolerates duplicates; it fails fast so malformed graph data
         /// is surfaced immediately.
         /// </summary>
-        public HashSet<long> SeenRuleIds { get; set; } = new();
+        public HashSet<long> SeenRuleIds { get; set; } = [];
 
         /// <summary>
-        /// Gets or sets the sequential rule-number counter used during the final flattening pass.
+        /// Gets or sets the sequential order-number counter used during the final flattening pass
         /// The value starts at 1 for every build and is assigned to visible rows only after the
         /// tree has been completely assembled.
         /// </summary>
-        public int NextRuleNumber { get; set; } = 1;
+        public int NextOrderNumber { get; set; } = 1;
 
         /// <summary>
         /// Creates a reusable builder service. The constructor only initializes stable cache
@@ -136,7 +136,7 @@ namespace FWO.Services.RuleTreeBuilder
             List<Rule> flattenedRules = FlattenTreeAndAssignDisplayNumbers();
 
             RuleTreeCache[(managementId, deviceId)] = RuleTree;
-            FlattenedRules[RuleTree] = flattenedRules.ToArray();
+            FlattenedRules[RuleTree] = [.. flattenedRules];
 
             if (LinksToBeProcessed.Count > 0)
             {
@@ -169,11 +169,11 @@ namespace FWO.Services.RuleTreeBuilder
         private void InitializeBuildState(RulebaseReport[] rulebases, RulebaseLink[] links)
         {
             RulebasesById = rulebases.ToDictionary(rulebase => rulebase.Id);
-            LinksToBeProcessed = links.ToList();
-            InlineLinksByFromRuleId = BuildInlineLinkLookup(links);
+            LinksToBeProcessed = [.. links];
+            InlineLinkByFromRuleId = BuildInlineLinkLookup(links);
             StructuralLinksByFromRulebaseId = BuildStructuralLinkLookup(links);
-            SeenRuleIds = new HashSet<long>();
-            NextRuleNumber = 1;
+            SeenRuleIds = [];
+            NextOrderNumber = 1;
             RuleTree = new RuleTreeItem
             {
                 IsRoot = true,
@@ -185,16 +185,30 @@ namespace FWO.Services.RuleTreeBuilder
 
         /// <summary>
         /// Builds the inline-link lookup for the current rulebase-link set. Each key represents a
-        /// rule id, and the value contains the inline-layer links that originate from that rule.
+        /// rule id and maps to the single inline-layer link that originates from that rule.
         /// Inline layers are attached while the owning rule is emitted, so indexing them up front
         /// avoids global scanning and prevents accidental dependency on link ordering.
+        ///
+        /// The normalized model allows at most one inline layer per rule. If multiple inline
+        /// links reference the same <see cref="RulebaseLink.FromRuleId"/>, the graph is
+        /// ambiguous and the build fails immediately instead of silently picking one link or
+        /// processing multiple inline-layer branches beneath the same rule node.
         /// </summary>
-        private static Dictionary<long, List<RulebaseLink>> BuildInlineLinkLookup(IEnumerable<RulebaseLink> links)
+        private static Dictionary<long, RulebaseLink> BuildInlineLinkLookup(IEnumerable<RulebaseLink> links)
         {
-            return links
-                .Where(link => link.LinkType == InlineLinkType && link.FromRuleId.HasValue)
-                .GroupBy(link => (long)link.FromRuleId!.Value)
-                .ToDictionary(group => group.Key, group => group.ToList());
+            Dictionary<long, RulebaseLink> inlineLinkByFromRuleId = [];
+
+            foreach (RulebaseLink inlineLink in links.Where(link => link.LinkType == InlineLinkType && link.FromRuleId.HasValue))
+            {
+                long fromRuleId = inlineLink.FromRuleId!.Value;
+                if (!inlineLinkByFromRuleId.TryAdd(fromRuleId, inlineLink))
+                {
+                    throw new InvalidOperationException(
+                        $"Rule {fromRuleId} has multiple inline-layer links, but at most one inline layer per rule is allowed.");
+                }
+            }
+
+            return inlineLinkByFromRuleId;
         }
 
         /// <summary>
@@ -340,7 +354,7 @@ namespace FWO.Services.RuleTreeBuilder
         {
             foreach (Rule rule in rulebase.Rules)
             {
-                if (rule.Id > 0 && !SeenRuleIds.Add(rule.Id))
+                if (!SeenRuleIds.Add(rule.Id))
                 {
                     throw new InvalidOperationException($"Rule id {rule.Id} was encountered more than once while building the rule tree.");
                 }
@@ -353,11 +367,12 @@ namespace FWO.Services.RuleTreeBuilder
         }
 
         /// <summary>
-        /// Resolves and emits all inline layers attached to one already-emitted rule. Inline
+        /// Resolves and emits the inline layer attached to one already-emitted rule. Inline
         /// layers are discovered exclusively through <see cref="RulebaseLink.FromRuleId"/>, so
         /// this method is called exactly at the point where the owning rule node is available.
         ///
-        /// For each inline link the method:
+        /// The method:
+        /// - resolves the single inline link for the rule, if present
         /// - removes the link from <see cref="LinksToBeProcessed"/>
         /// - resolves the inline rulebase
         /// - creates an inline-layer root node below the owning rule node
@@ -370,24 +385,19 @@ namespace FWO.Services.RuleTreeBuilder
         /// </summary>
         private void TraverseInlineLayers(long ruleId, RuleTreeItem parentNode)
         {
-            if (!InlineLinksByFromRuleId.TryGetValue(ruleId, out List<RulebaseLink>? inlineLinks))
+            if (!InlineLinkByFromRuleId.TryGetValue(ruleId, out RulebaseLink? inlineLink) || !LinksToBeProcessed.Contains(inlineLink))
             {
                 return;
             }
 
-            foreach (RulebaseLink inlineLink in inlineLinks
-                .Where(LinksToBeProcessed.Contains)
-                .OrderBy(link => link.NextRulebaseId))
-            {
-                RemoveLinkFromProcessingQueue(inlineLink);
+            RemoveLinkFromProcessingQueue(inlineLink);
 
-                RulebaseReport rulebase = ResolveRulebase(inlineLink.NextRulebaseId);
-                RuleTreeItem inlineLayerNode = CreateInlineLayerNode(rulebase);
-                AttachChild(parentNode, inlineLayerNode);
+            RulebaseReport rulebase = ResolveRulebase(inlineLink.NextRulebaseId);
+            RuleTreeItem inlineLayerNode = CreateInlineLayerNode(rulebase);
+            AttachChild(parentNode, inlineLayerNode);
 
-                EmitRules(rulebase, inlineLayerNode);
-                TraverseSections(rulebase.Id, inlineLayerNode);
-            }
+            EmitRules(rulebase, inlineLayerNode);
+            TraverseSections(rulebase.Id, inlineLayerNode);
         }
 
         /// <summary>
@@ -397,7 +407,7 @@ namespace FWO.Services.RuleTreeBuilder
         /// </summary>
         private RulebaseLink FindInitialLink()
         {
-            List<RulebaseLink> initialLinks = LinksToBeProcessed.Where(link => link.IsInitial).ToList();
+            List<RulebaseLink> initialLinks = [.. LinksToBeProcessed.Where(link => link.IsInitial)];
 
             return initialLinks.Count switch
             {
@@ -424,11 +434,10 @@ namespace FWO.Services.RuleTreeBuilder
                 return null;
             }
 
-            List<RulebaseLink> nextLayerCandidates = candidates
+            List<RulebaseLink> nextLayerCandidates = [.. candidates
                 .Where(LinksToBeProcessed.Contains)
                 .Where(link => !link.IsSection)
-                .Where(link => link.LinkType == OrderedLinkType || link.LinkType == DomainLinkType)
-                .ToList();
+                .Where(link => link.LinkType == OrderedLinkType || link.LinkType == DomainLinkType)];
 
             return nextLayerCandidates.Count switch
             {
@@ -455,10 +464,9 @@ namespace FWO.Services.RuleTreeBuilder
                 return null;
             }
 
-            List<RulebaseLink> nextSectionCandidates = candidates
+            List<RulebaseLink> nextSectionCandidates = [.. candidates
                 .Where(LinksToBeProcessed.Contains)
-                .Where(link => link.IsSection)
-                .ToList();
+                .Where(link => link.IsSection)];
 
             return nextSectionCandidates.Count switch
             {
@@ -609,9 +617,9 @@ namespace FWO.Services.RuleTreeBuilder
         private List<Rule> FlattenTreeAndAssignDisplayNumbers()
         {
             RuleTree.ElementsFlat.Clear();
-            NextRuleNumber = 1;
+            NextOrderNumber = 1;
 
-            List<Rule> flattenedRules = new();
+            List<Rule> flattenedRules = [];
             int rootVisibleChildIndex = 0;
             FlattenChildren(RuleTree.Children, [], flattenedRules, ref rootVisibleChildIndex);
 
@@ -650,7 +658,7 @@ namespace FWO.Services.RuleTreeBuilder
                 if (childNode.IsSectionHeader)
                 {
                     childNode.Position = [.. parentPosition];
-                    AssignRuleNumbers(childNode, parentPosition, assignDisplayNumber: false);
+                    AssignOrderNumber(childNode, parentPosition, assignDisplayNumber: false);
                     RuleTree.ElementsFlat.Add(childNode);
                     flattenedRules.Add(childNode.Data!);
                     FlattenChildren(childNode.Children, parentPosition, flattenedRules, ref visibleChildIndex);
@@ -660,7 +668,7 @@ namespace FWO.Services.RuleTreeBuilder
                 visibleChildIndex++;
                 List<int> childPosition = [.. parentPosition, visibleChildIndex];
                 childNode.Position = childPosition;
-                AssignRuleNumbers(childNode, childPosition, assignDisplayNumber: true);
+                AssignOrderNumber(childNode, childPosition, assignDisplayNumber: true);
                 RuleTree.ElementsFlat.Add(childNode);
                 flattenedRules.Add(childNode.Data!);
 
@@ -674,9 +682,9 @@ namespace FWO.Services.RuleTreeBuilder
         /// visible tree node. Ordered-layer headers and real rules receive a dotted display
         /// string, while section headers intentionally stay unnumbered in the UI even though they
         /// still receive sequential numeric order values for stable sorting and export ordering.
-        /// The method then advances <see cref="NextRuleNumber"/>.
+        /// The method then advances <see cref="NextOrderNumber"/>.
         /// </summary>
-        private void AssignRuleNumbers(RuleTreeItem node, List<int> position, bool assignDisplayNumber)
+        private void AssignOrderNumber(RuleTreeItem node, List<int> position, bool assignDisplayNumber)
         {
             if (node.Data == null)
             {
@@ -684,9 +692,9 @@ namespace FWO.Services.RuleTreeBuilder
             }
 
             node.Data.DisplayOrderNumberString = assignDisplayNumber ? string.Join(".", position) : string.Empty;
-            node.Data.DisplayOrderNumber = NextRuleNumber;
-            node.Data.OrderNumber = NextRuleNumber;
-            NextRuleNumber++;
+            node.Data.DisplayOrderNumber = NextOrderNumber;
+            node.Data.OrderNumber = NextOrderNumber;
+            NextOrderNumber++;
         }
 
     }

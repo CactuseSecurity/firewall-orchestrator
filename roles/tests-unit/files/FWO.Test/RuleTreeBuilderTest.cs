@@ -270,6 +270,28 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildRuleTree_MultipleInlineLinksForSameRule_Throws()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10),
+                Rulebase(2, "Inline-1", 20),
+                Rulebase(3, "Inline-2", 30)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                InlineLayerLink(gatewayId: 1, fromRulebaseId: 1, fromRuleId: 10, nextRulebaseId: 2),
+                InlineLayerLink(gatewayId: 1, fromRulebaseId: 1, fromRuleId: 10, nextRulebaseId: 3)
+            ];
+
+            Assert.That(
+                () => _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1),
+                Throws.InvalidOperationException.With.Message.Contains("multiple inline-layer links"));
+        }
+
+        [Test]
         public void BuildRuleTree_UnresolvedLinks_DoNotFailBuild()
         {
             RulebaseReport[] rulebases =

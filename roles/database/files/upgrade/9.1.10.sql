@@ -1,5 +1,6 @@
 -- The following changes are related to the addition of rule_src/dst_zone (text, containing joined zone names) to the rule table.
 -- Keeping the old columns rule_from/to_zone (int, currently unused) for now to avoid having to change existing views, some of which are not even used anymore
+-- trigger sonar (ignore)
 
 ALTER TABLE IF EXISTS public.rule
     ADD COLUMN IF NOT EXISTS rule_src_zone TEXT;

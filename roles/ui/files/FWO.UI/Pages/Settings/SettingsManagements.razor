@@ -312,7 +312,12 @@
         try
         {
             JwtReader jwt = new (userConfig.User.Jwt);
-            await jwt.Validate();
+            JwtValidationResult validationResult = await jwt.ValidateToken();
+
+            if (!validationResult.IsSuccess)
+            {
+                throw new AuthenticationException(validationResult.Status == JwtValidationStatus.Expired ? "JWTExpired" : "not_authorized");
+            }
 
             if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
             {
@@ -654,4 +659,3 @@
         }
     }
 }
-

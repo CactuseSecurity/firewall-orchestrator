@@ -54,6 +54,28 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
+    public async Task GetRequestStatusAsync_RefreshesWorkflowStateNamesOnEachCall()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            Ticket = new WfTicket { Id = 42, StateId = 7 },
+            States = [new WfState { Id = 7, Name = "implementation" }]
+        };
+        FlowRequestService service = new(apiConnection);
+
+        GetRequestStatusResponse? first = await service.GetRequestStatusAsync(42);
+        apiConnection.States = [new WfState { Id = 7, Name = "changed" }];
+        GetRequestStatusResponse? second = await service.GetRequestStatusAsync(42);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(first?.Status, Is.EqualTo("implementation"));
+            Assert.That(second?.Status, Is.EqualTo("changed"));
+            Assert.That(apiConnection.SentQueries.Count(query => query == RequestQueries.getStates), Is.EqualTo(2));
+        });
+    }
+
+    [Test]
     public async Task GetRequestStatusAsync_ReturnsNullForUnknownTicket()
     {
         FlowRequestService service = new(new FlowRequestServiceApiConn());
@@ -74,6 +96,29 @@ internal class FlowRequestServiceTest
         GetRequestStatusResponse? result = await service.GetRequestStatusAsync(42);
 
         Assert.That(result?.Status, Is.EqualTo("99"));
+    }
+
+    [Test]
+    public async Task GetRequestStatusAsync_IgnoresNullCommentWrappers()
+    {
+        FlowRequestService service = new(new FlowRequestServiceApiConn
+        {
+            Ticket = new WfTicket
+            {
+                Id = 42,
+                StateId = 7,
+                Comments =
+                [
+                    new WfCommentDataHelper { Comment = null! },
+                    NewComment("latest", new DateTime(2026, 6, 1, 9, 0, 0, DateTimeKind.Utc))
+                ]
+            },
+            States = [new WfState { Id = 7, Name = "implementation" }]
+        });
+
+        GetRequestStatusResponse? result = await service.GetRequestStatusAsync(42);
+
+        Assert.That(result?.StatusComment, Is.EqualTo("latest"));
     }
 
     [Test]

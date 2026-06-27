@@ -13,8 +13,6 @@ namespace FWO.Middleware.Server.Services;
 public sealed class FlowRequestService
 {
     private readonly ApiConnection apiConnection;
-    private readonly SemaphoreSlim stateDictCacheLock = new(1, 1);
-    private WfStateDict? stateDict;
 
     /// <summary>
     /// Initializes a new instance of the type.
@@ -55,32 +53,13 @@ public sealed class FlowRequestService
     }
 
     /// <summary>
-    /// Loads and caches workflow state names.
+    /// Loads workflow state names.
     /// </summary>
     private async Task<WfStateDict> GetStateDictAsync()
     {
-        if (stateDict != null)
-        {
-            return stateDict;
-        }
-
-        await stateDictCacheLock.WaitAsync();
-        try
-        {
-            if (stateDict != null)
-            {
-                return stateDict;
-            }
-
-            WfStateDict loadedStateDict = new();
-            await loadedStateDict.Init(apiConnection);
-            stateDict = loadedStateDict;
-            return stateDict;
-        }
-        finally
-        {
-            stateDictCacheLock.Release();
-        }
+        WfStateDict loadedStateDict = new();
+        await loadedStateDict.Init(apiConnection);
+        return loadedStateDict;
     }
 
     /// <summary>
@@ -88,10 +67,10 @@ public sealed class FlowRequestService
     /// </summary>
     private static string GetLatestTicketComment(WfTicket ticket)
     {
-        return ticket.Comments
-            .Where(comment => !string.IsNullOrWhiteSpace(comment.Comment.CommentText))
-            .OrderByDescending(comment => comment.Comment.CreationDate)
-            .Select(comment => comment.Comment.CommentText)
+        return ticket.Comments?
+            .Where(comment => comment?.Comment != null && !string.IsNullOrWhiteSpace(comment.Comment.CommentText))
+            .OrderByDescending(comment => comment!.Comment.CreationDate)
+            .Select(comment => comment!.Comment.CommentText)
             .FirstOrDefault() ?? string.Empty;
     }
 }

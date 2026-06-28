@@ -6,7 +6,7 @@ from typing import Any
 
 import fwo_const
 import fwo_globals
-import requests  # pyright: ignore[reportMissingModuleSource]
+import requests
 from fw_modules.checkpointR8x import cp_const, cp_network
 from fwo_exceptions import FwApiError, FwApiResponseDecodingError, FwLoginFailedError, FwoImporterError
 from fwo_log import FWOLogger
@@ -488,6 +488,18 @@ def resolve_checkpoint_uids_via_object_dict(
 
 
 def merge_split_section_with_previous_chunk(current_rulebase: dict[str, Any], rulebase_chunk: dict[str, Any]) -> None:
+    """
+    Append a fetched rulebase page after merging a section that continues across the page boundary.
+
+    Check Point can split one logical ``access-section`` across multiple paginated
+    ``show-access-rulebase`` responses. If both fragments are stored unchanged, later
+    section lookup can rediscover the trailing fragment as if it were an additional
+    standalone section.
+
+    This helper tries to merge the first section of the new page into the last stored
+    section of the previous page before appending the chunk. If the new page only
+    contained that continuation fragment, there is nothing left to append.
+    """
     previous_chunk = get_last_chunk_with_rulebase(current_rulebase)
     if (
         previous_chunk is not None
@@ -499,6 +511,12 @@ def merge_split_section_with_previous_chunk(current_rulebase: dict[str, Any], ru
 
 
 def get_last_chunk_with_rulebase(current_rulebase: dict[str, Any]) -> dict[str, Any] | None:
+    """
+    Return the most recent stored chunk that still contains rulebase entries.
+
+    A split section can only continue from the immediately preceding API page, so the
+    merge logic only needs the last non-empty chunk.
+    """
     for chunk in reversed(current_rulebase["chunks"]):
         if chunk.get("rulebase"):
             return chunk
@@ -506,6 +524,16 @@ def get_last_chunk_with_rulebase(current_rulebase: dict[str, Any]) -> dict[str, 
 
 
 def merge_section_across_chunk_boundary(previous_chunk: dict[str, Any], next_chunk: dict[str, Any]) -> bool:
+    """
+    Merge two chunk-boundary section fragments when they represent one logical section.
+
+    The last section of ``previous_chunk`` and the first section of ``next_chunk`` are
+    examined. If they are the same section split by pagination, the rules from the next
+    fragment are appended to the already stored one, the upper range marker is updated,
+    and the consumed fragment is removed from ``next_chunk``.
+
+    Returns ``True`` when a merge happened and ``False`` otherwise.
+    """
     previous_section = get_boundary_section(previous_chunk, first=False)
     next_section = get_boundary_section(next_chunk, first=True)
     if previous_section is None or next_section is None:
@@ -520,6 +548,12 @@ def merge_section_across_chunk_boundary(previous_chunk: dict[str, Any], next_chu
 
 
 def get_boundary_section(rulebase_chunk: dict[str, Any], first: bool) -> dict[str, Any] | None:
+    """
+    Return the boundary element of a chunk when that element is an ``access-section``.
+
+    The merge logic only stitches section objects at the chunk boundary. Plain access
+    rules are not treated as merge candidates and therefore yield ``None`` here.
+    """
     sections = rulebase_chunk.get("rulebase")
     if not sections:
         return None
@@ -530,11 +564,14 @@ def get_boundary_section(rulebase_chunk: dict[str, Any], first: bool) -> dict[st
 
 
 def is_split_section_continuation(previous_section: dict[str, Any], next_section: dict[str, Any]) -> bool:
+    """
+    Decide whether ``next_section`` is the direct paginated continuation of ``previous_section``.
+
+    The section UID establishes identity, while the numeric rule range confirms that the
+    second fragment begins immediately after the first one ends. Requiring both avoids
+    merging unrelated or malformed data that merely shares a UID.
+    """
     if previous_section.get("uid") != next_section.get("uid"):
-        return False
-    if previous_section.get("name") != next_section.get("name"):
-        return False
-    if "to" not in previous_section or "from" not in next_section:
         return False
     return previous_section["to"] + 1 == next_section["from"]
 

@@ -197,7 +197,6 @@ values ('public', 'rule', 'reporter', 'select', '{
         "last_change_admin",
         "mgm_id",
         "rule_create",
-        "rule_num",
         "track_id",
         "rule_id",
         "rule_num_numeric",

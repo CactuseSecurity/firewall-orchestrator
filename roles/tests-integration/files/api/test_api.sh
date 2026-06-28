@@ -74,8 +74,8 @@ docker run -d --net=host -p 8080:8080 \
        hasura/graphql-engine:v1.0.0
 
 query listRules {
-  rule(where: {active: {_eq: true}, dev_id: {_eq: 1}, rule_disabled: {_eq: false}}, order_by: {rule_num: asc}) {
-    rule_num
+  rule(where: {active: {_eq: true}, dev_id: {_eq: 1}, rule_disabled: {_eq: false}}, order_by: {rule_num_numeric: asc}) {
+    rule_num_numeric
     rule_src
     rule_dst
     rule_svc
@@ -87,8 +87,8 @@ query listRules {
 query listRulesAllDevices {
   device {
     dev_name
-    rules(where: {active: {_eq: true}, rule_disabled: {_eq: false}}, order_by: {rule_num: asc}) {
-      rule_num
+    rules(where: {active: {_eq: true}, rule_disabled: {_eq: false}}, order_by: {rule_num_numeric: asc}) {
+      rule_num_numeric
       rule_id
       rule_uid
       rule_src
@@ -112,8 +112,8 @@ query listRulesOfAllDevicesResolved {
       mgm_id
       mgm_name
     }
-    rules(where: {active: {_eq: true}, rule_disabled: {_eq: false}}, order_by: {rule_num: asc}) {
-      rule_num
+    rules(where: {active: {_eq: true}, rule_disabled: {_eq: false}}, order_by: {rule_num_numeric: asc}) {
+      rule_num_numeric
       rule_id
       rule_uid
       rule_froms {

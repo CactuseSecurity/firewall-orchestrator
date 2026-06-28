@@ -6,6 +6,7 @@ from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
 
 def _base_rule(**overrides: Any) -> RuleNormalized:
     defaults = {
+        "rule_num": 1,
         "rule_num_numeric": 1.0,
         "rule_disabled": False,
         "rule_src_neg": False,

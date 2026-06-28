@@ -212,6 +212,8 @@
 
                 if (authResponse.StatusCode == HttpStatusCode.OK)
                 {
+                    Log.WriteDebug("Login", AuthTokenDebugLogFormatter.FormatLoginTokenDebugMessage(Username, authResponse));
+
                     if (userConfig.User.PasswordMustBeChanged)
                     {
                         showLoginForm = false;

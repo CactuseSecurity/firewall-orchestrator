@@ -557,7 +557,9 @@ class FwConfigImport:
 
             removed_links = result["data"]["update_rulebase_link"]["affected_rows"]
             if removed_links > 0:
-                FWOLogger.info(f"removed {removed_links!s} inconsistent rulebase links from DB to fix consistency issues")
+                FWOLogger.info(
+                    f"removed {removed_links!s} inconsistent rulebase links from DB to fix consistency issues"
+                )
             self.import_state.state.stats.statistics.inconsistent_rulebase_link_delete_count += removed_links
         except Exception:
             FWOLogger.exception(

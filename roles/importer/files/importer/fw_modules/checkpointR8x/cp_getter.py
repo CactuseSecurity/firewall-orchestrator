@@ -6,7 +6,7 @@ from typing import Any
 
 import fwo_const
 import fwo_globals
-import requests
+import requests  # pyright: ignore[reportMissingModuleSource]
 from fw_modules.checkpointR8x import cp_const, cp_network
 from fwo_exceptions import FwApiError, FwApiResponseDecodingError, FwLoginFailedError, FwoImporterError
 from fwo_log import FWOLogger
@@ -482,9 +482,61 @@ def resolve_checkpoint_uids_via_object_dict(
     try:
         for rule_field in ["source", "destination", "service", "action", "track", "install-on", "time"]:
             resolve_ref_list_from_object_dictionary(rulebase, rule_field, native_config_domain=native_config_domain)
-        current_rulebase["chunks"].append(rulebase)
+        merge_split_section_with_previous_chunk(current_rulebase, rulebase)
     except Exception:
         FWOLogger.error("error while getting a field of layer " + rulebase_uid + ", params: " + str(show_params_rules))
+
+
+def merge_split_section_with_previous_chunk(current_rulebase: dict[str, Any], rulebase_chunk: dict[str, Any]) -> None:
+    previous_chunk = get_last_chunk_with_rulebase(current_rulebase)
+    if (
+        previous_chunk is not None
+        and merge_section_across_chunk_boundary(previous_chunk, rulebase_chunk)
+        and not rulebase_chunk["rulebase"]
+    ):
+        return
+    current_rulebase["chunks"].append(rulebase_chunk)
+
+
+def get_last_chunk_with_rulebase(current_rulebase: dict[str, Any]) -> dict[str, Any] | None:
+    for chunk in reversed(current_rulebase["chunks"]):
+        if chunk.get("rulebase"):
+            return chunk
+    return None
+
+
+def merge_section_across_chunk_boundary(previous_chunk: dict[str, Any], next_chunk: dict[str, Any]) -> bool:
+    previous_section = get_boundary_section(previous_chunk, first=False)
+    next_section = get_boundary_section(next_chunk, first=True)
+    if previous_section is None or next_section is None:
+        return False
+    if not is_split_section_continuation(previous_section, next_section):
+        return False
+
+    previous_section["rulebase"].extend(next_section["rulebase"])
+    previous_section["to"] = next_section["to"]
+    next_chunk["rulebase"].pop(0)
+    return True
+
+
+def get_boundary_section(rulebase_chunk: dict[str, Any], first: bool) -> dict[str, Any] | None:
+    sections = rulebase_chunk.get("rulebase")
+    if not sections:
+        return None
+    section = sections[0] if first else sections[-1]
+    if section.get("type") != "access-section":
+        return None
+    return section
+
+
+def is_split_section_continuation(previous_section: dict[str, Any], next_section: dict[str, Any]) -> bool:
+    if previous_section.get("uid") != next_section.get("uid"):
+        return False
+    if previous_section.get("name") != next_section.get("name"):
+        return False
+    if "to" not in previous_section or "from" not in next_section:
+        return False
+    return previous_section["to"] + 1 == next_section["from"]
 
 
 def control_while_loop_in_get_rulebases_in_chunks(

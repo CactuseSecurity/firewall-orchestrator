@@ -461,8 +461,7 @@ class FwConfigImport:
             consistency_checker.user_objects_to_remove,
         )
         self.fix_rules_in_db(consistency_checker.rules_to_remove)
-        if consistency_checker.invalid_rulebase_links_exist:
-            self.fix_rulebase_links_in_db()
+        self.fix_rulebase_links_in_db()
         self.fix_rule_to_gw_refs_in_db(previous_config, previous_global_config)
         self.fix_ref_tables_in_db()
         self.fix_changelog_rule()
@@ -557,7 +556,8 @@ class FwConfigImport:
             result = self.import_state.api_call.call(mutation, query_variables=query_variables)
 
             removed_links = result["data"]["update_rulebase_link"]["affected_rows"]
-            FWOLogger.info(f"removed {removed_links!s} inconsistent rulebase links from DB to fix consistency issues")
+            if removed_links > 0:
+                FWOLogger.info(f"removed {removed_links!s} inconsistent rulebase links from DB to fix consistency issues")
             self.import_state.state.stats.statistics.inconsistent_rulebase_link_delete_count += removed_links
         except Exception:
             FWOLogger.exception(

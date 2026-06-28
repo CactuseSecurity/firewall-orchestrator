@@ -142,7 +142,7 @@ public sealed class ApiExampleObjectFactory
         }
     }
 
-    private bool TryCreateScalar(Type type, string propertyName, out object? example)
+    private static bool TryCreateScalar(Type type, string propertyName, out object? example)
     {
         example = type switch
         {

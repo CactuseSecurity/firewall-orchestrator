@@ -3,6 +3,7 @@ query GetRuleIdsByRuleOwner($ownerId: Int!, $owner_mapping_source: smallint!) {
         where: {
             owner_mapping_source_id: { _eq: $owner_mapping_source }
             owner_id: { _eq: $ownerId }
+            removed: { _is_null: true }
         }
     ) {
         rule_id

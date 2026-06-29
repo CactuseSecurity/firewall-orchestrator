@@ -74,11 +74,27 @@ namespace FWO.Test
             ClassicAssert.AreEqual("chg-4711", value.ChangeId);
         }
 
+        [Test]
+        public void ResolveOwnerInformation_ShouldRejectMultipleActiveOwners()
+        {
+            Rule rule = CreateRule("{'owner_key':'owner-from-custom'}", 123, 456);
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                RuleFieldSourceResolver.ResolveOwnerInformation(rule, @"[""owner_key""]"))!;
+
+            StringAssert.Contains("requires exactly one owner", exception.Message);
+        }
+
         private static Rule CreateRule(int ownerId, string customFields)
+        {
+            return CreateRule(customFields, ownerId);
+        }
+
+        private static Rule CreateRule(string customFields, params int[] ownerIds)
         {
             return new Rule
             {
-                RuleOwner = [new RuleOwner { OwnerId = ownerId }],
+                RuleOwner = ownerIds.Select(ownerId => new RuleOwner { OwnerId = ownerId }).ToArray(),
                 CustomFields = customFields
             };
         }

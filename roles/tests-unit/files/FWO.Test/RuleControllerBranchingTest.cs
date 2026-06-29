@@ -36,7 +36,7 @@ namespace FWO.Test
             RulesByFilterResponse response = ExtractResponse(actionResult);
             ClassicAssert.AreEqual("req-owner", response.RequestId);
             ClassicAssert.AreEqual(1, response.Result.Count);
-            ClassicAssert.AreEqual(123, response.Result.Rules[0].OwnerInformation.Id);
+            ClassicAssert.AreEqual(42, response.Result.Rules[0].OwnerInformation.Id);
             ClassicAssert.AreEqual("owner-from-custom", response.Result.Rules[0].OwnerInformation.ExtAppId);
             ClassicAssert.AreEqual("chg-4711", response.Result.Rules[0].AdditionalInformation.ChangeId);
 
@@ -44,7 +44,7 @@ namespace FWO.Test
             using JsonDocument document = JsonDocument.Parse(json);
 
             JsonElement rule = document.RootElement.GetProperty("result").GetProperty("rules")[0];
-            ClassicAssert.AreEqual(123, rule.GetProperty("ownerInformation").GetProperty("id").GetInt32());
+            ClassicAssert.AreEqual(42, rule.GetProperty("ownerInformation").GetProperty("id").GetInt32());
             ClassicAssert.AreEqual("owner-from-custom", rule.GetProperty("ownerInformation").GetProperty("extAppId").GetString());
             ClassicAssert.AreEqual("chg-4711", rule.GetProperty("additionalInformation").GetProperty("changeId").GetString());
         }
@@ -73,7 +73,7 @@ namespace FWO.Test
             RulesByFilterResponse response = ExtractResponse(actionResult);
             ClassicAssert.AreEqual("req-ip", response.RequestId);
             ClassicAssert.AreEqual(1, response.Result.Count);
-            ClassicAssert.AreEqual(123, response.Result.Rules[0].OwnerInformation.Id);
+            ClassicAssert.AreEqual(42, response.Result.Rules[0].OwnerInformation.Id);
             ClassicAssert.AreEqual("owner-from-custom", response.Result.Rules[0].OwnerInformation.ExtAppId);
             ClassicAssert.AreEqual("chg-4711", response.Result.Rules[0].AdditionalInformation.ChangeId);
         }
@@ -224,7 +224,7 @@ namespace FWO.Test
                 return new Rule
                 {
                     Id = ruleId,
-                    RuleOwner = [new RuleOwner { OwnerId = 123 }],
+                    RuleOwner = [new RuleOwner { OwnerId = 42 }],
                     Froms =
                     [
                         new NetworkLocation(

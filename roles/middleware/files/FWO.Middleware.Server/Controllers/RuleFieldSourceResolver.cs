@@ -23,7 +23,7 @@ public static class RuleFieldSourceResolver
 
         return new OwnerInformation
         {
-            Id = rule.RuleOwner.FirstOrDefault()?.OwnerId,
+            Id = ResolveExclusiveOwnerId(rule),
             ExtAppId = normalizedCustomFieldKey is null
                 ? null
                 : CustomFieldResolver.ExtractCustomFieldValue<string>(rule, normalizedCustomFieldKey, out _)
@@ -45,6 +45,22 @@ public static class RuleFieldSourceResolver
         {
             ChangeId = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, normalizedCustomFieldKey, out _)
         };
+    }
+
+    private static int? ResolveExclusiveOwnerId(Rule rule)
+    {
+        int[] ownerIds = (rule.RuleOwner ?? [])
+            .OfType<RuleOwner>()
+            .Select(owner => owner.OwnerId)
+            .ToArray();
+
+        if (ownerIds.Length > 1)
+        {
+            throw new InvalidOperationException(
+                $"Rule {rule.Id} has {ownerIds.Length} active owners. Exclusive owner mapping requires exactly one owner.");
+        }
+
+        return ownerIds.Length == 0 ? null : ownerIds[0];
     }
 
     private static string? NormalizeCustomFieldKeys(string customFieldKey)

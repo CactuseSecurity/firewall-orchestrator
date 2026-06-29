@@ -359,6 +359,30 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task EditExtStates_UnmappedStaticStateDoesNotInsertNullMapping()
+        {
+            SettingsStatesRenderApiConn apiConnection = new();
+            await using BunitContext context = CreateRenderContext(apiConnection);
+            IRenderedComponent<EditExtStates> component = RenderAuthorized<EditExtStates>(context, parameters => parameters
+                .Add(p => p.Display, true)
+                .Add(p => p.States, kTestStates));
+
+            component.WaitForAssertion(() => Assert.That(((System.Collections.IEnumerable)GetPrivateField<object>(component.Instance, "staticExternalStates")).Cast<object>(), Is.Not.Empty));
+            object staticGroup = ((System.Collections.IEnumerable)GetPrivateField<object>(component.Instance, "staticExternalStates"))
+                .Cast<object>()
+                .First(group => GetVariable<string>(group, "Name") == ExtStates.ExtReqFailed.ToString());
+            GetPrivateMethod(typeof(EditExtStates), "EditExtStateGroup").Invoke(component.Instance, new object?[] { staticGroup });
+
+            await component.InvokeAsync(async () => await (Task)GetPrivateMethod(typeof(EditExtStates), "ApplySelection").Invoke(component.Instance, null)!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.Queries, Does.Not.Contain(RequestQueries.replaceExtStates));
+                Assert.That(GetPrivateField<bool>(component.Instance, "SelectStateMode"), Is.False);
+            });
+        }
+
+        [Test]
         public void AddState_SelectsFirstFreeStateId_AndEntersAddMode()
         {
             SettingsStates component = new();

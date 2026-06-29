@@ -283,7 +283,9 @@
         string trimmedName = editGroup.Name.Trim();
         string originalName = string.IsNullOrWhiteSpace(editGroup.OriginalName) ? trimmedName : editGroup.OriginalName.Trim();
         bool nameChanged = !string.Equals(trimmedName, originalName, StringComparison.OrdinalIgnoreCase);
-        List<int?> desiredStateIds = NormalizeSelectedStateIds(editGroup.SelectedStates);
+        List<int?> desiredStateIds = editGroup.IsStatic && editGroup.SelectedStates.Count == 0
+            ? []
+            : NormalizeSelectedStateIds(editGroup.SelectedStates);
         List<int?> existingStateIds = dbExtStates
             .Where(extState => string.Equals(extState.Name, originalName, StringComparison.OrdinalIgnoreCase))
             .Select(extState => extState.StateId)

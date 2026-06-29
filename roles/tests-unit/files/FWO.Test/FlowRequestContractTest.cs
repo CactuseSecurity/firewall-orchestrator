@@ -35,6 +35,16 @@ internal class FlowRequestContractTest
     }
 
     [Test]
+    public void GetRequestStatusRequest_SupportsBigintTicketId()
+    {
+        const long ticketId = (long)int.MaxValue + 1;
+
+        GetRequestStatusRequest? request = JsonSerializer.Deserialize<GetRequestStatusRequest>($$"""{"ticketId":{{ticketId}}}""");
+
+        Assert.That(request?.TicketId, Is.EqualTo(ticketId));
+    }
+
+    [Test]
     public void GetRequestStatusResponse_UsesExpectedJsonNames()
     {
         GetRequestStatusResponse response = new()

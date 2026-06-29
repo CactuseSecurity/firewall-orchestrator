@@ -7143,10 +7143,10 @@ INSERT INTO txt VALUES ('H6943', 'German',  'Der <b>FlowRequestController</b> re
             <tr><td><code>getNetObjectValidity</code></td><td>Validiert eine Netzwerkobjekt-Definition.</td><td>Noch nicht implementiert.</td></tr>
             <tr><td><code>getNetGroupValidity</code></td><td>Validiert eine Netzwerkgruppen-Definition.</td><td>Noch nicht implementiert.</td></tr>
             <tr><td><code>createRequest</code></td><td>Erzeugt einen neuen Flow-bezogenen Request.</td><td>Noch nicht implementiert.</td></tr>
-            <tr><td><code>getRequestStatus</code></td><td>Liefert den Status eines vorhandenen Requests.</td><td>Noch nicht implementiert.</td></tr>
+            <tr><td><code>getRequestStatus</code></td><td>Liefert den Status eines vorhandenen Requests.</td><td>Implementiert. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
         </tbody>
     </table>
-    Diese Seite dokumentiert daher vor allem die vorgesehene API-Oberfl&auml;che. Sobald die Implementierung vorliegt, sollte die Beschreibung um konkrete Request- und Response-Beispiele erweitert werden.
+    Die &uuml;brigen aufgef&uuml;hrten Endpunkte dokumentieren die vorgesehene API-Oberfl&auml;che und sind noch nicht implementiert.
 ');
 INSERT INTO txt VALUES ('H6943', 'English', 'The <b>FlowRequestController</b> reserves endpoints for flow-related request functions below <code>/api/flow</code>.
     The controller structure already exists, but most endpoints currently return <code>501 Not Implemented</code>.
@@ -7158,10 +7158,10 @@ INSERT INTO txt VALUES ('H6943', 'English', 'The <b>FlowRequestController</b> re
             <tr><td><code>getNetObjectValidity</code></td><td>Validates a network object definition.</td><td>Not implemented yet.</td></tr>
             <tr><td><code>getNetGroupValidity</code></td><td>Validates a network group definition.</td><td>Not implemented yet.</td></tr>
             <tr><td><code>createRequest</code></td><td>Creates a new flow-related request.</td><td>Not implemented yet.</td></tr>
-            <tr><td><code>getRequestStatus</code></td><td>Returns the status of an existing request.</td><td>Not implemented yet.</td></tr>
+            <tr><td><code>getRequestStatus</code></td><td>Returns the status of an existing request.</td><td>Implemented. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
         </tbody>
     </table>
-    This page therefore mainly documents the intended API surface. Once the implementation exists, the description should be extended with concrete request and response examples.
+    The other listed endpoints document the intended API surface and are not implemented yet.
 ');
 INSERT INTO txt VALUES ('H6921', 'German',  'Der Import von Applikationsdaten wird aus einer oder mehreren .json-Dateien mit den in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> definierten Pfaden und Namen gespeist.
     Dort kann auch jeweils ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Dateien hinterlegt werden. Die .json-Datei hat die folgende Struktur:

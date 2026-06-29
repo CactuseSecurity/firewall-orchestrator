@@ -483,6 +483,8 @@ public class RulesByFilterResponse
 {
     [JsonPropertyName("requestId")]
     public string RequestId { get; set; } = "";
+
+    [JsonPropertyName("result")]
     public RuleResult Result { get; set; } = new();
 }
 
@@ -495,7 +497,10 @@ public class RuleFilter
 
 public class RuleResult
 {
+    [JsonPropertyName("count")]
     public int Count { get; set; }
+
+    [JsonPropertyName("rules")]
     public List<RuleDetail> Rules { get; set; } = new();
 }
 

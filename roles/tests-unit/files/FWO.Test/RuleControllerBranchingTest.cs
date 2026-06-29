@@ -40,7 +40,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("owner-from-custom", response.Result.Rules[0].OwnerInformation.ExtAppId);
             ClassicAssert.AreEqual("chg-4711", response.Result.Rules[0].AdditionalInformation.ChangeId);
 
-            string json = JsonSerializer.Serialize(response, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            string json = JsonSerializer.Serialize(response);
             using JsonDocument document = JsonDocument.Parse(json);
 
             JsonElement rule = document.RootElement.GetProperty("result").GetProperty("rules")[0];

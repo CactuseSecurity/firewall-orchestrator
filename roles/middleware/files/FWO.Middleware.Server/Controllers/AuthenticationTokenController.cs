@@ -353,19 +353,7 @@ namespace FWO.Middleware.Server.Controllers
                 return BadRequest(ex.Message);
             }
         }
-
-#if DEBUG
-        /// <summary>
-        ///  Tests the Auth from swagger. If this returns unauthorized then check JWT token in swagger and try again.
-        /// </summary>
-        /// <returns></returns>
-        [Authorize]
-        [HttpGet("TestAuth")]
-        public async Task<ActionResult> TestAuth()
-        {
-            return Ok();
-        }
-#endif
+        
         /// <summary>
         /// Reads a JWT without validating it so audit logging can extract metadata such as jti and expiry.
         /// </summary>

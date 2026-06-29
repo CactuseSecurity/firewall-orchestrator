@@ -23,6 +23,7 @@ from model_controllers.management_controller import (
 )
 from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanagerlist import FwConfigManager
+from models.rulebase_link import RulebaseLinkUidBased
 from services.global_state import GlobalState
 from services.service_provider import ServiceProvider
 
@@ -461,7 +462,7 @@ class FwConfigImport:
             consistency_checker.user_objects_to_remove,
         )
         self.fix_rules_in_db(consistency_checker.rules_to_remove)
-        self.fix_rulebase_links_in_db()
+        self.fix_rulebase_links_in_db(previous_config)
         self.fix_rule_to_gw_refs_in_db(previous_config, previous_global_config)
         self.fix_ref_tables_in_db()
         self.fix_changelog_rule()
@@ -541,7 +542,7 @@ class FwConfigImport:
             )
             raise FwoImporterError("error while trying to fix rule consistency issues") from None
 
-    def fix_rulebase_links_in_db(self):
+    def fix_rulebase_links_in_db(self, previous_config: FwConfigNormalized):
         """
         Removes inconsistent rulebase links from the database to fix consistency issues.
         """
@@ -566,6 +567,50 @@ class FwConfigImport:
                 f"failed to remove inconsistent rulebase links for mgm id {self.import_state.state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
             )
             raise FwoImporterError("error while trying to remove inconsistent rulebase links") from None
+
+        if removed_links > 0:
+            # if we removed any links, we need to update the previous config to reflect the changes
+            rb_link_query = FwoApi.get_graphql_code(
+                file_list=[fwo_const.GRAPHQL_QUERY_PATH + "rule/getRulebaseLinksByMgmId.graphql"]
+            )
+            mgm_id = self.import_state.state.mgm_details.current_mgm_id
+            rb_link_query_variables: dict[str, Any] = {
+                "mgmId": mgm_id,
+            }
+            try:
+                rb_link_result = self.import_state.api_call.call(rb_link_query, query_variables=rb_link_query_variables)
+                if "errors" in rb_link_result:
+                    raise FwoImporterError(
+                        f"failed to fetch rulebase links for mgm id {mgm_id!s}: {rb_link_result['errors']!s}"
+                    )
+                # update the previous config with the new rulebase links
+                rb_links_by_device = {
+                    device["dev_uid"]: [
+                        RulebaseLinkUidBased(
+                            from_rulebase_uid=link["rulebaseByFromRulebaseId"]["uid"]
+                            if link["rulebaseByFromRulebaseId"]
+                            else None,
+                            from_rule_uid=link["rule"]["rule_uid"] if link["rule"] else None,
+                            to_rulebase_uid=link["rulebase"]["uid"],
+                            link_type=link["stm_link_type"]["name"],
+                            is_initial=link["is_initial"],
+                            is_global=link["is_global"],
+                            is_section=link["is_section"],
+                        )
+                        for link in device["rulebase_links"]
+                    ]
+                    for device in rb_link_result["data"]["device"]
+                }
+
+                for gw in previous_config.gateways:
+                    if gw.Uid not in rb_links_by_device:
+                        raise FwoImporterError(
+                            f"gateway with UID {gw.Uid!s} not found in rulebase links fetched from DB for mgm id {mgm_id!s}"
+                        )
+                    gw.RulebaseLinks = rb_links_by_device[gw.Uid]
+            except Exception:
+                FWOLogger.exception(f"failed to fetch rulebase links for mgm id {mgm_id!s}: {traceback.format_exc()!s}")
+                raise FwoImporterError("error while trying to fetch rulebase links") from None
 
     def _insert_missing_rule_to_gw_refs_in_db(self, refs_to_add: set[tuple[str, str]]):
         """Inserts missing rule enforced on gateway references to the database to fix consistency issues."""
@@ -618,7 +663,7 @@ class FwConfigImport:
             )
         except Exception:
             FWOLogger.exception(
-                f"failed to add missing rule enforced on gateway references for mgm id {self.import_state.state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
+                f"failed to add missing rule enforced on gateway references for mgm id {mgm_id!s}: {traceback.format_exc()!s}"
             )
             raise FwoImporterError("error while trying to add missing rule enforced on gateway references") from None
 
@@ -643,12 +688,12 @@ class FwConfigImport:
             result = self.import_state.api_call.call(query, query_variables=query_variables)
             if "errors" in result:
                 raise FwoImporterError(
-                    f"failed to get rules enforced on gateways for mgm id {self.import_state.state.mgm_details.current_mgm_id!s}: {result['errors']!s}"
+                    f"failed to get rules enforced on gateways for mgm id {mgm_id!s}: {result['errors']!s}"
                 )
             rules_enforced_on_gw = result["data"]["rule_enforced_on_gateway"]
         except Exception:
             FWOLogger.exception(
-                f"failed to get rules enforced on gateways for mgm id {self.import_state.state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
+                f"failed to get rules enforced on gateways for mgm id {mgm_id!s}: {traceback.format_exc()!s}"
             )
             raise FwoImporterError("error while trying to get rules enforced on gateways") from None
         # need to set removed flag on active refs referencing removed rule
@@ -688,7 +733,7 @@ class FwConfigImport:
                 result = self.import_state.api_call.call(mutation, query_variables=query_variables)
                 if "errors" in result:
                     raise FwoImporterError(
-                        f"failed to remove inconsistent rule enforced on gateway references for mgm id {self.import_state.state.mgm_details.current_mgm_id!s}: {result['errors']!s}"
+                        f"failed to remove inconsistent rule enforced on gateway references for mgm id {mgm_id!s}: {result['errors']!s}"
                     )
                 removed_refs = result["data"]["update_rule_enforced_on_gateway"]["affected_rows"]
                 FWOLogger.info(
@@ -697,7 +742,7 @@ class FwConfigImport:
                 self.import_state.state.stats.statistics.inconsistent_ref_delete_count += removed_refs
             except Exception:
                 FWOLogger.exception(
-                    f"failed to remove inconsistent rule enforced on gateway references for mgm id {self.import_state.state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
+                    f"failed to remove inconsistent rule enforced on gateway references for mgm id {mgm_id!s}: {traceback.format_exc()!s}"
                 )
                 raise FwoImporterError(
                     "error while trying to remove inconsistent rule enforced on gateway references"

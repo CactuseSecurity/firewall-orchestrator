@@ -486,9 +486,98 @@ def resolve_checkpoint_uids_via_object_dict(
     try:
         for rule_field in ["source", "destination", "service", "action", "track", "install-on", "time"]:
             resolve_ref_list_from_object_dictionary(rulebase, rule_field, native_config_domain=native_config_domain)
-        current_rulebase["chunks"].append(rulebase)
+        merge_split_section_with_previous_chunk(current_rulebase, rulebase)
     except Exception:
         FWOLogger.error("error while getting a field of layer " + rulebase_uid + ", params: " + str(show_params_rules))
+
+
+def merge_split_section_with_previous_chunk(current_rulebase: dict[str, Any], rulebase_chunk: dict[str, Any]) -> None:
+    """
+    Append a fetched rulebase page after merging a section that continues across the page boundary.
+
+    Check Point can split one logical ``access-section`` across multiple paginated
+    ``show-access-rulebase`` responses. If both fragments are stored unchanged, later
+    section lookup can rediscover the trailing fragment as if it were an additional
+    standalone section.
+
+    This helper tries to merge the first section of the new page into the last stored
+    section of the previous page before appending the chunk. If the new page only
+    contained that continuation fragment, there is nothing left to append.
+    """
+    previous_chunk = get_last_chunk_with_rulebase(current_rulebase)
+    if (
+        previous_chunk is not None
+        and merge_section_across_chunk_boundary(previous_chunk, rulebase_chunk)
+        and not rulebase_chunk["rulebase"]
+    ):
+        return
+    current_rulebase["chunks"].append(rulebase_chunk)
+
+
+def get_last_chunk_with_rulebase(current_rulebase: dict[str, Any]) -> dict[str, Any] | None:
+    """
+    Return the most recent stored chunk that still contains rulebase entries.
+
+    A split section can only continue from the immediately preceding API page, so the
+    merge logic only needs the last non-empty chunk.
+    """
+    for chunk in reversed(current_rulebase["chunks"]):
+        if chunk.get("rulebase"):
+            return chunk
+    return None
+
+
+def merge_section_across_chunk_boundary(previous_chunk: dict[str, Any], next_chunk: dict[str, Any]) -> bool:
+    """
+    Merge two chunk-boundary section fragments when they represent one logical section.
+
+    The last section of ``previous_chunk`` and the first section of ``next_chunk`` are
+    examined. If they are the same section split by pagination, the rules from the next
+    fragment are appended to the already stored one, the upper range marker is updated,
+    and the consumed fragment is removed from ``next_chunk``.
+
+    Returns ``True`` when a merge happened and ``False`` otherwise.
+    """
+    previous_section = get_boundary_section(previous_chunk, first=False)
+    next_section = get_boundary_section(next_chunk, first=True)
+    if previous_section is None or next_section is None:
+        return False
+    if not is_split_section_continuation(previous_section, next_section):
+        return False
+
+    previous_section["rulebase"].extend(next_section["rulebase"])
+    previous_section["to"] = next_section["to"]
+    next_chunk["rulebase"].pop(0)
+    return True
+
+
+def get_boundary_section(rulebase_chunk: dict[str, Any], first: bool) -> dict[str, Any] | None:
+    """
+    Return the boundary element of a chunk when that element is an ``access-section``.
+
+    The merge logic only stitches section objects at the chunk boundary. Plain access
+    rules are not treated as merge candidates and therefore yield ``None`` here.
+    """
+    sections = rulebase_chunk.get("rulebase")
+    if not sections:
+        return None
+    section = sections[0] if first else sections[-1]
+    if section.get("type") != "access-section":
+        return None
+    return section
+
+
+def is_split_section_continuation(previous_section: dict[str, Any], next_section: dict[str, Any]) -> bool:
+    """
+    Decide whether ``next_section`` is the direct paginated continuation of ``previous_section``.
+
+    The section UID establishes identity, while the numeric rule range confirms that the
+    second fragment begins immediately after the first one ends. Requiring both avoids
+    merging unrelated or malformed data that merely shares a UID.
+    """
+    if previous_section.get("uid") != next_section.get("uid"):
+        return False
+    return previous_section["to"] + 1 == next_section["from"]
 
 
 def control_while_loop_in_get_rulebases_in_chunks(

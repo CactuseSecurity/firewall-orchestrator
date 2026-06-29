@@ -30,6 +30,8 @@ namespace FWO.Test
             new() { Id = 10, Name = "Notify" }
         ];
 
+        private static readonly int[] kExpectedDeleteIds = [1];
+
         private static MethodInfo GetPrivateMethod(string name)
         {
             return typeof(SettingsStates).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance)
@@ -241,10 +243,16 @@ namespace FWO.Test
 
             component.WaitForAssertion(() =>
             {
-                List<WfExtState> extStates = GetPrivateField<List<WfExtState>>(component.Instance, "allExtStates");
-                Assert.That(extStates.Select(state => state.Name), Does.Contain(ExtStates.Done.ToString()));
-                Assert.That(extStates.Select(state => state.Name), Does.Contain(ExtStates.ExtReqFailed.ToString()));
-                Assert.That(extStates.First(state => state.Name == ExtStates.Done.ToString()).StateId, Is.EqualTo(0));
+                List<object> staticGroups = ((System.Collections.IEnumerable)GetPrivateField<object>(component.Instance, "staticExternalStates"))
+                    .Cast<object>()
+                    .ToList();
+                Assert.That(staticGroups.Select(group => GetVariable<string>(group, "Name")), Does.Contain(ExtStates.Done.ToString()));
+                Assert.That(staticGroups.Select(group => GetVariable<string>(group, "Name")), Does.Contain(ExtStates.ExtReqFailed.ToString()));
+                object doneGroup = staticGroups.First(group => GetVariable<string>(group, "Name") == ExtStates.Done.ToString());
+                List<object> selectedStates = ((System.Collections.IEnumerable)GetVariable<object>(doneGroup, "SelectedStates"))
+                    .Cast<object>()
+                    .ToList();
+                Assert.That(selectedStates.Select(state => GetVariable<int>(state, "Id")), Does.Contain(0));
             });
         }
 
@@ -256,23 +264,120 @@ namespace FWO.Test
             IRenderedComponent<EditExtStates> component = RenderAuthorized<EditExtStates>(context, parameters => parameters
                 .Add(p => p.Display, true)
                 .Add(p => p.States, kTestStates));
-            component.WaitForAssertion(() => Assert.That(GetPrivateField<List<WfExtState>>(component.Instance, "allExtStates"), Is.Not.Empty));
-            WfExtState extState = GetPrivateField<List<WfExtState>>(component.Instance, "allExtStates")
-                .First(state => state.Name == ExtStates.Done.ToString());
-            GetPrivateMethod(typeof(EditExtStates), "EditExtState").Invoke(component.Instance, [extState]);
-            SetPrivateField(component.Instance, "selectedState", kTestStates[1]);
+            component.WaitForAssertion(() => Assert.That(((System.Collections.IEnumerable)GetPrivateField<object>(component.Instance, "staticExternalStates")).Cast<object>(), Is.Not.Empty));
+            object staticGroup = ((System.Collections.IEnumerable)GetPrivateField<object>(component.Instance, "staticExternalStates"))
+                .Cast<object>()
+                .First(group => GetVariable<string>(group, "Name") == ExtStates.Done.ToString());
+            GetPrivateMethod(typeof(EditExtStates), "EditExtStateGroup").Invoke(component.Instance, new object?[] { staticGroup });
+
+            await component.InvokeAsync(async () =>
+            {
+                await (Task)GetPrivateMethod(typeof(EditExtStates), "SetSelectedStates").Invoke(component.Instance, new object?[] { new List<WfState> { kTestStates[1] } })!;
+            });
 
             await component.InvokeAsync(async () => await (Task)GetPrivateMethod(typeof(EditExtStates), "ApplySelection").Invoke(component.Instance, null)!);
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConnection.Queries, Does.Contain(RequestQueries.removeExtState));
-                Assert.That(apiConnection.Queries, Does.Contain(RequestQueries.addExtState));
+                Assert.That(apiConnection.Queries, Does.Contain(RequestQueries.replaceExtStates));
                 Assert.That(apiConnection.Queries.Count(query => query == RequestQueries.getExtStates), Is.GreaterThanOrEqualTo(2));
                 object addVariables = apiConnection.Variables.First(variables =>
-                    HasVariableValue(variables, "name", ExtStates.Done.ToString()));
-                Assert.That(GetVariable<string>(addVariables, "name"), Is.EqualTo(ExtStates.Done.ToString()));
-                Assert.That(GetVariable<int>(addVariables, "stateId"), Is.EqualTo(1));
+                    variables.GetType().GetProperty("objects") != null);
+                List<int> deleteIds = ((System.Collections.IEnumerable)GetVariable<object>(addVariables, "deleteIds"))
+                    .Cast<int>()
+                    .ToList();
+                List<object> objects = ((System.Collections.IEnumerable)GetVariable<object>(addVariables, "objects"))
+                    .Cast<object>()
+                    .ToList();
+                Assert.That(deleteIds, Is.EqualTo(kExpectedDeleteIds));
+                Assert.That(objects.Count, Is.EqualTo(1));
+                Assert.That(GetVariable<string>(objects[0], "name"), Is.EqualTo(ExtStates.Done.ToString()));
+                Assert.That(GetVariable<int>(objects[0], "state_id"), Is.EqualTo(1));
+                Assert.That(GetPrivateField<bool>(component.Instance, "SelectStateMode"), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task EditExtStates_NewManualStateCanBeSavedWithoutInternalMapping()
+        {
+            SettingsStatesRenderApiConn apiConnection = new();
+            await using BunitContext context = CreateRenderContext(apiConnection);
+            IRenderedComponent<EditExtStates> component = RenderAuthorized<EditExtStates>(context, parameters => parameters
+                .Add(p => p.Display, true)
+                .Add(p => p.States, kTestStates));
+            component.WaitForAssertion(() => Assert.That(((System.Collections.IEnumerable)GetPrivateField<object>(component.Instance, "staticExternalStates")).Cast<object>(), Is.Not.Empty));
+
+            await component.InvokeAsync(() =>
+            {
+                GetPrivateMethod(typeof(EditExtStates), "AddManualExtState").Invoke(component.Instance, null);
+                return Task.CompletedTask;
+            });
+            object editGroup = GetPrivateField<object>(component.Instance, "editGroup");
+            editGroup.GetType().GetProperty("Name")!.SetValue(editGroup, "ManualExternalState");
+
+            await component.InvokeAsync(async () => await (Task)GetPrivateMethod(typeof(EditExtStates), "ApplySelection").Invoke(component.Instance, null)!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.Queries, Does.Contain(RequestQueries.replaceExtStates));
+                object addVariables = apiConnection.Variables.First(variables => variables.GetType().GetProperty("objects") != null);
+                List<int> deleteIds = ((System.Collections.IEnumerable)GetVariable<object>(addVariables, "deleteIds"))
+                    .Cast<int>()
+                    .ToList();
+                List<object> objects = ((System.Collections.IEnumerable)GetVariable<object>(addVariables, "objects"))
+                    .Cast<object>()
+                    .ToList();
+                Assert.That(deleteIds, Is.Empty);
+                Assert.That(objects.Count, Is.EqualTo(1));
+                Assert.That(GetVariable<object?>(objects[0], "state_id"), Is.Null);
+                Assert.That(GetPrivateField<bool>(component.Instance, "SelectStateMode"), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task EditExtStates_SaveWithoutChangesSkipsReplaceMutation()
+        {
+            SettingsStatesRenderApiConn apiConnection = new();
+            await using BunitContext context = CreateRenderContext(apiConnection);
+            IRenderedComponent<EditExtStates> component = RenderAuthorized<EditExtStates>(context, parameters => parameters
+                .Add(p => p.Display, true)
+                .Add(p => p.States, kTestStates));
+
+            component.WaitForAssertion(() => Assert.That(((System.Collections.IEnumerable)GetPrivateField<object>(component.Instance, "staticExternalStates")).Cast<object>(), Is.Not.Empty));
+            object staticGroup = ((System.Collections.IEnumerable)GetPrivateField<object>(component.Instance, "staticExternalStates"))
+                .Cast<object>()
+                .First(group => GetVariable<string>(group, "Name") == ExtStates.Done.ToString());
+            GetPrivateMethod(typeof(EditExtStates), "EditExtStateGroup").Invoke(component.Instance, new object?[] { staticGroup });
+
+            await component.InvokeAsync(async () => await (Task)GetPrivateMethod(typeof(EditExtStates), "ApplySelection").Invoke(component.Instance, null)!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.Queries, Does.Not.Contain(RequestQueries.replaceExtStates));
+                Assert.That(GetPrivateField<bool>(component.Instance, "SelectStateMode"), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task EditExtStates_UnmappedStaticStateDoesNotInsertNullMapping()
+        {
+            SettingsStatesRenderApiConn apiConnection = new();
+            await using BunitContext context = CreateRenderContext(apiConnection);
+            IRenderedComponent<EditExtStates> component = RenderAuthorized<EditExtStates>(context, parameters => parameters
+                .Add(p => p.Display, true)
+                .Add(p => p.States, kTestStates));
+
+            component.WaitForAssertion(() => Assert.That(((System.Collections.IEnumerable)GetPrivateField<object>(component.Instance, "staticExternalStates")).Cast<object>(), Is.Not.Empty));
+            object staticGroup = ((System.Collections.IEnumerable)GetPrivateField<object>(component.Instance, "staticExternalStates"))
+                .Cast<object>()
+                .First(group => GetVariable<string>(group, "Name") == ExtStates.ExtReqFailed.ToString());
+            GetPrivateMethod(typeof(EditExtStates), "EditExtStateGroup").Invoke(component.Instance, new object?[] { staticGroup });
+
+            await component.InvokeAsync(async () => await (Task)GetPrivateMethod(typeof(EditExtStates), "ApplySelection").Invoke(component.Instance, null)!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.Queries, Does.Not.Contain(RequestQueries.replaceExtStates));
                 Assert.That(GetPrivateField<bool>(component.Instance, "SelectStateMode"), Is.False);
             });
         }
@@ -642,10 +747,9 @@ namespace FWO.Test
                 {
                     new() { ConfData = kEmptyStateMatrixConfig }
                 },
-                string q when q == RequestQueries.removeExtState => new ReturnId { DeletedId = 1 },
-                string q when q == RequestQueries.addExtState => new ReturnIdWrapper
+                string q when q == RequestQueries.replaceExtStates => new ReturnId
                 {
-                    ReturnIds = [new ReturnId { NewId = 2 }]
+                    AffectedRows = 1
                 },
                 string q when q == RequestQueries.deleteState => new object(),
                 _ => throw new InvalidOperationException($"Unexpected query: {query}")

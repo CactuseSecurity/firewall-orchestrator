@@ -1,29 +1,75 @@
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
 
-
-<PopUp Title="@(userConfig.GetText("ext_states"))" Show="@Display" Size=PopupSize.Medium OnClose="Close">
+<PopUp Title="@(userConfig.GetText("ext_states"))" Show="@Display" Size=PopupSize.Large OnClose="Close">
     <Body>
         @if (Display)
         {
             <div class="m-2 vheight75">
-                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfExtState" Items="allExtStates" PageSize="0" ColumnReorder="true">
-                    <Column TableItem="WfExtState" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
-                        <Template>
-                            <div class="btn-group">
-                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditExtState(context)">
-                                    @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
-                            </div>
-                        </Template>
-                    </Column>
-                    <Column TableItem="WfExtState" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" />
-                    <Column TableItem="WfExtState" Title="@(userConfig.GetText("external_state_name"))" Field="@(x => x.Name)" Sortable="true" Filterable="false" />
-                    <Column TableItem="WfExtState" Title="@(userConfig.GetText("internal_state_name"))" Field="@(x => x.Name)" Sortable="true" Filterable="false" >
-                        <Template>
-                            @(States.FirstOrDefault(x => x.Id == context.StateId)?.Name)
-                        </Template>
-                    </Column>
-                </Table>
+                <div class="mb-4">
+                    <h5 class="mb-3">@(userConfig.GetText("static_external_states"))</h5>
+                    <table class="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto">
+                        <thead>
+                            <tr>
+                                <th>@(userConfig.GetText("actions"))</th>
+                                <th>@(userConfig.GetText("external_state_name"))</th>
+                                <th>@(userConfig.GetText("assigned_internal_states"))</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (ExtStateGroup group in staticExternalStates)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditExtStateGroup(group)">
+                                                @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                                            </button>
+                                        </div>
+                                    </td>
+                                    <td>@group.Name</td>
+                                    <td>@DisplaySelectedStateNames(group)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">@(userConfig.GetText("manual_external_states"))</h5>
+                        <button type="button" class="btn btn-sm btn-success" @onclick="AddManualExtState">
+                            @(DisplayService.DisplayButton(userConfig, "add", Icons.Add))
+                        </button>
+                    </div>
+                    <table class="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header">
+                        <thead>
+                            <tr>
+                                <th>@(userConfig.GetText("actions"))</th>
+                                <th>@(userConfig.GetText("external_state_name"))</th>
+                                <th>@(userConfig.GetText("assigned_internal_states"))</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (ExtStateGroup group in manualExternalStates)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditExtStateGroup(group)">
+                                                @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => DeleteManualExtState(group)">
+                                                @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))
+                                            </button>
+                                        </div>
+                                    </td>
+                                    <td>@group.Name</td>
+                                    <td>@DisplaySelectedStateNames(group)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </div>
         }
     </Body>
@@ -34,16 +80,33 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("assign_state_to") + actExtState.Name)" Show="@SelectStateMode" Size=PopupSize.Small OnClose="CloseSelect">
+<PopUp Title="@GetEditPopupTitle()" Show="@SelectStateMode" Size=PopupSize.Small OnClose="CloseSelect">
     <Body>
         @if (SelectStateMode)
         {
-            <div class="col-sm-9">
-                <Dropdown ElementType="WfState" @bind-SelectedElement="selectedState" ElementToString="@(s => s.Name)" Elements="States" Nullable="true">
-                    <ElementTemplate Context="state">
-                        @state.Name
-                    </ElementTemplate>
-                </Dropdown>
+            <div class="form-group row mb-3">
+                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("external_state_name")):</label>
+                <div class="col-sm-8">
+                    @if (editGroup.IsStatic)
+                    {
+                        <label class="col-form-label col-form-label-sm">@editGroup.Name</label>
+                    }
+                    else
+                    {
+                        <input type="text" class="form-control form-control-sm" @bind="editGroup.Name" />
+                    }
+                </div>
+            </div>
+            <div class="form-group row">
+                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("assigned_internal_states")):</label>
+                <div class="col-sm-8">
+                    <Dropdown ElementType="WfState" Multiselect="true" SelectedElements="editGroup.SelectedStates" SelectedElementsChanged="SetSelectedStates"
+                              ElementToString="@(s => s.Name)" Elements="States">
+                        <ElementTemplate Context="state">
+                            @state.Name
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
             </div>
         }
     </Body>
@@ -51,11 +114,13 @@
         <div class="btn-group">
             <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-primary" @onclick="ApplySelection">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                    <button type="button" class="btn btn-sm btn-primary" disabled="@(!CanSaveEditingGroup())" @onclick="ApplySelection">
+                        @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+                    </button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
-                </NotAuthorized> 
+                </NotAuthorized>
             </ExecutionModeAuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseSelect">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
@@ -76,13 +141,11 @@
     [Parameter]
     public List<WfState> States { get; set; } = [];
 
-
-    private List<WfExtState> allExtStates = [];
-    private WfExtState actExtState = new();
+    private List<WfExtState> dbExtStates = [];
+    private List<ExtStateGroup> staticExternalStates = [];
+    private List<ExtStateGroup> manualExternalStates = [];
+    private ExtStateGroup editGroup = new();
     private bool SelectStateMode = false;
-    private WfState? incomingState;
-    private WfState? selectedState;
-
 
     protected override async Task OnInitializedAsync()
     {
@@ -93,14 +156,8 @@
     {
         try
         {
-            allExtStates = await apiConnection.SendQueryAsync<List<WfExtState>>(RequestQueries.getExtStates);
-            foreach(var extState in Enum.GetNames(typeof(ExtStates)))
-            {
-                if(allExtStates.FirstOrDefault(x => x.Name == extState) == null)
-                {
-                    allExtStates.Add(new(){ Name = extState });
-                }
-            }
+            dbExtStates = await apiConnection.SendQueryAsync<List<WfExtState>>(RequestQueries.getExtStates) ?? [];
+            BuildStateGroups();
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
@@ -109,35 +166,103 @@
         }
     }
 
-    private void EditExtState(WfExtState extState)
+    private void BuildStateGroups()
     {
-        actExtState = extState;
-        incomingState = States.FirstOrDefault(s => s.Id == extState.StateId);
-        selectedState = incomingState;
+        string[] staticStateNames = Enum.GetNames<ExtStates>();
+        HashSet<string> staticNames = new(staticStateNames);
+        staticExternalStates = staticStateNames
+            .Select(name => BuildGroup(name, true))
+            .ToList();
+        manualExternalStates = dbExtStates
+            .Where(extState => !staticNames.Contains(extState.Name))
+            .GroupBy(extState => extState.Name)
+            .OrderBy(group => group.Key)
+            .Select(group => BuildGroup(group.Key, false, group.ToList()))
+            .ToList();
+    }
+
+    private ExtStateGroup BuildGroup(string name, bool isStatic, List<WfExtState>? source = null)
+    {
+        List<WfExtState> extStates = source ?? dbExtStates.Where(extState => extState.Name == name).ToList();
+        List<WfState> selectedStates = extStates
+            .Where(extState => extState.StateId.HasValue)
+            .Select(extState => States.FirstOrDefault(state => state.Id == extState.StateId))
+            .Where(state => state != null)
+            .Select(state => state!)
+            .GroupBy(state => state.Id)
+            .Select(group => group.First())
+            .OrderBy(state => state.Id)
+            .ToList();
+
+        return new ExtStateGroup
+        {
+            Name = name,
+            OriginalName = name,
+            IsStatic = isStatic,
+            ExistingIds = extStates.Where(extState => extState.Id.HasValue).Select(extState => extState.Id!.Value).ToList(),
+            SelectedStates = selectedStates
+        };
+    }
+
+    private void EditExtStateGroup(ExtStateGroup group)
+    {
+        editGroup = CloneGroup(group);
         SelectStateMode = true;
+    }
+
+    private void AddManualExtState()
+    {
+        editGroup = new ExtStateGroup
+        {
+            Name = "",
+            OriginalName = "",
+            IsStatic = false,
+            SelectedStates = []
+        };
+        SelectStateMode = true;
+    }
+
+    private async Task DeleteManualExtState(ExtStateGroup group)
+    {
+        try
+        {
+            await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.replaceExtStates, new
+            {
+                deleteIds = group.ExistingIds,
+                objects = new List<object>()
+            });
+
+            await RefreshExtStates();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("save_ext_states"), "", true);
+        }
     }
 
     private async Task ApplySelection()
     {
         try
         {
-            if(selectedState != incomingState)
+            editGroup.SelectedStates = editGroup.SelectedStates
+                .GroupBy(state => state.Id)
+                .Select(group => group.First())
+                .OrderBy(state => state.Id)
+                .ToList();
+
+            if (string.IsNullOrWhiteSpace(editGroup.Name))
             {
-                if(actExtState.Id > 0)
-                {
-                    await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.removeExtState, new { id = actExtState.Id });
-                }
-                if(selectedState != null)
-                {
-                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.addExtState,
-                        new { name = actExtState.Name, stateId = selectedState.Id })).ReturnIds;
-                    if (returnIds != null)
-                    {
-                        actExtState.Id = returnIds[0].NewId;
-                    }
-                }
-                await RefreshExtStates();
+                DisplayMessageInUi(null, userConfig.GetText("save_ext_states"), userConfig.GetText("external_state_name_required"), true);
+                return;
             }
+
+            if (IsDuplicateName(editGroup.Name.Trim(), editGroup.OriginalName))
+            {
+                DisplayMessageInUi(null, userConfig.GetText("save_ext_states"), userConfig.GetText("duplicate_external_state_name"), true);
+                return;
+            }
+
+            await PersistEditingGroup();
             CloseSelect();
         }
         catch (Exception exception)
@@ -146,15 +271,154 @@
         }
     }
 
+    private bool IsDuplicateName(string name, string originalName)
+    {
+        return staticExternalStates.Concat(manualExternalStates)
+            .Any(group => !string.Equals(group.OriginalName, originalName, StringComparison.OrdinalIgnoreCase) &&
+                          string.Equals(group.Name, name, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task PersistEditingGroup()
+    {
+        string trimmedName = editGroup.Name.Trim();
+        string originalName = string.IsNullOrWhiteSpace(editGroup.OriginalName) ? trimmedName : editGroup.OriginalName.Trim();
+        bool nameChanged = !string.Equals(trimmedName, originalName, StringComparison.OrdinalIgnoreCase);
+        List<int?> desiredStateIds = editGroup.IsStatic && editGroup.SelectedStates.Count == 0
+            ? []
+            : NormalizeSelectedStateIds(editGroup.SelectedStates);
+        List<int?> existingStateIds = dbExtStates
+            .Where(extState => string.Equals(extState.Name, originalName, StringComparison.OrdinalIgnoreCase))
+            .Select(extState => extState.StateId)
+            .Distinct()
+            .OrderBy(stateId => stateId ?? int.MinValue)
+            .ToList();
+
+        if (!nameChanged && existingStateIds.SequenceEqual(desiredStateIds))
+        {
+            return;
+        }
+
+        List<int> deleteIds = nameChanged
+            ? dbExtStates
+                .Where(extState => string.Equals(extState.Name, originalName, StringComparison.OrdinalIgnoreCase) && extState.Id.HasValue)
+                .Select(extState => extState.Id!.Value)
+                .ToList()
+            : dbExtStates
+                .Where(extState => string.Equals(extState.Name, originalName, StringComparison.OrdinalIgnoreCase) &&
+                                  extState.Id.HasValue &&
+                                  !desiredStateIds.Contains(extState.StateId))
+                .Select(extState => extState.Id!.Value)
+                .ToList();
+
+        List<int?> insertStateIds = nameChanged
+            ? desiredStateIds
+            : desiredStateIds.Where(stateId => !existingStateIds.Contains(stateId)).ToList();
+
+        await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.replaceExtStates, new
+        {
+            deleteIds,
+            objects = BuildReplacementObjects(trimmedName, insertStateIds)
+        });
+        await RefreshExtStates();
+    }
+
     private void CloseSelect()
     {
+        ResetEditorState();
         SelectStateMode = false;
     }
 
     private void Close()
     {
+        ResetEditorState();
         SelectStateMode = false;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
+    }
+
+    private static ExtStateGroup CloneGroup(ExtStateGroup group)
+    {
+        return new ExtStateGroup
+        {
+            Name = group.Name,
+            OriginalName = group.OriginalName,
+            IsStatic = group.IsStatic,
+            ExistingIds = [..group.ExistingIds],
+            SelectedStates = [..group.SelectedStates]
+        };
+    }
+
+    private string GetEditPopupTitle()
+    {
+        if (editGroup.IsStatic || !string.IsNullOrWhiteSpace(editGroup.OriginalName))
+        {
+            return userConfig.GetText("edit_external_state");
+        }
+
+        return userConfig.GetText("add_external_state");
+    }
+
+    private bool CanSaveEditingGroup()
+    {
+        return !string.IsNullOrWhiteSpace(editGroup.Name);
+    }
+
+    private string DisplaySelectedStateNames(ExtStateGroup group)
+    {
+        return group.SelectedStates.Any()
+            ? string.Join(", ", group.SelectedStates.Select(state => state.Name))
+            : "-";
+    }
+
+    private sealed class ExtStateGroup
+    {
+        public string Name { get; set; } = "";
+        public string OriginalName { get; set; } = "";
+        public bool IsStatic { get; set; }
+        public List<int> ExistingIds { get; set; } = [];
+        public List<WfState> SelectedStates { get; set; } = [];
+    }
+
+    private Task SetSelectedStates(IEnumerable<WfState> states)
+    {
+        editGroup.SelectedStates = NormalizeSelectedStates(states);
+        return Task.CompletedTask;
+    }
+
+    private void ResetEditorState()
+    {
+        editGroup = new ExtStateGroup();
+    }
+
+    private static List<int?> NormalizeSelectedStateIds(IEnumerable<WfState> states)
+    {
+        List<int?> normalized = states
+            .Select(state => (int?)state.Id)
+            .Distinct()
+            .OrderBy(stateId => stateId ?? int.MinValue)
+            .ToList();
+
+        return normalized.Count == 0 ? [null] : normalized;
+    }
+
+    private static List<WfState> NormalizeSelectedStates(IEnumerable<WfState> states)
+    {
+        return states
+            .GroupBy(state => state.Id)
+            .Select(group => group.First())
+            .OrderBy(state => state.Id)
+            .ToList();
+    }
+
+    private static List<object> BuildReplacementObjects(string name, IEnumerable<int?> selectedStateIds)
+    {
+        return selectedStateIds
+            .Select(stateId => new
+            {
+                name,
+                state_id = stateId
+            })
+            .Cast<object>()
+            .ToList();
     }
 }

@@ -78,9 +78,11 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Render_AdminCanRecertifySelectedOwner()
+        public async Task Render_AdminExecutionModeCanOpenRecertPopupButCannotSubmit()
         {
-            await using BunitContext context = CreateContext([Roles.Admin], out NetworkModellingPageTestApiConn apiConn, out _);
+            await using BunitContext context = CreateContext([Roles.Admin, Roles.Recertifier], out NetworkModellingPageTestApiConn apiConn, out SimulatedUserConfig userConfig);
+            userConfig.User.RecertOwnerships = [10];
+            userConfig.SetExecutionMode(Roles.Admin);
 
             IRenderedComponent<NetworkModelling> page = RenderPage(context, appId: "APP-A");
 
@@ -89,6 +91,7 @@ namespace FWO.Test
                 Assert.That(page.Markup, Does.Contain("Alpha App"));
                 IElement recertButton = FindButton(page, "recertify");
                 Assert.That(recertButton.HasAttribute("disabled"), Is.False);
+                Assert.That(page.FindComponent<RequestRecertPopup>().Instance.CanRecertify, Is.False);
                 Assert.That(apiConn.UnexpectedQueries, Is.Empty);
             });
         }
@@ -107,6 +110,7 @@ namespace FWO.Test
                 Assert.That(page.Markup, Does.Contain("Alpha App"));
                 IElement recertButton = FindButton(page, "recertify");
                 Assert.That(recertButton.HasAttribute("disabled"), Is.False);
+                Assert.That(page.FindComponent<RequestRecertPopup>().Instance.CanRecertify, Is.True);
                 Assert.That(apiConn.UnexpectedQueries, Is.Empty);
             });
         }
@@ -125,7 +129,7 @@ namespace FWO.Test
                 Assert.That(page.Markup, Does.Contain("Alpha App"));
                 IElement recertButton = FindButton(page, "recertify");
                 Assert.That(recertButton.HasAttribute("disabled"), Is.True);
-                Assert.That(recertButton.ParentElement?.GetAttribute("title"), Is.EqualTo("You need the admin or recertifier role to recertify this owner."));
+                Assert.That(recertButton.ParentElement?.GetAttribute("title"), Is.EqualTo("You need the recertifier role to recertify this owner."));
                 Assert.That(apiConn.UnexpectedQueries, Is.Empty);
             });
         }
@@ -263,7 +267,7 @@ namespace FWO.Test
                 ["last_recertified"] = "Last recertified",
                 ["last_recertifier"] = "Last recertifier",
                 ["next_recertification"] = "Next recertification",
-                ["C9031"] = "You need the admin or recertifier role to recertify this owner.",
+                ["C9031"] = "You need the recertifier role to recertify this owner.",
                 ["C9032"] = "You are not assigned to this owner as a recertifiable responsible person."
             };
         }

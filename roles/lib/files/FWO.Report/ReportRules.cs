@@ -34,12 +34,12 @@ namespace FWO.Report
     public class ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, IRuleTreeBuilder? ruleTreeBuilder = null) : ReportDevicesBase(query, userConfig, reportType)
     {
         private const int ColumnCount = 14;
-        private const int OrderedLinkType = 2;
-        private const int InlineLinkType = 3;
-        private const int DomainLinkType = 5;
         private static readonly JsonSerializerOptions IndentedJsonSerializerOptions = new() { WriteIndented = true };
         protected bool UseAdditionalFilter = false;
 
+        /// <summary>
+        /// Flattened real rules (non-header) for each device in each management, used for export and JSON output.
+        /// </summary>
         private static Dictionary<(int deviceId, int managementId), Rule[]> _rulesCache = [];
         private readonly IRuleTreeBuilder? ruleTreeBuilderFromScope = ruleTreeBuilder;
 
@@ -368,94 +368,8 @@ namespace FWO.Report
             }
             else
             {
-                return Array.Empty<Rule>();
+                return [];
             }
-        }
-
-        public static int GetRuleCount(ManagementReport mgmReport, RulebaseLink? currentRbLink, RulebaseLink[] rulebaseLinks)
-        {
-            if (currentRbLink == null)
-            {
-                return 0;
-            }
-
-            int ruleCount = 0;
-            int currentLayerRulebaseId = currentRbLink.NextRulebaseId;
-
-            while (true)
-            {
-                ruleCount += CountRulebaseWithSections(mgmReport, currentLayerRulebaseId, rulebaseLinks);
-
-                RulebaseLink? nextLayerLink = rulebaseLinks.FirstOrDefault(link =>
-                    link.FromRulebaseId == currentLayerRulebaseId &&
-                    !link.IsSection &&
-                    (link.LinkType == OrderedLinkType || link.LinkType == DomainLinkType));
-
-                if (nextLayerLink == null)
-                {
-                    break;
-                }
-
-                currentLayerRulebaseId = nextLayerLink.NextRulebaseId;
-            }
-
-            return ruleCount;
-        }
-
-        private static int CountRulebaseWithSections(ManagementReport mgmReport, int initialRulebaseId, RulebaseLink[] rulebaseLinks)
-        {
-            int ruleCount = 0;
-            int currentRulebaseId = initialRulebaseId;
-
-            while (true)
-            {
-                RulebaseReport? currentRulebase = mgmReport.Rulebases.FirstOrDefault(rulebase => rulebase.Id == currentRulebaseId);
-                if (currentRulebase == null)
-                {
-                    return ruleCount;
-                }
-
-                ruleCount += CountDirectRulesAndInlineLayers(currentRulebase, mgmReport, rulebaseLinks);
-
-                RulebaseLink? nextSectionLink = rulebaseLinks.FirstOrDefault(link =>
-                    link.FromRulebaseId == currentRulebaseId &&
-                    link.IsSection);
-
-                if (nextSectionLink == null)
-                {
-                    break;
-                }
-
-                currentRulebaseId = nextSectionLink.NextRulebaseId;
-            }
-
-            return ruleCount;
-        }
-
-        private static int CountDirectRulesAndInlineLayers(RulebaseReport rulebase, ManagementReport mgmReport, RulebaseLink[] rulebaseLinks)
-        {
-            int ruleCount = 0;
-
-            foreach (Rule rule in rulebase.Rules)
-            {
-                if (!string.IsNullOrEmpty(rule.SectionHeader))
-                {
-                    continue;
-                }
-
-                ruleCount++;
-
-                RulebaseLink? inlineLink = rulebaseLinks.FirstOrDefault(link =>
-                    link.LinkType == InlineLinkType &&
-                    link.FromRuleId == rule.Id);
-
-                if (inlineLink != null)
-                {
-                    ruleCount += CountRulebaseWithSections(mgmReport, inlineLink.NextRulebaseId, rulebaseLinks);
-                }
-            }
-
-            return ruleCount;
         }
 
         public override string SetDescription()
@@ -466,10 +380,11 @@ namespace FWO.Report
             foreach (var mgt in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null && mgt.ContainsRules()))
             {
                 managementCounter++;
-                foreach (var device in mgt.Devices.Where(dev => dev.ContainsRules()).Select(d => d.RulebaseLinks))
+                foreach (var device in mgt.Devices.Where(dev => dev.ContainsRules()))
                 {
                     deviceCounter++;
-                    ruleCounter += GetRuleCount(mgt, device.FirstOrDefault(_ => _.IsInitial), device);
+                    // use the cached rules count, relying on the fact that the rule tree has already been built and cached
+                    ruleCounter += _rulesCache.TryGetValue((device.Id, mgt.Id), out Rule[]? cachedRules) ? cachedRules.Length : 0;
                 }
             }
             return $"{managementCounter} {userConfig.GetText("managements")}, {deviceCounter} {userConfig.GetText("gateways")}, {ruleCounter} {userConfig.GetText("rules")}";
@@ -681,7 +596,7 @@ namespace FWO.Report
             report.AppendLine("<tr>");
             if (!ReportType.IsRulebaseReport())
             {
-                report.AppendLine($"<td>{rule.OrderNumber.ToString(CultureInfo.InvariantCulture)}</td>");
+                report.AppendLine($"<td>{rule.DisplayOrderNumberString}</td>");
             }
             if (ReportType == ReportType.Recertification)
             {

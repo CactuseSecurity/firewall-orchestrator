@@ -185,7 +185,6 @@ namespace FWO.Data
         /// Gets or sets the report-specific compact sequential order of real rules only. Header placeholder rows
         /// keep this value at 0. Exports and report-specific serialization use this field.
         /// </summary>
-        [JsonProperty("order_number"), JsonPropertyName("order_number")]
         public int OrderNumber { get; set; }
 
         public bool Certified { get; set; }

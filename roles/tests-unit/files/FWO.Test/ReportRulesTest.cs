@@ -208,10 +208,6 @@ namespace FWO.Test
             var rulebase = _managementReport!.Rulebases.First();
             var result = ReportRules.GetRulesByRulebaseId(rulebase.Id, _managementReport);
 
-            var rulebaseLink = new RulebaseLink { NextRulebaseId = rulebase.Id };
-            int count = ReportRules.GetRuleCount(_managementReport, rulebaseLink, new[] { rulebaseLink });
-
-            Assert.That(count, Is.EqualTo(2));
             Assert.That(result.Length, Is.EqualTo(2));
             Assert.That(result[0].Uid, Does.StartWith($"rule-{rulebase.Id}."));
             Assert.That(rulebase.Rules.Length, Is.EqualTo(2));
@@ -353,13 +349,10 @@ namespace FWO.Test
         }
 
         [Test]
-        public void Test_GetRuleCount_FollowsCorrectRulebaseTraversal()
+        public void Test_BuildRuleTree_RealRuleCountMatchesExpectedTraversalResult()
         {
-            var count = ReportRules.GetRuleCount(
-                _managementReport!,
-                _deviceReport!.RulebaseLinks.First(l => l.IsInitial),
-                [.. _deviceReport!.RulebaseLinks]
-            );
+            Rule[] allFlattenedRules = [.. _ruleTreeBuilder.BuildRuleTree(_managementReport!.Rulebases, _deviceReport!.RulebaseLinks, _managementReport.Id, _deviceReport.Id)];
+            int count = allFlattenedRules.Count(rule => string.IsNullOrEmpty(rule.SectionHeader));
 
             ClassicAssert.AreEqual(6, count);
         }

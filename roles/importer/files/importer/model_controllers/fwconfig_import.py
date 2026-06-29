@@ -556,7 +556,7 @@ class FwConfigImport:
         try:
             result = self.import_state.api_call.call(mutation, query_variables=query_variables)
 
-            removed_links = result["data"]["update_rulebase_link"]["affected_rows"]
+            removed_links: int = result["data"]["update_rulebase_link"]["affected_rows"]
             if removed_links > 0:
                 FWOLogger.info(
                     f"removed {removed_links!s} inconsistent rulebase links from DB to fix consistency issues"
@@ -568,49 +568,51 @@ class FwConfigImport:
             )
             raise FwoImporterError("error while trying to remove inconsistent rulebase links") from None
 
-        if removed_links > 0:
-            # if we removed any links, we need to update the previous config to reflect the changes
-            rb_link_query = FwoApi.get_graphql_code(
-                file_list=[fwo_const.GRAPHQL_QUERY_PATH + "rule/getRulebaseLinksByMgmId.graphql"]
-            )
-            mgm_id = self.import_state.state.mgm_details.current_mgm_id
-            rb_link_query_variables: dict[str, Any] = {
-                "mgmId": mgm_id,
-            }
-            try:
-                rb_link_result = self.import_state.api_call.call(rb_link_query, query_variables=rb_link_query_variables)
-                if "errors" in rb_link_result:
-                    raise FwoImporterError(
-                        f"failed to fetch rulebase links for mgm id {mgm_id!s}: {rb_link_result['errors']!s}"
-                    )
-                # update the previous config with the new rulebase links
-                rb_links_by_device = {
-                    device["dev_uid"]: [
-                        RulebaseLinkUidBased(
-                            from_rulebase_uid=link["rulebaseByFromRulebaseId"]["uid"]
-                            if link["rulebaseByFromRulebaseId"]
-                            else None,
-                            from_rule_uid=link["rule"]["rule_uid"] if link["rule"] else None,
-                            to_rulebase_uid=link["rulebase"]["uid"],
-                            link_type=link["stm_link_type"]["name"],
-                            is_initial=link["is_initial"],
-                            is_global=link["is_global"],
-                            is_section=link["is_section"],
-                        )
-                        for link in device["rulebase_links"]
-                    ]
-                    for device in rb_link_result["data"]["device"]
-                }
+        if not removed_links:
+            return  # nothing to do
 
-                for gw in previous_config.gateways:
-                    if gw.Uid not in rb_links_by_device:
-                        raise FwoImporterError(
-                            f"gateway with UID {gw.Uid!s} not found in rulebase links fetched from DB for mgm id {mgm_id!s}"
-                        )
-                    gw.RulebaseLinks = rb_links_by_device[gw.Uid]
-            except Exception:
-                FWOLogger.exception(f"failed to fetch rulebase links for mgm id {mgm_id!s}: {traceback.format_exc()!s}")
-                raise FwoImporterError("error while trying to fetch rulebase links") from None
+        # if we removed any links, we need to update the previous config to reflect the changes
+        rb_link_query = FwoApi.get_graphql_code(
+            file_list=[fwo_const.GRAPHQL_QUERY_PATH + "rule/getRulebaseLinksByMgmId.graphql"]
+        )
+        mgm_id = self.import_state.state.mgm_details.current_mgm_id
+        rb_link_query_variables: dict[str, Any] = {
+            "mgmId": mgm_id,
+        }
+        try:
+            rb_link_result = self.import_state.api_call.call(rb_link_query, query_variables=rb_link_query_variables)
+            if "errors" in rb_link_result:
+                raise FwoImporterError(
+                    f"failed to fetch rulebase links for mgm id {mgm_id!s}: {rb_link_result['errors']!s}"
+                )
+            # update the previous config with the new rulebase links
+            rb_links_by_device = {
+                device["dev_uid"]: [
+                    RulebaseLinkUidBased(
+                        from_rulebase_uid=link["rulebaseByFromRulebaseId"]["uid"]
+                        if link["rulebaseByFromRulebaseId"]
+                        else None,
+                        from_rule_uid=link["rule"]["rule_uid"] if link["rule"] else None,
+                        to_rulebase_uid=link["rulebase"]["uid"],
+                        link_type=link["stm_link_type"]["name"],
+                        is_initial=link["is_initial"],
+                        is_global=link["is_global"],
+                        is_section=link["is_section"],
+                    )
+                    for link in device["rulebase_links"]
+                ]
+                for device in rb_link_result["data"]["device"]
+            }
+
+            for gw in previous_config.gateways:
+                if gw.Uid not in rb_links_by_device:
+                    raise FwoImporterError(
+                        f"gateway with UID {gw.Uid!s} not found in rulebase links fetched from DB for mgm id {mgm_id!s}"
+                    )
+                gw.RulebaseLinks = rb_links_by_device[gw.Uid]
+        except Exception:
+            FWOLogger.exception(f"failed to fetch rulebase links for mgm id {mgm_id!s}: {traceback.format_exc()!s}")
+            raise FwoImporterError("error while trying to fetch rulebase links") from None
 
     def _insert_missing_rule_to_gw_refs_in_db(self, refs_to_add: set[tuple[str, str]]):
         """Inserts missing rule enforced on gateway references to the database to fix consistency issues."""

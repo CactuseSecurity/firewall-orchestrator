@@ -824,6 +824,8 @@ INSERT INTO txt VALUES ('expand_all',	        'German', 	'Alles ausklappen');
 INSERT INTO txt VALUES ('expand_all',		    'English', 	'Expand all');
 INSERT INTO txt VALUES ('all',		            'German', 	'Alle');
 INSERT INTO txt VALUES ('all',		            'English', 	'All');
+INSERT INTO txt VALUES ('show_rules_without_owners','German', 'Regeln ohne Eigentümer');
+INSERT INTO txt VALUES ('show_rules_without_owners','English', 'Rules without Owners');
 INSERT INTO txt VALUES ('all_open',             'German',   'Alle offenen');
 INSERT INTO txt VALUES ('all_open',             'English',  'All open');
 INSERT INTO txt VALUES ('rule',		            'German', 	'Regel');
@@ -2818,6 +2820,20 @@ INSERT INTO txt VALUES ('derived_state',        'German',   'Abgeleiteter Status
 INSERT INTO txt VALUES ('derived_state',        'English',  'Derived state');
 INSERT INTO txt VALUES ('ext_states',           'German',   'Externe Status');
 INSERT INTO txt VALUES ('ext_states',           'English',  'External states');
+INSERT INTO txt VALUES ('static_external_states','German',   'Statische externe Status');
+INSERT INTO txt VALUES ('static_external_states','English',  'Static external states');
+INSERT INTO txt VALUES ('manual_external_states','German',    'Manuelle externe Status');
+INSERT INTO txt VALUES ('manual_external_states','English',   'Manual external states');
+INSERT INTO txt VALUES ('assigned_internal_states','German',  'Zugewiesene interne Status');
+INSERT INTO txt VALUES ('assigned_internal_states','English', 'Assigned internal states');
+INSERT INTO txt VALUES ('edit_external_state',   'German',    'Externen Status bearbeiten');
+INSERT INTO txt VALUES ('edit_external_state',   'English',   'Edit external state');
+INSERT INTO txt VALUES ('add_external_state',    'German',    'Externen Status hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_external_state',    'English',   'Add external state');
+INSERT INTO txt VALUES ('external_state_name_required', 'German', 'Externer Status-Name ist erforderlich.');
+INSERT INTO txt VALUES ('external_state_name_required', 'English', 'External state name is required.');
+INSERT INTO txt VALUES ('duplicate_external_state_name', 'German', 'Ein externer Status mit diesem Namen existiert bereits.');
+INSERT INTO txt VALUES ('duplicate_external_state_name', 'English', 'An external state with this name already exists.');
 INSERT INTO txt VALUES ('save_ext_states',      'German',   'Externe Status speichern');
 INSERT INTO txt VALUES ('save_ext_states',      'English',  'Save external states');
 INSERT INTO txt VALUES ('internal_state_name',  'German', 	'Interner Status-Name');
@@ -4453,6 +4469,10 @@ INSERT INTO txt VALUES ('C9029', 'English', 'Shows only orphaned entries for the
 ');
 INSERT INTO txt VALUES ('C9030', 'German',  'Nutzung der Schnittstelle enth&auml;lt Gruppenobjekte anderer Eigent&uuml;mer, die in Produktion nicht gefunden wurden. Beantragung unterdr&uuml;ckt.');
 INSERT INTO txt VALUES ('C9030', 'English', 'Used interface contains group objects of other owners that were not found in production. Request suppressed.');
+INSERT INTO txt VALUES ('C9031', 'German',  'Sie ben&ouml;tigen die Rolle recertifier, um diesen Owner zu rezertifizieren.');
+INSERT INTO txt VALUES ('C9031', 'English', 'You need the recertifier role to recertify this owner.');
+INSERT INTO txt VALUES ('C9032', 'German',  'Sie sind diesem Owner nicht als rezertifizierbare verantwortliche Person zugewiesen.');
+INSERT INTO txt VALUES ('C9032', 'English', 'You are not assigned to this owner as a recertifiable responsible person.');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -6295,6 +6315,8 @@ INSERT INTO txt VALUES ('H5531', 'English', 'An arbitrary number of states can b
 ');
 INSERT INTO txt VALUES ('H5532', 'German',  'Externe Status: Um interne Status &uuml;ber Aktionen ansprechen zu k&ouml;nnen, m&uuml;ssen sie vordefinierten, nach aussen sichtbaren Status zugeordnet werden.');
 INSERT INTO txt VALUES ('H5532', 'English', 'External States: To be used by actions, internal states have to be assigned to predefined externally visible states.');
+INSERT INTO txt VALUES ('H5533', 'German',  'Die Statusverwaltung trennt jetzt statische externe Status von manuell angelegten externen Status. Beide werden weiterhin in derselben Zuordnungstabelle gespeichert.');
+INSERT INTO txt VALUES ('H5533', 'English', 'The state editor now separates static external states from manually created external states. Both are still stored in the same mapping table.');
 INSERT INTO txt VALUES ('H5534', 'German',  'Aktualisierung per UI-Meldung best&auml;tigen: Nach erfolgreicher Aktualisierung zeigt die Aktion eine UI-Meldung mit der Anzahl aktualisierter Modellierungsobjekte an.');
 INSERT INTO txt VALUES ('H5534', 'English', 'Confirm modelling update via UI message: After a successful update, the action shows a UI message with the number of updated modelling objects.');
 INSERT INTO txt VALUES ('H5535', 'German',  'Aufgaben b&uuml;ndeln: Der Typ "2 von 3" vergleicht die drei Teile eines Zugriffs-Auftrags: Quellen, Ziele und Dienste. Stimmen zwei dieser drei Teile bei mehreren fachlichen Auftr&auml;gen &uuml;berein, erhalten diese Auftr&auml;ge dieselbe B&uuml;ndel-ID in den AdditionalInfo und k&ouml;nnen anschliessend gemeinsam verarbeitet werden.');
@@ -7123,10 +7145,10 @@ INSERT INTO txt VALUES ('H6943', 'German',  'Der <b>FlowRequestController</b> re
             <tr><td><code>getNetObjectValidity</code></td><td>Validiert eine Netzwerkobjekt-Definition.</td><td>Noch nicht implementiert.</td></tr>
             <tr><td><code>getNetGroupValidity</code></td><td>Validiert eine Netzwerkgruppen-Definition.</td><td>Noch nicht implementiert.</td></tr>
             <tr><td><code>createRequest</code></td><td>Erzeugt einen neuen Flow-bezogenen Request.</td><td>Noch nicht implementiert.</td></tr>
-            <tr><td><code>getRequestStatus</code></td><td>Liefert den Status eines vorhandenen Requests.</td><td>Noch nicht implementiert.</td></tr>
+            <tr><td><code>getRequestStatus</code></td><td>Liefert den Status eines vorhandenen Requests.</td><td>Implementiert. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
         </tbody>
     </table>
-    Diese Seite dokumentiert daher vor allem die vorgesehene API-Oberfl&auml;che. Sobald die Implementierung vorliegt, sollte die Beschreibung um konkrete Request- und Response-Beispiele erweitert werden.
+    Die &uuml;brigen aufgef&uuml;hrten Endpunkte dokumentieren die vorgesehene API-Oberfl&auml;che und sind noch nicht implementiert.
 ');
 INSERT INTO txt VALUES ('H6943', 'English', 'The <b>FlowRequestController</b> reserves endpoints for flow-related request functions below <code>/api/flow</code>.
     The controller structure already exists, but most endpoints currently return <code>501 Not Implemented</code>.
@@ -7138,10 +7160,10 @@ INSERT INTO txt VALUES ('H6943', 'English', 'The <b>FlowRequestController</b> re
             <tr><td><code>getNetObjectValidity</code></td><td>Validates a network object definition.</td><td>Not implemented yet.</td></tr>
             <tr><td><code>getNetGroupValidity</code></td><td>Validates a network group definition.</td><td>Not implemented yet.</td></tr>
             <tr><td><code>createRequest</code></td><td>Creates a new flow-related request.</td><td>Not implemented yet.</td></tr>
-            <tr><td><code>getRequestStatus</code></td><td>Returns the status of an existing request.</td><td>Not implemented yet.</td></tr>
+            <tr><td><code>getRequestStatus</code></td><td>Returns the status of an existing request.</td><td>Implemented. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
         </tbody>
     </table>
-    This page therefore mainly documents the intended API surface. Once the implementation exists, the description should be extended with concrete request and response examples.
+    The other listed endpoints document the intended API surface and are not implemented yet.
 ');
 INSERT INTO txt VALUES ('H6921', 'German',  'Der Import von Applikationsdaten wird aus einer oder mehreren .json-Dateien mit den in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> definierten Pfaden und Namen gespeist.
     Dort kann auch jeweils ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Dateien hinterlegt werden. Die .json-Datei hat die folgende Struktur:

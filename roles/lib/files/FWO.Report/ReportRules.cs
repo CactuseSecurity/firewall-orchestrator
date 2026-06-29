@@ -37,6 +37,7 @@ namespace FWO.Report
         private const int OrderedLinkType = 2;
         private const int InlineLinkType = 3;
         private const int DomainLinkType = 5;
+        private static readonly JsonSerializerOptions IndentedJsonSerializerOptions = new() { WriteIndented = true };
         protected bool UseAdditionalFilter = false;
 
         private static Dictionary<(int deviceId, int managementId), Rule[]> _rulesCache = [];
@@ -537,7 +538,7 @@ namespace FWO.Report
             {
                 return System.Text.Json.JsonSerializer.Serialize(
                     ReportData.ManagementData.Where(mgt => !mgt.Ignore),
-                    new JsonSerializerOptions { WriteIndented = true });
+                    IndentedJsonSerializerOptions);
             }
             else
             {

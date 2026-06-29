@@ -1,117 +1,160 @@
+using System.Linq;
 using System.Text.Json;
+using FWO.Basics;
 using FWO.Data;
 
-namespace FWO.Middleware.Server.Controllers
+namespace FWO.Middleware.Server.Controllers;
+
+/// <summary>
+/// Resolves rule response fields from database-backed and custom-field-backed data.
+/// </summary>
+public static class RuleFieldSourceResolver
 {
     /// <summary>
-    /// Resolves response fields from database-backed or custom-field-backed rule data.
+    /// Default fallback text used by the rule response for fields that cannot be resolved.
     /// </summary>
-    public static class RuleFieldSourceResolver
+    public const string NotFoundValue = "Not Found in Database";
+
+    /// <summary>
+    /// Resolves the owner information payload for a rule.
+    /// </summary>
+    public static OwnerInformation ResolveOwnerInformation(Rule rule, string customFieldKey)
     {
-        /// <summary>
-        /// Default fallback text used when a requested value cannot be resolved from the database or custom fields.
-        /// </summary>
-        public const string NotFoundValue = "Not Found in Database";
+        string? normalizedCustomFieldKey = NormalizeCustomFieldKeys(customFieldKey);
+        string? extAppId = normalizedCustomFieldKey is null
+            ? null
+            : CustomFieldResolver.ExtractCustomFieldValue<string>(rule, normalizedCustomFieldKey, out _);
+        OwnerMappingSourceStm? mappingSource = GetRuleOwnerMappingSource(rule);
 
-        /// <summary>
-        /// Gets the owner information source that should be used for a rule response.
-        /// </summary>
-        public static FieldSource ResolveOwnerInformationSource(FieldSourceMapping? fieldSourceMapping)
+        return mappingSource switch
         {
-            return fieldSourceMapping?.OwnerInformation ?? FieldSource.Database;
+            OwnerMappingSourceStm.CustomField => ResolveStrictOwnerInformation(rule, extAppId),
+            _ => ResolvePermissiveOwnerInformation(rule, extAppId)
+        };
+    }
+
+    /// <summary>
+    /// Resolves the additional information payload for a rule.
+    /// </summary>
+    public static AdditionalInformation ResolveAdditionalInformation(Rule rule, string customFieldKey)
+    {
+        string? normalizedCustomFieldKey = NormalizeCustomFieldKeys(customFieldKey);
+        if (normalizedCustomFieldKey is null)
+        {
+            return new AdditionalInformation();
         }
 
-        /// <summary>
-        /// Gets the change-id source that should be used for a rule response.
-        /// </summary>
-        public static FieldSource ResolveChangeIdSource(FieldSourceMapping? fieldSourceMapping)
+        return new AdditionalInformation
         {
-            return fieldSourceMapping?.ChangeId ?? FieldSource.CustomField;
-        }
+            ChangeId = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, normalizedCustomFieldKey, out _)
+        };
+    }
 
-        /// <summary>
-        /// Resolves the owner information display value.
-        /// </summary>
-        public static string ResolveOwnerInformation(Rule rule, FieldSource source, string customFieldKey, string notFoundValue)
+    private static OwnerInformation ResolveStrictOwnerInformation(Rule rule, string? extAppId)
+    {
+        int[] ownerIds = (rule.RuleOwner ?? [])
+            .OfType<RuleOwner>()
+            .Where(owner => owner.Removed is null)
+            .Select(owner => owner.OwnerId)
+            .ToArray();
+
+        if (ownerIds.Length == 0)
         {
-            return source switch
+            return new OwnerInformation
             {
-                FieldSource.Database => rule.RuleOwner.FirstOrDefault()?.OwnerId.ToString() ?? notFoundValue,
-                FieldSource.CustomField => ExtractCustomFieldValue(rule, customFieldKey) ?? notFoundValue,
-                _ => notFoundValue
+                ExtAppId = extAppId
             };
         }
 
-        /// <summary>
-        /// Resolves the change-id display value.
-        /// </summary>
-        public static string ResolveChangeId(Rule rule, FieldSource source, string customFieldKey, string notFoundValue)
+        if (ownerIds.Length > 1)
         {
-            return source switch
-            {
-                FieldSource.Database => notFoundValue,
-                FieldSource.CustomField => ExtractCustomFieldValue(rule, customFieldKey) ?? notFoundValue,
-                _ => notFoundValue
-            };
+            throw new InvalidOperationException(
+                $"Rule {rule.Id} has {ownerIds.Length} active owners. Exclusive owner mapping requires exactly one owner.");
         }
 
-        private static string? ExtractCustomFieldValue(Rule rule, string customFieldKey)
+        return new OwnerInformation
         {
-            string? keysJson = NormalizeCustomFieldKeys(customFieldKey);
-            if (string.IsNullOrWhiteSpace(keysJson))
+            ExtAppId = extAppId,
+            OwnerIds = [ownerIds[0]]
+        };
+    }
+
+    private static OwnerInformation ResolvePermissiveOwnerInformation(Rule rule, string? extAppId)
+    {
+        return new OwnerInformation
+        {
+            ExtAppId = extAppId,
+            OwnerIds = (rule.RuleOwner ?? [])
+                .OfType<RuleOwner>()
+                .Where(owner => owner.Removed is null)
+                .Select(owner => owner.OwnerId)
+                .ToList()
+        };
+    }
+
+    private static OwnerMappingSourceStm? GetRuleOwnerMappingSource(Rule rule)
+    {
+        int[] mappingSourceIds = (rule.RuleOwner ?? [])
+            .OfType<RuleOwner>()
+            .Where(owner => owner.Removed is null)
+            .Select(owner => owner.OwnerMappingSourceId)
+            .Where(mappingSourceId => mappingSourceId > 0)
+            .Distinct()
+            .ToArray();
+
+        if (mappingSourceIds.Length != 1 || !Enum.IsDefined(typeof(OwnerMappingSourceStm), mappingSourceIds[0]))
+        {
+            return null;
+        }
+
+        return (OwnerMappingSourceStm)mappingSourceIds[0];
+    }
+
+    private static string? NormalizeCustomFieldKeys(string customFieldKey)
+    {
+        if (string.IsNullOrWhiteSpace(customFieldKey))
+        {
+            return null;
+        }
+
+        string trimmed = customFieldKey.Trim();
+
+        try
+        {
+            string[]? keyArray = JsonSerializer.Deserialize<string[]>(trimmed);
+            if (keyArray is not null)
             {
+                List<string> cleanedKeys = keyArray
+                    .Where(key => !string.IsNullOrWhiteSpace(key))
+                    .Select(key => key.Trim())
+                    .ToList();
+
+                if (cleanedKeys.Count > 0)
+                {
+                    return JsonSerializer.Serialize(cleanedKeys);
+                }
+
                 return null;
             }
-
-            return CustomFieldResolver.ExtractCustomFieldValue<string>(rule, keysJson, out _);
         }
-
-        private static string? NormalizeCustomFieldKeys(string customFieldKey)
+        catch (JsonException)
         {
-            if (string.IsNullOrWhiteSpace(customFieldKey))
-            {
-                return null;
-            }
-
-            string trimmed = customFieldKey.Trim();
-
-            try
-            {
-                string[]? keyArray = JsonSerializer.Deserialize<string[]>(trimmed);
-                if (keyArray is not null)
-                {
-                    List<string> cleanedKeys = keyArray
-                        .Where(key => !string.IsNullOrWhiteSpace(key))
-                        .Select(key => key.Trim())
-                        .ToList();
-
-                    if (cleanedKeys.Count > 0)
-                    {
-                        return JsonSerializer.Serialize(cleanedKeys);
-                    }
-
-                    return null;
-                }
-            }
-            catch (JsonException)
-            {
-                // Fall back to treating the value as a single raw key.
-            }
-
-            try
-            {
-                string? singleKey = JsonSerializer.Deserialize<string>(trimmed);
-                if (!string.IsNullOrWhiteSpace(singleKey))
-                {
-                    return JsonSerializer.Serialize(new[] { singleKey.Trim() });
-                }
-            }
-            catch (JsonException)
-            {
-                // Fall back to treating the value as a single raw key.
-            }
-
-            return JsonSerializer.Serialize(new[] { trimmed });
+            // Fall back to treating the value as a single raw key.
         }
+
+        try
+        {
+            string? singleKey = JsonSerializer.Deserialize<string>(trimmed);
+            if (!string.IsNullOrWhiteSpace(singleKey))
+            {
+                return JsonSerializer.Serialize(new[] { singleKey.Trim() });
+            }
+        }
+        catch (JsonException)
+        {
+            // Fall back to treating the value as a single raw key.
+        }
+
+        return JsonSerializer.Serialize(new[] { trimmed });
     }
 }

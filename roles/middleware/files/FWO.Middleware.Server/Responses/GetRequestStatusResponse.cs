@@ -12,4 +12,10 @@ public sealed class GetRequestStatusResponse
     /// </summary>
     [JsonPropertyName("status")]
     public string Status { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets the StatusComment value.
+    /// </summary>
+    [JsonPropertyName("statusComment")]
+    public string StatusComment { get; set; } = string.Empty;
 }

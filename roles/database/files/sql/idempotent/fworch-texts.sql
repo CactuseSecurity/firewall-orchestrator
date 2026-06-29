@@ -4469,8 +4469,8 @@ INSERT INTO txt VALUES ('C9029', 'English', 'Shows only orphaned entries for the
 ');
 INSERT INTO txt VALUES ('C9030', 'German',  'Nutzung der Schnittstelle enth&auml;lt Gruppenobjekte anderer Eigent&uuml;mer, die in Produktion nicht gefunden wurden. Beantragung unterdr&uuml;ckt.');
 INSERT INTO txt VALUES ('C9030', 'English', 'Used interface contains group objects of other owners that were not found in production. Request suppressed.');
-INSERT INTO txt VALUES ('C9031', 'German',  'Sie ben&ouml;tigen die Rolle admin oder recertifier, um diesen Owner zu rezertifizieren.');
-INSERT INTO txt VALUES ('C9031', 'English', 'You need the admin or recertifier role to recertify this owner.');
+INSERT INTO txt VALUES ('C9031', 'German',  'Sie ben&ouml;tigen die Rolle recertifier, um diesen Owner zu rezertifizieren.');
+INSERT INTO txt VALUES ('C9031', 'English', 'You need the recertifier role to recertify this owner.');
 INSERT INTO txt VALUES ('C9032', 'German',  'Sie sind diesem Owner nicht als rezertifizierbare verantwortliche Person zugewiesen.');
 INSERT INTO txt VALUES ('C9032', 'English', 'You are not assigned to this owner as a recertifiable responsible person.');
 

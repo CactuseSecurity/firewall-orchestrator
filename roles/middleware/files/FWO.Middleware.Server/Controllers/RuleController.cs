@@ -531,7 +531,7 @@ public class RuleDetail
     public string ServiceShort { get; set; } = "";
 
     [JsonPropertyName("ownerInformation")]
-    public OwnerInformation OwnerInformation { get; set; } = new();
+    public List<OwnerInformation> OwnerInformation { get; set; } = [];
 
     [JsonPropertyName("additionalInformation")]
     public AdditionalInformation AdditionalInformation { get; set; } = new();

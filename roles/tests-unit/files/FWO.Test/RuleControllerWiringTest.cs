@@ -27,8 +27,9 @@ namespace FWO.Test
                 [CreateRule(ownerId: 123, customFields: "{'owner_key':'owner-from-custom','change_key':'chg-4711'}")]);
 
             ClassicAssert.AreEqual(1, rules.Count);
-            ClassicAssert.AreEqual(123, rules[0].OwnerInformation.Id);
-            ClassicAssert.AreEqual("owner-from-custom", rules[0].OwnerInformation.ExtAppId);
+            ClassicAssert.AreEqual(1, rules[0].OwnerInformation.Count);
+            ClassicAssert.AreEqual(123, rules[0].OwnerInformation[0].Id);
+            ClassicAssert.AreEqual("owner-from-custom", rules[0].OwnerInformation[0].ExtAppId);
             ClassicAssert.AreEqual("chg-4711", rules[0].AdditionalInformation.ChangeId);
 
             string json = JsonSerializer.Serialize(rules[0], WebJsonSerializerOptions);
@@ -36,8 +37,10 @@ namespace FWO.Test
 
             JsonElement root = document.RootElement;
             ClassicAssert.IsTrue(root.TryGetProperty("ownerInformation", out JsonElement ownerInformation));
-            ClassicAssert.AreEqual(123, ownerInformation.GetProperty("id").GetInt32());
-            ClassicAssert.AreEqual("owner-from-custom", ownerInformation.GetProperty("extAppId").GetString());
+            ClassicAssert.AreEqual(1, ownerInformation.GetArrayLength());
+            JsonElement owner = ownerInformation.EnumerateArray().Single();
+            ClassicAssert.AreEqual(123, owner.GetProperty("id").GetInt32());
+            ClassicAssert.AreEqual("owner-from-custom", owner.GetProperty("extAppId").GetString());
 
             ClassicAssert.IsTrue(root.TryGetProperty("additionalInformation", out JsonElement additionalInformation));
             ClassicAssert.AreEqual("chg-4711", additionalInformation.GetProperty("changeId").GetString());
@@ -51,8 +54,9 @@ namespace FWO.Test
                 CreateUserConfig(changeIdKeys: ""));
 
             ClassicAssert.AreEqual(1, rules.Count);
-            ClassicAssert.AreEqual(123, rules[0].OwnerInformation.Id);
-            ClassicAssert.AreEqual("owner-from-custom", rules[0].OwnerInformation.ExtAppId);
+            ClassicAssert.AreEqual(1, rules[0].OwnerInformation.Count);
+            ClassicAssert.AreEqual(123, rules[0].OwnerInformation[0].Id);
+            ClassicAssert.AreEqual("owner-from-custom", rules[0].OwnerInformation[0].ExtAppId);
             ClassicAssert.IsNull(rules[0].AdditionalInformation.ChangeId);
 
             string json = JsonSerializer.Serialize(rules[0], WebJsonSerializerOptions);
@@ -132,7 +136,7 @@ namespace FWO.Test
         {
             return new Rule
             {
-                RuleOwner = [new RuleOwner { OwnerId = ownerId }],
+                RuleOwner = [new RuleOwner { OwnerId = ownerId, OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField }],
                 CustomFields = customFields
             };
         }

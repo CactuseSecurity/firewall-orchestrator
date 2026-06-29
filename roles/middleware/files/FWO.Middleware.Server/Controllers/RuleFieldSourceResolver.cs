@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Text.Json;
+using FWO.Basics;
 using FWO.Data;
 
 namespace FWO.Middleware.Server.Controllers;
@@ -17,16 +18,18 @@ public static class RuleFieldSourceResolver
     /// <summary>
     /// Resolves the owner information payload for a rule.
     /// </summary>
-    public static OwnerInformation ResolveOwnerInformation(Rule rule, string customFieldKey)
+    public static List<OwnerInformation> ResolveOwnerInformation(Rule rule, string customFieldKey)
     {
         string? normalizedCustomFieldKey = NormalizeCustomFieldKeys(customFieldKey);
+        string? extAppId = normalizedCustomFieldKey is null
+            ? null
+            : CustomFieldResolver.ExtractCustomFieldValue<string>(rule, normalizedCustomFieldKey, out _);
+        OwnerMappingSourceStm? mappingSource = GetRuleOwnerMappingSource(rule);
 
-        return new OwnerInformation
+        return mappingSource switch
         {
-            Id = ResolveExclusiveOwnerId(rule),
-            ExtAppId = normalizedCustomFieldKey is null
-                ? null
-                : CustomFieldResolver.ExtractCustomFieldValue<string>(rule, normalizedCustomFieldKey, out _)
+            OwnerMappingSourceStm.CustomField => ResolveStrictOwnerInformation(rule, extAppId),
+            _ => ResolvePermissiveOwnerInformation(rule, extAppId)
         };
     }
 
@@ -47,12 +50,17 @@ public static class RuleFieldSourceResolver
         };
     }
 
-    private static int? ResolveExclusiveOwnerId(Rule rule)
+    private static List<OwnerInformation> ResolveStrictOwnerInformation(Rule rule, string? extAppId)
     {
         int[] ownerIds = (rule.RuleOwner ?? [])
             .OfType<RuleOwner>()
             .Select(owner => owner.OwnerId)
             .ToArray();
+
+        if (ownerIds.Length == 0)
+        {
+            return [];
+        }
 
         if (ownerIds.Length > 1)
         {
@@ -60,7 +68,43 @@ public static class RuleFieldSourceResolver
                 $"Rule {rule.Id} has {ownerIds.Length} active owners. Exclusive owner mapping requires exactly one owner.");
         }
 
-        return ownerIds.Length == 0 ? null : ownerIds[0];
+        return
+        [
+            new OwnerInformation
+            {
+                Id = ownerIds[0],
+                ExtAppId = extAppId
+            }
+        ];
+    }
+
+    private static List<OwnerInformation> ResolvePermissiveOwnerInformation(Rule rule, string? extAppId)
+    {
+        return (rule.RuleOwner ?? [])
+            .OfType<RuleOwner>()
+            .Select(owner => new OwnerInformation
+            {
+                Id = owner.OwnerId,
+                ExtAppId = extAppId
+            })
+            .ToList();
+    }
+
+    private static OwnerMappingSourceStm? GetRuleOwnerMappingSource(Rule rule)
+    {
+        int[] mappingSourceIds = (rule.RuleOwner ?? [])
+            .OfType<RuleOwner>()
+            .Select(owner => owner.OwnerMappingSourceId)
+            .Where(mappingSourceId => mappingSourceId > 0)
+            .Distinct()
+            .ToArray();
+
+        if (mappingSourceIds.Length != 1 || !Enum.IsDefined(typeof(OwnerMappingSourceStm), mappingSourceIds[0]))
+        {
+            return null;
+        }
+
+        return (OwnerMappingSourceStm)mappingSourceIds[0];
     }
 
     private static string? NormalizeCustomFieldKeys(string customFieldKey)

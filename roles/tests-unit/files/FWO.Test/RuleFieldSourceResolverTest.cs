@@ -1,4 +1,5 @@
 using System.Linq;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Middleware.Server.Controllers;
 using NUnit.Framework;
@@ -14,34 +15,41 @@ namespace FWO.Test
         public void ResolveOwnerInformation_ShouldUseDatabaseOwnerIdAndCustomFieldExtAppId()
         {
             Rule rule = CreateRule(
-                ownerId: 123,
-                customFields: "{'owner_key':'owner-from-custom'}");
+                OwnerMappingSourceStm.CustomField,
+                "{'owner_key':'owner-from-custom'}",
+                123);
 
-            OwnerInformation value = RuleFieldSourceResolver.ResolveOwnerInformation(rule, @"[""owner_key""]");
+            List<OwnerInformation> value = RuleFieldSourceResolver.ResolveOwnerInformation(
+                rule,
+                @"[""owner_key""]");
 
-            ClassicAssert.AreEqual(123, value.Id);
-            ClassicAssert.AreEqual("owner-from-custom", value.ExtAppId);
+            ClassicAssert.AreEqual(1, value.Count);
+            ClassicAssert.AreEqual(123, value[0].Id);
+            ClassicAssert.AreEqual("owner-from-custom", value[0].ExtAppId);
         }
 
         [Test]
         public void ResolveOwnerInformation_ShouldOmitExtAppIdWhenNoMappingIsConfigured()
         {
             Rule rule = CreateRule(
-                ownerId: 123,
-                customFields: "{'owner_key':'owner-from-custom'}");
+                OwnerMappingSourceStm.CustomField,
+                "{'owner_key':'owner-from-custom'}",
+                123);
 
-            OwnerInformation value = RuleFieldSourceResolver.ResolveOwnerInformation(rule, "");
+            List<OwnerInformation> value = RuleFieldSourceResolver.ResolveOwnerInformation(rule, "");
 
-            ClassicAssert.AreEqual(123, value.Id);
-            ClassicAssert.IsNull(value.ExtAppId);
+            ClassicAssert.AreEqual(1, value.Count);
+            ClassicAssert.AreEqual(123, value[0].Id);
+            ClassicAssert.IsNull(value[0].ExtAppId);
         }
 
         [Test]
         public void ResolveAdditionalInformation_ShouldUseChangeIdWhenConfigured()
         {
             Rule rule = CreateRule(
-                ownerId: 123,
-                customFields: "{'change_key':'chg-4711'}");
+                OwnerMappingSourceStm.CustomField,
+                "{'change_key':'chg-4711'}",
+                123);
 
             AdditionalInformation value = RuleFieldSourceResolver.ResolveAdditionalInformation(rule, @"[""change_key""]");
 
@@ -52,8 +60,9 @@ namespace FWO.Test
         public void ResolveAdditionalInformation_ShouldReturnEmptyObjectWhenNoMappingIsConfigured()
         {
             Rule rule = CreateRule(
-                ownerId: 123,
-                customFields: "{'change_key':'chg-4711'}");
+                OwnerMappingSourceStm.CustomField,
+                "{'change_key':'chg-4711'}",
+                123);
 
             AdditionalInformation value = RuleFieldSourceResolver.ResolveAdditionalInformation(rule, "");
 
@@ -64,8 +73,9 @@ namespace FWO.Test
         public void ResolveAdditionalInformation_ShouldUseJsonArrayCustomFieldKeys()
         {
             Rule rule = CreateRule(
-                ownerId: 123,
-                customFields: "{'change_key':'chg-4711','fallback_key':'chg-0001'}");
+                OwnerMappingSourceStm.CustomField,
+                "{'change_key':'chg-4711','fallback_key':'chg-0001'}",
+                123);
 
             AdditionalInformation value = RuleFieldSourceResolver.ResolveAdditionalInformation(
                 rule,
@@ -77,7 +87,7 @@ namespace FWO.Test
         [Test]
         public void ResolveOwnerInformation_ShouldRejectMultipleActiveOwners()
         {
-            Rule rule = CreateRule("{'owner_key':'owner-from-custom'}", 123, 456);
+            Rule rule = CreateRule(OwnerMappingSourceStm.CustomField, "{'owner_key':'owner-from-custom'}", 123, 456);
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
                 RuleFieldSourceResolver.ResolveOwnerInformation(rule, @"[""owner_key""]"))!;
@@ -85,16 +95,35 @@ namespace FWO.Test
             StringAssert.Contains("requires exactly one owner", exception.Message);
         }
 
-        private static Rule CreateRule(int ownerId, string customFields)
+        [Test]
+        public void ResolveOwnerInformation_ShouldReturnAllOwnersForNonCustomFieldMappings()
         {
-            return CreateRule(customFields, ownerId);
+            Rule rule = CreateRule(OwnerMappingSourceStm.NameField, "{'owner_key':'owner-from-custom'}", 123, 456);
+
+            List<OwnerInformation> value = RuleFieldSourceResolver.ResolveOwnerInformation(
+                rule,
+                @"[""owner_key""]");
+
+            ClassicAssert.AreEqual(2, value.Count);
+            ClassicAssert.AreEqual(123, value[0].Id);
+            ClassicAssert.AreEqual(456, value[1].Id);
+            ClassicAssert.AreEqual("owner-from-custom", value[0].ExtAppId);
         }
 
-        private static Rule CreateRule(string customFields, params int[] ownerIds)
+        private static Rule CreateRule(int ownerId, string customFields)
+        {
+            return CreateRule(OwnerMappingSourceStm.CustomField, customFields, ownerId);
+        }
+
+        private static Rule CreateRule(OwnerMappingSourceStm mappingSource, string customFields, params int[] ownerIds)
         {
             return new Rule
             {
-                RuleOwner = ownerIds.Select(ownerId => new RuleOwner { OwnerId = ownerId }).ToArray(),
+                RuleOwner = ownerIds.Select(ownerId => new RuleOwner
+                {
+                    OwnerId = ownerId,
+                    OwnerMappingSourceId = (int)mappingSource
+                }).ToArray(),
                 CustomFields = customFields
             };
         }

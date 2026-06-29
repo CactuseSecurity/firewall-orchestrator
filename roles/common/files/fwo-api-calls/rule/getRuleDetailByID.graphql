@@ -137,9 +137,9 @@ query RuleDetailById(
         rule_metadatum {
             rule_last_hit
         }
-        rule_owners
-        {
+        rule_owners(order_by: { owner_id: asc }) {
             owner_id
+            owner_mapping_source_id
         }
     }
 }

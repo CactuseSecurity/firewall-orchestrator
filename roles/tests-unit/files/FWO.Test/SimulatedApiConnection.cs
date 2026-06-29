@@ -49,7 +49,7 @@ namespace FWO.Test
     internal class SimulatedApiSubscription<SubscriptionResponseType> : GraphQlApiSubscription<SubscriptionResponseType>
     {
         public SimulatedApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate OnUpdate)
-         : base(apiConnection, graphQlClient, request, exceptionHandler, OnUpdate)
+         : base(graphQlClient, request, exceptionHandler, OnUpdate)
         { }
 
         protected override void CreateSubscription()

@@ -185,7 +185,7 @@ namespace FWO.Test
 
             public TestGraphQlApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request,
                 Action<Exception> exceptionHandler, SubscriptionUpdate onUpdate)
-                : base(apiConnection, graphQlClient, request, exceptionHandler, onUpdate)
+                : base(graphQlClient, request, exceptionHandler, onUpdate)
             {
             }
 
@@ -207,7 +207,7 @@ namespace FWO.Test
 
             public StreamBackedGraphQlApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request,
                 Action<Exception> exceptionHandler, SubscriptionUpdate onUpdate)
-                : base(apiConnection, graphQlClient, request, exceptionHandler, onUpdate)
+                : base(graphQlClient, request, exceptionHandler, onUpdate)
             {
             }
 

@@ -22,18 +22,14 @@ namespace FWO.Api.Client
 
         private GraphQLHttpClient _graphQlClient;
         public GraphQLRequest Request { get; init; }
-        private readonly ApiConnection _apiConnection;
-        private readonly SubscriptionUpdate _subscriptionUpdateHandler;
 
         private readonly object _lock = new();
         private bool _disposed;
 
-        public GraphQlApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate onUpdate)
+        public GraphQlApiSubscription(GraphQLHttpClient graphQlClient, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate onUpdate)
         {
-            _apiConnection = apiConnection;
             _graphQlClient = graphQlClient;
             Request = request;
-            _subscriptionUpdateHandler = onUpdate;
 
             OnUpdate += onUpdate;
             ExternalExceptionHandler = exceptionHandler;

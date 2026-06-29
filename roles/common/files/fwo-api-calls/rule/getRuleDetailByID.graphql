@@ -137,7 +137,12 @@ query RuleDetailById(
         rule_metadatum {
             rule_last_hit
         }
-        rule_owners(order_by: { owner_id: asc }) {
+        rule_owners(
+            where: {
+                removed: { _is_null: true }
+            }
+            order_by: { owner_id: asc }
+        ) {
             owner_id
             owner_mapping_source_id
         }

@@ -18,7 +18,7 @@ public static class RuleFieldSourceResolver
     /// <summary>
     /// Resolves the owner information payload for a rule.
     /// </summary>
-    public static List<OwnerInformation> ResolveOwnerInformation(Rule rule, string customFieldKey)
+    public static OwnerInformation ResolveOwnerInformation(Rule rule, string customFieldKey)
     {
         string? normalizedCustomFieldKey = NormalizeCustomFieldKeys(customFieldKey);
         string? extAppId = normalizedCustomFieldKey is null
@@ -50,16 +50,20 @@ public static class RuleFieldSourceResolver
         };
     }
 
-    private static List<OwnerInformation> ResolveStrictOwnerInformation(Rule rule, string? extAppId)
+    private static OwnerInformation ResolveStrictOwnerInformation(Rule rule, string? extAppId)
     {
         int[] ownerIds = (rule.RuleOwner ?? [])
             .OfType<RuleOwner>()
+            .Where(owner => owner.Removed is null)
             .Select(owner => owner.OwnerId)
             .ToArray();
 
         if (ownerIds.Length == 0)
         {
-            return [];
+            return new OwnerInformation
+            {
+                ExtAppId = extAppId
+            };
         }
 
         if (ownerIds.Length > 1)
@@ -68,32 +72,31 @@ public static class RuleFieldSourceResolver
                 $"Rule {rule.Id} has {ownerIds.Length} active owners. Exclusive owner mapping requires exactly one owner.");
         }
 
-        return
-        [
-            new OwnerInformation
-            {
-                Id = ownerIds[0],
-                ExtAppId = extAppId
-            }
-        ];
+        return new OwnerInformation
+        {
+            ExtAppId = extAppId,
+            OwnerIds = [ownerIds[0]]
+        };
     }
 
-    private static List<OwnerInformation> ResolvePermissiveOwnerInformation(Rule rule, string? extAppId)
+    private static OwnerInformation ResolvePermissiveOwnerInformation(Rule rule, string? extAppId)
     {
-        return (rule.RuleOwner ?? [])
-            .OfType<RuleOwner>()
-            .Select(owner => new OwnerInformation
-            {
-                Id = owner.OwnerId,
-                ExtAppId = extAppId
-            })
-            .ToList();
+        return new OwnerInformation
+        {
+            ExtAppId = extAppId,
+            OwnerIds = (rule.RuleOwner ?? [])
+                .OfType<RuleOwner>()
+                .Where(owner => owner.Removed is null)
+                .Select(owner => owner.OwnerId)
+                .ToList()
+        };
     }
 
     private static OwnerMappingSourceStm? GetRuleOwnerMappingSource(Rule rule)
     {
         int[] mappingSourceIds = (rule.RuleOwner ?? [])
             .OfType<RuleOwner>()
+            .Where(owner => owner.Removed is null)
             .Select(owner => owner.OwnerMappingSourceId)
             .Where(mappingSourceId => mappingSourceId > 0)
             .Distinct()

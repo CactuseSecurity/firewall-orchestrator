@@ -36,19 +36,19 @@ namespace FWO.Test
             RulesByFilterResponse response = ExtractResponse(actionResult);
             ClassicAssert.AreEqual("req-owner", response.RequestId);
             ClassicAssert.AreEqual(1, response.Result.Count);
-            ClassicAssert.AreEqual(1, response.Result.Rules[0].OwnerInformation.Count);
-            ClassicAssert.AreEqual(42, response.Result.Rules[0].OwnerInformation[0].Id);
-            ClassicAssert.AreEqual("owner-from-custom", response.Result.Rules[0].OwnerInformation[0].ExtAppId);
+            ClassicAssert.AreEqual(1, response.Result.Rules[0].OwnerInformation.OwnerIds.Count);
+            ClassicAssert.AreEqual(42, response.Result.Rules[0].OwnerInformation.OwnerIds[0]);
+            ClassicAssert.AreEqual("owner-from-custom", response.Result.Rules[0].OwnerInformation.ExtAppId);
             ClassicAssert.AreEqual("chg-4711", response.Result.Rules[0].AdditionalInformation.ChangeId);
 
             string json = JsonSerializer.Serialize(response);
             using JsonDocument document = JsonDocument.Parse(json);
 
             JsonElement rule = document.RootElement.GetProperty("result").GetProperty("rules")[0];
-            ClassicAssert.AreEqual(1, rule.GetProperty("ownerInformation").GetArrayLength());
-            JsonElement owner = rule.GetProperty("ownerInformation").EnumerateArray().Single();
-            ClassicAssert.AreEqual(42, owner.GetProperty("id").GetInt32());
-            ClassicAssert.AreEqual("owner-from-custom", owner.GetProperty("extAppId").GetString());
+            JsonElement ownerInformation = rule.GetProperty("ownerInformation");
+            ClassicAssert.AreEqual("owner-from-custom", ownerInformation.GetProperty("extAppId").GetString());
+            ClassicAssert.AreEqual(1, ownerInformation.GetProperty("ownerIds").GetArrayLength());
+            ClassicAssert.AreEqual(42, ownerInformation.GetProperty("ownerIds")[0].GetInt32());
             ClassicAssert.AreEqual("chg-4711", rule.GetProperty("additionalInformation").GetProperty("changeId").GetString());
         }
 
@@ -76,9 +76,9 @@ namespace FWO.Test
             RulesByFilterResponse response = ExtractResponse(actionResult);
             ClassicAssert.AreEqual("req-ip", response.RequestId);
             ClassicAssert.AreEqual(1, response.Result.Count);
-            ClassicAssert.AreEqual(1, response.Result.Rules[0].OwnerInformation.Count);
-            ClassicAssert.AreEqual(42, response.Result.Rules[0].OwnerInformation[0].Id);
-            ClassicAssert.AreEqual("owner-from-custom", response.Result.Rules[0].OwnerInformation[0].ExtAppId);
+            ClassicAssert.AreEqual(1, response.Result.Rules[0].OwnerInformation.OwnerIds.Count);
+            ClassicAssert.AreEqual(42, response.Result.Rules[0].OwnerInformation.OwnerIds[0]);
+            ClassicAssert.AreEqual("owner-from-custom", response.Result.Rules[0].OwnerInformation.ExtAppId);
             ClassicAssert.AreEqual("chg-4711", response.Result.Rules[0].AdditionalInformation.ChangeId);
         }
 

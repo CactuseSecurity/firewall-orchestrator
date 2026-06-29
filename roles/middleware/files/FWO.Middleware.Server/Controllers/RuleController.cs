@@ -531,7 +531,7 @@ public class RuleDetail
     public string ServiceShort { get; set; } = "";
 
     [JsonPropertyName("ownerInformation")]
-    public List<OwnerInformation> OwnerInformation { get; set; } = [];
+    public OwnerInformation OwnerInformation { get; set; } = new();
 
     [JsonPropertyName("additionalInformation")]
     public AdditionalInformation AdditionalInformation { get; set; } = new();
@@ -557,13 +557,12 @@ public class RuleDetail
 
 public class OwnerInformation
 {
-    [JsonPropertyName("id")]
-    [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public int? Id { get; set; }
-
     [JsonPropertyName("extAppId")]
     [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? ExtAppId { get; set; }
+
+    [JsonPropertyName("ownerIds")]
+    public List<int> OwnerIds { get; set; } = [];
 }
 
 public class AdditionalInformation

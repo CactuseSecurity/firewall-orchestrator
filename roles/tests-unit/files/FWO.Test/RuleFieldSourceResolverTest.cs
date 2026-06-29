@@ -19,13 +19,13 @@ namespace FWO.Test
                 "{'owner_key':'owner-from-custom'}",
                 123);
 
-            List<OwnerInformation> value = RuleFieldSourceResolver.ResolveOwnerInformation(
+            OwnerInformation value = RuleFieldSourceResolver.ResolveOwnerInformation(
                 rule,
                 @"[""owner_key""]");
 
-            ClassicAssert.AreEqual(1, value.Count);
-            ClassicAssert.AreEqual(123, value[0].Id);
-            ClassicAssert.AreEqual("owner-from-custom", value[0].ExtAppId);
+            ClassicAssert.AreEqual(1, value.OwnerIds.Count);
+            ClassicAssert.AreEqual(123, value.OwnerIds[0]);
+            ClassicAssert.AreEqual("owner-from-custom", value.ExtAppId);
         }
 
         [Test]
@@ -36,11 +36,11 @@ namespace FWO.Test
                 "{'owner_key':'owner-from-custom'}",
                 123);
 
-            List<OwnerInformation> value = RuleFieldSourceResolver.ResolveOwnerInformation(rule, "");
+            OwnerInformation value = RuleFieldSourceResolver.ResolveOwnerInformation(rule, "");
 
-            ClassicAssert.AreEqual(1, value.Count);
-            ClassicAssert.AreEqual(123, value[0].Id);
-            ClassicAssert.IsNull(value[0].ExtAppId);
+            ClassicAssert.AreEqual(1, value.OwnerIds.Count);
+            ClassicAssert.AreEqual(123, value.OwnerIds[0]);
+            ClassicAssert.IsNull(value.ExtAppId);
         }
 
         [Test]
@@ -96,18 +96,36 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ResolveOwnerInformation_ShouldIgnoreRemovedOwners()
+        {
+            Rule rule = CreateRule(
+                OwnerMappingSourceStm.CustomField,
+                "{'owner_key':'owner-from-custom'}",
+                CreateRuleOwner(123, removed: 99),
+                CreateRuleOwner(456));
+
+            OwnerInformation value = RuleFieldSourceResolver.ResolveOwnerInformation(
+                rule,
+                @"[""owner_key""]");
+
+            ClassicAssert.AreEqual(1, value.OwnerIds.Count);
+            ClassicAssert.AreEqual(456, value.OwnerIds[0]);
+            ClassicAssert.AreEqual("owner-from-custom", value.ExtAppId);
+        }
+
+        [Test]
         public void ResolveOwnerInformation_ShouldReturnAllOwnersForNonCustomFieldMappings()
         {
             Rule rule = CreateRule(OwnerMappingSourceStm.NameField, "{'owner_key':'owner-from-custom'}", 123, 456);
 
-            List<OwnerInformation> value = RuleFieldSourceResolver.ResolveOwnerInformation(
+            OwnerInformation value = RuleFieldSourceResolver.ResolveOwnerInformation(
                 rule,
                 @"[""owner_key""]");
 
-            ClassicAssert.AreEqual(2, value.Count);
-            ClassicAssert.AreEqual(123, value[0].Id);
-            ClassicAssert.AreEqual(456, value[1].Id);
-            ClassicAssert.AreEqual("owner-from-custom", value[0].ExtAppId);
+            ClassicAssert.AreEqual(2, value.OwnerIds.Count);
+            ClassicAssert.AreEqual(123, value.OwnerIds[0]);
+            ClassicAssert.AreEqual(456, value.OwnerIds[1]);
+            ClassicAssert.AreEqual("owner-from-custom", value.ExtAppId);
         }
 
         private static Rule CreateRule(int ownerId, string customFields)
@@ -117,14 +135,31 @@ namespace FWO.Test
 
         private static Rule CreateRule(OwnerMappingSourceStm mappingSource, string customFields, params int[] ownerIds)
         {
+            return CreateRule(
+                mappingSource,
+                customFields,
+                ownerIds.Select(ownerId => CreateRuleOwner(ownerId)).ToArray());
+        }
+
+        private static Rule CreateRule(OwnerMappingSourceStm mappingSource, string customFields, params RuleOwner[] owners)
+        {
             return new Rule
             {
-                RuleOwner = ownerIds.Select(ownerId => new RuleOwner
+                RuleOwner = owners.Select(owner =>
                 {
-                    OwnerId = ownerId,
-                    OwnerMappingSourceId = (int)mappingSource
+                    owner.OwnerMappingSourceId = (int)mappingSource;
+                    return owner;
                 }).ToArray(),
                 CustomFields = customFields
+            };
+        }
+
+        private static RuleOwner CreateRuleOwner(int ownerId, long? removed = null)
+        {
+            return new RuleOwner
+            {
+                OwnerId = ownerId,
+                Removed = removed
             };
         }
     }

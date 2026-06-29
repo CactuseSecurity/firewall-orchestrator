@@ -14,6 +14,8 @@ namespace FWO.Test
     [Parallelizable]
     internal class RuleControllerWiringTest
     {
+        private static readonly JsonSerializerOptions WebJsonSerializerOptions = new(JsonSerializerDefaults.Web);
+
         private static readonly MethodInfo ConvertRuleListMethod =
             typeof(RuleController).GetMethod("ConvertRuleList", BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new MissingMethodException(typeof(RuleController).FullName, "ConvertRuleList");
@@ -29,7 +31,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("owner-from-custom", rules[0].OwnerInformation.ExtAppId);
             ClassicAssert.AreEqual("chg-4711", rules[0].AdditionalInformation.ChangeId);
 
-            string json = JsonSerializer.Serialize(rules[0], new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            string json = JsonSerializer.Serialize(rules[0], WebJsonSerializerOptions);
             using JsonDocument document = JsonDocument.Parse(json);
 
             JsonElement root = document.RootElement;
@@ -53,7 +55,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("owner-from-custom", rules[0].OwnerInformation.ExtAppId);
             ClassicAssert.IsNull(rules[0].AdditionalInformation.ChangeId);
 
-            string json = JsonSerializer.Serialize(rules[0], new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            string json = JsonSerializer.Serialize(rules[0], WebJsonSerializerOptions);
             using JsonDocument document = JsonDocument.Parse(json);
 
             JsonElement root = document.RootElement;

@@ -7,6 +7,7 @@ namespace FWO.Services.Workflow
 {
     public class ExtStateHandler
     {
+        private static readonly HashSet<string> StaticStateNames = new(Enum.GetNames<ExtStates>());
         private readonly ApiConnection apiConnection;
         private List<WfExtState> extStates = [];
 
@@ -30,17 +31,34 @@ namespace FWO.Services.Workflow
 
         public int? GetInternalStateId(ExtStates extState)
         {
-            return extStates.FirstOrDefault(e => e.Name == extState.ToString())?.StateId;
+            return extStates.FirstOrDefault(e => e.Name == extState.ToString() && e.StateId != null)?.StateId;
         }
 
         public int? GetInternalStateId(string extState)
         {
-            return extStates.FirstOrDefault(e => e.Name == extState)?.StateId;
+            return extStates.FirstOrDefault(e => e.Name == extState && e.StateId != null)?.StateId;
         }
 
-        public string? GetExternalStateName(int stateId)
+        public string? GetExternalStateName(int stateId, bool preferManual = false)
         {
-            return extStates.FirstOrDefault(e => e.StateId == stateId)?.Name;
+            return GetPreferredExternalStateName(extStates, stateId, preferManual);
+        }
+
+        public static string? GetPreferredExternalStateName(IEnumerable<WfExtState> extStates, int stateId, bool preferManual = false)
+        {
+            IEnumerable<WfExtState> matches = extStates
+                .Where(e => e.StateId == stateId && !string.IsNullOrWhiteSpace(e.Name));
+
+            if (preferManual)
+            {
+                string? manualMatch = matches.FirstOrDefault(e => !StaticStateNames.Contains(e.Name))?.Name;
+                if (!string.IsNullOrWhiteSpace(manualMatch))
+                {
+                    return manualMatch;
+                }
+            }
+
+            return matches.FirstOrDefault()?.Name;
         }
 
         public bool IsInProgress(int stateId)

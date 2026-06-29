@@ -30,7 +30,6 @@ namespace FWO.Services.RuleTreeBuilder
         private const string LogMessageTitle = "Rule Tree Builder";
         private const int OrderedLinkType = 2;
         private const int InlineLinkType = 3;
-        private const int ConcatenatedLinkType = 4;
         private const int DomainLinkType = 5;
 
         /// <summary>
@@ -436,7 +435,7 @@ namespace FWO.Services.RuleTreeBuilder
 
             List<RulebaseLink> nextLayerCandidates = [.. candidates
                 .Where(LinksToBeProcessed.Contains)
-                .Where(link => !link.IsSection)
+                .Where(link => !link.IsSection) // also implies LinkType == ConcatenatedLinkType = 4
                 .Where(link => link.LinkType == OrderedLinkType || link.LinkType == DomainLinkType)];
 
             return nextLayerCandidates.Count switch

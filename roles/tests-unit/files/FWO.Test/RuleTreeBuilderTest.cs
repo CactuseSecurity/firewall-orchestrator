@@ -11,6 +11,15 @@ namespace FWO.Test
     [TestFixture]
     internal class RuleTreeBuilderTest
     {
+        private static readonly int[] kExpectedShuffledRulebaseIds = [1, 2, 3];
+        private static readonly string[] kExpectedShuffledDisplayOrderNumbers = ["1", "1.1", string.Empty, "1.2", "2", "2.1"];
+        private static readonly string[] kExpectedInlineRulebaseDisplayOrderNumbers = ["1.1", "1.1.1", "1.1.2"];
+        private static readonly string[] kExpectedTwoLayerDisplayOrderNumbers = ["1", "1.1", "2", "2.1"];
+        private static readonly double[] kExpectedSequentialOrderNumbers = [1, 2, 3, 4];
+        private static readonly int[] kExpectedSequentialDisplayOrderNumbers = [1, 2, 3, 4];
+        private static readonly string[] kExpectedSectionHeaderDisplayOrderNumbers = ["1", string.Empty, string.Empty];
+        private static readonly string[] kExpectedSectionRuleDisplayOrderNumbers = ["1.1", "1.2", "1.3", "1.4"];
+
         private RuleTreeBuilder _ruleTreeBuilder = default!;
 
         [SetUp]
@@ -62,11 +71,8 @@ namespace FWO.Test
             List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1);
             Rule[] realRules = flattenedRules.Where(rule => string.IsNullOrEmpty(rule.SectionHeader)).ToArray();
 
-            Assert.That(realRules.Select(rule => rule.RulebaseId), Is.EqualTo(new[] { 1, 2, 3 }));
-            Assert.That(flattenedRules.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(new[]
-            {
-                "1", "1.1", string.Empty, "1.2", "2", "2.1"
-            }));
+            Assert.That(realRules.Select(rule => rule.RulebaseId), Is.EqualTo(kExpectedShuffledRulebaseIds));
+            Assert.That(flattenedRules.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(kExpectedShuffledDisplayOrderNumbers));
         }
 
         [Test]
@@ -89,11 +95,8 @@ namespace FWO.Test
             List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1);
             Rule[] realRules = flattenedRules.Where(rule => string.IsNullOrEmpty(rule.SectionHeader)).ToArray();
 
-            Assert.That(realRules.Select(rule => rule.RulebaseId), Is.EqualTo(new[] { 1, 2, 3 }));
-            Assert.That(realRules.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(new[]
-            {
-                "1.1", "1.1.1", "1.1.2"
-            }));
+            Assert.That(realRules.Select(rule => rule.RulebaseId), Is.EqualTo(kExpectedShuffledRulebaseIds));
+            Assert.That(realRules.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(kExpectedInlineRulebaseDisplayOrderNumbers));
             Assert.That(flattenedRules.Single(rule => rule.SectionHeader == "Inline-Section").DisplayOrderNumberString, Is.EqualTo(string.Empty));
             Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => element.IsSectionHeader), Is.EqualTo(1));
         }
@@ -154,10 +157,7 @@ namespace FWO.Test
 
             List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1);
 
-            Assert.That(flattenedRules.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(new[]
-            {
-                "1", "1.1", "2", "2.1"
-            }));
+            Assert.That(flattenedRules.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(kExpectedTwoLayerDisplayOrderNumbers));
         }
 
         [Test]
@@ -329,8 +329,8 @@ namespace FWO.Test
 
             List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1);
 
-            Assert.That(flattenedRules.Select(rule => rule.OrderNumber), Is.EqualTo(new double[] { 1, 2, 3, 4 }));
-            Assert.That(flattenedRules.Select(rule => rule.DisplayOrderNumber), Is.EqualTo(new[] { 1, 2, 3, 4 }));
+            Assert.That(flattenedRules.Select(rule => rule.OrderNumber), Is.EqualTo(kExpectedSequentialOrderNumbers));
+            Assert.That(flattenedRules.Select(rule => rule.DisplayOrderNumber), Is.EqualTo(kExpectedSequentialDisplayOrderNumbers));
         }
 
         [Test]
@@ -354,8 +354,8 @@ namespace FWO.Test
             Rule[] sectionHeaders = flattenedRules.Where(rule => !string.IsNullOrEmpty(rule.SectionHeader)).ToArray();
             Rule[] realRules = flattenedRules.Where(rule => string.IsNullOrEmpty(rule.SectionHeader)).ToArray();
 
-            Assert.That(sectionHeaders.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(new[] { "1", string.Empty, string.Empty }));
-            Assert.That(realRules.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(new[] { "1.1", "1.2", "1.3", "1.4" }));
+            Assert.That(sectionHeaders.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(kExpectedSectionHeaderDisplayOrderNumbers));
+            Assert.That(realRules.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(kExpectedSectionRuleDisplayOrderNumbers));
         }
 
         private static RulebaseReport Rulebase(int id, string name, params int[] ruleIds)

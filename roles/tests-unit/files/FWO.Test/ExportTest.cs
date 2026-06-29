@@ -187,6 +187,37 @@ namespace FWO.Test
             ClassicAssert.AreEqual(expectedHtmlResult, reportHtml);
         }
 
+        [Test]
+        public void RecertReportGenerateHtml_WithEmptyOwnerContext_RendersRule()
+        {
+            Log.WriteInfo("Test Log", "starting recert report html generation with empty owner context");
+            DateTime referenceDate = DateTime.Today;
+            ReportRules reportRecerts = ConstructReportRules(query, userConfig, ReportType.Recertification, ConstructRecertReportRules(false, referenceDate));
+
+            reportRecerts.ReportData.ManagementData.First().Rulebases.First().Rules[0].Metadata.RuleRecertification = [];
+
+            string reportHtml = RemoveLinebreaks(reportRecerts.ExportToHtml());
+
+            string utcNow = DateTimeOffset.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'");
+            reportHtml = RFC3339DateTimePattern().Replace(reportHtml, utcNow);
+
+            IEnumerable<string> matches = reportHtml.GetMatches(ToCRegexPattern, ToCAnkerIdGroupName);
+            reportHtml = reportHtml.ReplaceAll(matches, StaticAnkerId);
+
+            Assert.Multiple(() =>
+            {
+                StringAssert.Contains("<title>Recertification Report</title>", reportHtml);
+                StringAssert.Contains("<td>TestRule1</td>", reportHtml);
+                StringAssert.Contains("<td>TestRule2</td>", reportHtml);
+
+                // First rule keeps rendering even when its recert owner context is empty.
+                StringAssert.Contains("<tr><td></td><td></td><td></td><td>2022-04-19</td><td>2023-04-05</td><td>TestRule1</td>", reportHtml);
+
+                // The removed owner context must no longer render the old multi-owner cell for rule 1.
+                StringAssert.DoesNotContain("<td><p>1.&nbsp;TestOwner1</p><p>2.&nbsp;TestOwner2</p></td>", reportHtml);
+            });
+        }
+
         [Test, Ignore("temporarily disabled for importer-rework")]
         public void NatRulesGenerateHtml()
         {

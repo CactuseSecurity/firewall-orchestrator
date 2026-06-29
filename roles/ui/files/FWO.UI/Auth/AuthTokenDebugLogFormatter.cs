@@ -2,8 +2,6 @@ using FWO.Data.Middleware;
 using FWO.Middleware.Client;
 using RestSharp;
 using System.IdentityModel.Tokens.Jwt;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace FWO.Ui.Auth;
 
@@ -12,8 +10,6 @@ namespace FWO.Ui.Auth;
 /// </summary>
 public static class AuthTokenDebugLogFormatter
 {
-    private const int kFingerprintLength = 16;
-
     /// <summary>
     /// Builds a debug log message for the access token returned by a successful login.
     /// </summary>
@@ -33,22 +29,14 @@ public static class AuthTokenDebugLogFormatter
             return $"User \"{username}\" logged in, but no access token was available for debug logging.";
         }
 
-        string fingerprint = CreateTokenFingerprint(accessToken);
-
         try
         {
             JwtSecurityToken token = new JwtSecurityTokenHandler().ReadJwtToken(accessToken);
-            return $"User \"{username}\" received access JWT jti={token.Id}, expires={token.ValidTo:yyyy-MM-dd'T'HH:mm:ss'Z'}, fingerprint={fingerprint}.";
+            return $"User \"{username}\" received access JWT jti={token.Id}, expires={token.ValidTo.ToLocalTime():yyyy-MM-dd'T'HH:mm:sszzz}.";
         }
         catch (ArgumentException)
         {
-            return $"User \"{username}\" received an unreadable access JWT with fingerprint={fingerprint}.";
+            return $"User \"{username}\" received an unreadable access JWT.";
         }
-    }
-
-    private static string CreateTokenFingerprint(string accessToken)
-    {
-        byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(accessToken));
-        return Convert.ToHexString(hash)[..kFingerprintLength];
     }
 }

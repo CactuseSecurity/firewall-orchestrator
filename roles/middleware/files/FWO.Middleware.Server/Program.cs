@@ -130,8 +130,7 @@ builder.Services.AddSwaggerGen(c =>
     string documentationPath = Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml");
     c.IncludeXmlComments(documentationPath);
 
-    //! Microsoft broke the current OpenAPI "AddSecurityRequirement" so we have to use the workaround with "OpenApiSecuritySchemeReference" until they fix it
-    c.AddSecurityDefinition("bearer", new OpenApiSecurityScheme
+    c.AddSecurityDefinition(SwashbuckleAuthorizationOperationFilter.BearerSchemeId, new OpenApiSecurityScheme
     {
         Type = SecuritySchemeType.Http,
         Scheme = "bearer",
@@ -139,10 +138,8 @@ builder.Services.AddSwaggerGen(c =>
         Description = "JWT Authorization header using the Bearer scheme."
     });
 
-    c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
-    {
-        [new OpenApiSecuritySchemeReference("bearer", document)] = []
-    });
+    // Apply the bearer requirement per operation so anonymous endpoints (e.g. login/token issuance) do not advertise it.
+    c.OperationFilter<SwashbuckleAuthorizationOperationFilter>();
     c.OperationFilter<SwashbuckleApiExampleOperationFilter>();
 });
 

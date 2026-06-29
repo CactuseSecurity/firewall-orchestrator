@@ -82,6 +82,12 @@ namespace FWO.Test
             ClassicAssert.AreEqual("chg-4711", response.Result.Rules[0].AdditionalInformation.ChangeId);
         }
 
+        [Test]
+        public void GetRulesByFilter_OwnerLookupQuery_ShouldFilterRemovedRuleOwners()
+        {
+            StringAssert.Contains("removed: { _is_null: true }", RuleQueries.getRuleIdsByRuleOwner);
+        }
+
         private static RuleController CreateController(ApiConnection apiConnection, string requestId)
         {
             RuleController controller = new(apiConnection);

@@ -343,6 +343,36 @@ namespace FWO.Test
 
         [Test]
         [Parallelizable]
+        public void RecertShowRulesWithoutOwner_AddsRuleOwnersNotClause()
+        {
+            ReportTemplate t = new();
+            t.ReportParams.ReportType = (int)ReportType.Recertification;
+            t.ReportParams.RecertFilter.ShowRulesWithoutOwner = true;
+            t.ReportParams.RecertFilter.RecertOwnerList = [];
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            ClassicAssert.AreEqual(true, query.QueryVariables.ContainsKey("ownerWhere"));
+            ClassicAssert.AreEqual("{}", JsonSerializer.Serialize(query.QueryVariables["ownerWhere"]));
+            StringAssert.Contains("{ _not: { rule_owners: { removed: { _is_null: true } } } }", query.RuleWhereStatement);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void RecertShowRulesWithoutOwner_LeavesOwnerWhereEmptyWhenNoOwnersSelected()
+        {
+            ReportTemplate t = new();
+            t.ReportParams.ReportType = (int)ReportType.Recertification;
+            t.ReportParams.RecertFilter.ShowRulesWithoutOwner = true;
+            t.ReportParams.RecertFilter.RecertOwnerList = [];
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            ClassicAssert.AreEqual("{}", JsonSerializer.Serialize(query.QueryVariables["ownerWhere"]));
+        }
+
+        [Test]
+        [Parallelizable]
         public void RecertQueryBuildsRulebaseRulesBlock()
         {
             ReportTemplate t = new();

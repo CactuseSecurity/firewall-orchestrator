@@ -256,7 +256,16 @@ namespace FWO.Services.RuleTreeBuilder
         /// </summary>
         private void TraverseOrderedLayers()
         {
-            RulebaseLink initialLink = FindInitialLink();
+            RulebaseLink? initialLink = FindInitialLink();
+            if (initialLink == null)
+            {
+                Log.WriteWarning(LogMessageTitle, "No initial rulebase link was found, so the rule tree will be empty.");
+                if (LinksToBeProcessed.Count > 0)
+                {
+                    Log.WriteWarning(LogMessageTitle, $"The rulebase-link graph contains {LinksToBeProcessed.Count} link(s) but no initial link, so the tree cannot be built.");
+                }
+                return;
+            }
             RemoveLinkFromProcessingQueue(initialLink);
 
             int currentLayerRulebaseId = initialLink.NextRulebaseId;
@@ -415,14 +424,14 @@ namespace FWO.Services.RuleTreeBuilder
         /// requires exactly one initial link because ordered-layer traversal must have a unique
         /// graph entry point. Missing or multiple initial links are treated as hard data errors.
         /// </summary>
-        private RulebaseLink FindInitialLink()
+        private RulebaseLink? FindInitialLink()
         {
             List<RulebaseLink> initialLinks = [.. LinksToBeProcessed.Where(link => link.IsInitial)];
 
             return initialLinks.Count switch
             {
                 1 => initialLinks[0],
-                0 => throw new InvalidOperationException("Exactly one initial rulebase link is required, but none were found."),
+                0 => null,
                 _ => throw new InvalidOperationException("Exactly one initial rulebase link is required, but multiple were found.")
             };
         }

@@ -60,10 +60,10 @@
                                 
                                 @if (_emptyColumns[0] == false)
                                 {
-                                    <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("number"))" DefaultSortColumn="true" Field="@(ruleTreeItem => ruleTreeItem.Data!.OrderNumber)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("number"))" DefaultSortColumn="true" Field="@(ruleTreeItem => ruleTreeItem.Data!.DisplayOrderNumber)" Sortable="true" Filterable="false" Hideable="true">
                                         <Template>
                                             <span style="cursor:pointer; white-space:nowrap;" @onclick="() => OnNumberIconClickToggle(ruleTreeItem.Data!, management, device)">
-                                                @((MarkupString)GetToggleArrow(ruleTreeItem.Data!, management, device))@((MarkupString)RuleDisplayHtml.DisplayNumber(ruleTreeItem.Data!))
+                                                @((MarkupString)GetToggleArrow(ruleTreeItem.Data!, management, device))@((MarkupString)RuleDisplayHtml.DisplayHierarchicalNumber(ruleTreeItem.Data!))
                                             </span>
                                         </Template>
                                     </Column>
@@ -236,7 +236,7 @@
                                     <tr>
                                         <td>
                                             <div style="cursor:pointer; white-space:nowrap;" @onclick="() => OnNumberIconClickToggle(context.Data!, management, device)">
-                                                @((MarkupString)GetToggleArrow(context.Data!, management, device))@((MarkupString)RuleDisplayHtml.DisplayNumber(context.Data!))
+                                                @((MarkupString)GetToggleArrow(context.Data!, management, device))@((MarkupString)RuleDisplayHtml.DisplayHierarchicalNumber(context.Data!))
                                             </div>
                              
                                         </td>

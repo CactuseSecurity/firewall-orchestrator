@@ -9,11 +9,11 @@ using FWO.Services.RuleTreeBuilder;
 using FWO.Logging;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
-using Newtonsoft.Json;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
+using System.Globalization;
 using Rule = FWO.Data.Rule;
 
 namespace FWO.Report
@@ -163,7 +163,7 @@ namespace FWO.Report
                     List<Rule> allRules = scopedRuleTreeBuilder.BuildRuleTree(managementReport.Rulebases, deviceReport.RulebaseLinks, managementReport.Id, deviceReport.Id);
                     ApplyPreferredCollapseState(scopedRuleTreeBuilder, managementReport.Id, deviceReport.Id);
 
-                    Rule[] rulesArray = [.. allRules];
+                    Rule[] rulesArray = GetRealRulesForExport(allRules);
                     _rulesCache[(deviceReport.Id, managementReport.Id)] = rulesArray;
 
                     // Add all rule ids to ReportedRuleIds of management, that are not already in that list
@@ -172,7 +172,7 @@ namespace FWO.Report
                         rulesArray.Select(r => r.Id).Except(managementReport.ReportedRuleIds)
                     );
 
-                    ruleCount += rulesArray.Count(rule => string.IsNullOrEmpty(rule.SectionHeader));
+                    ruleCount += rulesArray.Length;
                 }
             }
 
@@ -201,6 +201,14 @@ namespace FWO.Report
                 default:
                     break;
             }
+        }
+
+        /// <summary>
+        /// Filters the flattened tree result down to the real (non-header) rules that exports operate on.
+        /// </summary>
+        private static Rule[] GetRealRulesForExport(IEnumerable<Rule> flattenedRules)
+        {
+            return [.. flattenedRules.Where(rule => string.IsNullOrEmpty(rule.SectionHeader))];
         }
 
         protected virtual void SetMgtQueryVars(ManagementReport management)
@@ -466,43 +474,6 @@ namespace FWO.Report
             return $"{managementCounter} {userConfig.GetText("managements")}, {deviceCounter} {userConfig.GetText("gateways")}, {ruleCounter} {userConfig.GetText("rules")}";
         }
 
-        private string ExportSingleRulebaseToCsv(StringBuilder report, RuleDisplayCsv ruleDisplayCsv, ManagementReport managementReport, DeviceReport gateway, RulebaseLink? rbLink)
-        {
-            if (rbLink == null)
-            {
-                return report.ToString();
-            }
-            foreach (var rule in GetRulesByRulebaseId(rbLink.NextRulebaseId, managementReport)) // just dealing with the first rb for starters
-            {
-                if (string.IsNullOrEmpty(rule.SectionHeader))
-                {
-                    report.Append(ruleDisplayCsv.OutputCsv(managementReport.Name));
-                    report.Append(ruleDisplayCsv.OutputCsv(gateway.Name));
-                    report.Append(ruleDisplayCsv.DisplayNumberCsv(rule));
-                    report.Append(ruleDisplayCsv.DisplayNameCsv(rule));
-                    report.Append(ruleDisplayCsv.DisplaySourceZoneCsv(rule));
-                    report.Append(ruleDisplayCsv.DisplaySourceCsv(rule, ReportType));
-                    report.Append(ruleDisplayCsv.DisplayDestinationZoneCsv(rule));
-                    report.Append(ruleDisplayCsv.DisplayDestinationCsv(rule, ReportType));
-                    report.Append(ruleDisplayCsv.DisplayServicesCsv(rule, ReportType));
-                    report.Append(ruleDisplayCsv.DisplayActionCsv(rule));
-                    report.Append(ruleDisplayCsv.DisplayTrackCsv(rule));
-                    report.Append(ruleDisplayCsv.DisplayEnabledCsv(rule));
-                    report.Append(ruleDisplayCsv.DisplayUidCsv(rule));
-                    report.Append(ruleDisplayCsv.DisplayCommentCsv(rule));
-                    report.Append(ruleDisplayCsv.DisplayLastModifiedCsv(rule));
-                    report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
-                    report.AppendLine("");  // EO rule
-                }
-                else
-                {
-                    //NOSONAR - temporarily disabled //report.AppendLine("\"section header\": \"" + rule.SectionHeader + "\"");
-                }
-                ExportSingleRulebaseToCsv(report, ruleDisplayCsv, managementReport, gateway, gateway.RulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id));
-            }
-            return report.ToString();
-        }
-
         public override string ExportToCsv()
         {
             if (!ReportType.IsResolvedReport())
@@ -526,9 +497,28 @@ namespace FWO.Report
                         continue;
                     }
 
-                    if (gateway.RulebaseLinks.FirstOrDefault(rbl => rbl.IsInitial) is { } rbLink)
+                    if (_rulesCache.TryGetValue((gateway.Id, managementReport.Id), out Rule[]? exportRules))
                     {
-                        ExportSingleRulebaseToCsv(report, ruleDisplayCsv, managementReport, gateway, rbLink);
+                        foreach (Rule rule in exportRules)
+                        {
+                            report.Append(ruleDisplayCsv.OutputCsv(managementReport.Name));
+                            report.Append(ruleDisplayCsv.OutputCsv(gateway.Name));
+                            report.Append(ruleDisplayCsv.DisplayNumberCsv(rule));
+                            report.Append(ruleDisplayCsv.DisplayNameCsv(rule));
+                            report.Append(ruleDisplayCsv.DisplaySourceZoneCsv(rule));
+                            report.Append(ruleDisplayCsv.DisplaySourceCsv(rule, ReportType));
+                            report.Append(ruleDisplayCsv.DisplayDestinationZoneCsv(rule));
+                            report.Append(ruleDisplayCsv.DisplayDestinationCsv(rule, ReportType));
+                            report.Append(ruleDisplayCsv.DisplayServicesCsv(rule, ReportType));
+                            report.Append(ruleDisplayCsv.DisplayActionCsv(rule));
+                            report.Append(ruleDisplayCsv.DisplayTrackCsv(rule));
+                            report.Append(ruleDisplayCsv.DisplayEnabledCsv(rule));
+                            report.Append(ruleDisplayCsv.DisplayUidCsv(rule));
+                            report.Append(ruleDisplayCsv.DisplayCommentCsv(rule));
+                            report.Append(ruleDisplayCsv.DisplayLastModifiedCsv(rule));
+                            report = RuleDisplayBase.RemoveLastChars(report, 1);
+                            report.AppendLine("");
+                        }
                     }
                 }
             }
@@ -545,7 +535,9 @@ namespace FWO.Report
             }
             else if (ReportType.IsRuleReport())
             {
-                return System.Text.Json.JsonSerializer.Serialize(ReportData.ManagementData.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
+                return System.Text.Json.JsonSerializer.Serialize(
+                    ReportData.ManagementData.Where(mgt => !mgt.Ignore),
+                    new JsonSerializerOptions { WriteIndented = true });
             }
             else
             {
@@ -688,7 +680,7 @@ namespace FWO.Report
             report.AppendLine("<tr>");
             if (!ReportType.IsRulebaseReport())
             {
-                report.AppendLine($"<td>{RuleDisplayBase.DisplayNumber(rule)}</td>");
+                report.AppendLine($"<td>{rule.OrderNumber.ToString(CultureInfo.InvariantCulture)}</td>");
             }
             if (ReportType == ReportType.Recertification)
             {

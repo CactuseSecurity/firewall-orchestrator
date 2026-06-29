@@ -15,7 +15,7 @@ namespace FWO.Test
         private static readonly string[] kExpectedShuffledDisplayOrderNumbers = ["1", "1.1", string.Empty, "1.2", "2", "2.1"];
         private static readonly string[] kExpectedInlineRulebaseDisplayOrderNumbers = ["1.1", "1.1.1", "1.1.2"];
         private static readonly string[] kExpectedTwoLayerDisplayOrderNumbers = ["1", "1.1", "2", "2.1"];
-        private static readonly double[] kExpectedSequentialOrderNumbers = [1, 2, 3, 4];
+        private static readonly int[] kExpectedSequentialOrderNumbers = [0, 1, 0, 2];
         private static readonly int[] kExpectedSequentialDisplayOrderNumbers = [1, 2, 3, 4];
         private static readonly string[] kExpectedSectionHeaderDisplayOrderNumbers = ["1", string.Empty, string.Empty];
         private static readonly string[] kExpectedSectionRuleDisplayOrderNumbers = ["1.1", "1.2", "1.3", "1.4"];

@@ -16,10 +16,14 @@ namespace FWO.Services.RuleTreeBuilder
     ///
     /// The tree-building pass focuses only on structural correctness. Hierarchical display
     /// numbers are intentionally not assigned while the tree is being assembled. After the full
-    /// tree exists, a second pass flattens the visible nodes in display order and derives dotted
-    /// order strings as well as sequential <see cref="Rule.OrderNumber"/> values. This keeps
-    /// numbering independent from traversal bookkeeping and guarantees that numbers reflect the
-    /// final tree shape rather than transient state.
+    /// tree exists, a second pass flattens the visible nodes in display order and derives three
+    /// numbering views directly on the participating <see cref="Rule"/> objects:
+    /// <list type="bullet">
+    /// <item><description><see cref="Rule.DisplayOrderNumberString"/> stores the dotted hierarchy shown in the tree UI.</description></item>
+    /// <item><description><see cref="Rule.DisplayOrderNumber"/> stores the flat visible-row order including header rows.</description></item>
+    /// <item><description><see cref="Rule.OrderNumber"/> stores the compact real-rule-only order used by exports and report-specific serialization.</description></item>
+    /// <item><description><see cref="Rule.RuleNumNumeric"/> remains the imported per-rulebase numeric order from the database and is never rewritten by the tree builder.</description></item>
+    /// </list>
     ///
     /// The builder is scoped as a service, so per-build state is reinitialized inside
     /// <see cref="BuildRuleTree"/>. The only state preserved across builds is the cache of
@@ -95,11 +99,18 @@ namespace FWO.Services.RuleTreeBuilder
         public HashSet<long> SeenRuleIds { get; set; } = [];
 
         /// <summary>
-        /// Gets or sets the sequential order-number counter used during the final flattening pass
-        /// The value starts at 1 for every build and is assigned to visible rows only after the
-        /// tree has been completely assembled.
+        /// Gets or sets the sequential visible-row counter used during the final flattening pass.
+        /// The value starts at 1 for every build and is assigned to every visible flattened node,
+        /// including ordered-layer and section header placeholder rows.
         /// </summary>
-        public int NextOrderNumber { get; set; } = 1;
+        public int NextDisplayOrderNumber { get; set; } = 1;
+
+        /// <summary>
+        /// Gets or sets the sequential real-rule counter used during the final flattening pass.
+        /// The value starts at 1 for every build and is assigned only to real rules, never to
+        /// ordered-layer or section-header placeholder rows.
+        /// </summary>
+        public int NextRuleNumber { get; set; } = 1;
 
         /// <summary>
         /// Creates a reusable builder service. The constructor only initializes stable cache
@@ -160,7 +171,8 @@ namespace FWO.Services.RuleTreeBuilder
         /// - a structural-link lookup by <see cref="RulebaseLink.FromRulebaseId"/>
         /// - the duplicate-rule guard set
         /// - a fresh root tree node
-        /// - the final numbering counter reset to 1
+        /// - the flat visible-row numbering counter reset to 1
+        /// - the real-rule-only numbering counter reset to 1
         ///
         /// No traversal decisions are made here. The method merely establishes the graph view
         /// that later traversal helpers query.
@@ -172,7 +184,8 @@ namespace FWO.Services.RuleTreeBuilder
             InlineLinkByFromRuleId = BuildInlineLinkLookup(links);
             StructuralLinksByFromRulebaseId = BuildStructuralLinkLookup(links);
             SeenRuleIds = [];
-            NextOrderNumber = 1;
+            NextDisplayOrderNumber = 1;
+            NextRuleNumber = 1;
             RuleTree = new RuleTreeItem
             {
                 IsRoot = true,
@@ -344,10 +357,8 @@ namespace FWO.Services.RuleTreeBuilder
         /// order. Each emitted rule becomes a child node in the tree and then acts as the anchor
         /// for any inline layers originating from that rule.
         ///
-        /// Duplicate real rules are not tolerated. If a rule id has already been emitted
-        /// elsewhere in the current tree, the method throws immediately instead of cloning the
-        /// rule or trying to preserve legacy behavior. This keeps malformed normalized data from
-        /// silently producing inconsistent trees.
+        /// Duplicate real rules are not tolerated. If a positive persisted rule id has already
+        /// been emitted elsewhere in the current tree, the method throws immediately.
         /// </summary>
         private void EmitRules(RulebaseReport rulebase, RuleTreeItem parentNode)
         {
@@ -603,20 +614,20 @@ namespace FWO.Services.RuleTreeBuilder
         /// the cache always mirrors the completed tree.
         ///
         /// Numbering rules:
-        /// - ordered-layer headers consume top-level numbers: 1, 2, 3, ...
-        /// - real rules consume the next nested number within their current visible scope
-        /// - section headers are visible rows but do not consume a dotted display number
+        /// - ordered-layer headers consume top-level dotted hierarchy numbers: 1, 2, 3, ...
+        /// - real rules consume the next nested dotted hierarchy number within their current visible scope
+        /// - section headers are visible rows but do not consume a dotted hierarchy number
         /// - rules inside a section continue numbering in the surrounding layer/inline scope
         /// - inline-layer roots are structural only and do not consume a number themselves
         /// - children beneath an inline root inherit the owning rule’s position as their base
-        ///
-        /// This ensures that display numbering reflects the final rendered structure rather than
-        /// the order in which traversal happened to discover nodes.
+        /// - every visible row receives a flat <see cref="Rule.DisplayOrderNumber"/>
+        /// - only real rules receive a compact <see cref="Rule.OrderNumber"/>
         /// </summary>
         private List<Rule> FlattenTreeAndAssignDisplayNumbers()
         {
             RuleTree.ElementsFlat.Clear();
-            NextOrderNumber = 1;
+            NextDisplayOrderNumber = 1;
+            NextRuleNumber = 1;
 
             List<Rule> flattenedRules = [];
             int rootVisibleChildIndex = 0;
@@ -677,11 +688,13 @@ namespace FWO.Services.RuleTreeBuilder
         }
 
         /// <summary>
-        /// Assigns display numbering information to the placeholder rule or real rule stored in a
-        /// visible tree node. Ordered-layer headers and real rules receive a dotted display
-        /// string, while section headers intentionally stay unnumbered in the UI even though they
-        /// still receive sequential numeric order values for stable sorting and export ordering.
-        /// The method then advances <see cref="NextOrderNumber"/>.
+        /// Assigns numbering information to the placeholder rule or real rule stored in a visible
+        /// tree node. Every visible row receives a flat <see cref="Rule.DisplayOrderNumber"/> so
+        /// the UI can sort by rendered row order even when section headers are present. Ordered
+        /// layers and real rules receive a dotted <see cref="Rule.DisplayOrderNumberString"/>,
+        /// while section headers intentionally stay unnumbered in that string form. Only real
+        /// rules receive <see cref="Rule.OrderNumber"/>, which is the compact sequential number
+        /// used by exports and report-specific serialization.
         /// </summary>
         private void AssignOrderNumber(RuleTreeItem node, List<int> position, bool assignDisplayNumber)
         {
@@ -691,9 +704,8 @@ namespace FWO.Services.RuleTreeBuilder
             }
 
             node.Data.DisplayOrderNumberString = assignDisplayNumber ? string.Join(".", position) : string.Empty;
-            node.Data.DisplayOrderNumber = NextOrderNumber;
-            node.Data.OrderNumber = NextOrderNumber;
-            NextOrderNumber++;
+            node.Data.DisplayOrderNumber = NextDisplayOrderNumber++;
+            node.Data.OrderNumber = node.IsRule ? NextRuleNumber++ : 0;
         }
 
     }

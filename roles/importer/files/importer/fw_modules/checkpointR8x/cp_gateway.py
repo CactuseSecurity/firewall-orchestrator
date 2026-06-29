@@ -1,7 +1,7 @@
 from typing import Any
 
 from fwo_log import FWOLogger
-from models.import_state import ImportState
+from states.import_state import ImportState
 
 """
     normalize all gateway details

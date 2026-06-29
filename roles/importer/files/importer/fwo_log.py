@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     import os
     from collections.abc import Generator
 
-    from models.import_state import ImportState
+    from states.import_state import ImportState
 
     from importer.services.uid2id_mapper import Uid2IdMapper
 
@@ -242,7 +242,8 @@ class ChangeLogger:
     def create_changelog_import_object(
         self,
         typ: str,
-        import_state: ImportState,
+        import_id: int,
+        mgm_id: int,
         change_action: str,
         change_typ: Literal[2, 3],
         import_time: str,
@@ -252,7 +253,6 @@ class ChangeLogger:
         unique_name = self._get_changelog_import_object_unique_name(rule_id)
         old_rule_id = None
         new_rule_id = None
-        self._import_state = import_state
 
         if change_action in ["I", "C"]:
             new_rule_id = rule_id
@@ -266,9 +266,9 @@ class ChangeLogger:
         rule_changelog_object: dict[str, Any] = {
             f"new_{typ}_id": new_rule_id,
             f"old_{typ}_id": old_rule_id,
-            "control_id": self._import_state.import_id,
+            "control_id": import_id,
             "change_action": change_action,
-            "mgm_id": self._import_state.mgm_details.current_mgm_id,
+            "mgm_id": mgm_id,
             "change_type_id": change_typ,
             "change_time": import_time,
             "unique_name": unique_name,

@@ -322,7 +322,7 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(3, query.QueryVariables.Count);
             ClassicAssert.AreEqual(true, query.QueryVariables.ContainsKey("refdate1"));
-            ClassicAssert.AreEqual(true, query.QueryVariables.ContainsKey("ownerWhere"));
+            ClassicAssert.IsTrue(query.QueryVariables.ContainsKey("ownerWhere"));
             ClassicAssert.AreEqual("1000", query.QueryVariables["dport0"]);
             ClassicAssert.AreEqual("_and: [{rule_head_text: {_is_null: true}}, { rule_metadatum: { recertifications: { next_recert_date: { _lte: $refdate1 } } } }, {_not: {rule_services: { service: { svcgrp_flats: { serviceBySvcgrpFlatMemberId: { svc_port: {_lte: $dport0}, svc_port_end: {_gte: $dport0 } } } } }}}] ", query.RuleWhereStatement);
         }
@@ -337,8 +337,8 @@ namespace FWO.Test
 
             DynGraphqlQuery query = Compiler.Compile(t);
 
-            ClassicAssert.AreEqual(true, query.QueryVariables.ContainsKey("ownerWhere"));
-            ClassicAssert.AreEqual("{}", JsonSerializer.Serialize(query.QueryVariables["ownerWhere"]));
+            ClassicAssert.IsTrue(query.QueryVariables.ContainsKey("ownerWhere"));
+            Assert.That(JsonSerializer.Serialize(query.QueryVariables["ownerWhere"]), Is.EqualTo("{}"));
         }
 
         [Test]
@@ -352,8 +352,8 @@ namespace FWO.Test
 
             DynGraphqlQuery query = Compiler.Compile(t);
 
-            ClassicAssert.AreEqual(true, query.QueryVariables.ContainsKey("ownerWhere"));
-            ClassicAssert.AreEqual("{}", JsonSerializer.Serialize(query.QueryVariables["ownerWhere"]));
+            ClassicAssert.IsTrue(query.QueryVariables.ContainsKey("ownerWhere"));
+            Assert.That(JsonSerializer.Serialize(query.QueryVariables["ownerWhere"]), Is.EqualTo("{}"));
             StringAssert.Contains("{ _not: { rule_owners: { removed: { _is_null: true } } } }", query.RuleWhereStatement);
         }
 

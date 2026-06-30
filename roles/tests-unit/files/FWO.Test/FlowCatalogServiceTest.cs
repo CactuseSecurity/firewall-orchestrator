@@ -175,6 +175,30 @@ internal class FlowCatalogServiceTest
     }
 
     [Test]
+    public async Task GetTimeObjectIdAsync_NormalizesNullNameToEmptyString()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        apiConnection.TimeObjects =
+        [
+            new FlowTimeObject
+            {
+                Id = 32,
+                Name = null!
+            }
+        ];
+
+        FlowCatalogService service = new(apiConnection);
+
+        TimeObjectIdResponse result = await service.GetTimeObjectIdAsync(
+            new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 6, 1, 17, 30, 0, TimeSpan.Zero),
+            null);
+
+        Assert.That(result.Name, Is.EqualTo(string.Empty));
+        Assert.That(result.Id, Is.EqualTo(32));
+    }
+
+    [Test]
     public async Task GetAddressObjectsAsync_MapsShowInRequestFlag()
     {
         FlowCatalogServiceApiConn apiConnection = new();

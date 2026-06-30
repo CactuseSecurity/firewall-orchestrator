@@ -126,7 +126,7 @@ public sealed class FlowCatalogService
         FlowTimeObject? flowObject = result.FirstOrDefault();
         return flowObject == null
             ? new TimeObjectIdResponse()
-            : new TimeObjectIdResponse { Id = flowObject.Id, Name = flowObject.Name };
+            : new TimeObjectIdResponse { Id = flowObject.Id, Name = flowObject.Name ?? string.Empty };
     }
 
     private async Task<List<FlowNwObject>> LoadFlowNwObjectsAsync(bool? visibleInRequest)

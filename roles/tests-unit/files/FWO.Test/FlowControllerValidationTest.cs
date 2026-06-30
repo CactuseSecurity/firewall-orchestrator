@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Data.Flow;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using FWO.Middleware.Server.Controllers;
@@ -199,6 +200,57 @@ internal class FlowControllerValidationTest
         Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("'startTime' must be <= 'endTime'"));
     }
 
+    [Test]
+    public async Task FlowControllerValidation_GetTimeObjectId_ReturnsMatchingResponse()
+    {
+        FlowCatalogController controller = new(new FlowCatalogService(new TimeObjectLookupApiConnection
+        {
+            TimeObjects =
+            [
+                new FlowTimeObject
+                {
+                    Id = 31,
+                    Name = "BusinessHours"
+                }
+            ]
+        }));
+
+        ActionResult<TimeObjectIdResponse> result = await controller.GetTimeObjectId(new GetTimeObjectIdRequest
+        {
+            StartTime = new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero),
+            EndTime = new DateTimeOffset(2026, 6, 1, 17, 30, 0, TimeSpan.Zero),
+            Filter = new VisibleInRequestFilter
+            {
+                VisibleInRequest = true
+            }
+        });
+
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        TimeObjectIdResponse response = (TimeObjectIdResponse)((OkObjectResult)result.Result!).Value!;
+        Assert.That(response.Id, Is.EqualTo(31));
+        Assert.That(response.Name, Is.EqualTo("BusinessHours"));
+    }
+
+    [Test]
+    public void FlowControllerValidation_RejectsUnknownLookupFilterKeys()
+    {
+        object request = JsonSerializer.Deserialize<GetTimeObjectIdRequest>(
+            """{"filter":{"visibleInRequest":true,"typo":1},"startTime":"2026-06-01T08:00:00Z","endTime":"2026-06-01T17:30:00Z"}""")!;
+
+        bool valid = VisibleInRequestFilterValidator.TryValidate(
+            (IVisibleInRequestFilterRequest)request,
+            RequestFilterValidationSchema.ForVisibleInRequest("GetTimeObjectId"),
+            out var error);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(error, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain("GetTimeObjectId"));
+            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain("'visibleInRequest'"));
+        });
+    }
+
     private static IEnumerable<TestCaseData> RequestCases()
     {
         yield return new TestCaseData(new RequestCase(
@@ -301,6 +353,55 @@ internal class FlowControllerValidationTest
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
             throw new InvalidOperationException("Validation should return before the API is queried.");
+        }
+
+        public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void SetAuthHeader(string jwt)
+        {
+        }
+
+        public override void SetRole(string role)
+        {
+        }
+
+        public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
+        {
+        }
+
+        public override void SwitchBack()
+        {
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+        }
+
+        public override void DisposeSubscriptions<T>()
+        {
+        }
+
+        public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
+        {
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class TimeObjectLookupApiConnection : SimulatedApiConnection
+    {
+        public List<FlowTimeObject> TimeObjects { get; set; } = [];
+
+        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+        {
+            if (typeof(QueryResponseType) == typeof(List<FlowTimeObject>))
+            {
+                return Task.FromResult((QueryResponseType)(object)TimeObjects);
+            }
+
+            throw new NotImplementedException($"Unsupported response type {typeof(QueryResponseType).Name}");
         }
 
         public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)

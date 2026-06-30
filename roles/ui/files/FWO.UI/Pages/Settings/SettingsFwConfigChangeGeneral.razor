@@ -27,7 +27,7 @@
                     <button class="btn fw-bold @(management.Enabled ? "btn-success" : "btn-danger")"
                             style="border-radius:15px;"
                             @onclick="() => ToggleManagement(management)">
-                        @(management.Enabled ? "Enabled" : "Disabled")
+                        @(management.Enabled ? userConfig.GetText("enabled") : userConfig.GetText("disabled"))
                     </button>
                 </div>
 
@@ -41,7 +41,7 @@
                                     @change
                                 </div>
                                 <div class="col-2">
-                                    <Dropdown ElementType="FwConfigChangeSelection" Elements="GetAvailableSelections(change)" SelectedElement="GetSelectedSelection(management, change)"
+                                    <Dropdown ElementType="FwConfigChangeSelection" Elements="GetAvailableSelections()" SelectedElement="GetSelectedSelection(management, change)"
                                               SelectedElementChanged="@(val => SetSelectedSelection(management, change, val))" ElementToString="selection => selection.DisplayName" Id="@($"dropdown-{management.Id}-{change}")">
                                         <ElementTemplate Context="selection">
                                             @selection.DisplayName
@@ -147,7 +147,7 @@ else
         }
     }
 
-    private List<FwConfigChangeSelection> GetAvailableSelections(string change)
+    private List<FwConfigChangeSelection> GetAvailableSelections()
     {
         List<FwConfigChangeSelection> selections =
         [
@@ -164,7 +164,7 @@ else
             ? value
             : ManagementFwConfigChangeTargets.Disabled;
 
-        List<FwConfigChangeSelection> selections = GetAvailableSelections(change);
+        List<FwConfigChangeSelection> selections = GetAvailableSelections();
         return selections.FirstOrDefault(selection => selection.Value == selectedValue) ?? selections[0];
     }
 

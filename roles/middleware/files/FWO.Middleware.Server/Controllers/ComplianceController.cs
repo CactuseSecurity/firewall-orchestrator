@@ -195,6 +195,15 @@ namespace FWO.Middleware.Server.Controllers
                 return [];
             }
 
+            List<ComplianceCriterion> designatedMatrices = await apiConnection.SendQueryAsync<List<ComplianceCriterion>>(
+                ComplianceQueries.getMatrixById,
+                new { criterionId = globalConfig.ComplianceDesignatedZoneMatrixId }) ?? [];
+
+            if (designatedMatrices.Count == 0)
+            {
+                return [];
+            }
+
             List<ComplianceNetworkZone> zones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
                 ComplianceQueries.getNetworkZonesForMatrix,
                 new { criterionId = globalConfig.ComplianceDesignatedZoneMatrixId }) ?? [];

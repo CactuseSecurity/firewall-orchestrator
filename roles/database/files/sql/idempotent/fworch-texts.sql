@@ -3134,6 +3134,8 @@ INSERT INTO txt VALUES ('complianceCheckMailBody','German', 'Text der Benachrich
 INSERT INTO txt VALUES ('complianceCheckMailBody','English','Body of notification emails');
 INSERT INTO txt VALUES ('complianceMatrixAllowNetworkZones','German', 'Netzwerkzonenverschachtelung erlauben');
 INSERT INTO txt VALUES ('complianceMatrixAllowNetworkZones','English','Nested Network Zones allowed');
+INSERT INTO txt VALUES ('designated_zone_matrix','German', 'Designierte Zonenmatrix');
+INSERT INTO txt VALUES ('designated_zone_matrix','English','Designated zone matrix');
 INSERT INTO txt VALUES ('complianceCheckInternetZoneObject','German', 'Internetzone');
 INSERT INTO txt VALUES ('complianceCheckInternetZoneObject','English','Internet zone');
 INSERT INTO txt VALUES ('complianceCheckMaxPrintedViolations','German', 'Maximale Anzahl gedruckter Verst&ouml;&szlig;e pro Regel');

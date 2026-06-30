@@ -42,6 +42,7 @@ namespace FWO.Test
         {
             DummyApiConnection apiConnection = new(
                 [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
                 [new ComplianceNetworkZone
                 {
                     Id = 99,
@@ -62,6 +63,9 @@ namespace FWO.Test
             Assert.That(zones[0].IpRanges, Has.Count.EqualTo(1));
             Assert.That(zones[0].IpRanges[0].IpStart, Is.EqualTo("10.0.0.0"));
             Assert.That(zones[0].IpRanges[0].IpEnd, Is.EqualTo("10.0.0.255"));
+            Assert.That(apiConnection.LastMatrixQuery, Is.EqualTo(ComplianceQueries.getMatrixById));
+            Assert.That(GetAnonymousProperty<int>(apiConnection.LastMatrixQueryVariables, "criterionId"), Is.EqualTo(12));
+            Assert.That(apiConnection.MatrixQueryCount, Is.EqualTo(1));
         }
 
         [Test]
@@ -69,13 +73,36 @@ namespace FWO.Test
         {
             DummyApiConnection apiConnection = new(
                 [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
                 [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }]);
             ComplianceController controller = new(apiConnection, new ComplianceCheckStatusTracker());
 
             _ = await controller.GetDesignatedZoneMatrixZones();
 
+            Assert.That(apiConnection.LastMatrixQuery, Is.EqualTo(ComplianceQueries.getMatrixById));
+            Assert.That(GetAnonymousProperty<int>(apiConnection.LastMatrixQueryVariables, "criterionId"), Is.EqualTo(12));
             Assert.That(apiConnection.LastNetworkZoneQuery, Is.EqualTo(ComplianceQueries.getNetworkZonesForMatrix));
             Assert.That(GetAnonymousProperty<int>(apiConnection.LastNetworkZoneQueryVariables, "criterionId"), Is.EqualTo(12));
+        }
+
+        [Test]
+        public async Task GetDesignatedZoneMatrixZones_ReturnsEmptyListWhenConfiguredMatrixWasDeleted()
+        {
+            DummyApiConnection apiConnection = new(
+                [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [],
+                [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }]);
+            ComplianceController controller = new(apiConnection, new ComplianceCheckStatusTracker());
+
+            ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.GetDesignatedZoneMatrixZones();
+
+            Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
+            List<ComplianceDesignatedZoneResponse> zones = ((OkObjectResult)result.Result!).Value as List<ComplianceDesignatedZoneResponse> ?? [];
+            Assert.That(zones, Is.Empty);
+            Assert.That(apiConnection.LastMatrixQuery, Is.EqualTo(ComplianceQueries.getMatrixById));
+            Assert.That(apiConnection.LastNetworkZoneQuery, Is.Null);
+            Assert.That(apiConnection.MatrixQueryCount, Is.EqualTo(1));
+            Assert.That(apiConnection.NetworkZoneQueryCount, Is.EqualTo(0));
         }
 
         [Test]
@@ -96,15 +123,20 @@ namespace FWO.Test
         private sealed class DummyApiConnection : ApiConnection
         {
             private readonly ConfigItem[] configItems;
+            private readonly List<ComplianceCriterion> matrices;
             private readonly List<ComplianceNetworkZone> zones;
 
+            public string? LastMatrixQuery { get; private set; }
+            public object? LastMatrixQueryVariables { get; private set; }
+            public int MatrixQueryCount { get; private set; }
             public string? LastNetworkZoneQuery { get; private set; }
             public object? LastNetworkZoneQueryVariables { get; private set; }
             public int NetworkZoneQueryCount { get; private set; }
 
-            public DummyApiConnection(ConfigItem[]? configItems = null, List<ComplianceNetworkZone>? zones = null)
+            public DummyApiConnection(ConfigItem[]? configItems = null, List<ComplianceCriterion>? matrices = null, List<ComplianceNetworkZone>? zones = null)
             {
                 this.configItems = configItems ?? [];
+                this.matrices = matrices ?? [];
                 this.zones = zones ?? [];
             }
 
@@ -117,6 +149,14 @@ namespace FWO.Test
                 if (typeof(QueryResponseType) == typeof(ConfigItem[]) && query == ConfigQueries.getConfigItemsByUser)
                 {
                     return Task.FromResult((QueryResponseType)(object)configItems);
+                }
+
+                if (typeof(QueryResponseType) == typeof(List<ComplianceCriterion>) && query == ComplianceQueries.getMatrixById)
+                {
+                    LastMatrixQuery = query;
+                    LastMatrixQueryVariables = variables;
+                    MatrixQueryCount++;
+                    return Task.FromResult((QueryResponseType)(object)matrices);
                 }
 
                 if (typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>) && query == ComplianceQueries.getNetworkZonesForMatrix)

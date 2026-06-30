@@ -1,4 +1,6 @@
 using System.Reflection;
+using System.Linq;
+using System.Text.Json;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
@@ -12,60 +14,64 @@ namespace FWO.Test
     [Parallelizable]
     internal class RuleControllerWiringTest
     {
+        private static readonly JsonSerializerOptions WebJsonSerializerOptions = new(JsonSerializerDefaults.Web);
+
         private static readonly MethodInfo ConvertRuleListMethod =
             typeof(RuleController).GetMethod("ConvertRuleList", BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new MissingMethodException(typeof(RuleController).FullName, "ConvertRuleList");
 
         [Test]
-        public void ConvertRuleList_ShouldKeepCurrentDefaultBehaviorWhenMappingIsMissing()
+        public void ConvertRuleList_ShouldPopulateNestedOwnerAndAdditionalInformation()
         {
             List<RuleDetail> rules = InvokeConvertRuleList(
-                [CreateRule(ownerId: 123, customFields: "{'owner_key':'owner-from-custom','change_key':'chg-4711'}")],
-                fieldSourceMapping: null);
+                [CreateRule(ownerId: 123, customFields: "{'owner_key':'owner-from-custom','change_key':'chg-4711'}")]);
 
             ClassicAssert.AreEqual(1, rules.Count);
-            ClassicAssert.AreEqual("123", rules[0].OwnerInformation);
-            ClassicAssert.AreEqual("chg-4711", rules[0].ChangeID);
+            ClassicAssert.AreEqual(1, rules[0].OwnerInformation.OwnerIds.Count);
+            ClassicAssert.AreEqual(123, rules[0].OwnerInformation.OwnerIds[0]);
+            ClassicAssert.AreEqual("owner-from-custom", rules[0].OwnerInformation.ExtAppId);
+            ClassicAssert.AreEqual("chg-4711", rules[0].AdditionalInformation.ChangeId);
+
+            string json = JsonSerializer.Serialize(rules[0], WebJsonSerializerOptions);
+            using JsonDocument document = JsonDocument.Parse(json);
+
+            JsonElement root = document.RootElement;
+            ClassicAssert.IsTrue(root.TryGetProperty("ownerInformation", out JsonElement ownerInformation));
+            ClassicAssert.AreEqual("owner-from-custom", ownerInformation.GetProperty("extAppId").GetString());
+            JsonElement ownerIds = ownerInformation.GetProperty("ownerIds");
+            ClassicAssert.AreEqual(1, ownerIds.GetArrayLength());
+            ClassicAssert.AreEqual(123, ownerIds[0].GetInt32());
+
+            ClassicAssert.IsTrue(root.TryGetProperty("additionalInformation", out JsonElement additionalInformation));
+            ClassicAssert.AreEqual("chg-4711", additionalInformation.GetProperty("changeId").GetString());
         }
 
         [Test]
-        public void ConvertRuleList_ShouldUseCustomFieldsWhenRequested()
+        public void ConvertRuleList_ShouldReturnEmptyAdditionalInformationWhenChangeIdMappingMissing()
         {
             List<RuleDetail> rules = InvokeConvertRuleList(
                 [CreateRule(ownerId: 123, customFields: "{'owner_key':'owner-from-custom','change_key':'chg-4711'}")],
-                new FieldSourceMapping
-                {
-                    OwnerInformation = FieldSource.CustomField,
-                    ChangeId = FieldSource.CustomField
-                });
+                CreateUserConfig(changeIdKeys: ""));
 
             ClassicAssert.AreEqual(1, rules.Count);
-            ClassicAssert.AreEqual("owner-from-custom", rules[0].OwnerInformation);
-            ClassicAssert.AreEqual("chg-4711", rules[0].ChangeID);
-        }
+            ClassicAssert.AreEqual(1, rules[0].OwnerInformation.OwnerIds.Count);
+            ClassicAssert.AreEqual(123, rules[0].OwnerInformation.OwnerIds[0]);
+            ClassicAssert.AreEqual("owner-from-custom", rules[0].OwnerInformation.ExtAppId);
+            ClassicAssert.IsNull(rules[0].AdditionalInformation.ChangeId);
 
-        [Test]
-        public void ConvertRuleList_ShouldUseDatabaseOwnerAndUnsupportedDatabaseChangeId()
-        {
-            List<RuleDetail> rules = InvokeConvertRuleList(
-                [CreateRule(ownerId: 123, customFields: "{'owner_key':'owner-from-custom','change_key':'chg-4711'}")],
-                new FieldSourceMapping
-                {
-                    OwnerInformation = FieldSource.Database,
-                    ChangeId = FieldSource.Database
-                });
+            string json = JsonSerializer.Serialize(rules[0], WebJsonSerializerOptions);
+            using JsonDocument document = JsonDocument.Parse(json);
 
-            ClassicAssert.AreEqual(1, rules.Count);
-            ClassicAssert.AreEqual("123", rules[0].OwnerInformation);
-            ClassicAssert.AreEqual(RuleFieldSourceResolver.NotFoundValue, rules[0].ChangeID);
+            JsonElement root = document.RootElement;
+            ClassicAssert.IsTrue(root.TryGetProperty("additionalInformation", out JsonElement additionalInformation));
+            ClassicAssert.AreEqual("{}", additionalInformation.GetRawText());
         }
 
         [Test]
         public void ConvertRuleList_ShouldFlattenServiceObjectsAndRemoveDuplicates()
         {
             List<RuleDetail> rules = InvokeConvertRuleList(
-                [CreateRuleWithDuplicateNetworkAndServiceObjects()],
-                fieldSourceMapping: null);
+                [CreateRuleWithDuplicateNetworkAndServiceObjects()]);
 
             ClassicAssert.AreEqual(1, rules.Count);
 
@@ -87,8 +93,7 @@ namespace FWO.Test
         public void ConvertRuleList_ShouldFlattenNestedServiceGroups()
         {
             List<RuleDetail> rules = InvokeConvertRuleList(
-                [CreateRuleWithNestedServiceGroups()],
-                fieldSourceMapping: null);
+                [CreateRuleWithNestedServiceGroups()]);
 
             ClassicAssert.AreEqual(1, rules.Count);
             ClassicAssert.AreEqual(1, rules[0].Service.Count);
@@ -100,8 +105,7 @@ namespace FWO.Test
         public void ConvertRuleList_ShouldExposeDestinationPortAndProtocolForServices()
         {
             List<RuleDetail> rules = InvokeConvertRuleList(
-                [CreateRuleWithPortAndProtocolService()],
-                fieldSourceMapping: null);
+                [CreateRuleWithPortAndProtocolService()]);
 
             ClassicAssert.AreEqual(1, rules.Count);
             ClassicAssert.AreEqual(1, rules[0].Service.Count);
@@ -110,20 +114,20 @@ namespace FWO.Test
             ClassicAssert.AreEqual("Ported Service (443/TCP)", rules[0].ServiceShort);
         }
 
-        private static List<RuleDetail> InvokeConvertRuleList(List<Rule> rules, FieldSourceMapping? fieldSourceMapping)
+        private static List<RuleDetail> InvokeConvertRuleList(List<Rule> rules, UserConfig? userConfig = null)
         {
-            UserConfig userConfig = CreateUserConfig();
-            object? result = ConvertRuleListMethod.Invoke(null, [rules, userConfig, fieldSourceMapping]);
+            UserConfig effectiveUserConfig = userConfig ?? CreateUserConfig();
+            object? result = ConvertRuleListMethod.Invoke(null, [rules, effectiveUserConfig]);
             return (List<RuleDetail>)(result ?? throw new AssertionException("Expected rule details."));
         }
 
-        private static UserConfig CreateUserConfig()
+        private static UserConfig CreateUserConfig(string ownerKeys = @"[""owner_key""]", string changeIdKeys = @"[""change_key""]")
         {
             GlobalConfig globalConfig = new();
             globalConfig.LangDict[GlobalConst.kEnglish] = new Dictionary<string, string>();
             globalConfig.OverDict[GlobalConst.kEnglish] = new Dictionary<string, string>();
-            globalConfig.CustomFieldOwnerKey = @"[""owner_key""]";
-            globalConfig.CustomFieldChangeIdKey = @"[""change_key""]";
+            globalConfig.CustomFieldOwnerKey = ownerKeys;
+            globalConfig.CustomFieldChangeIdKey = changeIdKeys;
 
             return UserConfig.ForTextOnly(globalConfig, registerOnChangeHandler: false);
         }
@@ -132,7 +136,7 @@ namespace FWO.Test
         {
             return new Rule
             {
-                RuleOwner = [new RuleOwner { OwnerId = ownerId }],
+                RuleOwner = [new RuleOwner { OwnerId = ownerId, OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField }],
                 CustomFields = customFields
             };
         }

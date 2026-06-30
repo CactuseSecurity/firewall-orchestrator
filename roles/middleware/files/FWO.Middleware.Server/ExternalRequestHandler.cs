@@ -382,7 +382,7 @@ namespace FWO.Middleware.Server
 
             string changeCategory = GetChangeCategory(task);    // object oder rule
 
-            if (!managementSetting.SelectedChanges.TryGetValue(changeCategory, out string? selectedSystemValue) || string.IsNullOrWhiteSpace(selectedSystemValue) || selectedSystemValue == "Disabled")
+            if (!managementSetting.SelectedChanges.TryGetValue(changeCategory, out string? selectedSystemValue) || string.IsNullOrWhiteSpace(selectedSystemValue) || selectedSystemValue == ManagementFwConfigChangeTargets.Disabled)
             {
                 throw new InvalidOperationException(
                     $"No external ticket system configured for management {task.ManagementId} and category '{changeCategory}'.");

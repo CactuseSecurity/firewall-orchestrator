@@ -3,6 +3,11 @@ using System.Text.Json.Serialization;
 
 namespace FWO.Data
 {
+    public static class ManagementFwConfigChangeTargets
+    {
+        public const string Disabled = "Disabled";
+    }
+
     public static class ManagementFwConfigChangeCategories
     {
         public const string ObjectChanges = "Object Changes";

@@ -41,10 +41,10 @@
                                     @change
                                 </div>
                                 <div class="col-2">
-                                    <Dropdown ElementType="ExternalTicketSystem" Elements="extTicketSystems" SelectedElement="GetSelectedSystem(management, change)"
-                                              SelectedElementChanged="@(val => SetSelectedSystem(management, change, val))" ElementToString="sys => sys.Name" Id="@($"dropdown-{management.Id}-{change}")">
-                                        <ElementTemplate Context="sys">
-                                            @sys.Name
+                                    <Dropdown ElementType="FwConfigChangeSelection" Elements="GetAvailableSelections(change)" SelectedElement="GetSelectedSelection(management, change)"
+                                              SelectedElementChanged="@(val => SetSelectedSelection(management, change, val))" ElementToString="selection => selection.DisplayName" Id="@($"dropdown-{management.Id}-{change}")">
+                                        <ElementTemplate Context="selection">
+                                            @selection.DisplayName
                                         </ElementTemplate>
                                     </Dropdown>
                                 </div>
@@ -78,7 +78,7 @@ else
 
     private List<ManagementFwConfigChangeState> managementStates = new();
     private List<ExternalTicketSystem> extTicketSystems = new();
-
+    private sealed record FwConfigChangeSelection(string Value, string DisplayName);
 
     protected override async Task OnInitializedAsync()
     {
@@ -130,29 +130,47 @@ else
                     Id = m.Id,
                     Name = m.Name,
                     Enabled = false,
-                    SelectedChanges = AvailableChanges.ToDictionary(c => c, c => "Disabled")
+                    SelectedChanges = AvailableChanges.ToDictionary(c => c, c => ManagementFwConfigChangeTargets.Disabled)
                 });
+            }
+        }
+
+        foreach (var state in managementStates)
+        {
+            foreach (string change in AvailableChanges)
+            {
+                if (!state.SelectedChanges.ContainsKey(change))
+                {
+                    state.SelectedChanges[change] = ManagementFwConfigChangeTargets.Disabled;
+                }
             }
         }
     }
 
-    private ExternalTicketSystem? GetSelectedSystem(ManagementFwConfigChangeState management, string change)
+    private List<FwConfigChangeSelection> GetAvailableSelections(string change)
     {
-        if (management.SelectedChanges.TryGetValue(change, out var val) &&
-            int.TryParse(val, out int id))
-        {
-            return extTicketSystems.FirstOrDefault(s => s.Id == id);
-        }
+        List<FwConfigChangeSelection> selections =
+        [
+            new(ManagementFwConfigChangeTargets.Disabled, userConfig.GetText("disabled"))
+        ];
 
-        return null;
+        selections.AddRange(extTicketSystems.Select(system => new FwConfigChangeSelection(system.Id.ToString(), system.Name)));
+        return selections;
     }
 
-    private void SetSelectedSystem(ManagementFwConfigChangeState management, string change, ExternalTicketSystem? system)
+    private FwConfigChangeSelection GetSelectedSelection(ManagementFwConfigChangeState management, string change)
     {
-        if (system != null)
-        {
-            management.SelectedChanges[change] = system.Id.ToString();
-        }
+        string selectedValue = management.SelectedChanges.TryGetValue(change, out string? value)
+            ? value
+            : ManagementFwConfigChangeTargets.Disabled;
+
+        List<FwConfigChangeSelection> selections = GetAvailableSelections(change);
+        return selections.FirstOrDefault(selection => selection.Value == selectedValue) ?? selections[0];
+    }
+
+    private void SetSelectedSelection(ManagementFwConfigChangeState management, string change, FwConfigChangeSelection? selection)
+    {
+        management.SelectedChanges[change] = selection?.Value ?? ManagementFwConfigChangeTargets.Disabled;
     }
 
     void ToggleManagement(ManagementFwConfigChangeState management)
@@ -178,7 +196,7 @@ else
         }
         catch (Exception exception)
         {
-             DisplayMessageInUi(exception, userConfig.GetText("fwconfigchange"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fwconfigchange"), "", true);
         }
     }
 

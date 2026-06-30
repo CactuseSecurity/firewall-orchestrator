@@ -23,7 +23,7 @@ from model_controllers.management_controller import (
     ManagerInfo,
 )
 from models.fwconfig_normalized import FwConfigNormalized
-from models.fwconfigmanagerlist import FwConfigManager
+from models.fwconfigmanager import FwConfigManager
 from models.rulebase_link import RulebaseLinkUidBased
 from services.global_state import GlobalState
 from services.service_provider import ServiceProvider

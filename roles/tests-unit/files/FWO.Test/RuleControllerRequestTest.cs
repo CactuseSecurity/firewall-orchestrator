@@ -12,7 +12,7 @@ namespace FWO.Test
     internal class RuleControllerRequestTest
     {
         [Test]
-        public void RulesByFilterRequest_ShouldDeserializeFieldSourceMapping()
+        public void RulesByFilterRequest_ShouldIgnoreUnknownMappingField()
         {
             const string json = """
             {
@@ -37,53 +37,10 @@ namespace FWO.Test
 
             RulesByFilterRequest request = JsonSerializer.Deserialize<RulesByFilterRequest>(json)!;
 
-            ClassicAssert.IsNotNull(request.Query.FieldSourceMapping);
-            ClassicAssert.AreEqual(FieldSource.CustomField, request.Query.FieldSourceMapping!.OwnerInformation);
-            ClassicAssert.AreEqual(FieldSource.Database, request.Query.FieldSourceMapping.ChangeId);
-        }
-
-        [Test]
-        public void RulesByFilterRequest_ShouldRejectInvalidFieldSourceValue()
-        {
-            const string json = """
-            {
-              "Query": {
-                "IpAddress": "10.1.2.3",
-                "Filter": {
-                  "MinPrefixLength": 16,
-                  "InField": "source",
-                  "Action": "any"
-                },
-                "FieldSourceMapping": {
-                  "OwnerInformation": "FromDatabase"
-                }
-              }
-            }
-            """;
-
-            Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<RulesByFilterRequest>(json));
-        }
-
-        [Test]
-        public void RulesByFilterRequest_ShouldRejectNumericFieldSourceValue()
-        {
-            const string json = """
-            {
-              "Query": {
-                "IpAddress": "10.1.2.3",
-                "Filter": {
-                  "MinPrefixLength": 16,
-                  "InField": "source",
-                  "Action": "any"
-                },
-                "FieldSourceMapping": {
-                  "ChangeId": 1
-                }
-              }
-            }
-            """;
-
-            Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<RulesByFilterRequest>(json));
+            ClassicAssert.AreEqual("debug", request.RequestContext.UserName);
+            ClassicAssert.AreEqual("42", request.RequestContext.UserID);
+            ClassicAssert.AreEqual("10.1.2.3", request.Query.IpAddress);
+            ClassicAssert.AreEqual("any", request.Query.Filter!.Action);
         }
 
         [Test]

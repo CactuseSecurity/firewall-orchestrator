@@ -562,7 +562,7 @@ class FwConfigImport:
         try:
             result = self.import_state.api_call.call(mutation, query_variables=query_variables)
 
-            removed_links: int = result["data"]["update_rulebase_link"]["affected_rows"]
+            removed_links: int = result["data"]["update_firewall_rulebase_link"]["affected_rows"]
             if removed_links > 0:
                 FWOLogger.info(
                     f"removed {removed_links!s} inconsistent rulebase links from DB to fix consistency issues"

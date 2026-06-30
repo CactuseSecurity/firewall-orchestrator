@@ -4,6 +4,7 @@ using FWO.Data;
 using FWO.Report;
 using FWO.Report.Filter;
 using System.Text;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace FWO.Ui.Display
@@ -20,7 +21,7 @@ namespace FWO.Ui.Display
 
         public string DisplayNumberCsv(Rule rule)
         {
-            return OutputCsv(DisplayNumber(rule));
+            return OutputCsv(rule.OrderNumber.ToString(CultureInfo.InvariantCulture));
         }
 
         public string DisplayNameCsv(Rule rule)

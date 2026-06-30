@@ -3,9 +3,12 @@ using FWO.Api.Client.Queries;
 using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Middleware.Server.Controllers;
+using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
 using NUnit.Framework;
 using Microsoft.AspNetCore.Mvc;
+using NetTools;
+using System.Net;
 
 namespace FWO.Test
 {
@@ -39,16 +42,26 @@ namespace FWO.Test
         {
             DummyApiConnection apiConnection = new(
                 [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
-                [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }]);
+                [new ComplianceNetworkZone
+                {
+                    Id = 99,
+                    Name = "DMZ",
+                    Description = "Demilitarized zone",
+                    IPRanges = [new IPAddressRange(IPAddress.Parse("10.0.0.0"), IPAddress.Parse("10.0.0.255"))]
+                }]);
             ComplianceController controller = new(apiConnection, new ComplianceCheckStatusTracker());
 
-            ActionResult<List<ComplianceNetworkZone>> result = await controller.GetDesignatedZoneMatrixZones();
+            ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.GetDesignatedZoneMatrixZones();
 
             Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
-            List<ComplianceNetworkZone> zones = ((OkObjectResult)result.Result!).Value as List<ComplianceNetworkZone> ?? [];
+            List<ComplianceDesignatedZoneResponse> zones = ((OkObjectResult)result.Result!).Value as List<ComplianceDesignatedZoneResponse> ?? [];
             Assert.That(zones, Has.Count.EqualTo(1));
             Assert.That(zones[0].Id, Is.EqualTo(99));
             Assert.That(zones[0].Name, Is.EqualTo("DMZ"));
+            Assert.That(zones[0].Description, Is.EqualTo("Demilitarized zone"));
+            Assert.That(zones[0].IpRanges, Has.Count.EqualTo(1));
+            Assert.That(zones[0].IpRanges[0].IpStart, Is.EqualTo("10.0.0.0"));
+            Assert.That(zones[0].IpRanges[0].IpEnd, Is.EqualTo("10.0.0.255"));
         }
 
         private sealed class DummyApiConnection : ApiConnection

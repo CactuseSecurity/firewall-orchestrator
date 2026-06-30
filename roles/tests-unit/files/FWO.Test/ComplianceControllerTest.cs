@@ -64,10 +64,43 @@ namespace FWO.Test
             Assert.That(zones[0].IpRanges[0].IpEnd, Is.EqualTo("10.0.0.255"));
         }
 
+        [Test]
+        public async Task GetDesignatedZoneMatrixZones_PassesConfiguredMatrixIdToGraphQl()
+        {
+            DummyApiConnection apiConnection = new(
+                [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }]);
+            ComplianceController controller = new(apiConnection, new ComplianceCheckStatusTracker());
+
+            _ = await controller.GetDesignatedZoneMatrixZones();
+
+            Assert.That(apiConnection.LastNetworkZoneQuery, Is.EqualTo(ComplianceQueries.getNetworkZonesForMatrix));
+            Assert.That(GetAnonymousProperty<int>(apiConnection.LastNetworkZoneQueryVariables, "criterionId"), Is.EqualTo(12));
+        }
+
+        [Test]
+        public async Task GetDesignatedZoneMatrixZones_ReturnsEmptyListWhenNoMatrixConfigured()
+        {
+            DummyApiConnection apiConnection = new();
+            ComplianceController controller = new(apiConnection, new ComplianceCheckStatusTracker());
+
+            ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.GetDesignatedZoneMatrixZones();
+
+            Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
+            List<ComplianceDesignatedZoneResponse> zones = ((OkObjectResult)result.Result!).Value as List<ComplianceDesignatedZoneResponse> ?? [];
+            Assert.That(zones, Is.Empty);
+            Assert.That(apiConnection.LastNetworkZoneQuery, Is.Null);
+            Assert.That(apiConnection.NetworkZoneQueryCount, Is.EqualTo(0));
+        }
+
         private sealed class DummyApiConnection : ApiConnection
         {
             private readonly ConfigItem[] configItems;
             private readonly List<ComplianceNetworkZone> zones;
+
+            public string? LastNetworkZoneQuery { get; private set; }
+            public object? LastNetworkZoneQueryVariables { get; private set; }
+            public int NetworkZoneQueryCount { get; private set; }
 
             public DummyApiConnection(ConfigItem[]? configItems = null, List<ComplianceNetworkZone>? zones = null)
             {
@@ -88,6 +121,9 @@ namespace FWO.Test
 
                 if (typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>) && query == ComplianceQueries.getNetworkZonesForMatrix)
                 {
+                    LastNetworkZoneQuery = query;
+                    LastNetworkZoneQueryVariables = variables;
+                    NetworkZoneQueryCount++;
                     return Task.FromResult((QueryResponseType)(object)zones);
                 }
 
@@ -98,6 +134,14 @@ namespace FWO.Test
             protected override void Dispose(bool disposing) { }
             public override void DisposeSubscriptions<T>() { }
             public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct) => throw new NotImplementedException();
+        }
+
+        private static T GetAnonymousProperty<T>(object? obj, string propertyName)
+        {
+            Assert.That(obj, Is.Not.Null);
+            object? value = obj!.GetType().GetProperty(propertyName)?.GetValue(obj);
+            Assert.That(value, Is.Not.Null, $"Expected property '{propertyName}' to exist and have a value.");
+            return (T)value!;
         }
     }
 }

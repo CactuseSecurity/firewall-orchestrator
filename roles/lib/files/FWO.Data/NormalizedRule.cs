@@ -97,7 +97,7 @@ namespace FWO.Data
 
             return new NormalizedRule
             {
-                RuleNumNumeric = rule.OrderNumber,
+                RuleNumNumeric = rule.RuleNumNumeric,
                 RuleDisabled = rule.Disabled,
                 RuleSrcNeg = rule.SourceNegated,
                 RuleSrc = rule.Source,

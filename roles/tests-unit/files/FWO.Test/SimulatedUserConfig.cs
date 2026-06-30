@@ -436,7 +436,7 @@ namespace FWO.Test
             {"C9026","Interface decommissioned"},
             {"C9028","Interface no permission"},
             {"C9030","Foreign non production groups on used interface"},
-            {"C9031","You need the admin or recertifier role to recertify this owner."},
+            {"C9031","You need the recertifier role to recertify this owner."},
             {"C9032","You are not assigned to this owner as a recertifiable responsible person."},
             {"C9019","Empty service groups (interface)"},
             {"C9018","Empty service groups"},

@@ -528,3 +528,7 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 
 ## 9.1.13 - 29.06.2026 MAIN
 - fix: handle gateway without rule when generating reports
+
+# 9.1.14 - 30.06.2026 
+- credentials field in management for writing on Firewalls
+- migrate old Tufin template to list entry

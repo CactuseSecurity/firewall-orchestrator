@@ -457,11 +457,15 @@ else
                     Title: $"External Ticket System Settings",
                     Text: $"Deleted External Ticket System: {externalTicketSystemToDelete.Name}");
 
-                CleanupFwConfigChangeReferences(externalTicketSystemToDelete.Id);
+                bool fwConfigCleanupSucceeded = CleanupFwConfigChangeReferences(externalTicketSystemToDelete.Id);
 
                 extTicketSystems.Remove(externalTicketSystemToDelete);
                 configData.ExtTicketSystems = JsonSerializer.Serialize(extTicketSystems);
-                configData.FwConfigChangeMgmSettings = JsonSerializer.Serialize(fwConfigChangeManagementStates);
+
+                if (fwConfigCleanupSucceeded)
+                {
+                    configData.FwConfigChangeMgmSettings = JsonSerializer.Serialize(fwConfigChangeManagementStates);
+                }
 
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 extTicketSystems = string.IsNullOrWhiteSpace(configData.ExtTicketSystems)
@@ -480,12 +484,12 @@ else
         }
     }
 
-    private void CleanupFwConfigChangeReferences(int deletedSystemId)
+    private bool CleanupFwConfigChangeReferences(int deletedSystemId)
     {
         if (string.IsNullOrWhiteSpace(configData?.FwConfigChangeMgmSettings))
         {
             fwConfigChangeManagementStates = new();
-            return;
+            return false;
         }
 
         try
@@ -497,7 +501,7 @@ else
         catch (JsonException)
         {
             fwConfigChangeManagementStates = new();
-            return;
+            return false;
         }
 
         string deletedId = deletedSystemId.ToString();
@@ -514,6 +518,7 @@ else
                 }
             }
         }
+        return true;
     }
 
     private void CancelEdit()

@@ -256,7 +256,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private bool CanBundleWithStartTask(WfReqTask furtherTask, WfReqTask startTask, int startSystemId, List<ManagementFwConfigChangeState> managementSettings, List<ExternalTicketSystem> extTicketSystems)
+        private static bool CanBundleWithStartTask(WfReqTask furtherTask, WfReqTask startTask, int startSystemId, List<ManagementFwConfigChangeState> managementSettings, List<ExternalTicketSystem> extTicketSystems)
         {
             if (GetChangeCategory(furtherTask) != GetChangeCategory(startTask))
             {

@@ -34,7 +34,14 @@
         <button type="button" @onclick="@(() => ShowMessage("success", "success", MessageType.Success))">success</button>
         <button type="button" @onclick="@(() => {  UIMessageQue.Clear(); UIMessages.Clear(); })">clear</button> *@
         <CascadingValue Value="@DisplayMessageInUiFunction">
-            @Body
+            @if (ambientRoleInitialized)
+            {
+                @Body
+            }
+            else
+            {
+                <Loading />
+            }
         </CascadingValue>
     </div>
 </div>
@@ -110,6 +117,7 @@
     private Queue<UIMessage> UIMessageQue = [];
     private Timer? UIMessageQueTimer;
     private IDisposable? locationChangingRegistration;
+    private bool ambientRoleInitialized;
 
     protected override async Task OnInitializedAsync()
     {
@@ -124,6 +132,7 @@
         user = authenticationStateTask!.Result.User;
         ClaimsPrincipal authUser = user;
         UpdateAmbientModuleRole(NavigationManager.Uri);
+        ambientRoleInitialized = true;
 
         if (userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
         {

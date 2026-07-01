@@ -19,6 +19,7 @@ namespace FWO.Test
         private static readonly int[] kExpectedSequentialDisplayOrderNumbers = [1, 2, 3, 4];
         private static readonly string[] kExpectedSectionHeaderDisplayOrderNumbers = ["1", string.Empty, string.Empty];
         private static readonly string[] kExpectedSectionRuleDisplayOrderNumbers = ["1.1", "1.2", "1.3", "1.4"];
+        private static readonly string[] kExpectedSuppressedSectionRuleDisplayOrderNumbers = ["1.1", "1.2"];
 
         private RuleTreeBuilder _ruleTreeBuilder = default!;
 
@@ -384,7 +385,7 @@ namespace FWO.Test
 
             Assert.That(flattenedRules.Select(rule => rule.SectionHeader), Does.Not.Contain("Empty-Section"));
             Assert.That(flattenedRules.Select(rule => rule.SectionHeader), Does.Contain("Matching-Section"));
-            Assert.That(flattenedRules.Where(rule => string.IsNullOrEmpty(rule.SectionHeader)).Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(new[] { "1.1", "1.2" }));
+            Assert.That(flattenedRules.Where(rule => string.IsNullOrEmpty(rule.SectionHeader)).Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(kExpectedSuppressedSectionRuleDisplayOrderNumbers));
         }
 
         [Test]

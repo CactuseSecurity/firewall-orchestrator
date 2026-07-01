@@ -3,6 +3,7 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Config.Api;
+using FWO.Config.File;
 using FWO.Logging;
 using System.Diagnostics;
 using System.Text;
@@ -48,7 +49,7 @@ namespace FWO.Middleware.Server
             {
                 if (validateImportFile)
                 {
-                    ImportPathPolicy.ValidateExistingImportFile(filepath);
+                    ImportPathPolicy.ValidateExistingImportFile(filepath, ConfigFile.FwoHome);
                     LogFileHash("Read Import File", filepath);
                 }
                 importFile = File.ReadAllText(filepath).Trim();
@@ -71,7 +72,7 @@ namespace FWO.Middleware.Server
                 {
                     if (validateImportFile)
                     {
-                        ImportPathPolicy.ValidateExistingImportFile(importScriptFile);
+                        ImportPathPolicy.ValidateExistingImportFile(importScriptFile, ConfigFile.FwoHome);
                     }
                     LogFileHash("Run Import Script", importScriptFile);
                     ProcessStartInfo start = new()
@@ -103,7 +104,7 @@ namespace FWO.Middleware.Server
         protected static List<string> ValidateConfiguredImportSource(string importfilePathAndName)
         {
             string normalizedPath = ImportPathPolicy.RemoveAllowedExtension(importfilePathAndName);
-            return ImportPathPolicy.GetValidatedExistingImportFiles(normalizedPath);
+            return ImportPathPolicy.GetValidatedExistingImportFiles(normalizedPath, ConfigFile.FwoHome);
         }
 
         /// <summary>

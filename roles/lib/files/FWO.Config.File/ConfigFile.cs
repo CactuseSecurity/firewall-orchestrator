@@ -52,6 +52,9 @@ namespace FWO.Config.File
 
             [JsonPropertyName("product_version")]
             public string? ProductVersion { get; set; }
+
+            [JsonPropertyName("fworch_home")]
+            public string? CfgFwoHome { get; set; }
         }
 
         /// <summary>
@@ -106,6 +109,14 @@ namespace FWO.Config.File
             get
             {
                 return CriticalConfigValueLoaded(Data.ProductVersion);
+            }
+        }
+
+        public static string FwoHome
+        {
+            get
+            {
+                return CriticalConfigValueLoaded(Data.CfgFwoHome);
             }
         }
 

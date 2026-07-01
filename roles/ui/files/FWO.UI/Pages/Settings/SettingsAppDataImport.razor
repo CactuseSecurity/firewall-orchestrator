@@ -3,6 +3,7 @@
 
 @using System.Text.Json
 @using FWO.Basics
+@using FWO.Config.File
 @using FWO.Data.Middleware
 @using FWO.Logging
 @using FWO.Middleware.Client
@@ -50,7 +51,7 @@
                     </Display>
                 </EditList>
                 <div class="row col-sm-12 mt-1">
-                    <input type="text" class="col-sm-10" @bind="actPath" placeholder="@(ImportPathPolicy.kAllowedCustomizationRoot)/..." />
+                    <input type="text" class="col-sm-10" @bind="actPath" placeholder="@(ConfigFile.FwoHome)/..." />
                     <button type="button" class="col-sm-2 btn btn-sm btn-primary" disabled="@(string.IsNullOrWhiteSpace(actPath))" @onclick="AddPath"
                             @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
@@ -108,7 +109,7 @@
                     </Display>
                 </EditList>
                 <div class="row col-sm-12 mt-1">
-                    <input type="text" class="col-sm-10" @bind="SubnetActPath" placeholder="@(ImportPathPolicy.kAllowedCustomizationRoot)/..." />
+                    <input type="text" class="col-sm-10" @bind="SubnetActPath" placeholder="@(ConfigFile.FwoHome)/..." />
                     <button type="button" class="col-sm-2 btn btn-sm btn-primary" disabled="@(string.IsNullOrWhiteSpace(SubnetActPath))" @onclick="AddPathSubnet"
                             @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
@@ -442,7 +443,7 @@ OnCSVAppServerImportEvent(_.EventArgs));
     {
         foreach (string importPath in importPaths)
         {
-            ImportPathPolicy.ValidateImportSourceShape(importPath);
+            ImportPathPolicy.ValidateImportSourceShape(importPath, ConfigFile.FwoHome);
         }
     }
 

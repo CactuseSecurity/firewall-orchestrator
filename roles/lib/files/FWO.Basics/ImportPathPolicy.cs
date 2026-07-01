@@ -10,7 +10,7 @@ namespace FWO.Basics
         /// <summary>
         /// Directory below which app-data and subnet-data import sources may live.
         /// </summary>
-        public const string kAllowedCustomizationRoot = "/usr/local/fworch/scripts/customizing";
+        public const string kAllowedCustomizationRoot = "/usr/local/fworch";
 
         private static readonly string[] kAllowedExtensions = [".json", ".py"];
 

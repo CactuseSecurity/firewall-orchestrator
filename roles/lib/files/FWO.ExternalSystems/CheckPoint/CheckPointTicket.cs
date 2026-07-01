@@ -502,20 +502,7 @@ namespace FWO.ExternalSystems.CheckPoint
 
         private static string GetCheckPointTaskType(WfReqTask task)
         {
-            return task.TaskType switch
-            {
-                nameof(WfTaskType.group_create)
-                    => IsServiceFlavor(task)
-                        ? SCTaskType.NetworkServiceCreate.ToString()
-                        : task.TaskType,
-
-                nameof(WfTaskType.group_modify)
-                    => IsServiceFlavor(task)
-                        ? SCTaskType.NetworkServiceUpdate.ToString()
-                        : task.TaskType,
-
-                _ => task.TaskType
-            };
+            return task.TaskType;
         }
 
         private static string GetSecureChangeTemplateTaskType(WfReqTask task)
@@ -539,17 +526,6 @@ namespace FWO.ExternalSystems.CheckPoint
 
                 _ => task.TaskType
             };
-        }
-
-        private static bool IsServiceFlavor(WfReqTask task)
-        {
-            return
-                task.Elements.Any(
-                    e => e.Field ==
-                    ElemFieldType.service.ToString()) &&
-                task.Elements.All(
-                    e => e.Field ==
-                    ElemFieldType.service.ToString());
         }
 
         private static string? FindJsonValue(JsonElement element, params string[] propertyNames)

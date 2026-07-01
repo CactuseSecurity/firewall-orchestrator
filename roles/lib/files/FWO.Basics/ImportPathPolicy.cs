@@ -7,34 +7,26 @@ namespace FWO.Basics
     /// </summary>
     public static class ImportPathPolicy
     {
-        /// <summary>
-        /// Directory below which app-data and subnet-data import sources may live.
-        /// </summary>
-        public const string kAllowedCustomizationRoot = "/usr/local/fworch";
-
         private static readonly string[] kAllowedExtensions = [".json", ".py"];
-
-        /// <summary>
-        /// Returns allowed import file stems below the default customization root.
-        /// </summary>
-        public static List<string> GetAllowedImportFileStems()
-        {
-            return GetAllowedImportFileStems(kAllowedCustomizationRoot);
-        }
 
         /// <summary>
         /// Returns allowed import file stems below the given customization root.
         /// </summary>
         public static List<string> GetAllowedImportFileStems(string allowedRoot)
         {
-            if (!Directory.Exists(allowedRoot))
-            {
-                return [];
-            }
+            return GetAllowedImportFileStems([allowedRoot]);
+        }
 
-            return Directory.EnumerateFiles(allowedRoot, "*", SearchOption.AllDirectories)
+        /// <summary>
+        /// Returns allowed import file stems below the given customization roots.
+        /// </summary>
+        public static List<string> GetAllowedImportFileStems(IReadOnlyCollection<string> allowedRoots)
+        {
+            return allowedRoots
+                .Where(Directory.Exists)
+                .SelectMany(allowedRoot => Directory.EnumerateFiles(allowedRoot, "*", SearchOption.AllDirectories))
                 .Where(IsAllowedImportFileExtension)
-                .Where(path => TryValidateExistingFile(path, allowedRoot, out _))
+                .Where(path => TryValidateExistingFile(path, allowedRoots, out _))
                 .Select(RemoveAllowedExtension)
                 .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal)
@@ -55,15 +47,15 @@ namespace FWO.Basics
         /// <summary>
         /// Validates a stored extensionless import source and returns matching files.
         /// </summary>
-        public static List<string> GetValidatedExistingImportFiles(string storedPath)
+        public static List<string> GetValidatedExistingImportFiles(string storedPath, string allowedRoot)
         {
-            return GetValidatedExistingImportFiles(storedPath, kAllowedCustomizationRoot);
+            return GetValidatedExistingImportFiles(storedPath, [allowedRoot]);
         }
 
         /// <summary>
         /// Validates a stored extensionless import source and returns matching files.
         /// </summary>
-        public static List<string> GetValidatedExistingImportFiles(string storedPath, string allowedRoot)
+        public static List<string> GetValidatedExistingImportFiles(string storedPath, IReadOnlyCollection<string> allowedRoots)
         {
             string extension = Path.GetExtension(storedPath);
             string pathWithoutExtension = kAllowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase)
@@ -82,7 +74,7 @@ namespace FWO.Basics
 
             foreach (string existingFile in existingFiles)
             {
-                if (!TryValidateExistingFile(existingFile, allowedRoot, out string errorMessage))
+                if (!TryValidateExistingFile(existingFile, allowedRoots, out string errorMessage))
                 {
                     throw new UnauthorizedAccessException(errorMessage);
                 }
@@ -97,15 +89,19 @@ namespace FWO.Basics
         /// File existence and security attributes (symlink, world-writable) are validated on the
         /// importer host at read/run time, since only that host owns the customization directory.
         /// </summary>
-        public static void ValidateImportSourceShape(string importSource)
+        public static void ValidateImportSourceShape(string importSource, string allowedRoot)
         {
-            ValidateImportSourceShape(importSource, kAllowedCustomizationRoot);
+            ValidateImportSourceShape(importSource, [allowedRoot]);
         }
 
         /// <summary>
         /// Validates the shape of a configured import source without touching the filesystem.
+        /// Ensures the source resolves below one of the allowed customization roots, uses no path
+        /// traversal, and (when an extension is present) uses an allowed extension.
+        /// File existence and security attributes (symlink, world-writable) are validated on the
+        /// importer host at read/run time, since only that host owns the customization directory.
         /// </summary>
-        public static void ValidateImportSourceShape(string importSource, string allowedRoot)
+        public static void ValidateImportSourceShape(string importSource, IReadOnlyCollection<string> allowedRoots)
         {
             if (string.IsNullOrWhiteSpace(importSource))
             {
@@ -118,20 +114,16 @@ namespace FWO.Basics
                 throw new ArgumentException($"Import source '{importSource}' must reference a .json or .py file.");
             }
 
-            string fullRoot = Path.GetFullPath(allowedRoot).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
-            string fullPath = Path.GetFullPath(importSource, fullRoot);
-            if (!fullPath.StartsWith(fullRoot, StringComparison.Ordinal))
+            foreach (string allowedRoot in allowedRoots)
             {
-                throw new UnauthorizedAccessException($"Import source '{importSource}' is outside the allowed customization directory '{allowedRoot}'.");
+                string fullRoot = GetFullRoot(allowedRoot);
+                string fullPath = Path.GetFullPath(importSource, fullRoot);
+                if (fullPath.StartsWith(fullRoot, StringComparison.Ordinal))
+                {
+                    return;
+                }
             }
-        }
-
-        /// <summary>
-        /// Validates a specific existing import file.
-        /// </summary>
-        public static void ValidateExistingImportFile(string filePath)
-        {
-            ValidateExistingImportFile(filePath, kAllowedCustomizationRoot);
+            throw new UnauthorizedAccessException($"Import source '{importSource}' is outside the allowed customization directories '{FormatAllowedRoots(allowedRoots)}'.");
         }
 
         /// <summary>
@@ -139,7 +131,15 @@ namespace FWO.Basics
         /// </summary>
         public static void ValidateExistingImportFile(string filePath, string allowedRoot)
         {
-            if (!TryValidateExistingFile(filePath, allowedRoot, out string errorMessage))
+            ValidateExistingImportFile(filePath, [allowedRoot]);
+        }
+
+        /// <summary>
+        /// Validates a specific existing import file.
+        /// </summary>
+        public static void ValidateExistingImportFile(string filePath, IReadOnlyCollection<string> allowedRoots)
+        {
+            if (!TryValidateExistingFile(filePath, allowedRoots, out string errorMessage))
             {
                 throw new UnauthorizedAccessException(errorMessage);
             }
@@ -155,7 +155,7 @@ namespace FWO.Basics
             return Convert.ToHexString(hash).ToLowerInvariant();
         }
 
-        private static bool TryValidateExistingFile(string filePath, string allowedRoot, out string errorMessage)
+        private static bool TryValidateExistingFile(string filePath, IReadOnlyCollection<string> allowedRoots, out string errorMessage)
         {
             errorMessage = "";
             if (!File.Exists(filePath))
@@ -170,27 +170,32 @@ namespace FWO.Basics
                 return false;
             }
 
-            string fullRoot = Path.GetFullPath(allowedRoot).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
             string fullPath = Path.GetFullPath(filePath);
-            if (!fullPath.StartsWith(fullRoot, StringComparison.Ordinal))
+            foreach (string allowedRoot in allowedRoots)
             {
-                errorMessage = $"Import file '{filePath}' is outside the allowed customization directory '{allowedRoot}'.";
-                return false;
+                string fullRoot = GetFullRoot(allowedRoot);
+                if (!fullPath.StartsWith(fullRoot, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (ContainsSymlink(fullPath, fullRoot))
+                {
+                    errorMessage = $"Import file '{filePath}' contains a symbolic link in its path.";
+                    return false;
+                }
+
+                string? writablePath = GetFirstWorldWritablePath(fullPath, fullRoot);
+                if (writablePath != null)
+                {
+                    errorMessage = $"Import file '{filePath}' uses world-writable path '{writablePath}'.";
+                    return false;
+                }
+                return true;
             }
 
-            if (ContainsSymlink(fullPath, fullRoot))
-            {
-                errorMessage = $"Import file '{filePath}' contains a symbolic link in its path.";
-                return false;
-            }
-
-            string? writablePath = GetFirstWorldWritablePath(fullPath, fullRoot);
-            if (writablePath != null)
-            {
-                errorMessage = $"Import file '{filePath}' uses world-writable path '{writablePath}'.";
-                return false;
-            }
-            return true;
+            errorMessage = $"Import file '{filePath}' is outside the allowed customization directories '{FormatAllowedRoots(allowedRoots)}'.";
+            return false;
         }
 
         private static bool IsAllowedImportFileExtension(string filePath)
@@ -234,6 +239,16 @@ namespace FWO.Basics
             UnixFileMode mode = File.GetUnixFileMode(path);
 #pragma warning restore CA1416
             return (mode & UnixFileMode.OtherWrite) == UnixFileMode.OtherWrite;
+        }
+
+        private static string GetFullRoot(string allowedRoot)
+        {
+            return Path.GetFullPath(allowedRoot).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        }
+
+        private static string FormatAllowedRoots(IReadOnlyCollection<string> allowedRoots)
+        {
+            return string.Join("', '", allowedRoots);
         }
 
         private static IEnumerable<string> EnumeratePathComponents(string fullPath, string fullRoot)

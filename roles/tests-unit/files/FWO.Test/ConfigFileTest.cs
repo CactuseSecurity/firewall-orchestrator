@@ -116,6 +116,22 @@ z2cAR6HkNFB63sh2qZwtC0utP3i3yXlDSxD8lQ7A7NYlifRszw==
         }
 
         [Test]
+        public void AllowedCustomizationRootsUseConfiguredFwoHome()
+        {
+            CreateAndReadConfigFile(7, correctConfigFile);
+
+            Assert.That(ConfigFile.FwoHome, Is.EqualTo("/usr/local/fworch"));
+            Assert.That(
+                ConfigFile.AllowedCustomizationRoots,
+                Is.EqualTo(new[]
+                {
+                    "/usr/local/fworch/scripts/customizing",
+                    "/usr/local/fworch/etc"
+                })
+            );
+        }
+
+        [Test]
         public void IncorrectSyntaxConfigFile()
         {
             Assert.Catch(typeof(TargetInvocationException), () => CreateAndReadConfigFile(1, incorrectSyntaxConfigFile));
@@ -162,7 +178,7 @@ z2cAR6HkNFB63sh2qZwtC0utP3i3yXlDSxD8lQ7A7NYlifRszw==
         [OneTimeTearDown]
         public void OnFinish()
         {
-            for (int uniqueId = 0; uniqueId < 7; uniqueId++)
+            for (int uniqueId = 0; uniqueId < 8; uniqueId++)
             {
                 File.Delete(configFileTestPath + uniqueId);
                 File.Delete(privateKeyTestPath + uniqueId);

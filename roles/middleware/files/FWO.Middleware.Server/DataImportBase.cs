@@ -49,7 +49,7 @@ namespace FWO.Middleware.Server
             {
                 if (validateImportFile)
                 {
-                    ImportPathPolicy.ValidateExistingImportFile(filepath, ConfigFile.FwoHome);
+                    ImportPathPolicy.ValidateExistingImportFile(filepath, ConfigFile.AllowedCustomizationRoots);
                     LogFileHash("Read Import File", filepath);
                 }
                 importFile = File.ReadAllText(filepath).Trim();
@@ -72,7 +72,7 @@ namespace FWO.Middleware.Server
                 {
                     if (validateImportFile)
                     {
-                        ImportPathPolicy.ValidateExistingImportFile(importScriptFile, ConfigFile.FwoHome);
+                        ImportPathPolicy.ValidateExistingImportFile(importScriptFile, ConfigFile.AllowedCustomizationRoots);
                     }
                     LogFileHash("Run Import Script", importScriptFile);
                     ProcessStartInfo start = new()
@@ -104,7 +104,7 @@ namespace FWO.Middleware.Server
         protected static List<string> ValidateConfiguredImportSource(string importfilePathAndName)
         {
             string normalizedPath = ImportPathPolicy.RemoveAllowedExtension(importfilePathAndName);
-            return ImportPathPolicy.GetValidatedExistingImportFiles(normalizedPath, ConfigFile.FwoHome);
+            return ImportPathPolicy.GetValidatedExistingImportFiles(normalizedPath, ConfigFile.AllowedCustomizationRoots);
         }
 
         /// <summary>

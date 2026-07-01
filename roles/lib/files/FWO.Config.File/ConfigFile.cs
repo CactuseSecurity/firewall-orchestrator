@@ -120,6 +120,22 @@ namespace FWO.Config.File
             }
         }
 
+        /// <summary>
+        /// Root directories from which customization import files and scripts may be read or executed.
+        /// </summary>
+        public static List<string> AllowedCustomizationRoots
+        {
+            get
+            {
+                string fwoHome = FwoHome;
+                return
+                [
+                    Path.Combine(fwoHome, "scripts", "customizing"),
+                    Path.Combine(fwoHome, "etc")
+                ];
+            }
+        }
+
         public static string[] RemoteAddresses
         {
             get

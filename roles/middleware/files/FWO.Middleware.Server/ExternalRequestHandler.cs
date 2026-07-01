@@ -268,7 +268,7 @@ namespace FWO.Middleware.Server
                    && furtherSystem.Id == startSystemId;
         }
 
-        private bool TryResolveExtSystemForTask(WfReqTask task, List<ManagementFwConfigChangeState> managementSettings, List<ExternalTicketSystem> extTicketSystems, out ExternalTicketSystem? system)
+        private static bool TryResolveExtSystemForTask(WfReqTask task, List<ManagementFwConfigChangeState> managementSettings, List<ExternalTicketSystem> extTicketSystems, out ExternalTicketSystem? system)
         {
             system = null;
 

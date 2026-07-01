@@ -5,7 +5,7 @@ query getModelledRulesByManagementName (
   $import_id_end: bigint
   $marker: String
 ) {
-  rule (
+  firewall_rule (
   where: {
     mgm_id: { _eq: $mgmId }
     active: { _eq: true }

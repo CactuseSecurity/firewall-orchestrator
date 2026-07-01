@@ -33,15 +33,17 @@ from services.uid2id_mapper import Uid2IdMapper
 
 
 class RefType(Enum):
-    SRC = "rule_from"
-    DST = "rule_to"
-    SVC = "rule_service"
-    NWOBJ_RESOLVED = "rule_nwobj_resolved"
-    SVC_RESOLVED = "rule_svc_resolved"
-    USER_RESOLVED = "rule_user_resolved"
-    SRC_ZONE = "rule_from_zone"
-    DST_ZONE = "rule_to_zone"
-    TIME = "rule_time"
+    # values mirror the Hasura mutation field base names (firewall schema) and are used
+    # to build the insert_/update_ response keys dynamically (see add/remove rule refs)
+    SRC = "firewall_rule_from"
+    DST = "firewall_rule_to"
+    SVC = "firewall_rule_service"
+    NWOBJ_RESOLVED = "firewall_rule_nw_object_resolved"
+    SVC_RESOLVED = "firewall_rule_nw_service_resolved"
+    USER_RESOLVED = "firewall_rule_nw_user_resolved"
+    SRC_ZONE = "firewall_rule_from_zone"
+    DST_ZONE = "firewall_rule_to_zone"
+    TIME = "firewall_rule_time"
 
 
 # this class is used for importing rules and rule refs into the FWO API
@@ -736,8 +738,8 @@ class FwConfigImportRule:
         changes: int = 0
         new_rule_ids: list[int] = []
 
-        add_new_rule_metadata_mutation = """mutation upsertRuleMetadata($ruleMetadata: [rule_metadata_insert_input!]!) {
-             insert_rule_metadata(objects: $ruleMetadata, on_conflict: {constraint: rule_metadata_mgm_id_rule_uid_unique, update_columns: []}) {
+        add_new_rule_metadata_mutation = """mutation upsertRuleMetadata($ruleMetadata: [firewall_rule_metadata_insert_input!]!) {
+             insert_firewall_rule_metadata(objects: $ruleMetadata, on_conflict: {constraint: rule_metadata_mgm_id_rule_uid_unique, update_columns: []}) {
                 affected_rows
                 returning {
                     rule_metadata_id
@@ -762,7 +764,7 @@ class FwConfigImportRule:
         if "errors" in import_result:
             raise FwoApiWriteError(f"failed to write new RulesMetadata: {import_result['errors']!s}")
         # reduce change number by number of rulebases
-        changes = import_result["data"]["insert_rule_metadata"]["affected_rows"]
+        changes = import_result["data"]["insert_firewall_rule_metadata"]["affected_rows"]
 
         return changes, new_rule_ids
 
@@ -781,8 +783,8 @@ class FwConfigImportRule:
         changes: int = 0
         new_rule_ids: list[dict[str, Any]] = []
 
-        upsert_rules = """mutation upsertRules($rules: [rule_insert_input!]!) {
-                insert_rule(
+        upsert_rules = """mutation upsertRules($rules: [firewall_rule_insert_input!]!) {
+                insert_firewall_rule(
                     objects: $rules,
                 ) {
                     affected_rows,
@@ -812,8 +814,8 @@ class FwConfigImportRule:
                     f"fwo_api:addRulesWithinRulebases - error in addRulesWithinRulebases: {import_result['errors']!s}"
                 )
                 raise FwoApiWriteError(f"failed to write new rules: {import_result['errors']!s}")
-            changes += import_result["data"]["insert_rule"]["affected_rows"]
-            new_rule_ids += import_result["data"]["insert_rule"]["returning"]
+            changes += import_result["data"]["insert_firewall_rule"]["affected_rows"]
+            new_rule_ids += import_result["data"]["insert_firewall_rule"]["returning"]
         return changes, new_rule_ids
 
     def add_new_rulebases(self, new_rulebases: list[Rulebase]) -> tuple[int, list[dict[str, Any]]]:
@@ -828,8 +830,8 @@ class FwConfigImportRule:
                 each with 'uid' and 'id' for each newly added rulebase.
 
         """
-        add_rulebases_without_rules_mutation = """mutation upsertRulebaseWithoutRules($rulebases: [rulebase_insert_input!]!) {
-                insert_rulebase(
+        add_rulebases_without_rules_mutation = """mutation upsertRulebaseWithoutRules($rulebases: [firewall_rulebase_insert_input!]!) {
+                insert_firewall_rulebase(
                     objects: $rulebases,
                 ) {
                     affected_rows,
@@ -861,9 +863,9 @@ class FwConfigImportRule:
             FWOLogger.exception(f"fwo_api:importRules - error in addNewRulebases: {import_result['errors']!s}")
             raise FwoApiWriteError(f"failed to write new rulebases: {import_result['errors']!s}")
 
-        return import_result["data"]["insert_rulebase"]["affected_rows"], import_result["data"]["insert_rulebase"][
-            "returning"
-        ]
+        return import_result["data"]["insert_firewall_rulebase"]["affected_rows"], import_result["data"][
+            "insert_firewall_rulebase"
+        ]["returning"]
 
     def prepare_new_rule_metadata(self, new_rules: list[RuleNormalized]) -> list[dict[str, Any]]:
         if self.normalized_config is None:
@@ -900,7 +902,7 @@ class FwConfigImportRule:
 
         remove_mutation = """
             mutation markRulebasesRemoved($importId: bigint!, $ids: [Int!]!) {
-                update_rulebase(where: {removed: { _is_null: true }, id: {_in: $ids}}, _set: {removed: $importId}) {
+                update_firewall_rulebase(where: {removed: { _is_null: true }, id: {_in: $ids}}, _set: {removed: $importId}) {
                     affected_rows
                 }
             }
@@ -919,7 +921,7 @@ class FwConfigImportRule:
         if "errors" in remove_result:
             raise FwoApiWriteError(f"failed to remove rulebases: {remove_result['errors']!s}")
 
-        return int(remove_result["data"]["update_rulebase"]["affected_rows"])
+        return int(remove_result["data"]["update_firewall_rulebase"]["affected_rows"])
 
     def mark_rules_removed(self, rule_uids_to_remove: list[str]) -> tuple[int, list[int]]:
         """
@@ -932,7 +934,7 @@ class FwConfigImportRule:
 
         remove_mutation = """
             mutation markRulesRemoved($importId: bigint!, $ruleIds: [bigint!]!) {
-                update_rule(where: {removed: { _is_null: true }, rule_id: {_in: $ruleIds}}, _set: {removed: $importId, active:false}) {
+                update_firewall_rule(where: {removed: { _is_null: true }, rule_id: {_in: $ruleIds}}, _set: {removed: $importId, active:false}) {
                     affected_rows
                     returning { rule_id }
                 }
@@ -951,8 +953,8 @@ class FwConfigImportRule:
             raise FwoApiWriteError(f"failed to remove rules: {traceback.format_exc()!s}")
         if "errors" in remove_result:
             raise FwoApiWriteError(f"failed to remove rules: {remove_result['errors']!s}")
-        changes = int(remove_result["data"]["update_rule"]["affected_rows"])
-        removed_rule_ids = [item["rule_id"] for item in remove_result["data"]["update_rule"]["returning"]]
+        changes = int(remove_result["data"]["update_firewall_rule"]["affected_rows"])
+        removed_rule_ids = [item["rule_id"] for item in remove_result["data"]["update_firewall_rule"]["returning"]]
 
         return changes, removed_rule_ids
 
@@ -1071,10 +1073,10 @@ class FwConfigImportRule:
                 raise FwoApiWriteError(f"failed to remove rule enforced on gateway refs: {traceback.format_exc()!s}")
             if "errors" in remove_result:
                 FWOLogger.exception(
-                    f"fwo_api:update_rule_enforced_on_gateway - error while updating moved rules refs: {remove_result['errors']!s}"
+                    f"fwo_api:update_firewall_rule_enforced_on_gateway - error while updating moved rules refs: {remove_result['errors']!s}"
                 )
                 raise FwoApiWriteError(f"failed to remove rule enforced on gateway refs: {remove_result['errors']!s}")
-            removed_refs = int(remove_result["data"]["update_rule_enforced_on_gateway"]["affected_rows"])
+            removed_refs = int(remove_result["data"]["update_firewall_rule_enforced_on_gateway"]["affected_rows"])
         if refs_to_add:
             add_mutation = FwoApi.get_graphql_code(
                 [fwo_const.GRAPHQL_QUERY_PATH + "rule/insertRuleEnforcedOnGateway.graphql"]
@@ -1098,10 +1100,10 @@ class FwConfigImportRule:
                 raise FwoApiWriteError(f"failed to add rule enforced on gateway refs: {traceback.format_exc()!s}")
             if "errors" in add_result:
                 FWOLogger.exception(
-                    f"fwo_api:update_rule_enforced_on_gateway - error while adding moved rules refs: {add_result['errors']!s}"
+                    f"fwo_api:update_firewall_rule_enforced_on_gateway - error while adding moved rules refs: {add_result['errors']!s}"
                 )
                 raise FwoApiWriteError(f"failed to add rule enforced on gateway refs: {add_result['errors']!s}")
-            added_refs = int(add_result["data"]["insert_rule_enforced_on_gateway"]["affected_rows"])
+            added_refs = int(add_result["data"]["insert_firewall_rule_enforced_on_gateway"]["affected_rows"])
 
         return added_refs, removed_refs
 

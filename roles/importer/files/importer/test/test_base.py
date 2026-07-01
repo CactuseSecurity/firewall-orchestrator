@@ -24,7 +24,7 @@ def test_fwconfig_import_gateway_init(
     api_call.call = unittest.mock.Mock(
         return_value={
             "data": {
-                "rulebase_link": [
+                "firewall_rulebase_link": [
                     {
                         "gw_id": gateway_id,
                         "from_rule_id": from_rule_id,
@@ -62,7 +62,7 @@ def test_fwconfig_import_gateway_init_no_links(
     api_call: FwoApiCall,
     mocker: MockerFixture,
 ):
-    api_call.call = unittest.mock.Mock(return_value={"data": {"rulebase_link": []}})
+    api_call.call = unittest.mock.Mock(return_value={"data": {"firewall_rulebase_link": []}})
 
     get_graphql_code = mock_get_graphql_code(mocker, "lol")
 
@@ -81,7 +81,7 @@ def test_fwconfig_import_gateway_init_no_gateway_ids(
     api_call: FwoApiCall,
     mocker: MockerFixture,
 ):
-    api_call.call = unittest.mock.Mock(return_value={"data": {"rulebase_link": []}})
+    api_call.call = unittest.mock.Mock(return_value={"data": {"firewall_rulebase_link": []}})
 
     get_graphql_code = mock_get_graphql_code(mocker, "lol")
 

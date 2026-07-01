@@ -3,7 +3,7 @@ query getRuleUidsOfRulebase (
   $import_id_start: bigint
   $import_id_end: bigint
 ) {
-  rule (
+  firewall_rule (
   where: {
     rulebase_id: { _eq: $rulebaseId }
     active: { _eq: true }

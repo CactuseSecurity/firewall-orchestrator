@@ -1,5 +1,6 @@
 using FWO.Data;
 using NUnit.Framework;
+using System.Text.Json;
 
 namespace FWO.Test
 {
@@ -24,6 +25,30 @@ namespace FWO.Test
             string formatted = NormalizedConfig.FormatDatetimeZ(utcTime, convertToUtc: true);
 
             Assert.That(formatted, Is.EqualTo("2026-01-02T03:04:05+00:00"));
+        }
+
+        [Test]
+        public void NormalizedRulebaseSerializesRulesAsSnakeCase()
+        {
+            NormalizedRulebase rulebase = new()
+            {
+                Uid = "rb-uid",
+                Name = "Rulebase",
+                MgmUid = "mgm-uid",
+                Rules =
+                {
+                    ["rule-uid"] = new NormalizedRule
+                    {
+                        RuleUid = "rule-uid",
+                        RuleName = "Rule"
+                    }
+                }
+            };
+
+            string serialized = JsonSerializer.Serialize(rulebase);
+
+            Assert.That(serialized, Does.Contain("\"rules\""));
+            Assert.That(serialized, Does.Not.Contain("\"Rules\""));
         }
     }
 }

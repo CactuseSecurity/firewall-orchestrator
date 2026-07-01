@@ -92,8 +92,8 @@
       db: "{{ fworch_db_name }}"
       path: "{{ database_install_dir }}/sql/creation/{{ item }}"
     loop:
+      - fworch-create-tables-firewall.sql
       - fworch-create-tables-base.sql
-      - fworch-create-tables-rule-related.sql
       - fworch-create-tables-stm.sql
       - fworch-create-tables-flats.sql
       - fworch-create-tables-changelog.sql

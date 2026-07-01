@@ -1,4 +1,4 @@
-fragment networkObjectDetailsForVariance on object {
+fragment networkObjectDetailsForVariance on firewall_nw_object {
   obj_id
   obj_name
   obj_ip

@@ -2,13 +2,13 @@ mutation resetFlowDB {
   update_import_control(where: {} _set: {flow_sync_done: false}) {
     affected_rows
   }
-  update_rule(where: {} _set: {flow_access_id: null}) {
+  update_firewall_rule(where: {} _set: {flow_access_id: null}) {
     affected_rows
   }
-  update_object(where: {} _set: {flow_nwgrp_id: null, flow_nwobj_id: null, flow_active: false}) {
+  update_firewall_nw_object(where: {} _set: {flow_nwgrp_id: null, flow_nwobj_id: null, flow_active: false}) {
     affected_rows
   }
-  update_service(where: {} _set: {flow_svcgrp_id: null, flow_svcobj_id: null, flow_active: false}) {
+  update_firewall_nw_service(where: {} _set: {flow_svcgrp_id: null, flow_svcobj_id: null, flow_active: false}) {
     affected_rows
   }
   update_time_object(where: {} _set: {flow_timeobj_id: null, flow_active: false}) {

@@ -2,7 +2,7 @@ query getRuleByUid(
   $deviceId: Int!
   $ruleUid: String
 ) {
-  rule(
+  firewall_rule(
     where: {
       dev_id: { _eq: $deviceId }
       rule_uid: { _eq: $ruleUid }

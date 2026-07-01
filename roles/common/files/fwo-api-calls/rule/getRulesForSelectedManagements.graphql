@@ -8,7 +8,7 @@ query getRulesForSelectedManagementsByChunk(
   $to_date: timestamptz
   $mgm_ids: [Int!]
 ) {
-  rule(
+  firewall_rule(
     limit: $limit
     offset: $offset
     order_by: { rule_uid: asc }

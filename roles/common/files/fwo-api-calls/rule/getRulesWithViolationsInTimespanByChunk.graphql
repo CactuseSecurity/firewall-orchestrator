@@ -7,7 +7,7 @@ query getRulesWithViolationsInTimespanByChunk(
   $mgm_ids: [Int!]
   $violations_where: compliance_violation_bool_exp!
 ) {
-  rule(
+  firewall_rule(
     limit: $limit
     offset: $offset
     order_by: { rule_uid: asc }

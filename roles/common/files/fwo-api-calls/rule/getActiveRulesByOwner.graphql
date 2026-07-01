@@ -1,5 +1,5 @@
 query getActiveRulesByOwner($ownerId: Int!) {
-  rule(
+  firewall_rule(
     where: {
       removed: {_is_null: true},
       rule_owners: {

@@ -15,6 +15,17 @@
   become_user: postgres
   register: test_fortigate_mgm_id
 
+- name: find latest checkpoint import before test
+  postgresql_query:
+    db: fworchdb
+    query: >
+      SELECT COALESCE(MAX(control_id), 0) AS control_id
+      FROM import_control
+      WHERE mgm_id={{ test_checkpoint_mgm_id.query_result.0.mgm_id }};
+  become: true
+  become_user: postgres
+  register: test_checkpoint_previous_import
+
 - name: make test checkpoint import
   ansible.builtin.command:
     cmd: >
@@ -25,10 +36,36 @@
   become_user: "{{ fworch_user }}"
   environment: "{{ proxy_env }}"
   register: test_checkpoint_import_result
-  failed_when: >
-    test_checkpoint_import_result.rc != 0
-    or (test_checkpoint_import_result.stderr is defined
-        and test_checkpoint_import_result.stderr is search('\\[ERROR\\]'))
+  failed_when: false
+
+- name: find checkpoint import result
+  postgresql_query:
+    db: fworchdb
+    query: >
+      SELECT control_id, successful_import, import_errors
+      FROM import_control
+      WHERE mgm_id={{ test_checkpoint_mgm_id.query_result.0.mgm_id }}
+        AND control_id>{{ test_checkpoint_previous_import.query_result.0.control_id }}
+      ORDER BY control_id DESC
+      LIMIT 1;
+  become: true
+  become_user: postgres
+  register: test_checkpoint_import_status
+
+- name: verify checkpoint import succeeded
+  ansible.builtin.assert:
+    that:
+      - test_checkpoint_import_result.rc == 0
+      - test_checkpoint_import_status.query_result | length == 1
+      - test_checkpoint_import_status.query_result.0.successful_import | bool
+      - >
+        test_checkpoint_import_status.query_result.0.import_errors is none
+        or test_checkpoint_import_status.query_result.0.import_errors | string | length == 0
+    fail_msg: >
+      Checkpoint test import failed.
+      command rc={{ test_checkpoint_import_result.rc }},
+      import status={{ test_checkpoint_import_status.query_result | default([]) }},
+      stderr={{ test_checkpoint_import_result.stderr | default('') }}
 
 - name: show checkpoint import result
   debug:

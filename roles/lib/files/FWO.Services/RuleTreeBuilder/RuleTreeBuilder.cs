@@ -131,7 +131,7 @@ namespace FWO.Services.RuleTreeBuilder
         /// ordered-layer header placeholders, section-header placeholders, and real rules.
         ///
         /// The build is intentionally strict about invalid structural data. It throws when the
-        /// graph lacks exactly one initial link, when a required target rulebase cannot be
+        /// graph has more than one initial link, when a required target rulebase cannot be
         /// resolved, when an ambiguous “next layer” or “next section” relationship exists, or
         /// when the same real rule id would be emitted twice. Links that are merely unreachable
         /// from the initial graph entry point do not fail the build; they stay in
@@ -256,7 +256,12 @@ namespace FWO.Services.RuleTreeBuilder
         /// </summary>
         private void TraverseOrderedLayers()
         {
-            RulebaseLink initialLink = FindInitialLink();
+            RulebaseLink? initialLink = FindInitialLink();
+            if (initialLink == null)
+            {
+                Log.WriteWarning(LogMessageTitle, "No initial rulebase link was found, so the rule tree will be empty.");
+                return;
+            }
             RemoveLinkFromProcessingQueue(initialLink);
 
             int currentLayerRulebaseId = initialLink.NextRulebaseId;
@@ -413,16 +418,17 @@ namespace FWO.Services.RuleTreeBuilder
         /// <summary>
         /// Resolves the single initial link for the current device graph. The rewritten builder
         /// requires exactly one initial link because ordered-layer traversal must have a unique
-        /// graph entry point. Missing or multiple initial links are treated as hard data errors.
+        /// graph entry point. Multiple initial links are treated as hard data errors.
+        /// A missing link is treated as a warning because the gateway may have no rulebases at all.
         /// </summary>
-        private RulebaseLink FindInitialLink()
+        private RulebaseLink? FindInitialLink()
         {
             List<RulebaseLink> initialLinks = [.. LinksToBeProcessed.Where(link => link.IsInitial)];
 
             return initialLinks.Count switch
             {
                 1 => initialLinks[0],
-                0 => throw new InvalidOperationException("Exactly one initial rulebase link is required, but none were found."),
+                0 => null,
                 _ => throw new InvalidOperationException("Exactly one initial rulebase link is required, but multiple were found.")
             };
         }

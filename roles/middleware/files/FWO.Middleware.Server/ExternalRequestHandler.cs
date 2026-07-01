@@ -258,8 +258,24 @@ namespace FWO.Middleware.Server
                 return false;
             }
 
-            ExternalTicketSystem furtherSystem = ResolveExtSystemForTask(furtherTask);
-            return furtherSystem.Id == startSystemId;
+            return TryResolveExtSystemForTask(furtherTask, out ExternalTicketSystem? furtherSystem)
+                   && furtherSystem != null
+                   && furtherSystem.Id == startSystemId;
+        }
+
+        private bool TryResolveExtSystemForTask(WfReqTask task, out ExternalTicketSystem? system)
+        {
+            system = null;
+
+            try
+            {
+                system = ResolveExtSystemForTask(task);
+                return true;
+            }
+            catch (InvalidOperationException)
+            {
+                return false;
+            }
         }
 
         private ExternalTicketSystem ResolveExtSystemForTask(WfReqTask task)

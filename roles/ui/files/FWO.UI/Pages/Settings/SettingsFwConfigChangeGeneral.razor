@@ -120,23 +120,36 @@ else
             }
         }
 
-        // 2. Merge if needed
-        foreach (var m in allManagements)
+        Dictionary<int, Management> currentManagements = allManagements.ToDictionary(m => m.Id);
+
+        managementStates = managementStates
+            .Where(state => currentManagements.ContainsKey(state.Id))
+            .ToList();
+
+        // refresh names and add missing managements
+        foreach (Management management in allManagements)
         {
-            if (!managementStates.Any(s => s.Id == m.Id))
+            ManagementFwConfigChangeState? existingState = managementStates.FirstOrDefault(s => s.Id == management.Id);
+            if (existingState == null)
             {
                 managementStates.Add(new ManagementFwConfigChangeState
                 {
-                    Id = m.Id,
-                    Name = m.Name,
+                    Id = management.Id,
+                    Name = management.Name,
                     Enabled = false,
                     SelectedChanges = AvailableChanges.ToDictionary(c => c, c => ManagementFwConfigChangeTargets.Disabled)
                 });
             }
+            else
+            {
+                existingState.Name = management.Name;
+            }
         }
 
-        foreach (var state in managementStates)
+        foreach (ManagementFwConfigChangeState state in managementStates)
         {
+            state.SelectedChanges ??= new Dictionary<string, string>();
+
             foreach (string change in AvailableChanges)
             {
                 if (!state.SelectedChanges.ContainsKey(change))

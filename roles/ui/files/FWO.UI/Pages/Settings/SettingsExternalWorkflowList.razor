@@ -216,6 +216,8 @@ else
     private readonly List<ExternalTicketSystemTypeDefinition> availableExternalTicketTypes = BuiltInExternalTicketSystemTypes.AllBuiltInTicketTypes.ToList();
     private ExternalTicketSystemTypeDefinition selectedType = BuiltInExternalTicketSystemTypes.GetById(BuiltInExternalTicketSystemTypes.GenericId);
 
+    private List<ManagementFwConfigChangeState> fwConfigChangeManagementStates = new();
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -312,18 +314,10 @@ else
                     .ToList();
 
                 system.Sanitize();
-                int index = extTicketSystems.FindIndex(x => x.Id == curExternalTicketSystem.Id);
-                if (index >= 0)
-                {
-                    extTicketSystems[index] = curExternalTicketSystem;
-                }
             }
             else
             {
-                editModel.Id = extTicketSystems.Any()
-                    ? extTicketSystems.Max(x => x.Id) + 1
-                    : 1;
-
+                editModel.Id = GetNextExternalTicketSystemId(extTicketSystems);
                 editModel.Authorization = selectedType.IsBuiltIn ? editModel.Authorization : "";
                 editModel.Sanitize();
                 extTicketSystems.Add(editModel);
@@ -349,9 +343,42 @@ else
         }
     }
 
+    private int GetNextExternalTicketSystemId(List<ExternalTicketSystem> systems)
+    {
+        int maxSystemId = systems.Count > 0 ? systems.Max(s => s.Id) : 0;
+        int maxReferencedId = GetMaxReferencedExternalTicketSystemId();
+
+        return Math.Max(maxSystemId, maxReferencedId) + 1;
+    }
+
+    private int GetMaxReferencedExternalTicketSystemId()
+    {
+        if (string.IsNullOrWhiteSpace(configData?.FwConfigChangeMgmSettings))
+        {
+            return 0;
+        }
+
+        try
+        {
+            List<ManagementFwConfigChangeState> states =
+                JsonSerializer.Deserialize<List<ManagementFwConfigChangeState>>(configData.FwConfigChangeMgmSettings)
+                ?? new();
+
+            return states
+                .SelectMany(state => (state.SelectedChanges ?? new Dictionary<string, string>()).Values)
+                .Select(value => int.TryParse(value, out int parsedId) ? parsedId : 0)
+                .DefaultIfEmpty(0)
+                .Max();
+        }
+        catch (JsonException)
+        {
+            return 0;
+        }
+    }
+
     private void AddNewTemplateIfNeeded()
     {
-        if ((!string.IsNullOrWhiteSpace(newTemplate.TicketTemplate) || !string.IsNullOrWhiteSpace(newTemplate.TasksTemplate)) 
+        if ((!string.IsNullOrWhiteSpace(newTemplate.TicketTemplate) || !string.IsNullOrWhiteSpace(newTemplate.TasksTemplate))
         && !string.IsNullOrWhiteSpace(newTemplate.TaskType) && editModel.Templates.All(template => template.TaskType != newTemplate.TaskType))
         {
             editModel.Templates.Add(new ExternalTicketTemplate
@@ -422,7 +449,6 @@ else
 
     private async Task DeleteExternalTicketSystem()
     {
-
         if (configData != null)
         {
             try
@@ -431,9 +457,11 @@ else
                     Title: $"External Ticket System Settings",
                     Text: $"Deleted External Ticket System: {externalTicketSystemToDelete.Name}");
 
-                extTicketSystems.Remove(externalTicketSystemToDelete);
+                CleanupFwConfigChangeReferences(externalTicketSystemToDelete.Id);
 
+                extTicketSystems.Remove(externalTicketSystemToDelete);
                 configData.ExtTicketSystems = JsonSerializer.Serialize(extTicketSystems);
+                configData.FwConfigChangeMgmSettings = JsonSerializer.Serialize(fwConfigChangeManagementStates);
 
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 extTicketSystems = string.IsNullOrWhiteSpace(configData.ExtTicketSystems)
@@ -448,6 +476,42 @@ else
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("delete_ext_ticket_system"), "", true);
+            }
+        }
+    }
+
+    private void CleanupFwConfigChangeReferences(int deletedSystemId)
+    {
+        if (string.IsNullOrWhiteSpace(configData?.FwConfigChangeMgmSettings))
+        {
+            fwConfigChangeManagementStates = new();
+            return;
+        }
+
+        try
+        {
+            fwConfigChangeManagementStates =
+                JsonSerializer.Deserialize<List<ManagementFwConfigChangeState>>(configData.FwConfigChangeMgmSettings)
+                ?? new();
+        }
+        catch (JsonException)
+        {
+            fwConfigChangeManagementStates = new();
+            return;
+        }
+
+        string deletedId = deletedSystemId.ToString();
+
+        foreach (ManagementFwConfigChangeState state in fwConfigChangeManagementStates)
+        {
+            state.SelectedChanges ??= new Dictionary<string, string>();
+
+            foreach (string change in state.SelectedChanges.Keys.ToList())
+            {
+                if (state.SelectedChanges[change] == deletedId)
+                {
+                    state.SelectedChanges[change] = ManagementFwConfigChangeTargets.Disabled;
+                }
             }
         }
     }

@@ -19,6 +19,11 @@ namespace FWO.Test
         private const string configFileTestPath = "config_file.test";
         private const string privateKeyTestPath = "private_key.test";
         private const string publicKeyTestPath = "public_key.test";
+        private static readonly string[] kExpectedAllowedCustomizationRoots =
+        [
+            "/usr/local/fworch/scripts/customizing",
+            "/usr/local/fworch/etc"
+        ];
 
         #region configFiles
         private const string correctConfigFile = @"{
@@ -121,14 +126,7 @@ z2cAR6HkNFB63sh2qZwtC0utP3i3yXlDSxD8lQ7A7NYlifRszw==
             CreateAndReadConfigFile(7, correctConfigFile);
 
             Assert.That(ConfigFile.FwoHome, Is.EqualTo("/usr/local/fworch"));
-            Assert.That(
-                ConfigFile.AllowedCustomizationRoots,
-                Is.EqualTo(new[]
-                {
-                    "/usr/local/fworch/scripts/customizing",
-                    "/usr/local/fworch/etc"
-                })
-            );
+            Assert.That(ConfigFile.AllowedCustomizationRoots, Is.EqualTo(kExpectedAllowedCustomizationRoots));
         }
 
         [Test]

@@ -24,6 +24,10 @@ namespace FWO.Test
             Assert.That(FlowQueries.getFlowServiceObjects, Does.Contain("fragment flowSvcObjectDetails"));
             Assert.That(FlowQueries.getFlowServiceGroups, Does.Contain("query getServiceGroups"));
             Assert.That(FlowQueries.getFlowServiceGroups, Does.Contain("fragment flowSvcGroupDetails"));
+            Assert.That(FlowQueries.getFlowTimeObjectId, Does.Contain("query getTimeObjectId"));
+            Assert.That(FlowQueries.getFlowTimeObjectId, Does.Contain("timeobjects: flow_timeobject(where: $where, order_by: [{ timeobj_id: asc }], limit: 1)"));
+            Assert.That(FlowQueries.getFlowTimeObjectId, Does.Contain("timeobj_id"));
+            Assert.That(FlowQueries.getFlowTimeObjectId, Does.Contain("name"));
             Assert.That(FlowQueries.getFlowTimeObjects, Does.Contain("query getTimeObjects"));
             Assert.That(FlowQueries.getFlowTimeObjects, Does.Contain("fragment flowTimeObjectDetails"));
             Assert.That(FlowQueries.getFlowAddressObjectId, Does.Contain("query getAddressObjectId"));

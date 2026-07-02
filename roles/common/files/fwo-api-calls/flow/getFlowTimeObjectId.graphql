@@ -1,0 +1,6 @@
+query getTimeObjectId($where: flow_timeobject_bool_exp!) {
+  timeobjects: flow_timeobject(where: $where, order_by: [{ timeobj_id: asc }], limit: 1) {
+    timeobj_id
+    name
+  }
+}

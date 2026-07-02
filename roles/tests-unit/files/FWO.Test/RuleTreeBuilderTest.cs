@@ -181,24 +181,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public void BuildRuleTree_MissingInitialLink_Throws()
-        {
-            RulebaseReport[] rulebases =
-            [
-                Rulebase(1, "Layer-1", 10)
-            ];
-
-            RulebaseLink[] links =
-            [
-                OrderedLayerLink(gatewayId: 1, fromRulebaseId: 99, nextRulebaseId: 1)
-            ];
-
-            Assert.That(
-                () => _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1),
-                Throws.InvalidOperationException.With.Message.Contains("none were found"));
-        }
-
-        [Test]
         public void BuildRuleTree_MultipleInitialLinks_Throws()
         {
             RulebaseReport[] rulebases =

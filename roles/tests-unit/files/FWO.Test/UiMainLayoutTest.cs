@@ -1,4 +1,5 @@
 using Bunit;
+using Bunit.TestDoubles;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
@@ -13,7 +14,6 @@ using FWO.Ui.Services;
 using FWO.Ui.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -149,14 +149,17 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task EventMediator_UserSessionClosedForCurrentUser_StopsTokenRefreshRunner()
+        public async Task EventMediator_ReloginRequiredForCurrentUser_ShowsReloginDialog()
         {
             await using MainLayoutFixture fixture = new();
-            Assert.That(GetPrivateFieldValue<object?>(fixture.Layout.Instance, "tokenRefreshRunner"), Is.Not.Null);
 
-            fixture.EventMediator.Publish(nameof(UserSessionClosedEvent), new UserSessionClosedEvent(new(fixture.UserConfig.User.Name, fixture.UserConfig.User.Dn)));
+            fixture.EventMediator.Publish(nameof(ReloginRequiredEvent), new ReloginRequiredEvent(new(fixture.UserConfig.User.Dn)));
 
-            Assert.That(GetPrivateFieldValue<object?>(fixture.Layout.Instance, "tokenRefreshRunner"), Is.Null);
+            fixture.Layout.WaitForAssertion(() =>
+            {
+                Assert.That(GetPrivateFieldValue<bool>(fixture.Layout.Instance, "showReloginDialog"), Is.True);
+                Assert.That(fixture.Layout.Markup, Does.Contain("jwt_expired_text"));
+            });
         }
 
         [Test]
@@ -184,12 +187,39 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task OnInitializedAsync_StartsTokenRefreshCoordinator_AndDisposeStopsIt()
+        {
+            MainLayoutFixture fixture = new();
+            try
+            {
+                Assert.That(fixture.TokenRefreshCoordinator.StartCallCount, Is.EqualTo(1));
+                Assert.That(fixture.TokenRefreshCoordinator.StopCallCount, Is.EqualTo(0));
+            }
+            finally
+            {
+                await fixture.DisposeAsync();
+            }
+
+            Assert.That(fixture.TokenRefreshCoordinator.StopCallCount, Is.EqualTo(1));
+        }
+
+        [Test]
         public async Task AddUiLogEntry_WhenApiThrows_DoesNotPropagateException()
         {
             await using MainLayoutFixture fixture = new();
             fixture.ApiConnection.ThrowOnUiLog = true;
 
             Assert.DoesNotThrowAsync(async () => await fixture.Layout.Instance.AddUiLogEntry(2, "Cause", "Description"));
+        }
+
+        [Test]
+        public async Task OnInitializedAsync_SetsNetworkModellingAmbientRole()
+        {
+            await using MainLayoutFixture fixture = new(roles: [Roles.Auditor, Roles.Modeller], initialUri: "http://localhost/networkmodelling");
+
+            Assert.That(fixture.ApiConnection.AmbientRoleSelections, Is.Not.Empty);
+            Assert.That(fixture.ApiConnection.AmbientRoleSelections[0], Is.EqualTo(Roles.Modeller));
+            Assert.That(GetPrivateFieldValue<bool>(fixture.Layout.Instance, "ambientRoleInitialized"), Is.True);
         }
 
         [Test]
@@ -211,9 +241,10 @@ namespace FWO.Test
             public MainLayoutTestApiConnection ApiConnection { get; } = new();
             public SimulatedUserConfig UserConfig { get; }
             public EventMediator EventMediator { get; } = new();
+            public MainLayoutTokenRefreshCoordinatorStub TokenRefreshCoordinator { get; } = new();
             public IRenderedComponent<MainLayout> Layout { get; }
 
-            public MainLayoutFixture(int maxMessages = 3, IEnumerable<string>? roles = null)
+            public MainLayoutFixture(int maxMessages = 3, IEnumerable<string>? roles = null, string initialUri = "http://localhost/")
             {
                 List<string> userRoles = roles?.ToList() ?? [Roles.Reporter];
                 context.JSInterop.Mode = JSRuntimeMode.Loose;
@@ -237,10 +268,11 @@ namespace FWO.Test
                 context.Services.AddSingleton<ISessionStorage>(sessionStorage);
                 context.Services.AddSingleton(new TokenService(middlewareClient, sessionStorage));
                 context.Services.AddSingleton<IEventMediator>(EventMediator);
-                context.Services.AddSingleton<CircuitHandler>(new CircuitHandlerService(EventMediator));
+                context.Services.AddSingleton<ITokenRefreshCoordinator>(TokenRefreshCoordinator);
                 context.Services.AddSingleton(new KeyboardInputService());
                 context.Services.AddSingleton((ProtectedSessionStorage)RuntimeHelpers.GetUninitializedObject(typeof(ProtectedSessionStorage)));
                 context.Services.AddSingleton<AuthenticationStateProvider>(new MainLayoutAuthStateProvider(UserConfig.User.Name, UserConfig.User.Dn, userRoles));
+                context.Services.GetRequiredService<BunitNavigationManager>().NavigateTo(initialUri);
 
                 Layout = context.Render<CascadingAuthenticationState>(parameters => parameters.AddChildContent<MainLayout>())
                     .FindComponent<MainLayout>();
@@ -272,6 +304,27 @@ namespace FWO.Test
                 return Task.FromResult(new AuthenticationState(principal));
             }
         }
+
+        private sealed class MainLayoutTokenRefreshCoordinatorStub : ITokenRefreshCoordinator
+        {
+            public int StartCallCount { get; private set; }
+            public int StopCallCount { get; private set; }
+
+            public Task StartAsync()
+            {
+                StartCallCount++;
+                return Task.CompletedTask;
+            }
+
+            public void Stop()
+            {
+                StopCallCount++;
+            }
+
+            public void Dispose()
+            {
+            }
+        }
     }
 
     internal sealed record UiLogEntry(int Severity, string Cause, string Description);
@@ -280,6 +333,7 @@ namespace FWO.Test
     {
         public List<UiLogEntry> UiLogs { get; } = [];
         public List<(string Title, string Message)> Alerts { get; } = [];
+        public List<string> AmbientRoleSelections { get; } = [];
         public bool ThrowOnUiLog { get; set; }
 
         public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
@@ -325,6 +379,11 @@ namespace FWO.Test
             }
 
             throw new NotImplementedException($"Unhandled query response type {typeof(QueryResponseType).Name}");
+        }
+
+        public override void SetAmbientRole(ClaimsPrincipal user, List<string> targetRoleList)
+        {
+            AmbientRoleSelections.Add(targetRoleList.FirstOrDefault(role => user.Claims.Any(claim => claim.Value.Equals(role, StringComparison.OrdinalIgnoreCase))) ?? "");
         }
 
         public void WaitForLogCount(int expectedCount)

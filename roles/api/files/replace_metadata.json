@@ -2504,9 +2504,45 @@
                     ]
                   },
                   "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "object_id",
+                      "changer",
+                      "change_text",
+                      "app_id",
+                      "change_type",
+                      "object_type",
+                      "change_time",
+                      "change_source"
+                    ]
+                  },
+                  "comment": ""
                 }
               ],
               "select_permissions": [
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "object_id",
+                      "changer",
+                      "change_text",
+                      "app_id",
+                      "change_type",
+                      "object_type",
+                      "change_time",
+                      "change_source"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "auditor",
                   "permission": {
@@ -2713,6 +2749,35 @@
                 }
               ],
               "select_permissions": [
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "ticket_id",
+                      "common_service",
+                      "is_interface",
+                      "is_published",
+                      "is_requested",
+                      "removed",
+                      "requested_on_fw",
+                      "conn_prop",
+                      "creator",
+                      "extra_params",
+                      "interface_permission",
+                      "name",
+                      "app_id",
+                      "id",
+                      "proposed_app_id",
+                      "used_interface_id",
+                      "reason",
+                      "creation_date",
+                      "removal_date"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "auditor",
                   "permission": {
@@ -3023,6 +3088,24 @@
                     "filter": {}
                   },
                   "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "comment",
+                      "creator",
+                      "id_string",
+                      "name",
+                      "app_id",
+                      "group_type",
+                      "creation_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ],
               "update_permissions": [
@@ -3118,6 +3201,18 @@
               ],
               "select_permissions": [
                 {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "nwgroup_id",
+                      "connection_field",
+                      "connection_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -3198,6 +3293,18 @@
                 }
               ],
               "select_permissions": [
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "nwobject_id",
+                      "connection_field",
+                      "connection_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "auditor",
                   "permission": {
@@ -3321,6 +3428,17 @@
                     "filter": {}
                   },
                   "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "nwobject_id",
+                      "nwgroup_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ],
               "delete_permissions": [
@@ -3391,6 +3509,17 @@
                 }
               ],
               "select_permissions": [
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "connection_id",
+                      "app_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "auditor",
                   "permission": {
@@ -3642,6 +3771,22 @@
               ],
               "select_permissions": [
                 {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "is_global",
+                      "name",
+                      "app_id",
+                      "id",
+                      "port",
+                      "port_end",
+                      "proto_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -3761,6 +3906,17 @@
               ],
               "select_permissions": [
                 {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "connection_id",
+                      "service_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -3866,6 +4022,22 @@
                 }
               ],
               "select_permissions": [
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "is_global",
+                      "comment",
+                      "creator",
+                      "name",
+                      "app_id",
+                      "id",
+                      "creation_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "auditor",
                   "permission": {
@@ -3997,6 +4169,17 @@
               ],
               "select_permissions": [
                 {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "connection_id",
+                      "service_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -4073,6 +4256,17 @@
                 }
               ],
               "select_permissions": [
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "service_group_id",
+                      "service_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "auditor",
                   "permission": {
@@ -14454,6 +14648,39 @@
                     "check": {}
                   },
                   "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "last_recert_check",
+                      "last_recertified",
+                      "last_recertifier",
+                      "last_recertifier_dn",
+                      "next_recert_date",
+                      "recert_active"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "_or": [
+                            {
+                              "tenant_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "tenant_id": {
+                                "_eq": "x-hasura-tenant-id"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "check": {}
+                  },
+                  "comment": ""
                 }
               ]
             },
@@ -14515,6 +14742,18 @@
                 },
                 {
                   "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "active_state",
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
                   "permission": {
                     "columns": [
                       "active_state",
@@ -14654,6 +14893,26 @@
                     "filter": {}
                   },
                   "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "import_source",
+                      "name",
+                      "ip",
+                      "ip_end",
+                      "custom_type",
+                      "ip_proto_id",
+                      "nw_type",
+                      "owner_id",
+                      "port"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ],
               "update_permissions": [
@@ -14753,6 +15012,21 @@
                     ]
                   },
                   "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "recertified",
+                      "comment",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ]
+                  },
+                  "comment": ""
                 }
               ],
               "select_permissions": [
@@ -14825,6 +15099,23 @@
                   "comment": ""
                 },
                 {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "report_id",
+                      "recertified",
+                      "comment",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "reporter",
                   "permission": {
                     "columns": [
@@ -14862,6 +15153,17 @@
               "update_permissions": [
                 {
                   "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "report_id"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
                   "permission": {
                     "columns": [
                       "report_id"

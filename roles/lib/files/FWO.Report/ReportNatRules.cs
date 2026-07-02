@@ -92,7 +92,7 @@ namespace FWO.Report
             if (string.IsNullOrEmpty(rule.SectionHeader))
             {
                 report.AppendLine("<tr>");
-                report.AppendLine($"<td>{RuleDisplayBase.DisplayNumber(rule)}</td>");
+                report.AppendLine($"<td>{RuleDisplayBase.DisplayHierarchicalNumber(rule)}</td>");
                 report.AppendLine($"<td>{RuleDisplayBase.DisplayName(rule)}</td>");
                 report.AppendLine($"<td>{RuleDisplayBase.DisplaySourceZones(rule)}</td>");
                 report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");

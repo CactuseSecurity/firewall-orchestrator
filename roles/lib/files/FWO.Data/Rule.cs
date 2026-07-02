@@ -18,7 +18,7 @@ namespace FWO.Data
         public int MgmtId { get; set; }
 
         [JsonProperty("rule_num_numeric"), JsonPropertyName("rule_num_numeric")]
-        public double OrderNumber { get; set; }
+        public double RuleNumNumeric { get; set; }
 
         [JsonProperty("rule_name"), JsonPropertyName("rule_name")]
         public string? Name { get; set; } = "";
@@ -178,8 +178,24 @@ namespace FWO.Data
         public ComplianceViolationType Compliance { get; set; } = ComplianceViolationType.None;
         public string ViolationDetails { get; set; } = "";
 
+        /// <summary>
+        /// Gets or sets the report-specific dotted hierarchy number shown in tree-style rule reports.
+        /// Ordered layers and real rules receive a value, while section headers stay empty.
+        /// </summary>
         public string DisplayOrderNumberString { get; set; } = "";
+
+        /// <summary>
+        /// Gets or sets the report-specific flat visible-row order in the built rule tree, including ordered-layer
+        /// and section header placeholder rows. UI report table sorting uses this field.
+        /// </summary>
         public int DisplayOrderNumber { get; set; }
+
+        /// <summary>
+        /// Gets or sets the report-specific compact sequential order of real rules only. Header placeholder rows
+        /// keep this value at 0. Exports and report-specific serialization use this field.
+        /// </summary>
+        public int OrderNumber { get; set; }
+
         public bool Certified { get; set; }
         public string ManagementName = "";
         public string DeviceName { get; set; } = "";
@@ -203,7 +219,7 @@ namespace FWO.Data
             Id = rule.Id;
             Uid = rule.Uid;
             MgmtId = rule.MgmtId;
-            OrderNumber = rule.OrderNumber;
+            RuleNumNumeric = rule.RuleNumNumeric;
             Name = rule.Name;
             Comment = rule.Comment;
             Disabled = rule.Disabled;
@@ -245,6 +261,7 @@ namespace FWO.Data
             TranslatedRule = rule.TranslatedRule;
             DisplayOrderNumberString = rule.DisplayOrderNumberString;
             DisplayOrderNumber = rule.DisplayOrderNumber;
+            OrderNumber = rule.OrderNumber;
             Certified = rule.Certified;
             ManagementName = rule.ManagementName;
             DeviceName = rule.DeviceName;

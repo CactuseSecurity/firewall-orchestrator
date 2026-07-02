@@ -60,6 +60,22 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Render_MixedUserUsesModellerRoleForWorkflowLookup()
+        {
+            await using BunitContext context = CreateContext([Roles.Auditor, Roles.Modeller], out NetworkModellingPageTestApiConn apiConn, out SimulatedUserConfig userConfig);
+            userConfig.User.Ownerships = [10];
+
+            IRenderedComponent<NetworkModelling> page = RenderPage(context, appId: "APP-A");
+
+            page.WaitForAssertion(() =>
+            {
+                Assert.That(page.Markup, Does.Contain("Alpha App"));
+                Assert.That(apiConn.ExtRequestRoles, Does.Contain(Roles.Modeller));
+                Assert.That(apiConn.ExtRequestRoles, Does.Not.Contain(""));
+            });
+        }
+
+        [Test]
         public async Task Render_AuditorSeesReadOnlyModellingActions()
         {
             await using BunitContext context = CreateContext([Roles.Auditor], out NetworkModellingPageTestApiConn apiConn, out _);
@@ -78,9 +94,11 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Render_AdminCanRecertifySelectedOwner()
+        public async Task Render_AdminExecutionModeCanOpenRecertPopupButCannotSubmit()
         {
-            await using BunitContext context = CreateContext([Roles.Admin], out NetworkModellingPageTestApiConn apiConn, out _);
+            await using BunitContext context = CreateContext([Roles.Admin, Roles.Recertifier], out NetworkModellingPageTestApiConn apiConn, out SimulatedUserConfig userConfig);
+            userConfig.User.RecertOwnerships = [10];
+            userConfig.SetExecutionMode(Roles.Admin);
 
             IRenderedComponent<NetworkModelling> page = RenderPage(context, appId: "APP-A");
 
@@ -89,6 +107,7 @@ namespace FWO.Test
                 Assert.That(page.Markup, Does.Contain("Alpha App"));
                 IElement recertButton = FindButton(page, "recertify");
                 Assert.That(recertButton.HasAttribute("disabled"), Is.False);
+                Assert.That(page.FindComponent<RequestRecertPopup>().Instance.CanRecertify, Is.False);
                 Assert.That(apiConn.UnexpectedQueries, Is.Empty);
             });
         }
@@ -107,6 +126,7 @@ namespace FWO.Test
                 Assert.That(page.Markup, Does.Contain("Alpha App"));
                 IElement recertButton = FindButton(page, "recertify");
                 Assert.That(recertButton.HasAttribute("disabled"), Is.False);
+                Assert.That(page.FindComponent<RequestRecertPopup>().Instance.CanRecertify, Is.True);
                 Assert.That(apiConn.UnexpectedQueries, Is.Empty);
             });
         }
@@ -125,7 +145,7 @@ namespace FWO.Test
                 Assert.That(page.Markup, Does.Contain("Alpha App"));
                 IElement recertButton = FindButton(page, "recertify");
                 Assert.That(recertButton.HasAttribute("disabled"), Is.True);
-                Assert.That(recertButton.ParentElement?.GetAttribute("title"), Is.EqualTo("You need the admin or recertifier role to recertify this owner."));
+                Assert.That(recertButton.ParentElement?.GetAttribute("title"), Is.EqualTo("You need the recertifier role to recertify this owner."));
                 Assert.That(apiConn.UnexpectedQueries, Is.Empty);
             });
         }
@@ -179,6 +199,7 @@ namespace FWO.Test
 
             apiConn = new NetworkModellingPageTestApiConn();
             userConfig = CreateUserConfig(roles);
+            apiConn.SetAmbientRole(CreatePrincipal(roles), [Roles.Modeller, Roles.Admin]);
 
             context.Services.AddSingleton<ApiConnection>(apiConn);
             context.Services.AddSingleton<UserConfig>(userConfig);
@@ -236,6 +257,15 @@ namespace FWO.Test
             return userConfig;
         }
 
+        private static ClaimsPrincipal CreatePrincipal(IEnumerable<string> roles)
+        {
+            return new ClaimsPrincipal(new ClaimsIdentity(
+            [
+                .. roles.Select(role => new Claim(ClaimTypes.Role, role)),
+                new Claim(ClaimTypes.Name, "test.user")
+            ], "Test", ClaimTypes.Name, ClaimTypes.Role));
+        }
+
         private static Dictionary<string, string> TestTranslations()
         {
             return new()
@@ -263,7 +293,7 @@ namespace FWO.Test
                 ["last_recertified"] = "Last recertified",
                 ["last_recertifier"] = "Last recertifier",
                 ["next_recertification"] = "Next recertification",
-                ["C9031"] = "You need the admin or recertifier role to recertify this owner.",
+                ["C9031"] = "You need the recertifier role to recertify this owner.",
                 ["C9032"] = "You are not assigned to this owner as a recertifiable responsible person."
             };
         }
@@ -300,6 +330,10 @@ namespace FWO.Test
         {
             public List<int> ConnectionQueryAppIds { get; } = [];
             public List<string> UnexpectedQueries { get; } = [];
+            public List<string> ExtRequestRoles { get; } = [];
+
+            private readonly Stack<string> previousRoles = new();
+            public string ActiveRole { get; private set; } = "";
 
             private readonly List<FwoOwner> owners =
             [
@@ -350,6 +384,7 @@ namespace FWO.Test
                 {
                     int appId = GetIntVariable(variables, "appId");
                     ConnectionQueryAppIds.Add(appId);
+                    RecordQueryRole();
                     return Result<QueryResponseType>(CreateConnections(appId));
                 }
                 if (query == ModellingQueries.getDummyAppRole)
@@ -390,11 +425,51 @@ namespace FWO.Test
                 }
                 if (query == ExtRequestQueries.getLatestTicketId)
                 {
-                    return Result<QueryResponseType>(new List<TicketId>());
+                    RecordQueryRole();
+                    return Result<QueryResponseType>(new List<TicketId> { new() { Id = 42 } });
+                }
+                if (query == RequestQueries.getTicketById)
+                {
+                    return Result<QueryResponseType>(new WfTicket
+                    {
+                        Id = GetLongVariable(variables, "Id"),
+                        StateId = 10,
+                        CreationDate = new DateTime(2026, 7, 1, 10, 0, 0),
+                        Requester = new UiUser { Name = "requester" }
+                    });
+                }
+                if (query == ExtRequestQueries.getLastRequest)
+                {
+                    RecordQueryRole();
+                    return Result<QueryResponseType>(new List<ExternalRequest>
+                    {
+                        new()
+                        {
+                            TicketId = GetLongVariable(variables, "ticketId"),
+                            LastCreationResponse = "workflow lookup ok"
+                        }
+                    });
                 }
 
                 UnexpectedQueries.Add(query);
                 return Task.FromResult(default(QueryResponseType)!);
+            }
+
+            public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
+            {
+                previousRoles.Push(ActiveRole);
+                ActiveRole = targetRoleList.FirstOrDefault(role => user.Claims.Any(claim => claim.Value.Equals(role, StringComparison.OrdinalIgnoreCase))) ?? "";
+            }
+
+            public override void SetAmbientRole(ClaimsPrincipal user, List<string> targetRoleList)
+            {
+                previousRoles.Push(ActiveRole);
+                ActiveRole = targetRoleList.FirstOrDefault(role => user.Claims.Any(claim => claim.Value.Equals(role, StringComparison.OrdinalIgnoreCase))) ?? "";
+            }
+
+            public override void SwitchBack()
+            {
+                ActiveRole = previousRoles.TryPop(out string? previousRole) ? previousRole : "";
             }
 
             private static Task<T> Result<T>(object value)
@@ -408,10 +483,21 @@ namespace FWO.Test
                 return value is int intValue ? intValue : 0;
             }
 
+            private static long GetLongVariable(object? variables, string name)
+            {
+                object? value = variables?.GetType().GetProperty(name)?.GetValue(variables);
+                return value is long longValue ? longValue : 0;
+            }
+
             private static int[] GetIntArrayVariable(object? variables, string name)
             {
                 object? value = variables?.GetType().GetProperty(name)?.GetValue(variables);
                 return value as int[] ?? [];
+            }
+
+            private void RecordQueryRole()
+            {
+                ExtRequestRoles.Add(ActiveRole);
             }
 
             private static FwoOwner CreateOwner(int id, string name, string extAppId)

@@ -211,3 +211,6 @@ For a feature-centric, thematically grouped view see
 - Importer/customizing-script HTTP calls now use connect/read timeouts.
 - FortiOS (REST) VIP/destination-NAT objects normalized to their external IP.
 - Explicit `[Authorize]` on the password-change REST endpoint.
+
+### 9.3 — 14.06.2026 (DEVELOP)
+- New OPNsense standalone (25ff) import module: imports OPNsense firewall configs via the full config.xml core backup API.

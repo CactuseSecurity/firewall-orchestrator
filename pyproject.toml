@@ -4,6 +4,7 @@ include = [
     "scripts"
 ]
 extraPaths = ["roles/importer/files/importer"]
+venvPath = "."
 venv = ".venv"
 pythonPlatform = "Linux"
 
@@ -26,7 +27,7 @@ reportMissingImports = false
 reportMissingTypeStubs = true
 
 [tool.ruff]
-required-version = "0.15.0"
+required-version = ">=0.15.0"
 line-length = 120
 indent-width = 4
 target-version = "py310"

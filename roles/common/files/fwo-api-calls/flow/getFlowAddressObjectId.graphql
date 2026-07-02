@@ -1,4 +1,4 @@
-query getAddressObjectId($where: flow_nwobject_bool_exp!) {
+query getFlowAddressObjectId($where: flow_nwobject_bool_exp!) {
   nwobjects: flow_nwobject(where: $where, order_by: [{ nwobj_id: asc }], limit: 1) {
     nwobj_id
     name

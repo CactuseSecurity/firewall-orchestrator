@@ -1,5 +1,5 @@
-query getServiceGroups($where: flow_svcgroup_bool_exp = {}) {
+query getFlowServiceGroups($where: flow_svcgroup_bool_exp = {}) {
   svcgroups: flow_svcgroup(where: $where, order_by: [{ name: asc }, { svcgrp_id: asc }]) {
-    ...flowSvcGroupDetails
+    ...flowSvcGroupWithMembersFragment
   }
 }

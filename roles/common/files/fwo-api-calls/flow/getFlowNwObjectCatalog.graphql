@@ -1,5 +1,5 @@
 query getFlowNwObjectCatalog {
   nwobjects: flow_nwobject(order_by: [{ name: asc }, { nwobj_id: asc }]) {
-    ...flowNwObjectDetails
+    ...flowNwObjectFragment
   }
 }

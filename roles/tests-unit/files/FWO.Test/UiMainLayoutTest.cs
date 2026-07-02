@@ -1,4 +1,5 @@
 using Bunit;
+using Bunit.TestDoubles;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
@@ -290,6 +291,16 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task OnInitializedAsync_SetsNetworkModellingAmbientRole()
+        {
+            await using MainLayoutFixture fixture = new(roles: [Roles.Auditor, Roles.Modeller], initialUri: "http://localhost/networkmodelling");
+
+            Assert.That(fixture.ApiConnection.AmbientRoleSelections, Is.Not.Empty);
+            Assert.That(fixture.ApiConnection.AmbientRoleSelections[0], Is.EqualTo(Roles.Modeller));
+            Assert.That(GetPrivateFieldValue<bool>(fixture.Layout.Instance, "ambientRoleInitialized"), Is.True);
+        }
+
+        [Test]
         public async Task DisplayMessageInUi_WhenDisplayPathThrows_DoesNotPropagateException()
         {
             await using MainLayoutFixture fixture = new();
@@ -312,7 +323,7 @@ namespace FWO.Test
             public NavigationManager NavigationManager { get; }
             public IRenderedComponent<MainLayout> Layout { get; }
 
-            public MainLayoutFixture(int maxMessages = 3, IEnumerable<string>? roles = null)
+            public MainLayoutFixture(int maxMessages = 3, IEnumerable<string>? roles = null, string initialUri = "http://localhost/")
             {
                 List<string> userRoles = roles?.ToList() ?? [Roles.Reporter];
                 context.JSInterop.Mode = JSRuntimeMode.Loose;
@@ -341,6 +352,7 @@ namespace FWO.Test
                 context.Services.AddSingleton((ProtectedSessionStorage)RuntimeHelpers.GetUninitializedObject(typeof(ProtectedSessionStorage)));
                 context.Services.AddSingleton<AuthenticationStateProvider>(new MainLayoutAuthStateProvider(UserConfig.User.Name, UserConfig.User.Dn, userRoles));
                 NavigationManager = context.Services.GetRequiredService<NavigationManager>();
+                context.Services.GetRequiredService<BunitNavigationManager>().NavigateTo(initialUri);
 
                 Layout = context.Render<CascadingAuthenticationState>(parameters => parameters.AddChildContent<MainLayout>())
                     .FindComponent<MainLayout>();
@@ -403,6 +415,7 @@ namespace FWO.Test
         public List<(string Title, string Message)> Alerts { get; } = [];
         public List<List<string>> AmbientRoleRequests { get; } = [];
         public ClaimsPrincipal? LastAmbientUser { get; private set; }
+        public List<string> AmbientRoleSelections { get; } = [];
         public bool ThrowOnUiLog { get; set; }
 
         public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
@@ -454,6 +467,7 @@ namespace FWO.Test
         {
             LastAmbientUser = user;
             AmbientRoleRequests.Add([.. targetRoleList]);
+            AmbientRoleSelections.Add(targetRoleList.FirstOrDefault(role => user.Claims.Any(claim => claim.Value.Equals(role, StringComparison.OrdinalIgnoreCase))) ?? "");
         }
 
         public void WaitForLogCount(int expectedCount)

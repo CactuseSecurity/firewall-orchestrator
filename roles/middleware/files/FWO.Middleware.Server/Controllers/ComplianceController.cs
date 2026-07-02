@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Compliance;
@@ -6,6 +7,7 @@ using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Logging;
 using FWO.Middleware.Server.Services;
+using FWO.Middleware.Server.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
@@ -73,6 +75,26 @@ namespace FWO.Middleware.Server.Controllers
                 Log.WriteError("Get Compliance Report", "Error while getting report.", exception);
             }
             return "";
+        }
+
+        /// <summary>
+        /// Returns the network zones of the configured designated zone matrix.
+        /// </summary>
+        /// <returns>The matrix zones, or an empty list if no matrix is configured.</returns>
+        [HttpGet("DesignatedZoneMatrix/Zones")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+        public async Task<ActionResult<List<ComplianceDesignatedZoneResponse>>> GetDesignatedZoneMatrixZones()
+        {
+            try
+            {
+                List<ComplianceDesignatedZoneResponse> zones = await LoadDesignatedZoneMatrixZonesAsync();
+                return Ok(zones);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Get Designated Zone Matrix Zones", "Error while getting designated zone matrix zones.", exception);
+                return StatusCode(500);
+            }
         }
 
         /// <summary>
@@ -162,9 +184,51 @@ namespace FWO.Middleware.Server.Controllers
             return Ok(jobStatus);
         }
 
+        /// <summary>
+        /// Loads the zones belonging to the configured designated matrix.
+        /// </summary>
+        private async Task<List<ComplianceDesignatedZoneResponse>> LoadDesignatedZoneMatrixZonesAsync()
+        {
+            GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, false);
+            if (globalConfig.ComplianceDesignatedZoneMatrixId <= 0)
+            {
+                return [];
+            }
+
+            List<ComplianceCriterion> designatedMatrices = await apiConnection.SendQueryAsync<List<ComplianceCriterion>>(
+                ComplianceQueries.getMatrixById,
+                new { criterionId = globalConfig.ComplianceDesignatedZoneMatrixId }) ?? [];
+
+            if (designatedMatrices.Count == 0)
+            {
+                return [];
+            }
+
+            List<ComplianceNetworkZone> zones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
+                ComplianceQueries.getNetworkZonesForMatrix,
+                new { criterionId = globalConfig.ComplianceDesignatedZoneMatrixId }) ?? [];
+
+            return zones.Select(MapDesignatedZoneResponse).ToList();
+        }
+
         private static string ConvertOutput(List<(Rule, (ComplianceNetworkZone, ComplianceNetworkZone))> forbiddenCommunicationsOutput)
         {
             return JsonSerializer.Serialize(forbiddenCommunicationsOutput);
+        }
+
+        private static ComplianceDesignatedZoneResponse MapDesignatedZoneResponse(ComplianceNetworkZone zone)
+        {
+            return new ComplianceDesignatedZoneResponse
+            {
+                Id = zone.Id,
+                Name = zone.Name,
+                Description = zone.Description,
+                IpRanges = [.. zone.IPRanges.Select(ipRange => new ComplianceDesignatedZoneIpRangeResponse
+                {
+                    IpStart = ipRange.Begin.ToString(),
+                    IpEnd = ipRange.End.ToString()
+                })]
+            };
         }
     }
 }

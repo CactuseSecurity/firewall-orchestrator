@@ -20,7 +20,9 @@ BEGIN
                         - 'ExternalTicketSystemType'
                         ||
                         CASE
-                            WHEN NOT (elem ? 'TypeId') AND elem ? 'ExternalTicketSystemType' THEN
+                            WHEN elem ? 'TypeId' THEN
+                                '{}'::jsonb
+                            WHEN elem ? 'ExternalTicketSystemType' THEN
                                 jsonb_build_object(
                                     'TypeId',
                                     CASE (elem->>'ExternalTicketSystemType')::int
@@ -31,6 +33,9 @@ BEGIN
                                         ELSE 1
                                     END
                                 )
+                            WHEN COALESCE(elem->>'TicketTemplate', '') <> ''
+                              OR COALESCE(elem->>'TasksTemplate', '') <> '' THEN
+                                jsonb_build_object('TypeId', 2)
                             ELSE
                                 '{}'::jsonb
                         END
@@ -46,6 +51,9 @@ BEGIN
                                 jsonb_build_object('Name', 'AlgoSec')
                             WHEN elem ? 'ExternalTicketSystemType' AND (elem->>'ExternalTicketSystemType')::int = 3 THEN
                                 jsonb_build_object('Name', 'ServiceNow')
+                            WHEN COALESCE(elem->>'TicketTemplate', '') <> ''
+                              OR COALESCE(elem->>'TasksTemplate', '') <> '' THEN
+                                jsonb_build_object('Name', 'Tufin SecureChange')
                             ELSE
                                 '{}'::jsonb
                         END

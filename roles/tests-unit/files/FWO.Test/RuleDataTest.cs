@@ -156,5 +156,44 @@ namespace FWO.Test
             Assert.That(reqTask.Elements[0].FlowServiceObjectId, Is.EqualTo(7004));
             Assert.That(reqTask.Elements[0].FlowServiceGroupId, Is.EqualTo(7005));
         }
+
+        [Test]
+        public void NormalizedRule_FromRule_PreservesNatAndTranslationFlags()
+        {
+            Rule rule = new()
+            {
+                NatRule = true,
+                AccessRule = false,
+                XlateRule = "1366",
+                TranslatedRule = new Rule { Uid = "translated-rule" },
+                RuleOrderNumber = 7,
+                OrderNumber = 7,
+                Disabled = false,
+                SourceNegated = false,
+                Source = "any",
+                SourceRefs = "",
+                DestinationNegated = false,
+                Destination = "any",
+                DestinationRefs = "",
+                ServiceNegated = false,
+                Service = "any",
+                ServiceRefs = "",
+                Action = "accept",
+                Track = "none",
+                Implied = false,
+                Metadata = new RuleMetadata()
+            };
+
+            NormalizedRule normalizedRule = NormalizedRule.FromRule(rule);
+
+            Assert.That(normalizedRule.NatRule, Is.True);
+            Assert.That(normalizedRule.AccessRule, Is.False);
+            Assert.That(normalizedRule.XlateRule, Is.EqualTo("translated-rule"));
+
+            string serialized = JsonConvert.SerializeObject(normalizedRule);
+            Assert.That(serialized, Does.Contain("\"nat_rule\":true"));
+            Assert.That(serialized, Does.Contain("\"access_rule\":false"));
+            Assert.That(serialized, Does.Contain("\"xlate_rule_uid\":\"translated-rule\""));
+        }
     }
 }

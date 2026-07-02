@@ -1,6 +1,7 @@
 import ipaddress
 from typing import Any
 
+from fw_modules.fortiadom5ff.fmgr_consts import nw_obj_types
 from fw_modules.fortiadom5ff.fmgr_zone import find_zones_in_normalized_config
 from fwo_base import sort_and_join_refs
 from fwo_const import ANY_IP_END, ANY_IP_START, LIST_DELIMITER, NAT_POSTFIX
@@ -78,6 +79,13 @@ def exclude_object_types_in_member_ref_search(obj_type: str, current_obj_type: s
     return skip_member_ref_loop
 
 
+def get_native_obj_type(object_type: str) -> str:
+    for native_obj_type in nw_obj_types:
+        if object_type.endswith(native_obj_type):
+            return native_obj_type
+    return "unknown"
+
+
 def normalize_network_object(
     obj_orig: dict[str, Any],
     nw_objects: list[dict[str, Any]],
@@ -142,6 +150,7 @@ def normalize_network_object(
         obj_orig.get("associated-interface", []), normalized_config_adom, normalized_config_global
     )
     obj.update({"obj_zone": LIST_DELIMITER.join(associated_interfaces)})
+    obj.update({"obj_native_type": get_native_obj_type(current_obj_type)})
 
     nw_objects.append(obj)
 

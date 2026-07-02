@@ -89,6 +89,15 @@ namespace FWO.Data
         [JsonProperty("rule_head_text"), JsonPropertyName("rule_head_text")]
         public string? RuleHeadText { get; set; }
 
+        [JsonProperty("xlate_rule_uid"), JsonPropertyName("xlate_rule_uid")]
+        public string? XlateRule { get; set; }
+
+        [JsonProperty("nat_rule"), JsonPropertyName("nat_rule")]
+        public bool NatRule { get; set; }
+
+        [JsonProperty("access_rule"), JsonPropertyName("access_rule")]
+        public bool AccessRule { get; set; } = true;
+
         /// <summary>
         /// Creates a NormalizedRule from a Rule.
         /// </summary>
@@ -127,7 +136,10 @@ namespace FWO.Data
                 RuleComment = rule.Comment,
                 RuleSrcZone = rule.SourceZone,
                 RuleDstZone = rule.DestinationZone,
-                RuleHeadText = rule.SectionHeader
+                RuleHeadText = rule.SectionHeader,
+                XlateRule = rule.TranslatedRule?.Uid ?? rule.XlateRule,
+                NatRule = rule.NatRule,
+                AccessRule = rule.AccessRule
             };
         }
     }

@@ -1,5 +1,5 @@
-query getTimeObjects($where: flow_timeobject_bool_exp = {}) {
+query getFlowTimeObjects($where: flow_timeobject_bool_exp = {}) {
   timeobjects: flow_timeobject(where: $where, order_by: [{ name: asc }, { timeobj_id: asc }]) {
-    ...flowTimeObjectDetails
+    ...flowTimeObjectFragment
   }
 }

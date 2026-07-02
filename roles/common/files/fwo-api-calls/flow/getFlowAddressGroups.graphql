@@ -1,5 +1,5 @@
-query getAddressGroups($where: flow_nwgroup_bool_exp = {}) {
+query getFlowAddressGroups($where: flow_nwgroup_bool_exp = {}) {
   nwgroups: flow_nwgroup(where: $where, order_by: [{ name: asc }, { nwgrp_id: asc }]) {
-    ...flowNwGroupDetails
+    ...flowNwGroupWithMembersFragment
   }
 }

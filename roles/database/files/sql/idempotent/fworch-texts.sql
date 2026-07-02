@@ -5203,6 +5203,12 @@ INSERT INTO txt VALUES ('H4034', 'German',  '
 <H4>F&auml;lligkeitsdatum</H4>
     Das Rezertifizierungsdatum wird errechnet aus dem letzten Rezertifizierungsdatum (falls unbekannt, wird das Erzeugungsdatum der Regel genommen)
     und dem Rezertifizierungsintervall des jeweiligen Eigent&uuml;mers.
+    <br><br>
+    Wird das Rezertifizierungsintervall eines Eigent&uuml;mers ge&auml;ndert, z.B. durch eine ge&auml;nderte Kritikalit&auml;ts-zu-Intervall-Zuordnung im Appdaten-Import,
+    wird die letzte erfolgreiche Rezertifizierung nicht zur&uuml;ckgesetzt oder auf den &Auml;nderungszeitpunkt verschoben.
+    Bei der Neuberechnung werden offene zuk&uuml;nftige Rezertifizierungseintr&auml;ge aus dem letzten Rezertifizierungsdatum bzw. dem Regelerzeugungsdatum
+    und dem aktuell g&uuml;ltigen Intervall neu aufgebaut. Die Neuberechnung l&auml;uft technisch &uuml;ber alle offenen Eintr&auml;ge;
+    ein anderes F&auml;lligkeitsdatum entsteht jedoch nur dort, wo sich die relevanten Eingangsdaten ge&auml;ndert haben, z.B. bei Eigent&uuml;mern mit ge&auml;ndertem Intervall.
 <br><br>
 <H4>Konfiguration</H4>
     Siehe auch <a href="/help/settings/recertificationgeneral">Rezertifizierungseinstellungen</a>.
@@ -5225,7 +5231,13 @@ INSERT INTO txt VALUES ('H4034', 'English', '
    The recertification date is calculated from the last recertification date (if unknown, the creation date of the rule is taken)
     and the recertification interval defined for the respective owner.
 <br><br>
-<H4CKonfiguration</H4>
+    If an owner recertification interval is changed, e.g. by changing a criticality-to-interval mapping in the app data import,
+    the last successful recertification is not reset or moved to the change date.
+    During recalculation, open future recertification entries are rebuilt from the last recertification date, or from the rule creation date
+    if no recertification exists, and the currently valid interval. The recalculation technically processes all open entries;
+    a different due date is only produced where relevant input data changed, e.g. for owners whose interval changed.
+<br><br>
+<H4>Configuration</H4>
     Also see <a href="/help/settings/recertificationgeneral">Recertification Settings</a>.
     <br><br>
    It is possible to manually trigger the once-a-night running recalculation of pending recertifications.
@@ -6064,8 +6076,8 @@ INSERT INTO txt VALUES ('H5438', 'German',  'Priorit&auml;t f&uuml;r L&ouml;scha
 INSERT INTO txt VALUES ('H5438', 'English', 'Priority for delete rule ticket: Choose between existing priority labels as defined in <a href="/help/settings/workflowcustomizing">workflow customizing</a>(default: Lowest, Low, Medium, High, Highest).');
 INSERT INTO txt VALUES ('H5439', 'German',  'Initialer Status f&uuml;r L&ouml;schantrag: Standard="Draft"');
 INSERT INTO txt VALUES ('H5439', 'English', 'Initial state for delete rule ticket: default="Draft"');
-INSERT INTO txt VALUES ('H5440', 'German',  'Neuberechnen offene Rezertifizierungen: Auswahl, wann die Neuberechnung durchgef&uuml;hrt werden soll - beim Hochfahren, t&auml;glich via Scheduler oder jetzt (kann mehrere Minuten dauern).');
-INSERT INTO txt VALUES ('H5440', 'English', 'Recalculate open recertifications: Choose, when to do this: at startup, daily via scheduler or now (this may take several minutes).');
+INSERT INTO txt VALUES ('H5440', 'German',  'Neuberechnen offene Rezertifizierungen: Auswahl, wann die Neuberechnung durchgef&uuml;hrt werden soll - beim Hochfahren, t&auml;glich via Scheduler oder jetzt (kann mehrere Minuten dauern). Dabei werden offene zuk&uuml;nftige Rezertifizierungseintr&auml;ge anhand der aktuellen Eigent&uuml;merzuordnung und Rezertifizierungsintervalle neu aufgebaut; abgeschlossene Rezertifizierungen bleiben erhalten.');
+INSERT INTO txt VALUES ('H5440', 'English', 'Recalculate open recertifications: Choose, when to do this: at startup, daily via scheduler or now (this may take several minutes). Open future recertification entries are rebuilt from the current owner mapping and recertification intervals; completed recertifications are kept.');
 
 INSERT INTO txt VALUES ('H5441', 'German',  'Mindestl&auml;nge: Minimale L&auml;nge des Passworts');
 INSERT INTO txt VALUES ('H5441', 'English', 'Min Length: Minimal length of the password.');

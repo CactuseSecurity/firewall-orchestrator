@@ -4,6 +4,7 @@ using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server;
 using FWO.Services;
+using FWO.ExternalSystems.CheckPoint;
 using FWO.ExternalSystems.Tufin.SecureChange;
 using GraphQL;
 
@@ -14,11 +15,13 @@ namespace FWO.Test
         public List<string> UpdateExtRequestCreation = [];
         public List<string> UpdateExtRequestProcess = [];
         public int TriedToGetLdapsForHandleStateChange = 0;
+        public bool ManualRequestsOnly = false;
+        public bool CheckPointRequestsOnly = false;
 
         readonly ExternalTicketSystem ticketSystem = new()
         {
             Id = 1,
-            Type = ExternalTicketSystemType.TufinSecureChange,
+            TypeId = BuiltInExternalTicketSystemTypes.TufinSecureChangeId,
             Authorization = "xyz",
             Name = "Tufin",
             Url = "https://tufin-test.xxx.de/securechangeworkflow/api/securechange/",
@@ -41,6 +44,30 @@ namespace FWO.Test
                     NwObjGroupTemplate = "{\"@type\": \"Object\", \"object_name\": \"@@GROUPNAME@@\", \"management_name\": \"@@MANAGEMENT_NAME@@\"}",
                     ServiceTemplate = "{\"@type\": \"PROTOCOL\", \"protocol\": \"@@PROTOCOLNAME@@\", \"port\": @@PORT@@, \"name\": \"@@SERVICENAME@@\"}",
                     IcmpTemplate = "{\"@type\": \"PROTOCOL\", \"protocol\": \"ICMP\", \"type\": 8, \"name\": \"@@SERVICENAME@@\"}"
+                }
+            ]
+        };
+        readonly ExternalTicketSystem manualTicketSystem = new()
+        {
+            Id = 2,
+            TypeId = 99,
+            Authorization = "xyz",
+            Name = "Custom",
+            Url = "https://custom-ticket-system.example/api/"
+        };
+        readonly ExternalTicketSystem checkPointTicketSystem = new()
+        {
+            Id = 3,
+            TypeId = 9,
+            Authorization = "X-chkp-sid: xyz",
+            Name = "CheckPoint",
+            Url = "https://checkpoint-test.xxx.de/web_api/",
+            Templates =
+            [
+                new()
+                {
+                    TaskType = CheckPointTaskTypes.Publish,
+                    TicketTemplate = "{}"
                 }
             ]
         };
@@ -70,6 +97,36 @@ namespace FWO.Test
             else if (responseType == typeof(ExternalRequestDataHelper))
             {
                 string serializedTicketSystem = System.Text.Json.JsonSerializer.Serialize(ticketSystem);
+                if (ManualRequestsOnly)
+                {
+                    string serializedManualTicketSystem = System.Text.Json.JsonSerializer.Serialize(manualTicketSystem);
+                    ExternalRequestDataHelper manualRequests = new()
+                    {
+                        ExternalRequests =
+                        [
+                            new(){ Id = 6, TicketId = 6, ExtTicketSystem = serializedManualTicketSystem, ExtRequestState = ExtStates.ExtReqInitialized.ToString(),
+                                ExtRequestContent = TicketContent }
+                        ]
+                    };
+                    GraphQLResponse<dynamic> manualResponse = new() { Data = manualRequests };
+                    return manualResponse.Data;
+                }
+                if (CheckPointRequestsOnly)
+                {
+                    string serializedCheckPointTicketSystem = System.Text.Json.JsonSerializer.Serialize(checkPointTicketSystem);
+                    ExternalRequestDataHelper checkPointRequests = new()
+                    {
+                        ExternalRequests =
+                        [
+                            new(){ Id = 7, TicketId = 7, ExtTicketSystem = serializedCheckPointTicketSystem, ExtRequestState = ExtStates.ExtReqInitialized.ToString(),
+                                ExtRequestType = WfTaskType.access.ToString(), ExtRequestContent = "{\"source\":[\"src-group\"]}",
+                                ExtQueryVariables = ""
+                            }
+                        ]
+                    };
+                    GraphQLResponse<dynamic> checkPointResponse = new() { Data = checkPointRequests };
+                    return checkPointResponse.Data;
+                }
                 ExternalRequestDataHelper openRequests = new()
                 {
                     ExternalRequests =

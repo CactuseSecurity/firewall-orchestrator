@@ -616,6 +616,10 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("reportingPersonalPreferredCollapseState"), JsonPropertyName("reportingPersonalPreferredCollapseState")]
         public PreferredCollapseState ReportingPersonalPreferredCollapseState { get; set; } = PreferredCollapseState.Collapsed;
+        [JsonProperty("fwConfigChangeMgmSettings"), JsonPropertyName("fwConfigChangeMgmSettings")]
+        public string FwConfigChangeMgmSettings { get; set; } = "[]";
+
+
 
         public ConfigData(bool editable = false)
         {

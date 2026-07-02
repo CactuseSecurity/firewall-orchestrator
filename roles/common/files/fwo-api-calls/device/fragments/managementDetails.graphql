@@ -6,6 +6,8 @@ fragment ManagementDetails on management {
   port: ssh_port
   import_credential_id
   import_credential { ...ImportCredentialDetails }
+  export_credential_id
+  export_credential: importCredentialByExportCredentialId { ...ImportCredentialDetails }
   deviceType: stm_dev_typ { ...deviceTypeDetails }  
   configPath: config_path
   domainUid: domain_uid

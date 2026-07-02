@@ -1,0 +1,221 @@
+@using System.Text.Json
+
+@page "/settings/general"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("fwconfigchangegeneral"))</h3>
+    <HelpLink Page="settings/fwconfigchangegeneral" />
+</div>
+@(userConfig.GetText("H5680"))
+<hr />
+
+@if (configData != null)
+{
+    <form onsubmit="return false">
+        @foreach (var management in managementStates)
+        {
+            <div class="border rounded p-3 mb-3">
+                <div class="d-flex align-items-center gap-5">
+                    <div class="col-2 border justify-content-start px-3 py-2 fw-bold">
+                        <div>@management.Name</div>
+                    </div>
+                    <button class="btn fw-bold @(management.Enabled ? "btn-success" : "btn-danger")"
+                            style="border-radius:15px;"
+                            @onclick="() => ToggleManagement(management)">
+                        @(management.Enabled ? userConfig.GetText("enabled") : userConfig.GetText("disabled"))
+                    </button>
+                </div>
+
+                @if (management.Enabled)
+                {
+                    <div class="d-flex flex-column gap-2 mt-2">
+                        @foreach (var change in AvailableChanges)
+                        {
+                            <div class="row align-items-center mb-2">
+                                <div class="col-3 border rounded bg-light px-3 py-2 fw-semibold ms-5">
+                                    @change
+                                </div>
+                                <div class="col-2">
+                                    <Dropdown ElementType="FwConfigChangeSelection" Elements="GetAvailableSelections()" SelectedElement="GetSelectedSelection(management, change)"
+                                              SelectedElementChanged="@(val => SetSelectedSelection(management, change, val))" ElementToString="selection => selection.DisplayName" Id="@($"dropdown-{management.Id}-{change}")">
+                                        <ElementTemplate Context="selection">
+                                            @selection.DisplayName
+                                        </ElementTemplate>
+                                    </Dropdown>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </form>
+    <hr />
+    <AuthorizeView Roles="@Roles.Admin">
+        <Authorized>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+        </Authorized>
+        <NotAuthorized>
+            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+        </NotAuthorized>
+    </AuthorizeView>
+}
+else
+{
+    <Loading />
+}
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+    private ConfigData? configData;
+
+    private List<ManagementFwConfigChangeState> managementStates = new();
+    private List<ExternalTicketSystem> extTicketSystems = new();
+    private sealed record FwConfigChangeSelection(string Value, string DisplayName);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            configData = await globalConfig.GetEditableConfig();
+            var managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
+
+            if (!string.IsNullOrWhiteSpace(configData.ExtTicketSystems))
+            {
+                extTicketSystems = JsonSerializer.Deserialize<List<ExternalTicketSystem>>(configData.ExtTicketSystems) ?? new List<ExternalTicketSystem>();
+            }
+
+            LoadManagementStates(managements);
+
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+    }
+
+    private void LoadManagementStates(List<Management> allManagements)
+    {
+        // 1. Load from JSON
+        if (!string.IsNullOrWhiteSpace(configData?.FwConfigChangeMgmSettings))
+        {
+            try
+            {
+                var deserialized = JsonSerializer.Deserialize<List<ManagementFwConfigChangeState>>(configData.FwConfigChangeMgmSettings);
+                if (deserialized != null)
+                {
+                    managementStates = deserialized;
+                }
+            }
+            catch (JsonException)
+            {
+                managementStates = new List<ManagementFwConfigChangeState>();
+            }
+        }
+
+        Dictionary<int, Management> currentManagements = allManagements.ToDictionary(m => m.Id);
+
+        managementStates = managementStates
+            .Where(state => currentManagements.ContainsKey(state.Id))
+            .ToList();
+
+        // refresh names and add missing managements
+        foreach (Management management in allManagements)
+        {
+            ManagementFwConfigChangeState? existingState = managementStates.FirstOrDefault(s => s.Id == management.Id);
+            if (existingState == null)
+            {
+                managementStates.Add(new ManagementFwConfigChangeState
+                {
+                    Id = management.Id,
+                    Name = management.Name,
+                    Enabled = false,
+                    SelectedChanges = AvailableChanges.ToDictionary(c => c, c => ManagementFwConfigChangeTargets.Disabled)
+                });
+            }
+            else
+            {
+                existingState.Name = management.Name;
+            }
+        }
+
+        foreach (ManagementFwConfigChangeState state in managementStates)
+        {
+            state.SelectedChanges ??= new Dictionary<string, string>();
+
+            foreach (string change in AvailableChanges)
+            {
+                if (!state.SelectedChanges.ContainsKey(change))
+                {
+                    state.SelectedChanges[change] = ManagementFwConfigChangeTargets.Disabled;
+                }
+            }
+        }
+    }
+
+    private List<FwConfigChangeSelection> GetAvailableSelections()
+    {
+        List<FwConfigChangeSelection> selections =
+        [
+            new(ManagementFwConfigChangeTargets.Disabled, userConfig.GetText("disabled"))
+        ];
+
+        selections.AddRange(extTicketSystems.Select(system => new FwConfigChangeSelection(system.Id.ToString(), system.Name)));
+        return selections;
+    }
+
+    private FwConfigChangeSelection GetSelectedSelection(ManagementFwConfigChangeState management, string change)
+    {
+        string selectedValue = management.SelectedChanges.TryGetValue(change, out string? value)
+            ? value
+            : ManagementFwConfigChangeTargets.Disabled;
+
+        List<FwConfigChangeSelection> selections = GetAvailableSelections();
+        return selections.FirstOrDefault(selection => selection.Value == selectedValue) ?? selections[0];
+    }
+
+    private void SetSelectedSelection(ManagementFwConfigChangeState management, string change, FwConfigChangeSelection? selection)
+    {
+        management.SelectedChanges[change] = selection?.Value ?? ManagementFwConfigChangeTargets.Disabled;
+    }
+
+    void ToggleManagement(ManagementFwConfigChangeState management)
+    {
+        management.Enabled = !management.Enabled;
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if (configData != null)
+            {
+                configData.FwConfigChangeMgmSettings = JsonSerializer.Serialize(managementStates);
+
+                await globalConfig.WriteToDatabase(configData, apiConnection);
+                DisplayMessageInUi(null, userConfig.GetText("fwconfigchange"), userConfig.GetText("U5301"), false);
+            }
+            else
+            {
+                throw new ArgumentException("Data saved before loaded. This should be impossible.");
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fwconfigchange"), "", true);
+        }
+    }
+
+    private static List<string> AvailableChanges { get; } = new()
+    {
+        ManagementFwConfigChangeCategories.ObjectChanges,
+        ManagementFwConfigChangeCategories.RuleChanges
+    };
+}

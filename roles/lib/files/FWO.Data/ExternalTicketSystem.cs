@@ -6,21 +6,53 @@ using System.Text.Json.Serialization;
 
 namespace FWO.Data
 {
-    public enum ExternalTicketSystemType
+    public class ExternalTicketSystemTypeDefinition
     {
-        Generic,
-        TufinSecureChange,
-        AlgoSec,
-        ServiceNow
+        [JsonProperty("id"), JsonPropertyName("id")]
+        public int Id { get; set; }
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string Name { get; set; } = "";
+        [JsonProperty("version"), JsonPropertyName("version")]
+        public string Version { get; set; } = "";
+        [JsonProperty("is_built_in"), JsonPropertyName("is_built_in")]
+        public bool IsBuiltIn { get; set; }
     }
+
+    public static class BuiltInExternalTicketSystemTypes
+    {
+        public const int GenericId = 1;
+        public const int TufinSecureChangeId = 2;
+        public const int AlgoSecId = 3;
+        public const int ServiceNowId = 4;
+
+        public static readonly IReadOnlyList<ExternalTicketSystemTypeDefinition> AllBuiltInTicketTypes =
+        [
+            new() { Id = GenericId, Name = "Generic", IsBuiltIn = true },
+            new() { Id = TufinSecureChangeId, Name = "Tufin SecureChange", IsBuiltIn = true },
+            new() { Id = AlgoSecId, Name = "AlgoSec", IsBuiltIn = true },
+            new() { Id = ServiceNowId, Name = "ServiceNow", IsBuiltIn = true }
+        ];
+
+        public static ExternalTicketSystemTypeDefinition GetById(int typeId)
+        {
+            return AllBuiltInTicketTypes.FirstOrDefault(type => type.Id == typeId) ?? new ExternalTicketSystemTypeDefinition
+            {
+                Id = typeId,
+                Name = typeId.ToString(),
+                IsBuiltIn = false
+            };
+        }
+    }
+
+
 
     public class ExternalTicketSystem
     {
         [JsonProperty(nameof(Id)), JsonPropertyName(nameof(Id))]
         public int Id { get; set; } = 0;
 
-        [JsonProperty(nameof(ExternalTicketSystemType)), JsonPropertyName(nameof(ExternalTicketSystemType))]
-        public ExternalTicketSystemType Type { get; set; } = ExternalTicketSystemType.Generic;
+        [JsonProperty(nameof(TypeId)), JsonPropertyName(nameof(TypeId))]
+        public int TypeId { get; set; } = BuiltInExternalTicketSystemTypes.GenericId;
 
         [JsonProperty(nameof(Authorization)), JsonPropertyName(nameof(Authorization))]
         public string Authorization { get; set; } = "Basic xyz"; // replace xyz with b64encode(username:password)
@@ -55,36 +87,46 @@ namespace FWO.Data
 
         public int MaxBundledTasks()
         {
-            return Type switch
+            return TypeId switch
             {
-                ExternalTicketSystemType.TufinSecureChange => SCConstants.SCMaxBundledTasks,
+                BuiltInExternalTicketSystemTypes.TufinSecureChangeId => SCConstants.SCMaxBundledTasks,
                 _ => 1
             };
         }
 
         public bool BundleGateways()
         {
-            return Type switch
+            return TypeId switch
             {
-                ExternalTicketSystemType.TufinSecureChange => SCConstants.SCBundleGateways,
+                BuiltInExternalTicketSystemTypes.TufinSecureChangeId => SCConstants.SCBundleGateways,
                 _ => false
             };
         }
 
         public List<string> TaskTypesToBundleGateways()
         {
-            return Type switch
+            return TypeId switch
             {
-                ExternalTicketSystemType.TufinSecureChange => [WfTaskType.rule_modify.ToString(), WfTaskType.rule_delete.ToString()],
+                BuiltInExternalTicketSystemTypes.TufinSecureChangeId => [WfTaskType.rule_modify.ToString(), WfTaskType.rule_delete.ToString()],
                 _ => []
             };
+        }
+
+        public bool IsTufinSecureChange()
+        {
+            return TypeId == BuiltInExternalTicketSystemTypes.TufinSecureChangeId;
+        }
+
+        public bool IsCheckPoint()
+        {
+            return DeviceType.IsCheckPointManagerTypeId(TypeId);
         }
 
         public bool Sanitize()
         {
             bool shortened = false;
             Name = Name.SanitizeMand(ref shortened);
-            Url = Url.SanitizeMand(ref shortened);
+            Url = IsCheckPoint() ? Url.SanitizeOpt(ref shortened) ?? "" : Url.SanitizeMand(ref shortened);
             TicketTemplate = TicketTemplate.SanitizeJsonMand(ref shortened);
             TasksTemplate = TasksTemplate.SanitizeJsonMand(ref shortened);
             foreach (var template in Templates)

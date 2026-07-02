@@ -50,6 +50,7 @@ Create table "management" -- contains an entry for each firewall management syst
 	"mgm_create" Timestamp NOT NULL Default now(),
 	"mgm_update" Timestamp NOT NULL Default now(),
 	"import_credential_id" Integer NOT NULL,
+	"export_credential_id" Integer,
 	"ssh_hostname" Varchar NOT NULL,
 	"ssh_port" Integer NOT NULL Default 22,
 	"last_import_md5_complete_config" Varchar Default 0,

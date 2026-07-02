@@ -183,7 +183,7 @@
                     <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5117"))">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("write_credential")):</label>
                         <div class="col-sm-8">
-                            <Dropdown ElementType="ImportCredential" ElementToString="@(c => c.Name)" @bind-SelectedElement="actManagement.ExportCredential" Elements="credentials">
+                            <Dropdown ElementType="ImportCredential" ElementToString="@(c => c.Name)" @bind-SelectedElement="actManagement.ExportCredential" Elements="credentials" Nullable="true" NoneSelectedText="">
                                 <ElementTemplate Context="cred">
                                     @cred.Name
                                 </ElementTemplate>
@@ -488,7 +488,7 @@
                 devTypeId = actManagement.DeviceType.Id,
                 hostname = actManagement.Hostname,
                 importCredentialId = actManagement.ImportCredential.Id,
-                exportCredentialId = actManagement.ExportCredential.Id > 0
+                exportCredentialId = actManagement.ExportCredential?.Id > 0
                     ? actManagement.ExportCredential.Id
                     : (int?)null,
                 port = actManagement.Port,
@@ -535,7 +535,7 @@
                 devTypeId = actManagement.DeviceType.Id,
                 hostname = actManagement.Hostname,
                 importCredentialId = actManagement.ImportCredential.Id,
-                exportCredentialId = actManagement.ExportCredential.Id > 0
+                exportCredentialId = actManagement.ExportCredential?.Id > 0
                     ? actManagement.ExportCredential.Id
                     : (int?)null,
                 port = actManagement.Port,

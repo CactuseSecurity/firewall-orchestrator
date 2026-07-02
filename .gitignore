@@ -72,3 +72,4 @@ cov.xml
 **/.codex/
 FWO.local.runsettings
 **/*.lscache
+/.codex_validate/obj

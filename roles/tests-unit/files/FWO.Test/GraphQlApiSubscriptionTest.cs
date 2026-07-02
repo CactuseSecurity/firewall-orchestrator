@@ -41,9 +41,8 @@ namespace FWO.Test
 
             TestGraphQlApiSubscription<string> recreated = (TestGraphQlApiSubscription<string>)subscription.Recreate(recreatedClient);
 
-            Assert.That(recreated, Is.Not.SameAs(subscription));
-            Assert.That(recreated.CreateSubscriptionCount, Is.EqualTo(1));
-            Assert.That(subscription.CreateSubscriptionCount, Is.EqualTo(1));
+            Assert.That(recreated, Is.SameAs(subscription));
+            Assert.That(subscription.CreateSubscriptionCount, Is.EqualTo(2));
         }
 
         [Test]
@@ -181,30 +180,18 @@ namespace FWO.Test
 
         private sealed class TestGraphQlApiSubscription<T> : GraphQlApiSubscription<T>
         {
-            private readonly ApiConnection apiConnection;
-            private readonly Action<Exception> exceptionHandler;
-            private readonly SubscriptionUpdate onUpdate;
-
             public int CreateSubscriptionCount { get; private set; }
             public int DisposeCount { get; private set; }
 
             public TestGraphQlApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request,
                 Action<Exception> exceptionHandler, SubscriptionUpdate onUpdate)
-                : base(apiConnection, graphQlClient, request, exceptionHandler, onUpdate)
+                : base(graphQlClient, request, exceptionHandler, onUpdate)
             {
-                this.apiConnection = apiConnection;
-                this.exceptionHandler = exceptionHandler;
-                this.onUpdate = onUpdate;
             }
 
             protected override void CreateSubscription()
             {
                 CreateSubscriptionCount++;
-            }
-
-            internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
-            {
-                return new TestGraphQlApiSubscription<T>(apiConnection, graphQlClient, Request, exceptionHandler, onUpdate);
             }
 
             protected override void Dispose(bool disposing)
@@ -217,17 +204,11 @@ namespace FWO.Test
         private sealed class StreamBackedGraphQlApiSubscription<T> : GraphQlApiSubscription<T>
         {
             public static Queue<ManualGraphQlObservable> Streams { get; } = [];
-            private readonly ApiConnection apiConnection;
-            private readonly Action<Exception> exceptionHandler;
-            private readonly SubscriptionUpdate onUpdate;
 
             public StreamBackedGraphQlApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request,
                 Action<Exception> exceptionHandler, SubscriptionUpdate onUpdate)
-                : base(apiConnection, graphQlClient, request, exceptionHandler, onUpdate)
+                : base(graphQlClient, request, exceptionHandler, onUpdate)
             {
-                this.apiConnection = apiConnection;
-                this.exceptionHandler = exceptionHandler;
-                this.onUpdate = onUpdate;
             }
 
             protected override IObservable<GraphQLResponse<dynamic>> CreateSubscriptionStream(Action<Exception> exceptionHandler)
@@ -235,11 +216,6 @@ namespace FWO.Test
                 ManualGraphQlObservable stream = Streams.Dequeue();
                 stream.ExceptionHandler = exceptionHandler;
                 return (IObservable<GraphQLResponse<dynamic>>)(object)stream;
-            }
-
-            internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
-            {
-                return new StreamBackedGraphQlApiSubscription<T>(apiConnection, graphQlClient, Request, exceptionHandler, onUpdate);
             }
 
             protected override void Dispose(bool disposing)

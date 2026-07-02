@@ -20,20 +20,16 @@ namespace FWO.Api.Client
         private IObservable<GraphQLResponse<dynamic>>? _subscriptionStream;
         private IDisposable? _subscription;
 
-        private readonly GraphQLHttpClient _graphQlClient;
+        private GraphQLHttpClient _graphQlClient;
         public GraphQLRequest Request { get; init; }
-        private readonly ApiConnection _apiConnection;
-        private readonly SubscriptionUpdate _subscriptionUpdateHandler;
 
         private readonly object _lock = new();
         private bool _disposed;
 
-        public GraphQlApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate onUpdate)
+        public GraphQlApiSubscription(GraphQLHttpClient graphQlClient, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate onUpdate)
         {
-            _apiConnection = apiConnection;
             _graphQlClient = graphQlClient;
             Request = request;
-            _subscriptionUpdateHandler = onUpdate;
 
             OnUpdate += onUpdate;
             ExternalExceptionHandler = exceptionHandler;
@@ -157,12 +153,18 @@ namespace FWO.Api.Client
 
             Log.WriteInfo("GraphQL Subscription", creationText);
 
-            return new GraphQlApiSubscription<SubscriptionResponseType>(
-                _apiConnection,
-                graphQlClient,
-                Request,
-                ExternalExceptionHandler,
-                _subscriptionUpdateHandler);
+            lock (_lock)
+            {
+                if (_disposed)
+                {
+                    return this;
+                }
+
+                _graphQlClient = graphQlClient;
+            }
+
+            CreateSubscription();
+            return this;
         }
 
         protected override void Dispose(bool disposing)

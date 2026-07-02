@@ -439,7 +439,7 @@ namespace FWO.Api.Client
                 ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
 
                 GraphQLRequest request = CreateSubscriptionRequest(subscription, variables, operationName);
-                GraphQlApiSubscription<SubscriptionResponseType> newSub = new(this, graphQlSubscriptionClient, request, exceptionHandler, subscriptionUpdateHandler);
+                GraphQlApiSubscription<SubscriptionResponseType> newSub = new(graphQlSubscriptionClient, request, exceptionHandler, subscriptionUpdateHandler);
                 subscriptions.Add(newSub);
 
                 return newSub;

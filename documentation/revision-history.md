@@ -528,3 +528,7 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 
 ## 9.1.13 - 29.06.2026 MAIN
 - fix: handle gateway without rule when generating reports
+
+## 9.1.14 - 01.07.2026
+- remove deprecated, unused rule.rule_num column (rule ordering is handled by rule_num_numeric)
+- remove deprecated, unused direct rule zone columns (rule_from_zone, rule_to_zone); rule zones remain available through the rule_from_zone and rule_to_zone link tables

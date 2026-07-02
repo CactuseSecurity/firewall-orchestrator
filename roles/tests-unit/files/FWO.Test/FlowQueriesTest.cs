@@ -11,6 +11,10 @@ namespace FWO.Test
         {
             Assert.That(FlowQueries.getFlowCustomObjectCandidates, Does.Contain("query getFlowCustomObjectCandidates"));
             Assert.That(FlowQueries.getFlowCustomObjectCandidates, Does.Contain("networkObjects: objects"));
+            Assert.That(FlowQueries.getFlowCustomObjectCandidates, Does.Contain("obj_uid"));
+            Assert.That(FlowQueries.getFlowCustomObjectCandidates, Does.Contain("flow_nwobj_id"));
+            Assert.That(FlowQueries.getFlowCustomObjectCandidates, Does.Contain("flow_active"));
+            Assert.That(FlowQueries.getFlowCustomObjectCandidates, Does.Contain("type: stm_obj_typ"));
         }
 
         [Test]
@@ -20,8 +24,15 @@ namespace FWO.Test
             Assert.That(FlowQueries.getFlowAddressObjects, Does.Contain("fragment flowNwObjectDetails"));
             Assert.That(FlowQueries.getFlowAddressGroups, Does.Contain("query getAddressGroups"));
             Assert.That(FlowQueries.getFlowAddressGroups, Does.Contain("fragment flowNwGroupDetails"));
+            Assert.That(FlowQueries.getFlowCustomServiceCandidates, Does.Contain("query getFlowCustomServiceCandidates"));
+            Assert.That(FlowQueries.getFlowCustomServiceCandidates, Does.Contain("services: services("));
+            Assert.That(FlowQueries.getFlowCustomServiceCandidates, Does.Contain("svc_uid"));
+            Assert.That(FlowQueries.getFlowCustomServiceCandidates, Does.Contain("svc_port_end"));
+            Assert.That(FlowQueries.getFlowCustomServiceCandidates, Does.Contain("flow_active"));
+            Assert.That(FlowQueries.getFlowCustomTimeObjectCandidates, Does.Contain("query getFlowCustomTimeObjectCandidates"));
             Assert.That(FlowQueries.getFlowServiceObjects, Does.Contain("query getServiceObjects"));
             Assert.That(FlowQueries.getFlowServiceObjects, Does.Contain("fragment flowSvcObjectDetails"));
+            Assert.That(FlowQueries.getFlowServiceObjects, Does.Contain("show_in_request_module"));
             Assert.That(FlowQueries.getFlowServiceGroups, Does.Contain("query getServiceGroups"));
             Assert.That(FlowQueries.getFlowServiceGroups, Does.Contain("fragment flowSvcGroupDetails"));
             Assert.That(FlowQueries.getFlowTimeObjects, Does.Contain("query getTimeObjects"));

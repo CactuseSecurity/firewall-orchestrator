@@ -1,0 +1,641 @@
+@page "/settings/flows/serviceobjects"
+
+@using FWO.Api.Client.Queries
+@using FWO.Config.Api
+@using FWO.Data
+@using FWO.Data.Flow
+@using Microsoft.AspNetCore.Components.Authorization
+
+@attribute [Authorize(Roles = $"{Roles.Admin}")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<InProgress Display="workInProgress" />
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("service_objects"))</h3>
+    <HelpLink Page="settings/flows/serviceobjects" />
+</div>
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-4 mb-2">
+    <h4 class="mb-0">@(userConfig.GetText("duplicate_objects"))</h4>
+</div>
+<div class="text-muted small mb-2">@DuplicateGroups.Count</div>
+
+@if (DuplicateGroups.Count > 0)
+{
+    <Table TableClass="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
+           TableItem="FlowSvcObjectDuplicateGroup"
+           Items="DuplicateGroups"
+           PageSize="10"
+           ColumnReorder="true">
+        <Column TableItem="FlowSvcObjectDuplicateGroup" Title="@(userConfig.GetText("flow_object"))" Field="@(group => group.FlowSvcObjectName)" Sortable="true" Filterable="true" Context="group">
+            <Template>
+                <div>@($"{group.FlowSvcObjectName} (#{group.FlowSvcObjectId})")</div>
+                <div class="text-muted small">@BuildFlowSvcObjectTechnicalDetails(group.FlowSvcObjectId)</div>
+            </Template>
+        </Column>
+        <Column TableItem="FlowSvcObjectDuplicateGroup" Title="@(userConfig.GetText("management"))" Field="@(group => group.ManagementName)" Sortable="true" Filterable="true" />
+        <Column TableItem="FlowSvcObjectDuplicateGroup" Title="@(userConfig.GetText("objects"))" Field="@(group => group.Services.Count)" Sortable="true" Filterable="false" Context="group">
+            <Template>
+                @FlowAdminHelper.FormatDuplicateObjectSummary(group.Services, 5, userConfig.GetText("none"), userConfig.GetText("duplicate_objects_more"))
+            </Template>
+        </Column>
+        <Column TableItem="FlowSvcObjectDuplicateGroup" Title="@(userConfig.GetText("actions"))" Field="@(group => group.ManagementId)" Sortable="false" Filterable="false" Context="group">
+            <Template>
+                <button type="button" class="btn btn-sm btn-warning" @onclick:stopPropagation="true" @onclick="() => OpenDuplicateResolver(group)">
+                    @(DisplayService.DisplayButton(userConfig, "select", Icons.Select))
+                </button>
+            </Template>
+        </Column>
+        <Pager ShowPageNumber="true" ShowTotalCount="true" />
+    </Table>
+}
+else
+{
+    <div class="text-muted small mb-3">@(userConfig.GetText("no_duplicate_conflicts"))</div>
+}
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-4 mb-2">
+    <h4 class="mb-0">@(userConfig.GetText("custom_objects"))</h4>
+    <button type="button" class="btn btn-sm btn-primary" @onclick:stopPropagation="true" @onclick="OpenCreateCustomObject">
+        @(DisplayService.DisplayButton(userConfig, "create_custom_flow_object", Icons.Add))
+    </button>
+</div>
+
+<FlowObjectTable TItem="FlowSvcObject"
+                 FilteredItems="FilteredFlowSvcObjects"
+                 FilteredCount="FilteredFlowSvcObjects.Count"
+                 TotalCount="flowSvcObjects.Count"
+                 PageSize="25"
+                 SearchLabel="@(userConfig.GetText("search_name"))"
+                 ClearSearchLabel="@(userConfig.GetText("clear_input"))"
+                 @bind-SearchText="objectSearchText">
+    <ChildContent>
+        <Column TableItem="FlowSvcObject" Title="@(userConfig.GetText("actions"))" Field="@(svcObject => svcObject.Id)" Sortable="false" Filterable="false" Context="svcObject">
+            <Template>
+                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditSvcObject(svcObject)">
+                    @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                </button>
+            </Template>
+        </Column>
+        <Column TableItem="FlowSvcObject" Title="@(userConfig.GetText("id"))" Field="@(svcObject => svcObject.Id)" Sortable="true" Filterable="true" />
+        <Column TableItem="FlowSvcObject" Title="@(userConfig.GetText("name"))" Field="@(svcObject => svcObject.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="FlowSvcObject" Title="@(userConfig.GetText("state"))" Field="@(svcObject => svcObject.State)" Sortable="true" Filterable="true" />
+        <Column TableItem="FlowSvcObject" Title="@(userConfig.GetText("show_in_request_module"))" Field="@(svcObject => svcObject.ShowInRequestModule)" Sortable="true" Context="svcObject">
+            <Template>
+                @svcObject.ShowInRequestModule.ShowAsHtml()
+            </Template>
+        </Column>
+        <Column TableItem="FlowSvcObject" Title="@(userConfig.GetText("details"))" Field="@(svcObject => svcObject.Id)" Sortable="false" Filterable="false" Context="svcObject">
+            <Template>
+                @FlowAdminHelper.FormatFlowSvcObjectTechnicalDetails(svcObject, ipProtos)
+            </Template>
+        </Column>
+        <Pager ShowPageNumber="true" ShowTotalCount="true" />
+    </ChildContent>
+</FlowObjectTable>
+
+<PopUp Title="@(userConfig.GetText("edit_flow_object"))" Show="@EditMode" Size=PopupSize.Small OnClose="CloseEditor">
+    <Body>
+        @if (EditMode)
+        {
+            <form onsubmit="return false">
+                <div class="form-group row">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                    <label class="col-sm-8 col-form-label col-form-label-sm">@EditFlowSvcObject.Id</label>
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" @bind="EditFlowSvcObject.Name" />
+                    </div>
+                </div>
+                <div class="form-check form-check-inline mt-3">
+                    <input class="form-check-input" id="flowSvcObjectShowInRequestModule" type="checkbox" @bind="EditFlowSvcObject.ShowInRequestModule">
+                    <label class="form-check-label" for="flowSvcObjectShowInRequestModule"><small>@(userConfig.GetText("show_in_request_module"))</small></label>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="SaveSvcObject">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseEditor">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("create_custom_flow_object"))" Show="@CreateCustomObjectMode" Size=PopupSize.XLarge OnClose="CloseCreateCustomObject">
+    <Body>
+        @if (CreateCustomObjectMode)
+        {
+            <form onsubmit="return false">
+                <div class="form-group row">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" @bind="NewCustomFlowSvcObject.Name" />
+                    </div>
+                </div>
+                <div class="form-check form-check-inline mt-3">
+                    <input class="form-check-input" id="customFlowSvcObjectShowInRequestModule" type="checkbox" @bind="NewCustomFlowSvcObject.ShowInRequestModule">
+                    <label class="form-check-label" for="customFlowSvcObjectShowInRequestModule"><small>@(userConfig.GetText("show_in_request_module"))</small></label>
+                </div>
+                <div class="mt-3">
+                    <div class="fw-bold mb-2">@(userConfig.GetText("management"))</div>
+                    @foreach (CustomObjectManagementSelection selection in customServiceObjectSelections)
+                    {
+                        <div class="border rounded p-2 mb-3">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                                <div class="fw-bold">@selection.Management.Name</div>
+                                <div class="text-muted small">
+                                    @($"{userConfig.GetText("current")}: {GetCustomServiceSelectionLabel(selection)}")
+                                </div>
+                            </div>
+                            <div class="input-group input-group-sm mb-2">
+                                <span class="input-group-text">@(userConfig.GetText("search_name"))</span>
+                                <input type="text" class="form-control" @bind="selection.SearchText" @bind:event="oninput" />
+                                @if (!string.IsNullOrWhiteSpace(selection.SearchText))
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => ClearCustomServiceSearch(selection)">
+                                        @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))
+                                    </button>
+                                }
+                            </div>
+                            <Table TableClass="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
+                                   TableItem="NetworkService"
+                                   Items="selection.FilteredCandidates"
+                                   PageSize="5"
+                                   ColumnReorder="false"
+                                   ShowSearchBar="false"
+                                   TableRowClass="@(service => GetCustomServiceRowClass(selection, service))">
+                                <Column TableItem="NetworkService" Title="@(userConfig.GetText("uid"))" Field="@(service => service.Uid)" Sortable="true" Filterable="true" />
+                                <Column TableItem="NetworkService" Title="@(userConfig.GetText("details"))" Field="@(service => service.Id)" Sortable="false" Filterable="false" Context="service">
+                                    <Template>
+                                        @FlowAdminHelper.FormatNetworkServiceTechnicalDetails(service)
+                                    </Template>
+                                </Column>
+                                <Column TableItem="NetworkService" Title="@(userConfig.GetText("state"))" Field="@(service => service.FlowActive)" Sortable="true" Filterable="true" Context="service">
+                                    <Template>
+                                        @service.FlowActive.ShowAsHtml()
+                                    </Template>
+                                </Column>
+                                <Column TableItem="NetworkService" Title="@(userConfig.GetText("actions"))" Field="@(service => service.Id)" Sortable="false" Filterable="false" Context="service">
+                                    <Template>
+                                        <button type="button" class="btn btn-sm @(selection.SelectedService?.Id == service.Id ? "btn-success" : "btn-outline-primary")" @onclick:stopPropagation="true" @onclick="() => SelectCustomService(selection, service)">
+                                            @(DisplayService.DisplayButton(userConfig, "select", Icons.Select))
+                                        </button>
+                                    </Template>
+                                </Column>
+                                <Pager ShowPageNumber="true" ShowTotalCount="true" />
+                            </Table>
+                        </div>
+                    }
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="SaveCustomObject">
+                @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+            </button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseCreateCustomObject">
+                @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))
+            </button>
+        </div>
+    </Footer>
+</PopUp>
+
+<FlowDuplicateResolver TItem="NetworkService"
+                       Title="@(userConfig.GetText("duplicate_objects"))"
+                       Show="@ResolveDuplicateMode"
+                       Size=PopupSize.Auto
+                       OnClose="CloseDuplicateResolver"
+                       OnResolve="ResolveDuplicateMapping"
+                       CanResolve="@(SelectedDuplicateService != null)"
+                       Items="@(SelectedDuplicateGroup?.Services ?? [])"
+                       PageSize="10"
+                       TableRowClass="@(service => service == SelectedDuplicateService ? "table-warning" : "")">
+    <SummaryContent>
+        @if (SelectedDuplicateGroup != null)
+        {
+            <div><span class="fw-bold">@(userConfig.GetText("flow_object")):</span> @SelectedDuplicateGroup.FlowSvcObjectName (#@SelectedDuplicateGroup.FlowSvcObjectId)</div>
+                <div class="text-muted small">@BuildFlowSvcObjectTechnicalDetails(SelectedDuplicateGroup.FlowSvcObjectId)</div>
+            <div><span class="fw-bold">@(userConfig.GetText("management")):</span> @SelectedDuplicateGroup.ManagementName</div>
+        }
+    </SummaryContent>
+    <ChildContent>
+        <Column TableItem="NetworkService" Title="@(userConfig.GetText("uid"))" Field="@(service => service.Uid)" Sortable="true" Filterable="true" />
+        <Column TableItem="NetworkService" Title="@(userConfig.GetText("details"))" Field="@(service => service.Name)" Sortable="false" Filterable="false" Context="service">
+            <Template>
+                <span class="d-inline-block rounded px-2 py-1 @(service == SelectedDuplicateService ? "bg-warning-subtle fw-bold" : "")">
+                    @FlowAdminHelper.FormatNetworkServiceTechnicalDetails(service)
+                </span>
+            </Template>
+        </Column>
+        <Column TableItem="NetworkService" Title="@(userConfig.GetText("state"))" Field="@(service => service.FlowActive)" Sortable="true" Filterable="true" Context="service">
+            <Template>
+                @service.FlowActive.ShowAsHtml()
+            </Template>
+        </Column>
+        <Column TableItem="NetworkService" Title="@(userConfig.GetText("actions"))" Field="@(service => service.Id)" Sortable="false" Filterable="false" Context="service">
+            <Template>
+                <button type="button" class="btn btn-sm @(service == SelectedDuplicateService ? "btn-success" : "btn-outline-primary")" @onclick:stopPropagation="true" @onclick="() => SelectDuplicateService(service)">
+                    @(DisplayService.DisplayButton(userConfig, "select", Icons.Select))
+                </button>
+            </Template>
+        </Column>
+        <Pager ShowPageNumber="true" ShowTotalCount="true" />
+    </ChildContent>
+</FlowDuplicateResolver>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private List<FlowSvcObject> flowSvcObjects = [];
+    private List<IpProtocol> ipProtos = [];
+    private List<Management> selectableManagements = [];
+    private List<Management> customServiceManagements = [];
+    private List<CustomObjectManagementSelection> customServiceObjectSelections = [];
+    private FlowSvcObjectDuplicateGroup? SelectedDuplicateGroup;
+    private NetworkService? SelectedDuplicateService;
+    private FlowSvcObject NewCustomFlowSvcObject = new();
+    private bool workInProgress = false;
+    private bool EditMode = false;
+    private bool ResolveDuplicateMode = false;
+    private bool CreateCustomObjectMode = false;
+    private string objectSearchText = "";
+    private FlowSvcObject EditFlowSvcObject = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        try
+        {
+            workInProgress = true;
+            StateHasChanged();
+
+            flowSvcObjects = await apiConnection.SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowServiceObjects) ?? [];
+            ipProtos = DisplayBase.CustomSortProtocols(await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols) ?? []);
+            selectableManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowSelectableManagements) ?? [];
+
+            List<int> managementIds = [.. selectableManagements.Select(management => management.Id)];
+            customServiceManagements = managementIds.Count == 0
+                ? []
+                : await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowCustomServiceCandidates, new
+                {
+                    management_id = managementIds
+                }) ?? [];
+            customServiceObjectSelections = [];
+
+            workInProgress = false;
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("service_objects"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task OpenCreateCustomObject()
+    {
+        try
+        {
+            NewCustomFlowSvcObject = new FlowSvcObject
+            {
+                ShowInRequestModule = false
+            };
+            customServiceObjectSelections =
+            [
+                .. customServiceManagements.Select(management => new CustomObjectManagementSelection
+                {
+                    Management = management,
+                    Candidates = [.. (management.Services ?? [])],
+                    SelectedService = null
+                })
+            ];
+            CreateCustomObjectMode = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("create_custom_flow_object"), "", true);
+        }
+    }
+
+    private void CloseCreateCustomObject()
+    {
+        CreateCustomObjectMode = false;
+    }
+
+    private List<FlowSvcObjectDuplicateGroup> DuplicateGroups =>
+        FlowAdminHelper.BuildDuplicateGroups(flowSvcObjects, customServiceManagements);
+
+    private List<FlowSvcObject> FilteredFlowSvcObjects =>
+        string.IsNullOrWhiteSpace(objectSearchText)
+            ? flowSvcObjects
+            : [.. flowSvcObjects.Where(svcObject => BuildFlowSvcObjectSearchText(svcObject)
+                .Contains(objectSearchText.Trim().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase))];
+
+    private void EditSvcObject(FlowSvcObject svcObject)
+    {
+        EditFlowSvcObject = new FlowSvcObject
+        {
+            Id = svcObject.Id,
+            Name = svcObject.Name,
+            PortStart = svcObject.PortStart,
+            PortEnd = svcObject.PortEnd,
+            ProtoId = svcObject.ProtoId,
+            Hash = svcObject.Hash,
+            State = svcObject.State,
+            RemovedDate = svcObject.RemovedDate,
+            ShowInRequestModule = svcObject.ShowInRequestModule
+        };
+        EditMode = true;
+    }
+
+    private void CloseEditor()
+    {
+        EditMode = false;
+    }
+
+    private void OpenDuplicateResolver(FlowSvcObjectDuplicateGroup group)
+    {
+        SelectedDuplicateGroup = group;
+        SelectedDuplicateService = group.Services.FirstOrDefault();
+        ResolveDuplicateMode = true;
+    }
+
+    private void CloseDuplicateResolver()
+    {
+        ResolveDuplicateMode = false;
+        SelectedDuplicateGroup = null;
+        SelectedDuplicateService = null;
+    }
+
+    private void SelectDuplicateService(NetworkService service)
+    {
+        SelectedDuplicateService = service;
+    }
+
+    private async Task ResolveDuplicateMapping()
+    {
+        try
+        {
+            if (SelectedDuplicateGroup == null || SelectedDuplicateService == null)
+            {
+                return;
+            }
+
+            workInProgress = true;
+            StateHasChanged();
+
+            foreach (NetworkService candidate in SelectedDuplicateGroup.Services)
+            {
+                await apiConnection.SendQueryAsync<NetworkService>(FlowMutations.upsertFlowSvcObjectMapping, new
+                {
+                    svcId = candidate.Id,
+                    flowSvcobjId = SelectedDuplicateGroup.FlowSvcObjectId,
+                    activeOnMgm = candidate.Id == SelectedDuplicateService.Id
+                });
+            }
+
+            CloseDuplicateResolver();
+            await Refresh();
+            workInProgress = false;
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("duplicate_objects"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task SaveSvcObject()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(EditFlowSvcObject.Name))
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_flow_object"), userConfig.GetText("E5102"), true);
+                return;
+            }
+
+            workInProgress = true;
+            StateHasChanged();
+
+            await apiConnection.SendQueryAsync<FlowSvcObject>(FlowMutations.updateFlowSvcObject, new
+            {
+                svcobjId = EditFlowSvcObject.Id,
+                name = EditFlowSvcObject.Name.Trim(),
+                showInRequestModule = EditFlowSvcObject.ShowInRequestModule
+            });
+
+            EditMode = false;
+            await Refresh();
+            workInProgress = false;
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("edit_flow_object"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task SaveCustomObject()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(NewCustomFlowSvcObject.Name))
+            {
+                DisplayMessageInUi(null, userConfig.GetText("create_custom_flow_object"), userConfig.GetText("E5121"), true);
+                return;
+            }
+
+            List<CustomObjectManagementSelection> selectedManagements = [.. customServiceObjectSelections.Where(selection => selection.SelectedService != null)];
+            if (selectedManagements.Count == 0)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("create_custom_flow_object"), userConfig.GetText("E5122"), true);
+                return;
+            }
+
+            if (!TryBuildCustomServiceSignature(selectedManagements[0].SelectedService!, out CustomServiceSignature firstSignature) ||
+                selectedManagements.Any(selection =>
+                    selection.SelectedService == null ||
+                    !TryBuildCustomServiceSignature(selection.SelectedService, out CustomServiceSignature signature) ||
+                    signature != firstSignature))
+            {
+                DisplayMessageInUi(null, userConfig.GetText("create_custom_flow_object"), userConfig.GetText("E5123"), true);
+                return;
+            }
+
+            workInProgress = true;
+            StateHasChanged();
+
+            string hash = firstSignature.DestinationPortStart.HasValue && firstSignature.DestinationPortEnd.HasValue
+                ? FlowHashGenerator.GenerateSvcObjectHash(firstSignature.ProtoId, firstSignature.DestinationPortStart, firstSignature.DestinationPortEnd)
+                : FlowHashGenerator.GenerateRandomHash();
+            FlowSvcObjectInsertResult createdObjects = await apiConnection.SendQueryAsync<FlowSvcObjectInsertResult>(FlowQueries.insertFlowSvcObjects, new
+            {
+                objects = new[]
+                {
+                    new FlowSvcObjectInsert
+                    {
+                        Name = NewCustomFlowSvcObject.Name.Trim(),
+                        PortStart = firstSignature.DestinationPortStart,
+                        PortEnd = firstSignature.DestinationPortEnd,
+                        IpProtoId = firstSignature.ProtoId,
+                        SvcObjHash = hash,
+                        State = FlowState.Implemented,
+                        RemovedDate = null,
+                        ShowInRequestModule = NewCustomFlowSvcObject.ShowInRequestModule
+                    }
+                }
+            });
+
+            FlowSvcObject createdObject = createdObjects.Returning.FirstOrDefault() ?? throw new InvalidOperationException("Created flow object not returned by API.");
+
+            foreach (CustomObjectManagementSelection selection in selectedManagements)
+            {
+                NetworkService updatedService = await apiConnection.SendQueryAsync<NetworkService>(FlowMutations.upsertFlowSvcObjectMapping, new
+                {
+                    svcId = selection.SelectedService!.Id,
+                    flowSvcobjId = createdObject.Id,
+                    activeOnMgm = true
+                });
+                UpdateCustomServiceInCatalog(updatedService);
+            }
+
+            CreateCustomObjectMode = false;
+            await Refresh();
+            workInProgress = false;
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("create_custom_flow_object"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
+    private static string BuildFlowSvcObjectSearchText(FlowSvcObject svcObject)
+    {
+        return string.Join(' ', [
+            svcObject.Id.ToString(),
+            svcObject.Name ?? "",
+            svcObject.State,
+            svcObject.ShowInRequestModule.ToString(),
+            svcObject.PortStart?.ToString() ?? "",
+            svcObject.PortEnd?.ToString() ?? "",
+            svcObject.ProtoId.ToString()
+        ]).ToLowerInvariant();
+    }
+
+    private string BuildFlowSvcObjectTechnicalDetails(long flowSvcObjectId)
+    {
+        FlowSvcObject? flowSvcObject = flowSvcObjects.FirstOrDefault(item => item.Id == flowSvcObjectId);
+        string details = flowSvcObject == null ? "" : FlowAdminHelper.FormatFlowSvcObjectTechnicalDetails(flowSvcObject, ipProtos);
+        return string.IsNullOrWhiteSpace(details) ? "-" : details;
+    }
+
+    private void UpdateCustomServiceInCatalog(NetworkService updatedService)
+    {
+        foreach (Management management in customServiceManagements)
+        {
+            int objectIndex = Array.FindIndex(management.Services, service => service.Id == updatedService.Id);
+            if (objectIndex >= 0)
+            {
+                management.Services[objectIndex] = updatedService;
+                return;
+            }
+        }
+    }
+
+    private static string GetCustomServiceSelectionLabel(CustomObjectManagementSelection selection)
+    {
+        return selection.SelectedService != null
+            ? FlowAdminHelper.FormatNetworkServiceTechnicalDetails(selection.SelectedService)
+            : "-";
+    }
+
+    private static string GetCustomServiceRowClass(CustomObjectManagementSelection selection, NetworkService service)
+    {
+        return selection.SelectedService?.Id == service.Id ? "table-warning" : "";
+    }
+
+    private void ClearCustomServiceSearch(CustomObjectManagementSelection selection)
+    {
+        selection.SearchText = "";
+    }
+
+    private void SelectCustomService(CustomObjectManagementSelection selection, NetworkService service)
+    {
+        selection.SelectedService = service;
+    }
+
+    private static string BuildCustomServiceSearchText(NetworkService service)
+    {
+        return string.Join(' ', [
+            service.Id.ToString(),
+            service.Name ?? "",
+            service.Uid ?? "",
+            service.DestinationPort?.ToString() ?? "",
+            service.DestinationPortEnd?.ToString() ?? "",
+            service.ProtoId?.ToString() ?? "",
+            service.FlowActive.ToString()
+        ]).ToLowerInvariant();
+    }
+
+    private static bool TryBuildCustomServiceSignature(NetworkService service, out CustomServiceSignature signature)
+    {
+        int? protoId = service.ProtoId ?? service.Protocol?.Id;
+        if (!protoId.HasValue)
+        {
+            signature = default;
+            return false;
+        }
+
+        int? destinationPortStart = service.DestinationPort;
+        int? destinationPortEnd = service.DestinationPortEnd ?? service.DestinationPort;
+        if (destinationPortStart.HasValue != destinationPortEnd.HasValue)
+        {
+            signature = default;
+            return false;
+        }
+
+        signature = new CustomServiceSignature(
+            protoId.Value,
+            destinationPortStart,
+            destinationPortEnd);
+        return true;
+    }
+
+    private sealed class CustomObjectManagementSelection
+    {
+        public Management Management { get; set; } = new();
+        public List<NetworkService> Candidates { get; set; } = [];
+        public NetworkService? SelectedService { get; set; }
+        public string SearchText { get; set; } = "";
+        public List<NetworkService> FilteredCandidates =>
+            string.IsNullOrWhiteSpace(SearchText)
+                ? Candidates
+                : [.. Candidates.Where(service => BuildCustomServiceSearchText(service)
+                    .Contains(SearchText.Trim().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase))];
+    }
+
+    private readonly record struct CustomServiceSignature(int ProtoId, int? DestinationPortStart, int? DestinationPortEnd);
+}

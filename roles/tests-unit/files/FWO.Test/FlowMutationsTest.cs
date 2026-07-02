@@ -12,10 +12,17 @@ namespace FWO.Test
         {
             Assert.That(FlowMutations.insertFlowNwObject, Does.Contain("mutation insertFlowNwObject"));
             Assert.That(FlowMutations.upsertFlowNwObjectMapping, Does.Contain("mutation upsertFlowNwObjectMapping"));
+            Assert.That(FlowMutations.upsertFlowNwGroupMapping, Does.Contain("mutation upsertFlowNwGroupMapping"));
             Assert.That(FlowMutations.updateFlowNwGroup, Does.Contain("mutation updateFlowNwGroup"));
             Assert.That(FlowMutations.updateFlowNwObject, Does.Contain("mutation updateFlowNwObject"));
+            Assert.That(FlowMutations.upsertFlowSvcObjectMapping, Does.Contain("mutation upsertFlowSvcObjectMapping"));
+            Assert.That(FlowMutations.upsertFlowSvcObjectMapping, Does.Contain("pk_columns: { svc_id: $svcId }"));
+            Assert.That(FlowMutations.upsertFlowSvcObjectMapping, Does.Contain("flow_svcobj_id: $flowSvcobjId"));
+            Assert.That(FlowMutations.upsertFlowSvcObjectMapping, Does.Contain("flow_active: $activeOnMgm"));
+            Assert.That(FlowMutations.upsertFlowSvcGroupMapping, Does.Contain("mutation upsertFlowSvcGroupMapping"));
             Assert.That(FlowMutations.updateFlowSvcGroup, Does.Contain("mutation updateFlowSvcGroup"));
             Assert.That(FlowMutations.updateFlowSvcObject, Does.Contain("mutation updateFlowSvcObject"));
+            Assert.That(FlowMutations.upsertFlowTimeObjectMapping, Does.Contain("mutation upsertFlowTimeObjectMapping"));
             Assert.That(FlowMutations.updateFlowTimeObject, Does.Contain("mutation updateFlowTimeObject"));
         }
 

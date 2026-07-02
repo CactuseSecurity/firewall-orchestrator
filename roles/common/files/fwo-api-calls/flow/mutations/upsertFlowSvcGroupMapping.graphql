@@ -1,0 +1,23 @@
+mutation upsertFlowSvcGroupMapping(
+  $svcId: bigint!
+  $flowSvcgrpId: bigint!
+  $activeOnMgm: Boolean!
+) {
+  update_service_by_pk(
+    pk_columns: { svc_id: $svcId }
+    _set: {
+      flow_svcgrp_id: $flowSvcgrpId
+      flow_active: $activeOnMgm
+    }
+  ) {
+    svc_id
+    svc_name
+    svc_uid
+    svc_port
+    svc_port_end
+    active
+    removed
+    flow_svcgrp_id
+    flow_active
+  }
+}

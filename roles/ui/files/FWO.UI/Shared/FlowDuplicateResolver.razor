@@ -1,0 +1,73 @@
+@typeparam TItem
+@inject UserConfig UserConfig
+
+<PopUp Title="@Title" Show="@Show" Size="@Size" OnClose="@OnClose">
+    <Body>
+        @if (Show)
+        {
+            if (SummaryContent != null)
+            {
+                <div class="mb-2">
+                    @SummaryContent
+                </div>
+            }
+            <Table TableClass="@TableClass"
+                   TableItem="TItem"
+                   Items="Items"
+                   PageSize="PageSize"
+                   ColumnReorder="true"
+                   TableRowClass="@(TableRowClass)">
+                @ChildContent
+            </Table>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-warning" disabled="@(!CanResolve)" @onclick="OnResolve">
+                @(DisplayService.DisplayButton(UserConfig, "save", Icons.Save))
+            </button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="OnClose">
+                @(DisplayService.DisplayButton(UserConfig, "cancel", Icons.Cancel))
+            </button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public bool Show { get; set; }
+
+    [Parameter]
+    public PopupSize Size { get; set; } = PopupSize.Auto;
+
+    [Parameter]
+    public Action OnClose { get; set; } = new Action(() => { });
+
+    [Parameter]
+    public Func<Task> OnResolve { get; set; } = () => Task.CompletedTask;
+
+    [Parameter]
+    public bool CanResolve { get; set; }
+
+    [Parameter, EditorRequired]
+    public IEnumerable<TItem> Items { get; set; } = [];
+
+    [Parameter]
+    public int PageSize { get; set; } = 10;
+
+    [Parameter]
+    public string TableClass { get; set; } = "table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header";
+
+    [Parameter]
+    public Func<TItem, string>? TableRowClass { get; set; }
+
+    [Parameter]
+    public RenderFragment? SummaryContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

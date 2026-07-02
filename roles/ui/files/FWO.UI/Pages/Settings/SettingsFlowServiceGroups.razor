@@ -1,0 +1,348 @@
+@page "/settings/flows/servicegroups"
+
+@using FWO.Api.Client.Queries
+@using FWO.Config.Api
+@using FWO.Data
+@using FWO.Data.Flow
+@using Microsoft.AspNetCore.Components.Authorization
+
+@attribute [Authorize(Roles = $"{Roles.Admin}")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<InProgress Display="workInProgress" />
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("service_groups"))</h3>
+    <HelpLink Page="settings/flows/servicegroups" />
+</div>
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-4 mb-2">
+    <h4 class="mb-0">@(userConfig.GetText("duplicate_objects"))</h4>
+</div>
+<div class="text-muted small mb-2">@DuplicateGroups.Count</div>
+
+@if (DuplicateGroups.Count > 0)
+{
+    <Table TableClass="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
+           TableItem="FlowSvcGroupDuplicateGroup"
+           Items="DuplicateGroups"
+           PageSize="10"
+           ColumnReorder="true">
+        <Column TableItem="FlowSvcGroupDuplicateGroup" Title="@(userConfig.GetText("flow_object"))" Field="@(group => group.FlowSvcGroupName)" Sortable="true" Filterable="true" Context="group">
+            <Template>
+                <div>@($"{group.FlowSvcGroupName} (#{group.FlowSvcGroupId})")</div>
+                <div class="text-muted small">@BuildFlowSvcGroupTechnicalDetails(group.FlowSvcGroupId)</div>
+            </Template>
+        </Column>
+        <Column TableItem="FlowSvcGroupDuplicateGroup" Title="@(userConfig.GetText("management"))" Field="@(group => group.ManagementName)" Sortable="true" Filterable="true" />
+        <Column TableItem="FlowSvcGroupDuplicateGroup" Title="@(userConfig.GetText("objects"))" Field="@(group => group.Services.Count)" Sortable="true" Filterable="false" Context="group">
+            <Template>
+                @FlowAdminHelper.FormatDuplicateObjectSummary(group.Services, 5, userConfig.GetText("none"), userConfig.GetText("duplicate_objects_more"))
+            </Template>
+        </Column>
+        <Column TableItem="FlowSvcGroupDuplicateGroup" Title="@(userConfig.GetText("actions"))" Field="@(group => group.ManagementId)" Sortable="false" Filterable="false" Context="group">
+            <Template>
+                <button type="button" class="btn btn-sm btn-warning" @onclick:stopPropagation="true" @onclick="() => OpenDuplicateResolver(group)">
+                    @(DisplayService.DisplayButton(userConfig, "select", Icons.Select))
+                </button>
+            </Template>
+        </Column>
+        <Pager ShowPageNumber="true" ShowTotalCount="true" />
+    </Table>
+}
+else
+{
+    <div class="text-muted small mb-3">@(userConfig.GetText("no_duplicate_conflicts"))</div>
+}
+
+<FlowObjectTable TItem="FlowSvcGroup"
+                 FilteredItems="FilteredFlowSvcGroups"
+                 FilteredCount="FilteredFlowSvcGroups.Count"
+                 TotalCount="flowSvcGroups.Count"
+                 PageSize="25"
+                 SearchLabel="@(userConfig.GetText("search_name"))"
+                 ClearSearchLabel="@(userConfig.GetText("clear_input"))"
+                 @bind-SearchText="groupSearchText">
+    <ChildContent>
+        <Column TableItem="FlowSvcGroup" Title="@(userConfig.GetText("actions"))" Field="@(svcGroup => svcGroup.Id)" Sortable="false" Filterable="false" Context="svcGroup">
+            <Template>
+                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditSvcGroup(svcGroup)">
+                    @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                </button>
+            </Template>
+        </Column>
+        <Column TableItem="FlowSvcGroup" Title="@(userConfig.GetText("id"))" Field="@(svcGroup => svcGroup.Id)" Sortable="true" Filterable="true" />
+        <Column TableItem="FlowSvcGroup" Title="@(userConfig.GetText("name"))" Field="@(svcGroup => svcGroup.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="FlowSvcGroup" Title="@(userConfig.GetText("state"))" Field="@(svcGroup => svcGroup.State)" Sortable="true" Filterable="true" />
+        <Column TableItem="FlowSvcGroup" Title="@(userConfig.GetText("show_in_request_module"))" Field="@(svcGroup => svcGroup.ShowInRequestModule)" Sortable="true" Context="svcGroup">
+            <Template>
+                @svcGroup.ShowInRequestModule.ShowAsHtml()
+            </Template>
+        </Column>
+        <Column TableItem="FlowSvcGroup" Title="@(userConfig.GetText("objects"))" Field="@(svcGroup => svcGroup.Id)" Sortable="false" Filterable="false" Context="svcGroup">
+            <Template>
+                @(svcGroup.SvcGroupMembers.Count)
+            </Template>
+        </Column>
+        <Pager ShowPageNumber="true" ShowTotalCount="true" />
+    </ChildContent>
+</FlowObjectTable>
+
+<PopUp Title="@(userConfig.GetText("edit_flow_object"))" Show="@EditMode" Size=PopupSize.Small OnClose="CloseEditor">
+    <Body>
+        @if (EditMode)
+        {
+            <form onsubmit="return false">
+                <div class="form-group row">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                    <label class="col-sm-8 col-form-label col-form-label-sm">@EditFlowSvcGroup.Id</label>
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" @bind="EditFlowSvcGroup.Name" />
+                    </div>
+                </div>
+                <div class="form-check form-check-inline mt-3">
+                    <input class="form-check-input" id="flowSvcGroupShowInRequestModule" type="checkbox" @bind="EditFlowSvcGroup.ShowInRequestModule">
+                    <label class="form-check-label" for="flowSvcGroupShowInRequestModule"><small>@(userConfig.GetText("show_in_request_module"))</small></label>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="SaveSvcGroup">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseEditor">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<FlowDuplicateResolver TItem="NetworkService"
+                       Title="@(userConfig.GetText("duplicate_objects"))"
+                       Show="@ResolveDuplicateMode"
+                       Size=PopupSize.Auto
+                       OnClose="CloseDuplicateResolver"
+                       OnResolve="ResolveDuplicateMapping"
+                       CanResolve="@(SelectedDuplicateService != null)"
+                       Items="@(SelectedDuplicateGroup?.Services ?? [])"
+                       PageSize="10"
+                       TableRowClass="@(service => service == SelectedDuplicateService ? "table-warning" : "")">
+    <SummaryContent>
+        @if (SelectedDuplicateGroup != null)
+        {
+            <div><span class="fw-bold">@(userConfig.GetText("flow_object")):</span> @SelectedDuplicateGroup.FlowSvcGroupName (#@SelectedDuplicateGroup.FlowSvcGroupId)</div>
+            <div class="text-muted small">@BuildFlowSvcGroupTechnicalDetails(SelectedDuplicateGroup.FlowSvcGroupId)</div>
+            <div><span class="fw-bold">@(userConfig.GetText("management")):</span> @SelectedDuplicateGroup.ManagementName</div>
+        }
+    </SummaryContent>
+    <ChildContent>
+        <Column TableItem="NetworkService" Title="@(userConfig.GetText("uid"))" Field="@(service => service.Uid)" Sortable="true" Filterable="true" />
+        <Column TableItem="NetworkService" Title="@(userConfig.GetText("details"))" Field="@(service => service.Name)" Sortable="false" Filterable="false" Context="service">
+            <Template>
+                <span class="d-inline-block rounded px-2 py-1 @(service == SelectedDuplicateService ? "bg-warning-subtle fw-bold" : "")">
+                    @FlowAdminHelper.FormatNetworkServiceTechnicalDetails(service)
+                </span>
+            </Template>
+        </Column>
+        <Column TableItem="NetworkService" Title="@(userConfig.GetText("state"))" Field="@(service => service.FlowActive)" Sortable="true" Filterable="true" Context="service">
+            <Template>
+                @service.FlowActive.ShowAsHtml()
+            </Template>
+        </Column>
+        <Column TableItem="NetworkService" Title="@(userConfig.GetText("actions"))" Field="@(service => service.Id)" Sortable="false" Filterable="false" Context="service">
+            <Template>
+                <button type="button" class="btn btn-sm @(service == SelectedDuplicateService ? "btn-success" : "btn-outline-primary")" @onclick:stopPropagation="true" @onclick="() => SelectDuplicateService(service)">
+                    @(DisplayService.DisplayButton(userConfig, "select", Icons.Select))
+                </button>
+            </Template>
+        </Column>
+        <Pager ShowPageNumber="true" ShowTotalCount="true" />
+    </ChildContent>
+</FlowDuplicateResolver>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private List<FlowSvcGroup> flowSvcGroups = [];
+    private List<Management> selectableManagements = [];
+    private List<Management> customServiceManagements = [];
+    private FlowSvcGroupDuplicateGroup? SelectedDuplicateGroup;
+    private NetworkService? SelectedDuplicateService;
+    private bool workInProgress = false;
+    private bool EditMode = false;
+    private bool ResolveDuplicateMode = false;
+    private string groupSearchText = "";
+    private FlowSvcGroup EditFlowSvcGroup = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        try
+        {
+            workInProgress = true;
+            StateHasChanged();
+
+            flowSvcGroups = await apiConnection.SendQueryAsync<List<FlowSvcGroup>>(FlowQueries.getFlowServiceGroups) ?? [];
+            selectableManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowSelectableManagements) ?? [];
+
+            List<int> managementIds = [.. selectableManagements.Select(management => management.Id)];
+            customServiceManagements = managementIds.Count == 0
+                ? []
+                : await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowCustomServiceCandidates, new
+                {
+                    management_id = managementIds
+                }) ?? [];
+
+            workInProgress = false;
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("service_groups"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
+    private List<FlowSvcGroupDuplicateGroup> DuplicateGroups =>
+        FlowAdminHelper.BuildDuplicateGroups(flowSvcGroups, customServiceManagements);
+
+    private List<FlowSvcGroup> FilteredFlowSvcGroups =>
+        string.IsNullOrWhiteSpace(groupSearchText)
+            ? flowSvcGroups
+            : [.. flowSvcGroups.Where(svcGroup => BuildFlowSvcGroupSearchText(svcGroup)
+                .Contains(groupSearchText.Trim().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase))];
+
+    private void EditSvcGroup(FlowSvcGroup svcGroup)
+    {
+        EditFlowSvcGroup = new FlowSvcGroup
+        {
+            Id = svcGroup.Id,
+            Name = svcGroup.Name,
+            State = svcGroup.State,
+            RemovedDate = svcGroup.RemovedDate,
+            ShowInRequestModule = svcGroup.ShowInRequestModule,
+            SvcGroupMembers = [.. svcGroup.SvcGroupMembers]
+        };
+        EditMode = true;
+    }
+
+    private void CloseEditor()
+    {
+        EditMode = false;
+    }
+
+    private void OpenDuplicateResolver(FlowSvcGroupDuplicateGroup group)
+    {
+        SelectedDuplicateGroup = group;
+        SelectedDuplicateService = group.Services.FirstOrDefault();
+        ResolveDuplicateMode = true;
+    }
+
+    private void CloseDuplicateResolver()
+    {
+        ResolveDuplicateMode = false;
+        SelectedDuplicateGroup = null;
+        SelectedDuplicateService = null;
+    }
+
+    private void SelectDuplicateService(NetworkService service)
+    {
+        SelectedDuplicateService = service;
+    }
+
+    private async Task ResolveDuplicateMapping()
+    {
+        try
+        {
+            if (SelectedDuplicateGroup == null || SelectedDuplicateService == null)
+            {
+                return;
+            }
+
+            workInProgress = true;
+            StateHasChanged();
+
+            foreach (NetworkService candidate in SelectedDuplicateGroup.Services)
+            {
+                await apiConnection.SendQueryAsync<NetworkService>(FlowMutations.upsertFlowSvcGroupMapping, new
+                {
+                    svcId = candidate.Id,
+                    flowSvcgrpId = SelectedDuplicateGroup.FlowSvcGroupId,
+                    activeOnMgm = candidate.Id == SelectedDuplicateService.Id
+                });
+            }
+
+            CloseDuplicateResolver();
+            await Refresh();
+            workInProgress = false;
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("duplicate_objects"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task SaveSvcGroup()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(EditFlowSvcGroup.Name))
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_flow_object"), userConfig.GetText("E5102"), true);
+                return;
+            }
+
+            workInProgress = true;
+            StateHasChanged();
+
+            await apiConnection.SendQueryAsync<FlowSvcGroup>(FlowMutations.updateFlowSvcGroup, new
+            {
+                svcgroupId = EditFlowSvcGroup.Id,
+                name = EditFlowSvcGroup.Name.Trim(),
+                showInRequestModule = EditFlowSvcGroup.ShowInRequestModule
+            });
+
+            EditMode = false;
+            await Refresh();
+            workInProgress = false;
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("edit_flow_object"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
+    private static string BuildFlowSvcGroupSearchText(FlowSvcGroup svcGroup)
+    {
+        return string.Join(' ', [
+            svcGroup.Id.ToString(),
+            svcGroup.Name ?? "",
+            svcGroup.State,
+            svcGroup.ShowInRequestModule.ToString(),
+            svcGroup.SvcGroupMembers.Count.ToString()
+        ]).ToLowerInvariant();
+    }
+
+    private string BuildFlowSvcGroupTechnicalDetails(long flowSvcGroupId)
+    {
+        FlowSvcGroup? flowSvcGroup = flowSvcGroups.FirstOrDefault(item => item.Id == flowSvcGroupId);
+        string details = flowSvcGroup == null ? "" : FlowAdminHelper.FormatFlowSvcGroupTechnicalDetails(flowSvcGroup, userConfig.GetText("members"));
+        return string.IsNullOrWhiteSpace(details) ? "-" : details;
+    }
+}

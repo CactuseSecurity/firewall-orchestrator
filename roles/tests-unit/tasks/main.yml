@@ -9,7 +9,7 @@
       become: true
 
     - name: sync test files to frontend target
-      synchronize:
+      ansible.posix.synchronize:
         src: FWO.Test
         dest: "{{ test_dir }}/csharp"
         rsync_opts:

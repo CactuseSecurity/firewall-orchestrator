@@ -19,13 +19,14 @@ Both physical and virtual systems are supported
 #### For large production installations (>1000 rules)
 - 800 GB SSD 
 - 32 GB RAM
-- 8 CPUs
+- 16 CPUs
 
 ### Software Requirements
 
 Supported operating systms: 
 - Ubuntu >=22.04 (LTS only)
-- Debian >=12
+- RHEL 8, 9, 10
+- Debian >=11
 
 Recommended: Ubuntu 24.04, Debian 12
 

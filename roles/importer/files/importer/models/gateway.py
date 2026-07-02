@@ -1,7 +1,12 @@
-from typing import Any
+from __future__ import annotations
 
-from models.rulebase_link import RulebaseLinkUidBased
+from importlib import import_module
+from typing import TYPE_CHECKING, Any
+
 from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from models.rulebase_link import RulebaseLinkUidBased
 
 """
 Gateway
@@ -27,3 +32,8 @@ class Gateway(BaseModel):
     EnforcedNatPolicyUids: list[str] | None = []
     ImportDisabled: bool = False
     ShowInUI: bool = True
+
+
+Gateway.model_rebuild(
+    _types_namespace={"RulebaseLinkUidBased": import_module("models.rulebase_link").RulebaseLinkUidBased}
+)

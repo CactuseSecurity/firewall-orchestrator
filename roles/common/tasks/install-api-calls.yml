@@ -11,7 +11,7 @@
   become: true
 
 - name: install the fwo api calls
-  synchronize:
+  ansible.posix.synchronize:
     src: "fwo-api-calls"
     dest: "{{ fworch_home }}"
     rsync_opts:

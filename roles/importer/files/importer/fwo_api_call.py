@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # library for all FWORCH API calls in importer module
 import datetime
 import json
@@ -9,12 +11,12 @@ import fwo_const
 from fwo_api import FwoApi
 from fwo_exceptions import FwoApiFailedLockImportError
 from fwo_log import FWOLogger
-from model_controllers.management_controller import ManagementController
-from models.fwconfig_normalized import FwConfigNormalized
 from query_analyzer import QueryAnalyzer
 
 if TYPE_CHECKING:
     from model_controllers.import_state_controller import ImportStateController
+    from model_controllers.management_controller import ManagementController
+    from models.fwconfig_normalized import FwConfigNormalized
     from models.import_state import ImportState
 
 # NOTE: we cannot import ImportState(Controller) here due to circular refs
@@ -154,7 +156,7 @@ class FwoApiCall:
             changes_in_import = 0
         return changes_in_import
 
-    def unlock_import(self, import_state: "ImportState", success: bool):
+    def unlock_import(self, import_state: ImportState, success: bool):
         import_id = import_state.import_id
         mgm_id = import_state.mgm_details.mgm_id
         import_stats = import_state.stats
@@ -183,7 +185,7 @@ class FwoApiCall:
     #   currently temporarily only working with single chunk
     def import_json_config(
         self,
-        import_state: "ImportState",
+        import_state: ImportState,
         config: FwConfigNormalized,
         start_import: bool,
     ):
@@ -222,7 +224,7 @@ class FwoApiCall:
             FWOLogger.exception("failed to delete config without changes")
 
     def get_error_string_from_imp_control(
-        self, _: "ImportStateController", query_variables: dict[str, Any]
+        self, _: ImportStateController, query_variables: dict[str, Any]
     ) -> list[dict[str, Any]]:  # TYPING: confirm return type
         error_query = (
             "query getErrors($importId:bigint) { import_control(where:{control_id:{_eq:$importId}}) { import_errors } }"
@@ -371,7 +373,7 @@ class FwoApiCall:
         if alert_code is not None:
             query_variables.update({"alertCode": alert_code})
 
-    def complete_import(self, import_state: "ImportState", exception: BaseException | None = None):
+    def complete_import(self, import_state: ImportState, exception: BaseException | None = None):
         if not import_state.responsible_for_importing:
             return
 

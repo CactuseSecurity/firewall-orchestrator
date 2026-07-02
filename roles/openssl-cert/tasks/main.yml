@@ -20,7 +20,7 @@
     locality_name: "{{ openssl_location }}"
     organization_name: "{{ openssl_organization }}"
     email_address: "{{ openssl_email_address }}"
-    common_name: "{{ ansible_hostname }}"
+    common_name: "{{ ansible_facts['hostname'] }}"
 
 - name: Generate a self signed OpenSSL Certificate
   openssl_certificate:
@@ -44,16 +44,5 @@
     owner: "{{ openssl_user }}"
     group: "{{ openssl_user }}"
 
-# the following only works vor deb based systems
-- name: set link to debian cert store
-  file:
-    src: "{{ openssl_cert }}"
-    dest: /usr/local/share/ca-certificates/{{ product_name }}-server.crt
-    state: link
-  become: true
-    
-# sudo dpkg-reconfigure ca-certificates -f noninteractive
-- name: reconfigure ca-certificates package
-  debconf:
-    name: ca-certificates
-  become: true
+- name: include certificate trust-store tasks for current OS family
+  include_tasks: "os/{{ ansible_facts['os_family'] }}.yml"

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from datetime import datetime, timezone
 
@@ -54,7 +56,7 @@ class TimeObjectForImport(BaseModel):
     created: int
 
     @classmethod
-    def from_normalized(cls, time_obj: TimeObject, mgm_id: int, import_id: int) -> "TimeObjectForImport":
+    def from_normalized(cls, time_obj: TimeObject, mgm_id: int, import_id: int) -> TimeObjectForImport:
         return cls(
             time_obj_uid=time_obj.time_obj_uid,
             time_obj_name=time_obj.time_obj_name,

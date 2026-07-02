@@ -1,0 +1,4 @@
+- name: set postgresql config path for RedHat
+  set_fact:
+    postgresql_config_file: /var/lib/pgsql/data/postgresql.conf
+    postgresql_hba_file: /var/lib/pgsql/data/pg_hba.conf

@@ -13,14 +13,14 @@
       register: importer_dir_check
 
     - name: backup importer dir
-      synchronize:
+      ansible.posix.synchronize:
         src: "{{ fworch_home }}/importer"
         dest: "{{ fworch_home }}/backup_importer"
       delegate_to: "{{ inventory_hostname }}"
       when: importer_dir_check.stat.exists and installation_mode == "upgrade"
 
     - name: copy importer files
-      synchronize:
+      ansible.posix.synchronize:
         src: "importer"
         dest: "{{ fworch_home }}"
         rsync_opts:
@@ -29,16 +29,19 @@
           - "--chown={{ fworch_user }}:{{ fworch_group }}"
       tags: ["test"]
 
-    - name: Install importer python3-venv package (for Ubuntu/Debian)
+    - name: Install importer venv package
       package:
-        name: python3-venv
+        name: "{{ python_venv_package_name }}"
         state: present
-      when: ansible_python_interpreter == '/usr/bin/python3' # Skip if using custom python
+
+    - name: Check importer Python version
+      command: "{{ importer_python_interpreter }} -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)'"
+      changed_when: false
 
 
     - name: Create Python virtual environment
       ansible.builtin.command:
-        cmd: '{{ ansible_python_interpreter }} -m venv {{ importer_venv_dir }}'
+        cmd: '{{ importer_python_interpreter }} -m venv {{ importer_venv_dir }}'
         creates: "{{ importer_venv_dir }}"
 
     - name: Install Python packages from requirements.txt

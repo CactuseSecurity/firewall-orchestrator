@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import time
 from copy import deepcopy
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import fwo_const
 import fwo_globals
@@ -8,14 +10,16 @@ from fw_modules.checkpointR8x import cp_const, cp_gateway, cp_getter, cp_network
 from fwo_base import ConfigAction
 from fwo_exceptions import FwLoginFailedError, FwoImporterError, ImportInterruptionError
 from fwo_log import FWOLogger
-from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.import_state_controller import ImportStateController
-from model_controllers.management_controller import ManagementController
 from models.fw_common import FwCommon
 from models.fwconfig_normalized import FwConfigNormalized
-from models.fwconfigmanagerlist import FwConfigManager
-from models.import_state import ImportState
+from models.fwconfigmanager import FwConfigManager
 from utils.conversion_utils import convert_list_to_dict
+
+if TYPE_CHECKING:
+    from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+    from model_controllers.import_state_controller import ImportStateController
+    from model_controllers.management_controller import ManagementController
+    from models.import_state import ImportState
 
 
 class CheckpointR8xCommon(FwCommon):

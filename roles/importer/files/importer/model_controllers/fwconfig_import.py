@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import traceback
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import fwo_const
 import fwo_globals
@@ -12,7 +14,6 @@ from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.import_state_controller import ImportStateController
 from model_controllers.management_controller import (
     ConnectionInfo,
     CredentialInfo,
@@ -26,6 +27,10 @@ from models.fwconfigmanager import FwConfigManager
 from models.rulebase_link import RulebaseLinkUidBased
 from services.global_state import GlobalState
 from services.service_provider import ServiceProvider
+
+if TYPE_CHECKING:
+    from model_controllers.import_state_controller import ImportStateController
+    from services.global_state import GlobalState
 
 
 # this class is used for importing a config into the FWO API

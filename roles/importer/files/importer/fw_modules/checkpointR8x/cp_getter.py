@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 # library for API get functions
 import json
 import time
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import fwo_const
 import fwo_globals
@@ -10,8 +12,10 @@ import requests
 from fw_modules.checkpointR8x import cp_const, cp_network
 from fwo_exceptions import FwApiError, FwApiResponseDecodingError, FwLoginFailedError, FwoImporterError
 from fwo_log import FWOLogger
-from model_controllers.management_controller import ManagementController
 from services.service_provider import ServiceProvider
+
+if TYPE_CHECKING:
+    from model_controllers.management_controller import ManagementController
 
 # Constants for status values
 STATUS_IN_PROGRESS = "in progress"

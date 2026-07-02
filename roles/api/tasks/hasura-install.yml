@@ -6,7 +6,6 @@
     state: present
   loop:
     - python3-pip
-    - python3-virtualenv
   become: true
 
 - name: read Hasura database user password from database host
@@ -265,7 +264,7 @@
   no_log: true
   environment: "{{ proxy_env | combine({'HASURA_GRAPHQL_ADMIN_SECRET': api_hasura_admin_secret}) }}"
   when:
-    - not api_cli_check.stat.exists
+    - api_cli_check.stat.exists
     - not api_use_existing_hasura_on_upgrade | default(false) | bool
 
 - name: set Hasura image reuse mode
@@ -339,7 +338,7 @@
       HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
       HASURA_GRAPHQL_ENABLE_TELEMETRY: "false"
       HASURA_GRAPHQL_ADMIN_SECRET: "{{ api_hasura_admin_secret }}"
-      HASURA_GRAPHQL_SERVER_HOST: "127.0.0.1"
+      HASURA_GRAPHQL_SERVER_HOST: "{{ api_local_listening_ip_address }}"
       HASURA_GRAPHQL_SERVER_PORT: "8080"
       HASURA_GRAPHQL_LOG_LEVEL: "{{ api_log_level }}"
       HASURA_GRAPHQL_ENABLED_LOG_TYPES: "{{ api_HASURA_GRAPHQL_ENABLED_LOG_TYPES }}"

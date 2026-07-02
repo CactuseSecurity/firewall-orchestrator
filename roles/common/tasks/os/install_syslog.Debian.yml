@@ -1,0 +1,20 @@
+---
+- name: create log dir for {{ product_name }} on ubuntu - owner syslog
+  file:
+    path: "{{ fworch_log_dir }}"
+    state: directory
+    owner: syslog
+    group: syslog
+    mode: "0775"
+  become: true
+  when: ansible_facts['distribution'] == "Ubuntu"
+
+- name: create log dir for {{ product_name }} on debian - owner root
+  file:
+    path: "{{ fworch_log_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0775"
+  become: true
+  when: ansible_facts['distribution'] == "Debian"

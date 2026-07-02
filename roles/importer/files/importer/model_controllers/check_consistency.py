@@ -4,9 +4,7 @@ from typing import TYPE_CHECKING, Any
 import fwo_const
 from fwo_exceptions import FwoImporterErrorInconsistenciesError
 from fwo_log import FWOLogger
-from model_controllers.fwconfigmanagerlist_controller import (
-    FwConfigManagerListController,
-)
+from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from models.fwconfig_normalized import FwConfigNormalized
 from models.import_state import ImportState
 from models.rulebase import Rulebase

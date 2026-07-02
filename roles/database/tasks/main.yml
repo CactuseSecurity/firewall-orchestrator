@@ -5,35 +5,8 @@
         state: absent
         path: "{{ fworch_home }}/database"
 
-    - name: include redhat db install parts
-      include_tasks: redhat_preps.yml
-      when: installation_mode == "new" and ansible_os_family == "RedHat"
-
-    - name: install package postgresql packages for redhat
-      package:
-        name: "{{ item }}"
-        state: present
-      loop:
-        - postgresql-server
-        - python3-psycopg2
-      when: ansible_os_family == "RedHat"
-      # todo: check if we need and if true, how to install libpq-dev(el)
-
-    - name: install package postgresql packages for debian n ubuntu
-      package:
-        name: "{{ item }}"
-        state: present
-      loop:
-        - postgresql
-        - python3-psycopg2
-        - libpq-dev
-        - postgresql-client
-      when: ansible_os_family == "Debian"
-
-    - name: initdb as extra step for redhat
-      shell: "LC_ALL=C.UTF-8 /usr/bin/postgresql-setup --initdb"
-      become: true
-      when: ansible_os_family == "RedHat"
+    - name: include os specific database preparation
+      include_tasks: "os/{{ ansible_facts['os_family'] }}.yml"
 
     - name: find out installed postgres version
       script: get_pg_version.sh
@@ -47,17 +20,8 @@
       set_fact: pg_version={{ pg_version | int }}
       when: pg_version|int >= 10
 
-    - name: set postgresql config path for Debian based systems
-      set_fact:
-        postgresql_config_file: /etc/postgresql/{{ pg_version }}/main/postgresql.conf
-        postgresql_hba_file: /etc/postgresql/{{ pg_version }}/main/pg_hba.conf
-      when: ansible_os_family == 'Debian'
-
-    - name: set postgresql config path for RedHat
-      set_fact:
-        postgresql_config_file: /var/lib/pgsql/data/postgresql.conf
-        postgresql_hba_file: /var/lib/pgsql/data/pg_hba.conf
-      when: ansible_os_family == 'RedHat'
+    - name: include os specific postgresql path setup
+      include_tasks: "os/{{ ansible_facts['os_family'] }}-paths.yml"
 
     - name: edit {{ postgresql_config_file }} settings
       lineinfile:
@@ -93,11 +57,16 @@
         insertbefore: '# IPv4 local connections:'
         block: |
           host  all         dbadmin              127.0.0.0/8            md5
+          host  all         dbadmin              ::1/128                md5
           host  all         {{ api_user }}       127.0.0.0/8            md5
           host  all         {{ fwo_db_ro_user }} 127.0.0.0/8            trust
+          host  all         {{ fwo_db_ro_user }} ::1/128                trust
           host  all         {{ fworch_user }}    127.0.0.0/8            trust
+          host  all         {{ fworch_user }}    ::1/128                trust
           host  all         +dbbackupusers       127.0.0.0/8            trust
+          host  all         +dbbackupusers       ::1/128                trust
           host  all         confexporter         127.0.0.0/8            trust
+          host  all         confexporter         ::1/128                trust
       register: postgres_hba_update
   
     - name: reload postgres service
@@ -107,7 +76,7 @@
       when: postgres_config_updates.changed or postgres_hba_update.changed
 
     - name: copy database files to backend target
-      synchronize: 
+      ansible.posix.synchronize:
         src: "./"
         dest: "{{ database_install_dir }}"
         rsync_opts:

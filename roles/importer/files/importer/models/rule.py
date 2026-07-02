@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from models.caseinsensitiveenum import CaseInsensitiveEnum
 from models.time_object import validate_iso_timestamp_value
 from pydantic import BaseModel, field_validator

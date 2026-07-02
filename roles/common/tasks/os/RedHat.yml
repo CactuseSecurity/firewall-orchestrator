@@ -1,0 +1,26 @@
+- name: fail if RedHat major version is unsupported
+  fail:
+    msg: "RHEL {{ ansible_distribution_major_version }} is unsupported. Supported RedHat versions are 8, 9 and 10."
+  when: ansible_distribution_major_version | int not in [8, 9, 10]
+
+- name: include RedHat preparation tasks
+  include_tasks: redhat_preps.yml
+
+- name: check for existing upgradable packages on RedHat
+  command: dnf check-update
+  register: upgradable_packages
+  changed_when: false
+  failed_when: upgradable_packages.rc not in [0, 100]
+
+- block:
+    - debug:
+        msg: "There are upgradable OS packages available."
+
+    - name: assert there are no upgradable packages. upgrades must be run interactively outside the FWORCH installer
+      fail:
+        msg:
+          - There are upgradable OS packages available, please run OS upgrade before running FWORCH installer.
+          - Use "-e force_install=true" to overwrite this check and install anyway at your own risk.
+  when:
+    - not force_install | bool
+    - upgradable_packages.rc == 100

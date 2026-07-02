@@ -14,7 +14,7 @@
     register: middleware_dir_check
 
   - name: backup middleware dir
-    synchronize:
+    ansible.posix.synchronize:
       src: "{{ fworch_home }}/middleware"
       dest: "{{ fworch_home }}/backup_middleware"
     delegate_to: "{{ inventory_hostname }}"
@@ -34,7 +34,7 @@
       group: "{{ fworch_group }}"
 
   - name: copy middleware module files to middlewareserver
-    synchronize:
+    ansible.posix.synchronize:
       src: "{{ middleware_path_rel }}"
       dest: "{{ middleware_server_base_dir }}"
       rsync_opts:
@@ -46,9 +46,7 @@
     package:
       name: "{{ item }}"
       state: present
-    loop:
-      - python3-cryptography
-      - python3-openssl
+    loop: "{{ middleware_crypto_packages }}"
 
   - name: track middleware deployment changes
     set_fact:
@@ -65,14 +63,7 @@
 
 - name: install python modules for ansible ldap module via package
   package:
-    name:
-      - python3-pip
-      - libsasl2-dev
-      - python3-dev
-      - libldap2-dev
-      - libssl-dev
-      - python3-setuptools
-      - python3-pyldap
+    name: "{{ middleware_ldap_packages }}"
   become: true
 
 - name: make sure {{ fworch_secrets_dir }} exists

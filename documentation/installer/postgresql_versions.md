@@ -8,3 +8,6 @@ Status as of 2023-01-24
 - Debian 10		    11
 - Debian 11		    13
 - Debian Testing    15
+- RHEL 8            13
+- RHEL 9            13
+- RHEL 10           13

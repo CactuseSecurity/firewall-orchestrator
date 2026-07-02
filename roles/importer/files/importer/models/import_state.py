@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 import time
+from typing import TYPE_CHECKING
 
 from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
-from model_controllers.fworch_config_controller import FworchConfigController
 from model_controllers.import_statistics_controller import ImportStatisticsController
-from model_controllers.management_controller import ManagementController
+
+if TYPE_CHECKING:
+    from model_controllers.fworch_config_controller import FworchConfigController
+    from model_controllers.management_controller import ManagementController
 
 """Used for storing state during import process per management"""
 

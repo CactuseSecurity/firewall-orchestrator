@@ -49,9 +49,13 @@ None
 
 ## Notes
 
-- The role writes `SLAPD_SERVICES` to `/etc/default/slapd`.
+- The role writes `SLAPD_SERVICES` to the OS-specific service defaults file.
 - The systemd drop-in consumes that value so the listener configuration is
   defined in one place.
+- The systemd drop-in starts `slapd` with `-d0` only for systemd `Type=notify`
+  units so they keep the daemon in the foreground and receive the readiness
+  signal. Generated SysV `Type=forking` units continue to let `slapd`
+  daemonize.
 - When `openldap_server_enable_ssl` is `false`, the role starts `slapd`
   without `ldaps:///`.
 

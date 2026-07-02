@@ -15,17 +15,9 @@
         path: "{{ fworch_conf_file }}"
       register: already_installed
 
-    - set_fact:
+    - name: set installation state fact
+      set_fact:
         already_installed: "{{ already_installed.stat.exists }}"
-
-    - set_fact:
-        wsgi_package_name: "{{ wsgi_package_name }}-py3"
-      when: |
-        (ansible_facts['distribution_release']|lower == debian_testing_release_name)
-        or 
-        (ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_major_version']|int is version('10', '>'))
-        or 
-        (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version']|int is version('20', '>'))
 
     - debug:
         msg: "installation_mode={{ installation_mode }}, already_installed={{ already_installed }}"
@@ -52,6 +44,9 @@
       fail:
         msg: "Could not find existing installation but running with installation_mode set to {{ installation_mode }}. Try running with installation_mode=new"
       when: not already_installed and installation_mode == "upgrade"
+
+    - name: include OS specific preparation tasks
+      include_tasks: "os/{{ ansible_facts['os_family'] }}.yml"
 
       # when upgrading check if we are not attempting a downgrade
     - block:
@@ -260,7 +255,7 @@
       failed_when: false
       become: true
       when:
-        - ansible_service_mgr == "systemd"
+        - ansible_facts['service_mgr'] == "systemd"
         - loginctl_binary.stat.exists
 
     - name: global apache config
@@ -295,50 +290,6 @@
       ignore_errors: true # might not have been installed yet in case of early fail installs
       when: "inventory_hostname in groups['importers'] and installation_mode == 'uninstall'"
 
-    - name: update operating system package cache .deb based
-      apt:
-        update_cache: true
-      when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
-
-    - name: check for existing upgradable packages
-      command: apt list --upgradable
-      register: upgradable_packages
-      when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
-
-    - block:
-        - debug:
-            msg: "current number of upgradable packages: {{ upgradable_packages.stdout_lines|length-1 }}"
-
-        - block:
-            - name: disable apache2 maintenance web site
-              command: "a2dissite {{ product_name }}-maintenance"
-              ignore_errors: true
-
-            - name: enable {{ product_name }} web site
-              command: "a2ensite {{ product_name }}-ui"
-              ignore_errors: true
-
-            - name: restart apache without maintenance site
-              service:
-                name: "{{ webserver_package_name }}"
-                state: restarted
-          when: installation_mode == "upgrade"
-
-        - name: assert there are no upgradable packages. upgrades must be run interactively outside the FWORCH installer
-          fail:
-            msg:
-              - There are upgradable OS packages available, please run OS upgrade before running FWORCH installer.
-              - Use "-e force_install=true" to overwrite this check and install anyway at your own risk.
-      when: |
-        not force_install|bool and
-        (ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian") and
-        upgradable_packages.stdout_lines|length > 1
-
-    - name: update operating system packages .rpm based (untested)
-      yum:
-        upgrade: dist
-      when: ansible_facts['distribution'] == "Red Hat" or ansible_facts['distribution'] == "CentOS"
-
     - name: install packages rsync, acl (for non-root user in ansible)
       package:
         name: "{{ item }}"
@@ -368,7 +319,7 @@
         mode: "0775"
 
     - name: copy fworch scripts directory
-      synchronize:
+      ansible.posix.synchronize:
         src: scripts
         dest: "{{ fworch_home }}"
         rsync_opts:

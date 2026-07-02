@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanager import FwConfigManager
 from test.utils.partial_dict import PartialDict
+
+if TYPE_CHECKING:
+    from models.fwconfig_normalized import FwConfigNormalized
 
 
 class ChangelogObjectType(Enum):

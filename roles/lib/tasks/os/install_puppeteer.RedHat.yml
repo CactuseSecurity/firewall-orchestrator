@@ -1,0 +1,28 @@
+- block:
+    - name: Define RedHat Chromium dependency packages
+      set_fact:
+        platform_packages:
+          - alsa-lib
+          - atk
+          - at-spi2-atk
+          - cairo
+          - cups-libs
+          - dbus-libs
+          - liberation-fonts
+          - libX11-xcb
+          - libXcomposite
+          - libXdamage
+          - libXrandr
+          - libdrm
+          - mesa-libgbm
+          - nspr
+          - nss
+          - xdg-utils
+
+    - name: Install all combined dependencies on RedHat
+      package:
+        name: "{{ platform_packages }}"
+        state: present
+
+  become: true
+  environment: "{{ proxy_env }}"

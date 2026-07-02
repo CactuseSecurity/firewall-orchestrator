@@ -113,7 +113,10 @@
   command: "a2dissite {{ product_name }}-maintenance"
   ignore_errors: true
   become: true
-  when: "installation_mode == 'upgrade' and 'frontends' in group_names"
+  when:
+    - "installation_mode == 'upgrade'"
+    - "'frontends' in group_names"
+    - "ansible_facts['os_family'] == 'Debian'"
 
 - name: restart apache without maintenance site
   service:
@@ -125,6 +128,7 @@
   ansible.builtin.systemd:
     name: "{{ product_name }}-middleware"
     state: restarted
+    daemon_reload: true
   become: true
   when: "'middlewareserver' in group_names and (mw_deploy_changed | default(false))"
 

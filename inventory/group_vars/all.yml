@@ -1,8 +1,9 @@
 ### general settings
-product_version: "9.1.14"
+product_version: "9.2.0"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
+importer_python_interpreter: "{{ '/usr/bin/python3.11' if ansible_facts['os_family'] == 'RedHat' else ansible_python_interpreter }}"
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
 
@@ -66,7 +67,7 @@ debian_testing_version: "12"
 debian_testing_release_name: trixie
 arch: x86_64
 linux_architecture: amd64
-redhat_major_version: "8"
+redhat_major_version: "{{ ansible_facts['distribution_major_version'] | default('8') }}"
 redhat_arch: "{{ redhat_major_version }}-{{ arch }}"
 
 ###############################################################
@@ -121,6 +122,7 @@ importer_password_file: "{{ fworch_secrets_dir }}/importer_pwd"
 
 ### dotnet
 dotnet_deb_name: "packages-microsoft-prod.deb"
+dotnet_rpm_name: "packages-microsoft-prod.rpm"
 dotnet_version: "10.0"
 dotnet_mode: "Release"
 # dotnet_mode: "Debug"
@@ -145,9 +147,38 @@ fworch_ui_lockfile: "{{ fworch_log_lock_dir }}/FWO.Ui_log.lock"
 fworch_api_importer_lockfile: "{{ fworch_log_lock_dir }}/importer_api_log.lock"
 
 ### apache: both package and dir name (needed both on ui and api hosts):
-webserver_package_name: apache2
-http_conf_dir: /etc/{{ webserver_package_name }}/sites-available/
-wsgi_package_name: libapache2-mod-wsgi
+webserver_package_name: "{{ 'httpd' if ansible_facts['os_family'] == 'RedHat' else 'apache2' }}"
+http_conf_dir: "{{ '/etc/httpd/conf.d/' if ansible_facts['os_family'] == 'RedHat' else '/etc/apache2/sites-available/' }}"
+wsgi_package_name: "{{ 'python3-mod_wsgi' if ansible_facts['os_family'] == 'RedHat' else 'libapache2-mod-wsgi' }}"
+apache_packages: "{{ [webserver_package_name, wsgi_package_name] + (['mod_ssl'] if ansible_facts['os_family'] == 'RedHat' else []) }}"
+apache_ports_config_file: "{{ '/etc/httpd/conf.d/fworch-ports.conf' if ansible_facts['os_family'] == 'RedHat' else '/etc/apache2/ports.conf' }}"
+apache_ssl_dir: "/etc/{{ webserver_package_name }}/ssl"
+apache_selinux_ports:
+  - "{{ api_web_port }}"
+  - "{{ middleware_web_listener_port }}"
+python_venv_package_name: "{{ ['python3-venv'] if ansible_facts['os_family'] == 'Debian' else ['python3.11', 'python3.11-pip'] }}"
+middleware_ldap_packages: >-
+  {{
+    [
+      'python3-pip',
+      'python3-setuptools'
+    ] + (
+      [
+        'python3-dev',
+        'libsasl2-dev',
+        'libldap2-dev',
+        'libssl-dev',
+        'python3-pyldap'
+      ] if ansible_facts['os_family'] == 'Debian' else [
+        'python3-devel',
+        'cyrus-sasl-devel',
+        'openldap-devel',
+        'openssl-devel',
+        'python3-ldap'
+      ]
+    )
+  }}
+middleware_crypto_packages: "{{ ['python3-cryptography', 'python3-pyOpenSSL'] if ansible_facts['os_family'] == 'RedHat' else ['python3-cryptography', 'python3-openssl'] }}"
 
 ############# wkhtmltopdf #########################
 
@@ -162,7 +193,7 @@ fworchtest_home: "/home/{{ fworchtest_user }}"
 upgrade_files: []
 
 test_packages:
-  - postgresql-client
+  - "{{ 'postgresql' if ansible_facts['os_family'] == 'RedHat' else 'postgresql-client' }}"
   - curl
 
 test_dir: "{{ fworch_home }}/test"
@@ -190,7 +221,6 @@ apache_security_headers:
     - 'Header always set X-Frame-Options "SAMEORIGIN"'
     - 'Header always set X-Content-Type-Options "nosniff"'
 
+apache_global_settings_file: "{{ '/etc/httpd/conf.d/security.conf' if ansible_facts['os_family'] == 'RedHat' else '/etc/apache2/conf-available/security.conf' }}"
 apache_ssl_protocol: "SSLProtocol -all +TLSv1.2 +TLSv1.3"
 apache_ssl_cipher_suite: "SSLCipherSuite ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:!aNULL:!MD5:!DSS:!SHA1"
-
-apache_global_settings_file: /etc/apache2/conf-available/security.conf

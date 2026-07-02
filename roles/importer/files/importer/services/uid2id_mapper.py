@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any
 
 from fwo_log import FWOLogger
@@ -55,7 +57,7 @@ class Uid2IdMapper:
     This class is used to maintain a mapping between UID and relevant ID in the database.
     """
 
-    import_state: "ImportStateController"
+    import_state: ImportStateController
 
     nwobj_uid2id: Uid2IdMap
     svc_uid2id: Uid2IdMap

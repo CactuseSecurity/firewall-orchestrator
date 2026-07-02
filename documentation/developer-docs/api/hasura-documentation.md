@@ -8,7 +8,7 @@ Therefore upgrades to database tables and permissions now need to be handled as 
 - go to settings menu (cogwheel in top right corner)
 - choose export metadata to json file
 - copy the metadata {...} part of this file to source roles/api/files/replace_metadata.json (also into metadata {} part)
-- run `ansible-playbook site.yml "installation_mode=upgrade" -K`
+- run `scripts/run-playbook-with-sudo.sh site.yml -e installation_mode=upgrade`
 
 ## Configuration parameters
 

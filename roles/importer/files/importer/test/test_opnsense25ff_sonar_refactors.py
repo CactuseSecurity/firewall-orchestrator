@@ -96,9 +96,7 @@ def test_create_rulebases_from_access_rules_groups_expected_rules() -> None:
     assert set(rulebases) == {"floating", "lan_group"}
     assert set(rulebases["floating"].rules) == {"floating-rule-uid"}
     assert set(rulebases["lan_group"].rules) == {"grouped-rule-uid", "second-grouped-rule-uid"}
-    assert rulebases["floating"].rules["floating-rule-uid"].rule_num == 0
     assert rulebases["floating"].rules["floating-rule-uid"].rule_num_numeric == 0
-    assert rulebases["lan_group"].rules["grouped-rule-uid"].rule_num == 0
     assert rulebases["lan_group"].rules["grouped-rule-uid"].rule_num_numeric == 0
 
     normalized_config = FwConfigNormalized(rulebases=rulebase_list)

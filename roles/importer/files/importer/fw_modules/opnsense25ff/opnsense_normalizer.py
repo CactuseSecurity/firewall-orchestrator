@@ -346,7 +346,6 @@ def _create_normalized_rule_from_access_rule(rule: OPNsenseAccessRule) -> RuleNo
     rule_name = rule.description or ""
 
     return RuleNormalized(
-        rule_num=0,
         rule_num_numeric=0,
         rule_disabled=rule.disabled,
         rule_src_neg=rule.source_neg,

@@ -161,7 +161,8 @@ namespace FWO.Report
             {
                 foreach (DeviceReport deviceReport in managementReport.Devices)
                 {
-                    List<Rule> allRules = scopedRuleTreeBuilder.BuildRuleTree(managementReport.Rulebases, deviceReport.RulebaseLinks, managementReport.Id, deviceReport.Id);
+                    bool suppressEmptyHeaders = !string.IsNullOrWhiteSpace(Query.RawFilter);
+                    List<Rule> allRules = scopedRuleTreeBuilder.BuildRuleTree(managementReport.Rulebases, deviceReport.RulebaseLinks, managementReport.Id, deviceReport.Id, suppressEmptyHeaders);
                     ApplyPreferredCollapseState(scopedRuleTreeBuilder, managementReport.Id, deviceReport.Id);
 
                     Rule[] rulesArray = GetRealRulesForExport(allRules);

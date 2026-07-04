@@ -420,6 +420,73 @@ namespace FWO.Test
             Assert.That(reportRules.ReportData.ElementsCount, Is.EqualTo(6));
         }
 
+        [Test]
+        public void Test_TryBuildRuleTree_WithRawFilter_SuppressesEmptySectionHeaders()
+        {
+            MockReportRules.RulebaseId = 0;
+            MockReportRules.RuleId = 0;
+
+            RulebaseReport layerRulebase = MockReportRules.CreateRulebaseReport("Layer", 1);
+            RulebaseReport emptySection = MockReportRules.CreateRulebaseReport("Empty Section", 0);
+            RulebaseReport matchingSection = MockReportRules.CreateRulebaseReport("Matching Section", 1);
+
+            DeviceReport device = MockReportRules.CreateDeviceReport(1, "Device1",
+            [
+                new RulebaseLink
+                {
+                    GatewayId = 1,
+                    IsInitial = true,
+                    FromRulebaseId = 0,
+                    NextRulebaseId = layerRulebase.Id,
+                    LinkType = 2
+                },
+                new RulebaseLink
+                {
+                    GatewayId = 1,
+                    FromRulebaseId = layerRulebase.Id,
+                    NextRulebaseId = emptySection.Id,
+                    IsSection = true,
+                    LinkType = 4
+                },
+                new RulebaseLink
+                {
+                    GatewayId = 1,
+                    FromRulebaseId = emptySection.Id,
+                    NextRulebaseId = matchingSection.Id,
+                    IsSection = true,
+                    LinkType = 4
+                }
+            ]);
+
+            ManagementReport management = new()
+            {
+                Id = 1,
+                Name = "Management1",
+                Devices = [device],
+                Rulebases = [layerRulebase, emptySection, matchingSection]
+            };
+
+            IServiceProvider? originalServices = FWO.Services.ServiceProvider.Services;
+            ServiceCollection services = new();
+            services.AddSingleton<IRuleTreeBuilder>(_ruleTreeBuilder);
+            FWO.Services.ServiceProvider.Services = services.BuildServiceProvider();
+
+            try
+            {
+                MockReportRules reportRules = new(new DynGraphqlQuery("name contains match"), new SimulatedUserConfig(), ReportType.ResolvedRules, () => [management]);
+
+                reportRules.TryBuildMockRuleTree();
+
+                Rule[] flattenedRules = ReportRules.GetAllRulesOfGateway(device, management, _ruleTreeBuilder);
+                Assert.That(flattenedRules.Select(rule => rule.SectionHeader), Does.Not.Contain("Empty Section"));
+                Assert.That(flattenedRules.Select(rule => rule.SectionHeader), Does.Contain("Matching Section"));
+            }
+            finally
+            {
+                FWO.Services.ServiceProvider.Services = originalServices;
+            }
+        }
+
         [TestCase(PreferredCollapseState.Collapsed, false)]
         [TestCase(PreferredCollapseState.Expanded, true)]
         [TestCase(PreferredCollapseState.Intermediate, true)]

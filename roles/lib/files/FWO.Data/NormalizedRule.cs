@@ -5,9 +5,6 @@ namespace FWO.Data
 {
     public class NormalizedRule
     {
-        [JsonProperty("rule_num"), JsonPropertyName("rule_num")]
-        public int RuleNum { get; set; }
-
         [JsonProperty("rule_num_numeric"), JsonPropertyName("rule_num_numeric")]
         public double RuleNumNumeric { get; set; }
 
@@ -100,8 +97,7 @@ namespace FWO.Data
 
             return new NormalizedRule
             {
-                RuleNum = rule.RuleOrderNumber,
-                RuleNumNumeric = rule.OrderNumber,
+                RuleNumNumeric = rule.RuleNumNumeric,
                 RuleDisabled = rule.Disabled,
                 RuleSrcNeg = rule.SourceNegated,
                 RuleSrc = rule.Source,

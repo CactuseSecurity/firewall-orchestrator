@@ -48,8 +48,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string upsertState;
         public static readonly string deleteState;
         public static readonly string getExtStates;
-        public static readonly string addExtState;
-        public static readonly string removeExtState;
+        public static readonly string replaceExtStates;
         public static readonly string getActions;
         public static readonly string newAction;
         public static readonly string updateAction;
@@ -114,8 +113,7 @@ namespace FWO.Api.Client.Queries
                 upsertState = GetQueryText("request/upsertState.graphql");
                 deleteState = GetQueryText("request/deleteState.graphql");
                 getExtStates = GetQueryText("request/getExtStates.graphql");
-                addExtState = GetQueryText("request/addExtState.graphql");
-                removeExtState = GetQueryText("request/removeExtState.graphql");
+                replaceExtStates = GetQueryText("request/replaceExtStates.graphql");
                 getActions = GetQueryText("request/getActions.graphql");
                 newAction = GetQueryText("request/newAction.graphql");
                 updateAction = GetQueryText("request/updateAction.graphql");

@@ -29,6 +29,8 @@ class ImportStatisticsController:
             + self.statistics.rulebase_add_count
             + self.statistics.rulebase_change_count
             + self.statistics.rulebase_delete_count
+            + self.statistics.rulebase_link_add_count
+            + self.statistics.rulebase_link_delete_count
         )
 
     def get_rule_change_number(self):
@@ -39,6 +41,8 @@ class ImportStatisticsController:
             + self.statistics.rulebase_add_count
             + self.statistics.rulebase_change_count
             + self.statistics.rulebase_delete_count
+            + self.statistics.rulebase_link_add_count
+            + self.statistics.rulebase_link_delete_count
         )
 
     def get_change_details(self):

@@ -1,3 +1,5 @@
+using System.Linq;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Middleware.Server.Controllers;
 using NUnit.Framework;
@@ -10,123 +12,154 @@ namespace FWO.Test
     internal class RuleFieldSourceResolverTest
     {
         [Test]
-        public void ResolveOwnerInformationSource_ShouldDefaultToDatabase()
-        {
-            FieldSource source = RuleFieldSourceResolver.ResolveOwnerInformationSource(null);
-
-            ClassicAssert.AreEqual(FieldSource.Database, source);
-        }
-
-        [Test]
-        public void ResolveChangeIdSource_ShouldDefaultToCustomField()
-        {
-            FieldSource source = RuleFieldSourceResolver.ResolveChangeIdSource(null);
-
-            ClassicAssert.AreEqual(FieldSource.CustomField, source);
-        }
-
-        [Test]
-        public void ResolveOwnerInformation_ShouldUseDatabaseOwnerId()
+        public void ResolveOwnerInformation_ShouldUseDatabaseOwnerIdAndCustomFieldExtAppId()
         {
             Rule rule = CreateRule(
-                ownerId: 123,
-                customFields: "{'owner_key':'owner-from-custom'}");
+                OwnerMappingSourceStm.CustomField,
+                "{'owner_key':'owner-from-custom'}",
+                123);
 
-            string value = RuleFieldSourceResolver.ResolveOwnerInformation(
+            OwnerInformation value = RuleFieldSourceResolver.ResolveOwnerInformation(
                 rule,
-                FieldSource.Database,
-                "owner_key",
-                RuleFieldSourceResolver.NotFoundValue);
+                @"[""owner_key""]");
 
-            ClassicAssert.AreEqual("123", value);
+            ClassicAssert.AreEqual(1, value.OwnerIds.Count);
+            ClassicAssert.AreEqual(123, value.OwnerIds[0]);
+            ClassicAssert.AreEqual("owner-from-custom", value.ExtAppId);
         }
 
         [Test]
-        public void ResolveOwnerInformation_ShouldUseCustomFieldValue()
+        public void ResolveOwnerInformation_ShouldOmitExtAppIdWhenNoMappingIsConfigured()
         {
             Rule rule = CreateRule(
-                ownerId: 123,
-                customFields: "{'owner_key':'owner-from-custom'}");
+                OwnerMappingSourceStm.CustomField,
+                "{'owner_key':'owner-from-custom'}",
+                123);
 
-            string value = RuleFieldSourceResolver.ResolveOwnerInformation(
-                rule,
-                FieldSource.CustomField,
-                "owner_key",
-                RuleFieldSourceResolver.NotFoundValue);
+            OwnerInformation value = RuleFieldSourceResolver.ResolveOwnerInformation(rule, "");
 
-            ClassicAssert.AreEqual("owner-from-custom", value);
+            ClassicAssert.AreEqual(1, value.OwnerIds.Count);
+            ClassicAssert.AreEqual(123, value.OwnerIds[0]);
+            ClassicAssert.IsNull(value.ExtAppId);
         }
 
         [Test]
-        public void ResolveChangeId_ShouldUseCustomFieldValue()
+        public void ResolveAdditionalInformation_ShouldUseChangeIdWhenConfigured()
         {
             Rule rule = CreateRule(
-                ownerId: 123,
-                customFields: "{'change_key':'chg-4711'}");
+                OwnerMappingSourceStm.CustomField,
+                "{'change_key':'chg-4711'}",
+                123);
 
-            string value = RuleFieldSourceResolver.ResolveChangeId(
-                rule,
-                FieldSource.CustomField,
-                "change_key",
-                RuleFieldSourceResolver.NotFoundValue);
+            AdditionalInformation value = RuleFieldSourceResolver.ResolveAdditionalInformation(rule, @"[""change_key""]");
 
-            ClassicAssert.AreEqual("chg-4711", value);
+            ClassicAssert.AreEqual("chg-4711", value.ChangeId);
         }
 
         [Test]
-        public void ResolveChangeId_ShouldUseJsonArrayCustomFieldKeys()
+        public void ResolveAdditionalInformation_ShouldReturnEmptyObjectWhenNoMappingIsConfigured()
         {
             Rule rule = CreateRule(
-                ownerId: 123,
-                customFields: "{'change_key':'chg-4711','fallback_key':'chg-0001'}");
+                OwnerMappingSourceStm.CustomField,
+                "{'change_key':'chg-4711'}",
+                123);
 
-            string value = RuleFieldSourceResolver.ResolveChangeId(
-                rule,
-                FieldSource.CustomField,
-                @"[""missing_key"", ""change_key""]",
-                RuleFieldSourceResolver.NotFoundValue);
+            AdditionalInformation value = RuleFieldSourceResolver.ResolveAdditionalInformation(rule, "");
 
-            ClassicAssert.AreEqual("chg-4711", value);
+            ClassicAssert.IsNull(value.ChangeId);
         }
 
         [Test]
-        public void ResolveOwnerInformation_ShouldUseJsonArrayCustomFieldKeys()
+        public void ResolveAdditionalInformation_ShouldUseJsonArrayCustomFieldKeys()
         {
             Rule rule = CreateRule(
-                ownerId: 123,
-                customFields: "{'owner_key':'owner-from-custom'}");
+                OwnerMappingSourceStm.CustomField,
+                "{'change_key':'chg-4711','fallback_key':'chg-0001'}",
+                123);
 
-            string value = RuleFieldSourceResolver.ResolveOwnerInformation(
+            AdditionalInformation value = RuleFieldSourceResolver.ResolveAdditionalInformation(
                 rule,
-                FieldSource.CustomField,
-                @"[""missing_key"", ""owner_key""]",
-                RuleFieldSourceResolver.NotFoundValue);
+                @"[""missing_key"", ""change_key""]");
 
-            ClassicAssert.AreEqual("owner-from-custom", value);
+            ClassicAssert.AreEqual("chg-4711", value.ChangeId);
         }
 
         [Test]
-        public void ResolveChangeId_ShouldReturnNotFoundForDatabase()
+        public void ResolveOwnerInformation_ShouldRejectMultipleActiveOwners()
+        {
+            Rule rule = CreateRule(OwnerMappingSourceStm.CustomField, "{'owner_key':'owner-from-custom'}", 123, 456);
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                RuleFieldSourceResolver.ResolveOwnerInformation(rule, @"[""owner_key""]"))!;
+
+            StringAssert.Contains("requires exactly one owner", exception.Message);
+        }
+
+        [Test]
+        public void ResolveOwnerInformation_ShouldIgnoreRemovedOwners()
         {
             Rule rule = CreateRule(
-                ownerId: 123,
-                customFields: "{'change_key':'chg-4711'}");
+                OwnerMappingSourceStm.CustomField,
+                "{'owner_key':'owner-from-custom'}",
+                CreateRuleOwner(123, removed: 99),
+                CreateRuleOwner(456));
 
-            string value = RuleFieldSourceResolver.ResolveChangeId(
+            OwnerInformation value = RuleFieldSourceResolver.ResolveOwnerInformation(
                 rule,
-                FieldSource.Database,
-                "change_key",
-                RuleFieldSourceResolver.NotFoundValue);
+                @"[""owner_key""]");
 
-            ClassicAssert.AreEqual(RuleFieldSourceResolver.NotFoundValue, value);
+            ClassicAssert.AreEqual(1, value.OwnerIds.Count);
+            ClassicAssert.AreEqual(456, value.OwnerIds[0]);
+            ClassicAssert.AreEqual("owner-from-custom", value.ExtAppId);
+        }
+
+        [Test]
+        public void ResolveOwnerInformation_ShouldReturnAllOwnersForNonCustomFieldMappings()
+        {
+            Rule rule = CreateRule(OwnerMappingSourceStm.NameField, "{'owner_key':'owner-from-custom'}", 123, 456);
+
+            OwnerInformation value = RuleFieldSourceResolver.ResolveOwnerInformation(
+                rule,
+                @"[""owner_key""]");
+
+            ClassicAssert.AreEqual(2, value.OwnerIds.Count);
+            ClassicAssert.AreEqual(123, value.OwnerIds[0]);
+            ClassicAssert.AreEqual(456, value.OwnerIds[1]);
+            ClassicAssert.AreEqual("owner-from-custom", value.ExtAppId);
         }
 
         private static Rule CreateRule(int ownerId, string customFields)
         {
+            return CreateRule(OwnerMappingSourceStm.CustomField, customFields, ownerId);
+        }
+
+        private static Rule CreateRule(OwnerMappingSourceStm mappingSource, string customFields, params int[] ownerIds)
+        {
+            return CreateRule(
+                mappingSource,
+                customFields,
+                ownerIds.Select(ownerId => CreateRuleOwner(ownerId)).ToArray());
+        }
+
+        private static Rule CreateRule(OwnerMappingSourceStm mappingSource, string customFields, params RuleOwner[] owners)
+        {
             return new Rule
             {
-                RuleOwner = [new RuleOwner { OwnerId = ownerId }],
+                RuleOwner = owners.Select(owner =>
+                {
+                    owner.OwnerMappingSourceId = (int)mappingSource;
+                    return owner;
+                }).ToArray(),
                 CustomFields = customFields
+            };
+        }
+
+        private static RuleOwner CreateRuleOwner(int ownerId, long? removed = null)
+        {
+            return new RuleOwner
+            {
+                OwnerId = ownerId,
+                Removed = removed
             };
         }
     }

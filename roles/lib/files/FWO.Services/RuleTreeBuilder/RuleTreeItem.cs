@@ -115,7 +115,7 @@ namespace FWO.Services.RuleTreeBuilder
 
         private void ExpandItem(RuleTreeItem item)
         {
-            if (item != this && item.Parent != null && !item.Parent.IsExpanded)
+            if (item != this && !AllExpandableAncestorsAreExpanded(item))
             {
                 item.IsVisible = false;
             }
@@ -126,16 +126,78 @@ namespace FWO.Services.RuleTreeBuilder
         }
 
         /// <summary>
+        /// Checks whether every expandable ancestor on the path from the supplied item back to
+        /// the tree root is currently expanded. Visibility in the report tree depends on the full
+        /// ancestor chain rather than only on the direct parent because structural inline-layer
+        /// roots remain logically expanded even while their owning visible ancestors are
+        /// collapsed.
+        /// </summary>
+        private static bool AllExpandableAncestorsAreExpanded(RuleTreeItem item)
+        {
+            RuleTreeItem? currentAncestor = item.Parent;
+
+            while (currentAncestor != null)
+            {
+                if (!currentAncestor.IsRoot && currentAncestor.Children.Count > 0 && !currentAncestor.IsExpanded)
+                {
+                    return false;
+                }
+
+                currentAncestor = currentAncestor.Parent;
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Updates the expanded state for all expandable descendants of the provided root item.
+        /// Inline-layer roots are intentionally excluded from external collapse-state changes
+        /// because they are structural-only nodes without their own visible toggle affordance.
+        /// Their descendants should become visible again as soon as the owning visible ancestor
+        /// is re-expanded, so inline roots must stay logically expanded even when the user
+        /// collapses all visible rows.
         /// </summary>
         public static void SetExpandedRecursively(RuleTreeItem item, bool isExpanded)
         {
             foreach (RuleTreeItem childItem in TraverseDown(item))
             {
-                if (childItem != item && childItem.Children.Count > 0)
+                if (childItem == item || childItem.Children.Count == 0)
+                {
+                    continue;
+                }
+
+                if (childItem.IsInlineLayerRoot)
+                {
+                    childItem.IsExpanded = true;
+                    continue;
+                }
+
+                if (childItem.Children.Count > 0)
                 {
                     childItem.IsExpanded = isExpanded;
                 }
+            }
+
+            RefreshVisibilityRecursively(item);
+        }
+
+        /// <summary>
+        /// Recomputes visibility for every descendant below the supplied root after a bulk
+        /// expand/collapse operation. This normalization step ensures that visibility reflects
+        /// the final expanded states of all ancestors instead of the transient state that existed
+        /// while the recursive toggle loop was still in progress.
+        /// </summary>
+        private static void RefreshVisibilityRecursively(RuleTreeItem rootItem)
+        {
+            foreach (RuleTreeItem childItem in TraverseDown(rootItem))
+            {
+                if (childItem == rootItem)
+                {
+                    childItem.IsVisible = true;
+                    continue;
+                }
+
+                childItem.IsVisible = AllExpandableAncestorsAreExpanded(childItem);
             }
         }
 

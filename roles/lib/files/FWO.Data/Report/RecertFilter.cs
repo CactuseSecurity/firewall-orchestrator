@@ -4,6 +4,7 @@ namespace FWO.Data.Report
     {
         public List<int> RecertOwnerList { get; set; } = [];
         public bool RecertShowAnyMatch { get; set; } = false;
+        public bool ShowRulesWithoutOwner { get; set; } = false;
         public int RecertificationDisplayPeriod { get; set; } = 0;
 
         public RecertFilter()
@@ -13,6 +14,7 @@ namespace FWO.Data.Report
         {
             RecertOwnerList = [.. recertFilter.RecertOwnerList];
             RecertShowAnyMatch = recertFilter.RecertShowAnyMatch;
+            ShowRulesWithoutOwner = recertFilter.ShowRulesWithoutOwner;
             RecertificationDisplayPeriod = recertFilter.RecertificationDisplayPeriod;
         }
     }

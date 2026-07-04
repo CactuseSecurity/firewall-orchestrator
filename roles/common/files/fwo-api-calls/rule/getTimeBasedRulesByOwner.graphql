@@ -22,7 +22,6 @@ query getTimeBasedRulesByOwner {
       rule_uid
       rule_name
       mgm_id
-      rule_num
       rule_src_neg
       rule_dst_neg
       rule_svc_neg

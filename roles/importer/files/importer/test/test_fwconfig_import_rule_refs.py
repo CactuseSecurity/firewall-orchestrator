@@ -13,7 +13,6 @@ from services.uid2id_mapper import Uid2IdMapper
 
 def build_rule(rule_uid: str) -> RuleNormalized:
     return RuleNormalized(
-        rule_num=1,
         rule_num_numeric=1.0,
         rule_disabled=False,
         rule_src_neg=False,

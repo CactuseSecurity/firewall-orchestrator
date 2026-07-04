@@ -28,7 +28,6 @@ fragment ruleOverview on rule {
   rule_dst
   rule_svc
   rule_num_numeric
-  rule_num
   rule_name
   rule_custom_fields
   rule_installon

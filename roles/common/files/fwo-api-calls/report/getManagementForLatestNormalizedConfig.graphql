@@ -102,7 +102,6 @@ fragment ruleFragment on rule {
   rule_id
   rule_uid
   rule_name
-  rule_num
   rule_num_numeric
   rule_disabled
   rule_src_neg

@@ -309,16 +309,6 @@ ALTER TABLE rule
         REFERENCES public.import_control (control_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
-    DROP CONSTRAINT rule_rule_from_zone_fkey,
-    ADD CONSTRAINT rule_rule_from_zone_fkey FOREIGN KEY (rule_from_zone)
-        REFERENCES public.zone (zone_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
-    DROP CONSTRAINT rule_rule_to_zone_fkey,
-    ADD CONSTRAINT rule_rule_to_zone_fkey FOREIGN KEY (rule_to_zone)
-        REFERENCES public.zone (zone_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
     DROP CONSTRAINT rule_track_id_fkey,
     ADD CONSTRAINT rule_track_id_fkey FOREIGN KEY (track_id)
         REFERENCES public.stm_track (track_id) MATCH SIMPLE

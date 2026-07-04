@@ -1,6 +1,8 @@
 using FWO.Basics;
+using FWO.Logging;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
+using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -15,6 +17,17 @@ namespace FWO.Middleware.Server.Controllers;
 [Route("api/flow")]
 public class FlowRequestController : ControllerBase
 {
+    private readonly FlowRequestService flowRequestService;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FlowRequestController"/> class.
+    /// </summary>
+    /// <param name="flowRequestService">The flow request service.</param>
+    public FlowRequestController(FlowRequestService flowRequestService)
+    {
+        this.flowRequestService = flowRequestService;
+    }
+
     /// <summary>
     /// Generates an address object name.
     /// </summary>
@@ -72,8 +85,26 @@ public class FlowRequestController : ControllerBase
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getRequestStatus")]
-    public ActionResult<GetRequestStatusResponse> GetRequestStatus([FromBody] GetRequestStatusRequest request)
+    [ProducesResponseType(typeof(GetRequestStatusResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<GetRequestStatusResponse>> GetRequestStatus([FromBody] GetRequestStatusRequest request)
     {
-        return StatusCode(StatusCodes.Status501NotImplemented);
+        if (request.TicketId <= 0)
+        {
+            return BadRequest("'ticketId' must be greater than 0.");
+        }
+
+        try
+        {
+            GetRequestStatusResponse? response = await flowRequestService.GetRequestStatusAsync(request.TicketId);
+            return response == null ? NotFound() : Ok(response);
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Get Request Status", "Error while fetching workflow ticket status.", exception);
+            return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error");
+        }
     }
 }

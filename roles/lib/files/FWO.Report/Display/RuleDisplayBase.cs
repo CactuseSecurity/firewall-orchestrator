@@ -11,7 +11,7 @@ namespace FWO.Ui.Display
     {
         protected UserConfig userConfig = userConfig;
 
-        public static string DisplayNumber(Rule rule)
+        public static string DisplayHierarchicalNumber(Rule rule)
         {
             return rule.DisplayOrderNumberString;
         }

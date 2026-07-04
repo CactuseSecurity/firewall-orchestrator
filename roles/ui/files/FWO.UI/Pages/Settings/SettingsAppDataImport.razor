@@ -3,6 +3,7 @@
 
 @using System.Text.Json
 @using FWO.Basics
+@using FWO.Config.File
 @using FWO.Data.Middleware
 @using FWO.Logging
 @using FWO.Middleware.Client
@@ -50,7 +51,7 @@
                     </Display>
                 </EditList>
                 <div class="row col-sm-12 mt-1">
-                    <input type="text" class="col-sm-10" @bind="actPath" placeholder="@(ImportPathPolicy.kAllowedCustomizationRoot)/..." />
+                    <input type="text" class="col-sm-10" @bind="actPath" placeholder="@AllowedImportPathPlaceholder" />
                     <button type="button" class="col-sm-2 btn btn-sm btn-primary" disabled="@(string.IsNullOrWhiteSpace(actPath))" @onclick="AddPath"
                             @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
@@ -108,7 +109,7 @@
                     </Display>
                 </EditList>
                 <div class="row col-sm-12 mt-1">
-                    <input type="text" class="col-sm-10" @bind="SubnetActPath" placeholder="@(ImportPathPolicy.kAllowedCustomizationRoot)/..." />
+                    <input type="text" class="col-sm-10" @bind="SubnetActPath" placeholder="@AllowedImportPathPlaceholder" />
                     <button type="button" class="col-sm-2 btn btn-sm btn-primary" disabled="@(string.IsNullOrWhiteSpace(SubnetActPath))" @onclick="AddPathSubnet"
                             @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
@@ -434,7 +435,7 @@ OnCSVAppServerImportEvent(_.EventArgs));
         configData!.ImportSubnetDataPath = JsonSerializer.Serialize(SubnetDataPaths);
     }
 
-    // Save validates path shape only (rooted in the customization dir, allowed extension, no traversal).
+    // Save validates path shape only (rooted in an allowed customization dir, allowed extension, no traversal).
     // File existence and security attributes are enforced on the importer host at read/run time, so
     // saving unrelated settings is not blocked by sources that are absent on the UI host (split deploy)
     // or not yet deployed.
@@ -442,9 +443,12 @@ OnCSVAppServerImportEvent(_.EventArgs));
     {
         foreach (string importPath in importPaths)
         {
-            ImportPathPolicy.ValidateImportSourceShape(importPath);
+            ImportPathPolicy.ValidateImportSourceShape(importPath, ConfigFile.AllowedCustomizationRoots);
         }
     }
+
+    private static string AllowedImportPathPlaceholder =>
+        string.Join(" | ", ConfigFile.AllowedCustomizationRoots.Select(root => $"{root}/..."));
 
     private void WriteImporterSettingsAudit(string oldAppDataPath, string oldSubnetDataPath, string oldScriptArgs)
     {

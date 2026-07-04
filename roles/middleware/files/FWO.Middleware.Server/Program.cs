@@ -5,12 +5,14 @@ using FWO.Config.Api;
 using FWO.Config.File;
 using FWO.Logging;
 using FWO.Middleware.Server;
+using FWO.Middleware.Server.OpenApi;
 using FWO.Middleware.Server.Services;
 using FWO.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Quartz;
+using Scalar.AspNetCore;
 using System.Reflection;
 
 object changesLock = new(); // LOCK
@@ -85,14 +87,14 @@ builder.Services.AddSingleton<UpdateFlowsSchedulerService>();
 builder.Services.AddControllers()
   .AddJsonOptions(jsonOptions =>
   {
-      //jsonOptions.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
-      jsonOptions.JsonSerializerOptions.PropertyNamingPolicy = null;
+      ApiDocumentationJsonOptions.Configure(jsonOptions);
   });
 
 builder.Services.AddSingleton<JwtWriter>(jwtWriter);
 builder.Services.AddSingleton<List<Ldap>>(connectedLdaps);
 builder.Services.AddSingleton<FlowCatalogService>();
 builder.Services.AddSingleton<FlowComplianceService>();
+builder.Services.AddSingleton<FlowRequestService>();
 
 builder.Services.AddAuthentication(confOptions =>
 {
@@ -114,6 +116,10 @@ builder.Services.AddAuthentication(confOptions =>
         IssuerSigningKey = ConfigFile.JwtPublicKey
     };
 });
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddOpenApi("v1");
+builder.Services.AddApiExamples();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
@@ -125,8 +131,7 @@ builder.Services.AddSwaggerGen(c =>
     string documentationPath = Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml");
     c.IncludeXmlComments(documentationPath);
 
-    //! Microsoft broke the current OpenAPI "AddSecurityRequirement" so we have to use the workaround with "OpenApiSecuritySchemeReference" until they fix it
-    c.AddSecurityDefinition("bearer", new OpenApiSecurityScheme
+    c.AddSecurityDefinition(SwashbuckleAuthorizationOperationFilter.BearerSchemeId, new OpenApiSecurityScheme
     {
         Type = SecuritySchemeType.Http,
         Scheme = "bearer",
@@ -134,10 +139,9 @@ builder.Services.AddSwaggerGen(c =>
         Description = "JWT Authorization header using the Bearer scheme."
     });
 
-    c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
-    {
-        [new OpenApiSecuritySchemeReference("bearer", document)] = []
-    });
+    // Apply the bearer requirement per operation so anonymous endpoints (e.g. login/token issuance) do not advertise it.
+    c.OperationFilter<SwashbuckleAuthorizationOperationFilter>();
+    c.OperationFilter<SwashbuckleApiExampleOperationFilter>();
 });
 
 WebApplication app = builder.Build();
@@ -150,6 +154,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseSwagger();
 app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "FWO.Middleware v1"); });
+app.MapScalarApiReference("/api-docs", options =>
+{
+    options
+        .WithTitle("FWO Middleware API Documentation")
+        .WithOpenApiRoutePattern("/swagger/{documentName}/swagger.json");
+});
 
 //app.UseHttpsRedirection();
 

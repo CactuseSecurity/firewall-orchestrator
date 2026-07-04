@@ -67,16 +67,14 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
             {
                 rules = await FetchRulesByOwnerId(
                     request.Query.OwnerId.Value,
-                    userConfig,
-                    request.Query.FieldSourceMapping);
+                    userConfig);
             }
             else
             {
                 (List<RuleDetail>? fetchedRules, string? validationError) = await FetchRulesByIpAddress(
                     request.Query.IpAddress,
                     request.Query.Filter,
-                    userConfig,
-                    request.Query.FieldSourceMapping);
+                    userConfig);
 
                 if (validationError is not null)
                 {
@@ -116,8 +114,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
     private async Task<(List<RuleDetail>? Rules, string? Error)> FetchRulesByIpAddress(
         string? ipAddress,
         RuleFilter? queryFilter,
-        UserConfig userConfig,
-        FieldSourceMapping? fieldSourceMapping)
+        UserConfig userConfig)
     {
         if (!IPAddress.TryParse(ipAddress, out IPAddress? parsedIpAddress) || parsedIpAddress.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
         {
@@ -136,8 +133,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
             effectiveFilter.Action,
             effectiveFilter.MinPrefixLength,
             effectiveFilter.InField,
-            userConfig,
-            fieldSourceMapping), null);
+            userConfig), null);
     }
 
     private static string? ValidateIpFilter(RuleFilter queryFilter)
@@ -170,7 +166,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
     {
         return new RulesByFilterResponse
         {
-            Request_Id = requestId,
+            RequestId = requestId,
             Result = new RuleResult
             {
                 Count = rules.Count,
@@ -203,15 +199,13 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
     }
 
     private async Task<List<RuleDetail>> FetchRulesByOwnerId(int ownerId,
-        UserConfig userConfig,
-        FieldSourceMapping? fieldSourceMapping)
+        UserConfig userConfig)
     {
         var ruleIDs = await GetRuleIdsByOwnerId(ownerId);
-        return await GetRulesByIdsAsync(ruleIDs, userConfig, fieldSourceMapping);
+        return await GetRulesByIdsAsync(ruleIDs, userConfig);
     }
 
-    private async Task<List<RuleDetail>> GetRulesByIdsAsync(List<int> ruleIds, UserConfig userConfig,
-        FieldSourceMapping? fieldSourceMapping)
+    private async Task<List<RuleDetail>> GetRulesByIdsAsync(List<int> ruleIds, UserConfig userConfig)
     {
         if (ruleIds.Count == 0)
             return new List<RuleDetail>();
@@ -224,7 +218,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         };
 
         var result = await apiConnection.SendQueryAsync<List<Rule>>(query, variables);
-        return ConvertRuleList(result, userConfig, fieldSourceMapping);
+        return ConvertRuleList(result, userConfig);
     }
 
     private async Task<List<int>> GetRuleIdsByOwnerId(int ownerId)
@@ -245,7 +239,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
     }
 
     private async Task<List<RuleDetail>> FilterRules(IPAddress ipAddress, string action, int minPrefix,
-        string inField, UserConfig userConfig, FieldSourceMapping? fieldSourceMapping)
+        string inField, UserConfig userConfig)
     {
         IpFilterHelper ipHelper = new IpFilterHelper();
 
@@ -278,15 +272,12 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
             }
         }
 
-        return ConvertRuleList(ruleItems, userConfig, fieldSourceMapping);
+        return ConvertRuleList(ruleItems, userConfig);
     }
 
-    private static List<RuleDetail> ConvertRuleList(List<Rule> inputList, UserConfig userConfig,
-        FieldSourceMapping? fieldSourceMapping)
+    private static List<RuleDetail> ConvertRuleList(List<Rule> inputList, UserConfig userConfig)
     {
         string notFound = RuleFieldSourceResolver.NotFoundValue;
-        FieldSource ownerInformationSource = RuleFieldSourceResolver.ResolveOwnerInformationSource(fieldSourceMapping);
-        FieldSource changeIdSource = RuleFieldSourceResolver.ResolveChangeIdSource(fieldSourceMapping);
         string ownerCustomFieldKey = userConfig.GlobalConfig?.CustomFieldOwnerKey ?? "";
         string changeIdCustomFieldKey = userConfig.GlobalConfig?.CustomFieldChangeIdKey ?? "";
 
@@ -325,12 +316,12 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                     })
                     .ToList(),
                 ServiceShort = DisplayServicesPlain(flattenedServices, item.ServiceNegated, userConfig),
-                ChangeID = RuleFieldSourceResolver.ResolveChangeId(item, changeIdSource, changeIdCustomFieldKey, notFound),
                 Name = item.Name ?? notFound,
                 CreationDate = item.CreatedImport?.StartTime?.ToString() ?? notFound,
                 LastHitDate = item.Metadata.LastHit?.ToString() ?? notFound,
                 Action = item.Action,
-                OwnerInformation = RuleFieldSourceResolver.ResolveOwnerInformation(item, ownerInformationSource, ownerCustomFieldKey, notFound),
+                OwnerInformation = RuleFieldSourceResolver.ResolveOwnerInformation(item, ownerCustomFieldKey),
+                AdditionalInformation = RuleFieldSourceResolver.ResolveAdditionalInformation(item, changeIdCustomFieldKey),
                 Comment = item.Comment ?? notFound,
                 Time = item.RuleTimes.Where(ruleTimeObject => ruleTimeObject.TimeObj is not null).Select(ruleTimeObject => ruleTimeObject.TimeObj!.Name).ToList()
             };
@@ -486,12 +477,14 @@ public class RulesByFilterQuery
     public string? IpAddress { get; set; }
 
     public RuleFilter? Filter { get; set; }
-    public FieldSourceMapping? FieldSourceMapping { get; set; }
 }
 
 public class RulesByFilterResponse
 {
-    public string Request_Id { get; set; } = "";
+    [JsonPropertyName("requestId")]
+    public string RequestId { get; set; } = "";
+
+    [JsonPropertyName("result")]
     public RuleResult Result { get; set; } = new();
 }
 
@@ -502,93 +495,104 @@ public class RuleFilter
     public string Action { get; set; } = "";
 }
 
-public class FieldSourceMapping
-{
-    public FieldSource OwnerInformation { get; set; } = FieldSource.Database;
-    public FieldSource ChangeId { get; set; } = FieldSource.CustomField;
-}
-
-[System.Text.Json.Serialization.JsonConverter(typeof(FieldSourceJsonConverter))]
-public enum FieldSource
-{
-    Database,
-    CustomField
-}
-
-public sealed class FieldSourceJsonConverter : System.Text.Json.Serialization.JsonConverter<FieldSource>
-{
-    /// <summary>
-    /// Reads a field source value from JSON.
-    /// </summary>
-    public override FieldSource Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        if (reader.TokenType != JsonTokenType.String)
-        {
-            throw new System.Text.Json.JsonException(
-                $"Field source values must be strings with one of: {nameof(FieldSource.Database)}, {nameof(FieldSource.CustomField)}.");
-        }
-
-        string? value = reader.GetString();
-        if (string.Equals(value, nameof(FieldSource.Database), StringComparison.OrdinalIgnoreCase))
-        {
-            return FieldSource.Database;
-        }
-
-        if (string.Equals(value, nameof(FieldSource.CustomField), StringComparison.OrdinalIgnoreCase))
-        {
-            return FieldSource.CustomField;
-        }
-
-        throw new System.Text.Json.JsonException(
-            $"Invalid field source value '{value}'. Allowed values are {nameof(FieldSource.Database)} and {nameof(FieldSource.CustomField)}.");
-    }
-
-    /// <summary>
-    /// Writes a field source value to JSON.
-    /// </summary>
-    public override void Write(Utf8JsonWriter writer, FieldSource value, JsonSerializerOptions options)
-    {
-        writer.WriteStringValue(value.ToString());
-    }
-}
-
 public class RuleResult
 {
+    [JsonPropertyName("count")]
     public int Count { get; set; }
+
+    [JsonPropertyName("rules")]
     public List<RuleDetail> Rules { get; set; } = new();
 }
 
 public class RuleDetail
 {
+    [JsonPropertyName("uid")]
     public string Uid { get; set; } = "";
+
+    [JsonPropertyName("manager")]
     public string Manager { get; set; } = "";
+
+    [JsonPropertyName("source")]
     public List<NetworkObjectCopy> Source { get; set; } = new();
+
+    [JsonPropertyName("sourceShort")]
     public string SourceShort { get; set; } = "";
+
+    [JsonPropertyName("destination")]
     public List<NetworkObjectCopy> Destination { get; set; } = new();
+
+    [JsonPropertyName("destinationShort")]
     public string DestinationShort { get; set; } = "";
+
+    [JsonPropertyName("service")]
     public List<ServiceObject> Service { get; set; } = new();
+
+    [JsonPropertyName("serviceShort")]
     public string ServiceShort { get; set; } = "";
-    public string ChangeID { get; set; } = "";
-    public string OwnerInformation { get; set; } = "";
+
+    [JsonPropertyName("ownerInformation")]
+    public OwnerInformation OwnerInformation { get; set; } = new();
+
+    [JsonPropertyName("additionalInformation")]
+    public AdditionalInformation AdditionalInformation { get; set; } = new();
+
+    [JsonPropertyName("name")]
     public string Name { get; set; } = "";
+
+    [JsonPropertyName("time")]
     public List<string> Time { get; set; } = [];
+
+    [JsonPropertyName("comment")]
     public string Comment { get; set; } = "";
+
+    [JsonPropertyName("creationDate")]
     public string CreationDate { get; set; } = "";
+
+    [JsonPropertyName("lastHitDate")]
     public string LastHitDate { get; set; } = "";
+
+    [JsonPropertyName("action")]
     public string Action { get; set; } = "";
+}
+
+public class OwnerInformation
+{
+    [JsonPropertyName("extAppId")]
+    [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ExtAppId { get; set; }
+
+    [JsonPropertyName("ownerIds")]
+    public List<int> OwnerIds { get; set; } = [];
+}
+
+public class AdditionalInformation
+{
+    [JsonPropertyName("changeId")]
+    [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ChangeId { get; set; }
 }
 
 public class NetworkObjectCopy
 {
+    [JsonPropertyName("name")]
     public string Name { get; set; } = "";
+
+    [JsonPropertyName("ip")]
     public string? Ip { get; set; } = "";
+
+    [JsonPropertyName("type")]
     public string? Type { get; set; } = "";
 }
 
 public class ServiceObject
 {
+    [JsonPropertyName("name")]
     public string Name { get; set; } = "";
+
+    [JsonPropertyName("protocol")]
     public string Protocol { get; set; } = "";
+
+    [JsonPropertyName("port")]
     public int Port { get; set; }
 }
 

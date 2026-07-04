@@ -85,8 +85,7 @@ namespace FWO.Test
                                 Rules = _rb3.Rules
                             },
                             NextRulebaseId = _rb3.Id,
-                            FromRulebaseId = _rb1.Id,
-                            FromRuleId = 3,     // Last Rule from _rb1
+                            FromRulebaseId = _rb2.Id,
                             LinkType = 2
                     }
                 }
@@ -111,7 +110,6 @@ namespace FWO.Test
                 .GetField("_rulesCache", BindingFlags.NonPublic | BindingFlags.Static)!
                 .SetValue(null, new Dictionary<(int, int), Rule[]> { [(_deviceReport.Id, _managementReport.Id)] = _rules });
 
-            _ruleTreeBuilder.Reset(_managementReport.Rulebases, _deviceReport.RulebaseLinks);
         }
 
         [TearDown]
@@ -210,10 +208,6 @@ namespace FWO.Test
             var rulebase = _managementReport!.Rulebases.First();
             var result = ReportRules.GetRulesByRulebaseId(rulebase.Id, _managementReport);
 
-            var rulebaseLink = new RulebaseLink { NextRulebaseId = rulebase.Id };
-            int count = ReportRules.GetRuleCount(_managementReport, rulebaseLink, new[] { rulebaseLink });
-
-            Assert.That(count, Is.EqualTo(2));
             Assert.That(result.Length, Is.EqualTo(2));
             Assert.That(result[0].Uid, Does.StartWith($"rule-{rulebase.Id}."));
             Assert.That(rulebase.Rules.Length, Is.EqualTo(2));
@@ -271,9 +265,8 @@ namespace FWO.Test
                 .SetValue(null, new Dictionary<(int, int), Rule[]> { [(device.Id, management.Id)] = rules });
 
             RuleTreeBuilder ruleTreeBuilder = new RuleTreeBuilder();
-            ruleTreeBuilder.Reset(management.Rulebases, device.RulebaseLinks);
             ruleTreeBuilder.RuleTreeCache[(management.Id, device.Id)] = ruleTreeBuilder.RuleTree;
-            ruleTreeBuilder.FlattedRules[ruleTreeBuilder.RuleTree] = rules;
+            ruleTreeBuilder.FlattenedRules[ruleTreeBuilder.RuleTree] = rules;
 
             var result = ReportRules.GetAllRulesOfGateway(device, management, ruleTreeBuilder);
 
@@ -356,13 +349,10 @@ namespace FWO.Test
         }
 
         [Test]
-        public void Test_GetRuleCount_FollowsCorrectRulebaseTraversal()
+        public void Test_BuildRuleTree_RealRuleCountMatchesExpectedTraversalResult()
         {
-            var count = ReportRules.GetRuleCount(
-                _managementReport!,
-                _deviceReport!.RulebaseLinks.First(l => l.IsInitial),
-                [.. _deviceReport!.RulebaseLinks]
-            );
+            Rule[] allFlattenedRules = [.. _ruleTreeBuilder.BuildRuleTree(_managementReport!.Rulebases, _deviceReport!.RulebaseLinks, _managementReport.Id, _deviceReport.Id)];
+            int count = allFlattenedRules.Count(rule => string.IsNullOrEmpty(rule.SectionHeader));
 
             ClassicAssert.AreEqual(6, count);
         }
@@ -428,6 +418,73 @@ namespace FWO.Test
             reportRules.TryBuildMockRuleTree();
 
             Assert.That(reportRules.ReportData.ElementsCount, Is.EqualTo(6));
+        }
+
+        [Test]
+        public void Test_TryBuildRuleTree_WithRawFilter_SuppressesEmptySectionHeaders()
+        {
+            MockReportRules.RulebaseId = 0;
+            MockReportRules.RuleId = 0;
+
+            RulebaseReport layerRulebase = MockReportRules.CreateRulebaseReport("Layer", 1);
+            RulebaseReport emptySection = MockReportRules.CreateRulebaseReport("Empty Section", 0);
+            RulebaseReport matchingSection = MockReportRules.CreateRulebaseReport("Matching Section", 1);
+
+            DeviceReport device = MockReportRules.CreateDeviceReport(1, "Device1",
+            [
+                new RulebaseLink
+                {
+                    GatewayId = 1,
+                    IsInitial = true,
+                    FromRulebaseId = 0,
+                    NextRulebaseId = layerRulebase.Id,
+                    LinkType = 2
+                },
+                new RulebaseLink
+                {
+                    GatewayId = 1,
+                    FromRulebaseId = layerRulebase.Id,
+                    NextRulebaseId = emptySection.Id,
+                    IsSection = true,
+                    LinkType = 4
+                },
+                new RulebaseLink
+                {
+                    GatewayId = 1,
+                    FromRulebaseId = emptySection.Id,
+                    NextRulebaseId = matchingSection.Id,
+                    IsSection = true,
+                    LinkType = 4
+                }
+            ]);
+
+            ManagementReport management = new()
+            {
+                Id = 1,
+                Name = "Management1",
+                Devices = [device],
+                Rulebases = [layerRulebase, emptySection, matchingSection]
+            };
+
+            IServiceProvider? originalServices = FWO.Services.ServiceProvider.Services;
+            ServiceCollection services = new();
+            services.AddSingleton<IRuleTreeBuilder>(_ruleTreeBuilder);
+            FWO.Services.ServiceProvider.Services = services.BuildServiceProvider();
+
+            try
+            {
+                MockReportRules reportRules = new(new DynGraphqlQuery("name contains match"), new SimulatedUserConfig(), ReportType.ResolvedRules, () => [management]);
+
+                reportRules.TryBuildMockRuleTree();
+
+                Rule[] flattenedRules = ReportRules.GetAllRulesOfGateway(device, management, _ruleTreeBuilder);
+                Assert.That(flattenedRules.Select(rule => rule.SectionHeader), Does.Not.Contain("Empty Section"));
+                Assert.That(flattenedRules.Select(rule => rule.SectionHeader), Does.Contain("Matching Section"));
+            }
+            finally
+            {
+                FWO.Services.ServiceProvider.Services = originalServices;
+            }
         }
 
         [TestCase(PreferredCollapseState.Collapsed, false)]

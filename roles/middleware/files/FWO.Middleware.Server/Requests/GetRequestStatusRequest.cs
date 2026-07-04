@@ -12,5 +12,5 @@ public sealed class GetRequestStatusRequest
     /// </summary>
     [JsonRequired]
     [JsonPropertyName("ticketId")]
-    public int TicketId { get; set; }
+    public long TicketId { get; set; }
 }

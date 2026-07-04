@@ -146,7 +146,6 @@ def normalize_access_rules(
         rule_track = RuleTrack.NONE if rule.logtraffic == "disable" else RuleTrack.LOG
 
         yield RuleNormalized(
-            rule_num=0,
             rule_num_numeric=0.0,
             rule_name=rule_name,
             rule_type=rule_type,

@@ -5,6 +5,7 @@ using FWO.Report;
 using FWO.Report.Filter;
 using Newtonsoft.Json;
 using System.Text;
+using System.Globalization;
 
 namespace FWO.Ui.Display
 {
@@ -26,9 +27,9 @@ namespace FWO.Ui.Display
         }
 
 
-        private new string DisplayNumber(Rule rule)
+        private string DisplayNumber(Rule rule)
         {
-            return DisplayJsonPlain("number", rule.DisplayOrderNumber.ToString());
+            return DisplayJsonPlain("number", rule.OrderNumber.ToString(CultureInfo.InvariantCulture));
         }
 
         protected string DisplayName(string? name)

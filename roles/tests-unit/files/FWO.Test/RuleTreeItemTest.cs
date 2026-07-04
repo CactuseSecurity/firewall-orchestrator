@@ -38,6 +38,25 @@ namespace FWO.Test
             Assert.That(leafRule.IsExpanded, Is.False);
         }
 
+        [Test]
+        public void SetExpandedRecursively_False_HidesDescendantsBehindCollapsedAncestorsEvenWhenInlineRootsStayExpanded()
+        {
+            RuleTreeItem root = new() { IsRoot = true, IsVisible = true, IsExpanded = true };
+            RuleTreeItem parentRule = new() { Data = new Rule { Id = 1 }, IsRule = true, IsVisible = true, IsExpanded = true };
+            RuleTreeItem inlineRoot = new() { IsInlineLayerRoot = true, IsVisible = true, IsExpanded = true };
+            RuleTreeItem inlineRule = new() { Data = new Rule { Id = 2 }, IsRule = true, IsVisible = true };
+
+            AttachChild(root, parentRule);
+            AttachChild(parentRule, inlineRoot);
+            AttachChild(inlineRoot, inlineRule);
+
+            RuleTreeItem.SetExpandedRecursively(root, false);
+
+            Assert.That(parentRule.IsExpanded, Is.False);
+            Assert.That(inlineRoot.IsExpanded, Is.True);
+            Assert.That(inlineRule.IsVisible, Is.False);
+        }
+
         private static RuleTreeItem BuildNestedTree(out RuleTreeItem parentRule, out RuleTreeItem childRule, out RuleTreeItem leafRule)
         {
             RuleTreeItem root = new() { IsRoot = true, IsVisible = true };

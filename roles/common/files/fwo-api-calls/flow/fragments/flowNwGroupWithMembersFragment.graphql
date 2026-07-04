@@ -1,4 +1,4 @@
-fragment flowNwGroupDetails on flow_nwgroup {
+fragment flowNwGroupWithMembersFragment on flow_nwgroup {
   nwgrp_id
   name
   nwgrp_hash
@@ -18,16 +18,5 @@ fragment flowNwGroupDetails on flow_nwgroup {
       removed_date
       show_in_request_module
     }
-  }
-  objects(order_by: { obj_name: asc }) {
-    obj_id
-    obj_name
-    obj_ip
-    obj_ip_end
-    obj_uid
-    active
-    removed
-    flow_nwgrp_id
-    flow_active
   }
 }

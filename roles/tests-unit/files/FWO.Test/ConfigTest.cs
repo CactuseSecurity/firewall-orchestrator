@@ -262,6 +262,33 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task WriteToDatabase_PersistsDesignatedZoneMatrixSelection()
+        {
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ComplianceDesignatedZoneMatrixId = 0,
+                RawConfigItems =
+                [
+                    new() { Key = "complianceDesignatedZoneMatrix", Value = "0", User = 0 }
+                ]
+            };
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
+            editableConfig.ComplianceDesignatedZoneMatrixId = 17;
+
+            using UserConfigApiConnection apiConnection = new([]);
+            await globalConfig.WriteToDatabase(editableConfig, apiConnection);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+                Assert.That(apiConnection.LastConfigItems, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.LastConfigItems[0].Key, Is.EqualTo("complianceDesignatedZoneMatrix"));
+                Assert.That(apiConnection.LastConfigItems[0].Value, Is.EqualTo("17"));
+                Assert.That(globalConfig.ComplianceDesignatedZoneMatrixId, Is.EqualTo(17));
+            });
+        }
+
+        [Test]
         public async Task WriteToDatabase_NotifiesUserConfigSubscribersAfterPersistingChanges()
         {
             SimulatedGlobalConfig globalConfig = new()
@@ -314,6 +341,14 @@ namespace FWO.Test
             ConfigData configData = new();
 
             Assert.That(configData.ReqConsiderBundling, Is.False);
+        }
+
+        [Test]
+        public void ConfigData_DefaultsComplianceDesignatedZoneMatrixIdToZero()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.ComplianceDesignatedZoneMatrixId, Is.Zero);
         }
 
         [Test]

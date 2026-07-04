@@ -3134,6 +3134,8 @@ INSERT INTO txt VALUES ('complianceCheckMailBody','German', 'Text der Benachrich
 INSERT INTO txt VALUES ('complianceCheckMailBody','English','Body of notification emails');
 INSERT INTO txt VALUES ('complianceMatrixAllowNetworkZones','German', 'Netzwerkzonenverschachtelung erlauben');
 INSERT INTO txt VALUES ('complianceMatrixAllowNetworkZones','English','Nested Network Zones allowed');
+INSERT INTO txt VALUES ('designated_zone_matrix','German', 'Designierte Zonenmatrix');
+INSERT INTO txt VALUES ('designated_zone_matrix','English','Designated zone matrix');
 INSERT INTO txt VALUES ('complianceCheckInternetZoneObject','German', 'Internetzone');
 INSERT INTO txt VALUES ('complianceCheckInternetZoneObject','English','Internet zone');
 INSERT INTO txt VALUES ('complianceCheckMaxPrintedViolations','German', 'Maximale Anzahl gedruckter Verst&ouml;&szlig;e pro Regel');
@@ -6944,6 +6946,8 @@ INSERT INTO txt VALUES ('H5848', 'German',  'Initiert einen vollst&auml;ndigen C
 INSERT INTO txt VALUES ('H5848', 'English', 'Initializes a complete compliance check, marking found violations as "initial".');
 INSERT INTO txt VALUES ('H5890', 'German',  'Feste Kriterien können als Bausteine für Policies definiert werden. Unterstützt werden derzeit Assessability, ForbiddenService, MinimumCIDRLength, ForbidZonesAsSource, ForbidZonesAsDestination und ForbidBidirectionalDuplicate. Für ForbiddenService kann entweder eine Liste von Service-UIDs oder eine Liste von Port/Protokoll-Kombinationen gepflegt werden. Für MinimumCIDRLength muss im Inhaltsfeld eine Ganzzahl von 0 bis 32 hinterlegt werden. Für ForbidZonesAsSource und ForbidZonesAsDestination muss im Inhaltsfeld ein Textbaustein gepflegt werden; Regeln mit Quell- bzw. Zielobjekten, deren Name diesen Text enthält, werden dann verletzt.');
 INSERT INTO txt VALUES ('H5890', 'English', 'Fixed criteria can be defined as building blocks for policies. The currently supported types are Assessability, ForbiddenService, MinimumCIDRLength, ForbidZonesAsSource, ForbidZonesAsDestination, and ForbidBidirectionalDuplicate. ForbiddenService can now be maintained either as a list of service UIDs or as a list of port/protocol combinations. MinimumCIDRLength requires an integer from 0 to 32 in the content field. For ForbidZonesAsSource and ForbidZonesAsDestination, the content field stores a text fragment; rules using source or destination objects whose name contains that text will violate the criterion.');
+INSERT INTO txt VALUES ('H5891', 'German',  'Die ausgewählte Zonematrix wird als Referenz f&uuml;r weitere Compliance-Funktionen verwendet.');
+INSERT INTO txt VALUES ('H5891', 'English', 'The selected zone matrix is used as the reference for further compliance features.');
 INSERT INTO txt VALUES ('H5849', 'German',  'Initialen Check durchf&uuml;hren');
 INSERT INTO txt VALUES ('H5849', 'English', 'Run initial check');
 INSERT INTO txt VALUES ('H5850', 'German',  'Check starten');

@@ -77,6 +77,7 @@ namespace FWO.Test
             {"none","None"},
             {"None","None"},
             {"clean_zones","Clean zones"},
+            {"designated_zone_matrix","Designated zone matrix"},
             {"H5529","Update Modelling"},
             {"H5537","Clean zones: When enabled, tasks are bundled only if their source and destination objects can be mapped to the same network zones using the selected policy matrix."},
             {"source_zone","Source Zone"},

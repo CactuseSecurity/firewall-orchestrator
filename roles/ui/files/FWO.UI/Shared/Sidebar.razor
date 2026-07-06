@@ -1,6 +1,8 @@
 @inject DomEventService eventService
 @inject IJSRuntime jsRuntime
 
+@implements IDisposable
+
 <div class="sidebar-main d-flex flex-row @SidebarContainerCssClass" style="@($"top: 0; {(PositionLeft ? "left: 0;" : "right: 0;")} padding-top: {topOffset}px;")">
     @if (topOffset != -1)
     {
@@ -74,6 +76,8 @@
     private string overflowSidebar = "auto";
 
     private int topOffset = -1;
+
+    private bool _disposed;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -162,5 +166,30 @@
     {
         topOffset = height;
         StateHasChanged();
+    }
+
+    public void Dispose(bool disposing)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (disposing)
+        {
+            if (eventService is not null && eventService.Initialized)
+            {
+                eventService.OnNavbarHeightChanged -= OnNavbarHeightChanged;
+            }
+        }
+
+        _disposed = true;
+
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 }

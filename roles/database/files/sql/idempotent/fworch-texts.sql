@@ -2938,6 +2938,8 @@ INSERT INTO txt VALUES ('overviewDisplayLines', 'German', 	'Max. Anzahl Zeilen i
 INSERT INTO txt VALUES ('overviewDisplayLines', 'English', 	'Max. Number of Rows in Overview');
 INSERT INTO txt VALUES ('reducedProtocolSet',   'German',   'Reduzierten Protokollset darstellen');
 INSERT INTO txt VALUES ('reducedProtocolSet',   'English',  'Display reduced Protocol set');
+INSERT INTO txt VALUES ('select_visible_protocols',   'German',   'Sichtbare Protokolle ausw&auml;hlen');
+INSERT INTO txt VALUES ('select_visible_protocols',   'English',  'Select visible protocols');
 INSERT INTO txt VALUES ('importAppDataPath',    'German', 	'Pfad und Name von Appdaten-Import (ohne Endung)');
 INSERT INTO txt VALUES ('importAppDataPath',    'English', 	'Path and Name of App data import (without ending)');
 INSERT INTO txt VALUES ('importAppDataScriptArgs', 'German', 'Skriptparameter (optional)');
@@ -6615,8 +6617,8 @@ INSERT INTO txt VALUES ('H5615', 'English', 'Import Subnet data sleep time (in h
 ');
 INSERT INTO txt VALUES ('H5616', 'German',  'Import Subnetzdaten-Start: Legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die Subnetzdaten-Importe gerechnet werden.');
 INSERT INTO txt VALUES ('H5616', 'English', 'Import Subnet data start at: Import App data start at: Defines a referential time from which the Subnet data import intervals are calculated.');
-INSERT INTO txt VALUES ('H5617', 'German',  'Reduzierten Protokollset darstellen: Nur eine begrenzte Zahl von Protokollen wird zur Auswahl angeboten (TCP, UDP, ICMP).');
-INSERT INTO txt VALUES ('H5617', 'English', 'Display reduced Protocol set: Offer only a reduced number of protocols for selection (TCP, UDP, ICMP).');
+INSERT INTO txt VALUES ('H5617', 'German',  'Reduzierten Protokollset darstellen: Nur eine begrenzte Zahl von Protokollen wird zur Auswahl angeboten. Die Liste der sichtbaren Protokolle kann in einem Popup angepasst werden.');
+INSERT INTO txt VALUES ('H5617', 'English', 'Display reduced Protocol set: Offer only a reduced number of protocols for selection. The list of visible protocols can be adjusted in a popup.');
 INSERT INTO txt VALUES ('H5618', 'German',  'Nutzung von Piktogrammen: Vorzugsweise Nutzung von Piktogrammen wo sinnvoll. Wird vom Administrator allgemein vorausgew&auml;hlt, kann aber vom Nutzer in den pers&ouml;nlichen Einstellungen &uuml;berschrieben werden.');
 INSERT INTO txt VALUES ('H5618', 'English', 'Prefer use of Icons: Use icons where reasonnable. Generally set by the administrator but can be overwritten in the personal settings of the user.');
 INSERT INTO txt VALUES ('H5619', 'German',  'Eigent&uuml;mernamen verwenden: Der Name des Eigent&uuml;mers fliesst in den mittleren Teil der Namenskonvention f&uuml;r App-Rollen ein.');

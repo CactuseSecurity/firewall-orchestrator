@@ -74,7 +74,7 @@ namespace FWO.Services.Modelling
             {
                 ActService.PortEnd = ActService.Port;
             }
-            if (!ActService.Protocol.HasPorts())
+            if (!IpProtocol.HasPorts(ActService.Protocol?.Id))
             {
                 ActService.Port = null;
                 ActService.PortEnd = null;

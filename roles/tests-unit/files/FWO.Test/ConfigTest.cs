@@ -398,6 +398,83 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ConfigData_DefaultsReducedProtocolSetProtocolsToCurrentSelection()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.ReducedProtocolSetProtocols, Is.EqualTo("""["tcp","udp","icmp","esp"]"""));
+        }
+
+        [Test]
+        public void ConfigData_ReducedProtocolSetProtocolsRoundTripAsJson()
+        {
+            ConfigData configData = new()
+            {
+                ReducedProtocolSetProtocols = """["tcp","udp","icmp","esp"]"""
+            };
+
+            List<string>? parsed = System.Text.Json.JsonSerializer.Deserialize<List<string>>(configData.ReducedProtocolSetProtocols);
+
+            Assert.That(parsed, Is.EqualTo(["tcp", "udp", "icmp", "esp"]));
+        }
+
+        [Test]
+        public void RuleRecognitionOption_DefaultsMatchCurrentSelectionLogic()
+        {
+            RuleRecognitionOption option = new();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(option.NwRegardIp, Is.True);
+                Assert.That(option.NwRegardName, Is.False);
+                Assert.That(option.NwRegardGroupName, Is.False);
+                Assert.That(option.NwResolveGroup, Is.False);
+                Assert.That(option.NwSeparateGroupAnalysis, Is.True);
+                Assert.That(option.SvcRegardPortAndProt, Is.True);
+                Assert.That(option.SvcRegardName, Is.False);
+                Assert.That(option.SvcRegardGroupName, Is.False);
+                Assert.That(option.SvcResolveGroup, Is.True);
+                Assert.That(option.SvcSplitPortRanges, Is.False);
+            });
+        }
+
+        [Test]
+        public void RuleRecognitionOption_SerializesAndDeserializesWithoutLoss()
+        {
+            RuleRecognitionOption option = new()
+            {
+                NwRegardIp = false,
+                NwRegardName = true,
+                NwRegardGroupName = true,
+                NwResolveGroup = true,
+                NwSeparateGroupAnalysis = false,
+                SvcRegardPortAndProt = false,
+                SvcRegardName = true,
+                SvcRegardGroupName = true,
+                SvcResolveGroup = false,
+                SvcSplitPortRanges = true
+            };
+
+            string serialized = System.Text.Json.JsonSerializer.Serialize(option);
+            RuleRecognitionOption? parsed = System.Text.Json.JsonSerializer.Deserialize<RuleRecognitionOption>(serialized);
+
+            Assert.That(parsed, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(parsed!.NwRegardIp, Is.False);
+                Assert.That(parsed.NwRegardName, Is.True);
+                Assert.That(parsed.NwRegardGroupName, Is.True);
+                Assert.That(parsed.NwResolveGroup, Is.True);
+                Assert.That(parsed.NwSeparateGroupAnalysis, Is.False);
+                Assert.That(parsed.SvcRegardPortAndProt, Is.False);
+                Assert.That(parsed.SvcRegardName, Is.True);
+                Assert.That(parsed.SvcRegardGroupName, Is.True);
+                Assert.That(parsed.SvcResolveGroup, Is.False);
+                Assert.That(parsed.SvcSplitPortRanges, Is.True);
+            });
+        }
+
+        [Test]
         public void ModIntegrationStateConfig_TrimsAndSerializesNamedStates()
         {
             string configValue = ModIntegrationStateConfig.ToConfigValue(

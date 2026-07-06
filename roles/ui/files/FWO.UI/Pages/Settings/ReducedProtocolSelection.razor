@@ -1,0 +1,117 @@
+@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Config.Api.Data
+@using FWO.Data
+
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("select_visible_protocols"))" Show="@Display" Size=PopupSize.Large OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <div class="row g-2">
+                @foreach (IpProtocol protocol in AvailableProtocols)
+                {
+                    <div class="col-sm-6 col-md-3">
+                        <label class="form-check-label d-flex align-items-center gap-2">
+                            <input class="form-check-input m-0" type="checkbox" checked="@IsSelected(protocol.Name)" @onchange="args => SetProtocol(protocol.Name, args)" />
+                            <span>@protocol.Name</span>
+                        </label>
+                    </div>
+                }
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary" disabled="@(!HasVisibleProtocols())" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public string ConfigValue { get; set; } = "";
+
+    [Parameter]
+    public EventCallback<string> ConfigValueChanged { get; set; }
+
+    [Parameter]
+    public List<IpProtocol> AvailableProtocols { get; set; } = [];
+
+    private List<string> selectedProtocols = [];
+    private bool wasOpen = false;
+
+    protected override void OnParametersSet()
+    {
+        if (Display && !wasOpen)
+        {
+            selectedProtocols = ProtocolDisplayHelper.ParseProtocolNames(ConfigValue);
+        }
+
+        wasOpen = Display;
+    }
+
+    private bool IsSelected(string protocolName)
+    {
+        return selectedProtocols.Contains(protocolName, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private bool HasVisibleProtocols()
+    {
+        return AvailableProtocols.Any(protocol => IsSelected(protocol.Name));
+    }
+
+    private void SetProtocol(string protocolName, ChangeEventArgs args)
+    {
+        bool isSelected = args.Value is bool checkedValue && checkedValue;
+        selectedProtocols.RemoveAll(name => name.Equals(protocolName, StringComparison.OrdinalIgnoreCase));
+        if (isSelected)
+        {
+            selectedProtocols.Add(protocolName);
+        }
+    }
+
+    private async Task Save()
+    {
+        List<string> orderedSelection = AvailableProtocols
+            .Where(protocol => IsSelected(protocol.Name))
+            .Select(protocol => protocol.Name)
+            .ToList();
+
+        try
+        {
+            string configValue = ProtocolDisplayHelper.SerializeProtocolNames(orderedSelection);
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
+            editableConfig.ReducedProtocolSetProtocols = configValue;
+            await globalConfig.WriteToDatabase(editableConfig, apiConnection);
+            await ConfigValueChanged.InvokeAsync(configValue);
+            DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("U5301"), false);
+            Close();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("modelling_settings"), "", true);
+        }
+    }
+
+    private void Close()
+    {
+        Display = false;
+        wasOpen = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

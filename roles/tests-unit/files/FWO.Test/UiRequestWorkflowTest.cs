@@ -1817,6 +1817,77 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ServiceSelector_RequiresPortForProtocolsWithPorts()
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig());
+            context.Services.AddSingleton<DomEventService>();
+            List<NwServiceElement> servicesToAdd = [];
+            List<IpProtocol> ipProtos =
+            [
+                new() { Id = 6, Name = "tcp" },
+                new() { Id = 50, Name = "esp" }
+            ];
+
+            IRenderedComponent<ServiceSelector> component = context.Render<ServiceSelector>(parameters => parameters
+                .Add(p => p.Services, new List<NwServiceElement>())
+                .Add(p => p.ServicesToAdd, servicesToAdd)
+                .Add(p => p.IpProtos, ipProtos)
+                .Add(p => p.WithLabel, false));
+
+            await component.InvokeAsync(() => SetMember(component.Instance, "actPort", null));
+            await component.InvokeAsync(() => SetMember(component.Instance, "actPortEnd", null));
+            component.Find("button.btn-success").Click();
+
+            Assert.That(servicesToAdd, Is.Empty);
+        }
+
+        [Test]
+        public async Task ServiceSelector_AllowsAddingProtocolWithoutPortsAndAfterRemoval()
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig());
+            context.Services.AddSingleton<DomEventService>();
+            List<NwServiceElement> servicesToAdd = [];
+            List<IpProtocol> ipProtos =
+            [
+                new() { Id = 6, Name = "tcp" },
+                new() { Id = 50, Name = "esp" }
+            ];
+
+            IRenderedComponent<ServiceSelector> component = context.Render<ServiceSelector>(parameters => parameters
+                .Add(p => p.Services, new List<NwServiceElement>())
+                .Add(p => p.ServicesToAdd, servicesToAdd)
+                .Add(p => p.IpProtos, ipProtos)
+                .Add(p => p.WithLabel, false));
+
+            await component.InvokeAsync(() => SetMember(component.Instance, "actPort", 443));
+            component.Find("button.btn-success").Click();
+
+            IRenderedComponent<Dropdown<int>> protoDropdown = component.FindComponent<Dropdown<int>>();
+            await (await StartPrivateTask(protoDropdown, "SelectElement", 50));
+
+            Assert.That(component.FindComponents<PortRangeInput>(), Is.Empty);
+
+            component.Find("button.btn-success").Click();
+            Assert.Multiple(() =>
+            {
+                Assert.That(servicesToAdd, Has.Count.EqualTo(2));
+                Assert.That(servicesToAdd[0].ProtoId, Is.EqualTo(6));
+                Assert.That(servicesToAdd[0].Port, Is.EqualTo(443));
+                Assert.That(servicesToAdd[1].ProtoId, Is.EqualTo(50));
+                Assert.That(servicesToAdd[1].Port, Is.EqualTo(0));
+                Assert.That(servicesToAdd[1].PortEnd, Is.Null);
+            });
+
+            servicesToAdd.RemoveAll(service => service.ProtoId == 50);
+            await (await StartPrivateTask(protoDropdown, "SelectElement", 50));
+            component.Find("button.btn-success").Click();
+
+            Assert.That(servicesToAdd.Count(service => service.ProtoId == 50), Is.EqualTo(1));
+        }
+
+        [Test]
         public async Task DisplayRequestTask_AccessTaskWithAllDevicesDisplaysAll()
         {
             WfReqTask task = CreateAccessTask(12, "10.0.0.1", "10.0.1.1", 80);
@@ -1880,6 +1951,74 @@ namespace FWO.Test
         }
 
         [Test]
+        public void DisplayRequestTask_AcceptsPortlessProtocolWithoutPort()
+        {
+            WfReqElement serviceElement = new()
+            {
+                Field = ElemFieldType.service.ToString(),
+                ProtoId = 50,
+                Port = 0
+            };
+            DisplayRequestTask component = new();
+            SetMember(component, nameof(DisplayRequestTask.WfHandler), new WfHandler
+            {
+                ActReqTask = new WfReqTask
+                {
+                    TaskType = WfTaskType.access.ToString(),
+                    Elements = [serviceElement]
+                },
+                ActStateMatrix = new StateMatrix
+                {
+                    PhaseActive = { [WorkflowPhases.planning] = true }
+                }
+            });
+            SetMember(component, "userConfig", new RequestWorkflowUserConfig());
+            SetMember(component, "actSources", new List<NwObjectElement> { new("10.0.0.1", 1) });
+            SetMember(component, "actDestinations", new List<NwObjectElement> { new("10.0.1.1", 1) });
+            SetMember(component, "actServices", new List<NwServiceElement> { new() { ProtoId = 50, Port = 0 } });
+            SetMember(component, "selectedDevices", new List<Device> { new() { Id = 1, Name = "FW-1" } });
+            SetMember(component, "ipProtos", new List<IpProtocol> { new() { Id = 50, Name = "esp" } });
+
+            bool isValid = InvokePrivateBool(component, "RejectInvalidAccessTask");
+
+            Assert.That(isValid, Is.True);
+        }
+
+        [Test]
+        public void DisplayRequestTask_RejectsTcpWithoutPort()
+        {
+            WfReqElement serviceElement = new()
+            {
+                Field = ElemFieldType.service.ToString(),
+                ProtoId = 6,
+                Port = 0
+            };
+            DisplayRequestTask component = new();
+            SetMember(component, nameof(DisplayRequestTask.WfHandler), new WfHandler
+            {
+                ActReqTask = new WfReqTask
+                {
+                    TaskType = WfTaskType.access.ToString(),
+                    Elements = [serviceElement]
+                },
+                ActStateMatrix = new StateMatrix
+                {
+                    PhaseActive = { [WorkflowPhases.planning] = true }
+                }
+            });
+            SetMember(component, "userConfig", new RequestWorkflowUserConfig());
+            SetMember(component, "actSources", new List<NwObjectElement> { new("10.0.0.1", 1) });
+            SetMember(component, "actDestinations", new List<NwObjectElement> { new("10.0.1.1", 1) });
+            SetMember(component, "actServices", new List<NwServiceElement> { new() { ProtoId = 6, Port = 0 } });
+            SetMember(component, "selectedDevices", new List<Device> { new() { Id = 1, Name = "FW-1" } });
+            SetMember(component, "ipProtos", new List<IpProtocol> { new() { Id = 6, Name = "tcp" } });
+
+            bool isValid = InvokePrivateBool(component, "RejectInvalidAccessTask");
+
+            Assert.That(isValid, Is.False);
+        }
+
+        [Test]
         public async Task DisplayImplementationTask_AccessTaskWithAllDevicesDisplaysAll()
         {
             WfReqTask reqTask = CreateAccessTask(12, "10.0.0.1", "10.0.1.1", 80);
@@ -1905,6 +2044,58 @@ namespace FWO.Test
             IRenderedComponent<DisplayImplementationTask> component = RenderDisplayImplementationTask(context, handler, states, Roles.Implementer);
 
             Assert.That(component.Markup, Does.Contain("all").IgnoreCase);
+        }
+
+        [Test]
+        public void DisplayImplementationTask_AcceptsPortlessProtocolWithoutPort()
+        {
+            WfImplElement serviceElement = new()
+            {
+                Field = ElemFieldType.service.ToString(),
+                ProtoId = 50,
+                Port = 0
+            };
+            DisplayImplementationTask component = new();
+            SetMember(component, nameof(DisplayImplementationTask.WfHandler), new WfHandler
+            {
+                ActImplTask = new WfImplTask
+                {
+                    TaskType = WfTaskType.access.ToString(),
+                    ImplElements = [serviceElement]
+                }
+            });
+            SetMember(component, "userConfig", new RequestWorkflowUserConfig());
+            SetMember(component, "ipProtos", new List<IpProtocol> { new() { Id = 50, Name = "esp" } });
+
+            bool isValid = InvokePrivateBool(component, "CheckImplTaskValues");
+
+            Assert.That(isValid, Is.True);
+        }
+
+        [Test]
+        public void DisplayImplementationTask_RejectsTcpWithoutPort()
+        {
+            WfImplElement serviceElement = new()
+            {
+                Field = ElemFieldType.service.ToString(),
+                ProtoId = 6,
+                Port = 0
+            };
+            DisplayImplementationTask component = new();
+            SetMember(component, nameof(DisplayImplementationTask.WfHandler), new WfHandler
+            {
+                ActImplTask = new WfImplTask
+                {
+                    TaskType = WfTaskType.access.ToString(),
+                    ImplElements = [serviceElement]
+                }
+            });
+            SetMember(component, "userConfig", new RequestWorkflowUserConfig());
+            SetMember(component, "ipProtos", new List<IpProtocol> { new() { Id = 6, Name = "tcp" } });
+
+            bool isValid = InvokePrivateBool(component, "CheckImplTaskValues");
+
+            Assert.That(isValid, Is.False);
         }
 
         [Test]

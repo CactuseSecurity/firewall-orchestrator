@@ -545,7 +545,10 @@
             trackings = await apiConnection.SendQueryAsync<List<Tracking>>(StmQueries.getTracking);
             managements.Add(new(){ Id = -1, Name = userConfig.GetText("all"), DeviceType = new(){ Id = 0 } });
             managements.AddRange(await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames));
-            ipProtos = DisplayBase.CustomSortProtocols(await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols));
+            ipProtos = ProtocolDisplayHelper.CustomSortProtocols(
+                await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols),
+                ProtocolDisplayHelper.ParseProtocolNames(userConfig.ReducedProtocolSetProtocols),
+                userConfig.ReducedProtocolSet);
             selectableDevices =
             [
                 new Device() { Id = WfReqTaskBase.kAllDevicesId, Name = userConfig.GetText("all"), DeviceType = new() { Id = 0 } },
@@ -1116,10 +1119,19 @@
         return id.HasValue && id.Value != 0;
     }
 
-    private static bool IsInvalidServicePort(WfReqElement element)
+    private bool IsInvalidServicePort(WfReqElement element)
     {
-        return element.Field == ElemFieldType.service.ToString()
-            && (element.Port < 1 || element.Port > GlobalConst.kMaxPortNumber);
+        if (element.Field != ElemFieldType.service.ToString())
+        {
+            return false;
+        }
+
+        if (!IpProtocol.HasPorts(element.ProtoId))
+        {
+            return false;
+        }
+
+        return element.Port < 1 || element.Port > GlobalConst.kMaxPortNumber;
     }
 
     private async Task<bool> RejectInvalidRuleDeleteTask()

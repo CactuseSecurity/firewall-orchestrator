@@ -20,7 +20,7 @@
                         </ElementTemplate>
                     </Dropdown>
                 </div>
-                @if(ServiceHandler.ActService.Protocol != null && (bool)ServiceHandler.ActService.Protocol!.HasPorts())
+                @if(IpProtocol.HasPorts(ServiceHandler.ActService.Protocol?.Id))
                 {
                     <div class="form-group row col-sm-6">
                         <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
@@ -148,41 +148,9 @@
 
     private List<NetworkProtocol> CustomSort(List<IpProtocol> ListIn)
     {
-        List<NetworkProtocol> ListOut = new List<NetworkProtocol>();
-        IpProtocol? tcp = ListIn.Find(x => x.Name.ToLower() == "tcp");
-        if(tcp != null)
-        {
-            ListOut.Add(new NetworkProtocol(tcp));
-            ListIn.Remove(tcp);
-        }
-        IpProtocol? udp = ListIn.Find(x => x.Name.ToLower() == "udp");
-        if(udp != null)
-        {
-            ListOut.Add(new NetworkProtocol(udp));
-            ListIn.Remove(udp);
-        }
-        IpProtocol? icmp = ListIn.Find(x => x.Name.ToLower() == "icmp");
-        if(icmp != null)
-        {
-            ListOut.Add(new NetworkProtocol(icmp));
-            ListIn.Remove(icmp);
-        }
-        IpProtocol? esp = ListIn.Find(x => x.Name.ToLower() == "esp");
-        if(esp != null)
-        {
-            ListOut.Add(new NetworkProtocol(esp));
-            ListIn.Remove(esp);
-        }
-        if(!userConfig.ReducedProtocolSet)
-        {
-            foreach(var proto in ListIn.OrderBy(x => x.Name).ToList())
-            {
-                if (proto.Name.ToLower() != "unassigned")
-                {
-                    ListOut.Add(new NetworkProtocol(proto));
-                }
-            }
-        }
-        return ListOut;
+        List<string> reducedProtocolNames = ProtocolDisplayHelper.ParseProtocolNames(userConfig.ReducedProtocolSetProtocols);
+        return ProtocolDisplayHelper.CustomSortProtocols(ListIn, reducedProtocolNames, userConfig.ReducedProtocolSet)
+            .Select(protocol => new NetworkProtocol(protocol))
+            .ToList();
     }
 }

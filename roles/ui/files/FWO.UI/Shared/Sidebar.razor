@@ -2,6 +2,7 @@
 @inject IJSRuntime jsRuntime
 
 @implements IDisposable
+@implements IAsyncDisposable
 
 <div class="sidebar-main d-flex flex-row @SidebarContainerCssClass"
      style="@($"top: 0; {(PositionLeft ? "left: 0;" : "right: 0;")} padding-top: {topOffset}px;")">
@@ -195,5 +196,15 @@
     {
         Dispose(true);
         GC.SuppressFinalize(this);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Dispose();
+
+        if (eventService is not null)
+        {
+            await eventService.DisposeAsync();
+        }
     }
 }

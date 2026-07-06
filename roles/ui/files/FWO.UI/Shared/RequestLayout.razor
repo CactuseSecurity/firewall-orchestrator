@@ -100,6 +100,9 @@ else
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
     private int sidebarWidth = 250;
     private StateMatrix stateMatrix = new StateMatrix();
     private bool InitComplete = false;
@@ -109,7 +112,15 @@ else
         userConfig.OnChange += OnChange;
         try
         {
-            await stateMatrix.Init(WorkflowPhases.request, apiConnection);
+            if (authenticationStateTask == null)
+            {
+                await stateMatrix.Init(WorkflowPhases.request, apiConnection);
+            }
+            else
+            {
+                await apiConnection.RunWithWorkflowRole(authenticationStateTask.Result.User,
+                    async () => await stateMatrix.Init(WorkflowPhases.request, apiConnection));
+            }
         }
         catch(Exception exception)
         {
@@ -128,4 +139,3 @@ else
         userConfig.OnChange -= OnChange;
     }
 }
-

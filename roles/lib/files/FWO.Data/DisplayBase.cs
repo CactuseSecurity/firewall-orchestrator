@@ -19,7 +19,7 @@ namespace FWO.Data
             StringBuilder result = new();
             string ports = service.DestinationPortEnd == null || service.DestinationPortEnd == 0 || service.DestinationPort == service.DestinationPortEnd ?
                 $"{service.DestinationPort}" : $"{service.DestinationPort}-{service.DestinationPortEnd}";
-            bool displayPorts = service.Protocol != null && service.Protocol.HasPorts() && service.DestinationPort != null;
+            bool displayPorts = IpProtocol.HasPorts(service.Protocol?.Id) && service.DestinationPort != null;
             if (isTechReport)
             {
                 if (displayPorts)
@@ -60,30 +60,7 @@ namespace FWO.Data
 
         public static List<IpProtocol> CustomSortProtocols(List<IpProtocol> ListIn)
         {
-            List<IpProtocol> ListOut = [];
-            IpProtocol? tcp = ListIn.Find(x => x.Name.ToLower() == "tcp");
-            if (tcp != null)
-            {
-                ListOut.Add(tcp);
-                ListIn.Remove(tcp);
-            }
-            IpProtocol? udp = ListIn.Find(x => x.Name.ToLower() == "udp");
-            if (udp != null)
-            {
-                ListOut.Add(udp);
-                ListIn.Remove(udp);
-            }
-            IpProtocol? icmp = ListIn.Find(x => x.Name.ToLower() == "icmp");
-            if (icmp != null)
-            {
-                ListOut.Add(icmp);
-                ListIn.Remove(icmp);
-            }
-            foreach (var proto in ListIn.Where(p => p.Name.ToLower() != "unassigned").OrderBy(x => x.Name).ToList())
-            {
-                ListOut.Add(proto);
-            }
-            return ListOut;
+            return ProtocolDisplayHelper.CustomSortProtocols(ListIn, null, false);
         }
 
         public static string DisplayIpWithName(NetworkObject elem)

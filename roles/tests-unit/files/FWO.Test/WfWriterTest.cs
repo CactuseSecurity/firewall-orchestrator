@@ -101,5 +101,22 @@ namespace FWO.Test
             Assert.That(reqWriter.Owners.WfOwnerList, Has.Count.EqualTo(1));
             Assert.That(reqWriter.Owners.WfOwnerList[0].OwnerId, Is.EqualTo(77));
         }
+
+        [Test]
+        public void Writers_StoreNullPortForPortlessProtocols()
+        {
+            WfReqElement reqElement = new()
+            {
+                ProtoId = 50,
+                Port = 0,
+                PortEnd = null,
+                Field = ElemFieldType.service.ToString()
+            };
+
+            WfReqElementWriter reqWriter = new(reqElement);
+
+            Assert.That(reqWriter.Port, Is.Null);
+            Assert.That(reqWriter.PortEnd, Is.Null);
+        }
     }
 }

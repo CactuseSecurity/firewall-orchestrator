@@ -21,8 +21,8 @@ namespace FWO.Test
         private const string publicKeyTestPath = "public_key.test";
         private static readonly string[] kExpectedAllowedCustomizationRoots =
         [
-            "/usr/local/fworch/scripts/customizing",
-            "/usr/local/fworch/etc"
+            Path.Combine("/usr/local/fworch", "scripts", "customizing"),
+            Path.Combine("/usr/local/fworch", "etc")
         ];
 
         #region configFiles

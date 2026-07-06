@@ -58,9 +58,14 @@
                 </div>
             </div>
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5617"))">
-                <label for="cbx_reduced_protocol_set" class="col-form-label col-sm-8">@(userConfig.GetText("reducedProtocolSet")):</label>
+                <label for="cbx_reduced_protocol_set" class="col-form-label col-sm-7">@(userConfig.GetText("reducedProtocolSet")):</label>
                 <div class="col-sm-2">
                     <input id="cbx_reduced_protocol_set" type="checkbox" class="w-100" @bind="configData!.ReducedProtocolSet">
+                </div>
+                <div class="col-sm-2">
+                    <button type="button" class="btn btn-sm btn-warning" data-toggle="tooltip" title="@(userConfig.PureLine("H5617"))" @onclick="OpenReducedProtocolSelection">
+                        @(DisplayService.DisplayButton(userConfig, "select_visible_protocols", Icons.Edit))
+                    </button>
                 </div>
             </div>
         </div>
@@ -332,8 +337,9 @@
                 <label class="col-form-label col-sm-5">@userConfig.GetText("modelledMarkerLocation"):</label>
                 <input type="text" class="col-sm-4" @bind="configData!.ModModelledMarkerLocation" />
             </div>
-            <div class="row col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5650"))">
-                 <button type="button" class="col-sm-6 btn btn-sm btn-primary" @onclick="VarianceOptions" 
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5650"))">
+                 <label class="col-form-label col-sm-7">@userConfig.GetText("rule_recognition_options"):</label>
+                 <button type="button" class="col-sm-1 btn btn-sm btn-warning" @onclick="VarianceOptions" 
                     @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "rule_recognition_options", Icons.Edit))</button>
             </div>
         </div>
@@ -395,6 +401,7 @@
 
     <VarianceOptionsSelection @bind-Display="varOptMode" @bind-ConfigValue="ruleRecognitionOption"/>
     <ModIntegrationStatesEditor @bind-Display="modIntegrationStatesMode" @bind-ConfigValue="configData.ModIntegrationStates" @bind-ConfigMarker="configData.ModIntegrationStateMarker"/>
+    <ReducedProtocolSelection @bind-Display="reducedProtocolSelectionMode" @bind-ConfigValue="configData.ReducedProtocolSetProtocols" AvailableProtocols="availableProtocols" />
 }
 else
 {
@@ -436,6 +443,7 @@ else
     private bool searchSpecUserArea = false;
     private bool searchUpdObjArea = false;
     private ModellingNamingConvention namingConvention = new();
+    private List<IpProtocol> availableProtocols = [];
     private DateTime varAnalysisDate = DateTime.Today;
     private DateTime varAnalysisTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private RuleRecognitionOption ruleRecognitionOption = new();
@@ -443,6 +451,7 @@ else
     private bool initComplete = false;
     private bool varOptMode = false;
     private bool modIntegrationStatesMode = false;
+    private bool reducedProtocolSelectionMode = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -458,6 +467,7 @@ else
             modDecommEmailRecipients = EmailRecipientSelection.Parse(configData.ModDecommEmailReceiver, activeTypeIds);
             MergeLegacyOtherAddresses(modReqEmailRecipients, configData.ModReqEmailOtherAddresses);
             MergeLegacyOtherAddresses(modDecommEmailRecipients, configData.ModDecommEmailOtherAddresses);
+            availableProtocols = ProtocolDisplayHelper.CustomSortProtocols(await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols), null, false);
             ExtraConfigs = JsonSerializer.Deserialize<List<string>>(configData.ModExtraConfigs) ?? [];
             namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(configData.ModNamingConvention) ?? new();
             if (configData.ModAppServerTypes != "")
@@ -574,6 +584,11 @@ else
     private void ModIntegrationStates()
     {
         modIntegrationStatesMode = true;
+    }
+
+    private void OpenReducedProtocolSelection()
+    {
+        reducedProtocolSelectionMode = true;
     }
 
     private async Task Save()
@@ -694,5 +709,4 @@ else
         }
         configData!.ModExtraConfigs = JsonSerializer.Serialize(ExtraConfigs);
     }
-
 }

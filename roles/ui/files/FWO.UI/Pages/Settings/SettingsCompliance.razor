@@ -70,6 +70,21 @@
                 </Dropdown>
             </div>
         </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5891"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("designated_zone_matrix")):</label>
+            <div class="col-sm-2">
+                <Dropdown ElementType="ComplianceCriterion"
+                          ElementToString="@(matrix => matrix.Name)"
+                          @bind-SelectedElement="designatedZoneMatrix"
+                          Elements="matrices"
+                          Nullable="true"
+                          NoneSelectedText="@(userConfig.GetText("undefined"))">
+                    <ElementTemplate Context="matrix">
+                        @matrix.Name
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5809"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("complianceMatrixAllowNetworkZones"))</label>
             <div class="col-sm-7">
@@ -367,7 +382,9 @@ else
     private DateTime complianceCheckStartDate = DateTime.Today;
     private DateTime complianceCheckStartTime = DateTime.UtcNow.AddSeconds(-DateTime.UtcNow.Second);
     private bool EditFixCritMode = false;
+    private List<ComplianceCriterion> matrices = [];
     private List<CompliancePolicy> policies = [];
+    private ComplianceCriterion? designatedZoneMatrix;
     private CompliancePolicy? actPolicy;
     private bool ShowImportPopUp { get; set; }
     private ErrorBaseModel? ImportError;
@@ -389,10 +406,18 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             complianceCheckStartDate = complianceCheckStartTime = configData.ComplianceCheckStartAt;
-            policies = await ApiConnection.SendQueryAsync<List<CompliancePolicy>>(ComplianceQueries.getPolicies);
+            matrices = (await ApiConnection.SendQueryAsync<List<ComplianceCriterion>>(ComplianceQueries.getMatrices) ?? [])
+                .OrderBy(matrix => matrix.Name, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(matrix => matrix.Id)
+                .ToList();
+            policies = await ApiConnection.SendQueryAsync<List<CompliancePolicy>>(ComplianceQueries.getPolicies) ?? [];
             if (configData.ComplianceCheckPolicyId > 0)
             {
                 actPolicy = policies.FirstOrDefault(p => p.Id == configData.ComplianceCheckPolicyId);
+            }
+            if (configData.ComplianceDesignatedZoneMatrixId > 0)
+            {
+                designatedZoneMatrix = matrices.FirstOrDefault(matrix => matrix.Id == configData.ComplianceDesignatedZoneMatrixId);
             }
             EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes), _ => OnFileUploadEvent(_.EventArgs));
             EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ImportComplianceMatrix), _ => OnComplianceMatrixImportEvent(_.EventArgs));
@@ -442,6 +467,7 @@ else
             {
                 configData.ComplianceCheckStartAt = complianceCheckStartDate.Date.Add(complianceCheckStartTime.TimeOfDay);
                 configData.ComplianceCheckPolicyId = actPolicy?.Id ?? 0;
+                configData.ComplianceDesignatedZoneMatrixId = designatedZoneMatrix?.Id ?? 0;
                 await globalConfig.WriteToDatabase(configData, ApiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }

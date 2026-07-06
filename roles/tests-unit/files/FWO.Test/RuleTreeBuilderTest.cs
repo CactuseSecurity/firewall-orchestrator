@@ -19,6 +19,7 @@ namespace FWO.Test
         private static readonly int[] kExpectedSequentialDisplayOrderNumbers = [1, 2, 3, 4];
         private static readonly string[] kExpectedSectionHeaderDisplayOrderNumbers = ["1", string.Empty, string.Empty];
         private static readonly string[] kExpectedSectionRuleDisplayOrderNumbers = ["1.1", "1.2", "1.3", "1.4"];
+        private static readonly string[] kExpectedSuppressedSectionRuleDisplayOrderNumbers = ["1.1", "1.2"];
 
         private RuleTreeBuilder _ruleTreeBuilder = default!;
 
@@ -338,6 +339,75 @@ namespace FWO.Test
 
             Assert.That(sectionHeaders.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(kExpectedSectionHeaderDisplayOrderNumbers));
             Assert.That(realRules.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(kExpectedSectionRuleDisplayOrderNumbers));
+        }
+
+        [Test]
+        public void BuildRuleTree_EmptySectionHeader_IsFlattenedWithoutFilterSuppression()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10),
+                Rulebase(2, "Empty-Section"),
+                Rulebase(3, "Matching-Section", 30)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                SectionLink(gatewayId: 1, fromRulebaseId: 1, nextRulebaseId: 2),
+                SectionLink(gatewayId: 1, fromRulebaseId: 2, nextRulebaseId: 3)
+            ];
+
+            List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1);
+
+            Assert.That(flattenedRules.Select(rule => rule.SectionHeader), Does.Contain("Empty-Section"));
+            Assert.That(flattenedRules.Select(rule => rule.SectionHeader), Does.Contain("Matching-Section"));
+        }
+
+        [Test]
+        public void BuildRuleTree_EmptySectionHeader_IsNotFlattenedWithFilterSuppression()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10),
+                Rulebase(2, "Empty-Section"),
+                Rulebase(3, "Matching-Section", 30)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                SectionLink(gatewayId: 1, fromRulebaseId: 1, nextRulebaseId: 2),
+                SectionLink(gatewayId: 1, fromRulebaseId: 2, nextRulebaseId: 3)
+            ];
+
+            List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1, suppressEmptyHeaders: true);
+
+            Assert.That(flattenedRules.Select(rule => rule.SectionHeader), Does.Not.Contain("Empty-Section"));
+            Assert.That(flattenedRules.Select(rule => rule.SectionHeader), Does.Contain("Matching-Section"));
+            Assert.That(flattenedRules.Where(rule => string.IsNullOrEmpty(rule.SectionHeader)).Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(kExpectedSuppressedSectionRuleDisplayOrderNumbers));
+        }
+
+        [Test]
+        public void BuildRuleTree_EmptyOrderedLayerHeader_IsNotFlattenedWithFilterSuppression()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Empty-Layer"),
+                Rulebase(2, "Matching-Layer", 20)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                OrderedLayerLink(gatewayId: 1, fromRulebaseId: 1, nextRulebaseId: 2)
+            ];
+
+            List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1, suppressEmptyHeaders: true);
+
+            Assert.That(flattenedRules.Select(rule => rule.SectionHeader), Does.Not.Contain("Empty-Layer"));
+            Assert.That(flattenedRules.Select(rule => rule.SectionHeader), Does.Contain("Matching-Layer"));
+            Assert.That(flattenedRules.Single(rule => string.IsNullOrEmpty(rule.SectionHeader)).DisplayOrderNumberString, Is.EqualTo("1.1"));
         }
 
         private static RulebaseReport Rulebase(int id, string name, params int[] ruleIds)

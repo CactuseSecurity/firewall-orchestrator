@@ -158,10 +158,20 @@
             userConfig.OnChange += OnChange;
             apiConnection.OnExecutionModeChanged += OnExecutionModeChanged;
             displayedExecutionMode = userConfig.ExecutionMode;
+            availableModules = string.IsNullOrEmpty(userConfig.AvailableModules) ? [.. Enum.GetValues(typeof(Module)).Cast<Module>()]
+                : JsonSerializer.Deserialize<List<Module>>(userConfig.AvailableModules) ?? throw new JsonException("Config data could not be parsed.");
 
             if (RequiresWorkflowStateInitialization())
             {
-                await stateMatrix.Init(WorkflowPhases.request, apiConnection);
+                if (authenticationStateTask == null)
+                {
+                    await stateMatrix.Init(WorkflowPhases.request, apiConnection);
+                }
+                else
+                {
+                    await apiConnection.RunWithWorkflowRole(authenticationStateTask.Result.User,
+                        async () => await stateMatrix.Init(WorkflowPhases.request, apiConnection));
+                }
 
                 if (disposed)
                 {
@@ -175,9 +185,6 @@
             {
                 return;
             }
-
-            availableModules = string.IsNullOrEmpty(userConfig.AvailableModules) ? [.. Enum.GetValues(typeof(Module)).Cast<Module>()]
-                : JsonSerializer.Deserialize<List<Module>>(userConfig.AvailableModules) ?? throw new JsonException("Config data could not be parsed.");
         }
         catch (ObjectDisposedException)
         {
@@ -219,7 +226,6 @@
 
     private void ConfigureFirstWorkflowPage()
     {
-        ClaimsPrincipal user = authenticationStateTask!.Result.User;
         if (CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
         {
             firstWorkflowPage = "/request/ticketsoverview";

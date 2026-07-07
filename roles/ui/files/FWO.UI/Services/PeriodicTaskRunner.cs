@@ -36,7 +36,7 @@ namespace FWO.Ui.Services
         /// </summary>
         public void Start()
         {
-            Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)}{(!string.IsNullOrWhiteSpace(TaskName) ? $" {TaskName}" : "")} started.");
+            Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)} {(!string.IsNullOrWhiteSpace(TaskName) ? TaskName : "")} started.");
 
             if (Interlocked.Exchange(ref started, 1) == 1)
             {
@@ -67,15 +67,15 @@ namespace FWO.Ui.Services
             }
             catch (TaskCanceledException)
             {
-                Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)}{(!string.IsNullOrWhiteSpace(TaskName) ? $" {TaskName}" : "")} stopped.");
+                Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)} {(!string.IsNullOrWhiteSpace(TaskName) ? TaskName : "")} stopped.");
             }
             catch (OperationCanceledException)
             {
-                Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)}{(!string.IsNullOrWhiteSpace(TaskName) ? $" {TaskName}" : "")} stopped.");
+                Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)} {(!string.IsNullOrWhiteSpace(TaskName) ? TaskName : "")} stopped.");
             }
             catch (Exception ex)
             {
-                Log.WriteError(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)}{(!string.IsNullOrWhiteSpace(TaskName) ? $" {TaskName}" : "")} ran into an exception: {ex}", ex);
+                Log.WriteError(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)} {(!string.IsNullOrWhiteSpace(TaskName) ? TaskName : "")} ran into an exception: {ex}", ex);
             }
         }
     }

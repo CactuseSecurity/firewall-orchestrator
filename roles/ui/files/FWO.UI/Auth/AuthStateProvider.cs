@@ -270,9 +270,9 @@ namespace FWO.Ui.Auth
         /// Clears unusable tokens and notifies the UI when automatic session recovery is no longer possible.
         /// </summary>
         private async Task HandleExpiredSessionAsync()
-        {
-            PublishReloginRequiredForAuthenticatedUser();
+        {            
             await tokenService.RevokeTokens();
+            PublishReloginRequiredForAuthenticatedUser();
         }
 
         /// <summary>
@@ -351,32 +351,6 @@ namespace FWO.Ui.Auth
         /// <param name="userDn">Distinguished name of the affected user.</param>
         private void PublishReloginRequired(string userDn) => eventMediator.Publish(nameof(ReloginRequiredEvent), new ReloginRequiredEvent(new(userDn)));
 
-        // public async Task<int> GetTenantId(string jwtString)
-        // {
-        // 	JwtReader jwtReader = new(jwtString);
-        // 	int tenantId = 0;
-
-        // 	if (await jwtReader.Validate())
-        // 	{
-        // 		ClaimsIdentity identity = new
-        // 		(
-        // 			claims: jwtReader.GetClaims(),
-        // 			authenticationType: "ldap",
-        // 			nameType: JwtRegisteredClaimNames.UniqueName,
-        // 			roleType: "role"
-        // 		);
-
-        // 		// Set user information
-        // 		user = new ClaimsPrincipal(identity);
-
-        // 		if (!int.TryParse(user.FindFirstValue("x-hasura-tenant-id"), out tenantId))
-        // 		{
-        // 			// TODO: log warning
-        // 		}
-        // 	}
-        // 	return tenantId;
-        // }
-
         private async Task<Tenant> GetTenantFromJwt(string jwtString, ApiConnection apiConnection)
         {
             JwtReader jwtReader = new(jwtString);
@@ -399,10 +373,6 @@ namespace FWO.Ui.Auth
                 {
                     tenant = await GetSingleTenant(apiConnection, tenantId) ?? new();
                 }
-                // else
-                // {
-                //     // TODO: log warning
-                // }
             }
             return tenant;
         }

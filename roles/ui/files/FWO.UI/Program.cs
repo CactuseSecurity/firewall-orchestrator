@@ -12,8 +12,6 @@ using FWO.Services.RuleTreeBuilder;
 using FWO.Ui.Auth;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.Server.Circuits;
-using Microsoft.AspNetCore.Session;
 using RestSharp;
 
 

@@ -13,9 +13,10 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Quartz;
 using Scalar.AspNetCore;
-using System.Reflection;
 
 object changesLock = new(); // LOCK
+const string kApiDocsPageRoute = "/api-docs";
+const string kApiDocsRoute = "/api-docs/{documentName}.json";
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -95,6 +96,7 @@ builder.Services.AddSingleton<List<Ldap>>(connectedLdaps);
 builder.Services.AddSingleton<FlowCatalogService>();
 builder.Services.AddSingleton<FlowComplianceService>();
 builder.Services.AddSingleton<FlowRequestService>();
+builder.Services.AddApiExamples();
 
 builder.Services.AddAuthentication(confOptions =>
 {
@@ -116,32 +118,52 @@ builder.Services.AddAuthentication(confOptions =>
         IssuerSigningKey = ConfigFile.JwtPublicKey
     };
 });
-
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApi("v1");
-builder.Services.AddApiExamples();
-builder.Services.AddSwaggerGen(c =>
+builder.Services.AddOpenApi("v1", options =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo
+    options.AddOperationTransformer<OpenApiOperationNameTransformer>();
+    options.AddOperationTransformer<OpenApiAuthorizationOperationTransformer>();
+    options.AddOperationTransformer<OpenApiApiExampleOperationTransformer>();
+    options.AddDocumentTransformer((document, context, cancellationToken) =>
     {
-        Title = "FWO Middleware API Documentation",
-        Description = "A documentation of the REST API interface for the FWO Middleware.",
-        Version = "v1"
-    });
-    string documentationPath = Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml");
-    c.IncludeXmlComments(documentationPath);
+        document.Info = new OpenApiInfo
+        {
+            Title = "FWO Middleware API Documentation",
+            // Top-level Markdown headings ("# ...") in the description are rendered by Scalar as
+            // their own sidebar sections at the same level as the auto-generated "Introduction".
+            // The "Authentication" section documents the single, top-level bearer scheme.
+            Description =
+                "This is the REST API interface for the Firewall Orchestrator (FWO) Middleware Server. " +
+                "The middleware server brokers communication between the FWO UI, the data layer and the " +
+                "automation routines. It exposes endpoints for authentication and JWT issuance, " +
+                "authorization (roles, groups and tenants), user and credential management, scheduling, " +
+                "rule compliance checks, reporting and change-request workflows.\n\n" +
+                "Use this interactive documentation to explore the available endpoints, inspect their " +
+                "request and response schemas, and send live test requests directly from your browser. " +
+                "Every request requires a valid JWT — see the **Authentication** section below on how to " +
+                "obtain and apply one.\n\n" +
+                "## Authentication\n\n" +
+                "All endpoints are protected by a single JWT bearer scheme. In this API documentation, there is no need to " +
+                "add an individual authorization header to each endpoint. Instead, set the token " +
+                "once in the top-level **Authentication** field at the top of this page and it is " +
+                "automatically applied to every request you send.\n\n" +
+                "To obtain a token, call `POST /api/AuthenticationToken/GetTokenPair` and paste only " +
+                "the returned `accessToken` value into the Authentication field (without the " +
+                "`Bearer` prefix and without the `refreshToken`).",
+            Version = "v1"
+        };
 
-    c.AddSecurityDefinition(SwashbuckleAuthorizationOperationFilter.BearerSchemeId, new OpenApiSecurityScheme
-    {
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        Description = "JWT Authorization header using the Bearer scheme."
-    });
+        OpenApiComponents components = document.Components ??= new OpenApiComponents();
+        components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
+        components.SecuritySchemes["bearer"] = new OpenApiSecurityScheme
+        {
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            Description = "JWT Authorization header using the Bearer scheme."
+        };
 
-    // Apply the bearer requirement per operation so anonymous endpoints (e.g. login/token issuance) do not advertise it.
-    c.OperationFilter<SwashbuckleAuthorizationOperationFilter>();
-    c.OperationFilter<SwashbuckleApiExampleOperationFilter>();
+        return Task.CompletedTask;
+    });
 });
 
 WebApplication app = builder.Build();
@@ -152,14 +174,19 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 }
 
-app.UseSwagger();
-app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "FWO.Middleware v1"); });
-app.MapScalarApiReference("/api-docs", options =>
+app.MapOpenApi(kApiDocsRoute);
+app.MapScalarApiReference(kApiDocsPageRoute, options =>
 {
-    options
-        .WithTitle("FWO Middleware API Documentation")
-        .WithOpenApiRoutePattern("/swagger/{documentName}/swagger.json");
+    options.WithTitle("FWO Middleware API Documentation")
+        .WithOpenApiRoutePattern(kApiDocsRoute)
+        .AddPreferredSecuritySchemes(["bearer"])
+        .AddHttpAuthentication("bearer", scheme =>
+        {
+            scheme.WithDescription("Paste only the accessToken value returned by /api/AuthenticationToken/GetTokenPair. Do not paste the refreshToken or add the Bearer prefix.");
+        })
+        .EnablePersistentAuthentication();
 });
+app.UseSwaggerRedirect(kApiDocsPageRoute);
 
 //app.UseHttpsRedirection();
 

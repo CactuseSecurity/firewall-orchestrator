@@ -135,6 +135,8 @@ namespace FWO.Middleware.Server.Controllers
         /// Generates an authentication token (jwt) given valid credentials.  
         /// </summary>
         /// <remarks>
+        /// Deprecated: This endpoint will be dropped in the next major release. Use /api/AuthenticationToken/GetTokenPair instead.
+        ///
         /// Username (required)&#xA;
         /// Password (required)
         /// </remarks>
@@ -356,7 +358,7 @@ namespace FWO.Middleware.Server.Controllers
 
 #if DEBUG
         /// <summary>
-        ///  Tests the Auth from swagger. If this returns unauthorized then check JWT token in swagger and try again.
+        ///  Tests the Auth from API docs. If this returns unauthorized then check JWT token in API docs and try again.
         /// </summary>
         /// <returns></returns>
         [Authorize]

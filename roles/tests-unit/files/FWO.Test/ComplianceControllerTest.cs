@@ -124,7 +124,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ResolveZonesForObjects_ReturnsZonesForNestedDraftGroups()
+        public async Task ResolveZonesForObjects_ReturnsZonesForNestedGroups()
         {
             DummyApiConnection apiConnection = new(
                 [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
@@ -147,37 +147,35 @@ namespace FWO.Test
                 ]);
             ComplianceController controller = new(apiConnection, new ComplianceCheckStatusTracker(), CreateZoneService(apiConnection, 12));
 
-            ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.ResolveZonesForObjects(new GetZonesForDraftObjectsRequest
+            ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.ResolveZonesForObjects(new ResolveZonesForObjectsRequest
             {
                 Objects =
                 [
-                    new GetZonesForDraftObjectsRequest.DraftObjectRequest
+                    new ResolveZonesForObjectsRequest.GroupObjectRequest
                     {
                         Name = "Root Group",
-                        Type = "group",
                         Members =
                         [
-                            new GetZonesForDraftObjectsRequest.DraftObjectRequest
+                            new ResolveZonesForObjectsRequest.GroupObjectRequest
                             {
                                 Name = "Sub Group",
-                                Type = "group",
                                 Members =
                                 [
-                                    new GetZonesForDraftObjectsRequest.DraftObjectRequest
+                                    new ResolveZonesForObjectsRequest.LeafObjectRequest
                                     {
                                         Name = "Backend Host",
                                         Type = "host",
                                         IpStart = "10.0.0.1",
                                         IpEnd = "10.0.0.1"
                                     },
-                                    new GetZonesForDraftObjectsRequest.DraftObjectRequest
+                                    new ResolveZonesForObjectsRequest.LeafObjectRequest
                                     {
                                         Name = "Backend Host Duplicate",
                                         Type = "network",
                                         IpStart = "10.0.0.1",
                                         IpEnd = "10.0.0.1"
                                     },
-                                    new GetZonesForDraftObjectsRequest.DraftObjectRequest
+                                    new ResolveZonesForObjectsRequest.LeafObjectRequest
                                     {
                                         Name = "DMZ Host",
                                         Type = "ip_range",

@@ -23,7 +23,7 @@ public static class ApiExampleServiceCollectionExtensions
         services.AddSingleton<IApiExampleProvider, GetRequestStatusRequestExample>();
         services.AddSingleton<IApiExampleProvider, VisibleInRequestFilterExample>();
         services.AddSingleton<IApiExampleProvider, GetFlowComplianceStateRequestExample>();
-        services.AddSingleton<IApiExampleProvider, GetZonesForDraftObjectsRequestExample>();
+        services.AddSingleton<IApiExampleProvider, ResolveZonesForObjectsRequestExample>();
         services.AddSingleton<IApiExampleProvider, GetOwnersRequestExample>();
         services.AddSingleton<IApiExampleProvider, GenerateAddressObjectNameResponseExample>();
         services.AddSingleton<IApiExampleProvider, GenerateServiceObjectNameResponseExample>();
@@ -243,35 +243,33 @@ public sealed class GetFlowComplianceStateRequestExample : ApiExampleProvider<Ge
 }
 
 /// <summary>
-/// Provides a typed example for <see cref="GetZonesForDraftObjectsRequest"/>.
+/// Provides a typed example for <see cref="ResolveZonesForObjectsRequest"/>.
 /// </summary>
-public sealed class GetZonesForDraftObjectsRequestExample : ApiExampleProvider<GetZonesForDraftObjectsRequest>
+public sealed class ResolveZonesForObjectsRequestExample : ApiExampleProvider<ResolveZonesForObjectsRequest>
 {
     /// <inheritdoc />
-    public override GetZonesForDraftObjectsRequest GetExample() => new()
+    public override ResolveZonesForObjectsRequest GetExample() => new()
     {
         Objects =
         [
-            new GetZonesForDraftObjectsRequest.DraftObjectRequest
+            new ResolveZonesForObjectsRequest.GroupObjectRequest
             {
                 Name = "preview-group",
-                Type = "group",
                 Members =
                 [
-                    new GetZonesForDraftObjectsRequest.DraftObjectRequest
+                    new ResolveZonesForObjectsRequest.LeafObjectRequest
                     {
                         Name = "branch-a",
                         Type = "network",
                         IpStart = "10.0.0.1",
                         IpEnd = "10.0.0.1"
                     },
-                    new GetZonesForDraftObjectsRequest.DraftObjectRequest
+                    new ResolveZonesForObjectsRequest.GroupObjectRequest
                     {
                         Name = "branch-b",
-                        Type = "group",
                         Members =
                         [
-                            new GetZonesForDraftObjectsRequest.DraftObjectRequest
+                            new ResolveZonesForObjectsRequest.LeafObjectRequest
                             {
                                 Name = "leaf",
                                 Type = "ip_range",

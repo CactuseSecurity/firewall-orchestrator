@@ -9,14 +9,13 @@ namespace FWO.Test;
 internal class ComplianceZoneValidationTest
 {
     [Test]
-    public void GetZonesForDraftObjects_AllowsNestedDraftGroups()
+    public void ResolveZonesForObjects_AllowsNestedGroups()
     {
         string json = """
         {
           "objects": [
             {
               "name": "Root Group",
-              "type": "group",
               "members": [
                 {
                   "name": "Leaf",
@@ -26,7 +25,6 @@ internal class ComplianceZoneValidationTest
                 },
                 {
                   "name": "Nested Group",
-                  "type": "group",
                   "members": [
                     {
                       "name": "Nested Leaf",
@@ -42,9 +40,9 @@ internal class ComplianceZoneValidationTest
         }
         """;
 
-        GetZonesForDraftObjectsRequest request = JsonSerializer.Deserialize<GetZonesForDraftObjectsRequest>(json)!;
+        ResolveZonesForObjectsRequest request = JsonSerializer.Deserialize<ResolveZonesForObjectsRequest>(json)!;
 
-        bool valid = GetZonesForDraftObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
 
         Assert.Multiple(() =>
         {
@@ -54,14 +52,56 @@ internal class ComplianceZoneValidationTest
     }
 
     [Test]
-    public void GetZonesForDraftObjects_RejectsUnknownNestedKey()
+    public void ResolveZonesForObjects_RejectsEmptyRequest()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects = []
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("must contain at least one entry"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsEmptyGroups()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.GroupObjectRequest
+                {
+                    Name = "Empty Group",
+                    Members = []
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("must contain at least one member"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsUnknownNestedKey()
     {
         string json = """
         {
           "objects": [
             {
               "name": "Root Group",
-              "type": "group",
               "members": [
                 {
                   "name": "Leaf",
@@ -76,9 +116,9 @@ internal class ComplianceZoneValidationTest
         }
         """;
 
-        GetZonesForDraftObjectsRequest request = JsonSerializer.Deserialize<GetZonesForDraftObjectsRequest>(json)!;
+        ResolveZonesForObjectsRequest request = JsonSerializer.Deserialize<ResolveZonesForObjectsRequest>(json)!;
 
-        bool valid = GetZonesForDraftObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
 
         Assert.Multiple(() =>
         {
@@ -90,50 +130,48 @@ internal class ComplianceZoneValidationTest
     }
 
     [Test]
-    public void GetZonesForDraftObjects_RejectsLeafObjectsWithMembers()
+    public void ResolveZonesForObjects_RejectsGroupsWithIpFields()
     {
-        GetZonesForDraftObjectsRequest request = new()
+        string json = """
         {
-            Objects =
-            [
-                new GetZonesForDraftObjectsRequest.DraftObjectRequest
+          "objects": [
+            {
+              "name": "Group",
+              "members": [
                 {
-                    Name = "Leaf",
-                    Type = "network",
-                    IpStart = "10.0.0.1",
-                    IpEnd = "10.0.0.1",
-                    Members =
-                    [
-                        new GetZonesForDraftObjectsRequest.DraftObjectRequest
-                        {
-                            Name = "Child",
-                            Type = "host",
-                            IpStart = "10.0.0.2",
-                            IpEnd = "10.0.0.2"
-                        }
-                    ]
+                  "name": "Leaf",
+                  "type": "host",
+                  "ipStart": "10.0.0.2",
+                  "ipEnd": "10.0.0.2"
                 }
-            ]
-        };
+              ],
+              "ipStart": "10.0.0.1",
+              "ipEnd": "10.0.0.1"
+            }
+          ]
+        }
+        """;
 
-        bool valid = GetZonesForDraftObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+        ResolveZonesForObjectsRequest request = JsonSerializer.Deserialize<ResolveZonesForObjectsRequest>(json)!;
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
 
         Assert.Multiple(() =>
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("must not define 'members'"));
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("only accepts"));
         });
     }
 
     [Test]
-    public void GetZonesForDraftObjects_RejectsHostRanges()
+    public void ResolveZonesForObjects_RejectsHostRanges()
     {
-        GetZonesForDraftObjectsRequest request = new()
+        ResolveZonesForObjectsRequest request = new()
         {
             Objects =
             [
-                new GetZonesForDraftObjectsRequest.DraftObjectRequest
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
                 {
                     Name = "Host",
                     Type = "host",
@@ -143,7 +181,7 @@ internal class ComplianceZoneValidationTest
             ]
         };
 
-        bool valid = GetZonesForDraftObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
 
         Assert.Multiple(() =>
         {

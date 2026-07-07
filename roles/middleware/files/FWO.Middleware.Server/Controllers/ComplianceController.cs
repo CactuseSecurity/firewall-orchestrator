@@ -101,14 +101,14 @@ namespace FWO.Middleware.Server.Controllers
         }
 
         /// <summary>
-        /// Returns the zones occupied by draft flow network objects.
+        /// Returns the zones occupied by object trees.
         /// </summary>
-        /// <param name="request">The draft object tree to resolve.</param>
+        /// <param name="request">The object tree to resolve.</param>
         [HttpPost("ResolveZonesForObjects")]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
-        public async Task<ActionResult<List<ComplianceDesignatedZoneResponse>>> ResolveZonesForObjects([FromBody] GetZonesForDraftObjectsRequest request)
+        public async Task<ActionResult<List<ComplianceDesignatedZoneResponse>>> ResolveZonesForObjects([FromBody] ResolveZonesForObjectsRequest request)
         {
-            if (!GetZonesForDraftObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult))
+            if (!ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult))
             {
                 return errorResult!;
             }

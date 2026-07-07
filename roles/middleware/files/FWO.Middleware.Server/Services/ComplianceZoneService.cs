@@ -11,7 +11,7 @@ using NetTools;
 namespace FWO.Middleware.Server.Services;
 
 /// <summary>
-/// Resolves compliance zones for stored and draft network objects.
+/// Resolves compliance zones for stored and provided network objects.
 /// </summary>
 public sealed class ComplianceZoneService
 {
@@ -39,9 +39,9 @@ public sealed class ComplianceZoneService
     }
 
     /// <summary>
-    /// Returns the zones that a draft object tree would occupy.
+    /// Returns the zones that an object tree would occupy.
     /// </summary>
-    public async Task<List<ComplianceDesignatedZoneResponse>> ResolveZonesForObjectsAsync(GetZonesForDraftObjectsRequest request)
+    public async Task<List<ComplianceDesignatedZoneResponse>> ResolveZonesForObjectsAsync(ResolveZonesForObjectsRequest request)
     {
         List<IPAddressRange> ranges = CollectRanges(request.Objects ?? []);
         if (ranges.Count == 0)
@@ -89,33 +89,38 @@ public sealed class ComplianceZoneService
             new { criterionId = globalConfig.ComplianceDesignatedZoneMatrixId }) ?? [];
     }
 
-    private static List<IPAddressRange> CollectRanges(IEnumerable<GetZonesForDraftObjectsRequest.DraftObjectRequest> objects)
+    private static List<IPAddressRange> CollectRanges(IEnumerable<ResolveZonesForObjectsRequest.ObjectRequest> objects)
     {
         List<IPAddressRange> ranges = [];
 
-        foreach (GetZonesForDraftObjectsRequest.DraftObjectRequest draftObject in objects)
+        foreach (ResolveZonesForObjectsRequest.ObjectRequest node in objects)
         {
-            ranges.AddRange(CollectRanges(draftObject));
+            ranges.AddRange(CollectRanges(node));
         }
 
         return ranges;
     }
 
-    private static List<IPAddressRange> CollectRanges(GetZonesForDraftObjectsRequest.DraftObjectRequest draftObject)
+    private static List<IPAddressRange> CollectRanges(ResolveZonesForObjectsRequest.ObjectRequest node)
     {
-        if (string.Equals(draftObject.Type, ObjectType.Group, StringComparison.OrdinalIgnoreCase))
+        if (node is ResolveZonesForObjectsRequest.GroupObjectRequest group)
         {
-            return CollectRanges(draftObject.Members ?? []);
+            return CollectRanges(group.Members ?? []);
+        }
+
+        if (node is not ResolveZonesForObjectsRequest.LeafObjectRequest leaf)
+        {
+            throw new InvalidOperationException($"Unsupported object node type '{node.GetType().Name}'.");
         }
 
         NetworkObject networkObject = new()
         {
-            Name = draftObject.Name,
-            IP = draftObject.IpStart,
-            IpEnd = draftObject.IpEnd,
+            Name = leaf.Name,
+            IP = leaf.IpStart,
+            IpEnd = leaf.IpEnd,
             Type = new NetworkObjectType
             {
-                Name = NormalizeObjectType(draftObject.Type)
+                Name = NormalizeObjectType(leaf.Type)
             }
         };
 

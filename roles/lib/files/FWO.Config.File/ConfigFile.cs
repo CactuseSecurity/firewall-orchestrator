@@ -52,6 +52,9 @@ namespace FWO.Config.File
 
             [JsonPropertyName("product_version")]
             public string? ProductVersion { get; set; }
+
+            [JsonPropertyName("fworch_home")]
+            public string? CfgFwoHome { get; set; }
         }
 
         /// <summary>
@@ -106,6 +109,30 @@ namespace FWO.Config.File
             get
             {
                 return CriticalConfigValueLoaded(Data.ProductVersion);
+            }
+        }
+
+        public static string FwoHome
+        {
+            get
+            {
+                return CriticalConfigValueLoaded(Data.CfgFwoHome);
+            }
+        }
+
+        /// <summary>
+        /// Root directories from which customization import files and scripts may be read or executed.
+        /// </summary>
+        public static List<string> AllowedCustomizationRoots
+        {
+            get
+            {
+                string fwoHome = FwoHome;
+                return
+                [
+                    Path.Combine(fwoHome, "scripts", "customizing"),
+                    Path.Combine(fwoHome, "etc")
+                ];
             }
         }
 

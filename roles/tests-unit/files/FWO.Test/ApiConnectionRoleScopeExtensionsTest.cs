@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Basics;
+using Microsoft.AspNetCore.Components.Authorization;
 using NUnit.Framework;
 using System.Security.Claims;
 
@@ -31,19 +32,22 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task RunWithNamedRoleScopeReturnsResultAndSwitchesBack()
+        public async Task RunWithWorkflowRole_AuthenticationStateTaskUsesWorkflowRolesAndSwitchesBack()
         {
             TrackingApiConnection connection = new();
-            ClaimsPrincipal user = CreateUser(Roles.Requester);
+            ClaimsPrincipal user = CreateUser(Roles.Approver, Roles.Planner);
 
-            string result = await connection.RunWithWorkflowRole(user, async () =>
+            await connection.RunWithWorkflowRole(user, async () =>
             {
-                Assert.That(connection.ActiveRole, Is.EqualTo(Roles.Requester));
+                Assert.That(connection.ActiveRole, Is.EqualTo(Roles.Approver));
                 await Task.CompletedTask;
-                return "done";
             });
 
-            Assert.That(result, Is.EqualTo("done"));
+            Assert.That(connection.LastTargetRoles, Is.EqualTo(new[]
+            {
+                Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer,
+                Roles.Admin, Roles.FwAdmin, Roles.Auditor
+            }));
             Assert.That(connection.ActiveRole, Is.Empty);
             Assert.That(connection.SwitchBackCount, Is.EqualTo(1));
         }

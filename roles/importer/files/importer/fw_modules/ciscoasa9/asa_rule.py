@@ -129,7 +129,6 @@ def create_rule_from_acl_entry(
 
     # Create normalized rule
     return RuleNormalized(
-        rule_num=0,
         rule_num_numeric=0,  # will be set later
         rule_disabled=entry.inactive,
         rule_src_neg=False,

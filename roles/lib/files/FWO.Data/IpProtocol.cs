@@ -13,7 +13,12 @@ namespace FWO.Data
 
         public bool HasPorts()
         {
-            return Id == 6 || Id == 17;
+            return HasPorts(Id);
+        }
+
+        public static bool HasPorts(int? id)
+        {
+            return id == 6 || id == 17;
         }
     }
 }

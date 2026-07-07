@@ -119,6 +119,7 @@ insert into config (config_key, config_value, config_user) VALUES ('modRecertExp
 insert into config (config_key, config_value, config_user) VALUES ('modRecertText', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modIconify', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reducedProtocolSet', 'True', 0);
+insert into config (config_key, config_value, config_user) VALUES ('reducedProtocolSetProtocols', '["tcp","udp","icmp","esp"]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('overviewDisplayLines', '3', 0);
 insert into config (config_key, config_value, config_user) VALUES ('emailServerAddress', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('emailPort', '0', 0);

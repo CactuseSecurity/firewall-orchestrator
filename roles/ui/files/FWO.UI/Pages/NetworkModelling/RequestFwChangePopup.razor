@@ -308,7 +308,7 @@
             else
             {
                 IpProtocol? ipProtocol = ipProtos.Find(x => x.Id == elem.ProtoId);
-                string portRange = ipProtocol != null && (bool)ipProtocol.HasPorts() ? SCAccessRequestTicketTask.DisplayPortRange(elem.Port ?? 0, elem.PortEnd) + "/" : "";
+                string portRange = IpProtocol.HasPorts(ipProtocol?.Id) ? SCAccessRequestTicketTask.DisplayPortRange(elem.Port ?? 0, elem.PortEnd) + "/" : "";
                 services.Add(portRange + ipProtocol?.Name ?? "");
             }
         }

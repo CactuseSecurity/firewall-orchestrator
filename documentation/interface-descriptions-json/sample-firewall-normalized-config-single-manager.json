@@ -52,7 +52,6 @@
               "is_global": false,
               "Rules": {
                 "3fa82664-5717-4562-b3fc-2c963f66afa6": {
-                  "rule_num": 1,
                   "rule_num_numeric": 0.0,
                   "rule_disabled": false,
                   "rule_src_neg": false,

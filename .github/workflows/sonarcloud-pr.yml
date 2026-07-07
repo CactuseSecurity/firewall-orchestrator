@@ -93,6 +93,9 @@ jobs:
         if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
         run: dotnet tool update dotnet-sonarscanner --tool-path .sonar/scanner
 
+      - name: Install .NET coverage collector
+        run: dotnet tool update dotnet-coverage --tool-path .sonar/scanner
+
       - name: Build and analyze pull request
         run: |
           .sonar/scanner/dotnet-sonarscanner begin \
@@ -103,6 +106,11 @@ jobs:
             /d:sonar.qualitygate.wait=true \
             /d:sonar.pullrequest.key="${{ github.event.pull_request.number }}" \
             /d:sonar.pullrequest.branch="${{ github.event.pull_request.head.ref }}" \
-            /d:sonar.pullrequest.base="${{ github.event.pull_request.base.ref }}"
+            /d:sonar.pullrequest.base="${{ github.event.pull_request.base.ref }}" \
+            /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml
           dotnet build roles/FWO.sln --configuration Debug --no-incremental
+          .sonar/scanner/dotnet-coverage collect \
+            "dotnet test roles/tests-unit/files/FWO.Test/FWO.Test.csproj --configuration Debug --no-build --settings FWO.default.runsettings" \
+            -f xml \
+            -o coverage.xml
           .sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${SONAR_TOKEN}"

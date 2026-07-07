@@ -1,5 +1,5 @@
-query getAddressObjects($where: flow_nwobject_bool_exp = {}) {
+query getFlowAddressObjects($where: flow_nwobject_bool_exp = {}) {
   nwobjects: flow_nwobject(where: $where, order_by: [{ name: asc }, { nwobj_id: asc }]) {
-    ...flowNwObjectDetails
+    ...flowNwObjectFragment
   }
 }

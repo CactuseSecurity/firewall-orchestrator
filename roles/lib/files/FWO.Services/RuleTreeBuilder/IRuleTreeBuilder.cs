@@ -28,6 +28,6 @@ namespace FWO.Services.RuleTreeBuilder
         /// Builds a rule tree from normalized rulebases and rulebase links and returns
         /// the flattened rules that reports render.
         /// </summary>
-        List<Rule> BuildRuleTree(RulebaseReport[] rulebases, RulebaseLink[] links, int managementId, int deviceId);
+        List<Rule> BuildRuleTree(RulebaseReport[] rulebases, RulebaseLink[] links, int managementId, int deviceId, bool suppressEmptyHeaders = false);
     }
 }

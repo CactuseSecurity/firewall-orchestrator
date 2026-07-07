@@ -37,7 +37,6 @@ class RuleTrack(CaseInsensitiveEnum):
 
 # RuleNormalized is the model for a normalized rule (containing no DB IDs)
 class RuleNormalized(BaseModel):  # noqa: PLW1641
-    rule_num: int
     rule_num_numeric: float
     rule_disabled: bool
     rule_src_neg: bool
@@ -74,8 +73,8 @@ class RuleNormalized(BaseModel):  # noqa: PLW1641
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, RuleNormalized):
             return NotImplemented
-        # Compare all fields except 'last_hit' and 'rule_num' and zones
-        exclude = {"last_hit", "rule_num"}
+        # Compare all fields except 'last_hit'
+        exclude = {"last_hit"}
         self_dict = self.model_dump(exclude=exclude)
         other_dict = other.model_dump(exclude=exclude)
         return self_dict == other_dict
@@ -92,7 +91,6 @@ class RuleNormalized(BaseModel):  # noqa: PLW1641
 	"parent_rule_type" smallint,
 	"active" Boolean NOT NULL Default TRUE,
 	"removed" BIGINT,
-	"rule_num" Integer NOT NULL,
 	"rule_num_numeric" NUMERIC(16, 8),
 	"rule_ruleid" Varchar,
 	"rule_uid" Text,
@@ -108,8 +106,6 @@ class RuleNormalized(BaseModel):  # noqa: PLW1641
 	"rule_src_refs" Text,
 	"rule_dst_refs" Text,
 	"rule_svc_refs" Text,
-	"rule_from_zone" Integer,
-	"rule_to_zone" Integer,
 	"rule_action" Text NOT NULL,
 	"rule_track" Text NOT NULL,
 	"rule_installon" Varchar,
@@ -151,7 +147,6 @@ class Rule(BaseModel):
     rule_implied: bool = False
     rule_installon: str | None = None
     rule_name: str | None = None
-    rule_num: int
     rule_num_numeric: float
     rule_src: str
     rule_src_neg: bool

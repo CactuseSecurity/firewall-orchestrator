@@ -1,7 +1,12 @@
-﻿@using FWO.Data
+@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Config.Api.Data
+@using FWO.Data
+@using System.Text.Json
 
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
 
 
 <PopUp Title="@(userConfig.GetText("rule_recognition_options"))" Show="@Display" Size=PopupSize.Small OnClose="Close">
@@ -87,7 +92,8 @@
         }
     </Body>
     <Footer>
-        <button type="button" class="btn btn-sm btn-primary" @onclick="Confirm">@(userConfig.GetText("ok"))</button>
+        <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
 
@@ -110,10 +116,21 @@
     public EventCallback<RuleRecognitionOption> ConfigValueChanged { get; set; }
 
 
-    private void Confirm()
+    private async Task Save()
     {
-        ConfigValueChanged.InvokeAsync(ConfigValue);
-        Close();
+        try
+        {
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
+            editableConfig.RuleRecognitionOption = JsonSerializer.Serialize(ConfigValue);
+            await globalConfig.WriteToDatabase(editableConfig, apiConnection);
+            await ConfigValueChanged.InvokeAsync(ConfigValue);
+            DisplayMessageInUi(null, userConfig.GetText("rule_recognition_options"), userConfig.GetText("U5301"), false);
+            Close();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("rule_recognition_options"), "", true);
+        }
     }
 
     private void Close()

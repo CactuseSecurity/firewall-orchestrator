@@ -1,5 +1,6 @@
+version: 2
 secret:
-  ignored-paths:
+  ignored_paths:
     - "**/test_*"
     - "roles/tests-unit/**"
     - "roles/tests-integration/**"

@@ -154,7 +154,6 @@ class FwConfigBuilder:
         if rule is None:
             uid = self.uid_manager.create_uid()
             normalized_rule = RuleNormalized(
-                rule_num=0,
                 rule_num_numeric=0.0,
                 rule_disabled=False,
                 rule_src_neg=False,

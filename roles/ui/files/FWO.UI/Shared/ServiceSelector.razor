@@ -28,10 +28,13 @@
             </EditList>
             <div class="row col-sm-12 mt-1">
                 <div class="col-sm-6">
-                    <PortRangeInput @bind-Port="actPort" @bind-PortEnd="actPortEnd"/>
+                    @if(SelectedProtocolHasPorts())
+                    {
+                        <PortRangeInput @bind-Port="actPort" @bind-PortEnd="actPortEnd"/>
+                    }
                 </div>
                 <div class="col-sm-5">
-                    <Dropdown ElementType="int" @bind-SelectedElement="actProtoId"
+                    <Dropdown ElementType="int" @bind-SelectedElement="ActProtoId"
                             ElementToString="@(protId => IpProtos.FirstOrDefault(x => x.Id == protId)?.Name ?? "")" Elements="IpProtos.ConvertAll(x => x.Id)">
                         <ElementTemplate Context="proto">
                             @IpProtos.FirstOrDefault(x => x.Id == proto)?.Name
@@ -78,6 +81,19 @@
     private int? actPort;
     private int? actPortEnd;
     private int actProtoId = 0;
+    private int ActProtoId
+    {
+        get => actProtoId;
+        set
+        {
+            actProtoId = value;
+            if (!SelectedProtocolHasPorts())
+            {
+                actPort = null;
+                actPortEnd = null;
+            }
+        }
+    }
 
     private string DisplayServiceElement(NwServiceElement element)
     {
@@ -99,22 +115,42 @@
             FirstTry = false;
             if(IpProtos.Count > 0)
             {
-                actProtoId = IpProtos.First().Id;
+                ActProtoId = IpProtos.First().Id;
             }
         }
     }
 
     private void AddService()
     {
-        if (actPort != null && actPort > 0 && actProtoId != 0)
+        if (ActProtoId == 0)
         {
-            ServicesToAdd.Add(new NwServiceElement(){ Port = (int)actPort, PortEnd = actPortEnd, ProtoId = actProtoId, TaskId = TaskId });
-			actPort = null;
-            actPortEnd = null;
-            if(IpProtos.Count > 0)
-            {
-                actProtoId = IpProtos.First().Id;
-            }
-		}
-	}
+            return;
+        }
+
+        bool protocolHasPorts = SelectedProtocolHasPorts();
+        if (protocolHasPorts && (actPort == null || actPort <= 0))
+        {
+            return;
+        }
+
+        int port = protocolHasPorts ? actPort!.Value : 0;
+        ServicesToAdd.Add(new NwServiceElement()
+        {
+            Port = port,
+            PortEnd = protocolHasPorts ? actPortEnd : null,
+            ProtoId = ActProtoId,
+            TaskId = TaskId
+        });
+        actPort = null;
+        actPortEnd = null;
+        if (IpProtos.Count > 0)
+        {
+            ActProtoId = IpProtos.First().Id;
+        }
+    }
+
+    private bool SelectedProtocolHasPorts()
+    {
+        return IpProtocol.HasPorts(ActProtoId);
+    }
 }

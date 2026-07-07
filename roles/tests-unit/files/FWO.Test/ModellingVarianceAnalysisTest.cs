@@ -44,6 +44,8 @@ namespace FWO.Test
 
         static readonly ModellingService Svc1 = new() { Id = 1, Name = "Service1", Port = 1000, PortEnd = 2000, ProtoId = 6 };
         static readonly ModellingService Svc2 = new() { Id = 2, Name = "Service2", Port = 4000, ProtoId = 6 };
+        // Distinct object but port/protocol-equal to Svc1, so the comparer treats both as the same service.
+        static readonly ModellingService Svc1Duplicate = new() { Id = 101, Name = "Service1Duplicate", Port = 1000, PortEnd = 2000, ProtoId = 6 };
 
         static readonly ModellingServiceGroup SvcGrp1 = new() { Id = 1, Name = "SvcGrp1", Services = [new() { Content = Svc2 }] };
 
@@ -847,6 +849,37 @@ namespace FWO.Test
             ClassicAssert.AreEqual("Conn1", result.RuleDifferences[0].ModelledConnection.Name);
             ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules.Count);
             ClassicAssert.AreEqual(0, result.DifferingAppRoles.Count);
+        }
+
+        [Test]
+        public async Task TestAnalyseRuleStatusServiceMultiplicity()
+        {
+            // Object multiplicity must never count as a variance: the modelled connection lists the
+            // same service twice while its production rule (Rule2, matched via ConnId 2) lists it once.
+            // Both the status/quick path (fullAnalysis = false) and the report/full path
+            // (fullAnalysis = true) must therefore treat the connection as implemented.
+            ModellingConnection connDuplicateSvc = new()
+            {
+                Id = 2,
+                Name = "Conn2Duplicate",
+                SourceAppServers = [new() { Content = AS1 }],
+                DestinationAppRoles = [new() { Content = AR3 }],
+                Services = [new() { Content = Svc1 }, new() { Content = Svc1Duplicate }]
+            };
+            List<ModellingConnection> Connections = [connDuplicateSvc];
+            ModellingFilter modellingFilter = new();
+
+            ModellingVarianceAnalysis statusAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            ModellingVarianceResult statusResult = await statusAnalysis.AnalyseRulesVsModelledConnections(Connections, modellingFilter, false);
+
+            ClassicAssert.AreEqual(0, statusResult.ConnsNotImplemented.Count);
+            ClassicAssert.AreEqual(0, statusResult.RuleDifferences.Count);
+
+            ModellingVarianceAnalysis reportAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            ModellingVarianceResult reportResult = await reportAnalysis.AnalyseRulesVsModelledConnections(Connections, modellingFilter);
+
+            ClassicAssert.AreEqual(0, reportResult.ConnsNotImplemented.Count);
+            ClassicAssert.AreEqual(0, reportResult.RuleDifferences.Count);
         }
 
         [Test]

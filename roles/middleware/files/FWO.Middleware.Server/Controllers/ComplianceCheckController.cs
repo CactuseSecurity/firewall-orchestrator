@@ -5,8 +5,6 @@ using FWO.Compliance;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Logging;
-using FWO.Middleware.Server.Requests;
-using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,83 +12,15 @@ using Microsoft.AspNetCore.Mvc;
 namespace FWO.Middleware.Server.Controllers;
 
 /// <summary>
-/// Controller class for compliance zone resolution and compliance checks.
+/// Controller class for compliance checks.
 /// </summary>
 [Authorize]
 [ApiController]
 [Route("api/Compliance")]
 public class ComplianceCheckController(
     ApiConnection apiConnection,
-    ComplianceCheckStatusTracker complianceCheckStatusTracker,
-    ComplianceZoneService complianceZoneService) : ControllerBase
+    ComplianceCheckStatusTracker complianceCheckStatusTracker) : ControllerBase
 {
-    /// <summary>
-    /// Returns the network zones of the configured designated zone matrix.
-    /// </summary>
-    /// <returns>The matrix zones, or an empty list if no matrix is configured.</returns>
-    [HttpGet("DesignatedZoneMatrix/Zones")]
-    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
-    public async Task<ActionResult<List<ComplianceDesignatedZoneResponse>>> GetDesignatedZoneMatrixZones()
-    {
-        try
-        {
-            List<ComplianceDesignatedZoneResponse> zones = await complianceZoneService.GetDesignatedZoneMatrixZonesAsync();
-            return Ok(zones);
-        }
-        catch (Exception exception)
-        {
-            Log.WriteError("Get Designated Zone Matrix Zones", "Error while getting designated zone matrix zones.", exception);
-            return StatusCode(500);
-        }
-    }
-
-    /// <summary>
-    /// Returns the zones occupied by object trees.
-    /// </summary>
-    /// <param name="request">The object tree to resolve.</param>
-    [HttpPost("ResolveZonesForObjects")]
-    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
-    public async Task<ActionResult<List<ComplianceDesignatedZoneResponse>>> ResolveZonesForObjects([FromBody] ResolveZonesForObjectsRequest request)
-    {
-        if (!ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult))
-        {
-            return errorResult!;
-        }
-
-        try
-        {
-            return Ok(await complianceZoneService.ResolveZonesForObjectsAsync(request));
-        }
-        catch (Exception exception)
-        {
-            Log.WriteError("Resolve Zones For Objects", "Error while resolving object zones.", exception);
-            return StatusCode(500);
-        }
-    }
-
-    /// <summary>
-    /// Compliance Check
-    /// </summary>
-    /// <returns></returns>
-    [HttpGet("ComplianceCheck")]
-    [Authorize(Roles = $"{Roles.Admin}")]
-    public async Task<bool> InitialComplianceCheck()
-    {
-        try
-        {
-            GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
-            UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
-            ComplianceCheck complianceCheck = new(userConfig, apiConnection);
-            await complianceCheck.RunComplianceCheck(ComplianceCheckType.Variable);
-            await complianceCheck.PersistDataAsync();
-            return true;
-        }
-        catch (Exception)
-        {
-            return false;
-        }
-    }
-
     /// <summary>
     /// Starts an initial compliance check asynchronously.
     /// </summary>

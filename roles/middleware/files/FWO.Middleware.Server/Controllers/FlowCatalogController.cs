@@ -182,7 +182,7 @@ public class FlowCatalogController : ControllerBase
             return errorResult!;
         }
 
-        if (request.StartTime > request.EndTime)
+        if (request.StartTime.HasValue && request.EndTime.HasValue && request.StartTime > request.EndTime)
         {
             return BadRequest("'startTime' must be <= 'endTime'.");
         }

@@ -17,16 +17,14 @@ public sealed class GetTimeObjectIdRequest : IVisibleInRequestFilterRequest
     /// <summary>
     /// Gets the StartTime value.
     /// </summary>
-    [JsonRequired]
     [JsonPropertyName("startTime")]
-    public DateTimeOffset StartTime { get; set; }
+    public DateTimeOffset? StartTime { get; set; }
 
     /// <summary>
     /// Gets the EndTime value.
     /// </summary>
-    [JsonRequired]
     [JsonPropertyName("endTime")]
-    public DateTimeOffset EndTime { get; set; }
+    public DateTimeOffset? EndTime { get; set; }
 
     /// <summary>
     /// Gets the AdditionalData value.

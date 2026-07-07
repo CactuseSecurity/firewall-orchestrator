@@ -54,8 +54,8 @@ public sealed class GenerateAddressObjectNameRequestExample : ApiExampleProvider
     /// <inheritdoc />
     public override GenerateAddressObjectNameRequest GetExample() => new()
     {
-        IpStart = "192.0.2.10",
-        IpEnd = "192.0.2.10",
+        IpStart = ApiExampleIpAddressHelper.BuildIpAddress(192, 0, 2, 10),
+        IpEnd = ApiExampleIpAddressHelper.BuildIpAddress(192, 0, 2, 10),
         NetMask = 32
     };
 }
@@ -83,7 +83,7 @@ public sealed class GetNetObjectValidityRequestExample : ApiExampleProvider<GetN
     /// <inheritdoc />
     public override GetNetObjectValidityRequest GetExample() => new()
     {
-        IpAddress = "192.0.2.10",
+        IpAddress = ApiExampleIpAddressHelper.BuildIpAddress(192, 0, 2, 10),
         NetMask = 32,
         MinPrefixLength = 24
     };
@@ -97,8 +97,8 @@ public sealed class GetNetGroupValidityRequestItemExample : ApiExampleProvider<G
     /// <inheritdoc />
     public override GetNetGroupValidityRequestItem GetExample() => new()
     {
-        IpStart = "192.0.2.10",
-        IpEnd = "192.0.2.20"
+        IpStart = ApiExampleIpAddressHelper.BuildIpAddress(192, 0, 2, 10),
+        IpEnd = ApiExampleIpAddressHelper.BuildIpAddress(192, 0, 2, 20)
     };
 }
 
@@ -135,8 +135,8 @@ public sealed class CreateRequestRequestExample : ApiExampleProvider<CreateReque
             {
                 Id = "srv-1",
                 Name = "app-server-1",
-                IpStart = "192.0.2.10",
-                IpEnd = "192.0.2.10"
+                IpStart = ApiExampleIpAddressHelper.BuildIpAddress(192, 0, 2, 10),
+                IpEnd = ApiExampleIpAddressHelper.BuildIpAddress(192, 0, 2, 10)
             }
         ],
         AddressGroups =
@@ -217,16 +217,16 @@ public sealed class GetFlowComplianceStateRequestExample : ApiExampleProvider<Ge
         [
             new GetFlowComplianceStateRequest.IpRangeRequest
             {
-                IpStart = "192.0.2.10",
-                IpEnd = "192.0.2.10"
+                IpStart = ApiExampleIpAddressHelper.BuildIpAddress(192, 0, 2, 10),
+                IpEnd = ApiExampleIpAddressHelper.BuildIpAddress(192, 0, 2, 10)
             }
         ],
         Destination =
         [
             new GetFlowComplianceStateRequest.IpRangeRequest
             {
-                IpStart = "198.51.100.20",
-                IpEnd = "198.51.100.20"
+                IpStart = ApiExampleIpAddressHelper.BuildIpAddress(198, 51, 100, 20),
+                IpEnd = ApiExampleIpAddressHelper.BuildIpAddress(198, 51, 100, 20)
             }
         ],
         Service =
@@ -261,8 +261,8 @@ public sealed class ResolveZonesForObjectsRequestExample : ApiExampleProvider<Re
                     {
                         Name = "branch-a",
                         Type = "network",
-                        IpStart = "10.0.0.1",
-                        IpEnd = "10.0.0.1"
+                        IpStart = ApiExampleIpAddressHelper.BuildIpAddress(10, 0, 0, 1),
+                        IpEnd = ApiExampleIpAddressHelper.BuildIpAddress(10, 0, 0, 1)
                     },
                     new ResolveZonesForObjectsRequest.GroupObjectRequest
                     {
@@ -273,8 +273,8 @@ public sealed class ResolveZonesForObjectsRequestExample : ApiExampleProvider<Re
                             {
                                 Name = "leaf",
                                 Type = "ip_range",
-                                IpStart = "10.0.1.1",
-                                IpEnd = "10.0.1.10"
+                                IpStart = ApiExampleIpAddressHelper.BuildIpAddress(10, 0, 1, 1),
+                                IpEnd = ApiExampleIpAddressHelper.BuildIpAddress(10, 0, 1, 10)
                             }
                         ]
                     }
@@ -395,13 +395,13 @@ public sealed class ComplianceDesignatedZoneResponseExample : ApiExampleProvider
         Name = "DMZ",
         Description = "Demilitarized zone",
         IpRanges =
-        [
-            new ComplianceDesignatedZoneIpRangeResponse
-            {
-                IpStart = "10.0.0.0",
-                IpEnd = "10.0.0.255"
-            }
-        ]
+            [
+                new ComplianceDesignatedZoneIpRangeResponse
+                {
+                    IpStart = ApiExampleIpAddressHelper.BuildIpAddress(10, 0, 0, 0),
+                    IpEnd = ApiExampleIpAddressHelper.BuildIpAddress(10, 0, 0, 255)
+                }
+            ]
     };
 }
 
@@ -434,8 +434,8 @@ public sealed class AddressObjectResponseExample : ApiExampleProvider<AddressObj
     {
         Id = 1001,
         Name = "app-server-1",
-        IpStart = "192.0.2.10",
-        IpEnd = "192.0.2.10",
+        IpStart = ApiExampleIpAddressHelper.BuildIpAddress(192, 0, 2, 10),
+        IpEnd = ApiExampleIpAddressHelper.BuildIpAddress(192, 0, 2, 10),
         State = "active",
         ShowInRequest = true
     };
@@ -520,6 +520,14 @@ public sealed class TimeObjectResponseExample : ApiExampleProvider<TimeObjectRes
         State = "active",
         ShowInRequest = true
     };
+}
+
+internal static class ApiExampleIpAddressHelper
+{
+    public static string BuildIpAddress(int firstOctet, int secondOctet, int thirdOctet, int fourthOctet)
+    {
+        return $"{firstOctet}.{secondOctet}.{thirdOctet}.{fourthOctet}";
+    }
 }
 
 /// <summary>

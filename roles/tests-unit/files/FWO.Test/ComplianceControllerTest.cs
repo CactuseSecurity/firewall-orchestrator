@@ -20,7 +20,7 @@ namespace FWO.Test
         public void GetInitialComplianceCheckStatus_ReturnsNotFoundForUnknownJob()
         {
             DummyApiConnection apiConnection = new();
-            ComplianceController controller = new(apiConnection, new ComplianceCheckStatusTracker(), CreateZoneService(apiConnection));
+            ComplianceCheckController controller = new(apiConnection, new ComplianceCheckStatusTracker(), CreateZoneService(apiConnection));
 
             var result = controller.GetInitialComplianceCheckStatus("missing");
 
@@ -33,7 +33,7 @@ namespace FWO.Test
             ComplianceCheckStatusTracker tracker = new();
             tracker.CreateQueuedJob();
             DummyApiConnection apiConnection = new();
-            ComplianceController controller = new(apiConnection, tracker, CreateZoneService(apiConnection));
+            ComplianceCheckController controller = new(apiConnection, tracker, CreateZoneService(apiConnection));
 
             var result = controller.StartInitialComplianceCheck();
 
@@ -53,7 +53,7 @@ namespace FWO.Test
                     Description = "Demilitarized zone",
                     IPRanges = [new IPAddressRange(IPAddress.Parse("10.0.0.0"), IPAddress.Parse("10.0.0.255"))]
                 }]);
-            ComplianceController controller = new(apiConnection, new ComplianceCheckStatusTracker(), CreateZoneService(apiConnection, 12));
+            ComplianceCheckController controller = new(apiConnection, new ComplianceCheckStatusTracker(), CreateZoneService(apiConnection, 12));
 
             ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.GetDesignatedZoneMatrixZones();
 
@@ -78,7 +78,7 @@ namespace FWO.Test
                 [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
                 [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
                 [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }]);
-            ComplianceController controller = new(apiConnection, new ComplianceCheckStatusTracker(), CreateZoneService(apiConnection, 12));
+            ComplianceCheckController controller = new(apiConnection, new ComplianceCheckStatusTracker(), CreateZoneService(apiConnection, 12));
 
             _ = await controller.GetDesignatedZoneMatrixZones();
 
@@ -95,7 +95,7 @@ namespace FWO.Test
                 [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
                 [],
                 [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }]);
-            ComplianceController controller = new(apiConnection, new ComplianceCheckStatusTracker(), CreateZoneService(apiConnection, 12));
+            ComplianceCheckController controller = new(apiConnection, new ComplianceCheckStatusTracker(), CreateZoneService(apiConnection, 12));
 
             ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.GetDesignatedZoneMatrixZones();
 
@@ -112,7 +112,7 @@ namespace FWO.Test
         public async Task GetDesignatedZoneMatrixZones_ReturnsEmptyListWhenNoMatrixConfigured()
         {
             DummyApiConnection apiConnection = new();
-            ComplianceController controller = new(apiConnection, new ComplianceCheckStatusTracker(), CreateZoneService(apiConnection));
+            ComplianceCheckController controller = new(apiConnection, new ComplianceCheckStatusTracker(), CreateZoneService(apiConnection));
 
             ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.GetDesignatedZoneMatrixZones();
 
@@ -145,7 +145,7 @@ namespace FWO.Test
                         IPRanges = [new IPAddressRange(IPAddress.Parse("10.0.1.1"), IPAddress.Parse("10.0.1.1"))]
                     }
                 ]);
-            ComplianceController controller = new(apiConnection, new ComplianceCheckStatusTracker(), CreateZoneService(apiConnection, 12));
+            ComplianceCheckController controller = new(apiConnection, new ComplianceCheckStatusTracker(), CreateZoneService(apiConnection, 12));
 
             ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.ResolveZonesForObjects(new ResolveZonesForObjectsRequest
             {

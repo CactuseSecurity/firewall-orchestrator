@@ -6,11 +6,11 @@ using FWO.Compliance;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Logging;
-using FWO.Middleware.Server.Services;
+using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
+using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Text.Json;
 using FWO.Report;
 
 namespace FWO.Middleware.Server.Controllers
@@ -21,7 +21,10 @@ namespace FWO.Middleware.Server.Controllers
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
-    public class ComplianceController(ApiConnection apiConnection, ComplianceCheckStatusTracker complianceCheckStatusTracker) : ControllerBase
+    public class ComplianceController(
+        ApiConnection apiConnection,
+        ComplianceCheckStatusTracker complianceCheckStatusTracker,
+        ComplianceZoneService complianceZoneService) : ControllerBase
     {
         /// <summary>
         /// Import Compliance Matrix
@@ -87,12 +90,36 @@ namespace FWO.Middleware.Server.Controllers
         {
             try
             {
-                List<ComplianceDesignatedZoneResponse> zones = await LoadDesignatedZoneMatrixZonesAsync();
+                List<ComplianceDesignatedZoneResponse> zones = await complianceZoneService.GetDesignatedZoneMatrixZonesAsync();
                 return Ok(zones);
             }
             catch (Exception exception)
             {
                 Log.WriteError("Get Designated Zone Matrix Zones", "Error while getting designated zone matrix zones.", exception);
+                return StatusCode(500);
+            }
+        }
+
+        /// <summary>
+        /// Returns the zones occupied by draft flow network objects.
+        /// </summary>
+        /// <param name="request">The draft object tree to resolve.</param>
+        [HttpPost("ResolveZonesForObjects")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+        public async Task<ActionResult<List<ComplianceDesignatedZoneResponse>>> ResolveZonesForObjects([FromBody] GetZonesForDraftObjectsRequest request)
+        {
+            if (!GetZonesForDraftObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult))
+            {
+                return errorResult!;
+            }
+
+            try
+            {
+                return Ok(await complianceZoneService.ResolveZonesForObjectsAsync(request));
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Resolve Zones For Objects", "Error while resolving object zones.", exception);
                 return StatusCode(500);
             }
         }
@@ -182,53 +209,6 @@ namespace FWO.Middleware.Server.Controllers
             }
 
             return Ok(jobStatus);
-        }
-
-        /// <summary>
-        /// Loads the zones belonging to the configured designated matrix.
-        /// </summary>
-        private async Task<List<ComplianceDesignatedZoneResponse>> LoadDesignatedZoneMatrixZonesAsync()
-        {
-            GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, false);
-            if (globalConfig.ComplianceDesignatedZoneMatrixId <= 0)
-            {
-                return [];
-            }
-
-            List<ComplianceCriterion> designatedMatrices = await apiConnection.SendQueryAsync<List<ComplianceCriterion>>(
-                ComplianceQueries.getMatrixById,
-                new { criterionId = globalConfig.ComplianceDesignatedZoneMatrixId }) ?? [];
-
-            if (designatedMatrices.Count == 0)
-            {
-                return [];
-            }
-
-            List<ComplianceNetworkZone> zones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
-                ComplianceQueries.getNetworkZonesForMatrix,
-                new { criterionId = globalConfig.ComplianceDesignatedZoneMatrixId }) ?? [];
-
-            return zones.Select(MapDesignatedZoneResponse).ToList();
-        }
-
-        private static string ConvertOutput(List<(Rule, (ComplianceNetworkZone, ComplianceNetworkZone))> forbiddenCommunicationsOutput)
-        {
-            return JsonSerializer.Serialize(forbiddenCommunicationsOutput);
-        }
-
-        private static ComplianceDesignatedZoneResponse MapDesignatedZoneResponse(ComplianceNetworkZone zone)
-        {
-            return new ComplianceDesignatedZoneResponse
-            {
-                Id = zone.Id,
-                Name = zone.Name,
-                Description = zone.Description,
-                IpRanges = [.. zone.IPRanges.Select(ipRange => new ComplianceDesignatedZoneIpRangeResponse
-                {
-                    IpStart = ipRange.Begin.ToString(),
-                    IpEnd = ipRange.End.ToString()
-                })]
-            };
         }
     }
 }

@@ -46,6 +46,11 @@ public class ApiExampleCatalogTest
         Assert.That(json, Does.Contain("\"timeObjectId\""));
         Assert.That(json, Does.Not.Contain("\"RequestorName\""));
         Assert.That(json, Does.Not.Contain("\"TimeObjectId\""));
+
+        Assert.That(catalog.TryGetExample(typeof(GetZonesForDraftObjectsRequest), out object? zoneExample), Is.True);
+        string zoneJson = JsonSerializer.Serialize(zoneExample, zoneExample!.GetType(), serializerOptions);
+        Assert.That(zoneJson, Does.Contain("\"objects\""));
+        Assert.That(zoneJson, Does.Contain("\"members\""));
     }
 
     /// <summary>

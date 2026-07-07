@@ -23,6 +23,7 @@ public static class ApiExampleServiceCollectionExtensions
         services.AddSingleton<IApiExampleProvider, GetRequestStatusRequestExample>();
         services.AddSingleton<IApiExampleProvider, VisibleInRequestFilterExample>();
         services.AddSingleton<IApiExampleProvider, GetFlowComplianceStateRequestExample>();
+        services.AddSingleton<IApiExampleProvider, GetZonesForDraftObjectsRequestExample>();
         services.AddSingleton<IApiExampleProvider, GetOwnersRequestExample>();
         services.AddSingleton<IApiExampleProvider, GenerateAddressObjectNameResponseExample>();
         services.AddSingleton<IApiExampleProvider, GenerateServiceObjectNameResponseExample>();
@@ -31,6 +32,7 @@ public static class ApiExampleServiceCollectionExtensions
         services.AddSingleton<IApiExampleProvider, CreateRequestResponseExample>();
         services.AddSingleton<IApiExampleProvider, GetRequestStatusResponseExample>();
         services.AddSingleton<IApiExampleProvider, FlowComplianceStateResponseExample>();
+        services.AddSingleton<IApiExampleProvider, ComplianceDesignatedZoneResponseExample>();
         services.AddSingleton<IApiExampleProvider, GetPolicyIdsResponseExample>();
         services.AddSingleton<IApiExampleProvider, AddressObjectResponseExample>();
         services.AddSingleton<IApiExampleProvider, AddressGroupResponseExample>();
@@ -241,6 +243,50 @@ public sealed class GetFlowComplianceStateRequestExample : ApiExampleProvider<Ge
 }
 
 /// <summary>
+/// Provides a typed example for <see cref="GetZonesForDraftObjectsRequest"/>.
+/// </summary>
+public sealed class GetZonesForDraftObjectsRequestExample : ApiExampleProvider<GetZonesForDraftObjectsRequest>
+{
+    /// <inheritdoc />
+    public override GetZonesForDraftObjectsRequest GetExample() => new()
+    {
+        Objects =
+        [
+            new GetZonesForDraftObjectsRequest.DraftObjectRequest
+            {
+                Name = "preview-group",
+                Type = "group",
+                Members =
+                [
+                    new GetZonesForDraftObjectsRequest.DraftObjectRequest
+                    {
+                        Name = "branch-a",
+                        Type = "network",
+                        IpStart = "10.0.0.1",
+                        IpEnd = "10.0.0.1"
+                    },
+                    new GetZonesForDraftObjectsRequest.DraftObjectRequest
+                    {
+                        Name = "branch-b",
+                        Type = "group",
+                        Members =
+                        [
+                            new GetZonesForDraftObjectsRequest.DraftObjectRequest
+                            {
+                                Name = "leaf",
+                                Type = "ip_range",
+                                IpStart = "10.0.1.1",
+                                IpEnd = "10.0.1.10"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    };
+}
+
+/// <summary>
 /// Provides a typed example for <see cref="GetOwnersRequest"/>.
 /// </summary>
 public sealed class GetOwnersRequestExample : ApiExampleProvider<GetOwnersRequest>
@@ -334,6 +380,28 @@ public sealed class FlowComplianceStateResponseExample : ApiExampleProvider<Flow
             {
                 Id = 3,
                 Type = "missing-approval"
+            }
+        ]
+    };
+}
+
+/// <summary>
+/// Provides a typed example for <see cref="ComplianceDesignatedZoneResponse"/>.
+/// </summary>
+public sealed class ComplianceDesignatedZoneResponseExample : ApiExampleProvider<ComplianceDesignatedZoneResponse>
+{
+    /// <inheritdoc />
+    public override ComplianceDesignatedZoneResponse GetExample() => new()
+    {
+        Id = 7,
+        Name = "DMZ",
+        Description = "Demilitarized zone",
+        IpRanges =
+        [
+            new ComplianceDesignatedZoneIpRangeResponse
+            {
+                IpStart = "10.0.0.0",
+                IpEnd = "10.0.0.255"
             }
         ]
     };

@@ -3,6 +3,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Services.Workflow;
@@ -293,13 +294,19 @@ namespace FWO.Test
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
-                if (query == ConfigQueries.getConfigItemByKey && typeof(QueryResponseType) == typeof(List<GlobalStateMatrixHelper>))
+                if (query == ConfigQueries.getConfigItemByKey && typeof(QueryResponseType) == typeof(List<ConfigItem>))
                 {
                     QueryRoles.Add(ActiveRole);
-                    return Task.FromResult((QueryResponseType)(object)new List<GlobalStateMatrixHelper>
+                    return Task.FromResult((QueryResponseType)(object)new List<ConfigItem>
                     {
-                        new() { ConfData = CreateWorkflowConfigJson(approvalActive, planningActive) }
+                        new() { Value = CreateWorkflowConfigJson(approvalActive, planningActive) }
                     });
+                }
+
+                if (query == RequestQueries.getActiveStateMatrixConfiguration && typeof(QueryResponseType) == typeof(List<WorkflowConfiguration>))
+                {
+                    QueryRoles.Add(ActiveRole);
+                    return Task.FromResult((QueryResponseType)(object)StateMatrixConfigurationTestHelper.FromLegacyJson(CreateWorkflowConfigJson(approvalActive, planningActive)));
                 }
 
                 if (query == RequestQueries.getStates && typeof(QueryResponseType) == typeof(List<WfState>))

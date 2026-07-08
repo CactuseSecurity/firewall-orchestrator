@@ -206,6 +206,7 @@ namespace FWO.Test
                 IRenderedComponent<SettingsCustomizing> settings = wrapper.FindComponent<SettingsCustomizing>();
                 IRenderedComponent<FlowIntegration> flowIntegration = settings.FindComponent<FlowIntegration>();
                 Assert.That(settings.Markup, Does.Contain("flow_integration"));
+                Assert.That(settings.Markup, Does.Contain("cbx_visibility_based"));
                 Assert.That(settings.Markup, Does.Contain("cbx_consider_bundling"));
                 Assert.That(flowIntegration.Instance.ConfigValue, Is.EqualTo(configValue));
             });

@@ -201,10 +201,10 @@ namespace FWO.Test
                 GraphQLResponse<dynamic> response = new() { Data = states };
                 return response.Data;
             }
-            else if (responseType == typeof(List<GlobalStateMatrixHelper>))
+            else if (responseType == typeof(List<WorkflowConfiguration>))
             {
-                List<GlobalStateMatrixHelper> globalStateMatrixHelpers = [new() { ConfData = masterStateMatrix }];
-                GraphQLResponse<dynamic> response = new() { Data = globalStateMatrixHelpers };
+                List<WorkflowConfiguration> configurations = StateMatrixConfigurationTestHelper.FromLegacyJson(masterStateMatrix);
+                GraphQLResponse<dynamic> response = new() { Data = configurations };
                 return response.Data;
             }
             else if (responseType == typeof(List<WfTicket>))

@@ -39,7 +39,7 @@ namespace FWO.Report.Filter.Ast
             else // string search against dst obj name
             {
                 string QueryVarName = AddVariable<string>(query, "dst", Operator.Kind, Value.Text);
-                query.RuleWhereStatement += $"rule_tos: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }} }}";
+                query.RuleWhereStatement += $"rule_tos: {{ object: {{ {DirectOrFlatObjectFilter($"obj_name: {{ {ExtractOperator()}: ${QueryVarName} }}")} }} }}";
                 query.ConnectionWhereStatement += ConnWhere(QueryVarName, 2);
             }
         }
@@ -54,7 +54,7 @@ namespace FWO.Report.Filter.Ast
             else // string search against src obj name
             {
                 string QueryVarName = AddVariable<string>(query, "src", Operator.Kind, Value.Text);
-                query.RuleWhereStatement += $"rule_froms: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }} }}";
+                query.RuleWhereStatement += $"rule_froms: {{ object: {{ {DirectOrFlatObjectFilter($"obj_name: {{ {ExtractOperator()}: ${QueryVarName} }}")} }} }}";
                 query.ConnectionWhereStatement += ConnWhere(QueryVarName, 1);
             }
         }
@@ -130,31 +130,38 @@ namespace FWO.Report.Filter.Ast
             string ipFilterString =
                     $@" obj_ip_end: {{ _gte: ${QueryVarNameFirst1} }} 
                         obj_ip: {{ _lte: ${QueryVarNameLast2} }}";
+            string objectIpFilterString = DirectOrFlatObjectFilter(ipFilterString);
             query.RuleWhereStatement +=
                 $@" _or: [
                       {{
                         rule_{location}_neg: {{_eq: false}},
                         {locationTable}: {{
-                        _or: [{{_and: [{{negated: {{_eq: false}}}}, {{object: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterString} }}}}}}}}]}},
-                              {{_and: [{{negated: {{_eq: true}}}}, {{object: {{_not: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterString} }}}}}}}}}}]}}
+                        _or: [{{_and: [{{negated: {{_eq: false}}}}, {{object: {{ {objectIpFilterString} }}}}]}},
+                              {{_and: [{{negated: {{_eq: true}}}}, {{object: {{_not: {{ {objectIpFilterString} }}}}}}]}}
                         ]}}
                       }},
                       {{
                         rule_{location}_neg: {{_eq: true}},
                         {locationTable}: {{
-                        _or: [{{_and: [{{negated: {{_eq: false}}}}, {{object: {{_not: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterString} }}}}}}}}}}]}},
-                              {{_and: [{{negated: {{_eq: true}}}}, {{object: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterString} }}}}}}}}]}}
+                        _or: [{{_and: [{{negated: {{_eq: false}}}}, {{object: {{_not: {{ {objectIpFilterString} }}}}}}]}},
+                              {{_and: [{{negated: {{_eq: true}}}}, {{object: {{ {objectIpFilterString} }}}}]}}
                         ]}}
                       }},
                     ]
                 ";
             query.NwObjWhereStatement +=
                 $@" {locationTable}: {{
-                    _or: [{{_and: [{{negated: {{_eq: false}}}}, {{object: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterString} }}}}}}}}]}},
-                          {{_and: [{{negated: {{_eq: true}}}}, {{object: {{_not: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterString} }}}}}}}}}}]}}
+                    _or: [{{_and: [{{negated: {{_eq: false}}}}, {{object: {{ {objectIpFilterString} }}}}]}},
+                          {{_and: [{{negated: {{_eq: true}}}}, {{object: {{_not: {{ {objectIpFilterString} }}}}}}]}}
                     ]
                 }}";
             ExtractIpFilterForConn(query, location, QueryVarNameFirst1, QueryVarNameLast2);
+        }
+
+        private static string DirectOrFlatObjectFilter(string objectFilterString)
+        {
+            string filter = objectFilterString.Trim();
+            return $@"_or: [{{ {filter} }}, {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ {filter} }} }} }}]";
         }
 
         private static void ExtractIpFilterForConn(DynGraphqlQuery query, string location, string QueryVarNameFirst1, string QueryVarNameLast2)

@@ -201,7 +201,7 @@ namespace FWO.Services.Workflow
             MasterStateMatrix = stateMatrixDict.Matrices[WfTaskType.master.ToString()];
             if (fetchData)
             {
-                TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, allStates, fullTickets);
+                TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, allStates, fullTickets, GetVisibilityTicketFilter());
             }
             ReloadTasks = !fullTickets;
             PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(userConfig.ReqPriorities) ?? throw new JsonException("Config data could not be parsed.");
@@ -231,6 +231,15 @@ namespace FWO.Services.Workflow
                 DisplayMessageInUi(exception, userConfig.GetText("state_matrix"), "", true);
                 return new();
             }
+        }
+
+        public HashSet<int> GetWorkflowExclusiveVisibilityGroupIds()
+        {
+            HashSet<int> exclusiveVisibilityGroupIds = stateMatrixDict.Matrices.Values
+                .SelectMany(matrix => matrix.ExclusiveVisibilityGroupIds)
+                .ToHashSet();
+            exclusiveVisibilityGroupIds.UnionWith(MasterStateMatrix.ExclusiveVisibilityGroupIds);
+            return exclusiveVisibilityGroupIds;
         }
 
         public void SetContinueEnv(ObjAction action)

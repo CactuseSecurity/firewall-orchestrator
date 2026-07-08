@@ -1,0 +1,8 @@
+mutation createWorkflowVisibilityGroup($name: String!, $description: String) {
+  create_visibility_group: insert_request_workflow_visibility_group_one(object: {
+    name: $name
+    description: $description
+  }) {
+    newId: id
+  }
+}

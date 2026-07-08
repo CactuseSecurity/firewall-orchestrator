@@ -743,10 +743,7 @@ namespace FWO.Test
                 {
                     new() { Id = 1, Name = ExtStates.Done.ToString(), StateId = 0 }
                 },
-                string q when q == ConfigQueries.getConfigItemByKey => new List<GlobalStateMatrixHelper>
-                {
-                    new() { ConfData = kEmptyStateMatrixConfig }
-                },
+                string q when q == RequestQueries.getActiveStateMatrixConfiguration => StateMatrixConfigurationTestHelper.FromLegacyJson(kEmptyStateMatrixConfig),
                 string q when q == RequestQueries.replaceExtStates => new ReturnId
                 {
                     AffectedRows = 1

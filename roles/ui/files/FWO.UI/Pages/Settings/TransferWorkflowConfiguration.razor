@@ -1,0 +1,238 @@
+@using System.Text
+@using System.Text.Json
+
+@inject ApiConnection apiConnection
+@inject IJSRuntime jsRuntime
+@inject UserConfig userConfig
+
+<PopUp Title="@Title" Show="@Display" Size=PopupSize.Medium OnClose="ClosePopup">
+    <Body>
+        @if (Display && ImportMode)
+        {
+            <div class="form-group row mb-3">
+                <label class="col-sm-4 col-form-label col-form-label-sm" for="workflow-configuration-file">@(userConfig.GetText("select_file")):</label>
+                <div class="col-sm-8">
+                    <InputFile id="workflow-configuration-file" accept=".json,application/json" OnChange="LoadImportFile" />
+                </div>
+            </div>
+            @if (importPackage != null)
+            {
+                <div class="form-group row mb-2">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                    <div class="col-sm-8"><input class="form-control form-control-sm" @bind="importName" /></div>
+                </div>
+                <div class="form-group row mb-2">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("configuration")):</label>
+                    <div class="col-sm-8 col-form-label col-form-label-sm">@importPackage.Configuration.Name</div>
+                </div>
+                <div class="form-group row mb-2">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("phases")):</label>
+                    <div class="col-sm-8 col-form-label col-form-label-sm">@importPackage.Configuration.Phases.Count</div>
+                </div>
+                <div class="form-group row mb-2">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("transition_groups")):</label>
+                    <div class="col-sm-8 col-form-label col-form-label-sm">@importPackage.TransitionGroups.Count</div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("visibility_groups")):</label>
+                    <div class="col-sm-8 col-form-label col-form-label-sm">@(importPackage.VisibilityGroups?.Count ?? 0)</div>
+                </div>
+            }
+        }
+        else if (Display)
+        {
+            <div class="form-group row mb-2">
+                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("configuration")):</label>
+                <div class="col-sm-8 col-form-label col-form-label-sm">@SelectedConfiguration?.Name</div>
+            </div>
+            <div class="form-check">
+                <input id="include-visibility-groups" class="form-check-input" type="checkbox" @bind="includeVisibilityGroups" />
+                <label class="form-check-label" for="include-visibility-groups">@(userConfig.GetText("include_visibility_groups"))</label>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if (ImportMode)
+            {
+                <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                    <Authorized>
+                        <button type="button" class="btn btn-sm btn-primary" disabled="@(!CanImport || working)" @onclick="Import">
+                            @(DisplayService.DisplayButton(userConfig, "import", Icons.Import))
+                        </button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "import", Icons.Import))</button>
+                    </NotAuthorized>
+                </ExecutionModeAuthorizeView>
+            }
+            else
+            {
+                <button type="button" class="btn btn-sm btn-primary" disabled="@(SelectedConfiguration == null || working)" @onclick="Export">
+                    @(DisplayService.DisplayButton(userConfig, "export", Icons.Export))
+                </button>
+            }
+            <button type="button" class="btn btn-sm btn-secondary" disabled="@working" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    private const long kMaximumPackageSize = 5 * 1024 * 1024;
+    private const string kInvalidFileNameCharacters = "\"*/:<>?\\|";
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public bool ImportMode { get; set; }
+
+    [Parameter]
+    public int SelectedConfigurationId { get; set; }
+
+    [Parameter]
+    public List<WorkflowConfiguration> ExistingConfigurations { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<int> ConfigurationImported { get; set; }
+
+    private WorkflowConfigurationTransferPackage? importPackage;
+    private string importName = "";
+    private bool includeVisibilityGroups;
+    private bool working;
+    private bool wasDisplayed;
+    private WorkflowConfiguration? SelectedConfiguration => ExistingConfigurations.FirstOrDefault(configuration => configuration.Id == SelectedConfigurationId);
+    private bool CanImport => importPackage != null && !string.IsNullOrWhiteSpace(importName)
+        && !ExistingConfigurations.Any(configuration => string.Equals(configuration.Name, importName.Trim(), StringComparison.OrdinalIgnoreCase));
+    private string Title => userConfig.GetText(ImportMode ? "import_configuration" : "export_configuration");
+
+    protected override void OnParametersSet()
+    {
+        if (Display && !wasDisplayed)
+        {
+            importPackage = null;
+            importName = "";
+            includeVisibilityGroups = false;
+            working = false;
+        }
+        wasDisplayed = Display;
+    }
+
+    /// <summary>
+    /// Reads and deserializes a selected workflow configuration package.
+    /// </summary>
+    private async Task LoadImportFile(InputFileChangeEventArgs args)
+    {
+        try
+        {
+            await using Stream stream = args.File.OpenReadStream(kMaximumPackageSize);
+            importPackage = await JsonSerializer.DeserializeAsync<WorkflowConfigurationTransferPackage>(stream, JsonOptions())
+                ?? throw new InvalidDataException("The workflow configuration package is empty.");
+            WorkflowConfigurationTransferService.ValidateStructure(importPackage);
+            importName = SuggestedImportName(importPackage.Configuration.Name);
+        }
+        catch (Exception exception)
+        {
+            importPackage = null;
+            importName = "";
+            DisplayMessageInUi(exception, userConfig.GetText("import_configuration"), "", true);
+        }
+    }
+
+    /// <summary>
+    /// Downloads the selected configuration as a portable JSON package.
+    /// </summary>
+    private async Task Export()
+    {
+        if (SelectedConfiguration == null)
+        {
+            return;
+        }
+        try
+        {
+            working = true;
+            WorkflowConfigurationTransferService service = new(apiConnection);
+            WorkflowConfigurationTransferPackage package = await service.Export(SelectedConfiguration.Id, includeVisibilityGroups);
+            byte[] content = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(package, JsonOptions()));
+            await jsRuntime.InvokeVoidAsync("DownloadFile", FileName(SelectedConfiguration.Name), "application/json", content);
+            await Close();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("export_configuration"), "", true);
+        }
+        finally
+        {
+            working = false;
+        }
+    }
+
+    /// <summary>
+    /// Imports the loaded package as a new inactive configuration.
+    /// </summary>
+    private async Task Import()
+    {
+        if (!CanImport || importPackage == null)
+        {
+            return;
+        }
+        try
+        {
+            working = true;
+            WorkflowConfigurationTransferService service = new(apiConnection);
+            int configurationId = await service.Import(importPackage, importName);
+            await ConfigurationImported.InvokeAsync(configurationId);
+            await Close();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("import_configuration"), "", true);
+        }
+        finally
+        {
+            working = false;
+        }
+    }
+
+    private string SuggestedImportName(string packageName)
+    {
+        string baseName = string.IsNullOrWhiteSpace(packageName) ? userConfig.GetText("imported_configuration") : packageName.Trim();
+        if (!ExistingConfigurations.Any(configuration => string.Equals(configuration.Name, baseName, StringComparison.OrdinalIgnoreCase)))
+        {
+            return baseName;
+        }
+        int suffix = 2;
+        while (ExistingConfigurations.Any(configuration => string.Equals(configuration.Name, $"{baseName}-{suffix}", StringComparison.OrdinalIgnoreCase)))
+        {
+            suffix++;
+        }
+        return $"{baseName}-{suffix}";
+    }
+
+    private static JsonSerializerOptions JsonOptions() => new()
+    {
+        PropertyNameCaseInsensitive = true,
+        WriteIndented = true
+    };
+
+    private static string FileName(string configurationName)
+    {
+        string safeName = string.Concat(configurationName.Select(character => character < 32 || kInvalidFileNameCharacters.Contains(character) ? '_' : character));
+        return $"{safeName}.fwo-workflow.json";
+    }
+
+    private async Task Close()
+    {
+        Display = false;
+        await DisplayChanged.InvokeAsync(false);
+    }
+
+    private void ClosePopup() => _ = Close();
+}

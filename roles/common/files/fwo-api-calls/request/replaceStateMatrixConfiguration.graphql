@@ -1,0 +1,45 @@
+mutation replaceStateMatrixConfiguration(
+  $removedDerivedStates: [request_state_matrix_derived_state_bool_exp!]!
+  $removedTransitions: [request_state_matrix_transition_bool_exp!]!
+  $phaseMatrices: [request_state_matrix_phase_insert_input!]!
+  $derivedStates: [request_state_matrix_derived_state_insert_input!]!
+  $transitions: [request_state_matrix_transition_insert_input!]!
+) {
+  update_phases: insert_request_state_matrix_phase(
+    objects: $phaseMatrices
+    on_conflict: {
+      constraint: state_matrix_phase_pkey
+      update_columns: [active, lowest_input_state, lowest_start_state, lowest_end_state]
+    }
+  ) {
+    affected_rows
+  }
+  delete_derived_states: delete_request_state_matrix_derived_state(
+    where: {_or: $removedDerivedStates}
+  ) {
+    affected_rows
+  }
+  upsert_derived_states: insert_request_state_matrix_derived_state(
+    objects: $derivedStates
+    on_conflict: {
+      constraint: state_matrix_derived_state_pkey
+      update_columns: [derived_state_id]
+    }
+  ) {
+    affected_rows
+  }
+  delete_transitions: delete_request_state_matrix_transition(
+    where: {_or: $removedTransitions}
+  ) {
+    affected_rows
+  }
+  upsert_transitions: insert_request_state_matrix_transition(
+    objects: $transitions
+    on_conflict: {
+      constraint: state_matrix_transition_pkey
+      update_columns: [sort_order]
+    }
+  ) {
+    affected_rows
+  }
+}

@@ -867,9 +867,9 @@ namespace FWO.Test
             {
                 return Task.FromResult((QueryResponseType)(object)States);
             }
-            if (typeof(QueryResponseType) == typeof(List<GlobalStateMatrixHelper>) && query == ConfigQueries.getConfigItemByKey)
+            if (typeof(QueryResponseType) == typeof(List<WorkflowConfiguration>) && query == RequestQueries.getActiveStateMatrixConfiguration)
             {
-                return Task.FromResult((QueryResponseType)(object)new List<GlobalStateMatrixHelper> { new() { ConfData = stateMatrix } });
+                return Task.FromResult((QueryResponseType)(object)StateMatrixConfigurationTestHelper.FromLegacyJson(stateMatrix));
             }
             if (typeof(QueryResponseType) == typeof(List<WfTicket>) && query == RequestQueries.getFullTicketsPaged)
             {

@@ -67,6 +67,22 @@ namespace FWO.Test
             Assert.That(apiConnection.Queries, Does.Not.Contain(ConfigQueries.getConfigItemByKey));
         }
 
+        [Test]
+        public void SynchronizeUiUserContext_WhenWorkflowVisibilityGroupsCannotBeResolved_Throws()
+        {
+            FailingVisibilityApiConnection apiConnection = new();
+            UiUser user = new()
+            {
+                Name = "user1",
+                Dn = "uid=user1,ou=users,dc=example,dc=com"
+            };
+
+            InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await UiUserHandler.SynchronizeUiUserContext(apiConnection, user))!;
+
+            Assert.That(exception.Message, Does.Contain("Workflow visibility groups could not be determined"));
+        }
+
         private sealed class OwnershipApiConnection : SimulatedApiConnection
         {
             public List<string> Queries { get; } = [];
@@ -79,6 +95,31 @@ namespace FWO.Test
                     string value when value == OwnerQueries.getOwnersForUser => new List<FwoOwner> { new() { Id = 1 } },
                     string value when value == OwnerQueries.getOwnersFromGroups => new List<FwoOwner> { new() { Id = 2 } },
                     string value when value == OwnerQueries.getOwnersForDnsWithRecertification => new List<FwoOwner> { new() { Id = 3 } },
+                    _ => throw new AssertionException($"Unexpected query: {query}")
+                };
+                return Task.FromResult((QueryResponseType)result);
+            }
+        }
+
+        private sealed class FailingVisibilityApiConnection : SimulatedApiConnection
+        {
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                object result = query switch
+                {
+                    string value when value == AuthQueries.getUserByDn => new UiUser[]
+                    {
+                        new()
+                        {
+                            DbId = 42,
+                            Name = "user1",
+                            Dn = "uid=user1,ou=users,dc=example,dc=com"
+                        }
+                    },
+                    string value when value == AuthQueries.updateUserLastLogin => new ReturnId { PasswordMustBeChanged = false },
+                    string value when value == OwnerQueries.getOwnersForUser => new List<FwoOwner>(),
+                    string value when value == OwnerQueries.getOwnersForDnsWithRecertification => new List<FwoOwner>(),
+                    string value when value == RequestQueries.getWorkflowVisibilityGroups => throw new InvalidOperationException("visibility lookup failed"),
                     _ => throw new AssertionException($"Unexpected query: {query}")
                 };
                 return Task.FromResult((QueryResponseType)result);

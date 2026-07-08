@@ -1,4 +1,5 @@
 @using FWO.Ui.Services
+@using FWO.Data
 @using System.Text.Json
 
 @page "/settings/statematrix"
@@ -7,8 +8,11 @@
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
+@inject NavigationManager navigationManager
 
-@if(InitComplete)
+<NavigationLock ConfirmExternalNavigation="@HasUnsavedChanges" OnBeforeInternalNavigation="OnBeforeInternalNavigation" />
+
+@if(InitComplete && HasCompleteMatrix)
 {
     <div class="input-group">
         <h3>@(userConfig.GetText("state_matrix"))</h3>
@@ -17,7 +21,55 @@
 
     @(userConfig.GetText("U5316"))
     <hr />
-    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5541"))">
+    <div class="form-group row mb-2">
+        <div class="col-sm-12">
+            <div class="d-flex flex-wrap gap-1">
+                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditVisibilityGroupsMode = true">
+                    @(DisplayService.DisplayButton(userConfig, "edit_visibility_groups", Icons.Edit, "", Icons.UserGroup))
+                </button>
+                <button type="button" class="btn btn-sm btn-warning" @onclick="OpenTransitionGroupManager">
+                    @(DisplayService.DisplayButton(userConfig, "edit_transition_groups", Icons.Edit, "", Icons.Matrix))
+                </button>
+                <button type="button" class="btn btn-sm btn-success" @onclick="OpenAddConfiguration">
+                    @(DisplayService.DisplayButton(userConfig, "add_configuration", Icons.Add))
+                </button>
+                <button type="button" class="btn btn-sm btn-primary" @onclick="() => OpenConfigurationTransfer(false)">
+                    @(DisplayService.DisplayButton(userConfig, "export_configuration", Icons.Export))
+                </button>
+                <button type="button" class="btn btn-sm btn-primary" @onclick="() => OpenConfigurationTransfer(true)">
+                    @(DisplayService.DisplayButton(userConfig, "import_configuration", Icons.Import))
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="form-group row">
+        <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("configuration")):</label>
+        <div class="col-sm-3">
+            <Dropdown ElementType="int" SelectedElement="selectedConfigurationId" SelectedElementChanged="ChangeConfiguration" ElementToString="ConfigurationDisplayName" Elements="configurationIds">
+                <ElementTemplate Context="configurationId">
+                    @ConfigurationDisplayName(configurationId)
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+        @if (SelectedConfiguration is { IsActive: false })
+        {
+            <div class="col-sm-4">
+                <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                    <Authorized>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="SetSelectedConfigurationActive">
+                                @(DisplayService.DisplayButton(userConfig, "set_active", Icons.Check))
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => DeleteConfigurationMode = true">
+                                @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))
+                            </button>
+                        </div>
+                    </Authorized>
+                </ExecutionModeAuthorizeView>
+            </div>
+        }
+    </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5541"))">
         <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("type")):</label>
         <div class="col-sm-3">
             <Dropdown ElementType="WfTaskType" SelectedElement="actTaskType" SelectedElementChanged="ChangeTaskType" ElementToString="@(t => userConfig.GetText(t.ToString()))" Elements="availableTaskTypes" >
@@ -26,6 +78,19 @@
                 </ElementTemplate>
             </Dropdown>
         </div>
+        @if (HasUnsavedChanges)
+        {
+            <div class="col-sm-2">
+                <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                    <Authorized>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="InitSaveMatrix" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                    </NotAuthorized>
+                </ExecutionModeAuthorizeView>
+            </div>
+        }
     </div>
 
     @foreach (WorkflowPhases phase in Enum.GetValues(typeof(WorkflowPhases)))
@@ -39,43 +104,79 @@
         </div>
         @if(actStateMatrix.GlobalMatrix[phase].Active)
         {
-            <h5>@(userConfig.GetText("allowed_transitions"))</h5>
-            <button type="button" class="btn btn-sm btn-success" @onclick="() => AddStateToPhase(phase)">@(DisplayService.DisplayButton(userConfig, "add_state", Icons.Add))</button>
-
-            <div class="m-2 vheight75" data-toggle="tooltip" title="@(userConfig.PureLine("H5543"))">
-                <Table class="table table-bordered th-bg-secondary table-responsive vheight75 overflow-auto sticky-header" TableItem="KeyValuePair<int,List<int>>" Items="actStateMatrix.GlobalMatrix[phase].Matrix" PageSize="0" ColumnReorder="true">
-                    <Column TableItem="KeyValuePair<int,List<int>>" Title="@(userConfig.GetText("action"))" Field="(x => x.Key)" Sortable="false" Filterable="false">
+            <div class="d-flex">
+                <h5 class="mb-0 col-sm-2">@(userConfig.GetText("transition_groups"))</h5>
+                <button type="button" class="btn btn-sm btn-success" @onclick="() => OpenLinkTransitionGroup(phase)">
+                    @(DisplayService.DisplayButton(userConfig, "link_transition_group", Icons.Add))
+                </button>
+            </div>
+            <div class="m-2" data-toggle="tooltip" title="@(userConfig.PureLine("transition_groups"))">
+                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="StateMatrixTransitionGroup" Items="GetPhaseTransitionGroups(phase)" PageSize="0" ColumnReorder="true">
+                    <Column TableItem="StateMatrixTransitionGroup" Title="@(userConfig.GetText("action"))" Field="@(group => group.Id)" Sortable="false" Filterable="false">
                         <Template>
                             <div class="btn-group">
-                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditTargetStates(phase, context.Key)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
-                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveStateFromPhase(phase, context.Key)">@(DisplayService.DisplayButton(userConfig, "remove", Icons.Delete))</button>
+                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditTransitionGroup(context)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => RequestUnlinkTransitionGroup(phase, context)">@(DisplayService.DisplayButton(userConfig, "remove", Icons.Unlink))</button>
+                                @if (CanDeleteTransitionGroup(context))
+                                {
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteTransitionGroup(context)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                                }
                             </div>
                         </Template>
                     </Column>
-                    <Column TableItem="KeyValuePair<int,List<int>>" Title="@(userConfig.GetText("from_state"))" Field="@(x => x.Key)" Sortable="true" Filterable="true" >
+                    <Column TableItem="StateMatrixTransitionGroup" Title="@(userConfig.GetText("name"))" Field="@(group => group.Name)" Sortable="true" Filterable="true" />
+                    <Column TableItem="StateMatrixTransitionGroup" Title="@(userConfig.GetText("visibility_group"))" Field="@(group => group.VisibilityGroupId)" Sortable="true" Filterable="false">
                         <Template>
-                            @statesDict.Name[context.Key]
+                            @(context.VisibilityGroup?.Name ?? "-")
                         </Template>
                     </Column>
-                    <Column TableItem="KeyValuePair<int,List<int>>" Title="@(userConfig.GetText("to_states"))" Field="@(x => x.Key)" Sortable="false" Filterable="false">
+                    <Column TableItem="StateMatrixTransitionGroup" Title="@(userConfig.GetText("exclusive"))" Field="@(group => group.Exclusive)" Sortable="true" Filterable="false">
                         <Template>
-                            @TargetStateList(actStateMatrix.GlobalMatrix[phase].Matrix[context.Key])
+                            @RenderExclusiveFlag(context)
                         </Template>
                     </Column>
-                    <Column TableItem="KeyValuePair<int,List<int>>" Title="@(userConfig.GetText("derived_state"))" Field="@(x => x.Key)" Sortable="false" Filterable="false">
-                        <Template>
-                            @(actStateMatrix.GlobalMatrix[phase].DerivedStates.ContainsKey(context.Key) ? statesDict.Name[actStateMatrix.GlobalMatrix[phase].DerivedStates[context.Key]] : "")
-                        </Template>
-                    </Column>
+                    <Column TableItem="StateMatrixTransitionGroup" Title="@(userConfig.GetText("using_phases"))" Field="@(group => group.PhaseMatrixUsageCount)" Sortable="true" Filterable="false" />
+                    <Column TableItem="StateMatrixTransitionGroup" Title="@(userConfig.GetText("transitions"))" Field="@(group => group.TransitionCount)" Sortable="true" Filterable="false" />
                 </Table>
             </div>
+            <div class="d-flex">
+                <h5 class="mb-0 col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5544"))">@(userConfig.GetText("derived_states"))</h5>
+                <button type="button" class="btn btn-sm btn-success" disabled="@(!CanAddDerivedState(phase))" @onclick="() => AddDerivedState(phase)">
+                    @(DisplayService.DisplayButton(userConfig, "add_derived_state", Icons.Add))
+                </button>
+            </div>
+            @if (HasDerivedStates(phase))
+            {
+                <div class="m-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5544"))">
+                    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto" TableItem="KeyValuePair<int, int>" Items="GetDerivedStates(phase)" PageSize="0" ColumnReorder="false">
+                        <Column TableItem="KeyValuePair<int, int>" Title="@(userConfig.GetText("action"))" Field="@(mapping => mapping.Key)" Sortable="false" Filterable="false">
+                            <Template>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditDerivedState(phase, context)">
+                                        @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveDerivedState(phase, context.Key)">
+                                        @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))
+                                    </button>
+                                </div>
+                            </Template>
+                        </Column>
+                        <Column TableItem="KeyValuePair<int, int>" Title="@(userConfig.GetText("from_state"))" Field="@(mapping => mapping.Key)" Sortable="true" Filterable="false">
+                            <Template>@StateDisplayName(context.Key)</Template>
+                        </Column>
+                        <Column TableItem="KeyValuePair<int, int>" Title="@(userConfig.GetText("derived_state"))" Field="@(mapping => mapping.Value)" Sortable="true" Filterable="false">
+                            <Template>@StateDisplayName(context.Value)</Template>
+                        </Column>
+                    </Table>
+                </div>
+            }
             <h5 data-toggle="tooltip" title="@(userConfig.PureLine("H5545"))">@(userConfig.GetText("special_states"))</h5>
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5551"))">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_input_state")):</label>
                 <div class="col-sm-3">
-                    <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[phase].LowestInputState" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
+                    <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[phase].LowestInputState" ElementToString="StateDisplayName" Elements="stateIds" >
                         <ElementTemplate Context="stateId">
-                            @stateNames[stateId]
+                            @StateDisplayName(stateId)
                         </ElementTemplate>
                     </Dropdown>
                 </div>
@@ -83,9 +184,9 @@
             <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5552"))">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_started_state")):</label>
                 <div class="col-sm-3">
-                    <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[phase].LowestStartedState" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
+                    <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[phase].LowestStartedState" ElementToString="StateDisplayName" Elements="stateIds" >
                         <ElementTemplate Context="stateId">
-                            @stateNames[stateId]
+                            @StateDisplayName(stateId)
                         </ElementTemplate>
                     </Dropdown>
                 </div>
@@ -93,72 +194,68 @@
             <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5553"))">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_end_state")):</label>
                 <div class="col-sm-3">
-                    <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[phase].LowestEndState" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
+                    <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[phase].LowestEndState" ElementToString="StateDisplayName" Elements="stateIds" >
                         <ElementTemplate Context="stateId">
-                            @stateNames[stateId]
+                            @StateDisplayName(stateId)
                         </ElementTemplate>
                     </Dropdown>
                 </div>
             </div>
         }
     }
-    <hr />
-    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
-        <Authorized>
-            <button type="button" class="btn btn-sm btn-primary" @onclick="InitSaveMatrix" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
-            <button type="button" class="btn btn-sm btn-danger" @onclick="InitResetMatrix" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "reset_to_default", Icons.Refresh))</button>
-        </Authorized>
-        <NotAuthorized>
-            <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
-            <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, "reset_to_default", Icons.Refresh))</button>
-        </NotAuthorized> 
-    </ExecutionModeAuthorizeView>
-    <br><br>
-
-    <PopUp Title="@(userConfig.GetText("edit_state") + ": " + statesDict.Name[actStateId])" Show="@EditTargetStatesMode" Size=PopupSize.Medium OnClose="() => EditTargetStatesMode = false">
+    <PopUp Title="@(userConfig.GetText("link_transition_group") + ": " + userConfig.GetText(linkTransitionGroupPhase.ToString()))" Show="@LinkTransitionGroupMode" Size=PopupSize.Small OnClose="() => LinkTransitionGroupMode = false">
         <Body>
-            @if (EditTargetStatesMode)
+            @if (LinkTransitionGroupMode)
             {
-                <h6 data-toggle="tooltip" title="@(userConfig.PureLine("H5543"))"><b>@(userConfig.GetText("allowed_transitions"))</b></h6>
-                <button type="button" class="btn btn-sm btn-success" @onclick="AddStateToTargetStates">@(DisplayService.DisplayButton(userConfig, "add_state", Icons.Add))</button>
-                <br><br>
-                @foreach(var stateId in actToStateIds)
+                @if (linkableTransitionGroupIds.Count > 0)
                 {
-                    <div class="form-group row mt-2">
-                        <label class="col-sm-6 col-form-label col-form-label-sm">@statesDict.Name[stateId]</label>
-                        <div class="col-sm-6">
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => DeleteStateId(stateId)">@(DisplayService.DisplayButton(userConfig, "remove", Icons.Delete))</button>
-                        </div>
-                    </div>
-                }
-                <hr />
-                <h6 data-toggle="tooltip" title="@(userConfig.PureLine("H5544"))"><b>@(userConfig.GetText("derived_state"))</b></h6>
-                <div class="col-sm-9">
-                    <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[actPhase].DerivedStates[actStateId]" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
-                        <ElementTemplate Context="stateId">
-                            @stateNames[stateId]
+                    <Dropdown ElementType="int" @bind-SelectedElement="selectedTransitionGroupId" Elements="linkableTransitionGroupIds" ElementToString="TransitionGroupName">
+                        <ElementTemplate Context="transitionGroupId">
+                            @TransitionGroupName(transitionGroupId)
                         </ElementTemplate>
                     </Dropdown>
-                </div>
+                }
+                else
+                {
+                    <span>@userConfig.GetText("no_transition_groups_available")</span>
+                }
             }
         </Body>
         <Footer>
             <div class="btn-group">
-                <button type="button" class="btn btn-sm btn-primary" @onclick="ApplyEditTargetStates">@(DisplayService.DisplayButton(userConfig, "ok", Icons.Confirm))</button>
+                <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                    <Authorized>
+                        <button type="button" class="btn btn-sm btn-primary" disabled="@(selectedTransitionGroupId == 0)" @onclick="LinkTransitionGroup">
+                            @(DisplayService.DisplayButton(userConfig, "link", Icons.Add))
+                        </button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "link", Icons.Add))</button>
+                    </NotAuthorized>
+                </ExecutionModeAuthorizeView>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => LinkTransitionGroupMode = false">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
             </div>
         </Footer>
     </PopUp>
-
-    <PopUp Title="@(userConfig.GetText("select_state"))" Show="@SelectStateMode" Size=PopupSize.Small OnClose="() => SelectStateMode = false">
+    <PopUp Title="@DerivedStateEditorTitle" Show="@EditDerivedStateMode" Size=PopupSize.Small OnClose="CloseDerivedStateEditor">
         <Body>
-            @if (SelectStateMode)
+            @if (EditDerivedStateMode)
             {
-                <div class="col-sm-9">
-                    <Dropdown ElementType="int" @bind-SelectedElement="stateIdToAdd" ElementToString="@(s => stateNames[s])" Elements="stateIds" >
-                        <ElementTemplate Context="stateId">
-                            @stateNames[stateId]
-                        </ElementTemplate>
-                    </Dropdown>
+                <div class="form-group row mb-2">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("from_state")):</label>
+                    <div class="col-sm-8">
+                        <Dropdown ElementType="int" @bind-SelectedElement="selectedDerivedFromStateId" ElementToString="StateDisplayName" Elements="stateIds">
+                            <ElementTemplate Context="stateId">@StateDisplayName(stateId)</ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("derived_state")):</label>
+                    <div class="col-sm-8">
+                        <Dropdown ElementType="int" @bind-SelectedElement="selectedDerivedStateId" ElementToString="StateDisplayName" Elements="stateIds">
+                            <ElementTemplate Context="stateId">@StateDisplayName(stateId)</ElementTemplate>
+                        </Dropdown>
+                    </div>
                 </div>
             }
         </Body>
@@ -166,19 +263,36 @@
             <div class="btn-group">
                 <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                     <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="ApplySelection">@(DisplayService.DisplayButton(userConfig, "select", Icons.Select))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled="@(!CanSaveDerivedState)" @onclick="SaveDerivedState">
+                            @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+                        </button>
                     </Authorized>
                     <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "select", Icons.Select))</button>
-                    </NotAuthorized> 
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                    </NotAuthorized>
                 </ExecutionModeAuthorizeView>
-                <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelSelect">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseDerivedStateEditor">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
             </div>
         </Footer>
     </PopUp>
-
     <Confirm @bind-Display="SaveMatrixMode" PerformAction="SaveMatrix" Title="@(userConfig.GetText("save_settings"))" Message="@(userConfig.GetText("U5315"))" />
-    <Confirm @bind-Display="ResetMatrixMode" PerformAction="ResetMatrix" Title="@(userConfig.GetText("reset_to_default"))" Message="@(userConfig.GetText("U5318"))" />
+    <Confirm Display="DiscardChangesMode" DisplayChanged="DiscardChangesDisplayChanged" PerformAction="ConfirmDiscardChanges"
+             AllowedRoles="@($"{Roles.Admin}, {Roles.Auditor}")" Title="@(userConfig.GetText("unsaved_changes"))"
+             Message="@(userConfig.GetText("discard_unsaved_changes"))" />
+    <EditWorkflowVisibilityGroups @bind-Display="EditVisibilityGroupsMode" />
+    <EditStateMatrixTransitionGroups @bind-Display="EditTransitionGroupsMode" States="states" TransitionGroupsChanged="RefreshTransitionGroups"
+                                     TransitionGroupIdToEdit="transitionGroupIdToEdit" />
+    <AddWorkflowConfiguration @bind-Display="AddConfigurationMode" ExistingConfigurations="workflowConfigurations"
+                              StateIds="stateIds" ConfigurationCreated="SelectCreatedConfiguration" />
+    <TransferWorkflowConfiguration @bind-Display="TransferConfigurationMode" ImportMode="transferImportMode"
+                                   SelectedConfigurationId="selectedConfigurationId" ExistingConfigurations="workflowConfigurations"
+                                   ConfigurationImported="SelectCreatedConfiguration" />
+    <ConfirmDelete @bind-Display="DeleteConfigurationMode" PerformAction="DeleteSelectedConfiguration" AllowedRoles="@Roles.Admin"
+                   Title="@userConfig.GetText("delete_configuration")" DeleteMessage="@DeleteConfigurationMessage" />
+    <ConfirmDelete @bind-Display="DeleteTransitionGroupMode" PerformAction="DeleteSelectedTransitionGroup" AllowedRoles="@Roles.Admin"
+                   Title="@userConfig.GetText("delete_transition_group")" DeleteMessage="@DeleteTransitionGroupMessage" />
+    <ConfirmDelete @bind-Display="UnlinkTransitionGroupMode" PerformAction="UnlinkSelectedTransitionGroup" AllowedRoles="@Roles.Admin" Remove="true"
+                   Title="@userConfig.GetText("unlink_transition_group")" DeleteMessage="@UnlinkTransitionGroupMessage" />
 }
 else
 {
@@ -193,30 +307,73 @@ else
     private List<WfState> states = [];
     private List<int> stateIds = [];
     private Dictionary<int,string> stateNames = [];
-    private List<int> actToStateIds = [];
-    private List<WfState> availableStates = [];
-    private WfStateDict statesDict = new ();
 
     private GlobalStateMatrix actStateMatrix = new ();
+    private List<StateMatrixTransitionGroup> transitionGroups = [];
+    private List<WorkflowConfiguration> workflowConfigurations = [];
+    private List<int> configurationIds = [];
+    private int selectedConfigurationId;
+    private WorkflowConfiguration? SelectedConfiguration => workflowConfigurations.FirstOrDefault(configuration => configuration.Id == selectedConfigurationId);
 
-    private int actStateId = 0;
-    private int stateIdToAdd = 0;
-    private WorkflowPhases actPhase = new ();
+    private int? transitionGroupIdToEdit;
+    private StateMatrixTransitionGroup transitionGroupToDelete = new();
+    private StateMatrixTransitionGroup transitionGroupToUnlink = new();
+    private WorkflowPhases linkTransitionGroupPhase;
+    private WorkflowPhases unlinkTransitionGroupPhase;
+    private List<int> linkableTransitionGroupIds = [];
+    private int selectedTransitionGroupId;
 
-    private bool SelectStateMode = false;
     private bool SaveMatrixMode = false;
-    private bool ResetMatrixMode = false;
-    private bool EditTargetStatesMode = false;
+    private bool EditVisibilityGroupsMode = false;
+    private bool EditTransitionGroupsMode = false;
+    private bool AddConfigurationMode = false;
+    private bool TransferConfigurationMode = false;
+    private bool transferImportMode;
+    private bool DeleteConfigurationMode = false;
+    private bool DeleteTransitionGroupMode = false;
+    private bool LinkTransitionGroupMode = false;
+    private bool UnlinkTransitionGroupMode = false;
+    private bool EditDerivedStateMode = false;
+    private bool DiscardChangesMode = false;
+    private bool bypassNavigationGuard;
+    private Func<Task>? pendingDiscardAction;
+    private Action? pendingDiscardCancellation;
+    private WorkflowPhases derivedStatePhase;
+    private int? originalDerivedFromStateId;
+    private int selectedDerivedFromStateId;
+    private int selectedDerivedStateId;
     private WfTaskType actTaskType = WfTaskType.master;
     private List<WfTaskType> availableTaskTypes { get; set; } = [];
     private bool InitComplete = false;
+    private bool HasCompleteMatrix => actStateMatrix.GlobalMatrix != null && Enum.GetValues<WorkflowPhases>().All(phase =>
+        actStateMatrix.GlobalMatrix.TryGetValue(phase, out StateMatrix? matrix) && matrix != null);
+    private bool HasUnsavedChanges => InitComplete && actStateMatrix.HasUnsavedChanges();
 
     protected override async Task OnInitializedAsync()
     {
         await RefreshStates();
+        await RefreshConfigurations();
         await InitMatrix();
         availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new JsonException("Config data could not be parsed.");
         InitComplete = true;
+    }
+
+    private async Task RefreshConfigurations(int? configurationIdToSelect = null)
+    {
+        try
+        {
+            workflowConfigurations = await apiConnection.SendQueryAsync<List<WorkflowConfiguration>>(RequestQueries.getWorkflowConfigurations);
+            RefreshConfigurationIds();
+            WorkflowConfiguration selectedConfiguration = configurationIdToSelect.HasValue
+                ? workflowConfigurations.Single(configuration => configuration.Id == configurationIdToSelect.Value)
+                : workflowConfigurations.SingleOrDefault(configuration => configuration.IsActive)
+                    ?? throw new InvalidOperationException("No active workflow configuration found.");
+            selectedConfigurationId = selectedConfiguration.Id;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
     }
 
     private async Task RefreshStates()
@@ -229,20 +386,31 @@ else
                 stateIds.Add(state.Id);
                 stateNames.Add(state.Id,state.Name);
             }
-            statesDict = new ();
-            await statesDict.Init(apiConnection);
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
+
+    /// <summary>
+    /// Formats a state for selection in the state matrix.
+    /// </summary>
+    private string StateDisplayName(int stateId) => $"{stateNames[stateId]} ({stateId})";
 
     private async Task InitMatrix()
     {
         try
         {
-            await actStateMatrix.Init(apiConnection, actTaskType);
+            if (SelectedConfiguration != null)
+            {
+                await actStateMatrix.Init(apiConnection, actTaskType, SelectedConfiguration.Name);
+            }
+            else
+            {
+                await actStateMatrix.Init(apiConnection, actTaskType);
+            }
+            await RefreshTransitionGroups();
         }
         catch (Exception exception)
         {
@@ -250,87 +418,383 @@ else
         }
     }
 
-    private async Task ChangeTaskType(WfTaskType taskType)
+    private Task ChangeConfiguration(int configurationId)
     {
-        actTaskType = taskType;
+        if (configurationId == selectedConfigurationId)
+        {
+            return Task.CompletedTask;
+        }
+        int previousConfigurationId = selectedConfigurationId;
+        selectedConfigurationId = configurationId;
+        return ExecuteOrConfirmDiscard(InitMatrix, () => selectedConfigurationId = previousConfigurationId);
+    }
+
+    private Task SelectCreatedConfiguration(int configurationId) => ExecuteOrConfirmDiscard(async () =>
+    {
+        await RefreshConfigurations(configurationId);
         await InitMatrix();
-    }
+    });
 
-    public string TargetStateList(List<int> statesIn)
+    private async Task OpenAddConfiguration()
     {
-        List<string> statesOut = [];
-        foreach(int state in statesIn)
+        if (!HasUnsavedChanges)
         {
-            statesOut.Add(statesDict.Name[state]);
+            AddConfigurationMode = true;
+            return;
         }
-        return string.Join(", ", statesOut);
-    }
-
-    private void AddStateToPhase(WorkflowPhases phase)
-    {
-        actPhase = phase;
-        availableStates = [];
-        foreach(var state in states.Where(x => !actStateMatrix.GlobalMatrix[actPhase].Matrix.ContainsKey(x.Id)))
+        await ExecuteOrConfirmDiscard(async () =>
         {
-            availableStates.Add(state);
-        }
-        stateIdToAdd = (availableStates.Count > 0 ? availableStates.First().Id : 0);
-        SelectStateMode = true;
+            await InitMatrix();
+            AddConfigurationMode = true;
+        });
     }
 
-    private void ApplySelection()
+    private async Task OpenConfigurationTransfer(bool importMode)
     {
-        if(EditTargetStatesMode)
+        if (!HasUnsavedChanges)
         {
-            actToStateIds.Add(stateIdToAdd);
+            transferImportMode = importMode;
+            TransferConfigurationMode = true;
+            return;
         }
-        else
+        await ExecuteOrConfirmDiscard(async () =>
         {
-            actStateMatrix.GlobalMatrix[actPhase].Matrix.Add(stateIdToAdd, new List<int>());
-            actStateMatrix.GlobalMatrix[actPhase].DerivedStates.Add(stateIdToAdd, stateIdToAdd);
-        }
-        SelectStateMode = false;
+            await InitMatrix();
+            transferImportMode = importMode;
+            TransferConfigurationMode = true;
+        });
     }
 
-    private void EditTargetStates(WorkflowPhases phase, int key)
+    private string ConfigurationDisplayName(int configurationId)
     {
-        actPhase = phase;
-        actStateId = key;
-        actToStateIds = actStateMatrix.GlobalMatrix[actPhase].Matrix[actStateId];
-        EditTargetStatesMode = true;
-    }
-    
-    private void AddStateToTargetStates()
-    {
-        availableStates = [];
-        foreach(var state in states.Where(x => !actStateMatrix.GlobalMatrix[actPhase].Matrix[actStateId].Contains(x.Id)))
+        WorkflowConfiguration? configuration = workflowConfigurations.FirstOrDefault(item => item.Id == configurationId);
+        if (configuration == null)
         {
-            availableStates.Add(state);
+            return "";
         }
-        stateIdToAdd = (availableStates.Count > 0 ? availableStates.First().Id : 0);
-        SelectStateMode = true;
+        return configuration.IsActive
+            ? $"{configuration.Name} ({userConfig.GetText("active")})"
+            : configuration.Name;
     }
 
-    private void DeleteStateId(int state)
+    private async Task SetSelectedConfigurationActive()
     {
-        actToStateIds.Remove(state);
+        WorkflowConfiguration? selectedConfiguration = SelectedConfiguration;
+        if (selectedConfiguration == null || selectedConfiguration.IsActive)
+        {
+            return;
+        }
+        try
+        {
+            await apiConnection.SendQueryAsync<object>(RequestQueries.setActiveWorkflowConfiguration, new { configurationId = selectedConfiguration.Id });
+            foreach (WorkflowConfiguration configuration in workflowConfigurations)
+            {
+                configuration.IsActive = configuration.Id == selectedConfiguration.Id;
+            }
+            RefreshConfigurationIds();
+            DisplayMessageInUi(null, userConfig.GetText("save_settings"), userConfig.GetText("U5301"), false);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("save_settings"), "", true);
+        }
     }
 
-    private void ApplyEditTargetStates()
+    private string DeleteConfigurationMessage => $"{userConfig.GetText("delete_configuration_message")} {SelectedConfiguration?.Name}?";
+
+    private async Task DeleteSelectedConfiguration()
     {
-        actStateMatrix.GlobalMatrix[actPhase].Matrix[actStateId] = actToStateIds;
-        EditTargetStatesMode = false;
+        WorkflowConfiguration? selectedConfiguration = SelectedConfiguration;
+        if (selectedConfiguration == null || selectedConfiguration.IsActive)
+        {
+            return;
+        }
+        try
+        {
+            List<WorkflowConfigurationPhase> phaseMappings = await apiConnection.SendQueryAsync<List<WorkflowConfigurationPhase>>(
+                RequestQueries.getWorkflowConfigurationPhaseMappings, new { configurationId = selectedConfiguration.Id });
+            List<int> phaseMatrixIds = phaseMappings.Select(mapping => mapping.PhaseMatrixId).Distinct().ToList();
+            ReturnId result = await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteWorkflowConfiguration, new
+            {
+                id = selectedConfiguration.Id,
+                phaseMatrixIds
+            });
+            if (result.AffectedRows != 1)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("delete_configuration"), userConfig.GetText("active_configuration_cannot_be_deleted"), true);
+                return;
+            }
+            await RefreshConfigurations();
+            await InitMatrix();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete_configuration"), "", true);
+        }
     }
 
-    private void RemoveStateFromPhase(WorkflowPhases phase, int key)
+    private void RefreshConfigurationIds()
     {
-        actStateMatrix.GlobalMatrix[phase].Matrix.Remove(key);
-        actStateMatrix.GlobalMatrix[phase].DerivedStates.Remove(key);
+        configurationIds = workflowConfigurations
+            .OrderByDescending(configuration => configuration.IsActive)
+            .ThenBy(configuration => configuration.Name)
+            .Select(configuration => configuration.Id)
+            .ToList();
     }
 
-    private void CancelSelect()
+    private Task ChangeTaskType(WfTaskType taskType)
     {
-        SelectStateMode = false;
+        if (taskType == actTaskType)
+        {
+            return Task.CompletedTask;
+        }
+        WfTaskType previousTaskType = actTaskType;
+        actTaskType = taskType;
+        return ExecuteOrConfirmDiscard(InitMatrix, () => actTaskType = previousTaskType);
+    }
+
+    /// <summary>
+    /// Reloads separately persisted transition groups without replacing deferred matrix edits.
+    /// </summary>
+    private async Task RefreshTransitionGroups()
+    {
+        transitionGroups = await apiConnection.SendQueryAsync<List<StateMatrixTransitionGroup>>(RequestQueries.getStateMatrixTransitionGroups);
+        foreach (StateMatrixPhaseBinding binding in actStateMatrix.PhaseBindings.Values)
+        {
+            List<int> linkedGroupIds = transitionGroups
+                .SelectMany(group => group.PhaseMatrixUsages
+                    .Where(usage => usage.PhaseMatrixId == binding.PhaseMatrixId)
+                    .Select(usage => new { group.Id, usage.SortOrder }))
+                .OrderBy(usage => usage.SortOrder)
+                .Select(usage => usage.Id)
+                .ToList();
+            binding.TransitionGroupIds.Clear();
+            binding.TransitionGroupIds.AddRange(linkedGroupIds);
+        }
+    }
+
+    private List<StateMatrixTransitionGroup> GetPhaseTransitionGroups(WorkflowPhases phase)
+    {
+        if (!actStateMatrix.PhaseBindings.TryGetValue(phase, out StateMatrixPhaseBinding? binding))
+        {
+            return [];
+        }
+        Dictionary<int, StateMatrixTransitionGroup> groupsById = transitionGroups.ToDictionary(group => group.Id);
+        return binding.TransitionGroupIds
+            .Where(groupsById.ContainsKey)
+            .Select(groupId => groupsById[groupId])
+            .ToList();
+    }
+
+    private void OpenTransitionGroupManager()
+    {
+        transitionGroupIdToEdit = null;
+        EditTransitionGroupsMode = true;
+    }
+
+    private void EditTransitionGroup(StateMatrixTransitionGroup group)
+    {
+        transitionGroupIdToEdit = group.Id;
+        EditTransitionGroupsMode = true;
+    }
+
+    private void OpenLinkTransitionGroup(WorkflowPhases phase)
+    {
+        linkTransitionGroupPhase = phase;
+        HashSet<int> linkedGroupIds = actStateMatrix.PhaseBindings[phase].TransitionGroupIds.ToHashSet();
+        linkableTransitionGroupIds = transitionGroups
+            .Where(group => !linkedGroupIds.Contains(group.Id) &&
+                (string.IsNullOrWhiteSpace(group.Phase) || string.Equals(group.Phase, phase.ToString(), StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(group => group.Name)
+            .Select(group => group.Id)
+            .ToList();
+        selectedTransitionGroupId = linkableTransitionGroupIds.FirstOrDefault();
+        LinkTransitionGroupMode = true;
+    }
+
+    private string TransitionGroupName(int transitionGroupId) => transitionGroups.FirstOrDefault(group => group.Id == transitionGroupId)?.Name ?? "";
+
+    private static Microsoft.AspNetCore.Components.MarkupString RenderExclusiveFlag(StateMatrixTransitionGroup group)
+    {
+        return group.VisibilityGroupId.HasValue
+            ? group.Exclusive.ShowAsHtml()
+            : new Microsoft.AspNetCore.Components.MarkupString("");
+    }
+
+    /// <summary>
+    /// Returns the explicitly configured, non-identity derived-state mappings of a phase.
+    /// </summary>
+    private List<KeyValuePair<int, int>> GetDerivedStates(WorkflowPhases phase) => actStateMatrix.GlobalMatrix[phase].DerivedStates
+        .Where(mapping => mapping.Key != mapping.Value)
+        .OrderBy(mapping => mapping.Key)
+        .ToList();
+
+    /// <summary>
+    /// Determines whether a phase has mappings that should be displayed.
+    /// </summary>
+    private bool HasDerivedStates(WorkflowPhases phase) => actStateMatrix.GlobalMatrix[phase].DerivedStates.Any(mapping => mapping.Key != mapping.Value);
+
+    /// <summary>
+    /// Determines whether another input-state mapping can be added to a phase.
+    /// </summary>
+    private bool CanAddDerivedState(WorkflowPhases phase) => stateIds.Count > 1 && stateIds.Any(stateId =>
+        !actStateMatrix.GlobalMatrix[phase].DerivedStates.TryGetValue(stateId, out int derivedStateId) || stateId == derivedStateId);
+
+    /// <summary>
+    /// Opens the editor with the first input state not already mapped explicitly.
+    /// </summary>
+    private void AddDerivedState(WorkflowPhases phase)
+    {
+        List<int> availableInputStateIds = stateIds.Where(stateId =>
+            !actStateMatrix.GlobalMatrix[phase].DerivedStates.TryGetValue(stateId, out int derivedStateId) || stateId == derivedStateId).ToList();
+        if (availableInputStateIds.Count == 0)
+        {
+            return;
+        }
+        derivedStatePhase = phase;
+        originalDerivedFromStateId = null;
+        selectedDerivedFromStateId = availableInputStateIds[0];
+        selectedDerivedStateId = stateIds.First(stateId => stateId != selectedDerivedFromStateId);
+        EditDerivedStateMode = true;
+    }
+
+    /// <summary>
+    /// Opens an existing derived-state mapping for editing.
+    /// </summary>
+    private void EditDerivedState(WorkflowPhases phase, KeyValuePair<int, int> mapping)
+    {
+        derivedStatePhase = phase;
+        originalDerivedFromStateId = mapping.Key;
+        selectedDerivedFromStateId = mapping.Key;
+        selectedDerivedStateId = mapping.Value;
+        EditDerivedStateMode = true;
+    }
+
+    private string DerivedStateEditorTitle => $"{userConfig.GetText(originalDerivedFromStateId.HasValue ? "edit_derived_state" : "add_derived_state")}: {userConfig.GetText(derivedStatePhase.ToString())}";
+
+    private bool CanSaveDerivedState => stateIds.Contains(selectedDerivedFromStateId)
+        && stateIds.Contains(selectedDerivedStateId)
+        && selectedDerivedFromStateId != selectedDerivedStateId
+        && (!actStateMatrix.GlobalMatrix[derivedStatePhase].DerivedStates.TryGetValue(selectedDerivedFromStateId, out int existingDerivedStateId)
+            || existingDerivedStateId == selectedDerivedFromStateId
+            || originalDerivedFromStateId == selectedDerivedFromStateId);
+
+    /// <summary>
+    /// Applies the edited sparse mapping to the in-memory phase matrix.
+    /// </summary>
+    private void SaveDerivedState()
+    {
+        if (!CanSaveDerivedState)
+        {
+            return;
+        }
+        Dictionary<int, int> derivedStates = actStateMatrix.GlobalMatrix[derivedStatePhase].DerivedStates;
+        if (originalDerivedFromStateId.HasValue && originalDerivedFromStateId.Value != selectedDerivedFromStateId)
+        {
+            derivedStates.Remove(originalDerivedFromStateId.Value);
+        }
+        derivedStates[selectedDerivedFromStateId] = selectedDerivedStateId;
+        CloseDerivedStateEditor();
+    }
+
+    /// <summary>
+    /// Removes an explicit mapping so the input state is derived to itself again.
+    /// </summary>
+    private void RemoveDerivedState(WorkflowPhases phase, int fromStateId) => actStateMatrix.GlobalMatrix[phase].DerivedStates.Remove(fromStateId);
+
+    private void CloseDerivedStateEditor()
+    {
+        EditDerivedStateMode = false;
+        originalDerivedFromStateId = null;
+    }
+
+    private async Task LinkTransitionGroup()
+    {
+        if (selectedTransitionGroupId == 0 || !actStateMatrix.PhaseBindings.TryGetValue(linkTransitionGroupPhase, out StateMatrixPhaseBinding? binding))
+        {
+            return;
+        }
+        try
+        {
+            int sortOrder = transitionGroups
+                .SelectMany(group => group.PhaseMatrixUsages)
+                .Where(usage => usage.PhaseMatrixId == binding.PhaseMatrixId)
+                .Select(usage => usage.SortOrder)
+                .DefaultIfEmpty(-1)
+                .Max() + 1;
+            await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.linkStateMatrixTransitionGroup, new
+            {
+                phaseMatrixId = binding.PhaseMatrixId,
+                transitionGroupId = selectedTransitionGroupId,
+                sortOrder
+            });
+            LinkTransitionGroupMode = false;
+            await RefreshTransitionGroups();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("link_transition_group"), "", true);
+        }
+    }
+
+    private void RequestUnlinkTransitionGroup(WorkflowPhases phase, StateMatrixTransitionGroup group)
+    {
+        unlinkTransitionGroupPhase = phase;
+        transitionGroupToUnlink = group;
+        UnlinkTransitionGroupMode = true;
+    }
+
+    private string UnlinkTransitionGroupMessage => $"{userConfig.GetText("unlink_transition_group_message")} {transitionGroupToUnlink.Name}?";
+
+    private async Task UnlinkSelectedTransitionGroup()
+    {
+        if (!actStateMatrix.PhaseBindings.TryGetValue(unlinkTransitionGroupPhase, out StateMatrixPhaseBinding? binding))
+        {
+            return;
+        }
+        try
+        {
+            await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.unlinkStateMatrixTransitionGroup, new
+            {
+                phaseMatrixId = binding.PhaseMatrixId,
+                transitionGroupId = transitionGroupToUnlink.Id
+            });
+            await RefreshTransitionGroups();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("unlink_transition_group"), "", true);
+        }
+    }
+
+    private void RequestDeleteTransitionGroup(StateMatrixTransitionGroup group)
+    {
+        if (!CanDeleteTransitionGroup(group))
+        {
+            return;
+        }
+        transitionGroupToDelete = group;
+        DeleteTransitionGroupMode = true;
+    }
+
+    /// <summary>
+    /// Allows deleting a transition group from a phase only when no other phase matrix uses it.
+    /// </summary>
+    private static bool CanDeleteTransitionGroup(StateMatrixTransitionGroup group) => group.PhaseMatrixUsageCount == 1;
+
+    private string DeleteTransitionGroupMessage => $"{userConfig.GetText("delete_transition_group_message")} {transitionGroupToDelete.Name}?";
+
+    private async Task DeleteSelectedTransitionGroup()
+    {
+        try
+        {
+            await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteStateMatrixTransitionGroup, new { id = transitionGroupToDelete.Id });
+            await RefreshTransitionGroups();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete_transition_group"), "", true);
+        }
     }
 
     private void InitSaveMatrix()
@@ -343,57 +807,72 @@ else
         try
         {
             SaveMatrixMode = false;
-            string matrixKey = actTaskType switch
-            {
-                WfTaskType.master => "reqMasterStateMatrix",
-                WfTaskType.generic => "reqGenStateMatrix",
-                WfTaskType.access => "reqAccStateMatrix",
-                WfTaskType.rule_delete => "reqRulDelStateMatrix",
-                WfTaskType.rule_modify => "reqRulModStateMatrix",
-                WfTaskType.group_create => "reqGrpCreStateMatrix",
-                WfTaskType.group_modify => "reqGrpModStateMatrix",
-                WfTaskType.group_delete => "reqGrpDelStateMatrix",
-                WfTaskType.new_interface => "reqNewIntStateMatrix",
-                _ => throw new NotSupportedException($"Error: wrong task type:" + actTaskType.ToString()),
-            };
-
-            ConfigItem item = new ConfigItem 
-            { 
-                Key = matrixKey, 
-                Value = JsonSerializer.Serialize(actStateMatrix),
-                User = 0 
-            };
-            await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertConfigItem, item);
-            DisplayMessageInUi(null, userConfig.GetText("save_settings"), userConfig.GetText("U5301"), false);             
+            await actStateMatrix.Save(apiConnection);
+            DisplayMessageInUi(null, userConfig.GetText("save_settings"), userConfig.GetText("U5301"), false);
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("save_settings"), "", true);
         }
     }
-        
-    private void CancelSaveMatrix()
+
+    private async Task ExecuteOrConfirmDiscard(Func<Task> action, Action? cancellation = null)
     {
-        SaveMatrixMode = false;
-        ResetMatrixMode = false;
+        if (!HasUnsavedChanges)
+        {
+            await action();
+            return;
+        }
+        pendingDiscardAction = action;
+        pendingDiscardCancellation = cancellation;
+        DiscardChangesMode = true;
     }
 
-    private void InitResetMatrix()
+    private async Task ConfirmDiscardChanges()
     {
-        ResetMatrixMode = true;
+        Func<Task>? action = pendingDiscardAction;
+        pendingDiscardAction = null;
+        pendingDiscardCancellation = null;
+        DiscardChangesMode = false;
+        if (action != null)
+        {
+            await action();
+        }
     }
 
-    private async Task ResetMatrix()
+    private Task DiscardChangesDisplayChanged(bool display)
     {
-        try
+        DiscardChangesMode = display;
+        if (!display)
         {
-            ResetMatrixMode = false;
-            await actStateMatrix.Init(apiConnection, actTaskType, true);
-            await SaveMatrix();           
+            pendingDiscardCancellation?.Invoke();
+            pendingDiscardAction = null;
+            pendingDiscardCancellation = null;
         }
-        catch (Exception exception)
+        return Task.CompletedTask;
+    }
+
+    private async Task OnBeforeInternalNavigation(LocationChangingContext context)
+    {
+        if (bypassNavigationGuard)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("reset_to_default"), "", true);
+            bypassNavigationGuard = false;
+            return;
         }
+        if (!HasUnsavedChanges)
+        {
+            return;
+        }
+        context.PreventNavigation();
+        string targetLocation = context.TargetLocation;
+        pendingDiscardAction = () =>
+        {
+            bypassNavigationGuard = true;
+            navigationManager.NavigateTo(targetLocation);
+            return Task.CompletedTask;
+        };
+        pendingDiscardCancellation = null;
+        DiscardChangesMode = true;
+        await InvokeAsync(StateHasChanged);
     }
 }

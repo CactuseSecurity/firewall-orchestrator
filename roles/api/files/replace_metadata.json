@@ -1811,23 +1811,6 @@
               ],
               "select_permissions": [
                 {
-                  "role": "middleware-server",
-                  "permission": {
-                    "columns": [
-                      "nwobj_id",
-                      "show_in_request_module",
-                      "name",
-                      "nwobj_hash",
-                      "state",
-                      "ip_end",
-                      "ip_start",
-                      "removed_date"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
                   "role": "approver",
                   "permission": {
                     "columns": [
@@ -1846,6 +1829,23 @@
                 },
                 {
                   "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "nwobj_id",
+                      "show_in_request_module",
+                      "name",
+                      "nwobj_hash",
+                      "state",
+                      "ip_end",
+                      "ip_start",
+                      "removed_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "nwobj_id",
@@ -2163,24 +2163,6 @@
               ],
               "select_permissions": [
                 {
-                  "role": "middleware-server",
-                  "permission": {
-                    "columns": [
-                      "svcobj_id",
-                      "show_in_request_module",
-                      "name",
-                      "state",
-                      "svcobj_hash",
-                      "ip_proto_id",
-                      "port_end",
-                      "port_start",
-                      "removed_date"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
                   "role": "approver",
                   "permission": {
                     "columns": [
@@ -2200,6 +2182,24 @@
                 },
                 {
                   "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "svcobj_id",
+                      "show_in_request_module",
+                      "name",
+                      "state",
+                      "svcobj_hash",
+                      "ip_proto_id",
+                      "port_end",
+                      "port_start",
+                      "removed_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "svcobj_id",
@@ -2338,23 +2338,6 @@
               ],
               "select_permissions": [
                 {
-                  "role": "middleware-server",
-                  "permission": {
-                    "columns": [
-                      "timeobj_id",
-                      "show_in_request_module",
-                      "name",
-                      "state",
-                      "timeobj_hash",
-                      "end_time",
-                      "removed_date",
-                      "start_time"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
                   "role": "approver",
                   "permission": {
                     "columns": [
@@ -2373,6 +2356,23 @@
                 },
                 {
                   "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "timeobj_id",
+                      "show_in_request_module",
+                      "name",
+                      "state",
+                      "timeobj_hash",
+                      "end_time",
+                      "removed_date",
+                      "start_time"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "timeobj_id",
@@ -2526,24 +2526,6 @@
               ],
               "select_permissions": [
                 {
-                  "role": "recertifier",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "object_id",
-                      "changer",
-                      "change_text",
-                      "app_id",
-                      "change_type",
-                      "object_type",
-                      "change_time",
-                      "change_source"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -2573,6 +2555,24 @@
                 },
                 {
                   "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "object_id",
+                      "changer",
+                      "change_text",
+                      "app_id",
+                      "change_type",
+                      "object_type",
+                      "change_time",
+                      "change_source"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
                   "permission": {
                     "columns": [
                       "id",
@@ -2750,35 +2750,6 @@
               ],
               "select_permissions": [
                 {
-                  "role": "recertifier",
-                  "permission": {
-                    "columns": [
-                      "ticket_id",
-                      "common_service",
-                      "is_interface",
-                      "is_published",
-                      "is_requested",
-                      "removed",
-                      "requested_on_fw",
-                      "conn_prop",
-                      "creator",
-                      "extra_params",
-                      "interface_permission",
-                      "name",
-                      "app_id",
-                      "id",
-                      "proposed_app_id",
-                      "used_interface_id",
-                      "reason",
-                      "creation_date",
-                      "removal_date"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  },
-                  "comment": ""
-                },
-                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -2837,6 +2808,35 @@
                 },
                 {
                   "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "ticket_id",
+                      "common_service",
+                      "is_interface",
+                      "is_published",
+                      "is_requested",
+                      "removed",
+                      "requested_on_fw",
+                      "conn_prop",
+                      "creator",
+                      "extra_params",
+                      "interface_permission",
+                      "name",
+                      "app_id",
+                      "id",
+                      "proposed_app_id",
+                      "used_interface_id",
+                      "reason",
+                      "creation_date",
+                      "removal_date"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
                   "permission": {
                     "columns": [
                       "ticket_id",
@@ -3201,18 +3201,6 @@
               ],
               "select_permissions": [
                 {
-                  "role": "recertifier",
-                  "permission": {
-                    "columns": [
-                      "nwgroup_id",
-                      "connection_field",
-                      "connection_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -3238,6 +3226,18 @@
                 },
                 {
                   "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "nwgroup_id",
+                      "connection_field",
+                      "connection_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
                   "permission": {
                     "columns": [
                       "nwgroup_id",
@@ -3294,18 +3294,6 @@
               ],
               "select_permissions": [
                 {
-                  "role": "recertifier",
-                  "permission": {
-                    "columns": [
-                      "nwobject_id",
-                      "connection_field",
-                      "connection_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -3331,6 +3319,18 @@
                 },
                 {
                   "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "nwobject_id",
+                      "connection_field",
+                      "connection_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
                   "permission": {
                     "columns": [
                       "nwobject_id",
@@ -3510,17 +3510,6 @@
               ],
               "select_permissions": [
                 {
-                  "role": "recertifier",
-                  "permission": {
-                    "columns": [
-                      "connection_id",
-                      "app_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -3533,6 +3522,17 @@
                 },
                 {
                   "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "connection_id",
+                      "app_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
                   "permission": {
                     "columns": [
                       "connection_id",
@@ -3771,22 +3771,6 @@
               ],
               "select_permissions": [
                 {
-                  "role": "recertifier",
-                  "permission": {
-                    "columns": [
-                      "is_global",
-                      "name",
-                      "app_id",
-                      "id",
-                      "port",
-                      "port_end",
-                      "proto_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -3820,6 +3804,22 @@
                 },
                 {
                   "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "is_global",
+                      "name",
+                      "app_id",
+                      "id",
+                      "port",
+                      "port_end",
+                      "proto_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
                   "permission": {
                     "columns": [
                       "is_global",
@@ -3906,17 +3906,6 @@
               ],
               "select_permissions": [
                 {
-                  "role": "recertifier",
-                  "permission": {
-                    "columns": [
-                      "connection_id",
-                      "service_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -3940,6 +3929,17 @@
                 },
                 {
                   "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "connection_id",
+                      "service_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
                   "permission": {
                     "columns": [
                       "connection_id",
@@ -4023,22 +4023,6 @@
               ],
               "select_permissions": [
                 {
-                  "role": "recertifier",
-                  "permission": {
-                    "columns": [
-                      "is_global",
-                      "comment",
-                      "creator",
-                      "name",
-                      "app_id",
-                      "id",
-                      "creation_date"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -4072,6 +4056,22 @@
                 },
                 {
                   "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "is_global",
+                      "comment",
+                      "creator",
+                      "name",
+                      "app_id",
+                      "id",
+                      "creation_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
                   "permission": {
                     "columns": [
                       "is_global",
@@ -4169,17 +4169,6 @@
               ],
               "select_permissions": [
                 {
-                  "role": "recertifier",
-                  "permission": {
-                    "columns": [
-                      "connection_id",
-                      "service_group_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -4203,6 +4192,17 @@
                 },
                 {
                   "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "connection_id",
+                      "service_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
                   "permission": {
                     "columns": [
                       "connection_id",
@@ -4257,17 +4257,6 @@
               ],
               "select_permissions": [
                 {
-                  "role": "recertifier",
-                  "permission": {
-                    "columns": [
-                      "service_group_id",
-                      "service_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -4291,6 +4280,17 @@
                 },
                 {
                   "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "service_group_id",
+                      "service_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
                   "permission": {
                     "columns": [
                       "service_group_id",
@@ -6545,11 +6545,11 @@
                   }
                 },
                 {
-                  "role": "modeller",
+                  "role": "middleware-server",
                   "permission": {
                     "check": {
                       "config_user": {
-                        "_eq": "X-Hasura-User-Id"
+                        "_eq": 0
                       }
                     },
                     "columns": [
@@ -6560,11 +6560,11 @@
                   }
                 },
                 {
-                  "role": "middleware-server",
+                  "role": "modeller",
                   "permission": {
                     "check": {
                       "config_user": {
-                        "_eq": 0
+                        "_eq": "X-Hasura-User-Id"
                       }
                     },
                     "columns": [
@@ -23980,7 +23980,7 @@
                   }
                 },
                 {
-                  "role": "modeller",
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "action_id",
@@ -23992,7 +23992,7 @@
                   "comment": ""
                 },
                 {
-                  "role": "middleware-server",
+                  "role": "modeller",
                   "permission": {
                     "columns": [
                       "action_id",
@@ -34369,12 +34369,60 @@
                   }
                 },
                 {
+                  "name": "stateMatrixDerivedStatesByFromStateId",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "from_state_id",
+                      "table": {
+                        "name": "state_matrix_derived_state",
+                        "schema": "request"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "stateMatrixTransitionsByToStateId",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "to_state_id",
+                      "table": {
+                        "name": "state_matrix_transition",
+                        "schema": "request"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "state_actions",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "state_id",
                       "table": {
                         "name": "state_action",
+                        "schema": "request"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "state_matrix_derived_states",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "derived_state_id",
+                      "table": {
+                        "name": "state_matrix_derived_state",
+                        "schema": "request"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "state_matrix_transitions",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "from_state_id",
+                      "table": {
+                        "name": "state_matrix_transition",
                         "schema": "request"
                       }
                     }
@@ -34677,6 +34725,716 @@
                     ],
                     "filter": {}
                   }
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "state_matrix_derived_state",
+                "schema": "request"
+              },
+              "object_relationships": [
+                {
+                  "name": "state",
+                  "using": {
+                    "foreign_key_constraint_on": "derived_state_id"
+                  }
+                },
+                {
+                  "name": "stateByFromStateId",
+                  "using": {
+                    "foreign_key_constraint_on": "from_state_id"
+                  }
+                },
+                {
+                  "name": "state_matrix_phase",
+                  "using": {
+                    "foreign_key_constraint_on": "phase_matrix_id"
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "derived_state_id",
+                      "from_state_id",
+                      "phase_matrix_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "derived_state_id",
+                      "from_state_id",
+                      "phase_matrix_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "derived_state_id",
+                      "from_state_id",
+                      "phase_matrix_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "derived_state_id",
+                      "from_state_id",
+                      "phase_matrix_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "derived_state_id",
+                      "from_state_id",
+                      "phase_matrix_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "derived_state_id",
+                      "from_state_id",
+                      "phase_matrix_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "derived_state_id",
+                      "from_state_id",
+                      "phase_matrix_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "derived_state_id",
+                      "from_state_id",
+                      "phase_matrix_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "state_matrix_phase",
+                "schema": "request"
+              },
+              "array_relationships": [
+                {
+                  "name": "state_matrix_derived_states",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "phase_matrix_id",
+                      "table": {
+                        "name": "state_matrix_derived_state",
+                        "schema": "request"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "state_matrix_phase_transition_groups",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "phase_matrix_id",
+                      "table": {
+                        "name": "state_matrix_phase_transition_group",
+                        "schema": "request"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "workflow_configuration_phases",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "phase_matrix_id",
+                      "table": {
+                        "name": "workflow_configuration_phase",
+                        "schema": "request"
+                      }
+                    }
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "active",
+                      "name",
+                      "phase",
+                      "id",
+                      "lowest_end_state",
+                      "lowest_input_state",
+                      "lowest_start_state"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "active",
+                      "name",
+                      "phase",
+                      "id",
+                      "lowest_end_state",
+                      "lowest_input_state",
+                      "lowest_start_state"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "active",
+                      "name",
+                      "phase",
+                      "id",
+                      "lowest_end_state",
+                      "lowest_input_state",
+                      "lowest_start_state"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "active",
+                      "name",
+                      "phase",
+                      "id",
+                      "lowest_end_state",
+                      "lowest_input_state",
+                      "lowest_start_state"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "active",
+                      "name",
+                      "phase",
+                      "id",
+                      "lowest_end_state",
+                      "lowest_input_state",
+                      "lowest_start_state"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "active",
+                      "name",
+                      "phase",
+                      "id",
+                      "lowest_end_state",
+                      "lowest_input_state",
+                      "lowest_start_state"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "active",
+                      "name",
+                      "phase",
+                      "id",
+                      "lowest_end_state",
+                      "lowest_input_state",
+                      "lowest_start_state"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "active",
+                      "name",
+                      "phase",
+                      "id",
+                      "lowest_end_state",
+                      "lowest_input_state",
+                      "lowest_start_state"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "state_matrix_phase_transition_group",
+                "schema": "request"
+              },
+              "object_relationships": [
+                {
+                  "name": "state_matrix_phase",
+                  "using": {
+                    "foreign_key_constraint_on": "phase_matrix_id"
+                  }
+                },
+                {
+                  "name": "state_matrix_transition_group",
+                  "using": {
+                    "foreign_key_constraint_on": "transition_group_id"
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "phase_matrix_id",
+                      "sort_order",
+                      "transition_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "phase_matrix_id",
+                      "sort_order",
+                      "transition_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "phase_matrix_id",
+                      "sort_order",
+                      "transition_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "phase_matrix_id",
+                      "sort_order",
+                      "transition_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "phase_matrix_id",
+                      "sort_order",
+                      "transition_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "phase_matrix_id",
+                      "sort_order",
+                      "transition_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "phase_matrix_id",
+                      "sort_order",
+                      "transition_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "phase_matrix_id",
+                      "sort_order",
+                      "transition_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "state_matrix_transition",
+                "schema": "request"
+              },
+              "object_relationships": [
+                {
+                  "name": "state",
+                  "using": {
+                    "foreign_key_constraint_on": "from_state_id"
+                  }
+                },
+                {
+                  "name": "stateByToStateId",
+                  "using": {
+                    "foreign_key_constraint_on": "to_state_id"
+                  }
+                },
+                {
+                  "name": "state_matrix_transition_group",
+                  "using": {
+                    "foreign_key_constraint_on": "transition_group_id"
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "from_state_id",
+                      "sort_order",
+                      "to_state_id",
+                      "transition_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "from_state_id",
+                      "sort_order",
+                      "to_state_id",
+                      "transition_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "from_state_id",
+                      "sort_order",
+                      "to_state_id",
+                      "transition_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "from_state_id",
+                      "sort_order",
+                      "to_state_id",
+                      "transition_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "from_state_id",
+                      "sort_order",
+                      "to_state_id",
+                      "transition_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "from_state_id",
+                      "sort_order",
+                      "to_state_id",
+                      "transition_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "from_state_id",
+                      "sort_order",
+                      "to_state_id",
+                      "transition_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "from_state_id",
+                      "sort_order",
+                      "to_state_id",
+                      "transition_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "state_matrix_transition_group",
+                "schema": "request"
+              },
+              "object_relationships": [
+                {
+                  "name": "workflow_visibility_group",
+                  "using": {
+                    "foreign_key_constraint_on": "visibility_group_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "state_matrix_phase_transition_groups",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "transition_group_id",
+                      "table": {
+                        "name": "state_matrix_phase_transition_group",
+                        "schema": "request"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "state_matrix_transitions",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "transition_group_id",
+                      "table": {
+                        "name": "state_matrix_transition",
+                        "schema": "request"
+                      }
+                    }
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "phase",
+                      "id",
+                      "visibility_group_id",
+                      "exclusive",
+                      "description"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "phase",
+                      "id",
+                      "visibility_group_id",
+                      "exclusive",
+                      "description"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "phase",
+                      "id",
+                      "visibility_group_id",
+                      "exclusive",
+                      "description"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "phase",
+                      "id",
+                      "visibility_group_id",
+                      "exclusive",
+                      "description"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "exclusive",
+                      "name",
+                      "phase",
+                      "id",
+                      "visibility_group_id",
+                      "description"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "phase",
+                      "id",
+                      "visibility_group_id",
+                      "exclusive",
+                      "description"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "phase",
+                      "id",
+                      "visibility_group_id",
+                      "exclusive",
+                      "description"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "phase",
+                      "id",
+                      "visibility_group_id",
+                      "exclusive",
+                      "description"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ]
             },
@@ -35462,6 +36220,354 @@
                     ],
                     "filter": {}
                   }
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "workflow_configuration",
+                "schema": "request"
+              },
+              "array_relationships": [
+                {
+                  "name": "workflow_configuration_phases",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "configuration_id",
+                      "table": {
+                        "name": "workflow_configuration_phase",
+                        "schema": "request"
+                      }
+                    }
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "is_active",
+                      "name",
+                      "id",
+                      "description"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "is_active",
+                      "name",
+                      "id",
+                      "description"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "is_active",
+                      "name",
+                      "id",
+                      "description"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "is_active",
+                      "name",
+                      "id",
+                      "description"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "is_active",
+                      "name",
+                      "id",
+                      "description"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "is_active",
+                      "name",
+                      "id",
+                      "description"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "is_active",
+                      "name",
+                      "id",
+                      "description"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "is_active",
+                      "name",
+                      "id",
+                      "description"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "workflow_configuration_phase",
+                "schema": "request"
+              },
+              "object_relationships": [
+                {
+                  "name": "state_matrix_phase",
+                  "using": {
+                    "foreign_key_constraint_on": "phase_matrix_id"
+                  }
+                },
+                {
+                  "name": "workflow_configuration",
+                  "using": {
+                    "foreign_key_constraint_on": "configuration_id"
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "phase",
+                      "task_type",
+                      "configuration_id",
+                      "phase_matrix_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "phase",
+                      "task_type",
+                      "configuration_id",
+                      "phase_matrix_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "phase",
+                      "task_type",
+                      "configuration_id",
+                      "phase_matrix_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "phase",
+                      "task_type",
+                      "configuration_id",
+                      "phase_matrix_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "phase",
+                      "task_type",
+                      "configuration_id",
+                      "phase_matrix_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "phase",
+                      "task_type",
+                      "configuration_id",
+                      "phase_matrix_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "phase",
+                      "task_type",
+                      "configuration_id",
+                      "phase_matrix_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "phase",
+                      "task_type",
+                      "configuration_id",
+                      "phase_matrix_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "workflow_visibility_group",
+                "schema": "request"
+              },
+              "array_relationships": [
+                {
+                  "name": "state_matrix_transition_groups",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "visibility_group_id",
+                      "table": {
+                        "name": "state_matrix_transition_group",
+                        "schema": "request"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "workflow_visibility_group_members",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "visibility_group_id",
+                      "table": {
+                        "name": "workflow_visibility_group_member",
+                        "schema": "request"
+                      }
+                    }
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id",
+                      "description"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id",
+                      "description"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "workflow_visibility_group_member",
+                "schema": "request"
+              },
+              "object_relationships": [
+                {
+                  "name": "workflow_visibility_group",
+                  "using": {
+                    "foreign_key_constraint_on": "visibility_group_id"
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "member_dn",
+                      "visibility_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "member_dn",
+                      "visibility_group_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ]
             }

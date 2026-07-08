@@ -26,6 +26,12 @@ namespace FWO.Services.Workflow
         [JsonProperty("active"), JsonPropertyName("active")]
         public bool Active { get; set; }
 
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public Dictionary<int, List<int>> StateVisibilityGroupIds { get; set; } = [];
+
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public HashSet<int> ExclusiveVisibilityGroupIds { get; set; } = [];
+
         public HashSet<int> AutomaticOnlyStates { get; set; } = [];
         public Dictionary<WorkflowPhases, bool> PhaseActive = [];
         public bool IsLastActivePhase = true;
@@ -51,6 +57,8 @@ namespace FWO.Services.Workflow
             LowestStartedState = glbStateMatrix.GlobalMatrix[phase].LowestStartedState;
             LowestEndState = glbStateMatrix.GlobalMatrix[phase].LowestEndState;
             Active = glbStateMatrix.GlobalMatrix[phase].Active;
+            StateVisibilityGroupIds = glbStateMatrix.GlobalMatrix[phase].StateVisibilityGroupIds.ToDictionary(entry => entry.Key, entry => entry.Value.ToList());
+            ExclusiveVisibilityGroupIds = [.. glbStateMatrix.GlobalMatrix[phase].ExclusiveVisibilityGroupIds];
             AutomaticOnlyStates = preloadedStates.Where(state => state.AutomaticOnly).Select(state => state.Id).ToHashSet();
             ApprovalLowestEndState = glbStateMatrix.GlobalMatrix[WorkflowPhases.approval].LowestEndState;
             foreach (var phas in glbStateMatrix.GlobalMatrix)
@@ -91,6 +99,52 @@ namespace FWO.Services.Workflow
             }
 
             return value.Where(stateId => !AutomaticOnlyStates.Contains(stateId)).ToList();
+        }
+
+        /// <summary>
+        /// Returns the visibility groups that protect the given state.
+        /// </summary>
+        public List<int> GetVisibilityGroupIds(int stateId)
+        {
+            return StateVisibilityGroupIds.TryGetValue(stateId, out List<int>? visibilityGroupIds)
+                ? visibilityGroupIds
+                : [];
+        }
+
+        /// <summary>
+        /// Returns true when the given visibility-group ids grant access to the state.
+        /// </summary>
+        public bool CanAccessState(int stateId, IEnumerable<int> userVisibilityGroupIds)
+        {
+            return CanAccessState(stateId, userVisibilityGroupIds, ExclusiveVisibilityGroupIds);
+        }
+
+        /// <summary>
+        /// Returns true when the given visibility-group ids grant access to the state.
+        /// </summary>
+        public bool CanAccessState(int stateId, IEnumerable<int> userVisibilityGroupIds, IEnumerable<int>? exclusiveVisibilityGroupIds)
+        {
+            List<int> requiredGroupIds = GetVisibilityGroupIds(stateId);
+            if (requiredGroupIds.Count == 0)
+            {
+                // Untagged states stay visible unless the user belongs to any exclusive visibility group.
+                return !HasExclusiveVisibilityGroupMembership(userVisibilityGroupIds, exclusiveVisibilityGroupIds);
+            }
+
+            HashSet<int> allowedGroupIds = userVisibilityGroupIds as HashSet<int> ?? userVisibilityGroupIds.ToHashSet();
+            return requiredGroupIds.Any(allowedGroupIds.Contains);
+        }
+
+        private bool HasExclusiveVisibilityGroupMembership(IEnumerable<int> userVisibilityGroupIds, IEnumerable<int>? exclusiveVisibilityGroupIds)
+        {
+            IEnumerable<int> groupsToCheck = exclusiveVisibilityGroupIds ?? ExclusiveVisibilityGroupIds;
+            if (!groupsToCheck.Any())
+            {
+                return false;
+            }
+
+            HashSet<int> allowedGroupIds = userVisibilityGroupIds as HashSet<int> ?? userVisibilityGroupIds.ToHashSet();
+            return groupsToCheck.Any(allowedGroupIds.Contains);
         }
 
         public int getDerivedStateFromSubStates(List<int> statesIn)
@@ -182,38 +236,113 @@ namespace FWO.Services.Workflow
         [JsonProperty("config_value"), JsonPropertyName("config_value")]
         public Dictionary<WorkflowPhases, StateMatrix> GlobalMatrix { get; set; } = [];
 
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public int ConfigurationId { get; private set; }
 
-        public virtual async Task Init(ApiConnection apiConnection, WfTaskType taskType = WfTaskType.master, bool reset = false)
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public string ConfigurationName { get; private set; } = "";
+
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public Dictionary<WorkflowPhases, StateMatrixPhaseBinding> PhaseBindings { get; private set; } = [];
+
+        internal Dictionary<WorkflowPhases, StateMatrix> OriginalGlobalMatrix { get; private set; } = [];
+
+        public virtual async Task Init(ApiConnection apiConnection, WfTaskType taskType = WfTaskType.master)
         {
-            string matrixKey = taskType switch
-            {
-                WfTaskType.master => "reqMasterStateMatrix",
-                WfTaskType.generic => "reqGenStateMatrix",
-                WfTaskType.access => "reqAccStateMatrix",
-                WfTaskType.rule_delete => "reqRulDelStateMatrix",
-                WfTaskType.rule_modify => "reqRulModStateMatrix",
-                WfTaskType.group_create => "reqGrpCreStateMatrix",
-                WfTaskType.group_modify => "reqGrpModStateMatrix",
-                WfTaskType.group_delete => "reqGrpDelStateMatrix",
-                WfTaskType.new_interface => "reqNewIntStateMatrix",
-                _ => throw new NotSupportedException($"Error: wrong task type:" + taskType.ToString()),
-            };
-
-            if (reset)
-            {
-                matrixKey += "Default";
-            }
-
-            List<GlobalStateMatrixHelper> confData = await apiConnection.SendQueryAsync<List<GlobalStateMatrixHelper>>(ConfigQueries.getConfigItemByKey, new { key = matrixKey });
-            GlobalStateMatrix glbStateMatrix = System.Text.Json.JsonSerializer.Deserialize<GlobalStateMatrix>(confData[0].ConfData) ?? throw new JsonException("Config data could not be parsed.");
-            GlobalMatrix = glbStateMatrix.GlobalMatrix;
+            await Load(apiConnection, taskType, null);
         }
-    }
 
-    public class GlobalStateMatrixHelper
-    {
-        [JsonProperty("config_value"), JsonPropertyName("config_value")]
-        public string ConfData = "";
+        /// <summary>
+        /// Initializes the matrix from a specifically named workflow configuration.
+        /// </summary>
+        public virtual async Task Init(ApiConnection apiConnection, WfTaskType taskType, string configurationName)
+        {
+            await Load(apiConnection, taskType, configurationName);
+        }
+
+        private async Task Load(ApiConnection apiConnection, WfTaskType taskType, string? configurationName)
+        {
+            StateMatrixConfigurationSnapshot snapshot = await StateMatrixConfigurationRepository.Load(apiConnection, taskType, configurationName);
+            ConfigurationId = snapshot.ConfigurationId;
+            ConfigurationName = snapshot.ConfigurationName;
+            GlobalMatrix = snapshot.Matrices;
+            PhaseBindings = snapshot.PhaseBindings;
+            OriginalGlobalMatrix = CloneMatrices(GlobalMatrix);
+        }
+
+        /// <summary>
+        /// Persists this task-type matrix into its currently bound workflow configuration.
+        /// </summary>
+        public virtual async Task Save(ApiConnection apiConnection)
+        {
+            await StateMatrixConfigurationRepository.Update(apiConnection, this);
+        }
+
+        /// <summary>
+        /// Determines whether deferred phase or derived-state values differ from the loaded snapshot.
+        /// Transition values are persisted separately and are intentionally ignored.
+        /// </summary>
+        public bool HasUnsavedChanges()
+        {
+            if (OriginalGlobalMatrix.Count == 0)
+            {
+                return false;
+            }
+            if (GlobalMatrix.Count != OriginalGlobalMatrix.Count)
+            {
+                return true;
+            }
+            return GlobalMatrix.Any(entry => !OriginalGlobalMatrix.TryGetValue(entry.Key, out StateMatrix? original)
+                || HasChangedDeferredValues(entry.Value, original));
+        }
+
+        internal void AcceptChanges(Dictionary<WorkflowPhases, Dictionary<(int FromStateId, int ToStateId), int>> transitionSortOrders)
+        {
+            foreach ((WorkflowPhases phase, Dictionary<(int FromStateId, int ToStateId), int> sortOrders) in transitionSortOrders)
+            {
+                PhaseBindings[phase].TransitionSortOrders.Clear();
+                foreach (((int fromStateId, int toStateId), int sortOrder) in sortOrders)
+                {
+                    PhaseBindings[phase].TransitionSortOrders[(fromStateId, toStateId)] = sortOrder;
+                }
+            }
+            OriginalGlobalMatrix = CloneMatrices(GlobalMatrix);
+        }
+
+        private static Dictionary<WorkflowPhases, StateMatrix> CloneMatrices(Dictionary<WorkflowPhases, StateMatrix> source)
+        {
+            return source.ToDictionary(
+                entry => entry.Key,
+                entry => CloneMatrix(entry.Value));
+        }
+
+        private static StateMatrix CloneMatrix(StateMatrix source)
+        {
+            return new()
+            {
+                Matrix = source.Matrix.ToDictionary(entry => entry.Key, entry => entry.Value.ToList()),
+                DerivedStates = new Dictionary<int, int>(source.DerivedStates),
+                LowestInputState = source.LowestInputState,
+                LowestStartedState = source.LowestStartedState,
+                LowestEndState = source.LowestEndState,
+                Active = source.Active,
+                StateVisibilityGroupIds = source.StateVisibilityGroupIds.ToDictionary(entry => entry.Key, entry => entry.Value.ToList()),
+                ExclusiveVisibilityGroupIds = [.. source.ExclusiveVisibilityGroupIds]
+            };
+        }
+
+        private static bool HasChangedDeferredValues(StateMatrix current, StateMatrix original)
+        {
+            return current.Active != original.Active
+                || current.LowestInputState != original.LowestInputState
+                || current.LowestStartedState != original.LowestStartedState
+                || current.LowestEndState != original.LowestEndState
+                || !SparseDerivedStates(current).OrderBy(entry => entry.Key).SequenceEqual(
+                    SparseDerivedStates(original).OrderBy(entry => entry.Key));
+        }
+
+        private static IEnumerable<KeyValuePair<int, int>> SparseDerivedStates(StateMatrix matrix) =>
+            matrix.DerivedStates.Where(entry => entry.Key != entry.Value);
     }
 
     public class StateMatrixDict

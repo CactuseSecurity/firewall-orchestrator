@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
-using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace FWO.Middleware.Server.OpenApi;
 
@@ -9,7 +9,7 @@ namespace FWO.Middleware.Server.OpenApi;
 /// Anonymous endpoints such as login and token issuance therefore no longer advertise an unneeded
 /// bearer header in the generated documentation and Scalar request examples.
 /// </summary>
-public sealed class SwashbuckleAuthorizationOperationFilter : IOperationFilter
+public sealed class OpenApiAuthorizationOperationTransformer : IOpenApiOperationTransformer
 {
     /// <summary>
     /// Identifier of the bearer security scheme registered with the OpenAPI document.
@@ -17,11 +17,17 @@ public sealed class SwashbuckleAuthorizationOperationFilter : IOperationFilter
     public const string BearerSchemeId = "bearer";
 
     /// <inheritdoc />
-    public void Apply(OpenApiOperation operation, OperationFilterContext context)
+    public Task TransformAsync(OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
     {
-        IList<object> metadata = context.ApiDescription.ActionDescriptor.EndpointMetadata;
+        ApplyAuthorizationRequirement(operation, context.Description.ActionDescriptor.EndpointMetadata);
+        return Task.CompletedTask;
+    }
 
-        // Endpoints opting out of auth (or simply not requiring it) must not advertise a bearer requirement.
+    /// <summary>
+    /// Applies the bearer security requirement when endpoint metadata requires authorization.
+    /// </summary>
+    public static void ApplyAuthorizationRequirement(OpenApiOperation operation, IList<object> metadata)
+    {
         if (metadata.OfType<IAllowAnonymous>().Any() || !metadata.OfType<IAuthorizeData>().Any())
         {
             return;
@@ -31,7 +37,7 @@ public sealed class SwashbuckleAuthorizationOperationFilter : IOperationFilter
         [
             new OpenApiSecurityRequirement
             {
-                [new OpenApiSecuritySchemeReference(BearerSchemeId, context.Document)] = []
+                [new OpenApiSecuritySchemeReference(BearerSchemeId, null)] = []
             }
         ];
     }

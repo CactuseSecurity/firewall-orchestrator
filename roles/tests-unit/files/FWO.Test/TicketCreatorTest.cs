@@ -56,9 +56,9 @@ namespace FWO.Test
                         new() { Id = 249 }
                     });
                 }
-                if (query == ConfigQueries.getConfigItemByKey)
+                if (query == RequestQueries.getActiveStateMatrixConfiguration)
                 {
-                    return Task.FromResult((T)(object)new List<GlobalStateMatrixHelper> { new() { ConfData = stateMatrix } });
+                    return Task.FromResult((T)(object)StateMatrixConfigurationTestHelper.FromLegacyJson(stateMatrix));
                 }
                 if (query == ConfigQueries.getConfigItemsByUser)
                 {

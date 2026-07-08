@@ -418,8 +418,9 @@ namespace FWO.Services.Modelling
                 return disregardedGroups.Count == 0 && surplusGroups.Count == 0;
             }
 
-            return allModGroups.Count == allProdGroups.Count
-                && allModGroups.Except(allProdGroups, comparer).ToList().Count == 0
+            // Compare as sets only: object multiplicity must never count as a variance,
+            // so the deduplicating Except checks decide equality without a raw count comparison.
+            return allModGroups.Except(allProdGroups, comparer).ToList().Count == 0
                 && allProdGroups.Except(allModGroups, comparer).ToList().Count == 0;
         }
 
@@ -481,8 +482,9 @@ namespace FWO.Services.Modelling
                 return disregardedSvcObjects.Count == 0 && surplusSvcObjects.Count == 0;
             }
 
-            return allModSvcObjects.Count == allProdSvcObjects.Count
-                && allModSvcObjects.Except(allProdSvcObjects, comparer).ToList().Count == 0
+            // Compare as sets only: object multiplicity must never count as a variance,
+            // so the deduplicating Except checks decide equality without a raw count comparison.
+            return allModSvcObjects.Except(allProdSvcObjects, comparer).ToList().Count == 0
                 && allProdSvcObjects.Except(allModSvcObjects, comparer).ToList().Count == 0;
         }
     }

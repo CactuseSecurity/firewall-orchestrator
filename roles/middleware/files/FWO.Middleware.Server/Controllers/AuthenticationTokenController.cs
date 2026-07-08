@@ -135,6 +135,8 @@ namespace FWO.Middleware.Server.Controllers
         /// Generates an authentication token (jwt) given valid credentials.  
         /// </summary>
         /// <remarks>
+        /// Deprecated: This endpoint will be dropped in the next major release. Use /api/AuthenticationToken/GetTokenPair instead.
+        ///
         /// Username (required)&#xA;
         /// Password (required)
         /// </remarks>
@@ -356,7 +358,7 @@ namespace FWO.Middleware.Server.Controllers
 
 #if DEBUG
         /// <summary>
-        ///  Tests the Auth from swagger. If this returns unauthorized then check JWT token in swagger and try again.
+        ///  Tests the Auth from API docs. If this returns unauthorized then check JWT token in API docs and try again.
         /// </summary>
         /// <returns></returns>
         [Authorize]
@@ -531,12 +533,8 @@ namespace FWO.Middleware.Server.Controllers
         {
             HashSet<string> userGroups = new(DistName.DnComparer);
             userGroups.UnionWith(ldap.GetGroups(ldapUser));
-            if (userGroups.Count == 0)
-            {
-                string? groupPath = !string.IsNullOrWhiteSpace(ldap.GroupSearchPath) ? ldap.GroupSearchPath : ldap.GroupWritePath;
-                List<string> groupNames = await ldap.GetGroups([ldapUser.Dn]);
-                userGroups.UnionWith(Ldap.BuildGroupDns(groupNames, groupPath));
-            }
+            string? groupPath = !string.IsNullOrWhiteSpace(ldap.GroupSearchPath) ? ldap.GroupSearchPath : ldap.GroupWritePath;
+            AddResolvedGroupMemberships(userGroups, await ldap.GetGroups([ldapUser.Dn]), groupPath);
             if (!ldap.IsInternal())
             {
                 object groupsLock = new();
@@ -551,13 +549,18 @@ namespace FWO.Middleware.Server.Controllers
                         lock (groupsLock)
                         {
                             string? groupPath = !string.IsNullOrWhiteSpace(currentLdap.GroupSearchPath) ? currentLdap.GroupSearchPath : currentLdap.GroupWritePath;
-                            userGroups.UnionWith(Ldap.BuildGroupDns(currentGroups, groupPath));
+                            AddResolvedGroupMemberships(userGroups, currentGroups, groupPath);
                         }
                     }));
                 }
                 await Task.WhenAll(ldapRoleRequests);
             }
             return userGroups.ToList();
+        }
+
+        private static void AddResolvedGroupMemberships(HashSet<string> userGroups, IEnumerable<string> groupNames, string? groupPath)
+        {
+            userGroups.UnionWith(Ldap.BuildGroupDns(groupNames, groupPath));
         }
 
         public async Task<(LdapEntry, Ldap)> AuthenticateInAnyLdap(UiUser user, bool validatePassword)

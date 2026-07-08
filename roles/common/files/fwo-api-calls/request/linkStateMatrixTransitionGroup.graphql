@@ -1,0 +1,15 @@
+mutation linkStateMatrixTransitionGroup($phaseMatrixId: Int!, $transitionGroupId: Int!, $sortOrder: Int!) {
+  link_transition_group: insert_request_state_matrix_phase_transition_group(
+    objects: {
+      phase_matrix_id: $phaseMatrixId
+      transition_group_id: $transitionGroupId
+      sort_order: $sortOrder
+    }
+    on_conflict: {
+      constraint: state_matrix_phase_transition_group_pkey
+      update_columns: [sort_order]
+    }
+  ) {
+    affected_rows
+  }
+}

@@ -9,36 +9,24 @@ namespace FWO.Services.Workflow
 {
     public class WfDbAccess(Action<Exception?, string, string, bool> DisplayMessageInUi, UserConfig UserConfig, ApiConnection ApiConnection, ActionHandler ActionHandler, bool AsAdmin)
     {
-        public async Task<List<WfTicket>> FetchTickets(StateMatrix stateMatrix, List<int>? ownerIds = null, bool allStates = false, bool fullTickets = false)
+        public async Task<List<WfTicket>> FetchTickets(StateMatrix stateMatrix, List<int>? ownerIds = null, bool allStates = false, bool fullTickets = false,
+            Func<WfTicket, bool>? ticketFilter = null)
         {
             List<WfTicket> tickets = [];
             try
             {
-                // todo: filter own approvals, plannings...
                 int fromState = allStates ? 0 : stateMatrix.LowestInputState;
                 int toState = allStates ? 999 : stateMatrix.LowestEndState;
 
-                var Variables = new { fromState, toState };
-                tickets = await ApiConnection.SendQueryAsync<List<WfTicket>>(fullTickets ? RequestQueries.getFullTickets : RequestQueries.getTickets, Variables);
+                tickets = await ApiConnection.SendQueryAsync<List<WfTicket>>(
+                    fullTickets ? RequestQueries.getFullTickets : RequestQueries.getTickets,
+                    new { fromState, toState });
                 if (UserConfig.ReqOwnerBased && !AsAdmin)
                 {
                     tickets = await FilterWrongOwnersOut(tickets, ownerIds);
                 }
-                if (fullTickets)
-                {
-                    foreach (var ticket in tickets)
-                    {
-                        ticket.UpdateCidrsInTaskElements();
-                        ticket.ResetStateChangeTracking();
-                    }
-                }
-                else
-                {
-                    foreach (var ticket in tickets)
-                    {
-                        ticket.ResetStateChangeTracking();
-                    }
-                }
+                tickets = ApplyTicketFilter(tickets, ticketFilter);
+                FinalizeTickets(tickets, fullTickets);
             }
             catch (Exception exception)
             {
@@ -47,7 +35,7 @@ namespace FWO.Services.Workflow
             return tickets;
         }
 
-        public async Task<WfTicket?> FetchTicket(long ticketId, List<int>? ownerIds = null)
+        public async Task<WfTicket?> FetchTicket(long ticketId, List<int>? ownerIds = null, Func<WfTicket, bool>? ticketFilter = null)
         {
             WfTicket? ticket = null;
             try
@@ -56,6 +44,10 @@ namespace FWO.Services.Workflow
                 if (UserConfig.ReqOwnerBased && !AsAdmin)
                 {
                     ticket = (await FilterWrongOwnersOut([ticket], ownerIds)).FirstOrDefault();
+                }
+                if (ticket != null && ticketFilter != null && !ticketFilter(ticket))
+                {
+                    ticket = null;
                 }
             }
             catch (Exception exception)
@@ -96,7 +88,8 @@ namespace FWO.Services.Workflow
             return ticket;
         }
 
-        public async Task<List<WfTicket>> GetTicketsByParameters(string taskType, int startState, int endState, DateTime cutOffDate)
+        public async Task<List<WfTicket>> GetTicketsByParameters(string taskType, int startState, int endState, DateTime cutOffDate,
+            Func<WfTicket, bool>? ticketFilter = null)
         {
             List<WfTicket> tickets = [];
             try
@@ -109,12 +102,43 @@ namespace FWO.Services.Workflow
                     toState = endState
                 };
                 tickets = await ApiConnection.SendQueryAsync<List<WfTicket>>(RequestQueries.getTicketsByParameters, Variables);
+                tickets = ApplyTicketFilter(tickets, ticketFilter);
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, UserConfig.GetText("fetch_requests"), "", true);
             }
             return tickets;
+        }
+
+        private static List<WfTicket> ApplyTicketFilter(List<WfTicket> tickets, Func<WfTicket, bool>? ticketFilter)
+        {
+            if (ticketFilter == null)
+            {
+                return tickets;
+            }
+
+            List<WfTicket> filteredTickets = [];
+            foreach (WfTicket ticket in tickets)
+            {
+                if (ticketFilter(ticket))
+                {
+                    filteredTickets.Add(ticket);
+                }
+            }
+            return filteredTickets;
+        }
+
+        private static void FinalizeTickets(List<WfTicket> tickets, bool fullTickets)
+        {
+            foreach (WfTicket ticket in tickets)
+            {
+                if (fullTickets)
+                {
+                    ticket.UpdateCidrsInTaskElements();
+                }
+                ticket.ResetStateChangeTracking();
+            }
         }
 
 

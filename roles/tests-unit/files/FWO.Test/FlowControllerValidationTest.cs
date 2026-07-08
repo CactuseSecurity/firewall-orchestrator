@@ -201,6 +201,28 @@ internal class FlowControllerValidationTest
     }
 
     [Test]
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task FlowControllerValidation_GetTimeObjectId_RejectsMissingBounds(bool includeFilter)
+    {
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+
+        GetTimeObjectIdRequest request = new();
+        if (includeFilter)
+        {
+            request.Filter = new VisibleInRequestFilter
+            {
+                VisibleInRequest = true
+            };
+        }
+
+        ActionResult<TimeObjectIdResponse> result = await controller.GetTimeObjectId(request);
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("At least one of 'startTime' or 'endTime' is required."));
+    }
+
+    [Test]
     public async Task FlowControllerValidation_GetTimeObjectId_AllowsMissingEndTime()
     {
         FlowCatalogController controller = new(new FlowCatalogService(new TimeObjectLookupApiConnection

@@ -328,6 +328,12 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ComplianceCheckSubscription_ContainsDesignatedZoneMatrix()
+        {
+            Assert.That(ConfigQueries.subscribeComplianceCheckConfigChanges, Does.Contain("complianceDesignatedZoneMatrix"));
+        }
+
+        [Test]
         public void ConfigData_DefaultsFlowSyncSleepTimeToDisabled()
         {
             ConfigData configData = new();

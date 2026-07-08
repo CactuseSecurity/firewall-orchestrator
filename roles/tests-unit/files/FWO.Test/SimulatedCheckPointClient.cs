@@ -1,22 +1,20 @@
 using FWO.Data;
+using FWO.ExternalSystems.CheckPoint;
 using FWO.Services;
-using FWO.ExternalSystems.Tufin.SecureChange;
-using System.Net;
 using RestSharp;
+using System.Net;
 
 namespace FWO.Test
 {
-    /// <summary>
-    /// SC Ticket with simulated Rest call
-    /// </summary>
-    public class SimulatedSCClient : SCClient
+    public class SimulatedCheckPointClient : CheckPointClient
     {
+        public List<string> CalledEndpoints { get; } = [];
+        public List<string> RequestBodies { get; } = [];
+        public int LogoutCalls { get; private set; }
         private readonly Dictionary<string, Queue<RestResponse<int>>> queuedResponses = new();
 
-        /// <summary>
-        /// constructor
-        /// </summary>
-        public SimulatedSCClient(ExternalTicketSystem tufinSystem) : base(tufinSystem)
+        public SimulatedCheckPointClient(ExternalTicketSystem checkPointSystem, Management management)
+            : base(checkPointSystem, management)
         { }
 
         public void EnqueueResponse(string restEndPoint, RestResponse<int> response)
@@ -29,19 +27,22 @@ namespace FWO.Test
             responses.Enqueue(response);
         }
 
-        /// <summary>
-        /// Simulated Rest call
-        /// </summary>
         public override async Task<RestResponse<int>> RestCall(RestRequest request, string restEndPoint)
         {
-            await DefaultInit.DoNothing(); // qad avoid compiler warning
-
+            CalledEndpoints.Add(restEndPoint);
+            RequestBodies.Add(request.Parameters.FirstOrDefault(parameter => parameter.Name == "")?.Value?.ToString() ?? "");
+            await DefaultInit.DoNothing();
             if (queuedResponses.TryGetValue(restEndPoint, out Queue<RestResponse<int>>? responses) && responses.Count > 0)
             {
                 return responses.Dequeue();
             }
+            return new(new()) { StatusCode = HttpStatusCode.OK, Content = "{\"task-id\":\"cp-task-1\"}" };
+        }
 
-            return new(new()) { StatusCode = HttpStatusCode.OK, Content = "{\"ticket\": {\"id\": 1, \"status\": \"In Progress\" } }" };
+        public override async Task Logout()
+        {
+            LogoutCalls++;
+            await DefaultInit.DoNothing();
         }
     }
 }

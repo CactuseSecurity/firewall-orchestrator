@@ -1,0 +1,14 @@
+mutation replaceStateMatrixTransitionGroupTransitions(
+  $removedTransitions: [request_state_matrix_transition_bool_exp!]!
+  $transitions: [request_state_matrix_transition_insert_input!]!
+) {
+  delete_transitions: delete_request_state_matrix_transition(where: {_or: $removedTransitions}) {
+    affected_rows
+  }
+  upsert_transitions: insert_request_state_matrix_transition(
+    objects: $transitions
+    on_conflict: {constraint: state_matrix_transition_pkey, update_columns: [sort_order]}
+  ) {
+    affected_rows
+  }
+}

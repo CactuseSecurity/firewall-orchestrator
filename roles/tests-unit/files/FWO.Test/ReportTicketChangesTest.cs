@@ -43,17 +43,11 @@ namespace FWO.Test
                 {
                     return Task.FromResult((QueryResponseType)(object)(ownerTicketIds ?? []));
                 }
-                if (typeof(QueryResponseType) == typeof(List<GlobalStateMatrixHelper>))
+                if (typeof(QueryResponseType) == typeof(List<WorkflowConfiguration>))
                 {
-                    return Task.FromResult((QueryResponseType)(object)new List<GlobalStateMatrixHelper>
-                    {
-                        new()
-                        {
-                            ConfData = """
+                    return Task.FromResult((QueryResponseType)(object)StateMatrixConfigurationTestHelper.FromLegacyJson("""
                                 {"config_value":{"request":{"matrix":{},"derived_states":{},"lowest_input_state":0,"lowest_start_state":0,"lowest_end_state":49,"active":true},"approval":{"matrix":{},"derived_states":{},"lowest_input_state":49,"lowest_start_state":60,"lowest_end_state":99,"active":true},"implementation":{"matrix":{},"derived_states":{},"lowest_input_state":99,"lowest_start_state":210,"lowest_end_state":249,"active":true}}}
-                                """
-                        }
-                    });
+                                """));
                 }
                 throw new NotImplementedException();
             }

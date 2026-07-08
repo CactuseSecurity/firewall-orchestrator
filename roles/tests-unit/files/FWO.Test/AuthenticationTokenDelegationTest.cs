@@ -18,6 +18,8 @@ namespace FWO.Test
     [TestFixture]
     public class AuthenticationTokenDelegationTest
     {
+        private static readonly string[] kResolvedGroupNames = ["ApproverGroup", "cn=DirectApprover,ou=groups,dc=example,dc=com"];
+
         [Test]
         public async Task CreateTokenPair_WhenRefreshTokenWithheld_IssuesNonRefreshablePair()
         {
@@ -26,6 +28,25 @@ namespace FWO.Test
             Assert.That(tokenPair.AccessToken, Is.Not.Empty, "A delegated access token should still be issued.");
             Assert.That(tokenPair.RefreshToken, Is.Empty, "A delegated token pair must not contain a refresh token.");
             Assert.That(tokenPair.RefreshTokenExpires, Is.EqualTo(DateTime.MinValue), "A delegated token pair must not carry a refresh-token expiry.");
+        }
+
+        [Test]
+        public void AddResolvedGroupMemberships_MergesResolvedGroupDnsIntoExistingMemberships()
+        {
+            Type authManagerType = typeof(AuthenticationTokenController).Assembly.GetType("FWO.Middleware.Server.Controllers.AuthManager", throwOnError: true)!;
+            MethodInfo addResolvedGroupMemberships = authManagerType.GetMethod("AddResolvedGroupMemberships", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new MissingMethodException(authManagerType.FullName, "AddResolvedGroupMemberships");
+
+            HashSet<string> userGroups = new(DistName.DnComparer)
+            {
+                "cn=DirectApprover,ou=groups,dc=example,dc=com"
+            };
+
+            addResolvedGroupMemberships.Invoke(null, [userGroups, kResolvedGroupNames, "ou=groups,dc=example,dc=com"]);
+
+            Assert.That(userGroups, Does.Contain("cn=DirectApprover,ou=groups,dc=example,dc=com"));
+            Assert.That(userGroups, Does.Contain("cn=ApproverGroup,ou=groups,dc=example,dc=com"));
+            Assert.That(userGroups, Has.Count.EqualTo(2));
         }
 
         private static async Task<TokenPair> InvokeCreateTokenPair(bool issueRefreshToken)

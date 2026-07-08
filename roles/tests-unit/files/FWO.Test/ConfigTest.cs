@@ -89,13 +89,15 @@ namespace FWO.Test
             SimulatedGlobalConfig globalConfig = new();
             globalConfig.RawConfigItems =
             [
-                new() { Key = "reqOwnerBased", Value = "true", User = 0 }
+                new() { Key = "reqOwnerBased", Value = "true", User = 0 },
+                new() { Key = "reqVisibilityBased", Value = "true", User = 0 }
             ];
 
             using UserConfigApiConnection apiConnection = new([]);
             UserConfig userConfig = new(globalConfig, apiConnection, new UiUser { DbId = 50, Language = "English" });
 
             Assert.That(userConfig.ReqOwnerBased, Is.True);
+            Assert.That(userConfig.ReqVisibilityBased, Is.True);
         }
 
         [Test]
@@ -113,12 +115,14 @@ namespace FWO.Test
             SimulatedGlobalConfig globalConfig = new();
             globalConfig.RawConfigItems =
             [
-                new() { Key = "reqOwnerBased", Value = "true", User = 0 }
+                new() { Key = "reqOwnerBased", Value = "true", User = 0 },
+                new() { Key = "reqVisibilityBased", Value = "true", User = 0 }
             ];
 
             UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
 
             Assert.That(userConfig.ReqOwnerBased, Is.False);
+            Assert.That(userConfig.ReqVisibilityBased, Is.False);
         }
 
         [Test]
@@ -126,11 +130,12 @@ namespace FWO.Test
         {
             SimulatedGlobalConfig globalConfig = new();
             using UserConfigApiConnection apiConnection =
-                new([new() { Key = "reqOwnerBased", Value = "true", User = 0 }]);
+                new([new() { Key = "reqOwnerBased", Value = "true", User = 0 }, new() { Key = "reqVisibilityBased", Value = "true", User = 0 }]);
 
             UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
 
             Assert.That(userConfig.ReqOwnerBased, Is.True);
+            Assert.That(userConfig.ReqVisibilityBased, Is.True);
         }
 
         [Test]
@@ -219,6 +224,7 @@ namespace FWO.Test
             globalConfig.RawConfigItems =
             [
                 new() { Key = "reqOwnerBased", Value = "true", User = 0 },
+                new() { Key = "reqVisibilityBased", Value = "true", User = 0 },
                 new() { Key = "elementsPerFetch", Value = "777", User = 0 }
             ];
 
@@ -227,6 +233,7 @@ namespace FWO.Test
             UserConfig userConfig = new(globalConfig, apiConnection, new UiUser { DbId = 50, Language = "English" });
 
             Assert.That(userConfig.ReqOwnerBased, Is.True);
+            Assert.That(userConfig.ReqVisibilityBased, Is.True);
             Assert.That(userConfig.ElementsPerFetch, Is.EqualTo(55));
         }
 
@@ -341,6 +348,14 @@ namespace FWO.Test
             ConfigData configData = new();
 
             Assert.That(configData.ReqConsiderBundling, Is.False);
+        }
+
+        [Test]
+        public void ConfigData_DefaultsReqVisibilityBasedToFalse()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.ReqVisibilityBased, Is.False);
         }
 
         [Test]

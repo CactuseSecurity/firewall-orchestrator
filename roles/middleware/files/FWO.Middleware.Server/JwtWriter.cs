@@ -127,8 +127,10 @@ namespace FWO.Middleware.Server
             // even when tenant resolution fails, to avoid runtime "missing session variable" errors.
             claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", ToHasuraIdSet(visibleManagementIds)));
             claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", ToHasuraIdSet(visibleGatewayIds)));
+            claimsIdentity.AddClaim(new Claim("x-hasura-groups", JsonSerializer.Serialize(user.Groups ?? [])));
             claimsIdentity.AddClaim(new Claim("x-hasura-editable-owners", $"{{ {string.Join(",", user.Ownerships)} }}"));
             claimsIdentity.AddClaim(new Claim("x-hasura-recertifiable-owners", $"{{ {string.Join(",", user.RecertOwnerships)} }}"));
+            claimsIdentity.AddClaim(new Claim("x-hasura-workflow-visibility-groups", ToHasuraIdSet(user.WorkflowVisibilityGroupIds)));
             AddRoleClaims(claimsIdentity, user);
             return claimsIdentity;
         }

@@ -228,10 +228,12 @@ namespace FWO.Ui.Auth
             userConfig.User.Roles = await GetAllowedRoles(userConfig.User.Jwt);
             userConfig.User.Ownerships = await GetAssignedOwners(userConfig.User.Jwt);
             userConfig.User.RecertOwnerships = await GetRecertifiableOwners(userConfig.User.Jwt);
+            userConfig.User.WorkflowVisibilityGroupIds = await GetWorkflowVisibilityGroupIds(userConfig.User.Jwt);
 
             Log.WriteDebug("Auth Claims", $"Parsed allowed roles: [{string.Join(", ", userConfig.User.Roles)}]");
             Log.WriteDebug("Auth Claims", $"Parsed editable owners: [{string.Join(", ", userConfig.User.Ownerships)}]");
             Log.WriteDebug("Auth Claims", $"Parsed recertifiable owners: [{string.Join(", ", userConfig.User.RecertOwnerships)}]");
+            Log.WriteDebug("Auth Claims", $"Parsed workflow visibility groups: [{string.Join(", ", userConfig.User.WorkflowVisibilityGroupIds)}]");
 
             await RestoreExecutionMode(apiConnection, userConfig);
 
@@ -433,6 +435,11 @@ namespace FWO.Ui.Auth
         private static async Task<List<int>> GetRecertifiableOwners(string jwtString)
         {
             return await GetIntClaimList(jwtString, "x-hasura-recertifiable-owners");
+        }
+
+        private static async Task<List<int>> GetWorkflowVisibilityGroupIds(string jwtString)
+        {
+            return await GetIntClaimList(jwtString, "x-hasura-workflow-visibility-groups");
         }
 
         private static async Task<List<string>> GetClaimList(string jwtString, string claimType)

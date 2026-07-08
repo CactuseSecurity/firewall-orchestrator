@@ -54,6 +54,7 @@ namespace FWO.Basics
         public const string CollapseLeft = "bi bi-chevron-left";
         public const string CollapseRight = "bi bi-chevron-right";
         public const string Share = "bi bi-share-fill";
+        public const string Unlink = "bi bi-node-minus";
         public const string OrderByAsc = "bi bi-caret-up-fill";
         public const string OrderByDesc = "bi bi-caret-down-fill";
         public const string Refresh = "bi bi-arrow-clockwise";

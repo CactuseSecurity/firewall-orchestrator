@@ -946,12 +946,9 @@ namespace FWO.Test
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
-            if (typeof(QueryResponseType) == typeof(List<GlobalStateMatrixHelper>) && query == ConfigQueries.getConfigItemByKey)
+            if (typeof(QueryResponseType) == typeof(List<WorkflowConfiguration>) && query == RequestQueries.getActiveStateMatrixConfiguration)
             {
-                List<GlobalStateMatrixHelper> config =
-                [
-                    new() { ConfData = stateMatrixJson }
-                ];
+                List<WorkflowConfiguration> config = StateMatrixConfigurationTestHelper.FromLegacyJson(stateMatrixJson, WfTaskType.new_interface);
                 return Task.FromResult((QueryResponseType)(object)config);
             }
 

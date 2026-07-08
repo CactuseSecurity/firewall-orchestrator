@@ -56,25 +56,37 @@
                 </div>
             </div>
         </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5568"))">
-            <label for="cbx_owner_based" class="col-form-label col-sm-3">@(userConfig.GetText("reqOwnerBased")):</label>
-            <div class="col-sm-2">
-                <input id="cbx_owner_based" type="checkbox" @bind="configData!.ReqOwnerBased">
+        <hr />
+        <div class="form-group row">
+            <div class="form-group row col-sm-4 align-items-center"data-toggle="tooltip" title="@(userConfig.PureLine("H5568"))">
+                <label for="cbx_owner_based" class="col-form-label col-sm-8">@(userConfig.GetText("reqOwnerBased")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_owner_based" type="checkbox" @bind="configData!.ReqOwnerBased">
+                </div>
+            </div>
+            <div class="form-group row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5579"))">
+                <label for="cbx_visibility_based" class="col-form-label col-sm-8">@(userConfig.GetText("reqVisibilityBased")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_visibility_based" type="checkbox" @bind="configData!.ReqVisibilityBased">
+                </div>
             </div>
         </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5570"))">
-            <label for="cbx_reduced_view" class="col-form-label col-sm-3">@(userConfig.GetText("reqReducedView")):</label>
-            <div class="col-sm-2">
-                <input id="cbx_reduced_view" type="checkbox" @bind="configData!.ReqReducedView">
+        <div class="form-group row">
+            <div class="form-group row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5570"))">
+                <label for="cbx_reduced_view" class="col-form-label col-sm-8">@(userConfig.GetText("reqReducedView")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_reduced_view" type="checkbox" @bind="configData!.ReqReducedView">
+                </div>
+            </div>
+            <div class="form-group row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5569"))">
+                <label for="cbx_show_compliance" class="col-form-label col-sm-8">@(userConfig.GetText("reqShowCompliance")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_show_compliance" type="checkbox" @bind="configData!.ReqShowCompliance">
+                </div>
             </div>
         </div>
+        <hr />
 
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5569"))">
-            <label for="cbx_show_compliance" class="col-form-label col-sm-3">@(userConfig.GetText("reqShowCompliance")):</label>
-            <div class="col-sm-2">
-                <input id="cbx_show_compliance" type="checkbox" @bind="configData!.ReqShowCompliance">
-            </div>
-        </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5564"))">
             <label for="cbx_use_flow_db" class="col-form-label col-sm-3">@(userConfig.GetText("reqUseFlowDb")):</label>
             <div class="col-sm-1">

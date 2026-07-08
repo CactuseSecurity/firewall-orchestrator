@@ -1,0 +1,26 @@
+query getWorkflowConfigurationPhaseMappings($configurationId: Int!) {
+  phase_mappings: request_workflow_configuration_phase(
+    where: {configuration_id: {_eq: $configurationId}}
+    order_by: [{task_type: asc}, {phase: asc}]
+  ) {
+    task_type
+    phase
+    phase_matrix_id
+    state_matrix_phase {
+      name
+      phase
+      active
+      lowest_input_state
+      lowest_start_state
+      lowest_end_state
+      state_matrix_derived_states(order_by: {from_state_id: asc}) {
+        from_state_id
+        derived_state_id
+      }
+      state_matrix_phase_transition_groups(order_by: {sort_order: asc}) {
+        transition_group_id
+        sort_order
+      }
+    }
+  }
+}

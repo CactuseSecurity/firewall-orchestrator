@@ -1,0 +1,287 @@
+@using FWO.Data
+@using FWO.Data.Middleware
+
+@inject UserConfig userConfig
+@inject ApiConnection apiConnection
+
+<PopUp Title="@(userConfig.GetText("edit_visibility_groups"))" Show="@Display" Size=PopupSize.Large OnClose="ClosePopup">
+    <Body>
+        @if (Display)
+        {
+            <div class="d-flex mt-2 mb-2">
+                <button type="button" class="btn btn-sm btn-success" @onclick="AddGroup">
+                    @(DisplayService.DisplayButton(userConfig, "add", Icons.Add))
+                </button>
+            </div>
+            <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WorkflowVisibilityGroup" Items="groups" PageSize="0" ColumnReorder="true">
+                <Column TableItem="WorkflowVisibilityGroup" Title="@(userConfig.GetText("action"))" Field="@(group => group.Id)" Sortable="false" Filterable="false">
+                    <Template>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditGroup(context)">
+                                @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteGroup(context)">
+                                @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))
+                            </button>
+                        </div>
+                    </Template>
+                </Column>
+                <Column TableItem="WorkflowVisibilityGroup" Title="@(userConfig.GetText("name"))" Field="@(group => group.Name)" Sortable="true" Filterable="true" />
+                <Column TableItem="WorkflowVisibilityGroup" Title="@(userConfig.GetText("description"))" Field="@(group => group.Description)" Sortable="true" Filterable="true" />
+                <Column TableItem="WorkflowVisibilityGroup" Title="@(userConfig.GetText("members"))" Field="@(group => group.Id)" Sortable="false" Filterable="false">
+                    <Template>
+                        @string.Join(", ", context.Members.Select(member => member.MemberDn))
+                    </Template>
+                </Column>
+            </Table>
+        }
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-sm btn-primary" @onclick="Close">
+            @(DisplayService.DisplayButton(userConfig, "ok", Icons.Confirm))
+        </button>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText(editGroup.Id == 0 ? "add_visibility_group" : "edit_visibility_group"))" Show="@EditMode" Size=PopupSize.Medium OnClose="CloseEditor">
+    <Body>
+        @if (EditMode)
+        {
+            <div class="form-group row mb-2">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                <div class="col-sm-9"><input class="form-control form-control-sm" @bind="editGroup.Name" /></div>
+            </div>
+            <div class="form-group row mb-2">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("description")):</label>
+                <div class="col-sm-9"><textarea class="form-control form-control-sm" @bind="editGroup.Description"></textarea></div>
+            </div>
+            <h6>@(userConfig.GetText("members"))</h6>
+            <div class="input-group input-group-sm mb-2">
+                <input class="form-control" @bind="newMemberDn" placeholder="@(userConfig.GetText("member_dn"))" />
+                <button type="button" class="btn btn-success" disabled="@(string.IsNullOrWhiteSpace(newMemberDn))" @onclick="AddMember">
+                    <span class="@Icons.Add"></span>
+                </button>
+                <button type="button" class="btn btn-secondary" @onclick="() => SearchMemberMode = true">
+                    @(DisplayService.DisplayButton(userConfig, "search", Icons.Search))
+                </button>
+            </div>
+            @foreach (WorkflowVisibilityGroupMember member in editGroup.Members)
+            {
+                <div class="d-flex align-items-center justify-content-between border-bottom py-1">
+                    <span class="text-break">@member.MemberDn</span>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => editGroup.Members.Remove(member)">
+                        <span class="@Icons.Delete"></span>
+                    </button>
+                </div>
+            }
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-primary" disabled="@(!CanSave)" @onclick="Save">
+                        @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+                    </button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                </NotAuthorized>
+            </ExecutionModeAuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseEditor">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<SearchUser @bind-Display="SearchMemberMode" AddUser="AddUserMember" AddGroup="AddGroupMember"
+            UserSearchMode="true" GroupSearchMode="true" Title="@editGroup.Name" />
+<ConfirmDelete @bind-Display="DeleteMode" PerformAction="DeleteGroup" AllowedRoles="@Roles.Admin"
+               Title="@userConfig.GetText("delete_visibility_group")" DeleteMessage="@DeleteGroupMessage" />
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    private List<WorkflowVisibilityGroup> groups = [];
+    private WorkflowVisibilityGroup editGroup = new();
+    private WorkflowVisibilityGroup originalGroup = new();
+    private WorkflowVisibilityGroup groupToDelete = new();
+    private string newMemberDn = "";
+    private bool EditMode;
+    private bool SearchMemberMode;
+    private bool DeleteMode;
+    private bool wasDisplayed;
+    private bool CanSave => !string.IsNullOrWhiteSpace(editGroup.Name) && !HasDuplicateName();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Display && !wasDisplayed)
+        {
+            await RefreshGroups();
+        }
+        wasDisplayed = Display;
+    }
+
+    private async Task RefreshGroups()
+    {
+        try
+        {
+            groups = await apiConnection.SendQueryAsync<List<WorkflowVisibilityGroup>>(RequestQueries.getWorkflowVisibilityGroups);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private void AddGroup()
+    {
+        editGroup = new WorkflowVisibilityGroup();
+        originalGroup = new WorkflowVisibilityGroup();
+        EditMode = true;
+    }
+
+    private void EditGroup(WorkflowVisibilityGroup group)
+    {
+        editGroup = Clone(group);
+        originalGroup = Clone(group);
+        EditMode = true;
+    }
+
+    private void RequestDeleteGroup(WorkflowVisibilityGroup group)
+    {
+        groupToDelete = group;
+        DeleteMode = true;
+    }
+
+    private string DeleteGroupMessage => $"{userConfig.GetText("delete_visibility_group_message")} {groupToDelete.Name}?";
+
+    private async Task DeleteGroup()
+    {
+        try
+        {
+            await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteWorkflowVisibilityGroup, new { id = groupToDelete.Id });
+            await RefreshGroups();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete_visibility_group"), "", true);
+        }
+    }
+
+    private void AddMember()
+    {
+        AddMemberDn(newMemberDn);
+        newMemberDn = "";
+    }
+
+    private Task AddUserMember(UiUser user)
+    {
+        AddMemberDn(user.Dn);
+        return Task.CompletedTask;
+    }
+
+    private Task AddGroupMember(string groupDn)
+    {
+        AddMemberDn(groupDn);
+        return Task.CompletedTask;
+    }
+
+    private void AddMemberDn(string memberDn)
+    {
+        string normalizedMemberDn = memberDn.Trim();
+        if (!string.IsNullOrWhiteSpace(normalizedMemberDn) &&
+            !editGroup.Members.Any(member => string.Equals(member.MemberDn, normalizedMemberDn, StringComparison.OrdinalIgnoreCase)))
+        {
+            editGroup.Members.Add(new WorkflowVisibilityGroupMember { VisibilityGroupId = editGroup.Id, MemberDn = normalizedMemberDn });
+        }
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            editGroup.Name = editGroup.Name.Trim();
+            editGroup.Description = NormalizeOptional(editGroup.Description);
+            int groupId = editGroup.Id;
+            if (groupId == 0)
+            {
+                ReturnId result = await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.createWorkflowVisibilityGroup, new
+                {
+                    name = editGroup.Name,
+                    description = editGroup.Description
+                });
+                groupId = result.NewId;
+            }
+            else
+            {
+                await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateWorkflowVisibilityGroup, new
+                {
+                    id = groupId,
+                    name = editGroup.Name,
+                    description = editGroup.Description
+                });
+            }
+            await SaveMembers(groupId);
+            await RefreshGroups();
+            CloseEditor();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("edit_visibility_group"), "", true);
+        }
+    }
+
+    private async Task SaveMembers(int groupId)
+    {
+        HashSet<string> oldMembers = originalGroup.Members.Select(member => member.MemberDn).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        HashSet<string> newMembers = editGroup.Members.Select(member => member.MemberDn.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        List<object> removedMembers = oldMembers.Except(newMembers, StringComparer.OrdinalIgnoreCase)
+            .Select(memberDn => (object)new { visibility_group_id = new { _eq = groupId }, member_dn = new { _eq = memberDn } }).ToList();
+        List<object> members = newMembers.Except(oldMembers, StringComparer.OrdinalIgnoreCase)
+            .Select(memberDn => (object)new { visibility_group_id = groupId, member_dn = memberDn }).ToList();
+        if (removedMembers.Count > 0 || members.Count > 0)
+        {
+            await apiConnection.SendQueryAsync<object>(RequestQueries.replaceWorkflowVisibilityGroupMembers, new { removedMembers, members });
+        }
+    }
+
+    private bool HasDuplicateName() => groups.Any(group => group.Id != editGroup.Id && string.Equals(group.Name, editGroup.Name.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    private static string? NormalizeOptional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static WorkflowVisibilityGroup Clone(WorkflowVisibilityGroup group) => new()
+    {
+        Id = group.Id,
+        Name = group.Name,
+        Description = group.Description,
+        Members = group.Members.Select(member => new WorkflowVisibilityGroupMember
+        {
+            VisibilityGroupId = member.VisibilityGroupId,
+            MemberDn = member.MemberDn
+        }).ToList()
+    };
+
+    private void CloseEditor()
+    {
+        EditMode = false;
+        SearchMemberMode = false;
+        newMemberDn = "";
+    }
+
+    private async Task Close()
+    {
+        CloseEditor();
+        Display = false;
+        await DisplayChanged.InvokeAsync(false);
+    }
+
+    private void ClosePopup() => _ = Close();
+}

@@ -41,7 +41,7 @@
 
       ]
     }
-    limit: 35
+    limit: 36
   ) {
     config_key
     config_value

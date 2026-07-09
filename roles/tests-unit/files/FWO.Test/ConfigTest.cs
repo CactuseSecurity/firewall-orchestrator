@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.RegularExpressions;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
@@ -338,6 +339,17 @@ namespace FWO.Test
         public void ComplianceCheckSubscription_ContainsDesignatedZoneMatrix()
         {
             Assert.That(ConfigQueries.subscribeComplianceCheckConfigChanges, Does.Contain("complianceDesignatedZoneMatrix"));
+        }
+
+        [Test]
+        public void ComplianceCheckSubscription_LimitCoversAllTrackedConfigKeys()
+        {
+            string subscription = ConfigQueries.subscribeComplianceCheckConfigChanges;
+            int trackedConfigKeyCount = Regex.Matches(subscription, "_eq:").Count;
+            Match limitMatch = Regex.Match(subscription, @"limit:\s*(\d+)");
+
+            Assert.That(limitMatch.Success, Is.True, "Subscription limit not found.");
+            Assert.That(int.Parse(limitMatch.Groups[1].Value), Is.GreaterThanOrEqualTo(trackedConfigKeyCount));
         }
 
         [Test]

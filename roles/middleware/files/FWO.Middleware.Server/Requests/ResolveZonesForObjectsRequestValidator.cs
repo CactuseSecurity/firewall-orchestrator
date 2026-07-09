@@ -1,6 +1,7 @@
 using FWO.Basics;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using System.Net.Sockets;
 
 namespace FWO.Middleware.Server.Requests;
 
@@ -180,6 +181,12 @@ public static class ResolveZonesForObjectsRequestValidator
         if (ipStart.AddressFamily != ipEnd.AddressFamily)
         {
             errorResult = new BadRequestObjectResult($"'{context}' must use the same address family for 'ipStart' and 'ipEnd'.");
+            return false;
+        }
+
+        if (ipStart.AddressFamily == AddressFamily.InterNetworkV6)
+        {
+            errorResult = new BadRequestObjectResult($"'{context}' does not support IPv6 addresses. Only IPv4 values are allowed for 'ipStart' and 'ipEnd'.");
             return false;
         }
 

@@ -1,5 +1,5 @@
-mutation importInsertRulebaseOnGateway($rulebaseLinks: [rulebase_link_insert_input!]!) {
-    insert_rulebase_link(
+mutation importInsertRulebaseOnGateway($rulebaseLinks: [firewall_rulebase_link_insert_input!]!) {
+    insert_firewall_rulebase_link(
         objects: $rulebaseLinks
         on_conflict: {
             constraint: unique_rulebase_link

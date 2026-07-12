@@ -1,10 +1,11 @@
 # Default Postgresql Versions per Operating System 
 
-Status as of 2023-01-24
+Status as of 2026-07-06
 
-- Ubuntu 18.04		10
-- Ubuntu 20.04		12
 - Ubuntu 22.04		14
-- Debian 10		    11
-- Debian 11		    13
-- Debian Testing    15
+- Ubuntu 24.04		16
+- Debian 12		    15
+- Debian Testing    17
+- RHEL 8            13
+- RHEL 9            13
+- RHEL 10           13

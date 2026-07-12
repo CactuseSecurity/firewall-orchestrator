@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # fwo_globals.py
 verify_certs = None
 suppress_cert_warnings = None

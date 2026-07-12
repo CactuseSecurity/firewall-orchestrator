@@ -1,8 +1,13 @@
-from typing import Any
+from __future__ import annotations
 
-from models.fwconfig_normalized import FwConfigNormalized
+from importlib import import_module
+from typing import TYPE_CHECKING, Any
+
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_pascal
+
+if TYPE_CHECKING:
+    from models.fwconfig_normalized import FwConfigNormalized
 
 
 class FwConfigManager(BaseModel):
@@ -23,3 +28,8 @@ class FwConfigManager(BaseModel):
     def model_dump_json(self, **kwargs: Any) -> str:
         kwargs.setdefault("by_alias", True)
         return super().model_dump_json(**kwargs)
+
+
+FwConfigManager.model_rebuild(
+    _types_namespace={"FwConfigNormalized": import_module("models.fwconfig_normalized").FwConfigNormalized}
+)

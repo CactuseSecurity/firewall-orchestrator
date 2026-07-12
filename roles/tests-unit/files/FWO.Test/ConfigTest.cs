@@ -329,9 +329,10 @@ namespace FWO.Test
         }
 
         [Test]
-        public void FlowSyncSubscription_ContainsFlowSyncSleepTime()
+        public void FlowSyncSubscription_ContainsFlowSyncConfigSettings()
         {
             Assert.That(ConfigQueries.subscribeFlowSyncConfigChanges, Does.Contain("flowSyncSleepTime"));
+            Assert.That(ConfigQueries.subscribeFlowSyncConfigChanges, Does.Contain("flowNamingSourceManagementRanking"));
         }
 
         [Test]

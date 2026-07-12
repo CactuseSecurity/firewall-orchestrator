@@ -19,6 +19,6 @@ namespace FWO.Test
                     BuiltInExternalTicketSystemTypes.AlgoSecId,
                     BuiltInExternalTicketSystemTypes.ServiceNowId
                 }));
-        } 
+        }
     }
 }

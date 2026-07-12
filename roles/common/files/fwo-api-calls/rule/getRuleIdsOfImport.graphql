@@ -3,7 +3,7 @@ query getRuleIdsOfImport(
   $import_id_end: bigint
   $devIds: [Int!]
 ) {
-  rule(
+  firewall_rule(
     where: {
       rule_create: { _lte: $import_id_end }
       _or: [

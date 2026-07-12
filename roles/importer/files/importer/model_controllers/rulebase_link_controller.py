@@ -26,7 +26,7 @@ class RulebaseLinkController:
         if "errors" in add_result:
             FWOLogger.exception(f"fwo_api:insertRulebaseLinks - error while inserting: {add_result['errors']!s}")
         else:
-            changes = add_result["data"]["insert_rulebase_link"]["affected_rows"]
+            changes = add_result["data"]["insert_firewall_rulebase_link"]["affected_rows"]
             stats.increment_rulebase_link_add_count(changes)
 
     def remove_rulebase_links(
@@ -44,7 +44,7 @@ class RulebaseLinkController:
         if "errors" in add_result:
             FWOLogger.exception(f"fwo_api:removeRulebaseLinks - error while removing: {add_result['errors']!s}")
         else:
-            changes = add_result["data"]["update_rulebase_link"]["affected_rows"]
+            changes = add_result["data"]["update_firewall_rulebase_link"]["affected_rows"]
             stats.increment_rulebase_link_delete_count(changes)
 
     def get_rulebase_links(self, import_state: ImportState, fwo_api_call: FwoApiCall) -> None:
@@ -64,6 +64,6 @@ class RulebaseLinkController:
             FWOLogger.exception(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {links['errors']!s}")
         else:
             parsable_rulebase_links = [
-                link for link in links["data"]["rulebase_link"] if link.get("created") is not None
+                link for link in links["data"]["firewall_rulebase_link"] if link.get("created") is not None
             ]  # TODO: is this necessary or was the bug some corrupted local db stuff? But why does integration test fail?
             self.rb_links: list[RulebaseLink] = parse_rulebase_links(parsable_rulebase_links)

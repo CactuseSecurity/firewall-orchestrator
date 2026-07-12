@@ -1,4 +1,6 @@
-
+-- ensure the firewall schema is resolvable for the unqualified references below, even on a
+-- connection opened before the ALTER DATABASE ... SET search_path took effect (issue #4793).
+SET search_path TO "$user", public, firewall;
 
 CREATE OR REPLACE FUNCTION public.get_visible_devices_per_tenant(integer)
     RETURNS SETOF device_type 
@@ -69,36 +71,36 @@ END;
 $BODY$;
 
 CREATE OR REPLACE FUNCTION public.filter_rule_nwobj_resolveds(management_row management, rule_ids bigint[], import_id bigint)
- RETURNS SETOF object
+ RETURNS SETOF firewall.nw_object
  LANGUAGE sql
  STABLE
 AS $function$
   SELECT o.*
-  FROM rule_nwobj_resolved r JOIN object o ON (r.obj_id=o.obj_id)
+  FROM firewall.rule_nw_object_resolved r JOIN firewall.nw_object o ON (r.obj_id=o.obj_id)
   WHERE r.mgm_id = management_row.mgm_id AND rule_id = any (rule_ids) AND r.created <= import_id AND (r.removed IS NULL OR r.removed > import_id)
   GROUP BY o.obj_id
   ORDER BY MAX(obj_name), o.obj_id
 $function$;
 
 CREATE OR REPLACE FUNCTION public.filter_rule_svc_resolveds(management_row management, rule_ids bigint[], import_id bigint)
- RETURNS SETOF service
+ RETURNS SETOF firewall.nw_service
  LANGUAGE sql
  STABLE
 AS $function$
   SELECT s.*
-  FROM rule_svc_resolved r JOIN service s ON (r.svc_id=s.svc_id)
+  FROM firewall.rule_nw_service_resolved r JOIN firewall.nw_service s ON (r.svc_id=s.svc_id)
   WHERE r.mgm_id = management_row.mgm_id AND rule_id = any (rule_ids) AND r.created <= import_id AND (r.removed IS NULL OR r.removed > import_id)
   GROUP BY s.svc_id
   ORDER BY MAX(svc_name), s.svc_id
 $function$;
 
 CREATE OR REPLACE FUNCTION public.filter_rule_user_resolveds(management_row management, rule_ids bigint[], import_id bigint)
- RETURNS SETOF usr
+ RETURNS SETOF firewall.nw_user
  LANGUAGE sql
  STABLE
 AS $function$
   SELECT u.*
-  FROM rule_user_resolved r JOIN usr u ON (r.user_id=u.user_id)
+  FROM firewall.rule_nw_user_resolved r JOIN firewall.nw_user u ON (r.user_id=u.user_id)
   WHERE r.mgm_id = management_row.mgm_id AND rule_id = any (rule_ids) AND r.created <= import_id AND (r.removed IS NULL OR r.removed > import_id)
   GROUP BY u.user_id
   ORDER BY MAX(user_name), u.user_id
@@ -142,7 +144,7 @@ RETURNS boolean AS $$
                     (SELECT obj_id, negated FROM rule_from WHERE rule_id = cl_rule.new_rule_id EXCEPT SELECT obj_id, negated FROM rule_from WHERE rule_id = cl_rule.old_rule_id)
                 ) AS diff
                 JOIN objgrp_flat ON (obj_id=objgrp_flat_id)
-                JOIN object ON (objgrp_flat_member_id=object.obj_id)
+                JOIN firewall.nw_object object ON (objgrp_flat_member_id=object.obj_id)
                 JOIN tenant_network ON
                     (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, diff.negated))
                 WHERE tenant_id = tenant
@@ -157,7 +159,7 @@ RETURNS boolean AS $$
                     (SELECT obj_id, negated FROM rule_to WHERE rule_id = cl_rule.new_rule_id EXCEPT SELECT obj_id, negated FROM rule_to WHERE rule_id = cl_rule.old_rule_id)
                 ) AS diff
                 JOIN objgrp_flat ON (obj_id=objgrp_flat_id)
-                JOIN object ON (objgrp_flat_member_id=object.obj_id)
+                JOIN firewall.nw_object object ON (objgrp_flat_member_id=object.obj_id)
                 JOIN tenant_network ON
                     (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, diff.negated))
                 WHERE tenant_id = tenant
@@ -216,7 +218,7 @@ RETURNS boolean AS $$
                     SELECT rf.obj_id FROM rule_from rf
                         LEFT JOIN rule r ON (rf.rule_id=r.rule_id)
                         LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
-                        LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                        LEFT JOIN firewall.nw_object object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                         LEFT JOIN tenant_network ON
                             (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg))
                     WHERE rule_from_id = rule_from.rule_from_id AND tenant_id = t_id
@@ -228,7 +230,7 @@ RETURNS boolean AS $$
                         FROM rule_to rt
                             LEFT JOIN rule r ON (rt.rule_id=r.rule_id)
                             LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat_id)
-                            LEFT JOIN object ON (objgrp_flat_member_id=object.obj_id)
+                            LEFT JOIN firewall.nw_object object ON (objgrp_flat_member_id=object.obj_id)
                             LEFT JOIN tenant_network ON
                                 (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
                         WHERE rt.rule_id = rule_from.rule_id
@@ -271,7 +273,7 @@ RETURNS boolean AS $$
                     SELECT rt.obj_id FROM rule_to rt
                         LEFT JOIN rule r ON (rt.rule_id=r.rule_id)
                         LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
-                        LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                        LEFT JOIN firewall.nw_object object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                         LEFT JOIN tenant_network ON
                             (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
                     WHERE rule_to_id = rule_to.rule_to_id AND tenant_id = t_id
@@ -283,7 +285,7 @@ RETURNS boolean AS $$
                         FROM rule_from rf
                             LEFT JOIN rule r ON (rf.rule_id=r.rule_id)
                             LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat_id)
-                            LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                            LEFT JOIN firewall.nw_object object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                             LEFT JOIN tenant_network ON
                                 (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg))
                         WHERE rf.rule_id = rule_to.rule_id
@@ -323,7 +325,7 @@ RETURNS SETOF changelog_rule AS $$
 $$ LANGUAGE 'plpgsql' STABLE;
 
 CREATE OR REPLACE FUNCTION get_objects_for_tenant(management_row management, tenant integer, hasura_session json)
-RETURNS SETOF object AS $$
+RETURNS SETOF firewall.nw_object AS $$
     DECLARE t_id integer;
     
     BEGIN
@@ -338,23 +340,23 @@ RETURNS SETOF object AS $$
         ELSE
             RETURN QUERY
                 SELECT o.* FROM (
-                    SELECT o.* FROM object o
+                    SELECT o.* FROM firewall.nw_object o
                         LEFT JOIN rule_from rf ON (o.obj_id=rf.obj_id)
                         LEFT JOIN rule r ON (rf.rule_id=r.rule_id)
                         LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
                         LEFT JOIN objgrp_flat rt_of ON (rt.obj_id=rt_of.objgrp_flat_id)
-                        LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
+                        LEFT JOIN firewall.nw_object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
                         LEFT JOIN tenant_network ON
                             (ip_ranges_overlap(o.obj_ip, o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg)
                              OR ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
                     WHERE o.mgm_id = management_row.mgm_id AND tenant_id = tenant AND r.rule_head_text is NULL
                     UNION
-                    SELECT o.* FROM object o
+                    SELECT o.* FROM firewall.nw_object o
                         LEFT JOIN rule_to rt ON (o.obj_id=rt.obj_id)
                         LEFT JOIN rule r ON (rt.rule_id=r.rule_id)
                         LEFT JOIN rule_from rf ON (r.rule_id=rf.rule_id)
                         LEFT JOIN objgrp_flat rf_of ON (rf.obj_id=rf_of.objgrp_flat_id)
-                        LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
+                        LEFT JOIN firewall.nw_object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
                         LEFT JOIN tenant_network ON
                             (ip_ranges_overlap(o.obj_ip, o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg)
                              OR ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg))
@@ -435,7 +437,7 @@ RETURNS boolean AS $$
                     SELECT rf.obj_id FROM rule_from rf
                         LEFT JOIN rule r ON (rf.rule_id=r.rule_id)
                         LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
-                        LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                        LEFT JOIN firewall.nw_object object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                         LEFT JOIN tenant_network ON
                             (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg))
                     WHERE rf.rule_id = rule.rule_id AND tenant_id = t_id
@@ -445,7 +447,7 @@ RETURNS boolean AS $$
                     SELECT rt.obj_id FROM rule_to rt
                         LEFT JOIN rule r ON (rt.rule_id=r.rule_id)
                         LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
-                        LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                        LEFT JOIN firewall.nw_object object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                         LEFT JOIN tenant_network ON
                             (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
                     WHERE rt.rule_id = rule.rule_id AND tenant_id = t_id
@@ -481,7 +483,7 @@ RETURNS SETOF rule AS $$
                 SELECT r.* FROM rule r
                   LEFT JOIN rule_from rf ON (r.rule_id=rf.rule_id)
                   LEFT JOIN objgrp_flat rf_of ON (rf.obj_id=rf_of.objgrp_flat_id)
-                  LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
+                  LEFT JOIN firewall.nw_object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
                   LEFT JOIN tenant_network ON
                     (ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg))
                 WHERE r.dev_id = device_row.dev_id AND tenant_id = tenant AND rule_head_text IS NULL
@@ -489,7 +491,7 @@ RETURNS SETOF rule AS $$
                 SELECT r.* FROM rule r
                   LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
                   LEFT JOIN objgrp_flat rt_of ON (rt.obj_id=rt_of.objgrp_flat_id)
-                  LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
+                  LEFT JOIN firewall.nw_object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
                   LEFT JOIN tenant_network ON
                     (ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
                 WHERE r.dev_id = device_row.dev_id AND tenant_id = tenant AND rule_head_text IS NULL
@@ -519,7 +521,7 @@ RETURNS SETOF rule_from AS $$
             ELSIF EXISTS (
                     SELECT rt.obj_id FROM rule_to rt
                         LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
-                        LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                        LEFT JOIN firewall.nw_object object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                         LEFT JOIN tenant_network ON
                             (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != rule.rule_dst_neg))
                     WHERE rt.rule_id = rule.rule_id AND tenant_id = tenant
@@ -530,7 +532,7 @@ RETURNS SETOF rule_from AS $$
                 RETURN QUERY
                     SELECT DISTINCT rf.* FROM rule_from rf
                         LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
-                        LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                        LEFT JOIN firewall.nw_object object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                         LEFT JOIN tenant_network ON
                             (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != rule.rule_src_neg))
                     WHERE rule_id = rule.rule_id AND tenant_id = tenant;
@@ -562,7 +564,7 @@ AS $function$
             ELSIF EXISTS (
                     SELECT rf.obj_id FROM rule_from rf
                         LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
-                        LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                        LEFT JOIN firewall.nw_object object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                         LEFT JOIN tenant_network ON
                             (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != rule.rule_src_neg))
                     WHERE rf.rule_id = rule.rule_id AND tenant_id = tenant
@@ -573,7 +575,7 @@ AS $function$
                 RETURN QUERY
                     SELECT DISTINCT rt.* FROM rule_to rt
                         LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
-                        LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                        LEFT JOIN firewall.nw_object object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                         LEFT JOIN tenant_network ON
                             (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != rule.rule_dst_neg))
                     WHERE rule_id = rule.rule_id AND tenant_id = tenant;
@@ -590,7 +592,7 @@ RETURNS SETOF rule AS $$
         SELECT r.* FROM rule r
             LEFT JOIN rule_from rf ON (r.rule_id=rf.rule_id)
             LEFT JOIN objgrp_flat rf_of ON (rf.obj_id=rf_of.objgrp_flat_id)
-            LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
+            LEFT JOIN firewall.nw_object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
             LEFT JOIN owner_network ON
             (ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, ip, ip_end, rf.negated != r.rule_src_neg))
         WHERE r.dev_id = device_row.dev_id AND owner_id = ownerid AND rule_head_text IS NULL
@@ -598,7 +600,7 @@ RETURNS SETOF rule AS $$
         SELECT r.* FROM rule r
             LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
             LEFT JOIN objgrp_flat rt_of ON (rt.obj_id=rt_of.objgrp_flat_id)
-            LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
+            LEFT JOIN firewall.nw_object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
             LEFT JOIN owner_network ON
             (ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, ip, ip_end, rt.negated != r.rule_dst_neg))
         WHERE r.dev_id = device_row.dev_id AND owner_id = ownerid AND rule_head_text IS NULL
@@ -634,7 +636,7 @@ BEGIN
             FROM rule_api r
             LEFT JOIN rule_from rf ON r.rule_id = rf.rule_id
             LEFT JOIN objgrp_flat rf_of ON rf.obj_id = rf_of.objgrp_flat_id
-            LEFT JOIN object rf_o ON rf_of.objgrp_flat_member_id = rf_o.obj_id
+            LEFT JOIN firewall.nw_object rf_o ON rf_of.objgrp_flat_member_id = rf_o.obj_id
             WHERE r.rulebase_id = rulebase_row.id
               AND r.active = true
               AND rule_head_text IS NULL
@@ -644,7 +646,7 @@ BEGIN
             FROM rule_api r
             LEFT JOIN rule_to rt ON r.rule_id = rt.rule_id
             LEFT JOIN objgrp_flat rt_of ON rt.obj_id = rt_of.objgrp_flat_id
-            LEFT JOIN object rt_o ON rt_of.objgrp_flat_member_id = rt_o.obj_id
+            LEFT JOIN firewall.nw_object rt_o ON rt_of.objgrp_flat_member_id = rt_o.obj_id
             WHERE r.rulebase_id = rulebase_row.id
               AND r.active = true
               AND rule_head_text IS NULL

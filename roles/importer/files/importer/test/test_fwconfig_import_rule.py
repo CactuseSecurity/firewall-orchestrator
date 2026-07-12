@@ -1,5 +1,6 @@
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
+from models.rulebase import Rulebase
 from pytest_mock import MockerFixture
 from test.utils.test_utils import mock_get_graphql_code
 
@@ -131,3 +132,86 @@ class TestFwConfigImportRule:
         assert rule_changes[0]["change_action"] == "I"
         assert rule_changes[0]["mgm_id"] == fwconfig_import_rule.import_details.state.mgm_details.current_mgm_id
         assert rule_changes[0]["mgm_id"] != fwconfig_import_rule.import_details.state.mgm_details.mgm_id
+
+    def test_add_new_rules_uses_firewall_rule_result(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ):
+        mocker.patch.object(fwconfig_import_rule, "prepare_rule_for_import", return_value=mocker.Mock())
+        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(
+            return_value={
+                "data": {
+                    "insert_firewall_rule": {
+                        "affected_rows": 1,
+                        "returning": [{"rule_id": 101, "rule_uid": "rule-uid"}],
+                    }
+                }
+            }
+        )
+
+        changes, new_rule_ids = fwconfig_import_rule.add_new_rules(
+            {"rule-uid": (build_normalized_rule("rule-uid", rule_src_zone=None, rule_dst_zone=None), "rb-uid")}
+        )
+
+        assert changes == 1
+        assert new_rule_ids == [{"rule_id": 101, "rule_uid": "rule-uid"}]
+
+    def test_add_new_rulebases_uses_firewall_rulebase_result(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ):
+        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(
+            return_value={
+                "data": {
+                    "insert_firewall_rulebase": {
+                        "affected_rows": 1,
+                        "returning": [{"id": 42, "uid": "rb-uid"}],
+                    }
+                }
+            }
+        )
+
+        changes, new_rulebase_ids = fwconfig_import_rule.add_new_rulebases(
+            [Rulebase(uid="rb-uid", name="Rulebase", mgm_uid="mgm-uid")]
+        )
+
+        assert changes == 1
+        assert new_rulebase_ids == [{"id": 42, "uid": "rb-uid"}]
+
+    def test_mark_rulebases_removed_uses_firewall_rulebase_result(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ):
+        fwconfig_import_rule.uid2id_mapper.get_rulebase_id = mocker.Mock(return_value=42)
+        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(
+            return_value={"data": {"update_firewall_rulebase": {"affected_rows": 1}}}
+        )
+
+        changes = fwconfig_import_rule.mark_rulebases_removed(["rb-uid"])
+
+        assert changes == 1
+
+    def test_mark_rules_removed_uses_firewall_rule_result(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ):
+        fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(return_value=101)
+        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(
+            return_value={
+                "data": {
+                    "update_firewall_rule": {
+                        "affected_rows": 1,
+                        "returning": [{"rule_id": 101}],
+                    }
+                }
+            }
+        )
+
+        changes, removed_rule_ids = fwconfig_import_rule.mark_rules_removed(["rule-uid"])
+
+        assert changes == 1
+        assert removed_rule_ids == [101]

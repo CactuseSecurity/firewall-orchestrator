@@ -1,3 +1,4 @@
+using FWO.Basics.Exceptions;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
@@ -216,6 +217,126 @@ namespace FWO.Test
             ClassicAssert.AreEqual("member-remove", removeMemberBody.GetProperty("members").GetProperty("remove")[0].GetString());
         }
 
+        [Test]
+        public async Task CreateExternalTicketLoadsPlanAndSkipsExistingGroup()
+        {
+            Management management = CreateManagement();
+            SimulatedCheckPointClient checkPointClient = new(checkPointSystem, management);
+            checkPointClient.EnqueueResponse("add-group", ErrorResponse("More than one object has the same name"));
+            checkPointClient.EnqueueResponse("show-group", OkResponse("{\"name\":\"cp-group\"}"));
+            checkPointClient.EnqueueResponse("publish", OkResponse("{}"));
+            CheckPointTicket ticket = CreateTicketWithPlan(
+                checkPointClient,
+                management,
+                "{\"Steps\":[" +
+                $"{{\"TaskType\":\"{CheckPointTaskTypes.GroupCreate}\",\"Body\":{{\"name\":\"cp-group\"}}}}," +
+                $"{{\"TaskType\":\"{CheckPointTaskTypes.Publish}\",\"Body\":{{}}}}" +
+                "]}");
+
+            RestResponse<int> response = await ticket.CreateExternalTicket();
+
+            ClassicAssert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            CollectionAssert.AreEqual(ExpectedExistingGroupSkipEndpoints, checkPointClient.CalledEndpoints);
+            ClassicAssert.AreEqual(1, checkPointClient.LogoutCalls);
+        }
+
+        [Test]
+        public async Task CreateExternalTicketSkipsExistingNetworkWithSubnetMask()
+        {
+            Management management = CreateManagement();
+            SimulatedCheckPointClient checkPointClient = new(checkPointSystem, management);
+            checkPointClient.EnqueueResponse("add-network", ErrorResponse("More than one network has the same subnet"));
+            checkPointClient.EnqueueResponse("show-network", OkResponse("{\"subnet4\":\"10.0.0.0\",\"subnet-mask\":\"255.255.255.0\"}"));
+            checkPointClient.EnqueueResponse("publish", OkResponse("{}"));
+            CheckPointTicket ticket = CreateTicketWithPlan(
+                checkPointClient,
+                management,
+                "{\"Steps\":[" +
+                $"{{\"TaskType\":\"{CheckPointTaskTypes.NetworkCreate}\",\"Body\":{{\"name\":\"net\",\"subnet\":\"10.0.0.0\",\"mask-length\":24}}}}," +
+                $"{{\"TaskType\":\"{CheckPointTaskTypes.Publish}\",\"Body\":{{}}}}" +
+                "]}");
+
+            RestResponse<int> response = await ticket.CreateExternalTicket();
+
+            ClassicAssert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            CollectionAssert.AreEqual(ExpectedExistingNetworkSkipEndpoints, checkPointClient.CalledEndpoints);
+        }
+
+        [Test]
+        public async Task CreateExternalTicketSkipsExistingAddressRange()
+        {
+            Management management = CreateManagement();
+            SimulatedCheckPointClient checkPointClient = new(checkPointSystem, management);
+            checkPointClient.EnqueueResponse("add-address-range", ErrorResponse("More than one address range has the same IP"));
+            checkPointClient.EnqueueResponse("show-address-range", OkResponse("{\"ipv4-address-first\":\"10.0.0.1\",\"ipv4-address-last\":\"10.0.0.10\"}"));
+            checkPointClient.EnqueueResponse("publish", OkResponse("{}"));
+            CheckPointTicket ticket = CreateTicketWithPlan(
+                checkPointClient,
+                management,
+                "{\"Steps\":[" +
+                $"{{\"TaskType\":\"{CheckPointTaskTypes.AddressRangeCreate}\",\"Body\":{{\"name\":\"range\",\"ip-address-first\":\"10.0.0.1\",\"ip-address-last\":\"10.0.0.10\"}}}}," +
+                $"{{\"TaskType\":\"{CheckPointTaskTypes.Publish}\",\"Body\":{{}}}}" +
+                "]}");
+
+            RestResponse<int> response = await ticket.CreateExternalTicket();
+
+            ClassicAssert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            CollectionAssert.AreEqual(ExpectedExistingAddressRangeSkipEndpoints, checkPointClient.CalledEndpoints);
+        }
+
+        [Test]
+        public async Task CreateExternalTicketReturnsBadRequestForRuleChangeTask()
+        {
+            Management management = CreateManagement();
+            SimulatedCheckPointClient checkPointClient = new(checkPointSystem, management);
+            CheckPointTicket ticket = CreateTicketWithPlan(
+                checkPointClient,
+                management,
+                """
+                {"Steps":[{"TaskType":"access","Body":{}}]}
+                """);
+
+            RestResponse<int> response = await ticket.CreateExternalTicket();
+
+            ClassicAssert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
+            ClassicAssert.AreEqual("Check Point rule change tasks are not yet supported.", response.Content);
+            ClassicAssert.IsEmpty(checkPointClient.CalledEndpoints);
+        }
+
+        [Test]
+        public void CreateExternalTicketRejectsInvalidExecutionPlan()
+        {
+            Management management = CreateManagement();
+            CheckPointTicket ticket = CreateTicketWithPlan(
+                new SimulatedCheckPointClient(checkPointSystem, management),
+                management,
+                "{not-json");
+
+            ProcessingFailedException exception = Assert.ThrowsAsync<ProcessingFailedException>(ticket.CreateExternalTicket)!;
+
+            ClassicAssert.AreEqual("Invalid CheckPoint request content format.", exception.Message);
+        }
+
+        [Test]
+        public async Task CreateExternalTicketReturnsHardErrorResponse()
+        {
+            Management management = CreateManagement();
+            SimulatedCheckPointClient checkPointClient = new(checkPointSystem, management);
+            checkPointClient.EnqueueResponse("add-host", ErrorResponse("permission denied"));
+            CheckPointTicket ticket = CreateTicketWithPlan(
+                checkPointClient,
+                management,
+                "{\"Steps\":[" +
+                $"{{\"TaskType\":\"{CheckPointTaskTypes.HostCreate}\",\"Body\":{{\"name\":\"host\",\"ip-address\":\"10.0.0.1\"}}}}" +
+                "]}");
+
+            RestResponse<int> response = await ticket.CreateExternalTicket();
+
+            ClassicAssert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
+            CollectionAssert.AreEqual(ExpectedHardErrorEndpoints, checkPointClient.CalledEndpoints);
+            ClassicAssert.AreEqual(1, checkPointClient.LogoutCalls);
+        }
+
         private static WfReqTask CreateGroupModifyTask()
         {
             return new()
@@ -274,5 +395,73 @@ namespace FWO.Test
                 "set-group",
                 "publish"
             ];
+
+        private static readonly string[] ExpectedExistingGroupSkipEndpoints =
+            [
+                "add-group",
+                "show-group",
+                "publish"
+            ];
+
+        private static readonly string[] ExpectedExistingNetworkSkipEndpoints =
+            [
+                "add-network",
+                "show-network",
+                "publish"
+            ];
+
+        private static readonly string[] ExpectedExistingAddressRangeSkipEndpoints =
+            [
+                "add-address-range",
+                "show-address-range",
+                "publish"
+            ];
+
+        private static readonly string[] ExpectedHardErrorEndpoints =
+            [
+                "add-host",
+                "show-host"
+            ];
+
+        private CheckPointTicket CreateTicketWithPlan(SimulatedCheckPointClient checkPointClient, Management management, string ticketText)
+        {
+            return new CheckPointTicket(checkPointSystem, checkPointClient)
+            {
+                OnManagement = management,
+                TicketText = ticketText
+            };
+        }
+
+        private static Management CreateManagement()
+        {
+            return new()
+            {
+                Id = 1,
+                Name = "cp-mgmt",
+                Hostname = "checkpoint-test.xxx.de",
+                Port = 443,
+                ExportCredential = new ImportCredential("tester", "secret")
+            };
+        }
+
+        private static RestResponse<int> OkResponse(string content)
+        {
+            return new(new())
+            {
+                StatusCode = HttpStatusCode.OK,
+                ResponseStatus = ResponseStatus.Completed,
+                Content = content
+            };
+        }
+
+        private static RestResponse<int> ErrorResponse(string content)
+        {
+            return new(new())
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                ResponseStatus = ResponseStatus.Completed,
+                Content = content
+            };
+        }
     }
 }

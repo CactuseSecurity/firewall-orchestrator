@@ -375,6 +375,8 @@ namespace FWO.Report
 
             IEnumerable<InstalledBrowser>? allInstalledBrowsers = browserFetcher.GetInstalledBrowsers().Where(_ => _.Browser == wantedBrowser);
 
+            string? executablePath = null;
+
             if (!allInstalledBrowsers.Any())
             {
                 if (os.Platform == PlatformID.Win32NT)
@@ -385,21 +387,28 @@ namespace FWO.Report
                 }
                 else
                 {
-                    throw new EnvironmentException($"Found no installed {wantedBrowser} instances!");
+                    executablePath = SystemChromium.GetPath() ??
+                        throw new EnvironmentException($"Found no installed {wantedBrowser} instances and no system chromium!");
+                    Log.WriteInfo("Browser", $"No installed {wantedBrowser} found, falling back to system chromium at: {executablePath}");
                 }
             }
 
-            string? newestBuildId = allInstalledBrowsers.Max(_ => _.BuildId);
-
-            if (string.IsNullOrWhiteSpace(newestBuildId))
+            if (executablePath == null)
             {
-                throw new EnvironmentException($"Invalid build ID!");
+                string? newestBuildId = allInstalledBrowsers.Max(_ => _.BuildId);
+
+                if (string.IsNullOrWhiteSpace(newestBuildId))
+                {
+                    throw new EnvironmentException($"Invalid build ID!");
+                }
+
+                InstalledBrowser? latestInstalledBrowser = allInstalledBrowsers.Single(_ => _.BuildId == newestBuildId) ??
+                    throw new EnvironmentException($"Found no installed {wantedBrowser} instances with a valid build ID!");
+
+                Log.WriteInfo("Test Log", $"Selecting latest installed {wantedBrowser}({latestInstalledBrowser.BuildId}) at: {latestInstalledBrowser.GetExecutablePath()}");
+
+                executablePath = latestInstalledBrowser.GetExecutablePath();
             }
-
-            InstalledBrowser? latestInstalledBrowser = allInstalledBrowsers.Single(_ => _.BuildId == newestBuildId) ??
-                throw new EnvironmentException($"Found no installed {wantedBrowser} instances with a valid build ID!");
-
-            Log.WriteInfo("Test Log", $"Selecting latest installed {wantedBrowser}({latestInstalledBrowser.BuildId}) at: {latestInstalledBrowser.GetExecutablePath()}");
 
             IBrowser? browser;
 
@@ -407,7 +416,7 @@ namespace FWO.Report
             {
                 browser = await Puppeteer.LaunchAsync(new LaunchOptions
                 {
-                    ExecutablePath = latestInstalledBrowser.GetExecutablePath(),
+                    ExecutablePath = executablePath,
                     Headless = true,
                 });
             }

@@ -1,5 +1,5 @@
 query getNatRulesOverview($mgmId: [Int!], $device_id: [Int!]) {
-  rule_aggregate(where: { nat_rule: { _eq: true }, active: {_eq: true}}) {
+  firewall_rule_aggregate(where: { nat_rule: { _eq: true }, active: {_eq: true}}) {
     aggregate {
       count
     }

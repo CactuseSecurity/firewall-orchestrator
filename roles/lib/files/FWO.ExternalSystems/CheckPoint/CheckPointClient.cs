@@ -207,7 +207,7 @@ namespace FWO.ExternalSystems.CheckPoint
             {
                 Sid = sid;
             }
-            public string Sid { get;  }
+            public string Sid { get; }
         }
     }
 }

@@ -41,7 +41,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Cache SonarCloud packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
@@ -49,7 +49,7 @@ jobs:
 
       - name: Cache SonarCloud scanner
         id: cache-sonar-scanner
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .sonar/scanner
           key: ${{ runner.os }}-sonar-scanner
@@ -61,11 +61,36 @@ jobs:
 
       - name: Build and analyze
         run: |
-          .sonar/scanner/dotnet-sonarscanner begin \
-            /k:"${SONAR_PROJECT_KEY}" \
-            /o:"${SONAR_ORGANIZATION}" \
-            /d:sonar.token="${SONAR_TOKEN}" \
-            /d:sonar.host.url="https://sonarcloud.io" \
-            /d:sonar.qualitygate.wait=true
+          for attempt in 1 2 3; do
+            if .sonar/scanner/dotnet-sonarscanner begin \
+              /k:"${SONAR_PROJECT_KEY}" \
+              /o:"${SONAR_ORGANIZATION}" \
+              /d:sonar.token="${SONAR_TOKEN}" \
+              /d:sonar.host.url="https://sonarcloud.io" \
+              /d:sonar.qualitygate.wait=true; then
+              break
+            else
+              status=$?
+            fi
+
+            if [ "$attempt" -eq 3 ]; then
+              exit "$status"
+            fi
+
+            rm -rf .sonarqube
+            sleep $((attempt * 30))
+          done
           dotnet build roles/FWO.sln --configuration Debug --no-incremental
-          .sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${SONAR_TOKEN}"
+          for attempt in 1 2 3; do
+            if .sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${SONAR_TOKEN}"; then
+              break
+            else
+              status=$?
+            fi
+
+            if [ "$attempt" -eq 3 ]; then
+              exit "$status"
+            fi
+
+            sleep $((attempt * 30))
+          done

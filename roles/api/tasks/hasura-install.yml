@@ -6,7 +6,6 @@
     state: present
   loop:
     - python3-pip
-    - python3-virtualenv
   become: true
 
 - name: read Hasura database user password from database host
@@ -256,16 +255,36 @@
     - not api_use_existing_hasura_on_upgrade | default(false) | bool
     - hasura_cli_asset_id is not defined
 
-- name: initialize hasura cli directory
-  command: "{{ api_hasura_cli_bin }} init {{ product_name }} --skip-update-check --endpoint http://{{ api_local_listening_ip_address }}:{{ api_port }}"
-  args:
-    chdir: "{{ api_home }}"
+- name: create Hasura CLI project directories
+  file:
+    path: "{{ api_home }}/{{ product_name }}/{{ item }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+  loop:
+    - ""
+    - metadata
+    - migrations
+    - seeds
   become: true
-  become_user: "{{ fworch_user }}"
-  no_log: true
-  environment: "{{ proxy_env | combine({'HASURA_GRAPHQL_ADMIN_SECRET': api_hasura_admin_secret}) }}"
   when:
-    - not api_cli_check.stat.exists
+    - not api_use_existing_hasura_on_upgrade | default(false) | bool
+
+- name: write Hasura CLI project config
+  copy:
+    dest: "{{ api_home }}/{{ product_name }}/config.yaml"
+    mode: "0644"
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+    content: |
+      version: 3
+      endpoint: http://{{ api_local_listening_ip_address }}:{{ api_port }}
+      metadata_directory: metadata
+      migrations_directory: migrations
+      seeds_directory: seeds
+  become: true
+  when:
     - not api_use_existing_hasura_on_upgrade | default(false) | bool
 
 - name: set Hasura image reuse mode
@@ -339,7 +358,7 @@
       HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
       HASURA_GRAPHQL_ENABLE_TELEMETRY: "false"
       HASURA_GRAPHQL_ADMIN_SECRET: "{{ api_hasura_admin_secret }}"
-      HASURA_GRAPHQL_SERVER_HOST: "127.0.0.1"
+      HASURA_GRAPHQL_SERVER_HOST: "{{ api_local_listening_ip_address }}"
       HASURA_GRAPHQL_SERVER_PORT: "8080"
       HASURA_GRAPHQL_LOG_LEVEL: "{{ api_log_level }}"
       HASURA_GRAPHQL_ENABLED_LOG_TYPES: "{{ api_HASURA_GRAPHQL_ENABLED_LOG_TYPES }}"
@@ -474,12 +493,76 @@
   become: true
 
 - name: wait for hasura port to become available
-  wait_for:
-    port: "{{ api_port }}"
-    host: "{{ api_local_listening_ip_address }}"
-    connect_timeout: 1
-    delay: 3
-    timeout: 30
+  block:
+    - name: wait for hasura port to become available
+      wait_for:
+        port: "{{ api_port }}"
+        host: "{{ api_local_listening_ip_address }}"
+        connect_timeout: 1
+        delay: 3
+        timeout: "{{ api_hasura_startup_timeout }}"
+  rescue:
+    - name: read Hasura systemd status after startup timeout
+      command:
+        argv:
+          - systemctl
+          - status
+          - "{{ api_service_name }}"
+          - --no-pager
+          - -l
+      register: api_hasura_service_status
+      changed_when: false
+      failed_when: false
+      become: true
+
+    - name: read Hasura journal after startup timeout
+      command:
+        argv:
+          - journalctl
+          - -u
+          - "{{ api_service_name }}"
+          - --no-pager
+          - -n
+          - "120"
+      register: api_hasura_journal
+      changed_when: false
+      failed_when: false
+      become: true
+
+    - name: list Hasura containers after startup timeout
+      command:
+        argv:
+          - podman
+          - ps
+          - -a
+          - --filter
+          - "name={{ api_container_name }}"
+      register: api_hasura_container_list
+      changed_when: false
+      failed_when: false
+      become: true
+
+    - name: read Hasura container logs after startup timeout
+      command:
+        argv:
+          - podman
+          - logs
+          - --tail
+          - "120"
+          - "{{ api_container_name }}"
+      register: api_hasura_container_logs
+      changed_when: false
+      failed_when: false
+      become: true
+
+    - name: fail with Hasura startup diagnostics
+      fail:
+        msg:
+          - "Hasura did not listen on {{ api_local_listening_ip_address }}:{{ api_port }} within {{ api_hasura_startup_timeout }} seconds."
+          - "systemctl status {{ api_service_name }}: {{ api_hasura_service_status.stdout | default(api_hasura_service_status.stderr | default('')) }}"
+          - "journalctl -u {{ api_service_name }}: {{ api_hasura_journal.stdout | default(api_hasura_journal.stderr | default('')) }}"
+          - "podman ps: {{ api_hasura_container_list.stdout | default(api_hasura_container_list.stderr | default('')) }}"
+          - "podman logs {{ api_container_name }}: {{ api_hasura_container_logs.stdout | default(api_hasura_container_logs.stderr | default('')) }}"
 
 - name: import API metadata via metadata API directly from local file
   uri:

@@ -32,7 +32,7 @@ def mock_uid2id_mapper_response(uid2id_mapper: Uid2IdMapper, fwconfig_import_rul
 @pytest.fixture
 def mock_api_connection_response(api_connection: FwoApi):
     api_connection.call = unittest.mock.Mock(
-        return_value={"data": {"insert_rulebase": {"affected_rows": 1}, "rule": []}}
+        return_value={"data": {"insert_firewall_rulebase": {"affected_rows": 1}, "firewall_rule": []}}
     )
 
 
@@ -76,13 +76,13 @@ def mock_api_call_response(api_call: FwoApiCall):
 
         if "ruleMetadata" in query_variables:
             outcome["data"].update(
-                {"insert_rule_metadata": {"affected_rows": len(query_variables.get("ruleMetadata", []))}}
+                {"insert_firewall_rule_metadata": {"affected_rows": len(query_variables.get("ruleMetadata", []))}}
             )
 
         if "rulebases" in query_variables:
             outcome["data"].update(
                 {
-                    "insert_rulebase": {
+                    "insert_firewall_rulebase": {
                         "affected_rows": len(query_variables.get("rulebases", [])),
                         "returning": [{"id": 999} for _ in range(len(query_variables.get("rulebases", [])))],
                     }
@@ -92,14 +92,14 @@ def mock_api_call_response(api_call: FwoApiCall):
         if "uids" in query_variables and "objects" in query_variables:
             outcome["data"].update(
                 {
-                    "update_rule": {
+                    "update_firewall_rule": {
                         "affected_rows": len(query_variables.get("uids", [])),
                         "returning": [
                             {"rule_id": 888 + i, "rule_uid": uid}
                             for i, uid in enumerate(query_variables.get("uids", []))
                         ],
                     },
-                    "insert_rule": {
+                    "insert_firewall_rule": {
                         "affected_rows": len(query_variables.get("uids", [])),
                         "returning": [
                             {"rule_id": 777 + i, "rule_uid": uid}
@@ -112,58 +112,58 @@ def mock_api_call_response(api_call: FwoApiCall):
         if "ruleFroms" in query_variables:
             outcome["data"].update(
                 {
-                    "insert_rule_from": {
+                    "insert_firewall_rule_from": {
                         "affected_rows": len(query_variables.get("ruleFroms", [])),
                     },
-                    "insert_rule_to": {
+                    "insert_firewall_rule_to": {
                         "affected_rows": len(query_variables.get("ruleTos", [])),
                     },
-                    "insert_rule_service": {
+                    "insert_firewall_rule_service": {
                         "affected_rows": len(query_variables.get("ruleServices", [])),
                     },
-                    "insert_rule_nwobj_resolved": {
+                    "insert_firewall_rule_nw_object_resolved": {
                         "affected_rows": len(query_variables.get("ruleNwObjResolveds", [])),
                     },
-                    "insert_rule_svc_resolved": {
+                    "insert_firewall_rule_nw_service_resolved": {
                         "affected_rows": len(query_variables.get("ruleSvcResolveds", [])),
                     },
-                    "insert_rule_user_resolved": {
+                    "insert_firewall_rule_nw_user_resolved": {
                         "affected_rows": len(query_variables.get("ruleUserResolveds", [])),
                     },
-                    "insert_rule_from_zone": {
+                    "insert_firewall_rule_from_zone": {
                         "affected_rows": len(query_variables.get("ruleFromZones", [])),
                     },
-                    "insert_rule_to_zone": {
+                    "insert_firewall_rule_to_zone": {
                         "affected_rows": len(query_variables.get("ruleToZones", [])),
                     },
-                    "insert_rule_time": {
+                    "insert_firewall_rule_time": {
                         "affected_rows": len(query_variables.get("ruleTimes", [])),
                     },
-                    "update_rule_from": {
+                    "update_firewall_rule_from": {
                         "affected_rows": len(query_variables.get("ruleFroms", [])),
                     },
-                    "update_rule_to": {
+                    "update_firewall_rule_to": {
                         "affected_rows": len(query_variables.get("ruleTos", [])),
                     },
-                    "update_rule_service": {
+                    "update_firewall_rule_service": {
                         "affected_rows": len(query_variables.get("ruleServices", [])),
                     },
-                    "update_rule_nwobj_resolved": {
+                    "update_firewall_rule_nw_object_resolved": {
                         "affected_rows": len(query_variables.get("ruleNwObjResolveds", [])),
                     },
-                    "update_rule_svc_resolved": {
+                    "update_firewall_rule_nw_service_resolved": {
                         "affected_rows": len(query_variables.get("ruleSvcResolveds", [])),
                     },
-                    "update_rule_user_resolved": {
+                    "update_firewall_rule_nw_user_resolved": {
                         "affected_rows": len(query_variables.get("ruleUserResolveds", [])),
                     },
-                    "update_rule_from_zone": {
+                    "update_firewall_rule_from_zone": {
                         "affected_rows": len(query_variables.get("ruleFromZones", [])),
                     },
-                    "update_rule_to_zone": {
+                    "update_firewall_rule_to_zone": {
                         "affected_rows": len(query_variables.get("ruleToZones", [])),
                     },
-                    "update_rule_time": {
+                    "update_firewall_rule_time": {
                         "affected_rows": len(query_variables.get("ruleTimes", [])),
                     },
                 }
@@ -172,10 +172,10 @@ def mock_api_call_response(api_call: FwoApiCall):
         if "rulesEnforcedOnGateway" in query_variables:
             outcome["data"].update(
                 {
-                    "update_rule_enforced_on_gateway": {
+                    "update_firewall_rule_enforced_on_gateway": {
                         "affected_rows": len(query_variables.get("rulesEnforcedOnGateway", [])),
                     },
-                    "insert_rule_enforced_on_gateway": {
+                    "insert_firewall_rule_enforced_on_gateway": {
                         "affected_rows": len(query_variables.get("rulesEnforcedOnGateway", [])),
                     },
                 }

@@ -8,6 +8,12 @@ registries:
     password: ${{ secrets.PRIVATE_SUBMODULE_TOKEN }}
 
 updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+
   - package-ecosystem: "nuget"
     directory: "/roles/"
     target-branch: "develop"

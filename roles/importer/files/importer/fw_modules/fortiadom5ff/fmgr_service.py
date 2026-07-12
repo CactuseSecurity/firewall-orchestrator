@@ -1,8 +1,14 @@
+from __future__ import annotations
+
 import re
 from typing import Any
 
 from fwo_base import sort_and_join
 from fwo_const import LIST_DELIMITER
+
+FORTI_PROTOCOL_IP = 1
+FORTI_PROTOCOL_GENERIC = 2
+FORTI_PROTOCOL_ICMP6 = 6
 
 
 def normalize_service_objects(
@@ -77,23 +83,21 @@ def handle_svc_protocol(
 
     # forti uses strange protocol numbers, so we need to map them
 
-    match obj_orig["protocol"]:
-        case 1:
-            add_object(svc_objects, svc_type, name, color, 1, None, None, session_timeout)
-            added_svc_obj += 1
-        case 2:
-            if "protocol-number" in obj_orig:
-                proto = obj_orig["protocol-number"]
-            add_object(svc_objects, svc_type, name, color, proto, None, None, session_timeout)
-            added_svc_obj += 1
-        case 5 | 11 | 15:  # magic numbers from FortiNet: 5 = TCP/UDP, 11 = TCP/UDP/SCTP, 15 = TCP/UDP/SCTP/ICMP
-            parse_standard_protocols_with_ports(
-                obj_orig, svc_objects, svc_type, name, color, session_timeout, range_names, added_svc_obj
-            )
-        case 6:
-            add_object(svc_objects, svc_type, name, color, 58, None, None, session_timeout)
-        case _:
-            pass  # not doing anything for other protocols, e.g. GRE, ESP, ...
+    protocol = obj_orig["protocol"]
+    if protocol == FORTI_PROTOCOL_IP:
+        add_object(svc_objects, svc_type, name, color, 1, None, None, session_timeout)
+        added_svc_obj += 1
+    elif protocol == FORTI_PROTOCOL_GENERIC:
+        if "protocol-number" in obj_orig:
+            proto = obj_orig["protocol-number"]
+        add_object(svc_objects, svc_type, name, color, proto, None, None, session_timeout)
+        added_svc_obj += 1
+    elif protocol in {5, 11, 15}:  # magic numbers from FortiNet: 5 = TCP/UDP, 11 = TCP/UDP/SCTP, 15 = TCP/UDP/SCTP/ICMP
+        parse_standard_protocols_with_ports(
+            obj_orig, svc_objects, svc_type, name, color, session_timeout, range_names, added_svc_obj
+        )
+    elif protocol == FORTI_PROTOCOL_ICMP6:
+        add_object(svc_objects, svc_type, name, color, 58, None, None, session_timeout)
 
 
 def parse_standard_protocols_with_ports(
@@ -148,7 +152,7 @@ def check_split(obj_orig: dict[str, Any]) -> bool:
     return count > 1
 
 
-def extract_ports(port_ranges: list[str] | None) -> "tuple[list[Any], list[Any]]":
+def extract_ports(port_ranges: list[str] | None) -> tuple[list[Any], list[Any]]:
     ports: list[Any] = []
     port_ends: list[Any] = []
     if port_ranges is not None and len(port_ranges) > 0:
@@ -179,7 +183,7 @@ def extract_ports(port_ranges: list[str] | None) -> "tuple[list[Any], list[Any]]
     return ports, port_ends
 
 
-def create_svc_object(name: str, proto: int, color: str, port: Any, comment: str) -> "dict[str, Any]":
+def create_svc_object(name: str, proto: int, color: str, port: Any, comment: str) -> dict[str, Any]:
     return {
         "svc_name": name,
         "svc_typ": "simple",

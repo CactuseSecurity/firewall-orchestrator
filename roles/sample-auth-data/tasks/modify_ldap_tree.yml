@@ -54,6 +54,25 @@
     - sample_groups
   become: true
 
+- name: add ui ambient smoke roles for test user
+  command: "ldapmodify {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x"
+  args:
+    stdin: |
+      dn: cn={{ item }},ou=role,{{ openldap_path }}
+      changetype: modify
+      add: uniquemember
+      uniquemember: uid=user1{{ sample_postfix }},ou=tenant1{{ sample_postfix }},ou=operator,ou=user,{{ openldap_path }}
+  loop: "{{ ui_ambient_role_smoke_roles | default(['reporter', 'modeller', 'recertifier']) }}"
+  register: ui_ambient_role_smoke_role_result
+  failed_when:
+    - ui_ambient_role_smoke_role_result.rc != 0
+    - "'Type or value exists' not in ui_ambient_role_smoke_role_result.stderr"
+  changed_when: ui_ambient_role_smoke_role_result.rc == 0
+  become: true
+  when:
+    - sample_role_purpose is match('test')
+    - run_ui_ambient_role_smoke | default(false) | bool
+
 #only add roles and groups when not testing to avoid resudue from tests
 - name: add tree
   command: "ldapmodify {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"

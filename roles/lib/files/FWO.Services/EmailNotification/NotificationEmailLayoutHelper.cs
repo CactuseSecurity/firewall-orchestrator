@@ -101,18 +101,23 @@ namespace FWO.Services
             Platform platform = os.Platform == PlatformID.Win32NT ? Platform.Win32 : Platform.Linux;
             BrowserFetcher browserFetcher = new(new BrowserFetcherOptions() { Platform = platform, Browser = SupportedBrowser.Chrome, Path = path });
             IEnumerable<InstalledBrowser> browsers = browserFetcher.GetInstalledBrowsers().Where(browser => browser.Browser == SupportedBrowser.Chrome);
+            string? executablePath = null;
             if (!browsers.Any())
             {
                 if (os.Platform != PlatformID.Win32NT)
                 {
-                    throw new EnvironmentException("Found no installed Chrome instances.");
+                    executablePath = SystemChromium.GetPath() ??
+                        throw new EnvironmentException("Found no installed Chrome instances and no system chromium.");
                 }
-                await browserFetcher.DownloadAsync();
-                browsers = browserFetcher.GetInstalledBrowsers().Where(browser => browser.Browser == SupportedBrowser.Chrome);
+                else
+                {
+                    await browserFetcher.DownloadAsync();
+                    browsers = browserFetcher.GetInstalledBrowsers().Where(browser => browser.Browser == SupportedBrowser.Chrome);
+                }
             }
 
-            InstalledBrowser browserInfo = browsers.OrderBy(browser => browser.BuildId).Last();
-            await using IBrowser browser = await Puppeteer.LaunchAsync(new LaunchOptions { ExecutablePath = browserInfo.GetExecutablePath(), Headless = true });
+            executablePath ??= browsers.OrderBy(browser => browser.BuildId).Last().GetExecutablePath();
+            await using IBrowser browser = await Puppeteer.LaunchAsync(new LaunchOptions { ExecutablePath = executablePath, Headless = true });
             using IPage page = await browser.NewPageAsync();
             await page.SetContentAsync(html);
             PdfOptions options = new() { DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = PaperFormat.A4 };

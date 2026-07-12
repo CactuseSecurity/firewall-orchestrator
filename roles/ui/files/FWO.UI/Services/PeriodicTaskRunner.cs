@@ -10,7 +10,10 @@ namespace FWO.Ui.Services
         private readonly Func<Task> callback;
         private readonly TimeSpan interval;
         private readonly CancellationTokenSource cancellationTokenSource = new();
+        private readonly object lifecycleLock = new();
+        private Task executionTask = Task.CompletedTask;
         private int started;
+        private bool disposed;
         private readonly string TaskName;
 
         /// <summary>
@@ -18,6 +21,7 @@ namespace FWO.Ui.Services
         /// </summary>
         /// <param name="callback">Callback to execute on each interval.</param>
         /// <param name="interval">Interval between callback executions.</param>
+        /// <param name="taskName">Optional name used for logging.</param>
         public PeriodicTaskRunner(Func<Task> callback, TimeSpan interval, string taskName = "")
         {
             this.callback = callback ?? throw new ArgumentNullException(nameof(callback));
@@ -36,20 +40,38 @@ namespace FWO.Ui.Services
         /// </summary>
         public void Start()
         {
-            Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)}{(!string.IsNullOrWhiteSpace(TaskName) ? $" {TaskName}" : "")} started.");
-
-            if (Interlocked.Exchange(ref started, 1) == 1)
+            lock (lifecycleLock)
             {
-                return;
-            }
+                ObjectDisposedException.ThrowIf(disposed, this);
 
-            _ = RunAsync(cancellationTokenSource.Token);
+                if (Interlocked.Exchange(ref started, 1) == 1)
+                {
+                    return;
+                }
+
+                Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)}{(!string.IsNullOrWhiteSpace(TaskName) ? $" {TaskName}" : "")} started.");
+                executionTask = RunAsync(cancellationTokenSource.Token);
+            }
         }
 
         /// <inheritdoc />
         public void Dispose()
         {
-            cancellationTokenSource.Cancel();
+            Task taskToWaitFor;
+
+            lock (lifecycleLock)
+            {
+                if (disposed)
+                {
+                    return;
+                }
+
+                disposed = true;
+                cancellationTokenSource.Cancel();
+                taskToWaitFor = executionTask;
+            }
+
+            taskToWaitFor.GetAwaiter().GetResult();
             cancellationTokenSource.Dispose();
             GC.SuppressFinalize(this);
         }
@@ -62,6 +84,11 @@ namespace FWO.Ui.Services
 
                 while (await timer.WaitForNextTickAsync(cancellationToken))
                 {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
+
                     await callback();
                 }
             }

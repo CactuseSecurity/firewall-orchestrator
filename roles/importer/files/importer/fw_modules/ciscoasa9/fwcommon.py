@@ -7,20 +7,24 @@ It provides functions to connect to devices, retrieve configurations, and
 orchestrate the normalization process.
 """
 
+from __future__ import annotations
+
 import time
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fw_modules.ciscoasa9.asa_normalize import normalize_config
 from fw_modules.ciscoasa9.asa_parser import parse_asa_config
 from fwo_base import write_native_config_to_file
 from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
-from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.import_state_controller import ImportStateController
-from model_controllers.management_controller import ManagementController
 from models.fw_common import FwCommon
 from scrapli.driver import GenericDriver
+
+if TYPE_CHECKING:
+    from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+    from model_controllers.import_state_controller import ImportStateController
+    from model_controllers.management_controller import ManagementController
 
 
 class CiscoAsa9Common(FwCommon):

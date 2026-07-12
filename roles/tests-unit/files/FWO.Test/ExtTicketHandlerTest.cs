@@ -179,7 +179,7 @@ namespace FWO.Test
             string extQueryVars = "{\"BundledTasks\":[1,2,3]}";
 
             ClassicAssert.AreEqual(3, ExternalRequestHandler.GetLastTaskNumber(extQueryVars, 0));
-        }        
+        }
 
         [Test]
         public async Task HandleStateChangeUsesConfiguredSystemForRuleChanges()

@@ -32,8 +32,8 @@ main() {
 
     . /etc/os-release
 
-    # ansible==12.3.0 (see requirements.txt) requires Python >=3.11. On RHEL/Rocky 9
-    # the platform python3 is 3.9, so the venv must be built with python3.11 there.
+    # requirements.txt pins the production Ansible version for Python 3.11.
+    # On RHEL/Rocky 9 the platform python3 is 3.9, so the venv must use python3.11 there.
     case "${ID_LIKE:-$ID}" in
         *debian*)
             sudo apt update || return $?
@@ -61,7 +61,6 @@ main() {
     if [[ -f collections/requirements.txt ]]; then
         pip install -r collections/requirements.txt || return $?
     fi
-    pip install ansible || return $?
     ansible-galaxy collection install -r collections/requirements.yml -p collections --force || return $?
 }
 

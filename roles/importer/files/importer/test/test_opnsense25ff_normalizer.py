@@ -4,8 +4,10 @@ import json
 
 import pytest
 from fw_modules.opnsense25ff.opnsense_model import (
+    AliasTypeEnum,
     FilterRuleActionEnum,
     OPNsenseAccessRule,
+    OPNsenseAlias,
     OPNsenseConfig,
     OPNsenseHost,
     OPNsenseHostAlias,
@@ -21,17 +23,22 @@ from fw_modules.opnsense25ff.opnsense_normalizer import (
     _create_rulebases_from_access_rules,
     _get_gateway_name,
     _get_rulebase_links_from_rulebases,
+    _normalize_interfaces,
     _normalize_network_objects,
     _normalize_services,
     _normalize_services_from_port_alias,
     _resolve_named_refs_in_rules,
     _update_network_objects_from_access_rules,
+    normalize_opnsense_config,
 )
+from fwo_exceptions import FwoImporterError
+from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.import_state_controller import ImportStateController
 from models.networkobject import NetworkObject
 from models.rule import RuleAction, RuleTrack, RuleType
 from models.rulebase import Rulebase
 from models.serviceobject import ServiceObject
+from pytest_mock import MockerFixture
 
 
 def _host_alias(name: str) -> OPNsenseHostAlias:
@@ -422,3 +429,182 @@ def test_get_gateway_name_prefers_configured_device_name(import_state_controller
     native_config = OPNsenseConfig(hostname="native-hostname")
 
     assert _get_gateway_name(native_config, import_state_controller) == "configured-gateway-uid"
+
+
+@pytest.mark.parametrize(
+    ("management_name", "native_hostname", "management_hostname", "expected"),
+    [
+        ("configured-management", "native-hostname", "mgm-hostname", "configured-management"),
+        ("", "native-hostname", "mgm-hostname", "native-hostname"),
+        ("", "", "mgm-hostname", "mgm-hostname"),
+    ],
+)
+def test_get_gateway_name_uses_fallback_order(
+    import_state_controller: ImportStateController,
+    management_name: str,
+    native_hostname: str,
+    management_hostname: str,
+    expected: str,
+) -> None:
+    import_state_controller.state.mgm_details.devices = []
+    import_state_controller.state.mgm_details.name = management_name
+    import_state_controller.state.mgm_details.hostname = management_hostname
+
+    assert _get_gateway_name(OPNsenseConfig(hostname=native_hostname), import_state_controller) == expected
+
+
+def test_get_gateway_name_requires_available_name(import_state_controller: ImportStateController) -> None:
+    import_state_controller.state.mgm_details.devices = []
+    import_state_controller.state.mgm_details.name = ""
+    import_state_controller.state.mgm_details.hostname = ""
+
+    with pytest.raises(FwoImporterError, match="must contain a device name"):
+        _get_gateway_name(OPNsenseConfig(hostname=""), import_state_controller)
+
+
+def test_normalize_network_objects_adds_geoip_and_urltable_aliases() -> None:
+    geo_alias = OPNsenseAlias.model_validate(
+        {
+            "@uuid": "geo-uid",
+            "enabled": True,
+            "name": "geo-block",
+            "type": AliasTypeEnum.GEOIP,
+            "content": "DE\nUS",
+            "description": "blocked countries",
+        }
+    )
+    url_alias = OPNsenseAlias.model_validate(
+        {
+            "@uuid": "url-uid",
+            "enabled": True,
+            "name": "remote-list",
+            "type": AliasTypeEnum.URLTABLE,
+            "content": "https://example.invalid/list.txt",
+            "description": "remote feed",
+        }
+    )
+    config = OPNsenseConfig(hostname="fw", aliases={geo_alias.name: geo_alias, url_alias.name: url_alias})
+
+    objects = _normalize_network_objects(config)
+
+    assert objects["geo-block"].obj_uid == "geo-uid"
+    assert objects["geo-block"].obj_member_names == "DE|US"
+    assert objects["DE"].obj_typ == "group"
+    assert objects["remote-list"].obj_uid == "url-uid"
+    remote_list_comment = objects["remote-list"].obj_comment
+    assert remote_list_comment is not None
+    assert "https://example.invalid/list.txt" in remote_list_comment
+
+
+def test_create_rulebases_from_access_rules_skips_rules_without_uid() -> None:
+    rule = OPNsenseAccessRule.model_validate(
+        {
+            "type": "pass",
+            "descr": "rule without uuid",
+            "interface": "lan",
+            "source": {"network": "lan"},
+            "destination": {"any": None},
+        }
+    )
+    config = OPNsenseConfig(
+        hostname="fw",
+        interfaces={"lan": OPNsenseInterface.model_validate({"name": "lan", "enable": "1", "if": "em0"})},
+        access_rules=[rule],
+    )
+
+    assert _create_rulebases_from_access_rules(config, "mgm-uid") == []
+
+
+def test_normalize_interfaces_skips_groups_and_adds_ipv4_ipv6() -> None:
+    config = OPNsenseConfig(
+        hostname="fw",
+        interfaces={
+            "lan": OPNsenseInterface.model_validate(
+                {
+                    "name": "lan",
+                    "enable": "1",
+                    "if": "em0",
+                    "ipaddr": "192.0.2.1",
+                    "subnet": "24",
+                    "ipaddrv6": "2001:db8::1",
+                    "subnetv6": "64",
+                }
+            ),
+            "grp": OPNsenseInterface.model_validate({"name": "grp", "enable": "1", "if": "group0", "type": "group"}),
+        },
+    )
+
+    interfaces = _normalize_interfaces(config)
+
+    assert interfaces == [
+        {
+            "device_id": 0,
+            "name": "lan_v4",
+            "ip": "192.0.2.1",
+            "netmask_bits": 24,
+            "state_up": True,
+            "ip_version": 4,
+        },
+        {
+            "device_id": 1,
+            "name": "lan_v6",
+            "ip": "2001:db8::1",
+            "netmask_bits": 64,
+            "state_up": True,
+            "ip_version": 6,
+        },
+    ]
+
+
+def test_normalize_opnsense_config_builds_manager_config_with_uid_refs(
+    mocker: MockerFixture,
+    import_state_controller: ImportStateController,
+) -> None:
+    host_alias = _host_alias("web-hosts")
+    host_alias.uuid = "uid-web-hosts"
+    host_alias.childs.append(OPNsenseHost.model_validate({"name": "web01", "host": "192.0.2.10"}))
+    port_alias = _port_alias("web-ports")
+    port_alias.uuid = "uid-web-ports"
+    port_alias.childs.append(OPNsensePort(name="tcp-8443", is_range=False, port=8443, port_end=None))
+    access_rule = OPNsenseAccessRule.model_validate(
+        {
+            "@uuid": "rule-uid",
+            "type": "pass",
+            "descr": "allow web hosts",
+            "interface": "lan",
+            "source": {"address": "web-hosts"},
+            "destination": {"network": "lan", "port": "web-ports"},
+        }
+    )
+    parsed_config = OPNsenseConfig(
+        hostname="native-hostname",
+        interfaces={
+            "lan": OPNsenseInterface.model_validate(
+                {"name": "lan", "enable": "1", "if": "em0", "ipaddr": "192.0.2.1", "subnet": "24"}
+            )
+        },
+        host_aliases={host_alias.name: host_alias},
+        port_aliases={port_alias.name: port_alias},
+        access_rules=[access_rule],
+    )
+    config = FwConfigManagerListController.generate_empty_config()
+    mocker.patch(
+        "fw_modules.opnsense25ff.opnsense_normalizer.parse_opnsense_config",
+        return_value=parsed_config,
+    )
+
+    normalized = normalize_opnsense_config(config, import_state_controller)
+
+    manager = normalized.ManagerSet[0]
+    normalized_config = manager.configs[0]
+    rulebase = normalized_config.rulebases[0]
+    rule = rulebase.rules["rule-uid"]
+    assert manager.manager_uid == "mock-uid"
+    assert normalized_config.gateways[0].Uid == "Mock Management"
+    assert normalized_config.gateways[0].RulebaseLinks[0].to_rulebase_uid == rulebase.uid
+    assert "uid-web-hosts" in normalized_config.network_objects
+    assert "uid-web-ports" in normalized_config.service_objects
+    assert rule.rule_src_refs == "uid-web-hosts"
+    lan_object = next(obj for obj in normalized_config.network_objects.values() if obj.obj_name == "lan")
+    assert set(rule.rule_dst_refs.split("|")) == {lan_object.obj_uid, "Any"}
+    assert rule.rule_svc_refs == "uid-web-ports"

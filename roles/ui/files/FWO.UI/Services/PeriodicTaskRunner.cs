@@ -84,10 +84,8 @@ namespace FWO.Ui.Services
 
                 while (await timer.WaitForNextTickAsync(cancellationToken))
                 {
-                    if (cancellationToken.IsCancellationRequested)
-                    {
-                        break;
-                    }
+                    // do not invoke the callback when cancellation happened after the tick completed
+                    cancellationToken.ThrowIfCancellationRequested();
 
                     await callback();
                 }

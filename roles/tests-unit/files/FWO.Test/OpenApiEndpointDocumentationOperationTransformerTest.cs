@@ -63,10 +63,11 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
         OpenApiApiExampleOperationTransformer transformer = CreateTransformer();
 
         await transformer.TransformAsync(operation, CreateOwnerContext(), CancellationToken.None);
+        string description = operation.Description!.ReplaceLineEndings("\n");
 
         Assert.Multiple(() =>
         {
-            Assert.That(operation.Description, Does.Contain("""
+            Assert.That(description, Does.Contain("""
 ```json
 {
   "ownerLifecycleStateId": 1,
@@ -74,7 +75,7 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
 }
 ```
 """));
-            Assert.That(operation.Description, Does.Contain("""
+            Assert.That(description, Does.Contain("""
 ```json
 [
   {
@@ -83,8 +84,8 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
     "appIdExternal": "APP-4711",
     "type": "standard",
 """));
-            Assert.That(operation.Description, Does.Not.Contain("{\"active\":true"));
-            Assert.That(operation.Description, Does.Not.Contain("{\"id\":42"));
+            Assert.That(description, Does.Not.Contain("{\"active\":true"));
+            Assert.That(description, Does.Not.Contain("{\"id\":42"));
         });
     }
 

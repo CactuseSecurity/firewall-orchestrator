@@ -305,6 +305,8 @@ namespace FWO.Test
             ClassicAssert.IsTrue(textBody.Contains("Kennung"));
 
             ClassicAssert.IsTrue(htmlBody.Contains("Hello OwnerX APPX 2 Weeks"));
+            ClassicAssert.IsFalse(htmlBody.Contains("<html>"));
+            ClassicAssert.IsFalse(htmlBody.Contains("<body>"));
             ClassicAssert.IsTrue(htmlBody.Contains("<table"));
             ClassicAssert.IsTrue(htmlBody.Contains("</table><p> Bye</p>") || htmlBody.Contains("</table><p>Bye</p>"));
             ClassicAssert.IsFalse(htmlBody.Contains("@@APPNAME@@"));

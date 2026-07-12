@@ -65,7 +65,7 @@ namespace FWO.Services
             return new()
             {
                 PlainText = plainText.Trim(),
-                Html = NotificationTableBodyBuilder.BuildHtmlDocument(bodyHtml),
+                Html = bodyHtml,
                 Csv = BuildCsv(sections),
                 Json = BuildJson(sections)
             };

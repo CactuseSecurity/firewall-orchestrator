@@ -44,6 +44,10 @@ namespace FWO.Services
             }
 
             string resolvedContent = content.BodyForLayout(notification.Layout);
+            if (notification.Layout == NotificationLayout.HtmlInBody && !string.IsNullOrWhiteSpace(resolvedContent))
+            {
+                resolvedContent = NotificationTableBodyBuilder.HtmlTableStyleBlock + resolvedContent;
+            }
             if (notificationBody.Contains(Placeholder.CONTENT))
             {
                 return notificationBody.Replace(Placeholder.CONTENT, resolvedContent);
@@ -61,8 +65,8 @@ namespace FWO.Services
 
             return layout switch
             {
-                NotificationLayout.PdfAsAttachment => EmailHelper.CreateAttachment(await ToPdf(content.Html), GlobalConst.kPdf, subject),
-                NotificationLayout.HtmlAsAttachment => EmailHelper.CreateAttachment(content.Html, GlobalConst.kHtml, subject),
+                NotificationLayout.PdfAsAttachment => EmailHelper.CreateAttachment(await ToPdf(NotificationTableBodyBuilder.BuildHtmlDocument(content.Html)), GlobalConst.kPdf, subject),
+                NotificationLayout.HtmlAsAttachment => EmailHelper.CreateAttachment(NotificationTableBodyBuilder.BuildHtmlDocument(content.Html), GlobalConst.kHtml, subject),
                 NotificationLayout.JsonAsAttachment => EmailHelper.CreateAttachment(content.Json, GlobalConst.kJson, subject),
                 NotificationLayout.CsvAsAttachment => EmailHelper.CreateAttachment(content.Csv, GlobalConst.kCsv, subject),
                 _ => null

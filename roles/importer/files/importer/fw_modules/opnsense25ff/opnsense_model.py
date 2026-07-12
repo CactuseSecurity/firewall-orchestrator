@@ -24,6 +24,16 @@ def _normalize_to_str_list(value: Any, separator: str = ",") -> list[str]:
     return [str(value)]
 
 
+def _normalize_presence_flag(value: Any) -> bool:
+    # legacy config.xml sections express set flags as empty tags (e.g. <disabled/>, <log/>,
+    # <not/>), which xmltodict parses as None - the key being present means the flag is set
+    if value is None:
+        return True
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "yes", "true"}
+    return bool(value)
+
+
 class UserScopeEnum(str, Enum):
     SYSTEM = "system"
     USER = "user"
@@ -44,7 +54,7 @@ class AliasTypeEnum(str, Enum):
     DYNIPV6HOST = "dynipv6host"
     AUTHGROUP = "authgroup"
     INTERNAL = "internal"
-    EXTERNALl = "external"
+    EXTERNAL = "external"
 
 
 # https://github.com/opnsense/core/blob/8bc595681e13fec63ef0f6e3fcc292cfff67496c/src/opnsense/mvc/app/models/OPNsense/Firewall/Filter.xml#L44
@@ -150,7 +160,7 @@ class OPNsenseNetworkAlias(OPNsenseAlias):
 
 class OPNsensePortAlias(OPNsenseAlias):
     type: AliasTypeEnum = Field(
-        default=AliasTypeEnum.NETWORK, frozen=True
+        default=AliasTypeEnum.PORT, frozen=True
     )  # /opnsense/OPNsense/Firewall/Aliases/alias[x]/type
     childs: list[OPNsensePort | OPNsensePortAlias] = Field(
         default_factory=lambda: cast("list[OPNsensePort | OPNsensePortAlias]", [])
@@ -221,21 +231,10 @@ class OPNsenseAccessRule(BaseModel):
     def normalize_str_list(cls, value: Any) -> list[str]:
         return _normalize_to_str_list(value)
 
-    @field_validator("source_neg", "dest_neg", "interface_neg", "logging", mode="before")
+    @field_validator("source_neg", "dest_neg", "interface_neg", "logging", "disabled", "is_floating", mode="before")
     @classmethod
-    def normalize_negate(cls, value: Any) -> bool:
-        if isinstance(value, str):
-            return value.strip().lower() in {"1", "yes", "true"}
-        return bool(value)
-
-    @field_validator("is_floating", mode="before")
-    @classmethod
-    def normalize_floating(cls, value: Any) -> bool:
-        if value is None:
-            return False
-        if value == "yes":
-            return True
-        return bool(value)
+    def normalize_flag(cls, value: Any) -> bool:
+        return _normalize_presence_flag(value)
 
 
 # https://github.com/opnsense/core/blob/8bc595681e13fec63ef0f6e3fcc292cfff67496c/src/opnsense/mvc/app/models/OPNsense/Firewall/DNat.xml
@@ -298,12 +297,10 @@ class OPNsenseNATRule(BaseModel):
     def normalize_str_list(cls, value: Any) -> list[str]:
         return _normalize_to_str_list(value)
 
-    @field_validator("source_neg", "dest_neg", "logging", mode="before")
+    @field_validator("source_neg", "dest_neg", "logging", "disabled", mode="before")
     @classmethod
-    def normalize_negate(cls, value: Any) -> bool:
-        if isinstance(value, str):
-            return value.strip().lower() in {"1", "yes", "true"}
-        return bool(value)
+    def normalize_flag(cls, value: Any) -> bool:
+        return _normalize_presence_flag(value)
 
 
 class OPNsenseInterface(BaseModel):
@@ -317,13 +314,18 @@ class OPNsenseInterface(BaseModel):
     ip6_subnet: int | None = Field(alias="subnetv6", default=None)  # /opnsense/interfaces[x]/subnetv6
     type: Literal["group", "none", "undef"] | None = "undef"  # /opnsense/interfaces[x]/type
 
+    @field_validator("enabled", mode="before")
+    @classmethod
+    def normalize_flag(cls, value: Any) -> bool:
+        return _normalize_presence_flag(value)
+
 
 # https://github.com/opnsense/core/blob/8bc595681e13fec63ef0f6e3fcc292cfff67496c/src/opnsense/mvc/app/models/OPNsense/Auth/User.xml
 class OPNsenseUser(BaseModel):
     uuid: str = Field(alias=OPNSENSE_UUID_ALIAS)  # /opnsense/system/user/@uuid
     uid: int  # /opnsense/system/user/uid
     name: str  # /opnsense/system/user/name
-    disabled: bool  # /opnsense/system/user/disabled
+    disabled: bool = False  # /opnsense/system/user/disabled
     scope: UserScopeEnum  # /opnsense/system/user/scope
     email: str | None  # /opnsense/system/user/email
     privileges: list[str] | None = Field(alias="priv")  # /opnsense/system/user/priv
@@ -334,6 +336,11 @@ class OPNsenseUser(BaseModel):
     @classmethod
     def normalize_privileges(cls, value: Any) -> list[str]:
         return _normalize_to_str_list(value)
+
+    @field_validator("disabled", mode="before")
+    @classmethod
+    def normalize_flag(cls, value: Any) -> bool:
+        return _normalize_presence_flag(value)
 
 
 class OPNsenseUserGroup(BaseModel):

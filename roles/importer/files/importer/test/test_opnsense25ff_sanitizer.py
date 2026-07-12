@@ -35,10 +35,13 @@ def _native_config_with_secrets() -> dict[str, Any]:
                 },
                 "Netflow": {"x": 1},
                 "Syslog": {"y": 2},
+                "wireguard": {"server": {"servers": {"server": [{"privkey": _PLACEHOLDER}]}}},
             },
             "Deciso": {"UserPortal": {"group_options": {"otp_seed": _PLACEHOLDER}}},
             "hasync": {"x": 1},
             "openvpn": {"y": 2},
+            "ipsec": {"phase1": [{"ikeid": "1", "pre-shared-key": _PLACEHOLDER, "private-key": _PLACEHOLDER}]},
+            "ppps": {"ppp": [{"ptpid": "0", "username": "pppoe-user", "password": _PLACEHOLDER}]},
             "virtualip": {"vip": [{"password": _PLACEHOLDER}]},
             "ca": [{"prv": _PLACEHOLDER}],
             "cert": [{"prv": _PLACEHOLDER}],
@@ -120,6 +123,24 @@ def test_remove_opnsense_sensitive_data_drops_excluded_sections_and_private_keys
     assert "password" not in opnsense["virtualip"]["vip"][0]
     assert "prv" not in opnsense["ca"][0]
     assert "prv" not in opnsense["cert"][0]
+
+
+def test_remove_opnsense_sensitive_data_strips_legacy_ipsec_ppp_and_wireguard() -> None:
+    out = remove_opnsense_sensitive_data(_native_config_with_secrets())
+    opnsense = out["opnsense"]
+
+    phase1 = opnsense["ipsec"]["phase1"][0]
+    assert "pre-shared-key" not in phase1
+    assert "private-key" not in phase1
+    # non-sensitive fields are preserved
+    assert phase1["ikeid"] == "1"
+
+    ppp = opnsense["ppps"]["ppp"][0]
+    assert "password" not in ppp
+    assert "username" not in ppp
+    assert ppp["ptpid"] == "0"
+
+    assert "wireguard" not in opnsense["OPNsense"]
 
 
 def test_remove_opnsense_sensitive_data_handles_singleton_sections() -> None:

@@ -1,5 +1,7 @@
 OPNSENSE_UUID_ALIAS = "@uuid"
 PREDEFINED_RULE_UID_PREFIX = "opnsense-default-rule-"
+# rulebase collecting rules that cannot be assigned to a single interface rulebase
+UNASSIGNED_RULEBASE_NAME = "unassigned"
 MAX_DEPTH: int = 10
 BUILTIN_SERVICE_PORTS: dict[str, int] = {
     "http": 80,

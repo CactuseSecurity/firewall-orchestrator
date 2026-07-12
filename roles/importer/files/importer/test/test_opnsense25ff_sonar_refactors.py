@@ -1,3 +1,4 @@
+from fw_modules.opnsense25ff.opnsense_constants import UNASSIGNED_RULEBASE_NAME
 from fw_modules.opnsense25ff.opnsense_helper import enrich_opnsense_net_and_hosts
 from fw_modules.opnsense25ff.opnsense_model import (
     FilterRuleActionEnum,
@@ -93,9 +94,11 @@ def test_create_rulebases_from_access_rules_groups_expected_rules() -> None:
     rulebase_list = _create_rulebases_from_access_rules(config, "mgm-uid")
     rulebases = {rulebase.name: rulebase for rulebase in rulebase_list}
 
-    assert set(rulebases) == {"floating", "lan_group"}
+    assert set(rulebases) == {"floating", "lan_group", UNASSIGNED_RULEBASE_NAME}
     assert set(rulebases["floating"].rules) == {"floating-rule-uid"}
     assert set(rulebases["lan_group"].rules) == {"grouped-rule-uid", "second-grouped-rule-uid"}
+    # rules without a matching single-interface rulebase must not be dropped silently
+    assert set(rulebases[UNASSIGNED_RULEBASE_NAME].rules) == {"unmatched-rule-uid"}
     assert rulebases["floating"].rules["floating-rule-uid"].rule_num_numeric == 0
     assert rulebases["lan_group"].rules["grouped-rule-uid"].rule_num_numeric == 0
 

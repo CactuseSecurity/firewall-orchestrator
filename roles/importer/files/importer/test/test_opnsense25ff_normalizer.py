@@ -115,6 +115,61 @@ def test_normalize_services_adds_builtin_named_ports() -> None:
     assert services["https"].svc_port_end == 443
 
 
+def test_normalize_services_creates_placeholder_for_unknown_named_port() -> None:
+    rule = OPNsenseAccessRule.model_validate(
+        {
+            "@uuid": "r-smtp",
+            "type": "pass",
+            "descr": "allow smtp to fw",
+            "destination": {"network": "(self)", "port": "smtp"},
+        }
+    )
+    config = OPNsenseConfig(hostname="fw", access_rules=[rule])
+
+    services = _normalize_services(config)
+
+    # unknown named ports must not vanish (they would crash ref resolution later)
+    assert services["smtp"].svc_typ == "simple"
+    assert services["smtp"].svc_port is None
+    smtp_comment = services["smtp"].svc_comment
+    assert smtp_comment is not None
+    assert "placeholder" in smtp_comment
+
+
+def test_update_network_objects_creates_placeholder_for_unknown_target() -> None:
+    rule = OPNsenseAccessRule.model_validate(
+        {"@uuid": "r-unknown", "type": "pass", "descr": "d", "source": {"address": "unknown-target"}}
+    )
+    config = OPNsenseConfig(hostname="fw", access_rules=[rule])
+
+    nw_objs: dict[str, NetworkObject] = {}
+    _update_network_objects_from_access_rules(config, nw_objs)
+
+    # unknown network targets become placeholder groups instead of being skipped
+    assert nw_objs["unknown-target"].obj_typ == "group"
+    assert nw_objs["unknown-target"].obj_name == "unknown-target"
+
+
+def test_resolve_named_refs_keeps_unresolved_names_without_crashing() -> None:
+    rule = OPNsenseAccessRule.model_validate(
+        {
+            "@uuid": "r-ghost",
+            "type": "pass",
+            "descr": "d",
+            "source": {"address": "ghost-src"},
+            "destination": {"address": "ghost-dst", "port": "ghost-svc"},
+        }
+    )
+    normalized_rule = _create_normalized_rule_from_access_rule(rule)
+    rb = Rulebase(uid="rb", name="rb", mgm_uid="m", is_global=False, rules={"r-ghost": normalized_rule})
+
+    _resolve_named_refs_in_rules([rb], {}, {})
+
+    assert rb.rules["r-ghost"].rule_src_refs == "ghost-src"
+    assert rb.rules["r-ghost"].rule_dst_refs == "ghost-dst"
+    assert rb.rules["r-ghost"].rule_svc_refs == "ghost-svc"
+
+
 def test_normalize_services_creates_protocol_service_for_icmp() -> None:
     rule = OPNsenseAccessRule.model_validate(
         {
@@ -602,6 +657,17 @@ def test_normalize_opnsense_config_builds_manager_config_with_uid_refs(
     assert manager.manager_uid == "mock-uid"
     assert normalized_config.gateways[0].Uid == "Mock Management"
     assert normalized_config.gateways[0].RulebaseLinks[0].to_rulebase_uid == rulebase.uid
+    # normalized interfaces must be attached to the gateway
+    assert normalized_config.gateways[0].Interfaces == [
+        {
+            "device_id": 0,
+            "name": "lan_v4",
+            "ip": "192.0.2.1",
+            "netmask_bits": 24,
+            "state_up": True,
+            "ip_version": 4,
+        }
+    ]
     assert "uid-web-hosts" in normalized_config.network_objects
     assert "uid-web-ports" in normalized_config.service_objects
     assert rule.rule_src_refs == "uid-web-hosts"

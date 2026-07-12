@@ -8,6 +8,7 @@ from fw_modules.opnsense25ff.opnsense_helper import (
     xlinking_rules_to_aliases,
 )
 from fw_modules.opnsense25ff.opnsense_model import (
+    AliasTypeEnum,
     OPNsenseAccessRule,
     OPNsenseConfig,
     OPNsenseHostAlias,
@@ -20,6 +21,10 @@ def _port_alias(name: str, content: str) -> OPNsensePortAlias:
     return OPNsensePortAlias.model_validate(
         {"@uuid": f"uid-{name}", "enabled": True, "name": name, "content": content, "description": ""}
     )
+
+
+def test_port_alias_defaults_to_port_type() -> None:
+    assert _port_alias("web", "80").type == AliasTypeEnum.PORT
 
 
 def _host_alias(name: str, content: str) -> OPNsenseHostAlias:

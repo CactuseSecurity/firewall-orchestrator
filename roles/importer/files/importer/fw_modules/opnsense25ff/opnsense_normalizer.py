@@ -9,6 +9,7 @@ from fw_modules.opnsense25ff.opnsense_constants import (
     IP_PROTO_NUMBERS,
     MAX_DEPTH,
     PORT_BASED_PROTOCOLS,
+    UNASSIGNED_RULEBASE_NAME,
 )
 from fw_modules.opnsense25ff.opnsense_model import (
     AliasTypeEnum,
@@ -267,6 +268,23 @@ def _create_service_from_protocol(name: str) -> ServiceObject:
     )
 
 
+def _create_placeholder_service(name: str) -> ServiceObject:
+    return ServiceObject(
+        svc_uid=fwo_base_generate_hash_from_dict({"svc_obj": name}),
+        svc_name=name,
+        svc_port=None,
+        svc_port_end=None,
+        svc_color="",
+        svc_typ="simple",
+        ip_proto=None,
+        svc_member_refs=None,
+        svc_member_names=None,
+        svc_comment=f"placeholder for unresolved named port {name} created during normalization",
+        svc_timeout=None,
+        rpc_nr=None,
+    )
+
+
 def _create_services_from_port_definition(port: OPNsensePort) -> ServiceObject:
     return ServiceObject(
         svc_uid=fwo_base_generate_hash_from_dict({"svc_obj": port.name}),
@@ -415,8 +433,13 @@ def _update_service_objects_from_access_rules(
         # add all plain ports or port-ranges not currently normalized
         for dest_port in {ref for ref in rule.dest_port if isinstance(ref, str)} - set(svc_objs.keys()):
             svc = _port_service_from_dest_port(dest_port)
-            if svc is not None:
-                svc_objs[svc.svc_name] = svc
+            if svc is None:
+                FWOLogger.warning(
+                    f"[-] _update_service_objects_from_access_rules: unresolved named port {dest_port} "
+                    f"in rule {rule.uuid} - creating placeholder service"
+                )
+                svc = _create_placeholder_service(dest_port)
+            svc_objs[svc.svc_name] = svc
 
 
 def _normalize_services(os_config: OPNsenseConfig) -> dict[str, ServiceObject]:
@@ -584,8 +607,10 @@ def _update_network_objects_from_access_rules(os_config: OPNsenseConfig, nw_objs
                 continue
             obj = _create_network_object_from_rule_target(target, os_config)
             if obj is None:
-                FWOLogger.warning(f"[*] detected unknown network object {target} in rule:\n    {rule}")
-                continue
+                FWOLogger.warning(
+                    f"[*] detected unknown network object {target} in rule {rule.uuid} - creating placeholder group"
+                )
+                obj = _create_network_object_from_string(target)
             nw_objs[target] = obj
 
 
@@ -660,8 +685,14 @@ def _create_rulebases_from_access_rules(os_config: OPNsenseConfig, mgm_uid: str)
             FWOLogger.warning(f"[*] skipping OPNsense rule without uid:\n    {rule}")
             continue
         rulebase_name = _access_rule_rulebase_name(rule, os_config)
-        if rulebase_name is not None:
-            _upsert_rulebase_rule(rbs_dict, rulebase_name, mgm_uid, rule_uid, r_normalized)
+        if rulebase_name is None:
+            FWOLogger.warning(
+                f"[*] rule {rule_uid} matches no single-interface rulebase "
+                f"(interfaces {rule.interface}, negated: {rule.interface_neg}) - "
+                f"assigning to rulebase '{UNASSIGNED_RULEBASE_NAME}'"
+            )
+            rulebase_name = UNASSIGNED_RULEBASE_NAME
+        _upsert_rulebase_rule(rbs_dict, rulebase_name, mgm_uid, rule_uid, r_normalized)
     return list(rbs_dict.values())
 
 
@@ -697,23 +728,33 @@ def _get_gateway_name(native_config: OPNsenseConfig, import_state: ImportStateCo
     raise FwoImporterError("Management details must contain a device name, management name, or hostname.")
 
 
+def _resolved_ref_uid(name: str, uids_by_name: dict[str, str], kind: str) -> str:
+    uid = uids_by_name.get(name)
+    if uid is None:
+        FWOLogger.warning(
+            f"[-] _resolve_named_refs_in_rules: unresolved {kind} reference {name} - keeping name as reference"
+        )
+        return name
+    return uid
+
+
 def _resolve_named_refs_in_rules(
     rbs: list[Rulebase], nw_objs: dict[str, NetworkObject], svc_obj: dict[str, ServiceObject]
 ) -> None:
+    nw_uids = {name: obj.obj_uid for name, obj in nw_objs.items()}
+    svc_uids = {name: svc.svc_uid for name, svc in svc_obj.items()}
+
     for rb in rbs:
-        for r_id in rb.rules:
-            rule = rb.rules[r_id]
-            old_src_refs = rule.rule_src_refs.split("|")
-            old_dest_refs = rule.rule_dst_refs.split("|")
-            old_svc_refs = rule.rule_svc_refs.split("|")
-
-            new_src_refs = [nw_objs[src].obj_uid for src in old_src_refs]
-            new_dest_refs = [nw_objs[dest].obj_uid for dest in old_dest_refs]
-            new_svc_refs = [svc_obj[svc].svc_uid for svc in old_svc_refs]
-
-            rb.rules[r_id].rule_src_refs = sort_and_join(new_src_refs)
-            rb.rules[r_id].rule_dst_refs = sort_and_join(new_dest_refs)
-            rb.rules[r_id].rule_svc_refs = sort_and_join(new_svc_refs)
+        for rule in rb.rules.values():
+            rule.rule_src_refs = sort_and_join(
+                [_resolved_ref_uid(src, nw_uids, "network") for src in rule.rule_src_refs.split("|")]
+            )
+            rule.rule_dst_refs = sort_and_join(
+                [_resolved_ref_uid(dest, nw_uids, "network") for dest in rule.rule_dst_refs.split("|")]
+            )
+            rule.rule_svc_refs = sort_and_join(
+                [_resolved_ref_uid(svc, svc_uids, "service") for svc in rule.rule_svc_refs.split("|")]
+            )
 
 
 def _normalize_interfaces(os_config: OPNsenseConfig) -> list[dict[str, Any]]:
@@ -804,7 +845,7 @@ def normalize_opnsense_config(
         Uid=gateway_name,
         Name=gateway_name,
         Routing=[],
-        Interfaces=[],
+        Interfaces=interfaces,
         RulebaseLinks=rulebase_links,
         GlobalPolicyUid=None,
         EnforcedPolicyUids=[],

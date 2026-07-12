@@ -297,3 +297,65 @@ def test_parse_opnsense_config_honors_mvc_negation_flags() -> None:
     assert negated_rule.interface_neg
     # the IP protocol of MVC rules must survive normalization (not silently default to IPv4)
     assert negated_rule.ipprotocol == FilterRuleIPProtoEnum.INET6
+
+
+def test_parse_opnsense_config_handles_legacy_presence_flags() -> None:
+    native_config = _native_config()
+    opnsense = cast("dict[str, Any]", native_config["opnsense"])
+    rule = cast("dict[str, Any]", opnsense["filter"]["rule"][0])
+    # empty legacy XML tags (<disabled/>, <log/>, <not/>, <enable/>) are parsed as None by
+    # xmltodict; the presence of the key means the flag is set
+    rule["disabled"] = None
+    rule["log"] = None
+    cast("dict[str, Any]", rule["source"])["not"] = None
+    cast("dict[str, Any]", opnsense["interfaces"]["lan"])["enable"] = None
+    cast("dict[str, Any]", opnsense["system"]["user"][0])["disabled"] = None
+
+    config = parse_opnsense_config(native_config)
+
+    parsed_rule = config.access_rules[0]
+    assert parsed_rule.disabled is True
+    assert parsed_rule.logging is True
+    assert parsed_rule.source_neg is True
+    assert parsed_rule.dest_neg is False
+    assert config.interfaces["lan"].enabled is True
+    assert config.users[0].disabled is True
+
+
+def test_parse_opnsense_config_defaults_missing_user_disabled_flag() -> None:
+    native_config = _native_config()
+    opnsense = cast("dict[str, Any]", native_config["opnsense"])
+    cast("dict[str, Any]", opnsense["system"]["user"][0]).pop("disabled")
+
+    config = parse_opnsense_config(native_config)
+
+    assert config.users[0].disabled is False
+
+
+def test_parse_opnsense_config_mvc_rules_without_flag_fields_stay_unset() -> None:
+    native_config = _native_config_with_mvc_filter_rules()
+    opnsense = cast("dict[str, Any]", native_config["opnsense"])
+    mvc_rules = cast("list[dict[str, Any]]", opnsense["OPNsense"]["Firewall"]["Filter"]["rules"]["rule"])
+    for rule in mvc_rules:
+        rule.pop("log", None)
+        rule.pop("source_not", None)
+        rule.pop("destination_not", None)
+
+    config = parse_opnsense_config(native_config)
+
+    parsed_mvc_rules = [rule for rule in config.access_rules if rule.uuid and rule.uuid.startswith("mvc-")]
+    assert len(parsed_mvc_rules) == 2
+    # absent MVC flag fields must not be mistaken for set legacy presence flags
+    assert all(not rule.logging for rule in parsed_mvc_rules)
+    assert all(not rule.source_neg for rule in parsed_mvc_rules)
+    assert all(not rule.dest_neg for rule in parsed_mvc_rules)
+
+
+def test_parse_opnsense_config_tolerates_malformed_revision_time() -> None:
+    native_config = _native_config()
+    opnsense = cast("dict[str, Any]", native_config["opnsense"])
+    cast("dict[str, Any]", opnsense["revision"])["time"] = "not-a-number"
+
+    config = parse_opnsense_config(native_config)
+
+    assert config.last_change is None

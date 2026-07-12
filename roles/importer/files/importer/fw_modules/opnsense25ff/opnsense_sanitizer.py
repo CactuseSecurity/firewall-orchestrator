@@ -48,6 +48,16 @@ def remove_opnsense_sensitive_data(native_config: dict[str, Any]) -> dict[str, A
     for psk_entry in _as_dict_list(_get_dict(opnsense_settings, "IPsec", "preSharedKeys").get("preSharedKey")):
         psk_entry.pop("Key", None)
 
+    # remove psk's and private keys from legacy ipsec phase1 entries
+    for phase1_entry in _as_dict_list(_get_dict(opnsense, "ipsec").get("phase1")):
+        phase1_entry.pop("pre-shared-key", None)
+        phase1_entry.pop("private-key", None)
+
+    # remove PPP (PPPoE/PPTP/L2TP) dial-in credentials
+    for ppp_entry in _as_dict_list(_get_dict(opnsense, "ppps").get("ppp")):
+        ppp_entry.pop("password", None)
+        ppp_entry.pop("username", None)
+
     # remove geoip url
     alias_config = _get_dict(opnsense_settings, "Firewall", "Alias")
     alias_config.pop("geoip", None)
@@ -72,6 +82,7 @@ def remove_opnsense_sensitive_data(native_config: dict[str, Any]) -> dict[str, A
         "Syslog",
         "TrafficShaper",
         "unboundplus",
+        "wireguard",  # contains interface/peer private keys
     ]
 
     for service in service_exclude:

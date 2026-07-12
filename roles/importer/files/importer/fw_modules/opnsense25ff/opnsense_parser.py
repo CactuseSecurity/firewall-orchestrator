@@ -66,8 +66,12 @@ def _parse_opnsense_hostname(config: dict[str, Any]) -> str:
 
 def _parse_timestamp(seconds: object) -> str | None:
     if seconds:
-        timestamp = float(str(seconds))
-        return datetime.fromtimestamp(timestamp, tz=timezone.utc).isoformat()
+        try:
+            timestamp = float(str(seconds))
+            return datetime.fromtimestamp(timestamp, tz=timezone.utc).isoformat()
+        except (ValueError, OverflowError, OSError):
+            FWOLogger.warning(f"[-] _parse_timestamp: cannot parse revision time {seconds!r}")
+            return None
     FWOLogger.debug("[-] _parse_timestamp: seconds not defined")
     return None
 
@@ -161,39 +165,39 @@ def _ensure_rule_uid(rule: dict[str, Any], rule_index: int) -> dict[str, Any]:
     raise FwoImporterError(f"OPNsense rule at position {rule_index + 1} has no uuid and is not a predefined rule")
 
 
+def _mvc_endpoint(rule: dict[str, Any], prefix: str) -> dict[str, Any]:
+    # absent MVC fields must be omitted (not set to None): a present-but-None key would
+    # be interpreted as a set legacy presence flag during model validation
+    endpoint: dict[str, Any] = {}
+    if rule.get(f"{prefix}_not") is not None:
+        endpoint["not"] = rule.get(f"{prefix}_not")
+    if rule.get(f"{prefix}_port"):
+        endpoint["port"] = rule.get(f"{prefix}_port")
+    if rule.get(f"{prefix}_net") == "any":
+        endpoint["any"] = None
+    else:
+        endpoint["network"] = rule.get(f"{prefix}_net")
+    return endpoint
+
+
 def _normalize_mvc_filter_rule(rule: dict[str, Any]) -> dict[str, Any]:
-    source: dict[str, Any] = {
-        "not": rule.get("source_not"),
-    }
-    if rule.get("source_port"):
-        source["port"] = rule.get("source_port")
-    if rule.get("source_net") == "any":
-        source["any"] = None
-    else:
-        source["network"] = rule.get("source_net")
-
-    destination: dict[str, Any] = {
-        "not": rule.get("destination_not"),
-    }
-    if rule.get("destination_port"):
-        destination["port"] = rule.get("destination_port")
-    if rule.get("destination_net") == "any":
-        destination["any"] = None
-    else:
-        destination["network"] = rule.get("destination_net")
-
     normalized_rule: dict[str, Any] = {
         OPNSENSE_UUID_ALIAS: rule.get(OPNSENSE_UUID_ALIAS),
-        "type": rule.get("action"),
-        "descr": rule.get("description"),
-        "direction": rule.get("direction"),
-        "ipprotocol": rule.get("ipprotocol"),
-        "protocol": rule.get("protocol"),
-        "log": rule.get("log"),
-        "interfacenot": rule.get("interfacenot"),
-        "source": source,
-        "destination": destination,
+        "source": _mvc_endpoint(rule, "source"),
+        "destination": _mvc_endpoint(rule, "destination"),
     }
+
+    for target_key, mvc_key in (
+        ("type", "action"),
+        ("descr", "description"),
+        ("direction", "direction"),
+        ("ipprotocol", "ipprotocol"),
+        ("protocol", "protocol"),
+        ("log", "log"),
+        ("interfacenot", "interfacenot"),
+    ):
+        if rule.get(mvc_key) is not None:
+            normalized_rule[target_key] = rule.get(mvc_key)
 
     if str(rule.get("enabled", "1")) == "0":
         normalized_rule["disabled"] = True

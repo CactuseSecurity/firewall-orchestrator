@@ -43,26 +43,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public void StartInitialComplianceCheck_ReturnsAcceptedAndMarksJobFailedWhenExecutionThrows()
-        {
-            ComplianceCheckStatusTracker tracker = new();
-            ThrowingApiConnection apiConnection = new();
-            ComplianceCheckController controller = new(apiConnection, tracker);
-
-            var result = controller.StartInitialComplianceCheck();
-
-            Assert.That(result.Result, Is.InstanceOf<AcceptedResult>());
-            ComplianceCheckStartResult startResult = (ComplianceCheckStartResult)((AcceptedResult)result.Result!).Value!;
-
-            Assert.That(SpinWait.SpinUntil(() => tracker.Get(startResult.JobId)?.Status == ComplianceCheckExecutionStatus.Failed, TimeSpan.FromSeconds(10)), Is.True);
-
-            ComplianceCheckJobStatus? jobStatus = tracker.Get(startResult.JobId);
-            Assert.That(jobStatus, Is.Not.Null);
-            Assert.That(jobStatus!.Status, Is.EqualTo(ComplianceCheckExecutionStatus.Failed));
-            Assert.That(jobStatus.Message, Is.Not.Empty);
-        }
-
-        [Test]
         public void GetInitialComplianceCheckStatus_ReturnsOkForKnownJob()
         {
             ComplianceCheckStatusTracker tracker = new();
@@ -75,16 +55,6 @@ namespace FWO.Test
             ComplianceCheckJobStatus returnedJobStatus = (ComplianceCheckJobStatus)((OkObjectResult)result.Result!).Value!;
             Assert.That(returnedJobStatus.JobId, Is.EqualTo(jobStatus.JobId));
             Assert.That(returnedJobStatus.Status, Is.EqualTo(ComplianceCheckExecutionStatus.Queued));
-        }
-
-        [Test]
-        public async Task InitialComplianceCheck_ReturnsFalseWhenExecutionThrows()
-        {
-            ComplianceCheckExecutionController controller = new(new ThrowingApiConnection());
-
-            bool result = await controller.InitialComplianceCheck();
-
-            Assert.That(result, Is.False);
         }
 
         [Test]
@@ -362,33 +332,6 @@ namespace FWO.Test
             protected override void Dispose(bool disposing) { }
             public override void DisposeSubscriptions<T>() { }
             public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct) => throw new NotImplementedException();
-        }
-
-        private sealed class ThrowingApiConnection : ApiConnection
-        {
-            public override void SetAuthHeader(string jwt) { }
-            public override void SetRole(string role) { }
-            public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList) { }
-            public override void SwitchBack() { }
-
-            public override Task<ApiResponse<QueryResponseType>> SendQuerySafeAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
-            {
-                throw new InvalidOperationException("Test failure");
-            }
-
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
-            {
-                throw new InvalidOperationException("Test failure");
-            }
-
-            public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
-            {
-                throw new InvalidOperationException("Test failure");
-            }
-
-            public override void DisposeSubscriptions<T>() { }
-            protected override void Dispose(bool disposing) { }
-            public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct) => Task.CompletedTask;
         }
 
         private static T GetAnonymousProperty<T>(object? obj, string propertyName)

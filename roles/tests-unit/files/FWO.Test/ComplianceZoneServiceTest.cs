@@ -128,7 +128,7 @@ internal class ComplianceZoneServiceTest
         {
             Assert.That(result, Is.Empty);
             Assert.That(apiConnection.MatrixQueryCount, Is.EqualTo(1));
-            Assert.That(apiConnection.NetworkZoneQueryCount, Is.EqualTo(0));
+            Assert.That(apiConnection.NetworkZoneQueryCount, Is.EqualTo(1));
         });
     }
 

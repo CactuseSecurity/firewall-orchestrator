@@ -14,7 +14,7 @@ namespace FWO.Test
 {
     [TestFixture]
     [Parallelizable]
-    internal class ConfigTest
+    internal partial class ConfigTest
     {
         private sealed class UserConfigApiConnection(ConfigItem[] configItems) : ApiConnection
         {
@@ -345,8 +345,8 @@ namespace FWO.Test
         public void ComplianceCheckSubscription_LimitCoversAllTrackedConfigKeys()
         {
             string subscription = ConfigQueries.subscribeComplianceCheckConfigChanges;
-            int trackedConfigKeyCount = Regex.Matches(subscription, "_eq:").Count;
-            Match limitMatch = Regex.Match(subscription, @"limit:\s*(\d+)");
+            int trackedConfigKeyCount = Regex.Count(subscription, "_eq:");
+            Match limitMatch = SubscriptionLimitRegex().Match(subscription);
 
             Assert.That(limitMatch.Success, Is.True, "Subscription limit not found.");
             Assert.That(int.Parse(limitMatch.Groups[1].Value), Is.GreaterThanOrEqualTo(trackedConfigKeyCount));
@@ -604,5 +604,8 @@ namespace FWO.Test
 
             field.SetValue(target, value);
         }
+
+        [GeneratedRegex(@"limit:\s*(\d+)")]
+        private static partial Regex SubscriptionLimitRegex();
     }
 }

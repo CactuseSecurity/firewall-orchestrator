@@ -1,5 +1,4 @@
 using System.Reflection;
-using System.Text.RegularExpressions;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
@@ -14,7 +13,7 @@ namespace FWO.Test
 {
     [TestFixture]
     [Parallelizable]
-    internal partial class ConfigTest
+    internal class ConfigTest
     {
         private sealed class UserConfigApiConnection(ConfigItem[] configItems) : ApiConnection
         {
@@ -346,11 +345,16 @@ namespace FWO.Test
         public void ComplianceCheckSubscription_LimitCoversAllTrackedConfigKeys()
         {
             string subscription = ConfigQueries.subscribeComplianceCheckConfigChanges;
-            int trackedConfigKeyCount = Regex.Count(subscription, "_eq:");
-            Match limitMatch = SubscriptionLimitRegex().Match(subscription);
+            int trackedConfigKeyCount = subscription.Split("_eq:", StringSplitOptions.None).Length - 1;
+            int limitStart = subscription.IndexOf("limit:", StringComparison.Ordinal);
 
-            Assert.That(limitMatch.Success, Is.True, "Subscription limit not found.");
-            Assert.That(int.Parse(limitMatch.Groups[1].Value), Is.GreaterThanOrEqualTo(trackedConfigKeyCount));
+            Assert.That(limitStart, Is.GreaterThanOrEqualTo(0), "Subscription limit not found.");
+
+            string limitText = subscription[(limitStart + "limit:".Length)..].TrimStart();
+            int limitEnd = limitText.IndexOfAny(['\r', '\n', ')']);
+            string limitValue = limitEnd >= 0 ? limitText[..limitEnd] : limitText;
+
+            Assert.That(int.Parse(limitValue), Is.GreaterThanOrEqualTo(trackedConfigKeyCount));
         }
 
         [Test]
@@ -605,8 +609,5 @@ namespace FWO.Test
 
             field.SetValue(target, value);
         }
-
-        [GeneratedRegex(@"limit:\s*(\d+)")]
-        private static partial Regex SubscriptionLimitRegex();
     }
 }

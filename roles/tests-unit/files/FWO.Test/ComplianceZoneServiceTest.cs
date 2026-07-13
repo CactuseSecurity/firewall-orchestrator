@@ -88,6 +88,102 @@ internal class ComplianceZoneServiceTest
         });
     }
 
+    [Test]
+    public async Task ResolveZonesForObjectsAsync_ReturnsEmptyWhenNoObjectsProvideRanges()
+    {
+        ComplianceZoneService service = new(new ComplianceZoneServiceApiConn([], [], []), new SimulatedGlobalConfig { ComplianceDesignatedZoneMatrixId = 12 });
+
+        List<ComplianceDesignatedZoneResponse> result = await service.ResolveZonesForObjectsAsync(new ResolveZonesForObjectsRequest
+        {
+            Objects = []
+        });
+
+        Assert.That(result, Is.Empty);
+    }
+
+    [Test]
+    public async Task ResolveZonesForObjectsAsync_ReturnsEmptyWhenNoZonesAreLoaded()
+    {
+        ComplianceZoneServiceApiConn apiConnection = new(
+            [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+            [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
+            []);
+        ComplianceZoneService service = new(apiConnection, new SimulatedGlobalConfig { ComplianceDesignatedZoneMatrixId = 12 });
+
+        List<ComplianceDesignatedZoneResponse> result = await service.ResolveZonesForObjectsAsync(new ResolveZonesForObjectsRequest
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Leaf",
+                    Type = "network",
+                    IpStart = "10.0.0.1",
+                    IpEnd = "10.0.0.1"
+                }
+            ]
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.Empty);
+            Assert.That(apiConnection.MatrixQueryCount, Is.EqualTo(1));
+            Assert.That(apiConnection.NetworkZoneQueryCount, Is.EqualTo(0));
+        });
+    }
+
+    [Test]
+    public async Task ResolveZonesForObjectsAsync_UsesDefaultTypeNormalizationForUnknownLeafType()
+    {
+        ComplianceZoneServiceApiConn apiConnection = new(
+            [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+            [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
+            [
+                new ComplianceNetworkZone
+                {
+                    Id = 10,
+                    Name = "DMZ",
+                    Description = "Demilitarized zone",
+                    IPRanges = [new NetTools.IPAddressRange(IPAddress.Parse("10.0.0.1"), IPAddress.Parse("10.0.0.1"))]
+                }
+            ]);
+        ComplianceZoneService service = new(apiConnection, new SimulatedGlobalConfig { ComplianceDesignatedZoneMatrixId = 12 });
+
+        List<ComplianceDesignatedZoneResponse> result = await service.ResolveZonesForObjectsAsync(new ResolveZonesForObjectsRequest
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Alias",
+                    Type = "alias",
+                    IpStart = "10.0.0.1",
+                    IpEnd = "10.0.0.1"
+                }
+            ]
+        });
+
+        Assert.That(result.Select(zone => zone.Name), Is.EqualTo(["DMZ"]));
+    }
+
+    [Test]
+    public void ResolveZonesForObjectsAsync_ThrowsForUnsupportedObjectNodeType()
+    {
+        ComplianceZoneService service = new(new ComplianceZoneServiceApiConn([], [], []), new SimulatedGlobalConfig { ComplianceDesignatedZoneMatrixId = 12 });
+
+        Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await service.ResolveZonesForObjectsAsync(new ResolveZonesForObjectsRequest
+            {
+                Objects =
+                [
+                    new UnsupportedObjectRequest
+                    {
+                        Name = "Unsupported"
+                    }
+                ]
+            }));
+    }
+
     private sealed class ComplianceZoneServiceApiConn : SimulatedApiConnection
     {
         private readonly ConfigItem[] configItems;
@@ -164,5 +260,9 @@ internal class ComplianceZoneServiceTest
         {
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class UnsupportedObjectRequest : ResolveZonesForObjectsRequest.ObjectRequest
+    {
     }
 }

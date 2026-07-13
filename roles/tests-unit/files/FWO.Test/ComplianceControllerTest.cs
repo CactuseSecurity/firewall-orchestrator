@@ -2,6 +2,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api.Data;
 using FWO.Data;
+using FWO.Data.Middleware;
 using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
@@ -10,6 +11,7 @@ using NUnit.Framework;
 using Microsoft.AspNetCore.Mvc;
 using NetTools;
 using System.Net;
+using System.Threading;
 
 namespace FWO.Test
 {
@@ -38,6 +40,51 @@ namespace FWO.Test
             var result = controller.StartInitialComplianceCheck();
 
             Assert.That(result.Result, Is.InstanceOf<Microsoft.AspNetCore.Mvc.ConflictObjectResult>());
+        }
+
+        [Test]
+        public void StartInitialComplianceCheck_ReturnsAcceptedAndMarksJobFailedWhenExecutionThrows()
+        {
+            ComplianceCheckStatusTracker tracker = new();
+            ThrowingApiConnection apiConnection = new();
+            ComplianceCheckController controller = new(apiConnection, tracker);
+
+            var result = controller.StartInitialComplianceCheck();
+
+            Assert.That(result.Result, Is.InstanceOf<AcceptedResult>());
+            ComplianceCheckStartResult startResult = (ComplianceCheckStartResult)((AcceptedResult)result.Result!).Value!;
+
+            Assert.That(SpinWait.SpinUntil(() => tracker.Get(startResult.JobId)?.Status == ComplianceCheckExecutionStatus.Failed, TimeSpan.FromSeconds(10)), Is.True);
+
+            ComplianceCheckJobStatus? jobStatus = tracker.Get(startResult.JobId);
+            Assert.That(jobStatus, Is.Not.Null);
+            Assert.That(jobStatus!.Status, Is.EqualTo(ComplianceCheckExecutionStatus.Failed));
+            Assert.That(jobStatus.Message, Is.Not.Empty);
+        }
+
+        [Test]
+        public void GetInitialComplianceCheckStatus_ReturnsOkForKnownJob()
+        {
+            ComplianceCheckStatusTracker tracker = new();
+            ComplianceCheckJobStatus jobStatus = tracker.CreateQueuedJob();
+            ComplianceCheckController controller = new(new DummyApiConnection(), tracker);
+
+            var result = controller.GetInitialComplianceCheckStatus(jobStatus.JobId);
+
+            Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
+            ComplianceCheckJobStatus returnedJobStatus = (ComplianceCheckJobStatus)((OkObjectResult)result.Result!).Value!;
+            Assert.That(returnedJobStatus.JobId, Is.EqualTo(jobStatus.JobId));
+            Assert.That(returnedJobStatus.Status, Is.EqualTo(ComplianceCheckExecutionStatus.Queued));
+        }
+
+        [Test]
+        public async Task InitialComplianceCheck_ReturnsFalseWhenExecutionThrows()
+        {
+            ComplianceCheckExecutionController controller = new(new ThrowingApiConnection());
+
+            bool result = await controller.InitialComplianceCheck();
+
+            Assert.That(result, Is.False);
         }
 
         [Test]
@@ -124,6 +171,22 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GetDesignatedZoneMatrixZones_ReturnsServerErrorWhenServiceFails()
+        {
+            DummyApiConnection apiConnection = new(
+                [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
+                [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }],
+                throwOnNetworkZoneQuery: true);
+            ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12));
+
+            ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.GetDesignatedZoneMatrixZones();
+
+            Assert.That(result.Result, Is.TypeOf<StatusCodeResult>());
+            Assert.That(((StatusCodeResult)result.Result!).StatusCode, Is.EqualTo(500));
+        }
+
+        [Test]
         public async Task ResolveZonesForObjects_ReturnsZonesForNestedGroups()
         {
             DummyApiConnection apiConnection = new(
@@ -197,6 +260,34 @@ namespace FWO.Test
             Assert.That(apiConnection.NetworkZoneQueryCount, Is.EqualTo(1));
         }
 
+        [Test]
+        public async Task ResolveZonesForObjects_ReturnsServerErrorWhenServiceFails()
+        {
+            DummyApiConnection apiConnection = new(
+                [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
+                [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }],
+                throwOnNetworkZoneQuery: true);
+            ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12));
+
+            ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.ResolveZonesForObjects(new ResolveZonesForObjectsRequest
+            {
+                Objects =
+                [
+                    new ResolveZonesForObjectsRequest.LeafObjectRequest
+                    {
+                        Name = "Leaf",
+                        Type = "network",
+                        IpStart = "10.0.0.1",
+                        IpEnd = "10.0.0.1"
+                    }
+                ]
+            });
+
+            Assert.That(result.Result, Is.TypeOf<StatusCodeResult>());
+            Assert.That(((StatusCodeResult)result.Result!).StatusCode, Is.EqualTo(500));
+        }
+
         private sealed class DummyApiConnection : ApiConnection
         {
             private readonly ConfigItem[] configItems;
@@ -210,12 +301,22 @@ namespace FWO.Test
             public object? LastNetworkZoneQueryVariables { get; private set; }
             public int NetworkZoneQueryCount { get; private set; }
 
-            public DummyApiConnection(ConfigItem[]? configItems = null, List<ComplianceCriterion>? matrices = null, List<ComplianceNetworkZone>? zones = null)
+            public DummyApiConnection(
+                ConfigItem[]? configItems = null,
+                List<ComplianceCriterion>? matrices = null,
+                List<ComplianceNetworkZone>? zones = null,
+                bool throwOnMatrixQuery = false,
+                bool throwOnNetworkZoneQuery = false)
             {
                 this.configItems = configItems ?? [];
                 this.matrices = matrices ?? [];
                 this.zones = zones ?? [];
+                this.throwOnMatrixQuery = throwOnMatrixQuery;
+                this.throwOnNetworkZoneQuery = throwOnNetworkZoneQuery;
             }
+
+            private readonly bool throwOnMatrixQuery;
+            private readonly bool throwOnNetworkZoneQuery;
 
             public override void SetAuthHeader(string jwt) { }
             public override void SetRole(string role) { }
@@ -230,6 +331,11 @@ namespace FWO.Test
 
                 if (typeof(QueryResponseType) == typeof(List<ComplianceCriterion>) && query == ComplianceQueries.getMatrixById)
                 {
+                    if (throwOnMatrixQuery)
+                    {
+                        throw new InvalidOperationException("Matrix query failed.");
+                    }
+
                     LastMatrixQuery = query;
                     LastMatrixQueryVariables = variables;
                     MatrixQueryCount++;
@@ -238,6 +344,11 @@ namespace FWO.Test
 
                 if (typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>) && query == ComplianceQueries.getNetworkZonesForMatrix)
                 {
+                    if (throwOnNetworkZoneQuery)
+                    {
+                        throw new InvalidOperationException("Network zone query failed.");
+                    }
+
                     LastNetworkZoneQuery = query;
                     LastNetworkZoneQueryVariables = variables;
                     NetworkZoneQueryCount++;
@@ -251,6 +362,33 @@ namespace FWO.Test
             protected override void Dispose(bool disposing) { }
             public override void DisposeSubscriptions<T>() { }
             public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct) => throw new NotImplementedException();
+        }
+
+        private sealed class ThrowingApiConnection : ApiConnection
+        {
+            public override void SetAuthHeader(string jwt) { }
+            public override void SetRole(string role) { }
+            public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList) { }
+            public override void SwitchBack() { }
+
+            public override Task<ApiResponse<QueryResponseType>> SendQuerySafeAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            {
+                throw new InvalidOperationException("Test failure");
+            }
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                throw new InvalidOperationException("Test failure");
+            }
+
+            public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
+            {
+                throw new InvalidOperationException("Test failure");
+            }
+
+            public override void DisposeSubscriptions<T>() { }
+            protected override void Dispose(bool disposing) { }
+            public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct) => Task.CompletedTask;
         }
 
         private static T GetAnonymousProperty<T>(object? obj, string propertyName)

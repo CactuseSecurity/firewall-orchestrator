@@ -1,6 +1,7 @@
 subscription subscribeFlowSyncConfigChanges {
   config(where: {_or: [
-        {config_key: {_eq: "flowSyncSleepTime"}}
+        {config_key: {_eq: "flowSyncSleepTime"}},
+        {config_key: {_eq: "flowNamingSourceManagementRanking"}}
     ]}
     ){
     config_key

@@ -1,19 +1,23 @@
+from __future__ import annotations
+
 import traceback
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import fwo_const
 from fwo_api import FwoApi
 from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
 from model_controllers.rulebase_link_controller import RulebaseLinkController
-from models.gateway import Gateway
 from models.rulebase_link import (  # TODO: check if we need RulebaseLinkUidBased as well
     RulebaseLink,
     RulebaseLinkUidBased,
 )
-from services.global_state import GlobalState
 from services.service_provider import ServiceProvider
-from services.uid2id_mapper import Uid2IdMapper
+
+if TYPE_CHECKING:
+    from models.gateway import Gateway
+    from services.global_state import GlobalState
+    from services.uid2id_mapper import Uid2IdMapper
 
 
 class FwConfigImportGateway:
@@ -235,7 +239,7 @@ class FwConfigImportGateway:
                 f"marked {sum(affected_tables.values())!s} entries as removed for gateways {gw_uids_to_remove!s}"
             )
             self._global_state.import_state.state.stats.statistics.rulebase_link_delete_count += affected_tables.get(
-                "update_rulebase_link", 0
+                "update_firewall_rulebase_link", 0
             )
         except Exception:
             FWOLogger.error(

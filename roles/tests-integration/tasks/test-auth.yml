@@ -62,6 +62,7 @@
   ansible.builtin.uri:
       url: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/api/AuthenticationToken/GetTokenPair/"
       method: POST
+      status_code: 200
       headers:
           Content-Type: application/json
       body:
@@ -72,6 +73,9 @@
       return_content: true
   register: sample_jwt
   changed_when: false
+  retries: 12
+  delay: 5
+  until: sample_jwt.status | default(0) == 200
 #  environment: "{{ proxy_env }}"
 
 - ansible.builtin.debug:

@@ -1137,7 +1137,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
                     "update_objgrp_flat": {
                         "affected_rows": 1,
                     },
-                    "update_objgrp": {
+                    "update_firewall_nw_object_group": {
                         "affected_rows": 1,
                     },
                 }
@@ -1273,7 +1273,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         fwconfig_import_object.import_state.api_call.call = mocker.Mock(
             return_value={
                 "data": {
-                    "update_objgrp": {"affected_rows": 1},
+                    "update_firewall_nw_object_group": {"affected_rows": 1},
                     "update_objgrp_flat": {"affected_rows": 1},
                 }
             }
@@ -1330,7 +1330,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         fwconfig_import_object.import_state.api_call.call = mocker.Mock(
             return_value={
                 "data": {
-                    "update_objgrp": {"affected_rows": 2},
+                    "update_firewall_nw_object_group": {"affected_rows": 2},
                     "update_objgrp_flat": {"affected_rows": 2},
                 }
             }
@@ -2168,14 +2168,14 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
         fwconfig_import_object.import_state.api_call.call = mocker.Mock(
             return_value={
                 "data": {
-                    "insert_object": {"affected_rows": 1, "returning": [{"id": 1}]},
-                    "insert_service": {"affected_rows": 1, "returning": [{"id": 2}]},
-                    "insert_usr": {"affected_rows": 1, "returning": [{"id": 3}]},
-                    "insert_zone": {"affected_rows": 1, "returning": [{"id": 4}]},
-                    "update_object": {"affected_rows": 1, "returning": [{"id": 5}]},
-                    "update_service": {"affected_rows": 1, "returning": [{"id": 6}]},
-                    "update_usr": {"affected_rows": 1, "returning": [{"id": 7}]},
-                    "update_zone": {"affected_rows": 1, "returning": [{"id": 8}]},
+                    "insert_firewall_nw_object": {"affected_rows": 1, "returning": [{"id": 1}]},
+                    "insert_firewall_nw_service": {"affected_rows": 1, "returning": [{"id": 2}]},
+                    "insert_firewall_nw_user": {"affected_rows": 1, "returning": [{"id": 3}]},
+                    "insert_firewall_zone": {"affected_rows": 1, "returning": [{"id": 4}]},
+                    "update_firewall_nw_object": {"affected_rows": 1, "returning": [{"id": 5}]},
+                    "update_firewall_nw_service": {"affected_rows": 1, "returning": [{"id": 6}]},
+                    "update_firewall_nw_user": {"affected_rows": 1, "returning": [{"id": 7}]},
+                    "update_firewall_zone": {"affected_rows": 1, "returning": [{"id": 8}]},
                 }
             }
         )
@@ -2279,6 +2279,7 @@ class TestFwConfigImportObjectUpdateObjectDiffs:
         fwconfig_import_object.remove_outdated_memberships = mocker.Mock()
         fwconfig_import_object.add_group_memberships = mocker.Mock()
         fwconfig_import_object.add_changelog_objs = mocker.Mock()
+        fwconfig_import_object.update_time_objs_via_api = mocker.Mock()
 
         fwconfig_import_object.update_objects_via_api = mocker.Mock(
             return_value=(
@@ -2335,6 +2336,11 @@ class TestFwConfigImportObjectUpdateObjectDiffs:
 
         assert fwconfig_import_object.remove_outdated_memberships.call_count == 3
         assert fwconfig_import_object.add_group_memberships.call_count == 3
+        fwconfig_import_object.update_time_objs_via_api.assert_called_once_with(
+            prev_config.time_objects,
+            curr_config.time_objects,
+            is_global=fw_config_manager.is_super_manager,
+        )
 
         fwconfig_import_object.add_changelog_objs.assert_called_once_with(
             [{"obj_id": 2}],

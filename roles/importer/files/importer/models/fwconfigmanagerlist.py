@@ -1,8 +1,13 @@
-from typing import Any
+from __future__ import annotations
+
+from importlib import import_module
+from typing import TYPE_CHECKING, Any
 
 from fwo_enums import ConfFormat
-from models.fwconfigmanager import FwConfigManager
 from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from models.fwconfigmanager import FwConfigManager
 
 """
     a list of normalized configuratons of a firewall management to import
@@ -21,3 +26,8 @@ class FwConfigManagerList(BaseModel):
 
     def __str__(self):
         return f"{self.ManagerSet!s})"
+
+
+FwConfigManagerList.model_rebuild(
+    _types_namespace={"FwConfigManager": import_module("models.fwconfigmanager").FwConfigManager}
+)

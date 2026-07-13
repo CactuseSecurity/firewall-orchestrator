@@ -48,7 +48,7 @@ namespace FWO.Data
             { 14, 16}   // Cisco Firepower
         };
 
-        private static readonly List<int> CheckPointManagers =
+        public static readonly IReadOnlyList<int> CheckPointManagerTypeIds =
         [
             13, 9   // Check Point MDS R8x and Check Point R8x
         ];
@@ -104,7 +104,12 @@ namespace FWO.Data
 
         public bool CanBeAutodiscovered(Management mgmt)
         {
-            return !IsUri(mgmt.Hostname) && (SupermanagerMap.ContainsValue(Id) || (CheckPointManagers.Contains(Id) && mgmt.SuperManagerId == null));
+            return !IsUri(mgmt.Hostname) && (SupermanagerMap.ContainsValue(Id) || (IsCheckPointManagerTypeId(Id) && mgmt.SuperManagerId == null));
+        }
+
+        public static bool IsCheckPointManagerTypeId(int deviceTypeId)
+        {
+            return CheckPointManagerTypeIds.Contains(deviceTypeId);
         }
 
         private static bool IsUri(string hostname)

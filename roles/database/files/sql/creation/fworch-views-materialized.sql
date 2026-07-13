@@ -1,3 +1,7 @@
+-- ensure the firewall schema is resolvable for the unqualified references below, even on a
+-- connection opened before the ALTER DATABASE ... SET search_path took effect (issue #4793).
+SET search_path TO "$user", public, firewall;
+
 /*
     logic for checking overlap of ip ranges:
     not (end_ip1 < start_ip2 or start_ip1 > end_ip2)
@@ -66,7 +70,7 @@ CREATE OR REPLACE VIEW v_excluded_src_ips AS
     FROM v_rule_with_rule_owner r
     LEFT JOIN rule_from rf ON (r.rule_id=rf.rule_id)
     LEFT JOIN objgrp_flat of ON (rf.obj_id=of.objgrp_flat_id)
-    LEFT JOIN object o ON (of.objgrp_flat_member_id=o.obj_id)
+    LEFT JOIN firewall.nw_object o ON (of.objgrp_flat_member_id=o.obj_id)
     WHERE NOT o.obj_ip='0.0.0.0/0';
 
 CREATE OR REPLACE VIEW v_excluded_dst_ips AS
@@ -74,7 +78,7 @@ CREATE OR REPLACE VIEW v_excluded_dst_ips AS
     FROM v_rule_with_rule_owner r
     LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
     LEFT JOIN objgrp_flat of ON (rt.obj_id=of.objgrp_flat_id)
-    LEFT JOIN object o ON (of.objgrp_flat_member_id=o.obj_id)
+    LEFT JOIN firewall.nw_object o ON (of.objgrp_flat_member_id=o.obj_id)
     WHERE NOT o.obj_ip='0.0.0.0/0';
 
     -- if start_ip1 <= end_ip2 and start_ip2 <= end_ip1:
@@ -105,7 +109,7 @@ CREATE OR REPLACE VIEW v_rule_with_src_owner AS
     FROM v_active_access_allow_rules r
     LEFT JOIN rule_from ON (r.rule_id=rule_from.rule_id)
     LEFT JOIN objgrp_flat of ON (rule_from.obj_id=of.objgrp_flat_id)
-    LEFT JOIN object o ON (of.objgrp_flat_member_id=o.obj_id)
+    LEFT JOIN firewall.nw_object o ON (of.objgrp_flat_member_id=o.obj_id)
     LEFT JOIN owner_network onw ON (onw.ip_end >= o.obj_ip AND onw.ip <= o.obj_ip_end)
     LEFT JOIN owner ow ON (onw.owner_id=ow.id)
     LEFT JOIN rule_metadata met ON (r.rule_uid=met.rule_uid)
@@ -138,7 +142,7 @@ CREATE OR REPLACE VIEW v_rule_with_dst_owner AS
     FROM v_active_access_allow_rules r
     LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
     LEFT JOIN objgrp_flat of ON (rt.obj_id=of.objgrp_flat_id)
-    LEFT JOIN object o ON (of.objgrp_flat_member_id=o.obj_id)
+    LEFT JOIN firewall.nw_object o ON (of.objgrp_flat_member_id=o.obj_id)
     LEFT JOIN owner_network onw ON (onw.ip_end >= o.obj_ip AND onw.ip <= o.obj_ip_end)
     LEFT JOIN owner ow ON (onw.owner_id=ow.id)
     LEFT JOIN rule_metadata met ON (r.rule_uid=met.rule_uid)

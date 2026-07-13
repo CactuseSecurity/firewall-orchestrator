@@ -19,5 +19,8 @@
       copy:
         content: "{{ final_commit_id_value }}"
         dest: "{{ last_commit_id_file_path }}"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0640"
 
   become: true

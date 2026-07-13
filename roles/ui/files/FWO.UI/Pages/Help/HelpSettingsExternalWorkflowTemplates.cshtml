@@ -1,4 +1,4 @@
-﻿@page "/help/settings/extticketing"
+@page "/help/settings/exttickettemplates"
 @model FWO.Ui.Pages.Help.MainModel
 @{
     Layout = "HelpLayout";
@@ -12,7 +12,7 @@
 @inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>@(userConfig.GetText("ext_ticket_settings"))</h3>
+    <h3>@(userConfig.GetText("ext_ticket_templates"))</h3>
     @(Html.Raw(userConfig.GetText("H5598")))
     <br><br>
     <ul>
@@ -21,6 +21,8 @@
         <li>@(Html.Raw(userConfig.GetText("H5427a")))</li>
     </ul>
     <br>
+        @(Html.Raw(userConfig.GetText("H5684")))
+    <br><br>
     <ul>
         <li>@(Html.Raw(userConfig.GetText("H5597")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5593")))</li>
@@ -30,7 +32,10 @@
         <li>@(Html.Raw(userConfig.GetText("H5593c")))</li>
     </ul>
     <br>
+        @(Html.Raw(userConfig.GetText("H5685")))
+    <br><br>
     <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5599")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5595")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5596")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5596a")))</li>

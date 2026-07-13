@@ -1,22 +1,22 @@
 
-- name: add postgresql repo for rpms
-  get_url:
-    url: "https://download.postgresql.org/pub/repos/yum/reporpms/EL-{{ redhat_major_version}}-{{ arch }}/pgdg-redhat-repo-latest.noarch.rpm"
-    dest: "/tmp/pgdg-redhat-repo-latest.noarch.rpm"
-  environment: "{{ proxy_env }}"
+# PostgreSQL is installed from the RedHat OS (AppStream) repos - no upstream
+# PGDG repo needed. The unversioned postgresql-server/-contrib packages in
+# os/RedHat.yml resolve from AppStream; PGDG only ships versioned packages.
 
-- name: install postgresql repo
-  yum:
-    name: /tmp/pgdg-redhat-repo-latest.noarch.rpm
-    state: present
+# RHEL 8's default postgresql module stream is 10, which is too old
+# (Hasura requires >= 12). Enable stream 13 as documented in
+# documentation/installer/postgresql_versions.md. RHEL 9+ defaults are fine.
+- name: enable postgresql 13 module stream on RHEL 8
+  command: dnf -y module enable postgresql:13
+  register: pg_module_enable
+  changed_when: "'Nothing to do' not in pg_module_enable.stdout"
   become: true
+  when: redhat_major_version | int == 8
 
-- name: remove postgresql repo file
-  file:
-    name: /tmp/pgdg-redhat-repo-latest.noarch.rpm 
-    state: absent
-
-- name: install glibc-langpack-en for postgresql to handle utf-8
-  package:
+- name: install OS glibc-langpack-en for postgresql to handle utf-8
+  ansible.builtin.dnf:
     name: glibc-langpack-en
+    state: present
+    disablerepo:
+      - pgdg*
   become: true

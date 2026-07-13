@@ -1,4 +1,4 @@
-fragment networkObjectFlowSyncDetails on object {
+fragment networkObjectFlowSyncDetails on firewall_nw_object {
   obj_id
   obj_name
   obj_ip

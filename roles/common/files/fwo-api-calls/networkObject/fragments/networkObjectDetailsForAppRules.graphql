@@ -1,4 +1,4 @@
-fragment networkObjectDetailsForAppRules on object {
+fragment networkObjectDetailsForAppRules on firewall_nw_object {
   obj_id
   obj_name
   obj_ip

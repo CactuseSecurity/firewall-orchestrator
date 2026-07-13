@@ -12,6 +12,7 @@ namespace FWO.Services
     {
         private const string kTextColumnSeparator = " | ";
         private static readonly TimeSpan RegexTimeout = TimeSpan.FromMilliseconds(100);
+        public static readonly string HtmlTableStyleBlock = "<style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100%;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style>";
 
         /// <summary>
         /// Builds a plain-text table from headers and rows.
@@ -105,27 +106,7 @@ namespace FWO.Services
                 .AppendLine("<html>")
                 .AppendLine("<head>")
                 .AppendLine("    <meta charset=\"utf-8\"/>")
-                .AppendLine("    <style>")
-                .AppendLine("        table {")
-                .AppendLine("            font-family: arial, sans-serif;")
-                .AppendLine("            font-size: 10px;")
-                .AppendLine("            border-collapse: collapse;")
-                .AppendLine("            width: 100%;")
-                .AppendLine("        }")
-                .AppendLine()
-                .AppendLine("        td {")
-                .AppendLine("            border: 1px solid #000000;")
-                .AppendLine("            text-align: left;")
-                .AppendLine("            padding: 3px;")
-                .AppendLine("        }")
-                .AppendLine()
-                .AppendLine("        th {")
-                .AppendLine("            border: 1px solid #000000;")
-                .AppendLine("            text-align: left;")
-                .AppendLine("            padding: 3px;")
-                .AppendLine("            background-color: #dddddd;")
-                .AppendLine("        }")
-                .AppendLine("    </style>")
+                .AppendLine(HtmlTableStyleBlock)
                 .AppendLine("</head>")
                 .AppendLine("<body>")
                 .Append(body)

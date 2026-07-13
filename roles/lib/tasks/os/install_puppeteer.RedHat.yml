@@ -1,0 +1,46 @@
+- block:
+    - name: Define RedHat Chromium dependency packages
+      set_fact:
+        platform_packages:
+          - alsa-lib
+          - atk
+          - at-spi2-atk
+          - at-spi2-core
+          - cairo
+          - cups-libs
+          - dbus-libs
+          - expat
+          - glib2
+          - liberation-fonts
+          - libX11
+          - libX11-xcb
+          - libXcomposite
+          - libXdamage
+          - libXext
+          - libXfixes
+          - libXrandr
+          - libdrm
+          - libxcb
+          - libxkbcommon
+          - mesa-libgbm
+          - nspr
+          - nss
+          - nss-util
+          - pango
+          - xdg-utils
+
+    - name: Install all combined dependencies on RedHat
+      package:
+        name: "{{ platform_packages }}"
+        state: present
+
+    # headless chromium from EPEL can replace the chrome download (hardened / proxy-restricted systems)
+    - name: Define RedHat headless chromium package
+      set_fact:
+        chromium_headless_packages:
+          - chromium-headless
+        chromium_headless_binary_candidates:
+          - /usr/lib64/chromium-browser/headless_shell
+
+  become: true
+  environment: "{{ proxy_env }}"

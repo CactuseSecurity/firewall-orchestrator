@@ -69,6 +69,7 @@ namespace FWO.Basics
         public const string kStyleAdded = "color: green; text-decoration: bold;";
 
         public const string ChromeBinPathLinux = "/usr/local/fworch/bin";
+        public const string ChromiumHeadlessBinPathLinux = "/usr/local/fworch/bin/chromium-headless";
         public const string TestPDFFilePath = "pdffile.pdf";
         public const string TestPDFHtmlTemplate = "<html><body><h1>test</h1><h2>test mit puppteer</h2></body></html>";
 

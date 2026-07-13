@@ -1,19 +1,20 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
+from fwo_const import API_CALL_CHUNK_SIZE
+
 try:
     # GraphQL-core v3+
     from graphql import parse, print_ast, visit
     from graphql.language import Visitor
-    from graphql.language.ast import DocumentNode as Document  # type: ignore  # noqa: PGH003
-    from graphql.language.ast import OperationDefinitionNode as OperationDefinition
-    from graphql.language.ast import VariableDefinitionNode as VariableDefinition
 except ImportError:
     # GraphQL-core v2
     from graphql import parse, print_ast, visit
-    from graphql.language.ast import Document, OperationDefinition, VariableDefinition  # type: ignore  # noqa: PGH003
     from graphql.language.visitor import Visitor
 
-from typing import Any
-
-from fwo_const import API_CALL_CHUNK_SIZE
+if TYPE_CHECKING:
+    from graphql.language.ast import DocumentNode, OperationDefinitionNode, VariableDefinitionNode
 
 
 class QueryAnalyzer(Visitor):
@@ -21,7 +22,7 @@ class QueryAnalyzer(Visitor):
     A class for analyzing GraphQL queries.
     """
 
-    _ast: Document | None
+    _ast: DocumentNode | None
     _variable_definitions: dict[str, dict[str, Any]]
     _query_string: str
     _query_variables: dict[str, Any]
@@ -33,7 +34,7 @@ class QueryAnalyzer(Visitor):
         return self._variable_definitions
 
     @property
-    def ast(self) -> Document | None:  # type: ignore  # noqa: PGH003
+    def ast(self) -> DocumentNode | None:  # type: ignore  # noqa: PGH003
         """Returns the AST."""
         return self._ast  # type: ignore  # noqa: PGH003
 
@@ -94,26 +95,26 @@ class QueryAnalyzer(Visitor):
             or 1
         )
 
-    def enter_OperationDefinition(self, node: OperationDefinition, *_):  # type: ignore  # noqa: N802, PGH003
+    def enter_OperationDefinition(self, node: OperationDefinitionNode, *_):  # type: ignore  # noqa: N802, PGH003
         """
         Called by visit function for each variable definition in the AST.
         """
         self.enter_operation_definition(node)  # type: ignore  # noqa: PGH003
 
-    def enter_VariableDefinition(self, node: VariableDefinition, *_):  # type: ignore  # noqa: N802, PGH003
+    def enter_VariableDefinition(self, node: VariableDefinitionNode, *_):  # type: ignore  # noqa: N802, PGH003
         """
         Called by visit function for each variable definition in the AST.
         """
         self.enter_variable_definition(node)  # type: ignore  # noqa: PGH003
 
-    def enter_operation_definition(self, node: OperationDefinition, *_):  # type: ignore  # noqa: PGH003
+    def enter_operation_definition(self, node: OperationDefinitionNode, *_):  # type: ignore  # noqa: PGH003
         """
         Called by visit function for each variable definition in the AST.
         """
         self._query_info["query_type"] = node.operation  # type: ignore  # noqa: PGH003
         self._query_info["query_name"] = node.name.value if node.name else ""  # type: ignore  # noqa: PGH003
 
-    def enter_variable_definition(self, node: VariableDefinition, *_):  # type: ignore  # noqa: PGH003
+    def enter_variable_definition(self, node: VariableDefinitionNode, *_):  # type: ignore  # noqa: PGH003
         """
         Called by visit function for each variable definition in the AST.
         """

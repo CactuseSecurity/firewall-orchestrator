@@ -29,5 +29,10 @@ namespace FWO.Services.RuleTreeBuilder
         /// the flattened rules that reports render.
         /// </summary>
         List<Rule> BuildRuleTree(RulebaseReport[] rulebases, RulebaseLink[] links, int managementId, int deviceId, bool suppressEmptyHeaders = false);
+
+        /// <summary>
+        /// Clears cached trees and flattened rows from previous report generations.
+        /// </summary>
+        void ClearCachedRuleTrees();
     }
 }

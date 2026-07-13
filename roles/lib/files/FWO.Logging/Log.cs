@@ -10,9 +10,26 @@ namespace FWO.Logging
 {
     public static class Log
     {
+        private const string lockDirEnvVar = "FWO_LOG_LOCK_DIR";
+        private const string defaultLockDir = "/var/fworch/lock";
+
         private static SemaphoreSlim semaphore = new(1, 1);
-        private static readonly string lockFilePath = $"/var/fworch/lock/{Assembly.GetEntryAssembly()?.GetName().Name}_log.lock";
         private static readonly Random random = new();
+
+        /// <summary>
+        /// Path of the lock file used to coordinate log file swapping with external processes.
+        /// The directory can be overridden via the FWO_LOG_LOCK_DIR environment variable
+        /// (e.g. on test hosts where /var/fworch/lock does not exist).
+        /// </summary>
+        public static string LockFilePath { get; } = Path.Combine(
+            ResolveLockDir(),
+            $"{Assembly.GetEntryAssembly()?.GetName().Name}_log.lock");
+
+        private static string ResolveLockDir()
+        {
+            string? configuredLockDir = Environment.GetEnvironmentVariable(lockDirEnvVar);
+            return string.IsNullOrWhiteSpace(configuredLockDir) ? defaultLockDir : configuredLockDir;
+        }
 
         static Log()
         {
@@ -27,7 +44,7 @@ namespace FWO.Logging
                     try
                     {
                         // Open file
-                        using FileStream file = await GetFile(lockFilePath);
+                        using FileStream file = await GetFile(LockFilePath);
                         // Read file content
                         using StreamReader reader = new(file);
                         string lockFileContent = (await reader.ReadToEndAsync()).Trim();

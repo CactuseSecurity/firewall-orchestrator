@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 import pytest
 from fw_modules.fortiadom5ff.fmgr_rule import rule_parse_last_hit
+from fw_modules.fortiadom5ff.fmgr_service import handle_svc_protocol
 from fw_modules.fortiadom5ff.fwcommon import to_time_object
 from fwo_exceptions import ImportInterruptionError
 from models.time_object import TimeObject
@@ -152,3 +153,38 @@ def test_rule_parse_last_hit_returns_offset_aware_iso_timestamp():
     parsed_time = datetime.fromisoformat(parsed)
     assert parsed_time.tzinfo is not None
     assert int(parsed_time.timestamp()) == epoch_seconds
+
+
+@pytest.mark.parametrize(
+    ("native_service", "expected_protocol"),
+    [
+        ({"protocol": 1}, 1),
+        ({"protocol": 2, "protocol-number": 47}, 47),
+        ({"protocol": 6}, 58),
+    ],
+)
+def test_handle_svc_protocol_maps_forti_protocol_numbers(
+    native_service: dict[str, int],
+    expected_protocol: int,
+):
+    service_objects: list[dict[str, object]] = []
+
+    handle_svc_protocol(native_service, service_objects, "simple", "svc", "foreground", None)
+
+    assert service_objects[0]["ip_proto"] == expected_protocol
+
+
+def test_handle_svc_protocol_uses_zero_for_generic_without_protocol_number():
+    service_objects: list[dict[str, object]] = []
+
+    handle_svc_protocol({"protocol": 2}, service_objects, "simple", "svc", "foreground", None)
+
+    assert service_objects[0]["ip_proto"] == 0
+
+
+def test_handle_svc_protocol_ignores_unsupported_protocol():
+    service_objects: list[dict[str, object]] = []
+
+    handle_svc_protocol({"protocol": 99}, service_objects, "simple", "svc", "foreground", None)
+
+    assert service_objects == []

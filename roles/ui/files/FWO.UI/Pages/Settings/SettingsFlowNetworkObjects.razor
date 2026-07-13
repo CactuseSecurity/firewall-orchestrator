@@ -578,7 +578,7 @@ else
             workInProgress = true;
             StateHasChanged();
 
-            await apiConnection.SendQueryAsync<ResetFlowDbMutationResult>(FlowMutations.resetFlowDB);
+            await apiConnection.SendQueryAsync<MutationResult>(FlowMutations.resetFlowDB);
 
             workInProgress = false;
             await Refresh();
@@ -1034,39 +1034,4 @@ else
                 : FlowAdminHelper.FilterCustomObjectCandidates(Candidates, SearchText);
     }
 
-    private sealed class ResetFlowDbMutationResult
-    {
-        [JsonProperty("update_import_control"), JsonPropertyName("update_import_control")]
-        public MutationResult UpdateImportControl { get; set; } = new();
-
-        [JsonProperty("update_rule"), JsonPropertyName("update_rule")]
-        public MutationResult UpdateRule { get; set; } = new();
-
-        [JsonProperty("update_object"), JsonPropertyName("update_object")]
-        public MutationResult UpdateObject { get; set; } = new();
-
-        [JsonProperty("update_service"), JsonPropertyName("update_service")]
-        public MutationResult UpdateService { get; set; } = new();
-
-        [JsonProperty("update_time_object"), JsonPropertyName("update_time_object")]
-        public MutationResult UpdateTimeObject { get; set; } = new();
-
-        [JsonProperty("delete_flow_access"), JsonPropertyName("delete_flow_access")]
-        public MutationResult DeleteFlowAccess { get; set; } = new();
-
-        [JsonProperty("delete_flow_nwobject"), JsonPropertyName("delete_flow_nwobject")]
-        public MutationResult DeleteFlowNwObject { get; set; } = new();
-
-        [JsonProperty("delete_flow_nwgroup"), JsonPropertyName("delete_flow_nwgroup")]
-        public MutationResult DeleteFlowNwGroup { get; set; } = new();
-
-        [JsonProperty("delete_flow_svcobject"), JsonPropertyName("delete_flow_svcobject")]
-        public MutationResult DeleteFlowSvcObject { get; set; } = new();
-
-        [JsonProperty("delete_flow_svcgroup"), JsonPropertyName("delete_flow_svcgroup")]
-        public MutationResult DeleteFlowSvcGroup { get; set; } = new();
-
-        [JsonProperty("delete_flow_timeobject"), JsonPropertyName("delete_flow_timeobject")]
-        public MutationResult DeleteFlowTimeObject { get; set; } = new();
-    }
 }

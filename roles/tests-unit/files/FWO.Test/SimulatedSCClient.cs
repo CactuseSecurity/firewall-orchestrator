@@ -11,7 +11,6 @@ namespace FWO.Test
     /// </summary>
     public class SimulatedSCClient : SCClient
     {
-        private int CallCounter = 0;
         private readonly Dictionary<string, Queue<RestResponse<int>>> queuedResponses = new();
 
         /// <summary>
@@ -35,16 +34,13 @@ namespace FWO.Test
         /// </summary>
         public override async Task<RestResponse<int>> RestCall(RestRequest request, string restEndPoint)
         {
-            CallCounter++;
             await DefaultInit.DoNothing(); // qad avoid compiler warning
+
             if (queuedResponses.TryGetValue(restEndPoint, out Queue<RestResponse<int>>? responses) && responses.Count > 0)
             {
                 return responses.Dequeue();
             }
-            if (CallCounter == 2)
-            {
-                return new(new()) { StatusCode = HttpStatusCode.BadRequest, Content = "{\"ticket\": {\"id\": 1, \"status\": \"In Progress\", \"Error\": \"FIELD_VALIDATION_ERROR\"} }" };
-            }
+
             return new(new()) { StatusCode = HttpStatusCode.OK, Content = "{\"ticket\": {\"id\": 1, \"status\": \"In Progress\" } }" };
         }
     }

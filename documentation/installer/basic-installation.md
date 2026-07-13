@@ -1,7 +1,7 @@
 # Installation instructions server
 
 - use latest debian or ubuntu minimal server with ssh service running (need to install and configure sudo for debian)
-- recommended platforms are Ubuntu Server 22.04 LTS and Debian 12. See [system requirements](https://fwo.cactus.de/wp-content/uploads/2021/07/fwo-system-requirements-v5.pdf) for supported platforms
+- recommended platforms are Ubuntu Server 24.04 LTS, Debian 12, and RHEL 9. See [system requirements](https://fwo.cactus.de/wp-content/uploads/2021/07/fwo-system-requirements-v5.pdf) for supported platforms
 - we will install various software components to your system. It is recommended to do so on a dedicated (test) system.
 
 1) prepare your target system (make sure your user has full sudo permissions)
@@ -48,6 +48,18 @@ If this is not the case, install a newer ansible. One possible way is to run the
         cd firewall-orchestrator
         source scripts/install-ansible-from-venv.sh
 
+Install the required Ansible collections before running the playbook. This is required when using `ansible-core`, including the package commonly available on RedHat-like systems:
+
+```console
+ansible-galaxy collection install -r collections/requirements.yml -p collections --force
+```
+
+If using RedHat-like systems and `scripts/requirements.txt` exists in your checkout, install those Python dependencies as well:
+
+```console
+pip install -r scripts/requirements.txt
+```
+
 Note that if your server is behind a proxy, you will have to set the proxy for pip as follows (to allow for ansible venv download):
 
          pip config set global.proxy http://YOUR-PROXY-NAME:YOUR-PROXY-PORT
@@ -55,10 +67,11 @@ Note that if your server is behind a proxy, you will have to set the proxy for p
 4) Firewall Orchestrator installation
 
 ```console
-cd firewall-orchestrator; ansible-playbook site.yml -K
+cd firewall-orchestrator
+./scripts/run-playbook-with-sudo.sh site.yml
 ```
 
-Enter sudo password when prompted "BECOME or SUDO password:"
+Enter your sudo password when prompted. Full sudoers rights are still required. If sudo already works without a password, the wrapper runs `ansible-playbook` directly; otherwise it creates a temporary passwordless sudoers entry for the current user and removes the entry again when the playbook exits. This avoids the sudo 1.9.16+ password prompt change on Ubuntu 26.04, where `ansible-playbook site.yml -K` can time out before Ansible sends the become password.
 
 That's it. Firewall-orchestrator is ready for usage. You will find the randomly generated login credentials printed out at the very end of the installation:
 ```

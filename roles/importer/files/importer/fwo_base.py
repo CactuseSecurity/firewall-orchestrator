@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import ipaddress
 import json
@@ -220,7 +222,7 @@ def compute_min_moves(source: list[Any], target: list[Any]) -> dict[str, Any]:
     }
 
 
-def write_native_config_to_file(import_state: "ImportState", config_native: dict[str, Any] | None) -> None:
+def write_native_config_to_file(import_state: ImportState, config_native: dict[str, Any] | None) -> None:
     if FWOLogger.is_debug_level(7):
         debug_start_time = int(time.time())
         try:
@@ -248,7 +250,7 @@ def init_service_provider() -> ServiceProvider:
     return service_provider
 
 
-def register_global_state(import_state: "ImportStateController") -> None:
+def register_global_state(import_state: ImportStateController) -> None:
     service_provider = ServiceProvider()
     service_provider.register(Services.GLOBAL_STATE, lambda: GlobalState(import_state), Lifetime.SINGLETON)
 

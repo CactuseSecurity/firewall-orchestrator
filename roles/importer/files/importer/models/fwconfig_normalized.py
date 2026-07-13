@@ -1,12 +1,17 @@
-from typing import Any
+from __future__ import annotations
+
+from importlib import import_module
+from typing import TYPE_CHECKING, Any
 
 from fwo_base import ConfFormat, ConfigAction
-from models.gateway import Gateway
-from models.networkobject import NetworkObject
-from models.rulebase import Rulebase
-from models.serviceobject import ServiceObject
-from models.time_object import TimeObject
 from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from models.gateway import Gateway
+    from models.networkobject import NetworkObject
+    from models.rulebase import Rulebase
+    from models.serviceobject import ServiceObject
+    from models.time_object import TimeObject
 
 
 class FwConfig(BaseModel):
@@ -97,3 +102,14 @@ class FwConfigNormalized(FwConfig):
             if rb.uid == rulebase_uid:
                 return rb
         return None
+
+
+FwConfigNormalized.model_rebuild(
+    _types_namespace={
+        "Gateway": import_module("models.gateway").Gateway,
+        "NetworkObject": import_module("models.networkobject").NetworkObject,
+        "Rulebase": import_module("models.rulebase").Rulebase,
+        "ServiceObject": import_module("models.serviceobject").ServiceObject,
+        "TimeObject": import_module("models.time_object").TimeObject,
+    }
+)

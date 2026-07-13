@@ -1,5 +1,6 @@
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
+using System.Reflection;
 
 namespace FWO.Middleware.Server.OpenApi;
 
@@ -40,6 +41,22 @@ public static class ApiExampleServiceCollectionExtensions
         services.AddSingleton<IApiExampleProvider, AddressObjectIdResponseExample>();
         services.AddSingleton<IApiExampleProvider, ServiceObjectIdResponseExample>();
         services.AddSingleton<IApiExampleProvider, GetOwnerResponseExample>();
+        services.AddOpenApiEndpointDocumentationProviders();
+        return services;
+    }
+
+    private static IServiceCollection AddOpenApiEndpointDocumentationProviders(this IServiceCollection services)
+    {
+        IEnumerable<Type> providerTypes = typeof(ApiExampleServiceCollectionExtensions).Assembly.GetTypes()
+            .Where(type => !type.IsAbstract
+                && !type.IsInterface
+                && typeof(IOpenApiEndpointDocumentationProvider).IsAssignableFrom(type));
+
+        foreach (Type providerType in providerTypes)
+        {
+            services.AddSingleton(typeof(IOpenApiEndpointDocumentationProvider), providerType);
+        }
+
         return services;
     }
 }
@@ -249,6 +266,7 @@ public sealed class GetOwnersRequestExample : ApiExampleProvider<GetOwnersReques
     public override GetOwnersRequest GetExample() => new()
     {
         OwnerId = 42,
+        OwnerLifeCycleStateId = 1,
         Active = true,
         Name = "Payments",
         AppIdExternal = "APP-42",
@@ -510,10 +528,19 @@ public sealed class GetOwnerResponseExample : ApiExampleProvider<GetOwnerRespons
         IsDefault = false,
         TenantId = 1,
         RecertInterval = 365,
+        LastRecertCheck = new DateTime(2026, 1, 15, 10, 30, 0, DateTimeKind.Utc),
+        RecertCheckParams = "{\"scope\":\"all-rules\"}",
+        Criticality = "high",
+        OwnerLifecycleStateId = 1,
         Active = true,
         ImportSource = "manual",
         CommonServicePossible = false,
+        LastRecertified = new DateTime(2026, 1, 10, 9, 0, 0, DateTimeKind.Utc),
+        LastRecertifier = 7,
+        LastRecertifierDn = "uid=certifier,ou=users,dc=example,dc=com",
+        NextRecertDate = new DateTime(2027, 1, 10, 9, 0, 0, DateTimeKind.Utc),
         RecertActive = true,
+        DecommDate = new DateTime(2027, 6, 30, 0, 0, 0, DateTimeKind.Utc),
         AdditionalInfo = new Dictionary<string, string> { ["costCenter"] = "CC-42" }
     };
 }

@@ -62,21 +62,11 @@ namespace FWO.Test
         }
 
         [Test]
-        public void Dispose_CalledTwice_ReturnsWithoutError()
-        {
-            PeriodicTaskRunner runner = new(() => Task.CompletedTask, TimeSpan.FromMilliseconds(20));
-            runner.Start();
-
-            runner.Dispose();
-
-            Assert.DoesNotThrow(runner.Dispose);
-        }
-
-        [Test]
-        public async Task Start_CalledTwice_RunsSingleExecutionLoop()
+        public async Task Start_CalledTwice_SecondCallIsIgnored()
         {
             int executionCount = 0;
             TaskCompletionSource<bool> firstTickReached = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            TaskCompletionSource<bool> releaseCallback = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
             using PeriodicTaskRunner runner = new(async () =>
             {
@@ -85,8 +75,8 @@ namespace FWO.Test
                     firstTickReached.TrySetResult(true);
                 }
 
-                await Task.CompletedTask;
-            }, TimeSpan.FromMilliseconds(50));
+                await releaseCallback.Task;
+            }, TimeSpan.FromMilliseconds(20));
 
             runner.Start();
             Assert.DoesNotThrow(runner.Start);
@@ -94,7 +84,32 @@ namespace FWO.Test
             Task completedTask = await Task.WhenAny(firstTickReached.Task, Task.Delay(TimeSpan.FromSeconds(2)));
 
             Assert.That(completedTask, Is.EqualTo(firstTickReached.Task));
-            Assert.That(executionCount, Is.GreaterThanOrEqualTo(1));
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
+            int executionCountAfterSecondStart = executionCount;
+            releaseCallback.TrySetResult(true);
+
+            Assert.That(executionCountAfterSecondStart, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void Dispose_CalledTwice_IsIdempotent()
+        {
+            PeriodicTaskRunner runner = new(() => Task.CompletedTask, TimeSpan.FromMilliseconds(20));
+
+            runner.Start();
+            runner.Dispose();
+
+            Assert.DoesNotThrow(runner.Dispose);
+        }
+
+        [Test]
+        public void Start_AfterDispose_Throws()
+        {
+            PeriodicTaskRunner runner = new(() => Task.CompletedTask, TimeSpan.FromMilliseconds(20));
+
+            runner.Dispose();
+
+            Assert.Throws<ObjectDisposedException>(runner.Start);
         }
 
         [Test]

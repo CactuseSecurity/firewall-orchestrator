@@ -1,0 +1,13 @@
+---
+- name: restart postgres to make sure no connections are blocking the database removal
+  service:
+    name: postgresql
+    state: restarted
+  ignore_errors: true
+
+- name: stop and disable slapd
+  service:
+    name: slapd
+    state: stopped
+    enabled: no
+  ignore_errors: true

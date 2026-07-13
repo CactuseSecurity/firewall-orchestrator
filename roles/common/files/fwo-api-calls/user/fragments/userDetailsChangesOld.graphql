@@ -1,4 +1,4 @@
-fragment userDetailsChangesOld on usr {
+fragment userDetailsChangesOld on firewall_nw_user {
   user_id
   user_uid
   user_create

@@ -5,7 +5,7 @@ query getNetworkObjectsForManagement (
   $import_id_start: bigint
   $import_id_end: bigint
 ){
-  object(where: {
+  firewall_nw_object(where: {
     mgm_id: { _eq: $mgmId }
     active: {_eq: true}
     obj_typ_id: {_in: $objTypeIds}

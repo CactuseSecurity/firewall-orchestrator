@@ -56,7 +56,7 @@ importer_base_dir = base_dir + '/importer'
 sys.path.append(importer_base_dir)
 
 parser = argparse.ArgumentParser(
-    description="convert database csv export of device data into graphql code for import into fworch\nsample; synopsis: fwo-convert-csv-dev-data.py -m mgm.csv -d dev.csv -o /tmp/fworch-dev-data.graphql; <can be imported into FWORCH>")
+    description="convert database csv export of device data into graphql code for import into fworch\nsample; synopsis: fwo-convert-csv-dev-data.py -m mgm.csv -d dev.csv -o ~/.fworch/tmp/fworch-dev-data.graphql; <can be imported into FWORCH>")
 parser.add_argument('-m', '--mgm_file', metavar='management_csv_file', required=True, help='filename to read management csv from')
 parser.add_argument('-d', '--dev_file', metavar='device_csv_file', required=True, help='filename to read device csv from')
 parser.add_argument('-o', '--outfile', metavar='output_file', required=True, help='filename to write output in json format to')

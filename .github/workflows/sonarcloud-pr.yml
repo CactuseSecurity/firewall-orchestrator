@@ -74,8 +74,13 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
       - name: Cache SonarCloud packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
@@ -83,7 +88,7 @@ jobs:
 
       - name: Cache SonarCloud scanner
         id: cache-sonar-scanner
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .sonar/scanner
           key: ${{ runner.os }}-sonar-scanner
@@ -96,21 +101,52 @@ jobs:
       - name: Install .NET coverage collector
         run: dotnet tool update dotnet-coverage --tool-path .sonar/scanner
 
+      - name: Install Python dependencies
+        run: python -m pip install -r roles/importer/files/importer/requirements.txt coverage==7.15.0
+
       - name: Build and analyze pull request
         run: |
-          .sonar/scanner/dotnet-sonarscanner begin \
-            /k:"${SONAR_PROJECT_KEY}" \
-            /o:"${SONAR_ORGANIZATION}" \
-            /d:sonar.token="${SONAR_TOKEN}" \
-            /d:sonar.host.url="https://sonarcloud.io" \
-            /d:sonar.qualitygate.wait=true \
-            /d:sonar.pullrequest.key="${{ github.event.pull_request.number }}" \
-            /d:sonar.pullrequest.branch="${{ github.event.pull_request.head.ref }}" \
-            /d:sonar.pullrequest.base="${{ github.event.pull_request.base.ref }}" \
-            /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml
+          for attempt in 1 2 3; do
+            if .sonar/scanner/dotnet-sonarscanner begin \
+              /k:"${SONAR_PROJECT_KEY}" \
+              /o:"${SONAR_ORGANIZATION}" \
+              /d:sonar.token="${SONAR_TOKEN}" \
+              /d:sonar.host.url="https://sonarcloud.io" \
+              /d:sonar.qualitygate.wait=true \
+              /d:sonar.pullrequest.key="${{ github.event.pull_request.number }}" \
+              /d:sonar.pullrequest.branch="${{ github.event.pull_request.head.ref }}" \
+              /d:sonar.pullrequest.base="${{ github.event.pull_request.base.ref }}" \
+              /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml \
+              /d:sonar.python.coverage.reportPaths=python-coverage.xml; then
+              break
+            else
+              status=$?
+            fi
+
+            if [ "$attempt" -eq 3 ]; then
+              exit "$status"
+            fi
+
+            rm -rf .sonarqube
+            sleep $((attempt * 30))
+          done
           dotnet build roles/FWO.sln --configuration Debug --no-incremental
           .sonar/scanner/dotnet-coverage collect \
             "dotnet test roles/tests-unit/files/FWO.Test/FWO.Test.csproj --configuration Debug --no-build --settings FWO.default.runsettings" \
             -f xml \
             -o coverage.xml
-          .sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${SONAR_TOKEN}"
+          python -m coverage run -m pytest -q roles/importer/files/importer/test
+          python -m coverage xml -o python-coverage.xml
+          for attempt in 1 2 3; do
+            if .sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${SONAR_TOKEN}"; then
+              break
+            else
+              status=$?
+            fi
+
+            if [ "$attempt" -eq 3 ]; then
+              exit "$status"
+            fi
+
+            sleep $((attempt * 30))
+          done

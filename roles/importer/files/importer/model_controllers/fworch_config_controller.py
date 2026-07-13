@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any
 
 from models.fworch_config import FworchConfig
@@ -28,7 +30,7 @@ class FworchConfigController(FworchConfig):
         self.api_fetch_size = api_fetch_size
 
     @classmethod
-    def from_json(cls, json_dict: dict[str, Any]) -> "FworchConfigController":
+    def from_json(cls, json_dict: dict[str, Any]) -> FworchConfigController:
         fwo_api_uri = json_dict["fwo_api_base_url"]
         fwo_user_mgmt_api_uri = json_dict["user_management_api_base_url"]
         fwo_importer_pwd = json_dict.get("importerPassword")

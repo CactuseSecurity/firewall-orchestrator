@@ -2,7 +2,7 @@ mutation removeRulebaseLinks(
   $importId: bigint!
   $removedRulebaseLinks: [Int!]!
 ) {
-  update_rulebase_link(
+  update_firewall_rulebase_link(
     where: {
       id: { _in: $removedRulebaseLinks }
       removed: { _is_null: true }

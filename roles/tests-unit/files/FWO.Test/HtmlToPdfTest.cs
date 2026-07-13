@@ -20,8 +20,7 @@ namespace FWO.Test
             bool isValidHtml = ReportBase.IsValidHTML(GlobalConst.TestPDFHtmlTemplate);
             ClassicAssert.IsTrue(isValidHtml);
 
-            string? sudoUser = Environment.GetEnvironmentVariable("SUDO_USER");
-            bool isGitHubActions = sudoUser is not null && sudoUser.Equals("runner", StringComparison.OrdinalIgnoreCase);
+            bool isGitHubActions = IsGitHubActions(Environment.GetEnvironmentVariable("GITHUB_ACTIONS"));
 
             if (ShouldSkipPdfTest(isGitHubActions, out string skipReason))
             {
@@ -55,14 +54,24 @@ namespace FWO.Test
 
             BrowserFetcher browserFetcher = new(new BrowserFetcherOptions() { Platform = platform, Browser = wantedBrowser, Path = path });
 
-            IEnumerable<InstalledBrowser>? allInstalledBrowsers = browserFetcher.GetInstalledBrowsers().Where(_ => _.Browser == wantedBrowser);
+            IEnumerable<InstalledBrowser> allInstalledBrowsers = browserFetcher.GetInstalledBrowsers().Where(_ => _.Browser == wantedBrowser);
+            string? executablePath = null;
 
-            if (allInstalledBrowsers is null || !allInstalledBrowsers.Any())
+            if (!allInstalledBrowsers.Any())
             {
-                // this should only happen for testing on local systems where no suitable browser is installed
-                Log.WriteInfo("Browser", $"Browser not found for current system - trying to download...");
-                await browserFetcher.DownloadAsync();
-                allInstalledBrowsers = browserFetcher.GetInstalledBrowsers().Where(_ => _.Browser == wantedBrowser);
+                executablePath = SystemChromium.GetPath();
+                if (executablePath is null)
+                {
+                    string downloadPath = Path.Combine(Path.GetTempPath(), "fwo-puppeteer");
+                    Log.WriteInfo("Browser", $"Browser not found for current system - downloading to {downloadPath}...");
+                    browserFetcher = new(new BrowserFetcherOptions() { Platform = platform, Browser = wantedBrowser, Path = downloadPath });
+                    await browserFetcher.DownloadAsync();
+                    allInstalledBrowsers = browserFetcher.GetInstalledBrowsers().Where(_ => _.Browser == wantedBrowser);
+                }
+                else
+                {
+                    Log.WriteInfo("Browser", $"No installed {wantedBrowser} found, falling back to system chromium at: {executablePath}");
+                }
             }
 
             foreach (InstalledBrowser instBrowser in allInstalledBrowsers)
@@ -70,23 +79,21 @@ namespace FWO.Test
                 Log.WriteInfo("Test Log", $"Found installed {instBrowser.Browser}({instBrowser.BuildId}) at: {instBrowser.GetExecutablePath()}");
             }
 
-            string? newestBuildId = allInstalledBrowsers.Max(_ => _.BuildId);
-
-            if (string.IsNullOrWhiteSpace(newestBuildId))
+            if (executablePath is null)
             {
-                Log.WriteAlert("Test Log", $"Invalid build ID!");
-                return;
+                string? newestBuildId = allInstalledBrowsers.Max(_ => _.BuildId);
+
+                if (string.IsNullOrWhiteSpace(newestBuildId))
+                {
+                    Assert.Fail("Invalid browser build ID.");
+                    return;
+                }
+
+                InstalledBrowser latestInstalledBrowser = allInstalledBrowsers.Single(_ => _.BuildId == newestBuildId);
+
+                executablePath = latestInstalledBrowser.GetExecutablePath();
+                Log.WriteInfo("Test Log", $"Selecting latest installed {wantedBrowser}({latestInstalledBrowser.BuildId}) at: {executablePath}");
             }
-
-            InstalledBrowser? latestInstalledBrowser = allInstalledBrowsers.Single(_ => _.BuildId == newestBuildId);
-
-            if (latestInstalledBrowser is null)
-            {
-                Log.WriteAlert("Test Log", $"Found no installed {wantedBrowser} instances with a valid build ID!");
-                return;
-            }
-
-            Log.WriteInfo("Test Log", $"Selecting latest installed {wantedBrowser}({latestInstalledBrowser.BuildId}) at: {latestInstalledBrowser.GetExecutablePath()}");
 
             IBrowser? browser;
 
@@ -94,7 +101,7 @@ namespace FWO.Test
             {
                 browser = await Puppeteer.LaunchAsync(new LaunchOptions
                 {
-                    ExecutablePath = latestInstalledBrowser.GetExecutablePath(),
+                    ExecutablePath = executablePath,
                     Headless = true,
                     DumpIO = isGitHubActions,
                     Args = isGitHubActions ? ["--database=/tmp", "--no-sandbox"] : []
@@ -141,6 +148,15 @@ namespace FWO.Test
             ClassicAssert.AreEqual(tocContent.Count, 2);
             ClassicAssert.AreEqual(tocContent[0].Title, "test");
             ClassicAssert.AreEqual(tocContent[1].Title, "test mit puppteer");
+        }
+
+        [TestCase("true", true)]
+        [TestCase("TRUE", true)]
+        [TestCase("false", false)]
+        [TestCase(null, false)]
+        public void IsGitHubActionsReturnsExpectedResult(string? value, bool expected)
+        {
+            ClassicAssert.AreEqual(expected, IsGitHubActions(value));
         }
 
         private async Task TryCreatePDF(IBrowser browser, PuppeteerSharp.Media.PaperFormat paperFormat)
@@ -210,6 +226,14 @@ namespace FWO.Test
                 || value.Equals("true", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("yes", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("on", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Determines whether the standard GitHub Actions environment marker is enabled.
+        /// </summary>
+        private static bool IsGitHubActions(string? value)
+        {
+            return value?.Equals("true", StringComparison.OrdinalIgnoreCase) == true;
         }
     }
 }

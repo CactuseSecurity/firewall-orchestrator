@@ -14,8 +14,14 @@ namespace FWO.ExternalSystems
         public string TicketText { get; set; } = "";
 
         public string? TicketId { get; set; } = "";
+        public string Subject { get; set; } = "";
+        public string Priority { get; set; } = "Normal";
+        public string Requester { get; set; } = "";
+        public string RequestTaskType { get; set; } = "";
+        public string ExtQueryVariables { get; set; } = "";
         protected List<string> TicketTasks = [];
         public ExternalTicketSystem TicketSystem { get; set; } = new();
+        public Management? OnManagement { get; set; }
 
         public ExternalTicket() { }
 

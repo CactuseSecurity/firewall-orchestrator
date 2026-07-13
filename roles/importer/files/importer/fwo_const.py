@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import os
 from typing import Any
 
 BASE_DIR = "/usr/local/fworch"
@@ -23,7 +26,10 @@ MAIN_KEY_FILE = BASE_DIR + "/etc/secrets/main_key"
 IMPORTER_PWD_FILE = BASE_DIR + "/etc/secrets/importer_pwd"
 IMPORT_TMP_PATH = BASE_DIR + "/tmp/import"  # noqa: S108
 DEFAULT_SECTION_HEADER_TEXT = "section without name"
-GRAPHQL_QUERY_PATH = BASE_DIR + "/fwo-api-calls/"
+_graphql_query_path = os.getenv("FWO_GRAPHQL_QUERY_PATH", BASE_DIR + "/fwo-api-calls/")
+if not _graphql_query_path.endswith("/"):
+    _graphql_query_path += "/"
+GRAPHQL_QUERY_PATH = _graphql_query_path
 
 # possible ConfigFormat values: normalized|checkpoint|fortimanager|fortioOS|azure|ciscoFirePower
 # info legacy : barracuda|junos|netscreen

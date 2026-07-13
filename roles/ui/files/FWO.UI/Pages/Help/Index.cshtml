@@ -170,7 +170,7 @@
             <a href="/help/settings/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("settings")</a>
             <ul class="navbar-nav me-auto">
                 <li class="nav-item px-2">
-                    <a href="/help/settings/credentials/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("import_credential")</a>
+                    <a href="/help/settings/credentials/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("readonly_credential")</a>
                 </li>
                 <li class="nav-item px-2">
                     <a href="/help/settings/managements/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("managements")</a>
@@ -230,9 +230,6 @@
                     <a href="/help/settings/modelling/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("modelling")</a>
                 </li>
                 <li class="nav-item px-2">
-                    <a href="/help/settings/extticketing/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("ext_ticketing")</a>
-                </li>
-                <li class="nav-item px-2">
                     <a href="/help/settings/compliance/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("compliance")</a>
                 </li>
                 <li class="nav-item px-2">
@@ -258,6 +255,17 @@
                     <ul class="navbar-nav me-auto">
                         <li class="nav-item px-2">
                             <a href="/help/settings/flows/networkobjects/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("network_objects")</a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="nav-item px-2">
+                    <b>@userConfig.GetText("fwconfigchange")</b>
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item px-2">
+                            <a href="/help/settings/fwconfigchangegeneral/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("fwconfigchangegeneral")</a>
+                        </li>
+                        <li class="nav-item px-2">
+                            <a href="/help/settings/exttickettemplates/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("ext_ticket_templates")</a>
                         </li>
                     </ul>
                 </li>

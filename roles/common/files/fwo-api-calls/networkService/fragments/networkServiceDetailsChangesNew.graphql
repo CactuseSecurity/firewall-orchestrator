@@ -1,4 +1,4 @@
-fragment networkServiceDetailsChangesNew on service {
+fragment networkServiceDetailsChangesNew on firewall_nw_service {
   svc_id
   svc_name
   svc_uid

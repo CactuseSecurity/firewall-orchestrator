@@ -44,6 +44,10 @@ namespace FWO.Services
             }
 
             string resolvedContent = content.BodyForLayout(notification.Layout);
+            if (notification.Layout == NotificationLayout.HtmlInBody && !string.IsNullOrWhiteSpace(resolvedContent))
+            {
+                resolvedContent = NotificationTableBodyBuilder.HtmlTableStyleBlock + resolvedContent;
+            }
             if (notificationBody.Contains(Placeholder.CONTENT))
             {
                 return notificationBody.Replace(Placeholder.CONTENT, resolvedContent);
@@ -61,8 +65,8 @@ namespace FWO.Services
 
             return layout switch
             {
-                NotificationLayout.PdfAsAttachment => EmailHelper.CreateAttachment(await ToPdf(content.Html), GlobalConst.kPdf, subject),
-                NotificationLayout.HtmlAsAttachment => EmailHelper.CreateAttachment(content.Html, GlobalConst.kHtml, subject),
+                NotificationLayout.PdfAsAttachment => EmailHelper.CreateAttachment(await ToPdf(NotificationTableBodyBuilder.BuildHtmlDocument(content.Html)), GlobalConst.kPdf, subject),
+                NotificationLayout.HtmlAsAttachment => EmailHelper.CreateAttachment(NotificationTableBodyBuilder.BuildHtmlDocument(content.Html), GlobalConst.kHtml, subject),
                 NotificationLayout.JsonAsAttachment => EmailHelper.CreateAttachment(content.Json, GlobalConst.kJson, subject),
                 NotificationLayout.CsvAsAttachment => EmailHelper.CreateAttachment(content.Csv, GlobalConst.kCsv, subject),
                 _ => null
@@ -101,18 +105,23 @@ namespace FWO.Services
             Platform platform = os.Platform == PlatformID.Win32NT ? Platform.Win32 : Platform.Linux;
             BrowserFetcher browserFetcher = new(new BrowserFetcherOptions() { Platform = platform, Browser = SupportedBrowser.Chrome, Path = path });
             IEnumerable<InstalledBrowser> browsers = browserFetcher.GetInstalledBrowsers().Where(browser => browser.Browser == SupportedBrowser.Chrome);
+            string? executablePath = null;
             if (!browsers.Any())
             {
                 if (os.Platform != PlatformID.Win32NT)
                 {
-                    throw new EnvironmentException("Found no installed Chrome instances.");
+                    executablePath = SystemChromium.GetPath() ??
+                        throw new EnvironmentException("Found no installed Chrome instances and no system chromium.");
                 }
-                await browserFetcher.DownloadAsync();
-                browsers = browserFetcher.GetInstalledBrowsers().Where(browser => browser.Browser == SupportedBrowser.Chrome);
+                else
+                {
+                    await browserFetcher.DownloadAsync();
+                    browsers = browserFetcher.GetInstalledBrowsers().Where(browser => browser.Browser == SupportedBrowser.Chrome);
+                }
             }
 
-            InstalledBrowser browserInfo = browsers.OrderBy(browser => browser.BuildId).Last();
-            await using IBrowser browser = await Puppeteer.LaunchAsync(new LaunchOptions { ExecutablePath = browserInfo.GetExecutablePath(), Headless = true });
+            executablePath ??= browsers.OrderBy(browser => browser.BuildId).Last().GetExecutablePath();
+            await using IBrowser browser = await Puppeteer.LaunchAsync(new LaunchOptions { ExecutablePath = executablePath, Headless = true });
             using IPage page = await browser.NewPageAsync();
             await page.SetContentAsync(html);
             PdfOptions options = new() { DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = PaperFormat.A4 };

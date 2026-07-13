@@ -1,5 +1,5 @@
 mutation fixRefTables($importId: bigint!, $mgmId: Int!) {
-  update_rule_from(
+  update_firewall_rule_from(
     where: {
       rule: { mgm_id: { _eq: $mgmId } }
       removed: { _is_null: true }
@@ -12,7 +12,7 @@ mutation fixRefTables($importId: bigint!, $mgmId: Int!) {
   ) {
     affected_rows
   }
-  update_rule_to(
+  update_firewall_rule_to(
     where: {
       rule: { mgm_id: { _eq: $mgmId } }
       removed: { _is_null: true }
@@ -25,7 +25,7 @@ mutation fixRefTables($importId: bigint!, $mgmId: Int!) {
   ) {
     affected_rows
   }
-  update_rule_nwobj_resolved(
+  update_firewall_rule_nw_object_resolved(
     where: {
       rule: { mgm_id: { _eq: $mgmId } }
       removed: { _is_null: true }
@@ -38,7 +38,7 @@ mutation fixRefTables($importId: bigint!, $mgmId: Int!) {
   ) {
     affected_rows
   }
-  update_rule_service(
+  update_firewall_rule_service(
     where: {
       rule: { mgm_id: { _eq: $mgmId } }
       removed: { _is_null: true }
@@ -51,7 +51,7 @@ mutation fixRefTables($importId: bigint!, $mgmId: Int!) {
   ) {
     affected_rows
   }
-  update_rule_svc_resolved(
+  update_firewall_rule_nw_service_resolved(
     where: {
       rule: { mgm_id: { _eq: $mgmId } }
       removed: { _is_null: true }
@@ -64,7 +64,7 @@ mutation fixRefTables($importId: bigint!, $mgmId: Int!) {
   ) {
     affected_rows
   }
-  update_rule_user_resolved(
+  update_firewall_rule_nw_user_resolved(
     where: {
       rule: { mgm_id: { _eq: $mgmId } }
       removed: { _is_null: true }
@@ -77,7 +77,7 @@ mutation fixRefTables($importId: bigint!, $mgmId: Int!) {
   ) {
     affected_rows
   }
-  update_rule_from_zone(
+  update_firewall_rule_from_zone(
     where: {
       rule: { mgm_id: { _eq: $mgmId } }
       removed: { _is_null: true }
@@ -90,7 +90,7 @@ mutation fixRefTables($importId: bigint!, $mgmId: Int!) {
   ) {
     affected_rows
   }
-  update_rule_to_zone(
+  update_firewall_rule_to_zone(
     where: {
       rule: { mgm_id: { _eq: $mgmId } }
       removed: { _is_null: true }

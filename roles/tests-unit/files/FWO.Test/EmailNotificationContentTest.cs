@@ -29,6 +29,62 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildTextTableJoinsHeadersAndRows()
+        {
+            NotificationTableRow row = new()
+            {
+                TextCells = ["a", "b"]
+            };
+
+            string text = NotificationTableBodyBuilder.BuildTextTable(["H1", "H2"], [row]);
+
+            Assert.That(text, Is.EqualTo($"H1 | H2{Environment.NewLine}a | b"));
+        }
+
+        [Test]
+        public void BuildHtmlBodyKeepsParagraphsAndInjectsTable()
+        {
+            string html = NotificationTableBodyBuilder.BuildHtmlBody($"First line\n\n{Placeholder.RULE_TABLE}\nTail", "<table>body</table>");
+
+            Assert.That(html, Is.EqualTo("<p>First line<br><br></p><table>body</table><p><br>Tail</p>"));
+        }
+
+        [Test]
+        public void BuildHtmlDocumentWrapsBodyWithStandardStyle()
+        {
+            string html = NotificationTableBodyBuilder.BuildHtmlDocument("<p>content</p>");
+
+            Assert.That(html, Does.StartWith("<!DOCTYPE html>"));
+            Assert.That(html, Does.Contain("<body>"));
+            Assert.That(html, Does.Contain("font-family: arial, sans-serif;"));
+            Assert.That(html, Does.Contain("<p>content</p>"));
+        }
+
+        [Test]
+        public void BuildHtmlReportSectionIncludesTitleOwnerAndBody()
+        {
+            string html = NotificationTableBodyBuilder.BuildHtmlReportSection("Section Title", "<p>body</p>", "OwnerX", "Generated on", "Owners");
+
+            Assert.That(html, Does.Contain("<h2>Section Title</h2>"));
+            Assert.That(html, Does.Contain("<p>Generated on:"));
+            Assert.That(html, Does.Contain("<p>Owners: OwnerX</p>"));
+            Assert.That(html, Does.Contain("<p>body</p>"));
+        }
+
+        [Test]
+        public void NotificationLayoutContentUsesLayoutSpecificBody()
+        {
+            NotificationEmailLayoutContent content = new()
+            {
+                PlainText = "plain content",
+                Html = "<strong>html content</strong>"
+            };
+
+            Assert.That(content.BodyForLayout(NotificationLayout.SimpleText), Is.EqualTo("plain content"));
+            Assert.That(content.BodyForLayout(NotificationLayout.HtmlInBody), Is.EqualTo("<strong>html content</strong>"));
+        }
+
+        [Test]
         public void NormalizeTextCellRemovesHtmlAndDecodesEntities()
         {
             string text = NotificationTableBodyBuilder.NormalizeTextCell("alpha<br><span>beta</span>&amp; gamma");
@@ -60,7 +116,9 @@ namespace FWO.Test
                 EmailBody = $"before {Placeholder.CONTENT} after"
             };
 
-            Assert.That(NotificationEmailLayoutHelper.BuildBody(htmlNotification, content), Is.EqualTo("before <strong>html content</strong> after"));
+            string htmlBody = NotificationEmailLayoutHelper.BuildBody(htmlNotification, content);
+            Assert.That(htmlBody, Does.StartWith("before <style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100%;}"));
+            Assert.That(htmlBody, Does.Contain("<strong>html content</strong>"));
             Assert.That(NotificationEmailLayoutHelper.BuildBody(textNotification, content), Is.EqualTo("plain content"));
             Assert.That(NotificationEmailLayoutHelper.BuildBody(attachmentNotification, content), Is.EqualTo("before  after"));
         }
@@ -75,6 +133,111 @@ namespace FWO.Test
             };
 
             Assert.That(NotificationEmailLayoutHelper.BuildBody(notification, "details"), Is.EqualTo("header\ndetails"));
+        }
+
+        [Test]
+        public void BuildBodyWithLayoutContentReturnsPlaceholderFreeBodyWhenContentIsMissing()
+        {
+            FwoNotification notification = new()
+            {
+                Layout = NotificationLayout.HtmlInBody,
+                EmailBody = $"intro {Placeholder.CONTENT} tail"
+            };
+
+            Assert.That(NotificationEmailLayoutHelper.BuildBody(notification, (NotificationEmailLayoutContent?)null), Is.EqualTo("intro  tail"));
+        }
+
+        [Test]
+        public void BuildBodyWithWorkflowHtmlInBodyPrefixesSharedTableStyle()
+        {
+            WfReqTask task = new()
+            {
+                Id = 7,
+                TaskNumber = 101,
+                Title = "Open web",
+                RequestAction = RequestAction.create.ToString(),
+                Elements =
+                {
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), Name = "src-a" },
+                    new WfReqElement { Field = ElemFieldType.destination.ToString(), IpString = "10.0.0.1" },
+                    new WfReqElement { Field = ElemFieldType.service.ToString(), Port = 80, PortEnd = 443, ProtoId = 6 }
+                }
+            };
+            WorkflowEmailContent content = WorkflowEmailContent.FromRequestTasks([task], new EmailNotificationUserConfig());
+            FwoNotification notification = new()
+            {
+                Layout = NotificationLayout.HtmlInBody,
+                EmailBody = "prefix "
+            };
+
+            string body = NotificationEmailLayoutHelper.BuildBody(notification, content);
+
+            Assert.That(body, Does.StartWith("prefix <style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100%;}"));
+            Assert.That(body, Does.Contain("<h2>Requested Connections</h2>"));
+            Assert.That(body, Does.Contain("<table border=\"1\" cellspacing=\"0\" cellpadding=\"4\">"));
+        }
+
+        [Test]
+        public async Task BuildAttachmentWrapsHtmlFragmentAndReturnsNullForMissingContent()
+        {
+            NotificationEmailLayoutContent content = new()
+            {
+                Html = "<p>html fragment</p>",
+                Csv = "a,b",
+                Json = "{}"
+            };
+
+            FormFile? htmlAttachment = await NotificationEmailLayoutHelper.BuildAttachment(NotificationLayout.HtmlAsAttachment, content, "Subject Line");
+            FormFile? nullAttachment = await NotificationEmailLayoutHelper.BuildAttachment(NotificationLayout.HtmlAsAttachment, null, "Subject Line");
+
+            Assert.That(htmlAttachment, Is.Not.Null);
+            Assert.That(htmlAttachment!.ContentType, Is.EqualTo("application/html"));
+            Assert.That(await ReadFormFile(htmlAttachment), Does.Contain("<!DOCTYPE html>"));
+            Assert.That(await ReadFormFile(htmlAttachment), Does.Contain("<p>html fragment</p>"));
+            Assert.That(nullAttachment, Is.Null);
+        }
+
+        [TestCase(NotificationLayout.HtmlAsAttachment, "application/html", "<p>html fragment</p>")]
+        [TestCase(NotificationLayout.JsonAsAttachment, "application/json", "{\"k\":1}")]
+        [TestCase(NotificationLayout.CsvAsAttachment, "application/csv", "a,b")]
+        public async Task BuildAttachmentWithDelegatesUsesAllTextBasedLayouts(NotificationLayout layout, string expectedContentType, string expectedBody)
+        {
+            FormFile? attachment = await NotificationEmailLayoutHelper.BuildAttachment(
+                layout,
+                "Subject Line",
+                () => "<p>html fragment</p>",
+                () => "{\"k\":1}",
+                () => "a,b",
+                _ => Task.FromResult<string?>(Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("pdf fragment"))));
+
+            Assert.That(attachment, Is.Not.Null);
+            Assert.That(attachment!.ContentType, Is.EqualTo(expectedContentType));
+            Assert.That(await ReadFormFile(attachment), Is.EqualTo(expectedBody));
+        }
+
+        [Test]
+        public async Task BuildAttachmentWithDelegatesUsesPdfLayoutAndNullForUnsupportedLayout()
+        {
+            FormFile? pdfAttachment = await NotificationEmailLayoutHelper.BuildAttachment(
+                NotificationLayout.PdfAsAttachment,
+                "Subject Line",
+                () => "<p>html fragment</p>",
+                () => "{\"k\":1}",
+                () => "a,b",
+                _ => Task.FromResult<string?>(Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("pdf fragment"))));
+
+            FormFile? unsupportedAttachment = await NotificationEmailLayoutHelper.BuildAttachment(
+                NotificationLayout.SimpleText,
+                "Subject Line",
+                () => "<p>html fragment</p>",
+                () => "{\"k\":1}",
+                () => "a,b",
+                _ => Task.FromResult<string?>(Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("pdf fragment"))));
+
+            Assert.That(pdfAttachment, Is.Not.Null);
+            Assert.That(pdfAttachment!.ContentType, Is.EqualTo("application/octet-stream"));
+            Assert.That(await ReadFormFile(pdfAttachment), Is.EqualTo("pdf fragment"));
+            Assert.That(unsupportedAttachment, Is.Null);
         }
 
         [Test]

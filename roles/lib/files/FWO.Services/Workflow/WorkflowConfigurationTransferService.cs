@@ -121,26 +121,26 @@ namespace FWO.Services.Workflow
 
         private static WorkflowConfigurationTransferData BuildConfiguration(WorkflowConfiguration configuration,
             List<WorkflowConfigurationPhase> mappings, Dictionary<int, StateMatrixTransitionGroup> groupsById) => new()
-        {
-            Name = configuration.Name,
-            Description = configuration.Description,
-            Phases = mappings.Select(mapping => new WorkflowPhaseTransferData
             {
-                TaskType = mapping.TaskType,
-                Phase = mapping.Phase,
-                Active = mapping.PhaseMatrix.Active,
-                LowestInputState = mapping.PhaseMatrix.LowestInputState,
-                LowestStartState = mapping.PhaseMatrix.LowestStartState,
-                LowestEndState = mapping.PhaseMatrix.LowestEndState,
-                DerivedStates = mapping.PhaseMatrix.DerivedStates.Select(state => new StateMatrixDerivedState
+                Name = configuration.Name,
+                Description = configuration.Description,
+                Phases = mappings.Select(mapping => new WorkflowPhaseTransferData
                 {
-                    FromStateId = state.FromStateId,
-                    DerivedStateId = state.DerivedStateId
-                }).ToList(),
-                TransitionGroups = mapping.PhaseMatrix.TransitionGroups.OrderBy(link => link.SortOrder)
-                    .Select(link => groupsById[link.TransitionGroupId].Name).ToList()
-            }).ToList()
-        };
+                    TaskType = mapping.TaskType,
+                    Phase = mapping.Phase,
+                    Active = mapping.PhaseMatrix.Active,
+                    LowestInputState = mapping.PhaseMatrix.LowestInputState,
+                    LowestStartState = mapping.PhaseMatrix.LowestStartState,
+                    LowestEndState = mapping.PhaseMatrix.LowestEndState,
+                    DerivedStates = mapping.PhaseMatrix.DerivedStates.Select(state => new StateMatrixDerivedState
+                    {
+                        FromStateId = state.FromStateId,
+                        DerivedStateId = state.DerivedStateId
+                    }).ToList(),
+                    TransitionGroups = mapping.PhaseMatrix.TransitionGroups.OrderBy(link => link.SortOrder)
+                        .Select(link => groupsById[link.TransitionGroupId].Name).ToList()
+                }).ToList()
+            };
 
         private static WorkflowTransitionGroupTransferData BuildTransitionGroup(StateMatrixTransitionGroup group, bool includeVisibilityGroup) => new()
         {
@@ -258,38 +258,38 @@ namespace FWO.Services.Workflow
 
         private static List<object> BuildPhaseMappings(List<WorkflowPhaseTransferData> phases, string configurationName,
             Dictionary<string, int> transitionGroupIds) => phases.Select(phase => (object)new
-        {
-            task_type = phase.TaskType,
-            phase = phase.Phase,
-            state_matrix_phase = new
             {
-                data = new
+                task_type = phase.TaskType,
+                phase = phase.Phase,
+                state_matrix_phase = new
                 {
-                    name = $"{configurationName}::{phase.TaskType}::{phase.Phase}",
-                    phase = phase.Phase,
-                    active = phase.Active,
-                    lowest_input_state = phase.LowestInputState,
-                    lowest_start_state = phase.LowestStartState,
-                    lowest_end_state = phase.LowestEndState,
-                    state_matrix_derived_states = new
+                    data = new
                     {
-                        data = phase.DerivedStates.Where(state => state.FromStateId != state.DerivedStateId).Select(state => new
+                        name = $"{configurationName}::{phase.TaskType}::{phase.Phase}",
+                        phase = phase.Phase,
+                        active = phase.Active,
+                        lowest_input_state = phase.LowestInputState,
+                        lowest_start_state = phase.LowestStartState,
+                        lowest_end_state = phase.LowestEndState,
+                        state_matrix_derived_states = new
                         {
-                            from_state_id = state.FromStateId,
-                            derived_state_id = state.DerivedStateId
-                        }).ToList()
-                    },
-                    state_matrix_phase_transition_groups = new
-                    {
-                        data = phase.TransitionGroups.Select((name, sortOrder) => new
+                            data = phase.DerivedStates.Where(state => state.FromStateId != state.DerivedStateId).Select(state => new
+                            {
+                                from_state_id = state.FromStateId,
+                                derived_state_id = state.DerivedStateId
+                            }).ToList()
+                        },
+                        state_matrix_phase_transition_groups = new
                         {
-                            transition_group_id = transitionGroupIds[name],
-                            sort_order = sortOrder
-                        }).ToList()
+                            data = phase.TransitionGroups.Select((name, sortOrder) => new
+                            {
+                                transition_group_id = transitionGroupIds[name],
+                                sort_order = sortOrder
+                            }).ToList()
+                        }
                     }
                 }
-            }
-        }).ToList();
+            }).ToList();
 
         private static void ValidateNamesAndReferences(WorkflowConfigurationTransferPackage package)
         {

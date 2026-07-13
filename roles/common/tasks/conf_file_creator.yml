@@ -27,6 +27,9 @@
     copy: 
       content: "{{ config_json | to_nice_json }}" 
       dest: "{{ fworch_conf_file }}"
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+      mode: "0640"
     when: installation_mode == "new"
 
   become: true

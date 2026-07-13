@@ -60,5 +60,50 @@ namespace FWO.Test
 
             Assert.That(executionCount, Is.EqualTo(executionCountAfterDispose));
         }
+
+        [Test]
+        public async Task Start_CalledTwice_SecondCallIsIgnored()
+        {
+            int executionCount = 0;
+            TaskCompletionSource<bool> firstTickReached = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            using PeriodicTaskRunner runner = new(async () =>
+            {
+                if (Interlocked.Increment(ref executionCount) == 1)
+                {
+                    firstTickReached.TrySetResult(true);
+                }
+
+                await Task.CompletedTask;
+            }, TimeSpan.FromMilliseconds(20));
+
+            runner.Start();
+            Assert.DoesNotThrow(runner.Start);
+
+            Task completedTask = await Task.WhenAny(firstTickReached.Task, Task.Delay(TimeSpan.FromSeconds(2)));
+
+            Assert.That(completedTask, Is.EqualTo(firstTickReached.Task));
+        }
+
+        [Test]
+        public void Dispose_CalledTwice_IsIdempotent()
+        {
+            PeriodicTaskRunner runner = new(() => Task.CompletedTask, TimeSpan.FromMilliseconds(20));
+
+            runner.Start();
+            runner.Dispose();
+
+            Assert.DoesNotThrow(runner.Dispose);
+        }
+
+        [Test]
+        public void Start_AfterDispose_Throws()
+        {
+            PeriodicTaskRunner runner = new(() => Task.CompletedTask, TimeSpan.FromMilliseconds(20));
+
+            runner.Dispose();
+
+            Assert.Throws<ObjectDisposedException>(runner.Start);
+        }
     }
 }

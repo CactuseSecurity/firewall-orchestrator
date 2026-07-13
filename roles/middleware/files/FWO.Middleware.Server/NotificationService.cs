@@ -286,7 +286,7 @@ namespace FWO.Middleware.Server
             FormFile? attachment = report != null ? await BuildAttachment(notification, report, subject) : null;
             if (report != null && notification.Layout == NotificationLayout.HtmlInBody)
             {
-                body += report.ExportToHtml();
+                body += report.ExportToHtmlBody();
             }
             MailData mailData = new(await CollectRecipients(notification, owner), subject)
             {

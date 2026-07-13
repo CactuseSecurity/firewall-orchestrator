@@ -174,10 +174,14 @@ namespace FWO.Test
             OwnersApiConnection apiConnection = new();
             OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
 
-            ActionResult<List<GetOwnerResponse>> result = await controller.Get(new GetOwnersRequest { AppIdExternal = new string('a', 257) });
+            ActionResult<List<GetOwnerResponse>> result = await controller.Get(new GetOwnersRequest { AppIdExternal = new string('a', GetMaxFilterTextLength() + 1) });
 
-            Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
-            Assert.That(apiConnection.Query, Is.Empty);
+            BadRequestObjectResult badRequest = (BadRequestObjectResult)result.Result!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(badRequest.Value, Does.Contain(GetMaxFilterTextLength().ToString()));
+                Assert.That(apiConnection.Query, Is.Empty);
+            });
         }
 
         [Test]
@@ -431,6 +435,13 @@ namespace FWO.Test
         private static string SerializeVariables(object? variables)
         {
             return JsonSerializer.Serialize(variables);
+        }
+
+        private static int GetMaxFilterTextLength()
+        {
+            FieldInfo maxFilterTextLength = typeof(OwnersController).GetField("kMaxFilterTextLength", BindingFlags.NonPublic | BindingFlags.Static)!
+                ?? throw new InvalidOperationException("Owner filter length constant is missing.");
+            return (int)maxFilterTextLength.GetRawConstantValue()!;
         }
 
         private sealed class OwnersApiConnection : SimulatedApiConnection

@@ -157,6 +157,204 @@ namespace FWO.Test
         }
 
         [Test]
+        public void Export_ThrowsWhenReferencedTransitionGroupIsNotLoaded()
+        {
+            RecordingWorkflowApiConnection api = new();
+            api.Respond(RequestQueries.getWorkflowConfigurations, new List<WorkflowConfiguration> { new() { Id = 5, Name = "Shared" } });
+            api.Respond(RequestQueries.getWorkflowConfigurationPhaseMappings, new List<WorkflowConfigurationPhase> { PhaseMapping(99) });
+            api.Respond(RequestQueries.getStateMatrixTransitionGroups, new List<StateMatrixTransitionGroup>());
+            WorkflowConfigurationTransferService service = new(api);
+
+            InvalidOperationException? exception = Assert.ThrowsAsync<InvalidOperationException>(() => service.Export(5, false));
+
+            Assert.That(exception?.Message, Does.Contain("99"));
+        }
+
+        [Test]
+        public async Task Export_WithoutVisibilityGroupReferences_ExportsEmptyVisibilityGroupList()
+        {
+            RecordingWorkflowApiConnection api = new();
+            api.Respond(RequestQueries.getWorkflowConfigurations, new List<WorkflowConfiguration> { new() { Id = 5, Name = "Shared" } });
+            api.Respond(RequestQueries.getWorkflowConfigurationPhaseMappings, new List<WorkflowConfigurationPhase> { PhaseMapping(10) });
+            StateMatrixTransitionGroup group = TransitionGroup(10, 20);
+            group.VisibilityGroupId = null;
+            group.VisibilityGroup = null;
+            group.Exclusive = false;
+            api.Respond(RequestQueries.getStateMatrixTransitionGroups, new List<StateMatrixTransitionGroup> { group });
+            WorkflowConfigurationTransferService service = new(api);
+
+            WorkflowConfigurationTransferPackage package = await service.Export(5, true);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(package.VisibilityGroups, Is.Empty);
+                Assert.That(package.TransitionGroups[0].VisibilityGroup, Is.Null);
+                Assert.That(package.TransitionGroups[0].Exclusive, Is.False);
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.getWorkflowVisibilityGroups), Is.False);
+            });
+        }
+
+        [Test]
+        public void ValidateStructure_RejectsIncompleteOrUnsupportedPackages()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(StructureError(package => package.Configuration = null!)?.Message, Does.Contain("incomplete"));
+                Assert.That(StructureError(package => package.Configuration.Phases = null!)?.Message, Does.Contain("incomplete"));
+                Assert.That(StructureError(package => package.Configuration.Phases[0].DerivedStates = null!)?.Message, Does.Contain("incomplete"));
+                Assert.That(StructureError(package => package.TransitionGroups[0].Transitions = null!)?.Message, Does.Contain("incomplete"));
+                Assert.That(StructureError(package => package.VisibilityGroups![0].Members = null!)?.Message, Does.Contain("incomplete"));
+                Assert.That(StructureError(package => package.Format = "other")?.Message, Does.Contain("Unsupported"));
+                Assert.That(StructureError(package => package.Version = 99)?.Message, Does.Contain("99"));
+            });
+        }
+
+        [Test]
+        public void ValidateStructure_RejectsInvalidGroupDefinitions()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(StructureError(package => package.TransitionGroups[0].Name = " ")?.Message, Does.Contain("transition group name"));
+                Assert.That(StructureError(package => package.VisibilityGroups![0].Name = "operators ")?.Message, Does.Contain("visibility group name"));
+                Assert.That(StructureError(package => package.VisibilityGroups!.Add(new() { Name = "Extra", Members = [] }))?.Message,
+                    Does.Contain("transition-group references"));
+                Assert.That(StructureError(package => package.TransitionGroups[0].Transitions.Add(new() { FromStateId = 1, ToStateId = 2, SortOrder = 9 }))?.Message,
+                    Does.Contain("duplicate transitions"));
+                Assert.That(StructureError(package =>
+                {
+                    package.TransitionGroups[0].VisibilityGroup = null;
+                    package.VisibilityGroups = null;
+                })?.Message, Does.Contain("exclusive"));
+                Assert.That(StructureError(package => package.TransitionGroups[0].Phase = " request")?.Message, Does.Contain("invalid phase"));
+                Assert.That(StructureError(package => package.TransitionGroups[0].Phase = "bogus")?.Message, Does.Contain("invalid phase"));
+                Assert.That(StructureError(package => package.VisibilityGroups![0].Members = ["cn=operators", "CN=Operators"])?.Message,
+                    Does.Contain("member DN"));
+                Assert.That(StructureError(package => package.VisibilityGroups![0].Members = [" cn=operators"])?.Message, Does.Contain("member DN"));
+            });
+        }
+
+        [Test]
+        public void ValidateStructure_RejectsInvalidPhases()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(StructureError(package =>
+                {
+                    package.Configuration.Phases = [];
+                    package.TransitionGroups = [];
+                    package.VisibilityGroups = null;
+                })?.Message, Does.Contain("no phases"));
+                Assert.That(StructureError(package => package.Configuration.Phases[0].TaskType = "bogus")?.Message,
+                    Does.Contain("unknown task type"));
+                Assert.That(StructureError(package => package.Configuration.Phases[0].Phase = "request ")?.Message,
+                    Does.Contain("unknown task type or phase"));
+                Assert.That(StructureError(package => package.Configuration.Phases.Add(package.Configuration.Phases[0]))?.Message,
+                    Does.Contain("duplicate task type"));
+                Assert.That(StructureError(package => package.Configuration.Phases[0].TransitionGroups = ["Reviewers", "reviewers"])?.Message,
+                    Does.Contain("duplicate transition-group"));
+                Assert.That(StructureError(package => package.Configuration.Phases[0].DerivedStates.Add(new() { FromStateId = 1, DerivedStateId = 2 }))?.Message,
+                    Does.Contain("derived-state"));
+            });
+        }
+
+        [Test]
+        public void Validate_RejectsEmptyOrExistingConfigurationName()
+        {
+            List<WorkflowConfiguration> existingConfigurations = [new() { Id = 1, Name = "Imported" }];
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(Assert.Throws<InvalidDataException>(() =>
+                        WorkflowConfigurationTransferService.Validate(Package(), "   ", [], States()))?.Message,
+                    Does.Contain("empty or already exists"));
+                Assert.That(Assert.Throws<InvalidDataException>(() =>
+                        WorkflowConfigurationTransferService.Validate(Package(), " imported ", existingConfigurations, States()))?.Message,
+                    Does.Contain("empty or already exists"));
+            });
+        }
+
+        [Test]
+        public async Task Import_CreatesTransitionGroupWithoutVisibilityDataOrTransitions()
+        {
+            RecordingWorkflowApiConnection api = EmptyImportApi();
+            api.Respond(RequestQueries.createStateMatrixTransitionGroup, new ReturnId { NewId = 30 });
+            api.Respond(RequestQueries.createWorkflowConfiguration, new ReturnId { NewId = 40 });
+            WorkflowConfigurationTransferPackage package = Package();
+            package.VisibilityGroups = null;
+            package.TransitionGroups[0].VisibilityGroup = null;
+            package.TransitionGroups[0].Exclusive = false;
+            package.TransitionGroups[0].Phase = null;
+            package.TransitionGroups[0].Transitions = [];
+            WorkflowConfigurationTransferService service = new(api);
+
+            int result = await service.Import(package, "Imported");
+
+            JObject groupVariables = JObject.FromObject(api.Calls.Single(call => call.Query == RequestQueries.createStateMatrixTransitionGroup).Variables!);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.EqualTo(40));
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.createWorkflowVisibilityGroup), Is.False);
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.replaceStateMatrixTransitionGroupTransitions), Is.False);
+                Assert.That(groupVariables["visibilityGroupId"]?.Type, Is.EqualTo(JTokenType.Null));
+                Assert.That((bool?)groupVariables["exclusive"], Is.False);
+            });
+        }
+
+        [Test]
+        public void Import_RejectsExistingVisibilityGroupWithDifferentMembers()
+        {
+            RecordingWorkflowApiConnection api = new();
+            WorkflowVisibilityGroup existing = VisibilityGroup(20);
+            existing.Members = [new() { VisibilityGroupId = 20, MemberDn = "cn=admins" }];
+            api.Respond(RequestQueries.getWorkflowConfigurations, new List<WorkflowConfiguration>());
+            api.Respond(RequestQueries.getStateMatrixTransitionGroups, new List<StateMatrixTransitionGroup>());
+            api.Respond(RequestQueries.getWorkflowVisibilityGroups, new List<WorkflowVisibilityGroup> { existing });
+            api.Respond(RequestQueries.getStates, States());
+            WorkflowConfigurationTransferService service = new(api);
+
+            InvalidDataException? exception = Assert.ThrowsAsync<InvalidDataException>(() => service.Import(Package(), "Imported"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exception?.Message, Does.Contain("Operators"));
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.createWorkflowVisibilityGroup), Is.False);
+            });
+        }
+
+        [Test]
+        public void Import_RejectsExistingTransitionGroupWithoutVisibilityGroup()
+        {
+            RecordingWorkflowApiConnection api = new();
+            StateMatrixTransitionGroup existing = TransitionGroup(30, 20);
+            existing.VisibilityGroupId = null;
+            existing.VisibilityGroup = null;
+            api.Respond(RequestQueries.getWorkflowConfigurations, new List<WorkflowConfiguration>());
+            api.Respond(RequestQueries.getStateMatrixTransitionGroups, new List<StateMatrixTransitionGroup> { existing });
+            api.Respond(RequestQueries.getWorkflowVisibilityGroups, new List<WorkflowVisibilityGroup> { VisibilityGroup(20) });
+            api.Respond(RequestQueries.getStates, States());
+            WorkflowConfigurationTransferService service = new(api);
+
+            InvalidDataException? exception = Assert.ThrowsAsync<InvalidDataException>(() => service.Import(Package(), "Imported"));
+
+            Assert.That(exception?.Message, Does.Contain("Reviewers"));
+        }
+
+        [Test]
+        public void Import_WrapsRollbackFailuresInAggregateException()
+        {
+            RecordingWorkflowApiConnection api = EmptyImportApi();
+            api.Respond(RequestQueries.createWorkflowVisibilityGroup, new ReturnId { NewId = 20 });
+            api.Respond(RequestQueries.replaceWorkflowVisibilityGroupMembers, new object());
+            api.Respond(RequestQueries.createStateMatrixTransitionGroup, new ReturnId { NewId = 30 });
+            api.Respond(RequestQueries.replaceStateMatrixTransitionGroupTransitions, new object());
+            WorkflowConfigurationTransferService service = new(api);
+
+            AggregateException? exception = Assert.ThrowsAsync<AggregateException>(() => service.Import(Package(), "Imported"));
+
+            Assert.That(exception?.Message, Does.Contain("rollback failed"));
+        }
+
+        [Test]
         public void Validate_RejectsMissingTargetStatesAndUnknownReferences()
         {
             WorkflowConfigurationTransferPackage package = Package();
@@ -174,6 +372,13 @@ namespace FWO.Test
                 Assert.That(missingState?.Message, Does.Contain("999"));
                 Assert.That(missingGroup?.Message, Does.Contain("do not match"));
             });
+        }
+
+        private static InvalidDataException? StructureError(Action<WorkflowConfigurationTransferPackage> mutate)
+        {
+            WorkflowConfigurationTransferPackage package = Package();
+            mutate(package);
+            return Assert.Throws<InvalidDataException>(() => WorkflowConfigurationTransferService.ValidateStructure(package));
         }
 
         private static RecordingWorkflowApiConnection EmptyImportApi()

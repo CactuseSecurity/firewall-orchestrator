@@ -1,4 +1,4 @@
-fragment userDetails on usr {
+fragment userDetails on firewall_nw_user {
   user_id
   user_uid
   user_create

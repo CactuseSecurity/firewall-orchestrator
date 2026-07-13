@@ -1,0 +1,4 @@
+- name: set postgresql config path for Debian based systems
+  set_fact:
+    postgresql_config_file: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
+    postgresql_hba_file: "/etc/postgresql/{{ pg_version }}/main/pg_hba.conf"

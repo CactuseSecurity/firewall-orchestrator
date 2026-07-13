@@ -1,3 +1,6 @@
+-- ensure the firewall schema is resolvable for the unqualified references below, even on a
+-- connection opened before the ALTER DATABASE ... SET search_path took effect (issue #4793).
+SET search_path TO "$user", public, firewall;
 
 ---------------------------------------------------------------------------------------------
 -- object views
@@ -32,7 +35,7 @@ CREATE OR REPLACE VIEW view_obj_changes AS
 	FROM
 		changelog_object
 		LEFT JOIN (import_control LEFT JOIN management using (mgm_id)) using (control_id)
-		LEFT JOIN object ON (old_obj_id=obj_id)
+		LEFT JOIN firewall.nw_object object ON (old_obj_id=obj_id)
 		LEFT JOIN uiuser AS t_change_admin ON (changelog_object.import_admin=t_change_admin.uiuser_id)
 		LEFT JOIN uiuser AS t_doku_admin ON (changelog_object.doku_admin=t_doku_admin.uiuser_id)
 	WHERE change_type_id = 3 AND security_relevant AND change_action='D' AND successful_import
@@ -68,7 +71,7 @@ CREATE OR REPLACE VIEW view_obj_changes AS
 	FROM
 		changelog_object
 		LEFT JOIN (import_control LEFT JOIN management using (mgm_id)) using (control_id)
-		LEFT JOIN object ON (new_obj_id=obj_id)
+		LEFT JOIN firewall.nw_object object ON (new_obj_id=obj_id)
 		LEFT JOIN uiuser AS t_change_admin ON (changelog_object.import_admin=t_change_admin.uiuser_id)
 		LEFT JOIN uiuser AS t_doku_admin ON (changelog_object.doku_admin=t_doku_admin.uiuser_id)
 		WHERE change_type_id = 3 AND security_relevant AND change_action<>'D' AND successful_import;
@@ -108,7 +111,7 @@ CREATE OR REPLACE VIEW view_user_changes AS
 	FROM
 		changelog_user
 		LEFT JOIN (import_control LEFT JOIN management using (mgm_id)) using (control_id)
-		LEFT JOIN usr ON (old_user_id=user_id)
+		LEFT JOIN firewall.nw_user usr ON (old_user_id=user_id)
 		LEFT JOIN uiuser AS t_change_admin ON (changelog_user.import_admin=t_change_admin.uiuser_id)
 		LEFT JOIN uiuser AS t_doku_admin ON (changelog_user.doku_admin=t_doku_admin.uiuser_id)
 	WHERE change_type_id = 3 AND security_relevant AND change_action='D' AND successful_import
@@ -142,7 +145,7 @@ CREATE OR REPLACE VIEW view_user_changes AS
 	FROM
 		changelog_user
 		LEFT JOIN (import_control LEFT JOIN management using (mgm_id)) using (control_id)
-		LEFT JOIN usr ON (new_user_id=user_id)
+		LEFT JOIN firewall.nw_user usr ON (new_user_id=user_id)
 		LEFT JOIN uiuser AS t_change_admin ON (changelog_user.import_admin=t_change_admin.uiuser_id)
 		LEFT JOIN uiuser AS t_doku_admin ON (changelog_user.doku_admin=t_doku_admin.uiuser_id)
 	WHERE change_type_id = 3 AND security_relevant AND change_action<>'D' AND successful_import;
@@ -181,7 +184,7 @@ CREATE OR REPLACE VIEW view_svc_changes AS
 		FROM
 			changelog_service
 			LEFT JOIN (import_control LEFT JOIN management using (mgm_id)) using (control_id)
-			LEFT JOIN service ON (old_svc_id=svc_id)
+			LEFT JOIN firewall.nw_service service ON (old_svc_id=svc_id)
 			LEFT JOIN uiuser AS t_change_admin ON (changelog_service.import_admin=t_change_admin.uiuser_id)
 			LEFT JOIN uiuser AS t_doku_admin ON (changelog_service.doku_admin=t_doku_admin.uiuser_id)
 		WHERE change_type_id = 3 AND security_relevant AND change_action='D' AND successful_import
@@ -215,7 +218,7 @@ CREATE OR REPLACE VIEW view_svc_changes AS
 		FROM
 			changelog_service
 			LEFT JOIN (import_control LEFT JOIN management using (mgm_id)) using (control_id)
-			LEFT JOIN service ON (new_svc_id=svc_id)
+			LEFT JOIN firewall.nw_service service ON (new_svc_id=svc_id)
 			LEFT JOIN uiuser AS t_change_admin ON (changelog_service.import_admin=t_change_admin.uiuser_id)
 			LEFT JOIN uiuser AS t_doku_admin ON (changelog_service.doku_admin=t_doku_admin.uiuser_id)
 		WHERE change_type_id = 3 AND security_relevant AND change_action<>'D' AND successful_import;
@@ -323,10 +326,10 @@ CREATE OR REPLACE VIEW view_rule_source_or_destination AS
            FROM rule
       LEFT JOIN rule_to USING (rule_id)
    LEFT JOIN objgrp_flat ON rule_to.obj_id = objgrp_flat.objgrp_flat_id
-   LEFT JOIN object ON objgrp_flat.objgrp_flat_member_id = object.obj_id
+   LEFT JOIN firewall.nw_object object ON objgrp_flat.objgrp_flat_member_id = object.obj_id
 UNION
          SELECT rule.rule_id, rule.rule_src_neg AS rule_neg, objgrp_flat.objgrp_flat_member_id AS obj_id
            FROM rule
       LEFT JOIN rule_from USING (rule_id)
    LEFT JOIN objgrp_flat ON rule_from.obj_id = objgrp_flat.objgrp_flat_id
-   LEFT JOIN object ON objgrp_flat.objgrp_flat_member_id = object.obj_id;
+   LEFT JOIN firewall.nw_object object ON objgrp_flat.objgrp_flat_member_id = object.obj_id;

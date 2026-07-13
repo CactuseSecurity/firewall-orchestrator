@@ -22,7 +22,7 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
 {
     private const string StandardOwnerType = "standard";
     private const string InfrastructureOwnerType = "infrastructure";
-    private const int kMaxFilterTextLength = 256;
+    internal const int kMaxFilterTextLength = 256;
 
     /// <summary>
     /// Returns all owners visible to the caller with optional AND-combined filters.

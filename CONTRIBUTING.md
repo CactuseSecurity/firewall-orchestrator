@@ -112,3 +112,20 @@ Our goal is to keep our Firewall Orchestrator stable and secure. If you would li
 ## 7. Coding Guidelines
 
 Whenever contributing code, please adhere to our [Coding Guidelines](CODING_GUIDELINES.md)
+
+## 8. Running tests with runsettings
+
+The repository contains two `.runsettings` files for local `dotnet test` runs:
+
+- `FWO.default.runsettings` keeps `FWO_RUN_INTEGRATION_TESTS=false`. Use this for the normal unit test run so tests that require a local FWO environment stay skipped.
+
+- `FWO.local.runsettings` is intended for local integration scenarios. It sets `FWO_RUN_INTEGRATION_TESTS=true` and reads `FWO_TEST_USERNAME` plus `FWO_TEST_PASSWORD` from your local file. Copy `FWO.local.runsettings.example` to `FWO.local.runsettings` and replace the placeholders with credentials that are valid in your local test environment.
+
+Typical commands:
+
+```powershell
+dotnet test roles/tests-unit/files/FWO.Test/FWO.Test.csproj --settings FWO.default.runsettings
+dotnet test roles/tests-unit/files/FWO.Test/FWO.Test.csproj --settings FWO.local.runsettings
+```
+
+This keeps the default test run safe for everyone while still making it easy to opt into the JWT integration tests locally when a prepared environment is available.

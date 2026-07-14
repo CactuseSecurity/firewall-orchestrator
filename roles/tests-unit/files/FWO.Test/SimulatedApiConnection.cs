@@ -1,4 +1,6 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
+using GraphQL;
+using GraphQL.Client.Http;
 
 namespace FWO.Test
 {
@@ -9,44 +11,48 @@ namespace FWO.Test
             throw new NotImplementedException();
         }
 
-        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
             throw new NotImplementedException();
+        }
+
+        public override async Task<ApiResponse<QueryResponseType>> SendQuerySafeAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        {
+            QueryResponseType result = await SendQueryAsync<QueryResponseType>(query, variables, operationName);
+            return new ApiResponse<QueryResponseType>(result);
         }
 
         public override void SetAuthHeader(string jwt)
-        {
-            throw new NotImplementedException();
-        }
+        { }
 
         public override void SetRole(string role)
-        {
-            throw new NotImplementedException();
-        }
+        { }
 
         public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
-        {
-            throw new NotImplementedException();
-        }
+        { }
 
         public override void SwitchBack()
-        {
-            throw new NotImplementedException();
-        }
+        { }
 
         protected override void Dispose(bool disposing)
-        {
-            throw new NotImplementedException();
-        }
+        { }
 
         public override void DisposeSubscriptions<T>()
+        { }
+
+        public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            return Task.CompletedTask;
         }
+    }
+
+    internal class SimulatedApiSubscription<SubscriptionResponseType> : GraphQlApiSubscription<SubscriptionResponseType>
+    {
+        public SimulatedApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate OnUpdate)
+         : base(apiConnection, graphQlClient, request, exceptionHandler, OnUpdate)
+        { }
+
+        protected override void CreateSubscription()
+        { }
     }
 }

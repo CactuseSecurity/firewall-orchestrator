@@ -1,8 +1,3 @@
-﻿@using FWO.Config.Api
-@using FWO.Services
-
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
-
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
@@ -11,41 +6,44 @@
     <Body>
         @if (Display)
         {
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                 <Authorized>
                     <div class="form-group row">
                         <label for="cbx_show_all" class="col-form-label col-sm-2">@(userConfig.GetText("show_all")):</label>
                         <div class="col-sm-1">
-                            <input id="cbx_show_all" type="checkbox" value="SelectAll" @onchange="async () => { SelectAll = !SelectAll; await GetHistory(); }"/>
+                            <input id="cbx_show_all" type="checkbox" value="SelectAll" @onchange="async () => { SelectAll = !SelectAll; await GetHistory(); }" />
+                        </div>
+                        <label for="nmb_limit" class="col-form-label col-sm-2">@(userConfig.GetText("fetch_limit")):</label>
+                        <div class="col-sm-2">
+                            <input id="nmb_limit" type="number" min="0" @bind="fetchLimit" />
                         </div>
                     </div>
                 </Authorized>
-            </AuthorizeView>
-            <div class="vheight60">
-                <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
-                <Table PageSize="PageSize" class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingHistoryEntry" Items="history">
-                    <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("application"))" Field="@(x => x.AppId)" Sortable="true" Filterable="true">
-                        <Template>
-                            @(Applications.FirstOrDefault(x => x.Id == context.AppId)?.Name ?? context.AppId.ToString())
-                        </Template>
-                    </Column>
-                    <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("change_type"))" Field="@(x => x.ChangeType)" Sortable="true">
-                        <Template>
-                            @(userConfig.GetText(Enum.GetName(typeof(ModellingTypes.ChangeType), context.ChangeType)))
-                        </Template>
-                    </Column>
-                    <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("object_type"))" Field="@(x => x.ObjectType)" Sortable="true">
-                        <Template>
-                            @(userConfig.GetText(Enum.GetName(typeof(ModellingTypes.ModObjectType), context.ObjectType)))
-                        </Template>
-                    </Column>
-                    <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("object_id"))" Field="@(x => x.ObjectId)" Sortable="true" Filterable="true" />
-                    <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("text"))" Field="@(x => x.ChangeText)" Sortable="true" Filterable="true" />
-                    <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("changed_by"))" Field="@(x => x.Changer)" Sortable="true" Filterable="true" />
-                    <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("change_time"))" Field="@(x => x.ChangeTime)" Sortable="true" Filterable="true" />
-                    <Pager ShowPageNumber="true" ShowTotalCount="true" />
-                </Table>
-            </div>
+            </ExecutionModeAuthorizeView>
+            <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
+            <Table PageSize="PageSize" class="table table-bordered th-bg-secondary table-responsive sticky-header" TableItem="ModellingHistoryEntry" Items="history">
+                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("application"))" Field="@(x => x.AppId)" Sortable="true" Filterable="true">
+                    <Template>
+                        @(Applications.FirstOrDefault(x => x.Id == context.AppId)?.Name ?? context.AppId.ToString())
+                    </Template>
+                </Column>
+                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("change_type"))" Field="@(x => x.ChangeType)" Sortable="true">
+                    <Template>
+                        @(userConfig.GetText(Enum.GetName(typeof(ModellingTypes.ChangeType), context.ChangeType) ?? ""))
+                    </Template>
+                </Column>
+                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("object_type"))" Field="@(x => x.ObjectType)" Sortable="true">
+                    <Template>
+                        @(userConfig.GetText(Enum.GetName(typeof(ModellingTypes.ModObjectType), context.ObjectType) ?? ""))
+                    </Template>
+                </Column>
+                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("object_id"))" Field="@(x => x.ObjectId)" Sortable="true" Filterable="true" />
+                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("text"))" Field="@(x => x.ChangeText)" Sortable="true" Filterable="true" />
+                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("changed_by"))" Field="@(x => x.Changer)" Sortable="true" Filterable="true" />
+                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("change_source"))" Field="@(x => x.ChangeSource)" Sortable="true" Filterable="true" />
+                <Column TableItem="ModellingHistoryEntry" Title="@(userConfig.GetText("change_time"))" Field="@(x => x.ChangeTime)" Sortable="true" Filterable="true" />
+                <Pager ShowPageNumber="true" ShowTotalCount="true" />
+            </Table>
         }
     </Body>
     <Footer>
@@ -58,6 +56,9 @@
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     [Parameter]
     public bool Display { get; set; } = false;
@@ -73,8 +74,9 @@
 
     private List<ModellingHistoryEntry> history = new();
     private bool SelectAll = false;
-    
+
     private int PageSize { get; set; }
+    private int fetchLimit = 1000;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -88,13 +90,14 @@
     {
         try
         {
-            if(SelectAll)
+            if (SelectAll)
             {
-                history = await apiConnection.SendQueryAsync<List<ModellingHistoryEntry>>(ModellingQueries.getHistory);
+                history = await apiConnection.RunWithAdminOrAuditorRole(authenticationStateTask!.Result.User,
+                    async () => await apiConnection.SendQueryAsync<List<ModellingHistoryEntry>>(ModellingQueries.getHistory, new { limit = fetchLimit, offset = 0 }));
             }
             else
             {
-                history = await apiConnection.SendQueryAsync<List<ModellingHistoryEntry>>(ModellingQueries.getHistoryForApp, new {appId = SelectedApp.Id});
+                history = await apiConnection.SendQueryAsync<List<ModellingHistoryEntry>>(ModellingQueries.getHistoryForApp, new { appId = SelectedApp.Id });
             }
             await InvokeAsync(StateHasChanged);
         }

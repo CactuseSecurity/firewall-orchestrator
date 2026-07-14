@@ -1,47 +1,132 @@
-﻿using System.Text;
 using FWO.Api.Client;
+using FWO.Basics;
+using FWO.Config.Api;
+using FWO.Data.Report;
+using FWO.Logging;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
-using FWO.Config.Api;
-using FWO.Logging;
-using System.Text.Json;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Text;
 
 namespace FWO.Report
 {
     public class ReportChanges : ReportDevicesBase
     {
-        private const int ColumnCount = 13;
+        private const int ColumnCount = 14;
 
-        public ReportChanges(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) {}
+        private readonly TimeFilter timeFilter;
+        private readonly bool IncludeObjects;
 
-        public override async Task Generate(int changesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
+        public ReportChanges(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, TimeFilter timeFilter, bool includeObjects) : base(query, userConfig, reportType)
         {
-            Query.QueryVariables["limit"] = changesPerFetch;
-            Query.QueryVariables["offset"] = 0;
-            bool gotNewObjects = true;
-
-            ReportData.ManagementData = await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables);
-
-            while (gotNewObjects)
-            {
-                if (ct.IsCancellationRequested)
-                {
-                    Log.WriteDebug("Generate Changes Report", "Task cancelled");
-                    ct.ThrowIfCancellationRequested();
-                }
-                Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + changesPerFetch;
-                gotNewObjects = ReportData.ManagementData.Merge(await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables));
-                await callback(ReportData);
-            }
+            this.timeFilter = timeFilter;
+            IncludeObjects = includeObjects;
         }
 
-        public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback)
+        public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
-            await callback(ReportData);
-            // currently no further objects to be fetched
-            GotObjectsInReport = true;
-            return true;
+            Query.QueryVariables[QueryVar.Limit] = elementsPerFetch;
+            Query.QueryVariables[QueryVar.Offset] = 0;
+
+            (string startTime, string stopTime) = DynGraphqlQuery.ResolveTimeRange(timeFilter);
+            Dictionary<int, List<long>> managementImportIds = [];
+            int queriesNeeded = 0;
+
+            queriesNeeded += await FetchInitialManagementData(apiConnection, startTime, stopTime, managementImportIds);
+
+            queriesNeeded += await FetchAdditionalChanges(apiConnection, managementImportIds, elementsPerFetch, callback, queriesNeeded, ct);
+
+            Log.WriteDebug("Generate Changes Report", $"Finished generating changes report with {queriesNeeded} queries.");
+        }
+
+        private async Task<int> FetchInitialManagementData(ApiConnection apiConnection, string startTime, string stopTime, Dictionary<int, List<long>> managementImportIds)
+        {
+            int queriesNeeded = 0;
+            List<ManagementReport> managementsWithRelevantImportId = await GetRelevantImportIds(apiConnection, startTime);
+            List<ManagementReport> managementsWithImportIds = await GetImportIdsInTimeRange(apiConnection, startTime, stopTime, ruleChangeRequired: true, IncludeObjects);
+            foreach (var management in managementsWithRelevantImportId)
+            {
+                List<long> importIdLastBeforeRange = [management.RelevantImportId ?? -1];
+                List<long> importIdsInRange = [.. managementsWithImportIds.Where(m => m.Id == management.Id).SelectMany(m => m.ImportControls).Select(ic => ic.ControlId).DefaultIfEmpty(0)];
+                List<long> relevantImportIds = [.. importIdLastBeforeRange, .. importIdsInRange];
+
+                SetMgtQueryVars(management.Id, relevantImportIds[0], relevantImportIds[1], IncludeObjects);
+                ManagementReport managementReport = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables)).First();
+
+                queriesNeeded += 1;
+                ReportData.ManagementData.Add(managementReport);
+                managementImportIds.Add(management.Id, relevantImportIds);
+            }
+            return queriesNeeded;
+        }
+
+        private async Task<int> FetchAdditionalChanges(ApiConnection apiConnection, Dictionary<int, List<long>> managementImportIds, int elementsPerFetch,
+            Func<ReportData, Task> callback, int queriesNeeded, CancellationToken ct)
+        {
+            Query.QueryVariables[QueryVar.Offset] = elementsPerFetch;
+            int maxImports = managementImportIds.Values.Select(v => v.Count).Max();
+
+            if (maxImports <= 2)    // Case last two (changes report - notification mail)
+            {
+                return queriesNeeded;
+            }
+
+            for (int i = 1; i < maxImports; i++)
+            {
+                bool continueFetching = true;
+                while (continueFetching)
+                {
+                    if (ct.IsCancellationRequested)
+                    {
+                        Log.WriteDebug("Generate Changes Report", "Task cancelled");
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    (bool anyContinue, int queries) = await ProcessManagementsForAdditionalChanges(apiConnection, managementImportIds, i, elementsPerFetch);
+                    queriesNeeded += queries;
+                    continueFetching = anyContinue;
+
+                    await callback(ReportData);
+                    Query.QueryVariables[QueryVar.Offset] = (int)Query.QueryVariables[QueryVar.Offset] + elementsPerFetch;
+                }
+                Query.QueryVariables[QueryVar.Offset] = 0;
+            }
+            return queriesNeeded;
+        }
+
+        private async Task<(bool anyContinue, int queries)> ProcessManagementsForAdditionalChanges(ApiConnection apiConnection, Dictionary<int, List<long>> managementImportIds, int i, int elementsPerFetch)
+        {
+            bool anyContinue = false;
+            int queries = 0;
+
+            foreach (var management in ReportData.ManagementData)
+            {
+                if (managementImportIds.ContainsKey(management.Id) && managementImportIds[management.Id].Count > i) // Null check
+                {
+                    long importIdOld = managementImportIds[management.Id][i - 1];
+                    long importIdNew = managementImportIds[management.Id][i];
+                    SetMgtQueryVars(management.Id, importIdOld, importIdNew, IncludeObjects);
+
+                    ManagementReport newData = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables)).First(); // Error
+                    (bool newObjects, Dictionary<string, int> maxAddedCounts) = management.Merge(newData);
+                    queries++;
+
+                    if (newObjects && maxAddedCounts.Values.Any(v => v >= elementsPerFetch))
+                    {
+                        anyContinue = true;
+                    }
+                }
+            }
+            return (anyContinue, queries);
+        }
+
+        private void SetMgtQueryVars(int mgmId, long importIdOld, long importIdNew, bool includeObjectsInChangesReport)
+        {
+            Query.QueryVariables[QueryVar.MgmId] = mgmId;
+            Query.QueryVariables[QueryVar.ImportIdOld] = importIdOld;
+            Query.QueryVariables[QueryVar.ImportIdNew] = importIdNew;
+            Query.QueryVariables[QueryVar.IncludeObjectsInChangesReport] = includeObjectsInChangesReport;
         }
 
         public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)
@@ -71,40 +156,32 @@ namespace FWO.Report
         {
             if (ReportType.IsResolvedReport())
             {
-                StringBuilder report = new ();
-                RuleChangeDisplayCsv ruleChangeDisplayCsv = new (userConfig);
+                StringBuilder report = new();
+                RuleChangeDisplayCsv ruleChangeDisplayCsv = new(userConfig);
 
                 report.Append(DisplayReportHeaderCsv());
-                report.AppendLine($"\"management-name\",\"device-name\",\"change-time\",\"change-type\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"");
+                report.AppendLine("\"Rules\"");
+                report.AppendLine($"\"management-name\",\"change-time\",\"change-type\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"enforcing_device\",\"rule-uid\",\"rule-comment\"");
 
-                foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
-                        Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
+                foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
                 {
-                    foreach (var gateway in management.Devices)
+                    AppendRuleChangeRowsCSV(report, management, ruleChangeDisplayCsv);
+
+                    if (IncludeObjects)
                     {
-                        if (gateway.RuleChanges != null && gateway.RuleChanges.Length > 0)
-                        {
-                            foreach (var ruleChange in gateway.RuleChanges)
-                            {
-                                report.Append(ruleChangeDisplayCsv.OutputCsv(management.Name));
-                                report.Append(ruleChangeDisplayCsv.OutputCsv(gateway.Name));
-                                report.Append(ruleChangeDisplayCsv.DisplayChangeTime(ruleChange));
-                                report.Append(ruleChangeDisplayCsv.DisplayChangeAction(ruleChange));
-                                report.Append(ruleChangeDisplayCsv.DisplayName(ruleChange));
-                                report.Append(ruleChangeDisplayCsv.DisplaySourceZone(ruleChange));
-                                report.Append(ruleChangeDisplayCsv.DisplaySource(ruleChange, ReportType));
-                                report.Append(ruleChangeDisplayCsv.DisplayDestinationZone(ruleChange));
-                                report.Append(ruleChangeDisplayCsv.DisplayDestination(ruleChange, ReportType));
-                                report.Append(ruleChangeDisplayCsv.DisplayServices(ruleChange, ReportType));
-                                report.Append(ruleChangeDisplayCsv.DisplayAction(ruleChange));
-                                report.Append(ruleChangeDisplayCsv.DisplayTrack(ruleChange));
-                                report.Append(ruleChangeDisplayCsv.DisplayEnabled(ruleChange));
-                                report.Append(ruleChangeDisplayCsv.DisplayUid(ruleChange));
-                                report.Append(ruleChangeDisplayCsv.DisplayComment(ruleChange));
-                                report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
-                                report.AppendLine("");
-                            }
-                        }
+                        report.AppendLine($"#");
+                        report.AppendLine("\"Network objects\"");
+                        report.AppendLine($"\"management-name\",\"change-time\",\"change-type\",\"object-name\",\"type\",\"ip_address\",\"members\",\"object-uid\",\"object-comment\"");
+
+                        AppendObjectChangeRowsCSV(report, management, ruleChangeDisplayCsv);
+
+                        report.AppendLine($"#");
+                        report.AppendLine("\"Service objects\"");
+                        report.AppendLine($"\"management-name\",\"change-time\",\"change-type\",\"service-name\",\"type\",\"protocol\",\"port\",\"members\",\"service-uid\",\"service-comment\"");
+
+                        AppendServiceChangeRowsCSV(report, management, ruleChangeDisplayCsv);
+
+                        AppendUserChangeRowsCSV(report, management, ruleChangeDisplayCsv);
                     }
                 }
                 return report.ToString();
@@ -115,80 +192,301 @@ namespace FWO.Report
             }
         }
 
+        private void AppendRuleChangeRowsCSV(StringBuilder report, ManagementReport management, RuleChangeDisplayCsv ruleChangeDisplayCsv)
+        {
+            if (management.RuleChanges != null && management.RuleChanges?.Any() == true)
+            {
+                foreach (var ruleChange in management.RuleChanges)
+                {
+                    report.Append(ruleChangeDisplayCsv.OutputCsv(management.Name));
+                    report.Append(ruleChangeDisplayCsv.DisplayChangeTime(ruleChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayChangeAction(ruleChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayName(ruleChange));
+                    report.Append(ruleChangeDisplayCsv.DisplaySourceZone(ruleChange));
+                    report.Append(ruleChangeDisplayCsv.DisplaySource(ruleChange, ReportType));
+                    report.Append(ruleChangeDisplayCsv.DisplayDestinationZone(ruleChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayDestination(ruleChange, ReportType));
+                    report.Append(ruleChangeDisplayCsv.DisplayServices(ruleChange, ReportType));
+                    report.Append(ruleChangeDisplayCsv.DisplayAction(ruleChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayTrack(ruleChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayEnabled(ruleChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayenforcingDevice(ruleChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayUid(ruleChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayComment(ruleChange));
+                    report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
+                    report.AppendLine("");
+                }
+            }
+        }
+
+        private static void AppendObjectChangeRowsCSV(StringBuilder report, ManagementReport management, RuleChangeDisplayCsv ruleChangeDisplayCsv)
+        {
+            if (management.ObjectChanges != null && management.ObjectChanges?.Any() == true)
+            {
+                foreach (var objectChange in management.ObjectChanges)
+                {
+                    report.Append(ruleChangeDisplayCsv.OutputCsv(management.Name));
+                    report.Append(ruleChangeDisplayCsv.DisplayChangeTime(objectChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayChangeAction(objectChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayName(objectChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayObjectType(objectChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayObjectIp(objectChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayObjectMemberNames(objectChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayUid(objectChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayComment(objectChange));
+                    report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
+                    report.AppendLine("");
+                }
+            }
+        }
+
+        private static void AppendServiceChangeRowsCSV(StringBuilder report, ManagementReport management, RuleChangeDisplayCsv ruleChangeDisplayCsv)
+        {
+            if (management.ServiceChanges != null && management.ServiceChanges?.Any() == true)
+            {
+                foreach (var serviceChange in management.ServiceChanges)
+                {
+                    report.Append(ruleChangeDisplayCsv.OutputCsv(management.Name));
+                    report.Append(ruleChangeDisplayCsv.DisplayChangeTime(serviceChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayChangeAction(serviceChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayName(serviceChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayServiceType(serviceChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayServiceProtocol(serviceChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayServicePort(serviceChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayServiceMemberNames(serviceChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayUid(serviceChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayComment(serviceChange));
+                    report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
+                    report.AppendLine("");
+                }
+            }
+        }
+
+        private static void AppendUserChangeRowsCSV(StringBuilder report, ManagementReport management, RuleChangeDisplayCsv ruleChangeDisplayCsv)
+        {
+            if (management.UserChanges != null && management.UserChanges?.Any() == true)
+            {
+                report.AppendLine($"#");
+                report.AppendLine("\"User objects\"");
+                report.AppendLine($"\"management-name\",\"change-time\",\"change-type\",\"user-name\",\"user-comment\"");
+
+                foreach (var userChange in management.UserChanges)
+                {
+                    report.Append(ruleChangeDisplayCsv.OutputCsv(management.Name));
+                    report.Append(ruleChangeDisplayCsv.DisplayChangeTime(userChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayChangeAction(userChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayName(userChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayComment(userChange));
+                    report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
+                    report.AppendLine("");
+                }
+            }
+        }
+
         public override string ExportToHtml()
         {
-            StringBuilder report = new ();
-            RuleChangeDisplayHtml ruleChangeDisplayHtml = new (userConfig);
+            StringBuilder report = new();
+            RuleChangeDisplayHtml ruleChangeDisplayHtml = new(userConfig);
 
-            foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
-                    Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
+            foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
             {
-                report.AppendLine($"<h3>{management.Name}</h3>");
+                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{management.Name}</h3>");
+                report.AppendLine("<hr>");
+                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">Rules</h4>");
+
+                report.AppendLine("<table>");
+                report.AppendLine("<tr>");
+                report.AppendLine($"<th>{userConfig.GetText("change_time")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("change_type")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("destination_zone")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("action")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("track")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("enabled")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("enforcing_devices")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
+                report.AppendLine("</tr>");
+
+
+                AppendRuleChangeRowsHTML(report, management, ruleChangeDisplayHtml);
+
+                report.AppendLine("</table>");
                 report.AppendLine("<hr>");
 
-                foreach (var device in management.Devices)
+                if (IncludeObjects)
                 {
-                    report.AppendLine($"<h4>{device.Name}</h4>");
+                    report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">Network objects</h4>");
                     report.AppendLine("<table>");
                     report.AppendLine("<tr>");
                     report.AppendLine($"<th>{userConfig.GetText("change_time")}</th>");
                     report.AppendLine($"<th>{userConfig.GetText("change_type")}</th>");
                     report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("destination_zone")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("action")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("track")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("enabled")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("type")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("ip_address")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
                     report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
                     report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                     report.AppendLine("</tr>");
 
-                    if (device.RuleChanges != null)
-                    {
-                        foreach (var ruleChange in device.RuleChanges)
-                        {
-                            report.AppendLine("<tr>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeTime(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeAction(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayName(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplaySourceZone(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplaySource(ruleChange, OutputLocation.export, ReportType)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestinationZone(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestination(ruleChange, OutputLocation.export, ReportType)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayServices(ruleChange, OutputLocation.export, ReportType)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayAction(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayTrack(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayEnabled(ruleChange, OutputLocation.export)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayUid(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayComment(ruleChange)}</td>");
-                            report.AppendLine("</tr>");
-                        }
-                    }
-                    else
-                    {
-                        report.AppendLine("<tr>");
-                        report.AppendLine($"<td colspan=\"{ColumnCount}\">{userConfig.GetText("no_changes_found")}</td>");
-                        report.AppendLine("</tr>");
-                    }
+                    AppendObjectChangeRowsHTML(report, management, ruleChangeDisplayHtml);
+
                     report.AppendLine("</table>");
                     report.AppendLine("<hr>");
+
+                    report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">Service objects</h4>");
+                    report.AppendLine("<table>");
+                    report.AppendLine("<tr>");
+                    report.AppendLine($"<th>{userConfig.GetText("change_time")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("change_type")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("type")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("protocol")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("port")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
+                    report.AppendLine("</tr>");
+
+                    AppendServiceChangeRowsHTML(report, management, ruleChangeDisplayHtml);
+
+                    report.AppendLine("</table>");
+                    report.AppendLine("<hr>");
+
+                    AppendUserChangeRowsHTML(report, management, ruleChangeDisplayHtml);
                 }
             }
-            return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
+
+            return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report, timeFilter);
+        }
+
+        private void AppendRuleChangeRowsHTML(StringBuilder report, ManagementReport management, RuleChangeDisplayHtml ruleChangeDisplayHtml)
+        {
+            if (management.RuleChanges != null && management.RuleChanges?.Any() == true)
+            {
+                foreach (var ruleChange in management.RuleChanges)
+                {
+                    report.AppendLine("<tr>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeTime(ruleChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeAction(ruleChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayName(ruleChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplaySourceZone(ruleChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplaySource(ruleChange, OutputLocation.export, ReportType)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestinationZone(ruleChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestination(ruleChange, OutputLocation.export, ReportType)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayServices(ruleChange, OutputLocation.export, ReportType)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayAction(ruleChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayTrack(ruleChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayEnabled(ruleChange, OutputLocation.export)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayEnforcingGateways(ruleChange, OutputLocation.export, ReportType)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayUid(ruleChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayComment(ruleChange)}</td>");
+                    report.AppendLine("</tr>");
+                }
+            }
+            else
+            {
+                report.AppendLine("<tr>");
+                report.AppendLine($"<td colspan=\"{ColumnCount}\">{userConfig.GetText("no_changes_found")}</td>");
+                report.AppendLine("</tr>");
+            }
+        }
+        private void AppendObjectChangeRowsHTML(StringBuilder report, ManagementReport management, RuleChangeDisplayHtml ruleChangeDisplayHtml)
+        {
+            if (management.ObjectChanges != null && management.ObjectChanges?.Any() == true)
+            {
+                foreach (var objectChange in management.ObjectChanges)
+                {
+                    report.AppendLine("<tr>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeTime(objectChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeAction(objectChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayName(objectChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayObjectType(objectChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayObjectIP(objectChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayObjectMemberNames(objectChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayUid(objectChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayComment(objectChange)}</td>");
+                    report.AppendLine("</tr>");
+                }
+            }
+            else
+            {
+                report.AppendLine("<tr>");
+                report.AppendLine($"<td colspan=\"{ColumnCount}\">{userConfig.GetText("no_changes_found")}</td>");
+                report.AppendLine("</tr>");
+            }
+        }
+        private void AppendServiceChangeRowsHTML(StringBuilder report, ManagementReport management, RuleChangeDisplayHtml ruleChangeDisplayHtml)
+        {
+            if (management.ServiceChanges != null && management.ServiceChanges?.Any() == true)
+            {
+                foreach (var serviceChange in management.ServiceChanges)
+                {
+                    report.AppendLine("<tr>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeTime(serviceChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeAction(serviceChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayName(serviceChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayServiceType(serviceChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayServiceProtocol(serviceChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayServicePort(serviceChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayServiceMemberNames(serviceChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayUid(serviceChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayComment(serviceChange)}</td>");
+                    report.AppendLine("</tr>");
+                }
+            }
+            else
+            {
+                report.AppendLine("<tr>");
+                report.AppendLine($"<td colspan=\"{ColumnCount}\">{userConfig.GetText("no_changes_found")}</td>");
+                report.AppendLine("</tr>");
+            }
+        }
+        private void AppendUserChangeRowsHTML(StringBuilder report, ManagementReport management, RuleChangeDisplayHtml ruleChangeDisplayHtml)
+        {
+            if (management.UserChanges != null && management.UserChanges?.Any() == true)
+            {
+                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">User objects</h4>");
+                report.AppendLine("<table>");
+                report.AppendLine("<tr>");
+                report.AppendLine($"<th>{userConfig.GetText("change_time")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("change_type")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
+                report.AppendLine("</tr>");
+
+                if (management.UserChanges != null && management.UserChanges?.Any() == true)
+                {
+                    foreach (var userChange in management.UserChanges)
+                    {
+                        report.AppendLine("<tr>");
+                        report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeTime(userChange)}</td>");
+                        report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeAction(userChange)}</td>");
+                        report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayName(userChange)}</td>");
+                        report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayComment(userChange)}</td>");
+                        report.AppendLine("</tr>");
+                    }
+                }
+                else
+                {
+                    report.AppendLine("<tr>");
+                    report.AppendLine($"<td colspan=\"{ColumnCount}\">{userConfig.GetText("no_changes_found")}</td>");
+                    report.AppendLine("</tr>");
+                }
+                report.AppendLine("</table>");
+                report.AppendLine("<hr>");
+            }
         }
 
         public override string ExportToJson()
         {
-            if (ReportType.IsResolvedReport())
+            if (ReportType.IsResolvedReport() || ReportType.IsChangeReport())
             {
                 return ExportResolvedChangesToJson();
-            }
-            else if (ReportType.IsChangeReport())
-            {
-                return System.Text.Json.JsonSerializer.Serialize(ReportData.ManagementData.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
             }
             else
             {
@@ -198,63 +496,149 @@ namespace FWO.Report
 
         private string ExportResolvedChangesToJson()
         {
-            StringBuilder report = new ("{");
-            report.Append(DisplayReportHeaderJson());
-            report.AppendLine("\"managements\": [");
-            RuleChangeDisplayJson ruleChangeDisplayJson = new (userConfig);
-            foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
-                    Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
+            RuleChangeDisplayJson ruleChangeDisplayJson = new(userConfig);
+            JObject report = ParseJsonObjectFragment(DisplayReportHeaderJson());
+            JArray managements = new();
+            foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
             {
-                report.AppendLine($"{{\"{management.Name}\": {{");
-                report.AppendLine($"\"gateways\": [");
-                foreach (var gateway in management.Devices)
+                JObject managementReport = new()
                 {
-                    if (gateway.RuleChanges != null && gateway.RuleChanges.Length > 0)
-                    {
-                        report.Append($"{{\"{gateway.Name}\": {{\n\"rule changes\": [");
-                        foreach (var ruleChange in gateway.RuleChanges)
-                        {
-                            report.Append('{');
-                            report.Append(ruleChangeDisplayJson.DisplayChangeTime(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplayChangeAction(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplayName(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplaySourceZone(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplaySourceNegated(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplaySource(ruleChange, ReportType));
-                            report.Append(ruleChangeDisplayJson.DisplayDestinationZone(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplayDestinationNegated(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplayDestination(ruleChange, ReportType));
-                            report.Append(ruleChangeDisplayJson.DisplayServiceNegated(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplayServices(ruleChange, ReportType));
-                            report.Append(ruleChangeDisplayJson.DisplayAction(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplayTrack(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplayEnabled(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplayUid(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplayComment(ruleChange));
-                            report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
-                            report.Append("},");  // EO ruleChange
-                        } // rules
-                        report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
-                        report.Append(']'); // EO rules
-                        report.Append('}'); // EO gateway internal
-                        report.Append("},"); // EO gateway external
-                    }
-                } // gateways
-                report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
-                report.Append(']'); // EO gateways
-                report.Append('}'); // EO management internal
-                report.Append("},"); // EO management external
-            } // managements
-            report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
-            report.Append(']'); // EO managements
-            report.Append('}'); // EO top
+                    ["rule changes"] = BuildRuleChangeArrayJson(management, ruleChangeDisplayJson)
+                };
 
-            dynamic? json = JsonConvert.DeserializeObject(report.ToString());
-            JsonSerializerSettings settings = new()
+                if (IncludeObjects)
+                {
+                    AddOptionalArray(managementReport, "Network Object changes", BuildObjectChangeArrayJson(management, ruleChangeDisplayJson));
+                    AddOptionalArray(managementReport, "Service Object changes", BuildServiceChangeArrayJson(management, ruleChangeDisplayJson));
+                    AddOptionalArray(managementReport, "User Object changes", BuildUserChangeArrayJson(management, ruleChangeDisplayJson));
+                }
+                managements.Add(new JObject
+                {
+                    [management.Name] = managementReport
+                });
+            }
+
+            report["managements"] = managements;
+            return report.ToString(Formatting.Indented);
+        }
+
+        private static void AddOptionalArray(JObject target, string propertyName, JArray values)
+        {
+            if (values.Count > 0)
             {
-                Formatting = Formatting.Indented
-            };
-            return JsonConvert.SerializeObject(json, settings);            
+                target[propertyName] = values;
+            }
+        }
+
+        private JObject BuildJsonObject(Action<StringBuilder> appendProperties)
+        {
+            StringBuilder properties = new();
+            appendProperties(properties);
+            return ParseJsonObjectFragment(properties.ToString());
+        }
+
+        private static JObject ParseJsonObjectFragment(string jsonFragment)
+        {
+            string trimmedFragment = jsonFragment.Trim().TrimEnd(',');
+            return string.IsNullOrEmpty(trimmedFragment) ? new JObject() : JObject.Parse($"{{{trimmedFragment}}}");
+        }
+
+        private JArray BuildRuleChangeArrayJson(ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
+        {
+            JArray changes = new();
+            if (management.RuleChanges != null && management.RuleChanges.Any())
+            {
+                foreach (var ruleChange in management.RuleChanges)
+                {
+                    changes.Add(BuildJsonObject(sb =>
+                    {
+                        sb.Append(ruleChangeDisplayJson.DisplayChangeTime(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayChangeAction(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayName(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplaySourceZones(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplaySourceNegated(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplaySource(ruleChange, ReportType));
+                        sb.Append(ruleChangeDisplayJson.DisplayDestinationZones(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayDestinationNegated(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayDestination(ruleChange, ReportType));
+                        sb.Append(ruleChangeDisplayJson.DisplayServiceNegated(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayServices(ruleChange, ReportType));
+                        sb.Append(ruleChangeDisplayJson.DisplayAction(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayTrack(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayEnabled(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayEnforcingGateways(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayUid(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayComment(ruleChange));
+                    }));
+                }
+            }
+            return changes;
+        }
+
+        private JArray BuildObjectChangeArrayJson(ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
+        {
+            JArray changes = new();
+            if (management.ObjectChanges != null && management.ObjectChanges.Any())
+            {
+                foreach (var objectChange in management.ObjectChanges)
+                {
+                    changes.Add(BuildJsonObject(sb =>
+                    {
+                        sb.Append(ruleChangeDisplayJson.DisplayChangeTime(objectChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayChangeAction(objectChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayName(objectChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayObjectType(objectChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayObjectIP(objectChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayObjectMemberNames(objectChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayUid(objectChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayComment(objectChange));
+                    }));
+                }
+            }
+            return changes;
+        }
+
+        private JArray BuildServiceChangeArrayJson(ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
+        {
+            JArray changes = new();
+            if (management.ServiceChanges != null && management.ServiceChanges.Any())
+            {
+                foreach (var serviceChange in management.ServiceChanges)
+                {
+                    changes.Add(BuildJsonObject(sb =>
+                    {
+                        sb.Append(ruleChangeDisplayJson.DisplayChangeTime(serviceChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayChangeAction(serviceChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayName(serviceChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayObjectType(serviceChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayServiceProtocol(serviceChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayServicePort(serviceChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayObjectMemberNames(serviceChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayUid(serviceChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayComment(serviceChange));
+                    }));
+                }
+            }
+            return changes;
+        }
+
+        private JArray BuildUserChangeArrayJson(ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
+        {
+            JArray changes = new();
+            if (management.UserChanges != null && management.UserChanges.Any())
+            {
+                foreach (var userChange in management.UserChanges)
+                {
+                    changes.Add(BuildJsonObject(sb =>
+                    {
+                        sb.Append(ruleChangeDisplayJson.DisplayChangeTime(userChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayChangeAction(userChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayName(userChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayComment(userChange));
+                    }));
+                }
+            }
+            return changes;
         }
     }
 }

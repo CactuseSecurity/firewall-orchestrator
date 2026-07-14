@@ -1,13 +1,18 @@
-﻿using FWO.Api.Client.Data;
-using FWO.Api.Client.Queries;
 using FWO.Api.Client;
-using FWO.Api.Data;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
-using FWO.Ui.Data;
+using FWO.Data;
+using FWO.Data.Middleware;
+using FWO.Data.Modelling;
+using FWO.Middleware.Client;
+using FWO.Services;
+using FWO.Services.EventMediator.Events;
+using FWO.Services.EventMediator.Interfaces;
+using FWO.Services.Modelling;
 using Microsoft.AspNetCore.Components.Forms;
-using NetTools;
-using Org.BouncyCastle.Utilities;
+using RestSharp;
+using System.Net;
 using System.Text.Json;
 
 namespace FWO.Ui.Services
@@ -17,186 +22,258 @@ namespace FWO.Ui.Services
         /// <summary>
         /// Uploaded data as bytes.
         /// </summary>
-        private byte[]? UploadedData { get; set; }
-        /// <summary>
-        /// Errors that occured while trying to write file data in database.
-        /// </summary>
-        private List<Exception> importErrors { get; set; }
+        private byte[] UploadedData { get; set; } = [];
 
-        private UserConfig userConfig { get; set; }
-        private ApiConnection apiConnection { get; set; }
+        private UserConfig UserConfig { get; set; }
+        private ApiConnection ApiConnection { get; set; }
+        private MiddlewareClient MiddlewareClient { get; set; }
 
-        public FileUploadService(IServiceProvider services)
+        private readonly ModellingNamingConvention NamingConvention = new();
+        private readonly List<AppServerType> AppServerTypes = [];
+        private string ImportSource = "";
+        private readonly string AllowedFileFormats;
+
+        private readonly IEventMediator EventMediator;
+        private readonly FileUploadEvent CustomLogoUploadEvent;
+        private readonly FileUploadEvent FileUploadEvent;
+        private readonly AppServerImportEvent AppServerImportEvent;
+        private readonly FileUploadEvent ComplianceMatrixImportEvent;
+
+        public FileUploadService(ApiConnection apiConnection, UserConfig userConfig, MiddlewareClient middlewareClient, string allowedFileFormats, IEventMediator eventMediator)
         {
-            userConfig = services.GetRequiredService<UserConfig>();
-            apiConnection = services.GetRequiredService<ApiConnection>();
-
-            importErrors = new List<Exception>();
+            UserConfig = userConfig;
+            ApiConnection = apiConnection;
+            MiddlewareClient = middlewareClient;
+            NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
+            AppServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(UserConfig.ModAppServerTypes) ?? [];
+            AllowedFileFormats = allowedFileFormats;
+            EventMediator = eventMediator;
+            CustomLogoUploadEvent = new();
+            FileUploadEvent = new();
+            AppServerImportEvent = new();
+            ComplianceMatrixImportEvent = new();
         }
 
-        public async Task ReadFileToBytes(InputFileChangeEventArgs args)
+        public async Task<FileUploadEventArgs> ReadFileToBytes(InputFileChangeEventArgs args)
         {
-            using MemoryStream ms = new MemoryStream();
-            await args.File.OpenReadStream().CopyToAsync(ms);
-            UploadedData = ms.ToArray();
-        }
-
-        public async Task<List<Exception>> ImportUploadedData(FileUploadCase fileUploadCase)
-        {
-            importErrors.Clear();
-
-            if (fileUploadCase == FileUploadCase.ImportAppServerFromCSV)
+            try
             {
-                await ImportAppServerFromCSV(importErrors);
+                string fileExtension = Path.GetExtension(args.File.Name);
+
+                if (!AllowedFileFormats.Contains(fileExtension))
+                {
+                    throw new ArgumentException(UserConfig.GetText("E5430"));
+                }
+
+                if (args.File.Size > GlobalConst.MaxUploadFileSize)
+                {
+                    throw new ArgumentException(UserConfig.GetText("E5431"));
+                }
+
+                using MemoryStream ms = new();
+
+                await args.File.OpenReadStream(GlobalConst.MaxUploadFileSize).CopyToAsync(ms);
+                UploadedData = ms.ToArray();
+
+                FileUploadEvent.EventArgs!.Success = true;
+            }
+            catch (Exception ex)
+            {
+                FileUploadEvent.EventArgs!.Success = false;
+
+                FileUploadEvent.EventArgs.Error = new()
+                {
+                    Message = ex.Message,
+                    InternalException = ex,
+                    MessageType = MessageType.Error
+                };
+            }
+            finally
+            {
+                EventMediator.Publish(nameof(ReadFileToBytes), FileUploadEvent);
             }
 
-            return importErrors;
+            return FileUploadEvent.EventArgs;
         }
 
-        public async Task ImportAppServerFromCSV(List<Exception> importErrors)
+        public FileUploadEventArgs ImportCustomLogo()
         {
-            string text = System.Text.Encoding.UTF8.GetString(UploadedData);
-            string[] lines = text.Split('\r');
-
-            foreach (string tmpLine in lines)
+            try
             {
-                string line = tmpLine;
+                string base64Data = Convert.ToBase64String(UploadedData);
 
-                string[]? entries;
+                CustomLogoUploadEvent.EventArgs!.Success = true;
+                CustomLogoUploadEvent.EventArgs.Data = base64Data;
+            }
+            catch (Exception ex)
+            {
+                CustomLogoUploadEvent.EventArgs!.Success = false;
 
-                // create import model
-
-                if (IsHeader(line))
-                    continue;
-
-                if (!TryGetEntries(line, ';', out entries) && !TryGetEntries(line, ',', out entries))
-                    continue;
-
-                CSVAppServerImportModel appServer = new()
+                CustomLogoUploadEvent.EventArgs!.Error = new()
                 {
-                    AppServerName = entries[0],
-                    AppID = entries[1],
-                    AppServerTyp = entries[2],
-                    AppIPRangeStart = entries[3]
+                    Message = UserConfig.GetText("file_upload_failed"),
+                    InternalException = ex,
+                    MessageType = MessageType.Error
+                };
+            }
+            finally
+            {
+                EventMediator.Publish(nameof(ImportCustomLogo), CustomLogoUploadEvent);
+            }
+
+            return CustomLogoUploadEvent.EventArgs;
+        }
+
+        public async Task ImportAppServersFromCSV(string filename = "")
+        {
+            ImportSource = GlobalConst.kCSV_ + filename;
+
+            List<string> success = [];
+            List<CSVFileUploadErrorModel> errors = [];
+
+            string text = System.Text.Encoding.UTF8.GetString(UploadedData);
+            string[] lines = text.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            foreach (string line in lines)
+            {
+                CSVFileUploadErrorModel? error = new()
+                {
+                    EntryData = line,
+                    MessageType = MessageType.Error,
                 };
 
-                // get IP range
+                if (!TryGetEntries(line, ';', out string[] entries) && !TryGetEntries(line, ',', out entries))
+                {
+                    error.Message = UserConfig.GetText("E5422");
+                    errors.Add(error);
 
-                if (appServer.AppIPRangeStart.TryGetNetmask(out string netmask))
-                {
-                    (string Start, string End) ip = appServer.AppIPRangeStart.CidrToRangeString();
-                    appServer.AppIPRangeStart = ip.Start;
-                    appServer.AppIPRangeEnd = ip.End;
+                    continue;
                 }
-                else if (appServer.AppIPRangeStart.TrySplit('-', 1, out string ipEnd) && IPAddressRange.TryParse(appServer.AppIPRangeStart, out IPAddressRange ipRange))
+
+                if (IsHeader(entries))
+                    continue;
+
+                string ipString = entries[3];
+
+                if (!ipString.TryParseIPString<(string, string)>(out (string Start, string End) ipRange, strictv4Parse: true))
                 {
-                    appServer.AppIPRangeStart = ipRange.Begin.ToString();
-                    appServer.AppIPRangeEnd = ipRange.End.ToString();
+                    error.Message = UserConfig.GetText("E5423");
+                    errors.Add(error);
+
+                    continue;
+                }
+
+                CSVAppServerImportModel importAppServer = new()
+                {
+                    AppIPRangeStart = ipRange.Start,
+                    AppIPRangeEnd = ipRange.End,
+                    AppID = entries[1],
+                    AppServerTyp = entries[2]
+                };
+
+                importAppServer.AppServerName = UserConfig.DnsLookup ?
+                    await AppServerHelper.ConstructAppServerNameFromDns(importAppServer.ToModellingAppServer(), NamingConvention, UserConfig.OverwriteExistingNames) :
+                    entries[0];
+
+                // write to db
+                (bool importSuccess, Exception? e) = await AddAppServerToDb(importAppServer);
+
+                if (!importSuccess && e is not null)
+                {
+                    error.Message = e.Message;
+                    errors.Add(error);
                 }
                 else
                 {
-                    appServer.AppIPRangeEnd = appServer.AppIPRangeStart;
+                    success.Add(line);
                 }
+            }
 
-                // write to db
+            if (AppServerImportEvent.EventArgs is not null)
+            {
+                success = [.. success.Distinct()];
 
-                (bool importSuccess, Exception? error) = await AddAppServerToDb(appServer);
+                AppServerImportEvent.EventArgs.Success = success.Count > 0;
+                AppServerImportEvent.EventArgs.Appserver = success;
+                AppServerImportEvent.EventArgs.Errors = errors;
 
-                if (!importSuccess && error is not null)
-                    importErrors.Add(error);
+                EventMediator.Publish(nameof(ImportAppServersFromCSV), AppServerImportEvent);
             }
         }
 
-        private bool TryGetEntries(string line, char separator, out string[]? entries)
+        public async Task ImportComplianceMatrix(string filename = "")
         {
-            entries = null;
+            string data = System.Text.Encoding.UTF8.GetString(UploadedData);
+            ComplianceImportMatrixParameters importParams = new() { FileName = filename, Data = data, UserName = UserConfig.User.Name, UserDn = UserConfig.User.Dn };
+            RestResponse<string> middlewareServerResponse = await MiddlewareClient.ImportCompianceMatrix(importParams);
+            if (ComplianceMatrixImportEvent.EventArgs is not null)
+            {
+                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
+                {
+                    ComplianceMatrixImportEvent.EventArgs.Success = false;
+                    ComplianceMatrixImportEvent.EventArgs.Data = middlewareServerResponse.ErrorMessage;
+                }
+                else
+                {
+                    ComplianceMatrixImportEvent.EventArgs.Success = middlewareServerResponse.Data?.StartsWith("Ok") ?? false;
+                    ComplianceMatrixImportEvent.EventArgs.Data = middlewareServerResponse.Data;
+                }
+                EventMediator.Publish(nameof(ImportComplianceMatrix), ComplianceMatrixImportEvent);
+            }
+        }
 
-            if (line.StartsWith("\n"))
-                line = line.Remove(0, 1);
+        private static bool TryGetEntries(string line, char separator, out string[] entries)
+        {
+            if (line.StartsWith('\n'))
+                line = line[1..];
 
             entries = line.Split(separator);
 
-            if (entries.Length < 3)
+            if (entries.Length < 4)
                 return false;
 
             for (int i = 0; i < entries.Length; i++)
             {
-                string entry = entries[i].Trim('"');
-                entries[i] = entry;
+                entries[i] = entries[i].Trim('"');
             }
 
             return true;
         }
 
-        private bool IsHeader(string lineText)
+        private static bool IsHeader(string[] columns)
         {
-            bool splitOnSemicolon = lineText.TrySplit(';', out int splitLength);
-
-            string[] columns;
-
-            if (!splitOnSemicolon)
-            {
-                bool splitOnComma = lineText.TrySplit(',', out splitLength);
-
-                if (!splitOnComma)
-                    return false;
-
-                columns = lineText.Split(',');
-            }
-            else
-            {
-                columns = lineText.Split(';');
-            }
-
-            return (columns.Length == 4
-                   && columns[0].Trim('"') == "App-Server-Name"
-                   && columns[1].Trim('"') == "External-App-ID"
-                   && columns[2].Trim('"') == "App-Server-Typ"
-                   && columns[3].Trim('"') == "App-IP-Address-Range");
-
+            return columns.Length == 4
+                   && columns[0].Trim('"').Trim() == "App-Server-Name"
+                   && columns[1].Trim('"').Trim() == "External-App-ID"
+                   && columns[2].Trim('"').Trim() == "App-Server-Typ"
+                   && columns[3].Trim('"').Trim() == "App-IP-Address-Range";
         }
 
-        private async Task<(bool, Exception?)> AddAppServerToDb(CSVAppServerImportModel appServer)
+        private async Task<(bool, Exception?)> AddAppServerToDb(CSVAppServerImportModel importAppServer)
         {
             try
             {
-                var appServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(userConfig.ModAppServerTypes) ?? new();
-                AppServerType? appServerType = appServerTypes.FirstOrDefault(_ => _.Name == appServer.AppServerTyp);
-
+                AppServerType? appServerType = AppServerTypes.FirstOrDefault(_ => _.Name == importAppServer.AppServerTyp);
                 if (appServerType is null)
                 {
-                    return new(false, new Exception($"{userConfig.GetText("owner_appservertype_notfound")} At: {appServer.AppServerName}/{appServer.AppID}"));
+                    return new(false, new Exception($"{UserConfig.GetText("owner_appservertype_notfound")} At: {importAppServer.AppServerName}/{importAppServer.AppID}"));
                 }
 
-                List<OwnerIdModel> ownerIds = await apiConnection.SendQueryAsync<List<OwnerIdModel>>(OwnerQueries.getOwnerId, new { externalAppId = appServer.AppID });
-
-                if (ownerIds is null || !ownerIds.Any())
+                List<OwnerIdModel> ownerIds = await ApiConnection.SendQueryAsync<List<OwnerIdModel>>(OwnerQueries.getOwnerId, new { externalAppId = importAppServer.AppID });
+                if (ownerIds is null || ownerIds.Count == 0)
                 {
-                    return new(false, new Exception($"{userConfig.GetText("owner_appserver_notfound")} At: {appServer.AppServerName}/{appServer.AppID}"));
+                    return new(false, new Exception($"{UserConfig.GetText("owner_appserver_notfound")} At: {importAppServer.AppServerName}/{importAppServer.AppID}"));
                 }
 
-                var Variables = new
-                {
-                    name = appServer.AppServerName,
-                    appId = ownerIds.First().Id,
-                    ip = appServer.AppIPRangeStart,
-                    ipEnd = appServer.AppIPRangeEnd,
-                    importSource = GlobalConst.kManual,
-                    customType = appServerType.Id
-                };
-
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAppServer, Variables)).ReturnIds;
+                return ((await AppServerHelper.UpsertAppServer(ApiConnection, UserConfig,
+                            new(importAppServer.ToModellingAppServer()) { ImportSource = ImportSource, AppId = ownerIds.First().Id, CustomType = appServerType.Id },
+                            !UserConfig.DnsLookup
+                    )).Item1 != null, default);
             }
             catch (Exception exception)
             {
-                //if IP already exists, skip displaying error message
-                if (exception.Message.Contains("Uniqueness violation"))
-                    return (true, exception);
-
                 return (false, exception);
             }
-
-            return (true, default);
         }
     }
 }

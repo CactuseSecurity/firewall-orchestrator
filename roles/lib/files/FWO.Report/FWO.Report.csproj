@@ -1,13 +1,14 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
-	  <PackageReference Include="PuppeteerSharp" Version="20.0.5" />
+	  <PackageReference Include="HtmlAgilityPack" Version="1.12.4" />
+	  <PackageReference Include="PuppeteerSharp" Version="25.3.1" />
   </ItemGroup>
 
   <ItemGroup>

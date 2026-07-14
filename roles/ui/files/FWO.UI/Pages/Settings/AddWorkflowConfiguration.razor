@@ -1,0 +1,207 @@
+@using FWO.Data
+
+@inject UserConfig userConfig
+@inject ApiConnection apiConnection
+
+<PopUp Title="@(userConfig.GetText("add_configuration"))" Show="@Display" Size=PopupSize.Small OnClose="ClosePopup">
+    <Body>
+        @if (Display)
+        {
+            <div class="form-group row mb-2">
+                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                <div class="col-sm-8"><input class="form-control form-control-sm" @bind="name" /></div>
+            </div>
+            <div class="form-group row mb-2">
+                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("description")):</label>
+                <div class="col-sm-8"><textarea class="form-control form-control-sm" @bind="description"></textarea></div>
+            </div>
+            <div class="form-group row">
+                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("source_configuration")):</label>
+                <div class="col-sm-8">
+                    <Dropdown ElementType="int" @bind-SelectedElement="selectedSourceConfigurationId" Elements="sourceConfigurationIds" ElementToString="SourceConfigurationDisplayName">
+                        <ElementTemplate Context="configurationId">@SourceConfigurationDisplayName(configurationId)</ElementTemplate>
+                    </Dropdown>
+                </div>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-primary" disabled="@(!CanSave)" @onclick="Save">
+                        @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+                    </button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                </NotAuthorized>
+            </ExecutionModeAuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public List<WorkflowConfiguration> ExistingConfigurations { get; set; } = [];
+
+    [Parameter]
+    public List<int> StateIds { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<int> ConfigurationCreated { get; set; }
+
+    private string name = "";
+    private string? description;
+    private List<int> sourceConfigurationIds = [];
+    private int selectedSourceConfigurationId;
+    private bool wasDisplayed;
+    private WorkflowConfiguration? SelectedSourceConfiguration => ExistingConfigurations.FirstOrDefault(configuration => configuration.Id == selectedSourceConfigurationId);
+    private bool CanSave => !string.IsNullOrWhiteSpace(name)
+        && !ExistingConfigurations.Any(configuration => string.Equals(configuration.Name, name.Trim(), StringComparison.OrdinalIgnoreCase))
+        && (SelectedSourceConfiguration != null || StateIds.Count > 0);
+
+    protected override void OnParametersSet()
+    {
+        sourceConfigurationIds = ExistingConfigurations.OrderBy(configuration => configuration.Name).Select(configuration => configuration.Id).Prepend(0).ToList();
+        if (Display && !wasDisplayed)
+        {
+            name = "";
+            description = null;
+            selectedSourceConfigurationId = 0;
+        }
+        wasDisplayed = Display;
+    }
+
+    /// <summary>
+    /// Displays the empty option or the selected source configuration name.
+    /// </summary>
+    private string SourceConfigurationDisplayName(int configurationId) => configurationId == 0
+        ? userConfig.GetText("empty_configuration")
+        : ExistingConfigurations.FirstOrDefault(configuration => configuration.Id == configurationId)?.Name ?? "";
+
+    private async Task Save()
+    {
+        if (!CanSave)
+        {
+            return;
+        }
+        try
+        {
+            string configurationName = name.Trim();
+            List<object> mappings = SelectedSourceConfiguration == null
+                ? BuildEmptyPhaseMappings(configurationName, StateIds.Min())
+                : await BuildClonedPhaseMappings(SelectedSourceConfiguration.Id, configurationName);
+            ReturnId result = await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.createWorkflowConfiguration, new
+            {
+                name = configurationName,
+                description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+                phaseMappings = mappings
+            });
+            await ConfigurationCreated.InvokeAsync(result.NewId);
+            await Close();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("add_configuration"), "", true);
+        }
+    }
+
+    /// <summary>
+    /// Loads and clones all phase mappings from an existing configuration.
+    /// </summary>
+    private async Task<List<object>> BuildClonedPhaseMappings(int sourceConfigurationId, string configurationName)
+    {
+        List<WorkflowConfigurationPhase> phaseMappings = await apiConnection.SendQueryAsync<List<WorkflowConfigurationPhase>>(
+            RequestQueries.getWorkflowConfigurationPhaseMappings, new { configurationId = sourceConfigurationId });
+        return phaseMappings.Select(mapping => BuildClonedPhaseMapping(mapping, configurationName)).ToList();
+    }
+
+    /// <summary>
+    /// Creates inactive phase matrices for every supported task type and phase.
+    /// </summary>
+    private static List<object> BuildEmptyPhaseMappings(string configurationName, int initialStateId) =>
+        Enum.GetValues<WfTaskType>()
+            .SelectMany(taskType => Enum.GetValues<WorkflowPhases>().Select(phase => BuildEmptyPhaseMapping(configurationName, taskType, phase, initialStateId)))
+            .ToList();
+
+    /// <summary>
+    /// Creates one empty phase-matrix insert payload.
+    /// </summary>
+    private static object BuildEmptyPhaseMapping(string configurationName, WfTaskType taskType, WorkflowPhases phase, int initialStateId) => new
+    {
+        task_type = taskType.ToString(),
+        phase = phase.ToString(),
+        state_matrix_phase = new
+        {
+            data = new
+            {
+                name = $"{configurationName}::{taskType}::{phase}",
+                phase = phase.ToString(),
+                active = false,
+                lowest_input_state = initialStateId,
+                lowest_start_state = initialStateId,
+                lowest_end_state = initialStateId,
+                state_matrix_derived_states = new { data = Array.Empty<object>() },
+                state_matrix_phase_transition_groups = new { data = Array.Empty<object>() }
+            }
+        }
+    };
+
+    private static object BuildClonedPhaseMapping(WorkflowConfigurationPhase mapping, string configurationName)
+    {
+        StateMatrixPhase phaseMatrix = mapping.PhaseMatrix;
+        return new
+        {
+            task_type = mapping.TaskType,
+            phase = mapping.Phase,
+            state_matrix_phase = new
+            {
+                data = new
+                {
+                    name = $"{configurationName}::{mapping.TaskType}::{mapping.Phase}",
+                    phase = phaseMatrix.Phase,
+                    active = phaseMatrix.Active,
+                    lowest_input_state = phaseMatrix.LowestInputState,
+                    lowest_start_state = phaseMatrix.LowestStartState,
+                    lowest_end_state = phaseMatrix.LowestEndState,
+                    state_matrix_derived_states = new
+                    {
+                        data = phaseMatrix.DerivedStates.Select(derivedState => new
+                        {
+                            from_state_id = derivedState.FromStateId,
+                            derived_state_id = derivedState.DerivedStateId
+                        }).ToList()
+                    },
+                    state_matrix_phase_transition_groups = new
+                    {
+                        data = phaseMatrix.TransitionGroups.Select(transitionGroup => new
+                        {
+                            transition_group_id = transitionGroup.TransitionGroupId,
+                            sort_order = transitionGroup.SortOrder
+                        }).ToList()
+                    }
+                }
+            }
+        };
+    }
+
+    private async Task Close()
+    {
+        Display = false;
+        await DisplayChanged.InvokeAsync(false);
+    }
+
+    private void ClosePopup() => _ = Close();
+}

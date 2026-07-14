@@ -1,39 +1,46 @@
-﻿using FWO.Config.Api;
-using FWO.Api.Data;
+using FWO.Config.Api;
+using FWO.Config.Api.Data;
+using FWO.Data;
+using FWO.Data.Modelling;
+using FWO.Data.Workflow;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Services;
+using FWO.Services.Modelling;
+using FWO.Services.Workflow;
 
 
 namespace FWO.Ui.Services
 {
     public class ModellingAppHandler : ModellingHandlerBase
     {
-        public ModellingConnectionHandler? connHandler;
-        public ModellingConnectionHandler? overviewConnHandler;
-        public List<ModellingConnection> Connections = [];
-        public ModellingConnection ConnToDelete = new();
-        public bool AddConnMode = false;
-        public bool EditConnMode = false;
-        public bool DeleteConnMode = false;
+        public ModellingConnectionHandler? ConnHandler { get; set; }
+        public ModellingConnectionHandler? OverviewConnHandler { get; set; }
+        public List<ModellingConnection> Connections { get; set; } = [];
+        public ModellingConnection ConnToDelete { get; set; } = new();
+        public bool AddConnMode { get; set; } = false;
+        public bool EditConnMode { get; set; } = false;
+        public bool DeleteConnMode { get; set; } = false;
+        public bool DecommissionInterfaceMode { get; set; } = false;
+        public bool ShowUsingConnectionsMode { get; set; } = false;
+        public string InterfaceName { get; set; } = "";
 
-        public Shared.TabSet tabset = new();
-        public Shared.Tab? actTab;
-        public int ActWidth = 0;
-        public bool StartCollapsed = true;
+        public Shared.TabSet Tabset { get; set; } = new();
+        private Shared.Tab? ActTab;
+        public int ActWidth { get; set; } = 0;
+        public bool StartCollapsed { get; set; } = true;
         private long dummyAppRoleId = 0;
 
 
-        public ModellingAppHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
-            Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
-            : base (apiConnection, userConfig, application, false, displayMessageInUi, false, isOwner)
-        {}
-        
+        public ModellingAppHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application,
+            Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner)
+            : base(apiConnection, userConfig, application, false, displayMessageInUi, false, isOwner)
+        { }
+
         public async Task Init(List<ModellingConnection>? connections = null)
         {
             try
             {
-                if(connections == null)
+                if (connections == null)
                 {
                     var queryParam = new
                     {
@@ -45,32 +52,59 @@ namespace FWO.Ui.Services
                 {
                     Connections = connections;
                 }
-                
+
                 List<ModellingAppRole> dummyAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getDummyAppRole);
                 if (dummyAppRoles.Count > 0)
                 {
-                    dummyAppRoleId = dummyAppRoles.First().Id;
+                    dummyAppRoleId = dummyAppRoles[0].Id;
                 }
 
-                foreach(var conn in Connections)
-                {
-                    await ExtractUsedInterface(conn);
-                    conn.SyncState(dummyAppRoleId);
-                }
-                ConnToDelete = Connections.FirstOrDefault() ?? new ModellingConnection();
-                overviewConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, new(), true,
+                await PrepareConnections(Connections);
+
+                OverviewConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, new(), true,
                     false, DisplayMessageInUi, ReInit, IsOwner)
                 {
                     LastWidth = ActWidth,
                     LastCollapsed = StartCollapsed || ActWidth == 0
                 };
-                 
-                await overviewConnHandler.Init();
+
+                await OverviewConnHandler.Init();
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
             }
+        }
+
+        private async Task PrepareConnections(List<ModellingConnection> connections)
+        {
+            foreach (var conn in connections)
+            {
+                await ExtractUsedInterface(conn);
+                conn.SyncState(dummyAppRoleId, userConfig.ModRolloutRemovedAppServers);
+            }
+
+            if (userConfig.VarianceAnalysisSync && userConfig.ModIntegrationMode != ModIntegrationMode.WorkflowNotifications)
+            {
+                await AnalyseStatus(connections);
+            }
+        }
+
+        public async Task AnalyseStatus(List<ModellingConnection> connections)
+        {
+            ExtStateHandler extStateHandler = new(apiConnection);
+            ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, Application, DisplayMessageInUi);
+            await varianceAnalysis.AnalyseConnsForStatus([.. connections.Where(x => !x.IsDocumentationOnly())]);
+        }
+
+        public static async Task<WfTicket?> GetLatestFWRequestTicket(FwoOwner application, ApiConnection apiConnection)
+        {
+            List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketId, new { ownerId = application.Id });
+            if (ticketIds.Count > 0)
+            {
+                return await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketIds[0].Id });
+            }
+            return null;
         }
 
         public async Task ReInit()
@@ -81,11 +115,11 @@ namespace FWO.Ui.Services
         public void InitActiveTab(ModellingConnection? conn = null)
         {
             int tab = 0;
-            if(conn != null)
+            if (conn != null)
             {
                 tab = GetTabFromConn(conn);
             }
-            else if(GetRegularConnections().Count == 0)
+            else if (GetRegularConnections().Count == 0)
             {
                 if (GetInterfaces().Count > 0)
                 {
@@ -96,28 +130,28 @@ namespace FWO.Ui.Services
                     tab = 2;
                 }
             }
-            tabset.SetActiveTab(tab);
+            Tabset.SetActiveTab(tab);
         }
 
         public void RestoreTab(ModellingConnection? conn = null)
         {
-            if(conn != null)
+            if (conn != null)
             {
-                tabset.SetActiveTab(GetTabFromConn(conn));
+                Tabset.SetActiveTab(GetTabFromConn(conn));
             }
-            else if(tabset.Tabs.Count > 0 && actTab != null)
+            else if (Tabset.Tabs.Count > 0 && ActTab != null)
             {
-                Shared.Tab? tab = tabset.Tabs.FirstOrDefault(x => x.Position == actTab.Position);
-                if(tab != null)
+                Shared.Tab? tab = Tabset.Tabs.FirstOrDefault(x => x.Position == ActTab.Position);
+                if (tab != null)
                 {
-                    tabset.SetActiveTab(tab);
+                    Tabset.SetActiveTab(tab);
                 }
             }
         }
 
         private static int GetTabFromConn(ModellingConnection conn)
         {
-            if(conn.IsInterface)
+            if (conn.IsInterface)
             {
                 return 1;
             }
@@ -130,8 +164,9 @@ namespace FWO.Ui.Services
 
         public List<ModellingConnection> GetInterfaces(bool showRejected = false)
         {
-            List<ModellingConnection> tmpList = Connections.Where(x => x.IsInterface && (showRejected || !x.GetBoolProperty(ConState.Rejected.ToString()))).ToList();
-            tmpList.Sort((ModellingConnection a, ModellingConnection b) => a.CompareTo(b));
+            List<ModellingConnection> tmpList = [.. Connections.Where(x => x.IsInterface &&
+                (showRejected || !(x.GetBoolProperty(ConState.Rejected.ToString()) || x.GetBoolProperty(ConState.Decommissioned.ToString()))))];
+            tmpList.Sort((a, b) => a.CompareTo(b));
             return tmpList;
         }
 
@@ -147,16 +182,25 @@ namespace FWO.Ui.Services
 
         public List<ModellingConnection> GetConnectionsToRequest()
         {
-            return [.. Connections.Where(x => !(x.IsInterface ||
-                x.GetBoolProperty(ConState.InterfaceRequested.ToString()) ||
-                x.GetBoolProperty(ConState.InterfaceRejected.ToString()) || 
-                x.EmptyAppRolesFound(dummyAppRoleId) ||
-                x.DeletedObjectsFound()
-                )).OrderByDescending(y => y.IsCommonService)];
+            if (userConfig.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications)
+            {
+                return ModellingRequestConnectionSelector.ForWorkflowNotifications(Connections, userConfig, dummyAppRoleId);
+            }
+
+            return ModellingRequestConnectionSelector.ForRegularRequests(Connections, userConfig, dummyAppRoleId);
+        }
+
+        public bool HasModellingIssues(ModellingConnection conn)
+        {
+            return !conn.IsRelevantForVarianceAnalysis(dummyAppRoleId);
         }
 
         public async Task AddConnection()
         {
+            if (!HasWriteAccess(userConfig.GetText("add_connection")))
+            {
+                return;
+            }
             ReadOnly = false;
             AddConnMode = true;
             await HandleConn(new ModellingConnection() { AppId = Application.Id });
@@ -164,16 +208,24 @@ namespace FWO.Ui.Services
 
         public async Task AddInterface()
         {
+            if (!HasWriteAccess(userConfig.GetText("add_interface")))
+            {
+                return;
+            }
             ReadOnly = false;
             AddConnMode = true;
-            await HandleConn(new ModellingConnection(){ AppId = Application.Id, IsInterface = true });
+            await HandleConn(new ModellingConnection() { AppId = Application.Id, IsInterface = true });
         }
 
         public async Task AddCommonService()
         {
+            if (!HasWriteAccess(userConfig.GetText("add_common_service")))
+            {
+                return;
+            }
             ReadOnly = false;
             AddConnMode = true;
-            await HandleConn(new ModellingConnection(){ AppId = Application.Id, IsCommonService = true });
+            await HandleConn(new ModellingConnection() { AppId = Application.Id, IsCommonService = true });
         }
 
         public async Task ShowDetails(ModellingConnection conn)
@@ -185,6 +237,11 @@ namespace FWO.Ui.Services
 
         public async Task EditConn(ModellingConnection conn)
         {
+            if (!IsOwner)
+            {
+                await ShowDetails(conn);
+                return;
+            }
             ReadOnly = false;
             AddConnMode = false;
             await HandleConn(conn);
@@ -192,46 +249,65 @@ namespace FWO.Ui.Services
 
         public async Task HandleConn(ModellingConnection conn)
         {
-            actTab = tabset.ActiveTab;
-            connHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, conn, AddConnMode, 
+            ActTab = Tabset.ActiveTab;
+            ConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, conn, AddConnMode,
                 ReadOnly, DisplayMessageInUi, ReInit, IsOwner);
-            await connHandler.Init();
+            await ConnHandler.Init();
             EditConnMode = true;
+        }
+
+        public async Task ShowUsingConnections(ModellingConnection conn)
+        {
+            if (conn.IsInterface)
+            {
+                InterfaceName = conn.Name ?? "";
+                await InitUsingConnections(conn.Id);
+            }
+            ShowUsingConnectionsMode = true;
         }
 
         public async Task RequestDeleteConnection(ModellingConnection conn)
         {
-            actTab = tabset.ActiveTab;
-            ConnToDelete = conn;
-            if(ConnToDelete.IsInterface)
+            if (!HasWriteAccess(userConfig.GetText("delete_connection")))
             {
-                if(await CheckInterfaceInUse(ConnToDelete))
+                return;
+            }
+            ActTab = Tabset.ActiveTab;
+            ConnToDelete = conn;
+            if (ConnToDelete.IsInterface)
+            {
+                if (await InitUsingConnections(ConnToDelete.Id))
                 {
                     Message = userConfig.GetText("E9013") + ConnToDelete.Name;
-                    DeleteAllowed = false;
+                    ConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, conn, AddConnMode,
+                        ReadOnly, DisplayMessageInUi, ReInit, IsOwner);
+                    await ConnHandler.Init();
+                    ConnHandler.UsingConnections = UsingConnections;
+                    DecommissionInterfaceMode = true;
+                    return;
                 }
-                else
-                {
-                    Message = userConfig.GetText("U9014") + ConnToDelete.Name + "?";
-                    DeleteAllowed = true;
-                }
+                Message = userConfig.GetText("U9014") + ConnToDelete.Name + "?";
             }
             else
             {
                 Message = userConfig.GetText("U9001") + ConnToDelete.Name + "?";
-                DeleteAllowed = true;
             }
+            DeleteAllowed = true;
             DeleteConnMode = true;
         }
 
         public async Task DeleteConnection()
         {
+            if (!HasWriteAccess(userConfig.GetText("delete_connection")))
+            {
+                return;
+            }
             try
             {
-                if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteConnection, new { id = ConnToDelete.Id })).DeletedId == ConnToDelete.Id)
+                if (await DeleteConnection(ConnToDelete))
                 {
                     await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.Connection, ConnToDelete.Id,
-                        $"Deleted {(ConnToDelete.IsInterface? "Interface" : "Connection")}: {ConnToDelete.Name}", Application.Id);
+                        $"Deleted {(ConnToDelete.IsInterface ? "Interface" : "Connection")}: {ConnToDelete.Name}", Application.Id);
                     Connections.Remove(ConnToDelete);
                     DeleteConnMode = false;
                     RestoreTab();
@@ -241,6 +317,17 @@ namespace FWO.Ui.Services
             {
                 DisplayMessageInUi(exception, userConfig.GetText("delete_connection"), "", true);
             }
+        }
+
+        private bool HasWriteAccess(string action)
+        {
+            if (IsOwner)
+            {
+                return true;
+            }
+
+            DisplayMessageInUi(null, action, userConfig.GetText("E9104"), true);
+            return false;
         }
     }
 }

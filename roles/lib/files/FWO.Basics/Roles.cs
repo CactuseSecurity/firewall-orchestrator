@@ -1,0 +1,41 @@
+namespace FWO.Basics
+{
+    public struct Roles
+    {
+        // General
+        public const string Anonymous = "anonymous";
+        public const string Admin = "admin";
+        public const string Auditor = "auditor";
+        public const string FwAdmin = "fw-admin";
+
+        // Rules
+        public const string Reporter = "reporter";
+        public const string ReporterViewAll = "reporter-viewall";
+        public const string Recertifier = "recertifier";
+        public const string Modeller = "modeller";
+
+        // Workflow
+        public const string Requester = "requester";
+        public const string Approver = "approver";
+        public const string Planner = "planner";
+        public const string Implementer = "implementer";
+        public const string Reviewer = "reviewer";
+        public const string WorkflowRolesList = $"{Requester}, {Approver}, {Planner}, {Implementer}, {Reviewer}";
+
+        // Technical
+        public const string MiddlewareServer = "middleware-server";
+        public const string Importer = "importer";
+        public const string DbBackup = "dbbackup";
+    }
+
+    public static class RoleGroups
+    {
+        public static bool IsTechnicalOrAnonymous(string role)
+        {
+            return role == Roles.MiddlewareServer || role == Roles.Importer || role == Roles.DbBackup || role == Roles.Anonymous;
+        }
+
+    }
+
+    public readonly record struct ReportVisibility(bool RuleRelated, bool ModellingRelated, bool ComplianceRelated, bool OwnerRelated, bool WorkflowRelated);
+}

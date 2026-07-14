@@ -1,0 +1,8 @@
+mutation updateOwnerResponsibleType($id: Int!, $name: String!, $active: Boolean!, $sort_order: Int!, $allow_modelling: Boolean!, $allow_recertification: Boolean!) {
+  update_owner_responsible_type_by_pk(
+    pk_columns: { id: $id }
+    _set: { name: $name, active: $active, sort_order: $sort_order, allow_modelling: $allow_modelling, allow_recertification: $allow_recertification }
+  ) {
+    updatedId: id
+  }
+}

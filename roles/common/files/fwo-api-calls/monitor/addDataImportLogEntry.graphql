@@ -1,0 +1,21 @@
+mutation addDataImportLogEntry(
+  $user: Int!
+  $source: String!
+  $severity: Int!
+  $suspectedCause: String
+  $description: String
+) {
+  insert_log_data_issue(
+    objects: {
+      source: $source
+      user_id: $user
+      severity: $severity
+      suspected_cause: $suspectedCause
+      description: $description
+    }
+  ) {
+    returning {
+      newIdLong: data_issue_id
+    }
+  }
+}

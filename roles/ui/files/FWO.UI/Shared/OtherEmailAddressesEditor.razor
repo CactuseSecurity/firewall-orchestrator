@@ -1,0 +1,116 @@
+@using FWO.Basics
+@using FWO.Data
+
+@inject UserConfig userConfig
+
+@if (AddressList != null)
+{
+    <div class="@ListClass">
+        @foreach (string address in AddressList)
+        {
+            <div class="d-flex mb-1">
+                <div class="border bg-transparent flex-grow-1">@address</div>
+                <button type="button" class="btn btn-sm btn-danger ms-1" @onclick="() => RemoveAddress(address)" @onclick:preventDefault>
+                    @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))
+                </button>
+            </div>
+        }
+        <div class="d-flex mt-1">
+            <input type="text" class="form-control form-control-sm flex-grow-1" @bind="actAddress" />
+            <button type="button" class="btn btn-sm btn-primary ms-1" @onclick="AddAddress" @onclick:preventDefault>
+                @(DisplayService.DisplayButton(userConfig, "add", Icons.Add))
+            </button>
+        </div>
+    </div>
+}
+else
+{
+    <div class="@RowClass" data-toggle="tooltip" title="@TooltipText">
+        <label class="col-form-label col-sm-3">@DisplayLabel:</label>
+        <div class="col-sm-9">
+            <input type="text" class="form-control form-control-sm w-100" @bind="AddressText" />
+        </div>
+    </div>
+}
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public string AddressValue { get; set; } = "";
+
+    [Parameter]
+    public EventCallback<string> AddressValueChanged { get; set; }
+
+    [Parameter]
+    public List<string>? AddressList { get; set; }
+
+    [Parameter]
+    public EventCallback<List<string>> AddressListChanged { get; set; }
+
+    [Parameter]
+    public string TooltipText { get; set; } = "";
+
+    [Parameter]
+    public string LabelText { get; set; } = "";
+
+    [Parameter]
+    public string RowClass { get; set; } = "form-group row mt-2";
+
+    [Parameter]
+    public string ListClass { get; set; } = "ps-4";
+
+    private string actAddress = "";
+
+    private string DisplayLabel => string.IsNullOrWhiteSpace(LabelText)
+        ? userConfig.GetText(nameof(EmailRecipientOption.OtherAddresses))
+        : LabelText;
+
+    private string AddressText
+    {
+        get => AddressValue;
+        set
+        {
+            if (AddressValue != value)
+            {
+                AddressValue = value;
+                _ = AddressValueChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    private async Task AddAddress()
+    {
+        if (AddressList == null)
+        {
+            return;
+        }
+
+        bool shortened = false;
+        string address = actAddress.SanitizeEmailAddressMand(ref shortened);
+        actAddress = "";
+        if (address == "" || AddressList.Contains(address, StringComparer.OrdinalIgnoreCase))
+        {
+            return;
+        }
+        AddressList.Add(address);
+        await AddressListChanged.InvokeAsync(AddressList);
+        if (shortened)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("email_address"), userConfig.GetText("U0001"), true);
+        }
+    }
+
+    private async Task RemoveAddress(string address)
+    {
+        if (AddressList == null)
+        {
+            return;
+        }
+
+        AddressList.RemoveAll(storedAddress => storedAddress.Equals(address, StringComparison.OrdinalIgnoreCase));
+        await AddressListChanged.InvokeAsync(AddressList);
+    }
+}

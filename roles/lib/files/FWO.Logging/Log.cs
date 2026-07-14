@@ -1,14 +1,35 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Globalization;
+using System.Text;
+using FWO.Basics;
+using FWO.Basics.Interfaces;
 
 namespace FWO.Logging
 {
     public static class Log
     {
-        private static SemaphoreSlim semaphore = new (1, 1);
-        private static readonly string lockFilePath = $"/var/fworch/lock/{Assembly.GetEntryAssembly()?.GetName().Name}_log.lock";
-        private static readonly Random random = new ();
+        private const string lockDirEnvVar = "FWO_LOG_LOCK_DIR";
+        private const string defaultLockDir = "/var/fworch/lock";
+
+        private static SemaphoreSlim semaphore = new(1, 1);
+        private static readonly Random random = new();
+
+        /// <summary>
+        /// Path of the lock file used to coordinate log file swapping with external processes.
+        /// The directory can be overridden via the FWO_LOG_LOCK_DIR environment variable
+        /// (e.g. on test hosts where /var/fworch/lock does not exist).
+        /// </summary>
+        public static string LockFilePath { get; } = Path.Combine(
+            ResolveLockDir(),
+            $"{Assembly.GetEntryAssembly()?.GetName().Name}_log.lock");
+
+        private static string ResolveLockDir()
+        {
+            string? configuredLockDir = Environment.GetEnvironmentVariable(lockDirEnvVar);
+            return string.IsNullOrWhiteSpace(configuredLockDir) ? defaultLockDir : configuredLockDir;
+        }
 
         static Log()
         {
@@ -16,22 +37,22 @@ namespace FWO.Logging
             {
                 // log switch - log file locking
                 bool logOwnedByExternal = false;
-                Stopwatch stopwatch = new ();
+                Stopwatch stopwatch = new();
 
                 while (true)
                 {
                     try
                     {
                         // Open file
-                        using FileStream file = await GetFile(lockFilePath);
+                        using FileStream file = await GetFile(LockFilePath);
                         // Read file content
-                        using StreamReader reader = new (file);
+                        using StreamReader reader = new(file);
                         string lockFileContent = (await reader.ReadToEndAsync()).Trim();
 
                         // Forcefully release lock after timeout
                         if (logOwnedByExternal && stopwatch.ElapsedMilliseconds > 10_000)
                         {
-                            using StreamWriter writer = new (file);
+                            using StreamWriter writer = new(file);
                             await writer.WriteLineAsync("FORCEFULLY RELEASED");
                             stopwatch.Reset();
                             semaphore.Release();
@@ -59,14 +80,14 @@ namespace FWO.Logging
                                 stopwatch.Restart();
                                 logOwnedByExternal = true;
                             }
-                            using StreamWriter writer = new (file);
+                            using StreamWriter writer = new(file);
                             await writer.WriteLineAsync("GRANTED");
                         }
                         // RELEASED - lock was released by log swap process
                         else if (lockFileContent.EndsWith("RELEASED"))
                         {
                             // only release lock if it was formerly requested by us
-                            if (logOwnedByExternal) 
+                            if (logOwnedByExternal)
                             {
                                 stopwatch.Reset();
                                 semaphore.Release();
@@ -91,8 +112,8 @@ namespace FWO.Logging
                 {
                     return File.Open(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
                 }
-                catch (Exception) 
-                { 
+                catch (Exception)
+                {
                     //WriteDebug("Log file locking", $"Could not access log lock file: {e.Message}.");
                 }
                 await Task.Delay(random.Next(100));
@@ -145,8 +166,55 @@ namespace FWO.Logging
             WriteLog("Error", Title, DisplayText, callerName, callerFile, callerLineNumber, ConsoleColor.Red);
         }
 
-        public static void WriteAudit(string Title, string Text, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
+        /// <summary>
+        /// Writes an audit log entry with the specified title and text.
+        /// Optionally appends a separator line to the log entry.
+        /// </summary>
+        /// <param name="Title">The title of the audit log entry.</param>
+        /// <param name="Text">The content of the audit log entry.</param>
+        /// <param name="WithSeparatorLine">Whether to append a separator line to the log entry. Default is true.</param>
+        /// <param name="callerName">The name of the calling method (automatically supplied).</param>
+        /// <param name="callerFile">The file path of the calling method (automatically supplied).</param>
+        /// <param name="callerLineNumber">The line number in the source file at which the method is called (automatically supplied).</param>
+        public static void WriteAudit(string Title, string Text, bool WithSeparatorLine = true, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
+            if (WithSeparatorLine)
+            {
+                Text += $"{Environment.NewLine}----{Environment.NewLine}";
+            }
+
+            WriteLog("Audit", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.Yellow);
+        }
+
+        /// <summary>
+        /// Writes an audit log entry with the specified title, text, user name, and user distinguished name (DN).
+        /// Optionally appends a separator line to the log entry.
+        /// </summary>
+        /// <param name="Title">The title of the audit log entry.</param>
+        /// <param name="Text">The content of the audit log entry.</param>
+        /// <param name="UserName">The name of the user performing the action.</param>
+        /// <param name="UserDN">The distinguished name (DN) of the user.</param>
+        /// <param name="WithSeparatorLine">Whether to append a separator line to the log entry. Default is true.</param>
+        /// <param name="callerName">The name of the calling method (automatically supplied).</param>
+        /// <param name="callerFile">The file path of the calling method (automatically supplied).</param>
+        /// <param name="callerLineNumber">The line number in the source file at which the method is called (automatically supplied).</param>
+        public static void WriteAudit(string Title, string Text, string UserName, string UserDN, bool WithSeparatorLine = true, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
+        {
+            if (!string.IsNullOrEmpty(UserName))
+            {
+                Text += $" by User: {UserName}";
+            }
+
+            if (!string.IsNullOrEmpty(UserDN))
+            {
+                Text += $" (DN: {UserDN})";
+            }
+
+            if (WithSeparatorLine)
+            {
+                Text += $"{Environment.NewLine}----{Environment.NewLine}";
+            }
+
             WriteLog("Audit", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.Yellow);
         }
 
@@ -169,9 +237,75 @@ namespace FWO.Logging
                 Console.ForegroundColor = (ConsoleColor)ForegroundColor;
             if (BackgroundColor != null)
                 Console.BackgroundColor = (ConsoleColor)BackgroundColor;
-            Console.Out.WriteLine(Text); // TODO: async method ?
+            Console.Out.WriteLine(SanitizeForLogOutput(Text)); // TODO: async method ?
             Console.ResetColor();
             semaphore.Release();
+        }
+
+        /// <summary>
+        /// Preserves meaningful punctuation in log messages while removing invisible control
+        /// and format characters that can break parsing or obfuscate terminal output.
+        /// </summary>
+        private static string SanitizeForLogOutput(string text)
+        {
+            StringBuilder sanitizedText = new(text.Length);
+            bool previousCharacterWasSpace = false;
+
+            foreach (char currentCharacter in text)
+            {
+                if (char.IsWhiteSpace(currentCharacter) && currentCharacter != ' ')
+                {
+                    if (!previousCharacterWasSpace)
+                    {
+                        sanitizedText.Append(' ');
+                        previousCharacterWasSpace = true;
+                    }
+                }
+                else if (IsVisibleLogCharacter(currentCharacter))
+                {
+                    sanitizedText.Append(currentCharacter);
+                    previousCharacterWasSpace = currentCharacter == ' ';
+                }
+            }
+
+            return sanitizedText.ToString().Trim();
+        }
+
+        private static bool IsVisibleLogCharacter(char currentCharacter)
+        {
+            UnicodeCategory characterCategory = char.GetUnicodeCategory(currentCharacter);
+            return characterCategory != UnicodeCategory.Control
+                && characterCategory != UnicodeCategory.Format
+                && characterCategory != UnicodeCategory.LineSeparator
+                && characterCategory != UnicodeCategory.ParagraphSeparator
+                && characterCategory != UnicodeCategory.Surrogate
+                && characterCategory != UnicodeCategory.PrivateUse
+                && characterCategory != UnicodeCategory.OtherNotAssigned;
+        }
+
+        public static void TryWriteLog(LogType logType, string title, string text, bool condition)
+        {
+            if (condition)
+            {
+                switch (logType)
+                {
+                    case LogType.Debug:
+                        WriteDebug(title, text);
+                        break;
+                    case LogType.Info:
+                        WriteInfo(title, text);
+                        break;
+                    case LogType.Warning:
+                        WriteWarning(title, text);
+                        break;
+                    case LogType.Error:
+                        WriteError(title, text);
+                        break;
+                    case LogType.Audit:
+                        WriteAudit(title, text);
+                        break;
+                }
+            }
         }
     }
 }

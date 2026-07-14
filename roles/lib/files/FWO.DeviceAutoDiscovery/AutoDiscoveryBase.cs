@@ -1,114 +1,56 @@
-﻿using System.Text.Json;
-
-using FWO.Basics;
-using FWO.Api.Data;
 using FWO.Api.Client;
-using FWO.Logging;
+using FWO.Basics;
+using FWO.Data;
 using FWO.Encryption;
+using FWO.Logging;
+using System.Text.Json;
 
 namespace FWO.DeviceAutoDiscovery
 {
     public class AutoDiscoveryBase
     {
-        public Management superManagement = new Management();
-        private readonly ApiConnection apiConnection;
-
-        List<Management> existingManagements = new List<Management>();
-
+        public Management SuperManagement { get; set; }
+        protected readonly ApiConnection apiConnection;
 
         public AutoDiscoveryBase(Management mgm, ApiConnection apiConn)
         {
-            superManagement = mgm;
-
-            string mainKey = AesEnc.GetMainKey();
-
-            string decryptedSecret = superManagement.ImportCredential.Secret;
-
-            // try to decrypt secret, keep it as is if failing
-            try
-            {
-                decryptedSecret = AesEnc.Decrypt(superManagement.ImportCredential.Secret, mainKey);
-            }
-            catch (Exception)
-            {
-                // Log.WriteWarning("AutoDiscovery", $"Found unencrypted credential secret: {superManagement.ImportCredential.Name}.");
-                Log.WriteWarning("AutoDiscovery", $"Could not decrypt secret {superManagement.ImportCredential.Secret} in credential named: {superManagement.ImportCredential.Name}.");
-            }
-
-            superManagement.ImportCredential.Secret = decryptedSecret;
+            SuperManagement = mgm;
+            SuperManagement.ImportCredential.Secret = AesEnc.TryDecrypt(SuperManagement.ImportCredential.Secret, true,
+                "AutoDiscovery", $"Could not decrypt secret in credential named '{SuperManagement.ImportCredential.Name}'.", true);
             apiConnection = apiConn;
         }
 
         public virtual Task<List<Management>> Run()
         {
-            return superManagement.DeviceType.Name switch
+            return SuperManagement.DeviceType.Name switch
             {
-                "FortiManager" => new AutoDiscoveryFortiManager(superManagement, apiConnection).Run(),
-                "CheckPoint" => new AutoDiscoveryCpMds(superManagement, apiConnection).Run(),
-                "Check Point" => new AutoDiscoveryCpMds(superManagement, apiConnection).Run(),
+                "FortiManager" => new AutoDiscoveryFortiManager(SuperManagement, apiConnection).Run(),
+                "CheckPoint" => new AutoDiscoveryCpMds(SuperManagement, apiConnection).Run(),
+                "Check Point" => new AutoDiscoveryCpMds(SuperManagement, apiConnection).Run(),
                 _ => throw new NotSupportedException("SuperManager Type is not supported."),
             };
         }
 
         public async Task<List<Management>> GetDeltas(List<Management> discoveredManagements)
         {
-            List<Management> deltaManagements = new List<Management>();
+            List<Management> deltaManagements = [];
             try
             {
-                existingManagements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+                List<Management> existingManagements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
 
+                bool compareManagementsByUid = SuperManagement.DeviceType.Name == "FortiManager";
                 foreach (Management discoveredMgmt in discoveredManagements.Where(x => x.ConfigPath != "global"))
                 {
-                    Management? existMgmt = FindManagementIfExist(discoveredMgmt, existingManagements);
-                    if (existMgmt == null)
-                    {
-                        // new management
-                        discoveredMgmt.Delete = false;
-                        deltaManagements.Add(discoveredMgmt);
-                    }
-                    else
-                    {
-                        Management changedMgmt = existMgmt;
-                        changedMgmt.Delete = false;
-                        bool foundChange = false;
-                        List<Device> newDevs = new List<Device>();
-                        // new devices in existing management
-                        foreach (Device discoveredDev in discoveredMgmt.Devices)
-                        {
-                            if (checkDeviceNotInMgmt(discoveredDev, existMgmt) || discoveredDev.ImportDisabled)
-                            {
-                                discoveredDev.Delete = false;
-                                newDevs.Add(discoveredDev);
-                                foundChange = true;
-                            }
-                        }
-
-                        // deleted devices in existing management
-                        foreach (Device existDev in existMgmt.Devices)
-                        {
-                            if (checkDeviceNotInMgmt(existDev, discoveredMgmt) && !existDev.ImportDisabled)
-                            {
-                                existDev.Delete = true;
-                                newDevs.Add(existDev);
-                                foundChange = true;
-                            }
-                        }
-                        changedMgmt.Devices = newDevs.ToArray();
-
-                        if (foundChange || changedMgmt.ImportDisabled)
-                        {
-                            deltaManagements.Add(changedMgmt);
-                        }
-                    }
+                    DiscoverManagementDetails(discoveredMgmt, deltaManagements, existingManagements, compareManagementsByUid, compareManagementsByUid);
                 }
                 // deleted managements
-                foreach (Management existMgmt in existingManagements.Where(mgt => mgt.SuperManagerId == superManagement.Id && mgt.ConfigPath != "global"))
+                foreach (Management existMgmtDisregardingUid in existingManagements.Where(mgt => mgt.SuperManagerId == SuperManagement.Id && mgt.ConfigPath != "global"))
                 {
-                    Management? foundMgmt = FindManagementIfExist(existMgmt, discoveredManagements);
-                    if (foundMgmt == null && !existMgmt.ImportDisabled)
+                    Management? foundMgmt = FindManagementIfExist(existMgmtDisregardingUid, discoveredManagements, compareManagementsByUid);
+                    if (foundMgmt == null && !existMgmtDisregardingUid.ImportDisabled)
                     {
-                        existMgmt.Delete = true;
-                        deltaManagements.Add(existMgmt);
+                        existMgmtDisregardingUid.Delete = true;
+                        deltaManagements.Add(existMgmtDisregardingUid);
                     }
                 }
             }
@@ -119,12 +61,74 @@ namespace FWO.DeviceAutoDiscovery
             return deltaManagements;
         }
 
-        private Management? FindManagementIfExist(Management mgm, List<Management> mgmtList)
+        private static void DiscoverManagementDetails(
+            Management discoveredMgmt,
+            List<Management> deltaManagements,
+            List<Management> existingManagements,
+            bool compareDevicesByUidOnly,
+            bool compareManagementsByUid)
         {
-            Management? existingManagement = mgmtList.FirstOrDefault(x =>
-                x.Name == mgm.Name
-                && x.ConfigPath == mgm.ConfigPath
-                && x.SuperManagerId == mgm.SuperManagerId);
+            Management? existMgmtDisregardingUid = FindManagementIfExist(discoveredMgmt, existingManagements, compareManagementsByUid);
+            if (existMgmtDisregardingUid == null)
+            {
+                // new management
+                discoveredMgmt.Delete = false;
+                deltaManagements.Add(discoveredMgmt);
+            }
+            else
+            {
+                HandleChangedManagement(discoveredMgmt, existMgmtDisregardingUid, deltaManagements, compareDevicesByUidOnly);
+            }
+        }
+
+        private static void HandleChangedManagement(
+            Management discoveredMgmt,
+            Management existMgmtDisregardingUid,
+            List<Management> deltaManagements,
+            bool compareDevicesByUidOnly)
+        {
+            Management changedMgmt = existMgmtDisregardingUid;
+            changedMgmt.Delete = false;
+            bool foundChange = false;
+            List<Device> newDevs = [];
+            // new devices in existing management
+            foreach (Device discoveredDev in discoveredMgmt.Devices)
+            {
+                if (CheckDeviceNotInMgmt(discoveredDev, existMgmtDisregardingUid, compareDevicesByUidOnly) ||
+                    discoveredDev.ImportDisabled)
+                {
+                    discoveredDev.Delete = false;
+                    newDevs.Add(discoveredDev);
+                    foundChange = true;
+                }
+            }
+
+            // deleted devices in existing management
+            foreach (Device existDev in existMgmtDisregardingUid.Devices)
+            {
+                if (CheckDeviceNotInMgmt(existDev, discoveredMgmt, compareDevicesByUidOnly) && !existDev.ImportDisabled)
+                {
+                    existDev.Delete = true;
+                    newDevs.Add(existDev);
+                    foundChange = true;
+                }
+            }
+            changedMgmt.Devices = newDevs.ToArray();
+
+            if (foundChange || changedMgmt.ImportDisabled)
+            {
+                deltaManagements.Add(changedMgmt);
+            }
+        }
+
+        private static Management? FindManagementIfExist(Management mgm, List<Management> mgmtList, bool compareManagementsByUid)
+        {
+            if (compareManagementsByUid)
+            {
+                return mgmtList.FirstOrDefault(m => ManagementUidMatches(m, mgm));
+            }
+
+            Management? existingManagement = mgmtList.FirstOrDefault(m => m.Equals(mgm));
             if (existingManagement != null)
             {
                 return existingManagement;
@@ -132,19 +136,51 @@ namespace FWO.DeviceAutoDiscovery
             return null;
         }
 
-        private bool checkDeviceNotInMgmt(Device dev, Management mgmt)
+        /// <summary>
+        /// Matches FortiManager child managements by ADOM UID within the same super manager.
+        /// </summary>
+        private static bool ManagementUidMatches(Management first, Management second)
         {
-            if (mgmt.Devices.FirstOrDefault(devInMgt =>
-                devInMgt.Name == dev.Name && devInMgt.LocalRulebase == dev.LocalRulebase) != null)
+            return !string.IsNullOrEmpty(first.Uid) &&
+                   !string.IsNullOrEmpty(second.Uid) &&
+                   first.Uid.GenerousCompare(second.Uid) &&
+                   first.SuperManagerId == second.SuperManagerId;
+        }
+
+        private static bool CheckDeviceNotInMgmt(Device dev, Management mgmt, bool compareDevicesByUidOnly)
+        {
+            if (compareDevicesByUidOnly)
+            {
+                if (mgmt.Devices.FirstOrDefault(devInMgt => DeviceUidMatches(devInMgt, dev)) != null)
+                {
+                    return false;
+                }
+                return true;
+            }
+
+            if (mgmt.Devices.FirstOrDefault(devInMgt => devInMgt.Equals(dev)) != null)
             {
                 return false;
             }
             return true;
         }
 
+        /// <summary>
+        /// Matches FortiManager gateways by non-empty UID.
+        /// </summary>
+        private static bool DeviceUidMatches(Device first, Device second)
+        {
+            return !string.IsNullOrEmpty(first.Uid) &&
+                   !string.IsNullOrEmpty(second.Uid) &&
+                   first.Uid.GenerousCompare(second.Uid);
+        }
+
+        protected virtual Management CreateManagement(Management superManagement, string domainName, string domainUid) { return new(); }
+
+
         public List<ActionItem> ConvertToActions(List<Management> diffList)
         {
-            List<ActionItem> actions = new List<ActionItem>();
+            List<ActionItem> actions = [];
             int counter = 0;
             try
             {
@@ -152,132 +188,15 @@ namespace FWO.DeviceAutoDiscovery
                 {
                     if (changedMgmt.Delete)
                     {
-                        actions.Add(new ActionItem
-                        {
-                            Number = ++counter,
-                            Supermanager = superManagement.Name,
-                            ActionType = ActionCode.DeleteManagement.ToString(),
-                            ManagementId = changedMgmt.Id,
-                            DeviceId = null,
-                            JsonData = null
-                        });
-                        foreach (Device dev in changedMgmt.Devices)
-                        {
-                            actions.Add(new ActionItem
-                            {
-                                Number = ++counter,
-                                Supermanager = superManagement.Name,
-                                ActionType = ActionCode.DeleteGateway.ToString(),
-                                ManagementId = changedMgmt.Id,
-                                DeviceId = dev?.Id,
-                                JsonData = null
-                            });
-                        }
+                        DeleteManagement(changedMgmt, actions, counter);
                     }
                     else if (changedMgmt.Id == 0)   // adding new management
                     {
-                        DeviceType devtype = new DeviceType();
-                        if (changedMgmt.DeviceType != null || changedMgmt.DeviceType?.Id == 0)
-                            devtype = changedMgmt.DeviceType;
-                        else
-                            devtype = new DeviceType() { Id = superManagement.DeviceType.GetManagementTypeId() };
-
-                        Management MgtVariables = new Management
-                        {
-                            Hostname = superManagement.Hostname,
-                            ImportCredential = superManagement.ImportCredential,
-                            ImporterHostname = superManagement.ImporterHostname,
-                            DebugLevel = superManagement.DebugLevel,
-                            Port = superManagement.Port,
-                            ImportDisabled = false,
-                            ForceInitialImport = true,
-                            HideInUi = false,
-                            ConfigPath = changedMgmt.ConfigPath,
-                            DomainUid = changedMgmt.DomainUid,
-                            Name = changedMgmt.Name,
-                            DeviceType = devtype,
-                            SuperManagerId = superManagement.Id
-                        };
-                        actions.Add(new ActionItem
-                        {
-                            Number = ++counter,
-                            Supermanager = superManagement.Name,
-                            ActionType = ActionCode.AddManagement.ToString(),
-                            ManagementId = null,
-                            DeviceId = null,
-                            JsonData = JsonSerializer.Serialize(MgtVariables)
-                        });
-
-                        foreach (Device dev in changedMgmt.Devices)
-                        {
-                            dev.DeviceType.Id = superManagement.DeviceType.GetGatewayTypeId();
-                            dev.Management.Id = 0;
-                            actions.Add(new ActionItem
-                            {
-                                Number = ++counter,
-                                Supermanager = superManagement.Name,
-                                ActionType = ActionCode.AddGatewayToNewManagement.ToString(),
-                                ManagementId = null,
-                                DeviceId = null,
-                                JsonData = JsonSerializer.Serialize(dev)
-                            });
-                        }
+                        AddManagement(changedMgmt, actions, counter);
                     }
                     else
                     {
-                        if (changedMgmt.ImportDisabled)
-                        {
-                            actions.Add(new ActionItem
-                            {
-                                Number = ++counter,
-                                Supermanager = superManagement.Name,
-                                ActionType = ActionCode.ReactivateManagement.ToString(),
-                                ManagementId = changedMgmt.Id,
-                                DeviceId = null,
-                                JsonData = null
-                            });
-                        }
-                        foreach (Device dev in changedMgmt.Devices)
-                        {
-                            if (dev.Delete)
-                            {
-                                actions.Add(new ActionItem
-                                {
-                                    Number = ++counter,
-                                    Supermanager = superManagement.Name,
-                                    ActionType = ActionCode.DeleteGateway.ToString(),
-                                    ManagementId = changedMgmt.Id,
-                                    DeviceId = dev?.Id,
-                                    JsonData = null
-                                });
-                            }
-                            else if (dev.ImportDisabled)
-                            {
-                                actions.Add(new ActionItem
-                                {
-                                    Number = ++counter,
-                                    Supermanager = superManagement.Name,
-                                    ActionType = ActionCode.ReactivateGateway.ToString(),
-                                    ManagementId = changedMgmt.Id,
-                                    DeviceId = dev.Id,
-                                    JsonData = null
-                                });
-                            }
-                            else
-                            {
-                                dev.DeviceType.Id = superManagement.DeviceType.GetGatewayTypeId();
-                                dev.Management.Id = changedMgmt.Id;
-                                actions.Add(new ActionItem
-                                {
-                                    Number = ++counter,
-                                    Supermanager = superManagement.Name,
-                                    ActionType = ActionCode.AddGatewayToExistingManagement.ToString(),
-                                    ManagementId = changedMgmt.Id,
-                                    DeviceId = null,
-                                    JsonData = JsonSerializer.Serialize(dev)
-                                });
-                            }
-                        }
+                        ChangeManagement(changedMgmt, actions, counter);
                     }
                 }
             }
@@ -288,6 +207,138 @@ namespace FWO.DeviceAutoDiscovery
             return actions;
         }
 
+        private void DeleteManagement(Management changedMgmt, List<ActionItem> actions, int counter)
+        {
+            actions.Add(new ActionItem
+            {
+                Number = ++counter,
+                Supermanager = SuperManagement.Name,
+                ActionType = ActionCode.DeleteManagement.ToString(),
+                ManagementId = changedMgmt.Id,
+                DeviceId = null,
+                JsonData = null
+            });
+            foreach (Device dev in changedMgmt.Devices)
+            {
+                actions.Add(new ActionItem
+                {
+                    Number = ++counter,
+                    Supermanager = SuperManagement.Name,
+                    ActionType = ActionCode.DeleteGateway.ToString(),
+                    ManagementId = changedMgmt.Id,
+                    DeviceId = dev?.Id,
+                    JsonData = null
+                });
+            }
+        }
+
+        private void AddManagement(Management changedMgmt, List<ActionItem> actions, int counter)
+        {
+            DeviceType devtype;
+            if (changedMgmt.DeviceType != null || changedMgmt.DeviceType?.Id == 0)
+                devtype = changedMgmt.DeviceType;
+            else
+                devtype = new DeviceType() { Id = SuperManagement.DeviceType.GetManagementTypeId() };
+
+            Management MgtVariables = new()
+            {
+                Hostname = SuperManagement.Hostname,
+                ImportCredential = SuperManagement.ImportCredential,
+                ImporterHostname = SuperManagement.ImporterHostname,
+                DebugLevel = SuperManagement.DebugLevel,
+                Port = SuperManagement.Port,
+                ImportDisabled = false,
+                ForceInitialImport = true,
+                HideInUi = false,
+                ConfigPath = changedMgmt.ConfigPath,
+                DomainUid = changedMgmt.DomainUid,
+                Name = changedMgmt.Name,
+                Uid = changedMgmt.Uid,
+                DeviceType = devtype,
+                SuperManagerId = SuperManagement.Id,
+                IsSupermanager = changedMgmt.IsSupermanager
+            };
+            actions.Add(new ActionItem
+            {
+                Number = ++counter,
+                Supermanager = SuperManagement.Name,
+                ActionType = ActionCode.AddManagement.ToString(),
+                ManagementId = null,
+                DeviceId = null,
+                JsonData = JsonSerializer.Serialize(MgtVariables)
+            });
+
+            foreach (Device dev in changedMgmt.Devices)
+            {
+                dev.DeviceType.Id = SuperManagement.DeviceType.GetGatewayTypeId();
+                dev.Management.Id = 0;
+                actions.Add(new ActionItem
+                {
+                    Number = ++counter,
+                    Supermanager = SuperManagement.Name,
+                    ActionType = ActionCode.AddGatewayToNewManagement.ToString(),
+                    ManagementId = null,
+                    DeviceId = null,
+                    JsonData = JsonSerializer.Serialize(dev)
+                });
+            }
+        }
+
+        private void ChangeManagement(Management changedMgmt, List<ActionItem> actions, int counter)
+        {
+            if (changedMgmt.ImportDisabled)
+            {
+                actions.Add(new ActionItem
+                {
+                    Number = ++counter,
+                    Supermanager = SuperManagement.Name,
+                    ActionType = ActionCode.ReactivateManagement.ToString(),
+                    ManagementId = changedMgmt.Id,
+                    DeviceId = null,
+                    JsonData = null
+                });
+            }
+            foreach (Device dev in changedMgmt.Devices)
+            {
+                if (dev.Delete)
+                {
+                    actions.Add(new ActionItem
+                    {
+                        Number = ++counter,
+                        Supermanager = SuperManagement.Name,
+                        ActionType = ActionCode.DeleteGateway.ToString(),
+                        ManagementId = changedMgmt.Id,
+                        DeviceId = dev.Id,
+                        JsonData = null
+                    });
+                }
+                else if (dev.ImportDisabled)
+                {
+                    actions.Add(new ActionItem
+                    {
+                        Number = ++counter,
+                        Supermanager = SuperManagement.Name,
+                        ActionType = ActionCode.ReactivateGateway.ToString(),
+                        ManagementId = changedMgmt.Id,
+                        DeviceId = dev.Id,
+                        JsonData = null
+                    });
+                }
+                else
+                {
+                    dev.DeviceType.Id = SuperManagement.DeviceType.GetGatewayTypeId();
+                    dev.Management.Id = changedMgmt.Id;
+                    actions.Add(new ActionItem
+                    {
+                        Number = ++counter,
+                        Supermanager = SuperManagement.Name,
+                        ActionType = ActionCode.AddGatewayToExistingManagement.ToString(),
+                        ManagementId = changedMgmt.Id,
+                        DeviceId = null,
+                        JsonData = JsonSerializer.Serialize(dev)
+                    });
+                }
+            }
+        }
     }
 }
-

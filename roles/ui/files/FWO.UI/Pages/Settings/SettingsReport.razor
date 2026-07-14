@@ -1,11 +1,9 @@
-﻿@using FWO.Api.Client
-@using FWO.Config.Api
-@using FWO.Config.Api.Data
-@using FWO.Services
-
+@using FWO.Basics.Enums
+@using FWO.Ui.Data.Extensions
+@using FWO.Basics.Extensions
 
 @page "/settings/report"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Recertifier}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Recertifier}, {Roles.Modeller}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -13,7 +11,7 @@
 
 <div class="input-group">
     <h3>@(userConfig.GetText("report_settings"))</h3>
-    <HelpLink Page="settings/report"/>
+    <HelpLink Page="settings/report" />
 </div>
 @(userConfig.GetText("U5413"))
 <hr />
@@ -45,6 +43,12 @@
                 <input id="messageViewTime" type="number" min="0" class="form-control form-control-sm" @bind="configData!.MessageViewTime">
             </div>
         </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5456"))">
+            <label for="resolveNAs" class="col-form-label col-sm-4">@(userConfig.GetText("resolveNetworkAreas")):</label>
+            <div class="col-sm-1">
+                <input id="resolveNAs" type="checkbox" class="w-100" @bind="configData!.ResolveNetworkAreas">
+            </div>
+        </div>
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5447"))">
             <label for="unusedTolerance" class="col-form-label col-sm-4">@(userConfig.GetText("unusedTolerance")):</label>
@@ -60,13 +64,20 @@
         </div>
     </form>
     <hr />
-    <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5462"))">
+        <label for="creationTolerance" class="col-form-label col-sm-4">@(userConfig.GetText("PreferredCollapseState")):</label>
+        <div class="col-sm-2">
+            <Dropdown ElementType="PreferredCollapseState" ElementToString="_ => _.ToString(userConfig)"
+                      Elements="Enum.GetValues<PreferredCollapseState>().Where(state => state != PreferredCollapseState.Intermediate)"
+                      @bind-SelectedElement="configData!.ReportingPersonalPreferredCollapseState" />
+        </div>
+    </div>
+    <hr />
+    <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
 }
 else
 {
-    <div class="spinner-border" role="status">
-        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
-    </div>
+    <Loading />
 }
 
 
@@ -97,11 +108,11 @@ else
             if (configData != null)
             {
                 await userConfig.WriteToDatabase(configData, apiConnection);
-                DisplayMessageInUi(null, userConfig.GetText("report_settings"), userConfig.GetText("U5301"), false);             
+                DisplayMessageInUi(null, userConfig.GetText("report_settings"), userConfig.GetText("U5301"), false);
             }
             else
             {
-                throw new Exception("Data saved before loaded. This should be impossible.");
+                throw new ArgumentException("Data saved before loaded. This should be impossible.");
             }
         }
         catch (Exception exception)

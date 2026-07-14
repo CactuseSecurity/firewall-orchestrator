@@ -1,0 +1,5 @@
+mutation deleteConnection($id: Int!) {
+  delete_modelling_connection_by_pk(id: $id) {
+    deletedId: id
+  }
+}

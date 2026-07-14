@@ -7,8 +7,6 @@
 -- (once per statement, not per row)
 
 
-
-
 -- fundamental function to check owner <--> rule mapping using the existing view
 -- "view_rule_with_owner"
 CREATE OR REPLACE FUNCTION recert_owner_responsible_for_rule (i_owner_id INTEGER, i_rule_id BIGINT) RETURNS BOOLEAN AS $$
@@ -53,7 +51,6 @@ DECLARE
 	b_never_recertified BOOLEAN := FALSE;
 	b_no_current_next_recert_date BOOLEAN := FALSE;
 	b_super_owner_exists BOOLEAN := FALSE;
-	i_previous_import BIGINT;
 	i_current_import_id BIGINT;
 	i_super_owner_id INT;
 	i_current_owner_id_tmp INT;
@@ -65,12 +62,7 @@ BEGIN
 			RAISE WARNING 'found undefined mgm_id in recert_refresh_one_owner_one_mgm';
 		END IF;
 	ELSE
-		-- get id of previous import:
 		SELECT INTO i_current_import_id control_id FROM import_control WHERE mgm_id=i_mgm_id AND stop_time IS NULL;
-		SELECT INTO i_previous_import * FROM get_previous_import_id_for_mgmt(i_mgm_id,i_current_import_id);
-		IF NOT FOUND OR i_previous_import IS NULL THEN
-			i_previous_import := -1;	-- prevent match for previous import
-		END IF;
 
 		SELECT INTO i_super_owner_id id FROM owner WHERE is_default;
 		IF FOUND THEN 
@@ -85,7 +77,7 @@ BEGIN
 		SELECT INTO i_recert_inverval recert_interval FROM owner WHERE id=i_owner_id;
 
 		FOR r_rule IN
-		SELECT rule_uid, rule_id FROM rule WHERE mgm_id=i_mgm_id AND (active OR NOT active AND rule_last_seen=i_previous_import)
+		SELECT rule_uid, rule_id FROM rule WHERE mgm_id=i_mgm_id AND (active OR NOT active AND removed=i_current_import_id)
 		LOOP
 
 			IF recert_owner_responsible_for_rule (i_owner_id, r_rule.rule_id) THEN
@@ -106,7 +98,7 @@ BEGIN
 					b_never_recertified := TRUE;
 					SELECT INTO t_rule_created rule_metadata.rule_created
 						FROM rule
-						LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid AND rule.dev_id=rule_metadata.dev_id)
+						LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid AND rule.mgm_id = rule_metadata.mgm_id)
 						WHERE rule_id=r_rule.rule_id;
 				END IF;
 
@@ -132,39 +124,25 @@ BEGIN
 				DELETE FROM recertification WHERE owner_id=i_owner_id AND rule_id=r_rule.rule_id AND recert_date IS NULL;
 
 				-- add new recert entry:
-				IF b_super_owner THEN	-- special case for super owner (convert NULL to ID)
-					INSERT INTO recertification (rule_metadata_id, next_recert_date, rule_id, ip_match, owner_id)
-						SELECT rule_metadata_id, 
-							t_next_recert_date AS next_recert_date,
-							rule_id, 
-							matches as ip_match, 
-							i_owner_id AS owner_id
-						FROM view_rule_with_owner 
-						LEFT JOIN rule USING (rule_id)
-						LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid AND rule.dev_id=rule_metadata.dev_id)
-						WHERE view_rule_with_owner.rule_id=r_rule.rule_id AND view_rule_with_owner.owner_id IS NULL;
-				ELSE
-					INSERT INTO recertification (rule_metadata_id, next_recert_date, rule_id, ip_match, owner_id)
-						SELECT rule_metadata_id, 
-							t_next_recert_date AS next_recert_date,
-							rule_id, 
-							matches as ip_match, 
-							i_owner_id AS owner_id
-						FROM view_rule_with_owner 
-						LEFT JOIN rule USING (rule_id)
-						LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid AND rule.dev_id=rule_metadata.dev_id)
-						WHERE view_rule_with_owner.rule_id=r_rule.rule_id AND view_rule_with_owner.owner_id=i_owner_id;
-				END IF;
+				INSERT INTO recertification (rule_metadata_id, next_recert_date, rule_id, ip_match, owner_id)
+					SELECT rule_metadata_id,
+						t_next_recert_date AS next_recert_date,
+						rule_id,
+						matches AS ip_match,
+						i_owner_id AS owner_id
+					FROM view_rule_with_owner
+					LEFT JOIN rule USING (rule_id)
+					LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid AND rule.mgm_id = rule_metadata.mgm_id)
+					WHERE view_rule_with_owner.rule_id=r_rule.rule_id
+						AND (
+							(b_super_owner AND view_rule_with_owner.owner_id IS NULL)
+							OR (NOT b_super_owner AND view_rule_with_owner.owner_id=i_owner_id)
+						);
 			ELSE
 				-- delete old outdated recert entry if owner is not responsible any more 
 				DELETE FROM recertification WHERE owner_id=i_owner_id AND rule_id=r_rule.rule_id AND recert_date IS NULL;
 			END IF;
 		END LOOP;
-
-		-- -- finally, when not super user - recalculate super user recert entries - since these might change with each owner change
-		-- IF NOT b_super_owner AND b_super_owner_exists THEN
-		-- 	PERFORM recert_refresh_one_owner_one_mgm (i_super_owner_id, i_mgm_id, t_requested_next_recert_date);
-		-- END IF;
 	END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -188,81 +166,66 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- select * from recert_get_one_owner_one_mgm(4,1)
 
--- this function returns a table of future recert entries 
+-- This function returns a table of future recert entries 
 -- but does not write them into the recertification table
-CREATE OR REPLACE FUNCTION recert_get_one_owner_one_mgm
-	(i_owner_id INTEGER, i_mgm_id INTEGER)
-	RETURNS SETOF recertification AS
+CREATE OR REPLACE FUNCTION recert_get_one_owner_one_mgm(
+    i_owner_id INTEGER,
+    i_mgm_id INTEGER
+)
+RETURNS SETOF recertification AS
 $$
 DECLARE
-	b_super_owner BOOLEAN := FALSE;
-	i_recert_entry_id INTEGER;
-	i_super_owner_interval INTEGER;
+    b_super_owner BOOLEAN := FALSE;
+    i_recert_entry_id INTEGER;
+    i_recert_interval INTEGER;
 BEGIN
-	SELECT INTO i_recert_entry_id id FROM owner WHERE id=i_owner_id AND is_default;
-	IF FOUND THEN 
-		b_super_owner := TRUE;
-	END IF;
+    SELECT INTO i_recert_entry_id id FROM owner WHERE id=i_owner_id AND is_default;
+    IF FOUND THEN 
+        b_super_owner := TRUE;
+    END IF;
 
-	-- ignore rule_id/owner_id combinations with existing decertification entries
-	-- owner_id=0 and not recertified and NOT recert_date is null
-	IF b_super_owner THEN
-		SELECT INTO i_super_owner_interval recert_interval FROM OWNER WHERE is_default;
+    SELECT INTO i_recert_interval recert_interval FROM owner WHERE id=i_owner_id;
 
-		RETURN QUERY
-		SELECT DISTINCT
-			NULL::bigint AS id,
-			M.rule_metadata_id, 
-			R.rule_id, 
-			V.matches::VARCHAR as ip_match, 
-			0::int as owner_id,
-			NULL::VARCHAR AS user_dn,
-			FALSE::BOOLEAN AS recertified,
-			NULL::TIMESTAMP AS recert_date,
-			NULL::VARCHAR AS comment,
-			MAX((SELECT MAX(value)::TIMESTAMP AS next_recert_date
-				FROM (
-					SELECT I.start_time::timestamp + make_interval (days => o.recert_interval) AS value
-					UNION
-					SELECT C.recert_date + make_interval (days => o.recert_interval) AS value
-				) AS temp_table))
-		FROM 
-			view_rule_with_owner V 
-			LEFT JOIN rule R USING (rule_id)			
-			LEFT JOIN rule_metadata M ON (R.rule_uid=M.rule_uid AND R.dev_id=M.dev_id)
-			LEFT JOIN owner O ON (O.id=0)
-			LEFT JOIN import_control I ON (R.rule_create=I.control_id)
-			LEFT JOIN recertification C ON (M.rule_metadata_id=C.rule_metadata_id)
-		WHERE V.owner_id IS NULL AND R.mgm_id=i_mgm_id AND R.active AND (recert_date IS NULL OR (NOT recert_date IS NULL AND recertified))
-		GROUP BY M.rule_metadata_id, R.rule_id, V.matches;
-	ELSE
-		RETURN QUERY
-		SELECT
-			NULL::bigint AS id,
-			M.rule_metadata_id, 
-			R.rule_id, 
-			V.matches::VARCHAR as ip_match, 
-			i_owner_id,
-			NULL::VARCHAR AS user_dn,
-			FALSE::BOOLEAN AS recertified,
-			NULL::TIMESTAMP AS recert_date,
-			NULL::VARCHAR AS comment,
-			MAX((SELECT MAX(value)::TIMESTAMP AS next_recert_date
-				FROM (
-					SELECT I.start_time::timestamp + make_interval (days => o.recert_interval) AS value
-					UNION
-					SELECT C.recert_date + make_interval (days => o.recert_interval) AS value
-				) AS temp_table))
-		FROM 
-			view_rule_with_owner V 
-			LEFT JOIN rule R USING (rule_id)			
-			LEFT JOIN rule_metadata M ON (R.rule_uid=M.rule_uid AND R.dev_id=M.dev_id)
-			LEFT JOIN owner O ON (V.owner_id=O.id)
-			LEFT JOIN import_control I ON (R.rule_create=I.control_id)
-			LEFT JOIN recertification C ON (M.rule_metadata_id=C.rule_metadata_id)
-		WHERE V.owner_id=i_owner_id AND R.mgm_id=i_mgm_id AND R.active AND (recert_date IS NULL OR (NOT recert_date IS NULL AND recertified))
-		GROUP BY M.rule_metadata_id, R.rule_id, V.matches;
-	END IF;
+    -- ignore rule_id/owner_id combinations with existing decertification entries
+    -- owner_id=0 and not recertified and NOT recert_date is null
+    RETURN QUERY
+    SELECT
+        NULL::bigint AS id,
+        M.rule_metadata_id,
+        R.rule_id,
+        V.matches::VARCHAR AS ip_match,
+        CASE
+            WHEN b_super_owner THEN 0::int
+            ELSE i_owner_id
+        END AS owner_id,
+        NULL::VARCHAR AS user_dn,
+        FALSE::BOOLEAN AS recertified,
+        NULL::TIMESTAMP AS recert_date,
+        NULL::VARCHAR AS comment,
+        MAX((
+            SELECT MAX(value)::TIMESTAMP AS next_recert_date
+            FROM (
+                SELECT I.start_time::timestamp + make_interval (days => i_recert_interval) AS value
+                UNION
+                SELECT C.recert_date + make_interval (days => i_recert_interval) AS value
+            ) AS temp_table
+        )),
+        NULL::bigint AS owner_recert_id
+    FROM
+        view_rule_with_owner V
+        LEFT JOIN rule R USING (rule_id)
+        LEFT JOIN rule_metadata M ON (R.rule_uid=M.rule_uid AND R.mgm_id = M.mgm_id)
+        LEFT JOIN import_control I ON (R.rule_create=I.control_id)
+        LEFT JOIN recertification C ON (M.rule_metadata_id=C.rule_metadata_id)
+    WHERE R.mgm_id=i_mgm_id
+        AND R.active
+        AND (recert_date IS NULL OR (NOT recert_date IS NULL AND recertified))
+        AND (
+            (b_super_owner AND V.owner_id IS NULL)
+            OR (NOT b_super_owner AND V.owner_id=i_owner_id)
+        )
+    GROUP BY M.rule_metadata_id, R.rule_id, V.matches;
 END;
 $$ LANGUAGE plpgsql STABLE;

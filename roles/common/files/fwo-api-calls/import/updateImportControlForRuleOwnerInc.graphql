@@ -1,0 +1,14 @@
+mutation updateImportControlForRuleOwnerInc($controlId: bigint!, $rule_owner_mapping_done: Boolean!) {
+  update_import_control(
+    where: { control_id: { _eq: $controlId } },
+    _set: { 
+      rule_owner_mapping_done: $rule_owner_mapping_done
+    }
+  ) {
+    affected_rows
+    returning {
+      control_id
+      rule_owner_mapping_done
+    }
+  }
+}

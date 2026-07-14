@@ -1,4 +1,4 @@
-﻿@using NetTools;
+@using NetTools;
 
 @inject UserConfig userConfig
 
@@ -12,33 +12,34 @@
 	private IPAddressRange? ipRange;
 
 	[Parameter]
-	public IPAddressRange? IpRange
-	{
-		get => ipRange;
-		set
-		{
-			if (ipRange != value)
-			{
-				ipRange = value;
-				IpRangeChanged.InvokeAsync(ipRange);
-			}
-		}
-	}
+    public IPAddressRange? IpRange { get; set; }
 
 	[Parameter]
 	public EventCallback<IPAddressRange?> IpRangeChanged { get; set; }
 
-	private void TryParseIpRange(string ipAddressInput)
-	{
-		if (IPAddressRange.TryParse(ipAddressInput, out IPAddressRange parsedIpRange))
-		{
-			IpRange = parsedIpRange;
-			ipAddressInputClass = "is-valid";
-		}
-		else
-		{
-			IpRange = null;
-			ipAddressInputClass = "is-invalid";
-		}
-	}
+    protected override void OnParametersSet()
+    {
+        if (ipRange != IpRange)
+        {
+            ipRange = IpRange;
+        }
+    }
+
+    private async void TryParseIpRange(string ipAddressInput)
+    {
+        if (IPAddressRange.TryParse(ipAddressInput, out IPAddressRange parsedIpRange))
+        {
+            ipRange = parsedIpRange;
+            ipAddressInputClass = "is-valid";
+            IpRange = parsedIpRange;
+            await IpRangeChanged.InvokeAsync(parsedIpRange);
+        }
+        else
+        {
+            ipRange = null;
+            ipAddressInputClass = "is-invalid";
+            IpRange = null;
+            await IpRangeChanged.InvokeAsync(null);
+        }
+    }
 }

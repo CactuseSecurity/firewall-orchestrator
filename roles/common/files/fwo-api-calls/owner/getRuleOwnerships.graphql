@@ -1,0 +1,10 @@
+query getRuleOwnerships ($ownerId: Int!) {
+  v_rule_with_rule_owner_1(where: {owner_id: {_eq: $ownerId}} order_by: { mgm_id: asc, rulebase_id: asc }) {
+    rule_id
+    rule_name
+    rule_uid
+    mgm_id
+    rulebase_id
+    rule_metadata_id
+  }
+}

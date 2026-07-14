@@ -1,5 +1,6 @@
 ﻿@using FWO.Config.Api
-@using FWO.Api.Data
+@using FWO.Data
+@using FWO.Basics
 
 @inject UserConfig userConfig
 
@@ -25,7 +26,7 @@
                     <span class="@Icons.Workflow"></span> @(userConfig.GetText("workflow"))
                 </a>
                 <a class="nav-link" href="/help/modelling/rollout/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="@Icons.Export"></span> @(userConfig.GetText("rollout"))
+                    <span class="@Icons.Rollout"></span> @(userConfig.GetText("rollout"))
                 </a>
             </ul>
         </div>

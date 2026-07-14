@@ -1,0 +1,219 @@
+using System.Text.Json.Serialization;
+using Newtonsoft.Json;
+
+namespace FWO.Data
+{
+    public enum NotificationClient
+    {
+        None = 0,
+        Recertification = 1,
+        ImportChange = 2,
+        Compliance = 3,
+        InterfaceRequest = 4,
+        RuleTimer = 5,
+        AppDecomm = 6,
+        Report = 7,
+        WfAction = 8
+    }
+
+    public static class NotificationClientGroups
+    {
+        /// <summary>
+        /// Returns whether notifications for this client can resolve owner/modelling recipients.
+        /// </summary>
+        /// <param name="client">Notification client to classify.</param>
+        /// <returns>True if modelling recipient options are supported.</returns>
+        public static bool IsModellingRecipientClient(this NotificationClient client)
+        {
+            return client is NotificationClient.Recertification
+                or NotificationClient.InterfaceRequest
+                or NotificationClient.RuleTimer
+                or NotificationClient.AppDecomm;
+        }
+
+        /// <summary>
+        /// Returns whether notifications for this client can resolve workflow ticket recipients.
+        /// </summary>
+        /// <param name="client">Notification client to classify.</param>
+        /// <returns>True if workflow recipient options are supported.</returns>
+        public static bool IsWorkflowRecipientClient(this NotificationClient client)
+        {
+            return client is NotificationClient.WfAction;
+        }
+    }
+
+    public enum NotificationChannel
+    {
+        Email = 1
+    }
+
+    public enum NotificationDeadline
+    {
+        None = 0,
+        RecertDate = 1,
+        RequestDate = 2,
+        RuleExpiry = 3,
+        DecommissionDate = 4
+    }
+
+    public enum BundleType
+    {
+        Attachments = 1
+    }
+
+    public static class NotificationDeadlineGroups
+    {
+        /// <summary>
+        /// Returns whether the deadline source is only meaningful as a past event and therefore
+        /// cannot support a "before deadline" notification configuration.
+        /// </summary>
+        /// <param name="notificationDeadline">Deadline type to classify.</param>
+        /// <returns>True for deadlines that are always treated as past events.</returns>
+        public static bool IsAlwaysInPast(this NotificationDeadline notificationDeadline)
+        {
+            return notificationDeadline switch
+            {
+                NotificationDeadline.RequestDate or
+                NotificationDeadline.DecommissionDate => true,
+                _ => false
+            };
+        }
+    }
+
+    public class FwoNotification
+    {
+        public FwoNotification()
+        {
+        }
+
+        public FwoNotification(FwoNotification notification)
+        {
+            Id = notification.Id;
+            NotificationClient = notification.NotificationClient;
+            UserId = notification.UserId;
+            OwnerId = notification.OwnerId;
+            Channel = notification.Channel;
+            Name = notification.Name;
+            RecipientTo = notification.RecipientTo;
+            EmailAddressTo = notification.EmailAddressTo;
+            RecipientCc = notification.RecipientCc;
+            EmailAddressCc = notification.EmailAddressCc;
+            RecipientBcc = notification.RecipientBcc;
+            EmailAddressBcc = notification.EmailAddressBcc;
+            EmailSubject = notification.EmailSubject;
+            EmailBody = notification.EmailBody;
+            ScheduleId = notification.ScheduleId;
+            BundleType = notification.BundleType;
+            BundleId = notification.BundleId;
+            Layout = notification.Layout;
+            Deadline = notification.Deadline;
+            IntervalBeforeDeadline = notification.IntervalBeforeDeadline;
+            OffsetBeforeDeadline = notification.OffsetBeforeDeadline;
+            RepeatIntervalAfterDeadline = notification.RepeatIntervalAfterDeadline;
+            InitialOffsetAfterDeadline = notification.InitialOffsetAfterDeadline;
+            RepeatOffsetAfterDeadline = notification.RepeatOffsetAfterDeadline;
+            RepetitionsAfterDeadline = notification.RepetitionsAfterDeadline;
+            LastSent = notification.LastSent;
+        }
+
+        [JsonProperty("id"), JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        [JsonProperty("notification_client"), JsonPropertyName("notification_client")]
+        public NotificationClient NotificationClient { get; set; } = NotificationClient.None;
+
+        [JsonProperty("user_id"), JsonPropertyName("user_id")]
+        public int? UserId { get; set; }
+
+        [JsonProperty("owner_id"), JsonPropertyName("owner_id")]
+        public int? OwnerId { get; set; }
+
+        [JsonProperty("channel"), JsonPropertyName("channel")]
+        public NotificationChannel Channel { get; set; } = NotificationChannel.Email;
+
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string Name { get; set; } = "";
+
+        [JsonProperty("recipient_to"), JsonPropertyName("recipient_to")]
+        public EmailRecipientOption RecipientTo { get; set; } = EmailRecipientOption.None;
+
+        [JsonProperty("email_address_to"), JsonPropertyName("email_address_to")]
+        public string EmailAddressTo { get; set; } = "";
+
+        [JsonProperty("recipient_cc"), JsonPropertyName("recipient_cc")]
+        public EmailRecipientOption RecipientCc { get; set; } = EmailRecipientOption.None;
+
+        [JsonProperty("email_address_cc"), JsonPropertyName("email_address_cc")]
+        public string EmailAddressCc { get; set; } = "";
+
+        [JsonProperty("recipient_bcc"), JsonPropertyName("recipient_bcc")]
+        private EmailRecipientOption? RecipientBccValue { get; set; }
+
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public EmailRecipientOption RecipientBcc
+        {
+            get => RecipientBccValue ?? EmailRecipientOption.None;
+            set => RecipientBccValue = value;
+        }
+
+        [JsonProperty("email_address_bcc"), JsonPropertyName("email_address_bcc")]
+        public string EmailAddressBcc { get; set; } = "";
+
+        [JsonProperty("email_subject"), JsonPropertyName("email_subject")]
+        public string EmailSubject { get; set; } = "";
+
+        [JsonProperty("email_body"), JsonPropertyName("email_body")]
+        public string EmailBody { get; set; } = "";
+
+        [JsonProperty("schedule_id"), JsonPropertyName("schedule_id")]
+        public int? ScheduleId { get; set; }
+
+        [JsonProperty("bundle_type"), JsonPropertyName("bundle_type")]
+        public BundleType? BundleType { get; set; }
+
+        [JsonProperty("bundle_id"), JsonPropertyName("bundle_id")]
+        public string? BundleId { get; set; }
+
+        [JsonProperty("layout"), JsonPropertyName("layout")]
+        public NotificationLayout Layout { get; set; } = NotificationLayout.SimpleText;
+
+        [JsonProperty("deadline"), JsonPropertyName("deadline")]
+        public NotificationDeadline Deadline { get; set; } = NotificationDeadline.None;
+
+        [JsonProperty("interval_before_deadline"), JsonPropertyName("interval_before_deadline")]
+        public SchedulerInterval? IntervalBeforeDeadline { get; set; }
+
+        [JsonProperty("offset_before_deadline"), JsonPropertyName("offset_before_deadline")]
+        public int? OffsetBeforeDeadline { get; set; }
+
+        [JsonProperty("repeat_interval_after_deadline"), JsonPropertyName("repeat_interval_after_deadline")]
+        public SchedulerInterval? RepeatIntervalAfterDeadline { get; set; }
+
+        [JsonProperty("initial_offset_after_deadline"), JsonPropertyName("initial_offset_after_deadline")]
+        public int? InitialOffsetAfterDeadline { get; set; }
+
+        [JsonProperty("repeat_offset_after_deadline"), JsonPropertyName("repeat_offset_after_deadline")]
+        public int? RepeatOffsetAfterDeadline { get; set; }
+
+        [JsonProperty("repetitions_after_deadline"), JsonPropertyName("repetitions_after_deadline")]
+        public int? RepetitionsAfterDeadline { get; set; }
+
+        [JsonProperty("last_sent"), JsonPropertyName("last_sent")]
+        public DateTime? LastSent { get; set; }
+
+
+        public static List<NotificationDeadline> OfferedDeadlineOptions(NotificationClient client)
+        {
+            return client switch
+            {
+                NotificationClient.Recertification => [NotificationDeadline.RecertDate],
+                NotificationClient.ImportChange => [NotificationDeadline.None],
+                NotificationClient.RuleTimer => [NotificationDeadline.RuleExpiry],
+                NotificationClient.InterfaceRequest => [NotificationDeadline.RequestDate],
+                NotificationClient.AppDecomm => [NotificationDeadline.None, NotificationDeadline.DecommissionDate],
+                NotificationClient.WfAction => [NotificationDeadline.None],
+                _ => Enum.GetValues(typeof(NotificationDeadline)).Cast<NotificationDeadline>().ToList()
+            };
+        }
+    }
+}

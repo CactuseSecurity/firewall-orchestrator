@@ -1,0 +1,8 @@
+query getMatrixByName ($name: String!){
+  compliance_criterion (where: { criterion_type: {_eq: "Matrix"}, name: {_eq: $name}, removed: {_is_null: true} }){
+    id
+    name
+	comment
+	import_source
+  }
+}

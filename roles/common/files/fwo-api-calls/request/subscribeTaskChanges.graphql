@@ -1,0 +1,22 @@
+subscription subscribeTaskChanges ($id: bigint!){
+  request_reqtask(where: { id: {_eq: $id} }, limit:1) {
+    id
+    title
+    task_number
+    state_id
+    task_type
+    additional_info
+    on_management: management {
+      id: mgm_id
+      name: mgm_name
+    }
+    elements: elements {
+      ...reqElementDetails
+    }
+    comments: reqtask_comments {
+      comment: comment {
+        comment_text
+      }
+    }
+  }
+}

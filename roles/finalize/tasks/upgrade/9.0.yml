@@ -1,0 +1,20 @@
+- name: check for existing legacy importer service file
+  stat:
+    path: "/lib/systemd/system/{{ product_name }}-importer-legacy.service"
+  register: legacy_importer_service_check
+
+- name: stop and disable legacy importer service
+  ansible.builtin.systemd:
+    name: "{{ product_name }}-importer-legacy"
+    state: stopped
+    enabled: false
+    daemon_reload: true
+  become: true
+  when: "'importers' in group_names and legacy_importer_service_check.stat.exists"
+
+- name: remove legacy importer service file
+  file:
+    state: absent
+    path: "/lib/systemd/system/{{ product_name }}-importer-legacy.service"
+  become: true
+  when: legacy_importer_service_check.stat.exists

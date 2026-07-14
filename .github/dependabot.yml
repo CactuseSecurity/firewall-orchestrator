@@ -1,8 +1,53 @@
 version: 2
 
+registries:
+  private-github:
+    type: git
+    url: https://github.com
+    username: x-access-token
+    password: ${{ secrets.PRIVATE_SUBMODULE_TOKEN }}
+
 updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+
   - package-ecosystem: "nuget"
     directory: "/roles/"
     target-branch: "develop"
     schedule:
       interval: "daily"
+    registries:
+      - private-github
+
+  - package-ecosystem: "pip"
+    directory: "/roles/importer/files/importer"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+    groups:
+      pip-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "pip"
+    directory: "/scripts/customizing/app_data_import"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+    groups:
+      pip-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "pip"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+    groups:
+      pip-dependencies:
+        patterns:
+          - "*"

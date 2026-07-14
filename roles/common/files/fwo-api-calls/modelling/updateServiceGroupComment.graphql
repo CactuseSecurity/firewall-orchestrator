@@ -1,0 +1,12 @@
+mutation updateServiceGroupComment(
+  $id: Int!
+  $comment: String
+  ) {
+  update_modelling_service_group_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      comment: $comment
+  }) {
+    updatedId: id
+  }
+}

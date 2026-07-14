@@ -1,0 +1,7 @@
+
+query getColors {
+  stm_color {
+    color_id
+    color_name
+  }
+}

@@ -1,0 +1,5 @@
+mutation updateNwObjectInConnection($oldObjectId: bigint!, $newObjectId: bigint!) {
+  update_modelling_nwobject_connection(where: {nwobject_id: {_eq: $oldObjectId}}, _set: {nwobject_id: $newObjectId}) {
+    affected_rows
+  }
+}

@@ -163,7 +163,6 @@ insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, per
         "obj_name",
         "obj_comment",
         "obj_create",
-        "obj_last_seen",
         "obj_ip"
     ],
     "computed_fields": [],
@@ -198,10 +197,7 @@ values ('public', 'rule', 'reporter', 'select', '{
         "last_change_admin",
         "mgm_id",
         "rule_create",
-        "rule_from_zone",
-        "rule_last_seen",
         "rule_num",
-        "rule_to_zone",
         "track_id",
         "rule_id",
         "rule_num_numeric",

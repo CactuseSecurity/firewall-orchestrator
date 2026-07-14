@@ -1,10 +1,7 @@
 ﻿
 @using NetTools
 @using System.Net
-@using FWO.Api.Client.Queries
 @using FWO.Services
-@using FWO.Basics
-@using FWO.Api.Data
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -51,21 +48,16 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
-
     private string routingSourceString = "";
     private string routingDestinationString = "";
     private string serviceString = "";
     private string gwsInPath = "";
     private bool workInProgress = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Admin, Roles.FwAdmin, Roles.Planner, Roles.Auditor ]);
-
             // archivedReports = (await apiConnection.SendQueryAsync<ReportFile[]>(ReportQueries.getGeneratedReports)).ToList();
         }
         catch (Exception exception)

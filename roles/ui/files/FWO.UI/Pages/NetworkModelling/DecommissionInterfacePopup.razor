@@ -1,0 +1,141 @@
+@using FWO.Middleware.Client
+@using FWO.Data
+
+@inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
+
+
+<PopUp Title="@(userConfig.GetText("decomm_interface"))" Show="@Display" Size=PopupSize.Medium OnClose="Close">
+    <Body>
+        @if (Display && ConnHandler != null)
+        {
+            <div class="row mt-2 me-auto">
+                <p>@((MarkupString)Message)</p>
+                <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingConnection" Items="ConnHandler.UsingConnections">
+                    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
+                    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("owner"))" Field="@(x => x.App.Name)" >
+                        <Template>
+                            @(context.App.Name)
+                        </Template>
+                    </Column>
+                    <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" />
+                </Table>
+            </div>
+            <div class="row mt-2 me-auto">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
+                <textarea rows="5" type="text" class="col-sm-9" @bind="Reason" />
+            </div>
+            <div class="row mt-2 me-auto">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("propose_alternative")):</label>
+                <div class="col-sm-1">
+                    <input type="checkbox" @bind="ProposeAlternative" />
+                </div>
+                @if(ProposeAlternative)
+                {
+                    <div class="col-sm-8">
+                        <Dropdown ElementType="ModellingConnection" @bind-SelectedElement="ProposedInterface" ElementToString="@(i => i.Name ?? string.Empty)" 
+                            Elements="PossibleInterfaces.Where(i => i.Id != ConnHandler.ActConn.Id && i.IsPublished && i.InterfacePermission != InterfacePermissions.Private.ToString())">
+                            <ElementTemplate Context="interf">
+                                @(interf.Name)
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                }
+            </div>
+        }
+    </Body>
+    <Footer>
+        <ExecutionModeAuthorizeView Roles="@Roles.Modeller">
+            <Authorized>
+                @if(!WorkInProgress)
+                {
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="Decommission">@(DisplayService.DisplayButton(userConfig, "decommission", Icons.Delete))</button>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "decommission", Icons.Delete))</button>
+                }
+            </Authorized>
+            <NotAuthorized>
+                <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "decommission", Icons.Delete))</button>
+            </NotAuthorized> 
+        </ExecutionModeAuthorizeView>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+    </Footer>
+</PopUp>
+<InProgress Display="WorkInProgress"/>
+
+
+@code
+{
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter] 
+    public ModellingConnectionHandler? ConnHandler { get; set; }
+
+    [Parameter] 
+    public List<ModellingConnection> PossibleInterfaces { get; set; } = [];
+
+    [Parameter]
+    public Func<Task> RefreshParent { get; set; } = DefaultInit.DoNothing;
+
+    private string Reason { get; set; } = "";
+    private string Message { get; set; } = "";
+    private bool ProposeAlternative = false;
+    private ModellingConnection? ProposedInterface;
+    private bool WorkInProgress = false;
+    private bool firstTry = true;
+
+
+    protected override void OnParametersSet()
+    {
+        if (Display && firstTry && ConnHandler != null)
+        {
+            firstTry = false;
+            Message = $"{userConfig.GetText("U9035")} {ConnHandler.ActConn.Name}?<br>{userConfig.GetText("U9032")}";
+        }
+    }
+
+    private async Task Decommission()
+    {
+        if (WorkInProgress)
+        {
+            return;
+        }
+        if(ConnHandler != null)
+        {
+            WorkInProgress = true;
+            try
+            {
+                await ConnHandler.DecommissionInterface(Reason, ProposeAlternative, ProposedInterface, middlewareClient);
+                await RefreshParent();
+                Close();
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("decomm_interface"), "", true);
+            }
+            finally
+            {
+                WorkInProgress = false;
+            }
+        }
+    }
+
+    private void Close()
+    {
+        Display = false;
+        firstTry = true;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

@@ -1,0 +1,13 @@
+query getWorkflowConnectionsByTicketId($ticketId: bigint) {
+  modelling_connection(where: { ticket_id: { _eq: $ticketId }, removed: { _eq: false } }) {
+    id
+    app_id
+    proposed_app_id
+    name
+    is_interface
+    is_requested
+    is_published
+    ticket_id
+    conn_prop
+  }
+}

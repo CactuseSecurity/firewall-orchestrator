@@ -1,23 +1,26 @@
-﻿@using FWO.Api.Client
-@using FWO.Config.Api
-@using FWO.Config.Api.Data
-@using FWO.Services
-
 @page "/settings/defaults"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+
+@implements IDisposable
+@using FWO.Services.EventMediator.Events
+@using FWO.Services.EventMediator.Interfaces
+@using System.Text.Json
+@using FWO.Ui.Data.Extensions
+@using FWO.Data.Enums;
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
+@inject IEventMediator EventMediator
 
 <div class="input-group">
     <h3>@(userConfig.GetText("standards"))</h3>
-    <HelpLink Page="settings/defaults"/>
+    <HelpLink Page="settings/defaults" />
 </div>
 @(userConfig.GetText("U5311"))
 <hr />
 
-@if (configData != null)
+@if (configData != null && InitComplete)
 {
     <form onsubmit="return false">
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5411"))">
@@ -28,18 +31,6 @@
                         @(userConfig.GetText(language.Name))
                     </ElementTemplate>
                 </Dropdown>
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5449"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("sessionTimeout")):</label>
-            <div class="col-sm-2">
-                <input type="number" min="1" @bind="configData!.SessionTimeout" />
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5450"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("sessionTimeoutNoticePeriod")):</label>
-            <div class="col-sm-2">
-                <input type="number" min="0" @bind="configData!.SessionTimeoutNoticePeriod" />
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("maxMessages"))">
@@ -64,6 +55,15 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("welcomeMessage")):</label>
             <div class="col-sm-4">
                 <textarea type="text" rows="10" @bind="@configData!.WelcomeMessage" class="col-sm-12" placeholder="@(userConfig.GetText("welcomeMessage"))" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("useCustomLogo")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_customLogo" type="checkbox" @bind="configData!.UseCustomLogo">
+            </div>
+            <div class="col-sm-4">
+                <CustomLogoUpload AuthorizedRoles="@Roles.Admin" SupportedFileFormats=".png,.jpg,.jpeg"></CustomLogoUpload>
             </div>
         </div>
         <hr />
@@ -99,20 +99,7 @@
             </div>
         </div>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5447"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("unusedTolerance"))*:</label>
-            <div class="col-sm-2">
-                <input type="number" min="0" @bind="configData!.UnusedTolerance" />
-            </div>
-        </div>
-            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5448"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("creationTolerance"))*:</label>
-            <div class="col-sm-2">
-                <input type="number" min="0" @bind="configData!.CreationTolerance" />
-            </div>
-        </div>
-        <hr />
-            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5415"))">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5415"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("dataRetentionTime")):</label>
             <div class="col-sm-2">
                 <input type="number" min="0" @bind="configData!.DataRetentionTime" />
@@ -141,6 +128,18 @@
                 <input type="time" step="60" @bind="configData!.DailyCheckStartAt" />
             </div>
         </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5424a"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("dailyCheckModules")):</label>
+            <div class="form-group row col-sm-9">
+                @foreach (DailyCheckModule module in Enum.GetValues(typeof(DailyCheckModule)))
+                {
+                    <div class="form-group col-sm-3">
+                        <input id="cbx_daily_@module.ToString()" type="checkbox" @bind="dailyCheckModulesVisibleDict[module]" />
+                        <label for="cbx_daily_@module.ToString()" class="col-form-label">@(userConfig.GetText(module.ToString()))</label>
+                    </div>
+                }
+            </div>
+        </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5452"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("maxImportDuration")):</label>
             <div class="col-sm-2">
@@ -163,31 +162,77 @@
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5454"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("ruleOwnershipMode")):</label>
             <div class="col-sm-2">
-                <Dropdown @bind-SelectedElement="configData!.RuleOwnershipMode" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(RuleOwnershipMode)).Cast<RuleOwnershipMode>()" >
+                <Dropdown ElementType="RuleOwnershipMode" @bind-SelectedElement="configData!.RuleOwnershipMode"
+                          ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(RuleOwnershipMode)).Cast<RuleOwnershipMode>()">
                     <ElementTemplate Context="opt">
                         @(userConfig.GetText(opt.ToString()))
                     </ElementTemplate>
                 </Dropdown>
             </div>
         </div>
+        <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5457"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("availableModules")):</label>
+            <div class="form-group row col-sm-9">
+                @foreach (Module module in Enum.GetValues(typeof(Module)))
+                {
+                    <div class="form-group col-sm-3">
+                        <input id="cbx_@module.ToString()" type="checkbox" @bind="modulesVisibleDict[module]" />
+                        <label for="cbx_@module.ToString()" class="col-form-label">@(module.ToString())</label>
+                    </div>
+                }
+            </div>
+        </div>
     </form>
     <hr />
-    <AuthorizeView Roles="@Roles.Admin">
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("accesstoken_lifetime"))">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("accesstoken_lifetime")):</label>
+        <div class="col-sm-8 d-inline-flex">
+            <input class="me-3 form-control" style="max-width: 90px;" type="number" min="@DynamicAccessTokenLifetimeMinValue" @bind="accessTokenLifetimeValue" />
+            <select style="max-width: 130px;" class="form-select" value="@accessTokenLifetimeUnit" @onchange="@((e) => SetDynamicTokenLifetimeMinValue(e, ref DynamicAccessTokenLifetimeMinValue, ref accessTokenLifetimeValue, ref accessTokenLifetimeUnit))">
+                @foreach (TokenLifetimeUnit unit in Enum.GetValues(typeof(TokenLifetimeUnit)))
+                {
+                    <option value="@unit">@unit.ToString(userConfig)</option>
+                }
+            </select>
+        </div>
+    </div>
+    <div class="pt-2 form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("refreshtoken_lifetime"))">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("refreshtoken_lifetime")):</label>
+        <div class="col-sm-8 d-inline-flex">
+            <input class="me-3 form-control" style="max-width: 90px;" type="number" min="@DynamicRefreshTokenLifetimeMinValue" @bind="refreshTokenLifetimeValue" />
+            <select style="max-width: 130px;" class="form-select" value="@refreshTokenLifetimeUnit" @onchange="@((e) => SetDynamicTokenLifetimeMinValue(e, ref DynamicRefreshTokenLifetimeMinValue, ref refreshTokenLifetimeValue, ref refreshTokenLifetimeUnit))">
+                @foreach (TokenLifetimeUnit unit in Enum.GetValues(typeof(TokenLifetimeUnit)))
+                {
+                    <option value="@unit">@unit.ToString(userConfig)</option>
+                }
+            </select>
+        </div>
+    </div>
+    @if (!IsTokenLifetimeValid())
+    {
+        <div class="pt-3 form-group row">
+            <div class="col-sm-8 offset-sm-4">
+                <span class="text-danger"><span class="@Icons.Warning pe-1"></span>@(userConfig.GetText("U9037"))</span>
+            </div>
+        </div>
+    }
+    <hr />
+    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
         </Authorized>
         <NotAuthorized>
             <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-        </NotAuthorized> 
-    </AuthorizeView>
-    <br><br>
+        </NotAuthorized>
+    </ExecutionModeAuthorizeView>
+    <br>
+    <br>
     <p>@(userConfig.GetText("U5303"))</p>
 }
 else
 {
-    <div class="spinner-border" role="status">
-        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
-    </div>
+    <Loading />
 }
 
 
@@ -201,19 +246,89 @@ else
     private Language selectedLanguage = new Language();
     private DateTime autoDiscStartDate = DateTime.Today;
     private DateTime autoDiscStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
+    private List<Module> availableModules { get; set; } = [];
+    private List<DailyCheckModule> dailyCheckModules { get; set; } = [];
+    private Dictionary<Module, bool> modulesVisibleDict = [];
+    private Dictionary<DailyCheckModule, bool> dailyCheckModulesVisibleDict = [];
+    private int accessTokenLifetimeValue = 1;
+    private int refreshTokenLifetimeValue = 1;
+    private TokenLifetimeUnit accessTokenLifetimeUnit = TokenLifetimeUnit.Hours;
+    private TokenLifetimeUnit refreshTokenLifetimeUnit = TokenLifetimeUnit.Days;
+    private bool InitComplete = false;
+    private int DynamicAccessTokenLifetimeMinValue = 1;
+    private int DynamicRefreshTokenLifetimeMinValue = 1;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            // Subscribe to events for file uploads and logo import
+            EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes), _ => OnFileUploadEvent(_.EventArgs));
+            EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ImportCustomLogo), _ => OnFileUploadEvent(_.EventArgs));
+
             configData = await globalConfig.GetEditableConfig();
             selectedLanguage = globalConfig.UiLanguages.FirstOrDefault(l => l.Name == configData.DefaultLanguage) ?? new Language();
             autoDiscStartDate = autoDiscStartTime = configData.AutoDiscoverStartAt;
+            availableModules = JsonSerializer.Deserialize<List<Module>>(string.IsNullOrEmpty(configData.AvailableModules) ? ModuleGroups.AllModulesNumList() : configData.AvailableModules) ?? throw new JsonException("Config data could not be parsed.");
+            dailyCheckModules = JsonSerializer.Deserialize<List<DailyCheckModule>>(string.IsNullOrEmpty(configData.DailyCheckModules) ? DailyCheckModuleGroups.AllModulesNumList() : configData.DailyCheckModules) ?? throw new JsonException("Config data could not be parsed.");
+            modulesVisibleDict = [];
+            foreach (Module module in Enum.GetValues(typeof(Module)).Cast<Module>())
+            {
+                modulesVisibleDict.Add(module, availableModules.Contains(module));
+            }
+            dailyCheckModulesVisibleDict = [];
+            foreach (DailyCheckModule module in Enum.GetValues(typeof(DailyCheckModule)).Cast<DailyCheckModule>())
+            {
+                dailyCheckModulesVisibleDict.Add(module, dailyCheckModules.Contains(module));
+            }
+
+            accessTokenLifetimeValue = configData.AccessTokenLifetime;
+            accessTokenLifetimeUnit = configData.AccessTokenLifetimeUnit;
+            DynamicAccessTokenLifetimeMinValue = GetTokenLifetimeMinValue(accessTokenLifetimeUnit);
+
+            refreshTokenLifetimeValue = configData.RefreshTokenLifetime;
+            refreshTokenLifetimeUnit = configData.RefreshTokenLifetimeUnit;
+            DynamicRefreshTokenLifetimeMinValue = GetTokenLifetimeMinValue(refreshTokenLifetimeUnit);
+
+            InitComplete = true;
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
         }
+    }
+
+    private void SetDynamicTokenLifetimeMinValue(ChangeEventArgs e, 
+        ref int variableMinVal, 
+        ref int tokenLifetimeVal, 
+        ref TokenLifetimeUnit tokenLifetimeUnit)
+    {
+        if (Enum.TryParse<TokenLifetimeUnit>(e.Value?.ToString(), out TokenLifetimeUnit unit))
+        {
+            variableMinVal = GetTokenLifetimeMinValue(unit);
+
+            if (variableMinVal > tokenLifetimeVal)
+            {
+                tokenLifetimeVal = variableMinVal;
+            }
+
+            tokenLifetimeUnit = unit;
+        }
+    }
+
+    private bool IsTokenLifetimeValid()
+    {
+        if (configData == null)
+        {
+            return false;
+        }
+
+        int accessTokenLifetimeInMinutes = ConvertTokenLifetimeToMinutes(accessTokenLifetimeValue, accessTokenLifetimeUnit);
+        int refreshTokenLifetimeInMinutes = ConvertTokenLifetimeToMinutes(refreshTokenLifetimeValue, refreshTokenLifetimeUnit);
+
+        return accessTokenLifetimeValue >= GetTokenLifetimeMinValue(accessTokenLifetimeUnit)
+            && refreshTokenLifetimeValue >= GetTokenLifetimeMinValue(refreshTokenLifetimeUnit)
+            && refreshTokenLifetimeInMinutes > accessTokenLifetimeInMinutes;
     }
 
     private async Task Save()
@@ -222,19 +337,103 @@ else
         {
             if (configData != null)
             {
+                if (!IsTokenLifetimeValid())
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U9037"), true);
+                    return;
+                }
+
+                configData.AccessTokenLifetime = accessTokenLifetimeValue;
+                configData.AccessTokenLifetimeUnit = accessTokenLifetimeUnit;
+
+                configData.RefreshTokenLifetime = refreshTokenLifetimeValue;
+                configData.RefreshTokenLifetimeUnit = refreshTokenLifetimeUnit;
+
                 configData.DefaultLanguage = selectedLanguage.Name;
                 configData.AutoDiscoverStartAt = autoDiscStartDate.Date.Add(autoDiscStartTime.TimeOfDay);
+                availableModules = [];
+                foreach (Module module in modulesVisibleDict.Keys)
+                {
+                    if (modulesVisibleDict[module])
+                    {
+                        availableModules.Add(module);
+                    }
+                }
+                configData.AvailableModules = JsonSerializer.Serialize(availableModules);
+                dailyCheckModules = [];
+                foreach (DailyCheckModule module in dailyCheckModulesVisibleDict.Keys)
+                {
+                    if (dailyCheckModulesVisibleDict[module])
+                    {
+                        dailyCheckModules.Add(module);
+                    }
+                }
+                configData.DailyCheckModules = JsonSerializer.Serialize(dailyCheckModules);
+
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }
             else
             {
-                throw new Exception("Data saved before loaded. This should be impossible.");
+                throw new ArgumentException("Data saved before loaded. This should be impossible.");
             }
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
         }
+    }
+
+    private void OnFileUploadEvent(FileUploadEventArgs? e)
+    {
+        if (e is null)
+        {
+            return;
+        }
+
+        if (!e.Success && e.Error is not null)
+        {
+            DisplayMessageInUi(e.Error.InternalException, userConfig.GetText("change_default"), e.Error.Message ?? "", true);
+            return;
+        }
+
+        // Fileupload was successful and data is a base64 string
+        if (e.Success && e.Data is string && configData is not null)
+        {
+            configData.CustomLogoData = e.Data;
+        }
+    }
+
+    /// <summary>
+    /// Unsubscribes from file upload events when the component is disposed.
+    /// </summary>
+    public void Dispose()
+    {
+        EventMediator.Unsubscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes));
+        EventMediator.Unsubscribe<FileUploadEvent>(nameof(FileUploadService.ImportCustomLogo));
+    }
+
+    private static int ConvertTokenLifetimeToMinutes(int lifetimeValue, TokenLifetimeUnit lifetimeUnit)
+    {
+        int safeLifetimeValue = Math.Max(1, lifetimeValue);
+
+        return lifetimeUnit switch
+        {
+            TokenLifetimeUnit.Minutes => safeLifetimeValue,
+            TokenLifetimeUnit.Hours => safeLifetimeValue * 60,
+            TokenLifetimeUnit.Days => safeLifetimeValue * 60 * 24,
+            _ => safeLifetimeValue
+        };
+    }
+
+    private static int GetTokenLifetimeMinValue(TokenLifetimeUnit lifetimeUnit)
+    {
+        return lifetimeUnit switch
+        {
+            TokenLifetimeUnit.Minutes => 5,
+            TokenLifetimeUnit.Hours => 1,
+            TokenLifetimeUnit.Days => 1,
+            _ => 1
+        };
     }
 }

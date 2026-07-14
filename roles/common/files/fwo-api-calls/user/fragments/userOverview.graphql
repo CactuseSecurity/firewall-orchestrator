@@ -1,0 +1,8 @@
+fragment userOverview on firewall_nw_user {
+  user_id
+  user_uid
+  user_name
+  stm_usr_typ {
+    usr_typ_name
+  }
+}

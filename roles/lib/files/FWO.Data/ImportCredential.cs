@@ -1,0 +1,64 @@
+using FWO.Basics;
+using Newtonsoft.Json;
+using System.Text.Json.Serialization;
+
+namespace FWO.Data
+{
+    public class ImportCredential
+    {
+        [JsonProperty("id"), JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        [JsonProperty("credential_name"), JsonPropertyName("credential_name")]
+        public string Name { get; set; } = "";
+
+        [JsonProperty("is_key_pair"), JsonPropertyName("is_key_pair")]
+        public Boolean IsKeyPair { get; set; } = false;
+
+        [JsonProperty("user"), JsonPropertyName("user")]
+        public string? ImportUser { get; set; }
+
+        [JsonProperty("secret"), JsonPropertyName("secret")]
+        public string Secret { get; set; } = "";
+
+        [JsonProperty("sshPublicKey"), JsonPropertyName("sshPublicKey")]
+        public string? PublicKey { get; set; }
+
+        [JsonProperty("cloud_client_id"), JsonPropertyName("cloud_client_id")]
+        public string? CloudClientId { get; set; }
+
+        [JsonProperty("cloud_client_secret"), JsonPropertyName("cloud_client_secret")]
+        public string? CloudClientSecret { get; set; }
+
+        public ImportCredential()
+        { }
+
+        public ImportCredential(ImportCredential cred)
+        {
+            Id = cred.Id;
+            Name = cred.Name;
+            IsKeyPair = cred.IsKeyPair;
+            ImportUser = cred.ImportUser;
+            Secret = cred.Secret;
+            PublicKey = cred.PublicKey;
+            CloudClientId = cred.CloudClientId;
+            CloudClientSecret = cred.CloudClientSecret;
+        }
+        public ImportCredential(string username, string password)
+        {
+            ImportUser = username;
+            Secret = password;
+        }
+        public bool Sanitize()
+        {
+            bool shortened = false;
+            Name = Name.SanitizeMand(ref shortened);
+            ImportUser = ImportUser.SanitizeOpt(ref shortened);
+            PublicKey = PublicKey.SanitizeKeyOpt(ref shortened);
+            Secret = Secret.SanitizeKeyMand(ref shortened);
+            CloudClientId = CloudClientId.SanitizeOpt(ref shortened);
+            CloudClientSecret = CloudClientSecret.SanitizeKeyOpt(ref shortened);
+            return shortened;
+        }
+    }
+}

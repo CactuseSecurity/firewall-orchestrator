@@ -1,0 +1,7 @@
+fragment timeObjectFlowSyncDetails on time_object {
+  time_obj_id
+  time_obj_name
+  time_obj_uid
+  start_time
+  end_time
+}

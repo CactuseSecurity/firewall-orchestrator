@@ -1,7 +1,10 @@
-using FWO.Api.Data;
+using FWO.Data.Report;
 using FWO.Config.Api;
+using FWO.Basics;
+using FWO.Data;
 
-namespace FWO.Report.Filter
+
+namespace FWO.Report.Filter.FilterTypes
 {
     public class ReportFilters
     {
@@ -24,14 +27,17 @@ namespace FWO.Report.Filter
         public int UnusedDays = 0;
 
         public ModellingFilter ModellingFilter { get; set; } = new();
+        public OwnerFilter OwnerFilter { get; set; } = new();
+
+        public ComplianceFilter ComplianceFilter { get; set; } = new();
+
+        public WorkflowFilter WorkflowFilter { get; set; } = new();
 
         public string DisplayedTimeSelection = "";
 
-        private UserConfig userConfig;
+        private UserConfig? userConfig;
 
-
-        public ReportFilters()
-        {}
+        public bool IncludeObjects { get; set; } = false;
 
         public void Init(UserConfig userConfigIn, bool showRuleRelatedReports)
         {
@@ -39,6 +45,7 @@ namespace FWO.Report.Filter
             ReportType = showRuleRelatedReports ? ReportType.Rules : ReportType.Connections;
             DisplayedTimeSelection = userConfig.GetText("now");
             UnusedDays = userConfig.UnusedTolerance;
+            IncludeObjects = userConfig.GlobalConfig?.ImpChangeIncludeObjectChanges ?? false;
 
             if (DeviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
             {
@@ -49,39 +56,48 @@ namespace FWO.Report.Filter
         public void SyncFiltersFromTemplate(ReportTemplate template)
         {
             ReportType = (ReportType)template.ReportParams.ReportType;
-            if(template.ReportParams.DeviceFilter != null && template.ReportParams.DeviceFilter.Managements.Count > 0)
+            IncludeObjects = template.ReportParams.IncludeObjects;
+            if (template.ReportParams.DeviceFilter != null && template.ReportParams.DeviceFilter.Managements.Count > 0)
             {
                 DeviceFilter.SynchronizeDevFilter(template.ReportParams.DeviceFilter);
             }
-            SelectAll = !DeviceFilter.isAnyDeviceFilterSet();
+            SelectAll = !DeviceFilter.IsAnyDeviceFilterSet();
 
-            if(template.ReportParams.TimeFilter != null)
+            if (template.ReportParams.TimeFilter != null)
             {
-                TimeFilter = template.ReportParams.TimeFilter;
+                TimeFilter = new TimeFilter(template.ReportParams.TimeFilter);
+                SavedTimeFilter = new TimeFilter(template.ReportParams.TimeFilter);
             }
             SetDisplayedTimeSelection();
             RecertFilter = new(template.ReportParams.RecertFilter);
             UnusedDays = template.ReportParams.UnusedFilter.UnusedForDays;
             ModellingFilter = template.ReportParams.ModellingFilter;
+            OwnerFilter = new(template.ReportParams.OwnerFilter);
+            ComplianceFilter = new(template.ReportParams.ComplianceFilter);
+            WorkflowFilter = new(template.ReportParams.WorkflowFilter);
         }
 
         public ReportParams ToReportParams()
         {
             ReportParams reportParams = new((int)ReportType, ReportType == ReportType.UnusedRules ? ReducedDeviceFilter : DeviceFilter)
             {
-                TimeFilter = SavedTimeFilter,
+                IncludeObjects = IncludeObjects,
+                TimeFilter = new TimeFilter(SavedTimeFilter),
                 RecertFilter = new RecertFilter(RecertFilter),
-                UnusedFilter = new UnusedFilter() 
+                UnusedFilter = new UnusedFilter()
                 {
-                    UnusedForDays = UnusedDays, 
-                    CreationTolerance = userConfig.CreationTolerance
+                    UnusedForDays = UnusedDays,
+                    CreationTolerance = userConfig?.CreationTolerance ?? 0
                 },
-                ModellingFilter = new ModellingFilter(ModellingFilter)
+                ModellingFilter = new ModellingFilter(ModellingFilter),
+                OwnerFilter = new OwnerFilter(OwnerFilter),
+                ComplianceFilter = new ComplianceFilter(ComplianceFilter),
+                WorkflowFilter = new WorkflowFilter(WorkflowFilter)
             };
             if (ReportType != ReportType.Statistics)
             {
                 // also make sure the report a user belonging to a tenant <> 1 sees, gets the additional filters in DynGraphqlQuery.cs
-                if (SelectedTenant == null && userConfig.User.Tenant?.Id > 1)
+                if (SelectedTenant == null && userConfig?.User.Tenant?.Id > 1)
                 {
                     SelectedTenant = userConfig.User.Tenant;
                     // TODO: when admin selects a tenant filter, add the corresponding device filter to make sure only those devices are reported that the tenant is allowed to see
@@ -93,29 +109,29 @@ namespace FWO.Report.Filter
 
         public bool SetDisplayedTimeSelection()
         {
-            if (ReportType.IsChangeReport())
+            if (ReportType.IsChangeReport() || ReportType == ReportType.TicketChangeReport)
             {
                 switch (TimeFilter.TimeRangeType)
                 {
                     case TimeRangeType.Shortcut:
-                        DisplayedTimeSelection = userConfig.GetText(TimeFilter.TimeRangeShortcut);
+                        DisplayedTimeSelection = userConfig?.GetText(TimeFilter.TimeRangeShortcut) ?? TimeFilter.TimeRangeShortcut;
                         break;
                     case TimeRangeType.Interval:
-                        DisplayedTimeSelection = userConfig.GetText("last") + " " + 
-                            TimeFilter.Offset + " " + userConfig.GetText(TimeFilter.Interval.ToString());
+                        DisplayedTimeSelection = userConfig?.GetText("last") + " " +
+                            TimeFilter.Offset + " " + userConfig?.GetText(TimeFilter.Interval.ToString());
                         break;
                     case TimeRangeType.Fixeddates:
-                        if(TimeFilter.OpenStart && TimeFilter.OpenEnd)
+                        if (TimeFilter.OpenStart && TimeFilter.OpenEnd)
                         {
-                            DisplayedTimeSelection = userConfig.GetText("open");
+                            DisplayedTimeSelection = userConfig?.GetText("open") ?? "open";
                         }
-                        else if(TimeFilter.OpenStart)
+                        else if (TimeFilter.OpenStart)
                         {
-                            DisplayedTimeSelection = userConfig.GetText("until") + " " + TimeFilter.EndTime.ToString();
+                            DisplayedTimeSelection = userConfig?.GetText("until") + " " + TimeFilter.EndTime.ToString();
                         }
-                        else if(TimeFilter.OpenEnd)
+                        else if (TimeFilter.OpenEnd)
                         {
-                            DisplayedTimeSelection = userConfig.GetText("from") + " " + TimeFilter.StartTime.ToString();
+                            DisplayedTimeSelection = userConfig?.GetText("from") + " " + TimeFilter.StartTime.ToString();
                         }
                         else
                         {
@@ -125,13 +141,14 @@ namespace FWO.Report.Filter
                     default:
                         DisplayedTimeSelection = "";
                         break;
-                };
+                }
+                ;
             }
             else
             {
                 if (TimeFilter.IsShortcut)
                 {
-                    DisplayedTimeSelection = userConfig.GetText(TimeFilter.TimeShortcut);
+                    DisplayedTimeSelection = userConfig?.GetText(TimeFilter.TimeShortcut) ?? TimeFilter.TimeShortcut;
                 }
                 else
                 {
@@ -159,9 +176,9 @@ namespace FWO.Report.Filter
                 // not all devices are visible
                 SetDeviceVisibility(SelectedTenant);
             }
-            SelectAll = !DeviceFilter.isAnyDeviceFilterSet();
+            SelectAll = !DeviceFilter.IsAnyDeviceFilterSet();
         }
-        
+
         private static void MarkAllDevicesVisible(List<ManagementSelect> mgms)
         {
             foreach (ManagementSelect management in mgms)
@@ -178,15 +195,14 @@ namespace FWO.Report.Filter
 
         private void SetDeviceVisibility(Tenant tenantView)
         {
-            if ((userConfig.User.Tenant.Id==null || userConfig.User.Tenant.Id==1) && tenantView.Id!=1)
+            if ((userConfig == null || userConfig.User.Tenant == null || userConfig.User.Tenant.Id == 1) && tenantView.Id != 1)
             {
                 // filtering for tenant simulation only done by a tenant0 user
                 foreach (TenantGateway gw in tenantView.TenantGateways)
                 {
                     if (!tenantView.VisibleGatewayIds.Contains(gw.VisibleGateway.Id))
                     {
-                        tenantView.VisibleGatewayIds.Append(gw.VisibleGateway.Id);
-                        tenantView.VisibleGatewayIds = tenantView.VisibleGatewayIds.Concat([gw.VisibleGateway.Id]).ToArray();
+                        tenantView.VisibleGatewayIds = [.. tenantView.VisibleGatewayIds, gw.VisibleGateway.Id];
                     }
                 }
 
@@ -199,8 +215,7 @@ namespace FWO.Report.Filter
                         {
                             if (!tenantView.VisibleGatewayIds.Contains(gw.Id))
                             {
-                                tenantView.VisibleGatewayIds.Append(gw.Id);
-                                tenantView.VisibleGatewayIds = tenantView.VisibleGatewayIds.Concat([gw.Id]).ToArray();
+                                tenantView.VisibleGatewayIds = [.. tenantView.VisibleGatewayIds, gw.Id];
                             }
                         }
                     }
@@ -215,12 +230,12 @@ namespace FWO.Report.Filter
                 {
                     gw.Visible = tenantView.VisibleGatewayIds.Contains(gw.Id);
                     if (gw.Visible)
-                    {   
+                    {
                         // one gateway is visible, so the management must be visible
                         mgmVisible = true;
                     }
                     else
-                    {   
+                    {
                         gw.Selected = false; // make sure invisible devices are not selected
                         mgm.Shared = true; // if one gateway is not visible, the mgm is shared (filtered)
                     }
@@ -230,7 +245,7 @@ namespace FWO.Report.Filter
                 {   // make sure invisible managements are not selected
                     mgm.Selected = false;
                 }
-            }    
+            }
         }
     }
 }

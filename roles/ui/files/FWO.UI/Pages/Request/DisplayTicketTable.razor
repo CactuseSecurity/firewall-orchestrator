@@ -1,14 +1,12 @@
-@using FWO.Config.Api
 @using FWO.Ui.Services
-@using FWO.Services
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject UserConfig userConfig
 
 @if(Phase == WorkflowPhases.request && !WfHandler.ReadOnlyMode)
 {
-    <button type="button" class="btn btn-success m-2" @onclick="AddTicket">@(ModellingHandlerBase.DisplayButton(userConfig, "add_new_request", Icons.Add))</button>
+    <button type="button" class="btn btn-success m-2" @onclick="AddTicket">@(DisplayService.DisplayButton(userConfig, "add_new_request", Icons.Add))</button>
 }
 
 <div class="m-2 vheight75">
@@ -16,13 +14,13 @@
         <Column TableItem="WfTicket" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    @if (Phase == WorkflowPhases.request && context.StateId < WfHandler.MasterStateMatrix.LowestEndState && !WfHandler.ReadOnlyMode)
+                    @if (CanEditTicketInPhase(context))
                     {
-                        <button type="button" class="btn btn-sm btn-warning" @onclick="async () => await EditTicket(context)">@(ModellingHandlerBase.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="async () => await EditTicket(context)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
                     }
                     else
                     {
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await ShowTicketDetails(context)">@(ModellingHandlerBase.DisplayButton(userConfig, "details", Icons.Display))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await ShowTicketDetails(context)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                     }
                 </div>
             </Template>
@@ -48,7 +46,7 @@
         </Column>
         <Column TableItem="WfTicket" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
             <Template>
-                @(States.Name[context.StateId])
+                @(States.GetName(context.StateId))
             </Template>
         </Column>
         <Column TableItem="WfTicket" Title="@(userConfig.GetText("priority"))" Field="@(x => x.Priority)" Sortable="true" Filterable="false" >
@@ -110,5 +108,12 @@
     private async Task EditTicket(WfTicket ticket)
     {
         await WfHandler.SelectTicket(ticket, ObjAction.edit, true);
+    }
+
+    private bool CanEditTicketInPhase(WfTicket ticket)
+    {
+        return !WfHandler.ReadOnlyMode
+            && ticket.StateId >= WfHandler.MasterStateMatrix.LowestInputState
+            && ticket.StateId < WfHandler.MasterStateMatrix.LowestEndState;
     }
 }

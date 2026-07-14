@@ -2,6 +2,7 @@
 
 @page "/compliance/zones/checks"
 
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
 @layout ComplianceLayout
 
 @inject UserConfig userConfig
@@ -32,7 +33,7 @@
 				<label>
 					@(userConfig.GetText("rule_conform")):
 					<span class="p-1 @(compliant ? "bg-success" : "bg-danger")" style="border-radius: 5px;">
-						<i class="oi @(compliant ? "oi-check" : "oi-x") text-light" />
+						<i class="@(compliant ? Icons.Check : Icons.Close) text-light" />
 					</span>
 				</label>
 				@if (!compliant)

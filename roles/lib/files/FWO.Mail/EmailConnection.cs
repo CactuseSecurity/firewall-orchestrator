@@ -18,11 +18,11 @@ namespace FWO.Mail
         public string? SenderEmailAddress { get; set; }
 
         public EmailConnection()
-        {}
+        { }
         public EmailConnection(string address, int port, EmailEncryptionMethod encryption, string user, string password, string senderAddress)
         {
             ServerAddress = address;
-            Port= port;
+            Port = port;
             Encryption = encryption;
             User = user;
             Password = password;

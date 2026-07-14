@@ -1,7 +1,4 @@
-﻿@using System.Text
-@using FWO.Config.Api
-@using FWO.Ui.Shared
-@using FWO.Services
+@using System.Text
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -14,7 +11,7 @@
 @if(InitComplete)
 {
     <div class="vheight75">
-        <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
+        <PageSizeComponent PageSize="20" PageSizeCallback="UpdatePageSize"></PageSizeComponent>
         <Table PageSize="PageSize" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="LogEntry" Items="logEntrys">
             <Column TableItem="LogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true"/>
             <Column TableItem="LogEntry" Title="@(userConfig.GetText("source"))" Field="@(x => x.Source)" Sortable="true" Filterable="true"/>
@@ -37,9 +34,7 @@
 }
 else
 {
-    <div class="spinner-border" role="status">
-        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
-    </div>
+    <Loading/>
 }
 
 

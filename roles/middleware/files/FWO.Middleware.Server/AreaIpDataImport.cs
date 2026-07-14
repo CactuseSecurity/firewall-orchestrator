@@ -1,76 +1,86 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 using FWO.Logging;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Api.Data;
+using FWO.Data;
+using FWO.Data.Modelling;
 using FWO.Config.Api;
 using System.Text.Json;
-using NetTools;
-using System.Reactive.Subjects;
 
 namespace FWO.Middleware.Server
 {
     /// <summary>
     /// Class handling the Area IP Data Import
     /// </summary>
-    public class AreaIpDataImport : DataImportBase
+    public class AreaIpDataImport(ApiConnection apiConnection, GlobalConfig globalConfig) : DataImportBase(apiConnection, globalConfig)
     {
         private List<ModellingNetworkArea> existingAreas = [];
-
-
-        /// <summary>
-        /// Constructor for Area IP Data Import
-        /// </summary>
-        public AreaIpDataImport(ApiConnection apiConnection, GlobalConfig globalConfig) : base(apiConnection, globalConfig)
-        { }
+        private const string LogMessageTitle = "Import Area IP Data";
+        private const string LevelFile = "Import File";
+        private const string LevelArea = "Area";
 
         /// <summary>
         /// Run the Area IP Data Import
         /// </summary>
-        public async Task<bool> Run()
+        public async Task<List<string>> Run()
         {
-            List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportSubnetDataPath) ?? throw new Exception("Config Data could not be deserialized.");
-
+            List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportSubnetDataPath) ?? throw new JsonException("Config Data could not be deserialized.");
             List<ModellingImportNwData> AllNwData = [];
+            List<string> FailedImports = [];
 
             // iterate over all files
             foreach (var importfilePathAndName in importfilePathAndNames)
             {
-                if (!RunImportScript(importfilePathAndName + ".py"))
-                {
-                    Log.WriteInfo("Import Area Network Data", $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
-                }
-
-                try
-                {
-                    Log.WriteInfo("Importing Area Network Data from file ", $"{importfilePathAndName}.json");
-                    ReadFile(importfilePathAndName + ".json");
-                    ModellingImportNwData? nwData = Import();
-
-                    if (nwData != null)
-                    {
-                        AllNwData.Add(ConvertNwDataToRanges(nwData));
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log.WriteError("Import Network Data", $"Import could not be processed.", ex);
-                }
+                await ImportSingleFile(importfilePathAndName, AllNwData, FailedImports);
             }
 
             // merge all data into a single list of areas
             ModellingImportNwData mergedNwData = MergeNetworkData(AllNwData);
 
-            if (mergedNwData != null)
+            if (mergedNwData.Areas.Count > 0)
             {
                 await SaveMergedNwData(mergedNwData);
             }
             else
             {
-                Log.WriteInfo("Import Area Network Data", $"No valid network data found in any of the following import files {importfilePathAndNames}. No changes were made.");
+                string messageText = $"No valid network data found in any of the following import files {string.Join(", ", importfilePathAndNames)}. No changes were made.";
+                Log.WriteInfo(LogMessageTitle, messageText);
+                await AddLogEntry(GlobalConst.kImportAreaSubnetData, 2, LevelFile, messageText);
+            }
+            return FailedImports;
+        }
+
+        private async Task ImportSingleFile(string importfilePathAndName, List<ModellingImportNwData> allNwData, List<string> failedImports)
+        {
+            string importSourcePath = ImportPathPolicy.RemoveAllowedExtension(importfilePathAndName);
+            List<string> validatedImportFiles = ValidateConfiguredImportSource(importSourcePath);
+            string scriptPath = importSourcePath + ".py";
+            if (validatedImportFiles.Contains(scriptPath) && !RunImportScript(scriptPath, null))
+            {
+                Log.WriteInfo(LogMessageTitle, $"Script {scriptPath} failed but trying to import from existing file.");
             }
 
-            return true;
+            try
+            {
+                Log.WriteInfo(LogMessageTitle, $"Importing Area Network Data from file {importSourcePath}.json");
+                ReadFile(importSourcePath + ".json");
+                ModellingImportNwData nwData = JsonSerializer.Deserialize<ModellingImportNwData>(importFile) ?? throw new JsonException("File could not be parsed.");
+                if (nwData.Areas.Count > 0)
+                {
+                    allNwData.Add(ConvertNwDataToRanges(nwData));
+                }
+                else
+                {
+                    Log.WriteInfo(LogMessageTitle, $"Nothing found to import in file {importSourcePath}.json");
+                }
+            }
+            catch (Exception ex)
+            {
+                string errorText = $"Import from file {importSourcePath}.json could not be processed.";
+                Log.WriteError(LogMessageTitle, errorText, ex);
+                await AddLogEntry(GlobalConst.kImportAreaSubnetData, 2, LevelFile, errorText);
+                failedImports.Add(importSourcePath);
+            }
         }
 
         private async Task SaveMergedNwData(ModellingImportNwData mergedNwData)
@@ -108,10 +118,12 @@ namespace FWO.Middleware.Server
                 }
             }
 
-            Log.WriteInfo("Import Area IP Data", $"Imported {successCounter} areas successfully, {failCounter} areas failed. Deleted {deleteCounter} areas, {deleteFailCounter} failed.");
+            string messageText = $"Imported {successCounter} areas successfully, {failCounter} areas failed. Deleted {deleteCounter} areas, {deleteFailCounter} failed.";
+            Log.WriteInfo(LogMessageTitle, messageText);
+            await AddLogEntry(GlobalConst.kImportAreaSubnetData, 0, LevelFile, messageText);
         }
 
-        private ModellingImportNwData ConvertNwDataToRanges(ModellingImportNwData nwData)
+        private static ModellingImportNwData ConvertNwDataToRanges(ModellingImportNwData nwData)
         {
             ModellingImportNwData result = new();
 
@@ -123,7 +135,7 @@ namespace FWO.Middleware.Server
             return result;
         }
 
-        private ModellingImportAreaData ConvertAreaToRanges(ModellingImportAreaData area)
+        private static ModellingImportAreaData ConvertAreaToRanges(ModellingImportAreaData area)
         {
             ModellingImportAreaData newArea = new(area.Name, area.IdString);
             foreach (ModellingImportAreaIpData ipData in area.IpData)
@@ -134,33 +146,13 @@ namespace FWO.Middleware.Server
         }
 
         // convert arbitrary IP data contained in .Ip (1.2.3.4/32 | 1.2.3.0/24) to a range
-        private ModellingImportAreaIpData ConvertIpDataToRange(ModellingImportAreaIpData importAreaIpData)
+        private static ModellingImportAreaIpData ConvertIpDataToRange(ModellingImportAreaIpData importAreaIpData)
         {
             ModellingImportAreaIpData ipData = new()
             {
                 Name = importAreaIpData.Name,
             };
-
-            if (importAreaIpData.Ip.TryGetNetmask(out _))
-            {
-                (string Start, string End) ip = importAreaIpData.Ip.CidrToRangeString();
-                ipData.Ip = ip.Start;
-                ipData.IpEnd = ip.End;
-            }
-            else if (importAreaIpData.Ip.TrySplit('-', 1, out _) && IPAddressRange.TryParse(importAreaIpData.Ip, out IPAddressRange ipRange))
-            {
-                ipData.Ip = ipRange.Begin.ToString();
-                ipData.IpEnd = ipRange.End.ToString();
-            }
-            else
-            {
-                ipData.Ip = importAreaIpData.Ip;
-                ipData.IpEnd = importAreaIpData.Ip;
-            }
-
-            ipData.Ip = ipData.Ip.StripOffNetmask();
-            ipData.IpEnd = ipData.IpEnd.StripOffNetmask();
-
+            (ipData.Ip, ipData.IpEnd) = IpOperations.SplitIpToRange(importAreaIpData.Ip);
             return ipData;
         }
 
@@ -213,21 +205,6 @@ namespace FWO.Middleware.Server
             return mergedNwData;
         }
 
-        private ModellingImportNwData? Import()
-        {
-            try
-            {
-                ModellingImportNwData? importedNwData = JsonSerializer.Deserialize<ModellingImportNwData>(importFile) ?? throw new Exception("File could not be parsed.");
-
-                return importedNwData;
-            }
-            catch (Exception exc)
-            {
-                Log.WriteError("Import Area IP Data", $"File could not be processed.", exc);
-                return null;
-            }
-        }
-
         private async Task<bool> SaveArea(ModellingImportAreaData incomingArea)
         {
             try
@@ -244,7 +221,9 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exc)
             {
-                Log.WriteError("Import Area IP Data", $"Area {incomingArea.Name}({incomingArea.IdString}) could not be processed.", exc);
+                string errorText = $"Area {incomingArea.Name}({incomingArea.IdString}) could not be processed.";
+                Log.WriteError(LogMessageTitle, errorText, exc);
+                await AddLogEntry(GlobalConst.kImportAreaSubnetData, 1, LevelArea, errorText);
                 return false;
             }
             return true;
@@ -258,7 +237,7 @@ namespace FWO.Middleware.Server
                 idString = incomingArea.IdString,
                 creator = GlobalConst.kImportAreaSubnetData
             };
-            ReturnId[]? areaIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newArea, AreaVar)).ReturnIds;
+            ReturnId[]? areaIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newArea, AreaVar)).ReturnIds;
             if (areaIds != null)
             {
                 foreach (var ipData in incomingArea.IpData)
@@ -271,13 +250,13 @@ namespace FWO.Middleware.Server
                         importSource = GlobalConst.kImportAreaSubnetData
                     };
 
-                    ReturnId[]? ipDataIds = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAreaIpData, ipDataVar)).ReturnIds;
+                    ReturnId[]? ipDataIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAreaIpData, ipDataVar)).ReturnIds;
                     if (ipDataIds != null)
                     {
                         var Vars = new
                         {
-                            nwObjectId = ipDataIds[0].NewId,
-                            nwGroupId = areaIds[0].NewId
+                            nwObjectId = ipDataIds[0].NewIdLong,
+                            nwGroupId = areaIds[0].NewIdLong
                         };
                         await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwObjectToNwGroup, Vars);
                     }
@@ -291,8 +270,8 @@ namespace FWO.Middleware.Server
             {
                 await ReactivateArea(existingArea);
             }
-            List<ModellingImportAreaIpData> ipDataToAdd = new(incomingArea.IpData);
-            List<NetworkDataWrapper> ipDataToDelete = new(existingArea.IpData);
+            List<ModellingImportAreaIpData> ipDataToAdd = [.. incomingArea.IpData];
+            List<NetworkDataWrapper> ipDataToDelete = [.. existingArea.IpData];
             foreach (var existingSubnet in existingArea.IpData)
             {
                 foreach (var incomingSubnet in incomingArea.IpData)
@@ -309,7 +288,7 @@ namespace FWO.Middleware.Server
             }
             foreach (var ipData in ipDataToDelete)
             {
-                await apiConnection.SendQueryAsync<NewReturning>(OwnerQueries.deleteAreaIpData, new { id = ipData.Content.Id });
+                await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.deleteAreaIpData, new { id = ipData.Content.Id });
             }
             foreach (var subnet in ipDataToAdd)
             {
@@ -320,12 +299,12 @@ namespace FWO.Middleware.Server
                     ipEnd = subnet.IpEnd,
                     importSource = GlobalConst.kImportAreaSubnetData
                 };
-                ReturnId[]? ipData = (await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.newAreaIpData, SubnetVar)).ReturnIds;
+                ReturnId[]? ipData = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAreaIpData, SubnetVar)).ReturnIds;
                 if (ipData != null)
                 {
                     var Vars = new
                     {
-                        nwObjectId = ipData[0].NewId,
+                        nwObjectId = ipData[0].NewIdLong,
                         nwGroupId = existingArea.Id,
                     };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwObjectToNwGroup, Vars);
@@ -337,12 +316,14 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAreaDeletedState, new { id = area.Id, deleted = true });
-                await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.removeSelectedNwGroupObjectFromAllApps, new { nwGroupId = area.Id });
+                await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setNwGroupDeletedState, new { id = area.Id, deleted = true });
+                await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.removeSelectedNwGroupObjectFromAllApps, new { nwGroupId = area.Id });
             }
             catch (Exception exc)
             {
-                Log.WriteError("Import Area IP Data", $"Outdated Area {area.Name} could not be deleted.", exc);
+                string errorText = $"Outdated Area {area.Name} could not be deleted.";
+                Log.WriteError(LogMessageTitle, errorText, exc);
+                await AddLogEntry(GlobalConst.kImportAreaSubnetData, 1, LevelArea, errorText);
                 return false;
             }
             return true;
@@ -352,11 +333,13 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                await apiConnection.SendQueryAsync<NewReturning>(ModellingQueries.setAreaDeletedState, new { id = area.Id, deleted = false });
+                await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setNwGroupDeletedState, new { id = area.Id, deleted = false });
             }
             catch (Exception exc)
             {
-                Log.WriteError("Reactivate Area", $"Area {area.Name}({area.IdString}) could not be reactivated.", exc);
+                string errorText = $"Area {area.Name}({area.IdString}) could not be reactivated.";
+                Log.WriteError(LogMessageTitle, errorText, exc);
+                await AddLogEntry(GlobalConst.kImportAreaSubnetData, 1, LevelArea, errorText);
             }
         }
     }

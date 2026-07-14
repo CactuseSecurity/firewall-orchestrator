@@ -1,5 +1,6 @@
 using FWO.Report.Filter;
 using FWO.Config.Api;
+using FWO.Basics;
 using System.Text.Json;
 using System.Text;
 
@@ -7,8 +8,8 @@ namespace FWO.Report
 {
     public abstract class ReportOwnersBase : ReportBase
     {
-        public ReportOwnersBase(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType)
-        {}
+        protected ReportOwnersBase(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType)
+        { }
 
         public override string ExportToJson()
         {
@@ -27,7 +28,8 @@ namespace FWO.Report
 
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport)
         {
-            return GenerateHtmlFrameBase(title, filter, date, htmlReport, null, string.Join("; ", ReportData.OwnerData.ConvertAll(o => o.Name)));
+            string? ownerFilter = ReportType.IsOwnerReport() ? null : string.Join("; ", ReportData.OwnerData.ConvertAll(o => o.Name));
+            return GenerateHtmlFrameBase(title, filter, date, htmlReport, null, ownerFilter);
         }
     }
 }

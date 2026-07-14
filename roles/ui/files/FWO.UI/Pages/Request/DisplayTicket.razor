@@ -1,15 +1,10 @@
-@using FWO.Api.Client
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Config.Api
 @using FWO.Ui.Services
-@using FWO.Services
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.NetworkModelling
+@using FWO.Data.Workflow
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
-@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 
@@ -29,7 +24,7 @@
                     </div>
                     <label for="ticketTitle" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
                     <div class="col-sm-9">
-                        <input id="ticketTitle" type="text" class="form-control form-control-sm" readonly="@(!WfHandler.EditTicketMode)" @bind="WfHandler.ActTicket.Title" />
+                        <input id="ticketTitle" type="text" class="form-control form-control-sm" readonly="@(!CanEditTicketField(WorkflowEditableFieldKeys.Title))" @bind="WfHandler.ActTicket.Title" />
                     </div>
                 </div>
                 <div class="form-group row mt-2">
@@ -37,7 +32,7 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
                             <div class="col-sm-8">
-                                <label class="col-sm-12 border bg-secondary">@States.Name[WfHandler.ActTicket.StateId]</label>
+                                <label class="col-sm-12 border bg-secondary">@States.GetName(WfHandler.ActTicket.StateId)</label>
                             </div>
                         </div>
                     </div>
@@ -53,7 +48,7 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("priority")):</label>
                             <div class="col-sm-8">
-                                @if (WfHandler.EditTicketMode)
+                                @if (CanEditTicketField(WorkflowEditableFieldKeys.Priority))
                                 {
                                     <Dropdown ElementType="WfPriority" ElementToString="@(p => p.Name)" @bind-SelectedElement="selectedPriority" Elements="WfHandler.PrioList" Nullable="true">
                                         <ElementTemplate Context="prio">
@@ -72,7 +67,7 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("deadline")):</label>
                             <div class="col-sm-8">
-                                @if (WfHandler.EditTicketMode)
+                                @if (CanEditTicketField(WorkflowEditableFieldKeys.Deadline))
                                 {
                                     <input type="date" class="col-sm-12 form-control form-control-sm" @bind="WfHandler.ActTicket.Deadline" />
                                 }
@@ -87,7 +82,7 @@
                 <div class="form-group row mt-2">
                     <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
                     <div class="col-sm-11">
-                        <textarea rows="3" type="text" class="form-control form-control-sm" readonly="@(!WfHandler.EditTicketMode)" @bind="WfHandler.ActTicket.Reason"/>   
+                        <textarea rows="3" type="text" class="form-control form-control-sm" readonly="@(!CanEditTicketField(WorkflowEditableFieldKeys.Reason))" @bind="WfHandler.ActTicket.Reason"/>   
                     </div>
                 </div>
                 <div class="col-sm-12 mt-2">
@@ -108,14 +103,14 @@
                     <h5>@(userConfig.GetText("tasks"))</h5>
 
                     <DisplayReqTaskTable Phase="Phase" States="States" 
-                        WfHandler="WfHandler" ResetParent="Reset" StartPhase="StartPhase"/>
+                        WfHandler="WfHandler" ResetParent="Reset" StartPhase="StartRequestPhase"/>
                 }
                 else
                 {
                     <h5>@(userConfig.GetText("implementation_tasks"))</h5>
 
                     <DisplayImplTaskTable Phase="Phase" States="States" WfHandler="WfHandler" ResetParent="Reset" 
-                        AllImplTasks="WfHandler.AllTicketImplTasks" StartImplPhase="StartImplPhase"/>
+                        AllImplTasks="WfHandler.AllTicketImplTasks" StartImplPhase="StartImplementationPhase"/>
                 }
             </form>
         }
@@ -124,29 +119,40 @@
         <div class="btn-group">
             @if(WfHandler.EditTicketMode)
             {
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.FwAdmin}")">
+                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.FwAdmin}")">
                     <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="InitSaveTicket">@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="InitSaveTicket">@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
                     </NotAuthorized> 
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
+            }
+            else if (CanSaveTicketChanges())
+            {
+                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.FwAdmin}")">
+                    <Authorized>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="InitSaveTicket">@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
+                    </NotAuthorized>
+                </ExecutionModeAuthorizeView>
             }
             else if (CheckPromoteTicket())
             {
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
+                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.FwAdmin}")">
                     <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteTicket">@(userConfig.GetText("change_state"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteTicket">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("change_state"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                     </NotAuthorized> 
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
             }
-            @if(WfHandler.EditTicketMode || CheckPromoteTicket())
+            @if(WfHandler.EditTicketMode || CanSaveTicketChanges() || CheckPromoteTicket())
             {
-                <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="CancelEdit">@(userConfig.GetText("cancel"))</button>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="CancelEdit">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
             }
             else
             {
@@ -166,13 +172,14 @@
     <Footer>
         <div class="btn-group">
             <button type="button" class="btn btn-sm btn-danger" @onclick="ConfirmCancel">@(userConfig.GetText("ok"))</button>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ConfirmCancelMode = false">@(userConfig.GetText("back_to_ticket"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ConfirmCancelMode = false">@(DisplayService.DisplayButton(userConfig, "back_to_ticket", Icons.Cancel))</button>
         </div>
     </Footer>
 </PopUp>
 
 <PromoteObject @bind-Promote="WfHandler.DisplaySaveTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@WfHandler.ActTicket.Title" Save="WfHandler.SaveTicket" StatefulObject="WfHandler.ActTicket" StateMatrix="WfHandler.MasterStateMatrix" States="States"/>
-<PromoteObject @bind-Promote="WfHandler.DisplayPromoteTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@WfHandler.ActTicket.Title" Save="WfHandler.PromoteTicket" StatefulObject="WfHandler.ActTicket" StateMatrix="WfHandler.MasterStateMatrix" States="States"/>
+<PromoteObject @bind-Promote="WfHandler.DisplayPromoteTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@WfHandler.ActTicket.Title" Save="PromoteTicketForPhase" StatefulObject="WfHandler.ActTicket" StateMatrix="WfHandler.MasterStateMatrix" States="States"/>
+<InProgress Display="WorkInProgress"/>
 
 
 @code
@@ -202,9 +209,9 @@
     private List<int> possibleStates = new ();
     private List<WfStateAction> offeredActions = new ();
     private bool ConfirmCancelMode = false;
+    private bool WorkInProgress = false;
     private WfPriority? selectedPriority;
     private bool firstParamSet = true;
-    
 
     protected override async Task OnParametersSetAsync()
     {
@@ -265,11 +272,66 @@
 
     private async Task PerformAction(WfStateAction action)
     {
-        if(WfHandler.ActionHandler != null)
+        if (WorkInProgress)
         {
-            await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActTicket, WfObjectScopes.Ticket, null, WfHandler.ActTicket.Id);
+            return;
         }
-        await ResetParent();
+        WorkInProgress = true;
+        try
+        {
+            if(WfHandler.ActionHandler != null)
+            {
+                await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActTicket, WfObjectScopes.Ticket, null, WfHandler.ActTicket.Id);
+            }
+            await ResetParent();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("action"), "", true);
+        }
+        finally
+        {
+            WorkInProgress = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task StartImplementationPhase(WfImplTask implTask)
+    {
+        if (WorkInProgress)
+        {
+            return;
+        }
+        WorkInProgress = true;
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+            await StartImplPhase(implTask);
+        }
+        finally
+        {
+            WorkInProgress = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task StartRequestPhase(WfReqTask reqTask)
+    {
+        if (WorkInProgress)
+        {
+            return;
+        }
+        WorkInProgress = true;
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+            await StartPhase(reqTask);
+        }
+        finally
+        {
+            WorkInProgress = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private bool CheckPromoteTicket()
@@ -308,6 +370,18 @@
         WfHandler.SetTicketPopUpOpt(ObjAction.displayPromote);
     }
 
+    private async Task PromoteTicketForPhase(WfStatefulObject ticket)
+    {
+        if (Phase == WorkflowPhases.request)
+        {
+            await WfHandler.PromoteTicketAndTasks(ticket);
+        }
+        else
+        {
+            await WfHandler.PromoteTicket(ticket);
+        }
+    }
+
     private async Task InitSaveTicket()
     {
         if (CheckTicketValues())
@@ -333,5 +407,23 @@
             return false;
         }
         return true;
+    }
+
+    private bool CanEditTicketField(string fieldKey)
+    {
+        // A locked ticket still allows header metadata edits; the lock protects request-task content and structure.
+        return ApproverAllowedChangesAccess.CanEditTicketField(GetApproverAllowedChanges(), Phase == WorkflowPhases.approval,
+            WfHandler.EditTicketMode, WfHandler.ReadOnlyMode, fieldKey);
+    }
+
+    private bool CanSaveTicketChanges()
+    {
+        return ApproverAllowedChangesAccess.CanSaveTicketChanges(GetApproverAllowedChanges(), Phase == WorkflowPhases.approval,
+            WfHandler.EditTicketMode, WfHandler.ReadOnlyMode);
+    }
+
+    private ApproverAllowedChangesConfig GetApproverAllowedChanges()
+    {
+        return ApproverAllowedChangesConfig.Parse(userConfig.ReqAllowedChangesByApprover);
     }
 }

@@ -1,0 +1,17 @@
+from enum import Enum
+
+
+class ConfigAction(Enum):
+    INSERT = "INSERT"
+    UPDATE = "UPDATE"
+    DELETE = "DELETE"
+
+
+class ConfFormat(Enum):
+    NORMALIZED = "NORMALIZED"
+
+    CHECKPOINT = "CHECKPOINT"
+    FORTINET = "FORTINET"
+    FORTIMANAGER = "FORTIMANAGER"
+    PALOALTO = "PALOALTO"
+    CISCOFIREPOWER = "CISCOFIREPOWER"

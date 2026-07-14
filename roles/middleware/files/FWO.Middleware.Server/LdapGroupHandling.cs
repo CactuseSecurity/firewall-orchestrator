@@ -1,0 +1,604 @@
+using FWO.Data;
+using FWO.Data.Middleware;
+using FWO.Encryption;
+using FWO.Logging;
+using Novell.Directory.Ldap;
+using System;
+using System.Text.RegularExpressions;
+
+namespace FWO.Middleware.Server
+{
+    /// <summary>
+    /// Class handling the ldap transactions
+    /// </summary>
+    public partial class Ldap : LdapConnectionBase
+    {
+        /// <summary>
+        /// Get the roles for the given DN list
+        /// </summary>
+        /// <returns>list of roles for the given DN list</returns>
+        public async Task<List<string>> GetRoles(List<string> dnList)
+        {
+            return await GetMemberships(dnList, RoleSearchPath);
+        }
+
+        /// <summary>
+        /// Get the groups for the given DN list
+        /// </summary>
+        /// <returns>list of groups for the given DN list</returns>
+        public async Task<List<string>> GetGroups(List<string> dnList)
+        {
+            string? groupPath = !string.IsNullOrWhiteSpace(GroupSearchPath) ? GroupSearchPath : GroupWritePath;
+            return await GetMemberships(dnList, groupPath);
+        }
+
+        [GeneratedRegex(@"(\bcn|\bou|\bdc|\bo|\bc|\bst|\bl)=(.*?)(?=,[A-Za-z]+=|$)", RegexOptions.IgnoreCase, "en-US")]
+        private static partial Regex MyRegex();
+
+        private static string ConvertHexCommaToComma(string dn)
+        {
+            return MyRegex().Replace(dn, match =>
+            {
+                string attribute = match.Groups[1].Value; // RDN type (e.g., CN, OU, DC)
+                string value = match.Groups[2].Value; // RDN value
+
+                // Convert hex-escaped commas to commas
+                value = Regex.Replace(value, @"\\2c", "\\,", RegexOptions.None, TimeSpan.FromMilliseconds(100));
+
+                return $"{attribute}={value}";
+            });
+        }
+
+        /// <summary>
+        /// Build group DNs from group names and a group path.
+        /// </summary>
+        /// <param name="groupNames">List of group names or DNs.</param>
+        /// <param name="groupPath">LDAP path where groups are located.</param>
+        /// <returns>Distinct list of group DNs.</returns>
+        public static List<string> BuildGroupDns(IEnumerable<string> groupNames, string? groupPath)
+        {
+            if (string.IsNullOrWhiteSpace(groupPath))
+            {
+                return [];
+            }
+            HashSet<string> dns = new(DistName.DnComparer);
+            foreach (string name in groupNames)
+            {
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    continue;
+                }
+                if (name.Contains('='))
+                {
+                    dns.Add(name);
+                }
+                else
+                {
+                    dns.Add($"cn={name},{groupPath}");
+                }
+            }
+            return dns.ToList();
+        }
+
+        private async Task<List<string>> GetMemberships(List<string> dnList, string? searchPath)
+        {
+            List<string> userMemberships = [];
+
+            // If this Ldap is containing roles / groups
+            if (searchPath != null && searchPath != "")
+            {
+                try
+                {
+                    using LdapConnection connection = await Connect();
+                    // Authenticate as search user
+                    string mainKey = AesEnc.GetMainKey();
+                    if (!AesEnc.TryDecrypt(SearchUserPwd, mainKey, out string decryptedSearchUserPwd))
+                    {
+                        Log.WriteError($"LDAP decrypt {Address}:{Port}", "Failed to decrypt LDAP search user password.");
+                        return userMemberships;
+                    }
+                    await TryBind(connection, SearchUser, decryptedSearchUserPwd);
+
+                    // Search for Ldap roles / groups in given directory          
+                    int searchScope = LdapConnection.ScopeSub; // TODO: Correct search scope?
+                    string searchFilter = $"(&(objectClass=groupOfUniqueNames)(cn=*))";
+                    ILdapSearchResults? allExistingGroupsAndRoles = await connection.SearchAsync(searchPath, searchScope, searchFilter, null, false);
+
+                    HashSet<string> searchableDns = new(DistName.DnComparer);
+                    searchableDns.UnionWith(dnList.Where(dn => !string.IsNullOrWhiteSpace(dn)));
+
+                    Log.WriteDebug("Ldap Roles/Groups", $"Try to get roles / groups from ldap");
+
+                    // Iterate found role / group
+                    while (await allExistingGroupsAndRoles.HasMoreAsync())
+                    {
+                        LdapEntry? entry = await allExistingGroupsAndRoles.NextAsync();
+
+                        // Get dn of users having current role / group
+                        LdapAttribute members = entry.Get(UniqueMember);
+                        string[] memberDn = members.StringValueArray;
+
+                        // Foreach user (member) of the current role/group:
+                        foreach (string currentDn in memberDn.Where(dn => dn != "")) // ignore empty dn (could be caused by empty lines in LDAP)
+                        {
+                            // Check if current user dn is matching with given user dn => Given user has current role / group
+                            if (searchableDns.Contains(ConvertHexCommaToComma(currentDn)))
+                            {
+                                // Get name and add it to list of roles / groups of given user
+                                string name = entry.Get("cn").StringValue;
+                                userMemberships.Add(name);
+                                break;
+                            }
+                        }
+                    }
+                }
+                catch (Exception exception)
+                {
+                    Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to get memberships", exception);
+                }
+            }
+
+            Log.WriteDebug($"Found the following roles / groups for user {dnList.FirstOrDefault()} in {Address}:{Port}:", string.Join("\n", userMemberships));
+            return userMemberships;
+        }
+
+        /// <summary>
+        /// Get all roles
+        /// </summary>
+        /// <returns>list of roles</returns>
+        public async Task<List<RoleGetReturnParameters>> GetAllRoles()
+        {
+            List<RoleGetReturnParameters> roleUsers = [];
+
+            // If this Ldap is containing roles
+            if (HasRoleHandling())
+            {
+                try
+                {
+                    using LdapConnection connection = await GetBoundConnection(SearchUser, SearchUserPwd);
+
+                    // Search for Ldap roles in given directory          
+                    int searchScope = LdapConnection.ScopeSub; // TODO: Correct search scope?
+                    string searchFilter = $"(&(objectClass=groupOfUniqueNames)(cn=*))";
+                    ILdapSearchResults? searchResults = await connection.SearchAsync(RoleSearchPath, searchScope, searchFilter, null, false);
+
+                    // Iterate found role
+                    while (await searchResults.HasMoreAsync())
+                    {
+                        LdapEntry entry = await searchResults.NextAsync();
+
+                        List<RoleAttribute> attributes = [];
+                        string roleDesc = entry.Get("description").StringValue;
+                        attributes.Add(new() { Key = "description", Value = roleDesc });
+
+                        string[] roleMemberDn = entry.Get(UniqueMember).StringValueArray;
+                        foreach (var currentDn in roleMemberDn.Where(dn => dn != ""))
+                        {
+                            attributes.Add(new() { Key = "user", Value = currentDn });
+                        }
+                        roleUsers.Add(new RoleGetReturnParameters() { Role = entry.Dn, Attributes = attributes });
+                    }
+                }
+                catch (Exception exception)
+                {
+                    Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to get all roles", exception);
+                }
+            }
+            return roleUsers;
+        }
+
+        /// <summary>
+        /// Search all groups with search pattern
+        /// </summary>
+        /// <returns>list of groups</returns>
+        public async Task<List<string>> GetAllGroups(string searchPattern)
+        {
+            List<string> allGroups = [];
+            try
+            {
+                using LdapConnection connection = await GetBoundConnection(SearchUser, SearchUserPwd);
+
+                // Search for Ldap groups in given directory          
+                int searchScope = LdapConnection.ScopeSub;
+                ILdapSearchResults? searchResults = await connection.SearchAsync(GroupSearchPath, searchScope, GetGroupSearchFilter(searchPattern), null, false);
+
+                while (await searchResults.HasMoreAsync())
+                {
+                    LdapEntry entry = await searchResults.NextAsync();
+
+                    allGroups.Add(entry.Dn);
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to get all groups", exception);
+            }
+            return allGroups;
+        }
+
+        /// <summary>
+        /// Get all internal groups
+        /// </summary>
+        /// <returns>list of groups</returns>
+        public async Task<List<GroupGetReturnParameters>> GetAllInternalGroups()
+        {
+            List<GroupGetReturnParameters> allGroups = [];
+
+            try
+            {
+                using LdapConnection connection = await GetBoundConnection(SearchUser, SearchUserPwd);
+
+                // Search for Ldap groups in given directory          
+                int searchScope = LdapConnection.ScopeSub;
+                ILdapSearchResults? searchResults = await connection.SearchAsync(GroupSearchPath, searchScope, GetGroupSearchFilter(""), null, false);
+
+                while (await searchResults.HasMoreAsync())
+                {
+                    LdapEntry entry = await searchResults.NextAsync();
+
+                    List<string> members = [];
+                    string[] groupMemberDn = entry.Get(UniqueMember).StringValueArray;
+                    members.AddRange(groupMemberDn.Where(currentDn => currentDn != ""));
+                    allGroups.Add(new GroupGetReturnParameters()
+                    {
+                        GroupDn = entry.Dn,
+                        Members = members,
+                        OwnerGroup = entry.GetAttributeSet().ContainsKey(BusinessCategory) && entry.Get(BusinessCategory).StringValue.Equals(OwnerGroupLowerCase, StringComparison.OrdinalIgnoreCase)
+                    });
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to get all internal groups", exception);
+            }
+            return allGroups;
+        }
+
+        /// <summary>
+        /// Get all groups of an LDAP server matching a specific pattern
+        /// </summary>
+        /// <returns>list of groups</returns>
+        public async Task<List<GroupGetReturnParameters>> GetAllGroupObjects(string groupPattern)
+        {
+            List<GroupGetReturnParameters> allGroups = [];
+
+            try
+            {
+                using LdapConnection connection = await GetBoundConnection(SearchUser, SearchUserPwd);
+
+                // Search for Ldap groups in given directory          
+                int searchScope = LdapConnection.ScopeSub;
+                string searchFilter = GetGroupSearchFilter(groupPattern);
+                ILdapSearchResults? searchResults = await connection.SearchAsync(GroupSearchPath, searchScope, searchFilter, null, false);
+
+                while (await searchResults.HasMoreAsync())
+                {
+                    LdapEntry entry = await searchResults.NextAsync();
+
+                    List<string> members = [];
+                    if (entry.GetAttributeSet().ContainsKey(GetMemberKey()))
+                    {
+                        string[] groupMemberDn = entry.Get(GetMemberKey()).StringValueArray;
+                        members.AddRange(groupMemberDn.Where(currentDn => currentDn != ""));
+                    }
+                    allGroups.Add(new GroupGetReturnParameters()
+                    {
+                        GroupDn = entry.Dn,
+                        Members = members,
+                        OwnerGroup = entry.GetAttributeSet().ContainsKey(BusinessCategory) && entry.Get(BusinessCategory).StringValue.Equals(OwnerGroupLowerCase, StringComparison.OrdinalIgnoreCase)
+                    });
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to get all internal groups", exception);
+            }
+            return allGroups;
+        }
+
+        /// <summary>
+        /// Get member key depending on the LDAP type
+        /// </summary>
+        /// <returns>string with member key</returns>
+        private string GetMemberKey()
+        {
+            string memberKey = UniqueMember;
+            if ((LdapType)Type == LdapType.ActiveDirectory)
+            {
+                memberKey = "member";
+            }
+            return memberKey;
+        }
+
+        /// <summary>
+        /// Get members of an ldap group
+        /// </summary>
+        /// <returns>list of members</returns>
+        public async Task<List<string>> GetGroupMembers(string groupDn)
+        {
+            List<string> allMembers = [];
+
+            if (string.IsNullOrWhiteSpace(groupDn))
+            {
+                return allMembers;
+            }
+
+            try
+            {
+                using LdapConnection connection = await GetBoundConnection(SearchUser, SearchUserPwd);
+
+                LdapEntry? entry = await connection.ReadAsync(groupDn);
+                if (entry == null)
+                {
+                    Log.WriteDebug("GetGroupMembers", $"Group not found: {groupDn}");
+                    return allMembers;
+                }
+
+                string memberKey = GetMemberKey();
+                if (!entry.GetAttributeSet().ContainsKey(memberKey))
+                {
+                    Log.WriteDebug("GetGroupMembers", $"Group has no members: {groupDn}");
+                    return allMembers;
+                }
+
+                string[] groupMemberDn = entry.Get(memberKey).StringValueArray;
+                allMembers.AddRange(groupMemberDn.Where(m => !string.IsNullOrWhiteSpace(m)));
+            }
+            catch (LdapException ex) when (ex.ResultCode == LdapException.NoSuchObject)
+            {
+                Log.WriteDebug("GetGroupMembers", $"Group not found: {groupDn}");
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError($"Non-LDAP exception {Address}:{Port}", $"Unexpected error while reading members of group {groupDn}", ex);
+            }
+
+            return allMembers;
+        }
+
+        /// <summary>
+        /// Resolve user DNs from a list of user or group DNs, expanding group members recursively.
+        /// </summary>
+        /// <param name="dns">DNs to resolve.</param>
+        /// <returns>List of resolved user DNs.</returns>
+        public async Task<List<string>> ResolveUsersFromDns(IEnumerable<string> dns)
+        {
+            HashSet<string> resolvedUsers = new(DistName.DnComparer);
+            if (dns == null)
+            {
+                return resolvedUsers.ToList();
+            }
+
+            Queue<string> groupQueue = new();
+            HashSet<string> visitedGroups = new(DistName.DnComparer);
+
+            foreach (string dn in dns)
+            {
+                EnqueueGroupOrAddUser(dn, groupQueue, resolvedUsers);
+            }
+
+            while (groupQueue.Count > 0)
+            {
+                string groupDn = groupQueue.Dequeue();
+                if (!visitedGroups.Add(groupDn))
+                {
+                    continue;
+                }
+
+                List<string> members = await GetGroupMembers(groupDn);
+                foreach (string memberDn in members)
+                {
+                    EnqueueGroupOrAddUser(memberDn, groupQueue, resolvedUsers);
+                }
+            }
+
+            return resolvedUsers.ToList();
+        }
+
+        private void EnqueueGroupOrAddUser(string dn, Queue<string> groupQueue, HashSet<string> resolvedUsers)
+        {
+            if (string.IsNullOrWhiteSpace(dn))
+            {
+                return;
+            }
+            if (IsGroupDn(dn))
+            {
+                groupQueue.Enqueue(dn);
+                return;
+            }
+            if (IsUserDn(dn) || string.IsNullOrWhiteSpace(UserSearchPath))
+            {
+                resolvedUsers.Add(dn);
+            }
+        }
+
+        private bool IsGroupDn(string dn)
+        {
+            return !string.IsNullOrWhiteSpace(GroupSearchPath)
+                && dn.EndsWith(GroupSearchPath, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool IsUserDn(string dn)
+        {
+            return !string.IsNullOrWhiteSpace(UserSearchPath)
+                && dn.EndsWith(UserSearchPath, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Get all groups, the user is member of
+        /// </summary>
+        /// <param name="userToSearch">user to search</param>
+        /// <returns>list of groups</returns>
+        /// <remarks>
+        /// This method is used to get the groups of a user in the LDAP directory.
+        /// It connects to the LDAP server, binds with the search user, and searches for the user in the specified search path.
+        /// If the user is found, it retrieves the "memberOf" attribute, which contains the groups the user is a member of.
+        /// The method returns a list of group names that the user belongs to.
+        /// </remarks>
+        public async Task<List<string>> GetGroupsOfUser(string userToSearch)
+        {
+            List<string> userGroups = [];
+            try
+            {
+                using LdapConnection connection = await GetBoundConnection(SearchUser, SearchUserPwd);
+
+                // searchfilter for users
+                string escapedUserToSearch = EscapeFilterValue(userToSearch);
+                string searchFilter = $"(|(cn={escapedUserToSearch})(sAMAccountName={escapedUserToSearch}))";
+
+                var searchResults = await connection.SearchAsync(
+                    UserSearchPath,
+                    LdapConnection.ScopeSub,
+                    searchFilter,
+                    [MemberOf],
+                    false
+                );
+
+                if (await searchResults.HasMoreAsync())
+                {
+                    var entry = await searchResults.NextAsync();
+                    var memberOfAttrs = entry.Get(MemberOf);
+
+                    if (memberOfAttrs != null)
+                    {
+                        foreach (var group in memberOfAttrs.StringValueArray)
+                        {
+                            userGroups.Add(group);
+                        }
+                    }
+                    else
+                    {
+                        Log.WriteWarning("GetGroupsOfUser", $"User does not have any groups \"{userToSearch}\"");
+                    }
+                }
+                else
+                {
+                    Log.WriteWarning("GetGroupsOfUser", $"Could not find user \"{userToSearch}\"");
+                }
+            }
+            catch (LdapException e)
+            {
+                Log.WriteError("GetGroupsOfUser LDAP error", e.LdapErrorMessage);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError("GetGroupsOfUser error", ex.Message);
+            }
+            return userGroups;
+        }
+
+
+
+        /// <summary>
+        /// Add new group
+        /// </summary>
+        /// <returns>group DN if user added</returns>
+        public async Task<string> AddGroup(string groupName, bool ownerGroup)
+        {
+            Log.WriteInfo("Add Group", $"Trying to add Group: \"{groupName}\"");
+            bool groupAdded = false;
+            string groupDn = groupName;
+            try
+            {
+                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
+
+                if (!IsFullyQualifiedDn(groupDn))
+                {
+                    groupDn = $"cn={groupName},{GroupWritePath}";
+                }
+                LdapAttributeSet attributeSet = new();
+                attributeSet.Add(new LdapAttribute("objectclass", "groupofuniquenames"));
+                attributeSet.Add(new LdapAttribute(UniqueMember, ""));
+                if (ownerGroup)
+                {
+                    attributeSet.Add(new LdapAttribute(BusinessCategory, OwnerGroupLowerCase));
+                }
+
+                LdapEntry newEntry = new(groupDn, attributeSet);
+
+                try
+                {
+                    //Add the entry to the directory
+                    await connection.AddAsync(newEntry);
+                    groupAdded = true;
+                    Log.WriteDebug("Add group", $"Group {groupName} added in {Address}:{Port}");
+                }
+                catch (Exception exception)
+                {
+                    Log.WriteInfo("Add Group", $"couldn't add group to LDAP {Address}:{Port}: {exception}");
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to add group", exception);
+            }
+            return groupAdded ? groupDn : "";
+        }
+
+        /// <summary>
+        /// Update group name
+        /// </summary>
+        /// <returns>new group DN if group updated</returns>
+        public async Task<string> UpdateGroup(string oldName, string newName)
+        {
+            Log.WriteInfo("Update Group", $"Trying to update Group: \"{oldName}\"");
+            bool groupUpdated = false;
+            string oldGroupDn = $"cn={oldName},{GroupWritePath}";
+            string newGroupRdn = $"cn={newName}";
+
+            try
+            {
+                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
+
+                try
+                {
+                    //Add the entry to the directory
+                    await connection.RenameAsync(oldGroupDn, newGroupRdn, true);
+                    groupUpdated = true;
+                    Log.WriteDebug("Update group", $"Group {oldName} renamed to {newName} in {Address}:{Port}");
+                }
+                catch (Exception exception)
+                {
+                    Log.WriteInfo("Update Group", $"couldn't update group in LDAP {Address}:{Port}: {exception}");
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to update group", exception);
+            }
+            return groupUpdated ? $"{newGroupRdn},{GroupWritePath}" : "";
+        }
+
+        /// <summary>
+        /// Delete group
+        /// </summary>
+        /// <returns>true if group deleted</returns>
+        public async Task<bool> DeleteGroup(string groupName)
+        {
+            Log.WriteInfo("Delete Group", $"Trying to delete Group: \"{groupName}\"");
+            bool groupDeleted = false;
+            try
+            {
+                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
+
+                try
+                {
+                    //Delete the entry in the directory
+                    string groupDn = $"cn={groupName},{GroupWritePath}";
+                    await connection.DeleteAsync(groupDn);
+                    groupDeleted = true;
+                    Log.WriteDebug("Delete group", $"Group {groupName} deleted in {Address}:{Port}");
+                }
+                catch (Exception exception)
+                {
+                    Log.WriteInfo("Delete Group", $"couldn't delete group in LDAP {Address}:{Port}: {exception}");
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to delete group", exception);
+            }
+            return groupDeleted;
+        }
+    }
+}

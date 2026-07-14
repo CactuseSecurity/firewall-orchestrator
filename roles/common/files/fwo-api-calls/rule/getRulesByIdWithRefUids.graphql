@@ -1,0 +1,15 @@
+query getRulesByIdWithRefUids ($ruleIds:[bigint!]!) {
+    firewall_rule (where:{rule_id:{_in:$ruleIds}}) {
+        rule_id
+        rule_src_refs
+        rule_dst_refs
+        rule_svc_refs
+        rule_dst_zone
+        rule_src_zone
+        rule_src_neg
+        rule_dst_neg
+        rule_svc_neg
+        rulebase_id
+        rule_installon
+    }
+}

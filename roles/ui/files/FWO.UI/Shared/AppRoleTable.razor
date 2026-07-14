@@ -1,0 +1,50 @@
+@using FWO.Data.Modelling
+@using FWO.Data.Report
+@using FWO.Ui.Display
+
+@inject UserConfig userConfig
+
+<Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingAppRole" Items="AppRoles">
+    <Column TableItem="ModellingAppRole" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true"/>
+    <Column TableItem="ModellingAppRole" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true">
+        <Template>
+            @(context.Display())
+        </Template>
+    </Column>
+    @if(Split)
+    {
+        <Column TableItem="ModellingAppRole" Title="@(userConfig.GetText("missing_app_servers"))" Field="@(x => x.Id)" Sortable="false" Filterable="true">
+            <Template>
+                @((MarkupString)ConnectionReport.ListAppServers(ModellingAppServerWrapper.Resolve(context.AppServers).ToList(), []))
+            </Template>
+        </Column>
+        <Column TableItem="ModellingAppRole" Title="@(userConfig.GetText("surplus_app_servers"))" Field="@(x => x.Id)" Sortable="false" Filterable="true">
+            <Template>
+                @((MarkupString)ConnectionReport.ListAppServers(ModellingAppServerWrapper.Resolve(context.SurplusAppServers).ToList(), []))
+            </Template>
+        </Column>
+    }
+    else
+    {
+        <Column TableItem="ModellingAppRole" Title="@(userConfig.GetText("app_servers"))" Field="@(x => x.Id)" Sortable="false" Filterable="true">
+            <Template>
+                @((MarkupString)ConnectionReport.ListAppServers(ModellingAppServerWrapper.Resolve(context.AppServers).ToList(), 
+                    ModellingAppServerWrapper.Resolve(context.SurplusAppServers).ToList(), DiffMode))
+            </Template>
+        </Column>
+    }
+    <Pager ShowPageNumber="true" ShowTotalCount="true" />
+</Table>
+
+
+@code
+{
+    [Parameter]
+    public List<ModellingAppRole> AppRoles { get; set; } = [];
+
+    [Parameter]
+    public bool DiffMode { get; set; } = false;
+
+    [Parameter]
+    public bool Split { get; set; } = false;
+}

@@ -1,0 +1,5 @@
+deletemutation delete_import($mgmId: Int!) {
+  delete_import_control(where: {mgm_id: {_eq: $mgmId}, successful_import: {_eq: false}, stop_time: {_is_null: true}}) {
+    affected_rows
+  }
+}

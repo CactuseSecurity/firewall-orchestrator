@@ -1,0 +1,22 @@
+mutation updateFlowTimeObject(
+  $timeobjId: bigint!
+  $name: String!
+  $showInRequestModule: Boolean!
+) {
+  update_flow_timeobject_by_pk(
+    pk_columns: { timeobj_id: $timeobjId }
+    _set: {
+      name: $name
+      show_in_request_module: $showInRequestModule
+    }
+  ) {
+    timeobj_id
+    name
+    start_time
+    end_time
+    timeobj_hash
+    state
+    removed_date
+    show_in_request_module
+  }
+}

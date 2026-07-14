@@ -1,0 +1,14 @@
+query getMgmtNumberUsingCred($importCredentialId: Int!) {
+  management_aggregate(
+    where: {
+      _or: [
+        { import_credential_id: { _eq: $importCredentialId } }
+        { export_credential_id: { _eq: $importCredentialId } }
+      ]
+    }
+  ) {
+    aggregate {
+      count
+    }
+  }
+}

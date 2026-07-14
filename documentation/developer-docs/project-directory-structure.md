@@ -22,7 +22,6 @@ sample_config_user_home: "/home/{{ sample_config_user }}"
 
   - creating {{ fworch_parent_dir }}/fworch
   - creating user fworch
-  - adding file iso.conf to {{ fworch_parent_dir }}/fworch/etc
   - creating logs
   
 ## hosts: backends
@@ -36,15 +35,15 @@ database_dir: /var/lib/pgsql/data
 ```
 
 - The roles to be installed on the backend are
-  - docker
+  - podman
   - database
   - api
   - auth
   - openldap-server
   
-- The role docker executes the tasks
-  - downloads and installs Docker and related packages
-  - creates local config directory {{ fworch_home }}/.docker and adds config.json
+- The role podman executes the tasks
+  - installs Podman on the API host
+  - prepares the container runtime used for the Hasura API service
 
 - The role database executes the tasks
   - installs postgresql DBMS

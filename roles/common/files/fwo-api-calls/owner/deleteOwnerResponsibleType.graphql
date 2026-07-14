@@ -1,0 +1,7 @@
+mutation deleteOwnerResponsibleType($id: Int!) {
+  delete_owner_responsible_type(where: {id: {_eq: $id}}) {
+    returning {
+      deletedId: id
+    }
+  }
+}

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,6 +10,7 @@ namespace FWO.Ui.Data
     {
         public event NotifyCollapse? OnCollapse;
         public event NotifyCollapse? OnExpand;
+        public bool HasExpandSubscribers => OnExpand != null;
 
         public void Collapse(string? location = null)
         {

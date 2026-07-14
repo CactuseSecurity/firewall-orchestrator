@@ -1,4 +1,4 @@
-﻿using FWO.Logging;
+using FWO.Logging;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
@@ -17,7 +17,7 @@ namespace FWO.Config.File
             {
                 byte[] keyBytes = Convert.FromBase64String(keyText);
                 // creating the RSA key 
-                RSACryptoServiceProvider provider = new RSACryptoServiceProvider();
+                RSACryptoServiceProvider provider = new(3072);  // keylength just given for satisfying sonarcube checks (as we import the key later)
                 if (isPrivateKey)
                 {
                     if (isRsaKey)
@@ -72,7 +72,7 @@ namespace FWO.Config.File
                 Log.WriteError("Key extraction", "Error while trying to read key from file.", exception);
                 throw;
             }
-          
+
             Log.WriteDebug("Key extraction", "Key was succesfully extracted.");
             return (keyText, isRsaKey);
         }

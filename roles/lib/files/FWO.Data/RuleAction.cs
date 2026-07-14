@@ -1,0 +1,17 @@
+using System.Text.Json.Serialization;
+using Newtonsoft.Json;
+
+namespace FWO.Data
+{
+    public class RuleAction
+    {
+        [JsonProperty("action_id"), JsonPropertyName("action_id")]
+        public int Id { get; set; }
+
+        [JsonProperty("action_name"), JsonPropertyName("action_name")]
+        public string Name { get; set; } = "";
+
+        [JsonProperty("allowed"), JsonPropertyName("allowed")]
+        public bool Allowed { get; set; } = true;
+    }
+}

@@ -1,0 +1,75 @@
+using System.Linq;
+using System.Text.Json.Serialization;
+using Newtonsoft.Json;
+using NewtonsoftJsonIgnore = Newtonsoft.Json.JsonIgnoreAttribute;
+using SystemTextJsonIgnore = System.Text.Json.Serialization.JsonIgnoreAttribute;
+
+namespace FWO.Data
+{
+    public class RuleMetadata
+    {
+        [JsonProperty("rule_metadata_id"), JsonPropertyName("rule_metadata_id")]
+        public long Id { get; set; }
+
+        [JsonProperty("rule_created"), JsonPropertyName("rule_created")]
+        public long? CreatedImportId { get; set; }
+
+        [JsonProperty("created_import"), JsonPropertyName("created_import")]
+        public ImportControl? CreatedImport { get; set; }
+
+        [JsonProperty("removed"), JsonPropertyName("removed")]
+        public long? RemovedImportId { get; set; }
+
+        [JsonProperty("removed_import"), JsonPropertyName("removed_import")]
+        public ImportControl? RemovedImport { get; set; }
+
+        [JsonProperty("rule_first_hit"), JsonPropertyName("rule_first_hit")]
+        public DateTime? FirstHit { get; set; }
+
+        private DateTime? lastHit;
+
+        [JsonProperty("rule_last_hit"), JsonPropertyName("rule_last_hit")]
+        public DateTime? LastHit
+        {
+            get => lastHit;
+            set => lastHit = value.HasValue && value.Value.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(value.Value, DateTimeKind.Utc)
+                : value;
+        }
+
+        [JsonProperty("recertification"), JsonPropertyName("recertification")]
+        public List<Recertification> RuleRecertification { get; set; } = [];
+
+        [JsonProperty("recert_history"), JsonPropertyName("recert_history")]
+        public List<Recertification> RecertHistory { get; set; } = [];
+
+        [JsonProperty("rule_uid"), JsonPropertyName("rule_uid")]
+        public string? Uid { get; set; } = "";
+
+        [JsonProperty("rules"), JsonPropertyName("rules")]
+        public Rule[] Rules { get; set; } = [];
+
+        [SystemTextJsonIgnore, NewtonsoftJsonIgnore]
+        public DateTime? Created => CreatedImport?.StartTime;
+
+        [SystemTextJsonIgnore, NewtonsoftJsonIgnore]
+        public DateTime? Removed => RemovedImport?.StartTime;
+
+        [SystemTextJsonIgnore, NewtonsoftJsonIgnore]
+        public string Comment => RecertHistory.OrderByDescending(r => r.RecertDate).FirstOrDefault()?.Comment ?? "";
+
+        [SystemTextJsonIgnore, NewtonsoftJsonIgnore]
+        public DateTime? LastCertified => RecertHistory.Where(r => r.Recertified)
+            .OrderByDescending(r => r.RecertDate).FirstOrDefault()?.RecertDate;
+
+        [SystemTextJsonIgnore, NewtonsoftJsonIgnore]
+        public DateTime? DecertificationDate => RecertHistory.Where(r => !r.Recertified)
+            .OrderByDescending(r => r.RecertDate).FirstOrDefault()?.RecertDate;
+
+        [SystemTextJsonIgnore, NewtonsoftJsonIgnore]
+        public bool ToBeRemoved { get; set; }
+
+
+        public bool Recert { get; set; }
+    }
+}

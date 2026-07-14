@@ -1,0 +1,33 @@
+---
+- name: read existing docker daemon config
+  slurp:
+    src: /etc/docker/daemon.json
+  register: docker_daemon_config_raw
+  ignore_errors: true
+
+- name: set docker daemon config base
+  set_fact:
+    docker_daemon_config: >-
+      {{
+        (docker_daemon_config_raw.content | b64decode | from_json)
+        if (
+          docker_daemon_config_raw is defined and
+          docker_daemon_config_raw.content is defined and
+          (docker_daemon_config_raw.content | b64decode | trim | length > 0)
+        )
+        else {}
+      }}
+
+- name: set docker bridge network
+  set_fact:
+    docker_daemon_config: "{{ docker_daemon_config | combine({'bip': docker_network}, recursive=True) }}"
+
+- name: write docker daemon config
+  copy:
+    dest: /etc/docker/daemon.json
+    content: "{{ docker_daemon_config | to_nice_json }}\n"
+    mode: "0644"
+    owner: "root"
+    group: "root"
+    backup: true
+  notify: "docker restart"

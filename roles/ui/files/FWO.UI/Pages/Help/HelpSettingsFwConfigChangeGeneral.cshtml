@@ -1,0 +1,23 @@
+@page "/help/settings/fwconfigchangegeneral"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar {
+    @{
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml");
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@(userConfig.GetText("fwconfigchangegeneral"))</h3>
+    @(Html.Raw(userConfig.GetText("H5680")))
+    <br><br>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5681")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5682")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5683")))</li>
+    </ul>
+</div>

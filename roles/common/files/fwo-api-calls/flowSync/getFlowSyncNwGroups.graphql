@@ -1,0 +1,19 @@
+query getFlowSyncNwGroups($mgmId: Int!) {
+  flow_nwgroup(order_by: { nwgrp_id: asc }) {
+    nwgrp_id
+    name
+    nwgrp_hash
+    state
+    removed_date
+    show_in_request_module
+    nwgroup_members(order_by: { nwobj_id: asc }) {
+      nwgrp_id
+      nwobj_id
+    }
+    objects(where: { mgm_id: { _eq: $mgmId } }) {
+      obj_id
+      obj_uid
+      removed
+    }
+  }
+}

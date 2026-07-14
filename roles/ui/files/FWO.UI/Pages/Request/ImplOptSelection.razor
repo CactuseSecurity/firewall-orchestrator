@@ -1,7 +1,3 @@
-@using FWO.Api.Data
-@using FWO.Config.Api
-@using FWO.Services
-
 @inject UserConfig userConfig
 
 <div class="form-group row">
@@ -9,24 +5,18 @@
     <div class="col-sm-4">
         @if(userConfig.ReqOwnerBased)
         {
-            <Dropdown ElementType="FwoOwner" @bind-SelectedElement="selectedOwnerOpt" ElementToString="@(o => o.Display(""))" Elements="ownerOptions" AppendWidth="100">
+            <Dropdown ElementType="FwoOwner" SelectedElement="selectedOwnerOpt" SelectedElementChanged="OwnerSelectionChanged" ElementToString="@(o => o.Display(""))" Elements="ownerOptions">
                 <ElementTemplate Context="owner">
                     @owner.Display("")
                 </ElementTemplate>
-                <Append>
-                    <button type="button" class="btn btn-sm btn-primary" style="100px" @onclick="async () => {await SelectOwner(selectedOwnerOpt);}">@(userConfig.GetText("select"))</button>
-                </Append>
             </Dropdown>
         }
         else
         {
-            <Dropdown ElementType="Device" @bind-SelectedElement="selectedDeviceOpt" ElementToString="@(d => d.Name)" Elements="deviceOptions" AppendWidth="100">
+            <Dropdown ElementType="Device" SelectedElement="selectedDeviceOpt" SelectedElementChanged="DeviceSelectionChanged" ElementToString="@(d => d.Name ?? string.Empty)" Elements="deviceOptions">
                 <ElementTemplate Context="device">
                     @device.Name
                 </ElementTemplate>
-                <Append>
-                    <button type="button" class="btn btn-sm btn-primary" style="100px" @onclick="async () => {await SelectDevice(selectedDeviceOpt);}">@(userConfig.GetText("select"))</button>
-                </Append>
             </Dropdown>
         }
     </div>
@@ -58,7 +48,7 @@
     private List<FwoOwner> ownerOptions = [];
     private FwoOwner selectedOwnerOpt = new ();
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         try
         {
@@ -85,7 +75,7 @@
         ownerOptions = new (Owners);
         ownerOptions.Add(allMyOwners);
         ownerOptions.Add(assignedToMe);
-        if(!userConfig.ReqReducedView || authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
+        if(!userConfig.ReqReducedView || userConfig.CanUseAnyRole(Roles.Admin))
         {
             ownerOptions.Add(optTicket);
         }
@@ -100,10 +90,22 @@
         deviceOptions = new (WfHandler.Devices);
         deviceOptions.Add(allGateways);
         selectedDeviceOpt = allGateways;
-        if(!userConfig.ReqReducedView || authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
+        if(!userConfig.ReqReducedView || userConfig.CanUseAnyRole(Roles.Admin))
         {
             deviceOptions.Add(optTicket);
             selectedDeviceOpt = optTicket;
         }
+    }
+
+    private async Task OwnerSelectionChanged(FwoOwner owner)
+    {
+        selectedOwnerOpt = owner;
+        await SelectOwner(selectedOwnerOpt);
+    }
+
+    private async Task DeviceSelectionChanged(Device device)
+    {
+        selectedDeviceOpt = device;
+        await SelectDevice(selectedDeviceOpt);
     }
 }

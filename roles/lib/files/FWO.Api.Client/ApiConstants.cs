@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,6 +8,6 @@ namespace FWO.Api.Client
 {
     internal class ApiConstants
     {
-        public const bool UseSystemTextJsonSerializer = false;
+        public static readonly bool UseSystemTextJsonSerializer = false;
     }
 }

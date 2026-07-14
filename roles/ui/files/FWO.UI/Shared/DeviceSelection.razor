@@ -1,8 +1,8 @@
-﻿@using FWO.Config.Api
-@using FWO.Basics
-@using FWO.Api.Data
 @using FWO.Ui.Data
-@using FWO.Services
+@using FWO.Data.Workflow
+@using FWO.Data.Report
+@using System.Diagnostics
+
 
 @inject UserConfig userConfig
 @inject IJSRuntime jsRuntime
@@ -103,6 +103,11 @@
         }
     }
 
+    protected override void OnParametersSet()
+    {
+        SelectAll = !DeviceFilter.IsAnyDeviceFilterSet();
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         foreach (ManagementSelect management in DeviceFilter.Managements)
@@ -122,24 +127,29 @@
             }
         }
     }
-    
+
     public async Task SetElementProperty(ElementReference element, string property, object value)
     {
-        await jsRuntime.InvokeVoidAsync("setProperty", element, property, value);
+        try
+        {
+            await jsRuntime.InvokeVoidAsync("setProperty", element, property, value);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex.ToString());
+        }
+        
     }
 
     private async Task SetSelectAll()
     {
-        if (DeviceFilter.areAllDevicesSelected())
-            SelectAll = false;
-        if (!DeviceFilter.isAnyDeviceFilterSet())
-            SelectAll = true;
+        SelectAll = !DeviceFilter.IsAnyDeviceFilterSet();
         await SelectAllChanged.InvokeAsync(SelectAll);
     }
 
     private async Task ToggleSelectAll()
     {
-        DeviceFilter.applyFullDeviceSelection(SelectAll);
+        DeviceFilter.ApplyFullDeviceSelection(SelectAll);
         SelectAll = !SelectAll;
         await SelectAllChanged.InvokeAsync(SelectAll);
     }

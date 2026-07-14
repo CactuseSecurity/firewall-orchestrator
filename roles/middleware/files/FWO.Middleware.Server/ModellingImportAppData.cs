@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
+using FWO.Data.Modelling;
 using Newtonsoft.Json;
 
 
@@ -34,22 +35,12 @@ namespace FWO.Middleware.Server
         public string ExtAppId { get; set; } = "";
 
         /// <summary>
-        /// Main User (Dn)
+        /// Main user identifier from import.
+        /// The import source should provide its own user identifier, which is resolved by middleware.
+        /// Legacy: is now imported as responsible with type MainUser.
         /// </summary>
         [JsonProperty("main_user"), JsonPropertyName("main_user")]
         public string? MainUser { get; set; } = "";
-
-        /// <summary>
-        /// List of allowed modellers (Dn)
-        /// </summary>
-        [JsonProperty("modellers"), JsonPropertyName("modellers")]
-        public List<string>? Modellers { get; set; } = [];
-
-        /// <summary>
-        /// List of Ldap Groups of allowed modellers (Dn): (currently handled same as modellers)
-        /// </summary>
-        [JsonProperty("modeller_groups"), JsonPropertyName("modeller_groups")]
-        public List<string>? ModellerGroups { get; set; } = [];
 
         /// <summary>
         /// Criticality of App
@@ -58,10 +49,55 @@ namespace FWO.Middleware.Server
         public string? Criticality { get; set; }
 
         /// <summary>
+        /// Owner lifecycle state name
+        /// </summary>
+        [JsonProperty("owner_lifecycle_state"), JsonPropertyName("owner_lifecycle_state")]
+        public string? OwnerLifecycleState { get; set; }
+
+        /// <summary>
+        /// Owner responsibles grouped by responsible type key.
+        /// Values may be user or group identifiers from the source system.
+        /// Keys must be numeric.
+        /// Incoming keys are sorted numerically and assigned to responsible types
+        /// sorted by sort_order (lowest key -> first type by sort_order, next key -> next type).
+        /// Example:
+        /// "responsibles": {
+        ///   "1": ["user1"],
+        ///   "2": []
+        /// }
+        /// </summary>
+        [JsonProperty("responsibles"), JsonPropertyName("responsibles")]
+        public Dictionary<string, List<string>>? Responsibles { get; set; } = [];
+
+        /// <summary>
+        /// Additional owner metadata imported from customization sources.
+        /// </summary>
+        [JsonProperty("additional_information"), JsonPropertyName("additional_information")]
+        public Dictionary<string, string>? AdditionalInformation { get; set; }
+
+        /// <summary>
         /// Source of App import
         /// </summary>
         [JsonProperty("import_source"), JsonPropertyName("import_source")]
         public string ImportSource { get; set; } = "";
+
+        /// <summary>
+        /// Recertification interval
+        /// </summary>
+        [JsonProperty("recert_period_days"), JsonPropertyName("recert_period_days")]
+        public int? RecertInterval { get; set; }
+
+        /// <summary>
+        /// First Recertification interval (currently not regarded)
+        /// </summary>
+        [JsonProperty("days_until_first_recert"), JsonPropertyName("days_until_first_recert")]
+        public int? FirstRecertInterval { get; set; }
+
+        /// <summary>
+        /// Recertification active
+        /// </summary>
+        [JsonProperty("recert_active"), JsonPropertyName("recert_active")]
+        public bool RecertActive { get; set; } = false;
 
         /// <summary>
         /// App Servers of App
@@ -69,7 +105,7 @@ namespace FWO.Middleware.Server
         [JsonProperty("app_servers"), JsonPropertyName("app_servers")]
         public List<ModellingImportAppServer> AppServers { get; set; } = [];
     }
-    
+
     /// <summary>
     /// Structure for imported app server 
     /// </summary>
@@ -80,12 +116,6 @@ namespace FWO.Middleware.Server
         /// </summary>
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
-
-        // /// <summary>
-        // /// App Server Subnet
-        // /// </summary>
-        // [JsonProperty("subnet"), JsonPropertyName("subnet")]
-        // public string Subnet { get; set; } = "";
 
         /// <summary>
         /// App Server Ip
@@ -98,5 +128,18 @@ namespace FWO.Middleware.Server
         /// </summary>
         [JsonProperty("ip_end"), JsonPropertyName("ip_end")]
         public string IpEnd { get; set; } = "";
+
+        /// <summary>
+        /// Conversion to ModellingAppServer
+        /// </summary>
+        public ModellingAppServer ToModellingAppServer()
+        {
+            return new ModellingAppServer()
+            {
+                Name = Name,
+                Ip = Ip,
+                IpEnd = IpEnd
+            };
+        }
     }
 }

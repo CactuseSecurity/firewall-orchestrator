@@ -1,38 +1,156 @@
-﻿using System.Text;
+using System.Text;
 using FWO.Basics;
-using FWO.Api.Data;
+using FWO.Data;
 using FWO.Config.Api;
+using FWO.Report;
 using FWO.Report.Filter;
 
 namespace FWO.Ui.Display
 {
-    public class RuleDisplayBase
+    public class RuleDisplayBase(UserConfig userConfig)
     {
-        protected UserConfig userConfig;
+        protected UserConfig userConfig = userConfig;
 
-        public RuleDisplayBase(UserConfig userConfig)
+        public static string DisplayHierarchicalNumber(Rule rule)
         {
-            this.userConfig = userConfig;
+            return rule.DisplayOrderNumberString;
         }
 
-        public string DisplayNumber(Rule rule)
+        public static string DisplayEnabled(Rule rule, OutputLocation location)
         {
-            return rule.DisplayOrderNumber.ToString();
+            if (location == OutputLocation.export)
+            {
+                return $"<b>{(rule.Disabled ? "N" : "Y")}</b>";
+            }
+            else
+            {
+                return $"<div class=\"{(rule.Disabled ? Icons.Close : Icons.Check)}\"></div>";
+            }
         }
 
-        public string DisplayName(Rule rule)
+        public static string DisplayLastModified(Rule rule)
+        {
+            DateTime? lastModified = rule.LastModified ?? rule.Metadata?.Created;
+            return lastModified.HasValue
+                ? DateOnly.FromDateTime(lastModified.Value).ToString("yyyy-MM-dd")
+                : "";
+        }
+
+        public static string DisplayIsCompliant(Rule rule, OutputLocation location)
+        {
+            if (rule.Compliance != ComplianceViolationType.NotAssessable)
+            {
+                bool isCompliant = true;
+
+                if (rule.Compliance != ComplianceViolationType.None)
+                {
+                    isCompliant = false;
+                }
+
+                if (location == OutputLocation.export)
+                {
+                    return $"<b>{(isCompliant ? "Y" : "N")}</b>";
+                }
+                else
+                {
+                    return $"<div class=\"oi {(isCompliant ? "oi-check" : "oi-x")}\"></div>";
+                }
+            }
+            else
+            {
+                return "Not Evaluable";
+            }
+        }
+
+        public static string DisplayViolationDetails(Rule rule)
+        {
+            string violationDetails = "<p>";
+            bool notFirst = false;
+
+            foreach (ComplianceViolation violation in rule.Violations)
+            {
+                if (notFirst)
+                {
+                    violationDetails += "<br>";
+                }
+
+                violationDetails += violation.Details;
+                notFirst = true;
+            }
+
+            violationDetails += "</p>";
+
+            return violationDetails;
+        }
+
+        public static string DisplayName(Rule rule)
         {
             return rule.Name ?? "";
         }
 
-        public string DisplaySourceZone(Rule rule)
+        public static string DisplayName(NetworkObject nto)
         {
-            return rule.SourceZone != null ? rule.SourceZone.Name : "";
+            return nto.Name ?? "";
         }
 
-        public string DisplayDestinationZone(Rule rule)
+        public static string DisplayName(NetworkService nts)
         {
-            return rule.DestinationZone != null ? rule.DestinationZone.Name : "";
+            return nts.Name ?? "";
+        }
+
+        public static string DisplayName(NetworkUser ntu)
+        {
+            return ntu.Name ?? "";
+        }
+
+        public static string DisplaySourceZones(Rule rule)
+        {
+            if (rule.RuleFromZones.Length != 0)
+            {
+                string ruleZones = "";
+                bool notFirst = false;
+
+                foreach (ZoneWrapper zoneWrapper in rule.RuleFromZones)
+                {
+                    if (notFirst)
+                    {
+                        ruleZones += "<br>";
+                    }
+
+                    ruleZones += zoneWrapper.Content.Name;
+                    notFirst = true;
+                }
+                return ruleZones;
+            }
+            else
+            {
+                return "";
+            }
+        }
+
+        public static string DisplayDestinationZones(Rule rule)
+        {
+            if (rule.RuleToZones.Length != 0)
+            {
+                string ruleZones = "";
+                bool notFirst = false;
+
+                foreach (ZoneWrapper zoneWrapper in rule.RuleToZones)
+                {
+                    if (notFirst)
+                    {
+                        ruleZones += "<br>";
+                    }
+
+                    ruleZones += zoneWrapper.Content.Name;
+                    notFirst = true;
+                }
+                return ruleZones;
+            }
+            else
+            {
+                return "";
+            }
         }
 
         public static string DisplayAction(Rule rule)
@@ -49,6 +167,14 @@ namespace FWO.Ui.Display
         {
             return rule.Uid ?? "";
         }
+        public static string DisplayUid(NetworkObject nwo)
+        {
+            return nwo.Uid ?? "";
+        }
+        public static string DisplayUid(NetworkService nws)
+        {
+            return nws.Uid ?? "";
+        }
 
         public static string DisplayComment(Rule rule)
         {
@@ -58,8 +184,8 @@ namespace FWO.Ui.Display
         public static StringBuilder DisplayNetworkLocation(NetworkLocation userNetworkObject, ReportType reportType, string? userName = null, string? objName = null)
         {
             StringBuilder result = new();
-            
-            if (userNetworkObject.User != null &&  userNetworkObject.User.Id > 0)
+
+            if (userNetworkObject.User != null && userNetworkObject.User.Id > 0)
             {
                 result.Append($"{userName ?? userNetworkObject.User.Name}@");
             }
@@ -77,37 +203,50 @@ namespace FWO.Ui.Display
                     userNetworkObject.Object.Type.Name,
                     showIpinBrackets));
             }
-            return result;
+            return reportType == ReportType.VarianceAnalysis ? DisplayWithIcon(result, ObjCategory.nobj, userNetworkObject.Object.Type.Name) : result;
         }
 
         public static StringBuilder DisplayService(NetworkService service, ReportType reportType, string? serviceName = null)
         {
-            return DisplayBase.DisplayService(service, reportType.IsTechReport(), serviceName);
+            StringBuilder result = DisplayBase.DisplayService(service, reportType.IsTechReport(), serviceName);
+            return reportType == ReportType.VarianceAnalysis ? DisplayWithIcon(result, ObjCategory.nsrv, service.Type.Name) : result;
+        }
+
+        public static StringBuilder DisplayGateway(Device gateway, ReportType reportType, string? gatewayName = null)
+        {
+            return DisplayBase.DisplayGateway(gateway, reportType.IsTechReport(), gatewayName);
         }
 
         public static StringBuilder RemoveLastChars(StringBuilder s, int count)
         {
-            string x = s.ToString(); 
+            string x = s.ToString();
             x = x.Remove(x.ToString().Length - count, count).ToString();
             return s.Remove(s.ToString().Length - count, count);
         }
 
         public static string Quote(string? input)
         {
-            return  $"\"{input ?? ""}\"";
+            return $"\"{input ?? ""}\"";
         }
 
-        public static List<NetworkLocation> GetNetworkLocations(NetworkLocation[] locationArray)
+        public static List<NetworkLocation> GetResolvedNetworkLocations(NetworkLocation[] locationArray)
         {
             HashSet<NetworkLocation> collectedUserNetworkObjects = [];
             foreach (NetworkLocation networkObject in locationArray)
             {
-                foreach (GroupFlat<NetworkObject> nwObject in networkObject.Object.ObjectGroupFlats)
+                if (networkObject.Object.Type.Name == ObjectType.Group)
                 {
-                    if (nwObject.Object != null && nwObject.Object.Type.Name != ObjectType.Group)    // leave out group level altogether
+                    foreach (GroupFlat<NetworkObject> nwObject in networkObject.Object.ObjectGroupFlats)
                     {
-                        collectedUserNetworkObjects.Add(new NetworkLocation(networkObject.User, nwObject.Object));
+                        if (nwObject.Object != null && nwObject.Object.Type.Name != ObjectType.Group || networkObject.Object.ObjectGroupFlats.Count() == 1)    // leave out group level altogether, except for empty groups
+                        {
+                            collectedUserNetworkObjects.Add(new NetworkLocation(networkObject.User, nwObject.Object));
+                        }
                     }
+                }
+                else
+                {
+                    collectedUserNetworkObjects.Add(networkObject);
                 }
             }
             List<NetworkLocation> userNwObjectList = [.. collectedUserNetworkObjects];
@@ -127,6 +266,12 @@ namespace FWO.Ui.Display
                         collectedServices.Add(nwService.Object);
                     }
                 }
+
+                if (!service.Content.ServiceGroupFlats.Any())
+                {
+                    collectedServices.Add(service.Content);
+                }
+
             }
             List<NetworkService> serviceList = [.. collectedServices];
             serviceList.Sort(delegate (NetworkService x, NetworkService y) { return x.Name.CompareTo(y.Name); });
@@ -155,10 +300,16 @@ namespace FWO.Ui.Display
             {
                 if (!oldAr.Contains(item))
                 {
-                    string newItem = item; 
+                    string newItem = item;
                     added.Add(newItem);
                 }
             }
+        }
+
+        private static StringBuilder DisplayWithIcon(StringBuilder outputString, ObjCategory? objCategory, string? objType)
+        {
+            string symbol = ReportBase.GetIconClass(objCategory, objType);
+            return new($"<span class=\"{symbol}\">{outputString}</span>");
         }
     }
 }

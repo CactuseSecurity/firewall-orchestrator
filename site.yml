@@ -28,12 +28,12 @@
 
 - hosts: apiserver
   roles:
-    - { role: docker, when: "not installation_mode == 'uninstall'" }
+    - { role: podman, when: "not installation_mode == 'uninstall'" }
   tags:
     - backend
     - api
 
-# do not put this into the same play as docker (handler needs to run inbetween!)
+# do not put this into the same play as podman (runtime needs to be installed first)
 - hosts: apiserver 
   roles:
     - { role: api, when: "not installation_mode == 'uninstall'" }
@@ -64,7 +64,6 @@
   tags:
     - samples
     - backend
-  # todo: add a meta dependency on role sample-data
 
 - hosts: importers
   roles:
@@ -80,16 +79,10 @@
         name: "{{ ui_service_name }}"
         state: restarted
       become: true
-      when: "not installation_mode == 'uninstall'"
+      when: "not installation_mode == 'uninstall' and (ui_deploy_changed | default(false))"
   tags:
     - frontend
     - ui
-
-- hosts: testservers
-  roles:
-    - { role: webhook, when: install_webhook|bool and not installation_mode == 'uninstall' }
-  tags:
-    - test
 
 - hosts: all
   roles:
@@ -125,8 +118,8 @@
     - name: display secrets for this installation
       debug:
         msg:
-          - "Your initial UI admin password is '{{ admin_password }}'"
-          - "Your api hasura admin secret is '{{ api_hasura_admin_secret }}'"
+          - "The initial UI admin password is stored in {{ ui_admin_password_file }}"
+          - "The API Hasura admin secret is stored in {{ fworch_secrets_dir }}/hasura_admin_pwd"
       when: |
         admin_password is defined and 
         api_hasura_admin_secret is defined

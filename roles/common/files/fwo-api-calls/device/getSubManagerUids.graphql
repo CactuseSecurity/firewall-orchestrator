@@ -1,0 +1,7 @@
+query getSubManagerUids($mgmId: Int!)
+{
+  management(where: {multi_device_manager_id: {_eq: $mgmId}}) {
+    mgm_id
+    mgm_uid
+  }
+}

@@ -1,5 +1,0 @@
-query getAppServers ($appId: Int!){
-  owner_network (where: { owner_id: { _eq: $appId }, nw_type: { _eq: 10 } } order_by: { name: asc }){
-    ...appServerDetails
-  }
-}

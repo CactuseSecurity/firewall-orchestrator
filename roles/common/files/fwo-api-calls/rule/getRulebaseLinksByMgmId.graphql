@@ -1,0 +1,22 @@
+query getRulebaseLinksByMgmId($mgmId: Int!) {
+  device(where: { management: { mgm_id: { _eq: $mgmId } } }) {
+    dev_uid
+    rulebase_links(where: { removed: { _is_null: true } }) {
+      rule {
+        rule_uid
+      }
+      rulebaseByFromRulebaseId {
+        uid
+      }
+      rulebase {
+        uid
+      }
+      stm_link_type {
+        name
+      }
+      is_initial
+      is_global
+      is_section
+    }
+  }
+}

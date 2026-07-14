@@ -1,30 +1,36 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
   
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.12" />
-    <PackageReference Include="Novell.Directory.Ldap.NETStandard" Version="3.6.0" />
-    <PackageReference Include="PuppeteerSharp" Version="20.0.5" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
+    <PackageReference Include="Novell.Directory.Ldap.NETStandard" Version="4.0.0" />
+    <PackageReference Include="Scalar.AspNetCore" Version="2.16.11" />
+    <PackageReference Include="PuppeteerSharp" Version="25.3.1" />
+    <PackageReference Include="Quartz" Version="3.18.2" />
+    <PackageReference Include="Quartz.Extensions.Hosting" Version="3.18.2" />
+    <PackageReference Include="Quartz.Serialization.Json" Version="3.18.2" />
+    <PackageReference Include="Microsoft.OpenApi" Version="2.10.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\lib\files\FWO.Middleware\FWO.Middleware.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Report\FWO.Report.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.Data\FWO.Data.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Api.Client\FWO.Api.Client.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Config.File\FWO.Config.File.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.DeviceAutoDiscovery\FWO.DeviceAutoDiscovery.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Logging\FWO.Logging.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Encryption\FWO.Encryption.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Recert\FWO.Recert.csproj" />
-    <ProjectReference Include="..\..\..\lib\files\FWO.Tufin.SecureChange\FWO.Tufin.SecureChange.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.ExternalSystems\FWO.ExternalSystems.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Services\FWO.Services.csproj" />
+	<ProjectReference Include="..\..\..\lib\files\FWO.Compliance\FWO.Compliance.csproj" />
   </ItemGroup>
   
 </Project>

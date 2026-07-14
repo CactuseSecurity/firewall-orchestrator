@@ -1,0 +1,7 @@
+mutation removeAllNwGroupsFromConnection(
+  $id: Int!
+  ) {
+  delete_modelling_nwgroup_connection(where: { connection_id: {_eq: $id}}) {
+    affected_rows
+  }
+}

@@ -1,0 +1,12 @@
+query getRuleOwnerToRemoveByOwner($ownerIds: [Int!]!) {
+  rule_owner(
+    where: { 
+      owner_id: { _in: $ownerIds },
+      removed: { _is_null: true } 
+    }
+  ) {
+    rule_id
+    owner_id
+    created
+  }
+}

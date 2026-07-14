@@ -1,5 +1,6 @@
 ﻿@using FWO.Config.Api
-@using FWO.Api.Data
+@using FWO.Data
+@using FWO.Basics
 
 @inject UserConfig userConfig
 
@@ -38,13 +39,31 @@
                 </a>
 
                 <a class="nav-link" href="/help/API/query/?lang=@($"{userConfig.User.Language}")">
-                    <span class="@Icons.Example"></span> @userConfig.GetText("sample_queries")
+                    <span class="@Icons.Query"></span> @userConfig.GetText("sample_queries")
+                </a>
+                <a class="nav-link" href="/help/API/rulesbyfilter/?lang=@($"{userConfig.User.Language}")">
+                    <span class="@Icons.RestDoku"></span> @userConfig.GetText("rule_filters")
                 </a>
                 <a class="nav-link" href="/help/API/mutation/?lang=@($"{userConfig.User.Language}")">
-                    <span class="@Icons.Example"></span> @userConfig.GetText("sample_mutation")
+                    <span class="@Icons.Mutation"></span> @userConfig.GetText("sample_mutation")
                 </a>
                 <a class="nav-link" href="/help/API/reporting/?lang=@($"{userConfig.User.Language}")">
                     <span class="@Icons.Reporting"></span> @userConfig.GetText("reporting")
+                </a>
+                <p></p>
+
+                <h5>@userConfig.GetText("flow_api")</h5>
+                <a class="nav-link" href="/help/API/flow/?lang=@($"{userConfig.User.Language}")">
+                    <span class="@Icons.RestDoku"></span> @userConfig.GetText("flow_api")
+                </a>
+                <a class="nav-link" href="/help/API/flow/catalog/?lang=@($"{userConfig.User.Language}")">
+                    <span class="@Icons.NwObject"></span> @userConfig.GetText("flow_catalog_api")
+                </a>
+                <a class="nav-link" href="/help/API/flow/compliance/?lang=@($"{userConfig.User.Language}")">
+                    <span class="@Icons.Compliance"></span> @userConfig.GetText("flow_compliance_api")
+                </a>
+                <a class="nav-link" href="/help/API/flow/request/?lang=@($"{userConfig.User.Language}")">
+                    <span class="@Icons.Workflow"></span> @userConfig.GetText("flow_request_api")
                 </a>
                 <p></p>
 

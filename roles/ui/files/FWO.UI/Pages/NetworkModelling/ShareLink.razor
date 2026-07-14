@@ -1,10 +1,8 @@
-﻿@using FWO.Config.Api
-@using FWO.Services
-
+@using System.Diagnostics
 @inject IJSRuntime JSRuntime
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("share_link"))" Size=PopupSize.Large Show="@Display" OnClose="Close">
+<PopUp Title="@(userConfig.GetText("share_link"))" Size=PopupSize.Medium Show="@Display" OnClose="Close">
     <Body>
         @if (Display)
         {
@@ -18,9 +16,9 @@
     </Body>
     <Footer>
         <button type="button" class="btn btn-sm btn-primary" @onclick="Copy">
-            @(ModellingHandlerBase.DisplayButton(userConfig, "copy_to_clipboard", Icons.Clipboard))
+            @(DisplayService.DisplayButton(userConfig, "copy_to_clipboard", Icons.Clipboard))
         </button>
-        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
     </Footer>
 </PopUp>
 
@@ -43,14 +41,14 @@
     private bool FirstTry = true;
 
 
-    protected override async Task OnParametersSetAsync()
+    protected override void OnParametersSet()
     {
         if(Display && FirstTry)
         {
             try
             {
                 FirstTry = false;
-                AppLink = $"{userConfig.UiHostName}/networkmodelling/{Application.ExtAppId}";
+                AppLink = $"{userConfig.UiHostName}/{PageName.Modelling}/{Application.ExtAppId}";
             }
             catch (Exception exception)
             {
@@ -61,7 +59,14 @@
 
     private async Task Copy()
     {
-        await JSRuntime.InvokeVoidAsync("copyText", AppLink);
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("copyText", AppLink);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex.ToString());
+        }        
         Close();
     }
 

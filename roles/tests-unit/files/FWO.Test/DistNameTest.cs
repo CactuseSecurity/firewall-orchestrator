@@ -1,7 +1,7 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Basics;
-using FWO.Api.Data;
+using FWO.Data;
 
 namespace FWO.Test
 {
@@ -13,10 +13,14 @@ namespace FWO.Test
         static readonly DistName dn1 = new("");
         static readonly DistName dn2 = new("uid=intuser2,ou=users,ou=tenant2,dc=fworch,dc=internal");
         static readonly DistName dn3 = new("cn=usergroup3,ou=groups,dc=somewhere,dc=de");
+        static readonly DistName dn4 = new(@"cn=Mustermann\, Max,ou=users,dc=example,dc=com");
+        static readonly DistName dn5 = new(@"cn=Mustermann\2C\20Max,ou=users,dc=example,dc=com");
+        static readonly DistName dn6 = new(@"cn=Backslash\5CName,ou=users,dc=example,dc=com");
+        static readonly DistName dn7 = new(@"cn=M\C3\BCller,ou=users,dc=example,dc=com");
 
         [SetUp]
         public void Initialize()
-        {}
+        { }
 
         [Test]
         public void TestDistName()
@@ -46,6 +50,64 @@ namespace FWO.Test
             ClassicAssert.AreEqual("groups", dn3.Path[0]);
             ClassicAssert.AreEqual("", dn3.GetTenantNameViaLdapTenantLevel(0));
             ClassicAssert.AreEqual(false, dn3.IsInternal());
+
+            ClassicAssert.AreEqual("Mustermann, Max", dn4.UserName);
+            ClassicAssert.AreEqual("Mustermann, Max", dn4.Role);
+            ClassicAssert.AreEqual("Mustermann, Max", dn4.Group);
+            ClassicAssert.AreEqual(2, dn4.Root.Count);
+            ClassicAssert.AreEqual("users", dn4.Path[0]);
+
+            ClassicAssert.AreEqual("Mustermann, Max", dn5.UserName);
+            ClassicAssert.AreEqual("Mustermann, Max", dn5.Role);
+            ClassicAssert.AreEqual("Mustermann, Max", dn5.Group);
+            ClassicAssert.AreEqual("users", dn5.Path[0]);
+
+            ClassicAssert.AreEqual(@"Backslash\Name", dn6.UserName);
+            ClassicAssert.AreEqual(@"Backslash\Name", dn6.Role);
+            ClassicAssert.AreEqual(@"Backslash\Name", dn6.Group);
+
+            ClassicAssert.AreEqual("Müller", dn7.UserName);
+            ClassicAssert.AreEqual("Müller", dn7.Role);
+            ClassicAssert.AreEqual("Müller", dn7.Group);
+        }
+
+        [TestCase(@"cn=Müller \2C (xy),ou=users,dc=example,dc=com", @"cn=Müller \, (xy),ou=users,dc=example,dc=com")]
+        [TestCase(@"cn=M\C3\BCller \2C (xy),ou=users,dc=example,dc=com", @"cn=Müller \, (xy),ou=users,dc=example,dc=com")]
+        [TestCase(@"CN=User\, Example,OU=Users,DC=Example,DC=COM", @"cn=User\2C Example,ou=users,dc=example,dc=com")]
+        public void NormalizeDnForComparison_TreatsEquivalentEscapedDnsAsEqual(string leftDn, string rightDn)
+        {
+            string normalizedLeft = DistName.NormalizeDnForComparison(leftDn);
+            string normalizedRight = DistName.NormalizeDnForComparison(rightDn);
+
+            Assert.That(normalizedLeft, Is.EqualTo(normalizedRight));
+        }
+
+        [TestCase(@"CN=User\, Example,OU=Users,DC=Example,DC=COM", @"cn=User\2C Example,ou=users,dc=example,dc=com")]
+        [TestCase(@"cn=M\C3\BCller,ou=users,dc=example,dc=com", @"CN=Müller,OU=Users,DC=Example,DC=COM")]
+        public void DnEquals_TreatsCaseAndEscapedDnsAsEqual(string leftDn, string rightDn)
+        {
+            Assert.That(DistName.DnEquals(leftDn, rightDn), Is.True);
+        }
+
+        [TestCase(null, null)]
+        [TestCase(null, "")]
+        [TestCase("", "")]
+        [TestCase(" ", "cn=user,dc=example,dc=com")]
+        public void DnEquals_DoesNotTreatMissingDnsAsEqual(string? leftDn, string? rightDn)
+        {
+            Assert.That(DistName.DnEquals(leftDn, rightDn), Is.False);
+        }
+
+        [Test]
+        public void DnComparer_DeduplicatesCaseAndEscapedDns()
+        {
+            HashSet<string> dns = new(DistName.DnComparer)
+            {
+                @"CN=User\, Example,OU=Users,DC=Example,DC=COM",
+                @"cn=User\2C Example,ou=users,dc=example,dc=com"
+            };
+
+            Assert.That(dns, Has.Count.EqualTo(1));
         }
     }
 }

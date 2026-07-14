@@ -1,7 +1,3 @@
-﻿@using FWO.Config.Api
-@using FWO.Services
-
-@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 
@@ -15,8 +11,15 @@
     <Footer>
         @if(ReplaceMode)
         {
-            <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            <ExecutionModeAuthorizeView Roles="@(Roles.Modeller)">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                </NotAuthorized> 
+            </ExecutionModeAuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         }
         else
         {
@@ -38,7 +41,7 @@
     public EventCallback<bool> DisplayChanged { get; set; }
 
     [Parameter]
-    public ModellingConnectionHandler ConnHandler { get; set; }
+    public ModellingConnectionHandler? ConnHandler { get; set; }
 
     [Parameter]
     public bool ReplaceMode { get; set; } = false;

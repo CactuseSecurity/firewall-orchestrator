@@ -1,14 +1,8 @@
-﻿@using BlazorTable
-@using System.Net
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Api.Client
-@using FWO.Ui.Services
+@using FWO.Data.Middleware
 @using FWO.Middleware.Client
-@using FWO.Config.Api
-@using FWO.Middleware.RequestParameters
+@using FWO.Ui.Services
 @using RestSharp
-@using FWO.Services
+@using System.Net
 
 @page "/settings/groups"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -117,14 +111,14 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@Roles.Admin">
+            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="() => Save()">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-                </NotAuthorized> 
-            </AuthorizeView>
+                </NotAuthorized>
+            </ExecutionModeAuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
@@ -170,7 +164,7 @@
     protected override async Task OnInitializedAsync()
     {
         try
-        { 
+        {
             groups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, DisplayMessageInUi);
             CollectSampleGroups();
 
@@ -189,14 +183,7 @@
 
     private void CollectSampleGroups()
     {
-        sampleGroups = new List<UserGroup>();
-        foreach (var group in groups)
-        {
-            if (group.Name.EndsWith("_demo"))
-            {
-                sampleGroups.Add(group);
-            }
-        }
+        sampleGroups = [.. groups.Where(g => g.Name.EndsWith(GlobalConst.k_demo))];
         showSampleRemoveButton = (sampleGroups.Count > 0);
     }
 
@@ -222,7 +209,7 @@
             group.Roles = new List<string>();
             foreach (var role in roles)
             {
-                if (role.Users != null && role.Users.Exists(x => x.Dn == group.Dn))
+                if (role.Users != null && role.Users.Exists(x => DistName.DnEquals(x.Dn, group.Dn)))
                 {
                     group.Roles.Add(role.Name);
                 }
@@ -249,7 +236,7 @@
         try
         {
             bool shortened = false;
-            newGroupName = Sanitizer.SanitizeMand(newGroupName, ref shortened);
+            newGroupName = newGroupName.SanitizeMand(ref shortened);
             if(shortened)
             {
                 DisplayMessageInUi(null, userConfig.GetText("save_group"), userConfig.GetText("U0001"), true);
@@ -267,7 +254,7 @@
                     // insert new group to ldap
                     GroupAddDeleteParameters addGroupParameters = new GroupAddDeleteParameters { GroupName = newGroupName, OwnerGroup = actGroup.OwnerGroup };
                     RestResponse<string> middlewareServerResponse = await middlewareClient.AddGroup(addGroupParameters);
-                    
+
                     if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null || middlewareServerResponse.Data == "")
                     {
                         DisplayMessageInUi(null, userConfig.GetText("add_new_group"), userConfig.GetText("E5236"), true);
@@ -280,6 +267,12 @@
                         await AddGroupToRolesInLdap(actGroup);
                         AddGroupMode = false;
                         EditGroupMode = false;
+
+                        Log.WriteAudit(
+                            Title: $"Groups Settings",
+                            Text: $"Added Group: {actGroup.Name} (DN: {actGroup.Dn}) with Roles: {string.Join(", ", actGroup.Roles)}",
+                            UserName: userConfig.User.Name,
+                            UserDN: userConfig.User.Dn);
                     }
                 }
                 else
@@ -295,10 +288,16 @@
                     else
                     {
                         string newDn = middlewareServerResponse.Data;
-                        int changedGroup = groups.FindIndex(x => x.Dn == actGroup.Dn);
+                        int changedGroup = groups.FindIndex(x => DistName.DnEquals(x.Dn, actGroup.Dn));
                         groups[changedGroup].Dn = newDn;
                         groups[changedGroup].Name = newGroupName;
                         EditGroupMode = false;
+
+                        Log.WriteAudit(
+                            Title: $"Groups Settings",
+                            Text: $"Edited Group: {actGroup.Name} (DN: {actGroup.Dn}) with Roles: {string.Join(", ", actGroup.Roles)}",
+                            UserName: userConfig.User.Name,
+                            UserDN: userConfig.User.Dn);
                     }
                 }
                 CollectSampleGroups();
@@ -380,6 +379,12 @@
             {
                 groups.Remove(actGroup);
                 DeleteGroupMode = false;
+
+                Log.WriteAudit(
+                    Title: $"Groups Settings",
+                    Text: $"Deleted Group: {actGroup.Name} (DN: {actGroup.Dn}) with Roles: {string.Join(", ", actGroup.Roles)}",
+                    UserName: userConfig.User.Name,
+                    UserDN: userConfig.User.Dn);
             }
         }
         catch (Exception exception)
@@ -427,6 +432,12 @@
                     actGroup.Users.Add(selectedUser);
                     groups[groups.FindIndex(x => x.Name == actGroup.Name)] = actGroup;
                     AddUserMode = false;
+
+                    Log.WriteAudit(
+                        Title: $"Groups Settings",
+                        Text: $"Added User: {selectedUser.Name} (DN: {selectedUser.Dn}) to Group: {actGroup.Name} (DN: {actGroup.Dn})",
+                        UserName: userConfig.User.Name,
+                        UserDN: userConfig.User.Dn);
                 }
             }
             catch (System.Exception exception)
@@ -454,6 +465,12 @@
                     actGroup.Users.Remove(selectedUserToDelete);
                     groups[groups.FindIndex(x => x.Name == actGroup.Name)] = actGroup;
                     RemoveUserMode = false;
+
+                    Log.WriteAudit(
+                        Title: $"Groups Settings",
+                        Text: $"Removed User: {selectedUserToDelete.Name} (DN: {selectedUserToDelete.Dn}) from Group: {actGroup.Name} (DN: {actGroup.Dn})",
+                        UserName: userConfig.User.Name,
+                        UserDN: userConfig.User.Dn);
                 }
             }
             catch (System.Exception exception)
@@ -469,7 +486,7 @@
 
     private void RequestRemoveSampleData()
     {
-        if (sampleGroups.Exists(group => (group.Users.Exists(user => !user.Name.EndsWith("_demo")))))
+        if (sampleGroups.Exists(group => (group.Users.Exists(user => !user.Name.EndsWith(GlobalConst.k_demo)))))
         {
             sampleRemoveMessage = userConfig.GetText("E5245");
             sampleRemoveAllowed = false;

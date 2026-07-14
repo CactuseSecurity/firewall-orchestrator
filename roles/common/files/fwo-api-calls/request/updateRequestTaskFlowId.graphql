@@ -1,0 +1,8 @@
+mutation updateRequestTaskFlowId($id: bigint!, $flowAccessId: bigint) {
+  update_request_reqtask_by_pk(
+    pk_columns: { id: $id }
+    _set: { flow_access_id: $flowAccessId }
+  ) {
+    UpdatedIdLong: id
+  }
+}

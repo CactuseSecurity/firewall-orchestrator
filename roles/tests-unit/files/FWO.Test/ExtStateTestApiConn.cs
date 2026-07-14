@@ -1,21 +1,25 @@
-﻿using GraphQL;
-using FWO.Api.Data;
+using GraphQL;
+using FWO.Data;
+using FWO.Data.Workflow;
+using FWO.Services;
 
 namespace FWO.Test
 {
     internal class ExtStateTestApiConn : SimulatedApiConnection
     {
-        public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
+            await DefaultInit.DoNothing(); // qad avoid compiler warning
             Type responseType = typeof(QueryResponseType);
-            if(responseType == typeof(List<WfExtState>))
+            if (responseType == typeof(List<WfExtState>))
             {
-                List<WfExtState>? extStates = 
+                List<WfExtState>? extStates =
                 [
                     new(){ Id = 1, Name = "ExtReqInitialized", StateId = 1 },
-                    new(){ Id = 2, Name = "ExtReqRequested", StateId = 2 }
+                    new(){ Id = 2, Name = "ExtReqRequested", StateId = 2 },
+                    new(){ Id = 3, Name = "ExtReqDone", StateId = 631 }
                 ];
-                GraphQLResponse<dynamic> response = new(){ Data = extStates };
+                GraphQLResponse<dynamic> response = new() { Data = extStates };
                 return response.Data;
             }
 

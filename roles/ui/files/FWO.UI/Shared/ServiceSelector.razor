@@ -1,8 +1,6 @@
 ﻿@using NetTools;
-@using FWO.Basics
-@using FWO.Api.Data;
+@using FWO.Data.Workflow
 @using FWO.Ui.Display;
-@using FWO.Services
 
 @inject UserConfig userConfig
 
@@ -17,30 +15,33 @@
             @foreach(var service in Services)
             {
                 <div class="list-group-item border bg-secondary">
-                    <label>@DisplayBase.DisplayService(service, IpProtos)</label>
+                    <label>@DisplayServiceElement(service)</label>
                 </div>
             }
         }
         else
         {
-            <EditList ElementType="NwServiceElement" Elements="Services.Where(x => (x.ServiceId == null || x.ServiceId == 0)).ToArray()" ElementsToAdd="ServicesToAdd" ElementsToDelete="ServicesToDelete" StdLayout="false">
+            <EditList ElementType="NwServiceElement" Elements="Services.ToArray()" ElementsToAdd="ServicesToAdd" ElementsToDelete="ServicesToDelete" StdLayout="false">
                 <Display>
-                    <div class="border bg-transparent">@DisplayBase.DisplayService(context, IpProtos)</div>
+                    <div class="border bg-transparent">@DisplayServiceElement(context)</div>
                 </Display>
             </EditList>
             <div class="row col-sm-12 mt-1">
                 <div class="col-sm-6">
-                    <PortRangeInput @bind-Port="actPort" @bind-PortEnd="actPortEnd"/>
+                    @if(SelectedProtocolHasPorts())
+                    {
+                        <PortRangeInput @bind-Port="actPort" @bind-PortEnd="actPortEnd"/>
+                    }
                 </div>
                 <div class="col-sm-5">
-                    <Dropdown ElementType="int" @bind-SelectedElement="actProtoId"
+                    <Dropdown ElementType="int" @bind-SelectedElement="ActProtoId"
                             ElementToString="@(protId => IpProtos.FirstOrDefault(x => x.Id == protId)?.Name ?? "")" Elements="IpProtos.ConvertAll(x => x.Id)">
                         <ElementTemplate Context="proto">
                             @IpProtos.FirstOrDefault(x => x.Id == proto)?.Name
                         </ElementTemplate>
                     </Dropdown>
                 </div>
-                <button type="button" class="col-sm-1 btn btn-sm btn-success" @onclick="AddService" @onclick:preventDefault>@(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
+                <button type="button" class="col-sm-1 btn btn-sm btn-success" @onclick="AddService" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
             </div>
         }
     </div>
@@ -80,7 +81,32 @@
     private int? actPort;
     private int? actPortEnd;
     private int actProtoId = 0;
+    private int ActProtoId
+    {
+        get => actProtoId;
+        set
+        {
+            actProtoId = value;
+            if (!SelectedProtocolHasPorts())
+            {
+                actPort = null;
+                actPortEnd = null;
+            }
+        }
+    }
 
+    private string DisplayServiceElement(NwServiceElement element)
+    {
+        if (!string.IsNullOrWhiteSpace(element.GroupName))
+        {
+            return element.GroupName;
+        }
+        if (!string.IsNullOrWhiteSpace(element.Name))
+        {
+            return element.Name;
+        }
+        return DisplayBase.DisplayService(element, IpProtos);
+    }
 
     protected override void OnParametersSet()
     {
@@ -89,22 +115,42 @@
             FirstTry = false;
             if(IpProtos.Count > 0)
             {
-                actProtoId = IpProtos.First().Id;
+                ActProtoId = IpProtos.First().Id;
             }
         }
     }
 
     private void AddService()
     {
-        if (actPort != null && actPort > 0 && actProtoId != 0)
+        if (ActProtoId == 0)
         {
-            ServicesToAdd.Add(new NwServiceElement(){ Port = (int)actPort, PortEnd = actPortEnd, ProtoId = actProtoId, TaskId = TaskId });
-			actPort = null;
-            actPortEnd = null;
-            if(IpProtos.Count > 0)
-            {
-                actProtoId = IpProtos.First().Id;
-            }
-		}
-	}
+            return;
+        }
+
+        bool protocolHasPorts = SelectedProtocolHasPorts();
+        if (protocolHasPorts && (actPort == null || actPort <= 0))
+        {
+            return;
+        }
+
+        int port = protocolHasPorts ? actPort!.Value : 0;
+        ServicesToAdd.Add(new NwServiceElement()
+        {
+            Port = port,
+            PortEnd = protocolHasPorts ? actPortEnd : null,
+            ProtoId = ActProtoId,
+            TaskId = TaskId
+        });
+        actPort = null;
+        actPortEnd = null;
+        if (IpProtos.Count > 0)
+        {
+            ActProtoId = IpProtos.First().Id;
+        }
+    }
+
+    private bool SelectedProtocolHasPorts()
+    {
+        return IpProtocol.HasPorts(ActProtoId);
+    }
 }

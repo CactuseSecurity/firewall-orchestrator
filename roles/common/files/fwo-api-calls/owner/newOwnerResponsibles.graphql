@@ -1,0 +1,5 @@
+mutation newOwnerResponsibles($responsibles: [owner_responsible_insert_input!]!) {
+  insert_owner_responsible(objects: $responsibles) {
+    affected_rows
+  }
+}

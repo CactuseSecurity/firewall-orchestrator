@@ -1,11 +1,11 @@
-﻿@page "/help/settings/defaults"
+@page "/help/settings/defaults"
 @model FWO.Ui.Pages.Help.MainModel
 @{
     Layout = "HelpLayout";
 }
-@section sidebar{
-    @{ 
-        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+@section sidebar {
+    @{
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml");
     }
 }
 @using FWO.Config.Api
@@ -21,19 +21,24 @@
         <li>@(Html.Raw(userConfig.GetText("H5450")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5423")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5425")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H5412")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H5414")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H5413")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H5422")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H5447")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H5448")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5415")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5426")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5427")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5424")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5424a")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5452")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5453")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5565")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5454")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5457")))</li>
+        <li>
+            @(Html.Raw(userConfig.GetText("accesstoken_lifetime")))
+            (@userConfig.GetText("Minutes2") / @userConfig.GetText("Hours") / @userConfig.GetText("Days"))
+        </li>
+        <li>
+            @(Html.Raw(userConfig.GetText("refreshtoken_lifetime")))
+            (@userConfig.GetText("Minutes2") / @userConfig.GetText("Hours") / @userConfig.GetText("Days"))
+        </li>
+        <li>@(Html.Raw(userConfig.GetText("U9037")))</li>
     </ul>
 </div>

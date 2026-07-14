@@ -1,0 +1,13 @@
+query getOwnersForRuleOwnerIpBased {
+  owner(where: { active: { _eq: true } }) {
+    id
+    name
+    app_id_external
+    owner_networks(where: { is_deleted: { _eq: false } }) {
+      id
+      ip
+      ip_end
+      name
+    }
+  }
+}

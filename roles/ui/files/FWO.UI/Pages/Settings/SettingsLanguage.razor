@@ -1,10 +1,5 @@
-﻿@using FWO.Config.Api;
-@using FWO.Config.Api.Data;
-@using FWO.Api.Client
-@using FWO.Services
-
-@page "/settings/language"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}")]
+﻿@page "/settings/language"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.WorkflowRolesList}")]
 
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
@@ -28,7 +23,8 @@
     </div>
 </div>
 <hr />
-<button type="button" class="btn btn-sm btn-primary" @onclick="async () => { await ChangeLanguage(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>@(userConfig.GetText("apply_changes"))</button>
+<button type="button" class="btn btn-sm btn-primary" @onclick="async () => { await ChangeLanguage(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>
+    @(DisplayService.DisplayButton(userConfig, "apply_changes", Icons.Save))</button>
 
 @code
 {

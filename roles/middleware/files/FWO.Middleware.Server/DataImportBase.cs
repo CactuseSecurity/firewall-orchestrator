@@ -1,7 +1,12 @@
-﻿using FWO.Logging;
 using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Basics;
+using FWO.Data;
 using FWO.Config.Api;
-using System.Diagnostics; 
+using FWO.Config.File;
+using FWO.Logging;
+using System.Diagnostics;
+using System.Text;
 
 namespace FWO.Middleware.Server
 {
@@ -38,10 +43,15 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Read the Import Data File
         /// </summary>
-        protected void ReadFile(string filepath)
+        protected void ReadFile(string filepath, bool validateImportFile = true)
         {
             try
             {
+                if (validateImportFile)
+                {
+                    ImportPathPolicy.ValidateExistingImportFile(filepath, ConfigFile.AllowedCustomizationRoots);
+                    LogFileHash("Read Import File", filepath);
+                }
                 importFile = File.ReadAllText(filepath).Trim();
             }
             catch (Exception)
@@ -54,23 +64,28 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Execute the Data Import Script
         /// </summary>
-        protected bool RunImportScript(string importScriptFile)
+        protected bool RunImportScript(string importScriptFile, string? scriptArguments = null, bool validateImportFile = true)
         {
             try
             {
-                if(File.Exists(importScriptFile))
+                if (File.Exists(importScriptFile))
                 {
-                    ProcessStartInfo start = new ()
+                    if (validateImportFile)
+                    {
+                        ImportPathPolicy.ValidateExistingImportFile(importScriptFile, ConfigFile.AllowedCustomizationRoots);
+                    }
+                    LogFileHash("Run Import Script", importScriptFile);
+                    ProcessStartInfo start = new()
                     {
                         FileName = importScriptFile,
-                        Arguments = "", // args,
                         UseShellExecute = false,
                         RedirectStandardOutput = true
                     };
+                    AddScriptArguments(start, scriptArguments);
                     Process? process = Process.Start(start);
                     StreamReader? reader = process?.StandardOutput;
                     string? result = reader?.ReadToEnd();
-                    process?.WaitForExit(); 
+                    process?.WaitForExit();
                     process?.Close();
                     Log.WriteInfo("Run Import Script", $"Executed Import Script {importScriptFile}. Result: {result ?? ""}");
                     return true;
@@ -81,6 +96,193 @@ namespace FWO.Middleware.Server
                 Log.WriteError("Run Import Script", $"File {importScriptFile} could not be executed.", Exception);
             }
             return false;
+        }
+
+        /// <summary>
+        /// Validate a configured extensionless import source.
+        /// </summary>
+        protected static List<string> ValidateConfiguredImportSource(string importfilePathAndName)
+        {
+            string normalizedPath = ImportPathPolicy.RemoveAllowedExtension(importfilePathAndName);
+            return ImportPathPolicy.GetValidatedExistingImportFiles(normalizedPath, ConfigFile.AllowedCustomizationRoots);
+        }
+
+        /// <summary>
+        /// Calculates and writes a stable SHA-256 hash for executed/read import files.
+        /// </summary>
+        protected static void LogFileHash(string title, string filePath)
+        {
+            string sha256 = ImportPathPolicy.CalculateSha256(filePath);
+            Log.WriteInfo(title, $"Import file '{filePath}' sha256={sha256} at {DateTimeOffset.Now:O}");
+        }
+
+        /// <summary>
+        /// Parse a configured command line into discrete process arguments.
+        /// </summary>
+        protected static void AddScriptArguments(ProcessStartInfo start, string? scriptArguments)
+        {
+            foreach (string argument in ParseCommandLineArguments(scriptArguments))
+            {
+                start.ArgumentList.Add(argument);
+            }
+        }
+
+        /// <summary>
+        /// Split a command line string while preserving quoted values.
+        /// </summary>
+        protected static List<string> ParseCommandLineArguments(string? commandLine)
+        {
+            List<string> arguments = [];
+            if (string.IsNullOrWhiteSpace(commandLine))
+            {
+                return arguments;
+            }
+
+            StringBuilder currentArgument = new();
+            bool inQuotes = false;
+            char quoteCharacter = '\0';
+            bool isEscaped = false;
+
+            foreach (char currentCharacter in commandLine)
+            {
+                if (TryAppendEscapedCharacter(currentCharacter, currentArgument, ref isEscaped))
+                {
+                    continue;
+                }
+
+                if (TryStartEscapeSequence(currentCharacter, ref isEscaped))
+                {
+                    continue;
+                }
+
+                if (TryHandleQuotedCharacter(currentCharacter, currentArgument, ref inQuotes, quoteCharacter))
+                {
+                    continue;
+                }
+
+                if (TryStartQuotedArgument(currentCharacter, ref inQuotes, ref quoteCharacter))
+                {
+                    continue;
+                }
+
+                if (char.IsWhiteSpace(currentCharacter))
+                {
+                    AppendCompletedArgument(arguments, currentArgument);
+                    continue;
+                }
+
+                currentArgument.Append(currentCharacter);
+            }
+
+            if (isEscaped)
+            {
+                currentArgument.Append('\\');
+            }
+
+            AppendCompletedArgument(arguments, currentArgument);
+            return arguments;
+        }
+
+        private static bool TryAppendEscapedCharacter(
+            char currentCharacter,
+            StringBuilder currentArgument,
+            ref bool isEscaped)
+        {
+            if (!isEscaped)
+            {
+                return false;
+            }
+
+            currentArgument.Append(currentCharacter);
+            isEscaped = false;
+            return true;
+        }
+
+        private static bool TryStartEscapeSequence(char currentCharacter, ref bool isEscaped)
+        {
+            if (currentCharacter != '\\')
+            {
+                return false;
+            }
+
+            isEscaped = true;
+            return true;
+        }
+
+        private static bool TryHandleQuotedCharacter(
+            char currentCharacter,
+            StringBuilder currentArgument,
+            ref bool inQuotes,
+            char quoteCharacter)
+        {
+            if (!inQuotes)
+            {
+                return false;
+            }
+
+            if (currentCharacter == quoteCharacter)
+            {
+                inQuotes = false;
+            }
+            else
+            {
+                currentArgument.Append(currentCharacter);
+            }
+
+            return true;
+        }
+
+        private static bool TryStartQuotedArgument(char currentCharacter, ref bool inQuotes, ref char quoteCharacter)
+        {
+            if (currentCharacter != '"' && currentCharacter != '\'')
+            {
+                return false;
+            }
+
+            inQuotes = true;
+            quoteCharacter = currentCharacter;
+            return true;
+        }
+
+        private static void AppendCompletedArgument(List<string> arguments, StringBuilder currentArgument)
+        {
+            if (currentArgument.Length > 0)
+            {
+                arguments.Add(currentArgument.ToString());
+                currentArgument.Clear();
+            }
+        }
+
+        /// <summary>
+        /// Add a log entry
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="severity"></param>
+        /// <param name="level"></param>
+        /// <param name="description"></param>
+        /// <returns></returns>
+        public async Task AddLogEntry(string source, int severity, string level, string description)
+        {
+            try
+            {
+                var Variables = new
+                {
+                    user = 0,
+                    source = source,
+                    severity = severity,
+                    suspectedCause = level,
+                    description = description
+                };
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addDataImportLogEntry, Variables)).ReturnIds;
+                if (returnIds == null)
+                {
+                    Log.WriteError("Write Log", "Log could not be written to database");
+                }
+            }
+            catch (Exception exc)
+            {
+                Log.WriteError("Write Log", $"Could not write log: ", exc);
+            }
         }
     }
 }

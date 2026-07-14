@@ -1,0 +1,5 @@
+query getConfigValue($key: String) {
+    config(where: {config_key: {_eq: $key}}) {
+        config_value
+    }
+}

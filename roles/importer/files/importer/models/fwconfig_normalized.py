@@ -1,0 +1,115 @@
+from __future__ import annotations
+
+from importlib import import_module
+from typing import TYPE_CHECKING, Any
+
+from fwo_base import ConfFormat, ConfigAction
+from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from models.gateway import Gateway
+    from models.networkobject import NetworkObject
+    from models.rulebase import Rulebase
+    from models.serviceobject import ServiceObject
+    from models.time_object import TimeObject
+
+
+class FwConfig(BaseModel):
+    ConfigFormat: ConfFormat = ConfFormat.NORMALIZED
+
+
+"""
+    the normalized configuraton of a firewall management to import
+    this applies to a single management which might be either a global or a stand-alone management
+
+    FwConfigNormalized:
+    {
+        'action': 'INSERT|UPDATE|DELETE',
+        'network_objects': [ ... ],
+        'service_objects': [ ... ],
+        'users': [...],
+        'zone_objects': [ ... ],
+        'policies': [
+            {
+                'policy_name': 'pol1',
+                'policy_uid': 'a32bc348234-23432a',
+                'rules': [ { ... }, { ... }, ... ]
+            }
+        ],
+        'gateways': # this is also a change, so these mappings are only listed once for insertion
+        {
+            'gw-uid-1': {
+                'name': 'gw1',
+                'global_policy_uid': 'pol-global-1',
+                'policies': ['policy_uid_1', 'policy_uid_2']        # here order is the order of policies on the gateway
+            }
+        }
+
+    }
+
+    write methods to
+        a) split a config into < X MB chunks
+        b) combine configs to a single config
+
+"""
+
+
+class FwConfigNormalized(FwConfig):
+    action: ConfigAction = ConfigAction.INSERT
+    network_objects: dict[str, NetworkObject] = {}
+    service_objects: dict[str, ServiceObject] = {}
+    users: dict[str, Any] = {}
+    zone_objects: dict[str, Any] = {}
+    time_objects: dict[str, TimeObject] = {}
+    rulebases: list[Rulebase] = []
+    gateways: list[Gateway] = []
+    ConfigFormat: ConfFormat = ConfFormat.NORMALIZED
+
+    model_config = {"arbitrary_types_allowed": True}
+
+    def get_rulebase(self, rulebase_uid: str) -> Rulebase:
+        """
+        Get the policy with a specific uid
+
+        Args:
+            rulebase_uid (str): The UID of the relevant policy.
+
+        Returns:
+            Rulebase: Returns the policy with a specific uid.
+
+        Raises:
+            KeyError: If no policy with the given uid is found.
+
+        """
+        rulebase = self.get_rulebase_or_none(rulebase_uid)
+        if rulebase is not None:
+            return rulebase
+
+        raise KeyError(f"Rulebase with UID {rulebase_uid} not found.")
+
+    def get_rulebase_or_none(self, rulebase_uid: str) -> Rulebase | None:
+        """
+        Get the policy with a specific uid
+
+        Args:
+            rulebase_uid (str): The UID of the relevant policy.
+
+        Returns:
+            Rulebase | None: Returns the policy with a specific uid or None if not found.
+
+        """
+        for rb in self.rulebases:
+            if rb.uid == rulebase_uid:
+                return rb
+        return None
+
+
+FwConfigNormalized.model_rebuild(
+    _types_namespace={
+        "Gateway": import_module("models.gateway").Gateway,
+        "NetworkObject": import_module("models.networkobject").NetworkObject,
+        "Rulebase": import_module("models.rulebase").Rulebase,
+        "ServiceObject": import_module("models.serviceobject").ServiceObject,
+        "TimeObject": import_module("models.time_object").TimeObject,
+    }
+)

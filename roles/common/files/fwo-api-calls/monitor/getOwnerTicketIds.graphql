@@ -1,0 +1,6 @@
+
+query getOwnerTicketIds ($ownerIds: [Int!]) {
+  owner_ticket (where: {owner_id: {_in: $ownerIds}} order_by: { ticket_id: desc }){
+    ticket_id
+  }
+}

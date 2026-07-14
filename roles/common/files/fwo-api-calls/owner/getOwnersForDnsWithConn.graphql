@@ -1,0 +1,18 @@
+query getOwnersForDnsWithConn ($dns: [String!]!) {
+  owner_list: owner (
+    where: {
+      owner_responsibles: {
+        dn: {_in: $dns},
+        owner_responsible_type: {
+          active: {_eq: true}
+        }
+      }
+    },
+    order_by: { name: asc }
+  ) {
+    ...ownerDetails
+    connections_aggregate {
+      aggregate { count }
+    }
+  }
+}

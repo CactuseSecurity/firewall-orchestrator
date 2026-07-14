@@ -1,0 +1,18 @@
+# top-level editorconfig file 
+# should be the same file as the one for solution in roles directory
+
+root = true
+
+[*]
+end_of_line = lf
+insert_final_newline = true
+charset = utf-8
+
+[*.cs]
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = false
+
+[*.razor]
+indent_style = space
+indent_size = 4

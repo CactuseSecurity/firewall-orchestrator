@@ -1,139 +1,181 @@
-﻿using System;
-using System.IdentityModel.Tokens.Jwt;
-using Microsoft.IdentityModel.Tokens;
-using System.IO;
-using System.Linq;
-using System.Security.Claims;
 using FWO.Config.File;
 using FWO.Logging;
 using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 
 namespace FWO.Middleware.Client
 {
-	public class JwtReader
-	{
-		private readonly string jwtString;
-		private JsonWebToken? jwt;
+    public class JwtReader
+    {
+        private readonly string jwtString;
+        private JsonWebToken? jwt;
 
-		private readonly RsaSecurityKey jwtPublicKey;
+        private readonly RsaSecurityKey jwtPublicKey;
+        private readonly string JwtValidation = "Jwt Validation";
+        private readonly string JwtNotValidated = "Jwt was not validated yet.";
 
-		public JwtReader(string jwtString)
-		{
-			// Save jwt string 
-			this.jwtString = jwtString;
 
-			// Get public key from config lib
-			ConfigFile config = new ConfigFile();
-			jwtPublicKey = ConfigFile.JwtPublicKey ?? throw new Exception("Jwt public key could not be read form config file.");
-		}
+        public JwtReader(string jwtString)
+        {
+            // Save jwt string 
+            this.jwtString = jwtString;
 
-		/// <summary>
-		/// Checks if JWT in HTTP header contains role.
-		/// </summary>
-		/// <param name="roleName">Role name to check.</param>
-		/// <returns>True if JWT contains specified role, otherwise false.</returns>
-		public bool ContainsRole(string roleName)
-		{
-			Log.WriteDebug($"{roleName} Role Jwt", "Checking Jwt for admin role.");
+            // Get public key from config lib
+            jwtPublicKey = ConfigFile.JwtPublicKey ?? throw new ArgumentException("Jwt public key could not be read form config file.");
+        }
 
-			if (jwt == null)
-				throw new ArgumentNullException(nameof(jwt), "Jwt was not validated yet.");
+        /// <summary>
+        /// Checks if JWT in HTTP header contains role.
+        /// </summary>
+        /// <param name="roleName">Role name to check.</param>
+        /// <returns>True if JWT contains specified role, otherwise false.</returns>
+        public bool ContainsRole(string roleName)
+        {
+            Log.WriteDebug($"{roleName} Role Jwt", "Checking Jwt for admin role.");
 
-			return jwt.Claims.FirstOrDefault(claim => claim.Type == "role" && claim.Value == roleName) != null;
-		}
+            if (jwt == null)
+                throw new ArgumentException(nameof(jwt), JwtNotValidated);
 
-		/// <summary>
-		/// Checks if JWT in HTTP header contains role in x-hasura-allowed-roles.
-		/// </summary>
-		/// <param name="roleName">Role name to check.</param>
-		/// <returns>True if JWT contains specified role in x-hasura-allowed-roles, otherwise false.</returns>
-		public bool ContainsAllowedRole(string roleName)
-		{
-			Log.WriteDebug($"{roleName} Role Jwt", "Checking Jwt for allowed role.");
+            return jwt.Claims.FirstOrDefault(claim => claim.Type == "role" && claim.Value == roleName) != null;
+        }
 
-			if (jwt == null)
-				throw new ArgumentNullException(nameof(jwt), "Jwt was not validated yet.");
+        /// <summary>
+        /// Checks if JWT in HTTP header contains role in x-hasura-allowed-roles.
+        /// </summary>
+        /// <param name="roleName">Role name to check.</param>
+        /// <returns>True if JWT contains specified role in x-hasura-allowed-roles, otherwise false.</returns>
+        public bool ContainsAllowedRole(string roleName)
+        {
+            Log.WriteDebug($"{roleName} Role Jwt", "Checking Jwt for allowed role.");
 
-			return jwt.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-allowed-roles" && claim.Value == roleName) != null;
-		}
+            if (jwt == null)
+                throw new ArgumentException(nameof(jwt), JwtNotValidated);
 
-		public async Task<bool> Validate()
-		{
-			try
-			{
-				TokenValidationParameters validationParameters = new TokenValidationParameters
-				{
-					RequireExpirationTime = true,
-					RequireSignedTokens = true,
-					ValidateAudience = true,
-					ValidateIssuer = true,
-					ValidateLifetime = true,
-					ValidAudience = JwtConstants.Audience,
-					ValidIssuer = JwtConstants.Issuer,
-					IssuerSigningKey = jwtPublicKey,
-					
-				};
+            return jwt.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-allowed-roles" && claim.Value == roleName) != null;
+        }
 
-				JsonWebTokenHandler handler = new ();
-				TokenValidationResult tokenValidationResult = await handler.ValidateTokenAsync(jwtString, validationParameters);
-				if (tokenValidationResult.IsValid)
-				{
-					jwt = tokenValidationResult.SecurityToken as JsonWebToken;
-					Log.WriteDebug("Jwt Validation", "Jwt was successfully validated.");
-					return true;					
-				}
-				return false;
-			}
+        public async Task<JwtValidationResult> ValidateToken()
+        {
+            try
+            {
+                TokenValidationParameters validationParameters = new TokenValidationParameters
+                {
+                    RequireExpirationTime = true,
+                    RequireSignedTokens = true,
+                    ValidateLifetime = true,
+                    ValidateAudience = true,
+                    ValidAudiences = [FWO.Basics.JwtConstants.Audience],
+                    ValidateIssuer = true,
+                    ValidIssuer = FWO.Basics.JwtConstants.Issuer,
+                    IssuerSigningKey = jwtPublicKey,
+                };
 
-			catch (SecurityTokenExpiredException)
-			{
-				Log.WriteDebug("Jwt Validation", "Jwt lifetime expired.");
-				return false;
-			}
-			catch (SecurityTokenInvalidSignatureException InvalidSignatureException)
-			{
-				Log.WriteError("Jwt Validation", $"Jwt signature could not be verified. Potential attack!", InvalidSignatureException);
-				return false;
-			}
-			catch (SecurityTokenInvalidAudienceException InvalidAudienceException)
-			{
-				Log.WriteError("Jwt Validation", $"Jwt audience incorrect.", InvalidAudienceException);
-				return false;
-			}
-			catch (SecurityTokenInvalidIssuerException InvalidIssuerException)
-			{
-				Log.WriteError("Jwt Validation", $"Jwt issuer incorrect.", InvalidIssuerException);
-				return false;
-			}
-			catch (Exception UnexpectedError)
-			{
-				Log.WriteError("Jwt Validation", $"Unexpected problem while trying to verify Jwt", UnexpectedError);
-				return false;
-			}
-		}
+                JsonWebTokenHandler handler = new();
+                TokenValidationResult tokenValidationResult = await handler.ValidateTokenAsync(jwtString, validationParameters);
 
-		public Claim[] GetClaims()
-		{
-			Log.WriteDebug("Claims Jwt", "Reading claims from Jwt.");
-			if (jwt == null)
-				throw new ArgumentNullException(nameof(jwt), "Jwt was not validated yet.");
+                if (tokenValidationResult.IsValid)
+                {
+                    jwt = tokenValidationResult.SecurityToken as JsonWebToken;
+                    Log.WriteDebug(JwtValidation, "Jwt was successfully validated.");
+                    return new JwtValidationResult
+                    {
+                        Status = JwtValidationStatus.Success,
+                        Token = jwt
+                    };
+                }
 
-			return jwt.Claims.ToArray();
-		}
+                if (tokenValidationResult.Exception is SecurityTokenExpiredException)
+                {
+                    Log.WriteDebug(JwtValidation, $"Jwt lifetime expired: {jwtString}.");
 
-		public TimeSpan TimeUntilExpiry()
-		{
-			if (jwt == null)
-				throw new ArgumentNullException(nameof(jwt), "Jwt was not validated yet.");
+                    return new JwtValidationResult
+                    {
+                        Status = JwtValidationStatus.Expired
+                    };
+                }
 
-			return jwt.ValidTo - DateTime.UtcNow;
-		}
+                Log.WriteWarning(JwtValidation, "Jwt validation failed.");
 
-		public string GetRole()
-		{
-			if (jwt == null)
-				throw new ArgumentNullException(nameof(jwt), "Jwt was not validated yet.");
-			return jwt.Claims.FirstOrDefault(claim => claim.Type == "role")?.Value ?? "";
-		}
-	}
+                return new JwtValidationResult
+                {
+                    Status = JwtValidationStatus.Invalid
+                };
+            }
+            catch (SecurityTokenExpiredException)
+            {
+                Log.WriteDebug(JwtValidation, $"Jwt lifetime expired: {jwtString}.");
+
+                return new JwtValidationResult
+                {
+                    Status = JwtValidationStatus.Expired
+                };
+            }
+            catch (SecurityTokenInvalidSignatureException InvalidSignatureException)
+            {
+                Log.WriteError(JwtValidation, $"Jwt signature could not be verified. Potential attack: {jwtString}.", InvalidSignatureException);
+
+                return new JwtValidationResult
+                {
+                    Status = JwtValidationStatus.Invalid
+                };
+            }
+            catch (SecurityTokenInvalidAudienceException InvalidAudienceException)
+            {
+                Log.WriteError(JwtValidation, $"Jwt audience incorrect: {jwtString}.", InvalidAudienceException);
+
+                return new JwtValidationResult
+                {
+                    Status = JwtValidationStatus.Invalid
+                };
+            }
+            catch (SecurityTokenInvalidIssuerException InvalidIssuerException)
+            {
+                Log.WriteError(JwtValidation, $"Jwt issuer incorrect: {jwtString}.", InvalidIssuerException);
+
+                return new JwtValidationResult
+                {
+                    Status = JwtValidationStatus.Invalid
+                };
+            }
+            catch (Exception UnexpectedError)
+            {
+                Log.WriteError(JwtValidation, $"Unexpected problem while trying to verify Jwt: {jwtString}.", UnexpectedError);
+
+                return new JwtValidationResult
+                {
+                    Status = JwtValidationStatus.Invalid
+                };
+            }
+        }
+
+        public async Task<bool> Validate()
+        {
+            return (await ValidateToken()).IsSuccess;
+        }
+
+        public Claim[] GetClaims()
+        {
+            Log.WriteDebug("Claims Jwt", "Reading claims from Jwt.");
+            if (jwt == null)
+                throw new ArgumentException(nameof(jwt), JwtNotValidated);
+
+            return jwt.Claims.ToArray();
+        }
+
+        public TimeSpan TimeUntilExpiry()
+        {
+            if (jwt == null)
+                throw new ArgumentException(nameof(jwt), JwtNotValidated);
+
+            return jwt.ValidTo - DateTime.UtcNow;
+        }
+
+        public string GetRole()
+        {
+            if (jwt == null)
+                throw new ArgumentException(nameof(jwt), JwtNotValidated);
+            return jwt.Claims.FirstOrDefault(claim => claim.Type == "role")?.Value ?? "";
+        }
+    }
 }

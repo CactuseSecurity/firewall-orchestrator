@@ -1,4 +1,6 @@
-﻿using FWO.Report.Filter.Exceptions;
+using FWO.Report.Filter.Exceptions;
+using FWO.Basics;
+
 
 namespace FWO.Report.Filter.Ast
 {
@@ -27,7 +29,6 @@ namespace FWO.Report.Filter.Ast
             {
                 case TokenKind.Disabled:
                     ExtractDisabledQuery(query);
-                    //throw new NotSupportedException("Token of type \"Disabled\" is currently not supported.");
                     break;
                 case TokenKind.SourceNegated:
                     // ExtractSourceNegatedQuery(query);
@@ -46,18 +47,26 @@ namespace FWO.Report.Filter.Ast
             }
         }
 
-        private DynGraphqlQuery ExtractRemoveFilter(DynGraphqlQuery query)
+        private void ExtractRemoveFilter(DynGraphqlQuery query)
         {
             string queryVarName = AddVariable<bool>(query, "remove", Operator.Kind, semanticValue);
-            query.RuleWhereStatement += $"rule_metadatum: {{rule_to_be_removed: {{ {ExtractOperator()}: ${queryVarName} }}}}";
-            return query;
+            query.RuleWhereStatement += $"rule_metadatum: {{rule_to_be_removed: {{ {ExtractBooleanOperator()}: ${queryVarName} }}}}";
         }
 
-        private DynGraphqlQuery ExtractDisabledQuery(DynGraphqlQuery query)
+        private void ExtractDisabledQuery(DynGraphqlQuery query)
         {
             string queryVarName = AddVariable<bool>(query, "disabled", Operator.Kind, semanticValue);
-            query.RuleWhereStatement += $"rule_disabled: {{ {ExtractOperator()}: ${queryVarName} }}";
-            return query;
+            query.RuleWhereStatement += $"rule_disabled: {{ {ExtractBooleanOperator()}: ${queryVarName} }}";
+        }
+
+        private string ExtractBooleanOperator()
+        {
+            return Operator.Kind switch
+            {
+                TokenKind.EQ or TokenKind.EEQ => "_eq",
+                TokenKind.NEQ => "_neq",
+                _ => throw new SemanticException("Invalid boolean operator.", Operator.Position),
+            };
         }
     }
 }

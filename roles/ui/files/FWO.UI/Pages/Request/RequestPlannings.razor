@@ -1,9 +1,5 @@
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Api.Client
-@using FWO.Config.Api
 @using FWO.Ui.Services
-@using FWO.Services
+@using FWO.Compliance
 @using FWO.Middleware.Client
 
 @page "/request/plannings/{ticketId?}"
@@ -24,10 +20,9 @@
 }
 else
 {
-    <div class="spinner-border" role="status">
-        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
-    </div>
+    <Loading/>
 }
+<InProgress Display="WorkInProgress"/>
 
 @code
 {
@@ -42,26 +37,26 @@ else
 
     private WfHandler wfHandler = new ();
     private WfStateDict states = new ();
-    private List<int> OwnerIds = new ();
+    private List<int>? OwnerIds = null;
     private bool InitComplete = false;
+    private bool WorkInProgress = false;
 
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Planner, Roles.FwAdmin, Roles.Auditor});
             await states.Init(apiConnection);
 
             if(userConfig.ReqOwnerBased)
             {
-                OwnerIds = (await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
+                OwnerIds = (await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
             }
-            wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.planning){};
+            wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.planning, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection)){};
             await Reset();
             await HandleTicketId();
             wfHandler.SetContinueEnv(ObjAction.plan);
-    
+
             InitComplete = true;
         }
         catch (Exception exception)
@@ -86,8 +81,8 @@ else
     {
         try
         {
-            wfHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Planner) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
-            await wfHandler.Init(OwnerIds);
+            wfHandler.ReadOnlyMode = !userConfig.CanUseAnyRole(Roles.Planner, Roles.FwAdmin, Roles.Admin);
+            await wfHandler.Init(true, OwnerIds);
         }
         catch (Exception exception)
         {
@@ -97,14 +92,25 @@ else
 
     private async Task StartPlanTask(WfReqTask reqTask)
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
+        WorkInProgress = true;
         try
         {
+            await InvokeAsync(StateHasChanged);
             reqTask.Start = DateTime.Now;
             await wfHandler.StartWorkOnReqTask(reqTask, ObjAction.plan);
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("start_work"), "", true);
+        }
+        finally
+        {
+            WorkInProgress = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 }

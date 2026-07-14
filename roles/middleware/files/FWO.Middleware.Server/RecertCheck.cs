@@ -1,16 +1,21 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Api.Data;
-using FWO.Config.File;
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
+using FWO.Config.File;
+using FWO.Data;
+using FWO.Data.Middleware;
+using FWO.Data.Report;
+using FWO.Encryption;
 using FWO.Logging;
 using FWO.Mail;
-using FWO.Encryption;
-using FWO.Middleware.RequestParameters;
+using FWO.Middleware.Server.Services;
 using FWO.Report;
-using FWO.Report.Filter;
-
+using FWO.Services;
+using System;
+using System.Linq;
+using System.Text;
 
 namespace FWO.Middleware.Server
 {
@@ -21,18 +26,21 @@ namespace FWO.Middleware.Server
     {
         private readonly ApiConnection apiConnectionMiddlewareServer;
         private readonly GlobalConfig globalConfig;
-        private readonly List<GroupGetReturnParameters> groups = [];
+        private readonly TokenLifetimeProvider tokenLifetimeProvider;
+        private List<Ldap> connectedLdaps = [];
         private List<UiUser> uiUsers = [];
         private RecertCheckParams? globCheckParams;
         private List<FwoOwner> owners = [];
+        private const string LogMessageTitle = "Recertification Check";
 
         /// <summary>
         /// Constructor for Recertification check class
         /// </summary>
-        public RecertCheck(ApiConnection apiConnection, GlobalConfig globalConfig)
+        public RecertCheck(ApiConnection apiConnection, GlobalConfig globalConfig, TokenLifetimeProvider tokenLifetimeProvider)
         {
             this.apiConnectionMiddlewareServer = apiConnection;
             this.globalConfig = globalConfig;
+            this.tokenLifetimeProvider = tokenLifetimeProvider;
         }
 
         /// <summary>
@@ -44,42 +52,34 @@ namespace FWO.Middleware.Server
             try
             {
                 await InitEnv();
-                string decryptedSecret = "";
-                try
+                if (globalConfig.RecertificationMode == RecertificationMode.RuleByRule)
                 {
-                    string mainKey = AesEnc.GetMainKey();
-                    decryptedSecret = AesEnc.Decrypt(globalConfig.EmailPassword, mainKey);
-                }
-                catch (Exception exception)
-                {
-                    Log.WriteError("CheckRecertifications", $"Could not decrypt mailserver password.", exception);				
-                }
-                EmailConnection emailConnection = new(globalConfig.EmailServerAddress, globalConfig.EmailPort,
-                    globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress);
-                MailKitMailer mailer = new(emailConnection);
-                JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
-                ApiConnection apiConnectionReporter = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new Exception("Missing api server url on startup."), jwtWriter.CreateJWTReporterViewall());
-
-                foreach(var owner in owners)
-                {
-                    if(IsCheckTime(owner))
+                    string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, LogMessageTitle, "Could not decrypt mailserver password.");
+                    EmailConnection emailConnection = new(globalConfig.EmailServerAddress, globalConfig.EmailPort,
+                        globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress);
+                    JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
+                    ApiConnection apiConnectionReporter = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), jwtWriter.CreateJWTReporterViewall(tokenLifetimeProvider.GetInternalServiceTokenLifetime()));
+                    foreach (FwoOwner owner in owners)
                     {
-                        // todo: refine handling
-                        List<Rule> upcomingRecerts = await GenerateRecertificationReport(apiConnectionReporter, owner, false);
-                        List<Rule> overdueRecerts = []; // await GenerateRecertificationReport(apiConnectionReporter, owner, true);
-
-                        if(upcomingRecerts.Count > 0 || overdueRecerts.Count > 0)
-                        {
-                            await mailer.SendAsync(PrepareEmail(owner, upcomingRecerts, overdueRecerts), emailConnection, new CancellationToken());
-                            emailsSent++;
-                        }
+                        emailsSent += await CheckRuleByRule(owner, apiConnectionReporter, emailConnection);
                         await SetOwnerLastCheck(owner);
                     }
                 }
+                else
+                {
+                    List<UserGroup> OwnerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnectionMiddlewareServer);
+                    NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.Recertification, globalConfig, apiConnectionMiddlewareServer, OwnerGroups);
+                    foreach (FwoOwner? owner in owners.Where(o => IsRecertCheckTime(o)))
+                    {
+                        emailsSent += await notificationService.SendNotificationsIfDue(owner, null, PrepareOwnerBody(owner), await PrepareOwnerReport(owner));
+                        await SetOwnerLastCheck(owner);
+                    }
+                    await notificationService.UpdateNotificationsLastSent();
+                }
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
-                Log.WriteError("Recertification Check", $"Checking owners for upcoming recertifications leads to exception.", exception);
+                Log.WriteError(LogMessageTitle, $"Checking owners for upcoming recertifications leads to exception.", exception);
             }
             return emailsSent;
         }
@@ -87,93 +87,117 @@ namespace FWO.Middleware.Server
         private async Task InitEnv()
         {
             globCheckParams = System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(globalConfig.RecCheckParams);
-            List<Ldap> connectedLdaps = apiConnectionMiddlewareServer.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
-            foreach (Ldap currentLdap in connectedLdaps)
-            {
-                if (currentLdap.IsInternal() && currentLdap.HasGroupHandling())
-                {
-                    groups.AddRange(currentLdap.GetAllInternalGroups());
-                }
-            }
+            connectedLdaps = apiConnectionMiddlewareServer.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
             uiUsers = await apiConnectionMiddlewareServer.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
             owners = await apiConnectionMiddlewareServer.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
         }
 
-        private bool IsCheckTime(FwoOwner owner)
+        private bool IsRecertCheckTime(FwoOwner owner)
         {
-            RecertCheckParams checkParams = (owner.RecertCheckParamString != null && owner.RecertCheckParamString != "" ? 
-                System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(owner.RecertCheckParamString) : 
-                globCheckParams) ?? throw new Exception("Config Parameters not set.");
-            DateTime lastCheck = owner.LastRecertCheck ?? DateTime.MinValue;
-            DateTime nextCheck;
-
-            switch (checkParams.RecertCheckInterval)
+            if (!owner.RecertActive)
             {
-                case Interval.Days:
-                    nextCheck = lastCheck.AddDays(checkParams.RecertCheckOffset);
-                break;
-                case Interval.Weeks:
-                    if(checkParams.RecertCheckWeekday == null)
-                    {
-                        nextCheck = lastCheck.AddDays(checkParams.RecertCheckOffset * 7);
-                    }
-                    else
-                    {
-                        nextCheck = lastCheck.AddDays((checkParams.RecertCheckOffset - 1) * 7 + 1);
-                        int count = 0;
-                        while(nextCheck.DayOfWeek != (DayOfWeek)checkParams.RecertCheckWeekday && count < 6)
-                        {
-                            nextCheck = nextCheck.AddDays(1);
-                            count++;
-                        }
-                    }
-                break;
-                case Interval.Months:
-                    if(checkParams.RecertCheckDayOfMonth == null)
-                    {
-                        nextCheck = lastCheck.AddMonths(checkParams.RecertCheckOffset);
-                    }
-                    else
-                    {
-                        nextCheck = lastCheck.AddMonths(checkParams.RecertCheckOffset - 1);
-                        nextCheck = nextCheck.AddDays(1);
-                        int count = 0;
-                        while(nextCheck.Day != (int)checkParams.RecertCheckDayOfMonth && count < 30)
-                        {
-                            nextCheck = nextCheck.AddDays(1);
-                            count++;
-                        }
-                        if(nextCheck.Day != (int)checkParams.RecertCheckDayOfMonth)
-                        {
-                            // missed the day because or month change: set to first of following month
-                            nextCheck = nextCheck.AddDays(1 - nextCheck.Day);
-                        }
-                    }
-                break;
-                default:
-                    throw new NotSupportedException("Time interval is not supported.");
+                return false;
             }
-
-            if(nextCheck <= DateTime.Today)
+            RecertCheckParams checkParams = (owner.RecertCheckParamString != null && owner.RecertCheckParamString != "" ?
+                System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(owner.RecertCheckParamString) :
+                globCheckParams) ?? throw new ArgumentException("Config Parameters not set.");
+            DateTime lastCheck = owner.LastRecertCheck ?? DateTime.MinValue;
+            DateTime nextCheck = checkParams.RecertCheckInterval switch
+            {
+                SchedulerInterval.Days => lastCheck.AddDays(checkParams.RecertCheckOffset),
+                SchedulerInterval.Weeks => CalcForWeeks(lastCheck, checkParams),
+                SchedulerInterval.Months => CalcForMonths(lastCheck, checkParams),
+                _ => throw new NotSupportedException("Time interval is not supported.")
+            };
+            if (nextCheck <= DateTime.Today)
             {
                 return true;
             }
             return false;
         }
 
-        private async Task<List<Rule>> GenerateRecertificationReport(ApiConnection apiConnection, FwoOwner owner, bool overdueOnly)
+        private static DateTime CalcForWeeks(DateTime lastCheck, RecertCheckParams checkParams)
+        {
+            DateTime nextCheck;
+            if (checkParams.RecertCheckWeekday == null)
+            {
+                nextCheck = lastCheck.AddDays(checkParams.RecertCheckOffset * GlobalConst.kDaysPerWeek);
+            }
+            else
+            {
+                nextCheck = lastCheck.AddDays((checkParams.RecertCheckOffset - 1) * GlobalConst.kDaysPerWeek + 1);
+                int count = 0;
+                while (nextCheck.DayOfWeek != (DayOfWeek)checkParams.RecertCheckWeekday && count < 6)
+                {
+                    nextCheck = nextCheck.AddDays(1);
+                    count++;
+                }
+            }
+            return nextCheck;
+        }
+
+        private static DateTime CalcForMonths(DateTime lastCheck, RecertCheckParams checkParams)
+        {
+            DateTime nextCheck;
+            if (checkParams.RecertCheckDayOfMonth == null)
+            {
+                nextCheck = lastCheck.AddMonths(checkParams.RecertCheckOffset);
+            }
+            else
+            {
+                nextCheck = lastCheck.AddMonths(checkParams.RecertCheckOffset - 1);
+                nextCheck = nextCheck.AddDays(1);
+                int count = 0;
+                while (nextCheck.Day != (int)checkParams.RecertCheckDayOfMonth && count < 30)
+                {
+                    nextCheck = nextCheck.AddDays(1);
+                    count++;
+                }
+                if (nextCheck.Day != (int)checkParams.RecertCheckDayOfMonth)
+                {
+                    // missed the day because or month change: set to first of following month
+                    nextCheck = nextCheck.AddDays(1 - nextCheck.Day);
+                }
+            }
+            return nextCheck;
+        }
+
+        private async Task<int> CheckRuleByRule(FwoOwner owner, ApiConnection apiConnection, EmailConnection emailConnection)
+        {
+            List<Rule> openRecerts = await GenerateRulesRecertificationReport(apiConnection, owner);
+            List<Rule> upcomingRecerts = [];
+            List<Rule> overdueRecerts = [];
+            foreach (Rule rule in openRecerts)
+            {
+                if (rule.Metadata.RuleRecertification.Count > 0 && rule.Metadata.RuleRecertification[0].NextRecertDate >= DateTime.Now)
+                {
+                    upcomingRecerts.Add(rule);
+                }
+                else
+                {
+                    overdueRecerts.Add(rule);
+                }
+            }
+            if (upcomingRecerts.Count > 0 || overdueRecerts.Count > 0)
+            {
+                await MailKitMailer.SendAsync(await PrepareRulesEmail(owner, upcomingRecerts, overdueRecerts), emailConnection, false, new());
+                return 1;
+            }
+            return 0;
+        }
+
+        private async Task<List<Rule>> GenerateRulesRecertificationReport(ApiConnection apiConnection, FwoOwner owner)
         {
             List<Rule> rules = [];
             try
             {
-                CancellationToken token = new ();
-                UserConfig userConfig = new (globalConfig);
+                using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
 
                 DeviceFilter deviceFilter = new()
                 {
                     Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement)
                 };
-                deviceFilter.applyFullDeviceSelection(true);
+                deviceFilter.ApplyFullDeviceSelection(true);
 
                 ReportParams reportParams = new((int)ReportType.Recertification, deviceFilter)
                 {
@@ -183,96 +207,151 @@ namespace FWO.Middleware.Server
                         RecertificationDisplayPeriod = globalConfig.RecertificationNoticePeriod
                     }
                 };
-                ReportBase? currentReport = ReportBase.ConstructReport(new ReportTemplate("", reportParams), userConfig);
 
-                ReportData reportData = new ();
+                ReportData reportData = (await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", reportParams), apiConnection, userConfig, DefaultInit.DoNothing))?.ReportData ?? new();
 
-                await currentReport.Generate(int.MaxValue, apiConnection,
-                rep =>
+                foreach (ManagementReport management in reportData.ManagementData)
                 {
-                    reportData.ManagementData = rep.ManagementData;
-                    return Task.CompletedTask;
-                }, token);
-
-                foreach (var management in reportData.ManagementData)
-                {
-                    foreach (var device in management.Devices)
+                    foreach (var rulebase in management.Rulebases)
                     {
-                        if (device.ContainsRules())
+                        foreach (var rule in rulebase.Rules)
                         {
-                            foreach (var rule in device.Rules!)
-                            {
-                                rule.Metadata.UpdateRecertPeriods(owner.RecertInterval ?? globalConfig.RecertificationPeriod, 0);
-                                rule.DeviceName = device.Name ?? "";
-                                rules.Add(rule);
-                            }
+                            rules.Add(rule);
                         }
                     }
                 }
             }
             catch (Exception exception)
             {
-                Log.WriteError("Recertification Check", $"Report for owner {owner.Name} leads to exception.", exception);
+                Log.WriteError(LogMessageTitle, $"Report for owner {owner.Name} leads to exception.", exception);
             }
             return rules;
         }
 
-        private MailData PrepareEmail(FwoOwner owner, List<Rule> upcomingRecerts, List<Rule> overdueRecerts)
+        private async Task<MailData> PrepareRulesEmail(FwoOwner owner, List<Rule> upcomingRecerts, List<Rule> overdueRecerts)
         {
             string subject = globalConfig.RecCheckEmailSubject + " " + owner.Name;
-            string body = "";
-            if(upcomingRecerts.Count > 0)
+            return new MailData(await CollectEmailAddresses(owner), subject) { Body = PrepareRulesBody(upcomingRecerts, overdueRecerts, owner.Name) };
+        }
+
+        private string PrepareRulesBody(List<Rule> upcomingRecerts, List<Rule> overdueRecerts, string ownerName)
+        {
+            StringBuilder body = new();
+            if (upcomingRecerts.Count > 0)
             {
-                body += globalConfig.RecCheckEmailUpcomingText + "\r\n\r\n";
-                foreach(var rule in upcomingRecerts)
+                body.AppendLine(globalConfig.RecCheckEmailUpcomingText.Replace(Placeholder.APPNAME, ownerName) + "\r\n\r\n");
+                foreach (var rule in upcomingRecerts)
                 {
-                    body += PrepareLine(rule);
+                    body.AppendLine(PrepareLine(rule));
                 }
             }
-            if(overdueRecerts.Count > 0)
+            body.AppendLine("\r\n\r\n");
+            if (overdueRecerts.Count > 0)
             {
-                body += globalConfig.RecCheckEmailOverdueText + "\r\n\r\n";
-                foreach(var rule in overdueRecerts)
+                body.AppendLine(globalConfig.RecCheckEmailOverdueText.Replace(Placeholder.APPNAME, ownerName) + "\r\n\r\n");
+                foreach (Rule rule in overdueRecerts)
                 {
-                    body += PrepareLine(rule);
+                    body.AppendLine(PrepareLine(rule));
                 }
             }
-            return new MailData(CollectEmailAddresses(owner), subject, body);
+            return body.ToString();
         }
 
         private static string PrepareLine(Rule rule)
         {
             Recertification? nextRecert = rule.Metadata.RuleRecertification.FirstOrDefault(x => x.RecertDate == null);
-            return (nextRecert != null && nextRecert.NextRecertDate != null ? DateOnly.FromDateTime((DateTime)nextRecert.NextRecertDate) : "") + ": " 
+            return (nextRecert != null && nextRecert.NextRecertDate != null ? DateOnly.FromDateTime((DateTime)nextRecert.NextRecertDate) : "") + ": "
                     + rule.DeviceName + ": " + rule.Name + ":" + rule.Uid + "\r\n\r\n";  // link ?
         }
 
-        private List<string> CollectEmailAddresses(FwoOwner owner)
+        private async Task<List<string>> CollectEmailAddresses(FwoOwner owner)
         {
-            if(globalConfig.UseDummyEmailAddress)
+            if (globalConfig.UseDummyEmailAddress)
             {
                 return [globalConfig.DummyEmailAddress];
             }
             List<string> tos = [];
-            List<string> userDns = [];
-            if(owner.Dn != "")
+            List<string> userDns = await ResolveOwnerUserDns(owner);
+            foreach (var userDn in userDns)
             {
-                userDns.Add(owner.Dn);
-            }
-            GroupGetReturnParameters? ownerGroup = groups.FirstOrDefault(x => x.GroupDn == owner.GroupDn);
-            if(ownerGroup != null)
-            {
-                userDns.AddRange(ownerGroup.Members);
-            }
-            foreach(var userDn in userDns)
-            {
-                UiUser? uiuser = uiUsers.FirstOrDefault(x => x.Dn == userDn);
-                if(uiuser != null && uiuser.Email != null && uiuser.Email != "")
+                UiUser? uiuser = uiUsers.FirstOrDefault(x => DistName.DnEquals(x.Dn, userDn));
+                if (uiuser != null && uiuser.Email != null && uiuser.Email != "")
                 {
                     tos.Add(uiuser.Email);
                 }
             }
             return tos;
+        }
+
+        private async Task<List<string>> ResolveOwnerUserDns(FwoOwner owner)
+        {
+            List<string> ownerDns = owner.GetAllOwnerResponsibles();
+            if (ownerDns.Count == 0)
+            {
+                return [];
+            }
+
+            HashSet<string> resolvedUsers = new(DistName.DnComparer);
+            object resolvedLock = new();
+            List<Task> ldapRequests = [];
+
+            foreach (Ldap currentLdap in connectedLdaps.Where(ldap => ldap.HasGroupHandling()))
+            {
+                ldapRequests.Add(Task.Run(async () =>
+                {
+                    List<string> currentResolved = await currentLdap.ResolveUsersFromDns(ownerDns);
+                    if (currentResolved.Count == 0)
+                    {
+                        return;
+                    }
+
+                    lock (resolvedLock)
+                    {
+                        foreach (string dn in currentResolved)
+                        {
+                            resolvedUsers.Add(dn);
+                        }
+                    }
+                }));
+            }
+
+            await Task.WhenAll(ldapRequests);
+
+            foreach (string dn in ownerDns)
+            {
+                if (string.IsNullOrWhiteSpace(dn))
+                {
+                    continue;
+                }
+                bool isGroupDn = connectedLdaps.Any(ldap => ldap.HasGroupHandling()
+                    && !string.IsNullOrWhiteSpace(ldap.GroupSearchPath)
+                    && dn.EndsWith(ldap.GroupSearchPath, StringComparison.OrdinalIgnoreCase));
+                if (!isGroupDn)
+                {
+                    resolvedUsers.Add(dn);
+                }
+            }
+
+            return resolvedUsers.ToList();
+        }
+
+        private string PrepareOwnerBody(FwoOwner owner)
+        {
+            string msgText = owner.NextRecertDate >= DateTime.Today ? globalConfig.RecCheckEmailUpcomingText : globalConfig.RecCheckEmailOverdueText;
+            return msgText.Replace(Placeholder.APPNAME, owner.Name);
+        }
+
+        private async Task<ReportBase?> PrepareOwnerReport(FwoOwner owner)
+        {
+            ReportParams reportParams = new((int)ReportType.OwnerRecertification, new())
+            {
+                ModellingFilter = new()
+                {
+                    SelectedOwner = owner
+                }
+            };
+            using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnectionMiddlewareServer, globalConfig.DefaultLanguage);
+            return await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", reportParams), apiConnectionMiddlewareServer, userConfig, DefaultInit.DoNothing);
         }
 
         private async Task SetOwnerLastCheck(FwoOwner owner)

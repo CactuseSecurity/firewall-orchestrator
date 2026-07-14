@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Load config file
+CONFIG_FILE=".githooks/tooling.env"
+set -a
+source "$CONFIG_FILE"
+set +a
+
+# Set default python path
+PYTHON_CMD=("python")
+
+if [ -d ".venv/Scripts" ]; then
+    # Using virtual environment from .venv (Windows)
+    source ".venv/Scripts/activate"
+elif [ -d ".venv/bin" ]; then
+    # Using virtual environment from .venv (Unix)
+    source ".venv/bin/activate"
+elif command -v conda >/dev/null 2>&1 && [ -n "${CONDA_ENV:-}" ]; then
+    PYTHON_CMD=("conda" "run" "--no-capture-output" "-n" "$CONDA_ENV" "python")
+else
+    echo "Warning: No virtual environment found. Assuming python (with ruff and pyright) is available in base environment."
+fi
+
+# Assure dotnet is available
+if ! command -v dotnet >/dev/null 2>&1; then
+    echo "Error: 'dotnet' not found. Please install it or make sure it is on PATH."
+    exit 1
+fi
+
+# Assure python is available
+if ! "${PYTHON_CMD[@]}" --version >/dev/null 2>&1; then
+    echo "Error: Python is not available."
+    exit 1
+fi
+
+# Assure ruff and pyright are available
+for python_tool in ruff pyright; do
+    if ! "${PYTHON_CMD[@]}" -m "$python_tool" --version >/dev/null 2>&1; then
+        echo "Error: 'python -m $python_tool' is not available. Please install $python_tool in the active environment."
+        exit 1
+    fi
+done
+
+# Python Checks
+"${PYTHON_CMD[@]}" -m ruff check --fix
+"${PYTHON_CMD[@]}" -m ruff format
+"${PYTHON_CMD[@]}" -m pyright
+
+# Determine changed Dotnet files
+STAGED_ROLES_DOTNET_FORMAT_FILES=()
+while IFS= read -r -d '' staged_file; do
+    case "$staged_file" in
+        roles/*.cs|roles/*.razor|roles/*.cshtml)
+            STAGED_ROLES_DOTNET_FORMAT_FILES+=("${staged_file#roles/}")
+            ;;
+    esac
+done < <(git diff --cached --name-only -z --diff-filter=ACMR -- '*.cs' '*.razor' '*.cshtml')
+
+# If any Dotnet files have been changed run
+# Dotnet checks
+if [ "${#STAGED_ROLES_DOTNET_FORMAT_FILES[@]}" -gt 0 ]; then
+    dotnet format roles --no-restore --include "${STAGED_ROLES_DOTNET_FORMAT_FILES[@]}"
+fi
+
+# Prevent committing submodule pointer updates (auto-unstage)
+for submodule in ${CHECK_SUBMODULE_POINTERS:-}; do
+    if ! git diff --cached --quiet --ignore-submodules=none -- "$submodule"; then
+        echo "Info: Unstaging '$submodule' submodule pointer change (not allowed in commits)."
+        git restore --staged -- "$submodule" >/dev/null 2>&1
+    fi
+done

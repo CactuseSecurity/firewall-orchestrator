@@ -1,29 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using GraphQL.Client.Http;
 
 namespace FWO.Api.Client
 {
     public abstract class ApiSubscription : IDisposable
     {
-        private bool disposed = false;
+        private bool _disposed;
+
+        protected internal bool IsDisposed => _disposed;
+
+        internal abstract ApiSubscription Recreate(GraphQLHttpClient graphQlClient);
 
         protected abstract void Dispose(bool disposing);
 
         public void Dispose()
         {
-            if (disposed) return;
+            if (_disposed) return;
             Dispose(true);
-            disposed = true;
+            _disposed = true;
             GC.SuppressFinalize(this);
-        }
-
-        ~ ApiSubscription()
-        {
-            if (disposed) return;
-            Dispose(false);
         }
     }
 }

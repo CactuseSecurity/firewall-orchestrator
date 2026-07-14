@@ -4,273 +4,473 @@
 
 # only when not uninstalling ...
 - block:
-
-  # check installation mode
-  - name: assert ansible version gt 2.12
-    fail:
-      msg: Ansible 2.13 or above is required
-    when: ansible_version.full is version('2.13', '<')
-
-  - name: check for existing main config file {{ fworch_conf_file }}
-    stat:
-      path: "{{ fworch_conf_file }}"
-    register: already_installed
-
-  - set_fact:
-      already_installed: "{{ already_installed.stat.exists }}"
-  
-  - debug:
-      msg: "installation_mode={{ installation_mode }}, already_installed={{ already_installed }}"
-  
-  - name: fail if unknown installation_mode is set
-    fail:
-      msg: "Found undefined installation_mode: {{ installation_mode }}, aborting."
-    when: installation_mode != "new" and installation_mode != "uninstall" and installation_mode != "upgrade"
-
-  - name: fail if already installed and installation_mode is new
-    fail:
-      msg: "Found existing installation but running with installation_mode set to {{ installation_mode }}. If you want to upgrade, use 'installation_mode=upgrade'."
-    when: already_installed|bool and installation_mode == "new"
-
-  - name: fail if not already installed and installation_mode is upgrade
-    fail:
-      msg: "Could not find existing installation but running with installation_mode set to {{ installation_mode }}. Try running with installation_mode=new"
-    when: not already_installed and installation_mode == "upgrade"
-
-
-    # when upgrading check if we are not attempting a downgrade
-  - block:
-    
-    - name: fetch remote config file
-      fetch:
-        src: "{{ fworch_conf_file }}"
-        dest: "temp_remote_config_file.json"
-        flat: true
-
-    - name: read config file of currently installed product
-      include_vars: 
-        file: "temp_remote_config_file.json"
-        name: config
-      
-    - name: get version of currently installed product
-      set_fact: 
-        old_version: "{{ config.product_version }}"
-    
-    - name: abort in case of downgrade
+    # check installation mode
+    - name: assert ansible version gt 2.12
       fail:
-        msg: "your are attempting to downgrade the product from {{ old_version }} to {{ product_version }}, which is not supported"
-      when: old_version>product_version
+        msg: Ansible 2.13 or above is required
+      when: ansible_version.full is version('2.13', '<')
 
-    when: already_installed and installation_mode == "upgrade"
+    - name: create remote installer tmp directory
+      file:
+        path: "{{ installer_tmp_dir }}"
+        state: directory
+        mode: "0700"
+      become: false
 
-  - name: create group {{ fworch_group }}
-    group:
-      name: "{{ fworch_user }}"
-      gid: "{{ user_id }}"
-      state: present
-    become: true
-    
-  - name: add user {{ fworch_user }}
-    user:
-      name: "{{ fworch_user }}"
-      comment: "{{ product_name }} User"
-      uid: "{{ user_id }}"
-      home: "{{ fworch_home }}"
-      shell: /bin/bash
-      group: "{{ fworch_group }}"
-      generate_ssh_key: true
-      ssh_key_bits: 4096
-      ssh_key_file: .ssh/id_rsa
-    become: true
+    - name: create controller installer tmp directory
+      file:
+        path: "{{ installer_controller_tmp_dir }}"
+        state: directory
+        mode: "0700"
+      delegate_to: localhost
+      run_once: true
+      become: false
 
-  - name: replace fwo web sites with maintenance site
-    include_tasks: maintenance-site.yml
-    when: "installation_mode == 'upgrade' and inventory_hostname in groups['frontends']"
+    - name: check for existing main config file {{ fworch_conf_file }}
+      stat:
+        path: "{{ fworch_conf_file }}"
+      register: already_installed
 
-  - name: stop importer service before making any changes
-    systemd:
-      name: "{{ item }}"
-      state: stopped
-    become: true
-    when: "inventory_hostname in groups['importers'] and installation_mode == 'upgrade'"
-    loop:
-      - "{{ product_name }}-importer-legacy"
-      - "{{ product_name }}-importer-api"
+    - name: set installation state fact
+      set_fact:
+        already_installed: "{{ already_installed.stat.exists }}"
 
-  - name: stop importer service before making any changes
-    systemd:
-      name: "{{ item }}"
-      state: stopped
-    become: true
-    ignore_errors: true # might not have been installed yet in case of early fail installs
-    when: "inventory_hostname in groups['importers'] and installation_mode == 'uninstall'"
-    loop:
-      - "{{ product_name }}-importer-legacy"
-      - "{{ product_name }}-importer-api"
-
-
-  - name: update operating system package cache .deb based
-    apt:
-      update_cache: true
-    when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
-
-  - name: check for existing upgradable packages
-    command: apt list --upgradable
-    register: upgradable_packages
-    when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
-
-  - block:
     - debug:
-        msg: "current number of upgradable packages: {{ upgradable_packages.stdout_lines|length-1 }}"
+        msg: "installation_mode={{ installation_mode }}, already_installed={{ already_installed }}"
 
-    - block:
-        - name: disable apache2 maintenance web site
-          command: "a2dissite {{ product_name }}-maintenance"
-          ignore_errors: true
-
-        - name: enable {{ product_name }} web site
-          command: "a2ensite {{ product_name }}-ui"
-          ignore_errors: true
-
-        - name: restart apache without maintenance site
-          service:
-            name: "{{ webserver_package_name }}"
-            state: restarted  
-      when: installation_mode == "upgrade"    
-
-    - name: assert there are no upgradable packages. upgrades must be run interactively outside the FWORCH installer
+    - name: fail if unknown installation_mode is set
       fail:
-        msg:
-          - There are upgradable OS packages available, please run OS upgrade before running FWORCH installer. 
-          - Use "-e force_install=true" to overwrite this check and install anyway at your own risk.
-    when: |
-      not force_install|bool and
-      (ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian") and
-      upgradable_packages.stdout_lines|length > 1
+        msg: "Found undefined installation_mode: {{ installation_mode }}, aborting."
+      when: installation_mode != "new" and installation_mode != "uninstall" and installation_mode != "upgrade"
 
-  - name: update operating system packages .rpm based (untested)
-    yum:
-      upgrade: dist
-    when: ansible_facts['distribution'] == "Red Hat" or ansible_facts['distribution'] == "CentOS"
+    - name: warn when fixed test keys are enabled for development
+      debug:
+        msg: >-
+          SECURITY WARNING: testkeys=yes is enabled. This installation uses fixed,
+          publicly known development secrets and is only acceptable for isolated
+          development or test environments.
+      when: testkeys | default(false) | bool
 
-  - name: install packages rsync, acl (for non-root user in ansible)
-    package:
-      name: "{{ item }}"
-      state: present
-    loop:
-      - rsync
-      - acl
+    - name: fail if already installed and installation_mode is new
+      fail:
+        msg: "Found existing installation but running with installation_mode set to {{ installation_mode }}. If you want to upgrade, use 'installation_mode=upgrade'."
+      when: already_installed|bool and installation_mode == "new"
 
-  - name: create var lock directory
-    file:
-      path: "{{ fworch_log_lock_dir }}"
-      state: directory
-      owner: "{{ fworch_user }}"
-      group: "{{ fworch_group }}"
-      mode: "0775"
+    - name: fail if not already installed and installation_mode is upgrade
+      fail:
+        msg: "Could not find existing installation but running with installation_mode set to {{ installation_mode }}. Try running with installation_mode=new"
+      when: not already_installed and installation_mode == "upgrade"
 
-  - name: install rsyslog
-    import_tasks: install_syslog.yml
-    when: "install_syslog | bool"
+    - name: include OS specific preparation tasks
+      include_tasks: "os/{{ ansible_facts['os_family'] }}.yml"
 
-  - name: create base {{ fworch_home }} directory
-    file:
-      path: "{{ fworch_home }}"
-      state: directory
-      owner: "{{ fworch_user }}"
-      group: "{{ fworch_group }}"
-      mode: "0775"
+      # when upgrading check if we are not attempting a downgrade
+    - block:
+        - name: fetch remote config file
+          fetch:
+            src: "{{ fworch_conf_file }}"
+            dest: "temp_remote_config_file.json"
+            flat: true
 
-  - name: copy fworch scripts directory
-    copy:
-      src: scripts
-      dest: "{{ fworch_home }}"
-      mode: "0755"
-      owner: "{{ fworch_user}}"
-      group: "{{ fworch_user}}"
-    become: true
+        - name: read config file of currently installed product
+          include_vars:
+            file: "temp_remote_config_file.json"
+            name: config
 
-  - name: add proxy setting to fworch users .profile and .bashrc
-    blockinfile:
-      path: "{{ fworch_home }}/{{ item }}"
-      create: true
-      mode: "0644"
-      owner: "{{ fworch_user }}"
-      group: "{{ fworch_group }}"
-      block: |
-        http_proxy={{ http_proxy }}
-        https_proxy={{ http_proxy }}
-    loop:
-      - .bashrc
-      - .profile
+        - name: get version of currently installed product
+          set_fact:
+            old_version: "{{ config.product_version }}"
+            product_version_changed: "{{ config.product_version != product_version }}"
 
-  - name: create etc dir
-    file:
-      path: "{{ fworch_home }}/etc"
-      state: directory
-      owner: "{{ fworch_user }}"
-      group: "{{ fworch_group }}"
-      mode: '0755'
+        - name: fail if attempting a downgrade
+          fail:
+            msg: "Refusing to downgrade: installed version {{ old_version }} is newer than the version being installed ({{ product_version }})."
+          when: old_version is version(product_version, '>')
 
-  - name: create dir for passwords
-    file:
-      path: "{{ fworch_home }}/etc/secrets"
-      state: directory
-      owner: "{{ fworch_user }}"
-      group: "{{ fworch_user }}"
-      # group: "{{ postgres_group }}" # group does not exist yet during install, created in role database
-      mode: '0750'
-    when: "installation_mode == 'new'"
+      when: already_installed and installation_mode == "upgrade"
 
-  - name: generate main key
-    set_fact:
-      main_key: "{{ randomly_generated_pwd }}"  # 32 bytes
-      main_key_file: "{{ fworch_secrets_dir }}/main_key"
-    when: testkeys is not defined or testkeys|bool is false
+    - name: create group {{ fworch_group }}
+      group:
+        name: "{{ fworch_user }}"
+        gid: "{{ user_id }}"
+        state: present
+      become: true
 
-  - name: set static main key for test purposes only
-    set_fact:
-      main_key: "{{ api_hasura_admin_test_password }}..{{ api_hasura_admin_test_password }}.." # to have 32 bytes
-      main_key_file: "{{ fworch_secrets_dir }}/main_key"
-    when: testkeys is defined and testkeys|bool
+    - name: add user {{ fworch_user }}
+      user:
+        name: "{{ fworch_user }}"
+        comment: "{{ product_name }} User"
+        uid: "{{ user_id }}"
+        home: "{{ fworch_home }}"
+        shell: /bin/bash
+        group: "{{ fworch_group }}"
+        generate_ssh_key: true
+        ssh_key_bits: 4096
+        ssh_key_file: .ssh/id_rsa
+      become: true
 
-  - name: Check if main key file exists
-    stat:
-      path: "{{ main_key_file }}"
-    register: stat_result
+    - name: ensure subordinate id files exist
+      copy:
+        content: ""
+        dest: "{{ item }}"
+        force: false
+        mode: "0644"
+      loop:
+        - /etc/subuid
+        - /etc/subgid
+      become: true
 
-  - name: write main key to secrets directory
-    copy:
-      content: "{{ main_key }}\n"
-      dest: "{{ main_key_file }}"
-      mode: '0640'
-      owner: "{{ fworch_user }}"
-      group: "{{ fworch_group }}"
-    become: true
-    when: not stat_result.stat.exists
+    - name: check existing subordinate uid entry for {{ fworch_user }}
+      command:
+        argv:
+          - grep
+          - -E
+          - "^{{ fworch_user }}:[0-9]+:[0-9]+$"
+          - /etc/subuid
+      register: fworch_subuid_entry
+      changed_when: false
+      failed_when: false
+      become: true
 
-  - set_fact:
-      wsgi_package_name: "{{ wsgi_package_name }}-py3"
-    when: | 
-      (ansible_facts['distribution_release']|lower == debian_testing_release_name)
-      or 
-      (ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_major_version']|int is version('10', '>'))
-      or 
-      (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version']|int is version('20', '>'))
+    - name: check existing subordinate gid entry for {{ fworch_user }}
+      command:
+        argv:
+          - grep
+          - -E
+          - "^{{ fworch_user }}:[0-9]+:[0-9]+$"
+          - /etc/subgid
+      register: fworch_subgid_entry
+      changed_when: false
+      failed_when: false
+      become: true
 
-  - name: copy iso.conf to target for legacy importer support only
-    template:
-      src: iso.conf.j2
-      dest: "{{ fworch_home }}/etc/iso.conf"
-      owner: "{{ fworch_user }}"
-      group: "{{ fworch_group }}"
+    - name: fail if subordinate uid lookup failed unexpectedly
+      fail:
+        msg: "Failed to read existing subordinate uid entry for {{ fworch_user }} from /etc/subuid."
+      when:
+        - fworch_subuid_entry.rc not in [0, 1]
 
-  - name: include fworch.yaml config file creator
-    import_tasks: conf_file_creator.yml
+    - name: fail if subordinate gid lookup failed unexpectedly
+      fail:
+        msg: "Failed to read existing subordinate gid entry for {{ fworch_user }} from /etc/subgid."
+      when:
+        - fworch_subgid_entry.rc not in [0, 1]
 
-  - name: include upgrade script
-    import_tasks: run-upgrades.yml
-    when: "installation_mode == 'upgrade'"
+    - name: fail if multiple subordinate uid entries exist for {{ fworch_user }}
+      fail:
+        msg: >-
+          Found multiple subordinate uid entries for {{ fworch_user }} in /etc/subuid:
+          {{ fworch_subuid_entry.stdout_lines | join(', ') }}.
+          Please remove duplicate entries before running the installer again.
+      when:
+        - fworch_subuid_entry.rc == 0
+        - fworch_subuid_entry.stdout_lines | length > 1
+
+    - name: fail if multiple subordinate gid entries exist for {{ fworch_user }}
+      fail:
+        msg: >-
+          Found multiple subordinate gid entries for {{ fworch_user }} in /etc/subgid:
+          {{ fworch_subgid_entry.stdout_lines | join(', ') }}.
+          Please remove duplicate entries before running the installer again.
+      when:
+        - fworch_subgid_entry.rc == 0
+        - fworch_subgid_entry.stdout_lines | length > 1
+
+    - name: determine next free subordinate uid range start
+      command:
+        argv:
+          - awk
+          - "-F:"
+          - -v
+          - min_start={{ fworch_subid_range_start_min }}
+          - |
+            BEGIN { max_end = min_start }
+            NF >= 3 {
+              start = $2 + 0
+              count = $3 + 0
+              end = start + count
+              if (end > max_end) max_end = end
+            }
+            END { print max_end }
+          - /etc/subuid
+      register: fworch_next_subuid_start
+      changed_when: false
+      become: true
+      when:
+        - fworch_subuid_entry.rc != 0
+
+    - name: determine next free subordinate gid range start
+      command:
+        argv:
+          - awk
+          - "-F:"
+          - -v
+          - min_start={{ fworch_subid_range_start_min }}
+          - |
+            BEGIN { max_end = min_start }
+            NF >= 3 {
+              start = $2 + 0
+              count = $3 + 0
+              end = start + count
+              if (end > max_end) max_end = end
+            }
+            END { print max_end }
+          - /etc/subgid
+      register: fworch_next_subgid_start
+      changed_when: false
+      become: true
+      when:
+        - fworch_subgid_entry.rc != 0
+
+    - name: define subordinate id entries for {{ fworch_user }}
+      set_fact:
+        fworch_subuid_line: >-
+          {{
+            fworch_subuid_entry.stdout_lines[0]
+            if fworch_subuid_entry.rc == 0 else
+            fworch_user ~ ':' ~ fworch_next_subuid_start.stdout ~ ':' ~ fworch_subid_range_size
+          }}
+        fworch_subgid_line: >-
+          {{
+            fworch_subgid_entry.stdout_lines[0]
+            if fworch_subgid_entry.rc == 0 else
+            fworch_user ~ ':' ~ fworch_next_subgid_start.stdout ~ ':' ~ fworch_subid_range_size
+          }}
+
+    - name: add subordinate uid entry for {{ fworch_user }}
+      lineinfile:
+        path: /etc/subuid
+        regexp: "^{{ fworch_user }}:"
+        line: "{{ fworch_subuid_line }}"
+        create: true
+      become: true
+
+    - name: add subordinate gid entry for {{ fworch_user }}
+      lineinfile:
+        path: /etc/subgid
+        regexp: "^{{ fworch_user }}:"
+        line: "{{ fworch_subgid_line }}"
+        create: true
+      become: true
+
+    - name: check whether loginctl is available
+      stat:
+        path: /usr/bin/loginctl
+      register: loginctl_binary
+      become: true
+
+    - name: enable lingering for {{ fworch_user }}
+      command:
+        argv:
+          - loginctl
+          - enable-linger
+          - "{{ fworch_user }}"
+        creates: "/var/lib/systemd/linger/{{ fworch_user }}"
+      register: fworch_enable_linger
+      changed_when: fworch_enable_linger.rc == 0
+      failed_when: false
+      become: true
+      when:
+        - ansible_facts['service_mgr'] == "systemd"
+        - loginctl_binary.stat.exists
+
+    - name: global apache config
+      include_tasks: global-apache2-config.yml
+      # vars:
+      #   apache2_required_modules: "{{ apache2_required_modules | default([]) }}"
+      #   webserver_package_name: "{{ webserver_package_name | default('apache2') }}"
+      #   http_conf_dir: "{{ http_conf_dir | default('/etc/apache2/sites-available') }}"
+      #   product_name: "{{ product_name }}"
+      #   product_version: "{{ product_version }}"
+      #   api_web_port: "{{ api_web_port | default(8080) }}"
+      #   server_admin: "{{ server_admin | default('webmaster@localhost') }}"
+      #   apache_global_settings_file: "{{ apache_global_settings_file | default('/etc/apache2/conf-available/security.conf') }}"
+      when: "inventory_hostname in groups['frontends'] or inventory_hostname in groups['middlewareserver'] or inventory_hostname in groups['apiserver']"
+
+    - name: replace fwo web sites with maintenance site
+      include_tasks: maintenance-site.yml
+      when: "installation_mode == 'upgrade' and inventory_hostname in groups['frontends']"
+
+    - name: stop fw importer service before making any changes
+      systemd:
+        name: "{{ product_name }}-importer-api"
+        state: stopped
+      become: true
+      when: "inventory_hostname in groups['importers'] and installation_mode == 'upgrade'"
+            
+    - name: stop importer service before making any changes
+      systemd:
+        name: "{{ product_name }}-importer-api"
+        state: stopped
+      become: true
+      ignore_errors: true # might not have been installed yet in case of early fail installs
+      when: "inventory_hostname in groups['importers'] and installation_mode == 'uninstall'"
+
+    - name: install packages rsync, acl (for non-root user in ansible)
+      package:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - rsync
+        - acl
+
+    - name: create var lock directory
+      file:
+        path: "{{ fworch_log_lock_dir }}"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0775"
+
+    - name: install rsyslog
+      import_tasks: install_syslog.yml
+      when: "install_syslog | bool"
+
+    - name: create base {{ fworch_home }} directory
+      file:
+        path: "{{ fworch_home }}"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0775"
+
+    - name: create product tmp directory
+      file:
+        path: "{{ fworch_tmp_dir }}"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0700"
+
+    - name: copy fworch scripts directory
+      ansible.posix.synchronize:
+        src: scripts
+        dest: "{{ fworch_home }}"
+        rsync_opts:
+          - "--chown={{ fworch_user }}:{{ fworch_group }}"
+      become: true
+
+    - name: check existence of scripts that need to be executable
+      stat:
+        path: "{{ fworch_home }}/scripts/{{ item }}"
+      loop:
+        - customizing/app_data_import/get_owner_data3_from_normalized_csvs.py
+        - customizing/area_ip_data_import/convertNwObjDataFromGit.py
+        - customizing/iiq_request_missing_roles/iiq_request_missing_fwmgt_roles.py
+        - acquire_lock.py
+        - release_lock.py
+      register: fworch_script_stats
+
+    - name: set scripts to executable where needed
+      file:
+        path: "{{ fworch_home }}/scripts/{{ item.item }}"
+        mode: "0755"
+      loop: "{{ fworch_script_stats.results }}"
+      when: item.stat.exists
+
+    - name: add proxy setting to fworch users .profile and .bashrc
+      blockinfile:
+        path: "{{ fworch_home }}/{{ item }}"
+        create: true
+        mode: "0644"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        block: |
+          http_proxy={{ http_proxy }}
+          https_proxy={{ http_proxy }}
+      loop:
+        - .bashrc
+        - .profile
+
+    - name: create etc dir
+      file:
+        path: "{{ fworch_home }}/etc"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0755"
+
+    - name: create dir for passwords
+      file:
+        path: "{{ fworch_home }}/etc/secrets"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_user }}"
+        # group: "{{ postgres_group }}" # group does not exist yet during install, created in role database
+        mode: "0750"
+      when: "installation_mode == 'new'"
+
+    - name: check importer password file exists
+      stat:
+        path: "{{ importer_password_file }}"
+      register: importer_pwd_stat
+      when: "installation_mode == 'new' and inventory_hostname in groups['middlewareserver']"
+
+    - name: set importer password for secrets file
+      set_fact:
+        importer_password: "{{ randomly_generated_pwd }}"
+      when: "installation_mode == 'new' and inventory_hostname in groups['middlewareserver'] and not importer_pwd_stat.stat.exists"
+
+    - name: write importer password to secrets directory
+      copy:
+        content: "{{ importer_password }}\n"
+        dest: "{{ importer_password_file }}"
+        mode: "0600"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+      become: true
+      when: "installation_mode == 'new' and inventory_hostname in groups['middlewareserver'] and not importer_pwd_stat.stat.exists"
+
+    - name: generate main key
+      set_fact:
+        main_key: "{{ randomly_generated_pwd }}" # 32 bytes
+        main_key_file: "{{ fworch_secrets_dir }}/main_key"
+      when: testkeys is not defined or testkeys|bool is false
+
+    - name: set static main key for test purposes only
+      set_fact:
+        main_key: "{{ api_hasura_admin_test_password }}..{{ api_hasura_admin_test_password }}.." # to have 32 bytes
+        main_key_file: "{{ fworch_secrets_dir }}/main_key"
+      when: testkeys is defined and testkeys|bool
+
+    - name: Check if main key file exists
+      stat:
+        path: "{{ main_key_file }}"
+      register: stat_result
+
+    - name: write main key to secrets directory
+      copy:
+        content: "{{ main_key }}\n"
+        dest: "{{ main_key_file }}"
+        mode: "0640"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+      become: true
+      when: not stat_result.stat.exists
+
+    - name: include fwo api call installer
+      import_tasks: install-api-calls.yml
+
+    - name: include upgrade script
+      import_tasks: run-upgrades.yml
+      when: "installation_mode == 'upgrade'"
+
+    - name: include fworch.yaml config file creator
+      import_tasks: conf_file_creator.yml
+
+    - name: ensure main config file is readable by {{ fworch_user }}
+      file:
+        path: "{{ fworch_conf_file }}"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0640"
+
+    - name: include last_commit_id.txt file creator
+      import_tasks: last_commit_id_file_creator.yml
+
+    - name: include upgrade script
+      import_tasks: run-upgrades.yml
+      when: "installation_mode == 'upgrade'"
 
   become: true
   when: "installation_mode != 'uninstall'"

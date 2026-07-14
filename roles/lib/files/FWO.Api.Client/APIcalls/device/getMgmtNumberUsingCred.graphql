@@ -1,9 +1,0 @@
-query managementsUsingCredentials(
-  $importCredentialId: Int!
-) {
-  management_aggregate (where: { import_credential_id:{_eq: $importCredentialId}}){
-    aggregate {
-      count
-    }
-  }
-}

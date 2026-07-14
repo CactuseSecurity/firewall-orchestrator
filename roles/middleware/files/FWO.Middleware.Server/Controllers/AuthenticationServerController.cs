@@ -1,10 +1,11 @@
-﻿using FWO.Api.Client.Queries;
 using FWO.Api.Client;
-using FWO.Api.Data;
+using FWO.Api.Client.Queries;
+using FWO.Basics;
+using FWO.Data;
+using FWO.Data.Middleware;
 using FWO.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using FWO.Middleware.RequestParameters;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -21,9 +22,9 @@ namespace FWO.Middleware.Server.Controllers
         private List<Ldap> ldaps;
         private readonly ApiConnection apiConnection;
 
-		/// <summary>
-		/// Constructor needing connection and ldap list
-		/// </summary>
+        /// <summary>
+        /// Constructor needing connection and ldap list
+        /// </summary>
         public AuthenticationServerController(ApiConnection apiConnection, List<Ldap> ldaps)
         {
             this.apiConnection = apiConnection;
@@ -43,12 +44,12 @@ namespace FWO.Middleware.Server.Controllers
         /// <returns></returns>
         [HttpGet("TestConnection")]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
-        public ActionResult<string> TestConnection([FromBody] LdapGetUpdateParameters parameters)
+        public async Task<ActionResult<string>> TestConnection([FromBody] LdapGetUpdateParameters parameters)
         {
             try
             {
                 Ldap ldapToTest = new Ldap(parameters);
-                ldapToTest.TestConnection();
+                await ldapToTest.TestConnection();
             }
             catch (Exception e)
             {
@@ -67,7 +68,7 @@ namespace FWO.Middleware.Server.Controllers
         public async Task<List<LdapGetUpdateParameters>> Get()
         {
             UiLdapConnection[] ldapConnections = await apiConnection.SendQueryAsync<UiLdapConnection[]>(AuthQueries.getAllLdapConnections);
-            List<LdapGetUpdateParameters> ldapList = new();
+            List<LdapGetUpdateParameters> ldapList = [];
             foreach (UiLdapConnection conn in ldapConnections)
             {
                 ldapList.Add(conn.ToApiParams());
@@ -92,6 +93,7 @@ namespace FWO.Middleware.Server.Controllers
         /// SearchpathForUsers (required) &#xA;
         /// SearchpathForRoles (optional) &#xA;
         /// SearchpathForGroups (optional) &#xA;
+        /// WritepathForGroups (optional) &#xA;
         /// WriteUser (optional) &#xA;
         /// WriteUserPwd (optional) &#xA;
         /// TenantId (optional) &#xA;
@@ -105,12 +107,12 @@ namespace FWO.Middleware.Server.Controllers
         public async Task<int> PostAsync([FromBody] LdapAddParameters ldapData)//, [FromHeader] string bearer)
         {
             // Add ldap to DB and to middleware ldap list
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.newLdapConnection, ldapData)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.newLdapConnection, ldapData)).ReturnIds;
             int ldapId = 0;
             if (returnIds != null)
             {
                 ldapId = returnIds[0].NewId;
-                ldaps.Add(new Ldap(new LdapGetUpdateParameters (ldapData, ldapId) {}));
+                ldaps.Add(new Ldap(new LdapGetUpdateParameters(ldapData, ldapId) { }));
                 Log.WriteAudit("AddLdap", $"LDAP server {ldapData.Address}:{ldapData.Port} successfully added");
             }
 
@@ -136,6 +138,7 @@ namespace FWO.Middleware.Server.Controllers
         /// SearchpathForUsers (required) &#xA;
         /// SearchpathForRoles (optional) &#xA;
         /// SearchpathForGroups (optional) &#xA;
+        /// WritepathForGroups (optional) &#xA;
         /// WriteUser (optional) &#xA;
         /// WriteUserPwd (optional) &#xA;
         /// TenantId (optional) &#xA;

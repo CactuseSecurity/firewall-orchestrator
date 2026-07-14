@@ -1,7 +1,3 @@
-﻿@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Services
-
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Implementer}")]
 
 @inject UserConfig userConfig
@@ -23,19 +19,19 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@AllowedRoles">
+            <ExecutionModeAuthorizeView Roles="@AllowedRoles">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {await PerformAction(); Display = false;}">@(userConfig.GetText("confirm"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="Perform">@(DisplayService.DisplayButton(userConfig, "confirm", Icons.Confirm))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("confirm"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, "confirm", Icons.Confirm))</button>
                 </NotAuthorized> 
-            </AuthorizeView>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            </ExecutionModeAuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>
 </PopUp>
-
+<InProgress Display="workInProgress" />
 
 @code
 {
@@ -60,8 +56,20 @@
     [Parameter]
     public bool RenderMessageAsHtml { get; set; }
 
+    private bool workInProgress = false;
+
+    private async Task Perform()
+    {
+        workInProgress = true;
+        await PerformAction();
+        workInProgress = false;
+        Display = false;
+        await DisplayChanged.InvokeAsync(Display);
+    }
+
     private void Cancel()
     {
+        workInProgress = false;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }

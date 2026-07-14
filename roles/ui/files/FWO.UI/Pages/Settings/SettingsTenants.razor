@@ -1,15 +1,7 @@
-﻿@using BlazorTable
-@using System.Linq
-@using System.Net
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Api.Client
-@using FWO.Api.Client.Queries
-@using FWO.Config.Api
+@using FWO.Data.Middleware
 @using FWO.Middleware.Client
-@using FWO.Middleware.RequestParameters
 @using RestSharp
-@using FWO.Services
+@using System.Net
 
 @page "/settings/tenants"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
@@ -126,7 +118,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin, fw-admin">
+            <ExecutionModeAuthorizeView Roles="admin, fw-admin">
                 <Authorized>
                     @if (addDeleteAllowed && !AddTenantMode)
                     {
@@ -142,14 +134,14 @@
                 <NotAuthorized>
                     <button type="button" class="btn btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized>
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary"
                 @onclick="() => LeaveModifyTenantMode(cancel:true)">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("edit_vis_devices") + ": " + actTenant.Name)" Show="@EditDevicesSelectedForTenantMode" Size=PopupSize.Large OnClose="() => LeaveEditDevicesSelectedForTenantMode(cancel:true)">
+<PopUp Title="@(userConfig.GetText("edit_vis_devices") + ": " + actTenant.Name)" Show="@EditDevicesSelectedForTenantMode" Size=PopupSize.Large OnClose="async () => await LeaveEditDevicesSelectedForTenantMode(cancel:true)">
     <Body>
         @if (EditDevicesSelectedForTenantMode)
         {
@@ -158,15 +150,16 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin">
+            @* Device-visibility save writes tenant_to_management/tenant_to_device; Hasura grants those writes to admin only. *@
+            <ExecutionModeAuthorizeView Roles="admin">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-success" @onclick="() => LeaveEditDevicesSelectedForTenantMode(cancel:false)" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-success" @onclick="async () => await LeaveEditDevicesSelectedForTenantMode(cancel:false)" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized>
-            </AuthorizeView>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => LeaveEditDevicesSelectedForTenantMode(cancel:true)">
+            </ExecutionModeAuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="async () => await LeaveEditDevicesSelectedForTenantMode(cancel:true)">
                 @(userConfig.GetText("cancel"))
             </button>
         </div>
@@ -222,7 +215,10 @@
     {
         try
         {
-            addDeleteAllowed = authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
+            // Auditor and FwAdmin have read-only / limited access. Adding (POST) and deleting (DELETE)
+            // tenants is admin-only at the REST layer (TenantController), so only Admin sees those affordances.
+            // FwAdmin may still edit (PUT) existing tenants via the save button in the edit dialog.
+            addDeleteAllowed = userConfig.CanUseAnyRole(Roles.Admin);
             await GetTenantsFromLdap();
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
         }
@@ -257,14 +253,7 @@
 
     private void AnalyseSampleTenants()
     {
-        sampleTenants = [];
-        foreach (var tenant in tenants)
-        {
-            if (tenant.Name.EndsWith("_demo"))
-            {
-                sampleTenants.Add(tenant);
-            }
-        }
+        sampleTenants = [.. tenants.Where(t => t.Name.EndsWith(GlobalConst.k_demo))];
         showCleanupButton = (sampleTenants.Count > 0);
     }
 
@@ -285,7 +274,7 @@
             }
             else
             {
-                actIpAddresses = await apiConnection.SendQueryAsync<List<NwObjectElement>>(AuthQueries.getTenantNetworks, 
+                actIpAddresses = await apiConnection.SendQueryAsync<List<NwObjectElement>>(AuthQueries.getTenantNetworks,
                     new { tenantId = actTenant.Id });
             }
             ipsToAdd.Clear();
@@ -352,7 +341,7 @@
                     mgm.Visible = true;
                     mgm.Shared = tenMgm.Shared;
                 }
-            }            
+            }
         }
         // set explicit gateway visibilities from tenant_to_device table
         foreach (TenantGateway tenGw in tenantDevices.TenantGateways)
@@ -383,7 +372,7 @@
                 name = ipAdd.Name,
                 comment = ipAdd.Comment
             };
-            await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenantNetwork, Variables);
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.addTenantNetwork, Variables);
         }
     }
 
@@ -441,6 +430,13 @@
             }
             DeleteTenantMode = false;
             EditTenantMode = false;
+
+            Log.WriteAudit(
+                Title: $"Tenants Settings",
+                Text: $"Deleted Tenant: {actTenant.Name} (ID: {actTenant.Id})",
+                UserName: userConfig.User.Name,
+                UserDN: userConfig.User.Dn);
+
         }
         catch (Exception exception)
         {
@@ -554,6 +550,12 @@
                 tenants.Add(actTenant);
                 AddTenantMode = false;
                 EditTenantMode = false;
+
+                Log.WriteAudit(
+                    Title: $"Tenants Settings",
+                    Text: $"Added Tenant: {actTenant.Name} (ID: {actTenant.Id})",
+                    UserName: userConfig.User.Name,
+                    UserDN: userConfig.User.Dn);
             }
         }
     }
@@ -570,6 +572,12 @@
             await deleteTenantNetworks();
             await addTenantNetworks();
             EditTenantMode = false;
+
+            Log.WriteAudit(
+                Title: $"Tenants Settings",
+                Text: $"Edited Tenant: {actTenant.Name} (ID: {actTenant.Id})",
+                UserName: userConfig.User.Name,
+                UserDN: userConfig.User.Dn);
         }
     }
 
@@ -588,8 +596,8 @@
         try
         {
             // delete all tenant to device and management mappings for the current tenant
-            await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.deleteAllGatewaysOfTenant, new { tenantId = actTenant.Id });
-            await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.deleteAllManagementsOfTenant, new { tenantId = actTenant.Id });
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.deleteAllGatewaysOfTenant, new { tenantId = actTenant.Id });
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.deleteAllManagementsOfTenant, new { tenantId = actTenant.Id });
         }
         catch (System.Exception exception)
         {
@@ -606,12 +614,12 @@
             {
                 if (mgm.Visible)
                 {
-                    await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenantToManagement, new { tenantId = actTenant.Id, mgmId = mgm.Id, shared = mgm.Shared });
+                    await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.addTenantToManagement, new { tenantId = actTenant.Id, mgmId = mgm.Id, shared = mgm.Shared });
                     foreach (DeviceSelect gw in mgm.Devices)
                     {
                         if (gw.Visible)
                         {
-                            await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addTenantToGateway, new { tenantId = actTenant.Id, gwId = gw.Id, shared = gw.Shared });
+                            await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.addTenantToGateway, new { tenantId = actTenant.Id, gwId = gw.Id, shared = gw.Shared });
                         }
                     }
                 }

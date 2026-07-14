@@ -1,0 +1,333 @@
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Basics;
+using FWO.Config.Api;
+using FWO.Config.File;
+using FWO.Data;
+using FWO.Data.Report;
+using FWO.Logging;
+using FWO.Middleware.Server.Controllers;
+using FWO.Middleware.Server.Services;
+using FWO.Report;
+using FWO.Services;
+using Quartz;
+
+namespace FWO.Middleware.Server.Jobs
+{
+    /// <summary>
+    /// Quartz job that checks report schedules and generates reports when due.
+    /// </summary>
+    [DisallowConcurrentExecution]
+    public class ReportJob : IJob
+    {
+        private const string LogMessageTitle = "Report Scheduling";
+        private static readonly TimeSpan CheckScheduleInterval = TimeSpan.FromMinutes(1);
+
+        private readonly ApiConnection apiConnectionScheduler;
+        private readonly JwtWriter jwtWriter;
+        private readonly TokenLifetimeProvider tokenLifetimeProvider;
+        private readonly string apiServerUri;
+
+        /// <summary>
+        /// Creates a new report scheduling job.
+        /// </summary>
+        /// <param name="apiConnectionScheduler">API connection used by the scheduler.</param>
+        /// <param name="jwtWriter">JWT writer to authorize users.</param>
+        /// <param name="tokenLifetimeProvider">Provider for token lifetime defaults.</param>
+        public ReportJob(ApiConnection apiConnectionScheduler, JwtWriter jwtWriter, TokenLifetimeProvider? tokenLifetimeProvider = null)
+        {
+            this.apiConnectionScheduler = apiConnectionScheduler;
+            this.jwtWriter = jwtWriter;
+            this.tokenLifetimeProvider = tokenLifetimeProvider ?? new TokenLifetimeProvider();
+            apiServerUri = ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup.");
+        }
+
+        /// <inheritdoc />
+        public async Task Execute(IJobExecutionContext context)
+        {
+            try
+            {
+                Log.WriteDebug(LogMessageTitle, "Process started");
+                DateTime dateTimeNowRounded = RoundDown(DateTime.Now, CheckScheduleInterval);
+                List<ReportSchedule> scheduledReports = await apiConnectionScheduler.SendQueryAsync<List<ReportSchedule>>(ReportQueries.getReportSchedules);
+
+                if (scheduledReports is null || scheduledReports.Count == 0)
+                {
+                    return;
+                }
+
+                await Parallel.ForEachAsync(scheduledReports, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
+                    async (reportSchedule, ct) => await ProcessScheduledReport(reportSchedule, dateTimeNowRounded, ct));
+            }
+            catch (TaskCanceledException)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(ReportJob)} stopped.");
+            }
+            catch (OperationCanceledException)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(ReportJob)} stopped.");
+            }
+        }
+
+        private async Task ProcessScheduledReport(ReportSchedule reportSchedule, DateTime dateTimeNowRounded, CancellationToken ct)
+        {
+            try
+            {
+                if (reportSchedule.Active)
+                {
+                    // Add schedule interval as long as schedule time is smaller than current time
+                    while (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) < dateTimeNowRounded)
+                    {
+                        reportSchedule.StartTime = reportSchedule.RepeatInterval switch
+                        {
+                            SchedulerInterval.Days => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset),
+                            SchedulerInterval.Weeks => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset * GlobalConst.kDaysPerWeek),
+                            SchedulerInterval.Months => reportSchedule.StartTime.AddMonths(reportSchedule.RepeatOffset),
+                            SchedulerInterval.Years => reportSchedule.StartTime.AddYears(reportSchedule.RepeatOffset),
+                            SchedulerInterval.Never => reportSchedule.StartTime.AddYears(42_42),
+                            _ => throw new NotSupportedException("Time interval is not supported."),
+                        };
+                    }
+
+                    if (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) == dateTimeNowRounded)
+                    {
+                        await GenerateReport(reportSchedule, dateTimeNowRounded, ct);
+                    }
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(ReportJob)} stopped.");
+            }
+            catch (OperationCanceledException)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(ReportJob)} stopped.");
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(LogMessageTitle, "Checking scheduled reports lead to exception.", exception);
+            }
+        }
+
+        private async Task GenerateReport(ReportSchedule reportSchedule, DateTime dateTimeNowRounded, CancellationToken token)
+        {
+            ApiConnection? apiConnectionUserContext = null;
+            UserConfig? userConfig = null;
+
+            try
+            {
+                Log.WriteInfo(LogMessageTitle, $"Generating scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" ...");
+
+                (apiConnectionUserContext, userConfig) = await InitUserEnvironment(reportSchedule);
+                if (apiConnectionUserContext == null || userConfig == null)
+                {
+                    return;
+                }
+
+                ReportFile reportFile = new()
+                {
+                    Name = $"{reportSchedule.Name}_{dateTimeNowRounded.ToShortDateString()}",
+                    GenerationDateStart = DateTime.Now,
+                    TemplateId = reportSchedule.Template.Id,
+                    OwningUserId = reportSchedule.ScheduleOwningUser.DbId,
+                    Type = reportSchedule.Template.ReportParams.ReportType,
+                };
+
+                await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.countReportSchedule, new { report_schedule_id = reportSchedule.Id });
+                await AdaptDeviceFilter(reportSchedule.Template.ReportParams, apiConnectionUserContext);
+
+                ReportBase? report = await ReportGenerator.GenerateFromTemplate(reportSchedule.Template, apiConnectionUserContext, userConfig, DefaultInit.DoNothing, token);
+                if (report != null)
+                {
+                    await report.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
+
+                    await WriteReportFile(report, reportSchedule.OutputFormat, reportFile);
+
+                    Log.WriteInfo(LogMessageTitle, $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" successfully generated.");
+
+                    if (reportSchedule.Archive)
+                    {
+                        await SaveReportToArchive(reportFile, report.SetDescription(), apiConnectionUserContext);
+                    }
+
+                    if (reportSchedule.Notifications.Any())
+                    {
+                        await TrySendReportViaEmail(reportSchedule, report, userConfig);
+                    }
+                }
+                else
+                {
+                    Log.WriteInfo(LogMessageTitle, $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" was empty.");
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(ReportJob)} stopped.");
+            }
+            catch (OperationCanceledException)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(ReportJob)} stopped.");
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(LogMessageTitle, $"Generating scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" lead to exception.", exception);
+            }
+            finally
+            {
+                userConfig?.Dispose();
+                userConfig = null; // Clear reference to prevent memory leak through exception stack traces
+                apiConnectionUserContext?.Dispose();
+                apiConnectionUserContext = null; // Clear reference to prevent memory leak through exception stack traces
+            }
+        }
+
+        private async Task<(ApiConnection?, UserConfig?)> InitUserEnvironment(ReportSchedule reportSchedule)
+        {
+            List<Ldap> connectedLdaps = await apiConnectionScheduler.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
+            AuthManager authManager = new(jwtWriter, connectedLdaps, apiConnectionScheduler, tokenLifetimeProvider);
+            string jwt = await authManager.AuthorizeUserAsync(reportSchedule.ScheduleOwningUser, validatePassword: false);
+            ApiConnection apiConnectionUserContext = new GraphQlApiConnection(apiServerUri, jwt);
+            GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
+            UserConfig userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnectionUserContext, reportSchedule.ScheduleOwningUser.DbId);
+
+            ReportType reportType = (ReportType)reportSchedule.Template.ReportParams.ReportType;
+            if (reportType.IsModellingReport() || reportType.IsWorkflowReport())
+            {
+                userConfig.User.Roles = reportSchedule.ScheduleOwningUser.Roles;
+                userConfig.User.Groups = reportSchedule.ScheduleOwningUser.Groups;
+                await UiUserHandler.GetOwnershipsFromOwnerLdap(apiConnectionScheduler, userConfig.User);
+                Log.WriteDebug(LogMessageTitle, $"Scheduled report context: reportType={reportType}, reqOwnerBased={userConfig.ReqOwnerBased}, userId={userConfig.User.DbId}, roles=[{string.Join(", ", userConfig.User.Roles)}], groupCount={userConfig.User.Groups.Count}, ownershipCount={userConfig.User.Ownerships.Count}, ownerIds=[{string.Join(", ", userConfig.User.Ownerships)}]");
+            }
+
+            if (reportType.IsModellingReport())
+            {
+                bool canAccessAllOwners = reportSchedule.ScheduleOwningUser.Roles.Contains(Roles.Admin)
+                    || reportSchedule.ScheduleOwningUser.Roles.Contains(Roles.Auditor);
+                if (!canAccessAllOwners
+                    && !userConfig.User.Ownerships.Contains(reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Id)
+                    && !userConfig.User.Ownerships.Contains(0))
+                {
+                    Log.WriteInfo(LogMessageTitle, "Report not generated as owner is not valid anymore.");
+                    return (null, null);
+                }
+            }
+
+            return (apiConnectionUserContext, userConfig);
+        }
+
+        private static async Task AdaptDeviceFilter(ReportParams reportParams, ApiConnection apiConnectionUser)
+        {
+            try
+            {
+                if (!reportParams.DeviceFilter.IsAnyDeviceFilterSet())
+                {
+                    // For scheduling no device selection means "all".
+                    reportParams.DeviceFilter.Managements = await apiConnectionUser.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
+                    reportParams.DeviceFilter.ApplyFullDeviceSelection(true);
+                }
+
+                if (reportParams.ReportType == (int)ReportType.UnusedRules)
+                {
+                    reportParams.DeviceFilter = (await ReportDevicesBase.GetUsageDataUnsupportedDevices(apiConnectionUser, reportParams.DeviceFilter)).reducedDeviceFilter;
+                }
+            }
+            catch (Exception)
+            {
+                Log.WriteError(LogMessageTitle, "Could not adapt device filter.");
+                throw;
+            }
+        }
+
+        private static async Task WriteReportFile(ReportBase report, List<FileFormat> fileFormats, ReportFile reportFile)
+        {
+            reportFile.Json = report.ExportToJson();
+            foreach (FileFormat format in fileFormats)
+            {
+                switch (format.Name)
+                {
+                    case GlobalConst.kCsv:
+                        if (report.ReportType.SupportsCsvExport(report.ReportData.WorkflowFilter.DetailedView))
+                        {
+                            reportFile.Csv = report.ExportToCsv();
+                        }
+                        else
+                        {
+                            Log.WriteInfo(LogMessageTitle, $"Skipping CSV export for report schedule output because report type {report.ReportType} does not support CSV in the current configuration.");
+                        }
+                        break;
+
+                    case GlobalConst.kHtml:
+                        reportFile.Html = report.ExportToHtml();
+                        break;
+
+                    case GlobalConst.kPdf:
+                        string html = report.ExportToHtml();
+                        reportFile.Pdf = await report.ToPdf(html);
+                        break;
+
+                    case GlobalConst.kJson:
+                        break;
+
+                    default:
+                        throw new NotSupportedException("Output format is not supported.");
+                }
+            }
+
+            reportFile.GenerationDateEnd = DateTime.Now;
+        }
+
+        private static async Task SaveReportToArchive(ReportFile reportFile, string desc, ApiConnection apiConnectionUser)
+        {
+            try
+            {
+                var queryVariables = new
+                {
+                    report_name = reportFile.Name,
+                    report_start_time = reportFile.GenerationDateStart,
+                    report_end_time = reportFile.GenerationDateEnd,
+                    report_owner_id = reportFile.OwningUserId,
+                    report_template_id = reportFile.TemplateId,
+                    report_pdf = reportFile.Pdf,
+                    report_csv = reportFile.Csv,
+                    report_html = reportFile.Html,
+                    report_json = reportFile.Json,
+                    report_type = reportFile.Type,
+                    description = desc,
+                    read_only = false,
+                };
+
+                await apiConnectionUser.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
+            }
+            catch (Exception)
+            {
+                Log.WriteError(LogMessageTitle, $"Could not save report \"{reportFile.Name}\".");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Sends report emails via the notification service for all persisted report notifications on the schedule.
+        /// </summary>
+        public async Task TrySendReportViaEmail(ReportSchedule reportSchedule, ReportBase report, UserConfig? userConfig = null)
+        {
+            if (userConfig?.GlobalConfig is GlobalConfig globalConfig)
+            {
+                NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.Report, globalConfig, apiConnectionScheduler, []);
+                await notificationService.SendBundledNotifications(reportSchedule.Notifications, null, null, report);
+
+                int updatedNotifications = await notificationService.UpdateNotificationsLastSent();
+                if (updatedNotifications > 0)
+                {
+                    Log.WriteInfo(LogMessageTitle, "Report email notifications sent successfully.");
+                }
+            }
+        }
+
+
+        private static DateTime RoundDown(DateTime dateTime, TimeSpan roundInterval)
+        {
+            long delta = dateTime.Ticks % roundInterval.Ticks;
+            return new DateTime(dateTime.Ticks - delta, dateTime.Kind);
+        }
+    }
+}

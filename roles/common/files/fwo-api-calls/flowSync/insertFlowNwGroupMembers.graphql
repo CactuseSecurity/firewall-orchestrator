@@ -1,0 +1,5 @@
+mutation insertFlowNwGroupMembers($members: [flow_nwgroup_member_insert_input!]!) {
+  insert_flow_nwgroup_member(objects: $members) {
+    affected_rows
+  }
+}

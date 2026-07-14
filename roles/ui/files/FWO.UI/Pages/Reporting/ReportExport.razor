@@ -1,21 +1,20 @@
 ﻿@using System.Text
 @using FWO.Report
-@using FWO.Config.Api
 @using System.Reflection
 @using System.Linq
 @using FWO.Report.Filter
 @using System.IO
-@using FWO.Services
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<button type="button" class="btn btn-sm btn-dark" @onclick='() => { if (ReportToExport != null) { ShowExportDialog = true; reportExportFile = new ReportFile { Name = "Report", OwnerId = userConfig.User.DbId }; } else {
-                                                      DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true); } }'>
-    @userConfig.GetText("export_report")
+<button type="button" class="btn btn-sm btn-dark" @onclick='() =>
+        { if (ReportToExport != null) { ShowExportDialog = true; reportExportFile = new ReportFile { Name = "Report", OwningUserId = userConfig.User.DbId }; }
+        else { DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true); } }'>
+    @(DisplayService.DisplayButton(userConfig, "export_report", Icons.Export))
 </button>
 
-<PopUp Title="@(userConfig.GetText("export_report"))" Show="@ShowExportDialog" Size=PopupSize.Small OnClose="() => ShowExportDialog = false">
+<PopUp Title="@(userConfig.GetText("export_report"))" Show="@ShowExportDialog" Size=PopupSize.Medium OnClose="() => ShowExportDialog = false">
     <Body>
         <div>
             <div class="input-group input-group-sm mb-2">
@@ -29,7 +28,15 @@
                     <li class="list-group-item">
                         <div class="mb-1">@(userConfig.GetText("export_as"))</div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="reportExportPdf" @bind="ExportPdf">
+                            @if (PdfAvailable())
+                            {
+                                <input class="form-check-input" type="checkbox" id="reportExportPdf" @bind="ExportPdf">
+                            }
+                            else
+                            {
+                                ExportPdf = false;
+                                <input disabled class="form-check-input" type="checkbox" id="reportExportPdf">
+                            }
                             <label class="form-check-label" for="reportExportPdf">
                                 PDF
                             </label>
@@ -37,7 +44,7 @@
                             {
                                 <div>
                                     @(userConfig.GetText("page_format")):
-                                    <Dropdown @bind-SelectedElement="SelectedPaperFormat" Elements="Enum.GetValues<PaperFormat>()"></Dropdown>
+                                    <Dropdown ElementType="PaperFormat" @bind-SelectedElement="SelectedPaperFormat" Elements="Enum.GetValues<PaperFormat>()"></Dropdown>
                                     @if (SelectedPaperFormat == PaperFormat.Custom)
                                     {
                                         <div class="input-group input-group-sm mb-2 mt-2">
@@ -57,7 +64,15 @@
                             }
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="reportExportHtml" @bind="ExportHtml">
+                            @if (HtmlAvailable())
+                            {
+                                <input class="form-check-input" type="checkbox" id="reportExportHtml" @bind="ExportHtml">
+                            }
+                            else
+                            {
+                                ExportHtml = false;
+                                <input disabled class="form-check-input" type="checkbox" id="reportExportHtml">
+                            }
                             <label class="form-check-label" for="reportExportHtml">
                                 HTML
                             </label>
@@ -98,20 +113,21 @@
     <Footer>
         @if (!Exporting)
         {
-            <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { Exporting = true; await Export(); ShowExportDialog = false; ShowExportDownloadDialog = true; Exporting = false; }">@(userConfig.GetText("export"))</button>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowExportDialog = false">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="async () => 
+                    { Exporting = true; await Export(); ShowExportDialog = false; ShowExportDownloadDialog = true; Exporting = false; }">
+                @(DisplayService.DisplayButton(userConfig, "export", Icons.Export))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowExportDialog = false">
+                @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         }
         else
         {
-            <div class="spinner-border" role="status">
-                <span class="visually-hidden">Exporting...</span>
-            </div>
+            <Exporting/>
         }
     </Footer>
 </PopUp>
 
 <ReportDownloadPopUp Title="@(userConfig.GetText("export_report_download"))" ReportFile="reportExportFile"
-                     Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportDownloadDialog = false" />
+    Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportDownloadDialog = false" />
 
 @code
 {
@@ -141,7 +157,33 @@
 
     private bool csvAvailable()
     {
-        return ReportToExport?.ReportType.IsResolvedReport() ?? false;
+        if (ReportToExport is ReportBase report
+            && report.ReportType.SupportsCsvExport(report.ReportData.WorkflowFilter.DetailedView))
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Determines whether HTML export is available for the current report.
+    /// </summary>
+    private bool HtmlAvailable()
+    {
+        return ReportToExport is ReportBase report
+            && report.ReportType.SupportsHtmlExport();
+    }
+
+    /// <summary>
+    /// Determines whether PDF export is available for the current report.
+    /// </summary>
+    private bool PdfAvailable()
+    {
+        return ReportToExport is ReportBase report
+            && report.ReportType.SupportsPdfExport();
     }
 
     private async Task Export()
@@ -161,30 +203,13 @@
                         await ReportToExport.GetObjectsInReport(int.MaxValue, apiConnection, _ => Task.CompletedTask);
                     }
 
-                    if (ExportHtml)
-                    {
-                        reportExportFile.Html = ReportToExport.ExportToHtml();
-                    }
+                    ConvertToHtml();
 
-                    if (ExportPdf)
-                    {
-                        ReportToExport.CustomHeight = PaperSizeHeight;
-                        ReportToExport.CustomWidth = PaperSizeWidth;
+                    await ConvertToPdf();
 
-                        string html = ReportToExport.ExportToHtml();
-                        reportExportFile.Pdf = await ReportToExport.ToPdf(html, SelectedPaperFormat);
-                    }
-
-                    if (ExportCsv)
-                    {
-                        reportExportFile.Csv = ReportToExport.ExportToCsv();
-                    }
-
-                    // if archiving, json report has to be generated
-                    if (ExportJson || ExportArchive)
-                    {
-                        reportExportFile.Json = ReportToExport.ExportToJson();
-                    }
+                    ConvertToCsv();
+                    
+                    ExportToJson();
 
                     if (ExportArchive)
                     {
@@ -193,13 +218,14 @@
                             report_name = reportExportFile.Name,
                             report_start_time = DateTime.Now, // TODO: Change to correct dates
                             report_end_time = DateTime.Now,
-                            report_owner_id = reportExportFile.OwnerId,
+                            report_owner_id = reportExportFile.OwningUserId,
                             report_csv = reportExportFile.Csv,
                             report_pdf = reportExportFile.Pdf,
                             report_html = reportExportFile.Html,
                             report_json = reportExportFile.Json,
                             report_type = (int?)ReportToExport.ReportType,
-                            description = ReportToExport.SetDescription()
+                            description = ReportToExport.SetDescription(),
+                            read_only = false
                         };
 
                         await apiConnection.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
@@ -214,6 +240,42 @@
         else
         {
             DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true);
+        }
+    }
+
+    private async Task ConvertToPdf()
+    {
+        if (ReportToExport != null && ExportPdf && PdfAvailable())
+        {
+            ReportToExport.CustomHeight = PaperSizeHeight;
+            ReportToExport.CustomWidth = PaperSizeWidth;
+
+            string html = ReportToExport.ExportToHtml();
+            reportExportFile.Pdf = await ReportToExport.ToPdf(html, SelectedPaperFormat);
+        }
+    }
+
+    private void ConvertToHtml()
+    {
+        if (ReportToExport != null && ExportHtml && HtmlAvailable())
+        {
+            reportExportFile.Html = ReportToExport.ExportToHtml();
+        }
+    }
+
+    private void ConvertToCsv()
+    {
+        if (ReportToExport != null &&ExportCsv && csvAvailable())
+        {
+            reportExportFile.Csv = ReportToExport.ExportToCsv();
+        }
+    }
+
+    private void ExportToJson()
+    {
+        if (ReportToExport != null && (ExportJson || ExportArchive))
+        {
+            reportExportFile.Json = ReportToExport.ExportToJson();
         }
     }
 }

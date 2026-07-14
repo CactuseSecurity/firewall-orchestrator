@@ -1,0 +1,74 @@
+@inject UserConfig userConfig
+
+<PopUp Title="@Title" Show="@Display" Size=PopupSize.Auto OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <Table PageSize="PageSize" TableClass=" table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingConnection" Items="UsingConnections">
+                <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
+                <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("owner"))" Field="@(x => x.App.Name)">
+                    <Template>
+                        @if (string.IsNullOrWhiteSpace(context.App.ExtAppId))
+                        {
+                            @($"{@context.App.Name}")
+                        }
+                        else
+                        {
+                            @($"{@context.App.Name} ({context.App.ExtAppId})")
+                        }
+                    </Template>
+                </Column>
+                <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" />
+                <Pager ShowPageNumber="true" />
+            </Table>
+        }
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("ok"))</button>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public string InterfaceName { get; set; } = "";
+
+    [Parameter]
+    public List<ModellingConnection> UsingConnections { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public required FwoOwner App { private get; init; }
+
+    private const int PageSize = 10;
+
+    private string Title
+    {
+        get
+        {
+            if (App is null || string.IsNullOrWhiteSpace(App.ExtAppId) || string.IsNullOrWhiteSpace(App.Name))
+            {
+                return $"{userConfig.GetText("using_connections")} {InterfaceName}";
+            }
+            else
+            {
+                return $"{userConfig.GetText("using_connections")} {InterfaceName} - {App.Name} ({App.ExtAppId})";
+            }
+        }
+    }
+
+    private void Close()
+    {
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

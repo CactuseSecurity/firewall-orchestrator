@@ -1,0 +1,15 @@
+mutation setAffectedRuleOwnersRemoved(
+  $objects: [rule_owner_bool_exp!]!,
+  $removed: bigint!
+) {
+  update_rule_owner(
+    where: {
+      _or: $objects
+    }
+    _set: {
+      removed: $removed
+    }
+  ) {
+    affected_rows
+  }
+}

@@ -1,16 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="IPAddressRange" Version="6.1.0" />
+    <PackageReference Include="IPAddressRange" Version="6.3.0" />
   </ItemGroup>
   <ItemGroup>
-      <ProjectReference Include="..\..\..\lib\files\FWO.Api.Client\FWO.Api.Client.csproj" />
+      <ProjectReference Include="..\..\..\lib\files\FWO.Data\FWO.Data.csproj" />
       <ProjectReference Include="..\..\..\lib\files\FWO.Config.Api\FWO.Config.Api.csproj" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,5 @@
+mutation deleteNotification($id: Int!) {
+  delete_notification(where: {id: {_eq: $id}}) {
+    affected_rows
+  }
+}

@@ -1,4 +1,4 @@
-﻿using FWO.Logging;
+using FWO.Logging;
 using FWO.Config.File;
 using FWO.Basics;
 using FWO.Api.Client;
@@ -20,17 +20,16 @@ namespace FWO.Config.Api
         public Dictionary<string, Dictionary<string, string>> LangDict { get; set; }
         public Dictionary<string, Dictionary<string, string>> OverDict { get; set; }
 
-
         /// <summary>
         /// create a config collection (used centrally once in a UI server for all users)
         /// </summary>
         public static async Task<GlobalConfig> ConstructAsync(string jwt, bool loadLanguageData = true, bool withSubscription = false)
         {
             ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwt);
-            return await ConstructAsync(apiConnection, loadLanguageData, withSubscription);
+            return await ConstructAsync(apiConnection, loadLanguageData, withSubscription, owningApiConnection: true);
         }
-        
-        public static async Task<GlobalConfig> ConstructAsync(ApiConnection apiConnection, bool loadLanguageData = true, bool withSubscription = false)
+
+        public static async Task<GlobalConfig> ConstructAsync(ApiConnection apiConnection, bool loadLanguageData = true, bool withSubscription = false, bool owningApiConnection = false)
         {
             string productVersion = ConfigFile.ProductVersion;
 
@@ -66,12 +65,23 @@ namespace FWO.Config.Api
                 }
             }
 
-            return new GlobalConfig(apiConnection, productVersion, uiLanguages, tmpLangDicts, tmpLangOverDicts, withSubscription);
+            return new GlobalConfig(apiConnection, productVersion, uiLanguages, tmpLangDicts, tmpLangOverDicts, withSubscription, owningApiConnection);
         }
 
-        private GlobalConfig(ApiConnection apiConnection, string productVersion, Language[] uiLanguages,
-                Dictionary<string, Dictionary<string, string>> langDict, Dictionary<string, Dictionary<string, string>> overDict, bool withSubscription = false)
-            : base(apiConnection, 0, withSubscription)
+        /// <summary>
+        /// constructor only used in unit tests
+        /// </summary>
+        public GlobalConfig() : base()
+        {
+            ProductVersion = "1.0";
+            UiLanguages = [];
+            LangDict = [];
+            OverDict = [];
+        }
+
+        private GlobalConfig(ApiConnection apiConnection, string productVersion, Language[] uiLanguages, Dictionary<string, Dictionary<string, string>> langDict,
+            Dictionary<string, Dictionary<string, string>> overDict, bool withSubscription = false, bool owningApiConnection = false)
+            : base(apiConnection, 0, withSubscription, owningApiConnection)
         {
             ProductVersion = productVersion;
             UiLanguages = uiLanguages;
@@ -79,15 +89,49 @@ namespace FWO.Config.Api
             OverDict = overDict;
         }
 
-        public override string GetText(string key) 
+        public override string GetText(string key)
         {
-            if(LangDict.TryGetValue(DefaultLanguage, out Dictionary<string, string>? langDict) && langDict.TryGetValue(key, out string? value))
+            ThrowIfDisposed();
+            return GetTextInLanguage(key, DefaultLanguage);
+        }
+
+        public string GetNotificationLanguage()
+        {
+            ThrowIfDisposed();
+            return string.IsNullOrWhiteSpace(NotificationLanguage) ? DefaultLanguage : NotificationLanguage;
+        }
+
+        public string GetNotificationText(string key)
+        {
+            ThrowIfDisposed();
+            return GetTextInLanguage(key, GetNotificationLanguage());
+        }
+
+        public string GetTextInLanguage(string key, string? languageName)
+        {
+            ThrowIfDisposed();
+            string resolvedLanguage = string.IsNullOrWhiteSpace(languageName) ? DefaultLanguage : languageName;
+            if (LangDict.TryGetValue(resolvedLanguage, out Dictionary<string, string>? langDict) && langDict.TryGetValue(key, out string? value))
             {
                 return System.Web.HttpUtility.HtmlDecode(value);
             }
+
+            if (resolvedLanguage != DefaultLanguage && LangDict.TryGetValue(DefaultLanguage, out Dictionary<string, string>? defaultLangDict)
+                && defaultLangDict.TryGetValue(key, out string? defaultValue))
+            {
+                return System.Web.HttpUtility.HtmlDecode(defaultValue);
+            }
+
+            if (resolvedLanguage != GlobalConst.kEnglish && DefaultLanguage != GlobalConst.kEnglish
+                && LangDict.TryGetValue(GlobalConst.kEnglish, out Dictionary<string, string>? englishLangDict)
+                && englishLangDict.TryGetValue(key, out string? englishValue))
+            {
+                return System.Web.HttpUtility.HtmlDecode(englishValue);
+            }
+
             return GlobalConst.kUndefinedText;
         }
-        
+
         private static async Task<Dictionary<string, string>> LoadLangDict(Language lang, ApiConnection apiConnection, bool over = false)
         {
             var languageVariable = new { language = lang.Name };

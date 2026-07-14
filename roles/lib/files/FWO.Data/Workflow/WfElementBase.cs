@@ -1,0 +1,117 @@
+using FWO.Basics;
+using Newtonsoft.Json;
+using System.Text.Json.Serialization;
+
+namespace FWO.Data.Workflow
+{
+    public enum ElemFieldType
+    {
+        source,
+        destination,
+        service,
+        rule,
+        modelled_source,
+        modelled_destination
+    }
+
+    public class WfElementBase
+    {
+        [JsonProperty("ip"), JsonPropertyName("ip")]
+        public string? IpString { get; set; }
+
+        [JsonProperty("ip_end"), JsonPropertyName("ip_end")]
+        public string? IpEnd { get; set; }
+
+        [JsonProperty("port"), JsonPropertyName("port")]
+        public int? Port { get; set; }
+
+        [JsonProperty("port_end"), JsonPropertyName("port_end")]
+        public int? PortEnd { get; set; }
+
+        [JsonProperty("ip_proto_id"), JsonPropertyName("ip_proto_id")]
+        public int? ProtoId { get; set; }
+
+        [JsonProperty("network_object_id"), JsonPropertyName("network_object_id")]
+        public long? NetworkId { get; set; }
+
+        [JsonProperty("service_id"), JsonPropertyName("service_id")]
+        public long? ServiceId { get; set; }
+
+        [JsonProperty("flow_nwobj_id"), JsonPropertyName("flow_nwobj_id")]
+        public long? FlowNetworkObjectId { get; set; }
+
+        [JsonProperty("flow_nwgrp_id"), JsonPropertyName("flow_nwgrp_id")]
+        public long? FlowNetworkGroupId { get; set; }
+
+        [JsonProperty("flow_svcobj_id"), JsonPropertyName("flow_svcobj_id")]
+        public long? FlowServiceObjectId { get; set; }
+
+        [JsonProperty("flow_svcgrp_id"), JsonPropertyName("flow_svcgrp_id")]
+        public long? FlowServiceGroupId { get; set; }
+
+        [JsonProperty("field"), JsonPropertyName("field")]
+        public string Field { get; set; } = ElemFieldType.source.ToString();
+
+        [JsonProperty("user_id"), JsonPropertyName("user_id")]
+        public long? UserId { get; set; }
+
+        [JsonProperty("original_nat_id"), JsonPropertyName("original_nat_id")]
+        public long? OriginalNatId { get; set; }
+
+        [JsonProperty("rule_uid"), JsonPropertyName("rule_uid")]
+        public string? RuleUid { get; set; }
+
+        [JsonProperty("group_name"), JsonPropertyName("group_name")]
+        public string? GroupName { get; set; }
+
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string? Name { get; set; }
+
+
+        public WfElementBase()
+        { }
+
+        public WfElementBase(WfElementBase element)
+        {
+            IpString = element.IpString;
+            IpEnd = element.IpEnd;
+            Port = element.Port;
+            PortEnd = element.PortEnd;
+            ProtoId = element.ProtoId;
+            NetworkId = element.NetworkId;
+            ServiceId = element.ServiceId;
+            FlowNetworkObjectId = element.FlowNetworkObjectId;
+            FlowNetworkGroupId = element.FlowNetworkGroupId;
+            FlowServiceObjectId = element.FlowServiceObjectId;
+            FlowServiceGroupId = element.FlowServiceGroupId;
+            Field = element.Field;
+            UserId = element.UserId;
+            OriginalNatId = element.OriginalNatId;
+            RuleUid = element.RuleUid;
+            GroupName = element.GroupName;
+            Name = element.Name;
+        }
+
+        public static NetworkObject ToNetworkObject(WfElementBase elem)
+        {
+            return new NetworkObject()
+            {
+                Name = elem.Name ?? "",
+                IP = elem.IpString ?? "",
+                IpEnd = elem.IpEnd ?? ""
+            };
+        }
+
+        public virtual bool Sanitize()
+        {
+            bool shortened = false;
+            IpString = IpString.SanitizeOpt(ref shortened);
+            IpEnd = IpEnd.SanitizeOpt(ref shortened);
+            Field = Field.SanitizeMand(ref shortened);
+            RuleUid = RuleUid.SanitizeOpt(ref shortened);
+            GroupName = GroupName.SanitizeOpt(ref shortened);
+            Name = Name.SanitizeOpt(ref shortened);
+            return shortened;
+        }
+    }
+}

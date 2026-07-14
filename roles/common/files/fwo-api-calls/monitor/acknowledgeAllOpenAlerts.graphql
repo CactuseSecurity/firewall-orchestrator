@@ -1,0 +1,14 @@
+mutation acknowledgeAllOpenAlerts(
+  $ackUser: Int!
+  $ackTime: timestamp!
+) {
+  update_alert(
+    where: { ack_by: {_is_null: true} }
+    _set: {
+      ack_by: $ackUser
+      ack_timestamp: $ackTime
+    }
+  ) {
+    affected_rows
+  }
+}

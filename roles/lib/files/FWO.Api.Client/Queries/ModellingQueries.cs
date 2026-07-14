@@ -1,4 +1,4 @@
-﻿using FWO.Logging;
+using FWO.Logging;
 
 namespace FWO.Api.Client.Queries
 {
@@ -14,12 +14,15 @@ namespace FWO.Api.Client.Queries
 
         public static readonly string getAreas;
         public static readonly string newArea;
-        public static readonly string setAreaDeletedState;
+        public static readonly string setNwGroupDeletedState;
         public static readonly string newAreaIpData;
         public static readonly string getConnectionIdsForNwGroup;
 
-        public static readonly string getAppServers;
-        public static readonly string getImportedAppServers;
+        public static readonly string getAppServersByIp;
+        public static readonly string getAppServersByName;
+        public static readonly string getAppServersForOwner;
+        public static readonly string getAppServersBySource;
+        public static readonly string getAllAppServers;
         public static readonly string newAppServer;
         public static readonly string updateAppServer;
         public static readonly string setAppServerDeletedState;
@@ -30,34 +33,51 @@ namespace FWO.Api.Client.Queries
         public static readonly string getConnectionIdsForAppServer;
 
         public static readonly string getPublishedInterfaces;
+        public static readonly string getRequestedInterfaces;
         public static readonly string getConnectionById;
         public static readonly string getConnections;
         public static readonly string getConnectionsResolved;
         public static readonly string getConnectionsByTicketId;
+        public static readonly string getWorkflowConnectionById;
+        public static readonly string getWorkflowConnectionsByTicketId;
+        public static readonly string getDeletedConnections;
         public static readonly string getInterfaceUsers;
         public static readonly string getCommonServices;
         public static readonly string newConnection;
         public static readonly string updateConnection;
+        public static readonly string resetConnectionRequestState;
         public static readonly string updateProposedConnectionOwner;
         public static readonly string updateConnectionPublish;
         public static readonly string updateConnectionProperties;
         public static readonly string replaceUsedInterface;
+        public static readonly string updateConnectionFwRequested;
+        public static readonly string updateConnectionRemove;
+        public static readonly string updateConnectionDecommission;
         public static readonly string deleteConnection;
         public static readonly string addAppServerToConnection;
         public static readonly string removeAppServerFromConnection;
+        public static readonly string removeAllAppServersFromConnection;
+        public static readonly string updateNwObjectInConnection;
         public static readonly string addNwGroupToConnection;
         public static readonly string removeNwGroupFromConnection;
+        public static readonly string removeAllNwGroupsFromConnection;
         public static readonly string addServiceToConnection;
         public static readonly string removeServiceFromConnection;
+        public static readonly string removeAllServicesFromConnection;
         public static readonly string addServiceGroupToConnection;
         public static readonly string removeServiceGroupFromConnection;
+        public static readonly string removeAllServiceGroupsFromConnection;
         public static readonly string getConnectionIdsForService;
         public static readonly string getConnectionIdsForServiceGroup;
+        public static readonly string getConnectionsForNwGroup;
 
         public static readonly string getSelectedConnections;
         public static readonly string addSelectedConnection;
         public static readonly string removeSelectedConnectionFromApp;
         public static readonly string removeSelectedConnection;
+        public static readonly string addPermittedOwner;
+        public static readonly string deletePermittedOwner;
+        public static readonly string getPermittedOwnersForConnection;
 
         public static readonly string getNwGroupObjects;
         public static readonly string getSelectedNwGroupObjects;
@@ -66,14 +86,18 @@ namespace FWO.Api.Client.Queries
         public static readonly string removeSelectedNwGroupObjectFromAllApps;
 
         public static readonly string getAppRoles;
+        public static readonly string getNwGroupsForApp;
         public static readonly string getNewestAppRoles;
         public static readonly string getDummyAppRole;
+        public static readonly string getAppRoleById;
         public static readonly string newAppRole;
         public static readonly string updateAppRole;
+        public static readonly string updateNwGroupComment;
         public static readonly string deleteNwGroup;
         // public static readonly string getAppServerForAppRole;
         public static readonly string addNwObjectToNwGroup;
         public static readonly string removeNwObjectFromNwGroup;
+        public static readonly string updateNwObjectInNwGroup;
 
         public static readonly string getServicesForApp;
         public static readonly string getGlobalServices;
@@ -86,6 +110,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getGlobalServiceGroups;
         public static readonly string newServiceGroup;
         public static readonly string updateServiceGroup;
+        public static readonly string updateServiceGroupComment;
         public static readonly string deleteServiceGroup;
         public static readonly string addServiceToServiceGroup;
         public static readonly string removeServiceFromServiceGroup;
@@ -98,110 +123,144 @@ namespace FWO.Api.Client.Queries
         public static readonly string newAppZone;
         public static readonly string getAppZonesByAppId;
 
+        public static readonly string getOwnersForRuleOwnerNameField;
+        public static readonly string getOwnersForRuleOwnerNameFieldFilteredByOwner;
+
         static ModellingQueries()
         {
             try
             {
-                appServerDetailsFragment = File.ReadAllText(QueryPath + "modelling/fragments/appServerDetails.graphql");
-                appRoleDetailsFragment = File.ReadAllText(QueryPath + "modelling/fragments/appRoleDetails.graphql");
-                areaDetailsFragment = File.ReadAllText(QueryPath + "modelling/fragments/areaDetails.graphql");
-                serviceDetailsFragment = File.ReadAllText(QueryPath + "modelling/fragments/serviceDetails.graphql");
-                serviceGroupDetailsFragment = File.ReadAllText(QueryPath + "modelling/fragments/serviceGroupDetails.graphql");
+                appServerDetailsFragment = GetQueryText("modelling/fragments/appServerDetails.graphql");
+                appRoleDetailsFragment = GetQueryText("modelling/fragments/appRoleDetails.graphql");
+                areaDetailsFragment = GetQueryText("modelling/fragments/areaDetails.graphql");
+                serviceDetailsFragment = GetQueryText("modelling/fragments/serviceDetails.graphql");
+                serviceGroupDetailsFragment = GetQueryText("modelling/fragments/serviceGroupDetails.graphql");
                 connectionDetailsFragment = appServerDetailsFragment + appRoleDetailsFragment + serviceDetailsFragment + serviceGroupDetailsFragment +
-                    File.ReadAllText(QueryPath + "modelling/fragments/connectionDetails.graphql");
+                    GetQueryText("modelling/fragments/connectionDetails.graphql");
                 connectionResolvedDetailsFragment = appServerDetailsFragment + appRoleDetailsFragment + areaDetailsFragment + serviceDetailsFragment + serviceGroupDetailsFragment +
-                    File.ReadAllText(QueryPath + "modelling/fragments/connectionResolvedDetails.graphql");
+                    GetQueryText("modelling/fragments/connectionResolvedDetails.graphql");
 
-                getAreas = areaDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAreas.graphql");
-                newArea = File.ReadAllText(QueryPath + "modelling/newArea.graphql");
-                setAreaDeletedState = File.ReadAllText(QueryPath + "modelling/setAreaDeletedState.graphql");
-                newAreaIpData = File.ReadAllText(QueryPath + "modelling/newAreaIpData.graphql");
-                getConnectionIdsForNwGroup = File.ReadAllText(QueryPath + "modelling/getConnectionIdsForNwGroup.graphql");
+                getAreas = areaDetailsFragment + GetQueryText("modelling/getAreas.graphql");
+                newArea = GetQueryText("modelling/newArea.graphql");
+                setNwGroupDeletedState = GetQueryText("modelling/setNwGroupDeletedState.graphql");
+                newAreaIpData = GetQueryText("modelling/newAreaIpData.graphql");
+                getConnectionIdsForNwGroup = GetQueryText("modelling/getConnectionIdsForNwGroup.graphql");
+                getConnectionsForNwGroup = connectionDetailsFragment + GetQueryText("modelling/getConnectionsForNwGroup.graphql");
 
-                getAppServers = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServers.graphql");
-                getImportedAppServers = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getImportedAppServers.graphql");
-                newAppServer = File.ReadAllText(QueryPath + "modelling/newAppServer.graphql");
-                updateAppServer = File.ReadAllText(QueryPath + "modelling/updateAppServer.graphql");
-                setAppServerDeletedState = File.ReadAllText(QueryPath + "modelling/setAppServerDeletedState.graphql");
-                setAppServerName = File.ReadAllText(QueryPath + "modelling/setAppServerName.graphql");
-                setAppServerType = File.ReadAllText(QueryPath + "modelling/setAppServerType.graphql");
-                deleteAppServer = File.ReadAllText(QueryPath + "modelling/deleteAppServer.graphql");
-                getAppRolesForAppServer = File.ReadAllText(QueryPath + "modelling/getAppRolesForAppServer.graphql");
-                getConnectionIdsForAppServer = File.ReadAllText(QueryPath + "modelling/getConnectionIdsForAppServer.graphql");
+                getAppServersByIp = appServerDetailsFragment + GetQueryText("modelling/getAppServersByIp.graphql");
+                getAppServersByName = appServerDetailsFragment + GetQueryText("modelling/getAppServersByName.graphql");
+                getAppServersForOwner = appServerDetailsFragment + GetQueryText("modelling/getAppServersForOwner.graphql");
+                getAppServersBySource = appServerDetailsFragment + GetQueryText("modelling/getAppServersBySource.graphql");
+                getAllAppServers = appServerDetailsFragment + GetQueryText("modelling/getAllAppServers.graphql");
+                newAppServer = GetQueryText("modelling/newAppServer.graphql");
+                updateAppServer = GetQueryText("modelling/updateAppServer.graphql");
+                setAppServerDeletedState = GetQueryText("modelling/setAppServerDeletedState.graphql");
+                setAppServerName = GetQueryText("modelling/setAppServerName.graphql");
+                setAppServerType = GetQueryText("modelling/setAppServerType.graphql");
+                deleteAppServer = GetQueryText("modelling/deleteAppServer.graphql");
+                getAppRolesForAppServer = GetQueryText("modelling/getAppRolesForAppServer.graphql");
+                getConnectionIdsForAppServer = GetQueryText("modelling/getConnectionIdsForAppServer.graphql");
 
-                getPublishedInterfaces = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getPublishedInterfaces.graphql");
-                getConnectionById = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnectionById.graphql");                
-                getConnections = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnections.graphql");
-                getConnectionsResolved = connectionResolvedDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnectionsResolved.graphql");
-                getConnectionsByTicketId = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnectionsByTicketId.graphql");
-                getInterfaceUsers = File.ReadAllText(QueryPath + "modelling/getInterfaceUsers.graphql");
-                getCommonServices = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getCommonServices.graphql");
-                newConnection = File.ReadAllText(QueryPath + "modelling/newConnection.graphql");
-                updateConnection = File.ReadAllText(QueryPath + "modelling/updateConnection.graphql");
-                updateProposedConnectionOwner = File.ReadAllText(QueryPath + "modelling/updateProposedConnectionOwner.graphql");
-                updateConnectionPublish = File.ReadAllText(QueryPath + "modelling/updateConnectionPublish.graphql");
-                updateConnectionProperties = File.ReadAllText(QueryPath + "modelling/updateConnectionProperties.graphql");
-                replaceUsedInterface = File.ReadAllText(QueryPath + "modelling/replaceUsedInterface.graphql");
-                deleteConnection = File.ReadAllText(QueryPath + "modelling/deleteConnection.graphql");
-                addAppServerToConnection = File.ReadAllText(QueryPath + "modelling/addAppServerToConnection.graphql");
-                removeAppServerFromConnection = File.ReadAllText(QueryPath + "modelling/removeAppServerFromConnection.graphql");
-                addNwGroupToConnection = File.ReadAllText(QueryPath + "modelling/addNwGroupToConnection.graphql");
-                removeNwGroupFromConnection = File.ReadAllText(QueryPath + "modelling/removeNwGroupFromConnection.graphql");
-                addServiceToConnection = File.ReadAllText(QueryPath + "modelling/addServiceToConnection.graphql");
-                removeServiceFromConnection = File.ReadAllText(QueryPath + "modelling/removeServiceFromConnection.graphql");
-                addServiceGroupToConnection = File.ReadAllText(QueryPath + "modelling/addServiceGroupToConnection.graphql");
-                removeServiceGroupFromConnection = File.ReadAllText(QueryPath + "modelling/removeServiceGroupFromConnection.graphql");
-                getConnectionIdsForService = File.ReadAllText(QueryPath + "modelling/getConnectionIdsForService.graphql");
-                getConnectionIdsForServiceGroup = File.ReadAllText(QueryPath + "modelling/getConnectionIdsForServiceGroup.graphql");
+                getPublishedInterfaces = connectionDetailsFragment + GetQueryText("modelling/getPublishedInterfaces.graphql");
+                getRequestedInterfaces = connectionDetailsFragment + GetQueryText("modelling/getRequestedInterfaces.graphql");
+                getConnectionById = connectionDetailsFragment + GetQueryText("modelling/getConnectionById.graphql");
+                getConnections = connectionDetailsFragment + GetQueryText("modelling/getConnections.graphql");
+                getConnectionsResolved = connectionResolvedDetailsFragment + GetQueryText("modelling/getConnectionsResolved.graphql");
+                getConnectionsByTicketId = connectionDetailsFragment + GetQueryText("modelling/getConnectionsByTicketId.graphql");
+                getWorkflowConnectionById = GetQueryText("modelling/getWorkflowConnectionById.graphql");
+                getWorkflowConnectionsByTicketId = GetQueryText("modelling/getWorkflowConnectionsByTicketId.graphql");
+                getDeletedConnections = connectionDetailsFragment + GetQueryText("modelling/getDeletedConnections.graphql");
+                getInterfaceUsers = GetQueryText("modelling/getInterfaceUsers.graphql");
+                getCommonServices = connectionDetailsFragment + GetQueryText("modelling/getCommonServices.graphql");
+                newConnection = GetQueryText("modelling/newConnection.graphql");
+                updateConnection = GetQueryText("modelling/updateConnection.graphql");
+                resetConnectionRequestState = GetQueryText("modelling/resetConnectionRequestState.graphql");
+                updateProposedConnectionOwner = GetQueryText("modelling/updateProposedConnectionOwner.graphql");
+                updateConnectionPublish = GetQueryText("modelling/updateConnectionPublish.graphql");
+                updateConnectionProperties = GetQueryText("modelling/updateConnectionProperties.graphql");
+                replaceUsedInterface = GetQueryText("modelling/replaceUsedInterface.graphql");
+                updateConnectionFwRequested = GetQueryText("modelling/updateConnectionFwRequested.graphql");
+                updateConnectionRemove = GetQueryText("modelling/updateConnectionRemove.graphql");
+                deleteConnection = GetQueryText("modelling/deleteConnection.graphql");
+                addAppServerToConnection = GetQueryText("modelling/addAppServerToConnection.graphql");
+                removeAppServerFromConnection = GetQueryText("modelling/removeAppServerFromConnection.graphql");
+                removeAllAppServersFromConnection = GetQueryText("modelling/removeAllAppServersFromConnection.graphql");
+                updateNwObjectInConnection = GetQueryText("modelling/updateNwObjectInConnection.graphql");
+                addNwGroupToConnection = GetQueryText("modelling/addNwGroupToConnection.graphql");
+                removeNwGroupFromConnection = GetQueryText("modelling/removeNwGroupFromConnection.graphql");
+                removeAllNwGroupsFromConnection = GetQueryText("modelling/removeAllNwGroupsFromConnection.graphql");
+                addServiceToConnection = GetQueryText("modelling/addServiceToConnection.graphql");
+                removeServiceFromConnection = GetQueryText("modelling/removeServiceFromConnection.graphql");
+                removeAllServicesFromConnection = GetQueryText("modelling/removeAllServicesFromConnection.graphql");
+                addServiceGroupToConnection = GetQueryText("modelling/addServiceGroupToConnection.graphql");
+                removeServiceGroupFromConnection = GetQueryText("modelling/removeServiceGroupFromConnection.graphql");
+                removeAllServiceGroupsFromConnection = GetQueryText("modelling/removeAllServiceGroupsFromConnection.graphql");
+                getConnectionIdsForService = GetQueryText("modelling/getConnectionIdsForService.graphql");
+                getConnectionIdsForServiceGroup = GetQueryText("modelling/getConnectionIdsForServiceGroup.graphql");
+                updateConnectionDecommission = GetQueryText("modelling/updateConnectionDecommission.graphql");
 
-                getSelectedConnections = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getSelectedConnections.graphql");
-                addSelectedConnection = File.ReadAllText(QueryPath + "modelling/addSelectedConnection.graphql");
-                removeSelectedConnectionFromApp = File.ReadAllText(QueryPath + "modelling/removeSelectedConnectionFromApp.graphql");
-                removeSelectedConnection = File.ReadAllText(QueryPath + "modelling/removeSelectedConnection.graphql");
+                getSelectedConnections = connectionDetailsFragment + GetQueryText("modelling/getSelectedConnections.graphql");
+                addSelectedConnection = GetQueryText("modelling/addSelectedConnection.graphql");
+                removeSelectedConnectionFromApp = GetQueryText("modelling/removeSelectedConnectionFromApp.graphql");
+                removeSelectedConnection = GetQueryText("modelling/removeSelectedConnection.graphql");
+                addPermittedOwner = GetQueryText("modelling/addPermittedOwner.graphql");
+                deletePermittedOwner = GetQueryText("modelling/deletePermittedOwner.graphql");
+                getPermittedOwnersForConnection = GetQueryText("modelling/getPermittedOwnersForConnection.graphql");
 
-                getNwGroupObjects = File.ReadAllText(QueryPath + "modelling/getNwGroupObjects.graphql");
-                getSelectedNwGroupObjects = File.ReadAllText(QueryPath + "modelling/getSelectedNwGroupObjects.graphql");
-                addSelectedNwGroupObject = File.ReadAllText(QueryPath + "modelling/addSelectedNwGroupObject.graphql");
-                removeSelectedNwGroupObject = File.ReadAllText(QueryPath + "modelling/removeSelectedNwGroupObject.graphql");
-                removeSelectedNwGroupObjectFromAllApps = File.ReadAllText(QueryPath + "modelling/removeSelectedNwGroupObjectFromAllApps.graphql");
+                getNwGroupObjects = GetQueryText("modelling/getNwGroupObjects.graphql");
+                getSelectedNwGroupObjects = GetQueryText("modelling/getSelectedNwGroupObjects.graphql");
+                addSelectedNwGroupObject = GetQueryText("modelling/addSelectedNwGroupObject.graphql");
+                removeSelectedNwGroupObject = GetQueryText("modelling/removeSelectedNwGroupObject.graphql");
+                removeSelectedNwGroupObjectFromAllApps = GetQueryText("modelling/removeSelectedNwGroupObjectFromAllApps.graphql");
 
-                getAppRoles = appServerDetailsFragment + appRoleDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppRoles.graphql");
-                getNewestAppRoles = File.ReadAllText(QueryPath + "modelling/getNewestAppRoles.graphql");
-                getDummyAppRole = appServerDetailsFragment + appRoleDetailsFragment + File.ReadAllText(QueryPath + "modelling/getDummyAppRole.graphql");
-                newAppRole = File.ReadAllText(QueryPath + "modelling/newAppRole.graphql");
-                updateAppRole = File.ReadAllText(QueryPath + "modelling/updateAppRole.graphql");
-                deleteNwGroup = File.ReadAllText(QueryPath + "modelling/deleteNwGroup.graphql");
-                // getAppServerForAppRole = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServerForAppRole.graphql");
-                addNwObjectToNwGroup = File.ReadAllText(QueryPath + "modelling/addNwObjectToNwGroup.graphql");
-                removeNwObjectFromNwGroup = File.ReadAllText(QueryPath + "modelling/removeNwObjectFromNwGroup.graphql");
+                getAppRoles = appServerDetailsFragment + appRoleDetailsFragment + GetQueryText("modelling/getAppRoles.graphql");
+                getNwGroupsForApp = appServerDetailsFragment + appRoleDetailsFragment + GetQueryText("modelling/getNwGroupsForApp.graphql");
+                getNewestAppRoles = GetQueryText("modelling/getNewestAppRoles.graphql");
+                getDummyAppRole = appServerDetailsFragment + appRoleDetailsFragment + GetQueryText("modelling/getDummyAppRole.graphql");
+                getAppRoleById = appServerDetailsFragment + appRoleDetailsFragment + GetQueryText("modelling/getAppRoleById.graphql");
+                newAppRole = GetQueryText("modelling/newAppRole.graphql");
+                updateAppRole = GetQueryText("modelling/updateAppRole.graphql");
+                updateNwGroupComment = GetQueryText("modelling/updateNwGroupComment.graphql");
+                deleteNwGroup = GetQueryText("modelling/deleteNwGroup.graphql");
+                addNwObjectToNwGroup = GetQueryText("modelling/addNwObjectToNwGroup.graphql");
+                removeNwObjectFromNwGroup = GetQueryText("modelling/removeNwObjectFromNwGroup.graphql");
+                updateNwObjectInNwGroup = GetQueryText("modelling/updateNwObjectInNwGroup.graphql");
 
-                getServicesForApp = serviceDetailsFragment + File.ReadAllText(QueryPath + "modelling/getServicesForApp.graphql");
-                getGlobalServices = serviceDetailsFragment + File.ReadAllText(QueryPath + "modelling/getGlobalServices.graphql");
-                newService = File.ReadAllText(QueryPath + "modelling/newService.graphql");
-                updateService = File.ReadAllText(QueryPath + "modelling/updateService.graphql");
-                deleteService = File.ReadAllText(QueryPath + "modelling/deleteService.graphql");
+                getServicesForApp = serviceDetailsFragment + GetQueryText("modelling/getServicesForApp.graphql");
+                getGlobalServices = serviceDetailsFragment + GetQueryText("modelling/getGlobalServices.graphql");
+                newService = GetQueryText("modelling/newService.graphql");
+                updateService = GetQueryText("modelling/updateService.graphql");
+                deleteService = GetQueryText("modelling/deleteService.graphql");
 
-                getServiceGroupsForApp = serviceDetailsFragment + serviceGroupDetailsFragment + File.ReadAllText(QueryPath + "modelling/getServiceGroupsForApp.graphql");
-                getServiceGroupById = serviceDetailsFragment + serviceGroupDetailsFragment + File.ReadAllText(QueryPath + "modelling/getServiceGroupById.graphql");
-                getGlobalServiceGroups = serviceDetailsFragment + serviceGroupDetailsFragment + File.ReadAllText(QueryPath + "modelling/getGlobalServiceGroups.graphql");
-                newServiceGroup = File.ReadAllText(QueryPath + "modelling/newServiceGroup.graphql");
-                updateServiceGroup = File.ReadAllText(QueryPath + "modelling/updateServiceGroup.graphql");
-                deleteServiceGroup = File.ReadAllText(QueryPath + "modelling/deleteServiceGroup.graphql");
-                addServiceToServiceGroup = File.ReadAllText(QueryPath + "modelling/addServiceToServiceGroup.graphql");
-                removeServiceFromServiceGroup = File.ReadAllText(QueryPath + "modelling/removeServiceFromServiceGroup.graphql");
-                getServiceGroupIdsForService = File.ReadAllText(QueryPath + "modelling/getServiceGroupIdsForService.graphql");
+                getServiceGroupsForApp = serviceDetailsFragment + serviceGroupDetailsFragment + GetQueryText("modelling/getServiceGroupsForApp.graphql");
+                getServiceGroupById = serviceDetailsFragment + serviceGroupDetailsFragment + GetQueryText("modelling/getServiceGroupById.graphql");
+                getGlobalServiceGroups = serviceDetailsFragment + serviceGroupDetailsFragment + GetQueryText("modelling/getGlobalServiceGroups.graphql");
+                newServiceGroup = GetQueryText("modelling/newServiceGroup.graphql");
+                updateServiceGroup = GetQueryText("modelling/updateServiceGroup.graphql");
+                updateServiceGroupComment = GetQueryText("modelling/updateServiceGroupComment.graphql");
+                deleteServiceGroup = GetQueryText("modelling/deleteServiceGroup.graphql");
+                addServiceToServiceGroup = GetQueryText("modelling/addServiceToServiceGroup.graphql");
+                removeServiceFromServiceGroup = GetQueryText("modelling/removeServiceFromServiceGroup.graphql");
+                getServiceGroupIdsForService = GetQueryText("modelling/getServiceGroupIdsForService.graphql");
 
-                getHistory = File.ReadAllText(QueryPath + "modelling/getHistory.graphql");
-                getHistoryForApp = File.ReadAllText(QueryPath + "modelling/getHistoryForApp.graphql");
-                addHistoryEntry = File.ReadAllText(QueryPath + "modelling/addHistoryEntry.graphql");
+                getHistory = GetQueryText("modelling/getHistory.graphql");
+                getHistoryForApp = GetQueryText("modelling/getHistoryForApp.graphql");
+                addHistoryEntry = GetQueryText("modelling/addHistoryEntry.graphql");
 
-                newAppZone = File.ReadAllText(QueryPath + "modelling/addNwAppZone.graphql");
-                getAppZonesByAppId = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppZonesByAppId.graphql");
+                newAppZone = GetQueryText("modelling/addNwAppZone.graphql");
+                getAppZonesByAppId = appServerDetailsFragment + GetQueryText("modelling/getAppZonesByAppId.graphql");
+
+                getOwnersForRuleOwnerNameField = GetQueryText("modelling/getOwnersForRuleOwnerNameField.graphql");
+                getOwnersForRuleOwnerNameFieldFilteredByOwner = GetQueryText("modelling/getOwnersForRuleOwnerNameFieldFilteredByOwner.graphql");
             }
             catch (Exception exception)
             {
                 Log.WriteError("Initialize ModellingQueries", "Api ModellingQueries could not be loaded.", exception);
+#if RELEASE
                 Environment.Exit(-1);
+#else
+                throw;
+#endif
             }
         }
     }

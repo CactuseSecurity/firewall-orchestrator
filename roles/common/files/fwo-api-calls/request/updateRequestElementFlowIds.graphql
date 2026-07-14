@@ -1,0 +1,19 @@
+mutation updateRequestElementFlowIds(
+  $id: bigint!
+  $flowNwObjId: bigint
+  $flowNwGrpId: bigint
+  $flowSvcObjId: bigint
+  $flowSvcGrpId: bigint
+) {
+  update_request_reqelement_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      flow_nwobj_id: $flowNwObjId
+      flow_nwgrp_id: $flowNwGrpId
+      flow_svcobj_id: $flowSvcObjId
+      flow_svcgrp_id: $flowSvcGrpId
+    }
+  ) {
+    UpdatedIdLong: id
+  }
+}

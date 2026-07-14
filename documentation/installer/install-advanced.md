@@ -2,6 +2,14 @@
 
 always change into the firewwall-orchestrator directory before starting the installation.
 
+On Ubuntu 26.04 or other systems with sudo 1.9.16+, use `./scripts/run-playbook-with-sudo.sh` instead of `ansible-playbook ... -K`. For example:
+
+```console
+./scripts/run-playbook-with-sudo.sh site.yml -e installation_mode=upgrade
+```
+
+Full sudoers rights are still required. If sudo already works without a password, the wrapper runs the playbook directly; otherwise it creates a temporary passwordless sudoers entry for the current user, runs the playbook without `-K`, and removes the entry again when the playbook exits.
+
 ## Install parameters
 
 ### Installation mode parameter
@@ -24,20 +32,21 @@ Then for upgrading firewall orchestrator, use the following switch:
 
 ```console
 cd ~/firewall-orchestrator
-ansible-playbook -e installation_mode=upgrade site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e installation_mode=upgrade
 ```
 
 #### Uninstall ####
 If you want to drop the database and re-install from scratch, do the following:
 
 ```console
-ansible-playbook -e installation_mode=uninstall site.yml -K
-ansible-playbook site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e installation_mode=uninstall
+./scripts/run-playbook-with-sudo.sh site.yml
 ```
 
 ### Installation behind a proxy (no direct Internet connection)
 
 By default, during installation or upgrade the proxy settings are read from the OS environment of the installer host.
+The installer reads both lowercase and uppercase proxy variables. If both forms are set and non-empty, the lowercase value wins.
 For example you may either use /etc/environment or add a global system-wide config file /etc/profile.d/proxy.sh and add the following content:
 
 ```console
@@ -54,41 +63,54 @@ If instead you need to individually set a proxy before installation/upgrade, use
 export http_proxy=http://proxy.int:3128
 export https_proxy=http://proxy.int:3128
 export no_proxy=127.0.0.1,localhost
-ansible-playbook site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml
 ```
 
 Use the following syntax for authenticated proxy access:
 
     export http_proxy=http://USERNAME:PASSWORD@proxy.int:8080/
 
-Note that the following domains must be reachable through the proxy:
+If you use Debian you need to additionally specify the proxy for apt in:
 
-    cactus.de (only for downloading test data, not needed if run with "--skip-tags test")
+    sudo vim.tiny /etc/apt/apt.conf.d/proxy.conf
+
+Add the following lines with your proxy and port:
+```console
+Acquire::http::Proxy "http://proxy_server:port/";
+Acquire::https::Proxy "http://proxy_server:port/";
+```
+
+If you use authentication:
+
+    Acquire::http::Proxy "http://user:password@proxy_server:port/";
+
+Note that the following domains (and their sub-domains) must be reachable through the proxy:
+
+    cactus.de (and sub-Domains, only for downloading test data, not needed if run with "--skip-tags test")
     ubuntu.com
     canonical.com
-    github.com
+    github.com, api.github.com
     githubusercontent.com
-    docker.com
-    cloudflare.docker.com
-    docker.io
-    hasura.io
+    docker.io (and subdomains)
+    hasura.io, releases.hasura.io
     postgresql.org
-    microsoft.com     
-    nuget.org
+    microsoft.com
+    nuget.org, api.nuget.org
     googlechromelabs.github.io
     storage.googleapis.com
-  
-  Only for the initial setup of python venv
-  
     pypi.org
-    pythonhosted.org
-    snapcraft.io
+    pythonhosted.org (and sub-domains)
+    snapcraft.io, api.snapcraft.io
     snapcraftcontent.com (and sub-domains)
 
-NB: for vscode-debugging, you also need access to
-
-    visualstudio.com
-
+#### For vscode-debugging only - most are needed for downloading extensions
+    visualstudio.com (and subdomains)
+    vsassets.io (and subdomains)
+    digicert.com (and subdomains)
+    dot.net (and subdomains) 
+    windows.net (and subdomains)
+    applicationinsights.azure.com (and subdomains)
+    exp-tas.com (and subdomains)
 
 #### Pyhton proxy config
 
@@ -108,21 +130,44 @@ In case of errors with existing pip config, do not use the script to create the 
 remove any local pip config and install manually:
     
     rm -f $HOME/.config/pip/pip.conf
-    python3 -m venv ansible-venv
-    source ansible-venv/bin/activate
+    sudo apt-get update
+    sudo apt-get install --yes python3-venv
+    python3 -m venv installer-venv
+    source installer-venv/bin/activate
+    pip install -r requirements.txt
+    if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
     pip install ansible
+    ansible-galaxy collection install -r collections/requirements.yml -p collections --force
 
 ### Parameter "api_no_metadata" to prevent meta data import
 
 e.g. if your hasura metadata file needs to be re-created from scratch, then use the following switch:
 
 ```console
-ansible-playbook -e "api_no_metadata=yes" site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e "api_no_metadata=yes"
 ```
 ### Parameter "force_install" to force installation even though operating system packages are not up2date
 
 ```console
-ansible-playbook -e "force_install=yes" site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e "force_install=yes"
+```
+
+### Parameter "allowRepoChangesForRedhat" to allow RedHat repository changes
+
+By default, the installer does not add or enable RedHat repositories. If required packages are not available from the already enabled repositories, prepare the OS repositories outside the installer.
+
+Set this parameter only if the installer is allowed to install EPEL and enable CodeReady Builder/CRB on RedHat-like systems:
+
+```console
+./scripts/run-playbook-with-sudo.sh site.yml -e "allowRepoChangesForRedhat=true"
+```
+
+### Parameter "docker_network" after the Podman migration
+
+This legacy parameter is ignored by the current installer because Hasura now runs with Podman host networking instead of a Docker bridge.
+
+```console
+./scripts/run-playbook-with-sudo.sh site.yml -e "docker_network=172.26.0.1/16"
 ```
 
 ### Parameter "install_syslog" allows disabling of separate syslog installation
@@ -131,7 +176,7 @@ Default value is install_syslog=yes but if you already have a syslog service run
 
 run installation without syslog installation:
 ```console
-ansible-playbook -e "install_syslog=no" site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e "install_syslog=no"
 ```
 
 Here is a sample config you can use for configuring your already running syslog:
@@ -164,9 +209,6 @@ rsyslog config
         if $programname == '{{ product_name }}-api' then /var/log/{{ product_name }}/api.log
         if $programname startswith '{{ product_name }}-import' then /var/log/{{ product_name }}/importer.log
         if $programname startswith '{{ product_name }}-' and $msg contains "Audit" then /var/log/{{ product_name }}/audit.log
-        # only for devsrv:
-        if $programname == '{{ product_name }}-webhook' then /var/log/{{ product_name }}/webhook.log
-
   - name: edit logrotate
     blockinfile:
       path: "/etc/logrotate.d/{{ product_name }}"
@@ -179,13 +221,6 @@ rsyslog config
             maxsize 4096k
             missingok
             copytruncate
-            sharedscripts
-                prerotate
-                        systemctl stop {{ product_name }}-importer-legacy.service >/dev/null 2>&1
-                endscript
-                postrotate
-                        systemctl start {{ product_name }}-importer-legacy.service >/dev/null 2>&1
-                endscript
         }
 ```
 
@@ -196,7 +231,7 @@ Generating a full hasura (all tables, etc. tracked) API documentation  currently
 - a minimum of 8 GB RAM
 
 ```console
-ansible-playbook -e "api_docu=yes" site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e "api_docu=yes"
 ```
 
 api docu can then be accessed at <https://server/api_schema/index.html>
@@ -213,7 +248,7 @@ The following options exist for communication to the UI:
 
 Example:
 ```console
-ansible-playbook -e "ui_comm_mode=no_ws" site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e "ui_comm_mode=no_ws"
 ```
 
 ### Specifying server name and aliases
@@ -222,11 +257,11 @@ To make sure that firewall orchestrator UI webserver responds to the correct DNS
 
 Example to set fwodemo.cactus.de as webserver name:
 ```console
-ansible-playbook -e "ui_server_name='fwodemo.cactus.de'" site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e "ui_server_name='fwodemo.cactus.de'"
 ```
 Example to set fwodemo.cactus.de and two additional aliases as websrver names:
 ```console
-ansible-playbook -e "ui_server_name=fwodemo.cactus.de ui_server_alias=' fwo1.cactus.de fwo2.cactus.de'" site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e "ui_server_name=fwodemo.cactus.de ui_server_alias=' fwo1.cactus.de fwo2.cactus.de'"
 ```
 
 ### Server Alias string
@@ -235,11 +270,11 @@ To be able to configure your webserver name, you may add the following parameter
 
 Example to set fwodemo.cactus.de as websrver name:
 ```console
-ansible-playbook -e "ui_server_alias='fwodemo.cactus.de'" site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e "ui_server_alias='fwodemo.cactus.de'"
 ```
 Example to set fwodemo.cactus.de and fwo2.cactus.de as websrver names:
 ```console
-ansible-playbook -e "ui_server_alias='fwodemo.cactus.de fwo2.cactus.de'" site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e "ui_server_alias='fwodemo.cactus.de fwo2.cactus.de'"
 ```
 
 ## Distributed setup with multiple servers
@@ -313,18 +348,15 @@ put the hosts into the correct section (`[frontends]`, `[backends]`, `[importers
 
 make sure all target hosts meet the requirements for ansible (user with pub key auth & full sudo rights)
 
-modify isohome/etc/iso.conf on frontend(s) - only needed for legacy (perl-based) importers:
-
 enter the address of the database backend server, e.g.
 
 ```console
 fworch database hostname              10.5.10.10
 ```
 
-modify /etc/postgresql/x.y/main/pg_hba.conf to allow secuadmins access from web frontend(s), e.g.
+modify /etc/postgresql/x.y/main/pg_hba.conf to allow dbadmin access from web frontend(s), e.g.
 
 ```console
-host    all         +secuadmins         127.0.0.1/32           md5
-host    all         +secuadmins         10.5.5.5/32            md5
+
 host    all         dbadmin             10.5.10.10/32          md5
 ```

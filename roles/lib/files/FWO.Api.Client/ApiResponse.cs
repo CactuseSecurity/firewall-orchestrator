@@ -1,30 +1,37 @@
-﻿// TODO: NOT IN USE
-
-using System;
-using System.Collections.Generic;
-using System.Text;
-
 namespace FWO.Api.Client
 {
-    //public class ApiResponse<ResponseType>
-    //{
-    //    public ResponseType[]? Result { get; internal set; }
+    /// <summary>
+    /// Wraps API data with optional error information to avoid exceptions in callers.
+    /// </summary>
+    public sealed class ApiResponse<ResponseType>
+    {
+        /// <summary>
+        /// The successfully deserialized result, if available.
+        /// </summary>
+        public ResponseType? Result { get; }
+        /// <summary>
+        /// Errors returned by the API, if any.
+        /// </summary>
+        public string[]? Errors { get; }
+        /// <summary>
+        /// Indicates whether the response contains errors.
+        /// </summary>
+        public bool HasErrors => Errors is { Length: > 0 };
 
-    //    public string[]? Errors { get; internal set; }
+        /// <summary>
+        /// Creates a successful response wrapper.
+        /// </summary>
+        public ApiResponse(ResponseType result)
+        {
+            Result = result;
+        }
 
-    //    internal ApiResponse(ResponseType[] result)
-    //    {
-    //        Result = result;
-    //    }
-
-    //    internal ApiResponse(params string[] errors)
-    //    {
-    //        Errors = errors;
-    //    }
-
-    //    public ResultType GetResult<ResultType>(string resultName)
-    //    {
-    //        return default(ResultType);
-    //    }
-    //}
+        /// <summary>
+        /// Creates a response wrapper containing error messages.
+        /// </summary>
+        public ApiResponse(params string[] errors)
+        {
+            Errors = errors;
+        }
+    }
 }

@@ -1,15 +1,13 @@
-﻿@using FWO.Report
+@using FWO.Report
 @using FWO.Report.Filter
-@using FWO.Config.Api
-@using FWO.Services
 
 @inject UserConfig userConfig
 
 
-<PopUp Size=PopupSize.Large Title="@(userConfig.GetText("report_time"))" Show="@Display">
+<PopUp Size=PopupSize.Small Title="@(userConfig.GetText("report_time"))" Show="@Display" OnClose="Close">
     <Body>
         <div>
-            @if (SelectedReportType.IsChangeReport())
+            @if (SelectedReportType.IsChangeReport() || SelectedReportType == ReportType.TicketChangeReport)
             {
                 <div class="row">
                     <div class="col-sm-1">
@@ -21,7 +19,7 @@
                         <div class="form-group row">
                             <label for="rangeshortcut" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("shortcut")):</label>
                             <div class="col-sm-4">
-                                <Dropdown @bind-SelectedElement="ActTimeFilter.TimeRangeShortcut" ElementToString="@(s => userConfig.GetText(s))" Elements="TimeRangeShortcuts.Ranges" >
+                                <Dropdown ElementType="string" @bind-SelectedElement="ActTimeFilter.TimeRangeShortcut" ElementToString="@(s => userConfig.GetText(s))" Elements="TimeRangeShortcuts.Ranges" >
                                     <ElementTemplate Context="shortcut">
                                         @(userConfig.GetText(shortcut))
                                     </ElementTemplate>
@@ -43,7 +41,8 @@
                                 <input id="lastInterval" type="text" class="form-control form-control-sm" @bind="ActTimeFilter.Offset" />
                             </div>
                             <div class="col-sm-4">
-                                <Dropdown @bind-SelectedElement="ActTimeFilter.Interval" ElementToString="@(i => userConfig.GetText(i.ToString()))" Elements="Enum.GetValues(typeof(Interval)).Cast<Interval>().Where(x => (x != Interval.Never))" >
+                                <Dropdown ElementType="SchedulerInterval" @bind-SelectedElement="ActTimeFilter.Interval" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                                        Elements="Enum.GetValues(typeof(SchedulerInterval)).Cast<SchedulerInterval>().Where(x => x.OfferedForReport())" >
                                     <ElementTemplate Context="interval">
                                         @(userConfig.GetText(interval.ToString()))
                                     </ElementTemplate>
@@ -128,7 +127,7 @@
     </Body>
     <Footer>
         <button type="button" class="btn btn-sm btn-primary" @onclick="SetTimeSelection">@(userConfig.GetText("ok"))</button>
-        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Close()">@(userConfig.GetText("cancel"))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Close()">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
     </Footer>
 </PopUp>
 
@@ -188,7 +187,7 @@
 
     private void SetTimeSelection()
     {
-        if (SelectedReportType.IsChangeReport())
+        if (SelectedReportType.IsChangeReport() || SelectedReportType == ReportType.TicketChangeReport)
         {
             switch(ActTimeFilter.TimeRangeType)
             {

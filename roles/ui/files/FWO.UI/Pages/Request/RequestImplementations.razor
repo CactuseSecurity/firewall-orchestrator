@@ -1,9 +1,5 @@
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Api.Client
-@using FWO.Config.Api
 @using FWO.Ui.Services
-@using FWO.Services
+@using FWO.Compliance
 @using FWO.Middleware.Client
 
 @page "/request/implementations/{ticketId?}"
@@ -34,10 +30,9 @@
 }
 else
 {
-   <div class="spinner-border" role="status">
-        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
-    </div>
+   <Loading/>
 }
+<InProgress Display="WorkInProgress"/>
 
 @code
 {
@@ -54,31 +49,39 @@ else
     private WfStateDict states = new ();
     private List<FwoOwner> Owners = new();
     private bool InitComplete = false;
+    private bool WorkInProgress = false;
 
     private bool DisplayTickets = true;
     private Device selectedDeviceOpt = new ();
     private FwoOwner selectedOwnerOpt = new (){ Id = -1 };
+    private bool JumpedIn = false;
 
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Implementer, Roles.FwAdmin, Roles.Auditor});
             await states.Init(apiConnection);
 
             if(userConfig.ReqOwnerBased)
             {
-                Owners = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
+                Owners = await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection, DisplayMessageInUi);
             }
-            wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.implementation){};
+            wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.implementation, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection)){};
             await Reset();
             await HandleTicketId();
             await Select();
             wfHandler.SetContinueEnv(ObjAction.implement);
-            if(wfHandler.ActTicket.Tasks.Count >= 1 && wfHandler.ActTicket.Tasks.First().ImplementationTasks.Count >= 1)
+            if(wfHandler.ActTicket.Tasks.Count > 0 && wfHandler.ActTicket.Tasks[0].ImplementationTasks.Count > 0)
             {
-                await wfHandler.ContinueImplPhase(wfHandler.ActTicket.Tasks.First().ImplementationTasks.First());
+                if(JumpedIn && userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor))
+                {
+                    wfHandler.SelectImplTask(wfHandler.ActTicket.Tasks[0].ImplementationTasks[0], ObjAction.display);
+                }
+                else
+                {
+                    await wfHandler.ContinueImplPhase(wfHandler.ActTicket.Tasks[0].ImplementationTasks[0]);
+                }
             }
             InitComplete = true;
         }
@@ -96,6 +99,10 @@ else
             if(newPhase != "")
             {
                 NavigationManager.NavigateTo($"/request/{newPhase.ToString()}s/{TicketId}");
+            }
+            else
+            {
+                JumpedIn = true;
             }
         }
     }
@@ -118,8 +125,7 @@ else
         {
             selectedOwnerOpt = newOwnerOpt;
             DisplayTickets = wfHandler.SelectOwnerImplTasks(selectedOwnerOpt);
-            await Reset();
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
         {
@@ -133,8 +139,7 @@ else
         {
             selectedDeviceOpt = newDeviceOpt;
             DisplayTickets = wfHandler.SelectDeviceImplTasks(selectedDeviceOpt);
-            await Reset();
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
         {
@@ -146,8 +151,8 @@ else
     {
         try
         {
-            wfHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Implementer) || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
-            await wfHandler.Init(Owners.ConvertAll(x => x.Id), false, false, true);
+            wfHandler.ReadOnlyMode = !userConfig.CanUseAnyRole(Roles.Implementer, Roles.FwAdmin, Roles.Admin);
+            await wfHandler.Init(true, userConfig.ReqOwnerBased ? Owners.ConvertAll(x => x.Id) : null, false, true);
         }
         catch (Exception exception)
         {
@@ -157,8 +162,14 @@ else
     
     private async Task StartImplementTask(WfImplTask implTask)
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
+        WorkInProgress = true;
         try
         {
+            await InvokeAsync(StateHasChanged);
             implTask.Start = DateTime.Now;
             implTask.Stop = null;
             await wfHandler.StartWorkOnImplTask(implTask, ObjAction.implement);
@@ -166,6 +177,11 @@ else
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("start_work"), "", true);
+        }
+        finally
+        {
+            WorkInProgress = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 }

@@ -1,0 +1,13 @@
+mutation replaceExtStates(
+  $deleteIds: [Int!]!
+  $objects: [request_ext_state_insert_input!]!
+) {
+  delete_request_ext_state(where: {id: {_in: $deleteIds}}) {
+    affected_rows
+  }
+  insert_request_ext_state(objects: $objects) {
+    returning {
+      newId: id
+    }
+  }
+}

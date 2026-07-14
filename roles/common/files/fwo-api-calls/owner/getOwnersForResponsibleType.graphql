@@ -1,0 +1,5 @@
+query getOwnersForResponsibleType($responsibleTypeId: Int!) {
+  owner(where: {owner_responsibles: {responsible_type: {_eq: $responsibleTypeId}}}, limit: 1) {
+    id
+  }
+}

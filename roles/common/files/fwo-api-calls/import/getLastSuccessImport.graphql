@@ -1,0 +1,11 @@
+query getLastSuccessImport($mgmId: Int!) {
+    import_control(
+        order_by: { control_id: desc }
+        limit: 1
+        where: { mgm_id: { _eq: $mgmId }, successful_import: { _eq: true } }
+    ) {
+        start_time
+        control_id
+    }
+}
+

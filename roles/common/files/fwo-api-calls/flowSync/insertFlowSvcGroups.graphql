@@ -1,0 +1,9 @@
+mutation insertFlowSvcGroups($objects: [flow_svcgroup_insert_input!]!) {
+  insert_flow_svcgroup(objects: $objects) {
+    affected_rows
+    returning {
+      svcgrp_id
+      svcgrp_hash
+    }
+  }
+}

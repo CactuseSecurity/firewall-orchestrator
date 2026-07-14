@@ -1,48 +1,38 @@
 # database_dir: /var/lib/pgsql/data
 postgresql_package: postgresql
 postgresql_test_package: pgtap
-postgresql_c_client_library_header_files: libpq-dev
-postgresql_dev_package_prefix: postgresql-server-dev
+postgresql_c_client_library_header_files: "{{ 'postgresql-devel' if ansible_facts['os_family'] == 'RedHat' else 'libpq-dev' }}"
+postgresql_dev_package_prefix: "{{ 'postgresql-server-devel' if ansible_facts['os_family'] == 'RedHat' else 'postgresql-server-dev' }}"
 database_install_dir: "{{ fworch_home }}/database"
+fwo_db_ro_user: fwo_ro
 
 # table_space variable can be used to create database in another place where there is enough space
 # table_space: /var/db/fworch_tablespace
 # table_space_name: fworch
+
+db_schemata:
+  - compliance
+  - firewall
+  - modelling
+  - public
+  - request
 
 database_users:
   - dbbackup
   - fworchimporter
 
 database_groups:
-  - secuadmins
   - dbbackupusers
   - configimporters
-  - reporters
   - fworchadmins
 
+
 database_idempotent_files:
+  - fworch-search-path.sql
   - fworch-api-funcs.sql
-  - fworch-basic-procs.sql
-  - fworch-grants.sql
-  - fworch-import.sql
-  - fworch-import-main.sql
+  - fworch-backup-grants.sql
   - fworch-encryption.sql
-  - fworch-obj-import.sql
-  - fworch-obj-refs.sql
   - fworch-path-analysis.sql
-  - fworch-qa.sql
-  - fworch-rule-import.sql
   - fworch-rule-recert.sql
-  - fworch-rule-refs.sql
-  - fworch-rule-resolved.sql
-  - fworch-svc-import.sql
-  - fworch-svc-refs.sql
   - fworch-texts.sql
-  - fworch-usr-import.sql
-  - fworch-usr-refs.sql
   - fworch-views-changes.sql
-  - fworch-zone-import.sql
-
-
-  # - fworch-views-recert.sql 
-  # moved to creation because of materialized view taking too long during upgrades

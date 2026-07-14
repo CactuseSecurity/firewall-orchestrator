@@ -1,10 +1,5 @@
-@using FWO.Basics
-@using FWO.Api.Data
-@using FWO.Api.Client
-@using FWO.Api.Client.Queries
-@using FWO.Config.Api
 @using FWO.Middleware.Client
-@using FWO.Services
+@using System.Security.Authentication
 
 @page "/settings/gateways"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
@@ -28,16 +23,17 @@
                 <div class="btn-group">
                     <button type="button" class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
                     <button type="button" class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
-                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")" Context="ctx">
-                        <Authorized>
+                    <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")" Context="ctx">
+                        <Authorized Context="authState">
                             <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
                         </Authorized>
-                    </AuthorizeView>
+                    </ExecutionModeAuthorizeView>
                 </div>
             </Template>
         </Column>
         <Column TableItem="Device" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
         <Column TableItem="Device" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="Device" Title="@(userConfig.GetText("uid"))" Field="@(x => x.Uid)" Sortable="true" Filterable="true" />
         <Column TableItem="Device" Title="@(userConfig.GetText("type"))" Field="@(x => x.DeviceType.Id)" Sortable="true">
             <Template>
                 @context.DeviceType.NameVersion()
@@ -71,6 +67,12 @@
                         <input type="text" class="form-control form-control-sm" @bind="actDevice.Name" />
                     </div>
                 </div>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5150"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("uid"))*:</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" @bind="actDevice.Uid" />
+                    </div>
+                </div>
                 <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5152"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
                     <div class="col-sm-8">
@@ -100,7 +102,7 @@
                 @if (actDevice.DeviceType.IsLegacyDevType())
                 {
                     <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5155"))">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("local_rulebase"))*:</label>
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("local_rulebase")):</label>
                         <div class="col-sm-8">
                             <input type="text" class="form-control form-control-sm" @bind="actDevice.LocalRulebase" />
                         </div>
@@ -113,17 +115,7 @@
                     actDevice.DeviceType.Manufacturer == "Microsoft" ||
                     actDevice.DeviceType.Manufacturer == "VMWare")
                 {
-                    @if (actDevice.DeviceType.Manufacturer == "Fortinet" && actDevice.Management.DeviceType.IsLegacyDevType())
-                    {
-                        actDevice.LocalRulebase = actDevice.Management.Name;
-                        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5155"))">
-                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("local_package"))*:</label>
-                            <div class="col-sm-8">
-                                <input type="text" readonly class="form-control form-control-sm" @bind="actDevice.LocalRulebase" />
-                            </div>
-                        </div>
-                    }
-                    else if (actDevice.DeviceType.Id==25) // Fortinet FortiOS Gateway REST
+                    @if (actDevice.DeviceType.Id==25) // Fortinet FortiOS Gateway REST
                     {   // we can only have one policy, so setting fixed policy name (idential to importer module fortiOSmanagementREST)
                         actDevice.LocalRulebase = "access_rules";
                         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5155"))">
@@ -133,10 +125,10 @@
                             </div>
                         </div>
                     }
-                    else
+                    else if(actDevice.DeviceType.Manufacturer != "Check Point" && actDevice.DeviceType.Manufacturer != "Fortinet" )
                     {
                         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5155"))">
-                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("local_package"))*:</label>
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("local_package")):</label>
                             <div class="col-sm-8">
                                 <input type="text" class="form-control form-control-sm" @bind="actDevice.LocalRulebase" />
                             </div>
@@ -148,15 +140,6 @@
                             </div>
                         </div>
                     }
-                }
-                @if (actDevice.DeviceType.Manufacturer == "Check Point")
-                {
-                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5157"))">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("package")):</label>
-                        <div class="col-sm-8">
-                            <input type="text" class="form-control form-control-sm" @bind="actDevice.Package" />
-                        </div>
-                    </div>
                 }
                 <div class="form-check form-check-inline mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5158"))">
                     <input class="form-check-input" id="deviceImportDisabled" type="checkbox" @bind="actDevice.ImportDisabled">
@@ -171,14 +154,14 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized> 
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
@@ -211,8 +194,12 @@
             devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
             deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(DeviceQueries.getDeviceTypeDetails);
 
-            JwtReader jwt = new JwtReader(userConfig.User.Jwt);
-            jwt.Validate();
+            JwtReader jwt = new (userConfig.User.Jwt);
+            JwtValidationResult validationResult = await jwt.ValidateToken();
+            if (!validationResult.IsSuccess)
+            {
+                throw new AuthenticationException(validationResult.Status == JwtValidationStatus.Expired ? "JWTExpired" : "not_authorized");
+            }
             if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
                 managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
             else
@@ -307,6 +294,7 @@
                     var Variables = new
                     {
                         name = actDevice.Name,
+                        uid = actDevice.Uid,
                         devTypeId = actDevice.DeviceType.Id,
                         managementId = actDevice.Management.Id,
                         localRulebase = actDevice.LocalRulebase,
@@ -316,7 +304,7 @@
                         hideInUi = actDevice.HideInUi,
                         comment = actDevice.Comment
                     };
-                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(DeviceQueries.newDevice, Variables)).ReturnIds;
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(DeviceQueries.newDevice, Variables)).ReturnIds;
                     if (returnIds == null)
                     {
                         DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5112"), true);
@@ -337,6 +325,7 @@
                     {
                         id = actDevice.Id,
                         name = actDevice.Name,
+                        uid = actDevice.Uid,
                         devTypeId = actDevice.DeviceType.Id,
                         managementId = actDevice.Management.Id,
                         localRulebase = actDevice.LocalRulebase,
@@ -360,15 +349,9 @@
 
     private bool CheckValues()
     {
-        if (string.IsNullOrEmpty(actDevice.Name) || (actDevice.DeviceType.Manufacturer != "Cisco" && actDevice.DeviceType.Manufacturer != "DummyRouter" && string.IsNullOrEmpty(actDevice.LocalRulebase)))
+        if (string.IsNullOrEmpty(actDevice.Name)) //||(actDevice.DeviceType.Manufacturer != "Cisco" && actDevice.DeviceType.Manufacturer != "DummyRouter" && string.IsNullOrEmpty(actDevice.LocalRulebase)))
         {
             DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5102"), true);
-            return false;
-        }
-        if (!actDevice.ImportDisabled && !string.IsNullOrEmpty(actDevice.LocalRulebase) && devices.FirstOrDefault(dev => dev.DeviceType.Id == actDevice.DeviceType.Id && dev.Management.Id == actDevice.Management.Id 
-            && dev.LocalRulebase == actDevice.LocalRulebase && dev.Id != actDevice.Id && !dev.ImportDisabled) != null)
-        {
-            DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5111"), true);
             return false;
         }
         return true;
@@ -379,7 +362,7 @@
         try
         {
             var Variables = new { tenantId = GlobalConst.kTenant0Id, deviceId = deviceId };
-            await apiConnection.SendQueryAsync<NewReturning>(AuthQueries.addDeviceToTenant, Variables);
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.addDeviceToTenant, Variables);
         }
         catch (System.Exception exception)
         {

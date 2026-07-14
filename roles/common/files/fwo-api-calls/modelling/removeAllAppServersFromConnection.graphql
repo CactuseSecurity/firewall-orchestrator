@@ -1,0 +1,7 @@
+mutation removeAllAppServersFromConnection(
+  $id: Int!
+  ) {
+  delete_modelling_nwobject_connection(where: {connection_id: {_eq: $id}}) {
+    affected_rows
+  }
+}

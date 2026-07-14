@@ -1,0 +1,186 @@
+using System.Text.Json.Serialization;
+using Newtonsoft.Json;
+
+namespace FWO.Data.Workflow
+{
+    public class WfReqTask : WfReqTaskBase
+    {
+        [JsonProperty("id"), JsonPropertyName("id")]
+        public long Id { get; set; }
+
+        [JsonProperty("ticket_id"), JsonPropertyName("ticket_id")]
+        public long TicketId { get; set; }
+
+        [JsonProperty("flow_access_id"), JsonPropertyName("flow_access_id")]
+        public long? FlowAccessId { get; set; }
+
+        [JsonProperty("elements"), JsonPropertyName("elements")]
+        public List<WfReqElement> Elements { get; set; } = [];
+
+        [JsonProperty("implementation_tasks"), JsonPropertyName("implementation_tasks")]
+        public List<WfImplTask> ImplementationTasks { get; set; } = [];
+
+        [JsonProperty("request_approvals"), JsonPropertyName("request_approvals")]
+        public List<WfApproval> Approvals { get; set; } = [];
+
+        [JsonProperty("owners"), JsonPropertyName("owners")]
+        public List<FwoOwnerDataHelper> Owners { get; set; } = [];
+
+        [JsonProperty("comments"), JsonPropertyName("comments")]
+        public List<WfCommentDataHelper> Comments { get; set; } = [];
+
+        [JsonProperty("on_management"), JsonPropertyName("on_management")]
+        public Management? OnManagement { get; set; }
+
+        public List<WfReqElement> RemovedElements { get; set; } = [];
+        public List<FwoOwner> NewOwners { get; set; } = [];
+        public List<FwoOwner> RemovedOwners { get; set; } = [];
+
+        public WfReqTask()
+        { }
+
+        public WfReqTask(WfReqTask reqtask) : base(reqtask)
+        {
+            Id = reqtask.Id;
+            TicketId = reqtask.TicketId;
+            FlowAccessId = reqtask.FlowAccessId;
+            Elements = reqtask.Elements;
+            ImplementationTasks = reqtask.ImplementationTasks;
+            Approvals = reqtask.Approvals;
+            Owners = reqtask.Owners;
+            Comments = reqtask.Comments;
+            RemovedElements = reqtask.RemovedElements;
+            NewOwners = reqtask.NewOwners;
+            RemovedOwners = reqtask.RemovedOwners;
+            OnManagement = reqtask.OnManagement;
+        }
+
+        public string OwnerList()
+        {
+            List<string> ownerNames = [];
+            foreach (var owner in Owners)
+            {
+                ownerNames.Add(owner.Owner.Name);
+            }
+            return string.Join(", ", ownerNames);
+        }
+
+        public int HighestImplTaskNumber()
+        {
+            int highestNumber = 0;
+            foreach (var implTask in ImplementationTasks)
+            {
+                if (implTask.TaskNumber > highestNumber)
+                {
+                    highestNumber = implTask.TaskNumber;
+                }
+            }
+            return highestNumber;
+        }
+
+        public List<NwObjectElement> GetNwObjectElements(ElemFieldType field)
+        {
+            List<NwObjectElement> elements = [];
+            foreach (var reqElem in Elements)
+            {
+                if (reqElem.Field == field.ToString())
+                {
+                    NwObjectElement element = new()
+                    {
+                        ElemId = reqElem.Id,
+                        TaskId = reqElem.TaskId,
+                        NetworkId = reqElem.NetworkId,
+                        FlowNetworkObjectId = reqElem.FlowNetworkObjectId,
+                        FlowNetworkGroupId = reqElem.FlowNetworkGroupId,
+                        RequestAction = reqElem.RequestAction,
+                        Name = reqElem.Name,
+                        GroupName = reqElem.GroupName ?? ""
+                    };
+                    ApplyNetworkAddress(element, reqElem.Cidr, reqElem.CidrEnd, reqElem.IpString, reqElem.IpEnd);
+                    elements.Add(element);
+                }
+            }
+            return elements;
+        }
+
+        public List<NwServiceElement> GetServiceElements()
+        {
+            List<NwServiceElement> elements = [];
+            foreach (var reqElem in Elements)
+            {
+                if (reqElem.Field == ElemFieldType.service.ToString())
+                {
+                    elements.Add(new NwServiceElement()
+                    {
+                        ElemId = reqElem.Id,
+                        TaskId = reqElem.TaskId,
+                        Port = reqElem.Port ?? 0,
+                        PortEnd = reqElem.PortEnd,
+                        ProtoId = reqElem.ProtoId ?? 0,
+                        ServiceId = reqElem.ServiceId,
+                        FlowServiceObjectId = reqElem.FlowServiceObjectId,
+                        FlowServiceGroupId = reqElem.FlowServiceGroupId,
+                        Name = reqElem.Name,
+                        GroupName = reqElem.GroupName,
+                        RequestAction = reqElem.RequestAction
+                    });
+                }
+            }
+            return elements;
+        }
+
+        public List<NwRuleElement> GetRuleElements()
+        {
+            List<NwRuleElement> elements = [];
+            foreach (var reqElem in Elements)
+            {
+                if (reqElem.Field == ElemFieldType.rule.ToString())
+                {
+                    elements.Add(new NwRuleElement()
+                    {
+                        ElemId = reqElem.Id,
+                        TaskId = reqElem.TaskId,
+                        RuleUid = reqElem.RuleUid ?? "",
+                        Name = reqElem.Name
+                    });
+                }
+            }
+            return elements;
+        }
+
+        public string GetFirstCommentText()
+        {
+            if (Comments.Count > 0)
+            {
+                return Comments[0].Comment.CommentText;
+            }
+            return "";
+        }
+
+        public int GetRuleDeviceId()
+        {
+            foreach (var reqElem in Elements)
+            {
+                if (reqElem.Field == ElemFieldType.rule.ToString() && reqElem.DeviceId != null)
+                {
+                    return (int)reqElem.DeviceId;
+                }
+            }
+            return 0;
+        }
+
+        public override List<int> GetDeviceList()
+        {
+            if (DeviceList.Count > 0)
+            {
+                return DeviceList;
+            }
+            return [.. Elements.Where(r => r.Field == ElemFieldType.rule.ToString() && r.DeviceId != null).Select(e => (int)e.DeviceId!)];
+        }
+
+        public bool IsNetworkFlavor()
+        {
+            return Elements.FirstOrDefault(e => e.IpString != null) != null;
+        }
+    }
+}

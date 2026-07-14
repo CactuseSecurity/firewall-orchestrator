@@ -1,6 +1,3 @@
-﻿@using FWO.Config.Api
-@using FWO.Services
-
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Modeller}")]
 
 @inject ApiConnection apiConnection
@@ -8,7 +5,7 @@
 
 @if(Display && InitComplete && ServiceHandler != null)
 {
-    <PopUp Title="@(ServiceHandler.AddMode ? userConfig.GetText("add_service") : userConfig.GetText("edit_service"))" Size=PopupSize.Large Show="@Display" OnClose="Cancel">
+    <PopUp Title="@(ServiceHandler.AddMode ? userConfig.GetText("add_service") : userConfig.GetText("edit_service"))" Size=PopupSize.Medium Show="@Display" OnClose="Cancel">
         <Body>
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
@@ -23,7 +20,7 @@
                         </ElementTemplate>
                     </Dropdown>
                 </div>
-                @if(!(bool)ServiceHandler.ActService.Protocol?.Name.ToLower().StartsWith("esp"))
+                @if(IpProtocol.HasPorts(ServiceHandler.ActService.Protocol?.Id))
                 {
                     <div class="form-group row col-sm-6">
                         <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
@@ -38,20 +35,20 @@
             <div class="btn-group">
                 @if(ServiceHandler.IsOwner)
                 {
-                    <AuthorizeView Roles="@(AsAdmin? Roles.Admin : Roles.Modeller)">
+                    <ExecutionModeAuthorizeView Roles="@(AsAdmin? Roles.Admin : Roles.Modeller)">
                         <Authorized>
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="Save">@(userConfig.GetText("save"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                         </Authorized>
                         <NotAuthorized>
-                            <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("save"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                         </NotAuthorized> 
-                    </AuthorizeView>
+                    </ExecutionModeAuthorizeView>
                 }
                 else
                 {
-                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                 }
-                <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
             </div>
         </Footer>
     </PopUp>
@@ -90,7 +87,7 @@
     {
         try
         {
-            List<IpProtocol> ipProtosOrig = await apiConnection.SendQueryAsync<List<IpProtocol>>(FWO.Api.Client.Queries.StmQueries.getIpProtocols);
+            List<IpProtocol> ipProtosOrig = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
             ipProtos = CustomSort(ipProtosOrig);
             InitComplete = true;
         }
@@ -151,41 +148,9 @@
 
     private List<NetworkProtocol> CustomSort(List<IpProtocol> ListIn)
     {
-        List<NetworkProtocol> ListOut = new List<NetworkProtocol>();
-        IpProtocol? tcp = ListIn.Find(x => x.Name.ToLower() == "tcp");
-        if(tcp != null)
-        {
-            ListOut.Add(new NetworkProtocol(tcp));
-            ListIn.Remove(tcp);
-        }
-        IpProtocol? udp = ListIn.Find(x => x.Name.ToLower() == "udp");
-        if(udp != null)
-        {
-            ListOut.Add(new NetworkProtocol(udp));
-            ListIn.Remove(udp);
-        }
-        IpProtocol? icmp = ListIn.Find(x => x.Name.ToLower() == "icmp");
-        if(icmp != null)
-        {
-            ListOut.Add(new NetworkProtocol(icmp));
-            ListIn.Remove(icmp);
-        }
-        IpProtocol? esp = ListIn.Find(x => x.Name.ToLower() == "esp");
-        if(esp != null)
-        {
-            ListOut.Add(new NetworkProtocol(esp));
-            ListIn.Remove(esp);
-        }
-        if(!userConfig.ReducedProtocolSet)
-        {
-            foreach(var proto in ListIn.OrderBy(x => x.Name).ToList())
-            {
-                if (proto.Name.ToLower() != "unassigned")
-                {
-                    ListOut.Add(new NetworkProtocol(proto));
-                }
-            }
-        }
-        return ListOut;
+        List<string> reducedProtocolNames = ProtocolDisplayHelper.ParseProtocolNames(userConfig.ReducedProtocolSetProtocols);
+        return ProtocolDisplayHelper.CustomSortProtocols(ListIn, reducedProtocolNames, userConfig.ReducedProtocolSet)
+            .Select(protocol => new NetworkProtocol(protocol))
+            .ToList();
     }
 }

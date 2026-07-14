@@ -1,7 +1,5 @@
-﻿@using FWO.Config.Api
-@using FWO.Basics
+﻿@using FWO.Config.Api.Data
 @using FWO.Report.Filter
-@using FWO.Services
 
 @implements IDisposable
 
@@ -12,18 +10,17 @@
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")]
 
 <ReportTabset/>
-
-<button type="button" class="btn btn-sm btn-success mb-1" @onclick="() => { reportScheduleInEdit = new ReportSchedule() { RepeatInterval = Interval.Never }; ShowAddReportScheduleDialog = true; }">@(userConfig.GetText("add"))</button>
+<button type="button" class="btn btn-sm btn-success mb-1" @onclick="OnAddReportScheduleButtonClick">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
 
 <div class="vheight75">
-    <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ReportSchedule" Items="reportSchedules" PageSize="0">
+    <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ReportSchedule" Items="visibleReportSchedules" PageSize="0">
         <Column TableItem="ReportSchedule" Title="@(userConfig.GetText("actions"))">
             <Template>
-                @if (context.ScheduleOwningUser.DbId == uiUserDbId || authenticationState != null && authenticationState.User.IsInRole(Roles.Admin))
+                @if (context.ScheduleOwningUser.DbId == uiUserDbId || userConfig.CanUseAnyRole(Roles.Admin))
                 {
                     <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => { reportScheduleInEdit = context; actDate = actTime = context.StartTime; ShowEditReportScheduleDialog = true; }">@(userConfig.GetText("edit"))</button>
-                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportScheduleInEdit = context; ShowDeleteReportScheduleDialog = true; }">@(userConfig.GetText("delete"))</button>
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => OnEditReportScheduleButtonClick(context)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportScheduleInEdit = context; ShowDeleteReportScheduleDialog = true; }">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                     </div>
                 }
             </Template>
@@ -37,7 +34,7 @@
         </Column>
         <Column TableItem="ReportSchedule" Title="@(userConfig.GetText("repeat_interval"))" Field="@(reportSchedule => reportSchedule.RepeatOffset)">
             <Template>
-                @(context.RepeatInterval != Interval.Never ? context.RepeatOffset : "") @(userConfig.GetText(context.RepeatInterval.ToString()))
+                @(context.RepeatInterval != SchedulerInterval.Never ? context.RepeatOffset : "") @(userConfig.GetText(context.RepeatInterval.ToString()))
             </Template>
         </Column>
         <Column TableItem="ReportSchedule" Title="@(userConfig.GetText("template"))" Field="@(reportSchedule => reportSchedule.Template.Name)" Sortable="true" Filterable="true"/>
@@ -56,7 +53,7 @@
     </Table>
 </div>
 
-<PopUp Size=PopupSize.Large Title="@(userConfig.GetText("report_schedule"))" Show="@(ShowAddReportScheduleDialog || ShowEditReportScheduleDialog)">
+<PopUp Size=PopupSize.XLarge Title="@(userConfig.GetText("report_schedule"))" Show="@(ShowAddReportScheduleDialog || ShowEditReportScheduleDialog)">
     <Body>
         <div>
             <div class="form-group row">
@@ -84,7 +81,8 @@
                     <input id="scheduleRepeatEvery" type="number" min="1" class="form-control form-control-sm" @bind="reportScheduleInEdit.RepeatOffset" />
                 </div>
                 <div class="col-sm-5">
-                    <Dropdown @bind-SelectedElement="reportScheduleInEdit.RepeatInterval" ElementToString="@(i => userConfig.GetText(i.ToString()))" Elements="Enum.GetValues(typeof(Interval)).Cast<Interval>()" >
+                    <Dropdown ElementType="SchedulerInterval" @bind-SelectedElement="reportScheduleInEdit.RepeatInterval" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                            Elements="Enum.GetValues(typeof(SchedulerInterval)).Cast<SchedulerInterval>().Where(x => x.OfferedForReportOrNever())" >
                         <ElementTemplate Context="interval">
                             @(userConfig.GetText(interval.ToString()))
                         </ElementTemplate>
@@ -102,20 +100,39 @@
                     </Dropdown>
                 </div>
             </div>
+
+            @* File format *@
+
             <div class="form-group row mt-2">
                 <label for="scheduleOutputFormat" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("output_format")):</label>
                 <div class="col-sm-8">
-                    <div class="form-inline justify-content-between">
+                    <div class="d-flex flex-wrap gap-3">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="outputFormatHtml" value="Html"
-                                   checked="@(reportScheduleInEdit.OutputFormat.Exists(format => format.Name == GlobalConst.kHtml))"
-                                   @onchange="@(_ => reportScheduleInEdit.OutputFormat.AddOrRemove(GlobalConst.kHtml))">
+                            @if (HtmlAvailableForSchedule())
+                            {
+                                <input class="form-check-input" type="checkbox" id="outputFormatHtml" value="Html"
+                                       checked="@(reportScheduleInEdit.OutputFormat.Exists(format => format.Name == GlobalConst.kHtml))"
+                                       @onchange="@(_ => reportScheduleInEdit.OutputFormat.AddOrRemove(GlobalConst.kHtml))">
+                            }
+                            else
+                            {
+                                reportScheduleInEdit.OutputFormat.Remove(GlobalConst.kHtml);
+                                <input disabled class="form-check-input" type="checkbox" id="outputFormatHtml" value="Html">
+                            }
                             <label class="form-check-label" for="outputFormatHtml">HTML</label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="outputFormatPdf" value="Pdf"
-                                   checked="@(reportScheduleInEdit.OutputFormat.Exists(format => format.Name == GlobalConst.kPdf))"
-                                   @onchange="@(_ => reportScheduleInEdit.OutputFormat.AddOrRemove(GlobalConst.kPdf))">
+                            @if (PdfAvailableForSchedule())
+                            {
+                                <input class="form-check-input" type="checkbox" id="outputFormatPdf" value="Pdf"
+                                       checked="@(reportScheduleInEdit.OutputFormat.Exists(format => format.Name == GlobalConst.kPdf))"
+                                       @onchange="@(_ => reportScheduleInEdit.OutputFormat.AddOrRemove(GlobalConst.kPdf))">
+                            }
+                            else
+                            {
+                                reportScheduleInEdit.OutputFormat.Remove(GlobalConst.kPdf);
+                                <input disabled class="form-check-input" type="checkbox" id="outputFormatPdf" value="Pdf">
+                            }
                             <label class="form-check-label" for="outputFormatPdf">PDF</label>
                         </div>
                         <div class="form-check">
@@ -124,7 +141,7 @@
                                    @onchange="@(_ => reportScheduleInEdit.OutputFormat.AddOrRemove(GlobalConst.kJson))">
                             <label class="form-check-label" for="outputFormatJson">JSON</label>
                         </div>
-                        @if (reportScheduleInEdit.Template.ReportParams != null && ((ReportType)reportScheduleInEdit.Template.ReportParams.ReportType).IsResolvedReport())
+                        @if (reportScheduleInEdit.Template.ReportParams != null && CsvAvailableForSchedule())
                         {
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="outputFormatCsv" value="Csv"
@@ -140,6 +157,46 @@
                     </div>
                 </div>
             </div>
+
+            @* Scheduled operation *@
+
+            <div class="form-group row mt-2">
+                <label for="scheduleOutputFormat" class="col-sm-3 col-form-label col-form-label-sm">Operation: </label>
+                <div class="col-sm-8">
+                    <div class="d-flex flex-wrap gap-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="operationEmail" @bind="scheduleToEmail">
+                            <label class="form-check-label" for="operationEmail">Email</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="operationArchive" @bind="reportScheduleInEdit.Archive">
+                            <label class="form-check-label" for="operationArchive">Archive</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Mail config *@
+
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H2019"))">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("complianceCheckMailRecipients")):</label>
+                <div class="col-sm-8" data-toggle="tooltip" title="@(userConfig.GetText("U5320"))">
+                    <input type="text" @bind="scheduleEmailRecipients" class="form-control form-control-sm"/>
+                </div>
+            </div>
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H2020"))">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("complianceCheckMailSubject")):</label>
+                <div class="col-sm-8">
+                    <input type="text" @bind="scheduleEmailSubject" class="form-control form-control-sm"/>
+                </div>
+            </div>
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H2021"))">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("complianceCheckMailBody")):</label>
+                <div class="col-sm-8">
+                    <textarea rows="6" cols="60" name="text" placeholder=@(userConfig.GetText("complianceCheckMailBody")) @bind="scheduleEmailBody" class="form-control form-control-sm"></textarea>
+                </div>
+            </div>
+
             <div class="form-group row mt-2">
                 <label for="scheduleActive" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("active")):</label>
                 <div class="col-sm-8" style="padding-top: calc(0.25rem + 1px);">
@@ -150,28 +207,23 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await (ShowAddReportScheduleDialog ? AddReportSchedule() : UpdateReportSchedule())">@(userConfig.GetText("save"))</button>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowEditReportScheduleDialog = ShowAddReportScheduleDialog = false">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await (ShowAddReportScheduleDialog ? AddReportSchedule() : UpdateReportSchedule())">
+                @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowEditReportScheduleDialog = ShowAddReportScheduleDialog = false">
+                @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>
 </PopUp>
 
-<PopUp Title="Report Schedule" Size=PopupSize.Small Show="@ShowDeleteReportScheduleDialog">
-    <Body>
-        <p>@(userConfig.GetText("U2002")) "@reportScheduleInEdit.Name" ?</p>
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-danger" @onclick="DeleteReportSchedule">@(userConfig.GetText("delete"))</button>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowDeleteReportScheduleDialog = false">@(userConfig.GetText("cancel"))</button>
-        </div>
-    </Footer>
-</PopUp>
+<ConfirmDelete @bind-Display="ShowDeleteReportScheduleDialog" PerformAction="DeleteReportSchedule"
+    Title="@(userConfig.GetText("report_schedule"))" DeleteMessage="@(userConfig.GetText("U2002") + " \"" + reportScheduleInEdit.Name + "\" ?")"
+    AllowedRoles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")" />
 
 @code
 {
     private GraphQlApiSubscription<List<ReportSchedule>>? reportSchedulesSubscription;
-    private List<ReportSchedule> reportSchedules = new ();
+    private List<ReportSchedule> reportSchedules = [];
+    private List<ReportSchedule> visibleReportSchedules => FilterVisibleReportSchedules(reportSchedules);
     private ReportSchedule reportScheduleInEdit = new ();
     private DateTime actDate = DateTime.Today;
     private DateTime actTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
@@ -189,36 +241,36 @@
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
-    private AuthenticationState? authenticationState;
     private List<FwoOwner> modOwnerList = [];
-    private bool showRuleRelatedReports => authenticationStateTask!.Result.User.IsInRole(Roles.Reporter)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.ReporterViewAll)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
-    private bool showModellingReports => authenticationStateTask!.Result.User.IsInRole(Roles.Modeller)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
+    private ReportVisibility reportVisibility => userConfig.GetReportVisibility();
 
+    private bool scheduleToEmail;
+    private string scheduleEmailRecipients = "";
+    private string scheduleEmailSubject = "";
+    private string scheduleEmailBody = "";
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             uiUserDbId = userConfig.User.DbId;
-            if(showModellingReports)
+
+            if(reportVisibility.ModellingRelated)
             {
-                modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
+                modOwnerList = await apiConnection.RunWithModellingRole(authenticationStateTask!.Result.User,
+                    async () => await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection, DisplayMessageInUi));
             }
 
             // Initial fetch to speed up loading before subscription is established
-            reportSchedules = (await apiConnection.SendQueryAsync<List<ReportSchedule>>(ReportQueries.getReportSchedules));
+            reportSchedules = await apiConnection.SendQueryAsync<List<ReportSchedule>>(ReportQueries.getReportSchedules);
             reportSchedulesSubscription = apiConnection.GetSubscription<List<ReportSchedule>>(HandleSubscriptionError, OnReportScheduleUpdate, ReportQueries.subscribeReportScheduleChanges);
             reportTemplates = await apiConnection.SendQueryAsync<List<ReportTemplate>>(ReportQueries.getReportTemplates, new { userId = uiUserDbId });
-            reportTemplates = reportTemplates.Where(rt => (showRuleRelatedReports && ((ReportType)rt.ReportParams.ReportType).IsDeviceRelatedReport() || 
-                                                           showModellingReports && ((ReportType)rt.ReportParams.ReportType).IsModellingReport() &&
-                                                           modOwnerList.FirstOrDefault(o => o.Id == rt.ReportParams.ModellingFilter.SelectedOwner.Id) != null)).ToList();
-            authenticationState = await authenticationStateTask!;
+            reportTemplates = reportTemplates.Where(rt =>
+            {
+                ReportType reportType = (ReportType)rt.ReportParams.ReportType;
+                bool modellingOwnerAllowed = modOwnerList.FirstOrDefault(o => o.Id == rt.ReportParams.ModellingFilter.SelectedOwner.Id) != null;
+                return userConfig.CanUseReportType(reportType, modellingOwnerAllowed);
+            }).ToList();
         }
         catch (Exception exception)
         {
@@ -226,9 +278,35 @@
         }
     }
 
+    private async Task OnAddReportScheduleButtonClick()
+    {
+        reportScheduleInEdit = new ReportSchedule()
+        {
+            RepeatInterval = SchedulerInterval.Never,
+            Archive = false,
+            ScheduleOwningUser = new UiUser
+            {
+                DbId = userConfig.User.DbId,
+                Name = userConfig.User.Name
+            }
+        };
+        ResetScheduleNotificationSettings();
+        ShowAddReportScheduleDialog = true;
+    }
+
+    private async Task OnEditReportScheduleButtonClick(ReportSchedule context)
+    {
+        reportScheduleInEdit = context; 
+        actDate = actTime = context.StartTime;
+        LoadScheduleNotificationSettings(context);
+
+        ShowEditReportScheduleDialog = true; 
+    }
+
     private async void HandleSubscriptionError(Exception exception)
     {
-        await InvokeAsync(() => DisplayMessageInUi(exception, userConfig.GetText("schedule_tile"), userConfig.GetText("schedule_upd_err_msg"), true));
+        await InvokeAsync(() => GraphqlSubscriptionExceptionHandler.Handle(exception,
+            () => DisplayMessageInUi(exception, userConfig.GetText("schedule_tile"), userConfig.GetText("schedule_upd_err_msg"), true)));
     }
 
     private async void OnReportScheduleUpdate(List<ReportSchedule> newReportSchedules)
@@ -240,16 +318,9 @@
 
     private async Task AddReportSchedule()
     {
+        bool scheduleSaved = false;
         try
         {
-            //$report_schedule_name: String!
-            //$report_schedule_owner_id: Int!
-            //$report_schedule_template_id: Int!
-            //$report_schedule_start_time: timestamp!
-            //$report_schedule_repeat: Int! # 0 do not repeat, 2 daily, 2 weekly, 3 monthly, 4 yearly
-            //$report_schedule_every: Int! # every x days/weeks/months/years
-            //$report_schedule_active: Boolean!
-
             reportScheduleInEdit.StartTime = actDate.Date.Add(actTime.TimeOfDay);
             if (reportScheduleInEdit.Sanitize())
             {
@@ -267,15 +338,30 @@
                     report_schedule_repeat = reportScheduleInEdit.RepeatOffset,
                     report_schedule_every = (int)reportScheduleInEdit.RepeatInterval,
                     report_schedule_active = reportScheduleInEdit.Active,
+                    archive = reportScheduleInEdit.Archive,
                     report_schedule_formats = new { data = reportScheduleInEdit.OutputFormat }
                 };
-                reportScheduleInEdit.Id = (await apiConnection.SendQueryAsync<NewReturning>(ReportQueries.addReportSchedule, queryVariablesReportSchedule)).ReturnIds[0].NewId;
+
+                ReturnIdWrapper response = await apiConnection.SendQueryAsync<ReturnIdWrapper>(ReportQueries.addReportSchedule, queryVariablesReportSchedule);
+                reportScheduleInEdit.Id = response.ReturnIds![0].NewId;
+                scheduleSaved = true;
+                reportScheduleInEdit.ScheduleOwningUser.DbId = uiUserDbId;
+                reportScheduleInEdit.ScheduleOwningUser.Name = userConfig.User.Name;
+                if (scheduleToEmail)
+                {
+                    reportScheduleInEdit.Notifications = await ReportScheduleNotificationHelper.CreateNotifications(apiConnection, reportScheduleInEdit,
+                        scheduleEmailRecipients, scheduleEmailSubject, scheduleEmailBody);
+                }
 
                 ShowAddReportScheduleDialog = false;
             }
         }
         catch (Exception exception)
         {
+            if (scheduleSaved)
+            {
+                await TryDeleteScheduleAfterFailedAdd();
+            }
             Log.WriteError("Save scheduled report", "Unclassified error.", exception);
             DisplayMessageInUi(exception, userConfig.GetText("save_scheduled_report"), "", false);
         }
@@ -302,12 +388,23 @@
                     report_schedule_repeat = reportScheduleInEdit.RepeatOffset,
                     report_schedule_every = (int)reportScheduleInEdit.RepeatInterval,
                     report_schedule_active = reportScheduleInEdit.Active,
+                    archive = reportScheduleInEdit.Archive,
                     report_schedule_format_names = reportScheduleInEdit.OutputFormat.ConvertAll(format => format.Name),
                     report_schedule_format_rel = reportScheduleInEdit.OutputFormat.ConvertAll(format =>
                     new { report_schedule_format_name = format.Name, report_schedule_id = reportScheduleInEdit.Id })
                 };
 
                 await apiConnection.SendQueryAsync<object>(ReportQueries.editReportSchedule, queryVariables);
+                try
+                {
+                    await SyncScheduleNotifications();
+                }
+                catch (Exception exception)
+                {
+                    Log.WriteError("Edit scheduled report", "Report schedule updated, but notifications could not be synchronized.", exception);
+                    DisplayMessageInUi(exception, userConfig.GetText("edit_scheduled_report"), userConfig.GetText("E2002"), false);
+                    return;
+                }
 
                 ShowEditReportScheduleDialog = false;
             }
@@ -329,6 +426,7 @@
             };
 
             await apiConnection.SendQueryAsync<object>(ReportQueries.deleteReportSchedule, queryVariables);
+            ResetScheduleNotificationSettings();
 
             ShowDeleteReportScheduleDialog = false;
         }
@@ -336,6 +434,25 @@
         {
             Log.WriteError("Delete scheduled report", "Unclassified error.", exception);
             DisplayMessageInUi(exception, userConfig.GetText("delete_scheduled_report"), "", false);
+        }
+    }
+
+    /// <summary>
+    /// Removes a newly created schedule again if notification creation failed afterwards.
+    /// </summary>
+    private async Task TryDeleteScheduleAfterFailedAdd()
+    {
+        try
+        {
+            await apiConnection.SendQueryAsync<object>(ReportQueries.deleteReportSchedule, new
+            {
+                report_schedule_id = reportScheduleInEdit.Id
+            });
+            reportScheduleInEdit.Id = 0;
+        }
+        catch (Exception rollbackException)
+        {
+            Log.WriteError("Save scheduled report", "Rollback of newly created schedule failed after notification error.", rollbackException);
         }
     }
 
@@ -347,6 +464,78 @@
             return false;
         }
         return true;
+    }
+
+    private ReportType GetReportType()
+    {
+        if (reportScheduleInEdit.Template?.ReportParams?.ReportType != null)
+        {
+            return (ReportType)reportScheduleInEdit.Template.ReportParams.ReportType;
+        }
+
+        return ReportType.Undefined;
+    }
+
+    private bool CsvAvailableForSchedule()
+    {
+        ReportType reportType = GetReportType();
+        return reportType.SupportsCsvExport(reportScheduleInEdit.Template?.ReportParams?.WorkflowFilter.DetailedView == true);
+    }
+
+    /// <summary>
+    /// Determines whether HTML export is available for the selected schedule template.
+    /// </summary>
+    private bool HtmlAvailableForSchedule()
+    {
+        return GetReportType().SupportsHtmlExport();
+    }
+
+    /// <summary>
+    /// Determines whether PDF export is available for the selected schedule template.
+    /// </summary>
+    private bool PdfAvailableForSchedule()
+    {
+        return GetReportType().SupportsPdfExport();
+    }
+
+    private void LoadScheduleNotificationSettings(ReportSchedule schedule)
+    {
+        FwoNotification? notification = schedule.Notifications.FirstOrDefault();
+        scheduleToEmail = notification != null;
+        scheduleEmailRecipients = notification?.EmailAddressTo ?? "";
+        scheduleEmailSubject = notification?.EmailSubject ?? "";
+        scheduleEmailBody = notification?.EmailBody ?? "";
+    }
+
+    private async Task SyncScheduleNotifications()
+    {
+        if (!scheduleToEmail)
+        {
+            await ReportScheduleNotificationHelper.DeleteNotifications(apiConnection, reportScheduleInEdit.Notifications);
+            reportScheduleInEdit.Notifications = [];
+            return;
+        }
+
+        reportScheduleInEdit.Notifications = await ReportScheduleNotificationHelper.SyncNotifications(apiConnection, reportScheduleInEdit,
+            scheduleToEmail, scheduleEmailRecipients, scheduleEmailSubject, scheduleEmailBody);
+    }
+
+    private void ResetScheduleNotificationSettings()
+    {
+        scheduleToEmail = false;
+        scheduleEmailRecipients = "";
+        scheduleEmailSubject = "";
+        scheduleEmailBody = "";
+    }
+
+    private List<ReportSchedule> FilterVisibleReportSchedules(List<ReportSchedule> schedules)
+    {
+        if (userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor, Roles.FwAdmin, Roles.ReporterViewAll))
+        {
+            return schedules;
+        }
+
+        return [.. schedules.Where(schedule => schedule.ScheduleOwningUser.DbId == uiUserDbId)];
     }
 
     public void Dispose()

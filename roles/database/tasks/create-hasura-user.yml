@@ -1,0 +1,75 @@
+- name: check for Hasura database user password file
+  stat:
+    path: "{{ api_user_password_file }}"
+  register: api_user_password_file_check
+  become: true
+
+- name: read existing Hasura database user password
+  slurp:
+    src: "{{ api_user_password_file }}"
+  register: existing_api_user_password
+  become: true
+  no_log: true
+  when: api_user_password_file_check.stat.exists
+
+- name: cache existing Hasura database user password
+  set_fact:
+    api_user_password: "{{ existing_api_user_password['content'] | b64decode | trim }}"
+  no_log: true
+  when: api_user_password_file_check.stat.exists
+
+- name: set Hasura database user password randomly
+  set_fact:
+    api_user_password: "{{ randomly_generated_pwd }}"
+  no_log: true
+  when: not api_user_password_file_check.stat.exists
+
+- name: write Hasura database user password to secrets directory
+  copy:
+    content: "{{ api_user_password }}\n"
+    dest: "{{ api_user_password_file }}"
+    mode: '0600'
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+  become: true
+  no_log: true
+  when: not api_user_password_file_check.stat.exists
+
+- block:
+
+  - name: create postgres user "{{ api_user }}"
+    postgresql_user:
+      name: "{{ api_user }}"
+      password: "{{ api_user_password }}"
+      encrypted: true
+      role_attr_flags: LOGIN,NOSUPERUSER,INHERIT,NOCREATEDB,NOCREATEROLE
+    no_log: true
+
+  - name: grant Hasura database user full access inside "{{ fworch_db_name }}"
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: |
+        GRANT CONNECT, TEMPORARY, CREATE ON DATABASE "{{ fworch_db_name }}" TO "{{ api_user }}";
+        DO $$
+        DECLARE
+            SchemaName text;
+        BEGIN
+            FOR SchemaName IN
+                SELECT nspname
+                FROM pg_namespace
+                WHERE nspname NOT LIKE 'pg_%'
+                  AND nspname <> 'information_schema'
+            LOOP
+                EXECUTE format('GRANT ALL PRIVILEGES ON SCHEMA %I TO %I;', SchemaName, '{{ api_user }}');
+                EXECUTE format('GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA %I TO %I;', SchemaName, '{{ api_user }}');
+                EXECUTE format('GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA %I TO %I;', SchemaName, '{{ api_user }}');
+                EXECUTE format('GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA %I TO %I;', SchemaName, '{{ api_user }}');
+                EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA %I GRANT ALL PRIVILEGES ON TABLES TO %I;', SchemaName, '{{ api_user }}');
+                EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA %I GRANT ALL PRIVILEGES ON SEQUENCES TO %I;', SchemaName, '{{ api_user }}');
+                EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA %I GRANT ALL PRIVILEGES ON FUNCTIONS TO %I;', SchemaName, '{{ api_user }}');
+            END LOOP;
+        END
+        $$;
+
+  become: true
+  become_user: postgres

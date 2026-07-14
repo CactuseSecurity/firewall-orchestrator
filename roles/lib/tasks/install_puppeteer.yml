@@ -1,130 +1,327 @@
-- block:
-# install libs needed for nuget package PuppeteerSharp
-  - name: Define core packages
-    set_fact:
-      core_packages:
-        - ca-certificates
-        - fonts-liberation
-        - libappindicator3-1
-        - libatk-bridge2.0-0
-        - libatk1.0-0
-        - libcups2
-        - libdbus-1-3
-        - libdrm2
-        - libgbm1
-        - libnspr4
-        - libnss3
-        - libx11-xcb1
-        - libxcomposite1
-        - libxdamage1
-        - libxrandr2
-        - xdg-utils
+- name: include puppeteer dependency tasks for current OS family
+  include_tasks: "os/install_puppeteer.{{ ansible_facts['os_family'] }}.yml"
 
-  - name: Define default platform-specific library names
-    set_fact:
-      glib_library: libglib2.0-0
-      sound_library: libasound2
-
-  - name: Define new library names based on newer OS versions
-    set_fact:
-      glib_library: libglib2.0-0t64
-      sound_library: libasound2t64
-    when: >
-      ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] | float >= 24.04
-      or ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_version'] | float >= 13
-      or ansible_facts['distribution'] == "Debian" and ansible_lsb.codename == "trixie"
-
-  - block: # only use apparmor for ubuntu 24.04ff
-    - name: Ensure the /etc/apparmor.d directory exists
-      file:
-        path: /etc/apparmor.d
-        state: directory
-        mode: '0755'
-
-    - name: Create /etc/apparmor.d/chrome-dev-builds for Chrome
-      copy:
-        dest: /etc/apparmor.d/chrome-dev-builds
-        content: |
-          abi <abi/4.0>,
-          include <tunables/global>
-
-          profile /usr/local/bin/**/chrome flags=(unconfined) {
-              userns,
-
-              # Site-specific additions and overrides. See local/README for details.
-              # Include the local overrides only if the file exists.
-              # This is a common best practice to avoid parser errors.
-              include if exists <local/chrome>
-          }
-        mode: '0644'
-      notify:
-        - Reload and Restart AppArmor
-
-    when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] | float >= 24.04
-
-  - name: Install additional libraries for old Debian 11
-    apt:
-      name:
-        - libpangocairo-1.0-0
-        - libpangoft2-1.0-0
-      state: present
-      update_cache: yes
-    when: ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_version'] == "11"
-
-  - name: Combine all packages
-    set_fact:
-      platform_packages: "{{ core_packages + [sound_library, glib_library] }}"
-
-  - name: Install all combined dependencies
-    apt:
-      name: "{{ platform_packages }}"
-      state: present
-      update_cache: yes
-
+# prefer a headless chromium package from the configured (local) repos over downloading
+# chrome for testing - avoids internet downloads on hardened / proxy-restricted systems
+- name: try to install headless chromium package from configured repos
+  package:
+    name: "{{ chromium_headless_packages }}"
+    state: present
+  register: chromium_headless_install
+  failed_when: false
   become: true
   environment: "{{ proxy_env }}"
+  when: chromium_headless_packages | default([]) | length > 0
+
+- name: locate system chromium headless binary
+  stat:
+    path: "{{ item }}"
+  register: chromium_headless_stat
+  loop: "{{ chromium_headless_binary_candidates | default([]) }}"
+  become: true
+
+- name: record system chromium path (empty when none found)
+  set_fact:
+    system_chromium_path: >-
+      {{ chromium_headless_stat.results | default([])
+         | selectattr('stat', 'defined') | selectattr('stat.exists')
+         | map(attribute='item') | list | first | default('') }}
+
+- name: record whether system chromium is available
+  set_fact:
+    system_chromium_available: "{{ system_chromium_path | trim | length > 0 }}"
+
+- name: make sure {{ fworch_home }}/bin exists
+  file:
+    path: "{{ fworch_home }}/bin"
+    state: directory
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+    mode: "0755"
+  become: true
+  when: system_chromium_available
+
+- name: symlink system chromium to {{ fworch_home }}/bin/chromium-headless
+  file:
+    src: "{{ system_chromium_path | trim }}"
+    dest: "{{ fworch_home }}/bin/chromium-headless"
+    state: link
+  become: true
+  when: system_chromium_available
+
+- name: use system chromium instead of chrome download
+  debug:
+    msg: >-
+      Using system chromium at {{ system_chromium_path | trim }} -
+      skipping chrome for testing download.
+  when: system_chromium_available
 
 # get google chrome for pdf generation
-- name: get last known good versions of chrome to download
+- name: get last known good versions (primary)
   uri:
     url: https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json
-  register: chrome_versions
-
-- name: parse latest stable versions for chrome and headless shell
-  set_fact:
-    stable_chrome_versions: "{{ chrome_versions['json']['channels']['Stable']['downloads'] }}"
-    chrome_dest: "/usr/local/bin/Chrome/Linux-{{ chrome_versions['json']['channels']['Stable']['version'] }}"
-    headless_shell_dest: "/usr/local/bin/ChromeHeadlessShell/Linux-{{ chrome_versions['json']['channels']['Stable']['version'] }}"
-
-- block:
-  - name: install unzip
-    package:
-      name: unzip
-      state: present
-
-  - name: create chrome install path
-    file:
-      path: "{{ chrome_dest }}"
-      state: directory
-      mode: '0755'
-
-  - name: create chrome headless shell install path
-    file:
-      path: "{{ headless_shell_dest }}"
-      state: directory
-      mode: '0755'
-
-  - name: download google chrome and unpack
-    unarchive:
-      src: "{{ stable_chrome_versions['chrome'] | selectattr('platform', 'match', 'linux64') | map(attribute='url') | first }}"
-      dest: "{{ chrome_dest }}"
-      remote_src: yes
-
-  - name: download google chrome headless shell and unpack
-    unarchive:
-      src: "{{ stable_chrome_versions['chrome-headless-shell'] | selectattr('platform', 'match', 'linux64') | map(attribute='url') | first }}"
-      dest: "{{ headless_shell_dest }}"
-      remote_src: yes
-
-  become: true
+    return_content: true
+  register: chrome_versions_primary
+  failed_when: false
+  become: false
   environment: "{{ proxy_env }}"
+  when: not system_chromium_available
+
+- name: get last known good versions (github api raw)
+  uri:
+    url: https://api.github.com/repos/GoogleChromeLabs/chrome-for-testing/contents/data/last-known-good-versions-with-downloads.json?ref=main
+    headers:
+      Accept: application/vnd.github.v3.raw
+    return_content: true
+  register: chrome_versions_github_api
+  failed_when: false
+  become: false
+  environment: "{{ proxy_env }}"
+  when: not system_chromium_available
+
+- name: pick chrome metadata source (primary -> github api)
+  set_fact:
+    chrome_versions: >-
+      {{
+        chrome_versions_primary
+        if (chrome_versions_primary.status | default(-1)) == 200 else
+        chrome_versions_github_api
+      }}
+
+- name: record whether chrome metadata is available
+  set_fact:
+    chrome_metadata_available: "{{ (chrome_versions.status | default(-1)) == 200 }}"
+
+# Detect any currently installed Chrome before deciding whether the missing
+# metadata is fatal, so we can fall back to an existing install if present.
+- name: check if chrome is installed (via symlinked bin)
+  stat:
+    path: "{{ fworch_home }}/bin/chrome"
+  register: chrome_bin
+  become: true
+
+- name: verify existing chrome installation
+  command: "{{ fworch_home }}/bin/chrome --version"
+  register: installed_ver
+  changed_when: false
+  failed_when: false
+  become: true
+  when: chrome_bin.stat.exists
+
+- name: record whether existing chrome can run
+  set_fact:
+    chrome_existing_usable: "{{ chrome_bin.stat.exists and (installed_ver.rc | default(1) == 0) }}"
+
+- name: fail when no chrome metadata available and no existing chrome to fall back on
+  fail:
+    msg: >-
+      Could not fetch Chrome for Testing version metadata via primary URL or
+      GitHub API, and no existing Chrome installation or system chromium was
+      found to fall back on.
+  when: not chrome_metadata_available and not chrome_existing_usable and not system_chromium_available
+
+- name: keep existing chrome when metadata is unavailable
+  debug:
+    msg: >-
+      WARNING: Could not fetch Chrome for Testing version metadata; keeping the
+      already-installed Chrome at {{ fworch_home }}/bin/chrome and skipping the
+      version check/update.
+  when: not chrome_metadata_available and chrome_existing_usable and not system_chromium_available
+
+# Everything below depends on the fetched version metadata. Skip the whole
+# block when we are falling back to an already-installed Chrome.
+- block:
+    # Parse once, regardless of Content-Type
+    - name: normalize/parse JSON response
+      set_fact:
+        chrome_versions_parsed: >-
+          {{
+            chrome_versions.json
+            if (chrome_versions.json is defined)
+            else (chrome_versions.content | trim | from_json)
+          }}
+
+    # Pick the Stable channel (some users accidentally use 'stable', so be flexible)
+    - name: select Stable channel
+      set_fact:
+        chrome_for_testing_stable: "{{ chrome_versions_parsed.channels.Stable | default(chrome_versions_parsed.channels.stable) }}" # Chrome for Testing feed
+
+    # Base path for all Chrome installs
+    - name: set chrome root dir
+      set_fact:
+        chrome_root_dir: "/usr/local/fworch/bin/Chrome"
+
+    # Extract downloads + version from Stable
+    - name: parse latest stable versions for chrome #and headless shell
+      set_fact:
+        stable_chrome_versions: "{{ chrome_for_testing_stable.downloads }}"
+
+    # (Optional) sanity checks to fail early with a clear message
+    - name: validate parsed data
+      assert:
+        that:
+          - chrome_versions_parsed is mapping
+          - chrome_for_testing_stable is mapping
+          - chrome_for_testing_stable.version is defined
+          - chrome_for_testing_stable.downloads is defined
+        fail_msg: "Failed to parse Chrome for Testing JSON or locate the Stable channel."
+
+    - block:
+        - name: install unzip
+          package:
+            name: unzip
+            state: present
+
+        - name: ensure chrome root directory exists
+          file:
+            path: "{{ chrome_root_dir }}"
+            state: directory
+            mode: "0755"
+
+        # Figure out the target (remote) Chrome URL and MAJOR version
+        - name: set chrome URL and install path
+          set_fact:
+            chrome_url: >-
+              {{ stable_chrome_versions['chrome']
+                 | selectattr('platform', 'match', 'linux64')
+                 | map(attribute='url') | first }}
+            chrome_dest: "{{ chrome_root_dir }}/Linux-{{ chrome_for_testing_stable.version }}"
+
+        - name: set chrome archive path
+          set_fact:
+            chrome_archive: >-
+              {{ chrome_dest }}/{{ chrome_url | urlsplit('path') | basename }}
+
+        # If your data has an explicit 'version' attribute, prefer that.
+        # Otherwise, fall back to parsing the version from the URL.
+        - name: derive target chrome major version
+          set_fact:
+            target_version_full: >-
+              {{ (stable_chrome_versions['chrome']
+                  | selectattr('platform','match','linux64')
+                  | map(attribute='version') | first) | default('', true) }}
+            target_major_fallback: "{{ chrome_url | regex_search('\\d+') }}"
+        - name: finalize target major version
+          set_fact:
+            target_major: >-
+              {{ (target_version_full | regex_search('\\d+'))
+                 | default(target_major_fallback, true) | int }}
+
+        - name: parse installed major version (defaults to 0 when absent)
+          set_fact:
+            installed_major: >-
+              {{ (installed_ver.stdout | default('') | regex_search('\\d+'))
+                 | default(0, true) | int }}
+
+        - name: decide if update is needed (only on major bump)
+          set_fact:
+            chrome_major_update_needed: "{{ target_major != installed_major }}"
+
+        - name: check target chrome install path
+          stat:
+            path: "{{ chrome_dest }}"
+          register: chrome_target_dir
+          when: chrome_major_update_needed or (not chrome_existing_usable)
+
+        - name: create chrome install path
+          file:
+            path: "{{ chrome_dest }}"
+            state: directory
+            mode: "0755"
+          when: chrome_major_update_needed or (not chrome_existing_usable)
+
+        - name: check target chrome binary
+          stat:
+            path: "{{ chrome_dest }}/chrome-linux64/chrome"
+          register: chrome_target_bin
+          when: chrome_major_update_needed or (not chrome_existing_usable)
+
+        - block:
+            # Only download when the MAJOR version changed or Chrome isn't installed
+            - name: download google chrome archive (only on major change)
+              get_url:
+                url: "{{ chrome_url }}"
+                dest: "{{ chrome_archive }}"
+                mode: "0644"
+                force: no
+                timeout: 60
+              register: chrome_pkg
+              when: not chrome_target_bin.stat.exists
+
+            - name: unpack chrome when archive downloaded or target is missing
+              unarchive:
+                src: "{{ chrome_archive }}"
+                dest: "{{ chrome_dest }}"
+                remote_src: yes
+              when: (chrome_pkg is defined and chrome_pkg.changed) or not chrome_target_bin.stat.exists
+
+            - name: verify target chrome installation
+              command: "{{ chrome_dest }}/chrome-linux64/chrome --version"
+              changed_when: false
+
+            - name: create symlinks {{ chrome_dest }}/chrome-linux64 to {{ fworch_home }}/bin/*
+              file:
+                src: "{{ chrome_dest }}/chrome-linux64/{{ item }}"
+                dest: "{{ fworch_home }}/bin/{{ item }}"
+                state: link
+              loop:
+                - chrome
+                - chrome-wrapper
+                - chrome_crashpad_handler
+                - chrome_sandbox
+
+            - name: find existing chrome installations
+              find:
+                paths: "{{ chrome_root_dir }}"
+                file_type: directory
+                patterns: "Linux-*"
+                recurse: false
+              register: chrome_installs
+
+            - name: remove outdated chrome versions
+              file:
+                path: "{{ item.path }}"
+                state: absent
+              loop: "{{ chrome_installs.files | default([]) }}"
+              when: item.path != chrome_dest
+              loop_control:
+                label: "{{ item.path }}"
+
+          rescue:
+            - name: remove failed chrome archive
+              file:
+                path: "{{ chrome_archive }}"
+                state: absent
+
+            - name: remove failed chrome install path
+              file:
+                path: "{{ chrome_dest }}"
+                state: absent
+              when: not chrome_target_dir.stat.exists
+
+            - name: keep existing chrome when chrome archive download fails
+              debug:
+                msg: >-
+                  WARNING: Could not download, unpack, or verify Chrome for Testing; keeping the
+                  already-installed Chrome at {{ fworch_home }}/bin/chrome.
+              when: chrome_existing_usable
+
+            - name: fail when chrome download fails without an existing chrome
+              fail:
+                msg: >-
+                  Could not download, unpack, or verify Chrome for Testing, and no existing
+                  Chrome installation was found to fall back on.
+              when: not chrome_existing_usable
+
+          when: chrome_major_update_needed or (not chrome_existing_usable)
+
+        - name: add {{ fworch_home }}/bin to every users path
+          copy:
+            dest: /etc/profile.d/custom_path.sh
+            content: 'export PATH="{{ fworch_home }}/bin:$PATH"'
+            mode: "0644"
+
+      become: true
+      environment: "{{ proxy_env }}"
+
+  when: chrome_metadata_available

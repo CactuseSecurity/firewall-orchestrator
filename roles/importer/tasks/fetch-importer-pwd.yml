@@ -1,7 +1,14 @@
 
-- name: write importer_password from install host to secrets directory
+- name: read importer_password from middleware host
+  slurp:
+    src: "{{ importer_password_file }}"
+  register: importer_password_slurp
+  delegate_to: "{{ groups['middlewareserver'][0] }}"
+  become: true
+
+- name: write importer_password to secrets directory
   copy:
-    src: "{{ importer_password_file_on_installer }}"
+    content: "{{ importer_password_slurp.content | b64decode }}"
     dest: "{{ importer_password_file }}"
     mode: '0600'
     owner: "{{ fworch_user }}"

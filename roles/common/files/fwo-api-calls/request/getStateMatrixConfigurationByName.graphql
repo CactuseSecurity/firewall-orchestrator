@@ -1,0 +1,7 @@
+query getStateMatrixConfigurationByName($taskType: String!, $configurationName: String!) {
+  workflow_configurations: request_workflow_configuration(
+    where: {name: {_eq: $configurationName}}
+  ) {
+    ...stateMatrixConfigurationDetails
+  }
+}

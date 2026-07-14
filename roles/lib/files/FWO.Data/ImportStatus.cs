@@ -1,0 +1,87 @@
+using System.Text.Json.Serialization;
+using Newtonsoft.Json;
+
+namespace FWO.Data
+{
+    public class ImportControl
+    {
+        [JsonProperty("control_id"), JsonPropertyName("control_id")]
+        public long ControlId { get; set; }
+
+        [JsonProperty("mgm_id"), JsonPropertyName("mgm_id")]
+        public int? MgmId { get; set; }
+
+        [JsonProperty("start_time"), JsonPropertyName("start_time")]
+        public DateTime? StartTime { get; set; }
+
+        [JsonProperty("stop_time"), JsonPropertyName("stop_time")]
+        public DateTime? StopTime { get; set; }
+
+        [JsonProperty("successful_import"), JsonPropertyName("successful_import")]
+        public bool SuccessfulImport { get; set; }
+
+        [JsonProperty("import_errors"), JsonPropertyName("import_errors")]
+        public string? ImportErrors { get; set; }
+
+        [JsonProperty("import_type_id"), JsonPropertyName("import_type_id")]
+        public int? ImportTypeId { get; set; }
+
+        [JsonProperty("rule_owner_mapping_done"), JsonPropertyName("rule_owner_mapping_done")]
+        public bool RuleOwnerMappingDone { get; set; }
+
+        [JsonProperty("changes_found"), JsonPropertyName("changes_found")]
+        public bool ChangesFound { get; set; }
+
+        [JsonProperty("flow_sync_done"), JsonPropertyName("flow_sync_done")]
+        public bool FlowSyncDone { get; set; }
+    }
+
+    public class ImportStatus
+    {
+        [JsonProperty("mgm_id"), JsonPropertyName("mgm_id")]
+        public int MgmId { get; set; }
+
+        [JsonProperty("mgm_name"), JsonPropertyName("mgm_name")]
+        public string MgmName { get; set; } = "";
+
+        [JsonProperty("importDisabled"), JsonPropertyName("importDisabled")]
+        public bool ImportDisabled { get; set; }
+
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public bool ImportEnabled => !ImportDisabled;
+
+        [JsonProperty("last_import_attempt"), JsonPropertyName("last_import_attempt")]
+        public DateTime? LastImportAttempt { get; set; }
+
+        [JsonProperty("last_import_attempt_successful"), JsonPropertyName("last_import_attempt_successful")]
+        public bool LastImportAttemptSuccessful { get; set; }
+
+        public int SortPrio = 0;
+
+        [JsonProperty("deviceType"), JsonPropertyName("deviceType")]
+        public DeviceType DeviceType { get; set; } = new DeviceType();
+
+        [JsonProperty("last_import"), JsonPropertyName("last_import")]
+        public ImportControl[]? LastImport { get; set; }
+
+        [JsonProperty("last_successful_import"), JsonPropertyName("last_successful_import")]
+        public ImportControl[]? LastSuccessfulImport { get; set; }
+
+        [JsonProperty("last_incomplete_import"), JsonPropertyName("last_incomplete_import")]
+        public ImportControl[]? LastIncompleteImport { get; set; }
+
+        [JsonProperty("first_import"), JsonPropertyName("first_import")]
+        public ImportControl[]? FirstImport { get; set; }
+
+        [JsonProperty("erroneous_imports"), JsonPropertyName("erroneous_imports")]
+        public ImportControl[]? ErroneousImports { get; set; }
+
+        public int ErrorCount = 0;
+    }
+
+    public class InsertImportControl
+    {
+        [JsonProperty("returning"), JsonPropertyName("returning")]
+        public List<ImportControl> Returning { get; set; } = new();
+    }
+}

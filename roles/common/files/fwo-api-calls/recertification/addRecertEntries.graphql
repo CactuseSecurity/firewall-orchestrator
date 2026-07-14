@@ -1,0 +1,9 @@
+mutation addRecertEntries($recerts:[recertification_insert_input!]!) {
+  insert_recertification(
+    objects: $recerts
+  ) {
+    returning {
+      newIdLong: id
+    }
+  }
+}

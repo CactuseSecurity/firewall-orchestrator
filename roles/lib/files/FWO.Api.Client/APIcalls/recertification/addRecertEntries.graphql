@@ -1,9 +1,0 @@
-mutation addOpenRecerts($recerts:[recertification_insert_input!]!) {
-  insert_recertification(
-    objects: $recerts
-  ) {
-    returning {
-      id
-    }
-  }
-}

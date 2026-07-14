@@ -1,0 +1,81 @@
+# Browser smoke test for UI ambient role coverage.
+# Enable with run_ui_ambient_role_smoke=true.
+
+- block:
+
+  - name: set ambient role smoke test directory
+    set_fact:
+      ui_ambient_role_smoke_dir: "/tmp/fworch-ambient-role-smoke"
+      ui_ambient_role_smoke_browser_executable: "{{ fworch_home }}/bin/chrome"
+
+  - name: copy ambient role smoke tests
+    copy:
+      src: ui/ambient_role_smoke/
+      dest: "{{ ui_ambient_role_smoke_dir }}/"
+      mode: "0644"
+
+  - name: check ambient role smoke browser executable
+    stat:
+      path: "{{ ui_ambient_role_smoke_browser_executable }}"
+    register: ui_ambient_role_smoke_browser
+
+  - name: fail when ambient role smoke browser executable is missing
+    fail:
+      msg: >
+        UI ambient role smoke tests require the Chrome executable installed by
+        the lib role at {{ ui_ambient_role_smoke_browser_executable }}.
+        Run the frontend/lib installation before running this smoke test.
+    when: not ui_ambient_role_smoke_browser.stat.exists
+
+  - block:
+
+    - name: run ambient role smoke tests
+      command: "dotnet test {{ ui_ambient_role_smoke_dir }}/FWO.Ui.AmbientRoleSmoke.csproj --configuration Debug --nologo"
+      register: ui_ambient_role_smoke_result
+      changed_when: false
+      environment: >-
+        {{
+          proxy_env | combine({
+            'FWO_UI_BROWSER_EXECUTABLE': ui_ambient_role_smoke_browser_executable,
+            'FWO_UI_BASE_URL': 'https://' ~ ui_hostname ~ '/',
+            'FWO_UI_USERNAME': ui_ambient_role_smoke_username | default('user1' ~ test_postfix),
+            'FWO_UI_PASSWORD': ui_ambient_role_smoke_password | default(test_user1_pw),
+            'FWO_UI_ROUTES': ui_ambient_role_smoke_routes | default('/settings/user,/settings/language,/settings/report,/settings/modellingpersonal,/settings/recertificationpersonal,/report/generation,/report/archive,/networkmodelling,/certification'),
+            'FWO_UI_HEADLESS': ui_ambient_role_smoke_headless | default('true'),
+            'FWO_UI_IGNORE_HTTPS_ERRORS': ui_ambient_role_smoke_ignore_https_errors | default('true'),
+            'FWO_UI_TIMEOUT_MS': ui_ambient_role_smoke_timeout_ms | default('30000')
+          })
+        }}
+
+    rescue:
+
+    - name: get ui service status after ambient role smoke failure
+      command: "systemctl status {{ ui_service_name }} --no-pager -l"
+      register: ui_ambient_role_smoke_service_status
+      changed_when: false
+      failed_when: false
+      become: true
+
+    - name: get ui service journal after ambient role smoke failure
+      command: "journalctl -u {{ ui_service_name }} --no-pager -n 200"
+      register: ui_ambient_role_smoke_service_journal
+      changed_when: false
+      failed_when: false
+      become: true
+
+    - name: fail ambient role smoke tests with diagnostics
+      fail:
+        msg:
+          - "UI ambient role smoke tests failed."
+          - "dotnet test stdout:"
+          - "{{ ui_ambient_role_smoke_result.stdout_lines | default(ansible_failed_result.stdout_lines | default([])) }}"
+          - "dotnet test stderr:"
+          - "{{ ui_ambient_role_smoke_result.stderr_lines | default(ansible_failed_result.stderr_lines | default([])) }}"
+          - "systemctl status {{ ui_service_name }}:"
+          - "{{ ui_ambient_role_smoke_service_status.stdout_lines | default([]) }}"
+          - "journalctl -u {{ ui_service_name }} -n 200:"
+          - "{{ ui_ambient_role_smoke_service_journal.stdout_lines | default([]) }}"
+
+  when:
+    - "'frontends' in group_names"
+    - run_ui_ambient_role_smoke | default(false) | bool

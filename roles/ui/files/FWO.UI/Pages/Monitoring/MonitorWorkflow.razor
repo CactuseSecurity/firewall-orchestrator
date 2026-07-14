@@ -1,0 +1,434 @@
+@using FWO.Data.Workflow
+@using FWO.Middleware.Client
+@using FWO.Services.Workflow
+@using FWO.Ui.Pages.Reporting.Reports
+@using System.Text.Json
+
+@page "/monitoring/workflow"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
+
+@inject ApiConnection apiConnection
+@inject MiddlewareClient middlewareClient
+@inject UserConfig userConfig
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("workflow")) @(userConfig.GetText("tickets"))</h3>
+    <HelpLink Page="monitoring/workflow" />
+</div>
+<hr />
+
+@if (!InitComplete)
+{
+    <Loading />
+}
+else
+{
+    <div class="row g-2 align-items-end mb-3">
+        <div class="row col-sm-4">
+            <label class="form-label col-sm-3">@(userConfig.GetText("task_type"))</label>
+            <div class="col-sm-6">
+                <Dropdown ElementType="WfTaskType?" SelectedElements="SelectedTaskTypesForUi" SelectedElementsChanged="TaskTypesChanged"
+                          ElementToString="TaskTypeToString" Elements="availableTaskTypes" Multiselect="true" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
+                    <ElementTemplate>
+                        @(TaskTypeToString(context))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+        <div class="row col-sm-4">
+            <label class="form-label col-sm-3">@(userConfig.GetText("state"))</label>
+            <div class="col-sm-6">
+                <Dropdown ElementType="int?" SelectedElements="SelectedStateIdsForUi" SelectedElementsChanged="StateIdsChanged"
+                          ElementToString="@(stateId => StateIdToString(stateId))" Elements="availableStateIds" Multiselect="true" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
+                    <ElementTemplate>
+                        @(StateIdToString(context))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+        <div class="col-sm-2">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="RefreshTickets">@(DisplayService.DisplayButton(userConfig, "refresh", Icons.Refresh))</button>
+        </div>
+    </div>
+
+    @if (tickets.Count == 0)
+    {
+        <div>@(userConfig.GetText("no_workflow_tickets"))</div>
+    }
+    else
+    {
+        <div class="vheight75">
+            <PageSizeComponent PageSize="@PageSize" PageSizeCallback="UpdatePageSize"></PageSizeComponent>
+            <div class="btn-group mb-2">
+                <button type="button" class="btn btn-sm btn-secondary" disabled="@(CurrentPage == 0)" @onclick="PreviousPage">&lt;</button>
+                <button type="button" class="btn btn-sm btn-secondary" disabled>@(CurrentPage + 1)</button>
+                <button type="button" class="btn btn-sm btn-secondary" disabled="@(!HasNextPage)" @onclick="NextPage">&gt;</button>
+            </div>
+            <ReportedTickets Tickets="tickets" StateNames="StateNames" SelectedReportType="ReportType.TicketReport"
+                             DetailedView="true" ShowFullTicket="true" TaskTypes="SelectedTaskTypes" ShowStateChangeButtons="true"
+                             SortDescendingById="true"
+                             ChangeTicketState="OpenTicketStateChange" ChangeReqTaskState="OpenReqTaskStateChange"
+                             ChangeImplTaskState="OpenImplTaskStateChange" ChangeApprovalState="OpenApprovalStateChange"
+                             CanAutoCreateImplementationTasks="@((ticket, reqTask) => wfHandler.CanAutoCreateInitialImplTasks(ticket, reqTask))"
+                             AutoCreateImplementationTasks="AutoCreateImplementationTasks" />
+        </div>
+    }
+}
+
+<MonitorWorkflowStateChangePopup Display="showStateDialog" ObjectName="@selectedObjectName"
+                                 @bind-TargetStateId="selectedTargetStateId" @bind-StateChangeMode="selectedStateChangeMode"
+                                 AvailableTargetStateIds="availableTargetStateIds" StateNames="StateNames"
+                                 ApplyStateChange="ApplyStateChange" CloseStateDialog="CloseStateDialog" />
+<Confirm @bind-Display="ConfirmAutoCreateImplTasksDisplay" PerformAction="ConfirmAutoCreateImplementationTasks"
+         Title="@(userConfig.GetText("auto_create_impltasks"))" Message="@autoCreateImplTasksConfirmMessage"
+         AllowedRoles="@Roles.Admin" />
+<InProgress Display="WorkInProgress" />
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    private List<WfTicket> tickets = [];
+    private List<WfTaskType> availableRealTaskTypes = [];
+    private List<WfTaskType?> availableTaskTypes => [null, .. availableRealTaskTypes.Cast<WfTaskType?>()];
+    private List<WfTaskType> SelectedTaskTypes { get; set; } = [];
+    private IEnumerable<WfTaskType?> SelectedTaskTypesForUi { get; set; } = [];
+    private List<WfState> allStates = [];
+    private List<int?> availableStateIds => [null, .. allStates.Select(state => (int?)state.Id)];
+    private List<int> SelectedStateIds { get; set; } = [];
+    private IEnumerable<int?> SelectedStateIdsForUi { get; set; } = [];
+    private WfHandler wfHandler = new();
+    private bool InitComplete;
+    private const int kDefaultPageSize = 20;
+    private bool showStateDialog;
+    private bool ConfirmAutoCreateImplTasksDisplay { get; set; }
+    private bool WorkInProgress { get; set; }
+    private int selectedTargetStateId;
+    private MonitoringStateChangeMode selectedStateChangeMode;
+    private WfTicket? selectedTicket;
+    private WfReqTask? selectedReqTask;
+    private WfImplTask? selectedImplTask;
+    private WfApproval? selectedApproval;
+    private WfTicket? selectedAutoCreateTicket;
+    private WfReqTask? selectedAutoCreateReqTask;
+    private WfObjectScopes selectedScope = WfObjectScopes.None;
+    private string selectedObjectName = "";
+    private string autoCreateImplTasksConfirmMessage = "";
+    private List<int> availableTargetStateIds => [.. allStates.Select(state => state.Id)];
+    private Dictionary<int, string> StateNames { get; set; } = [];
+    private int PageSize { get; set; } = kDefaultPageSize;
+    private int CurrentPage { get; set; }
+    private bool HasNextPage { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            availableRealTaskTypes = JsonSerializer.Deserialize<List<WfTaskType>>(userConfig.ReqAvailableTaskTypes,
+                new JsonSerializerOptions { Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() } }) ?? [];
+            availableRealTaskTypes = [.. availableRealTaskTypes.Where(taskType => taskType != WfTaskType.master)];
+            SelectedTaskTypes = [.. availableRealTaskTypes];
+            SelectedTaskTypesForUi = [];
+            allStates = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
+            StateNames = allStates.ToDictionary(state => state.Id, state => state.Name);
+
+            await LoadTickets();
+            InitComplete = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
+            InitComplete = true;
+        }
+    }
+
+    private async Task LoadTickets()
+    {
+        if (authenticationStateTask == null)
+        {
+            return;
+        }
+
+        wfHandler = new(DisplayMessageInUi, userConfig, authenticationStateTask.Result.User, apiConnection, middlewareClient,
+            WorkflowPhases.request, null);
+        await wfHandler.Init(false, null, true, true);
+        await FetchTicketPage();
+    }
+
+    private async Task RefreshTickets()
+    {
+        try
+        {
+            WorkInProgress = true;
+            StateHasChanged();
+            await LoadTickets();
+        }
+        finally
+        {
+            WorkInProgress = false;
+        }
+    }
+
+    private string TaskTypeToString(WfTaskType? taskType)
+    {
+        return taskType == null ? userConfig.GetText("all") : userConfig.GetText(taskType.ToString() ?? "");
+    }
+
+    private string StateIdToString(int? stateId)
+    {
+        if (stateId == null)
+        {
+            return userConfig.GetText("all");
+        }
+        if (StateNames.TryGetValue((int)stateId, out string? stateName))
+        {
+            return stateName;
+        }
+        return stateId.ToString() ?? "";
+    }
+
+    private Task TaskTypesChanged(IEnumerable<WfTaskType?> taskTypes)
+    {
+        List<WfTaskType?> taskTypeList = taskTypes.ToList();
+        SelectedTaskTypes = taskTypeList.Count == 0 || taskTypeList.Contains(null)
+            ? [.. availableRealTaskTypes]
+            : [.. taskTypeList.Where(taskType => taskType.HasValue).Select(taskType => taskType!.Value)];
+        SelectedTaskTypesForUi = SelectedTaskTypes.Count == availableRealTaskTypes.Count ? [] : [.. SelectedTaskTypes.Cast<WfTaskType?>()];
+        CurrentPage = 0;
+        return FetchTicketPage();
+    }
+
+    private Task StateIdsChanged(IEnumerable<int?> stateIds)
+    {
+        List<int?> stateIdList = stateIds.ToList();
+        SelectedStateIds = stateIdList.Count == 0 || stateIdList.Contains(null)
+            ? []
+            : [.. stateIdList.Where(stateId => stateId.HasValue).Select(stateId => stateId!.Value)];
+        SelectedStateIdsForUi = SelectedStateIds.Count == 0 ? [] : [.. SelectedStateIds.Select(stateId => (int?)stateId)];
+        CurrentPage = 0;
+        return FetchTicketPage();
+    }
+
+    private async Task UpdatePageSize(int pageSize)
+    {
+        PageSize = pageSize > 0 ? pageSize : kDefaultPageSize;
+        CurrentPage = 0;
+        await FetchTicketPage();
+    }
+
+    private async Task PreviousPage()
+    {
+        if (CurrentPage > 0)
+        {
+            CurrentPage--;
+            await FetchTicketPage();
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (HasNextPage)
+        {
+            CurrentPage++;
+            await FetchTicketPage();
+        }
+    }
+
+    private async Task FetchTicketPage()
+    {
+        try
+        {
+            int fetchLimit = PageSize + 1;
+            var variables = new
+            {
+                limit = fetchLimit,
+                // Offset pagination is acceptable here for admin monitoring; rows can shift if workflow tickets change between page loads.
+                offset = CurrentPage * PageSize,
+                taskTypes = SelectedTaskTypes.Select(taskType => taskType.ToString()).ToList(),
+                stateIds = SelectedStateIds.Count == 0 ? allStates.Select(state => state.Id).ToList() : SelectedStateIds
+            };
+
+            List<WfTicket> fetchedTickets = [];
+            if (authenticationStateTask == null)
+            {
+                // Unit tests can instantiate this page without a cascading authentication state; production rendering supplies one.
+                fetchedTickets = await apiConnection.SendQueryAsync<List<WfTicket>>(RequestQueries.getFullTicketsPaged, variables);
+            }
+            else
+            {
+                await apiConnection.RunWithBestRole(authenticationStateTask.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
+                    async () =>
+                    {
+                        fetchedTickets = await apiConnection.SendQueryAsync<List<WfTicket>>(RequestQueries.getFullTicketsPaged, variables);
+                    });
+            }
+            HasNextPage = fetchedTickets.Count > PageSize;
+            tickets = [.. fetchedTickets.Take(PageSize)];
+            wfHandler.TicketList = tickets;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_requests"), "", true);
+        }
+    }
+
+    private Task OpenTicketStateChange(WfTicket ticket)
+    {
+        selectedScope = WfObjectScopes.Ticket;
+        selectedTicket = ticket;
+        selectedReqTask = null;
+        selectedImplTask = null;
+        selectedApproval = null;
+        selectedObjectName = ticket.Title;
+        selectedTargetStateId = ticket.StateId;
+        selectedStateChangeMode = MonitoringStateChangeMode.LocalOnly;
+        showStateDialog = true;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task OpenReqTaskStateChange(WfTicket ticket, WfReqTask reqTask)
+    {
+        selectedScope = WfObjectScopes.RequestTask;
+        selectedTicket = ticket;
+        selectedReqTask = reqTask;
+        selectedImplTask = null;
+        selectedApproval = null;
+        selectedObjectName = reqTask.Title;
+        selectedTargetStateId = reqTask.StateId;
+        selectedStateChangeMode = MonitoringStateChangeMode.LocalOnly;
+        showStateDialog = true;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task OpenImplTaskStateChange(WfTicket ticket, WfReqTask reqTask, WfImplTask implTask)
+    {
+        selectedScope = WfObjectScopes.ImplementationTask;
+        selectedTicket = ticket;
+        selectedReqTask = reqTask;
+        selectedImplTask = implTask;
+        selectedApproval = null;
+        selectedObjectName = implTask.Title;
+        selectedTargetStateId = implTask.StateId;
+        selectedStateChangeMode = MonitoringStateChangeMode.LocalOnly;
+        showStateDialog = true;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task OpenApprovalStateChange(WfTicket ticket, WfReqTask reqTask, WfApproval approval)
+    {
+        selectedScope = WfObjectScopes.Approval;
+        selectedTicket = ticket;
+        selectedReqTask = reqTask;
+        selectedImplTask = null;
+        selectedApproval = approval;
+        selectedObjectName = userConfig.GetText("approval");
+        selectedTargetStateId = approval.StateId;
+        selectedStateChangeMode = MonitoringStateChangeMode.LocalOnly;
+        showStateDialog = true;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task AutoCreateImplementationTasks(WfTicket ticket, WfReqTask reqTask)
+    {
+        selectedAutoCreateTicket = ticket;
+        selectedAutoCreateReqTask = reqTask;
+        autoCreateImplTasksConfirmMessage = $"{userConfig.GetText("auto_create_impltasks")} {reqTask.Title}?";
+        ConfirmAutoCreateImplTasksDisplay = true;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task ConfirmAutoCreateImplementationTasks()
+    {
+        try
+        {
+            if (selectedAutoCreateTicket == null || selectedAutoCreateReqTask == null)
+            {
+                return;
+            }
+
+            WorkInProgress = true;
+            bool implementationTasksCreated = await wfHandler.AutoCreateInitialImplTasksForMonitoring(selectedAutoCreateTicket, selectedAutoCreateReqTask);
+            await FetchTicketPage();
+            DisplayMessageInUi(null, userConfig.GetText("auto_create_impltasks"),
+                implementationTasksCreated ? userConfig.GetText("impltask_created") : userConfig.GetText("found_no_changes"), false);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("auto_create_impltasks"), "", true);
+        }
+        finally
+        {
+            WorkInProgress = false;
+            selectedAutoCreateTicket = null;
+            selectedAutoCreateReqTask = null;
+        }
+    }
+
+    private async Task ApplyStateChange()
+    {
+        try
+        {
+            if (selectedTicket == null)
+            {
+                return;
+            }
+
+            WorkInProgress = true;
+            switch (selectedScope)
+            {
+                case WfObjectScopes.Ticket:
+                    await wfHandler.ChangeTicketStateForMonitoring(selectedTicket, selectedTargetStateId, selectedStateChangeMode);
+                    break;
+                case WfObjectScopes.RequestTask:
+                    if (selectedReqTask != null)
+                    {
+                        await wfHandler.ChangeReqTaskStateForMonitoring(selectedTicket, selectedReqTask, selectedTargetStateId, selectedStateChangeMode);
+                    }
+                    break;
+                case WfObjectScopes.ImplementationTask:
+                    if (selectedReqTask != null && selectedImplTask != null)
+                    {
+                        await wfHandler.ChangeImplTaskStateForMonitoring(selectedTicket, selectedReqTask, selectedImplTask, selectedTargetStateId, selectedStateChangeMode);
+                    }
+                    break;
+                case WfObjectScopes.Approval:
+                    if (selectedReqTask != null && selectedApproval != null)
+                    {
+                        await wfHandler.ChangeApprovalStateForMonitoring(selectedTicket, selectedReqTask, selectedApproval, selectedTargetStateId, selectedStateChangeMode);
+                    }
+                    break;
+            }
+            CloseStateDialog();
+            await LoadTickets();
+            DisplayMessageInUi(null, userConfig.GetText("change_state"), userConfig.GetText("state_changed"), false);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("change_state"), "", true);
+        }
+        finally
+        {
+            WorkInProgress = false;
+        }
+    }
+
+    private void CloseStateDialog()
+    {
+        showStateDialog = false;
+        selectedTicket = null;
+        selectedReqTask = null;
+        selectedImplTask = null;
+        selectedApproval = null;
+        selectedScope = WfObjectScopes.None;
+        StateHasChanged();
+    }
+}

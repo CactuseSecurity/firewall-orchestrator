@@ -1,7 +1,0 @@
-mutation deleteRequestElement ($id: bigint!) {
-  delete_request_reqelement_by_pk (
-    id: $id
-  ) {
-    DeletedId: id
-  }
-}

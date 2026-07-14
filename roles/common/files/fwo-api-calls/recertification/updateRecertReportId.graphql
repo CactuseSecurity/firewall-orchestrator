@@ -1,0 +1,12 @@
+mutation updateRecertReportId(
+  $id: bigint!
+  $reportId: bigint
+  ) {
+  update_owner_recertification_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      report_id: $reportId
+  }) {
+    updatedId: id
+  }
+}

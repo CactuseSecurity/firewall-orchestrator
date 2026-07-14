@@ -22,7 +22,7 @@
   when: not already_installed and installation_mode == "upgrade"
 
 - name: Modify the product version in the config file
-  block:      
+  block:
     - name: Read config file
       slurp:
         path: "{{ fworch_conf_file }}"
@@ -38,7 +38,9 @@
         dest: "{{ fworch_conf_file }}"
         owner: "{{ fworch_user }}"
         group: "{{ fworch_group }}"
-      become: true     
+        mode: "0640"
+      become: true
+  become: true
   when: installation_mode == "upgrade"
   
 - name: include upgrade script
@@ -51,8 +53,7 @@
     executable: python3
   become: true
   when: "'apiserver' in group_names"
-  with_fileglob:
-    - "scripts/customizing/api/*.py"
+  loop: "{{ lookup('ansible.builtin.fileglob', 'scripts/customizing/api/*.py', wantlist=True, errors='ignore') }}"
 
 # Do general cleanup
 # - name: delete ldif files
@@ -67,7 +68,7 @@
     name: "{{ product_name }}-ui"
     state: restarted
   become: true
-  when: "'frontends' in group_names"
+  when: "'frontends' in group_names and (ui_deploy_changed | default(false) or product_version_changed | default(false))"
   
 - name: test whether demo data is present
   postgresql_query:
@@ -95,24 +96,14 @@
   become: true
   when: "demo_data_present.query_result == [] and 'sampleserver' in group_names"
 
-- name: remove temp importer_password from install host
-  file:
-    path: "{{ importer_password_file_on_installer }}"
-    state: absent
-  become: true
-  delegate_to: localhost
-
 - name: start importer service
   systemd:
-    name: "{{ item }}"
+    name: "{{ product_name }}-importer-api"
     state: started
     daemon_reload: true
     enabled: true
   become: true
   when: "'importers' in group_names"
-  loop:
-    - "{{ product_name }}-importer-legacy"
-    - "{{ product_name }}-importer-api"
 
 - name: remove maint website dir
   file:
@@ -124,7 +115,20 @@
   command: "a2dissite {{ product_name }}-maintenance"
   ignore_errors: true
   become: true
-  when: "installation_mode == 'upgrade' and 'frontends' in group_names"
+  when:
+    - "installation_mode == 'upgrade'"
+    - "'frontends' in group_names"
+    - "ansible_facts['os_family'] == 'Debian'"
+
+- name: remove RedHat maintenance web site config
+  file:
+    path: "{{ http_conf_dir }}/{{ product_name }}-maintenance.conf"
+    state: absent
+  become: true
+  when:
+    - "installation_mode == 'upgrade'"
+    - "'frontends' in group_names"
+    - "ansible_facts['os_family'] == 'RedHat'"
 
 - name: restart apache without maintenance site
   service:
@@ -136,13 +140,13 @@
   ansible.builtin.systemd:
     name: "{{ product_name }}-middleware"
     state: restarted
+    daemon_reload: true
   become: true
-  when: "'middlewareserver' in group_names"
+  when: "'middlewareserver' in group_names and (mw_deploy_changed | default(false))"
 
-# TODO - find out why UI sometimes crashes during upgrade of heavy data installations
 - name: finally restart UI
   ansible.builtin.systemd:
     name: "{{ product_name }}-ui"
     state: restarted
   become: true
-  when: "'frontends' in group_names"
+  when: "'frontends' in group_names and (ui_deploy_changed | default(false))"

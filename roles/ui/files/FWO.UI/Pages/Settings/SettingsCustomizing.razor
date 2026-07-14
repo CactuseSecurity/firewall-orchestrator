@@ -1,8 +1,4 @@
-﻿@using FWO.Api.Client
-@using FWO.Config.Api
-@using FWO.Config.Api.Data
 @using System.Text.Json
-@using FWO.Services
 
 
 @page "/settings/workflowcustomizing"
@@ -60,29 +56,46 @@
                 </div>
             </div>
         </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5568"))">
-            <label for="cbx_owner_based" class="col-form-label col-sm-3">@(userConfig.GetText("reqOwnerBased")):</label>
-            <div class="col-sm-2">
-                <input id="cbx_owner_based" type="checkbox" @bind="configData!.ReqOwnerBased">
+        <hr />
+        <div class="form-group row">
+            <div class="form-group row col-sm-4 align-items-center"data-toggle="tooltip" title="@(userConfig.PureLine("H5568"))">
+                <label for="cbx_owner_based" class="col-form-label col-sm-8">@(userConfig.GetText("reqOwnerBased")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_owner_based" type="checkbox" @bind="configData!.ReqOwnerBased">
+                </div>
+            </div>
+            <div class="form-group row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5579"))">
+                <label for="cbx_visibility_based" class="col-form-label col-sm-8">@(userConfig.GetText("reqVisibilityBased")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_visibility_based" type="checkbox" @bind="configData!.ReqVisibilityBased">
+                </div>
             </div>
         </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5570"))">
-            <label for="cbx_reduced_view" class="col-form-label col-sm-3">@(userConfig.GetText("reqReducedView")):</label>
-            <div class="col-sm-2">
-                <input id="cbx_reduced_view" type="checkbox" @bind="configData!.ReqReducedView">
+        <div class="form-group row">
+            <div class="form-group row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5570"))">
+                <label for="cbx_reduced_view" class="col-form-label col-sm-8">@(userConfig.GetText("reqReducedView")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_reduced_view" type="checkbox" @bind="configData!.ReqReducedView">
+                </div>
+            </div>
+            <div class="form-group row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5569"))">
+                <label for="cbx_show_compliance" class="col-form-label col-sm-8">@(userConfig.GetText("reqShowCompliance")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_show_compliance" type="checkbox" @bind="configData!.ReqShowCompliance">
+                </div>
             </div>
         </div>
+        <hr />
 
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5569"))">
-            <label for="cbx_show_compliance" class="col-form-label col-sm-3">@(userConfig.GetText("reqShowCompliance")):</label>
-            <div class="col-sm-2">
-                <input id="cbx_show_compliance" type="checkbox" @bind="configData!.ReqShowCompliance">
-            </div>
-        </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5564"))">
-            <label for="cbx_allow_object_search" class="col-form-label col-sm-3">@(userConfig.GetText("reqAllowObjectSearch")):</label>
+            <label for="cbx_use_flow_db" class="col-form-label col-sm-3">@(userConfig.GetText("reqUseFlowDb")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_use_flow_db" type="checkbox" @bind="configData!.ReqUseFlowDb">
+            </div>
             <div class="col-sm-2">
-                <input id="cbx_allow_object_search" type="checkbox" @bind="configData!.ReqAllowObjectSearch">
+                <button type="button" class="btn btn-sm btn-warning" @onclick="() => editFlowIntegrationMode = true">
+                    @(DisplayService.DisplayButton(userConfig, "flow_integration", Icons.Edit))
+                </button>
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5567"))">
@@ -91,35 +104,52 @@
                 <input id="cbx_activate_path_analysis" type="checkbox" @bind="configData!.ReqActivatePathAnalysis">
             </div>
         </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5566") + "\r\n" + userConfig.PureLine("H5571") + "\r\n" +
-                userConfig.PureLine("H5572") + "\r\n" + userConfig.PureLine("H5573") + "\r\n" + userConfig.PureLine("H5574") + "\r\n" + userConfig.PureLine("H5575"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAutoCreateImplTasks")):</label>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5576"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAllowedChangesByApprover")):</label>
             <div class="col-sm-4">
-                <Dropdown @bind-SelectedElement="configData!.ReqAutoCreateImplTasks" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(AutoCreateImplTaskOptions)).Cast<AutoCreateImplTaskOptions>()" >
+                <button type="button" class="btn btn-sm btn-warning" @onclick="() => editAllowedChangesByApproverMode = true">
+                    @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                </button>
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5566") + "\r\n" + userConfig.PureLine("H5571") + "\r\n" +
+                userConfig.PureLine("H5572") + "\r\n" + userConfig.PureLine("H5573") + "\r\n" + userConfig.PureLine("H5574") + "\r\n" +
+                userConfig.PureLine("H5577") + "\r\n" + userConfig.PureLine("H5575"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAutoCreateImplTasks")):</label>
+            <div class="col-sm-3">
+                <Dropdown ElementType="AutoCreateImplTaskOptions" @bind-SelectedElement="configData!.ReqAutoCreateImplTasks" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(AutoCreateImplTaskOptions)).Cast<AutoCreateImplTaskOptions>()" >
                     <ElementTemplate Context="opt">
                         @(userConfig.GetText(opt.ToString()))
                     </ElementTemplate>
                 </Dropdown>
             </div>
+            <label for="cbx_consider_bundling" class="col-form-label col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5578"))">@(userConfig.GetText("reqConsiderBundling")):</label>
+            <div class="col-sm-1" data-toggle="tooltip" title="@(userConfig.PureLine("H5578"))">
+                <input id="cbx_consider_bundling" type="checkbox" @bind="configData!.ReqConsiderBundling">
+            </div>
         </div>
     </form>
 
     <hr />
-    <AuthorizeView Roles="@Roles.Admin">
+    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
         <Authorized>
-            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
         </Authorized>
         <NotAuthorized>
-            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
         </NotAuthorized> 
-    </AuthorizeView>
+    </ExecutionModeAuthorizeView>
     <br><br>
 }
 else
 {
-    <div class="spinner-border" role="status">
-        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
-    </div>
+    <Loading/>
+}
+
+@if (configData != null)
+{
+    <AllowedChangesByApprover @bind-Display="editAllowedChangesByApproverMode" ConfigValue="@configData.ReqAllowedChangesByApprover" ConfigValueChanged="HandleAllowedChangesByApproverChanged" />
+    <FlowIntegration @bind-Display="editFlowIntegrationMode" ConfigValue="@configData.ReqFlowIntegration" ConfigValueChanged="HandleFlowIntegrationChanged" />
 }
 
 
@@ -131,6 +161,8 @@ else
 
     private ConfigData? configData;
     private bool InitComplete = false;
+    private bool editAllowedChangesByApproverMode = false;
+    private bool editFlowIntegrationMode = false;
 
     private List<WfTaskType> availableTaskTypes { get; set; } = [];
     private Dictionary<WfTaskType, bool> taskTypesActiveDict = [];
@@ -142,13 +174,13 @@ else
         try
         {
             configData = await globalConfig.GetEditableConfig();
-            availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(configData.ReqAvailableTaskTypes) ?? throw new Exception("Config data could not be parsed.");
+            availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(configData.ReqAvailableTaskTypes) ?? throw new JsonException("Config data could not be parsed.");
             taskTypesActiveDict = [];
             foreach(WfTaskType type in Enum.GetValues(typeof(WfTaskType)))
             {
                 taskTypesActiveDict.Add(type, availableTaskTypes.Contains(type));
             }
-            prioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(configData.ReqPriorities) ?? throw new Exception("Config data could not be parsed.");
+            prioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(configData.ReqPriorities) ?? throw new JsonException("Config data could not be parsed.");
             InitComplete = true;
         }
         catch (Exception exception)
@@ -163,7 +195,7 @@ else
         {
             if (configData != null)
             {
-                availableTaskTypes = new List<WfTaskType>();
+                availableTaskTypes = [];
                 foreach(WfTaskType type in taskTypesActiveDict.Keys)
                 {
                     if (taskTypesActiveDict[type])
@@ -178,8 +210,50 @@ else
             }
             else
             {
-                throw new Exception("Data saved before loaded. This should be impossible.");
+                throw new ArgumentException("Data saved before loaded. This should be impossible.");
             }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
+        }
+    }
+
+    private async Task HandleAllowedChangesByApproverChanged(string configValue)
+    {
+        try
+        {
+            if (configData == null)
+            {
+                throw new ArgumentException("Allowed approver changes were updated before the settings page was initialized.");
+            }
+
+            ConfigData singleValueConfig = await globalConfig.GetEditableConfig();
+            singleValueConfig.ReqAllowedChangesByApprover = configValue;
+            await globalConfig.WriteToDatabase(singleValueConfig, apiConnection);
+            configData.ReqAllowedChangesByApprover = configValue;
+            DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
+        }
+    }
+
+    private async Task HandleFlowIntegrationChanged(string configValue)
+    {
+        try
+        {
+            if (configData == null)
+            {
+                throw new ArgumentException("Flow integration settings were updated before the settings page was initialized.");
+            }
+
+            ConfigData singleValueConfig = await globalConfig.GetEditableConfig();
+            singleValueConfig.ReqFlowIntegration = configValue;
+            await globalConfig.WriteToDatabase(singleValueConfig, apiConnection);
+            configData.ReqFlowIntegration = configValue;
+            DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
         }
         catch (Exception exception)
         {

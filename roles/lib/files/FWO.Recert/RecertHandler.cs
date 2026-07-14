@@ -1,0 +1,135 @@
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Config.Api;
+using FWO.Data;
+using FWO.Logging;
+
+namespace FWO.Recert
+{
+    public class RecertHandler(ApiConnection apiConnection, UserConfig userConfig)
+    {
+        private const string LogMessageTitle = "Initial Owner Recert";
+
+        public async Task InitOwnerRecert(FwoOwner owner)
+        {
+            if ((await apiConnection.SendQueryAsync<List<OwnerRecertification>>(RecertQueries.getOwnerRecert, new { ownerId = owner.Id })).Count == 0)
+            {
+                FwoOwner recertifiedOwner = await RecertifyOwner(owner, LogMessageTitle, true);
+                Log.WriteInfo(LogMessageTitle,
+                    $"Owner id={owner.Id}: initial recert {(recertifiedOwner.LastRecertId > 0 ? "created" : "not created")}, recertId={recertifiedOwner.LastRecertId}, nextRecertDate={recertifiedOwner.NextRecertDate}.");
+            }
+            else
+            {
+                Log.WriteDebug(LogMessageTitle, $"Owner id={owner.Id}: initial recert creation skipped because an initial entry already exists.");
+            }
+        }
+
+        public async Task<FwoOwner> RecertifyOwnerWithRules(FwoOwner owner, List<Rule> rules, string? comment, bool initialRecert = false)
+        {
+            FwoOwner recertifiedOwner = await RecertifyOwner(owner, comment, initialRecert);
+            foreach (var rule in rules)
+            {
+                await RecertifySingleRuleFromOwner(rule, recertifiedOwner, comment);
+            }
+            return recertifiedOwner;
+        }
+
+        public async Task<bool> RecertifySingleRule(Rule rule, FwoOwner? owner, string? comment)
+        {
+            var variables = new
+            {
+                ruleId = rule.Id,
+                ownerId = owner?.Id ?? 0,
+                userDn = userConfig.User.Dn,
+                recertified = rule.Metadata.Recert,
+                recertDate = DateTime.Now,
+                comment = comment,
+                ownerRecertId = owner?.LastRecertId == 0 ? null : owner?.LastRecertId
+            };
+            bool recertOk = (await apiConnection.SendQueryAsync<ReturnId>(RecertQueries.recertify, variables)).AffectedRows > 0;
+            if (rule.Metadata.Recert)
+            {
+                await InitRuleRecert(rule, owner);
+            }
+            return recertOk;
+        }
+
+        private async Task<FwoOwner> RecertifyOwner(FwoOwner owner, string? comment = "", bool initialRecert = false)
+        {
+            FwoOwner recertifiedOwner = new(owner);
+            DateTime recertDate = DateTime.Now;
+            DateTime? nextRecertDate = CalcNextRecertDate(owner, recertDate, initialRecert);
+            var recertVariables = new
+            {
+                ownerId = owner.Id,
+                userDn = initialRecert ? userConfig.InitialRecertifier : userConfig.User.Dn,
+                recertified = !initialRecert,
+                recertDate = recertDate,
+                nextRecertDate = nextRecertDate,
+                comment = comment
+            };
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(RecertQueries.recertifyOwner, recertVariables)).ReturnIds;
+            if (returnIds != null && returnIds.Length > 0)
+            {
+                recertifiedOwner.LastRecertId = returnIds[0].NewIdLong;
+                recertifiedOwner.LastRecertified = recertDate;
+                recertifiedOwner.LastRecertifierId = initialRecert ? null : userConfig.User.DbId;
+                recertifiedOwner.LastRecertifierDn = initialRecert ? userConfig.InitialRecertifier : userConfig.User.Dn;
+                recertifiedOwner.NextRecertDate = nextRecertDate;
+                await UpdateRecertifiedOwner(recertifiedOwner);
+            }
+            return recertifiedOwner;
+        }
+
+        private DateTime? CalcNextRecertDate(FwoOwner owner, DateTime recertDate, bool initial)
+        {
+            int nextRegularCertInterval = owner.RecertInterval ?? userConfig.RecertificationPeriod;
+            int recertInterval = initial ? Math.Min(userConfig.InitialRecertificationPeriod, nextRegularCertInterval) : nextRegularCertInterval;
+            return recertInterval > 0 ? recertDate.AddDays(recertInterval) : null;
+        }
+
+        private async Task UpdateRecertifiedOwner(FwoOwner owner)
+        {
+            var ownerVariables = new
+            {
+                id = owner.Id,
+                lastRecert = owner.LastRecertified,
+                lastRecertifierId = owner.LastRecertifierId,
+                lastRecertifierDn = owner.LastRecertifierDn,
+                nextRecertDate = owner.NextRecertDate
+            };
+            await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.setOwnerLastRecert, ownerVariables);
+        }
+
+        private async Task<bool> RecertifySingleRuleFromOwner(Rule rule, FwoOwner? owner, string? comment)
+        {
+            var variables = new
+            {
+                ruleMetadataId = rule.Metadata.Id,
+                ruleId = rule.Id,
+                ownerId = owner?.Id ?? 0,
+                nextRecertDate = owner?.NextRecertDate,
+                userDn = userConfig.User.Dn,
+                recertified = true,
+                recertDate = DateTime.Now,
+                comment = comment,
+                ownerRecertId = owner?.LastRecertId
+            };
+            return (await apiConnection.SendQueryAsync<ReturnIdWrapper>(RecertQueries.recertifyRuleDirectly, variables)).ReturnIds?[0].NewIdLong > 0;
+        }
+
+        private async Task InitRuleRecert(Rule rule, FwoOwner? owner)
+        {
+            int recertInterval = owner?.RecertInterval ?? userConfig.RecertificationPeriod;
+            var prepvariables = new
+            {
+                ruleMetadataId = rule.Metadata.Id,
+                ruleId = rule.Id,
+                ipMatch = rule.IpMatch != "" ? rule.IpMatch : null,
+                ownerId = owner?.Id ?? 0,
+                nextRecertDate = DateTime.Now.AddDays(recertInterval)
+            };
+            await apiConnection.SendQueryAsync<object>(RecertQueries.prepareNextRecertification, prepvariables);
+        }
+    }
+}

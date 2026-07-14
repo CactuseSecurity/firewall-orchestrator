@@ -1,31 +1,101 @@
-
-name: Build
+name: FWO Test Install
 
 on:
   push:
-    branches: [ main, develop ]
-    paths-ignore:
-    - 'documentation/**'
-    - 'design/**'
+    branches:
+      - main
+      - develop
 
   pull_request:
-    types: [ ready_for_review, review_requested ]
-    branches: [ main, develop ]
-    paths-ignore:
-    - 'documentation/**'
-    - 'design/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test_ubuntu_latest:
-    name: test build on ubuntu latest
+  test-install:
+    name: Test install on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    env:
+      RUNNING_ON_GITHUB_ACTIONS: true
+      FWO_RUN_INTEGRATION_TESTS: "true"
+      FWO_TEST_USERNAME: "integration_user_jwt_refresh_test"
+      FWO_TEST_PASSWORD: "testpassword"
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible
+        run: python -m pip install -r requirements.txt
+
+      - name: Install Ansible collections
+        run: |
+          cd ${{ github.workspace }}
+          ansible-galaxy collection install -r collections/requirements.yml -p collections --force
+
+      - name: Run Ansible test install without integration cleanup
+        run: |
+          cd ${{ github.workspace }}
+          ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true --skip-tags integrationtests
+
+      - name: Running in GitHub actions requires testing puppeteer pdf creation separately
+        if: ${{ env.RUNNING_ON_GITHUB_ACTIONS == 'true' }}
+        run: |
+          cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test
+          dotnet restore
+          dotnet build
+          dotnet test --filter "Name=HtmlToPdfTest"
+
+      - name: Run JWT refresh integration tests
+        if: ${{ env.FWO_RUN_INTEGRATION_TESTS == 'true' }}
+        run: |
+          sudo -u fworch env \
+            RUNNING_ON_GITHUB_ACTIONS=true \
+            FWO_RUN_INTEGRATION_TESTS=true \
+            FWO_TEST_USERNAME=integration_user_jwt_refresh_test \
+            FWO_TEST_PASSWORD=testpassword \
+            dotnet test /usr/local/fworch/test/csharp/FWO.Test/FWO.Test.csproj --filter "FullyQualifiedName~AuthenticationTokenIntegrationTest"
+
+      - name: Run Ansible integration tests with cleanup
+        if: ${{ success() }}
+        run: |
+          cd ${{ github.workspace }}
+          ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true --tags integrationtests
+
+
+  python-code-check:
+    name: Python Code Check
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
 
-    - name: Set environment variable
-      run: echo "RUNNING_ON_GITHUB=1" >> $GITHUB_ENV
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11' 
 
-    - name: do test install in case of merged pull request
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e force_install=true site.yml -K
-      env:
-        RUNNING_ON_GITHUB_ACTIONS: ${{ env.RUNNING_ON_GITHUB }}
+      - run: pip install -r roles/importer/files/importer/requirements.txt
+
+      - run: pip install -r scripts/customizing/app_data_import/requirements-for-app-data-import.txt
+
+      - uses: astral-sh/ruff-action@0ce1b0bf8b818ef400413f810f8a11cdbda0034b
+        with:
+          version-file: "roles/importer/files/importer/requirements.txt"
+
+      - name: pyright
+        run: |
+          pyright --version
+          pyright
+
+      - run: ruff check
+      
+      - run: ruff format --exit-non-zero-on-format

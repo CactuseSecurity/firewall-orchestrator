@@ -1,0 +1,13 @@
+query getUsageDataCount($devId: Int!) {
+  device(where: {dev_id: {_eq: $devId}}) {
+    rulebase_links {
+      rulebase {
+        rulesWithHits: rules_aggregate(where: {rule_metadatum: {rule_last_hit: {_is_null: false}}}) {
+          aggregate {
+            count
+          }
+        }
+      }
+    }
+  }
+}

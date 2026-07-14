@@ -1,0 +1,460 @@
+{
+    "version": "0.2.0",
+    "compounds": [
+        {
+            "name": "Launch MW and UI",
+            "configurations": [
+                "c#-MiddlewareServer",
+                "c#-Blazor UI"
+            ]
+        }
+    ],
+    "configurations": [
+        {
+            "name": ".NET Core SSH Attach ubu20",
+            "type": "coreclr",
+            "request": "attach",
+            "processId": "${command:pickRemoteProcess}",
+            "pipeTransport": {
+                "pipeProgram": "ssh",
+                "pipeArgs": [
+                    "-T",
+                    "-p 22006",
+                    "tim@localhost"
+                ],
+                "debuggerPath": "~/vsdbg-root/vsdbg",
+                "pipeCwd": "${workspaceRoot}",
+                "quoteArgs": true
+            },
+            "sourceFileMap": {
+                "/home/tim/firewall-orchestrator/roles": "${workspaceRoot}"
+            },
+            "logging": {
+                "logging.diagnosticsLog.protocolMessages": true
+            }
+        },
+        {
+            "name": "c#-MiddlewareServer",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build_middleware",
+            "enableStepFiltering": false,
+            "program": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server/bin/Debug/net10.0/FWO.Middleware.Server.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "requireExactSource": false,
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+                "uriFormat": "%s/swagger"
+            },
+            "logging": {
+                "moduleLoad": false
+            }
+        },
+        {
+            "name": "c#-MiddlewareServer - Hot Reload",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build_middleware",
+            "enableStepFiltering": false,
+            "program": "dotnet",
+            "args": [
+                "watch",
+                "run"
+            ],
+            "cwd": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "requireExactSource": false,
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+                "uriFormat": "%s/swagger"
+            },
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            },
+            "logging": {
+                "moduleLoad": false
+            }
+        },
+        {
+            "name": "c#-Blazor UI",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build_UI",
+            "program": "${workspaceFolder}/roles/ui/files/FWO.UI/bin/Debug/net10.0/FWO.Ui.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/roles/ui/files/FWO.UI",
+            "stopAtEntry": false,
+            "requireExactSource": false,
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+            },
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            },
+            "sourceFileMap": {
+                "/Views": "${workspaceFolder}/Views"
+            },
+            "logging": {
+                "moduleLoad": false
+            }
+        },
+        {
+            "name": "c#-Blazor UI - Hot Reload",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build_UI",
+            "program": "dotnet",
+            "args": [
+                "watch",
+                "run"
+            ],
+            "cwd": "${workspaceFolder}/roles/ui/files/FWO.UI",
+            "stopAtEntry": false,
+            "requireExactSource": false,
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            },
+            "sourceFileMap": {
+                "/Views": "${workspaceFolder}/Views"
+            },
+            "logging": {
+                "moduleLoad": false
+            }
+        },
+        {
+            "name": "py-normalizeRlmOwners",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/customizing/modelling/getOwnersFromTufinRlm.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-c${workspaceFolder}/scripts/customizing/modelling/customizingConfig.json"
+            ]
+        },
+        {
+            "name": "py-normalizeNwData",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/customizing/modelling/convertNwObjDataFromGitPlain.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-c${workspaceFolder}/scripts/customizing/modelling/customizingConfig.json"
+            ]
+        },
+        {
+            "name": "py-import-mgm",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/import_mgm.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-m1",
+                "-d1",
+                "-f",
+                "-s"
+            ]
+        },
+        {
+            "name": "py-test-ruleorder",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/test/ruleorder.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": []
+        },
+        {
+            "name": "py-kimport",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/scripts/Python-nsPYm-v2/get_all_firewall_data.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "itsecorg",
+                "st8chel"
+            ]
+        },
+        {
+            "name": "py-customize-FWO-sample",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/customizing/customizing.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-c${workspaceFolder}/scripts/customizing/sampleCustomSettings.json"
+            ]
+        },
+        {
+            "name": "py-acquire-lock",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/common/files/acquire_lock.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "/var/fworch/lock/FWO.Middleware.Server_log.lock"
+            ]
+        },
+        {
+            "name": "py-generate-tenant-data",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/tests-unit/files/tenant_networks/create_tenant_network_data.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": []
+        },
+        {
+            "name": "py-change-comment",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/sample-data/files/config_changes/write_date_to_comment.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": []
+        },
+        {
+            "name": "py-change-rule",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/sample-data/files/config_changes/enlarge_rule.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": []
+        },
+        {
+            "name": "py-cpr8x-get-config",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/get_config.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-asting-mgmt",
+                "-uitsecorg",
+                "-w/home/tim/tmp/passwd",
+                "-lFirstLayer shared with inline layer",
+                "-kTestPolicyWithLayers",
+                "-o/home/tim/tmp/sting.cfg"
+            ]
+        },
+        {
+            "name": "py-cpr8x-enrich-config",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/enrich_config.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-asting-mgmt",
+                "-uitsecorg",
+                "-w/home/tim/tmp/passwd",
+                "-lFirstLayer shared with inline layer",
+                "-c/home/tim/tmp/sting.cfg"
+            ]
+        },
+        {
+            "name": "py-cpr8x-parse-config",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/parse_config.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-f/home/tim/tmp/sting.cfg",
+                "-rFirstLayer shared with inline layer"
+            ]
+        },
+        {
+            "name": "py-cpr8x-api-test-call",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/api-test-call.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "--help"
+            ]
+        },
+        {
+            "name": "py-get-config-fm7",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/fortimanager5ff/get_config.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-a10.5.1.55",
+                "-uapiuser",
+                "-w/home/tim/tmp/passwd",
+                "-llayer1",
+                "-d1",
+                "-o/tmp/outfile"
+            ]
+        },
+        {
+            "name": "py-export-itsecorg",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/api/files/scripts/fwo-export-itsecorg-devices.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-m/usr/local/fworch/tmp/mgm.csv",
+                "-d/usr/local/fworch/tmp/dev.csv",
+                "-o/usr/local/fworch/tmp/devices.graphql",
+                "-sfworch",
+                "-f7"
+            ]
+        },
+        {
+            "name": "py-export-config",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/api/files/scripts/fwo-export-config.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-o/tmp/fworch-config"
+            ]
+        },
+        {
+            "name": "py-execute-graphql",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/api/files/scripts/fwo-execute-graphql.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-i/tmp/fworch-config.graphql"
+            ]
+        },
+        {
+            "name": "py-execute-graphql-query",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/api/files/scripts/fwo-execute-graphql-query.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-i/tmp/fworch-config.graphql"
+            ]
+        },
+        {
+            "name": "py-import_main_loop",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/import_main_loop.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-d0"
+            ]
+        },
+        {
+            "name": "py-create-mock-config",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/test/tools/create_mock_config_file.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/roles/importer/files/importer",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/roles/importer/files/importer:${env:PYTHONPATH}"
+            }
+        },
+        {
+            "name": "c#-FWO Test",
+            "type": "coreclr",
+            "request": "launch",
+            "program": "/usr/bin/dotnet",
+            "args": [
+                "test"
+            ],
+            "cwd": "${workspaceFolder}/roles/tests-unit/files/FWO.Test",
+            "stopAtEntry": false,
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "c#-.NET Core Attach ",
+            "type": "coreclr",
+            "request": "attach",
+            "processId": "${command:pickProcess}"
+        },
+        {
+            "name": "Create mock_config",
+            "type": "python",
+            "request": "launch",
+            "module": "roles.importer.files.test.mocking.mock_config"
+        },
+        {
+            "name": "pytest current file",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "-s",
+                "-vv",
+                "--cov-report", "xml:cov.xml",
+                "--cov", ".",
+                "${file}"
+            ],
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

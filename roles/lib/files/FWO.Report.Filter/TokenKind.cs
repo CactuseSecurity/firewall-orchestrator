@@ -1,4 +1,4 @@
-﻿namespace FWO.Report.Filter
+namespace FWO.Report.Filter
 {
     public enum TokenKind
     {
@@ -18,6 +18,12 @@
         Gateway,
         Remove,
         ReportType,
+        TaskType,
+        Phase,
+        States,
+        OwnerState,
+        Criticality,
+        ReferenceDate,
         Time,
         RecertDisplay,
         FullText,

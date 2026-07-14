@@ -1,0 +1,5 @@
+mutation storeLatestConfig($importId: bigint!, $mgmId: Int!, $config: jsonb!) {
+    insert_latest_config(objects: {import_id: $importId, mgm_id: $mgmId, config: $config}) {
+        affected_rows
+    }
+}

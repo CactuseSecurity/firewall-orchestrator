@@ -1,7 +1,0 @@
-﻿mutation deleteGeneratedReport ($report_id : bigint!) {
-  delete_report(
-    where: {report_id: {_eq: $report_id}}
-  ) {
-    affected_rows
-  }
-}

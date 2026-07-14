@@ -1,4 +1,4 @@
-﻿using FWO.Config.File;
+using FWO.Config.File;
 using FWO.Logging;
 using Microsoft.IdentityModel.Tokens;
 using NUnit.Framework;
@@ -14,12 +14,16 @@ using Assert = NUnit.Framework.Assert;
 namespace FWO.Test
 {
     [TestFixture]
-    [Parallelizable]
     internal class ConfigFileTest
     {
         private const string configFileTestPath = "config_file.test";
         private const string privateKeyTestPath = "private_key.test";
         private const string publicKeyTestPath = "public_key.test";
+        private static readonly string[] kExpectedAllowedCustomizationRoots =
+        [
+            Path.Combine("/usr/local/fworch", "scripts", "customizing"),
+            Path.Combine("/usr/local/fworch", "etc")
+        ];
 
         #region configFiles
         private const string correctConfigFile = @"{
@@ -117,6 +121,15 @@ z2cAR6HkNFB63sh2qZwtC0utP3i3yXlDSxD8lQ7A7NYlifRszw==
         }
 
         [Test]
+        public void AllowedCustomizationRootsUseConfiguredFwoHome()
+        {
+            CreateAndReadConfigFile(7, correctConfigFile);
+
+            Assert.That(ConfigFile.FwoHome, Is.EqualTo("/usr/local/fworch"));
+            Assert.That(ConfigFile.AllowedCustomizationRoots, Is.EqualTo(kExpectedAllowedCustomizationRoots));
+        }
+
+        [Test]
         public void IncorrectSyntaxConfigFile()
         {
             Assert.Catch(typeof(TargetInvocationException), () => CreateAndReadConfigFile(1, incorrectSyntaxConfigFile));
@@ -127,9 +140,9 @@ z2cAR6HkNFB63sh2qZwtC0utP3i3yXlDSxD8lQ7A7NYlifRszw==
         {
             CreateAndReadConfigFile(2, missingValueConfigFile);
             ClassicAssert.AreEqual("http://127.0.0.3:8880/", ConfigFile.MiddlewareServerNativeUri);
-            Assert.Catch(typeof(ApplicationException), () => { var _ = ConfigFile.MiddlewareServerUri; });
-            Assert.Catch(typeof(ApplicationException), () => { var _ = ConfigFile.ApiServerUri; });
             ClassicAssert.AreEqual("500", ConfigFile.ProductVersion);
+            Assert.Throws<InvalidOperationException>(() => { var _ = ConfigFile.MiddlewareServerUri; });
+            Assert.Throws<InvalidOperationException>(() => { var _ = ConfigFile.ApiServerUri; });
         }
 
         [Test]
@@ -150,20 +163,20 @@ z2cAR6HkNFB63sh2qZwtC0utP3i3yXlDSxD8lQ7A7NYlifRszw==
         public void IncorrectPublicKey()
         {
             CreateAndReadConfigFile(5, correctConfigFile, "", incorrectPublicKey);
-            Assert.Catch(typeof(ApplicationException), () => { var _ = ConfigFile.JwtPublicKey; });
+            Assert.Throws<InvalidOperationException>(() => { var _ = ConfigFile.JwtPublicKey; });
         }
 
         [Test]
         public void IncorrectPrivateKey()
         {
             CreateAndReadConfigFile(6, correctConfigFile, incorrectPrivateKey, "");
-            Assert.Catch(typeof(ApplicationException), () => { var _ = ConfigFile.JwtPrivateKey; });
+            Assert.Throws<InvalidOperationException>(() => { var _ = ConfigFile.JwtPrivateKey; });
         }
 
         [OneTimeTearDown]
         public void OnFinish()
         {
-            for (int uniqueId = 0; uniqueId < 7; uniqueId++)
+            for (int uniqueId = 0; uniqueId < 8; uniqueId++)
             {
                 File.Delete(configFileTestPath + uniqueId);
                 File.Delete(privateKeyTestPath + uniqueId);

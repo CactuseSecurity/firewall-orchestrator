@@ -1,10 +1,13 @@
-﻿@using FWO.Services
-
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("select_from_ldap") + ": " + LdapName)" Show="@Display" Size=PopupSize.Large OnClose="Close">
+<PopUp Title="@(userConfig.GetText("select_from_ldap") + ": " + LdapName)" Show="@Display" Size=PopupSize.Medium OnClose="Close">
     <Body>
-        @if (Display)
+        @if (Loading)
+        {
+            <div class="d-flex justify-content-center mt-5">
+                <Loading Size="Data.SpinnerSize.Medium" />
+            </div>
+        }else if (Display)
         {
             @if(UserSelect)
             {
@@ -17,14 +20,14 @@
                             </ElementTemplate>
                         </Dropdown>
                     </div>
-                    <AuthorizeView Roles="@Roles.Admin">
+                    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                         <Authorized>
                             <button type="button" class="btn btn-sm btn-success col-sm-2" @onclick="async () => { await AddUser(selectedLdapUser); Close(); }" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                         </Authorized>
                         <NotAuthorized>
                             <button type="button" class="btn btn-sm btn-success col-sm-2" disabled>@(userConfig.GetText("assign"))</button>
-                        </NotAuthorized> 
-                    </AuthorizeView>
+                        </NotAuthorized>
+                    </ExecutionModeAuthorizeView>
                 </div>
             }
             @if(GroupSelect)
@@ -34,14 +37,14 @@
                     <div class="col-sm-8">
                         <Dropdown ElementType="string" @bind-SelectedElement="selectedLdapGroup" Elements="LdapGroups" />
                     </div>
-                    <AuthorizeView Roles="@Roles.Admin">
+                    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                         <Authorized>
                             <button type="button" class="btn btn-sm btn-success col-sm-2" @onclick="async () => { await AddGroup(selectedLdapGroup); Close(); }" @onclick:preventDefault>@(userConfig.GetText("assign"))</button>
                         </Authorized>
                         <NotAuthorized>
                             <button type="button" class="btn btn-sm btn-success col-sm-2" disabled>@(userConfig.GetText("assign"))</button>
-                        </NotAuthorized> 
-                    </AuthorizeView>
+                        </NotAuthorized>
+                    </ExecutionModeAuthorizeView>
                 </div>
             }
         }
@@ -83,21 +86,24 @@
     [Parameter]
     public List<string> LdapGroups { get; set; } = new();
 
+    [Parameter]
+    public bool Loading { get; set; }
 
     private UiUser selectedLdapUser = new();
     private string selectedLdapGroup = "";
 
-    protected override async Task OnParametersSetAsync()
+    protected override void OnParametersSet()
     {
         if(Display)
         {
             selectedLdapUser = (LdapUsers.Count == 0 ? new UiUser() : LdapUsers.First());
             selectedLdapGroup = (LdapGroups.Count == 0 ? "" : LdapGroups.First());
         }
-    }  
+    }
 
     private void Close()
     {
+        Loading = false;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }

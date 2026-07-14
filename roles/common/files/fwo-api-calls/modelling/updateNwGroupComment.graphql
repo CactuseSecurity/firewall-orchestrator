@@ -1,0 +1,12 @@
+mutation updateNwGroupComment(
+  $id: bigint!
+  $comment: String
+  ) {
+  update_modelling_nwgroup_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      comment: $comment
+  }) {
+    UpdatedIdLong: id
+  }
+}

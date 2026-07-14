@@ -1,0 +1,604 @@
+using FWO.Basics;
+using FWO.Data;
+using FWO.Data.Workflow;
+
+namespace FWO.Services.Workflow
+{
+    public partial class WfHandler
+    {
+        public bool DisplayImplTaskMode = false;
+        public bool EditImplTaskMode = false;
+        public bool AddImplTaskMode = false;
+        public bool ImplementImplTaskMode = false;
+        public bool ReviewImplTaskMode = false;
+        public bool DisplayAssignImplTaskMode = false;
+        public bool DisplayApprovalImplMode = false;
+        public bool DisplayDeleteImplTaskMode = false;
+        public bool DisplayCleanupMode = false;
+        public bool DisplayImplTaskCommentMode = false;
+
+        // Implementation Tasks
+
+        public void SelectImplTask(WfImplTask implTask, ObjAction action)
+        {
+            SetImplTaskEnv(implTask);
+            SetImplTaskOpt(action);
+        }
+
+        public void SelectImplTaskPopUp(WfImplTask implTask, ObjAction action)
+        {
+            SetImplTaskEnv(implTask);
+            SetImplTaskPopUpOpt(action);
+        }
+
+        public void SetImplTaskEnv(WfImplTask implTask)
+        {
+            ActImplTask = new WfImplTask(implTask);
+            WfTicket? tick = ActTicket.Id == ActImplTask.TicketId ? ActTicket : TicketList.FirstOrDefault(x => x.Id == ActImplTask.TicketId);
+            if (tick != null)
+            {
+                ActTicket = tick;
+                WfReqTask? reqTask = ActTicket.Tasks.FirstOrDefault(x => x.Id == ActImplTask.ReqTaskId);
+                if (reqTask != null)
+                {
+                    ActReqTask = reqTask;
+                }
+            }
+            ActStateMatrix = stateMatrixDict.Matrices[implTask.TaskType];
+        }
+
+        public bool TrySetImplTaskEnv(WfImplTask implTask)
+        {
+            if (!stateMatrixDict.Matrices.ContainsKey(implTask.TaskType))
+            {
+                return false;
+            }
+
+            SetImplTaskEnv(implTask);
+            return true;
+        }
+
+        public void SetImplTaskOpt(ObjAction action)
+        {
+            ResetImplTaskActions();
+            DisplayImplTaskMode = action == ObjAction.display || action == ObjAction.edit || action == ObjAction.add || action == ObjAction.implement || action == ObjAction.review;
+            EditImplTaskMode = action == ObjAction.edit || action == ObjAction.add;
+            AddImplTaskMode = action == ObjAction.add;
+            ImplementImplTaskMode = action == ObjAction.implement;
+            ReviewImplTaskMode = action == ObjAction.review;
+        }
+
+        public void SetImplTaskPopUpOpt(ObjAction action)
+        {
+            DisplayPromoteImplTaskMode = action == ObjAction.displayPromote;
+            DisplayDeleteImplTaskMode = action == ObjAction.displayDelete;
+            DisplayCleanupMode = action == ObjAction.displayCleanup;
+            DisplayAssignImplTaskMode = action == ObjAction.displayAssign;
+            DisplayImplTaskCommentMode = action == ObjAction.displayComment;
+            DisplayApprovalImplMode = action == ObjAction.displayApprovals;
+        }
+
+        public void ResetImplTaskActions()
+        {
+            DisplayImplTaskMode = false;
+            EditImplTaskMode = false;
+            AddImplTaskMode = false;
+            ImplementImplTaskMode = false;
+            ReviewImplTaskMode = false;
+
+            DisplayPromoteImplTaskMode = false;
+            DisplayDeleteImplTaskMode = false;
+            DisplayCleanupMode = false;
+            DisplayAssignImplTaskMode = false;
+            DisplayImplTaskCommentMode = false;
+            DisplayApprovalImplMode = false;
+        }
+
+        public async Task StartWorkOnImplTask(WfImplTask implTask, ObjAction action)
+        {
+            SetImplTaskEnv(implTask);
+            ActImplTask.CurrentHandler = userConfig.User;
+            List<int> actPossibleStates = ActStateMatrix.getAllowedTransitions(ActImplTask.StateId);
+            if (actPossibleStates.Count == 1 && actPossibleStates[0] >= ActStateMatrix.LowestStartedState && actPossibleStates[0] < ActStateMatrix.LowestEndState)
+            {
+                ActImplTask.StateId = actPossibleStates[0];
+            }
+            await UpdateActImplTaskState();
+            if (!ActStateMatrix.PhaseActive[WorkflowPhases.planning] && ActReqTask.Start == null)
+            {
+                ActReqTask.Start = ActImplTask.Start;
+            }
+            await UpdateReqTaskStatesFromActImplTask();
+            await UpdateActTicketStateFromReqTasks();
+            SetImplTaskOpt(action);
+        }
+
+        public async Task ContinueImplPhase(WfImplTask implTask)
+        {
+            SelectImplTask(implTask, contOption);
+            if (ActImplTask.CurrentHandler != userConfig.User)
+            {
+                ActImplTask.CurrentHandler = userConfig.User;
+                await UpdateActImplTaskState();
+            }
+        }
+
+        public bool SelectOwnerImplTasks(FwoOwner selectedOwnerOpt)
+        {
+            try
+            {
+                AllVisibleImplTasks = [];
+                if (selectedOwnerOpt.Id != -3)
+                {
+                    foreach (var ticket in TicketList)
+                    {
+                        SelectFromTicketByOwner(ticket, selectedOwnerOpt);
+                    }
+                }
+                return selectedOwnerOpt.Id == -3;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("select_owner"), "", true);
+            }
+            return true;
+        }
+
+        public bool SelectDeviceImplTasks(Device selectedDeviceOpt)
+        {
+            try
+            {
+                AllVisibleImplTasks = [];
+                if (selectedDeviceOpt.Id != -1)
+                {
+                    foreach (var ticket in TicketList)
+                    {
+                        SelectFromTicketByDevice(ticket, selectedDeviceOpt);
+                    }
+                }
+                return selectedDeviceOpt.Id == -1;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("select_device"), "", true);
+            }
+            return true;
+        }
+
+        public async Task AssignImplTaskGroup(WfStatefulObject statefulObject)
+        {
+            ActImplTask.RecentHandler = ActImplTask.CurrentHandler ?? userConfig.User;
+            if (ActionHandler != null)
+            {
+                await UpdateActImplTaskState();
+                await ActionHandler.DoOnAssignmentActions(statefulObject, WfObjectScopes.ImplementationTask, ActImplTask.AssignedGroup);
+            }
+            DisplayAssignImplTaskMode = false;
+        }
+
+        public async Task AssignImplTaskBack()
+        {
+            ActImplTask.AssignedGroup = ActImplTask.RecentHandler?.Dn;
+            ActImplTask.RecentHandler = ActImplTask.CurrentHandler ?? userConfig.User;
+            await UpdateActImplTaskState();
+            if (ActionHandler != null)
+            {
+                await ActionHandler.DoOnAssignmentActions(ActImplTask, WfObjectScopes.ImplementationTask, ActImplTask.AssignedGroup);
+            }
+            DisplayAssignImplTaskMode = false;
+        }
+
+        public async Task AddImplTask()
+        {
+            if (dbAcc != null)
+            {
+                ActImplTask.Id = await dbAcc.AddImplTaskToDb(ActImplTask);
+            }
+            ActReqTask.ImplementationTasks.Add(ActImplTask);
+        }
+
+        public async Task ChangeImplTask()
+        {
+            if (dbAcc != null)
+            {
+                await dbAcc.UpdateImplTaskInDb(ActImplTask, ActReqTask);
+            }
+            ActReqTask.ImplementationTasks[ActReqTask.ImplementationTasks.FindIndex(x => x.TaskNumber == ActImplTask.TaskNumber)] = ActImplTask;
+        }
+
+        public async Task ConfAddCommentToImplTask(string commentText)
+        {
+            WfComment comment = new()
+            {
+                Scope = WfObjectScopes.ImplementationTask.ToString(),
+                CreationDate = DateTime.Now,
+                Creator = userConfig.User,
+                CommentText = commentText
+            };
+            if (dbAcc != null)
+            {
+                long commentId = await dbAcc.AddCommentToDb(comment);
+                if (commentId != 0)
+                {
+                    await dbAcc.AssignCommentToImplTaskInDb(ActImplTask.Id, commentId);
+                }
+            }
+            ActImplTask.Comments.Add(new WfCommentDataHelper(comment) { });
+            DisplayImplTaskCommentMode = false;
+        }
+
+        public async Task ConfDeleteImplTask()
+        {
+            if (dbAcc != null)
+            {
+                await dbAcc.DeleteImplTaskFromDb(ActImplTask);
+            }
+            ActReqTask.ImplementationTasks.RemoveAt(ActReqTask.ImplementationTasks.FindIndex(x => x.Id == ActImplTask.Id));
+            DisplayDeleteImplTaskMode = false;
+        }
+
+        public async Task ConfCleanupImplTasks()
+        {
+            if (dbAcc != null)
+            {
+                foreach (var impltask in ActReqTask.ImplementationTasks)
+                {
+                    await dbAcc.DeleteImplTaskFromDb(impltask);
+                }
+            }
+            ActReqTask.ImplementationTasks.Clear();
+            DisplayCleanupMode = false;
+        }
+
+        public async Task CreateAccessImplTasksFromPathAnalysis(WfReqTask reqTask)
+        {
+            if (apiConnection != null)
+            {
+                foreach (var device in await PathAnalysis.GetAllDevices(reqTask.Elements, apiConnection))
+                {
+                    if (reqTask.ImplementationTasks.FirstOrDefault(x => x.DeviceId == device.Id) == null)
+                    {
+                        await CreateAccessImplTask(reqTask, device.Id);
+                    }
+                }
+            }
+        }
+
+        private async Task AutoCreateOrUpdateImplTasks()
+        {
+            if (Phase <= WorkflowPhases.approval && !MasterStateMatrix.PhaseActive[WorkflowPhases.planning]
+                && ActTicket.StateId >= MasterStateMatrix.LowestEndState)
+            {
+                List<WfReqTask> requestTasksNeedingInitialImplTasks = [];
+                foreach (var reqTask in ActTicket.Tasks)
+                {
+                    // Todo: further analysis how many impl tasks currently have to be there and create or update where needed
+                    if (reqTask.ImplementationTasks.Count == 0
+                        && RequestTaskNeedsInitialImplTasks(reqTask))
+                    {
+                        requestTasksNeedingInitialImplTasks.Add(reqTask);
+                    }
+                    else
+                    {
+                        await UpgradeImplTaskStatesToReqTask(reqTask);
+                    }
+                }
+                foreach (WfReqTask reqTask in await RequestTasksForInitialImplCreation(requestTasksNeedingInitialImplTasks))
+                {
+                    await AutoCreateImplTasks(reqTask);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns the request tasks that should receive initially generated implementation tasks.
+        /// </summary>
+        private async Task<List<WfReqTask>> RequestTasksForInitialImplCreation(List<WfReqTask> requestTasks)
+        {
+            List<WfReqTask> requestTasksWithDetails = [];
+            foreach (WfReqTask reqTask in requestTasks)
+            {
+                WfReqTask detailedReqTask = await LoadReqTaskDetailsForImplCreation(reqTask);
+                if (TaskHasRequiredContentForImplCreation(detailedReqTask))
+                {
+                    requestTasksWithDetails.Add(detailedReqTask);
+                }
+            }
+
+            if (!userConfig.ReqConsiderBundling)
+            {
+                return requestTasksWithDetails;
+            }
+
+            List<WfReqTask> effectiveRequestTasks = [];
+            foreach (var bundleGroup in requestTasksWithDetails.GroupBy(task => task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId)))
+            {
+                List<WfReqTask> bundledTasks = [.. bundleGroup];
+                if (string.IsNullOrWhiteSpace(bundleGroup.Key))
+                {
+                    effectiveRequestTasks.AddRange(bundledTasks);
+                    continue;
+                }
+                if (BundleHasImplementationTasks(ActTicket, bundledTasks[0]))
+                {
+                    continue;
+                }
+                effectiveRequestTasks.Add(CreateMergedBundleRequestTask(bundledTasks));
+            }
+            return effectiveRequestTasks;
+        }
+
+        private async Task<WfReqTask> LoadReqTaskDetailsForImplCreation(WfReqTask reqTask)
+        {
+            if (reqTask.Elements.Count > 0 || reqTask.Id <= 0 || reqTask.TicketId <= 0 || dbAcc == null)
+            {
+                return reqTask;
+            }
+
+            WfReqTask detailedReqTask = await LoadReqTaskDetails(reqTask, true);
+            detailedReqTask.StateId = reqTask.StateId;
+            detailedReqTask.Start = reqTask.Start;
+            detailedReqTask.Stop = reqTask.Stop;
+            detailedReqTask.CurrentHandler = reqTask.CurrentHandler;
+            detailedReqTask.RecentHandler = reqTask.RecentHandler;
+            detailedReqTask.AssignedGroup = reqTask.AssignedGroup;
+            detailedReqTask.ImplementationTasks = reqTask.ImplementationTasks;
+            SyncActTicketFromReqTask(detailedReqTask);
+            return detailedReqTask;
+        }
+
+        private bool TaskHasRequiredContentForImplCreation(WfReqTask reqTask)
+        {
+            return dbAcc == null || reqTask.TaskType != WfTaskType.access.ToString() || reqTask.Elements.Count > 0;
+        }
+
+        /// <summary>
+        /// Creates a transient request task representing all request task elements in one bundle.
+        /// </summary>
+        private static WfReqTask CreateMergedBundleRequestTask(List<WfReqTask> bundleTasks)
+        {
+            WfReqTask mergedTask = new(bundleTasks[0])
+            {
+                Elements = [.. bundleTasks.SelectMany(task => task.Elements)
+                    .GroupBy(ElementIdentityKey)
+                    .Select(group => group.First())]
+            };
+            mergedTask.SetDeviceList([.. bundleTasks.SelectMany(task => task.GetDeviceList()).Distinct()]);
+            return mergedTask;
+        }
+
+        /// <summary>
+        /// Builds the identity used to collapse duplicate elements across bundled request tasks.
+        /// </summary>
+        private static object ElementIdentityKey(WfReqElement element)
+        {
+            return new
+            {
+                element.Field,
+                element.RequestAction,
+                element.DeviceId,
+                element.IpString,
+                element.IpEnd,
+                element.Port,
+                element.PortEnd,
+                element.ProtoId,
+                element.NetworkId,
+                element.ServiceId,
+                element.FlowNetworkObjectId,
+                element.FlowNetworkGroupId,
+                element.FlowServiceObjectId,
+                element.FlowServiceGroupId,
+                element.UserId,
+                element.OriginalNatId,
+                element.RuleUid,
+                element.GroupName,
+                element.Name
+            };
+        }
+
+        public bool CanAutoCreateInitialImplTasks(WfReqTask reqTask)
+        {
+            return reqTask.ImplementationTasks.Count == 0
+                && (reqTask.TaskType != WfTaskType.access.ToString() || userConfig.ReqAutoCreateImplTasks != AutoCreateImplTaskOptions.never)
+                && stateMatrixDict.Matrices.TryGetValue(reqTask.TaskType, out StateMatrix? matrix)
+                && !matrix.PhaseActive[WorkflowPhases.planning]
+                && RequestTaskNeedsInitialImplTasks(reqTask);
+        }
+
+        public bool CanAutoCreateInitialImplTasks(WfTicket ticket, WfReqTask reqTask)
+        {
+            return CanAutoCreateInitialImplTasks(reqTask)
+                && !BundleHasImplementationTasks(ticket, reqTask);
+        }
+
+        public async Task<bool> AutoCreateInitialImplTasksForMonitoring(WfTicket ticket, WfReqTask reqTask)
+        {
+            SetTicketEnv(ticket);
+            WfReqTask taskToUpdate = ActTicket.Tasks.FirstOrDefault(task => task.Id == reqTask.Id) ?? reqTask;
+            if (!CanAutoCreateInitialImplTasks(ActTicket, taskToUpdate))
+            {
+                return false;
+            }
+
+            int previousImplTaskCount = taskToUpdate.ImplementationTasks.Count;
+            bool implementationTasksCreated = false;
+            int createdImplTaskCount = 0;
+            foreach (WfReqTask task in await RequestTasksForInitialImplCreation([taskToUpdate]))
+            {
+                int taskPreviousImplTaskCount = task.ImplementationTasks.Count;
+                await AutoCreateImplTasks(task);
+                int taskCreatedImplTaskCount = Math.Max(0, task.ImplementationTasks.Count - taskPreviousImplTaskCount);
+                createdImplTaskCount += taskCreatedImplTaskCount;
+                implementationTasksCreated = implementationTasksCreated || taskCreatedImplTaskCount > 0;
+                SyncActTicketFromReqTask(task);
+            }
+            createdImplTaskCount = Math.Max(createdImplTaskCount, taskToUpdate.ImplementationTasks.Count - previousImplTaskCount);
+            if (createdImplTaskCount > 0)
+            {
+                LogMonitoringImplementationTasksCreated(ActTicket.Id, taskToUpdate.Id, createdImplTaskCount);
+            }
+            return implementationTasksCreated || taskToUpdate.ImplementationTasks.Count > previousImplTaskCount;
+        }
+
+        private bool BundleHasImplementationTasks(WfTicket ticket, WfReqTask reqTask)
+        {
+            if (!userConfig.ReqConsiderBundling)
+            {
+                return false;
+            }
+
+            string bundleId = reqTask.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId);
+            return !string.IsNullOrWhiteSpace(bundleId)
+                && ticket.Tasks.Any(task => task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId) == bundleId && task.ImplementationTasks.Count > 0);
+        }
+
+        private bool RequestTaskNeedsInitialImplTasks(WfReqTask reqTask)
+        {
+            return stateMatrixDict.Matrices.TryGetValue(reqTask.TaskType, out StateMatrix? matrix)
+                && reqTask.StateId >= matrix.MinImplTasksNeeded
+                && reqTask.StateId < matrix.MinTicketCompleted;
+        }
+
+        private async Task AutoCreateImplTasks(WfReqTask reqTask)
+        {
+            if (reqTask.TaskType == WfTaskType.access.ToString())
+            {
+                await AutoCreateAccessImplTasks(reqTask);
+                return;
+            }
+
+            await CreateGenericImplTask(reqTask);
+        }
+
+        private async Task AutoCreateAccessImplTasks(WfReqTask reqTask)
+        {
+            switch (userConfig.ReqAutoCreateImplTasks)
+            {
+                case AutoCreateImplTaskOptions.never:
+                    return;
+                case AutoCreateImplTaskOptions.onlyForOneDevice:
+                    await CreateImplTaskForFirstDevice(reqTask);
+                    return;
+                case AutoCreateImplTaskOptions.forEachDevice:
+                    await CreateImplTasksForDevices(reqTask, [.. Devices.Select(device => device.Id)]);
+                    return;
+                case AutoCreateImplTaskOptions.enterInReqTask:
+                    await CreateImplTasksForDevices(reqTask, reqTask.GetResolvedDeviceList(Devices));
+                    return;
+                case AutoCreateImplTaskOptions.oneTaskForAllDevices:
+                    await CreateImplTasksForCombinedOrSelectedDevices(reqTask);
+                    return;
+                case AutoCreateImplTaskOptions.afterPathAnalysis:
+                    await CreateAccessImplTasksFromPathAnalysis(reqTask);
+                    return;
+                default:
+                    return;
+            }
+        }
+
+        private async Task CreateImplTaskForFirstDevice(WfReqTask reqTask)
+        {
+            if (Devices.Count > 0)
+            {
+                await CreateAccessImplTask(reqTask, Devices[0].Id, false);
+            }
+        }
+
+        private async Task CreateImplTasksForCombinedOrSelectedDevices(WfReqTask reqTask)
+        {
+            List<int> deviceIds = reqTask.GetDeviceList();
+            if (deviceIds.Count == 0 || reqTask.HasAllDevicesSelected())
+            {
+                await CreateAccessImplTask(reqTask, null, false);
+                return;
+            }
+            await CreateImplTasksForDevices(reqTask, deviceIds);
+        }
+
+        private async Task CreateImplTasksForDevices(WfReqTask reqTask, List<int> deviceIds)
+        {
+            foreach (int deviceId in deviceIds)
+            {
+                await CreateAccessImplTask(reqTask, deviceId);
+            }
+        }
+
+        private async Task CreateGenericImplTask(WfReqTask reqTask)
+        {
+            WfImplTask newImplTask = new(reqTask) { TaskNumber = reqTask.HighestImplTaskNumber() + 1, StateId = reqTask.StateId };
+            if (dbAcc != null)
+            {
+                newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
+            }
+            reqTask.ImplementationTasks.Add(newImplTask);
+        }
+
+        private async Task CreateAccessImplTask(WfReqTask reqTask, int? deviceId, bool adaptTitle = true)
+        {
+            WfImplTask newImplTask;
+            newImplTask = new WfImplTask(reqTask)
+            { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = deviceId, StateId = reqTask.StateId };
+            if (adaptTitle && deviceId != null)
+            {
+                Device? device = Devices.FirstOrDefault(x => x.Id == deviceId);
+                if (device != null)
+                {
+                    newImplTask.Title += ": " + device.Name;
+                }
+            }
+            if (dbAcc != null)
+            {
+                newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
+            }
+            reqTask.ImplementationTasks.Add(newImplTask);
+        }
+
+        private void SelectFromTicketByDevice(WfTicket ticket, Device selectedDeviceOpt)
+        {
+            foreach (var reqTask in ticket.Tasks)
+            {
+                foreach (var implTask in reqTask.ImplementationTasks)
+                {
+                    if (selectedDeviceOpt.Id == 0 || implTask.DeviceId == selectedDeviceOpt.Id)
+                    {
+                        implTask.TicketId = ticket.Id;
+                        implTask.ReqTaskId = reqTask.Id;
+                        AllVisibleImplTasks.Add(implTask);
+                    }
+                }
+            }
+        }
+
+        private void SelectFromTicketByOwner(WfTicket ticket, FwoOwner selectedOwnerOpt)
+        {
+            foreach (var reqTask in ticket.Tasks)
+            {
+                foreach (var implTask in reqTask.ImplementationTasks)
+                {
+                    bool assignedToMe = implTask.CurrentHandler?.DbId == userConfig.User.DbId || DistName.DnEquals(implTask.AssignedGroup, userConfig.User.Dn);  // todo: resolve group membership?
+                    if (selectedOwnerOpt.Id == -1 || (selectedOwnerOpt.Id == -2 && assignedToMe)
+                        || (selectedOwnerOpt.Id > 0 && reqTask.Owners.FirstOrDefault(o => o.Owner.Id == selectedOwnerOpt.Id) != null))
+                    {
+                        implTask.TicketId = ticket.Id;
+                        implTask.ReqTaskId = reqTask.Id;
+                        AllVisibleImplTasks.Add(implTask);
+                    }
+                }
+            }
+        }
+
+        private void ResetImplTaskList()
+        {
+            AllTicketImplTasks = [];
+            foreach (var reqTask in ActTicket.Tasks)
+            {
+                foreach (var implTask in reqTask.ImplementationTasks)
+                {
+                    implTask.TicketId = ActTicket.Id;
+                    implTask.ReqTaskId = reqTask.Id;
+                    AllTicketImplTasks.Add(implTask);
+                }
+            }
+        }
+    }
+}

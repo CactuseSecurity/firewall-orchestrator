@@ -1,4 +1,4 @@
-﻿@implements IDisposable
+@implements IDisposable
 
 <!-- Display the tab headers -->
 <ul class="@GetNavClasses()">
@@ -35,7 +35,7 @@
     [Parameter]
     public bool RsbStyle { get; set; } = false;
 
-    public List<Tab> Tabs = new List<Tab>();
+    public List<Tab> Tabs = [];
 
     public Tab? ActiveTab { get; private set; }
 
@@ -89,7 +89,7 @@
         }
 
         var index = Tabs.IndexOf(tab);
-        if (ActiveTab != null && tab == ActiveTab && index == Tabs.Count - 1)
+        if (ActiveTab != null && tab == ActiveTab)
         {
             SetActiveTab(Tabs[index > 0 ? index - 1 : 0]);
             if (Tabs.Count == 1)

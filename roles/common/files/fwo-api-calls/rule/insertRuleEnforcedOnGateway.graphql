@@ -1,0 +1,7 @@
+mutation insertRuleEnforcedOnGateway (
+  $rulesEnforcedOnGateway: [firewall_rule_enforced_on_gateway_insert_input!]!
+) {
+  insert_firewall_rule_enforced_on_gateway(objects: $rulesEnforcedOnGateway) {
+    affected_rows
+  }
+}

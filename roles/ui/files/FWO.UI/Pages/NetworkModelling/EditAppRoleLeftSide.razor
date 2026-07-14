@@ -1,32 +1,38 @@
-@using FWO.Config.Api
-@using FWO.Services
 @using FWO.Ui.Display
 
-@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<div class="ms-2">
-    <h3>@(userConfig.GetText("library"))</h3>
-</div>
-<div class="col-sm-11 border rounded m-2 p-2">
-    <h5>@(userConfig.GetText("app_server"))</h5>
-    @if(AppRoleHandler != null)
-    {
-        <div class="form-group row">
-            <div class="col-sm-10">
-                <DraggableList AllElements="selectableAppServers" @bind-SelectedElements="selectedAppServers" 
-                    HandleDragStart="HandleDragStart" Display="@(x => x.DisplayWithIcon())" MaxHeight="50"/>
-            </div>
-            @if(selectedAppServers.Count > 0)
-            {
-                <div class="col-sm-2">
-                    <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
-                        {AppRoleHandler.AppServerToAppRole(selectedAppServers); selectedAppServers = [];
-                        AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}">@(AppRoleHandler.DisplayButton("to_app_role", Icons.Use))</button>
+
+<h5>@(userConfig.GetText("library"))</h5>
+<div class="col-sm-12 border rounded mx-2 p-2">
+    <div class="col-sm-12">
+        <h5>@(userConfig.GetText("app_server"))</h5>
+        @if (AppRoleHandler != null)
+        {
+            <div class="bg-secondary">
+                <div id="app-role-library-ordered-draggable-list" class="col-sm-12 ">
+                    <div class="d-flex align-items-center">
+                        <OrderByDropdown CssClass="@(orderByDropdownWidthClass)" @ref="orderByDropdown" TCollectionItem="ModellingAppServer" Collection="AppRoleHandler.AppServersInArea" CollectionReordered="OnCollectionReordered" ElementProperties="orderByDropdownProperties" />
+                        @if (selectedAppServers.Count > 0)
+                        {
+                            <div class="col-sm-2 p-2">
+                                <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
+                                    {AppRoleHandler.AppServerToAppRole(selectedAppServers); selectedAppServers = [];
+                                    AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}">
+                                    @(DisplayService.DisplayButton(userConfig, "to_app_role", Icons.Use))
+                                </button>
+                            </div>
+                        }
+                    </div>
+                    <div class="@GetDynamicHeightScrollableAppserverClass()">
+                        <DraggableList AllElements="selectableAppServers" @bind-SelectedElements="selectedAppServers"
+                                   HandleDragStart="HandleDragStart" Display="@(x => x.DisplayWithIcon())" CssClass="" />
+                    </div>                    
                 </div>
-            }
-        </div>
-    }
+
+            </div>
+        }
+    </div>
 </div>
 
 
@@ -35,7 +41,7 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    [Parameter] 
+    [Parameter]
     public ModellingDnDContainer Container { get; set; } = new();
 
     [Parameter]
@@ -54,17 +60,30 @@
     public EventCallback<ModellingAppRoleHandler> AppRoleHandlerChanged { get; set; }
 
     private List<ModellingAppServer> selectedAppServers = [];
-    private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width);}}
+    private int sidebarLeftWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width); } }
 
     /// <summary>
     /// The app servers which are available for adding (i.e. which are not already in the AppServerToAdd collection).
     /// </summary>
-    private List<ModellingAppServer> selectableAppServers => AppRoleHandler.AppServersInArea.Except(AppRoleHandler.AppServerToAdd).ToList();
+    private List<ModellingAppServer> selectableAppServers => GetSelectableAppServers();
+
+
+    /// <summary>
+    /// Reference to the order by component.
+    /// </summary>
+    private OrderByDropdown<ModellingAppServer>? orderByDropdown;
+
+    /// <summary>
+    /// Properties to sort the app server's visual elements by.
+    /// </summary>
+    private List<string> orderByDropdownProperties => new List<string> { "Ip", "Name" };
+
+    private string orderByDropdownWidthClass => selectedAppServers.Count > 0 ? "col-sm-10" : "col-sm-12";
 
 
     private bool HandleDragStart(DragEventArgs e, ModellingAppServer appServer)
     {
-        if(!selectedAppServers.Contains(appServer))
+        if (!selectedAppServers.Contains(appServer))
         {
             selectedAppServers.Add(appServer);
         }
@@ -72,5 +91,56 @@
         Container.AppServerElements = selectedAppServers;
         selectedAppServers = new();
         return true;
+    }
+
+    /// <summary>
+    /// Updates the app server's visual elements after reordering the collection.
+    /// </summary>
+    private void OnCollectionReordered(List<ModellingAppServer> orderedCollection)
+    {
+        if (AppRoleHandler != null && orderedCollection != null)
+        {
+            AppRoleHandler.AppServersInArea = orderedCollection;
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Returns selectable app servers if AppRoleHandler is not null, returns empty list otherwise.
+    /// </summary>
+    private List<ModellingAppServer> GetSelectableAppServers()
+    {
+        ModellingAppServer[] actAppRoleAppServers = [];
+
+        if(AppRoleHandler != null)
+        {
+            actAppRoleAppServers = ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers);
+
+            // Selectable app servers equals app servers in area except for already saved app servers and app servers, that are selected for adding.
+            return AppRoleHandler.AppServersInArea
+                                    .Except(actAppRoleAppServers)
+                                    .Except(AppRoleHandler.AppServerToAdd).ToList();
+        }
+        else
+        {
+            // Returns empty collection if AppRoleHandler is null.
+            return new();
+        }
+    }
+
+    private string GetDynamicHeightScrollableAppserverClass()
+    {
+        if (AppRoleHandler is null)
+        {
+            return string.Empty;
+        }
+
+        if(AppRoleHandler.NamingConvention.NetworkAreaRequired)
+        {
+            return "appserver-left-scrollable-networkarea";
+        }
+
+        return "appserver-left-scrollable";
     }
 }

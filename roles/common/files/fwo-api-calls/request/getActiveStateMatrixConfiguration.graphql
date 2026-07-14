@@ -1,0 +1,8 @@
+query getActiveStateMatrixConfiguration($taskType: String!) {
+  workflow_configurations: request_workflow_configuration(
+    where: {is_active: {_eq: true}}
+    order_by: {id: asc}
+  ) {
+    ...stateMatrixConfigurationDetails
+  }
+}

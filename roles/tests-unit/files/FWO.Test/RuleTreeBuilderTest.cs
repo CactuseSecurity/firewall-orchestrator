@@ -1,0 +1,498 @@
+using System.Collections.Generic;
+using System.Linq;
+using FWO.Basics;
+using FWO.Data;
+using FWO.Data.Report;
+using FWO.Services.RuleTreeBuilder;
+using NUnit.Framework;
+
+namespace FWO.Test
+{
+    [TestFixture]
+    internal class RuleTreeBuilderTest
+    {
+        private static readonly int[] kExpectedShuffledRulebaseIds = [1, 2, 3];
+        private static readonly string[] kExpectedShuffledDisplayOrderNumbers = ["1", "1.1", string.Empty, "1.2", "2", "2.1"];
+        private static readonly string[] kExpectedInlineRulebaseDisplayOrderNumbers = ["1.1", "1.1.1", "1.1.2"];
+        private static readonly string[] kExpectedTwoLayerDisplayOrderNumbers = ["1", "1.1", "2", "2.1"];
+        private static readonly int[] kExpectedSequentialOrderNumbers = [0, 1, 0, 2];
+        private static readonly int[] kExpectedSequentialDisplayOrderNumbers = [1, 2, 3, 4];
+        private static readonly string[] kExpectedSectionHeaderDisplayOrderNumbers = ["1", string.Empty, string.Empty];
+        private static readonly string[] kExpectedSectionRuleDisplayOrderNumbers = ["1.1", "1.2", "1.3", "1.4"];
+        private static readonly string[] kExpectedSuppressedSectionRuleDisplayOrderNumbers = ["1.1", "1.2"];
+
+        private RuleTreeBuilder _ruleTreeBuilder = default!;
+
+        [SetUp]
+        public void SetUpTestMethod()
+        {
+            _ruleTreeBuilder = new RuleTreeBuilder();
+        }
+
+        [Test]
+        public void BuildRuleTree_OrderedLayerOnly_ReturnsOrderedHeaderAndRules()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10, 11)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1)
+            ];
+
+            List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1);
+
+            Assert.That(flattenedRules.Count, Is.EqualTo(3));
+            Assert.That(flattenedRules[0].SectionHeader, Is.EqualTo("Layer-1"));
+            Assert.That(flattenedRules[1].DisplayOrderNumberString, Is.EqualTo("1.1"));
+            Assert.That(flattenedRules[2].DisplayOrderNumberString, Is.EqualTo("1.2"));
+            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => element.IsOrderedLayerHeader), Is.EqualTo(1));
+            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => element.IsRule), Is.EqualTo(2));
+        }
+
+        [Test]
+        public void BuildRuleTree_ShuffledSectionAndLayerLinks_FollowsGraphNotInputOrder()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-A", 10),
+                Rulebase(2, "Section-A", 20),
+                Rulebase(3, "Layer-B", 30)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerLink(gatewayId: 1, fromRulebaseId: 1, nextRulebaseId: 3),
+                SectionLink(gatewayId: 1, fromRulebaseId: 1, nextRulebaseId: 2),
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1)
+            ];
+
+            List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1);
+            Rule[] realRules = flattenedRules.Where(rule => string.IsNullOrEmpty(rule.SectionHeader)).ToArray();
+
+            Assert.That(realRules.Select(rule => rule.RulebaseId), Is.EqualTo(kExpectedShuffledRulebaseIds));
+            Assert.That(flattenedRules.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(kExpectedShuffledDisplayOrderNumbers));
+        }
+
+        [Test]
+        public void BuildRuleTree_InlineLayerWithSection_BuildsNestedGraph()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10),
+                Rulebase(2, "Inline-1", 20),
+                Rulebase(3, "Inline-Section", 30)
+            ];
+
+            RulebaseLink[] links =
+            [
+                SectionLink(gatewayId: 1, fromRulebaseId: 2, nextRulebaseId: 3),
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                InlineLayerLink(gatewayId: 1, fromRulebaseId: 1, fromRuleId: 10, nextRulebaseId: 2)
+            ];
+
+            List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1);
+            Rule[] realRules = flattenedRules.Where(rule => string.IsNullOrEmpty(rule.SectionHeader)).ToArray();
+
+            Assert.That(realRules.Select(rule => rule.RulebaseId), Is.EqualTo(kExpectedShuffledRulebaseIds));
+            Assert.That(realRules.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(kExpectedInlineRulebaseDisplayOrderNumbers));
+            Assert.That(flattenedRules.Single(rule => rule.SectionHeader == "Inline-Section").DisplayOrderNumberString, Is.EqualTo(string.Empty));
+            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => element.IsSectionHeader), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void BuildRuleTree_InlineLayerRulesBecomeVisibleAgainAfterCollapseAndExpand()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10),
+                Rulebase(2, "Inline-1", 20),
+                Rulebase(3, "Inline-Section", 30)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                InlineLayerLink(gatewayId: 1, fromRulebaseId: 1, fromRuleId: 10, nextRulebaseId: 2),
+                SectionLink(gatewayId: 1, fromRulebaseId: 2, nextRulebaseId: 3)
+            ];
+
+            _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1);
+
+            RuleTreeItem root = _ruleTreeBuilder.RuleTree;
+            RuleTreeItem layerNode = root.Children.Single();
+            RuleTreeItem owningRuleNode = layerNode.Children.Single(child => child.IsRule);
+            RuleTreeItem inlineSectionHeaderNode = root.ElementsFlat.Single(node => node.IsSectionHeader && node.Data.SectionHeader == "Inline-Section");
+            RuleTreeItem inlineRuleNode = root.ElementsFlat.Single(node => node.IsRule && node.Data.RulebaseId == 2);
+            RuleTreeItem inlineSectionRuleNode = root.ElementsFlat.Single(node => node.IsRule && node.Data.RulebaseId == 3);
+
+            RuleTreeItem.SetExpandedRecursively(root, false);
+            layerNode.IsExpanded = true;
+            owningRuleNode.IsExpanded = true;
+
+            Assert.That(inlineRuleNode.IsVisible, Is.True);
+            Assert.That(inlineSectionHeaderNode.IsVisible, Is.True);
+            Assert.That(inlineSectionRuleNode.IsVisible, Is.False);
+
+            inlineSectionHeaderNode.IsExpanded = true;
+
+            Assert.That(inlineSectionRuleNode.IsVisible, Is.True);
+        }
+
+        [Test]
+        public void BuildRuleTree_TwoOrderedLayers_PreservesTopLevelLayerChain()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10),
+                Rulebase(2, "Layer-2", 20)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerLink(gatewayId: 1, fromRulebaseId: 1, nextRulebaseId: 2),
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1)
+            ];
+
+            List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1);
+
+            Assert.That(flattenedRules.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(kExpectedTwoLayerDisplayOrderNumbers));
+        }
+
+        [Test]
+        public void BuildRuleTree_DuplicateRuleIds_Throws()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10),
+                Rulebase(2, "Layer-2", 10)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                OrderedLayerLink(gatewayId: 1, fromRulebaseId: 1, nextRulebaseId: 2)
+            ];
+
+            Assert.That(
+                () => _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1),
+                Throws.InvalidOperationException.With.Message.Contains("encountered more than once"));
+        }
+
+        [Test]
+        public void BuildRuleTree_MultipleInitialLinks_Throws()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10),
+                Rulebase(2, "Layer-2", 20)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 2)
+            ];
+
+            Assert.That(
+                () => _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1),
+                Throws.InvalidOperationException.With.Message.Contains("multiple were found"));
+        }
+
+        [Test]
+        public void BuildRuleTree_MissingOrderedLayerRulebase_Throws()
+        {
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 999)
+            ];
+
+            Assert.That(
+                () => _ruleTreeBuilder.BuildRuleTree([], links, 1, 1),
+                Throws.InvalidOperationException.With.Message.Contains("Rulebase 999"));
+        }
+
+        [Test]
+        public void BuildRuleTree_MissingSectionRulebase_Throws()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                SectionLink(gatewayId: 1, fromRulebaseId: 1, nextRulebaseId: 999)
+            ];
+
+            Assert.That(
+                () => _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1),
+                Throws.InvalidOperationException.With.Message.Contains("Rulebase 999"));
+        }
+
+        [Test]
+        public void BuildRuleTree_MissingInlineRulebase_Throws()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                InlineLayerLink(gatewayId: 1, fromRulebaseId: 1, fromRuleId: 10, nextRulebaseId: 999)
+            ];
+
+            Assert.That(
+                () => _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1),
+                Throws.InvalidOperationException.With.Message.Contains("Rulebase 999"));
+        }
+
+        [Test]
+        public void BuildRuleTree_MultipleInlineLinksForSameRule_Throws()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10),
+                Rulebase(2, "Inline-1", 20),
+                Rulebase(3, "Inline-2", 30)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                InlineLayerLink(gatewayId: 1, fromRulebaseId: 1, fromRuleId: 10, nextRulebaseId: 2),
+                InlineLayerLink(gatewayId: 1, fromRulebaseId: 1, fromRuleId: 10, nextRulebaseId: 3)
+            ];
+
+            Assert.That(
+                () => _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1),
+                Throws.InvalidOperationException.With.Message.Contains("multiple inline-layer links"));
+        }
+
+        [Test]
+        public void BuildRuleTree_UnresolvedLinks_DoNotFailBuild()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10),
+                Rulebase(2, "Unused-Concat", 20)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                ConcatenationLink(gatewayId: 1, fromRulebaseId: 1, nextRulebaseId: 2)
+            ];
+
+            List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1);
+
+            Assert.That(flattenedRules.Count, Is.EqualTo(2));
+            Assert.That(_ruleTreeBuilder.LinksToBeProcessed.Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void BuildRuleTree_FinalFlatteningAssignsSequentialOrderNumbers()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10),
+                Rulebase(2, "Section-A", 20)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                SectionLink(gatewayId: 1, fromRulebaseId: 1, nextRulebaseId: 2)
+            ];
+
+            List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1);
+
+            Assert.That(flattenedRules.Select(rule => rule.OrderNumber), Is.EqualTo(kExpectedSequentialOrderNumbers));
+            Assert.That(flattenedRules.Select(rule => rule.DisplayOrderNumber), Is.EqualTo(kExpectedSequentialDisplayOrderNumbers));
+        }
+
+        [Test]
+        public void BuildRuleTree_SectionHeadersStayUnnumberedWhileRulesContinueSiblingNumbering()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10, 11),
+                Rulebase(2, "Section-A", 20),
+                Rulebase(3, "Section-B", 30)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                SectionLink(gatewayId: 1, fromRulebaseId: 1, nextRulebaseId: 2),
+                SectionLink(gatewayId: 1, fromRulebaseId: 2, nextRulebaseId: 3)
+            ];
+
+            List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1);
+            Rule[] sectionHeaders = flattenedRules.Where(rule => !string.IsNullOrEmpty(rule.SectionHeader)).ToArray();
+            Rule[] realRules = flattenedRules.Where(rule => string.IsNullOrEmpty(rule.SectionHeader)).ToArray();
+
+            Assert.That(sectionHeaders.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(kExpectedSectionHeaderDisplayOrderNumbers));
+            Assert.That(realRules.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(kExpectedSectionRuleDisplayOrderNumbers));
+        }
+
+        [Test]
+        public void BuildRuleTree_EmptySectionHeader_IsFlattenedWithoutFilterSuppression()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10),
+                Rulebase(2, "Empty-Section"),
+                Rulebase(3, "Matching-Section", 30)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                SectionLink(gatewayId: 1, fromRulebaseId: 1, nextRulebaseId: 2),
+                SectionLink(gatewayId: 1, fromRulebaseId: 2, nextRulebaseId: 3)
+            ];
+
+            List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1);
+
+            Assert.That(flattenedRules.Select(rule => rule.SectionHeader), Does.Contain("Empty-Section"));
+            Assert.That(flattenedRules.Select(rule => rule.SectionHeader), Does.Contain("Matching-Section"));
+        }
+
+        [Test]
+        public void BuildRuleTree_EmptySectionHeader_IsNotFlattenedWithFilterSuppression()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10),
+                Rulebase(2, "Empty-Section"),
+                Rulebase(3, "Matching-Section", 30)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                SectionLink(gatewayId: 1, fromRulebaseId: 1, nextRulebaseId: 2),
+                SectionLink(gatewayId: 1, fromRulebaseId: 2, nextRulebaseId: 3)
+            ];
+
+            List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1, suppressEmptyHeaders: true);
+
+            Assert.That(flattenedRules.Select(rule => rule.SectionHeader), Does.Not.Contain("Empty-Section"));
+            Assert.That(flattenedRules.Select(rule => rule.SectionHeader), Does.Contain("Matching-Section"));
+            Assert.That(flattenedRules.Where(rule => string.IsNullOrEmpty(rule.SectionHeader)).Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(kExpectedSuppressedSectionRuleDisplayOrderNumbers));
+        }
+
+        [Test]
+        public void BuildRuleTree_EmptyOrderedLayerHeader_IsNotFlattenedWithFilterSuppression()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Empty-Layer"),
+                Rulebase(2, "Matching-Layer", 20)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                OrderedLayerLink(gatewayId: 1, fromRulebaseId: 1, nextRulebaseId: 2)
+            ];
+
+            List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1, suppressEmptyHeaders: true);
+
+            Assert.That(flattenedRules.Select(rule => rule.SectionHeader), Does.Not.Contain("Empty-Layer"));
+            Assert.That(flattenedRules.Select(rule => rule.SectionHeader), Does.Contain("Matching-Layer"));
+            Assert.That(flattenedRules.Single(rule => string.IsNullOrEmpty(rule.SectionHeader)).DisplayOrderNumberString, Is.EqualTo("1.1"));
+        }
+
+        private static RulebaseReport Rulebase(int id, string name, params int[] ruleIds)
+        {
+            return new RulebaseReport
+            {
+                Id = id,
+                Name = name,
+                Rules = ruleIds.Select(ruleId => new Rule { Id = ruleId, RulebaseId = id, Name = $"R-{ruleId}" }).ToArray()
+            };
+        }
+
+        private static RulebaseLink OrderedLayerInitialLink(int gatewayId, int nextRulebaseId)
+        {
+            return new RulebaseLink
+            {
+                GatewayId = gatewayId,
+                FromRulebaseId = null,
+                FromRuleId = null,
+                NextRulebaseId = nextRulebaseId,
+                LinkType = 2,
+                IsInitial = true,
+                IsGlobal = false,
+                IsSection = false
+            };
+        }
+
+        private static RulebaseLink OrderedLayerLink(int gatewayId, int fromRulebaseId, int nextRulebaseId)
+        {
+            return new RulebaseLink
+            {
+                GatewayId = gatewayId,
+                FromRulebaseId = fromRulebaseId,
+                FromRuleId = null,
+                NextRulebaseId = nextRulebaseId,
+                LinkType = 2,
+                IsInitial = false,
+                IsGlobal = false,
+                IsSection = false
+            };
+        }
+
+        private static RulebaseLink SectionLink(int gatewayId, int fromRulebaseId, int nextRulebaseId)
+        {
+            return new RulebaseLink
+            {
+                GatewayId = gatewayId,
+                FromRulebaseId = fromRulebaseId,
+                FromRuleId = null,
+                NextRulebaseId = nextRulebaseId,
+                LinkType = 4,
+                IsInitial = false,
+                IsGlobal = false,
+                IsSection = true
+            };
+        }
+
+        private static RulebaseLink ConcatenationLink(int gatewayId, int fromRulebaseId, int nextRulebaseId)
+        {
+            return new RulebaseLink
+            {
+                GatewayId = gatewayId,
+                FromRulebaseId = fromRulebaseId,
+                FromRuleId = null,
+                NextRulebaseId = nextRulebaseId,
+                LinkType = 4,
+                IsInitial = false,
+                IsGlobal = false,
+                IsSection = false
+            };
+        }
+
+        private static RulebaseLink InlineLayerLink(int gatewayId, int fromRulebaseId, int fromRuleId, int nextRulebaseId)
+        {
+            return new RulebaseLink
+            {
+                GatewayId = gatewayId,
+                FromRulebaseId = fromRulebaseId,
+                FromRuleId = fromRuleId,
+                NextRulebaseId = nextRulebaseId,
+                LinkType = 3,
+                IsInitial = false,
+                IsGlobal = false,
+                IsSection = false
+            };
+        }
+    }
+}

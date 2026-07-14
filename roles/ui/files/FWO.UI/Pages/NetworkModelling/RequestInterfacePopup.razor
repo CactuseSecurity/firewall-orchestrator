@@ -1,13 +1,13 @@
-﻿@using FWO.Config.Api
 @using FWO.Middleware.Client
-@using FWO.Services
+
+@using FWO.Compliance
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject MiddlewareClient middlewareClient
 
 
-<PopUp Title="@(userConfig.GetText("request_interface"))" Show="@Display" Size=PopupSize.Large OnClose="Close">
+<PopUp Title="@(userConfig.GetText("request_interface"))" Show="@Display" Size=PopupSize.Medium OnClose="Close">
     <Body>
         @if (Display)
         {
@@ -31,22 +31,22 @@
         }
     </Body>
     <Footer>
-        <AuthorizeView Roles="@Roles.Modeller">
+        <ExecutionModeAuthorizeView Roles="@Roles.Modeller">
             <Authorized>
                 @if(SelectedOwner.Id > 0 && !WorkInProgress)
                 {
-                    <button type="button" class="btn btn-sm btn-primary" @onclick="SendRequest">@(userConfig.GetText("request_interface"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="SendRequest">@(DisplayService.DisplayButton(userConfig, "request_interface", Icons.Workflow))</button>
                 }
                 else
                 {
-                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("request_interface"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "request_interface", Icons.Workflow))</button>
                 }
             </Authorized>
             <NotAuthorized>
-                <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("request_interface"))</button>
+                <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "request_interface", Icons.Workflow))</button>
             </NotAuthorized> 
-        </AuthorizeView>
-        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+        </ExecutionModeAuthorizeView>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
     </Footer>
 </PopUp>
 <InProgress Display="WorkInProgress"/>
@@ -82,7 +82,7 @@
     private bool WorkInProgress = false;
 
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         if(Apps.Count > 0)
         {
@@ -93,13 +93,17 @@
 
     private async Task SendRequest()
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
         WorkInProgress = true;
         try
         {
             if(CheckInput())
             {
-                TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
-                long ticketId = await ticketCreator.CreateRequestNewInterfaceTicket(SelectedOwner, RequestingOwner, Reason);
+                TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.request, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
+                long ticketId = await ticketCreator.CreateRequestNewInterfaceTicket(SelectedOwner, RequestingOwner, InterfaceName, Reason);
 
                 if(ticketId > 0)
                 {
@@ -110,7 +114,7 @@
                     long connId = await ConnHandler.CreateNewRequestedInterface(ticketId, AsSource, InterfaceName, Reason);
                     await SendEmail(connId);
 
-                    await ticketCreator.SetInterfaceId(ticketId, connId, SelectedOwner);
+                    await ticketCreator.SetInterfaceId(ticketId, connId);
                 }
                 await RefreshParent();
                 Close();
@@ -120,7 +124,10 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("add_new_request"), "", true);
         }
-        WorkInProgress = false;
+        finally
+        {
+            WorkInProgress = false;
+        }
     }
 
     private bool CheckInput()
@@ -146,11 +153,12 @@
 
             await emailHelper.Init();
 
-            string interfaceUrl = $"{userConfig.UiHostName}/networkmodelling/{SelectedOwner.ExtAppId}/{connId}";
+            string interfaceUrl = $"{userConfig.UiHostName}/{PageName.Modelling}/{SelectedOwner.ExtAppId}/{connId}";
             string subject = userConfig.ModReqEmailSubject;
             string body = $"{RequestingOwner.Name} {userConfig.ModReqEmailBody} {SelectedOwner.Name} <br>" +
                 $"<a target=\"_blank\" href=\"{interfaceUrl}\">{userConfig.GetText("interface")}: {InterfaceName}</a><br>"; 
-            if(await emailHelper.SendEmailToOwnerResponsibles(SelectedOwner, subject, body))
+            List<string> legacyOtherAddresses = EmailHelper.SplitAddresses(userConfig.ModReqEmailOtherAddresses);
+            if(await emailHelper.SendEmailToOwnerResponsibles(SelectedOwner, subject, body, userConfig.ModReqEmailReceiver, userConfig.ModReqEmailRequesterInCc, legacyOtherAddresses))
             {
                 DisplayMessageInUi(null, userConfig.GetText("send_email"), userConfig.GetText("U9011"), false);
             }

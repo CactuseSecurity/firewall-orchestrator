@@ -1,8 +1,6 @@
-﻿@using NetTools;
-@using FWO.Basics
-@using FWO.Api.Data;
-@using FWO.Ui.Display;
-@using FWO.Services
+﻿@using NetTools
+@using FWO.Ui.Display
+@using FWO.Data.Workflow
 
 @inject UserConfig userConfig
 
@@ -16,7 +14,7 @@
         {
             @foreach(var adr in IpAddresses)
             {
-                <div class="col-sm-10 border bg-transparent">@NwObjDisplay.DisplayIp(adr.IpString, adr.IpEndString)</div>
+                <div class="col-sm-10 border bg-transparent">@DisplayIpAddress(adr)</div>
             }
         }
         else
@@ -24,7 +22,7 @@
             <EditList ElementType="NwObjectElement" Elements="IpAddresses.ToArray()" ElementsToAdd="IpsToAdd" ElementsToDelete="IpsToDelete" StdLayout="false">
                 <Display>
                     <div class="row">
-                        <div class="mh-13 col-sm-12 border bg-transparent">@NwObjDisplay.DisplayIp(context.IpString, context.IpEndString)</div>
+                        <div class="mh-13 col-sm-12 border bg-transparent">@DisplayIpAddress(context)</div>
                     </div>
                 </Display>
             </EditList>
@@ -33,7 +31,7 @@
                     <div class="col-sm-10">
                         <IpAddressInput @bind-IpRange="ipRangeToAdd" />
                     </div>
-                    <button @onclick="AddIpRange" type="button" class="col-sm-2 btn btn-sm btn-success" id="addIpAddress">@(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
+                    <button @onclick="AddIpRange" type="button" class="col-sm-2 btn btn-sm btn-success" id="addIpAddress">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
             </div>
         }
@@ -65,6 +63,19 @@
 
 
     private IPAddressRange? ipRangeToAdd;
+
+    private static string DisplayIpAddress(NwObjectElement element)
+    {
+        if (!string.IsNullOrWhiteSpace(element.GroupName))
+        {
+            return element.GroupName;
+        }
+        if (!string.IsNullOrWhiteSpace(element.Name))
+        {
+            return element.Name;
+        }
+        return NwObjDisplay.DisplayIp(element.IpString, element.IpEndString);
+    }
 
     private void AddIpRange()
     {

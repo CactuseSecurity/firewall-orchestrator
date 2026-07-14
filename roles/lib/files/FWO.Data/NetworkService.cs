@@ -1,0 +1,165 @@
+using System.Text.Json.Serialization;
+using FWO.Basics;
+using FWO.Data.Flow;
+using Newtonsoft.Json;
+
+namespace FWO.Data
+{
+    public class NetworkService
+    {
+        [JsonProperty("svc_id"), JsonPropertyName("svc_id")]
+        public long Id { get; set; }
+
+        [JsonProperty("svc_name"), JsonPropertyName("svc_name")]
+        public string Name { get; set; } = "";
+
+        [JsonProperty("svc_uid"), JsonPropertyName("svc_uid")]
+        public string Uid { get; set; } = "";
+
+        [JsonProperty("svc_port"), JsonPropertyName("svc_port")]
+        public int? DestinationPort { get; set; }
+
+        [JsonProperty("svc_port_end"), JsonPropertyName("svc_port_end")]
+        public int? DestinationPortEnd { get; set; }
+
+        [JsonProperty("svc_source_port"), JsonPropertyName("svc_source_port")]
+        public int? SourcePort { get; set; }
+
+        [JsonProperty("svc_source_port_end"), JsonPropertyName("svc_source_port_end")]
+        public int? SourcePortEnd { get; set; }
+
+        [JsonProperty("svc_code"), JsonPropertyName("svc_code")]
+        public string Code { get; set; } = "";
+
+        [JsonProperty("svc_timeout"), JsonPropertyName("svc_timeout")]
+        public int? Timeout { get; set; }
+
+        [JsonProperty("svc_typ_id"), JsonPropertyName("svc_typ_id")]
+        public int? TypeId { get; set; }
+
+        [JsonProperty("active"), JsonPropertyName("active")]
+        public bool Active { get; set; }
+
+        [JsonProperty("svc_create"), JsonPropertyName("svc_create")]
+        public int Create { get; set; }
+
+        [JsonProperty("svc_create_time"), JsonPropertyName("svc_create_time")]
+        public TimeWrapper CreateTime { get; set; } = new();
+
+        [JsonProperty("service_type"), JsonPropertyName("service_type")]
+        public NetworkServiceType Type { get; set; } = new();
+
+        [JsonProperty("svc_comment"), JsonPropertyName("svc_comment")]
+        public string Comment { get; set; } = "";
+
+        [JsonProperty("svc_color_id"), JsonPropertyName("svc_color_id")]
+        public int? ColorId { get; set; }
+
+        [JsonProperty("stm_color"), JsonPropertyName("stm_color")]
+        public Color? Color { get; set; }
+
+        [JsonProperty("ip_proto_id"), JsonPropertyName("ip_proto_id")]
+        public int? ProtoId { get; set; }
+
+        [JsonProperty("protocol_name"), JsonPropertyName("protocol_name")]
+        public NetworkProtocol? Protocol { get; set; }
+
+        [JsonProperty("svc_member_names"), JsonPropertyName("svc_member_names")]
+        public string MemberNames { get; set; } = "";
+
+        [JsonProperty("svc_member_refs"), JsonPropertyName("svc_member_refs")]
+        public string MemberRefs { get; set; } = "";
+
+        [JsonProperty("svcgrps"), JsonPropertyName("svcgrps")]
+        public Group<NetworkService>[] ServiceGroups { get; set; } = [];
+
+        [JsonProperty("svcgrp_flats"), JsonPropertyName("svcgrp_flats")]
+        public GroupFlat<NetworkService>[] ServiceGroupFlats { get; set; } = [];
+
+        [JsonProperty("svc_rpcnr"), JsonPropertyName("svc_rpcnr")]
+        public long? RpcNumber { get; set; }
+
+        [JsonProperty("flow_svcobj_id"), JsonPropertyName("flow_svcobj_id")]
+        public long? FlowServiceObjectId { get; set; }
+
+        [JsonProperty("flow_svcobject"), JsonPropertyName("flow_svcobject")]
+        public FlowSvcObject? FlowSvcObject { get; set; }
+
+        [JsonProperty("flow_svcgrp_id"), JsonPropertyName("flow_svcgrp_id")]
+        public long? FlowServiceGroupId { get; set; }
+
+        [JsonProperty("flow_svcgroup"), JsonPropertyName("flow_svcgroup")]
+        public FlowSvcGroup? FlowSvcGroup { get; set; }
+
+        [JsonProperty("flow_active"), JsonPropertyName("flow_active")]
+        public bool FlowActive { get; set; }
+
+        [JsonProperty("removed"), JsonPropertyName("removed")]
+        public long? Removed { get; set; }
+
+        public long Number;
+        public bool IsSurplus = false;
+
+        public NetworkService()
+        { }
+
+        public NetworkService(NetworkService networkService)
+        {
+            Id = networkService.Id;
+            Name = networkService.Name;
+            Uid = networkService.Uid;
+            DestinationPort = networkService.DestinationPort;
+            DestinationPortEnd = networkService.DestinationPortEnd;
+            SourcePort = networkService.SourcePort;
+            SourcePortEnd = networkService.SourcePortEnd;
+            Code = networkService.Code;
+            Timeout = networkService.Timeout;
+            TypeId = networkService.TypeId;
+            Active = networkService.Active;
+            Create = networkService.Create;
+            CreateTime = networkService.CreateTime;
+            Type = networkService.Type;
+            Comment = networkService.Comment;
+            ColorId = networkService.ColorId;
+            ProtoId = networkService.ProtoId;
+            Protocol = networkService.Protocol;
+            MemberNames = networkService.MemberNames;
+            MemberRefs = networkService.MemberRefs;
+            ServiceGroups = networkService.ServiceGroups;
+            ServiceGroupFlats = networkService.ServiceGroupFlats;
+            Number = networkService.Number;
+            IsSurplus = networkService.IsSurplus;
+        }
+
+        public override bool Equals(object? obj)
+        {
+            return obj switch
+            {
+                NetworkService nsrv => Id == nsrv.Id,
+                _ => base.Equals(obj),
+            };
+        }
+
+        public override int GetHashCode()
+        {
+            return Id.GetHashCode();
+        }
+
+        /// <summary>
+        /// Flattens service groups into their leaf services and removes duplicate service entries.
+        /// </summary>
+        public static List<NetworkService> FlattenRuleServices(IEnumerable<NetworkService> services)
+        {
+            HashSet<long> flattenedServiceIds = [];
+
+            return services
+                .Where(service => service is not null)
+                .SelectMany(service => string.Equals(service!.Type?.Name, ServiceType.Group, StringComparison.OrdinalIgnoreCase)
+                    ? (service.ServiceGroupFlats ?? []).Select(groupFlat => groupFlat.Object).OfType<NetworkService>()
+                    : new[] { service })
+                .Where(service => !string.Equals(service.Type?.Name, ServiceType.Group, StringComparison.OrdinalIgnoreCase))
+                .Where(service => flattenedServiceIds.Add(service.Id))
+                .ToList();
+        }
+    }
+}

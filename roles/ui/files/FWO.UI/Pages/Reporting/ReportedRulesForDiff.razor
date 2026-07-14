@@ -1,0 +1,89 @@
+﻿@using FWO.Data.Modelling
+@using FWO.Report
+@using FWO.Ui.Display
+
+@inject UserConfig userConfig
+
+@if(ruleDiffDisplay != null)
+{
+    <Table TableItem="Rule" Items="Difference.ImplementedRules" ShowSearchBar="false"
+            TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header popover-transform" 
+            PageSize="RulesPerPage" ColumnReorder="true">
+
+        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("management"))" Field="@(r => r.ManagementName)" Sortable="false" Filterable="false" Hideable="true" />
+        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("gateway"))" Field="@(r => r.DeviceName)" Sortable="false" Filterable="false" Hideable="true" />
+        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source_zone"))" Field="@(r => r.RuleFromZones)" Sortable="true" Filterable="false" Hideable="true">
+            <Template>
+                @((MarkupString)RuleDisplayHtml.DisplaySourceZones(rule))
+            </Template>
+        </Column>
+        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true">
+            <Template>
+                @((MarkupString)ruleDiffDisplay.DisplaySourceDiff(rule, OutputLocation.report, ReportType.VarianceAnalysis))
+            </Template>
+        </Column>
+        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("services"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true">
+            <Template>
+                @((MarkupString)ruleDiffDisplay.DisplayServiceDiff(rule, OutputLocation.report, ReportType.VarianceAnalysis))
+            </Template>
+        </Column>
+        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination_zone"))" Field="@(r => r.RuleToZones)" Sortable="true" Filterable="false" Hideable="true">
+            <Template>
+                @((MarkupString)RuleDisplayHtml.DisplayDestinationZones(rule))
+            </Template>
+        </Column>
+        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true">
+            <Template>
+                @((MarkupString)ruleDiffDisplay.DisplayDestinationDiff(rule, OutputLocation.report, ReportType.VarianceAnalysis))
+            </Template>
+        </Column>
+        @if(anyUnusedObjects)
+        {
+            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("missing_objects"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true">
+                <Template>
+                    <span class="text-danger">@(ListUnusedObjects(rule))</span>
+                </Template>
+            </Column>
+        }
+
+        <DetailTemplate TableItem="Rule">
+            <RuleDetails Rule="context" Extended="true"/>
+        </DetailTemplate>
+        <Pager ShowPageNumber="true" ShowTotalCount="true" />
+    </Table>
+}
+
+@code
+{
+    [Parameter]
+    public int RulesPerPage { get; set; }
+
+    [Parameter]
+    public ModProdDifference Difference { get; set; } = new();
+
+    RuleDifferenceDisplayHtml? ruleDiffDisplay;
+    private bool anyUnusedObjects = false;
+
+    
+    protected override void OnInitialized()
+    {
+        ruleDiffDisplay = new (userConfig);
+    }
+
+    protected override void OnParametersSet()
+    {
+        anyUnusedObjects = Difference.ImplementedRules.Any(r => r.UnusedSpecialUserObjects.Count > 0 || r.UnusedUpdatableObjects.Count > 0);
+    }
+
+    private string ListUnusedObjects(Rule rule)
+    {
+        return string.Join(", ", [.. rule.UnusedSpecialUserObjects, .. rule.UnusedUpdatableObjects]);
+    }
+
+    private string GetHistoryString(Recertification recert)
+    {
+        string username = new DistName(recert.UserDn).UserName;
+        return $"{userConfig.GetText(recert.Recertified ? "recertified_by" : "decertified_by")} {username} " +
+            $"{userConfig.GetText("as_owner")} {recert.FwoOwner?.Name} {userConfig.GetText("comment")}: {recert.Comment}";
+    }
+}

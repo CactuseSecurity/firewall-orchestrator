@@ -1,0 +1,115 @@
+name: SonarCloud
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - develop
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+      SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Cache SonarCloud scanner
+        id: cache-sonar-scanner
+        uses: actions/cache@v5
+        with:
+          path: .sonar/scanner
+          key: ${{ runner.os }}-sonar-scanner
+          restore-keys: ${{ runner.os }}-sonar-scanner
+
+      - name: Install SonarCloud scanner
+        if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
+        run: dotnet tool update dotnet-sonarscanner --tool-path .sonar/scanner
+
+      - name: Install .NET coverage collector
+        run: dotnet tool update dotnet-coverage --tool-path .sonar/scanner
+
+      - name: Install Python dependencies
+        run: python -m pip install -r roles/importer/files/importer/requirements.txt coverage==7.15.0
+
+      - name: Build and analyze
+        run: |
+          for attempt in 1 2 3; do
+            if .sonar/scanner/dotnet-sonarscanner begin \
+              /k:"${SONAR_PROJECT_KEY}" \
+              /o:"${SONAR_ORGANIZATION}" \
+              /d:sonar.token="${SONAR_TOKEN}" \
+              /d:sonar.host.url="https://sonarcloud.io" \
+              /d:sonar.qualitygate.wait=true \
+              /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml \
+              /d:sonar.python.coverage.reportPaths=python-coverage.xml; then
+              break
+            else
+              status=$?
+            fi
+
+            if [ "$attempt" -eq 3 ]; then
+              exit "$status"
+            fi
+
+            rm -rf .sonarqube
+            sleep $((attempt * 30))
+          done
+          dotnet build roles/FWO.sln --configuration Debug --no-incremental
+          .sonar/scanner/dotnet-coverage collect \
+            "dotnet test roles/tests-unit/files/FWO.Test/FWO.Test.csproj --configuration Debug --no-build --settings FWO.default.runsettings" \
+            -f xml \
+            -o coverage.xml
+          python -m coverage run -m pytest -q roles/importer/files/importer/test
+          python -m coverage xml -o python-coverage.xml
+          for attempt in 1 2 3; do
+            if .sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${SONAR_TOKEN}"; then
+              break
+            else
+              status=$?
+            fi
+
+            if [ "$attempt" -eq 3 ]; then
+              exit "$status"
+            fi
+
+            sleep $((attempt * 30))
+          done

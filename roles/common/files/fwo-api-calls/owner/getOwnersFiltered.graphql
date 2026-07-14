@@ -1,0 +1,5 @@
+query getOwnersFiltered($where: owner_bool_exp = {}) {
+  owner_list: owner(where: $where, order_by: { name: asc }) {
+    ...ownerDetailsWithLifecycleState
+  }
+}

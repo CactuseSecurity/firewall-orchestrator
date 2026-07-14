@@ -1,7 +1,7 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Basics;
-using FWO.Api.Data;
+using FWO.Data;
 
 namespace FWO.Test
 {
@@ -22,38 +22,41 @@ namespace FWO.Test
         static readonly string ip12 = ":a:/128";
         static readonly string ip13 = ":a:/111";
 
-        static readonly NetworkService serv1 = new(){ Name = "Serv1", DestinationPort = 1000, Protocol = new(){ Name="TCP" }};
-        static readonly NetworkService serv2 = new(){ Name = "Serv2", DestinationPort = 1000, DestinationPortEnd = 2000, Protocol = new(){ Name="UDP" }};
-        static readonly NetworkService serv3 = new(){ Name = "Serv3", Protocol = new(){ Name="ESP" }};
+        static readonly NetworkService serv1 = new() { Name = "Serv1", DestinationPort = 1000, Protocol = new() { Id = 6, Name = "TCP" } };
+        static readonly NetworkService serv2 = new() { Name = "Serv2", DestinationPort = 1000, DestinationPortEnd = 2000, Protocol = new() { Id = 17, Name = "UDP" } };
+        static readonly NetworkService serv3 = new() { Name = "Serv3", Protocol = new() { Name = "ESP" } };
+        static readonly NetworkService serv4 = new() { Name = "Any", Protocol = new() { Id = 0 } };
+        static readonly NetworkService serv5 = new() { Name = "ALL", Protocol = new() { Id = 0 } };
 
         [SetUp]
         public void Initialize()
-        {}
+        { }
 
         [Test]
         public void TestGetNetmask()
         {
-            ClassicAssert.AreEqual("", DisplayBase.GetNetmask(ip1));
-            ClassicAssert.AreEqual("32", DisplayBase.GetNetmask(ip2));
-            ClassicAssert.AreEqual("24", DisplayBase.GetNetmask(ip5));
-            ClassicAssert.AreEqual("", DisplayBase.GetNetmask(ip11));
-            ClassicAssert.AreEqual("111", DisplayBase.GetNetmask(ip13));
+            ClassicAssert.AreEqual("", ip1.GetNetmask());
+            ClassicAssert.AreEqual("32", ip2.GetNetmask());
+            ClassicAssert.AreEqual("24", ip5.GetNetmask());
+            ClassicAssert.AreEqual("", ip11.GetNetmask());
+            ClassicAssert.AreEqual("111", ip13.GetNetmask());
         }
 
         [Test]
         public void TestAutoDetectType()
         {
-            ClassicAssert.AreEqual(ObjectType.Host, DisplayBase.AutoDetectType(ip1, ip1));
-            ClassicAssert.AreEqual(ObjectType.Host, DisplayBase.AutoDetectType(ip1, ip2));
-            ClassicAssert.AreEqual(ObjectType.Network, DisplayBase.AutoDetectType(ip2, ip3));
-            ClassicAssert.AreEqual(ObjectType.IPRange, DisplayBase.AutoDetectType(ip2, ip4));
-            ClassicAssert.AreEqual(ObjectType.Network, DisplayBase.AutoDetectType(ip5, ip5));
-            // ClassicAssert.AreEqual(ObjectType.Network, DisplayBase.AutoDetectType(ip6, ip7)); // should detect this?
-            ClassicAssert.AreEqual(ObjectType.IPRange, DisplayBase.AutoDetectType(ip6, ip7));
+            ClassicAssert.AreEqual(ObjectType.Host, IpOperations.GetObjectType(ip1, ip1));
+            ClassicAssert.AreEqual(ObjectType.Host, IpOperations.GetObjectType(ip1, ip2));
+            ClassicAssert.AreEqual(ObjectType.Host, IpOperations.GetObjectType(ip1, ""));
+            ClassicAssert.AreEqual(ObjectType.Network, IpOperations.GetObjectType(ip2, ip3));
+            ClassicAssert.AreEqual(ObjectType.IPRange, IpOperations.GetObjectType(ip2, ip4));
+            ClassicAssert.AreEqual(ObjectType.Network, IpOperations.GetObjectType(ip5, ip5));
+            // ClassicAssert.AreEqual(ObjectType.Network, IpOperations.GetObjectType(ip6, ip7)); // should detect this?
+            ClassicAssert.AreEqual(ObjectType.IPRange, IpOperations.GetObjectType(ip6, ip7));
 
-            ClassicAssert.AreEqual(ObjectType.Host, DisplayBase.AutoDetectType(ip11, ip11));
-            ClassicAssert.AreEqual(ObjectType.Host, DisplayBase.AutoDetectType(ip11, ip12));
-            ClassicAssert.AreEqual(ObjectType.Network, DisplayBase.AutoDetectType(ip13, ip13));
+            ClassicAssert.AreEqual(ObjectType.Host, IpOperations.GetObjectType(ip11, ip11));
+            ClassicAssert.AreEqual(ObjectType.Host, IpOperations.GetObjectType(ip11, ip12));
+            ClassicAssert.AreEqual(ObjectType.Network, IpOperations.GetObjectType(ip13, ip13));
         }
 
         [Test]
@@ -65,6 +68,8 @@ namespace FWO.Test
             ClassicAssert.AreEqual("NewName (1000/TCP)", DisplayBase.DisplayService(serv1, false, "NewName").ToString());
             ClassicAssert.AreEqual("1000-2000/UDP", DisplayBase.DisplayService(serv2, true).ToString());
             ClassicAssert.AreEqual("ESP", DisplayBase.DisplayService(serv3, true).ToString());
+            ClassicAssert.AreEqual("Any", DisplayBase.DisplayService(serv4, false).ToString());
+            ClassicAssert.AreEqual("ALL", DisplayBase.DisplayService(serv5, true).ToString());
         }
     }
 }

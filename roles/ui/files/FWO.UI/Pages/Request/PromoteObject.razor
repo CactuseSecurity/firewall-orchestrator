@@ -1,10 +1,5 @@
-@using FWO.Api.Client
-@using FWO.Config.Api
-@using FWO.Services
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
-
-@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 
@@ -15,16 +10,16 @@
             <div class="form-group row">
                 <label for="promoteObject" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("promote_to")):</label>
                 <div class="col-sm-8">
-                    <Dropdown ElementType="int" @bind-SelectedElement="StatefulObject.StateId" ElementToString="@(s => States.Name[s])" Elements="possibleStates" >
+                    <Dropdown ElementType="int" @bind-SelectedElement="StatefulObject.StateId" ElementToString="@(s => States.GetName(s))" Elements="possibleStates" >
                         <ElementTemplate Context="state">
-                            @(States.Name[state])
+                            @(States.GetName(state))
                         </ElementTemplate>
                     </Dropdown>
                 </div>
             </div>
             @if(WithComment)
             {
-                <div class="form-group row">
+                <div class="form-group row mt-2">
                     <label for="optComment" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
                     <div class="col-sm-8">
                         <input id="optComment" type="text" class="form-control form-control-sm" @bind="optComm" />
@@ -35,24 +30,28 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.FwAdmin}")">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="async () => {StatefulObject.SetOptComment(optComm); await Save(StatefulObject); await Close();}">@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="Perform">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                 </NotAuthorized> 
-            </AuthorizeView>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            </ExecutionModeAuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Cancel">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>
 </PopUp>
+<InProgress Display="workInProgress" />
 
 
 @code
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     [Parameter]
     public bool Promote { get; set; } = false;
@@ -88,13 +87,14 @@
     private bool Display { get; set; } = false;
     private List<int> possibleStates = new ();
     private string? optComm;
+    private bool workInProgress = false;
 
     protected override async Task OnParametersSetAsync()
     {
         if (Promote)
         {
             possibleStates = StateMatrix.getAllowedTransitions(StatefulObject.StateId);
-            if(possibleStates.Count == 1)
+            if(possibleStates.Count == 1 && !userConfig.CanUseAnyRole(Roles.Auditor))
             {
                 int oldState = StatefulObject.StateId;
                 StatefulObject.StateId = possibleStates[0];
@@ -117,9 +117,18 @@
         }
     }
 
+    private async Task Perform()
+    {
+        workInProgress = true;
+        StatefulObject.SetOptComment(optComm);
+        await Save(StatefulObject);
+        await Close();
+    }
+
     private async Task Close()
     {
         await CloseParent();
+        workInProgress = false;
         Promote = false;
         Display = false;
     }
@@ -127,6 +136,7 @@
     private void Cancel()
     {
         CancelParent();
+        workInProgress = false;
         Promote = false;
         Display = false;
     }

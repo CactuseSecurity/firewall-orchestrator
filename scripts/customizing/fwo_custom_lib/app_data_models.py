@@ -1,0 +1,79 @@
+__version__ = "2025-11-20-01"
+# revision history:
+# 2025-11-20-01, initial version
+
+from typing import Any
+
+from netaddr import IPAddress
+
+
+class Owner:
+    def __init__(
+        self,
+        name: str,
+        app_id_external: str,
+        recert_period_days: int,
+        days_until_first_recert: int,
+        recert_active: bool = False,
+        import_source: str = "defaultSource",
+        owner_lifecycle_state: str = "unknown",
+        criticality: str | None = None,
+        responsibles: dict[str, list[str]] | None = None,
+        additional_information: dict[str, str] | None = None,
+    ) -> None:
+        self.name: str = name
+        self.app_id_external: str = app_id_external
+        self.modellers: list[str] = []
+        self.import_source: str = import_source
+        self.app_servers: list[Appip] = []
+        self.recert_active: bool = recert_active
+        self.recert_period_days: int = recert_period_days
+        self.days_until_first_recert: int = days_until_first_recert
+        self.owner_lifecycle_state: str = owner_lifecycle_state
+        self.criticality: str | None = criticality
+        self.responsibles: dict[str, list[str]] | None = responsibles
+        self.additional_information: dict[str, str] | None = additional_information
+
+    def to_json(self) -> dict[str, Any]:
+        owner_json: dict[str, Any] = {
+            "name": self.name,
+            "app_id_external": self.app_id_external,
+            "import_source": self.import_source,
+            "app_servers": [ip.to_json() for ip in self.app_servers],
+            "recert_active": self.recert_active,
+            "recert_period_days": self.recert_period_days,
+            "days_until_first_recert": self.days_until_first_recert,
+            "owner_lifecycle_state": self.owner_lifecycle_state,
+        }
+        if self.criticality is not None:
+            owner_json["criticality"] = self.criticality
+        if self.responsibles is not None:
+            owner_json["responsibles"] = self.responsibles
+        if self.additional_information is not None:
+            owner_json["additional_information"] = self.additional_information
+        return owner_json
+
+
+class Appip:
+    def __init__(
+        self,
+        app_id_external: str,
+        ip_start: IPAddress,
+        ip_end: IPAddress,
+        ip_type: str,
+        name: str,
+    ) -> None:
+        self.name: str = name
+        self.app_id_external: str = app_id_external
+        self.ip_start: IPAddress = ip_start
+        self.ip_end: IPAddress = ip_end
+        self.type: str = ip_type
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "app_id_external": self.app_id_external,
+            "ip": str(IPAddress(self.ip_start)),
+            "ip_end": str(IPAddress(self.ip_end)),
+            "type": self.type,
+        }

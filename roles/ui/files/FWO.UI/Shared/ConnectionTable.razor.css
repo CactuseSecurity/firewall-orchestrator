@@ -1,3 +1,16 @@
-.show-scrollbar .table-responsive {
-    overflow: scroll;
+.connectiontable-responsive {
+    height: calc(100vh - 430px);
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.connectiontable-responsive .table-responsive {
+    flex: 1;
+    overflow: auto;
+    min-height: 0;
+}
+
+.connectiontable-responsive .table {
+    margin-bottom: 0;
 }

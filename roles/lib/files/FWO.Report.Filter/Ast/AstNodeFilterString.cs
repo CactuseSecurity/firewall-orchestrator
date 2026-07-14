@@ -1,4 +1,8 @@
-﻿namespace FWO.Report.Filter.Ast
+using FWO.Basics;
+using FWO.Report.Filter.Exceptions;
+
+
+namespace FWO.Report.Filter.Ast
 {
     internal class AstNodeFilterString : AstNodeFilter
     {
@@ -6,7 +10,14 @@
 
         public override void ConvertToSemanticType()
         {
-            CheckOperator(Operator, false, TokenKind.EQ, TokenKind.EEQ, TokenKind.NEQ);
+            if (Name.Kind == TokenKind.OwnerState)
+            {
+                CheckOperator(Operator, false, TokenKind.EQ, TokenKind.EEQ, TokenKind.NEQ, TokenKind.LSS, TokenKind.GRT);
+            }
+            else
+            {
+                CheckOperator(Operator, false, TokenKind.EQ, TokenKind.EEQ, TokenKind.NEQ);
+            }
             semanticValue = Value.Text;
         }
 
@@ -36,16 +47,29 @@
                 case TokenKind.Gateway:
                     ExtractGatewayFilter(query);
                     break;
+                case TokenKind.OwnerState:
+                    ExtractOwnerStateFilter(query);
+                    break;
+                case TokenKind.Criticality:
+                    ExtractOwnerCriticalityFilter(query);
+                    break;
                 default:
                     break;
             }
         }
 
-        private DynGraphqlQuery ExtractFullTextFilter(DynGraphqlQuery query)
+        private void ExtractFullTextFilter(DynGraphqlQuery query)
         {
-            string queryVarName = AddVariable<string>(query, "fullTextFiler", Operator.Kind, semanticValue!);
+            string queryVarName = AddVariable<string>(query, "fullTextFilter", Operator.Kind, semanticValue!);
             string queryOperator = ExtractOperator();
 
+            ExtractToRuleFilter(query, queryVarName, queryOperator);
+            ExtractToConnFilter(query, queryVarName, queryOperator);
+            ExtractToOwnerFilter(query, queryVarName, queryOperator);
+        }
+
+        private static void ExtractToRuleFilter(DynGraphqlQuery query, string queryVarName, string queryOperator)
+        {
             List<string> ruleFieldNames = ["rule_src", "rule_dst", "rule_svc", "rule_action", "rule_name", "rule_comment", "rule_uid"];
             List<string> ruleSearchParts = [];
             foreach (string field in ruleFieldNames)
@@ -53,7 +77,10 @@
                 ruleSearchParts.Add($"{{{field}: {{{queryOperator}: ${queryVarName} }} }} ");
             }
             query.RuleWhereStatement += $"_or: [ {string.Join(", ", ruleSearchParts)} ]";
+        }
 
+        private static void ExtractToConnFilter(DynGraphqlQuery query, string queryVarName, string queryOperator)
+        {
             List<string> connFieldNames = ["name", "reason" /*, "creator" */];
             List<string> nwobjFieldNames = ["name" /*, "creator" */];
             List<string> nwGroupFieldNames = ["id_string", "name", "comment" /*, "creator" */];
@@ -81,20 +108,36 @@
                 connSearchParts.Add($"{{ service_group_connections: {{service_group: {{{field}: {{{queryOperator}: ${queryVarName} }} }} }} }} ");
             }
             query.ConnectionWhereStatement += $"_or: [ {string.Join(", ", connSearchParts)} ]";
-            return query;
         }
 
-        private DynGraphqlQuery ExtractGatewayFilter(DynGraphqlQuery query)
+        private static void ExtractToOwnerFilter(DynGraphqlQuery query, string queryVarName, string queryOperator)
+        {
+            List<string> ownerFieldNames = ["name", "last_recertifier_dn"];
+            List<string> ownerResponsibleFieldNames = ["dn"];
+            List<string> recertFieldNames = ["user_dn", "comment"];
+            List<string> ownerSearchParts = [];
+            foreach (string field in ownerFieldNames)
+            {
+                ownerSearchParts.Add($"{{{field}: {{{queryOperator}: ${queryVarName} }} }} ");
+            }
+            foreach (string field in ownerResponsibleFieldNames)
+            {
+                ownerSearchParts.Add($"{{owner_responsibles: {{{field}: {{{queryOperator}: ${queryVarName} }} }} }} ");
+            }
+            foreach (string field in recertFieldNames)
+            {
+                ownerSearchParts.Add($"{{owner_recertifications: {{{field}: {{{queryOperator}: ${queryVarName} }} }} }} ");
+            }
+            query.OwnerWhereStatement += $"_or: [ {string.Join(", ", ownerSearchParts)} ]";
+        }
+
+        private void ExtractGatewayFilter(DynGraphqlQuery query)
         {
             string queryVarName = AddVariable(query, "gwName", Operator.Kind, semanticValue);
             query.RuleWhereStatement += $"device: {{dev_name : {{{ExtractOperator()}: ${queryVarName} }} }}";
-            // query.nwObjWhereStatement += $"device: {{dev_name : {{{QueryOperation}: ${QueryVarName} }} }}";
-            // query.svcObjWhereStatement += $"device: {{dev_name : {{{QueryOperation}: ${QueryVarName} }} }}";
-            // query.userObjWhereStatement += $"device: {{dev_name : {{{QueryOperation}: ${QueryVarName} }} }}";
-            return query;
         }
 
-        private DynGraphqlQuery ExtractManagementFilter(DynGraphqlQuery query)
+        private void ExtractManagementFilter(DynGraphqlQuery query)
         {
             string queryOperation = ExtractOperator();
             string queryFilterValue;
@@ -114,33 +157,68 @@
             query.NwObjWhereStatement += $"management: {{{queryFilterValue} : {{{queryOperation}: ${queryVarName} }} }}";
             query.SvcObjWhereStatement += $"management: {{{queryFilterValue} : {{{queryOperation}: ${queryVarName} }} }}";
             query.UserObjWhereStatement += $"management: {{{queryFilterValue} : {{{queryOperation}: ${queryVarName} }} }}";
-            return query;
         }
 
-        private DynGraphqlQuery ExtractProtocolFilter(DynGraphqlQuery query)
+        private void ExtractProtocolFilter(DynGraphqlQuery query)
         {
             string queryVarName = AddVariable<string>(query, "proto", Operator.Kind, semanticValue!);
             query.RuleWhereStatement += $"rule_services: {{service: {{stm_ip_proto: {{ip_proto_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }}";
             query.ConnectionWhereStatement += $"_or: [ {{ service_connections: {{service: {{stm_ip_proto: {{ip_proto_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} }}, " +
                 $"{{ service_group_connections: {{service_group: {{ service_service_groups: {{ service: {{ stm_ip_proto: {{ip_proto_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} }} }} }} ]";
-            return query;
         }
 
-        private DynGraphqlQuery ExtractActionFilter(DynGraphqlQuery query)
+        private void ExtractActionFilter(DynGraphqlQuery query)
         {
             string queryVarName = AddVariable<string>(query, "action", Operator.Kind, semanticValue!);
             query.RuleWhereStatement += $"rule_action: {{ {ExtractOperator()}: ${queryVarName} }}";
-            return query;
         }
 
-        private DynGraphqlQuery ExtractServiceFilter(DynGraphqlQuery query)
+        private void ExtractServiceFilter(DynGraphqlQuery query)
         {
             string queryVarName = AddVariable<string>(query, "svc", Operator.Kind, semanticValue!);
-            query.RuleWhereStatement += $"rule_services: {{ service: {{ svcgrp_flats: {{ serviceBySvcgrpFlatMemberId: {{ svc_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} }} ";
+            query.RuleWhereStatement += $"rule_services: {{ service: {{ svc_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} ";
             query.ConnectionWhereStatement += $"_or: [ {{ service_connections: {{ service: {{ name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }}, " +
                 $"{{ service_group_connections: {{service_group: {{ _or: [ {{ name: {{ {ExtractOperator()}: ${queryVarName} }} }}, " +
                 $"{{ service_service_groups: {{ service: {{ name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} ] }} }} }} ]";
-            return query;
+        }
+
+        private void ExtractOwnerCriticalityFilter(DynGraphqlQuery query)
+        {
+            string queryVarName = AddVariable<string>(query, "ownerCriticality", Operator.Kind, semanticValue!);
+            query.OwnerWhereStatement += $"criticality: {{ {ExtractOperator()}: ${queryVarName} }}";
+        }
+
+        private void ExtractOwnerStateFilter(DynGraphqlQuery query)
+        {
+            if (int.TryParse(semanticValue, out int stateId))
+            {
+                string queryVarName = AddNumericVariable(query, "ownerLifeCycleStateId", stateId);
+                query.OwnerWhereStatement += $"owner_lifecycle_state_id: {{ {ExtractNumericOperator()}: ${queryVarName} }}";
+                return;
+            }
+
+            string queryVarNameForName = AddVariable<string>(query, "ownerLifeCycleStateName", Operator.Kind, semanticValue!);
+            query.OwnerWhereStatement += $"owner_lifecycle_state: {{ name: {{ {ExtractOperator()}: ${queryVarNameForName} }} }}";
+        }
+
+        private string ExtractNumericOperator()
+        {
+            return Operator.Kind switch
+            {
+                TokenKind.EQ or TokenKind.EEQ => "_eq",
+                TokenKind.NEQ => "_neq",
+                TokenKind.LSS => "_lt",
+                TokenKind.GRT => "_gt",
+                _ => throw new SemanticException("Invalid numeric operator.", Operator.Position),
+            };
+        }
+
+        private static string AddNumericVariable(DynGraphqlQuery query, string name, int value)
+        {
+            string queryVarName = name + query.parameterCounter++;
+            query.QueryParameters.Add($"${queryVarName}: Int! ");
+            query.QueryVariables[queryVarName] = value;
+            return queryVarName;
         }
     }
 }

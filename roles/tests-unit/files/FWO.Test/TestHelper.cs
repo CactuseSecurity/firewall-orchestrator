@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -17,7 +17,7 @@ namespace FWO.Test
                 ?? throw new Exception($"Method \"{name}\" could not be found in \"{typeof(ClassType)}\".");
             object? rawResult = method.Invoke(instance, parameters);
 
-            if (rawResult == null) 
+            if (rawResult == null)
             {
                 if (default(ReturnType) != null) // Not nullable
                 {
@@ -25,13 +25,13 @@ namespace FWO.Test
                 }
                 return default!;
             }
-            else if (!rawResult.GetType().IsSubclassOf(typeof(ReturnType)))
+            else if (rawResult is not ReturnType typedResult)
             {
-                throw new Exception($"Result of method is of type {rawResult.GetType} but was expected to be \"{typeof(ReturnType)}\".");
+                throw new Exception($"Result of method is of type {rawResult.GetType()} but was expected to be \"{typeof(ReturnType)}\".");
             }
             else
             {
-                return (ReturnType)rawResult;
+                return typedResult;
             }
         }
     }

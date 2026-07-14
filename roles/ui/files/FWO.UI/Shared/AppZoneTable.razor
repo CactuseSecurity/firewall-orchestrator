@@ -1,0 +1,22 @@
+@using FWO.Data.Modelling
+@using FWO.Data.Report
+@using FWO.Ui.Display
+
+@inject UserConfig userConfig
+
+<Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingAppZone" Items="AppZones">
+    <Column TableItem="ModellingAppZone" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementName)" Sortable="true" Filterable="false"/>
+    <Column TableItem="ModellingAppZone" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="false"/>
+    <Column TableItem="ModellingAppZone" Title="@(userConfig.GetText("app_servers"))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+        <Template>
+            @((MarkupString)ConnectionReport.ListAppServers(ModellingAppServerWrapper.Resolve(context.AppServers).ToList(), []))
+        </Template>
+    </Column>
+</Table>
+
+
+@code
+{
+    [Parameter]
+    public List<ModellingAppZone> AppZones { get; set; } = [];
+}

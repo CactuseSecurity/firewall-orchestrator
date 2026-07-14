@@ -1,20 +1,20 @@
 
-using FWO.Api.Client.Queries;
 using GraphQL;
-using FWO.Api.Data;
-using FWO.Report;
+using FWO.Data.Report;
+using FWO.Services;
 
 namespace FWO.Test
 {
     internal class UiRsbTestApiConn : SimulatedApiConnection
     {
-        public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
+            await DefaultInit.DoNothing(); // qad avoid compiler warning
             Type responseType = typeof(QueryResponseType);
-            if(responseType == typeof(List<ManagementReport>))
+            if (responseType == typeof(List<ManagementReport>))
             {
                 List<ManagementReport> reports = SimulatedReport.DetailedReport().ReportData.ManagementData;
-                GraphQLResponse<dynamic> response = new(){ Data = reports };
+                GraphQLResponse<dynamic> response = new() { Data = reports };
                 return response.Data;
             }
             else

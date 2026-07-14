@@ -1,103 +1,468 @@
 using FWO.Report.Filter.Ast;
 using FWO.Api.Client.Queries;
-using FWO.Api.Data;
+using FWO.Data;
+using FWO.Data.Report;
+using FWO.Data.Workflow;
 using System.Text.RegularExpressions;
 using FWO.Logging;
+using FWO.Basics;
+
 
 namespace FWO.Report.Filter
 {
-    public class DynGraphqlQuery
+    public class DynGraphqlQuery(string rawInput)
     {
-        public string RawFilter { get; private set; }
-
-        public int parameterCounter = 0;
+        public string RawFilter { get; private set; } = rawInput;
+        public int parameterCounter { get; set; } = 0;
         public Dictionary<string, object> QueryVariables { get; set; } = [];
         public string FullQuery { get; set; } = "";
+        public string RulebaseLinkWhereStatement { get; set; } = "";
         public string RuleWhereStatement { get; set; } = "";
         public string NwObjWhereStatement { get; set; } = "";
         public string SvcObjWhereStatement { get; set; } = "";
         public string UserObjWhereStatement { get; set; } = "";
         public string ConnectionWhereStatement { get; set; } = "";
-        public string OpenRulesTable { get; set; } = "rules(";
+        public string OwnerWhereStatement { get; set; } = "";
+        public string OpenRuleBaseTable { get; set; } = $@" rulebase_links (";
+        public string OpenRulesTable { get; set; } = $@" rules (";
         public string OpenChangeLogRulesTable { get; set; } = "changelog_rules(";
         public List<string> QueryParameters { get; set; } =
         [
             " $limit: Int ",
-            " $offset: Int "
+            " $offset: Int ",
+            " $active: Boolean ",
         ];
 
         public string ReportTimeString { get; set; } = "";
         public List<int> RelevantManagementIds { get; set; } = [];
+        public List<WfTaskType> WorkflowTaskTypes { get; set; } = [];
+        public List<int> WorkflowStateIds { get; set; } = [];
+        public string WorkflowPhase { get; set; } = "";
+        public WorkflowReferenceDate? WorkflowReferenceDateFilter { get; set; }
 
         public ReportType ReportType { get; set; } = ReportType.Rules;
         public FwoOwner? SelectedOwner { get; set; }
+        public const string fullTimeFormat = "yyyy-MM-dd HH:mm:ss";
+        public const string dateFormat = "yyyy-MM-dd";
+        public const int layerRecursionLevel = 2;
 
-        public DynGraphqlQuery(string rawInput) { RawFilter = rawInput; }
+        const string mgmtWhereString = $@"where: {{ hide_in_gui: {{_eq: false }}
+                                        mgm_id: {{_in: $mgmId }}
+                                        stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}} is_pure_routing_device: {{_eq: false}} }}
+                                        }} order_by: {{ mgm_name: asc }}";
 
-        public static string fullTimeFormat = "yyyy-MM-dd HH:mm:ss";
-        public static string dateFormat = "yyyy-MM-dd";
+        const string devWhereStringStart = $@"where: {{ hide_in_gui: {{_eq: false }},
+                                        stm_dev_typ: {{is_pure_routing_device:{{_eq:false}} }}";
+        const string devWhereStringEnd = $@"}} order_by: {{ dev_name: asc }}";
+        const string devWhereStringDefault = devWhereStringStart + devWhereStringEnd;
+
+        const string limitOffsetString = $@"limit: $limit 
+                                        offset: $offset ";
 
 
         public static DynGraphqlQuery GenerateQuery(ReportTemplate filter, AstNode? ast)
         {
             DynGraphqlQuery query = new(filter.Filter);
+            ConstructWhereStatements(query, filter, ast);
+            if (((ReportType)filter.ReportParams.ReportType).IsResolvedReport() || (ReportType)filter.ReportParams.ReportType == ReportType.AppRules)
+            {
+                filter.Detailed = true;
+            }
+            ConstructFullQuery(query, filter);
+            OverwriteMissingTenantFilters(ref query, filter);
+            query.FullQuery = RemoveUnnecessaryWhitespaces(query.FullQuery);
+            return query;
+        }
 
+        private static string RemoveUnnecessaryWhitespaces(string queryString)
+        {
+            string pattern = @"\n";
+            TimeSpan timeout = TimeSpan.FromSeconds(1);
+            string cleanQuery = Regex.Replace(queryString, pattern, "", RegexOptions.None, timeout);
+            pattern = @"\s+";
+            return Regex.Replace(cleanQuery, pattern, " ", RegexOptions.None, timeout);
+        }
+
+        private static void ConstructWhereStatements(DynGraphqlQuery query, ReportTemplate filter, AstNode? ast)
+        {
             query.RuleWhereStatement += "_and: [";
             query.ConnectionWhereStatement += "_and: [";
+            query.OwnerWhereStatement += "_and: [";
 
             SetFixedFilters(ref query, filter);
 
             query.RuleWhereStatement += "{";
             query.ConnectionWhereStatement += "{";
+            query.OwnerWhereStatement += "{";
 
-            // now we convert the ast into a graphql query:
+            string ruleBeforeExtract = query.RuleWhereStatement;
+
             ast?.Extract(ref query, (ReportType)filter.ReportParams.ReportType);
+
+            if (((ReportType)filter.ReportParams.ReportType).IsChangeReport())
+            {
+                string astRuleFilter = query.RuleWhereStatement.Substring(ruleBeforeExtract.Length).Trim();
+                query.RuleWhereStatement = ruleBeforeExtract;
+
+                if (string.IsNullOrWhiteSpace(astRuleFilter))
+                {
+                    query.RuleWhereStatement += "_or: [{ rule: {} }, { ruleByOldRuleId: {} }]";
+                }
+                else
+                {
+                    query.RuleWhereStatement +=
+                        "_or: [" +
+                        "{ rule: { " + astRuleFilter + " } }, " +
+                        "{ ruleByOldRuleId: { " + astRuleFilter + " } }" +
+                        "]";
+                }
+            }
 
             query.RuleWhereStatement += "}] ";
             query.ConnectionWhereStatement += "}] ";
+            query.OwnerWhereStatement += "}] ";
+        }
 
-            string paramString = string.Join(" ", query.QueryParameters.ToArray());
+        private static string ConstructStatisticsQuery(DynGraphqlQuery query, string paramString)
+        {
+            var insertIndex = query.RuleWhereStatement.LastIndexOf(']');
+            var unusedRulesWhereStatement = insertIndex >= 0
+                ? query.RuleWhereStatement.Insert(insertIndex, ", {rule_metadatum: { rule_last_hit: { _is_null: true }}}")
+                : query.RuleWhereStatement;
+            return $@"
+                query statisticsReport ({paramString}) 
+                {{ 
+                    management({mgmtWhereString}) 
+                    {{
+                        name: mgm_name
+                        id: mgm_id
+                        objects_aggregate(where: {{ {query.NwObjWhereStatement} }}) {{ aggregate {{ count }} }}
+                        services_aggregate(where: {{ {query.SvcObjWhereStatement} }}) {{ aggregate {{ count }} }}
+                        usrs_aggregate(where: {{ {query.UserObjWhereStatement} }}) {{ aggregate {{ count }} }}
+                        rules_aggregate(where: {{ {query.RuleWhereStatement} }}) {{ aggregate {{ count }} }}
+                        unusedRules_Count: rules_aggregate(where: {{ {unusedRulesWhereStatement}}}) {{ aggregate {{ count }} }}
+                        devices( {devWhereStringDefault} )
+                        {{
+                            name: dev_name
+                            id: dev_id
+                            rules_aggregate: rule_enforced_on_gateways_aggregate(where: {{ {query.RulebaseLinkWhereStatement} rule: {{ {query.RuleWhereStatement} }} }}) {{ aggregate {{ count }} }}
+                            unusedRules_Count: rule_enforced_on_gateways_aggregate(where: {{ {query.RulebaseLinkWhereStatement} rule: {{ {unusedRulesWhereStatement} }} }}) {{ aggregate {{ count }} }}
+                        }}
+                    }}
+                }}";
+            //TODO: show number of rulebase links per gateway ?
+        }
 
-            string mgmtWhereString = $@"where: {{ hide_in_gui: {{_eq: false }}
-                                     mgm_id: {{_in: $mgmId }}
-                                     stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}} is_pure_routing_device: {{_eq: false}} }}
-                                     }} order_by: {{ mgm_name: asc }}";
+        private static string ConstructRulesQuery(DynGraphqlQuery query, string paramString, ReportTemplate filter)
+        {
+            return $@"
+                {GetRulesFragmentDef(filter)}
+                query rulesReport ({paramString}) 
+                {{ 
+                    management({mgmtWhereString}) 
+                    {{
+                        id: mgm_id
+                        uid: mgm_uid
+                        name: mgm_name
+                        devices ({GetDevWhereFilter(filter.ReportParams.DeviceFilter)})
+                        {{
+                            id: dev_id
+                            name: dev_name
+                            uid: dev_uid
+                            {query.OpenRuleBaseTable}
+                                where: {{ {query.RulebaseLinkWhereStatement} }}
+                            ) {{
+                                linkType: stm_link_type  {{
+                                    name
+                                    id
+                                }}
+                                link_type
+                                is_initial
+                                is_global
+                                is_section
+                                gw_id
+                                from_rule_id
+                                from_rulebase_id
+                                to_rulebase_id
+                                created
+                                removed
+                            }}
+                        }}
+                        rulebases {{
+                            name
+                            uid
+                            id
+                            {query.OpenRulesTable}
+                                {limitOffsetString}
+                                where: {{ access_rule: {{_eq: true}} {query.RuleWhereStatement} }} 
+                                order_by: {{ rule_num_numeric: asc }} )
+                            {{
+                                mgm_id: mgm_id
+                                {((ReportType)filter.ReportParams.ReportType == ReportType.UnusedRules ? "rule_metadatum { rule_last_hit }" : "")}
+                                ...{GetRulesFragmentCall(filter)}
+                            }} 
+                        }}
+                    }} 
+                }}";
+        }
 
-            string devWhereString = $@"where: {{ hide_in_gui: {{_eq: false }},
-                                    stm_dev_typ: {{is_pure_routing_device:{{_eq:false}} }}
-                                    }} order_by: {{ dev_name: asc }}";
-
-            string limitOffsetString = $@"limit: $limit 
-                                       offset: $offset ";
-
-            if (( (ReportType)filter.ReportParams.ReportType ).IsResolvedReport() || (ReportType)filter.ReportParams.ReportType == ReportType.AppRules)
+        private static string GetRulesFragmentDef(ReportTemplate filter)
+        {
+            if ((ReportType)filter.ReportParams.ReportType == ReportType.AppRules)
             {
-                filter.Detailed = true;
+                return RuleQueries.ruleDetailsForAppRuleReportFragments;
             }
+            return filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments;
+        }
+
+        private static string GetRulesFragmentCall(ReportTemplate filter)
+        {
+            if ((ReportType)filter.ReportParams.ReportType == ReportType.AppRules)
+            {
+                return "ruleDetailsForAppRuleReport";
+            }
+            return filter.Detailed ? "ruleDetailsForReport" : "ruleOverview";
+        }
+
+        private static string ConstructRecertQuery(DynGraphqlQuery query, string paramString)
+        {
+            return $@"
+                {RecertQueries.ruleOpenRecertFragments}
+                query rulesCertReport({paramString}) 
+                {{
+                    management({mgmtWhereString}) 
+                    {{
+                        id: mgm_id
+                        name: mgm_name
+                        devices({devWhereStringDefault}) 
+                        {{
+                            id: dev_id
+                            name: dev_name
+                            rulebase_links(where: {{ {query.RulebaseLinkWhereStatement} }})
+                            {{
+                                linkType: stm_link_type  {{
+                                    name
+                                    id
+                                }}
+                                link_type
+                                is_initial
+                                is_global
+                                is_section
+                                gw_id
+                                from_rule_id
+                                from_rulebase_id
+                                to_rulebase_id
+                                created
+                                removed
+                            }}
+                        }}
+                        rulebases {{
+                            id
+                            uid
+                            name
+                            {query.OpenRulesTable}
+                                where: {{ 
+                                    rule_metadatum: {{ recertifications_aggregate: {{ count: {{ filter: {{ _and: [{{owner: $ownerWhere}}, {{recert_date: {{_is_null: true}}}}, {{next_recert_date: {{_lte: $refdate1}}}}]}}, predicate: {{_gt: 0}}}}}}}}
+                                    active:{{ _eq:true }}
+                                    {query.RuleWhereStatement} 
+                                }} 
+                                {limitOffsetString}
+                                order_by: {{ rule_num_numeric: asc }}
+                            ) 
+                            {{
+                                mgm_id: mgm_id
+                                ...ruleOpenCertOverview
+                            }}
+                        }}
+                    }}
+                }}";
+        }
+
+
+        private static string changelogObjectsBlock = @"
+            changelog_objects: changelog_objects(
+                where: {
+                  change_type_id: { _eq: 3 }
+                  security_relevant: { _eq: true }
+                  control_id: { _eq: $import_id_new }
+                },
+                order_by: { control_id: asc }
+              )
+            @include(if: $include_objects_in_changes_report) {
+                import: import_control { time: stop_time }
+                change_action
+                old: objectByOldObjId {
+                    ...networkObjectDetailsChangesOld 
+                }
+                new: object {
+                    ...networkObjectDetailsChangesNew 
+                }
+            }
+            changelog_services: changelog_services(
+                where: {
+                  change_type_id: { _eq: 3 }
+                  security_relevant: { _eq: true }
+                  control_id: { _eq: $import_id_new }
+                },
+                order_by: { control_id: asc }
+              )
+            @include(if: $include_objects_in_changes_report) {
+                import: import_control { time: stop_time }
+                change_action
+                old: serviceByOldSvcId {
+                    ...networkServiceDetailsChangesOld 
+                }
+                new: service {
+                    ...networkServiceDetailsChangesNew 
+                }
+            }
+            changelog_users: changelog_users(
+                where: {
+                  change_type_id: { _eq: 3 }
+                  security_relevant: { _eq: true }
+                  control_id: { _eq: $import_id_new }
+                },
+                order_by: { control_id: asc }
+              )
+            @include(if: $include_objects_in_changes_report) {
+                import: import_control { time: stop_time }
+                change_action
+                old: usrByOldUserId {
+                    ...userDetailsChangesOld 
+                }
+                new: usr {
+                    ...userDetailsChangesNew 
+                }
+            }
+            ";
+
+        private static string ConstructChangesQuery(DynGraphqlQuery query, string paramString, ReportTemplate filter)
+        {
+            return $@"
+                    {(filter.Detailed ? RuleQueries.ruleDetailsForChangeReportFragments : RuleQueries.ruleOverviewForChangeReportFragments)}
+                query changeReport({paramString}){{
+                    management(where: {{
+                            hide_in_gui: {{_eq: false }}
+                            stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}}, is_pure_routing_device: {{_eq: false}} }}
+                            mgm_id: {{_in: $mgmId }}
+                        }} order_by: {{mgm_name: asc}})
+                    {{
+                        id: mgm_id
+                        name: mgm_name
+        		        import_controls {{
+                              control_id
+                              start_time
+                              stop_time
+                              successful_import
+                              import_errors
+		                                }}
+                        devices {{
+                            id: dev_id  
+                            name: dev_name  
+                                }}
+                        changelog_rules: {query.OpenChangeLogRulesTable}
+                                    {limitOffsetString} 
+                                    where: {{ 
+                                        _or:[
+                                                {{_and: [{{change_action:{{_eq:""I""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}]}}, 
+                                                {{_and: [{{change_action:{{_eq:""D""}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}},
+                                                {{_and: [{{change_action:{{_eq:""C""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}}
+                                            ]                                        
+                                            {query.RuleWhereStatement} 
+                                    }}
+                                    order_by: {{ control_id: asc }}
+                                ) 
+                            {{
+                            import: import_control {{ time: stop_time }}
+                            change_action
+                            old: ruleByOldRuleId {{
+                                    ...{(filter.Detailed ? "ruleDetailsChangesOld" : "ruleOverviewChangesOld")}
+
+                            }}
+                            new: rule {{
+                                    ...{(filter.Detailed ? "ruleDetailsChangesNew" : "ruleOverviewChangesNew")}
+                            }}
+                        }}
+                        {changelogObjectsBlock}                            
+                    }}
+                }}";
+        }
+
+        private static string ConstructNatRulesQuery(DynGraphqlQuery query, string paramString, ReportTemplate filter)
+        {
+            return $@"
+                {(filter.Detailed ? RuleQueries.natRuleDetailsForReportFragments : RuleQueries.natRuleOverviewFragments)}
+                query natRulesReport ({paramString}) 
+                {{ 
+                    management({mgmtWhereString}) 
+                    {{
+                        id: mgm_id
+                        name: mgm_name
+                        devices ({devWhereStringDefault}) 
+                        {{
+                            id: dev_id
+                            name: dev_name
+                            rulebase_links(where: {{ {query.RulebaseLinkWhereStatement} }})
+                            {{
+                                {query.OpenRulesTable}
+                                    {limitOffsetString}
+                                    where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.RuleWhereStatement} }} 
+                                    order_by: {{ rule_num_numeric: asc }} )
+                                {{
+                                    mgm_id: mgm_id
+                                    ...{(filter.Detailed ? "natRuleDetails" : "natRuleOverview")}
+                                }} 
+                            }}
+                        }}
+                    }} 
+                }}";
+        }
+
+        private static string ConstructConnectionsQuery(DynGraphqlQuery query, string paramString)
+        {
+            return $@"
+                {ModellingQueries.connectionResolvedDetailsFragment}
+                query getConnectionsResolved ({paramString})
+                {{
+                    modelling_connection (where: {{ {query.ConnectionWhereStatement} }} order_by: {{ is_interface: desc, common_service: desc, name: asc }})
+                    {{
+                        ...connectionResolvedDetails
+                    }}
+                }}";
+        }
+
+        private static string ConstructOwnerQuery(DynGraphqlQuery query, string paramString, ReportType reportType)
+        {
+            string orderBy = reportType == ReportType.OwnerRecertification ? "next_recert_date: desc, name: asc" : "name: asc";
+            string ownerCreationHintProjection = reportType == ReportType.OwnerRecertification
+                ? @"
+                        changelog_owners(where: {change_action: {_eq: ""I""}}, order_by: {import_control: {stop_time: asc_nulls_last}, log_owner_id: asc}, limit: 1) {
+                            change_action
+                            import: import_control {
+                                time: stop_time
+                            }
+                        }"
+                : "";
+            return $@"
+                {OwnerQueries.ownerDetailsFragment}
+                query getOwners ({paramString})
+                {{
+                    owner (where: {{ {query.OwnerWhereStatement} }} order_by: {{ {orderBy} }})
+                    {{
+                        ...ownerDetails
+                        {ownerCreationHintProjection}
+                    }}
+                }}";
+        }
+
+        private static void ConstructFullQuery(DynGraphqlQuery query, ReportTemplate filter)
+        {
+            string paramString = string.Join(" ", query.QueryParameters.ToArray());
 
             switch ((ReportType)filter.ReportParams.ReportType)
             {
                 case ReportType.Statistics:
-                    query.FullQuery = Queries.compact($@"
-                        query statisticsReport ({paramString}) 
-                        {{ 
-                            management({mgmtWhereString}) 
-                            {{
-                                name: mgm_name
-                                id: mgm_id
-                                objects_aggregate(where: {{ {query.NwObjWhereStatement} }}) {{ aggregate {{ count }} }}
-                                services_aggregate(where: {{ {query.SvcObjWhereStatement} }}) {{ aggregate {{ count }} }}
-                                usrs_aggregate(where: {{ {query.UserObjWhereStatement} }}) {{ aggregate {{ count }} }}
-                                rules_aggregate(where: {{ {query.RuleWhereStatement} }}) {{ aggregate {{ count }} }}
-                                devices({devWhereString})
-                                {{
-                                    name: dev_name
-                                    id: dev_id
-                                    rules_aggregate(where: {{ {query.RuleWhereStatement} }}) {{ aggregate {{ count }} }}
-                                }}
-                            }}
-                        }}
-                    ");
+                    query.FullQuery = Queries.Compact(ConstructStatisticsQuery(query, paramString));
                     break;
 
                 case ReportType.Rules:
@@ -105,247 +470,314 @@ namespace FWO.Report.Filter
                 case ReportType.ResolvedRulesTech:
                 case ReportType.UnusedRules:
                 case ReportType.AppRules:
-                    query.FullQuery = Queries.compact($@"
-                        {( filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments )}
-                        query rulesReport ({paramString}) 
-                        {{ 
-                            management({mgmtWhereString}) 
-                            {{
-                                id: mgm_id
-                                name: mgm_name
-                                devices ({devWhereString}) 
-                                {{
-                                    id: dev_id
-                                    name: dev_name
-                                    {query.OpenRulesTable}
-                                        {limitOffsetString}
-                                        where: {{ access_rule: {{_eq: true}} {query.RuleWhereStatement} }} 
-                                        order_by: {{ rule_num_numeric: asc }} )
-                                    {{
-                                        mgm_id: mgm_id
-                                        {( (ReportType)filter.ReportParams.ReportType == ReportType.UnusedRules ? "rule_metadatum { rule_last_hit }" : "" )}
-                                        ...{( filter.Detailed ? "ruleDetails" : "ruleOverview" )}
-                                    }} 
-                                }}
-                            }} 
-                        }}
-                    ");
+                case ReportType.ComplianceReport:
+                case ReportType.ComplianceDiffReport:
+                case ReportType.RecertEventReport:
+                    query.FullQuery = Queries.Compact(ConstructRulesQuery(query, paramString, filter));
                     break;
 
                 case ReportType.Recertification:
-                    query.FullQuery = Queries.compact($@"
-                        {RecertQueries.ruleOpenRecertFragments}
-                        query rulesCertReport({paramString}) 
-                        {{
-                            management({mgmtWhereString}) 
-                            {{
-                                id: mgm_id
-                                name: mgm_name
-                                devices({devWhereString}) 
-                                {{
-                                    id: dev_id
-                                    name: dev_name
-                                    {query.OpenRulesTable}
-                                        where: {{ 
-                                            rule_metadatum: {{ recertifications_aggregate: {{ count: {{ filter: {{ _and: [{{owner: $ownerWhere}}, {{recert_date: {{_is_null: true}}}}, {{next_recert_date: {{_lte: $refdate1}}}}]}}, predicate: {{_gt: 0}}}}}}}}
-                                            active:{{ _eq:true }}
-                                            {query.RuleWhereStatement} 
-                                        }} 
-                                        {limitOffsetString}
-                                        order_by: {{ rule_num_numeric: asc }}
-                                    ) 
-                                    {{
-                                        mgm_id: mgm_id
-                                        ...ruleOpenCertOverview
-                                    }}
-                                }}
-                            }}
-                        }}
-                    ");
+                    query.FullQuery = Queries.Compact(ConstructRecertQuery(query, paramString));
                     break;
 
                 case ReportType.Changes:
                 case ReportType.ResolvedChanges:
                 case ReportType.ResolvedChangesTech:
-                    query.FullQuery = Queries.compact($@"
-                        {( filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments )}
-                        query changeReport({paramString}) 
-                        {{
-                            management(where: {{ hide_in_gui: {{_eq: false }} stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}} is_pure_routing_device: {{_eq: false}} }} }} order_by: {{mgm_name: asc}}) 
-                            {{
-                                id: mgm_id
-                                name: mgm_name
-                                devices ({devWhereString})                           
-                                {{
-                                    id: dev_id
-                                    name: dev_name
-                                    {query.OpenChangeLogRulesTable}
-                                        {limitOffsetString} 
-                                        where: {{ 
-                                            _or:[
-                                                    {{_and: [{{change_action:{{_eq:""I""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}]}}, 
-                                                    {{_and: [{{change_action:{{_eq:""D""}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}},
-                                                    {{_and: [{{change_action:{{_eq:""C""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}}
-                                                ]                                        
-                                            {query.RuleWhereStatement} 
-                                        }}
-                                        order_by: {{ control_id: asc }}
-                                    ) 
-                                    {{
-                                        import: import_control {{ time: stop_time }}
-                                        change_action
-                                        old: ruleByOldRuleId {{
-                                        mgm_id: mgm_id
-                                        ...{( filter.Detailed ? "ruleDetails" : "ruleOverview" )}
-                                        }}
-                                        new: rule {{
-                                        mgm_id: mgm_id
-                                        ...{( filter.Detailed ? "ruleDetails" : "ruleOverview" )}
-                                        }}
-                                    }}
-                                }}
-                            }}
-                        }}
-                    ");
+                    query.FullQuery = Queries.Compact(ConstructChangesQuery(query, paramString, filter));
+                    break;
+
+                case ReportType.TicketReport:
+                    query.FullQuery = Queries.Compact(ConstructTicketQuery(query, filter));
+                    break;
+                case ReportType.TicketChangeReport:
+                    query.FullQuery = Queries.Compact(ConstructTicketChangesQuery(query, filter));
                     break;
 
                 case ReportType.NatRules:
-                    query.FullQuery = Queries.compact($@"
-                        {( filter.Detailed ? RuleQueries.natRuleDetailsForReportFragments : RuleQueries.natRuleOverviewFragments )}
-                        query natRulesReport ({paramString}) 
-                        {{ 
-                            management({mgmtWhereString}) 
-                            {{
-                                id: mgm_id
-                                name: mgm_name
-                                devices ({devWhereString}) 
-                                {{
-                                    id: dev_id
-                                    name: dev_name
-                                    {query.OpenRulesTable}
-                                        {limitOffsetString}
-                                        where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.RuleWhereStatement} }} 
-                                        order_by: {{ rule_num_numeric: asc }} )
-                                        {{
-                                            mgm_id: mgm_id
-                                            ...{( filter.Detailed ? "natRuleDetails" : "natRuleOverview" )}
-                                        }} 
-                                }}
-                            }} 
-                        }}
-                    ");
+                    query.FullQuery = Queries.Compact(ConstructNatRulesQuery(query, paramString, filter));
                     break;
 
                 case ReportType.Connections:
+                case ReportType.VarianceAnalysis:
+                case ReportType.RecertificationEvent:
+                    query.FullQuery = Queries.Compact(ConstructConnectionsQuery(query, paramString));
+                    break;
 
-                    query.FullQuery = Queries.compact($@"
-                        {ModellingQueries.connectionResolvedDetailsFragment}
-                        query getConnectionsResolved ({paramString})
-                        {{
-                            modelling_connection (where: {{ {query.ConnectionWhereStatement} }} order_by: {{ is_interface: desc, common_service: desc, name: asc }})
-                            {{
-                                ...connectionResolvedDetails
-                            }}
-                        }}
-                    ");
+                case ReportType.OwnerRecertification:
+                case ReportType.Owners:
+                    query.FullQuery = Queries.Compact(ConstructOwnerQuery(query, paramString, (ReportType)filter.ReportParams.ReportType));
                     break;
             }
+        }
 
-            OverwriteMissingTenantFilters(ref query, filter);
-            string pattern = "";
+        private static string ConstructTicketQuery(DynGraphqlQuery query, ReportTemplate filter)
+        {
+            InitializeTicketQuery(query, filter);
+            return BuildTicketReportQuery("ticketReport", query.QueryParameters, BuildTicketFilters(query, filter));
+        }
 
-            // remove comment lines (#) before joining lines!
-            // Regex.Replace("10, 20, 30", @"(\d+)$",match => (int.Parse(match.Value)+1).ToString())
-            // Regex.Replace(query.FullQuery, pattern, m => variablesDictionary[m.Value]);
-            // Regex pattern = new Regex(@"#(.*?)\n");
+        private static string ConstructTicketChangesQuery(DynGraphqlQuery query, ReportTemplate filter)
+        {
+            InitializeTicketQuery(query, filter, true);
+            List<string> ticketFilters = BuildTicketFilters(query, filter);
+            ticketFilters.Add(BuildTicketReferenceDateFilter(ResolveWorkflowReferenceDate(query, filter.ReportParams.WorkflowFilter)));
+            return BuildTicketReportQuery("ticketChangeReport", query.QueryParameters, ticketFilters);
+        }
 
-            // TODO: get this working
-            // pattern = @"""[^""\\]*(?:\\[\W\w][^""\\]*)*""|(\#.*)";
-            // string pattern = @"(.*?)(#.*?)\n(.*?)";
-            // query.FullQuery = Regex.Replace(query.FullQuery, pattern, "");
+        private static void InitializeTicketQuery(DynGraphqlQuery query, ReportTemplate filter, bool includeTimeRange = false)
+        {
+            query.QueryParameters = [];
+            query.QueryVariables = [];
 
-            // remove line breaks and duplicate whitespaces
-            pattern = @"\n";
-            query.FullQuery = Regex.Replace(query.FullQuery, pattern, "");
-            pattern = @"\s+";
-            query.FullQuery = Regex.Replace(query.FullQuery, pattern, " ");
+            if (includeTimeRange)
+            {
+                query.QueryParameters.Add("$ticket_time_start: timestamp ");
+                query.QueryParameters.Add("$ticket_time_end: timestamp ");
+                (string ticketTimeStart, string ticketTimeEnd) = ResolveTimeRange(filter.ReportParams.TimeFilter);
+                query.QueryVariables["ticket_time_start"] = ticketTimeStart;
+                query.QueryVariables["ticket_time_end"] = ticketTimeEnd;
+            }
 
-            // // query debugging
-            // Log.WriteDebug("Filter", $"FullQuery = {query.FullQuery}");
-            // string queryVars = "";
-            // foreach ((string k, object o) in query.QueryVariables)
-            // {
-            //     queryVars += $"\"{k}\": {o.ToString()}, ";
-            // }
-            // Log.WriteDebug("Filter", $"Variables = {queryVars}");
+            query.QueryParameters.Add("$task_types: [String!] ");
+            query.QueryVariables["task_types"] = ResolveWorkflowTaskTypes(query, filter.ReportParams.WorkflowFilter).Select(taskType => taskType.ToString()).ToList();
+        }
 
+        private static List<string> BuildTicketFilters(DynGraphqlQuery query, ReportTemplate filter)
+        {
+            List<string> ticketFilters = ["{ reqtasks: { task_type: { _in: $task_types } } }"];
+            List<int> stateIds = ResolveWorkflowStateIds(query, filter.ReportParams.WorkflowFilter);
+            if (stateIds.Count > 0)
+            {
+                query.QueryParameters.Add("$state_ids: [Int!] ");
+                query.QueryVariables["state_ids"] = stateIds;
+                ticketFilters.Add("{ state_id: { _in: $state_ids } }");
+            }
 
-            return query;
+            if (!string.IsNullOrWhiteSpace(ResolveWorkflowPhase(query, filter.ReportParams.WorkflowFilter)))
+            {
+                query.QueryParameters.Add("$phase_lowest_input_state: Int! ");
+                if (string.Equals(ResolveWorkflowPhase(query, filter.ReportParams.WorkflowFilter), GlobalConst.kClosed, StringComparison.OrdinalIgnoreCase))
+                {
+                    ticketFilters.Add("{ state_id: { _gte: $phase_lowest_input_state } }");
+                }
+                else
+                {
+                    query.QueryParameters.Add("$phase_lowest_end_state: Int! ");
+                    ticketFilters.Add("{ state_id: { _gte: $phase_lowest_input_state, _lt: $phase_lowest_end_state } }");
+                }
+            }
+
+            string? labelFilter = BuildTicketLabelFilter(query, filter.ReportParams.WorkflowFilter.LabelFilter);
+            if (!string.IsNullOrWhiteSpace(labelFilter))
+            {
+                ticketFilters.Add(labelFilter);
+            }
+
+            return ticketFilters;
+        }
+
+        private static string BuildTicketReportQuery(string operationName, List<string> queryParameters, List<string> ticketFilters)
+        {
+            string paramString = string.Join(" ", queryParameters.ToArray());
+            return $@"
+                {RequestQueries.ticketDetailsReqTaskOverviewFragment}
+                query {operationName} ({paramString})
+                {{
+                    request_ticket(
+                        where: {{
+                            _and: [
+                                {string.Join(",", ticketFilters)}
+                            ]
+                        }},
+                        order_by: {{ id: desc }}
+                    ) {{
+                        ...ticketDetailsReqTaskOverview
+                    }}
+                }}";
+        }
+
+        private static string BuildTicketReferenceDateFilter(WorkflowReferenceDate referenceDate)
+        {
+            return referenceDate switch
+            {
+                WorkflowReferenceDate.TicketCreation => "{ _and: [{ date_created: { _gte: $ticket_time_start } }, { date_created: { _lt: $ticket_time_end } }] }",
+                WorkflowReferenceDate.TicketClosure => "{ _and: [{ date_completed: { _gte: $ticket_time_start } }, { date_completed: { _lt: $ticket_time_end } }] }",
+                WorkflowReferenceDate.ApprovalOpened => "{ reqtasks: { approvals: { _and: [{ date_opened: { _gte: $ticket_time_start } }, { date_opened: { _lt: $ticket_time_end } }] } } }",
+                WorkflowReferenceDate.Approved => "{ reqtasks: { approvals: { _and: [{ approval_date: { _gte: $ticket_time_start } }, { approval_date: { _lt: $ticket_time_end } }] } } }",
+                WorkflowReferenceDate.TaskStart => "{ reqtasks: { _and: [{ start: { _gte: $ticket_time_start } }, { start: { _lt: $ticket_time_end } }] } }",
+                WorkflowReferenceDate.TaskEnd => "{ reqtasks: { _and: [{ stop: { _gte: $ticket_time_start } }, { stop: { _lt: $ticket_time_end } }] } }",
+                WorkflowReferenceDate.ImplementationStart => "{ reqtasks: { impltasks: { _and: [{ start: { _gte: $ticket_time_start } }, { start: { _lt: $ticket_time_end } }] } } }",
+                WorkflowReferenceDate.ImplementationEnd => "{ reqtasks: { impltasks: { _and: [{ stop: { _gte: $ticket_time_start } }, { stop: { _lt: $ticket_time_end } }] } } }",
+                WorkflowReferenceDate.AnyActivity => @"{
+                    _or: [
+                        { _and: [{ date_created: { _gte: $ticket_time_start } }, { date_created: { _lt: $ticket_time_end } }] },
+                        { _and: [{ date_completed: { _gte: $ticket_time_start } }, { date_completed: { _lt: $ticket_time_end } }] },
+                        { reqtasks: { _and: [{ start: { _gte: $ticket_time_start } }, { start: { _lt: $ticket_time_end } }] } },
+                        { reqtasks: { _and: [{ stop: { _gte: $ticket_time_start } }, { stop: { _lt: $ticket_time_end } }] } },
+                        { reqtasks: { impltasks: { _and: [{ start: { _gte: $ticket_time_start } }, { start: { _lt: $ticket_time_end } }] } } },
+                        { reqtasks: { impltasks: { _and: [{ stop: { _gte: $ticket_time_start } }, { stop: { _lt: $ticket_time_end } }] } } },
+                        { reqtasks: { approvals: { _and: [{ date_opened: { _gte: $ticket_time_start } }, { date_opened: { _lt: $ticket_time_end } }] } } },
+                        { reqtasks: { approvals: { _and: [{ approval_date: { _gte: $ticket_time_start } }, { approval_date: { _lt: $ticket_time_end } }] } } }
+                    ]
+                }",
+                _ => "{ _and: [{ date_created: { _gte: $ticket_time_start } }, { date_created: { _lt: $ticket_time_end } }] }"
+            };
         }
 
         private static void SetFixedFilters(ref DynGraphqlQuery query, ReportTemplate reportParams)
         {
-            if (( (ReportType)reportParams.ReportParams.ReportType ).IsRuleReport() || reportParams.ReportParams.ReportType == (int)ReportType.Statistics)
+            ReportType reportType = (ReportType)reportParams.ReportParams.ReportType;
+            if (reportType.IsDeviceRelatedReport())
             {
                 query.QueryParameters.Add("$mgmId: [Int!] ");
             }
 
             // leave out all header texts
-            if ((ReportType)reportParams.ReportParams.ReportType == ReportType.Statistics ||
-                (ReportType)reportParams.ReportParams.ReportType == ReportType.Recertification ||
-                ( ( (ReportType)reportParams.ReportParams.ReportType ).IsRuleReport() && !string.IsNullOrWhiteSpace(reportParams.Filter) ))
+            if (reportType == ReportType.Statistics ||
+                reportType == ReportType.Recertification ||
+                (reportType.IsRuleReport() && !string.IsNullOrWhiteSpace(reportParams.Filter)))
             {
-
                 query.RuleWhereStatement += "{rule_head_text: {_is_null: true}}, ";
             }
             SetTenantFilter(ref query, reportParams);
-            if (( (ReportType)reportParams.ReportParams.ReportType ).IsDeviceRelatedReport())
+            if (reportType.IsDeviceRelatedReport())
             {
                 SetDeviceFilter(ref query, reportParams.ReportParams.DeviceFilter);
-                SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, (ReportType)reportParams.ReportParams.ReportType, reportParams.ReportParams.RecertFilter);
+                SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, reportType, reportParams.ReportParams.RecertFilter);
             }
-            if ((ReportType)reportParams.ReportParams.ReportType == ReportType.Recertification)
+            if (reportType == ReportType.Recertification)
             {
                 SetRecertFilter(ref query, reportParams.ReportParams.RecertFilter);
             }
-            if ((ReportType)reportParams.ReportParams.ReportType == ReportType.UnusedRules)
+            if (reportType == ReportType.OwnerRecertification)
+            {
+                SetOwnerRecertFilter(ref query, reportParams.ReportParams.ModellingFilter, reportParams.ReportParams.RecertFilter);
+            }
+            if (reportType == ReportType.Owners)
+            {
+                SetOwnerListFilter(ref query, reportParams.ReportParams.OwnerFilter);
+            }
+            if (reportType == ReportType.UnusedRules)
             {
                 SetUnusedFilter(ref query, reportParams.ReportParams.UnusedFilter);
             }
-            if ((ReportType)reportParams.ReportParams.ReportType == ReportType.AppRules)
+            if (reportType == ReportType.AppRules)
             {
                 SetOwnerFilter(ref query, reportParams.ReportParams.ModellingFilter);
             }
-            if ((ReportType)reportParams.ReportParams.ReportType == ReportType.Connections)
+            if (reportType.IsConnectionRelatedReport())
             {
                 SetConnectionFilter(ref query, reportParams.ReportParams.ModellingFilter);
             }
+            if (reportType == ReportType.RecertEventReport)
+            {
+                SetRuleRecertFilter(ref query, reportParams.ReportParams.ModellingFilter);
+            }
+        }
+
+        private static List<WfTaskType> ResolveWorkflowTaskTypes(DynGraphqlQuery query, WorkflowFilter workflowFilter)
+        {
+            return query.WorkflowTaskTypes.Count > 0 ? query.WorkflowTaskTypes : workflowFilter.TaskTypes;
+        }
+
+        private static List<int> ResolveWorkflowStateIds(DynGraphqlQuery query, WorkflowFilter workflowFilter)
+        {
+            return query.WorkflowStateIds.Count > 0 ? query.WorkflowStateIds : workflowFilter.StateIds;
+        }
+
+        private static string ResolveWorkflowPhase(DynGraphqlQuery query, WorkflowFilter workflowFilter)
+        {
+            return string.IsNullOrWhiteSpace(query.WorkflowPhase) ? workflowFilter.Phase : query.WorkflowPhase;
+        }
+
+        private static WorkflowReferenceDate ResolveWorkflowReferenceDate(DynGraphqlQuery query, WorkflowFilter workflowFilter)
+        {
+            return query.WorkflowReferenceDateFilter ?? workflowFilter.ReferenceDate;
+        }
+
+        private static string? BuildTicketLabelFilter(DynGraphqlQuery query, WorkflowLabelFilter labelFilter)
+        {
+            if (string.IsNullOrWhiteSpace(labelFilter.Name))
+            {
+                return null;
+            }
+
+            return labelFilter.Mode switch
+            {
+                WorkflowLabelFilterMode.not_existing => BuildTicketLabelExistsFilter(query, labelFilter.Name, negate: true),
+                WorkflowLabelFilterMode.existing => BuildTicketLabelExistsFilter(query, labelFilter.Name, negate: false),
+                WorkflowLabelFilterMode.value => BuildTicketLabelValueFilter(query, labelFilter.Name, labelFilter.Value),
+                WorkflowLabelFilterMode.display_only => null,
+                _ => null
+            };
+        }
+
+        private static string BuildTicketLabelExistsFilter(DynGraphqlQuery query, string labelName, bool negate)
+        {
+            string keyPatternVar = AddQueryVariable(query, "labelKeyPattern", "String", $"%\"{labelName}\":%");
+            string filter = $"{{ reqtasks: {{ additional_info: {{ _ilike: ${keyPatternVar} }} }} }}";
+            return negate ? $"{{ _not: {filter} }}" : filter;
+        }
+
+        private static string BuildTicketLabelValueFilter(DynGraphqlQuery query, string labelName, string value)
+        {
+            string valuePatternVar = AddQueryVariable(query, "labelValuePattern", "String", $"%\"{labelName}\":\"{value}\"%");
+            return $"{{ reqtasks: {{ additional_info: {{ _ilike: ${valuePatternVar} }} }} }}";
+        }
+
+        private static string AddQueryVariable(DynGraphqlQuery query, string name, string type, object value)
+        {
+            string queryVarName = name + query.parameterCounter++;
+            query.QueryParameters.Add($"${queryVarName}: {type}! ");
+            query.QueryVariables[queryVarName] = value;
+            return queryVarName;
+        }
+
+        private static void SetRuleRecertFilter(ref DynGraphqlQuery query, ModellingFilter modellingFilter)
+        {
+            query.RuleWhereStatement += $" {{ rule_metadatum: {{ recertifications: {{ owner_recert_id: {{_eq: {modellingFilter.OwnerRecertId} }}, recertified: {{ _eq: true }} }} }} }}";
         }
 
         private static void SetDeviceFilter(ref DynGraphqlQuery query, DeviceFilter? deviceFilter)
         {
-            bool first = true;
             if (deviceFilter != null)
             {
-                query.RelevantManagementIds = deviceFilter.getSelectedManagements();
-                query.RuleWhereStatement += "{_or: [{";
-                foreach (ManagementSelect mgmt in deviceFilter.Managements)
+                query.RelevantManagementIds = deviceFilter.GetSelectedManagements();
+            }
+        }
+
+        private static string GetDevWhereFilter(DeviceFilter deviceFilter)
+        {
+            if (deviceFilter == null || deviceFilter.Managements == null)
+            {
+                return devWhereStringStart + devWhereStringEnd;
+            }
+
+            string devWhereStatement = devWhereStringStart;
+            bool first = true;
+
+            devWhereStatement += "_or: [{";
+
+            foreach (ManagementSelect mgmt in deviceFilter.Managements)
+            {
+                if (mgmt.Devices == null) continue;
+
+                foreach (DeviceSelect dev in mgmt.Devices)
                 {
-                    foreach (DeviceSelect dev in mgmt.Devices)
+                    if (dev.Selected)
                     {
-                        if (dev.Selected == true)
+                        if (!first)
                         {
-                            if (first == false)
-                            {
-                                query.RuleWhereStatement += "}, {";
-                            }
-                            query.RuleWhereStatement += $" device: {{dev_id: {{_eq:{dev.Id}}} }}";
-                            first = false;
+                            devWhereStatement += "}, {";
                         }
+                        first = false;
+                        devWhereStatement += $@" dev_id: {{_eq:{dev.Id} }} ";
                     }
                 }
-                query.RuleWhereStatement += "}]}, ";
             }
+            devWhereStatement += "}] ";
+            devWhereStatement += devWhereStringEnd;
+            return devWhereStatement;
         }
 
 
@@ -363,41 +795,44 @@ namespace FWO.Report.Filter
                     case ReportType.NatRules:
                     case ReportType.UnusedRules:
                     case ReportType.AppRules:
-                        query.QueryParameters.Add("$relevantImportId: bigint ");
+                    case ReportType.ComplianceReport:
+                    case ReportType.ComplianceDiffReport:
+                    case ReportType.RecertEventReport:
+                        query.QueryParameters.Add("$import_id_start: bigint ");
+                        query.QueryParameters.Add("$import_id_end: bigint ");
+                        query.RulebaseLinkWhereStatement +=
+                            $"created: {{_lte: $import_id_end }}" +
+                            $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
                         query.RuleWhereStatement +=
-                            $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                            $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                            $"rule_create: {{_lte: $import_id_end}}" +
+                            $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
                         query.NwObjWhereStatement +=
-                            $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                            $"importControlByObjLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                            $"obj_create: {{_lte: $import_id_end }}" +
+                            $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
                         query.SvcObjWhereStatement +=
-                            $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                            $"importControlBySvcLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                            $"svc_create: {{_lte: $import_id_end }}" +
+                            $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
                         query.UserObjWhereStatement +=
-                            $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                            $"importControlByUserLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                            $"user_create: {{_lte: $import_id_end }}" +
+                            $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
                         query.ReportTimeString = timeFilter.IsShortcut ?
                             DateTime.Now.ToString(fullTimeFormat) : timeFilter.ReportTime.ToString(fullTimeFormat);
                         break;
                     case ReportType.Changes:
                     case ReportType.ResolvedChanges:
                     case ReportType.ResolvedChangesTech:
-                        (string start, string stop) = ResolveTimeRange(timeFilter);
-                        query.QueryVariables["start"] = start;
-                        query.QueryVariables["stop"] = stop;
-                        query.QueryParameters.Add("$start: timestamp! ");
-                        query.QueryParameters.Add("$stop: timestamp! ");
-                        query.QueryParameters.Add("$relevantImportId: bigint ");
+                        query.QueryParameters.Add("$import_id_old: bigint ");
+                        query.QueryParameters.Add("$import_id_new: bigint ");
+                        query.QueryParameters.Add("$include_objects_in_changes_report: Boolean! ");
 
                         query.RuleWhereStatement += $@"
-                        _and: [
-                            {{ import_control: {{ stop_time: {{ _gte: $start }} }} }}
-                            {{ import_control: {{ stop_time: {{ _lte: $stop }} }} }}
-                        ]
+                        control_id: {{ _eq: $import_id_new }}
                         change_type_id: {{ _eq: 3 }}
                         security_relevant: {{ _eq: true }}";
                         break;
                     case ReportType.Recertification:
+                        query.QueryParameters.Add("$import_id_start: bigint ");
+                        query.QueryParameters.Add("$import_id_end: bigint ");
                         query.NwObjWhereStatement += "{}";
                         query.SvcObjWhereStatement += "{}";
                         query.UserObjWhereStatement += "{}";
@@ -407,6 +842,8 @@ namespace FWO.Report.Filter
                         query.RuleWhereStatement += $@" rule_metadatum: {{ recertifications: {{ next_recert_date: {{ _lte: $refdate1 }} }} }} ";
                         break;
                     case ReportType.Connections:
+                    case ReportType.VarianceAnalysis:
+                    case ReportType.RecertificationEvent:
                         break;
                     default:
                         Log.WriteError("Filter", $"Unexpected report type found: {reportType}");
@@ -416,7 +853,7 @@ namespace FWO.Report.Filter
             }
         }
 
-        private static (string, string) ResolveTimeRange(TimeFilter timeFilter)
+        public static (string, string) ResolveTimeRange(TimeFilter timeFilter)
         {
             string start;
             string stop;
@@ -450,7 +887,7 @@ namespace FWO.Report.Filter
                             stop = DateTime.Now.AddDays(1).ToString(dateFormat);
                             break;
                         case "last week":
-                            start = startOfCurrentWeek.AddDays(-7).ToString(dateFormat);
+                            start = startOfCurrentWeek.AddDays(-GlobalConst.kDaysPerWeek).ToString(dateFormat);
                             stop = startOfCurrentWeek.ToString(dateFormat);
                             break;
                         case "today":
@@ -462,19 +899,22 @@ namespace FWO.Report.Filter
                             stop = DateTime.Now.ToString(dateFormat);
                             break;
                         default:
-                            throw new Exception($"Error: wrong time range format:" + timeFilter.TimeRangeShortcut);
+                            throw new NotSupportedException($"Error: wrong time range format:" + timeFilter.TimeRangeShortcut);
                     }
                     break;
 
                 case TimeRangeType.Interval:
+                    // Relative time window: compute start by subtracting the configured offset from "now".
                     start = timeFilter.Interval switch
                     {
-                        Interval.Days => DateTime.Now.AddDays(-timeFilter.Offset).ToString(fullTimeFormat),
-                        Interval.Weeks => DateTime.Now.AddDays(-7 * timeFilter.Offset).ToString(fullTimeFormat),
-                        Interval.Months => DateTime.Now.AddMonths(-timeFilter.Offset).ToString(fullTimeFormat),
-                        Interval.Years => DateTime.Now.AddYears(-timeFilter.Offset).ToString(fullTimeFormat),
-                        _ => throw new Exception($"Error: wrong time interval format:" + timeFilter.Interval.ToString()),
+                        // Offset is the number of units (days/weeks/months/years) to subtract from "now".
+                        SchedulerInterval.Days => DateTime.Now.AddDays(-timeFilter.Offset).ToString(fullTimeFormat),
+                        SchedulerInterval.Weeks => DateTime.Now.AddDays(-GlobalConst.kDaysPerWeek * timeFilter.Offset).ToString(fullTimeFormat),
+                        SchedulerInterval.Months => DateTime.Now.AddMonths(-timeFilter.Offset).ToString(fullTimeFormat),
+                        SchedulerInterval.Years => DateTime.Now.AddYears(-timeFilter.Offset).ToString(fullTimeFormat),
+                        _ => throw new NotSupportedException($"Error: wrong time interval format:" + timeFilter.Interval.ToString()),
                     };
+                    // End of the interval is "now".
                     stop = DateTime.Now.ToString(fullTimeFormat);
                     break;
 
@@ -500,8 +940,52 @@ namespace FWO.Report.Filter
             if (recertFilter != null)
             {
                 query.QueryParameters.Add("$ownerWhere: owner_bool_exp");
-                query.QueryVariables["ownerWhere"] = recertFilter.RecertOwnerList.Count > 0 ?
-                    new { id = new { _in = recertFilter.RecertOwnerList } } : new { id = new { } };
+
+                if (recertFilter.ShowRulesWithoutOwner)
+                {
+                    query.RuleWhereStatement += "{ _not: { rule_owners: { removed: { _is_null: true } } } }, ";
+                }
+                query.QueryVariables["ownerWhere"] = recertFilter.RecertOwnerList.Count > 0
+                    ? new { id = new { _in = recertFilter.RecertOwnerList } }
+                    : new { };
+            }
+        }
+
+        private static void SetOwnerRecertFilter(ref DynGraphqlQuery query, ModellingFilter? modellingFilter, RecertFilter? recertFilter)
+        {
+            if (modellingFilter != null)
+            {
+                query.QueryParameters.Add("$selectedOwners: [Int!]");
+                query.QueryVariables["selectedOwners"] = new List<int>(modellingFilter.SelectedOwners.Select(o => o.Id)).ToArray();
+                query.OwnerWhereStatement += $@"{{ id: {{ _in: $selectedOwners }} }}";
+
+                List<string> ownerStateFilters = [];
+                string activeOwnersFilter = $@"{{ recert_active: {{ _eq: true }} }}";
+                if (!modellingFilter.ShowAllOwners)
+                {
+                    query.QueryParameters.Add("$refDate: timestamp");
+                    query.QueryVariables["refDate"] = DateTime.Now.AddDays(recertFilter?.RecertificationDisplayPeriod ?? 0);
+                    activeOwnersFilter = $@"{{ _and: [{{ recert_active: {{ _eq: true }} }}, {{ next_recert_date: {{ _lte: $refDate }} }}] }}";
+                }
+                ownerStateFilters.Add(activeOwnersFilter);
+
+                if (modellingFilter.ShowInactiveRecertOwners)
+                {
+                    ownerStateFilters.Add($@"{{ recert_active: {{ _eq: false }} }}");
+                }
+
+                if (ownerStateFilters.Count == 1)
+                {
+                    query.OwnerWhereStatement += ownerStateFilters[0];
+                }
+                else if (ownerStateFilters.Count > 1)
+                {
+                    query.OwnerWhereStatement += $@"{{ _or: [{string.Join(", ", ownerStateFilters)}] }}";
+                }
+                else
+                {
+                    query.OwnerWhereStatement += $@"{{ id: {{ _eq: -1 }} }}";
+                }
             }
         }
 
@@ -510,8 +994,25 @@ namespace FWO.Report.Filter
             if (modellingFilter != null)
             {
                 // currently overruling tenant filter!!
-                query.OpenRulesTable = $"rules: get_rules_for_owner(args: {{ownerid: {modellingFilter.SelectedOwner.Id}}}, ";
+                query.OpenRulesTable = $@" rules: get_rules_for_owner(args: {{ownerid: {modellingFilter.SelectedOwner.Id} }}, ";
                 query.SelectedOwner = modellingFilter.SelectedOwner;
+            }
+        }
+
+        private static void SetOwnerListFilter(ref DynGraphqlQuery query, OwnerFilter? ownerFilter)
+        {
+            query.OwnerWhereStatement += "{ id: { _gt: 0 } }";
+            if (ownerFilter?.SelectedOwnerLifeCycleStateId != null)
+            {
+                query.QueryParameters.Add("$ownerLifeCycleStateId: Int");
+                query.QueryVariables["ownerLifeCycleStateId"] = ownerFilter.SelectedOwnerLifeCycleStateId;
+                query.OwnerWhereStatement += "{ owner_lifecycle_state_id: { _eq: $ownerLifeCycleStateId } }";
+            }
+            if (!string.IsNullOrWhiteSpace(ownerFilter?.SelectedCriticality))
+            {
+                query.QueryParameters.Add("$ownerCriticality: String");
+                query.QueryVariables["ownerCriticality"] = ownerFilter.SelectedCriticality;
+                query.OwnerWhereStatement += "{ criticality: { _eq: $ownerCriticality } }";
             }
         }
 
@@ -521,7 +1022,7 @@ namespace FWO.Report.Filter
             {
                 query.QueryParameters.Add("$appId: Int!");
                 query.QueryVariables["appId"] = modellingFilter.SelectedOwner.Id;
-                query.ConnectionWhereStatement += $@"{{ _or: [ {{ app_id: {{ _eq: $appId }} }}, {{ proposed_app_id: {{ _eq: $appId }} }} ] }}";
+                query.ConnectionWhereStatement += $@"{{ _or: [ {{ app_id: {{ _eq: $appId }} }}, {{ proposed_app_id: {{ _eq: $appId }} }} ], removed: {{ _eq: false }} }}";
             }
         }
 
@@ -535,7 +1036,7 @@ namespace FWO.Report.Filter
                 query.QueryVariables["tolerance"] = DateTime.Now.AddDays(-unusedFilter.CreationTolerance);
                 query.RuleWhereStatement += $@"{{rule_metadatum: {{_or: [
                     {{_and: [{{rule_last_hit: {{_is_null: false}} }}, {{rule_last_hit: {{_lte: $cut}} }} ] }},
-                    {{_and: [{{rule_last_hit: {{_is_null: true}} }}, {{rule_created: {{_lte: $tolerance}} }} ] }} 
+                    {{_and: [{{rule_last_hit: {{_is_null: true}} }}, {{created_import: {{ start_time: {{_lte: $tolerance}} }} }} ] }} 
                 ]}} }}";
             }
         }

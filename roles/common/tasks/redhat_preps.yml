@@ -1,24 +1,166 @@
-- name: fetch EPEL
-  get_url:
-    url: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ redhat_major_version }}.noarch.rpm"
-    dest: "/tmp/epel-release-latest-{{ redhat_major_version }}.noarch.rpm"
-  environment: "{{ proxy_env }}"
+- name: list enabled RedHat repositories via dnf
+  command: dnf repolist --enabled
+  register: redhat_enabled_repos
+  changed_when: false
+  failed_when: false
+  become: true
 
-- name: add EPEL repos
-  yum:
-    name: "/tmp/epel-release-latest-{{ redhat_major_version }}.noarch.rpm"
-    state: present
+- name: detect enabled RedHat dependency repositories
+  set_fact:
+    redhat_epel_repo_enabled: "{{ redhat_enabled_repos.stdout is search('(?m)^epel(?:\\s|$)') }}"
+    redhat_codeready_repo_enabled: "{{ redhat_enabled_repos.stdout is search('(?m)^(codeready-builder-for-rhel-' ~ redhat_major_version ~ '-[^\\s]+-rpms|crb)(?:\\s|$)') }}"
 
-- name: remove file EPEL repo
-  file:
-    name: "/tmp/epel-release-latest-{{ redhat_major_version }}.noarch.rpm"
-    state: absent
+- name: warn when EPEL is not already enabled
+  debug:
+    msg:
+      - "No enabled EPEL repository was found."
+      - "Continuing without changing RedHat repositories. If a later package task requires EPEL, enable it outside the FWORCH installer according to your RedHat repository policy and rerun the installer."
+      - "Set -e allowRepoChangesForRedhat=true to allow the FWORCH installer to install/enable required RedHat repositories."
+      - "The FWORCH installer intentionally does not install epel-release or add Fedora EPEL repositories."
+  when:
+    - not (allowRepoChangesForRedhat | default(false) | bool)
+    - not redhat_epel_repo_enabled | bool
 
-- name: enable repo via subscription manager
-  rhsm_repository:
-    name: "codeready-builder-for-rhel-{{ redhat_major_version }}-{{ arch }}-rpms"
+- name: warn when CodeReady Builder or CRB is not already enabled
+  debug:
+    msg:
+      - "No enabled CodeReady Builder/CRB repository was found."
+      - "Continuing without changing RedHat repositories. If a later package task requires CodeReady Builder/CRB, enable it outside the FWORCH installer and rerun the installer."
+      - "Set -e allowRepoChangesForRedhat=true to allow the FWORCH installer to install/enable required RedHat repositories."
+      - "The FWORCH installer intentionally does not enable OS repositories via subscription-manager or dnf config-manager."
+  when:
+    - not (allowRepoChangesForRedhat | default(false) | bool)
+    - not redhat_codeready_repo_enabled | bool
+
+- name: optionally enable required RedHat repositories
+  block:
+    - name: check if EPEL release package is installed
+      command: rpm -q epel-release
+      register: epel_release_check
+      changed_when: false
+      failed_when: false
+
+    - name: check if EPEL release package is available from configured repositories
+      command: dnf list --available epel-release
+      register: epel_release_repo_check
+      changed_when: false
+      failed_when: false
+      environment: "{{ proxy_env }}"
+      become: true
+      when: epel_release_check.rc != 0
+
+    - name: install EPEL release package from configured repositories
+      ansible.builtin.dnf:
+        name: epel-release
+        state: present
+      environment: "{{ proxy_env }}"
+      become: true
+      when:
+        - epel_release_check.rc != 0
+        - epel_release_repo_check.rc | default(1) == 0
+
+    - name: install EPEL release package from Fedora RPM fallback
+      block:
+        - name: fetch EPEL release package
+          get_url:
+            url: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ redhat_major_version }}.noarch.rpm"
+            dest: "/tmp/epel-release-latest-{{ redhat_major_version }}.noarch.rpm"
+          environment: "{{ proxy_env }}"
+
+        - name: import EPEL GPG key
+          rpm_key:
+            state: present
+            key: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ redhat_major_version }}"
+          environment: "{{ proxy_env }}"
+
+        - name: add EPEL repos
+          yum:
+            name: "/tmp/epel-release-latest-{{ redhat_major_version }}.noarch.rpm"
+            state: present
+
+        - name: remove file EPEL repo
+          file:
+            name: "/tmp/epel-release-latest-{{ redhat_major_version }}.noarch.rpm"
+            state: absent
+      become: true
+      when:
+        - epel_release_check.rc != 0
+        - epel_release_repo_check.rc | default(1) != 0
+
+    - name: install RedHat repository management tools
+      package:
+        name:
+          - subscription-manager
+          - dnf-plugins-core
+        state: present
+      become: true
+
+    - name: list RedHat repos via subscription-manager
+      command: subscription-manager repos --list
+      register: redhat_subscription_repos
+      changed_when: false
+      failed_when: false
+      environment: "{{ proxy_env }}"
+      become: true
+
+    - name: list RedHat repos via dnf
+      command: dnf repolist all
+      register: redhat_dnf_repos
+      changed_when: false
+      failed_when: false
+      become: true
+
+    - name: detect CodeReady Builder repo ID
+      set_fact:
+        redhat_codeready_repo_id: >-
+          {{
+            (
+              redhat_subscription_repos.stdout
+              | regex_findall('(?m)^Repo ID:\\s+(codeready-builder-for-rhel-' ~ redhat_major_version ~ '-[^\\s]+-rpms)$')
+              | first
+            ) | default('')
+          }}
+
+    - name: enable CodeReady Builder via subscription manager
+      rhsm_repository:
+        name: "{{ redhat_codeready_repo_id }}"
+      environment: "{{ proxy_env }}"
+      become: true
+      when: redhat_codeready_repo_id | length > 0
+
+    - name: enable CRB via dnf config-manager fallback
+      command: dnf config-manager --set-enabled crb
+      become: true
+      when:
+        - redhat_codeready_repo_id | length == 0
+        - redhat_dnf_repos.stdout is search('(?m)^crb\\s')
+
+    - name: show CodeReady Builder detection result
+      debug:
+        msg: "No CodeReady Builder repository ID detected via subscription-manager or dnf. Continuing without enabling it."
+      when:
+        - redhat_codeready_repo_id | length == 0
+        - redhat_dnf_repos.stdout is not search('(?m)^crb\\s')
+  when: allowRepoChangesForRedhat | default(false) | bool
+
+- name: check RedHat packages that may require external repository enablement
+  command: "dnf list {{ item }}"
+  loop:
+    - openldap-servers
+    - python3-pyOpenSSL
+  register: redhat_repo_policy_package_checks
+  changed_when: false
+  failed_when: false
   environment: "{{ proxy_env }}"
   become: true
+
+- name: fail when required RedHat packages are unavailable
+  fail:
+    msg:
+      - "Required RedHat packages are not installed or available from the currently enabled repositories: {{ redhat_repo_policy_package_checks.results | selectattr('rc', 'ne', 0) | map(attribute='item') | join(', ') }}."
+      - "Enable the required RedHat repositories outside the FWORCH installer according to your OS repository policy, then rerun the installer."
+      - "Alternatively set -e allowRepoChangesForRedhat=true to allow the FWORCH installer to install/enable required RedHat repositories."
+  when: redhat_repo_policy_package_checks.results | selectattr('rc', 'ne', 0) | list | length > 0
 
 - name: setting default locale in /etc/profile
   blockinfile:

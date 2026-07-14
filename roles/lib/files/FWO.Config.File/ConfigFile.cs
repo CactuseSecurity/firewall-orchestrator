@@ -1,8 +1,5 @@
-﻿using FWO.Logging;
+using FWO.Logging;
 using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -10,6 +7,10 @@ namespace FWO.Config.File
 {
     public class ConfigFile
     {
+        private const string configPathEnvVar = "FWO_CONFIG_FILE_PATH";
+        private const string jwtPublicKeyPathEnvVar = "FWO_JWT_PUBLIC_KEY_PATH";
+        private const string jwtPrivateKeyPathEnvVar = "FWO_JWT_PRIVATE_KEY_PATH";
+
         /// <summary>
         /// Path to config file
         /// </summary>
@@ -51,6 +52,9 @@ namespace FWO.Config.File
 
             [JsonPropertyName("product_version")]
             public string? ProductVersion { get; set; }
+
+            [JsonPropertyName("fworch_home")]
+            public string? CfgFwoHome { get; set; }
         }
 
         /// <summary>
@@ -108,6 +112,30 @@ namespace FWO.Config.File
             }
         }
 
+        public static string FwoHome
+        {
+            get
+            {
+                return CriticalConfigValueLoaded(Data.CfgFwoHome);
+            }
+        }
+
+        /// <summary>
+        /// Root directories from which customization import files and scripts may be read or executed.
+        /// </summary>
+        public static List<string> AllowedCustomizationRoots
+        {
+            get
+            {
+                string fwoHome = FwoHome;
+                return
+                [
+                    Path.Combine(fwoHome, "scripts", "customizing"),
+                    Path.Combine(fwoHome, "etc")
+                ];
+            }
+        }
+
         public static string[] RemoteAddresses
         {
             get
@@ -118,7 +146,10 @@ namespace FWO.Config.File
 
         static ConfigFile()
         {
-            Read(configPath, jwtPrivateKeyPath, jwtPublicKeyPath);
+            Read(
+                ResolvePath(configPathEnvVar, configPath),
+                ResolvePath(jwtPrivateKeyPathEnvVar, jwtPrivateKeyPath),
+                ResolvePath(jwtPublicKeyPathEnvVar, jwtPublicKeyPath));
         }
 
         private static void Read(string configFilePath, string privateKeyFilePath, string publicKeyFilePath)
@@ -129,7 +160,7 @@ namespace FWO.Config.File
                 string configFile = System.IO.File.ReadAllText(configFilePath).TrimEnd();
 
                 // Deserialize config to dictionary
-                Data = JsonSerializer.Deserialize<ConfigFileData>(configFile) ?? throw new Exception("Config file could not be parsed.");
+                Data = JsonSerializer.Deserialize<ConfigFileData>(configFile) ?? throw new JsonException("Config file could not be parsed.");
 
                 // Errors can be ignored. If a configuration value that could not be loaded is requested from outside this class, an excpetion is thrown. See CriticalConfigValueLoaded()
 
@@ -159,17 +190,25 @@ namespace FWO.Config.File
             if (configValue == null)
             {
                 Log.WriteError("Config value read", $"A necessary config value could not be found.", LogStackTrace: true);
-#if RELEASE
-                Environment.Exit(1); // Exit with error
-#endif
-                throw new ApplicationException("A necessary config value could not be found.");
+
+                throw new InvalidOperationException("A necessary config value could not be found.");
             }
-            else
-            {
-                return configValue;
-            }
+
+            return configValue;
         }
-        
+
+        private static string ResolvePath(string environmentVariableName, string fallbackPath)
+        {
+            string? configuredPath = Environment.GetEnvironmentVariable(environmentVariableName);
+
+            if (!string.IsNullOrWhiteSpace(configuredPath))
+            {
+                return configuredPath;
+            }
+
+            return fallbackPath;
+        }
+
         private static void IgnoreExceptions(Action method)
         {
             try { method(); } catch (Exception e) { Log.WriteDebug("Config value", $"Config value could not be loaded. Error: {e.Message}"); }

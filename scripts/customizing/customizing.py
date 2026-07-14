@@ -233,7 +233,7 @@ def get_credentials() -> tuple[str, str]:
     return username, password
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     parser = argparse.ArgumentParser(description="Writing custom settings via API to firewall orchestrator")
 
     parser.add_argument(

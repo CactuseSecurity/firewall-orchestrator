@@ -3,7 +3,10 @@ from __future__ import annotations
 import sys
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
+from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any
+
+import pytest
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -16,7 +19,9 @@ EXPECTED_PROTOCOL_PAYLOADS = 2
 EXPECTED_PUBLISH_TIMEOUT = 15
 EXPECTED_SECOND_OFFSET = 2
 EXPECTED_PAGINATED_LABEL_COUNT = 3
-TEST_GUARDICORE_TOKEN = "guardicore_token_for_tests"  # This is a dummy token for testing purposes only. It does not grant any access. #NOQA: S105
+TEST_GUARDICORE_TOKEN = (
+    "guardicore_token_for_tests"  # This is a dummy token for testing purposes only. It does not grant any access.
+)
 
 
 class StaticJsonResponse:
@@ -770,3 +775,193 @@ def test_post_guardicore_revision_posts_once_with_comment_only(monkeypatch: Monk
     assert captured_calls[0]["endpoint"] == "https://gc.local/api/v4.0/visibility/policy/revisions"
     assert captured_calls[0]["timeout"] == EXPECTED_PUBLISH_TIMEOUT
     assert captured_calls[0]["json"] == {"comments": "published rules by NeMo"}
+
+
+def test_auth_validation_and_token_helpers(monkeypatch: MonkeyPatch):
+    module = load_module()
+    args = SimpleNamespace(
+        fwo_jwt=None,
+        fwo_user=None,
+        fwo_password=None,
+        fwo_middleware_url=None,
+        guardicore_token=None,
+        guardicore_user=None,
+        guardicore_password=None,
+        guardicore_url="https://gc",
+        timeout=5,
+    )
+
+    with pytest.raises(module.GuardicoreRuleProvisioningError, match="--fwo-user"):
+        module.require_login_fields(args)
+    args.fwo_jwt = "jwt"
+    module.require_login_fields(args)
+    with pytest.raises(module.GuardicoreRuleProvisioningError, match="--guardicore-user"):
+        module.require_guardicore_fields(args)
+    args.guardicore_token = "gc-token"
+    module.require_guardicore_fields(args)
+
+    assert module.get_fwo_jwt(args, True) == "jwt"
+    assert module.get_guardicore_token(args, True) == "gc-token"
+
+    args.fwo_jwt = None
+    args.fwo_user = "user"
+    args.fwo_password = "password"
+    args.fwo_middleware_url = "https://middleware"
+    args.guardicore_token = None
+    args.guardicore_user = "user"
+    args.guardicore_password = "password"
+
+    def fake_login_fwo(
+        user: str,
+        password: str,
+        middleware_url: str,
+        verify_ssl: bool | str,
+        timeout: int,
+        error_cls: type[Exception],
+    ) -> str:
+        del user, password, middleware_url, verify_ssl, timeout, error_cls
+        return "login-jwt"
+
+    def fake_login_guardicore(
+        user: str,
+        password: str,
+        base_url: str,
+        verify_ssl: bool | str,
+        timeout: int,
+        error_cls: type[Exception],
+    ) -> str:
+        del user, password, base_url, verify_ssl, timeout, error_cls
+        return "login-gc-token"
+
+    monkeypatch.setattr(module, "login_fwo", fake_login_fwo)
+    monkeypatch.setattr(module, "login_guardicore", fake_login_guardicore)
+
+    assert module.get_fwo_jwt(args, False) == "login-jwt"
+    assert module.get_guardicore_token(args, False) == "login-gc-token"
+
+
+def test_fetch_connections_from_fwo_filters_invalid_payloads(monkeypatch: MonkeyPatch):
+    module = load_module()
+    config = module.FwoConfig("https://fwo/graphql", "jwt", True, 5, "reporter")
+    responses = [
+        {},
+        {"data": {"modelling_connection": "bad"}},
+        {"data": {"modelling_connection": [{"id": 1}, "ignored"]}},
+    ]
+
+    def fake_run_graphql_query(
+        config: Any,
+        query: str,
+        variables: dict[str, Any],
+        error_cls: type[Exception],
+    ) -> dict[str, Any]:
+        del config, query, variables, error_cls
+        return responses.pop(0)
+
+    monkeypatch.setattr(module, "run_graphql_query", fake_run_graphql_query)
+
+    assert module.fetch_connections_from_fwo(config, None) == []
+    assert module.fetch_connections_from_fwo(config, None) == []
+    assert module.fetch_connections_from_fwo(config, ["APP-1"]) == [{"id": 1}]
+
+
+def test_label_candidate_and_pagination_helpers():
+    module = load_module()
+    item = {"id": 1, "key": "AppRole", "value": "App (APP-1) - Role (AR-1)"}
+    nested_item = {"label": {"id": "2", "key": "NetworkArea", "value": "Area (NA-1)"}}
+    state = module.AppRoleMapBuildState(
+        app_role_map={},
+        full_value_keys=set(),
+        role_name_keys=set(),
+        role_id_keys=set(),
+        label_ids_seen=set(),
+        approle_full_value_counter=module.Counter(),
+    )
+
+    assert module.parse_existing_labels({"objects": [item]}) == [item]
+    assert module.extract_label_id_key_value_candidates({"id": "", "key": "AppRole", "value": "Role"}) == []
+    assert module.extract_label_id_key_value_candidates(nested_item) == [("2", "NetworkArea", "Area (NA-1)")]
+    assert module.build_guardicore_label_query_params({}, "offset", 5, 2) == {"start_at": 5, "offset": 5}
+    assert module.build_guardicore_label_query_params({}, "page", 5, 2) == {"page": 2}
+    with pytest.raises(module.GuardicoreRuleProvisioningError, match="Unknown pagination mode"):
+        module.build_guardicore_label_query_params({}, "bad", 0, 0)
+
+    module.update_approle_map_state(state, [item, nested_item, {"id": "3", "key": "AppZone", "value": "Zone (AZ-1)"}])
+
+    assert state.app_role_map["AR-1"] == ["1"]
+    assert state.app_role_map["NA-1"] == ["2"]
+    assert module.extract_page_objects("bad") == (None, [])
+    assert module.extract_page_objects({"objects": "bad"}) == ({"objects": "bad"}, [])
+    assert module.determine_page_progress("page", {}, [], 0, 1) == module.PageProgress(0, 2, True)
+    assert module.determine_page_progress("offset", {"next_offset": 10}, [{}], 0, 1) == module.PageProgress(10, 1, True)
+
+    stats = module.build_approle_map_stats(state, page_count=1, pagination_mode="page", page_start=1)
+    assert stats.total_approle_labels == 2
+    assert stats.pagination_mode == "page:1"
+
+
+def test_runtime_config_logging_and_processing_helpers(monkeypatch: MonkeyPatch):
+    module = load_module()
+    args = SimpleNamespace(
+        fwo_graphql_url="https://fwo/graphql",
+        fwo_role="reporter",
+        guardicore_url="https://gc",
+        timeout=5,
+        dry_run=True,
+        default_ip_protocol="TCP",
+        action="ALLOW",
+        section_position="ALLOW",
+        publish_comments="publish",
+    )
+
+    class FakeLogger:
+        def info(self, message: str, *args: Any, **kwargs: Any) -> None:
+            del message, args, kwargs
+
+        def warning(self, message: str, *args: Any, **kwargs: Any) -> None:
+            del message, args, kwargs
+
+    logger = FakeLogger()
+    fwo_config, guardicore_config = module.build_runtime_configs(args, True, False, "jwt", "gc-token")
+
+    assert fwo_config.jwt == "jwt"
+    assert guardicore_config.verify_ssl is False
+
+    module.log_fetch_summary(logger, [], None)
+    module.log_fetch_summary(logger, [{"id": 1}], ["APP-1"])
+    module.log_skipped_connection(logger, {"id": 1, "name": "Conn"}, "missing AppRole")
+    module.log_skipped_connection(logger, {"id": 2, "name": "Conn"}, "other")
+
+    payload = {"ruleset_name": "ruleset", "ip_protocols": ["TCP"]}
+    assert module.apply_rule_payloads(args, logger, guardicore_config, {"id": 1}, [payload]) == {"ruleset"}
+
+    def fake_post_guardicore_revision(config: Any, rulesets: list[str], comments: str) -> None:
+        del config, rulesets, comments
+
+    monkeypatch.setattr(module, "post_guardicore_revision", fake_post_guardicore_revision)
+    module.publish_revision_if_needed(args, logger, guardicore_config, ["ruleset"])
+    args.dry_run = False
+    module.publish_revision_if_needed(args, logger, guardicore_config, ["ruleset"])
+    args.dry_run = True
+
+    connection = {
+        "id": 1,
+        "source_approles": [{"nwgroup": {"name": "Src", "id_string": "AR-SRC"}}],
+        "destination_approles": [{"nwgroup": {"name": "Dst", "id_string": "AR-DST"}}],
+        "services": [{"service": {"port": 443, "port_end": 443, "protocol": {"name": "tcp"}}}],
+        "service_groups": [],
+    }
+    created, skipped, rulesets = module.process_connections(
+        args,
+        logger,
+        [
+            connection,
+            {"id": 2, "source_approles": [], "destination_approles": [], "services": [], "service_groups": []},
+        ],
+        {"AR-SRC": ["src"], "AR-DST": ["dst"]},
+        guardicore_config,
+    )
+
+    assert created == 1
+    assert skipped == 1
+    assert rulesets == ["FWOC1"]

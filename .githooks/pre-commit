@@ -42,6 +42,41 @@ for python_tool in ruff pyright; do
     fi
 done
 
+required_ruff_version="$("${PYTHON_CMD[@]}" -c 'from pathlib import Path; import re; text = Path("pyproject.toml").read_text(encoding="utf-8"); match = re.search(r"required-version\s*=\s*[\"'\'']([^\"'\'']+)[\"'\'']", text); print(match.group(1) if match else "")')"
+installed_ruff_version="$("${PYTHON_CMD[@]}" -m ruff --version | awk '{print $2}')"
+requirements_ruff_version="$("${PYTHON_CMD[@]}" -c 'from pathlib import Path; import re; text = Path("roles/importer/files/importer/requirements.txt").read_text(encoding="utf-8"); match = re.search(r"^ruff==(.+)$", text, re.MULTILINE); print(match.group(1) if match else "")')"
+
+if [ -z "$required_ruff_version" ]; then
+    echo "Error: Could not read [tool.ruff].required-version from pyproject.toml."
+    exit 1
+fi
+
+if [ "$requirements_ruff_version" != "$required_ruff_version" ]; then
+    echo "Error: Ruff version mismatch."
+    echo "roles/importer/files/importer/requirements.txt pins ruff ${requirements_ruff_version:-<missing>}, but pyproject.toml requires ${required_ruff_version}."
+    echo
+    echo "Fix this by keeping the ruff pins in sync:"
+    echo "  update roles/importer/files/importer/requirements.txt to ruff==${required_ruff_version}"
+    echo "  or change pyproject.toml [tool.ruff].required-version to ${requirements_ruff_version} if that is the intended project version"
+    echo "Then rerun:"
+    echo "  ${PYTHON_CMD[*]} -m pip install -r roles/importer/files/importer/requirements.txt"
+    echo "  ${PYTHON_CMD[*]} -m ruff check --fix"
+    echo "  ${PYTHON_CMD[*]} -m ruff format"
+    exit 1
+fi
+
+if [ "$installed_ruff_version" != "$required_ruff_version" ]; then
+    echo "Error: Ruff version mismatch."
+    echo "Installed ruff is ${installed_ruff_version}, but pyproject.toml requires ${required_ruff_version}."
+    echo
+    echo "Fix this by installing the pinned ruff version in the active environment:"
+    echo "  ${PYTHON_CMD[*]} -m pip install --upgrade ruff==${required_ruff_version}"
+    echo "Then rerun:"
+    echo "  ${PYTHON_CMD[*]} -m ruff check --fix"
+    echo "  ${PYTHON_CMD[*]} -m ruff format"
+    exit 1
+fi
+
 # Python Checks
 "${PYTHON_CMD[@]}" -m ruff check --fix
 "${PYTHON_CMD[@]}" -m ruff format

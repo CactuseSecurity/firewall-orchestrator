@@ -101,7 +101,7 @@ def extract_common_names(group_dns_to_delete: list[dict[str, Any]]) -> list[str]
     return [group["GroupDn"].split(",")[0].split("=")[1] for group in group_dns_to_delete]
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     parser = ArgumentParser(description="Delete internal groups from FWO")
     parser.add_argument("-u", "--user", required=True, help="Username for FWO API")
     parser.add_argument("-p", "--password", required=True, help="Password for FWO API")

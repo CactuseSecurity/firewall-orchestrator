@@ -143,7 +143,7 @@ def parse_app_ids(value: str) -> list[str]:
     return app_ids
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args() -> argparse.Namespace:  # pragma: no cover
     parser = argparse.ArgumentParser(description="Create Guardicore rules from FWO active connections")
     parser.add_argument("--fwo-graphql-url", required=True, help="Hasura GraphQL endpoint URL")
     parser.add_argument("--fwo-jwt", help="JWT for FWO GraphQL calls (skips login if provided)")
@@ -1336,7 +1336,7 @@ def publish_revision_if_needed(
     post_guardicore_revision(guardicore_config, rulesets, args.publish_comments)
 
 
-def main() -> int:
+def main() -> int:  # pragma: no cover
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     logger = logging.getLogger(__name__)
     args = parse_args()
@@ -1378,5 +1378,5 @@ def main() -> int:
         return 1
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     sys.exit(main())

@@ -198,7 +198,7 @@ class LabelItem:
     criteria: list[Criteria]
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args() -> argparse.Namespace:  # pragma: no cover
     parser = argparse.ArgumentParser(description="Create Guardicore labels from FWO GraphQL output")
     parser.add_argument("--fwo-graphql-url", required=True, help="Hasura GraphQL endpoint URL")
     parser.add_argument("--fwo-jwt", help="JWT for FWO GraphQL calls (skips login if provided)")
@@ -701,7 +701,7 @@ def send_labels_in_batches(
     return total_sent, sent_by_key
 
 
-def main() -> int:
+def main() -> int:  # pragma: no cover
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     logger = logging.getLogger(__name__)
     args = parse_args()
@@ -784,5 +784,5 @@ def main() -> int:
         return 1
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     sys.exit(main())

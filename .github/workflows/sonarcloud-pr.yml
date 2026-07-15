@@ -53,12 +53,26 @@ jobs:
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
 
       - name: Checkout PR head
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
+          # fork PRs are gated by the trusted-owner check above, so the
+          # pull_request_target fork checkout block of checkout@v7 can be lifted
+          allow-unsafe-pr-checkout: true
+
+      # The checkout above only contains the fork's refs; its copy of the base
+      # branch may be months stale, which would make Sonar treat everything
+      # merged upstream since then as new code of this PR.
+      - name: Fetch base branch from upstream
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          git remote add base "https://github.com/${{ github.repository }}.git"
+          git fetch base "$BASE_REF"
+          git branch -f "$BASE_REF" "base/$BASE_REF"
 
       - name: Set up Java
         uses: actions/setup-java@v5
@@ -77,7 +91,7 @@ jobs:
           python-version: '3.11'
 
       - name: Cache SonarCloud packages
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
@@ -85,7 +99,7 @@ jobs:
 
       - name: Cache SonarCloud scanner
         id: cache-sonar-scanner
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: .sonar/scanner
           key: ${{ runner.os }}-sonar-scanner

@@ -24,6 +24,7 @@ using System.Security.Claims;
 namespace FWO.Test
 {
     [TestFixture]
+    [NonParallelizable]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public class UiMainLayoutTest
     {
@@ -110,7 +111,9 @@ namespace FWO.Test
             InvokeDisplayMessage(layout, new InvalidOperationException("exploded"), "Load", "Could not load", true);
 
             fixture.Layout.WaitForAssertion(() => Assert.That(fixture.Layout.Markup, Does.Contain("Load - Could not load: exploded . E0002")));
+
             fixture.ApiConnection.WaitForLogCount(1);
+
             UiLogEntry log = fixture.ApiConnection.UiLogs[0];
             Assert.That(log.Severity, Is.EqualTo(2));
             Assert.That(log.Cause, Is.EqualTo("Load"));

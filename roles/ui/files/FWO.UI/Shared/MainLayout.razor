@@ -488,22 +488,7 @@
                     }
                     else
                     {
-                        string? accessToken = await TokenService.GetAccessToken();
-
-                        if (string.IsNullOrWhiteSpace(accessToken))
-                        {
-                            throw new AuthenticationException("not_authorized");
-                        }
-
-                        JwtReader jwt = new(accessToken);
-                        JwtValidationResult validationResult = await jwt.ValidateToken();
-
-                        if (!validationResult.IsSuccess)
-                        {
-                            throw new Exception(validationResult.Status.ToString());
-                        }
-
-                        role = jwt.GetRole();
+                        role = await TryLoadRole();
                     }
 
                     Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception, userConfig.User.Name, role);
@@ -521,6 +506,33 @@
         catch (Exception displayException)
         {
             Log.WriteError("Display UI Message", "Could not display UI message.", displayException);
+        }
+    }
+
+    private async Task<string> TryLoadRole()
+    {
+        try
+        {
+            string? accessToken = await TokenService.GetAccessToken();
+
+            if (string.IsNullOrWhiteSpace(accessToken))
+            {
+                accessToken = "";
+            }
+
+            JwtReader jwt = new JwtReader(accessToken);
+            JwtValidationResult validationResult = await jwt.ValidateToken();
+
+            if (validationResult.IsSuccess)
+            {
+                return jwt.GetRole();
+            }
+
+            return "";
+
+        }catch (Exception)
+        {
+            return "";
         }
     }
 

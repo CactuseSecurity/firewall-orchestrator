@@ -332,11 +332,6 @@
             JwtReader jwt = new(accessToken);
             JwtValidationResult validationResult = await jwt.ValidateToken();
 
-            if (!validationResult.IsSuccess)
-            {
-                throw new Exception(validationResult.Status.ToString());
-            }
-
             if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
             {
                 managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);

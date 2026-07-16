@@ -1,0 +1,75 @@
+name: Fast-forward main to release tag
+
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fast-forward-main-to-release-tag
+  cancel-in-progress: false
+
+jobs:
+  fast-forward-main:
+    environment: stable-release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate stable release tag
+        id: validate
+        shell: bash
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          if [[ "$TAG_NAME" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "stable=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "stable=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping tag '$TAG_NAME' because it is not a stable release tag."
+          fi
+
+      - name: Generate release app token
+        if: steps.validate.outputs.stable == 'true'
+        id: release-app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          client-id: ${{ vars.FWO_RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FWO_RELEASE_APP_PRIVATE_KEY }}
+
+      - if: steps.validate.outputs.stable == 'true'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          fetch-depth: 0
+          filter: tree:0
+          token: ${{ steps.release-app-token.outputs.token }}
+
+      - name: Fast-forward main to release tag
+        if: steps.validate.outputs.stable == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tag_name="${GITHUB_REF#refs/tags/}"
+
+          git fetch origin main
+
+          tag_sha="$(git rev-list -n 1 "$GITHUB_REF")"
+          main_sha="$(git rev-parse origin/main)"
+
+          echo "Tag $tag_name resolves to $tag_sha"
+          echo "origin/main currently points to $main_sha"
+
+          if [[ "$tag_sha" == "$main_sha" ]]; then
+            echo "main already points at the tagged commit."
+            exit 0
+          fi
+
+          if ! git merge-base --is-ancestor origin/main "$tag_sha"; then
+            echo "Refusing to update main: tag '$tag_name' is not a fast-forward from origin/main."
+            exit 1
+          fi
+
+          git push origin "$tag_sha:refs/heads/main"

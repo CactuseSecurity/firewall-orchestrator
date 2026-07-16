@@ -545,3 +545,23 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 - Support for writing firewall configurations via templates
 - A template provider (Tufin or custom templates) must be configured before use
 - FW config change external workflow is only active after explicit assignment per management and change category in the settings
+
+## 9.2.0 - 10.07.2026 MAIN
+This release makes FWO compatible with the following operating systems:
+- Ubuntu 22.04 and 24.04
+- Debian 11 & 12
+- Red Hat 9 (new - tested with v9.8)
+- Rocky 9 (new - tested with v9.8)
+- Ubuntu 26.04 (new)
+- Debian 13 (new)
+
+Not supported any longer are:
+- Ubuntu <  22.04
+- Debian <  11
+
+## 9.2.1 - 12.07.2026
+- migrate firewall tables to firewall schema
+
+## 9.2.2 - 15.07.2026
+- add generic firewall import
+- enable azure2022ff for normalized config import

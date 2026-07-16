@@ -125,11 +125,11 @@ namespace FWO.Ui.Services
 
                     if (refreshSuccess)
                     {
-                        Log.WriteAudit(LogCategory, $"Successfully restored session for User with dn={userConfig.User.Dn}");
+                        Log.WriteAudit(LogCategory, $"Successfully restored session for User \"{userConfig.User.Name}\" with DN: \"{userConfig.User.Dn}\".");
                     }
                     else
                     {
-                        Log.WriteAudit(LogCategory, $"Failed to restore session for User with dn={userConfig.User.Dn}");
+                        Log.WriteAudit(LogCategory, $"Failed to restore session for User \"{userConfig.User.Name}\" with DN: \"{userConfig.User.Dn}\".");
                     }
                 }
             }

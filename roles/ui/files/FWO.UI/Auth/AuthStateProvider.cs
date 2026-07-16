@@ -80,7 +80,7 @@ namespace FWO.Ui.Auth
 
                 await ApplyTokenPair(tokenPair, apiConnection, middlewareClient, userConfig);
 
-                Log.WriteAudit("AuthenticateUser", $"User \"{username}\" with DN: \"{userConfig.User.Dn}\" successfully authenticated.");
+                Log.WriteAudit(nameof(Authenticate), $"User \"{username}\" with DN: \"{userConfig.User.Dn}\" successfully authenticated.");
             }
 
             return apiAuthResponse;
@@ -217,17 +217,15 @@ namespace FWO.Ui.Auth
             string userDn = user.FindFirstValue("x-hasura-uuid") ?? "";
             string defaultRole = user.FindFirstValue("x-hasura-default-role") ?? "";
 
-            userConfig.User.Jwt = jwtString;
             await apiConnection.RunWithRole(defaultRole, async () =>
             {
                 await userConfig.SetUserInformation(userDn, apiConnection);
                 userConfig.User.Tenant = await GetTenantFromJwt(jwtString, apiConnection);
             });
 
-            userConfig.User.Jwt = jwtString;
-            userConfig.User.Roles = await GetAllowedRoles(userConfig.User.Jwt);
-            userConfig.User.Ownerships = await GetAssignedOwners(userConfig.User.Jwt);
-            userConfig.User.RecertOwnerships = await GetRecertifiableOwners(userConfig.User.Jwt);
+            userConfig.User.Roles = await GetAllowedRoles(jwtString);
+            userConfig.User.Ownerships = await GetAssignedOwners(jwtString);
+            userConfig.User.RecertOwnerships = await GetRecertifiableOwners(jwtString);
 
             Log.WriteDebug("Auth Claims", $"Parsed allowed roles: [{string.Join(", ", userConfig.User.Roles)}]");
             Log.WriteDebug("Auth Claims", $"Parsed editable owners: [{string.Join(", ", userConfig.User.Ownerships)}]");

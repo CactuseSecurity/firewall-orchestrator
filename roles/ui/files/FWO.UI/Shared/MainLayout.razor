@@ -1,15 +1,16 @@
 @inherits LayoutComponentBase
-@using FWO.Data.Middleware
+@using System.Security.Authentication
+@using System.Security.Claims;
+@using System.Timers
 @using FWO.Api.Client.ExceptionHandling
+@using FWO.Data.Middleware
 @using FWO.Middleware.Client
+@using FWO.Services
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
-@using FWO.Services
 @using FWO.Ui.Auth
 @using FWO.Ui.Data
 @using FWO.Ui.Services
-@using System.Timers
-@using System.Security.Claims;
 @using RestSharp
 
 @inject ApiConnection apiConnection
@@ -20,6 +21,7 @@
 @inject AuthenticationStateProvider authenticationProvider
 @inject ITokenRefreshCoordinator tokenRefreshCoordinator
 @inject IEventMediator EventMediator
+@inject TokenService TokenService
 
 @implements IDisposable
 
@@ -430,7 +432,7 @@
         InvokeAsync(StateHasChanged);
     }
 
-    private void DisplayMessageInUi(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
+    private async void DisplayMessageInUi(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
     {
         try
         {
@@ -486,7 +488,22 @@
                     }
                     else
                     {
-                         role = Task.Run(ValidateUserJwtAndSetRole).GetAwaiter().GetResult();                    
+                        string? accessToken = await TokenService.GetAccessToken();
+
+                        if (string.IsNullOrWhiteSpace(accessToken))
+                        {
+                            throw new AuthenticationException("not_authorized");
+                        }
+
+                        JwtReader jwt = new(accessToken);
+                        JwtValidationResult validationResult = await jwt.ValidateToken();
+
+                        if (!validationResult.IsSuccess)
+                        {
+                            throw new Exception(validationResult.Status.ToString());
+                        }
+
+                        role = jwt.GetRole();
                     }
 
                     Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception, userConfig.User.Name, role);
@@ -499,29 +516,13 @@
 
             ShowMessage(cause, description, messageType);
 
-            Task.Run(async () => await AddUiLogEntry(severity, cause, description));
+            await AddUiLogEntry(severity, cause, description);
         }
         catch (Exception displayException)
         {
             Log.WriteError("Display UI Message", "Could not display UI message.", displayException);
-        }       
-    }
-
-    private async Task<string> ValidateUserJwtAndSetRole()
-    {
-        try
-        {
-            JwtReader jwtReader = new(userConfig.User.Jwt);
-            await jwtReader.Validate();
-
-            return jwtReader.GetRole();
-        }
-        catch (Exception)
-        {
-            return "";
         }
     }
-
 
     public async Task AddUiLogEntry(int severity, string cause, string description)
     {

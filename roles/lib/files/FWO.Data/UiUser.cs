@@ -45,7 +45,6 @@ namespace FWO.Data
         [JsonProperty("ldap_connection"), JsonPropertyName("ldap_connection")]
         public UiLdapConnection LdapConnection { get; set; } = new();
 
-        public string Jwt { get; set; } = "";
         public List<string> Roles { get; set; } = [];
         public List<string> Groups { get; set; } = [];
         public List<int> Ownerships { get; set; } = [];

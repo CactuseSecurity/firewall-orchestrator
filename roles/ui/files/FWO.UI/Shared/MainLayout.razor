@@ -432,7 +432,7 @@
         InvokeAsync(StateHasChanged);
     }
 
-    private async void DisplayMessageInUi(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
+    private async Task DisplayMessageInUi(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
     {
         try
         {

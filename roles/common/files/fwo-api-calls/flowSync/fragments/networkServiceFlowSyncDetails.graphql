@@ -1,4 +1,4 @@
-fragment networkServiceFlowSyncDetails on service {
+fragment networkServiceFlowSyncDetails on firewall_nw_service {
   svc_id
   svc_name
   svc_uid

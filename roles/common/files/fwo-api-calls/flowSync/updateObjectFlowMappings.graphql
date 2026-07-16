@@ -1,5 +1,5 @@
-mutation updateObjectFlowMappings($updates: [object_updates!]!) {
-  update_object_many(updates: $updates) {
+mutation updateObjectFlowMappings($updates: [firewall_nw_object_updates!]!) {
+  update_firewall_nw_object_many(updates: $updates) {
     affected_rows
   }
 }

@@ -28,11 +28,10 @@
     msg: "could not publish middleware server successfully: {{ publish_result }}"
   when: publish_result is defined and publish_result.rc != 0
 
+# The API is installed later in site.yml; finalize restarts middleware after API is ready.
 - name: make middleware service run at host startup
   systemd:
     name: "{{ middleware_service_name }}"
     enabled: true
+    daemon_reload: true
   become: true
-
-  # not starting the server as the api is not ready yet
-  # we will restart the middlewareserver later 

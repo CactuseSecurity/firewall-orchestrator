@@ -40,7 +40,7 @@ namespace FWO.Report
         /// <summary>
         /// Flattened real rules (non-header) for each device in each management, used for export and JSON output.
         /// </summary>
-        private static Dictionary<(int deviceId, int managementId), Rule[]> _rulesCache = [];
+        private readonly Dictionary<(int deviceId, int managementId), Rule[]> _rulesCache = [];
         private readonly IRuleTreeBuilder? ruleTreeBuilderFromScope = ruleTreeBuilder;
 
         public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
@@ -154,6 +154,9 @@ namespace FWO.Report
             }
 
             // Build rule tree for each device in each management
+
+            scopedRuleTreeBuilder.ClearCachedRuleTrees();
+            _rulesCache.Clear();
 
             int ruleCount = 0;
 

@@ -1,0 +1,17 @@
+mutation createStateMatrixTransitionGroup(
+  $name: String!
+  $description: String
+  $phase: String
+  $visibilityGroupId: Int
+  $exclusive: Boolean!
+) {
+  create_transition_group: insert_request_state_matrix_transition_group_one(object: {
+    name: $name
+    description: $description
+    phase: $phase
+    visibility_group_id: $visibilityGroupId
+    exclusive: $exclusive
+  }) {
+    newId: id
+  }
+}

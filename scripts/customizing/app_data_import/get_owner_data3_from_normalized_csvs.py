@@ -274,7 +274,7 @@ def normalize_option_value_args(argv: list[str], option_names: tuple[str, ...]) 
     return normalized_argv
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     parser = argparse.ArgumentParser(description="Read configuration from FW management via API calls")
     parser.add_argument(
         "-c",

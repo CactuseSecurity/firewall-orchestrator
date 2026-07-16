@@ -5,25 +5,8 @@
     state: present
   become: true
 
-- name: create log dir for {{ product_name }} on ubuntu - owner syslog
-  file:
-    path: "{{ fworch_log_dir }}"
-    state: directory
-    owner: syslog
-    group: syslog
-    mode: "0775"
-  become: true
-  when: ansible_facts['distribution'] == "Ubuntu"
-    
-- name: create log dir for {{ product_name }} on debian - owner root
-  file:
-    path: "{{ fworch_log_dir }}"
-    state: directory
-    owner: root
-    group: root
-    mode: "0775"
-  become: true
-  when: ansible_facts['distribution'] == "Debian"
+- name: include syslog log-directory tasks for current OS family
+  include_tasks: "os/install_syslog.{{ ansible_facts['os_family'] }}.yml"
 
 - name: change rsyslog config to receive logs
   blockinfile:
@@ -31,16 +14,6 @@
     block: |
       module(load="im{{ syslog_proto }}")
       input(type="im{{ syslog_proto }}" port="{{ syslog_port }}")
-  become: true
-
-- name: create log dir for {{ product_name }} on redhat - owner root
-  file:
-    path: "{{ fworch_log_dir }}"
-    state: directory
-    owner: root
-    group: root
-    mode: "0775"
-  when: ansible_facts['distribution'] == "RedHat"
   become: true
 
 # - name: create db log file for {{ product_name }} - owner postgres

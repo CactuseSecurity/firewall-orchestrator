@@ -1,4 +1,4 @@
-fragment ruleOverviewChangesOld on rule {
+fragment ruleOverviewChangesOld on firewall_rule {
   rule_id
   rule_uid
   dev_id

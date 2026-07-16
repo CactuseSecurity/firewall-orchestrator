@@ -1,0 +1,50 @@
+---
+- block:
+    - set_fact:
+        ansible_user: "{{ lookup('env','USER') }}"
+
+    - name: Install packages for docker download n installation on RedHat
+      package:
+        name:
+          - ca-certificates
+          - curl
+          - dnf-plugins-core
+        state: present
+
+    - name: add docker yum repo
+      yum_repository:
+        name: docker-ce-stable
+        description: Docker CE Stable - $basearch
+        baseurl: "https://download.docker.com/linux/rhel/{{ ansible_distribution_major_version }}/$basearch/stable"
+        gpgcheck: true
+        enabled: true
+        gpgkey: https://download.docker.com/linux/rhel/gpg
+
+    - name: Install all packages for docker on RedHat
+      package:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+
+    - name: Add the group 'docker' for {{ ansible_user }} and {{ fworch_user }} to allow running docker
+      user:
+        name: "{{ item }}"
+        groups: docker
+        append: true
+      loop:
+        - "{{ ansible_user }}"
+        - "{{ fworch_user }}"
+
+    - name: set proxy for docker daemon to get images via proxy
+      include_tasks: ../set-docker-daemon-proxy.yml
+
+    - name: set docker daemon bridge network
+      include_tasks: ../set-docker-daemon-network.yml
+      when: docker_network is defined and docker_network | length > 0
+
+    - name: include upgrade script
+      include_tasks: ../run-upgrades.yml
+      when: installation_mode == 'upgrade'
+  become: true

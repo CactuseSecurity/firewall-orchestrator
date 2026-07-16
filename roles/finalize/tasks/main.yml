@@ -22,7 +22,7 @@
   when: not already_installed and installation_mode == "upgrade"
 
 - name: Modify the product version in the config file
-  block:      
+  block:
     - name: Read config file
       slurp:
         path: "{{ fworch_conf_file }}"
@@ -38,7 +38,9 @@
         dest: "{{ fworch_conf_file }}"
         owner: "{{ fworch_user }}"
         group: "{{ fworch_group }}"
-      become: true     
+        mode: "0640"
+      become: true
+  become: true
   when: installation_mode == "upgrade"
   
 - name: include upgrade script
@@ -113,7 +115,20 @@
   command: "a2dissite {{ product_name }}-maintenance"
   ignore_errors: true
   become: true
-  when: "installation_mode == 'upgrade' and 'frontends' in group_names"
+  when:
+    - "installation_mode == 'upgrade'"
+    - "'frontends' in group_names"
+    - "ansible_facts['os_family'] == 'Debian'"
+
+- name: remove RedHat maintenance web site config
+  file:
+    path: "{{ http_conf_dir }}/{{ product_name }}-maintenance.conf"
+    state: absent
+  become: true
+  when:
+    - "installation_mode == 'upgrade'"
+    - "'frontends' in group_names"
+    - "ansible_facts['os_family'] == 'RedHat'"
 
 - name: restart apache without maintenance site
   service:
@@ -125,10 +140,10 @@
   ansible.builtin.systemd:
     name: "{{ product_name }}-middleware"
     state: restarted
+    daemon_reload: true
   become: true
   when: "'middlewareserver' in group_names and (mw_deploy_changed | default(false))"
 
-# TODO - find out why UI sometimes crashes during upgrade of heavy data installations
 - name: finally restart UI
   ansible.builtin.systemd:
     name: "{{ product_name }}-ui"

@@ -250,6 +250,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("reqOwnerBased"), JsonPropertyName("reqOwnerBased")]
         public bool ReqOwnerBased { get; set; } = false;
 
+        [JsonProperty("reqVisibilityBased"), JsonPropertyName("reqVisibilityBased")]
+        public bool ReqVisibilityBased { get; set; } = false;
+
         [JsonProperty("reqReducedView"), JsonPropertyName("reqReducedView")]
         public bool ReqReducedView { get; set; } = false;
 
@@ -622,6 +625,10 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("reportingPersonalPreferredCollapseState"), JsonPropertyName("reportingPersonalPreferredCollapseState")]
         public PreferredCollapseState ReportingPersonalPreferredCollapseState { get; set; } = PreferredCollapseState.Collapsed;
+        [JsonProperty("fwConfigChangeMgmSettings"), JsonPropertyName("fwConfigChangeMgmSettings")]
+        public string FwConfigChangeMgmSettings { get; set; } = "[]";
+
+
 
         public ConfigData(bool editable = false)
         {

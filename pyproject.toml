@@ -26,7 +26,7 @@ reportMissingImports = false
 reportMissingTypeStubs = true
 
 [tool.ruff]
-required-version = "0.15.0"
+required-version = "0.15.21"
 line-length = 120
 indent-width = 4
 target-version = "py310"
@@ -123,6 +123,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.per-file-ignores]
 "roles/importer/files/importer/test/**.py" = ["SLF001", "PLR2004"]
+"scripts/customizing/**/test_*.py" = ["FBT003", "PLR2004", "PT017", "S105"]
 
 
 [tool.ruff.format]
@@ -137,4 +138,16 @@ pythonpath = [
     ".",
     "roles/importer/files/importer",
     "roles/importer/files/importer/test",
+]
+
+[tool.coverage.run]
+branch = true
+relative_files = true
+source = [
+    "roles/importer/files/importer",
+    "scripts",
+]
+omit = [
+    "roles/importer/files/importer/test/*",
+    "scripts/**/test_*.py",
 ]

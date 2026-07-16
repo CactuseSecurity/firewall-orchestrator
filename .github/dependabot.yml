@@ -8,6 +8,12 @@ registries:
     password: ${{ secrets.PRIVATE_SUBMODULE_TOKEN }}
 
 updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+
   - package-ecosystem: "nuget"
     directory: "/roles/"
     target-branch: "develop"
@@ -45,3 +51,7 @@ updates:
       pip-dependencies:
         patterns:
           - "*"
+    ignore:
+      # ansible >=13 requires Python >=3.12, unavailable on Debian 12 (see requirements.txt)
+      - dependency-name: "ansible"
+        versions: [">=13"]

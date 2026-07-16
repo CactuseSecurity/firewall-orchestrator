@@ -1,6 +1,21 @@
+import os
 import unittest.mock
+from pathlib import Path
 
 import pytest
+
+
+def find_repo_graphql_query_path(start_path: Path) -> Path | None:
+    for parent in start_path.resolve().parents:
+        query_path = parent / "roles" / "common" / "files" / "fwo-api-calls"
+        if query_path.is_dir():
+            return query_path
+    return None
+
+
+if repo_graphql_query_path := find_repo_graphql_query_path(Path(__file__)):
+    os.environ.setdefault("FWO_GRAPHQL_QUERY_PATH", str(repo_graphql_query_path))
+
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway

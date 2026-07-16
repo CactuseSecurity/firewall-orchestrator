@@ -3,6 +3,7 @@ using FWO.Middleware.Server;
 using NUnit.Framework;
 using System.Reflection;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace FWO.Test
 {
@@ -44,6 +45,53 @@ namespace FWO.Test
             Assert.That(claimsIdentity.FindFirst("x-hasura-tenant-id")?.Value, Is.EqualTo("7"));
             Assert.That(claimsIdentity.FindFirst("x-hasura-visible-managements")?.Value, Is.EqualTo("{3,9}"));
             Assert.That(claimsIdentity.FindFirst("x-hasura-visible-devices")?.Value, Is.EqualTo("{5}"));
+        }
+
+        [Test]
+        public void SetClaimsAddsWorkflowVisibilityGroupClaims()
+        {
+            UiUser user = new()
+            {
+                Name = "test-user",
+                Roles = ["reporter"],
+                WorkflowVisibilityGroupIds = [2, 4, 9]
+            };
+
+            ClaimsIdentity claimsIdentity = InvokeSetClaims(user);
+
+            Assert.That(claimsIdentity.FindFirst("x-hasura-workflow-visibility-groups")?.Value, Is.EqualTo("{2,4,9}"));
+        }
+
+        [Test]
+        public void SetClaimsAddsHasuraGroupClaimAsJsonText()
+        {
+            UiUser user = new()
+            {
+                Name = "test-user",
+                Roles = ["reporter"],
+                Groups = ["cn=approver,ou=groups,dc=example,dc=com", "cn=auditor,ou=groups,dc=example,dc=com"]
+            };
+
+            ClaimsIdentity claimsIdentity = InvokeSetClaims(user);
+
+            Assert.That(claimsIdentity.FindFirst("x-hasura-groups")?.Value,
+                Is.EqualTo(JsonSerializer.Serialize(user.Groups)));
+        }
+
+        [Test]
+        public void SetClaimsAddsHasuraGroupClaimThatCanBeParsedBack()
+        {
+            UiUser user = new()
+            {
+                Name = "test-user",
+                Roles = ["reporter"],
+                Groups = ["cn=approver,ou=groups,dc=example,dc=com", "cn=auditor,ou=groups,dc=example,dc=com"]
+            };
+
+            ClaimsIdentity claimsIdentity = InvokeSetClaims(user);
+            List<string> parsedGroups = FWO.Basics.JwtClaimParser.ExtractStringClaimValues(claimsIdentity.Claims, "x-hasura-groups");
+
+            Assert.That(parsedGroups, Is.EqualTo(user.Groups));
         }
 
         [Test]

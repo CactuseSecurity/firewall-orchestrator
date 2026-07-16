@@ -45,8 +45,8 @@ class TestFwConfigImportRuleOrderOldMigration:
         # Assert
         assert inserted_rule_uid is not None
         assert moved_rule_uid is not None
-        insert_rule = get_rule(normalized_config, 0, inserted_rule_uid)
-        assert insert_rule is not None
+        insert_firewall_rule = get_rule(normalized_config, 0, inserted_rule_uid)
+        assert insert_firewall_rule is not None
 
         moved_rule = get_rule(normalized_config, 0, moved_rule_uid)
         assert moved_rule is not None
@@ -55,7 +55,7 @@ class TestFwConfigImportRuleOrderOldMigration:
             f"Moved rule_num_numeric is {normalized_config.rulebases[0].rules[inserted_rule_uid].rule_num_numeric}, expected {RULE_NUM_NUMERIC_STEPS}"
         )
 
-        assert insert_rule.rule_num_numeric == 3 * RULE_NUM_NUMERIC_STEPS / 2, (
+        assert insert_firewall_rule.rule_num_numeric == 3 * RULE_NUM_NUMERIC_STEPS / 2, (
             f"Inserted rule_num_numeric is {normalized_config.rulebases[0].rules[moved_rule_uid].rule_num_numeric}, expected {RULE_NUM_NUMERIC_STEPS / 2}"
         )
 

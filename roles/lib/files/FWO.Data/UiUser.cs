@@ -49,6 +49,7 @@ namespace FWO.Data
         public List<string> Groups { get; set; } = [];
         public List<int> Ownerships { get; set; } = [];
         public List<int> RecertOwnerships { get; set; } = [];
+        public List<int> WorkflowVisibilityGroupIds { get; set; } = [];
 
 
         public UiUser()
@@ -75,6 +76,7 @@ namespace FWO.Data
             Roles = user.Roles;
             Ownerships = user.Ownerships;
             RecertOwnerships = user.RecertOwnerships;
+            WorkflowVisibilityGroupIds = user.WorkflowVisibilityGroupIds;
             if (user.LdapConnection != null)
             {
                 LdapConnection = new UiLdapConnection(user.LdapConnection);

@@ -65,3 +65,6 @@
   fail:
     msg: "url: {{ web_call_result.url }}, status: {{ web_call_result.status }}"
   when: "'frontends' in group_names and web_call_result.status!=200"
+
+- name: test ui ambient role coverage
+  import_tasks: test-ui-ambient-role-smoke.yml

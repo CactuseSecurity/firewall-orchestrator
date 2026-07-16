@@ -1,8 +1,10 @@
 #!/bin/sh
 #firewall-orchestrator installer
 
+set -e
+
 #install required packages
-apt-get install git ansible ssh sudo
+apt-get install -y git ansible ssh sudo
 
 #generate ssh key
 # ssh-keygen -b 4096
@@ -14,4 +16,7 @@ apt-get install git ansible ssh sudo
 # ansible -m ping 127.0.0.1
 
 #clone repository and install firewall-orchestrator
-git clone https://github.com/CactuseSecurity/firewall-orchestrator && cd firewall-orchestrator && ansible-playbook site.yml -K
+git clone https://github.com/CactuseSecurity/firewall-orchestrator
+cd firewall-orchestrator
+ansible-galaxy collection install -r collections/requirements.yml -p collections --force
+./scripts/run-playbook-with-sudo.sh site.yml

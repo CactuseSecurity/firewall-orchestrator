@@ -14,6 +14,8 @@ namespace FWO.Test
         public List<string> History = [];
         public string? AddHistoryMessage { get; set; }
         public string? AddExtRequestVars { get; set; }
+        public string? AddedExtTicketSystem { get; set; }
+        public string? AddedExtQueryVariables { get; set; }
         readonly string masterStateMatrix = "{\"config_value\":{\"request\":{\"matrix\":{\"0\":[0,49,620],\"49\":[49,620],\"620\":[620],\"1\":[1,2,3,4,630,631],\"2\":[1,2,3,4,630,631],\"3\":[3,4,630,631],\"4\":[4,630,631],\"630\":[630],\"631\":[631]},\"derived_states\":{\"0\":0,\"49\":49,\"620\":620,\"1\":1,\"2\":2,\"3\":3,\"4\":4,\"630\":630,\"631\":631},\"lowest_input_state\":0,\"lowest_start_state\":1,\"lowest_end_state\":49,\"active\":true},\"approval\":{\"matrix\":{\"49\":[60],\"60\":[60,99,610],\"99\":[99],\"610\":[610]},\"derived_states\":{\"49\":49,\"60\":60,\"99\":99,\"610\":610},\"lowest_input_state\":49,\"lowest_start_state\":60,\"lowest_end_state\":99,\"active\":false},\"planning\":{\"matrix\":{\"99\":[110],\"110\":[110,120,130,149],\"120\":[120,110,130,149],\"130\":[130,110,120,149,610],\"149\":[149],\"610\":[610]},\"derived_states\":{\"99\":99,\"110\":110,\"120\":110,\"130\":110,\"149\":149,\"610\":610},\"lowest_input_state\":99,\"lowest_start_state\":110,\"lowest_end_state\":149,\"active\":false},\"verification\":{\"matrix\":{\"149\":[160],\"160\":[160,199,610],\"199\":[199],\"610\":[610]},\"derived_states\":{\"149\":149,\"160\":160,\"199\":199,\"610\":610},\"lowest_input_state\":149,\"lowest_start_state\":160,\"lowest_end_state\":199,\"active\":false},\"implementation\":{\"matrix\":{\"99\":[210],\"210\":[210,220,249],\"220\":[220,210,249,610],\"249\":[249],\"610\":[610],\"49\":[49,600,610]},\"derived_states\":{\"99\":99,\"210\":210,\"220\":210,\"249\":249,\"610\":610,\"49\":49},\"lowest_input_state\":49,\"lowest_start_state\":210,\"lowest_end_state\":249,\"active\":true},\"review\":{\"matrix\":{\"249\":[260],\"260\":[260,270,299],\"270\":[210,270,260,299,610],\"299\":[299],\"610\":[610]},\"derived_states\":{\"249\":249,\"260\":260,\"270\":260,\"299\":299,\"610\":610},\"lowest_input_state\":249,\"lowest_start_state\":260,\"lowest_end_state\":299,\"active\":false},\"recertification\":{\"matrix\":{\"299\":[310],\"310\":[310,349,400],\"349\":[349],\"400\":[400]},\"derived_states\":{\"299\":299,\"310\":310,\"349\":349,\"400\":400},\"lowest_input_state\":299,\"lowest_start_state\":310,\"lowest_end_state\":349,\"active\":false}}}";
         readonly static WfReqElement srcARElem = new()
         {
@@ -91,7 +93,7 @@ namespace FWO.Test
             ManagementId = 1,
             Elements = [srcARElem, dstARElem, svcElem, ruleElem],
             AdditionalInfo = "{\"ConnId\":\"1\"}",
-            SelectedDevices = "[1]"
+            SelectedDevices = "[2]"
         };
         readonly static WfReqTask reqTask5 = new()
         {
@@ -144,6 +146,47 @@ namespace FWO.Test
 
         readonly static WfTicket ticket123 = new() { Id = 123, Title = "Ticket1", Tasks = [reqTask1, reqTask2, reqTask3, reqTask4, reqTask5, reqTask6, reqTask7, reqTask8] };
 
+        public ExtTicketHandlerTestApiConn()
+        {
+            ResetTicketTasks();
+        }
+
+        public static void ResetTicketTasks()
+        {
+            reqTask1.StateId = 0;
+            reqTask1.AdditionalInfo = "{\"ConnId\":\"1\"}";
+            reqTask2.StateId = 0;
+            reqTask2.AdditionalInfo = "{\"ConnId\":\"1\"}";
+            reqTask3.StateId = 0;
+            reqTask3.AdditionalInfo = "{\"ConnId\":\"1\"}";
+            reqTask4.StateId = 0;
+            reqTask4.AdditionalInfo = "{\"ConnId\":\"1\"}";
+            reqTask4.SelectedDevices = "[2]";
+            reqTask4.ImplementationTasks =
+            [
+                new()
+                {
+                    Id = 401,
+                    ReqTaskId = reqTask4.Id,
+                    TaskType = reqTask4.TaskType,
+                    TaskNumber = 1,
+                    DeviceId = 1
+                }
+            ];
+            reqTask5.StateId = 0;
+            reqTask5.AdditionalInfo = "{\"ConnId\":\"1\"}";
+            reqTask5.ImplementationTasks = [];
+            reqTask6.StateId = 0;
+            reqTask6.AdditionalInfo = "{\"ConnId\":\"1\"}";
+            reqTask6.ImplementationTasks = [];
+            reqTask7.StateId = 0;
+            reqTask7.AdditionalInfo = "{\"ConnId\":\"1\"}";
+            reqTask7.ImplementationTasks = [];
+            reqTask8.StateId = 0;
+            reqTask8.AdditionalInfo = "{\"ConnId\":\"2\"}";
+            reqTask8.ImplementationTasks = [];
+        }
+
 
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
@@ -174,8 +217,8 @@ namespace FWO.Test
             {
                 List<Device>? devices =
                 [
-                    new(){ Id = 1, Name = "TestGw1" },
-                    new(){ Id = 2, Name = "TestGw2" }
+                    new(){ Id = 1, Name = "TestGw1", Package = "Standard", Management = new() { Id = 1 } },
+                    new(){ Id = 2, Name = "TestGw2", Package = "Standard", Management = new() { Id = 1 } }
                 ];
                 GraphQLResponse<dynamic> response = new() { Data = devices };
                 return response.Data;
@@ -201,10 +244,10 @@ namespace FWO.Test
                 GraphQLResponse<dynamic> response = new() { Data = states };
                 return response.Data;
             }
-            else if (responseType == typeof(List<GlobalStateMatrixHelper>))
+            else if (responseType == typeof(List<WorkflowConfiguration>))
             {
-                List<GlobalStateMatrixHelper> globalStateMatrixHelpers = [new() { ConfData = masterStateMatrix }];
-                GraphQLResponse<dynamic> response = new() { Data = globalStateMatrixHelpers };
+                List<WorkflowConfiguration> configurations = StateMatrixConfigurationTestHelper.FromLegacyJson(masterStateMatrix);
+                GraphQLResponse<dynamic> response = new() { Data = configurations };
                 return response.Data;
             }
             else if (responseType == typeof(List<WfTicket>))
@@ -276,6 +319,8 @@ namespace FWO.Test
                 else if (query == ExtRequestQueries.addExtRequest && variables != null)
                 {
                     AddExtRequestVars = variables.ToString();
+                    AddedExtTicketSystem = variables.GetType().GetProperty("extTicketSystem")?.GetValue(variables)?.ToString();
+                    AddedExtQueryVariables = variables.GetType().GetProperty("extQueryVariables")?.GetValue(variables)?.ToString();
                 }
                 ReturnIdWrapper ReturnIdWrap = new() { ReturnIds = [new()] };
                 GraphQLResponse<dynamic> response = new() { Data = ReturnIdWrap };

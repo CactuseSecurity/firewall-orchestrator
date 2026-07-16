@@ -18,7 +18,7 @@ jobs:
         os: [ubuntu-24.04, ubuntu-22.04]
         python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-dotnet@v5
         with:
@@ -34,10 +34,15 @@ jobs:
           sudo DEBIAN_FRONTEND=noninteractive apt install build-essential ldap-utils libldap2-dev libsasl2-dev -y
           python -m pip install ansible psycopg2-binary python-ldap requests
 
+      - name: Install Ansible collections
+        run: |
+          cd ${{ github.workspace }}
+          ansible-galaxy collection install -r collections/requirements.yml -p collections --force
+
       - name: Run Ansible test install
         run: |
           cd ${{ github.workspace }}
-          ansible-playbook -e force_install=true -e "ansible_python_interpreter=$(which python)" site.yml -K
+          ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true -e "ansible_python_interpreter=$(which python)"
 
       - name: Running in GitHub actions requires testing puppeteer pdf creation separately
         if: ${{ env.RUNNING_ON_GITHUB_ACTIONS == 'true' }}
@@ -46,4 +51,3 @@ jobs:
           dotnet restore
           dotnet build
           dotnet test --filter "Name=HtmlToPdfTest"
-

@@ -2,6 +2,10 @@
 -- Maintenance functions for db cleanup
 ----------------------------------------------------
 
+-- ensure the firewall schema is resolvable for the unqualified references below, even on a
+-- connection opened before the ALTER DATABASE ... SET search_path took effect (issue #4793).
+SET search_path TO "$user", public, firewall;
+
 CREATE OR REPLACE FUNCTION delete_import(BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_import_id ALIAS FOR $1; -- ID des zurueckzuruderndes Managements
@@ -10,9 +14,9 @@ BEGIN
 	DELETE FROM changelog_object	WHERE control_id = i_import_id;
 	DELETE FROM changelog_user	WHERE control_id = i_import_id;
 	DELETE FROM changelog_rule	WHERE control_id = i_import_id;
-	DELETE FROM service		WHERE svc_create=i_import_id;
-	DELETE FROM object		WHERE obj_create=i_import_id;
-	DELETE FROM usr			WHERE user_create=i_import_id;
+	DELETE FROM firewall.nw_service		WHERE svc_create=i_import_id;
+	DELETE FROM firewall.nw_object		WHERE obj_create=i_import_id;
+	DELETE FROM firewall.nw_user			WHERE user_create=i_import_id;
 	DELETE FROM rule		WHERE rule_create=i_import_id;
 	DELETE FROM rule_order		WHERE control_id=i_import_id; 		-- Loeschen der Regelreihenfolge
 	DELETE FROM import_control	WHERE control_id = i_import_id; 		-- abschliessend Loeschen des Control-Eintrags
@@ -86,10 +90,10 @@ WITH
             removed IS NOT NULL
         UNION
         SELECT import_created AS id
-        FROM usergrp
+        FROM firewall.nw_user_group
         UNION
         SELECT removed AS id
-        FROM usergrp
+        FROM firewall.nw_user_group
         WHERE
             removed IS NOT NULL
         UNION
@@ -102,10 +106,10 @@ WITH
             removed IS NOT NULL
         UNION
         SELECT import_created AS id
-        FROM objgrp
+        FROM firewall.nw_object_group
         UNION
         SELECT removed AS id
-        FROM objgrp
+        FROM firewall.nw_object_group
         WHERE
             removed IS NOT NULL
         UNION
@@ -118,34 +122,34 @@ WITH
             removed IS NOT NULL
         UNION
         SELECT import_created AS id
-        FROM svcgrp
+        FROM firewall.nw_service_group
         UNION
         SELECT removed AS id
-        FROM svcgrp
+        FROM firewall.nw_service_group
         WHERE
             removed IS NOT NULL
         UNION
         SELECT obj_create AS id
-        FROM object
+        FROM firewall.nw_object
         UNION
         SELECT removed AS id
-        FROM object
+        FROM firewall.nw_object
         WHERE
             removed IS NOT NULL
         UNION
         SELECT svc_create AS id
-        FROM service
+        FROM firewall.nw_service
         UNION
         SELECT removed AS id
-        FROM service
+        FROM firewall.nw_service
         WHERE
             removed IS NOT NULL
         UNION
         SELECT user_create AS id
-        FROM usr
+        FROM firewall.nw_user
         UNION
         SELECT removed AS id
-        FROM usr
+        FROM firewall.nw_user
         WHERE
             removed IS NOT NULL
         UNION

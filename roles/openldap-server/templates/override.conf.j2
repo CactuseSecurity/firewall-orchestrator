@@ -1,6 +1,6 @@
 [Service]
-EnvironmentFile=-/etc/default/slapd
+EnvironmentFile=-{{ openldap_service_defaults_file }}
 ExecStartPre=/bin/mkdir -p /run/slapd
 ExecStartPre=/bin/chown {{ openldap_server_user }}:{{ openldap_server_user }} /run/slapd
 ExecStart=
-ExecStart=/usr/sbin/slapd -u {{ openldap_server_user }} -g {{ openldap_server_user }} -h "${SLAPD_SERVICES}"
+ExecStart=/usr/sbin/slapd{% if slapd_unit_type.stdout == 'notify' %} -d0{% endif %} -u {{ openldap_server_user }} -g {{ openldap_server_user }} -h "${SLAPD_SERVICES}"

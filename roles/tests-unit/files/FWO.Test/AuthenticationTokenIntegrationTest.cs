@@ -17,6 +17,7 @@ namespace FWO.Test
     /// Tests the complete authentication flow including token generation, refresh, and revocation.
     /// </summary>
     [TestFixture]
+    [NonParallelizable]
     [RequiresIntegrationEnvironment]
     internal class AuthenticationTokenIntegrationTest
     {
@@ -252,7 +253,7 @@ namespace FWO.Test
 
             // Assert
             int successCount = responses.Count(response => response.IsSuccessStatusCode);
-            int unauthorizedCount = responses.Count(response => response.StatusCode == HttpStatusCode.Unauthorized);
+            int unauthorizedCount = responses.Count(response => response.StatusCode == HttpStatusCode.BadRequest);
 
             Assert.That(successCount, Is.EqualTo(1), "Exactly one concurrent refresh request should succeed.");
             Assert.That(unauthorizedCount, Is.EqualTo(refreshTasks.Length - 1), "All other concurrent refresh requests should be rejected.");

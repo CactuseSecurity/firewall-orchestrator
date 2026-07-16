@@ -16,22 +16,39 @@ public sealed class OpenApiApiExampleOperationTransformer : IOpenApiOperationTra
 {
     private readonly ApiExampleCatalog catalog;
     private readonly JsonSerializerOptions jsonSerializerOptions;
+    private readonly List<IOpenApiEndpointDocumentationProvider> documentationProviders;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="OpenApiApiExampleOperationTransformer"/> class.
     /// </summary>
-    public OpenApiApiExampleOperationTransformer(ApiExampleCatalog catalog, IOptions<JsonOptions> jsonOptions)
+    public OpenApiApiExampleOperationTransformer(
+        ApiExampleCatalog catalog,
+        IOptions<JsonOptions> jsonOptions,
+        IEnumerable<IOpenApiEndpointDocumentationProvider> documentationProviders)
     {
         this.catalog = catalog;
         jsonSerializerOptions = jsonOptions.Value.JsonSerializerOptions;
+        this.documentationProviders = documentationProviders.ToList();
     }
 
     /// <inheritdoc />
     public Task TransformAsync(OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
     {
+        ApplyEndpointDocumentation(operation, context.Description);
         ApplyRequestExample(operation, context.Description);
         ApplyResponseExamples(operation, context.Description);
         return Task.CompletedTask;
+    }
+
+    private void ApplyEndpointDocumentation(OpenApiOperation operation, ApiDescription apiDescription)
+    {
+        foreach (IOpenApiEndpointDocumentationProvider provider in documentationProviders)
+        {
+            if (provider.Matches(apiDescription))
+            {
+                provider.Apply(operation);
+            }
+        }
     }
 
     private void ApplyRequestExample(OpenApiOperation operation, ApiDescription apiDescription)

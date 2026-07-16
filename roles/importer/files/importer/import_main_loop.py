@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 # main importer loop in python (also able to run distributed)
 # run import loop every x seconds (adjust sleep time per management depending on the change frequency )
-
 import argparse
 import json
 import sys

@@ -9,6 +9,10 @@
   file:
       path: "{{ database_install_dir }}/upgrade"
       state: directory
+      owner: "{{ fworch_user }}"
+      group: "{{ postgres_group }}"
+      # postgres user needs to traverse the dir regardless of system umask
+      mode: "0750"
   become: true
 
 - set_fact:
@@ -37,6 +41,10 @@
   copy:
       src: "upgrade/{{ item }}.sql"
       dest: "{{ database_install_dir }}/upgrade/"
+      owner: "{{ fworch_user }}"
+      group: "{{ postgres_group }}"
+      # postgres user needs to read the sql files regardless of system umask
+      mode: "0640"
   loop: "{{ upgrade_files | community.general.version_sort }}"
   become: true
 

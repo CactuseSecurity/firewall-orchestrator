@@ -1,5 +1,5 @@
 query getRulesForOwnerMappingNameField {
-  rule(
+  firewall_rule(
     where: {
       removed: { _is_null: true }
       rule_name: { _is_null: false }

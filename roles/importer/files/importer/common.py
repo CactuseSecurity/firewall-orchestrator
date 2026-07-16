@@ -1,26 +1,29 @@
+from __future__ import annotations
+
 import sys
 import time
 import traceback
 from pathlib import Path
 from socket import gethostname
 
+from fw_modules.azure2022ff.fwcommon import Azure2022ffCommon
 from fw_modules.checkpointR8x.fwcommon import CheckpointR8xCommon
 from fw_modules.ciscoasa9.fwcommon import CiscoAsa9Common
 from fw_modules.fortiadom5ff.fwcommon import FortiAdom5ffCommon
 from fw_modules.fortiosmanagementREST.fwcommon import FortiosManagementRESTCommon
+from fw_modules.generic.fwcommon import GenericFirewallCommon
 from fwo_const import IMPORTER_BASE_DIR
 from fwo_log import FWOLogger
 from model_controllers.fwconfig_import_rollback import FwConfigImportRollback
 from model_controllers.management_controller import ManagementController
-from models.fw_common import FwCommon
-from models.import_state import ImportState
 
 if IMPORTER_BASE_DIR not in sys.path:
     sys.path.append(IMPORTER_BASE_DIR)  # adding absolute path here once
+from typing import TYPE_CHECKING
+
 import fwo_file_import
 import fwo_globals
 import fwo_signalling
-from fwo_api_call import FwoApiCall
 from fwo_base import string_is_uri, write_native_config_to_file
 from fwo_const import IMPORT_TMP_PATH
 from fwo_exceptions import (
@@ -37,10 +40,15 @@ from model_controllers.fwconfig_import import FwConfigImport
 from model_controllers.fwconfigmanagerlist_controller import (
     FwConfigManagerListController,
 )
-from model_controllers.import_state_controller import ImportStateController
-from models.gateway import Gateway
 from services.enums import Services
 from services.service_provider import ServiceProvider
+
+if TYPE_CHECKING:
+    from fwo_api_call import FwoApiCall
+    from model_controllers.import_state_controller import ImportStateController
+    from models.fw_common import FwCommon
+    from models.gateway import Gateway
+    from models.import_state import ImportState
 
 """
     import_management: import a single management (if no import for it is running)
@@ -290,17 +298,20 @@ def import_from_file(
 def get_module(import_state: ImportState) -> FwCommon:
     # pick product-specific importer:
     pkg_name = get_module_package_name(import_state)
-    match pkg_name:
-        case "ciscoasa9":
-            fw_module = CiscoAsa9Common()
-        case "fortiadom5ff":
-            fw_module = FortiAdom5ffCommon()
-        case "checkpointR8x":
-            fw_module = CheckpointR8xCommon()
-        case "fortiosmanagementREST":
-            fw_module = FortiosManagementRESTCommon()
-        case _:
-            raise FwoImporterError(f"import_management - no fwcommon module found for package name {pkg_name}")
+    if pkg_name == "ciscoasa9":
+        fw_module = CiscoAsa9Common()
+    elif pkg_name == "fortiadom5ff":
+        fw_module = FortiAdom5ffCommon()
+    elif pkg_name == "checkpointR8x":
+        fw_module = CheckpointR8xCommon()
+    elif pkg_name == "fortiosmanagementREST":
+        fw_module = FortiosManagementRESTCommon()
+    elif pkg_name == "genericfirewallmanagement1.0":
+        fw_module = GenericFirewallCommon()
+    elif pkg_name == "azure2022ff":
+        fw_module = Azure2022ffCommon()
+    else:
+        raise FwoImporterError(f"import_management - no fwcommon module found for package name {pkg_name}")
 
     return fw_module
 

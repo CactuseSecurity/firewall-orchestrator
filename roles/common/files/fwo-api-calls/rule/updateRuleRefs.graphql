@@ -1,16 +1,16 @@
 mutation updateRuleRefs(
     $importId: bigint!
-    $ruleFroms: [rule_from_bool_exp!]!
-    $ruleTos: [rule_to_bool_exp!]!
-    $ruleServices: [rule_service_bool_exp!]!
-    $ruleNwObjResolveds: [rule_nwobj_resolved_bool_exp!]
-    $ruleSvcResolveds: [rule_svc_resolved_bool_exp!]!
-    $ruleUserResolveds: [rule_user_resolved_bool_exp!]!
-    $ruleFromZones: [rule_from_zone_bool_exp!]
-    $ruleToZones: [rule_to_zone_bool_exp!]
-    $ruleTimes: [rule_time_bool_exp!]
+    $ruleFroms: [firewall_rule_from_bool_exp!]!
+    $ruleTos: [firewall_rule_to_bool_exp!]!
+    $ruleServices: [firewall_rule_service_bool_exp!]!
+    $ruleNwObjResolveds: [firewall_rule_nw_object_resolved_bool_exp!]
+    $ruleSvcResolveds: [firewall_rule_nw_service_resolved_bool_exp!]!
+    $ruleUserResolveds: [firewall_rule_nw_user_resolved_bool_exp!]!
+    $ruleFromZones: [firewall_rule_from_zone_bool_exp!]
+    $ruleToZones: [firewall_rule_to_zone_bool_exp!]
+    $ruleTimes: [firewall_rule_time_bool_exp!]
 ) {
-    update_rule_from(where: {
+    update_firewall_rule_from(where: {
         _or: $ruleFroms
         removed: {_is_null: true}
     }, _set: {
@@ -19,7 +19,7 @@ mutation updateRuleRefs(
     }) {
         affected_rows
     }
-    update_rule_to(where: {
+    update_firewall_rule_to(where: {
         _or: $ruleTos
         removed: {_is_null: true}
     }, _set: {
@@ -28,7 +28,7 @@ mutation updateRuleRefs(
     }) {
         affected_rows
     }
-    update_rule_service(where: {
+    update_firewall_rule_service(where: {
         _or: $ruleServices
         removed: {_is_null: true}
     }, _set: {
@@ -37,7 +37,7 @@ mutation updateRuleRefs(
     }) {
         affected_rows
     }
-    update_rule_nwobj_resolved(where: {
+    update_firewall_rule_nw_object_resolved(where: {
         _or: $ruleNwObjResolveds
         removed: {_is_null: true}
     }, _set: {
@@ -45,7 +45,7 @@ mutation updateRuleRefs(
     }) {
         affected_rows
     }
-    update_rule_svc_resolved(where: {
+    update_firewall_rule_nw_service_resolved(where: {
         _or: $ruleSvcResolveds
         removed: {_is_null: true}
     }, _set: {
@@ -53,7 +53,7 @@ mutation updateRuleRefs(
     }) {
         affected_rows
     }
-    update_rule_user_resolved(where: {
+    update_firewall_rule_nw_user_resolved(where: {
         _or: $ruleUserResolveds
         removed: {_is_null: true}
     }, _set: {
@@ -61,7 +61,7 @@ mutation updateRuleRefs(
     }) {
         affected_rows
     }
-    update_rule_from_zone(where: {
+    update_firewall_rule_from_zone(where: {
         _or: $ruleFromZones
         removed: {_is_null: true}
     }, _set: {
@@ -69,7 +69,7 @@ mutation updateRuleRefs(
     }) {
         affected_rows
     }
-    update_rule_to_zone(where: {
+    update_firewall_rule_to_zone(where: {
         _or: $ruleToZones
         removed: {_is_null: true}
     }, _set: {
@@ -77,7 +77,7 @@ mutation updateRuleRefs(
     }) {
         affected_rows
     }
-    update_rule_time(where: {
+    update_firewall_rule_time(where: {
         _or: $ruleTimes
         removed: {_is_null: true}
     }, _set: {

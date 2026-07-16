@@ -64,12 +64,14 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
                 .OrderBy(nwObj => ResolveSortName(nwObj), StringComparer.OrdinalIgnoreCase)
                 .ToList();
             List<string> convertedObjects = [];
+            List<string> convertedGroupNames = [];
             foreach (var nwObj in nwObjects)
             {
                 if (nwObj.GroupName != "")
                 {
-                    if (convertedObjects.FirstOrDefault(o => o == nwObj.GroupName) == null)
+                    if (!convertedGroupNames.Contains(nwObj.GroupName))
                     {
+                        convertedGroupNames.Add(nwObj.GroupName);
                         convertedObjects.Add(FillNwObjGroupTemplate(template, nwObj.GroupName, mgtName ?? ""));
                     }
                 }

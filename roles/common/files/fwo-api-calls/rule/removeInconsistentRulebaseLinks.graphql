@@ -1,5 +1,5 @@
 mutation removeInconsistentRulebaseLinks($importId: bigint!, $mgmId: Int!) {
-  update_rulebase_link(
+  update_firewall_rulebase_link(
     where: {
       device: { management: { mgm_id: { _eq: $mgmId } } }
       removed: { _is_null: true }

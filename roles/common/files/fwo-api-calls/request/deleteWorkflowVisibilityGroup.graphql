@@ -1,0 +1,5 @@
+mutation deleteWorkflowVisibilityGroup($id: Int!) {
+  delete_visibility_group: delete_request_workflow_visibility_group_by_pk(id: $id) {
+    deletedId: id
+  }
+}

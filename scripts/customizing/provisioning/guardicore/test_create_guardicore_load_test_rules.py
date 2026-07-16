@@ -14,7 +14,9 @@ if TYPE_CHECKING:
 
     from _pytest.monkeypatch import MonkeyPatch
 
-TEST_GUARDICORE_TOKEN = "guardicore_token_for_tests"  # This is a dummy token for testing purposes only. It does not grant any access. #NOQA: S105
+TEST_GUARDICORE_TOKEN = (
+    "guardicore_token_for_tests"  # This is a dummy token for testing purposes only. It does not grant any access.
+)
 EXPECTED_CREATED_RULES = 1001
 
 

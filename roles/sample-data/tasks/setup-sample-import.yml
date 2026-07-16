@@ -32,12 +32,12 @@
     - name: fetch sample-data user pub key
       fetch:
         src: "{{ sample_config_user_home }}/.ssh/id_rsa.{{ sample_config_user }}.pub"
-        dest: "/tmp/"
+        dest: "{{ installer_controller_tmp_dir }}/"
 
     - name: fetch sample-data user priv key
       fetch:
         src: "{{ sample_config_user_home }}/.ssh/id_rsa.{{ sample_config_user }}"
-        dest: "/tmp/"
+        dest: "{{ installer_controller_tmp_dir }}/"
 
     - name: copy sample configs
       copy:
@@ -47,4 +47,3 @@
         group: "{{ fworch_group }}"
 
   become: true
-  

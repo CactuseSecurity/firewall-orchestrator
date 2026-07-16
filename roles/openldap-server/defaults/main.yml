@@ -24,7 +24,7 @@ openldap_server_services: >-
      else "ldap://" ~ openldap_server ~ "/" }}
 
 #The path to the pw dir
-fworch_secrets_dir: /tmp
+fworch_secrets_dir: "{{ fworch_home | default('/usr/local/fworch') }}/etc/secrets"
 
 #The current ansible user
 fworch_user: openldap

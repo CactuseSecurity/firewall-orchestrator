@@ -1,8 +1,8 @@
 # database_dir: /var/lib/pgsql/data
 postgresql_package: postgresql
 postgresql_test_package: pgtap
-postgresql_c_client_library_header_files: libpq-dev
-postgresql_dev_package_prefix: postgresql-server-dev
+postgresql_c_client_library_header_files: "{{ 'postgresql-devel' if ansible_facts['os_family'] == 'RedHat' else 'libpq-dev' }}"
+postgresql_dev_package_prefix: "{{ 'postgresql-server-devel' if ansible_facts['os_family'] == 'RedHat' else 'postgresql-server-dev' }}"
 database_install_dir: "{{ fworch_home }}/database"
 fwo_db_ro_user: fwo_ro
 
@@ -12,6 +12,7 @@ fwo_db_ro_user: fwo_ro
 
 db_schemata:
   - compliance
+  - firewall
   - modelling
   - public
   - request
@@ -27,6 +28,7 @@ database_groups:
 
 
 database_idempotent_files:
+  - fworch-search-path.sql
   - fworch-api-funcs.sql
   - fworch-backup-grants.sql
   - fworch-encryption.sql

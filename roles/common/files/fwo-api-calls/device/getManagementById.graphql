@@ -1,0 +1,5 @@
+query getManagementById($id: Int!) {
+  management(where: { mgm_id: { _eq: $id } }) {
+    ...ManagementDetails
+  }
+}

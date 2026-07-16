@@ -2,7 +2,7 @@ query RuleDetailById(
     $rule_ids: [bigint!]
     $rule_action: String
 ) {
-    rule(
+    firewall_rule(
         where:{
             rule_id: {_in: $rule_ids}
             rule_action: { _eq: $rule_action}

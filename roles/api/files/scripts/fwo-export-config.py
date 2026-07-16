@@ -30,7 +30,7 @@ sys.path.append(importer_base_dir)
 import common_scripts as common_scripts, fwo_api
 
 parser = argparse.ArgumentParser(
-    description="Export fworch configuration into encrypted json file\nsample; synopsis for ex- and import: fwo-export-config.py -o/tmp/fworch-config.graphql; <move to freshly installed FWO system without demo data>; fwo-execute-graphql.py -i/tmp/fworch-config.graphql")
+    description="Export fworch configuration into encrypted json file\nsample; synopsis for ex- and import: fwo-export-config.py -o ~/.fworch/tmp/fworch-config.graphql; <move to freshly installed FWO system without demo data>; fwo-execute-graphql.py -i ~/.fworch/tmp/fworch-config.graphql")
 parser.add_argument('-o', '--out', metavar='output_file', required=True, help='filename to write output in json format to')
 parser.add_argument('-u', '--user', metavar='user_name', default='admin', help='username for getting fworch config (default=admin')
 parser.add_argument('-p', '--password', metavar='password_file', default=base_dir + '/etc/secrets/ui_admin_pwd', help='username for getting fworch config (default=$FWORCH_HOME/etc/secrets/ui_admin_pwd')

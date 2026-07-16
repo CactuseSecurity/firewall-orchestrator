@@ -35,9 +35,6 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 
     public class SCTicket : ExternalTicket
     {
-        public string Subject { get; set; } = "";
-        public string Priority { get; set; } = SCTicketPriority.Normal.ToString();
-        public string Requester { get; set; } = "";
         readonly private string DefaultReason = "Kommunikationsprofil der Anwendung";
         readonly private string Content = "Content: ";
         private string actTicketTemplate;

@@ -1,10 +1,13 @@
 ### general settings
-product_version: "9.1.15"
+product_version: "9.2.2"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
+importer_python_interpreter: "{{ '/usr/bin/python3.11' if ansible_facts['os_family'] == 'RedHat' else ansible_python_interpreter }}"
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
+installer_controller_tmp_dir: "{{ lookup('env', 'HOME') }}/.fworch/tmp"
+installer_tmp_dir: "{{ ansible_user_dir }}/.fworch/tmp"
 
 ### host information
 importer_hostname: "{{ groups['importers'].0 }}"
@@ -25,6 +28,7 @@ install_syslog: true
 add_demo_data: true
 api_docu: false
 force_install: false
+allowRepoChangesForRedhat: false
 docker_network: ""
 
 ### operating system settings
@@ -40,13 +44,21 @@ fworch_conf_dir: "{{ fworch_home }}/etc"
 fworch_conf_file: "{{ fworch_conf_dir }}/fworch.json"
 last_commit_id_file_path: "{{ fworch_conf_dir }}/last_commit_id.txt"
 fworch_secrets_dir: "{{ fworch_conf_dir }}/secrets"
+fworch_tmp_dir: "{{ fworch_home }}/tmp"
 importer_venv_dir: "{{ fworch_home }}/importer/importer-venv"
 
 # setting default proxy (may be overwritten via --extra-vars)
-http_proxy: "{{ lookup('env','http_proxy') }}"
-https_proxy: "{{ lookup('env','https_proxy') }}"
-no_proxy: "{{ lookup('env','no_proxy') }}"
-proxy_exceptions: "{{ lookup('env','no_proxy') }}"
+# Lowercase proxy variables take precedence over uppercase when both are set.
+env_http_proxy_lowercase: "{{ lookup('env','http_proxy') }}"
+env_http_proxy_uppercase: "{{ lookup('env','HTTP_PROXY') }}"
+env_https_proxy_lowercase: "{{ lookup('env','https_proxy') }}"
+env_https_proxy_uppercase: "{{ lookup('env','HTTPS_PROXY') }}"
+env_no_proxy_lowercase: "{{ lookup('env','no_proxy') }}"
+env_no_proxy_uppercase: "{{ lookup('env','NO_PROXY') }}"
+http_proxy: "{{ env_http_proxy_lowercase if env_http_proxy_lowercase | length > 0 else env_http_proxy_uppercase }}"
+https_proxy: "{{ env_https_proxy_lowercase if env_https_proxy_lowercase | length > 0 else env_https_proxy_uppercase }}"
+no_proxy: "{{ env_no_proxy_lowercase if env_no_proxy_lowercase | length > 0 else env_no_proxy_uppercase }}"
+proxy_exceptions: "{{ no_proxy }}"
 github_download_timeout: 60
 proxy_env:
         http_proxy: "{{ http_proxy }}"
@@ -54,6 +66,7 @@ proxy_env:
         HTTP_PROXY: "{{ http_proxy }}"
         HTTPS_PROXY: "{{ https_proxy }}"
         no_proxy: "{{ proxy_exceptions }}"
+        NO_PROXY: "{{ proxy_exceptions }}"
 
 http_proxy_import_parameter: ""
 # proxy in capitals needed for debian and ubuntu <20
@@ -66,7 +79,7 @@ debian_testing_version: "12"
 debian_testing_release_name: trixie
 arch: x86_64
 linux_architecture: amd64
-redhat_major_version: "8"
+redhat_major_version: "{{ ansible_facts['distribution_major_version'] | default('8') }}"
 redhat_arch: "{{ redhat_major_version }}-{{ arch }}"
 
 ###############################################################
@@ -121,6 +134,7 @@ importer_password_file: "{{ fworch_secrets_dir }}/importer_pwd"
 
 ### dotnet
 dotnet_deb_name: "packages-microsoft-prod.deb"
+dotnet_rpm_name: "packages-microsoft-prod.rpm"
 dotnet_version: "10.0"
 dotnet_mode: "Release"
 # dotnet_mode: "Debug"
@@ -145,9 +159,38 @@ fworch_ui_lockfile: "{{ fworch_log_lock_dir }}/FWO.Ui_log.lock"
 fworch_api_importer_lockfile: "{{ fworch_log_lock_dir }}/importer_api_log.lock"
 
 ### apache: both package and dir name (needed both on ui and api hosts):
-webserver_package_name: apache2
-http_conf_dir: /etc/{{ webserver_package_name }}/sites-available/
-wsgi_package_name: libapache2-mod-wsgi
+webserver_package_name: "{{ 'httpd' if ansible_facts['os_family'] == 'RedHat' else 'apache2' }}"
+http_conf_dir: "{{ '/etc/httpd/conf.d/' if ansible_facts['os_family'] == 'RedHat' else '/etc/apache2/sites-available/' }}"
+wsgi_package_name: "{{ 'python3-mod_wsgi' if ansible_facts['os_family'] == 'RedHat' else 'libapache2-mod-wsgi' }}"
+apache_packages: "{{ [webserver_package_name, wsgi_package_name] + (['mod_ssl'] if ansible_facts['os_family'] == 'RedHat' else []) }}"
+apache_ports_config_file: "{{ '/etc/httpd/conf.d/fworch-ports.conf' if ansible_facts['os_family'] == 'RedHat' else '/etc/apache2/ports.conf' }}"
+apache_ssl_dir: "/etc/{{ webserver_package_name }}/ssl"
+apache_selinux_ports:
+  - "{{ api_web_port }}"
+  - "{{ middleware_web_listener_port }}"
+python_venv_package_name: "{{ ['python3-venv'] if ansible_facts['os_family'] == 'Debian' else ['python3.11', 'python3.11-pip'] }}"
+middleware_ldap_packages: >-
+  {{
+    [
+      'python3-pip',
+      'python3-setuptools'
+    ] + (
+      [
+        'python3-dev',
+        'libsasl2-dev',
+        'libldap2-dev',
+        'libssl-dev',
+        'python3-pyldap'
+      ] if ansible_facts['os_family'] == 'Debian' else [
+        'python3-devel',
+        'cyrus-sasl-devel',
+        'openldap-devel',
+        'openssl-devel',
+        'python3-ldap'
+      ]
+    )
+  }}
+middleware_crypto_packages: "{{ ['python3-cryptography', 'python3-pyOpenSSL'] if ansible_facts['os_family'] == 'RedHat' else ['python3-cryptography', 'python3-openssl'] }}"
 
 ############# wkhtmltopdf #########################
 
@@ -162,7 +205,7 @@ fworchtest_home: "/home/{{ fworchtest_user }}"
 upgrade_files: []
 
 test_packages:
-  - postgresql-client
+  - "{{ 'postgresql' if ansible_facts['os_family'] == 'RedHat' else 'postgresql-client' }}"
   - curl
 
 test_dir: "{{ fworch_home }}/test"
@@ -190,7 +233,6 @@ apache_security_headers:
     - 'Header always set X-Frame-Options "SAMEORIGIN"'
     - 'Header always set X-Content-Type-Options "nosniff"'
 
+apache_global_settings_file: "{{ '/etc/httpd/conf.d/security.conf' if ansible_facts['os_family'] == 'RedHat' else '/etc/apache2/conf-available/security.conf' }}"
 apache_ssl_protocol: "SSLProtocol -all +TLSv1.2 +TLSv1.3"
 apache_ssl_cipher_suite: "SSLCipherSuite ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:!aNULL:!MD5:!DSS:!SHA1"
-
-apache_global_settings_file: /etc/apache2/conf-available/security.conf

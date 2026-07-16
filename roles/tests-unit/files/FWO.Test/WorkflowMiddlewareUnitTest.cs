@@ -23,6 +23,12 @@ namespace FWO.Test
     [TestFixture]
     internal class WorkflowMiddlewareUnitTest
     {
+        private static readonly string[] kExpectedParsedGroups =
+        [
+            "cn=a,dc=fworch,dc=internal",
+            "cn=b,dc=fworch,dc=internal"
+        ];
+
         private sealed class RecipientResolverApiConn : SimulatedApiConnection
         {
             public List<string> Queries { get; } = [];
@@ -261,6 +267,33 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task WorkflowController_ExecuteActions_ReturnsErrorWhenApiServerUriIsMissing()
+        {
+            string? previousApiServerUri = GetApiServerUri();
+            SetApiServerUri(null);
+            try
+            {
+                WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+
+                WorkflowActionResult result = await controller.ExecuteActions(new WorkflowActionParameters
+                {
+                    Scope = WfObjectScopes.Ticket.ToString(),
+                    Phase = WorkflowPhases.request.ToString()
+                });
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(result.Success, Is.False);
+                    Assert.That(result.ErrorMessage, Does.Contain("necessary config value"));
+                });
+            }
+            finally
+            {
+                SetApiServerUri(previousApiServerUri);
+            }
+        }
+
+        [Test]
         public void WorkflowController_CallerCanExecutePhase_RequiresMatchingWorkflowRole()
         {
             Assert.Multiple(() =>
@@ -352,6 +385,44 @@ namespace FWO.Test
             {
                 Assert.That(valid, Is.True);
                 Assert.That(result.ErrorMessage, Is.Null.Or.Empty);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ValidateOfferedAction_RejectsWhenActionIsNotOffered()
+        {
+            WfStateAction offeredAction = new()
+            {
+                Id = 2,
+                Event = StateActionEvents.OfferButton.ToString(),
+                Scope = WfObjectScopes.ImplementationTask.ToString(),
+                TaskType = WfTaskType.access.ToString()
+            };
+            WfHandler handler = new()
+            {
+                Phase = WorkflowPhases.implementation,
+                ActionHandler = new ActionHandler(new SimulatedApiConnection(), new WfHandler())
+            };
+            SetPrivateField(handler.ActionHandler, "states", new List<WfState>
+            {
+                new() { Id = 210, Actions = [new WfStateActionDataHelper { Action = offeredAction }] }
+            });
+            WfImplTask persistedTask = new() { StateId = 210, TaskType = WfTaskType.access.ToString() };
+            WorkflowActionParameters parameters = new()
+            {
+                ActionId = 999,
+                OldStateId = 210,
+                NewStateId = 210
+            };
+            WorkflowActionResult result = new();
+
+            bool valid = InvokePrivateStatic<bool>(typeof(WorkflowController), "ValidateOfferedAction",
+                handler, parameters, WfObjectScopes.ImplementationTask, WorkflowPhases.implementation, persistedTask, result);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.False);
+                Assert.That(result.ErrorMessage, Does.Contain("not offered"));
             });
         }
 
@@ -580,6 +651,216 @@ namespace FWO.Test
         }
 
         [Test]
+        public void WorkflowController_CallerCanAccessTicket_AllowsAdminAndWhenOwnerBasedIsDisabled()
+        {
+            SimulatedUserConfig userConfig = new()
+            {
+                ReqOwnerBased = false
+            };
+            WfTicket ticket = new()
+            {
+                Id = 42,
+                Tasks =
+                [
+                    new()
+                    {
+                        Owners = [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 7 } }]
+                    }
+                ]
+            };
+
+            bool adminAllowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
+                PrincipalWithRoles(Roles.Admin), "", userConfig, ticket);
+            bool fwAdminAllowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
+                PrincipalWithRoles(Roles.FwAdmin), Roles.Admin, userConfig, ticket);
+            bool unrestrictedAllowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
+                PrincipalWithRoles(Roles.Approver), "", userConfig, ticket);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(adminAllowed, Is.True);
+                Assert.That(fwAdminAllowed, Is.True);
+                Assert.That(unrestrictedAllowed, Is.True);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_CallerCanAccessVisibility_RequiresMatchingVisibilityGroup()
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig
+                {
+                    ReqVisibilityBased = true
+                },
+                MasterStateMatrix = new StateMatrix
+                {
+                    StateVisibilityGroupIds = new Dictionary<int, List<int>>
+                    {
+                        [10] = [7]
+                    }
+                },
+                ActStateMatrix = new StateMatrix
+                {
+                    StateVisibilityGroupIds = new Dictionary<int, List<int>>
+                    {
+                        [20] = [8]
+                    }
+                }
+            };
+
+            bool allowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessVisibility",
+                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-workflow-visibility-groups", "{7}")), handler, WfObjectScopes.Ticket, new WfTicket { StateId = 10 });
+            bool rejected = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessVisibility",
+                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-workflow-visibility-groups", "{9}")), handler, WfObjectScopes.Ticket, new WfTicket { StateId = 10 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(allowed, Is.True);
+                Assert.That(rejected, Is.False);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_CallerCanAccessVisibility_DeniesUntaggedObjectsForExclusiveMembers()
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig
+                {
+                    ReqVisibilityBased = true
+                },
+                MasterStateMatrix = new StateMatrix
+                {
+                    ExclusiveVisibilityGroupIds = [7]
+                }
+            };
+
+            bool allowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessVisibility",
+                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-workflow-visibility-groups", "{7}")), handler, WfObjectScopes.Ticket, new WfTicket { StateId = 10 });
+
+            Assert.That(allowed, Is.False);
+        }
+
+        [Test]
+        public void WorkflowController_CallerCanAccessVisibility_SkipsChecksWhenFeatureIsDisabled()
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig
+                {
+                    ReqVisibilityBased = false
+                },
+                MasterStateMatrix = new StateMatrix
+                {
+                    StateVisibilityGroupIds = new Dictionary<int, List<int>>
+                    {
+                        [10] = [7]
+                    }
+                }
+            };
+
+            bool allowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessVisibility",
+                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-workflow-visibility-groups", "{9}")), handler, WfObjectScopes.Ticket, new WfTicket { StateId = 10 });
+
+            Assert.That(allowed, Is.True);
+        }
+
+        [Test]
+        public void WorkflowController_CallerCanAccessVisibility_AllowsExplicitApprovalGroupAssignment()
+        {
+            string approvalGroupDn = "cn=approvers,ou=groups,dc=fworch,dc=internal";
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig
+                {
+                    ReqVisibilityBased = true
+                },
+                MasterStateMatrix = new StateMatrix
+                {
+                    StateVisibilityGroupIds = new Dictionary<int, List<int>>
+                    {
+                        [10] = [7]
+                    }
+                }
+            };
+            WfApproval approval = new()
+            {
+                Id = 31,
+                StateId = 10,
+                ApproverGroup = approvalGroupDn
+            };
+
+            bool allowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessVisibility",
+                PrincipalWithRolesAndClaims(
+                    [Roles.Approver],
+                    new Claim("x-hasura-groups", System.Text.Json.JsonSerializer.Serialize(new[] { approvalGroupDn }))),
+                handler, WfObjectScopes.Approval, approval);
+
+            Assert.That(allowed, Is.True);
+        }
+
+        [Test]
+        public void WorkflowController_CallerCanAccessVisibility_AllowsExplicitHandlerAssignment()
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig
+                {
+                    ReqVisibilityBased = true
+                },
+                MasterStateMatrix = new StateMatrix
+                {
+                    StateVisibilityGroupIds = new Dictionary<int, List<int>>
+                    {
+                        [10] = [7]
+                    }
+                }
+            };
+            WfTicket ticket = new()
+            {
+                StateId = 10,
+                CurrentHandler = new UiUser { DbId = 7, Dn = "uid=handler,dc=fworch,dc=internal" }
+            };
+
+            bool allowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessVisibility",
+                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-user-id", "7")), handler, WfObjectScopes.Ticket, ticket);
+
+            Assert.That(allowed, Is.True);
+        }
+
+        [Test]
+        public void WorkflowController_CallerCanAccessVisibility_AllowsExplicitStatefulGroupAssignment()
+        {
+            string assignedGroupDn = "cn=assignees,ou=groups,dc=fworch,dc=internal";
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig
+                {
+                    ReqVisibilityBased = true
+                },
+                MasterStateMatrix = new StateMatrix
+                {
+                    StateVisibilityGroupIds = new Dictionary<int, List<int>>
+                    {
+                        [10] = [7]
+                    }
+                }
+            };
+            WfTicket ticket = new()
+            {
+                StateId = 10,
+                AssignedGroup = assignedGroupDn
+            };
+
+            bool allowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessVisibility",
+                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-groups", System.Text.Json.JsonSerializer.Serialize(new[] { assignedGroupDn }))),
+                handler, WfObjectScopes.Ticket, ticket);
+
+            Assert.That(allowed, Is.True);
+        }
+
+        [Test]
         public async Task WorkflowRecipientResolver_ResolveUserDns_ReturnsDistinctDirectUserDns()
         {
             WorkflowRecipientResolver resolver = new(new RecipientResolverApiConn(), []);
@@ -591,6 +872,79 @@ namespace FWO.Test
             ]);
 
             Assert.That(resolvedDns, Is.EqualTo(new[] { "uid=user,ou=users,dc=test" }));
+        }
+
+        [Test]
+        public void WorkflowController_GetClaimHelpers_ParseIdsValuesAndJsonClaims()
+        {
+            ClaimsPrincipal user = PrincipalWithRolesAndClaims(
+                [Roles.Approver],
+                new Claim("x-hasura-user-id", "17"),
+                new Claim("x-hasura-uuid", "uid=test,dc=fworch,dc=internal"),
+                new Claim("x-hasura-workflow-visibility-groups", "{ 2, 4, x, 9 }"),
+                new Claim("x-hasura-groups", "[\"cn=a,dc=fworch,dc=internal\", \"cn=b,dc=fworch,dc=internal\"]"));
+
+            HashSet<int> ids = InvokePrivateStatic<HashSet<int>>(typeof(WorkflowController), "GetClaimIds", user, "x-hasura-workflow-visibility-groups");
+            int? userId = InvokePrivateStatic<int?>(typeof(WorkflowController), "GetClaimInt", user, "x-hasura-user-id");
+            List<string> groups = InvokePrivateStatic<List<string>>(typeof(WorkflowController), "GetClaimStrings", user, "x-hasura-groups");
+            string? uuid = InvokePrivateStatic<string?>(typeof(WorkflowController), "GetClaimValue", user, "x-hasura-uuid");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ids, Is.EquivalentTo([2, 4, 9]));
+                Assert.That(userId, Is.EqualTo(17));
+                Assert.That(groups, Is.EqualTo(kExpectedParsedGroups));
+                Assert.That(uuid, Is.EqualTo("uid=test,dc=fworch,dc=internal"));
+            });
+        }
+
+        [Test]
+        public void WorkflowController_GetClaimStrings_ReturnsEmptyListForInvalidJson()
+        {
+            ClaimsPrincipal user = PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-groups", "not-json"));
+
+            List<string> groups = InvokePrivateStatic<List<string>>(typeof(WorkflowController), "GetClaimStrings", user, "x-hasura-groups");
+
+            Assert.That(groups, Is.Empty);
+        }
+
+        [Test]
+        public void WorkflowController_GetTicketId_UsesTicketIdForNonTicketScope()
+        {
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.RequestTask.ToString(),
+                ObjectId = 42,
+                TicketId = 17
+            };
+
+            long ticketId = InvokePrivateStatic<long>(typeof(WorkflowController), "GetTicketId", parameters, WfObjectScopes.RequestTask);
+
+            Assert.That(ticketId, Is.EqualTo(17));
+        }
+
+        [Test]
+        public void WorkflowController_ResolveActionContext_ReturnsTicketScopeTuple()
+        {
+            WfTicket ticket = new()
+            {
+                Id = 42,
+                Requester = new UiUser { Dn = "uid=requester,dc=fworch,dc=internal" }
+            };
+            WorkflowActionParameters parameters = new()
+            {
+                TicketId = 42
+            };
+
+            object context = InvokePrivateStatic<object>(typeof(WorkflowController), "ResolveActionContext", new WfHandler(), ticket, parameters, WfObjectScopes.Ticket);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetTupleItem<WfStatefulObject?>(context, "Item1"), Is.SameAs(ticket));
+                Assert.That(GetTupleItem<FwoOwner?>(context, "Item2"), Is.Null);
+                Assert.That(GetTupleItem<long?>(context, "Item3"), Is.EqualTo(42));
+                Assert.That(GetTupleItem<string?>(context, "Item4"), Is.EqualTo("uid=requester,dc=fworch,dc=internal"));
+            });
         }
 
         [Test]
@@ -685,6 +1039,27 @@ namespace FWO.Test
                 }
             };
             return controller;
+        }
+
+        private static string? GetApiServerUri()
+        {
+            Type configFileType = typeof(FWO.Config.File.ConfigFile);
+            PropertyInfo dataProperty = configFileType.GetProperty("Data", BindingFlags.Static | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("ConfigFile.Data not found.");
+            object data = dataProperty.GetValue(null)!;
+            return (string?)data.GetType().GetProperty("ApiServerUri", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!.GetValue(data);
+        }
+
+        private static void SetApiServerUri(string? apiServerUri)
+        {
+            Type configFileType = typeof(FWO.Config.File.ConfigFile);
+            Type? configFileDataType = configFileType.GetNestedType("ConfigFileData", BindingFlags.NonPublic);
+            object configData = Activator.CreateInstance(configFileDataType ?? throw new MissingMemberException(configFileType.FullName, "ConfigFileData"))
+                ?? throw new InvalidOperationException("Could not create config file data.");
+            configFileDataType.GetProperty("ApiServerUri", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!
+                .SetValue(configData, apiServerUri);
+            configFileType.GetProperty("Data", BindingFlags.Static | BindingFlags.NonPublic)!
+                .SetValue(null, configData);
         }
 
         private static T GetPrivateField<T>(object instance, string fieldName)

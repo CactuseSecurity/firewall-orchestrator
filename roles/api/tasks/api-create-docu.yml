@@ -16,6 +16,7 @@
     - name: create temporary graphdoc config
       tempfile:
         state: file
+        path: "{{ fworch_tmp_dir }}"
         suffix: .json
       register: graphdoc_config
 

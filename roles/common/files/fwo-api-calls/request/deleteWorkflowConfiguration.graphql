@@ -1,0 +1,17 @@
+mutation deleteWorkflowConfiguration($id: Int!, $phaseMatrixIds: [Int!]!) {
+  delete_configuration: delete_request_workflow_configuration(
+    where: {id: {_eq: $id}, is_active: {_eq: false}}
+  ) {
+    affected_rows
+  }
+  delete_orphan_phases: delete_request_state_matrix_phase(
+    where: {
+      _and: [
+        {id: {_in: $phaseMatrixIds}}
+        {_not: {workflow_configuration_phases: {}}}
+      ]
+    }
+  ) {
+    affected_rows
+  }
+}

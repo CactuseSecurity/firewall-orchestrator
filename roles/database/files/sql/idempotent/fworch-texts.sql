@@ -371,6 +371,10 @@ INSERT INTO txt VALUES ('cancel', 				'German',	'Abbrechen');
 INSERT INTO txt VALUES ('cancel', 				'English',	'Cancel');
 INSERT INTO txt VALUES ('save', 				'German',	'Speichern');
 INSERT INTO txt VALUES ('save', 				'English',	'Save');
+INSERT INTO txt VALUES ('unsaved_changes',		'German',	'Ungespeicherte &Auml;nderungen');
+INSERT INTO txt VALUES ('unsaved_changes',		'English',	'Unsaved changes');
+INSERT INTO txt VALUES ('discard_unsaved_changes',	'German',	'Ungespeicherte &Auml;nderungen verwerfen?');
+INSERT INTO txt VALUES ('discard_unsaved_changes',	'English',	'Discard unsaved changes?');
 INSERT INTO txt VALUES ('delete', 				'German',	'L&ouml;schen');
 INSERT INTO txt VALUES ('delete', 				'English',	'Delete');
 INSERT INTO txt VALUES ('remove', 				'German',	'Entfernen');
@@ -980,6 +984,8 @@ INSERT INTO txt VALUES ('schedule_owner',		'German', 	'Eigent&uuml;mer');
 INSERT INTO txt VALUES ('schedule_owner',		'English', 	'Owner');
 INSERT INTO txt VALUES ('active', 			    'German',	'Aktiv');
 INSERT INTO txt VALUES ('active', 			    'English',	'Active');
+INSERT INTO txt VALUES ('set_active',          'German',   'Als aktiv setzen');
+INSERT INTO txt VALUES ('set_active',          'English',  'Set active');
 INSERT INTO txt VALUES ('inactive',             'German',   'Inaktiv');
 INSERT INTO txt VALUES ('inactive',             'English',  'Inactive');
 INSERT INTO txt VALUES ('count', 			    'German',	'Z&auml;hler');
@@ -1532,6 +1538,10 @@ INSERT INTO txt VALUES ('ext_icmp_template',    'German',	'Template ICMP');
 INSERT INTO txt VALUES ('ext_icmp_template',    'English',	'Template ICMP');
 INSERT INTO txt VALUES ('ext_ip_protocol_template','German','Template Ip-Protokoll');
 INSERT INTO txt VALUES ('ext_ip_protocol_template','English','Template Ip Protocol');
+INSERT INTO txt VALUES ('ext_ticket_template_ph_mgm', 'German',  'Beispiel: @@TASKS@@');
+INSERT INTO txt VALUES ('ext_ticket_template_ph_mgm', 'English', 'Example: @@TASKS@@');
+INSERT INTO txt VALUES ('ext_task_template_ph_mgm', 'German',  'Beispiel: {"name":"@@GROUPNAME@@","members":@@MEMBERS@@,"comments":"@@REASON@@"}');
+INSERT INTO txt VALUES ('ext_task_template_ph_mgm', 'English', 'Example: {"name":"@@GROUPNAME@@","members":@@MEMBERS@@,"comments":"@@REASON@@"}');
 INSERT INTO txt VALUES ('ext_ticket_template_ph','German',	'Ticket Template im JSON-Format, Bspw. f&uuml;r Tufin Secure Change:
 {
     "ticket": {
@@ -2316,8 +2326,12 @@ INSERT INTO txt VALUES ('private_key',          'German', 	'Privater Schl&uuml;s
 INSERT INTO txt VALUES ('private_key',          'English', 	'Private Key');
 INSERT INTO txt VALUES ('public_key',           'German', 	'&Ouml;ffentlicher Schl&uuml;ssel');
 INSERT INTO txt VALUES ('public_key',           'English', 	'Public Key');
-INSERT INTO txt VALUES ('import_credential',    'German', 	'Import Login-Daten');
-INSERT INTO txt VALUES ('import_credential',    'English', 	'Import Credentials');
+INSERT INTO txt VALUES ('readonly_credential',  'German', 	'Login-Daten');
+INSERT INTO txt VALUES ('readonly_credential',  'English', 	'Credentials');
+INSERT INTO txt VALUES ('readonly_credential_mgm','German', 	'Login-Daten (Import)');
+INSERT INTO txt VALUES ('readonly_credential_mgm','English', 	'Credentials (Import)');
+INSERT INTO txt VALUES ('write_credential',    'German', 	'Login-Daten (Bereitstellung)');
+INSERT INTO txt VALUES ('write_credential',    'English', 	'Credentials (Provisioning)');
 INSERT INTO txt VALUES ('is_key_pair',          'German', 	'Schl&uuml;sselpaar?');
 INSERT INTO txt VALUES ('is_key_pair',          'English', 	'Key pair?');
 INSERT INTO txt VALUES ('hide_in_ui',           'German', 	'Nicht sichtbar');
@@ -2624,6 +2638,8 @@ INSERT INTO txt VALUES ('reqAvailableTaskTypes','German', 	'Verf&uuml;gbare Auft
 INSERT INTO txt VALUES ('reqAvailableTaskTypes','English', 	'Available Task Types');
 INSERT INTO txt VALUES ('reqOwnerBased',        'German', 	'Eigent&uuml;merbasiert');
 INSERT INTO txt VALUES ('reqOwnerBased',        'English', 	'Owner based');
+INSERT INTO txt VALUES ('reqVisibilityBased',   'German', 	'Sichtbarkeit ber&uuml;cksichtigen');
+INSERT INTO txt VALUES ('reqVisibilityBased',   'English', 	'Consider visibility');
 INSERT INTO txt VALUES ('reqReducedView',       'German', 	'Eingeschr&auml;nkte Darstellung');
 INSERT INTO txt VALUES ('reqReducedView',       'English', 	'Reduced view');
 INSERT INTO txt VALUES ('reqUseFlowDb',         'German', 	'Flow DB verwenden');
@@ -2818,6 +2834,12 @@ INSERT INTO txt VALUES ('lowest_end_state',     'German',   'Niedrigster Ausgang
 INSERT INTO txt VALUES ('lowest_end_state',     'English',  'Lowest exit state');
 INSERT INTO txt VALUES ('derived_state',        'German',   'Abgeleiteter Status');
 INSERT INTO txt VALUES ('derived_state',        'English',  'Derived state');
+INSERT INTO txt VALUES ('derived_states',       'German',   'Abgeleitete Status');
+INSERT INTO txt VALUES ('derived_states',       'English',  'Derived states');
+INSERT INTO txt VALUES ('add_derived_state',    'German',   'Abgeleiteten Status hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_derived_state',    'English',  'Add derived state');
+INSERT INTO txt VALUES ('edit_derived_state',   'German',   'Abgeleiteten Status bearbeiten');
+INSERT INTO txt VALUES ('edit_derived_state',   'English',  'Edit derived state');
 INSERT INTO txt VALUES ('ext_states',           'German',   'Externe Status');
 INSERT INTO txt VALUES ('ext_states',           'English',  'External states');
 INSERT INTO txt VALUES ('static_external_states','German',   'Statische externe Status');
@@ -3072,8 +3094,22 @@ INSERT INTO txt VALUES ('separate_analysis',    'German', 	'Gruppenanalyse trenn
 INSERT INTO txt VALUES ('separate_analysis',    'English', 	'Separate Group analysis');
 INSERT INTO txt VALUES ('split_port_ranges',    'German', 	'Portbereiche aufl&ouml;sen');
 INSERT INTO txt VALUES ('split_port_ranges',    'English', 	'Split Port Ranges');
-INSERT INTO txt VALUES ('ext_ticketing',        'German', 	'Externes Ticket-System');
-INSERT INTO txt VALUES ('ext_ticketing',        'English', 	'External ticket tool');
+INSERT INTO txt VALUES ('fwconfigchange',       'German', 	'FW Konfigurations&auml;nderung');
+INSERT INTO txt VALUES ('fwconfigchange',       'English', 	'FW Config Change');
+INSERT INTO txt VALUES ('fwconfigchangegeneral','German', 	'Allgemein');
+INSERT INTO txt VALUES ('fwconfigchangegeneral','English', 	'General');
+INSERT INTO txt VALUES ('ext_ticket_templates', 'German', 	'Externe Ticket-Vorlagen');
+INSERT INTO txt VALUES ('ext_ticket_templates', 'English', 	'External ticket templates');
+INSERT INTO txt VALUES ('add_ext_ticket_system', 'German',  'Externes Ticket-System anlegen');
+INSERT INTO txt VALUES ('add_ext_ticket_system', 'English', 'Add external ticket system');
+INSERT INTO txt VALUES ('new_ext_ticket_system', 'German',  'Externes Ticket-System anlegen');
+INSERT INTO txt VALUES ('new_ext_ticket_system', 'English', 'Create external ticket system');
+INSERT INTO txt VALUES ('edit_ext_ticket_system', 'German',  'Externes Ticket-System bearbeiten');
+INSERT INTO txt VALUES ('edit_ext_ticket_system', 'English', 'Edit external ticket system');
+INSERT INTO txt VALUES ('delete_ext_ticket_system', 'German',  'Externes Ticket-System löschen');
+INSERT INTO txt VALUES ('delete_ext_ticket_system', 'English', 'Delete external ticket system');
+INSERT INTO txt VALUES ('delete_ext_ticket_system_confirm', 'German',  'Soll dieses externe Ticket-System gelöscht werden:');
+INSERT INTO txt VALUES ('delete_ext_ticket_system_confirm', 'English', 'Delete this external ticket system:');
 INSERT INTO txt VALUES ('ext_ticket_settings',  'German', 	'Einstellungen externes Ticket-System');
 INSERT INTO txt VALUES ('ext_ticket_settings',  'English', 	'Settings external ticket tool');
 INSERT INTO txt VALUES ('modIconify',           'German', 	'Nutzung von Piktogrammen');
@@ -3535,6 +3571,70 @@ INSERT INTO txt VALUES ('recert_logic',         'German', 	'Logik und Konfigurat
 INSERT INTO txt VALUES ('recert_logic', 		'English', 	'Logic and Configuration');
 INSERT INTO txt VALUES ('configuration',        'German', 	'Konfiguration');
 INSERT INTO txt VALUES ('configuration',        'English', 	'Configuration');
+INSERT INTO txt VALUES ('add_configuration',    'German',   'Konfiguration hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_configuration',    'English',  'Add configuration');
+INSERT INTO txt VALUES ('source_configuration', 'German',   'Quellkonfiguration');
+INSERT INTO txt VALUES ('source_configuration', 'English',  'Source configuration');
+INSERT INTO txt VALUES ('empty_configuration',  'German',   'Leere Konfiguration');
+INSERT INTO txt VALUES ('empty_configuration',  'English',  'Empty configuration');
+INSERT INTO txt VALUES ('export_configuration', 'German',   'Konfiguration exportieren');
+INSERT INTO txt VALUES ('export_configuration', 'English',  'Export configuration');
+INSERT INTO txt VALUES ('import_configuration', 'German',   'Konfiguration importieren');
+INSERT INTO txt VALUES ('import_configuration', 'English',  'Import configuration');
+INSERT INTO txt VALUES ('imported_configuration','German',   'Importierte Konfiguration');
+INSERT INTO txt VALUES ('imported_configuration','English',  'Imported configuration');
+INSERT INTO txt VALUES ('include_visibility_groups','German','Sichtbarkeitsgruppen und Mitglieder einschliessen');
+INSERT INTO txt VALUES ('include_visibility_groups','English','Include visibility groups and members');
+INSERT INTO txt VALUES ('phases',                'German',   'Phasen');
+INSERT INTO txt VALUES ('phases',                'English',  'Phases');
+INSERT INTO txt VALUES ('visibility_groups',     'German',   'Sichtbarkeitsgruppen');
+INSERT INTO txt VALUES ('visibility_groups',     'English',  'Visibility groups');
+INSERT INTO txt VALUES ('delete_configuration', 'German',   'Konfiguration l&ouml;schen');
+INSERT INTO txt VALUES ('delete_configuration', 'English',  'Delete configuration');
+INSERT INTO txt VALUES ('delete_configuration_message','German', 'Inaktive Konfiguration l&ouml;schen:');
+INSERT INTO txt VALUES ('delete_configuration_message','English','Delete inactive configuration:');
+INSERT INTO txt VALUES ('active_configuration_cannot_be_deleted','German', 'Die aktive Konfiguration kann nicht gel&ouml;scht werden.');
+INSERT INTO txt VALUES ('active_configuration_cannot_be_deleted','English','The active configuration cannot be deleted.');
+INSERT INTO txt VALUES ('visibility_group',     'German',   'Sichtbarkeitsgruppe');
+INSERT INTO txt VALUES ('visibility_group',     'English',  'Visibility group');
+INSERT INTO txt VALUES ('edit_visibility_groups','German',  'Sichtbarkeitsgruppen bearbeiten');
+INSERT INTO txt VALUES ('edit_visibility_groups','English', 'Edit visibility groups');
+INSERT INTO txt VALUES ('add_visibility_group', 'German',   'Sichtbarkeitsgruppe hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_visibility_group', 'English',  'Add visibility group');
+INSERT INTO txt VALUES ('edit_visibility_group','German',   'Sichtbarkeitsgruppe bearbeiten');
+INSERT INTO txt VALUES ('edit_visibility_group','English',  'Edit visibility group');
+INSERT INTO txt VALUES ('delete_visibility_group','German', 'Sichtbarkeitsgruppe l&ouml;schen');
+INSERT INTO txt VALUES ('delete_visibility_group','English','Delete visibility group');
+INSERT INTO txt VALUES ('delete_visibility_group_message','German', 'Sichtbarkeitsgruppe l&ouml;schen und von allen &Uuml;bergangsgruppen trennen:');
+INSERT INTO txt VALUES ('delete_visibility_group_message','English','Delete visibility group and detach it from all transition groups:');
+INSERT INTO txt VALUES ('member_dn',             'German',   'Mitglied-DN');
+INSERT INTO txt VALUES ('member_dn',             'English',  'Member DN');
+INSERT INTO txt VALUES ('transitions',           'German',   '&Uuml;berg&auml;nge');
+INSERT INTO txt VALUES ('transitions',           'English',  'Transitions');
+INSERT INTO txt VALUES ('transition_groups',     'German',   '&Uuml;bergangsgruppen');
+INSERT INTO txt VALUES ('transition_groups',     'English',  'Transition groups');
+INSERT INTO txt VALUES ('link',                  'German',   'Verkn&uuml;pfen');
+INSERT INTO txt VALUES ('link',                  'English',  'Link');
+INSERT INTO txt VALUES ('link_transition_group', 'German',   '&Uuml;bergangsgruppe verkn&uuml;pfen');
+INSERT INTO txt VALUES ('link_transition_group', 'English',  'Link transition group');
+INSERT INTO txt VALUES ('unlink_transition_group','German',  'Verkn&uuml;pfung zur &Uuml;bergangsgruppe entfernen');
+INSERT INTO txt VALUES ('unlink_transition_group','English', 'Unlink transition group');
+INSERT INTO txt VALUES ('unlink_transition_group_message','German', 'Verkn&uuml;pfung dieser Phase zur &Uuml;bergangsgruppe entfernen:');
+INSERT INTO txt VALUES ('unlink_transition_group_message','English','Remove this phase link to the transition group:');
+INSERT INTO txt VALUES ('no_transition_groups_available','German', 'Keine passenden &Uuml;bergangsgruppen verf&uuml;gbar.');
+INSERT INTO txt VALUES ('no_transition_groups_available','English','No matching transition groups available.');
+INSERT INTO txt VALUES ('using_phases',          'German',   'Nutzende Phasen');
+INSERT INTO txt VALUES ('using_phases',          'English',  'Using Phases');
+INSERT INTO txt VALUES ('edit_transition_groups','German',   '&Uuml;bergangsgruppen bearbeiten');
+INSERT INTO txt VALUES ('edit_transition_groups','English',  'Edit transition groups');
+INSERT INTO txt VALUES ('add_transition_group',  'German',   '&Uuml;bergangsgruppe hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_transition_group',  'English',  'Add transition group');
+INSERT INTO txt VALUES ('edit_transition_group', 'German',   '&Uuml;bergangsgruppe bearbeiten');
+INSERT INTO txt VALUES ('edit_transition_group', 'English',  'Edit transition group');
+INSERT INTO txt VALUES ('delete_transition_group','German',  '&Uuml;bergangsgruppe l&ouml;schen');
+INSERT INTO txt VALUES ('delete_transition_group','English', 'Delete transition group');
+INSERT INTO txt VALUES ('delete_transition_group_message','German', '&Uuml;bergangsgruppe mit allen &Uuml;berg&auml;ngen und Phasenzuordnungen l&ouml;schen:');
+INSERT INTO txt VALUES ('delete_transition_group_message','English','Delete transition group with all transitions and phase assignments:');
 INSERT INTO txt VALUES ('owner_import',         'German', 	'Eigent&uuml;mer-Import');
 INSERT INTO txt VALUES ('owner_import',         'English', 	'Owner Import');
 INSERT INTO txt VALUES ('import_interfaces',    'German', 	'Import-Schnittstellen');
@@ -5602,6 +5702,12 @@ INSERT INTO txt VALUES ('H5116', 'German',  'Login-Daten*: Zugangsdaten f&uuml;r
 INSERT INTO txt VALUES ('H5116', 'English', 'Import Credentials*: User/Password combination for logging into the management.<br>
     Choose a set of <a href="/help/settings/credentials">credentials</a> which will be used to get the management''s configuration.
 ');
+INSERT INTO txt VALUES ('H5117', 'German',  'Login-Daten: Zugangsdaten f&uuml;r den Export-Nutzer des Managements.<br>
+    Hier kann ein Satz <a href="/help/settings/credentials">Zugangsdaten</a> ausgew&auml;hlt werden, der zum Schreiben auf das Management dient.
+');
+INSERT INTO txt VALUES ('H5117', 'English', 'Export Credentials: User/Password combination for logging into the management.<br>
+    Choose a set of <a href="/help/settings/credentials">credentials</a> which will be used to write on the management.
+');
 INSERT INTO txt VALUES ('H5119', 'German',  'Domain: Firewall Domain Name <br>
     f&uuml;r Check Point R8x MDS / Fortimanager Installationen, andernfall leer lassen.
 ');
@@ -6139,6 +6245,13 @@ INSERT INTO txt VALUES ('H5461', 'English', 'Every user can set his own preferre
 ');
 INSERT INTO txt VALUES ('H5462', 'German',  'Regelt den Standardzustand der Klappelemente für die Regelwerkanzeige im Rules Report.');
 INSERT INTO txt VALUES ('H5462', 'English', 'Sets the default state of the collapsible elements for the rule display in the Rules Report.');
+INSERT INTO txt VALUES ('H5462a', 'German',  'FW Konfigurations&auml;nderungs-Intervall (in Sekunden): legt das Intervall fest, in dem die FW Konfigurations&auml;nderung durchgef&uuml;hrt werden sollen.');
+INSERT INTO txt VALUES ('H5462a', 'English', 'FW Config Change sleep time (in seconds): defines the interval in which the FW Config Changes should be performed.');
+INSERT INTO txt VALUES ('H5462b', 'German',  'Anzahl Wartezyklen: legt fest, wie viele Zyklen des Konfigurations&auml;nderungs-Intervalls bei bestimmten &auml;nderungen gewartet werden soll (z.B. nach Neuanlegen von Netzwerkobjekten).');
+INSERT INTO txt VALUES ('H5462b', 'English', 'Number wait cycles: defines how many cycles of the FW Config Change interval are to be waited in case of some changes (e.g. after creation of new network objects).');
+INSERT INTO txt VALUES ('H5462c', 'German',  'FW Konfigurations&auml;nderungs-Start: legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die FW Konfigurations&auml;nderung gerechnet werden.');
+INSERT INTO txt VALUES ('H5462c', 'English', 'FW Config Change start at: defines a referential time from which the FW Config Change intervals are calculated.');
+
 INSERT INTO txt VALUES ('H5466', 'German',  'Nachricht die auf der Anmeldeseite angezeigt werden soll.');
 INSERT INTO txt VALUES ('H5466', 'English', 'Message that is displayed on Login Page.');
 INSERT INTO txt VALUES ('H5471', 'German',  'Jeder Nutzer kann einige pers&ouml;nliche Voreinstellungen f&uuml;r die Reporteinstellungen &uuml;berschreiben.
@@ -6343,17 +6456,21 @@ INSERT INTO txt VALUES ('H5537', 'German',  'Saubere Zonen: Wenn aktiviert, werd
 INSERT INTO txt VALUES ('H5537', 'English', 'Clean zones: When enabled, tasks are bundled only if their source and destination objects can be mapped to the same network zones using the selected policy matrix. Without a selected policy or without a matrix in the policy, no clean zone match is assumed.');
 INSERT INTO txt VALUES ('H5541', 'German',  'In der Status-Matrix werden die verarbeitbaren Status pro Phase und Tasktyp festgelegt.
     Es gibt eine Master-Matrix, welche die Eigenschaften auf Ticket-Ebene beschreibt, sowie und f&uuml;r jeden Tasktyp separate Matrizen.
+    Oberhalb der Konfigurationsauswahl k&ouml;nnen Sichtbarkeitsgruppen und &Uuml;bergangsgruppen bearbeitet sowie neue leere Konfigurationen oder Kopien einer ausgew&auml;hlten Konfiguration angelegt werden. Nur inaktive Konfigurationen k&ouml;nnen gel&ouml;scht werden; nicht mehr verwendete Phasenmatrizen werden dabei ebenfalls entfernt. Mitglieder von Sichtbarkeitsgruppen k&ouml;nnen als DN eingegeben oder &uuml;ber die Benutzer- und Gruppensuche ausgew&auml;hlt werden. Beim L&ouml;schen einer Sichtbarkeitsgruppe wird ihre Zuordnung zu &Uuml;bergangsgruppen entfernt. Beim L&ouml;schen einer &Uuml;bergangsgruppe werden auch ihre &Uuml;berg&auml;nge und Phasenzuordnungen gel&ouml;scht. Genau eine Konfiguration ist aktiv und wird zur Laufzeit verwendet.
     In der Installation sind diese Matrizen bereits vorbelegt, sie k&ouml;nnen aber nahezu beliebig &uuml;berschrieben werden.
-    Zu beachten ist, dass das Speichern der ge&auml;nderten Matrizen jeweils als Ganzes durch t&auml;tigen der "Speichern"-Schaltfl&auml;che erfolgt, einzelne &Auml;nderungen der Status also bei Abbruch verloren gehen.
-    Jede einzelne Matrix kann auch als Ganzes durch Bet&auml;tigen der entsprechenden Schaltfl&auml;che auf die Initialeinstellungen zur&uuml;ckgesetzt werden.
-    W&auml;hrend die bereits vorhandenen Matrizen bei Software-Upgrades nicht ber&uuml;hrt werden, kann es vorkommen, dass die Initialeinstellungen aktualisiert werden.
+    Die "Speichern"-Schaltfl&auml;che erscheint nur bei ungespeicherten &Auml;nderungen an Phasen, Sonderstatus oder abgeleiteten Status. Vor dem Wechsel der Konfiguration, des Tasktyps oder der Seite wird vor dem Verwerfen solcher &Auml;nderungen gewarnt. &Uuml;bergangsgruppen werden separat und sofort gespeichert.
+    Konfigurationen k&ouml;nnen als versionsbehaftete JSON-Pakete exportiert und als neue inaktive Konfigurationen importiert werden. Das Paket enth&auml;lt alle Phasenmatrizen und verwendeten &Uuml;bergangsgruppen. Sichtbarkeitsgruppen einschliesslich ihrer Mitglied-DNs sind optional und standardm&auml;ssig nicht enthalten; dann werden auch ihre Zuordnungen und Exklusivkennzeichen aus den exportierten &Uuml;bergangsgruppen entfernt. Beim Import werden gleichnamige Gruppen nur wiederverwendet, wenn ihre Definition vollst&auml;ndig &uuml;bereinstimmt; abweichende Definitionen brechen den Import ab. Die im Paket verwendeten Status-IDs m&uuml;ssen im Zielsystem vorhanden sein.
+    Alle Status werden zur eindeutigen Identifikation mit ihrer ID in Klammern angezeigt.
+    W&auml;hrend die bereits vorhandenen Matrizen bei Software-Upgrades nicht ber&uuml;hrt werden, kann der mitgelieferte Installationsvorschlag aktualisiert werden.
 ');
 INSERT INTO txt VALUES ('H5541', 'English', 'In the state matrix the usable states per phase and task type are defined.
     There is a master matrix, which characterizes the ticket properties, as well as separate matrices for each task type.
+    Above the configuration selector, visibility groups and transition groups can be edited and new empty configurations or copies of a selected configuration can be created. Only inactive configurations can be deleted; phase matrices that are no longer used are removed as well. Visibility-group members can be entered as DNs or selected through the user and group lookup. Deleting a visibility group removes its assignment from transition groups. Deleting a transition group also deletes its transitions and phase assignments. Exactly one configuration is active and used at runtime.
     During installation these matrices are already initialized, but they can be overwritten almost arbitrarily.
-    Be aware that saving of each changed matrix is always done as a whole by using the "Save" button, single changes on states are lost with cancellation inbetween.
-    Each matrix can also be reset to the default settings as a whole by using the respective button.
-    As already existing matrices are not touched with software upgrades, it may happen, that the default settings are updated.
+    The "Save" button appears only for unsaved changes to phases, special states, or derived states. Before changing the configuration, task type, or page, a warning is shown before such changes are discarded. Transition groups are saved separately and immediately.
+    Configurations can be exported as versioned JSON packages and imported as new inactive configurations. The package contains all phase matrices and referenced transition groups. Visibility groups, including their member DNs, are optional and excluded by default; their assignments and exclusive flags are then removed from the exported transition groups as well. During import, groups with matching names are reused only when their complete definitions match; conflicting definitions stop the import. Every state ID referenced by the package must exist on the target system.
+    All states are displayed with their ID in brackets for unambiguous identification.
+    Existing matrices are not touched by software upgrades, but the supplied installation proposal may be updated.
 ');
 INSERT INTO txt VALUES ('H5542', 'German',  'Phasen: Die f&uuml;r die Tickets bzw. den jeweiligen Tasktyp vorgesehenen Bearbeitungsphasen k&ouml;nnen durch setzen der entsprechenden H&auml;kchen in der Status-Matrix festgelegt werden (die Tabelle der Status klappt dann automatisch ein oder aus).
     Die Phasen Verifizieren und Rezertifizieren sind noch nicht implementiert, so dass eine Aktivierung hier folgenlos bleibt.
@@ -6361,19 +6478,14 @@ INSERT INTO txt VALUES ('H5542', 'German',  'Phasen: Die f&uuml;r die Tickets bz
 INSERT INTO txt VALUES ('H5542', 'English', 'Phases: The workflow phases provided for the tickets resp. each task type can be defined by setting the check mark in the respective state matrix (the table of used states then appears or disappears automatically).
     The phases Verify and Recertify are not implemented yet, an activation would have no effect.
 ');
-INSERT INTO txt VALUES ('H5543', 'German',  'Status&uuml;berg&auml;nge: F&uuml;r jeden in einer Phase vorkommenden Status muss hier festgelegt werden, in welche Status von dort beim Speichern gewechselt werden kann.
-    Diese werden dann bei den jeweiligen Aktionen in einer Liste angeboten. Ist nur der &Uuml;bergang zu genau einem Status m&ouml;glich, so wird dieser &Uuml;bergang automatisch ohne R&uuml;ckfrage ausgef&uuml;hrt.
-    (z.B. ist in der Standardkonfiguration nur der &Uuml;bergang "Requested" -&amp;gt; "In Approval" eingetragen, so dass beim bet&auml;tigen von "Genehmigung beginnen" automatisch letzterer Status gesetzt wird.)
-    Soll eine Aktion, die ein Speichern bewirkt, auch ohne Statuswechsel stattfinden k&ouml;nnen, so ist der Ausgangszustand auch in der Liste der Zielzust&auml;nde aufzunehmen.
-    Es ist darauf zu achten, dass alle vorkommenden Zielstatus der &Uuml;bergangsmatrizen auch in den Ausgangsstatus zu finden sind.
+INSERT INTO txt VALUES ('H5543', 'German',  '&Uuml;bergangsgruppen: Pro Phase werden die zugeordneten benannten &Uuml;bergangsgruppen angezeigt. Eine Gruppe enth&auml;lt ihre Status&uuml;berg&auml;nge und kann &uuml;ber eine Sichtbarkeitsgruppe eingeschr&auml;nkt werden.
+    Die &Uuml;bersicht zeigt die Anzahl der Phasenmatrizen, die eine &Uuml;bergangsgruppe verwenden; der Bearbeitungsdialog listet diese Matrizen auf. Passende vorhandene Gruppen k&ouml;nnen mit einer Phase verkn&uuml;pft und wieder von ihr getrennt werden. &Auml;nderungen an einer wiederverwendeten Gruppe gelten f&uuml;r alle Phasen, die diese Gruppe verwenden. Beim L&ouml;schen werden auch alle &Uuml;berg&auml;nge und Phasenzuordnungen der Gruppe entfernt.
 ');
-INSERT INTO txt VALUES ('H5543', 'English', 'State transitions: For each state appearing in a phase it has to be defined, to which states transitions are possible on saving.
-    These states are displayed in a list in the particular actions. If there is only the transition to exactly one state possible, this transition is performed automatically without further dialogue.
-    (E.g. in the default configuration the transition "Requested" -&amp;gt; "In Approval" is listed, so that on pushing the button "Start approval" the latter state is set automatically.)
-    If an action leading to a storage should also have the possibility to be performed without state change, the source state has to be added also to the target state list.
-    Make sure that all used target states in all transition matrices also appear in the source states.
+INSERT INTO txt VALUES ('H5543', 'English', 'Transition groups: Each phase shows its assigned named transition groups. A group contains its state transitions and can be restricted through a visibility group.
+    The overview shows the number of phase matrices using a transition group; the edit dialog lists those matrices. Matching existing groups can be linked to a phase and unlinked from it. Changes to a reused group apply to every phase using that group. Deleting a group also removes all its transitions and phase assignments.
 ');
 INSERT INTO txt VALUES ('H5544', 'German',  'Abgeleitete Status: Bei der Behandlung der abgeleiteten Status wird unterschieden zwischen der Antragstellung und den anschliessenden Phasen:
+    Pro Phase k&ouml;nnen abweichende Zuordnungen vom ermittelten Eingangsstatus zum abgeleiteten Status bearbeitet werden. Nicht aufgef&uuml;hrte Status werden unver&auml;ndert abgeleitet.
     Bei der Antragstellung wird zuerst der Status des Tickets gesetzt.
     Die Status der zugeordneten Auftr&auml;gen bekommen zun&auml;chst denselben Status wie das Ticket, sofern sie nicht schon in einem h&ouml;heren Status waren (m&ouml;glich durch R&uuml;ckzuweisungen des Tickets z.B. vom Genehmiger).
     Die Tasktyp-spezifischen Status-Matrizen legen nun anschliessend aus den abgeleiteten Status fest, welcher Status dem jeweiligen spezifischen Auftrag zugewiesen wird. Dabei k&ouml;nnen z.B. auch Phasen &uuml;bersprungen werden.
@@ -6381,6 +6493,7 @@ INSERT INTO txt VALUES ('H5544', 'German',  'Abgeleitete Status: Bei der Behandl
     Aus den Status der fachlichen Auftr&auml;ge wird dann mittels der Master-Matrix der Status f&uuml;r das Ticket abgeleitet.
 ');
 INSERT INTO txt VALUES ('H5544', 'English', 'Derived states: Regarding the handling of the derived states, it has to be distinguished between ticket creation and the subsequent phases:
+    Per phase, mappings that differ from the computed input state can be edited. States not listed are derived unchanged.
     On ticket creation, first the state of the ticket is set.
     In the next step the associated tasks get the same state as the ticket, if they do not already have a higher state (possible by back assignments of the ticket, e.g. by the approver).
     Task specific state matrices now determine the state of the single request tasks from the derived states. At this point e.g. phases can be skipped for this specific task type.
@@ -6449,6 +6562,8 @@ INSERT INTO txt VALUES ('H5577', 'German',  'Ein Auftrag f&uuml;r alle Ger&auml;
 INSERT INTO txt VALUES ('H5577', 'English', 'One task for all devices: As with Enter device in request, the device selection is already maintained in the request. The only difference is this: if all is selected there, exactly one implementation task is created instead of one per existing device.');
 INSERT INTO txt VALUES ('H5578', 'German',  'B&uuml;ndelung ber&uuml;cksichtigen: Wenn aktiviert, werden automatisch erzeugte Implementierungs-Auftr&auml;ge f&uuml;r Antrags-Auftr&auml;ge mit derselben Flow-B&uuml;ndel-ID auf einem zusammengef&uuml;hrten Auftrag erzeugt. Auftr&auml;ge ohne B&uuml;ndel-ID werden weiterhin einzeln behandelt.');
 INSERT INTO txt VALUES ('H5578', 'English', 'Consider bundling: When enabled, automatically created implementation tasks for request tasks with the same flow bundle id are created from one merged task. Tasks without a bundle id are still handled individually.');
+INSERT INTO txt VALUES ('H5579', 'German',  'Sichtbarkeit ber&uuml;cksichtigen: Aktiviert die Sichtbarkeitseinschr&auml;nkungen f&uuml;r den Workflow. Tickets, Auftr&auml;ge und Genehmigungen werden dann zus&auml;tzlich zu Rolle und Eigentum nach den zugeordneten Sichtbarkeitsgruppen gefiltert. Genehmigungen, die direkt an den eigenen Benutzer oder dessen Gruppe zugewiesen sind, bleiben ebenfalls sichtbar.');
+INSERT INTO txt VALUES ('H5579', 'English', 'Consider visibility: Activates workflow visibility restrictions. Tickets, tasks, and approvals are then filtered by their assigned visibility groups in addition to role and ownership checks. Approvals assigned directly to the current user or the user''s group stay visible as well.');
 INSERT INTO txt VALUES ('H5581', 'German',  'In diesem Abschnitt k&ouml;nnen die vorhandenen Eigent&uuml;mer eingesehen und administriert (falls in den <a href="/help/settings/workflowcustomizing">Einstellungen</a> aktiviert) werden.
     Die Eigent&uuml;merschaft muss Nutzern entweder direkt oder &uuml;ber Eigent&uuml;mergruppen zugeordnet werden.
     Es ist geplant, die Eigent&uuml;merschaft mit der Zust&auml;ndigkeit bei der Antragsstellung zu verkn&uuml;pfen.
@@ -6539,8 +6654,8 @@ INSERT INTO txt VALUES ('H5596g', 'German', 'Template Ip-Protokoll: Template f&u
 INSERT INTO txt VALUES ('H5596g', 'English','Template Ip-Protokoll: Template for protocol types not TCP, UDP, ICMP, e.g. ESP. Available placeholders: @@PROTOCOLNAME@@, @@PROTOCOLID@@, @@SERVICENAME@@.');
 INSERT INTO txt VALUES ('H5597', 'German',  'Typ des externen Ticketing Systems: Aktuell wird nur TufinSecureChange unterst&uuml;tzt.');
 INSERT INTO txt VALUES ('H5597', 'English', 'Type of external ticketing system: Currently only TufinSecureChange is supported.');
-INSERT INTO txt VALUES ('H5598', 'German',  'Hier werden die Einstellungen f&uuml;r die Anbindung an externe Ticket-Systeme verwaltet.');
-INSERT INTO txt VALUES ('H5598', 'English', 'On this page the settings for the connection to external ticket systems are administrated.');
+INSERT INTO txt VALUES ('H5598', 'German',  'Hier werden die globalen Einstellungen für externe Requests sowie die konfigurierten externen Ticket-Systeme und deren Vorlagen verwaltet.');
+INSERT INTO txt VALUES ('H5598', 'English', 'This page is used to manage global external request settings as well as configured external ticket systems and their templates.');
 INSERT INTO txt VALUES ('H5599', 'German',  'Tasktyp: Typ des Tasks im externen Auftragssystem.');
 INSERT INTO txt VALUES ('H5599', 'English', 'Task Type: Type of the task in the external ticket system.');
 
@@ -6827,6 +6942,24 @@ INSERT INTO txt VALUES ('H5678', 'German',  'Trage hier die Schl&uuml;ssel ein, 
 INSERT INTO txt VALUES ('H5678', 'English', 'Enter the keys that represent the ChangeId field. You can add multiple keys by clicking the + button.');
 INSERT INTO txt VALUES ('H5679', 'German',  'Integrationsmodus: Legt fest, ob Modelling voll integriert arbeitet oder Workflow-Benachrichtigungen erzeugt. Im Workflow-Benachrichtigungsmodus werden Verbindungen beantragt, solange "requested_on_fw" nicht gesetzt ist. "Implemented" und "Rejected" k&ouml;nnen sp&auml;ter f&uuml;r erneute Beantragung nach &Auml;nderungen genutzt werden.');
 INSERT INTO txt VALUES ('H5679', 'English', 'Integration Mode: Defines whether Modelling works fully integrated or creates workflow notifications. In workflow notification mode, connections are requested while "requested_on_fw" is not set. "Implemented" and "Rejected" can later be used for re-requesting after changes.');
+INSERT INTO txt VALUES ('H5680', 'German',  'Hier wird festgelegt, für welche Managements und Änderungskategorien externe Ticket-Systeme verwendet werden.');
+INSERT INTO txt VALUES ('H5680', 'English', 'This page defines for which managements and change categories external ticket systems are used.');
+INSERT INTO txt VALUES ('H5681', 'German',  'Pro Management kann die Verarbeitung für Konfigurationsänderungen aktiviert oder deaktiviert werden.');
+INSERT INTO txt VALUES ('H5681', 'English', 'For each management, processing for configuration changes can be enabled or disabled.');
+INSERT INTO txt VALUES ('H5682', 'German',  'Für jede Änderungskategorie kann ein konfiguriertes externes Ticket-System ausgewählt werden.');
+INSERT INTO txt VALUES ('H5682', 'English', 'A configured external ticket system can be selected for each change category.');
+INSERT INTO txt VALUES ('H5683', 'German',  'Die verfügbaren Ticket-Systeme werden auf der Seite Externe Ticket-Vorlagen gepflegt.');
+INSERT INTO txt VALUES ('H5683', 'English', 'The available ticket systems are maintained on the External ticket templates page.');
+INSERT INTO txt VALUES ('H5684', 'German',  'Im oberen Bereich werden die globalen Laufzeitparameter für externe Requests gepflegt. Darunter können externe Ticket-Systeme angelegt, bearbeitet und gelöscht werden.');
+INSERT INTO txt VALUES ('H5684', 'English', 'The upper section contains global runtime parameters for external requests. Below that, external ticket systems can be created, edited, and deleted.');
+INSERT INTO txt VALUES ('H5685', 'German',  'Im Bearbeitungsdialog werden pro Ticket-System die Templates je Task-Typ gepflegt. Diese Vorlagen steuern, wie Anfragen und Aufgaben an das externe System übergeben werden.');
+INSERT INTO txt VALUES ('H5685', 'English', 'The edit dialog maintains templates per task type for each ticket system. These templates control how requests and tasks are sent to the external system.');
+INSERT INTO txt VALUES ('H5686', 'German',  'Für NetworkObjectModify bei vom Management bereitgestellten Ticket-Systemen. Dieses Template beschreibt den Ticket-Inhalt für die direkte Umsetzung auf der Firewall.');
+INSERT INTO txt VALUES ('H5686', 'English', 'For NetworkObjectModify with management-provided ticket systems. This template defines the ticket content for direct implementation on the firewall.');
+INSERT INTO txt VALUES ('H5687', 'German',  'Für NetworkObjectModify bei vom Management bereitgestellten Ticket-Systemen. Dieses Template beschreibt den zu übergebenden Aufgabeninhalt.');
+INSERT INTO txt VALUES ('H5687', 'English', 'For NetworkObjectModify with management-provided ticket systems. This template defines the task content to be sent.');
+INSERT INTO txt VALUES ('H5688', 'German',  'Für vom Management bereitgestellte Ticket-Systeme wird dieses Template im Fall NetworkObjectModify derzeit nicht verwendet.');
+INSERT INTO txt VALUES ('H5688', 'English', 'For management-provided ticket systems, this template is currently not used in the NetworkObjectModify case.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

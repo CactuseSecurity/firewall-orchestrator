@@ -1,0 +1,5 @@
+mutation deleteStateMatrixTransitionGroup($id: Int!) {
+  delete_transition_group: delete_request_state_matrix_transition_group_by_pk(id: $id) {
+    deletedId: id
+  }
+}

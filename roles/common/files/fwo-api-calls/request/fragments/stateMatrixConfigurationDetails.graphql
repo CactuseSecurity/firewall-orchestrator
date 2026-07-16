@@ -1,0 +1,39 @@
+fragment stateMatrixConfigurationDetails on request_workflow_configuration {
+  id
+  name
+  description
+  is_active
+  workflow_configuration_phases(where: {task_type: {_eq: $taskType}}) {
+    task_type
+    phase
+    phase_matrix_id
+    state_matrix_phase {
+      id
+      name
+      phase
+      active
+      lowest_input_state
+      lowest_start_state
+      lowest_end_state
+      state_matrix_derived_states(order_by: {from_state_id: asc}) {
+        from_state_id
+        derived_state_id
+      }
+      state_matrix_phase_transition_groups(order_by: {sort_order: asc}) {
+        sort_order
+        transition_group_id
+        state_matrix_transition_group {
+          id
+          name
+          visibility_group_id
+          exclusive
+          state_matrix_transitions(order_by: [{from_state_id: asc}, {sort_order: asc}]) {
+            from_state_id
+            to_state_id
+            sort_order
+          }
+        }
+      }
+    }
+  }
+}

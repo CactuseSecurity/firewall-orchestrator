@@ -3,7 +3,7 @@ mutation upsertFlowNwObjectMapping(
   $flowNwobjId: bigint!
   $activeOnMgm: Boolean!
 ) {
-  update_object_by_pk(
+  update_firewall_nw_object_by_pk(
     pk_columns: { obj_id: $objId }
     _set: {
       flow_nwobj_id: $flowNwobjId

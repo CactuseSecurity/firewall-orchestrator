@@ -125,11 +125,11 @@ namespace FWO.Ui.Services
 
                     if (refreshSuccess)
                     {
-                        Log.WriteAudit(LogCategory, $"Successfully restored/refreshed Token Pair for User with dn={userConfig.User.Dn}");
+                        Log.WriteAudit(LogCategory, $"Successfully restored session for User with dn={userConfig.User.Dn}");
                     }
                     else
                     {
-                        Log.WriteAudit(LogCategory, $"Failed to restore/refresh Token Pair for User with dn={userConfig.User.Dn}");
+                        Log.WriteAudit(LogCategory, $"Failed to restore session for User with dn={userConfig.User.Dn}");
                     }
                 }
             }

@@ -48,7 +48,15 @@ namespace FWO.Test
             RuleUid = "1234567",
             Field = ElemFieldType.rule.ToString()
         };
-
+        readonly static WfReqElement followUpObjElem = new()
+        {
+            Id = 4,
+            RequestAction = RequestAction.create.ToString(),
+            GroupName = "ARxx12345-102",
+            Name = "AppServerY",
+            IpString = "123.0.0.9/32",
+            Field = ElemFieldType.source.ToString()
+        };
 
         readonly static WfReqTask reqTask1 = new()
         {
@@ -143,8 +151,19 @@ namespace FWO.Test
             AdditionalInfo = "{\"ConnId\":\"2\"}",
             SelectedDevices = "[1,2]"
         };
+        readonly static WfReqTask reqTask9 = new()
+        {
+            Id = 9,
+            Title = "Task9",
+            TicketId = 123,
+            TaskNumber = 9,
+            TaskType = WfTaskType.group_create.ToString(),
+            ManagementId = 1,
+            Elements = [followUpObjElem],
+            AdditionalInfo = "{\"ConnId\":\"3\",\"GrpName\":\"ARxx12345-102\"}"
+        };
 
-        readonly static WfTicket ticket123 = new() { Id = 123, Title = "Ticket1", Tasks = [reqTask1, reqTask2, reqTask3, reqTask4, reqTask5, reqTask6, reqTask7, reqTask8] };
+        readonly static WfTicket ticket123 = new() { Id = 123, Title = "Ticket1", Tasks = [reqTask1, reqTask2, reqTask3, reqTask4, reqTask5, reqTask6, reqTask7, reqTask8, reqTask9] };
 
         public ExtTicketHandlerTestApiConn()
         {
@@ -185,8 +204,52 @@ namespace FWO.Test
             reqTask8.StateId = 0;
             reqTask8.AdditionalInfo = "{\"ConnId\":\"2\"}";
             reqTask8.ImplementationTasks = [];
+            reqTask9.StateId = 0;
+            reqTask9.AdditionalInfo = "{\"ConnId\":\"3\",\"GrpName\":\"ARxx12345-102\"}";
+            reqTask9.ImplementationTasks = [];
         }
 
+        private static WfReqTask? FindReqTaskById(long id)
+        {
+            return ticket123.Tasks.FirstOrDefault(task => task.Id == id);
+        }
+
+        public static WfReqTask? GetReqTaskById(long id)
+        {
+            return FindReqTaskById(id);
+        }
+
+        public static WfReqTask? GetReqTaskByNumber(int taskNumber)
+        {
+            return ticket123.Tasks.FirstOrDefault(task => task.TaskNumber == taskNumber);
+        }
+
+        public static void SetReqTaskState(long id, int stateId)
+        {
+            WfReqTask? task = FindReqTaskById(id);
+            if (task != null)
+            {
+                task.StateId = stateId;
+            }
+        }
+
+        public static void SetReqTaskAddInfo(long id, string key, string value)
+        {
+            WfReqTask? task = FindReqTaskById(id);
+            if (task != null)
+            {
+                task.SetAddInfo(key, value);
+            }
+        }
+
+        public static void MarkReqTaskAsInternalWork(long id)
+        {
+            WfReqTask? task = FindReqTaskById(id);
+            if (task != null)
+            {
+                task.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
+            }
+        }
 
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
@@ -265,43 +328,41 @@ namespace FWO.Test
             {
                 if (query == RequestQueries.updateRequestTaskAdditionalInfo && variables != null)
                 {
-                    string? Vars = variables.ToString();
-                    if (Vars != null)
+                    long reqTaskId = Convert.ToInt64(
+                        variables.GetType().GetProperty("id")?.GetValue(variables) ?? 0L);
+
+                    string? additionalInfo = variables.GetType().GetProperty("additionalInfo")?.GetValue(variables)?.ToString();
+
+                    WfReqTask? task = FindReqTaskById(reqTaskId);
+                    if (task != null)
                     {
-                        if (Vars.Contains("id = 1"))
-                        {
-                            reqTask1.AdditionalInfo = "{\"ConnId\":\"1\",\"ExtIcketId\":\"4711\"}";
-                        }
-                        else if (Vars.Contains("id = 2"))
-                        {
-                            reqTask2.AdditionalInfo = "{\"ConnId\":\"1\",\"ExtIcketId\":\"4712\"}";
-                        }
-                        else if (Vars.Contains("id = 3"))
-                        {
-                            reqTask3.AdditionalInfo = "{\"ConnId\":\"1\",\"ExtIcketId\":\"4712\"}";
-                        }
-                        else if (Vars.Contains("id = 4"))
-                        {
-                            reqTask4.AdditionalInfo = "{\"ConnId\":\"1\",\"ExtIcketId\":\"4713\"}";
-                        }
-                        else if (Vars.Contains("id = 5"))
-                        {
-                            reqTask5.AdditionalInfo = "{\"ConnId\":\"1\",\"ExtIcketId\":\"4713\"}";
-                        }
-                        else if (Vars.Contains("id = 6"))
-                        {
-                            reqTask6.AdditionalInfo = "{\"ConnId\":\"1\",\"ExtIcketId\":\"4714\"}";
-                        }
-                        else if (Vars.Contains("id = 7"))
-                        {
-                            reqTask7.AdditionalInfo = "{\"ConnId\":\"1\",\"ExtIcketId\":\"4714\"}";
-                        }
-                        else if (Vars.Contains("id = 8"))
-                        {
-                            reqTask8.AdditionalInfo = "{\"ConnId\":\"2\",\"ExtIcketId\":\"4714\"}";
-                        }
+                        task.AdditionalInfo = additionalInfo;
                     }
+
+                    ReturnId updatedReturnId = new() { UpdatedIdLong = reqTaskId };
+                    GraphQLResponse<dynamic> updatedResponse = new() { Data = updatedReturnId };
+                    return updatedResponse.Data;
                 }
+
+                if (query == RequestQueries.updateRequestTaskState && variables != null)
+                {
+                    long reqTaskId = Convert.ToInt64(
+                        variables.GetType().GetProperty("id")?.GetValue(variables) ?? 0L);
+
+                    int stateId = Convert.ToInt32(
+                        variables.GetType().GetProperty("state")?.GetValue(variables) ?? 0);
+
+                    WfReqTask? task = FindReqTaskById(reqTaskId);
+                    if (task != null)
+                    {
+                        task.StateId = stateId;
+                    }
+
+                    ReturnId stateReturnId = new() { UpdatedIdLong = reqTaskId };
+                    GraphQLResponse<dynamic> stateResponse = new() { Data = stateReturnId };
+                    return stateResponse.Data;
+                }
+
                 ReturnId returnId = new() { UpdatedIdLong = 1 };
                 GraphQLResponse<dynamic> response = new() { Data = returnId };
                 return response.Data;

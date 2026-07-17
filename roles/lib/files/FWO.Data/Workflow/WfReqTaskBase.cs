@@ -23,6 +23,7 @@ namespace FWO.Data.Workflow
         public const string AppRoleId = "AppRoleId";
         public const string SvcGrpId = "SvcGrpId";
         public const string FlowBundleId = "FlowBundleId";
+        public const string FwConfigChangeTarget = "FwConfigChangeTarget";
     }
 
     public class WfReqTaskBase : WfTaskBase

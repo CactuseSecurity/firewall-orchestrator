@@ -858,6 +858,8 @@ INSERT INTO txt VALUES ('destination_zone',		'German', 	'Zielzone');
 INSERT INTO txt VALUES ('destination_zone',		'English', 	'Destination Zone');
 INSERT INTO txt VALUES ('enabled',		        'German', 	'Aktiviert');
 INSERT INTO txt VALUES ('enabled',		        'English', 	'Enabled');
+INSERT INTO txt VALUES ('internal_work',        'German',   'Nur f&uuml;r den internen Workflow');
+INSERT INTO txt VALUES ('internal_work',        'English',  'Internal workflow only');
 INSERT INTO txt VALUES ('install_on',		    'German', 	'Installiere auf');
 INSERT INTO txt VALUES ('install_on',		    'English', 	'Install On');
 INSERT INTO txt VALUES ('uid',		            'German', 	'UID');
@@ -6960,6 +6962,12 @@ INSERT INTO txt VALUES ('H5687', 'German',  'Für NetworkObjectModify bei vom Ma
 INSERT INTO txt VALUES ('H5687', 'English', 'For NetworkObjectModify with management-provided ticket systems. This template defines the task content to be sent.');
 INSERT INTO txt VALUES ('H5688', 'German',  'Für vom Management bereitgestellte Ticket-Systeme wird dieses Template im Fall NetworkObjectModify derzeit nicht verwendet.');
 INSERT INTO txt VALUES ('H5688', 'English', 'For management-provided ticket systems, this template is currently not used in the NetworkObjectModify case.');
+INSERT INTO txt VALUES ('H5689', 'German',  'F&uuml;r Rule Changes kann alternativ zum externen Ticket-System auch ein interner Workflow ausgew&auml;hlt werden.');
+INSERT INTO txt VALUES ('H5689', 'English', 'For rule changes, an internal workflow can be selected as an alternative to an external ticket system.');
+INSERT INTO txt VALUES ('H5690', 'German',  'Bei Auswahl von "Internal workflow only" werden die betroffenen Tasks nicht an ein externes Ticket-System &uuml;bergeben, sondern im internen Workflow weiterverarbeitet.');
+INSERT INTO txt VALUES ('H5690', 'English', 'If "Internal workflow only" is selected, the affected tasks are not handed over to an external ticket system but continue in the internal workflow.');
+INSERT INTO txt VALUES ('H5691', 'German',  'Aktuell wird diese Option nur f&uuml;r Rule Changes unterst&uuml;tzt.');
+INSERT INTO txt VALUES ('H5691', 'English', 'Currently this option is only supported for rule changes.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

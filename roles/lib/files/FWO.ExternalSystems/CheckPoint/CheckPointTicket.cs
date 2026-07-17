@@ -178,9 +178,6 @@ namespace FWO.ExternalSystems.CheckPoint
             };
         }
 
-
-
-
         private static string GetEndpoint(string taskType)
         {
             return taskType switch
@@ -222,6 +219,8 @@ namespace FWO.ExternalSystems.CheckPoint
 
         public override async Task<RestResponse<int>> CreateExternalTicket()
         {
+            bool discardSession = false;
+
             checkPointClient ??= new CheckPointClient(TicketSystem, OnManagement ?? throw new ProcessingFailedException("No management context available for Check Point request."));
 
             try
@@ -229,10 +228,25 @@ namespace FWO.ExternalSystems.CheckPoint
                 EnsureExecutionPlanLoaded();
                 RestResponse<int> response = await ExecuteAllSteps();
                 TicketId = checkPointClient.CurrentSessionId;
+
+                if (!IsSynchronousSuccess(response))
+                {
+                    discardSession = true;
+                }
+
                 return response;
+            }
+            catch
+            {
+                discardSession = true;
+                throw;
             }
             finally
             {
+                if (discardSession)
+                {
+                    await checkPointClient.Discard();
+                }
                 await checkPointClient.Logout();
             }
         }

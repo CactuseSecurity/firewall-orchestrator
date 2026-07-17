@@ -462,5 +462,175 @@ namespace FWO.Test
             ClassicAssert.IsTrue(localApiConnection.History[14].Contains("changeType = 10"));
             ClassicAssert.IsTrue(localApiConnection.History[14].Contains("Task5"));
         }
+
+        private static SimulatedUserConfig CreateInternalWorkRuleChangeConfig()
+        {
+            return new SimulatedUserConfig
+            {
+                ExternalRequestWaitCycles = 3,
+                ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(new List<ExternalTicketSystem> { ticketSystem }),
+                FwConfigChangeMgmSettings = System.Text.Json.JsonSerializer.Serialize(new List<ManagementFwConfigChangeState>
+        {
+            new()
+            {
+                Id = 1,
+                Name = "Checkpoint",
+                Enabled = true,
+                SelectedChanges = new()
+                {
+                    [ManagementFwConfigChangeCategories.ObjectChanges] = ticketSystem.Id.ToString(),
+                    [ManagementFwConfigChangeCategories.RuleChanges] = ManagementFwConfigChangeTargets.InternalWork
+                }
+            }
+        }),
+                ReqPriorities = reqPrios,
+                ModNamingConvention = namingConvention,
+                ModRolloutBundleTasks = true
+            };
+        }
+
+        [Test]
+        public async Task HandleStateChangeDonePromotesAllConsecutiveInternalWorkRuleTasksToPlanning()
+        {
+            SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
+            ExtTicketHandlerTestApiConn.ResetTicketTasks();
+            ExtTicketHandlerTestApiConn localApiConnection = new();
+
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+
+            ExternalRequest externalRequest = new()
+            {
+                Id = 1,
+                TicketId = 123,
+                TaskNumber = 1,
+                ExtRequestState = ExtStates.ExtReqDone.ToString(),
+                ExtTicketId = "4711"
+            };
+
+            await handler.HandleStateChange(externalRequest);
+
+            ClassicAssert.IsNull(localApiConnection.AddExtRequestVars);
+
+            for (int taskNumber = 2; taskNumber <= 8; ++taskNumber)
+            {
+                WfReqTask? task = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(taskNumber);
+                ClassicAssert.IsNotNull(task, $"Task {taskNumber} should exist.");
+                ClassicAssert.AreEqual(99, task!.StateId, $"Task {taskNumber} should be promoted to planning input state.");
+            }
+
+            WfReqTask? task9 = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(9);
+            ClassicAssert.IsNotNull(task9);
+            ClassicAssert.AreEqual(0, task9!.StateId);
+        }
+
+        [Test]
+        public async Task ContinueAfterInternalWorkCompletionDoesNothingWhileBatchIsIncomplete()
+        {
+            SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
+            ExtTicketHandlerTestApiConn.ResetTicketTasks();
+            ExtTicketHandlerTestApiConn localApiConnection = new();
+
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+
+            await handler.HandleStateChange(new ExternalRequest
+            {
+                Id = 1,
+                TicketId = 123,
+                TaskNumber = 1,
+                ExtRequestState = ExtStates.ExtReqDone.ToString(),
+                ExtTicketId = "4711"
+            });
+
+            for (int taskId = 2; taskId <= 8; ++taskId)
+            {
+                ExtTicketHandlerTestApiConn.MarkReqTaskAsInternalWork(taskId);
+            }
+
+            ExtTicketHandlerTestApiConn.SetReqTaskState(2, 249);
+            ExtTicketHandlerTestApiConn.SetReqTaskState(3, 149);
+
+            bool continued = await handler.ContinueAfterInternalWorkCompletion(123, 2);
+
+            ClassicAssert.IsFalse(continued);
+            ClassicAssert.IsNull(localApiConnection.AddExtRequestVars);
+        }
+
+        [Test]
+        public async Task ContinueAfterInternalWorkCompletionStartsNextExternalObjectRequestWhenBatchIsDone()
+        {
+            SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
+            ExtTicketHandlerTestApiConn.ResetTicketTasks();
+            ExtTicketHandlerTestApiConn localApiConnection = new();
+
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+
+            await handler.HandleStateChange(new ExternalRequest
+            {
+                Id = 1,
+                TicketId = 123,
+                TaskNumber = 1,
+                ExtRequestState = ExtStates.ExtReqDone.ToString(),
+                ExtTicketId = "4711"
+            });
+
+            for (int taskId = 2; taskId <= 8; ++taskId)
+            {
+                ExtTicketHandlerTestApiConn.MarkReqTaskAsInternalWork(taskId);
+                ExtTicketHandlerTestApiConn.SetReqTaskState(taskId, 249);
+            }
+
+            bool continued = await handler.ContinueAfterInternalWorkCompletion(123, 2);
+
+            ClassicAssert.IsTrue(continued);
+            ClassicAssert.IsNotNull(localApiConnection.AddExtRequestVars);
+            StringAssert.Contains("taskNumber = 9", localApiConnection.AddExtRequestVars ?? "");
+            StringAssert.Contains("\"ManagementId\":[1]", localApiConnection.AddExtRequestVars ?? "");
+            StringAssert.Contains("\"Name\":\"Tufin\"", localApiConnection.AddedExtTicketSystem ?? "");
+        }
+
+        [Test]
+        public async Task SendFirstRequestStopsWhenInternalWorkBatchIsIncomplete()
+        {
+            SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
+            ExtTicketHandlerTestApiConn.ResetTicketTasks();
+            ExtTicketHandlerTestApiConn localApiConnection = new();
+
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+
+            for (int taskId = 2; taskId <= 8; ++taskId)
+            {
+                ExtTicketHandlerTestApiConn.MarkReqTaskAsInternalWork(taskId);
+                ExtTicketHandlerTestApiConn.SetReqTaskState(taskId, 99);
+            }
+
+            bool result = await handler.SendFirstRequest(123);
+
+            ClassicAssert.IsTrue(result);
+            ClassicAssert.IsNull(localApiConnection.AddExtRequestVars);
+        }
+
+        [Test]
+        public async Task SendFirstRequestStartsNextExternalRequestAfterCompletedInternalWorkBatch()
+        {
+            SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
+            ExtTicketHandlerTestApiConn.ResetTicketTasks();
+            ExtTicketHandlerTestApiConn localApiConnection = new();
+
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+
+            ExtTicketHandlerTestApiConn.SetReqTaskState(1, 600);
+
+            for (int taskId = 2; taskId <= 8; ++taskId)
+            {
+                ExtTicketHandlerTestApiConn.MarkReqTaskAsInternalWork(taskId);
+                ExtTicketHandlerTestApiConn.SetReqTaskState(taskId, 249);
+            }
+
+            bool result = await handler.SendFirstRequest(123);
+
+            ClassicAssert.IsTrue(result);
+            ClassicAssert.IsNotNull(localApiConnection.AddExtRequestVars);
+            StringAssert.Contains("taskNumber = 9", localApiConnection.AddExtRequestVars ?? "");
+        }
     }
 }

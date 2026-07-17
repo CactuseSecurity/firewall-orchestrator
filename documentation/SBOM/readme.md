@@ -1,5 +1,67 @@
 # creating SBOM
-we are using cycloneDx
+we are using CycloneDX JSON as the internal SBOM format.
+
+## automated generation
+
+The primary reference platform for exact installed SBOMs is Debian testing/Trixie.
+
+### source SBOMs in the repository
+
+Run this from the repository root:
+
+```bash
+python3 scripts/sbom/generate_sbom.py \
+  --mode source \
+  --output-dir documentation/SBOM/generated \
+  --reference-platform debian-testing \
+  --merge
+```
+
+This creates layered source SBOMs for:
+
+- .NET package references from `roles/**/*.csproj`
+- Python requirements from importer and script requirements files
+- Ansible collections from `collections/requirements.yml`
+- a merged `fwo-combined.cdx.json`
+
+The GitHub workflow `.github/workflows/sbom.yml` runs the same source generation for release tags and manual dispatches and uploads the generated SBOM files as workflow artifacts.
+
+### exact installed SBOMs through the installer
+
+Installed SBOM generation is opt-in:
+
+```bash
+ansible-playbook site.yml -e generate_sbom=true
+```
+
+The installer role writes host-local SBOM files to:
+
+```text
+{{ fworch_home }}/sbom
+```
+
+The installed SBOM includes Debian package data from `dpkg-query` and, where possible, container metadata for the Hasura API container/image. To fetch generated SBOM files back to the controller, set:
+
+```yaml
+generate_sbom: true
+sbom_fetch_to_controller: true
+```
+
+The default controller destination is:
+
+```text
+documentation/SBOM/generated/installed/<inventory-host>/
+```
+
+### generator modes
+
+```bash
+python3 scripts/sbom/generate_sbom.py --mode source --merge
+python3 scripts/sbom/generate_sbom.py --mode installed --merge
+python3 scripts/sbom/generate_sbom.py --mode all --merge
+```
+
+The installed mode is intended to run on the target host after installation or upgrade. It uses standard host tools first, so it does not require installing a separate SBOM generator package.
 
 ## standard script 
     wget https://github.com/CycloneDX/cyclonedx-cli/releases/download/v0.27.2/cyclonedx-linux-x64

@@ -1,0 +1,54 @@
+---
+- name: warn when SBOM reference platform is not Debian testing
+  debug:
+    msg:
+      - "SBOM reference platform is {{ sbom_reference_platform }}."
+      - "Issue #2919 expects Debian testing/Trixie for the exact installed SBOM."
+  when: sbom_reference_platform != 'debian-testing'
+
+- name: ensure SBOM output directory exists
+  file:
+    path: "{{ sbom_output_dir }}"
+    state: directory
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+    mode: "0755"
+  become: true
+
+- name: generate installed SBOM for this host
+  script:
+    cmd: >-
+      {{ playbook_dir }}/scripts/sbom/generate_sbom.py
+      --mode installed
+      --output-dir {{ sbom_output_dir | quote }}
+      --reference-platform {{ sbom_reference_platform | quote }}
+      --container {{ api_container_name | quote }}
+      --merge
+    executable: "{{ ansible_python_interpreter }}"
+  become: true
+  changed_when: true
+
+- name: ensure local SBOM collection directory exists
+  file:
+    path: "{{ sbom_controller_output_dir }}/{{ inventory_hostname }}"
+    state: directory
+    mode: "0755"
+  delegate_to: localhost
+  become: false
+  when: sbom_fetch_to_controller|bool
+
+- name: find generated SBOM files
+  find:
+    paths: "{{ sbom_output_dir }}"
+    patterns: "*.cdx.json"
+    file_type: file
+  register: sbom_generated_files
+  when: sbom_fetch_to_controller|bool
+
+- name: fetch installed SBOM files to controller
+  fetch:
+    src: "{{ item.path }}"
+    dest: "{{ sbom_controller_output_dir }}/{{ inventory_hostname }}/"
+    flat: true
+  loop: "{{ sbom_generated_files.files }}"
+  when: sbom_fetch_to_controller|bool

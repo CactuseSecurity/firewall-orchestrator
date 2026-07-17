@@ -40,7 +40,17 @@ The installer role writes host-local SBOM files to:
 {{ fworch_home }}/sbom
 ```
 
-The installed SBOM includes Debian package data from `dpkg-query` and, where possible, container metadata for the Hasura API container/image. To fetch generated SBOM files back to the controller, set:
+The installer generates source SBOMs on the controller, copies them to the target SBOM directory, generates installed SBOMs on the target, and writes a combined SBOM from both layers. The generated files include:
+
+- `fwo-combined.cdx.json` in the SBOM root directory
+- `fwo-sbom-details/fwo-dotnet.cdx.json`
+- `fwo-sbom-details/fwo-python-importer.cdx.json`
+- `fwo-sbom-details/fwo-python-scripts.cdx.json`
+- `fwo-sbom-details/fwo-ansible.cdx.json`
+- `fwo-sbom-details/fwo-os-debian-testing.cdx.json`
+- `fwo-sbom-details/fwo-containers.cdx.json`, when container metadata can be inspected
+
+To fetch generated SBOM files back to the controller, set:
 
 ```yaml
 generate_sbom: true

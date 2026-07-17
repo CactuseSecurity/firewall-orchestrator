@@ -34,4 +34,4 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: fwo-source-sbom
-          path: sbom/*.cdx.json
+          path: sbom/**/*.cdx.json

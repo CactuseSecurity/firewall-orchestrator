@@ -22,9 +22,16 @@ if TYPE_CHECKING:
 CYCLONEDX_VERSION = "1.5"
 DEFAULT_OUTPUT_DIR = Path("documentation/SBOM/generated")
 REFERENCE_PLATFORM = "debian-testing"
-REQUIREMENT_SPLIT_RE = re.compile(r"\s*(==|~=|!=|<=|>=|<|>|===)\s*")
+COMBINED_BOM_FILENAME = "fwo-combined.cdx.json"
+DETAILS_DIR_NAME = "fwo-sbom-details"
+REQUIREMENT_SPLIT_RE = re.compile(r"\s*(===|==|~=|!=|<=|>=|<|>)\s*")
 PACKAGE_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]+")
 VERSION_REQUIREMENT_PARTS = 3
+PROPERTY_SOURCE = "fwo:source"
+PROPERTY_MODE = "fwo:mode"
+PROPERTY_REFERENCE_PLATFORM = "fwo:reference-platform"
+
+JsonObject = dict[str, object]
 
 
 @dataclass(frozen=True)
@@ -65,6 +72,18 @@ def run_command(command: Sequence[str]) -> str:
     return result.stdout
 
 
+def json_object(value: Any) -> JsonObject | None:
+    if not isinstance(value, dict):
+        return None
+    return cast("JsonObject", value)
+
+
+def json_list(value: Any) -> list[object] | None:
+    if not isinstance(value, list):
+        return None
+    return cast("list[object]", value)
+
+
 def write_bom(
     output_dir: Path, filename: str, name: str, components: Iterable[Component], properties: dict[str, str]
 ) -> Path:
@@ -97,7 +116,7 @@ def parse_requirement_line(line: str, source: str) -> Component | None:
         return None
     name = package_match.group(0)
     version = None
-    properties: dict[str, str] = {"fwo:source": source}
+    properties: dict[str, str] = {PROPERTY_SOURCE: source}
     requirement_parts = REQUIREMENT_SPLIT_RE.split(clean_line, maxsplit=1)
     if len(requirement_parts) == VERSION_REQUIREMENT_PARTS:
         operator = requirement_parts[1]
@@ -130,21 +149,28 @@ def components_from_csproj(repo_root: Path) -> list[Component]:
         # Project files are local repository inputs, not untrusted XML uploads.
         tree = ET.parse(csproj)  # noqa: S314
         for package_reference in tree.findall(".//PackageReference"):
-            name = package_reference.attrib.get("Include") or package_reference.attrib.get("Update")
-            version = package_reference.attrib.get("Version")
-            if not version:
-                version_node = package_reference.find("Version")
-                version = version_node.text.strip() if version_node is not None and version_node.text else None
-            if name:
-                components.append(
-                    Component(
-                        name=name,
-                        version=version,
-                        purl=f"pkg:nuget/{name}@{version}" if version else f"pkg:nuget/{name}",
-                        properties={"fwo:source": str(csproj)},
-                    )
-                )
+            component = component_from_package_reference(package_reference, csproj)
+            if component is not None:
+                components.append(component)
     return components
+
+
+def component_from_package_reference(package_reference: ET.Element, csproj: Path) -> Component | None:
+    name = package_reference.attrib.get("Include") or package_reference.attrib.get("Update")
+    if not name:
+        return None
+    version = package_reference.attrib.get("Version") or package_reference_child_version(package_reference)
+    return Component(
+        name=name,
+        version=version,
+        purl=f"pkg:nuget/{name}@{version}" if version else f"pkg:nuget/{name}",
+        properties={PROPERTY_SOURCE: str(csproj)},
+    )
+
+
+def package_reference_child_version(package_reference: ET.Element) -> str | None:
+    version_node = package_reference.find("Version")
+    return version_node.text.strip() if version_node is not None and version_node.text else None
 
 
 def components_from_ansible_requirements(requirements_file: Path) -> list[Component]:
@@ -174,7 +200,7 @@ def ansible_component(name: str, version: str | None, source: Path) -> Component
         version=version,
         component_type="library",
         purl=f"pkg:generic/ansible/{namespace_name}@{version}" if version else f"pkg:generic/ansible/{namespace_name}",
-        properties={"fwo:source": str(source)},
+        properties={PROPERTY_SOURCE: str(source)},
     )
 
 
@@ -197,7 +223,7 @@ def components_from_dpkg() -> list[Component]:
 
 def os_release_properties() -> dict[str, str]:
     properties = {
-        "fwo:reference-platform": REFERENCE_PLATFORM,
+        PROPERTY_REFERENCE_PLATFORM: REFERENCE_PLATFORM,
         "fwo:generator-host": platform.node(),
         "fwo:generator-system": platform.platform(),
     }
@@ -218,23 +244,25 @@ def component_from_container_inspect(runtime: str, image_or_container: str) -> C
             output = run_command([runtime, "container", "inspect", image_or_container])
         except (FileNotFoundError, subprocess.CalledProcessError):
             return None
-    data = cast("object", json.loads(output))
-    if not isinstance(data, list) or not data:
+    data: object = json.loads(output)
+    items = json_list(data)
+    if not items:
         return None
-    item = cast("object", data[0])
-    if not isinstance(item, dict):
+    item = json_object(items[0])
+    if item is None:
         return None
-    typed_item = cast("dict[str, object]", item)
-    repo_digests_raw: object = typed_item.get("RepoDigests") or []
+    repo_digests_raw: object = item.get("RepoDigests") or []
     repo_digests: list[str] = []
-    if isinstance(repo_digests_raw, list):
-        repo_digests = [str(digest) for digest in cast("list[object]", repo_digests_raw)]
-    image_id = str(typed_item.get("Id", ""))
+    if (digest_items := json_list(repo_digests_raw)) is not None:
+        repo_digests = [str(digest) for digest in digest_items]
+    image_id = str(item.get("Id", ""))
     version = (
         repo_digests[0].split("@", 1)[1]
         if repo_digests and "@" in repo_digests[0]
         else image_id.removeprefix("sha256:")
     )
+    if not version:
+        return None
     return Component(
         name=image_or_container,
         version=version,
@@ -245,7 +273,7 @@ def component_from_container_inspect(runtime: str, image_or_container: str) -> C
 
 
 def source_boms(repo_root: Path, output_dir: Path, reference_platform: str) -> list[Path]:
-    properties = {"fwo:mode": "source", "fwo:reference-platform": reference_platform}
+    properties = {PROPERTY_MODE: "source", PROPERTY_REFERENCE_PLATFORM: reference_platform}
     return [
         write_bom(
             output_dir,
@@ -280,7 +308,7 @@ def source_boms(repo_root: Path, output_dir: Path, reference_platform: str) -> l
 
 
 def installed_boms(output_dir: Path, reference_platform: str, container: str | None) -> list[Path]:
-    properties = os_release_properties() | {"fwo:mode": "installed", "fwo:reference-platform": reference_platform}
+    properties = os_release_properties() | {PROPERTY_MODE: "installed", PROPERTY_REFERENCE_PLATFORM: reference_platform}
     written = [
         write_bom(
             output_dir,
@@ -312,49 +340,74 @@ def installed_boms(output_dir: Path, reference_platform: str, container: str | N
 def merge_boms(output_dir: Path, bom_paths: Iterable[Path], reference_platform: str) -> Path:
     components_by_key: dict[tuple[str, str, str], Component] = {}
     for bom_path in bom_paths:
-        if not bom_path.exists():
-            continue
-        bom = cast("object", json.loads(bom_path.read_text(encoding="utf-8")))
-        if not isinstance(bom, dict):
-            continue
-        typed_bom = cast("dict[str, object]", bom)
-        components: object = typed_bom.get("components", [])
-        if not isinstance(components, list):
-            continue
-        for item_object in cast("list[object]", components):
-            if not isinstance(item_object, dict):
-                continue
-            typed_item = cast("dict[str, object]", item_object)
-            item_name = typed_item.get("name")
-            if not isinstance(item_name, str):
-                continue
-            name = item_name
-            item_properties: object = typed_item.get("properties", [])
-            properties: dict[str, str] = {}
-            if isinstance(item_properties, list):
-                for prop_object in cast("list[object]", item_properties):
-                    if not isinstance(prop_object, dict):
-                        continue
-                    prop = cast("dict[str, object]", prop_object)
-                    prop_name = prop.get("name")
-                    prop_value = prop.get("value")
-                    if prop_name is not None and prop_value is not None:
-                        properties[str(prop_name)] = str(prop_value)
-            component = Component(
-                name=name,
-                version=str(typed_item["version"]) if "version" in typed_item else None,
-                component_type=str(typed_item.get("type", "library")),
-                purl=str(typed_item["purl"]) if "purl" in typed_item else None,
-                properties=properties | {"fwo:merged-from": str(bom_path)},
-            )
+        for component in components_from_bom_path(bom_path):
             components_by_key[component.key()] = component
     return write_bom(
         output_dir,
-        "fwo-combined.cdx.json",
+        COMBINED_BOM_FILENAME,
         "Firewall Orchestrator",
         components_by_key.values(),
-        {"fwo:mode": "combined", "fwo:reference-platform": reference_platform},
+        {PROPERTY_MODE: "combined", PROPERTY_REFERENCE_PLATFORM: reference_platform},
     )
+
+
+def components_from_bom_path(bom_path: Path) -> list[Component]:
+    if not bom_path.exists():
+        return []
+    bom: object = json.loads(bom_path.read_text(encoding="utf-8"))
+    typed_bom = json_object(bom)
+    if typed_bom is None:
+        return []
+    components = json_list(typed_bom.get("components", []))
+    if components is None:
+        return []
+    return [
+        component
+        for item_object in components
+        if (item := json_object(item_object)) is not None
+        if (component := component_from_bom_item(item, bom_path)) is not None
+    ]
+
+
+def component_from_bom_item(typed_item: JsonObject, bom_path: Path) -> Component | None:
+    item_name = typed_item.get("name")
+    if not isinstance(item_name, str):
+        return None
+    return Component(
+        name=item_name,
+        version=str(typed_item["version"]) if "version" in typed_item else None,
+        component_type=str(typed_item.get("type", "library")),
+        purl=str(typed_item["purl"]) if "purl" in typed_item else None,
+        properties=properties_from_bom_item(typed_item) | {"fwo:merged-from": str(bom_path)},
+    )
+
+
+def properties_from_bom_item(typed_item: JsonObject) -> dict[str, str]:
+    item_properties = typed_item.get("properties", [])
+    properties = json_list(item_properties)
+    if properties is None:
+        return {}
+    return {
+        str(prop_name): str(prop_value)
+        for prop_object in properties
+        if (prop := json_object(prop_object)) is not None
+        if (prop_name := prop.get("name")) is not None
+        if (prop_value := prop.get("value")) is not None
+    }
+
+
+def existing_bom_paths(output_dir: Path) -> list[Path]:
+    details_dir = output_dir / DETAILS_DIR_NAME
+    if not details_dir.exists():
+        return []
+    return sorted(details_dir.glob("*.cdx.json"))
+
+
+def merge_input_paths(output_dir: Path, written: Iterable[Path], include_existing: bool) -> list[Path]:
+    paths_by_name = {path.name: path for path in written}
+    if include_existing:
+        paths_by_name.update({path.name: path for path in existing_bom_paths(output_dir)})
+    return list(paths_by_name.values())
 
 
 def parse_args() -> argparse.Namespace:
@@ -365,18 +418,26 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--reference-platform", default=REFERENCE_PLATFORM)
     parser.add_argument("--container", help="Hasura image or container name to inspect in installed mode")
     parser.add_argument("--merge", action="store_true", help="Write fwo-combined.cdx.json")
+    parser.add_argument("--merge-existing", action="store_true", help="Merge existing *.cdx.json files from output dir")
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
+    details_output_dir = args.output_dir / DETAILS_DIR_NAME
     written: list[Path] = []
     if args.mode in {"source", "all"}:
-        written.extend(source_boms(args.repo_root, args.output_dir, args.reference_platform))
+        written.extend(source_boms(args.repo_root, details_output_dir, args.reference_platform))
     if args.mode in {"installed", "all"}:
-        written.extend(installed_boms(args.output_dir, args.reference_platform, args.container))
+        written.extend(installed_boms(details_output_dir, args.reference_platform, args.container))
     if args.merge:
-        written.append(merge_boms(args.output_dir, written, args.reference_platform))
+        written.append(
+            merge_boms(
+                args.output_dir,
+                merge_input_paths(args.output_dir, written, args.merge_existing),
+                args.reference_platform,
+            )
+        )
     for path in written:
         sys.stdout.write(f"{path}\n")
     return 0

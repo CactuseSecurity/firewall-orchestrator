@@ -1,6 +1,7 @@
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.ExternalSystems.Tufin.SecureChange;
+using FWO.Basics;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -11,6 +12,7 @@ namespace FWO.Test
     {
         private static readonly List<IpProtocol> kIpProtos =
         [
+            new() { Id = 0, Name = "HOPOPT" },
             new() { Id = 1, Name = "ICMP" },
             new() { Id = 6, Name = "TCP" },
             new() { Id = 17, Name = "UDP" },
@@ -83,7 +85,9 @@ namespace FWO.Test
                     new() { Id = 2, Field = ElemFieldType.service.ToString(), Name = "https", ProtoId = 6, Port = 443, PortEnd = 443 },
                     new() { Id = 3, Field = ElemFieldType.service.ToString(), Name = "dns-range", ProtoId = 17, Port = 100, PortEnd = 200 },
                     new() { Id = 4, Field = ElemFieldType.service.ToString(), Name = "tunnel", ProtoId = 47 },
-                    new() { Id = 5, Field = ElemFieldType.service.ToString(), Name = "unknown-proto", ProtoId = 99 }
+                    new() { Id = 5, Field = ElemFieldType.service.ToString(), Name = "unknown-proto", ProtoId = 99 },
+                    new() { Id = 6, Field = ElemFieldType.service.ToString(), Name = "hopopt", ProtoId = 0 },
+                    new() { Id = 7, Field = ElemFieldType.service.ToString(), Name = "any-service", ProtoId = null }
                 ]
             };
             SCAccessRequestTicketTask ticketTask = new(reqTask, kIpProtos);
@@ -98,6 +102,8 @@ namespace FWO.Test
                 Assert.That(ticketTask.TaskText, Does.Contain("{\"proto\":\"UDP\",\"port\":\"100-200\",\"name\":\"dns-range\"}"));
                 Assert.That(ticketTask.TaskText, Does.Contain("{\"proto\":\"GRE\",\"id\":\"47\",\"name\":\"tunnel\"}"));
                 Assert.That(ticketTask.TaskText, Does.Contain("{\"proto\":\"99\",\"id\":\"99\",\"name\":\"unknown-proto\"}"));
+                Assert.That(ticketTask.TaskText, Does.Contain("{\"proto\":\"HOPOPT\",\"id\":\"0\",\"name\":\"hopopt\"}"));
+                Assert.That(ticketTask.TaskText, Does.Contain(SCConstants.SCAnyServiceJson));
             });
         }
 

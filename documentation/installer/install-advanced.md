@@ -127,13 +127,14 @@ In case of timeout issues (you might be behind a security proxy that does intens
 
 In case of errors with existing pip config, do not use the script to create the venv but proceed as follows:
 
-remove any local pip config and install manually:
+remove any local pip config and install manually from the cloned repository directory:
     
     rm -f $HOME/.config/pip/pip.conf
+    cd firewall-orchestrator
     sudo apt-get update
     sudo apt-get install --yes python3-venv
-    python3 -m venv installer-venv
-    source installer-venv/bin/activate
+    python3 -m venv --clear $HOME/.fwo/installer-venv
+    source $HOME/.fwo/installer-venv/bin/activate
     pip install -r requirements.txt
     if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
     pip install ansible

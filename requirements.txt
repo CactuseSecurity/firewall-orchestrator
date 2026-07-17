@@ -1,8 +1,7 @@
-# ansible pins are split by Python version so CI can test newer interpreters while
-# production platforms such as Debian 12 keep the Python 3.11-compatible release.
+# Ansible 13.x/14.x require Python >=3.12. Keep the installer on the
+# production-compatible 12.x line for Python >=3.11, including Ubuntu 24.04.
 ansible==10.7.0; python_version < '3.11'
-ansible==12.3.0; python_version >= '3.11' and python_version < '3.12'
-ansible==14.1.0; python_version >= '3.12'
+ansible==12.3.0; python_version >= '3.11'
 cryptography==49.0.0
 psycopg2-binary==2.9.12
 python-ldap==3.4.7

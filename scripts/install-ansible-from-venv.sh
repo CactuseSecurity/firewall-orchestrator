@@ -24,6 +24,7 @@ set_pip_config_if_compatible() {
 
 main() {
     local python_bin="python3"
+    local venv_dir="${FWORCH_INSTALLER_VENV:-$HOME/.fwo/installer-venv}"
 
     if [[ ! -f /etc/os-release ]]; then
         echo "Could not detect operating system: /etc/os-release missing."
@@ -49,17 +50,18 @@ main() {
             ;;
     esac
 
-    "$python_bin" -m venv --clear installer-venv || return $?
+    mkdir -p "$(dirname "$venv_dir")" || return $?
+    "$python_bin" -m venv --clear "$venv_dir" || return $?
 
-    source installer-venv/bin/activate || return $?
+    source "$venv_dir/bin/activate" || return $?
     if [[ "${http_proxy:-}" != "" ]];
     then
         set_pip_config_if_compatible global.proxy "$http_proxy" || return $?
     fi
     set_pip_config_if_compatible global.default-timeout 3600 || return $?
     pip install -r requirements.txt || return $?
-    if [[ -f collections/requirements.txt ]]; then
-        pip install -r collections/requirements.txt || return $?
+    if [[ -f scripts/requirements.txt ]]; then
+        pip install -r scripts/requirements.txt || return $?
     fi
     pip install ansible || return $?
     ansible-galaxy collection install -r collections/requirements.yml -p collections --force || return $?

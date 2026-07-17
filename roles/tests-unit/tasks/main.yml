@@ -43,6 +43,8 @@
         chdir: "/usr/local/fworch/importer"
       command: >
         {{ importer_venv_dir }}/bin/python3 -m pytest -s . -p no:cacheprovider -v
+      become: true
+      become_user: "{{ fworch_user }}"
       register: pytest_tests
       ignore_errors: false
 

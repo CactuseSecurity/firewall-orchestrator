@@ -149,6 +149,45 @@ namespace FWO.Test
         }
 
         [Test]
+        public void WfReqTask_GetServiceElements_PreservesMissingAndExplicitProtocolZero()
+        {
+            WfReqTask task = new()
+            {
+                Elements =
+                [
+                    new() { Id = 1, Field = ElemFieldType.service.ToString(), ProtoId = null },
+                    new() { Id = 2, Field = ElemFieldType.service.ToString(), ProtoId = 0 }
+                ]
+            };
+
+            List<NwServiceElement> services = task.GetServiceElements();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(services[0].ProtoId, Is.EqualTo(0));
+                Assert.That(services[0].HasProtocol, Is.False);
+                Assert.That(services[1].ProtoId, Is.EqualTo(0));
+                Assert.That(services[1].HasProtocol, Is.True);
+            });
+        }
+
+        [Test]
+        public void NwServiceElement_ToReqElement_KeepsProtocolNullWhenMissing()
+        {
+            NwServiceElement element = new()
+            {
+                ElemId = 1,
+                TaskId = 2,
+                ProtoId = 0,
+                HasProtocol = false
+            };
+
+            WfReqElement reqElement = element.ToReqElement();
+
+            Assert.That(reqElement.ProtoId, Is.Null);
+        }
+
+        [Test]
         public void NwServiceElement_ToImplElement_CopiesFields()
         {
             NwServiceElement element = new()

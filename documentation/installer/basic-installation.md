@@ -51,14 +51,18 @@ If this is not the case, install a newer ansible. One possible way is to run the
 Install the required Ansible collections before running the playbook. This is required when using `ansible-core`, including the package commonly available on RedHat-like systems:
 
 ```console
+cd firewall-orchestrator
 ansible-galaxy collection install -r collections/requirements.yml -p collections --force
 ```
 
-If using RedHat-like systems and `scripts/requirements.txt` exists in your checkout, install those Python dependencies as well:
+If using RedHat-like systems and `scripts/requirements.txt` exists in your checkout, install those Python dependencies in the same Python environment that runs Ansible. When you use the installer venv script above this is handled automatically. For a manual Ansible setup, activate that environment first and then run:
 
 ```console
+cd firewall-orchestrator
 pip install -r scripts/requirements.txt
 ```
+
+Do not use `sudo pip` for these controller-side dependencies; it installs packages into the system Python instead of the Ansible environment used by the installer.
 
 Note that if your server is behind a proxy, you will have to set the proxy for pip as follows (to allow for ansible venv download):
 

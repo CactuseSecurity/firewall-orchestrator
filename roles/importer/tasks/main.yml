@@ -54,6 +54,16 @@
         virtualenv: "{{ importer_venv_dir }}"
       environment: "{{ proxy_env }}"
 
+    - name: Set importer venv ownership and readable permissions
+      file:
+        path: "{{ importer_venv_dir }}"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "u=rwX,g=rX,o=rX"
+        follow: false
+        recurse: true
+
     - name: set x-flag for importer executables (top level only)
       file:
         path: "{{ item }}"

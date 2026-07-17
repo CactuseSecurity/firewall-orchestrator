@@ -141,10 +141,6 @@ namespace FWO.Ui.Auth
                 {
                     await executionModeStorage.ClearExecutionMode();
                 }
-
-                user = new ClaimsPrincipal(new ClaimsIdentity());
-
-                NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
             }
         }
 
@@ -270,7 +266,7 @@ namespace FWO.Ui.Auth
         /// Clears unusable tokens and notifies the UI when automatic session recovery is no longer possible.
         /// </summary>
         private async Task HandleExpiredSessionAsync()
-        {            
+        {
             await tokenService.RevokeTokens();
             PublishReloginRequiredForAuthenticatedUser();
         }

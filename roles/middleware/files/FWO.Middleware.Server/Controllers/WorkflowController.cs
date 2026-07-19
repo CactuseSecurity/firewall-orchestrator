@@ -173,8 +173,7 @@ namespace FWO.Middleware.Server.Controllers
                 return result;
             }
 
-            (WfStatefulObject? statefulObject, FwoOwner? owner, long? actionTicketId, string? userGrpDn) =
-                ResolveActionContext(wfHandler, ticket, parameters, scope);
+            (WfStatefulObject? statefulObject, FwoOwner? owner, long? actionTicketId, string? userGrpDn) = ResolveActionContext(wfHandler, ticket, parameters, scope);
             if (statefulObject == null)
             {
                 SetWarning(result, $"Stateful object could not be resolved. Scope: {scope}, ObjectId: {parameters.ObjectId}, TicketId: {ticket.Id}.");
@@ -193,7 +192,64 @@ namespace FWO.Middleware.Server.Controllers
             }
 
             result.Success = await ExecuteResolvedAction(wfHandler, parameters, scope, statefulObject, owner, actionTicketId, userGrpDn);
+            if (result.Success)
+            {
+                await ContinueAfterInternalWorkIfNeeded(actionApiConnection, userConfig, ticket, parameters, scope, statefulObject, result);
+            }
             return result;
+        }
+
+        private static async Task ContinueAfterInternalWorkIfNeeded(ApiConnection actionApiConnection, UserConfig userConfig,
+            WfTicket ticket, WorkflowActionParameters parameters, WfObjectScopes scope, WfStatefulObject statefulObject, WorkflowActionResult result)
+        {
+            long reqTaskId = scope switch
+            {
+                WfObjectScopes.RequestTask => parameters.ObjectId,
+                WfObjectScopes.ImplementationTask when statefulObject is WfImplTask implTask => implTask.ReqTaskId,
+                _ => 0
+            };
+
+            if (reqTaskId <= 0)
+            {
+                return;
+            }
+
+            WfReqTask? affectedReqTask = ResolveAffectedReqTask(ticket, scope, statefulObject, reqTaskId);
+            if (!IsInternalWorkTask(affectedReqTask))
+            {
+                return;
+            }
+
+            try
+            {
+                using ExternalRequestHandler extRequestHandler = new(userConfig, actionApiConnection);
+                await extRequestHandler.ContinueAfterInternalWorkCompletion(parameters.TicketId, reqTaskId);
+            }
+            catch (Exception exception)
+            {
+                result.Success = false;
+                result.ErrorMessage = $"Could not continue external request chain after internal work. {exception.Message}";
+                AddWorkflowMessage(result, exception, "Internal Work", "Could not continue external request chain after internal work.", true);
+            }
+        }
+
+        private static WfReqTask? ResolveAffectedReqTask(WfTicket ticket, WfObjectScopes scope, WfStatefulObject statefulObject, long reqTaskId)
+        {
+            return scope switch
+            {
+                WfObjectScopes.RequestTask => statefulObject as WfReqTask
+                    ?? ticket.Tasks.FirstOrDefault(task => task.Id == reqTaskId),
+
+                WfObjectScopes.ImplementationTask when statefulObject is WfImplTask implTask
+                    => ticket.Tasks.FirstOrDefault(task => task.Id == implTask.ReqTaskId),
+
+                _ => null
+            };
+        }
+
+        private static bool IsInternalWorkTask(WfReqTask? task)
+        {
+            return task?.GetAddInfoValue(AdditionalInfoKeys.FwConfigChangeTarget) == ManagementFwConfigChangeTargets.InternalWork;
         }
 
         private WfHandler CreateWorkflowHandler(ApiConnection actionApiConnection, UserConfig userConfig, WorkflowPhases phase, WorkflowActionResult result)

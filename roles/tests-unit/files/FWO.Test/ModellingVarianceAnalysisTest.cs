@@ -954,6 +954,172 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterRouting()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+
+            RuleOwnerPreFilterRoutingApiConn apiWithRules = new() { ReturnRuleOwnerRules = true };
+            ModellingVarianceAnalysis analysisWithRules = new(apiWithRules, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            await analysisWithRules.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(apiWithRules.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiWithRules.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
+
+            RuleOwnerPreFilterRoutingApiConn apiWithoutRules = new() { ReturnRuleOwnerRules = false };
+            ModellingVarianceAnalysis analysisWithoutRules = new(apiWithoutRules, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            await analysisWithoutRules.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(apiWithoutRules.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiWithoutRules.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterSkippedForRequestFlow()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new();
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            await analysis.AnalyseModelledConnectionsForRequest([]);
+
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterSkippedForPendingRuleOwnerMapping()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new() { HasPendingRuleOwnerMappingImport = true };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterFallsBackWhenPrefilterQueryFails()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new() { ThrowOnRuleOwnerPreFilter = true };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterSkippedForExpandedRuleModes()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+
+            foreach (ModellingFilter modellingFilter in new ModellingFilter[]
+            {
+                new() { AnalyseRemainingRules = true },
+                new() { RulesForDeletedConns = true }
+            })
+            {
+                RuleOwnerPreFilterRoutingApiConn apiConnection = new();
+                ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+                await analysis.AnalyseRulesVsModelledConnections([], modellingFilter, false);
+
+                Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            }
+        }
+
+        private static SimulatedUserConfig CreateNameFieldPreFilterUserConfig()
+        {
+            return new()
+            {
+                ModNamingConvention = "{\"networkAreaRequired\":true,\"fixedPartLength\":4,\"freePartLength\":5,\"networkAreaPattern\":\"NA\",\"appRolePattern\":\"AR\"}",
+                RuleRecognitionOption = oppRecogOpt,
+                OwnerSoruceMappingID = (int)OwnerMappingSourceStm.NameField,
+                ModModelledMarker = "FWOC",
+                ModModelledMarkerLocation = MarkerLocation.Rulename
+            };
+        }
+
+        private sealed class RuleOwnerPreFilterRoutingApiConn : SimulatedApiConnection
+        {
+            public List<string> Queries { get; } = [];
+            public bool ReturnRuleOwnerRules { get; init; } = true;
+            public bool HasPendingRuleOwnerMappingImport { get; init; } = false;
+            public bool ThrowOnRuleOwnerPreFilter { get; init; } = false;
+
+            public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(
+                string query,
+                object? variables = null,
+                string? operationName = null,
+                FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                await DefaultInit.DoNothing();
+                Queries.Add(query);
+
+                Type responseType = typeof(QueryResponseType);
+
+                if (responseType == typeof(List<Management>))
+                {
+                    object managements = query == ReportQueries.getRelevantImportIdsAtTime
+                        ? new List<Management> { new() { Import = new() { ImportAggregate = new() { ImportAggregateMax = new() { RelevantImportId = 1 } } } } }
+                        : new List<Management> { new() { Id = 1, Name = "Checkpoint1", ExtMgtData = "{\"id\":\"1\",\"name\":\"CheckpointExt\"}" } };
+
+                    return (QueryResponseType)managements;
+                }
+
+                if (responseType == typeof(List<ModellingNetworkArea>))
+                {
+                    return (QueryResponseType)(object)new List<ModellingNetworkArea>();
+                }
+
+                if (responseType == typeof(List<ModellingConnection>))
+                {
+                    return (QueryResponseType)(object)new List<ModellingConnection>();
+                }
+                if (responseType == typeof(List<ImportControl>))
+                {
+                    List<ImportControl> imports = HasPendingRuleOwnerMappingImport
+                        ? [new() { ControlId = 1 }]
+                        : [];
+                    return (QueryResponseType)(object)imports;
+                }
+
+                if (responseType == typeof(List<NetworkObject>))
+                {
+                    return (QueryResponseType)(object)new List<NetworkObject>();
+                }
+                if (responseType == typeof(List<DeviceReport>))
+                {
+                    return (QueryResponseType)(object)new List<DeviceReport>();
+                }
+
+                if (responseType == typeof(List<Rule>))
+                {
+                    if (query == RuleQueries.getModelledRulesByRuleOwnerNameField && ThrowOnRuleOwnerPreFilter)
+                    {
+                        throw new InvalidOperationException("Simulated rule_owner prefilter failure.");
+                    }
+
+                    List<Rule> rules = query == RuleQueries.getModelledRulesByRuleOwnerNameField && !ReturnRuleOwnerRules
+                        ? []
+                        : [new() { Id = 1, Name = "FWOC1", MgmtId = 1 }];
+
+                    return (QueryResponseType)(object)rules;
+                }
+
+                throw new NotImplementedException(query);
+            }
+        }
+
+        [Test]
         public async Task TestNATHeuristic()
         {
             List<ModellingConnection> Connections = [Connection7];

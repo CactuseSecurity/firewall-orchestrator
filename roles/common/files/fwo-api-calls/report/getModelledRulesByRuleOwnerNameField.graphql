@@ -1,0 +1,35 @@
+query getModelledRulesByRuleOwnerNameField (
+  $mgmId: Int!
+  $ownerId: Int!
+  $ownerMappingSourceId: smallint!
+  # Used by ruleDetailsForReport fragments.
+  $active: Boolean
+  $import_id_start: bigint
+  $import_id_end: bigint
+  $marker: String
+) {
+  firewall_rule (
+    where: {
+      mgm_id: { _eq: $mgmId }
+      active: { _eq: true }
+      access_rule: { _eq: true }
+      rule_head_text: { _is_null: true }
+      rule_disabled: { _eq: false }
+      action_id: { _nin: [2,3,7] }
+      import_control: { control_id: { _lte: $import_id_end } }
+      _or: [
+        { removed: { _is_null: true } }
+        { removed: { _gt: $import_id_start } }
+      ]
+      rule_name: { _ilike: $marker }
+      rule_owners: {
+        owner_id: { _eq: $ownerId }
+        owner_mapping_source_id: { _eq: $ownerMappingSourceId }
+        removed: { _is_null: true }
+      }
+    }
+    order_by: { rule_num_numeric: asc }
+  ) {
+    ...ruleDetailsForReport
+  }
+}

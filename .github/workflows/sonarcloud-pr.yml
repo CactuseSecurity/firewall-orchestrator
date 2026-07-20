@@ -66,16 +66,16 @@ jobs:
           # pull_request_target fork checkout block of checkout@v7 can be lifted
           allow-unsafe-pr-checkout: true
 
-      # The checkout above only contains the fork's refs; its copy of the base
-      # branch may be months stale, which would make Sonar treat everything
-      # merged upstream since then as new code of this PR.
+      # The checkout above only contains the fork's refs; origin/<base> can be
+      # months stale. Sonar resolves the PR baseline from that remote-tracking
+      # ref, so refresh it from the upstream repository.
       - name: Fetch base branch from upstream
         env:
           BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
           git remote add base "https://github.com/${{ github.repository }}.git"
-          git fetch base "$BASE_REF"
-          git branch -f "$BASE_REF" "base/$BASE_REF"
+          git fetch base "+refs/heads/$BASE_REF:refs/remotes/origin/$BASE_REF"
+          git branch -f "$BASE_REF" "origin/$BASE_REF"
 
       - name: Set up Java
         uses: actions/setup-java@v5

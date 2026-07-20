@@ -90,7 +90,7 @@ jobs:
 
       - run: .venv/bin/pip install -r roles/importer/files/importer/requirements.txt
 
-      - run: .venv/bin/pip install -r scripts/customizing/app_data_import/requirements-for-app-data-import.txt
+      - run: .venv/bin/pip install -r scripts/requirements.txt
 
       - uses: astral-sh/ruff-action@278981a28ce3188b1e39527901f38254bf3aac89
         with:

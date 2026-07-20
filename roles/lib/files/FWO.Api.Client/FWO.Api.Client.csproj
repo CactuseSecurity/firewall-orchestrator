@@ -11,11 +11,11 @@
     <PackageReference Include="GraphQL.Client" Version="6.1.0" />
     <PackageReference Include="GraphQL.Client.Serializer.Newtonsoft" Version="6.1.0" />
     <PackageReference Include="GraphQL.Client.Serializer.SystemTextJson" Version="6.1.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Components" Version="10.0.9" />
+    <PackageReference Include="Microsoft.AspNetCore.Components" Version="10.0.10" />
     <PackageReference Include="Microsoft.Rest.ClientRuntime" Version="2.3.24" />
     <PackageReference Include="RestSharp" Version="114.0.0" />
     <PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="114.0.0" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.19.1" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.19.2" />
   </ItemGroup>
 
   <ItemGroup>

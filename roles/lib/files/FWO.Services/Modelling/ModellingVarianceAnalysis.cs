@@ -160,7 +160,7 @@ namespace FWO.Services.Modelling
             appServerComparer = new(namingConvention);
             await InitManagements();
             await LoadAreas();
-            await GetModelledRulesProductionState(new() { AnalyseRemainingRules = false });
+            await GetModelledRulesProductionState(new() { AnalyseRemainingRules = false }, useNameFieldRuleOwnerPreFilter: false);
             await GetNwObjectsProductionState();
             await GetDeletedConnections();
 

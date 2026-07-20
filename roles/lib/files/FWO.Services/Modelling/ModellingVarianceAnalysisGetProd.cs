@@ -14,6 +14,8 @@ namespace FWO.Services.Modelling
     /// </summary>
     public partial class ModellingVarianceAnalysis
     {
+        private List<ImportControl>? PendingRuleOwnerMappingImports { get; set; }
+
         private async Task InitManagements()
         {
             try
@@ -40,7 +42,7 @@ namespace FWO.Services.Modelling
             }
         }
 
-        private async Task<bool> GetModelledRulesProductionState(ModellingFilter modellingFilter)
+        private async Task<bool> GetModelledRulesProductionState(ModellingFilter modellingFilter, bool useNameFieldRuleOwnerPreFilter = true)
         {
             try
             {
@@ -51,7 +53,7 @@ namespace FWO.Services.Modelling
                 foreach (Management mgt in RelevantManagements)
                 {
                     varianceResult.UnModelledRules.Add(mgt.Id, []);
-                    List<Rule>? rulesByMgt = await GetRules(mgt.Id, modellingFilter);
+                    List<Rule>? rulesByMgt = await GetRules(mgt.Id, modellingFilter, useNameFieldRuleOwnerPreFilter);
                     if (rulesByMgt != null)
                     {
                         IdentifyModelledRules(mgt, rulesByMgt);
@@ -136,10 +138,26 @@ namespace FWO.Services.Modelling
             }
         }
 
-        private async Task<List<Rule>?> GetRules(int mgtId, ModellingFilter modellingFilter)
+        private async Task<List<Rule>?> GetRules(int mgtId, ModellingFilter modellingFilter, bool useNameFieldRuleOwnerPreFilter)
         {
             long? relImpId = await GetRelevantImportId(mgtId);
             await GetRuleDevices(mgtId, modellingFilter);
+
+            if (relImpId != null && useNameFieldRuleOwnerPreFilter && ShouldUseNameFieldRuleOwnerPreFilter(modellingFilter) && await IsRuleOwnerMappingCurrent(mgtId, relImpId.Value))
+            {
+                List<Rule>? preFilteredRules = await TryGetNameFieldRuleOwnerPrefilteredRules(mgtId, relImpId);
+                if (preFilteredRules?.Count > 0)
+                {
+                    return preFilteredRules;
+                }
+
+                if (preFilteredRules != null)
+                {
+                    Log.WriteDebug("Variance Rule Loading",
+                        $"NameField rule_owner prefilter returned no rules for owner {owner.Id}, management {mgtId}. Falling back to marker query.");
+                }
+            }
+
             if (modellingFilter.AnalyseRemainingRules)
             {
                 var RuleVariables = new
@@ -166,7 +184,79 @@ namespace FWO.Services.Modelling
                     MarkerLocation.Comment => RuleQueries.getModelledRulesByManagementComment,
                     _ => throw new NotSupportedException("invalid or undefined Marker Location")
                 };
+
                 return await apiConnection.SendQueryAsync<List<Rule>>(query, RuleVariables);
+            }
+        }
+
+        /// <summary>
+        /// Uses the NameField rule_owner mapping as a prefilter only for the normal variance rule load.
+        /// AnalyseRemainingRules must inspect rules beyond the current owner's mapped modelled rules,
+        /// and RulesForDeletedConns may need historical/deleted model references that are not guaranteed
+        /// to have an active rule_owner entry. Those expanded modes therefore keep using the existing
+        /// marker-based rule loading path.
+        /// </summary>
+        private bool ShouldUseNameFieldRuleOwnerPreFilter(ModellingFilter modellingFilter)
+        {
+            return userConfig.OwnerSoruceMappingID == (int)OwnerMappingSourceStm.NameField
+                && userConfig.ModModelledMarkerLocation == MarkerLocation.Rulename
+                && owner.Id > 0
+                && !string.IsNullOrWhiteSpace(userConfig.ModModelledMarker)
+                && !modellingFilter.AnalyseRemainingRules
+                && !modellingFilter.RulesForDeletedConns;
+        }
+
+        /// <summary>
+        /// Checks import_control backlog for firewall-import driven rule_owner mapping lag.
+        /// Owner/model changes are expected to update rule_owner mapping promptly; without an
+        /// import_control marker there is no cheap freshness signal here.
+        /// </summary>
+        private async Task<bool> IsRuleOwnerMappingCurrent(int mgtId, long relImpId)
+        {
+            try
+            {
+                PendingRuleOwnerMappingImports ??= await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getPendingRuleOwnerImports) ?? [];
+
+                bool hasRelevantPendingImport = PendingRuleOwnerMappingImports.Any(import => import.ControlId <= relImpId && (!import.MgmId.HasValue || import.MgmId.Value == mgtId));
+                if (hasRelevantPendingImport)
+                {
+                    Log.WriteDebug("Variance Rule Loading",
+                        $"Skipping NameField rule_owner prefilter because pending rule_owner mapping imports exist for management {mgtId} up to import {relImpId}.");
+                }
+
+                return !hasRelevantPendingImport;
+            }
+            catch (Exception exception)
+            {
+                Log.WriteWarning("Variance Rule Loading",
+                        $"Could not verify rule_owner mapping freshness for management {mgtId}, import {relImpId}. Falling back to marker query. {exception.Message}");
+
+                return false;
+            }
+        }
+
+        private async Task<List<Rule>?> TryGetNameFieldRuleOwnerPrefilteredRules(int mgtId, long? relImpId)
+        {
+            try
+            {
+                var RuleVariables = new
+                {
+                    mgmId = mgtId,
+                    ownerId = owner.Id,
+                    ownerMappingSourceId = (short)(int)OwnerMappingSourceStm.NameField,
+                    active = true,  //  Used by ruleDetailsForReport fragments
+                    marker = $"%{userConfig.ModModelledMarker}%",
+                    import_id_start = relImpId,
+                    import_id_end = relImpId
+                };
+
+                return await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getModelledRulesByRuleOwnerNameField, RuleVariables);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteWarning("Variance Rule Loading",
+                    $"NameField rule_owner prefilter failed for owner {owner.Id}, management {mgtId}. Falling back to marker query. {exception.Message}");
+                return null;
             }
         }
 

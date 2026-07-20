@@ -116,7 +116,7 @@ jobs:
         run: dotnet tool update dotnet-coverage --tool-path .sonar/scanner
 
       - name: Install Python dependencies
-        run: python -m pip install -r roles/importer/files/importer/requirements.txt coverage==7.15.0
+        run: python -m pip install -r roles/importer/files/importer/requirements.txt -r scripts/requirements.txt coverage==7.15.0
 
       - name: Build and analyze pull request
         env:

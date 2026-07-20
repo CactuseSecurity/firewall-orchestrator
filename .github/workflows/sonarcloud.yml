@@ -68,7 +68,7 @@ jobs:
         run: dotnet tool update dotnet-coverage --tool-path .sonar/scanner
 
       - name: Install Python dependencies
-        run: python -m pip install -r roles/importer/files/importer/requirements.txt coverage==7.15.0
+        run: python -m pip install -r roles/importer/files/importer/requirements.txt -r scripts/requirements.txt coverage==7.15.0
 
       - name: Build and analyze
         run: |
@@ -98,7 +98,7 @@ jobs:
             "dotnet test roles/tests-unit/files/FWO.Test/FWO.Test.csproj --configuration Debug --no-build --settings FWO.default.runsettings" \
             -f xml \
             -o coverage.xml
-          python -m coverage run -m pytest -q roles/importer/files/importer/test scripts/customizing
+          python -m coverage run -m pytest -q roles/importer/files/importer/test scripts
           python -m coverage xml -o python-coverage.xml
           for attempt in 1 2 3; do
             if .sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${SONAR_TOKEN}"; then

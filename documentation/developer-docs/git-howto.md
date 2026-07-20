@@ -209,7 +209,7 @@ Recommended setup (repo root):
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -U pip
-python -m pip install -r roles\importer\files\importer\requirements.txt -r scripts\customizing\app_data_import\requirements-for-app-data-import.txt
+python -m pip install -r roles\importer\files\importer\requirements.txt -r scripts\requirements.txt
 ```
 
 Optional validation:

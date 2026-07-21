@@ -1,0 +1,120 @@
+@using System.Text.Json
+@using FWO.Ui.Services
+
+@inject UserConfig userConfig
+
+<div class="col-sm-4">
+    <div class="form-group row">
+        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("successState")):</label>
+        <div class="col-sm-8">
+            <Dropdown ElementType="WfState"
+                      ElementToString="@(s => DisplayService.DisplayStateWithId(userConfig, s))"
+                      SelectedElement="selectedSuccessState"
+                      SelectedElementChanged="OnSuccessStateChanged"
+                      Elements="States"
+                      Nullable="true"
+                      NoneSelectedText="@(userConfig.GetText("None"))">
+                <ElementTemplate Context="state">
+                    @DisplayService.DisplayStateWithId(userConfig, state)
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    </div>
+</div>
+<div class="col-sm-4">
+    <div class="form-group row">
+        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("errorState")):</label>
+        <div class="col-sm-8">
+            <Dropdown ElementType="WfState"
+                      ElementToString="@(s => DisplayService.DisplayStateWithId(userConfig, s))"
+                      SelectedElement="selectedErrorState"
+                      SelectedElementChanged="OnErrorStateChanged"
+                      Elements="States"
+                      Nullable="true"
+                      NoneSelectedText="@(userConfig.GetText("None"))">
+                <ElementTemplate Context="state">
+                    @DisplayService.DisplayStateWithId(userConfig, state)
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    </div>
+</div>
+<div class="col-sm-4">
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5536"))">
+        <label class="col-sm-10 col-form-label col-form-label-sm" for="confirmCreateFlow">@(userConfig.GetText("confirm_flow_creation")):</label>
+        <div class="col-sm-2">
+            <input id="confirmCreateFlow" class="form-check-input mt-2" type="checkbox" checked="@confirmUiMessage" @onchange="OnConfirmChanged" />
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public WfStateAction ActAction { get; set; } = new();
+
+    [Parameter]
+    public List<WfState> States { get; set; } = [];
+
+    private ActionResultStateParams actActionResultStateParams = new();
+    private WfState? selectedSuccessState;
+    private WfState? selectedErrorState;
+    private bool confirmUiMessage;
+
+    protected override void OnParametersSet()
+    {
+        ResetLocalState();
+        LoadFromExternalParams();
+    }
+
+    private void ResetLocalState()
+    {
+        actActionResultStateParams = new();
+        selectedSuccessState = null;
+        selectedErrorState = null;
+        confirmUiMessage = false;
+    }
+
+    private void LoadFromExternalParams()
+    {
+        if (string.IsNullOrWhiteSpace(ActAction.ExternalParams))
+        {
+            return;
+        }
+
+        actActionResultStateParams = JsonSerializer.Deserialize<ActionResultStateParams>(ActAction.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
+        selectedSuccessState = States.FirstOrDefault(x => x.Id == actActionResultStateParams.SuccessState);
+        selectedErrorState = States.FirstOrDefault(x => x.Id == actActionResultStateParams.ErrorState);
+        confirmUiMessage = actActionResultStateParams.ConfirmUiMessage;
+    }
+
+    private Task OnSuccessStateChanged(WfState? state)
+    {
+        selectedSuccessState = state;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    private Task OnErrorStateChanged(WfState? state)
+    {
+        selectedErrorState = state;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    private Task OnConfirmChanged(ChangeEventArgs changeEventArgs)
+    {
+        confirmUiMessage = bool.TryParse(changeEventArgs.Value?.ToString(), out bool parsedValue) && parsedValue;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    private void UpdateExternalParams()
+    {
+        actActionResultStateParams.SuccessState = selectedSuccessState?.Id;
+        actActionResultStateParams.ErrorState = selectedErrorState?.Id;
+        actActionResultStateParams.ConfirmUiMessage = confirmUiMessage;
+        ActAction.ExternalParams = actActionResultStateParams.SuccessState != null || actActionResultStateParams.ErrorState != null || actActionResultStateParams.ConfirmUiMessage
+            ? JsonSerializer.Serialize(actActionResultStateParams)
+            : "";
+    }
+}

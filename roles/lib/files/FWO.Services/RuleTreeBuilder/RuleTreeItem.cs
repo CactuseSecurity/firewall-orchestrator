@@ -95,37 +95,67 @@ namespace FWO.Services.RuleTreeBuilder
         private void OnIsExpandedChanged()
         {
             SelectedRuleTreeLeafs.Clear();
+            PropagateVisibility(this, AllExpandableAncestorsAreExpanded(this), SelectedRuleTreeLeafs);
+        }
 
-            foreach (RuleTreeItem item in TraverseDown(this))
+        /// <summary>
+        /// Recomputes visibility for every descendant of <paramref name="subtreeRoot"/> in a single
+        /// iterative top-down pass. A descendant is visible only when the root's own ancestor chain
+        /// is expanded and every expandable node on the path down to that descendant is expanded.
+        /// Leaf descendants are appended to <paramref name="leafSink"/> when it is supplied.
+        /// </summary>
+        private static void PropagateVisibility(RuleTreeItem subtreeRoot, bool subtreeRootAncestorsExpanded, List<RuleTreeItem>? leafSink)
+        {
+            bool childVisible = subtreeRootAncestorsExpanded && (subtreeRoot.IsRoot || subtreeRoot.IsExpanded);
+
+            Stack<(RuleTreeItem Node, bool Visible)> pending = new();
+            PushChildren(subtreeRoot, childVisible, pending);
+
+            while (pending.Count > 0)
             {
-                if (item != this)
-                {
-                    if (!item.Children.Any())
-                    {
-                        SelectedRuleTreeLeafs.Add(item);
-                    }
+                (RuleTreeItem node, bool visible) = pending.Pop();
+                node.IsVisible = visible;
 
-                    if (IsExpanded)
-                    {
-                        ExpandItem(item);
-                    }
-                    else
-                    {
-                        item.IsVisible = false;
-                    }
+                if (node.Children.Count == 0)
+                {
+                    leafSink?.Add(node);
+                    continue;
                 }
+
+                PushChildren(node, visible && (node.IsRoot || node.IsExpanded), pending);
             }
         }
 
-        private void ExpandItem(RuleTreeItem item)
+        /// <summary>
+        /// Pushes every direct child of <paramref name="node"/> onto the traversal stack together
+        /// with the visibility that applies to that child, so the caller can continue the top-down
+        /// visibility propagation without recursion.
+        /// </summary>
+        private static void PushChildren(RuleTreeItem node, bool visible, Stack<(RuleTreeItem Node, bool Visible)> pending)
         {
-            if (item != this && !AllExpandableAncestorsAreExpanded(item))
+            foreach (RuleTreeItem child in node.Children)
             {
-                item.IsVisible = false;
+                pending.Push((child, visible));
             }
-            else
+        }
+
+        /// <summary>
+        /// Enumerates <paramref name="root"/> and all of its descendants using an explicit stack.
+        /// </summary>
+        private static IEnumerable<RuleTreeItem> EnumerateSubtree(RuleTreeItem root)
+        {
+            Stack<RuleTreeItem> pending = new();
+            pending.Push(root);
+
+            while (pending.Count > 0)
             {
-                item.IsVisible = true;
+                RuleTreeItem node = pending.Pop();
+                yield return node;
+
+                foreach (RuleTreeItem child in node.Children)
+                {
+                    pending.Push(child);
+                }
             }
         }
 
@@ -163,23 +193,17 @@ namespace FWO.Services.RuleTreeBuilder
         /// </summary>
         public static void SetExpandedRecursively(RuleTreeItem item, bool isExpanded)
         {
-            foreach (RuleTreeItem childItem in TraverseDown(item))
+            foreach (RuleTreeItem childItem in EnumerateSubtree(item))
             {
                 if (childItem == item || childItem.Children.Count == 0)
                 {
                     continue;
                 }
 
-                if (childItem.IsInlineLayerRoot)
-                {
-                    childItem.IsExpanded = true;
-                    continue;
-                }
-
-                if (childItem.Children.Count > 0)
-                {
-                    childItem.IsExpanded = isExpanded;
-                }
+                // Assign the backing field directly so the per-node visibility pass in
+                // OnIsExpandedChanged does not run once for every node. Inline-layer roots must stay
+                // logically expanded; visibility for the whole subtree is recomputed once below.
+                childItem._isExpanded = childItem.IsInlineLayerRoot || isExpanded;
             }
 
             RefreshVisibilityRecursively(item);
@@ -193,54 +217,10 @@ namespace FWO.Services.RuleTreeBuilder
         /// </summary>
         private static void RefreshVisibilityRecursively(RuleTreeItem rootItem)
         {
-            foreach (RuleTreeItem childItem in TraverseDown(rootItem))
-            {
-                if (childItem == rootItem)
-                {
-                    childItem.IsVisible = true;
-                    continue;
-                }
-
-                childItem.IsVisible = AllExpandableAncestorsAreExpanded(childItem);
-            }
+            rootItem.IsVisible = true;
+            PropagateVisibility(rootItem, AllExpandableAncestorsAreExpanded(rootItem), leafSink: null);
         }
 
-
-        private static IEnumerable<RuleTreeItem> TraverseDown(RuleTreeItem item, Action<RuleTreeItem>? action = null)
-        {
-            if (action != null)
-            {
-                action(item);
-            }
-
-            yield return item;
-
-            foreach (RuleTreeItem child in item.Children)
-            {
-                foreach (RuleTreeItem descendant in TraverseDown(child))
-                {
-                    if (action != null)
-                    {
-                        action(descendant);
-                    }
-
-                    yield return descendant;
-                }
-            }
-        }
-
-        private IEnumerable<RuleTreeItem> TraverseUp(RuleTreeItem item, Action<RuleTreeItem>? action = null)
-        {
-            var current = item;
-
-            while (current != null)
-            {
-                action?.Invoke(current);
-                yield return current;
-
-                current = current.Parent;
-            }
-        }
 
         #endregion
     }

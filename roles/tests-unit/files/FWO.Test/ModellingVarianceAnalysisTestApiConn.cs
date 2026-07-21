@@ -17,6 +17,8 @@ namespace FWO.Test
         static readonly NetworkObject Nwgroup3 = new() { Id = 3, Name = "AR504711-003", Type = new() { Name = ObjectType.Group }, ObjectGroupFlats = [new() { Object = NwObj1 }] };
         static readonly NetworkObject SpecObj1 = new() { Id = 21, Name = "SpecObj1", Type = new() { Name = "Something else" } };
         static readonly NetworkObject SpecObj2 = new() { Id = 21, Name = "SpecObj2", Type = new() { Name = "Something else" } };
+        static readonly NetworkObject UpdObj1 = new() { Id = 31, Name = "UpdObj1", Type = new() { Name = "Something else" } };
+        static readonly NetworkObject UpdObj2 = new() { Id = 32, Name = "UpdObj2", Type = new() { Name = "Something else" } };
 
         static readonly ModellingAppServer AppServer1 = new() { Id = 13, Name = "AppServerUnchanged", Ip = "1.2.3.4/32", IpEnd = "1.2.3.4/32" };
         static readonly ModellingAppServer AppServer2 = new() { Id = 14, Name = "AppServerNew1_32", Ip = "1.1.1.1/32", IpEnd = "1.1.1.1/32" };
@@ -97,6 +99,38 @@ namespace FWO.Test
             Tos = [new(new(), NwObj1), new(new(), NwObj2)],
             Services = [new() { Content = Svc1 }]
         };
+        static readonly Rule Rule10 = new()
+        {
+            Name = "FWOC8",
+            MgmtId = 1,
+            Froms = [new(new(), NwObj1)],
+            Tos = [new(new(), UpdObj1), new(new(), UpdObj2)],
+            Services = [new() { Content = Svc1 }]
+        };
+        static readonly Rule Rule11 = new()
+        {
+            Name = "FWOC9",
+            MgmtId = 1,
+            Froms = [new(new(), NwObj1)],
+            Tos = [new(new(), UpdObj1)],
+            Services = [new() { Content = Svc1 }]
+        };
+        static readonly Rule Rule12 = new()
+        {
+            Name = "FWOC10",
+            MgmtId = 1,
+            Froms = [new(new(), SpecObj1), new(new(), SpecObj2), new(new(), NwObj1)],
+            Tos = [new(new(), Nwgroup3)],
+            Services = [new() { Content = Svc1 }]
+        };
+        static readonly Rule Rule13 = new()
+        {
+            Name = "FWOC11",
+            MgmtId = 1,
+            Froms = [new(new(), SpecObj1), new(new(), NwObj1)],
+            Tos = [new(new(), Nwgroup3)],
+            Services = [new() { Content = Svc1 }]
+        };
         static readonly DeviceReport DevRep1 = new()
         {
             Id = 1,
@@ -163,7 +197,7 @@ namespace FWO.Test
             }
             else if (responseType == typeof(List<Rule>))
             {
-                GraphQLResponse<dynamic> response = new() { Data = new List<Rule>() { new(Rule1), new(Rule2), new(Rule3), new(Rule4), new(Rule5), new(Rule6), new(Rule7), new(Rule8), new(Rule9) } };
+                GraphQLResponse<dynamic> response = new() { Data = new List<Rule>() { new(Rule1), new(Rule2), new(Rule3), new(Rule4), new(Rule5), new(Rule6), new(Rule7), new(Rule8), new(Rule9), new(Rule10), new(Rule11), new(Rule12), new(Rule13) } };
                 return response.Data;
             }
             else if (responseType == typeof(List<ModellingConnection>))
@@ -175,7 +209,7 @@ namespace FWO.Test
             {
                 if (variables != null)
                 {
-                    List<int> connIds = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+                    List<int> connIds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
                     var connId = variables.GetType().GetProperties().First(o => o.Name == "id").GetValue(variables, null);
                     if (connId != null && connIds.Contains((int)connId))
                     {

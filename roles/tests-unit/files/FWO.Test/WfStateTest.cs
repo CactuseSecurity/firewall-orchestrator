@@ -46,6 +46,47 @@ namespace FWO.Test
         }
 
         [Test]
+        public void CopyConstructor_CopiesStateActionLinks()
+        {
+            WfStateAction originalAction = new()
+            {
+                Id = 11,
+                Name = "action",
+                StateActions =
+                [
+                    new WfStateActionStateHelper
+                    {
+                        SortOrder = 7,
+                        State = new WfState { Id = 8, Name = "linked-state" }
+                    }
+                ]
+            };
+
+            WfStateAction copy = new(originalAction);
+
+            Assert.That(copy.StateActions, Is.Not.SameAs(originalAction.StateActions));
+            Assert.That(copy.StateActions, Has.Count.EqualTo(1));
+            Assert.That(copy.StateActions[0].SortOrder, Is.EqualTo(7));
+            Assert.That(copy.StateActions[0].State.Id, Is.EqualTo(8));
+            Assert.That(copy.StateActions[0].State.Name, Is.EqualTo("linked-state"));
+        }
+
+        [Test]
+        public void StateCount_ReturnsNumberOfLinks()
+        {
+            WfStateAction action = new()
+            {
+                StateActions =
+                [
+                    new WfStateActionStateHelper(),
+                    new WfStateActionStateHelper()
+                ]
+            };
+
+            Assert.That(action.StateCount, Is.EqualTo(2));
+        }
+
+        [Test]
         public void Automatic_DefaultsToFalse()
         {
             WfState state = new();

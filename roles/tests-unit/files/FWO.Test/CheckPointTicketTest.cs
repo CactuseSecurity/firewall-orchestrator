@@ -16,6 +16,10 @@ namespace FWO.Test
     [Parallelizable]
     internal class CheckPointTicketTest
     {
+        private static readonly string[] kExpectedExistingHostEndpoints = ["add-host", "show-host", "publish"];
+        private static readonly string[] kExpectedRetriedHostEndpoints = ["add-host", "show-host", "add-host"];
+        private static readonly string[] kExpectedExistingNetworkEndpoints = ["add-network", "show-network", "publish"];
+
         private readonly ExternalTicketSystem checkPointSystem = new()
         {
             Id = 1,
@@ -75,7 +79,7 @@ namespace FWO.Test
         {
 
 
-            ExternalTicketSystem checkPointSystem = new()
+            ExternalTicketSystem retryCheckPointSystem = new()
             {
                 Id = 1,
                 TypeId = 9,
@@ -107,7 +111,7 @@ namespace FWO.Test
                 ExportCredential = new ImportCredential("tester", "secret")
             };
 
-            SimulatedCheckPointClient checkPointClient = new(checkPointSystem, management);
+            SimulatedCheckPointClient checkPointClient = new(retryCheckPointSystem, management);
             checkPointClient.EnqueueResponse("add-group", new(new())
             {
                 StatusCode = HttpStatusCode.OK,
@@ -149,7 +153,7 @@ namespace FWO.Test
                 Content = "{}"
             });
 
-            CheckPointTicket ticket = new(checkPointSystem, checkPointClient)
+            CheckPointTicket ticket = new(retryCheckPointSystem, checkPointClient)
             {
                 OnManagement = management
             };
@@ -171,7 +175,7 @@ namespace FWO.Test
         [Test]
         public async Task CreateRequestStringForGroupModifyBuildsAddAndRemoveExecutionPlan()
         {
-            ExternalTicketSystem checkPointSystem = new()
+            ExternalTicketSystem groupModifyCheckPointSystem = new()
             {
                 Id = 1,
                 TypeId = 9,
@@ -194,7 +198,7 @@ namespace FWO.Test
                 ]
             };
 
-            CheckPointTicket ticket = new(checkPointSystem);
+            CheckPointTicket ticket = new(groupModifyCheckPointSystem);
 
             await ticket.CreateRequestString([CreateGroupModifyTask()], [], new ModellingNamingConvention());
 
@@ -335,6 +339,72 @@ namespace FWO.Test
             ClassicAssert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
             CollectionAssert.AreEqual(ExpectedHardErrorEndpoints, checkPointClient.CalledEndpoints);
             ClassicAssert.AreEqual(1, checkPointClient.LogoutCalls);
+        }
+
+        [Test]
+        public async Task CreateExternalTicketSkipsExistingHostWithMatchingAddress()
+        {
+            Management management = CreateManagement();
+            SimulatedCheckPointClient checkPointClient = new(checkPointSystem, management);
+            checkPointClient.EnqueueResponse("add-host", ErrorResponse("More than one host has the same IP"));
+            checkPointClient.EnqueueResponse("show-host", OkResponse("{\"ipv4-address\":\"10.0.0.1\"}"));
+            checkPointClient.EnqueueResponse("publish", OkResponse("{}"));
+            CheckPointTicket ticket = CreateTicketWithPlan(checkPointClient, management,
+                $"{{\"Steps\":[{{\"TaskType\":\"{CheckPointTaskTypes.HostCreate}\",\"Body\":{{\"name\":\"host\",\"ip-address\":\"10.0.0.1/32\"}}}},{{\"TaskType\":\"{CheckPointTaskTypes.Publish}\",\"Body\":{{}}}}]}}");
+
+            RestResponse<int> response = await ticket.CreateExternalTicket();
+
+            ClassicAssert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            CollectionAssert.AreEqual(kExpectedExistingHostEndpoints, checkPointClient.CalledEndpoints);
+        }
+
+        [Test]
+        public async Task CreateExternalTicketRetriesWhenExistingObjectDoesNotMatch()
+        {
+            Management management = CreateManagement();
+            SimulatedCheckPointClient checkPointClient = new(checkPointSystem, management);
+            checkPointClient.EnqueueResponse("add-host", ErrorResponse("multiple IP addresses"));
+            checkPointClient.EnqueueResponse("show-host", OkResponse("{\"ipv4-address\":\"10.0.0.9\"}"));
+            checkPointClient.EnqueueResponse("add-host", OkResponse("{}"));
+            CheckPointTicket ticket = CreateTicketWithPlan(checkPointClient, management,
+                $"{{\"Steps\":[{{\"TaskType\":\"{CheckPointTaskTypes.HostCreate}\",\"Body\":{{\"name\":\"host\",\"ip-address\":\"10.0.0.1\"}}}}]}}");
+
+            RestResponse<int> response = await ticket.CreateExternalTicket();
+
+            ClassicAssert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            CollectionAssert.AreEqual(kExpectedRetriedHostEndpoints, checkPointClient.CalledEndpoints);
+            StringAssert.Contains("\"ignore-warnings\":true", checkPointClient.RequestBodies[^1] ?? "");
+        }
+
+        [Test]
+        public async Task CreateExternalTicketSkipsExistingIpv6NetworkWithNumericPrefix()
+        {
+            Management management = CreateManagement();
+            SimulatedCheckPointClient checkPointClient = new(checkPointSystem, management);
+            checkPointClient.EnqueueResponse("add-network", ErrorResponse("More than one network has the same subnet"));
+            checkPointClient.EnqueueResponse("show-network", OkResponse("{\"subnet6\":\"2001:db8::\",\"mask-length6\":\"64\"}"));
+            checkPointClient.EnqueueResponse("publish", OkResponse("{}"));
+            CheckPointTicket ticket = CreateTicketWithPlan(checkPointClient, management,
+                $"{{\"Steps\":[{{\"TaskType\":\"{CheckPointTaskTypes.NetworkCreate}\",\"Body\":{{\"name\":\"net6\",\"subnet\":\"2001:db8::\",\"mask-length\":64}}}},{{\"TaskType\":\"{CheckPointTaskTypes.Publish}\",\"Body\":{{}}}}]}}");
+
+            RestResponse<int> response = await ticket.CreateExternalTicket();
+
+            ClassicAssert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            CollectionAssert.AreEqual(kExpectedExistingNetworkEndpoints, checkPointClient.CalledEndpoints);
+        }
+
+        [Test]
+        public void CreateExternalTicketRejectsEmptyAndUnknownExecutionPlans()
+        {
+            Management management = CreateManagement();
+            CheckPointTicket emptyPlan = CreateTicketWithPlan(new SimulatedCheckPointClient(checkPointSystem, management), management, "{\"Steps\":[]}");
+            CheckPointTicket missingContent = CreateTicketWithPlan(new SimulatedCheckPointClient(checkPointSystem, management), management, "");
+
+            ProcessingFailedException emptyException = Assert.ThrowsAsync<ProcessingFailedException>(emptyPlan.CreateExternalTicket)!;
+            ProcessingFailedException missingException = Assert.ThrowsAsync<ProcessingFailedException>(missingContent.CreateExternalTicket)!;
+
+            ClassicAssert.AreEqual("CheckPoint request content has no executable steps.", emptyException.Message);
+            ClassicAssert.AreEqual("CheckPoint request content missing.", missingException.Message);
         }
 
         private static WfReqTask CreateGroupModifyTask()

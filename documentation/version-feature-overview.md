@@ -211,3 +211,17 @@ For a feature-centric, thematically grouped view see
 - Importer/customizing-script HTTP calls now use connect/read timeouts.
 - FortiOS (REST) VIP/destination-NAT objects normalized to their external IP.
 - Explicit `[Authorize]` on the password-change REST endpoint.
+
+### 9.2.0 — 10.07.2026
+- Updated supported operating systems: Ubuntu 22.04/24.04/26.04, Debian 11/12/13, Red Hat 9, and Rocky 9.
+- Ubuntu versions older than 22.04 and Debian versions older than 11 are no longer supported.
+
+### 9.2.1 — 12.07.2026 (DEVELOP)
+- Migrated firewall tables to the firewall schema.
+
+### 9.2.2 — 15.07.2026 (DEVELOP)
+- Added generic firewall import.
+- Enabled Azure 2022 firewall support for normalized config import.
+
+### 9.2.3 — 17.07.2026 (DEVELOP)
+- Standard rules report generation now scopes flat rule paging to selected rulebases and adds a supporting database index.

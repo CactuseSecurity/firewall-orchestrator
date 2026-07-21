@@ -19,6 +19,10 @@ namespace FWO.Services.RuleTreeBuilder
         /// </summary>
         new public List<RuleTreeItem> ElementsFlat { get; set; } = new();
         /// <summary>
+        /// Lookup of flat tree items by their report rule instance.
+        /// </summary>
+        public Dictionary<Rule, RuleTreeItem> ItemsByRule { get; } = new(ReferenceEqualityComparer.Instance);
+        /// <summary>
         /// Flag to mark items that act as roots of section headers
         /// </summary>
         public bool IsSectionHeader { get; set; } = false;

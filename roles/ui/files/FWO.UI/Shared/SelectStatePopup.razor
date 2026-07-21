@@ -1,0 +1,112 @@
+@using FWO.Ui.Services
+
+@inject UserConfig userConfig
+
+<PopUp Title="@(Title)" Show="@Display" Size=PopupSize.Small OnClose="ClosePopup">
+    <Body>
+        @if (Display)
+        {
+            <div class="col-sm-12">
+                <Dropdown ElementType="WfState"
+                          @bind-SelectedElement="selectedState"
+                          ElementToString="@(state => StateToString(state))"
+                          Elements="States"
+                          Nullable="true"
+                          NoneSelectedText="@(NoneSelectedText)">
+                    <ElementTemplate Context="state">
+                        @StateToString(state)
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <ExecutionModeAuthorizeView Roles="@AddButtonRoles">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-primary" disabled="@(selectedState == null)" @onclick="Confirm">
+                        @(DisplayService.DisplayButton(userConfig, "add", Icons.Add))
+                    </button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>
+                        @(DisplayService.DisplayButton(userConfig, "add", Icons.Add))
+                    </button>
+                </NotAuthorized>
+            </ExecutionModeAuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelAsync">
+                @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))
+            </button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code {
+    [Parameter]
+    public bool Display { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public IEnumerable<WfState> States { get; set; } = [];
+
+    [Parameter]
+    public WfState? SelectedState { get; set; }
+
+    [Parameter]
+    public EventCallback<WfState?> SelectedStateChanged { get; set; }
+
+    [Parameter]
+    public Func<WfState, string> StateToString { get; set; } = state => state.Name;
+
+    [Parameter]
+    public string NoneSelectedText { get; set; } = "";
+
+    [Parameter]
+    public string AddButtonRoles { get; set; } = $"{Roles.Admin}, {Roles.FwAdmin}";
+
+    [Parameter]
+    public EventCallback OnConfirm { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    private WfState? selectedState;
+
+    protected override void OnParametersSet()
+    {
+        selectedState = SelectedState;
+    }
+
+    private async Task Confirm()
+    {
+        if (selectedState == null)
+        {
+            return;
+        }
+
+        await SelectedStateChanged.InvokeAsync(selectedState);
+        await OnConfirm.InvokeAsync();
+        await CloseAsync();
+    }
+
+    private void ClosePopup()
+    {
+        _ = CancelAsync();
+    }
+
+    private async Task CancelAsync()
+    {
+        await OnCancel.InvokeAsync();
+        await CloseAsync();
+    }
+
+    private Task CloseAsync()
+    {
+        return DisplayChanged.InvokeAsync(false);
+    }
+}

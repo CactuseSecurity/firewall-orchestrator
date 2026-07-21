@@ -13,6 +13,33 @@ namespace FWO.Test
     [Parallelizable]
     internal class DailyCheckJobTest
     {
+        private static readonly DailyCheckModule[] ExpectedImportsModules =
+        [
+            DailyCheckModule.Imports,
+            DailyCheckModule.OwnerActiveRules
+        ];
+
+        private static readonly AlertCode[] ExpectedEnabledCheckAlertCodes =
+        [
+            AlertCode.SampleDataExisting,
+            AlertCode.ImportRunningTooLong
+        ];
+
+        private static readonly AlertCode[] ExpectedSampleDataAlertCodes =
+        [
+            AlertCode.SampleDataExisting
+        ];
+
+        private static readonly AlertCode[] ExpectedImportAlertCodes =
+        [
+            AlertCode.ImportRunningTooLong,
+            AlertCode.NoImport,
+            AlertCode.SuccessfulImportOverdue
+        ];
+
+        private static readonly int[] ExpectedSuccessLogSeverities = [1];
+        private static readonly int[] ExpectedNoAlertLogSeverities = [0];
+
         [Test]
         public void LoadEnabledModules_ReturnsAllModules_WhenConfigIsBlank()
         {
@@ -49,11 +76,7 @@ namespace FWO.Test
 
             HashSet<DailyCheckModule> enabledModules = InvokeLoadEnabledModules(globalConfig);
 
-            Assert.That(enabledModules, Is.EquivalentTo(new[]
-            {
-                DailyCheckModule.Imports,
-                DailyCheckModule.OwnerActiveRules
-            }));
+            Assert.That(enabledModules, Is.EquivalentTo(ExpectedImportsModules));
         }
 
         [Test]
@@ -97,6 +120,77 @@ namespace FWO.Test
             await dailyCheckJob.Execute(null!);
 
             Assert.That(apiConnection.QueryCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task Execute_SkipsRecertChecks_WhenDisabled()
+        {
+            CountingApiConnection apiConnection = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                DailyCheckModules = "[3,4]",
+                RecRefreshDaily = false,
+                RecCheckActive = false
+            };
+            DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
+
+            await dailyCheckJob.Execute(null!);
+
+            Assert.That(apiConnection.QueryCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task Execute_LogsAlertWhenModuleProcessingThrows()
+        {
+            ThrowingDailyCheckApiConnection apiConnection = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                DailyCheckModules = "[1]"
+            };
+            DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
+
+            await dailyCheckJob.Execute(null!);
+
+            Assert.That(apiConnection.LogCount, Is.EqualTo(1));
+            Assert.That(apiConnection.AlertCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task Execute_RunsEnabledChecks_WhenDemoDataAndImportsAreEnabled()
+        {
+            DailyCheckApiConnection apiConnection = new()
+            {
+                Managements =
+                [
+                    new Management { Name = $"mgmt{GlobalConst.k_demo}" }
+                ],
+                ImportStatuses =
+                [
+                    new ImportStatus
+                    {
+                        MgmId = 1,
+                        ImportDisabled = false,
+                        LastIncompleteImport =
+                        [
+                            new ImportControl
+                            {
+                                StartTime = DateTime.Now.AddHours(-3)
+                            }
+                        ]
+                    }
+                ]
+            };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                DailyCheckModules = "[1,2]",
+                MaxImportDuration = 1
+            };
+            DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
+
+            await dailyCheckJob.Execute(null!);
+
+            Assert.That(apiConnection.AlertCodes, Is.EquivalentTo(ExpectedEnabledCheckAlertCodes));
+            Assert.That(apiConnection.LogSeverities, Is.EqualTo([1, 1]));
         }
 
         [Test]
@@ -149,6 +243,49 @@ namespace FWO.Test
             Assert.That(apiConnection.OwnerLookupCount, Is.EqualTo(1));
             Assert.That(apiConnection.LogEntryCount, Is.EqualTo(1));
             Assert.That(apiConnection.AlertCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task CheckDemoData_LogsNoSampleData_WhenNothingMatches()
+        {
+            DailyCheckApiConnection apiConnection = new()
+            {
+                LdapConnections =
+                [
+                    new FWO.Middleware.Server.Ldap
+                    {
+                        UserSearchPath = "ou=users,dc=test"
+                    }
+                ]
+            };
+            DailyCheckJob dailyCheckJob = new(apiConnection, new SimulatedGlobalConfig());
+            MethodInfo checkDemoData = typeof(DailyCheckJob).GetMethod("CheckDemoData", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("CheckDemoData method not found.");
+
+            await (Task)checkDemoData.Invoke(dailyCheckJob, null)!;
+
+            Assert.That(apiConnection.AlertCodes, Is.Empty);
+            Assert.That(apiConnection.LogSeverities, Is.EqualTo(ExpectedNoAlertLogSeverities));
+        }
+
+        [Test]
+        public async Task CheckDemoData_CreatesAlert_WhenDemoDataIsFound()
+        {
+            DailyCheckApiConnection apiConnection = new()
+            {
+                Managements =
+                [
+                    new Management { Name = $"mgmt{GlobalConst.k_demo}" }
+                ]
+            };
+            DailyCheckJob dailyCheckJob = new(apiConnection, new SimulatedGlobalConfig());
+            MethodInfo checkDemoData = typeof(DailyCheckJob).GetMethod("CheckDemoData", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("CheckDemoData method not found.");
+
+            await (Task)checkDemoData.Invoke(dailyCheckJob, null)!;
+
+            Assert.That(apiConnection.AlertCodes, Is.EqualTo(ExpectedSampleDataAlertCodes));
+            Assert.That(apiConnection.LogSeverities, Is.EqualTo(ExpectedSuccessLogSeverities));
         }
 
         [Test]
@@ -288,13 +425,8 @@ namespace FWO.Test
                 ?? throw new InvalidOperationException("CheckImports returned null task."));
             await task;
 
-            Assert.That(apiConnection.AlertCodes, Is.EquivalentTo(new[]
-            {
-                AlertCode.ImportRunningTooLong,
-                AlertCode.NoImport,
-                AlertCode.SuccessfulImportOverdue
-            }));
-            Assert.That(apiConnection.LogSeverities, Is.EqualTo(new[] { 1 }));
+            Assert.That(apiConnection.AlertCodes, Is.EquivalentTo(ExpectedImportAlertCodes));
+            Assert.That(apiConnection.LogSeverities, Is.EqualTo(ExpectedSuccessLogSeverities));
         }
 
         private static HashSet<DailyCheckModule> InvokeLoadEnabledModules(SimulatedGlobalConfig globalConfig)
@@ -315,6 +447,124 @@ namespace FWO.Test
             {
                 QueryCount++;
                 throw new InvalidOperationException("No query should be executed in this test.");
+            }
+        }
+
+        private sealed class ThrowingDailyCheckApiConnection : SimulatedApiConnection
+        {
+            public int QueryCount { get; private set; }
+            public int LogCount { get; private set; }
+            public int AlertCount { get; private set; }
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                QueryCount++;
+
+                if (query == DeviceQueries.getManagementsDetails && typeof(QueryResponseType) == typeof(List<Management>))
+                {
+                    throw new InvalidOperationException("boom");
+                }
+
+                if (query == MonitorQueries.getOpenAlerts && typeof(QueryResponseType) == typeof(List<Alert>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<Alert>());
+                }
+
+                if (query == MonitorQueries.addLogEntry && typeof(QueryResponseType) == typeof(ReturnIdWrapper))
+                {
+                    LogCount++;
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { NewId = 1 }]
+                    });
+                }
+
+                if (query == MonitorQueries.addAlert && typeof(QueryResponseType) == typeof(ReturnIdWrapper))
+                {
+                    AlertCount++;
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { NewIdLong = 1 }]
+                    });
+                }
+
+                throw new InvalidOperationException($"Unexpected query: {query}");
+            }
+        }
+
+        private sealed class DailyCheckApiConnection : SimulatedApiConnection
+        {
+            public List<Management> Managements { get; set; } = [];
+            public List<ImportCredential> Credentials { get; set; } = [];
+            public List<UiUser> Users { get; set; } = [];
+            public List<Tenant> Tenants { get; set; } = [];
+            public List<FWO.Middleware.Server.Ldap> LdapConnections { get; set; } = [];
+            public List<FwoOwner> Owners { get; set; } = [];
+            public List<ImportStatus> ImportStatuses { get; set; } = [];
+            public List<AlertCode> AlertCodes { get; } = [];
+            public List<int> LogSeverities { get; } = [];
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (query == DeviceQueries.getManagementsDetails && typeof(QueryResponseType) == typeof(List<Management>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)Managements);
+                }
+
+                if (query == DeviceQueries.getCredentialsWithoutSecrets && typeof(QueryResponseType) == typeof(List<ImportCredential>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)Credentials);
+                }
+
+                if (query == AuthQueries.getUsers && typeof(QueryResponseType) == typeof(List<UiUser>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)Users);
+                }
+
+                if (query == AuthQueries.getTenants && typeof(QueryResponseType) == typeof(List<Tenant>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)Tenants);
+                }
+
+                if (query == AuthQueries.getLdapConnections && typeof(QueryResponseType) == typeof(List<FWO.Middleware.Server.Ldap>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)LdapConnections);
+                }
+
+                if (query == OwnerQueries.getOwners && typeof(QueryResponseType) == typeof(List<FwoOwner>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)Owners);
+                }
+
+                if (query == MonitorQueries.getImportStatus && typeof(QueryResponseType) == typeof(List<ImportStatus>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)ImportStatuses);
+                }
+
+                if (query == MonitorQueries.getOpenAlerts && typeof(QueryResponseType) == typeof(List<Alert>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<Alert>());
+                }
+
+                if (query == MonitorQueries.addAlert && typeof(QueryResponseType) == typeof(ReturnIdWrapper))
+                {
+                    object variablesObject = variables ?? throw new InvalidOperationException("Alert variables missing.");
+                    int alertCode = (int)(variablesObject.GetType().GetProperty("alertCode")?.GetValue(variablesObject)
+                        ?? throw new InvalidOperationException("Alert code missing."));
+                    AlertCodes.Add((AlertCode)alertCode);
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper { ReturnIds = [new ReturnId { NewIdLong = AlertCodes.Count }] });
+                }
+
+                if (query == MonitorQueries.addLogEntry && typeof(QueryResponseType) == typeof(ReturnIdWrapper))
+                {
+                    object variablesObject = variables ?? throw new InvalidOperationException("Log variables missing.");
+                    int severity = (int)(variablesObject.GetType().GetProperty("severity")?.GetValue(variablesObject)
+                        ?? throw new InvalidOperationException("Severity missing."));
+                    LogSeverities.Add(severity);
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper { ReturnIds = [new ReturnId { NewIdLong = LogSeverities.Count }] });
+                }
+
+                throw new InvalidOperationException($"Unexpected query: {query}");
             }
         }
 

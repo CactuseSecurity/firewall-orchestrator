@@ -10,5 +10,12 @@ query getActions {
     event
     button_text
     external_parameters
+    state_actions(order_by: { sort_order: asc, state_id: asc }) {
+      sort_order
+      state {
+        id
+        name
+      }
+    }
   }
 }

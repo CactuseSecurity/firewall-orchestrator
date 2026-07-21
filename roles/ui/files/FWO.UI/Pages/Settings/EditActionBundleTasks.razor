@@ -1,0 +1,108 @@
+@inject UserConfig userConfig
+
+<div class="col-sm-4">
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5535"))">
+        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("bundle_type")):</label>
+        <div class="col-sm-8">
+            <Dropdown ElementType="BundleTaskType"
+                      SelectedElement="selectedBundleTaskType"
+                      SelectedElementChanged="OnBundleTypeChanged"
+                      ElementToString="@(t => userConfig.GetText(t.ToString()))"
+                      Elements="Enum.GetValues(typeof(BundleTaskType)).Cast<BundleTaskType>()">
+                <ElementTemplate Context="bundleType">
+                    @(userConfig.GetText(bundleType.ToString()))
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    </div>
+</div>
+<div class="col-sm-4">
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5537"))">
+        <label class="col-sm-10 col-form-label col-form-label-sm" for="cleanBundleZones">@(userConfig.GetText("clean_zones")):</label>
+        <div class="col-sm-2">
+            <input id="cleanBundleZones" class="form-check-input mt-2" type="checkbox" checked="@cleanBundleZones" @onchange="OnCleanZonesChanged" />
+        </div>
+    </div>
+</div>
+<div class="col-sm-4">
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5537"))">
+        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("policies")):</label>
+        <div class="col-sm-8">
+            <Dropdown ElementType="CompliancePolicy"
+                      SelectedElement="selectedBundlePolicy"
+                      SelectedElementChanged="OnPolicyChanged"
+                      ElementToString="@(p => p.Name)"
+                      Elements="Policies"
+                      Nullable="true"
+                      NoneSelectedText="@(userConfig.GetText("None"))">
+                <ElementTemplate Context="policy">
+                    @policy.Name
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public WfStateAction ActAction { get; set; } = new();
+
+    [Parameter]
+    public List<CompliancePolicy> Policies { get; set; } = [];
+
+    private BundleTaskType selectedBundleTaskType = BundleTaskType.TwoOutOfThree;
+    private bool cleanBundleZones;
+    private CompliancePolicy? selectedBundlePolicy;
+
+    protected override void OnParametersSet()
+    {
+        ResetLocalState();
+        LoadFromExternalParams();
+    }
+
+    private void ResetLocalState()
+    {
+        selectedBundleTaskType = BundleTaskType.TwoOutOfThree;
+        cleanBundleZones = false;
+        selectedBundlePolicy = null;
+    }
+
+    private void LoadFromExternalParams()
+    {
+        BundleTasksActionParams bundleParams = BundleTasksActionParams.FromExternalParams(ActAction.ExternalParams);
+        selectedBundleTaskType = bundleParams.BundleType;
+        cleanBundleZones = bundleParams.CleanZones;
+        selectedBundlePolicy = Policies.FirstOrDefault(policy => policy.Id == bundleParams.PolicyId);
+    }
+
+    private Task OnBundleTypeChanged(BundleTaskType bundleTaskType)
+    {
+        selectedBundleTaskType = bundleTaskType;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    private Task OnCleanZonesChanged(ChangeEventArgs changeEventArgs)
+    {
+        cleanBundleZones = bool.TryParse(changeEventArgs.Value?.ToString(), out bool checkedValue) && checkedValue;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    private Task OnPolicyChanged(CompliancePolicy? policy)
+    {
+        selectedBundlePolicy = policy;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    private void UpdateExternalParams()
+    {
+        ActAction.ExternalParams = new BundleTasksActionParams
+        {
+            BundleType = selectedBundleTaskType,
+            CleanZones = cleanBundleZones,
+            PolicyId = selectedBundlePolicy?.Id
+        }.ToExternalParams();
+    }
+}

@@ -3,14 +3,35 @@ using System.IO;
 using FWO.Api.Client;
 using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Config.File;
 using FWO.Middleware.Server;
 using NUnit.Framework;
+using System.Reflection;
 
 namespace FWO.Test
 {
     [TestFixture]
     public class DataImportBaseTest
     {
+        private static readonly string[] kExpectedSingleQuotesAndEscapesArguments =
+        [
+            "alpha",
+            "beta gamma",
+            "delta value",
+            "quoted value"
+        ];
+
+        private static readonly string[] kExpectedPreservedQuotedArguments =
+        [
+            "--filterColumn",
+            "Aktive Firewallregel",
+            "--includeValues",
+            "Ja",
+            "--compositeIdFields",
+            "Applikation",
+            "Teilapplikation"
+        ];
+
         [Test]
         public void RunImportScriptReturnsFalseWhenScriptMissing()
         {
@@ -107,6 +128,18 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ReadFileThrowsWhenFileMissing()
+        {
+            ApiConnection apiConnection = new SimulatedApiConnection();
+            GlobalConfig globalConfig = new SimulatedGlobalConfig();
+            TestDataImportBase importer = new(apiConnection, globalConfig);
+
+            string missingFile = Path.Combine(Path.GetTempPath(), $"missing-{Guid.NewGuid():N}.txt");
+
+            Assert.Throws<FileNotFoundException>(() => importer.ReadImportFile(missingFile, validateImportFile: false));
+        }
+
+        [Test]
         public void ParseCommandLineArgumentsPreservesQuotedValues()
         {
             List<string> arguments = TestDataImportBase.GetArguments(
@@ -115,17 +148,60 @@ namespace FWO.Test
 
             Assert.That(
                 arguments,
-                Is.EqualTo(
-                [
-                    "--filterColumn",
-                    "Aktive Firewallregel",
-                    "--includeValues",
-                    "Ja",
-                    "--compositeIdFields",
-                    "Applikation",
-                    "Teilapplikation"
-                ])
+                Is.EqualTo(kExpectedPreservedQuotedArguments)
             );
+        }
+
+        [Test]
+        public void ParseCommandLineArgumentsHandlesSingleQuotesAndEscapes()
+        {
+            List<string> arguments = TestDataImportBase.GetArguments(
+                "alpha 'beta gamma' delta\\ value \"quoted value\""
+            );
+
+            Assert.That(arguments, Is.EqualTo(kExpectedSingleQuotesAndEscapesArguments));
+        }
+
+        [Test]
+        public void ValidateConfiguredImportSource_ReturnsValidatedFilesForExtensionlessSource()
+        {
+            string tempRoot = CreateNonWorldWritableTempDirectory();
+            object? originalConfigData = null;
+            object? originalJwtPrivateKey = null;
+            object? originalJwtPublicKey = null;
+            bool configSnapshotTaken = false;
+            try
+            {
+                (originalConfigData, originalJwtPrivateKey, originalJwtPublicKey) = SnapshotConfigFileState();
+                configSnapshotTaken = true;
+
+                string configFilePath = Path.Combine(tempRoot, "config.json");
+                string privateKeyPath = Path.Combine(tempRoot, "private.pem");
+                string publicKeyPath = Path.Combine(tempRoot, "public.pem");
+                string configJson = $"{{\"fworch_home\":\"{tempRoot.Replace("\\", "\\\\")}\"}}";
+                File.WriteAllText(configFilePath, configJson);
+                File.WriteAllText(privateKeyPath, "");
+                File.WriteAllText(publicKeyPath, "");
+                TestHelper.InvokeMethod<ConfigFile, object?>("Read", [configFilePath, privateKeyPath, publicKeyPath]);
+
+                string customizationRoot = Path.Combine(tempRoot, "etc");
+                Directory.CreateDirectory(customizationRoot);
+                string importFile = Path.Combine(customizationRoot, "owners.json");
+                File.WriteAllText(importFile, "{}");
+                SetOwnerOnlyModes(tempRoot, customizationRoot, importFile);
+
+                List<string> validatedFiles = TestDataImportBase.ValidateConfiguredSource(Path.Combine(customizationRoot, "owners"));
+
+                Assert.That(validatedFiles, Is.EqualTo(new[] { importFile }));
+            }
+            finally
+            {
+                if (configSnapshotTaken)
+                {
+                    RestoreConfigFileState(originalConfigData, originalJwtPrivateKey, originalJwtPublicKey);
+                }
+                Directory.Delete(tempRoot, true);
+            }
         }
 
         [Test]
@@ -292,6 +368,11 @@ namespace FWO.Test
                 return ParseCommandLineArguments(args);
             }
 
+            public static List<string> ValidateConfiguredSource(string importfilePathAndName)
+            {
+                return ValidateConfiguredImportSource(importfilePathAndName);
+            }
+
             public string ImportFile => importFile;
         }
 
@@ -320,6 +401,23 @@ namespace FWO.Test
             File.SetUnixFileMode(nestedDir, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
             File.SetUnixFileMode(filePath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
 #pragma warning restore CA1416
+        }
+
+        private static (object? Data, object? JwtPrivateKey, object? JwtPublicKey) SnapshotConfigFileState()
+        {
+            Type configFileType = typeof(ConfigFile);
+            object? data = configFileType.GetProperty("Data", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null);
+            object? jwtPrivateKey = configFileType.GetField("jwtPrivateKey", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null);
+            object? jwtPublicKey = configFileType.GetField("jwtPublicKey", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null);
+            return (data, jwtPrivateKey, jwtPublicKey);
+        }
+
+        private static void RestoreConfigFileState(object? data, object? jwtPrivateKey, object? jwtPublicKey)
+        {
+            Type configFileType = typeof(ConfigFile);
+            configFileType.GetProperty("Data", BindingFlags.Static | BindingFlags.NonPublic)!.SetValue(null, data);
+            configFileType.GetField("jwtPrivateKey", BindingFlags.Static | BindingFlags.NonPublic)!.SetValue(null, jwtPrivateKey);
+            configFileType.GetField("jwtPublicKey", BindingFlags.Static | BindingFlags.NonPublic)!.SetValue(null, jwtPublicKey);
         }
     }
 }

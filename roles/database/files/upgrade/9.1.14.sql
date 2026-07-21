@@ -38,6 +38,24 @@ ALTER TABLE "rule" DROP COLUMN IF EXISTS "rule_from_zone";
 
 ALTER TABLE "rule" DROP COLUMN IF EXISTS "rule_to_zone";
 
+-- The firewall schema migration in 9.2.1 moves object to firewall.nw_object.
+-- Resolve either location so this upgrade can safely be re-run before or after
+-- that migration.
+CREATE OR REPLACE FUNCTION public.get_nw_object_ips()
+RETURNS TABLE (obj_id BIGINT, obj_ip CIDR, obj_ip_end CIDR) AS $$
+BEGIN
+    IF to_regclass('firewall.nw_object') IS NOT NULL THEN
+        RETURN QUERY
+        SELECT o.obj_id, o.obj_ip, o.obj_ip_end
+        FROM firewall.nw_object o;
+    ELSE
+        RETURN QUERY
+        SELECT o.obj_id, o.obj_ip, o.obj_ip_end
+        FROM public.object o;
+    END IF;
+END;
+$$ LANGUAGE plpgsql STABLE;
+
 /*
 logic for checking overlap of ip ranges:
 not (end_ip1 < start_ip2 or start_ip1 > end_ip2)
@@ -160,7 +178,7 @@ FROM
     v_rule_with_rule_owner r
     LEFT JOIN rule_from rf ON (r.rule_id = rf.rule_id)
     LEFT JOIN objgrp_flat of ON (rf.obj_id = of.objgrp_flat_id)
-    LEFT JOIN object o ON (
+    LEFT JOIN public.get_nw_object_ips() o ON (
         of.objgrp_flat_member_id = o.obj_id
     )
 WHERE
@@ -173,7 +191,7 @@ FROM
     v_rule_with_rule_owner r
     LEFT JOIN rule_to rt ON (r.rule_id = rt.rule_id)
     LEFT JOIN objgrp_flat of ON (rt.obj_id = of.objgrp_flat_id)
-    LEFT JOIN object o ON (
+    LEFT JOIN public.get_nw_object_ips() o ON (
         of.objgrp_flat_member_id = o.obj_id
     )
 WHERE
@@ -225,7 +243,7 @@ FROM
     LEFT JOIN objgrp_flat of ON (
         rule_from.obj_id = of.objgrp_flat_id
     )
-    LEFT JOIN object o ON (
+    LEFT JOIN public.get_nw_object_ips() o ON (
         of.objgrp_flat_member_id = o.obj_id
     )
     LEFT JOIN owner_network onw ON (
@@ -303,7 +321,7 @@ FROM
     v_active_access_allow_rules r
     LEFT JOIN rule_to rt ON (r.rule_id = rt.rule_id)
     LEFT JOIN objgrp_flat of ON (rt.obj_id = of.objgrp_flat_id)
-    LEFT JOIN object o ON (
+    LEFT JOIN public.get_nw_object_ips() o ON (
         of.objgrp_flat_member_id = o.obj_id
     )
     LEFT JOIN owner_network onw ON (

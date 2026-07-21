@@ -124,6 +124,39 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildBodyWithStringContentConvertsNewLinesInHtmlLayout()
+        {
+            FwoNotification notification = new()
+            {
+                Layout = NotificationLayout.HtmlInBody,
+                EmailBody = "header "
+            };
+
+            string body = NotificationEmailLayoutHelper.BuildBody(notification, "line1\r\nline2\nline3");
+
+            Assert.That(body, Is.EqualTo("header line1<br>line2<br>line3"));
+        }
+
+        [Test]
+        public void BuildBodyWithLayoutContentAppendsWhenPlaceholderIsMissing()
+        {
+            NotificationEmailLayoutContent content = new()
+            {
+                PlainText = "plain content",
+                Html = "<strong>html content</strong>"
+            };
+            FwoNotification notification = new()
+            {
+                Layout = NotificationLayout.SimpleText,
+                EmailBody = "prefix "
+            };
+
+            string body = NotificationEmailLayoutHelper.BuildBody(notification, content);
+
+            Assert.That(body, Is.EqualTo("prefix plain content"));
+        }
+
+        [Test]
         public void BuildBodyAppendsContentWhenPlaceholderIsMissing()
         {
             FwoNotification notification = new()
@@ -195,6 +228,21 @@ namespace FWO.Test
             Assert.That(await ReadFormFile(htmlAttachment), Does.Contain("<!DOCTYPE html>"));
             Assert.That(await ReadFormFile(htmlAttachment), Does.Contain("<p>html fragment</p>"));
             Assert.That(nullAttachment, Is.Null);
+        }
+
+        [Test]
+        public async Task BuildAttachmentWithContentReturnsNullForUnsupportedLayout()
+        {
+            NotificationEmailLayoutContent content = new()
+            {
+                Html = "<p>html fragment</p>",
+                Csv = "a,b",
+                Json = "{}"
+            };
+
+            FormFile? unsupportedAttachment = await NotificationEmailLayoutHelper.BuildAttachment(NotificationLayout.SimpleText, content, "Subject Line");
+
+            Assert.That(unsupportedAttachment, Is.Null);
         }
 
         [TestCase(NotificationLayout.HtmlAsAttachment, "application/html", "<p>html fragment</p>")]

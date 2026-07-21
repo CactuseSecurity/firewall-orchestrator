@@ -1,0 +1,201 @@
+@using System.Text.Json
+@using FWO.Api.Client
+@using FWO.Api.Client.Queries
+@using FWO.Services
+@using FWO.Ui.Services
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<div class="col-sm-4">
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5527"))">
+        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("attached_content")):</label>
+        <div class="col-sm-8">
+            <Dropdown ElementType="EmailAttachedContent"
+                      SelectedElement="actAttachedContent"
+                      SelectedElementChanged="OnAttachedContentChanged"
+                      ElementToString="@(c => userConfig.GetText(c.ToString()))"
+                      Elements="Enum.GetValues(typeof(EmailAttachedContent)).Cast<EmailAttachedContent>()">
+                <ElementTemplate Context="content">
+                    @(userConfig.GetText(content.ToString()))
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    </div>
+</div>
+<div class="col-sm-4">
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5530"))">
+        <label class="col-sm-10 col-form-label col-form-label-sm" for="confirmSentMail">@(userConfig.GetText("confirm_sent_mail")):</label>
+        <div class="col-sm-2">
+            <input id="confirmSentMail" class="form-check-input mt-2" type="checkbox" checked="@actConfirmSentMail" @onchange="OnConfirmSentMailChanged" />
+        </div>
+    </div>
+</div>
+<div class="col-sm-12">
+    <EditNotifications Client="NotificationClient.WfAction"
+                       NotificationIds="@actActionNotificationIds"
+                       NotificationIdsChanged="@SetActionNotificationIds" />
+</div>
+
+@code {
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public WfStateAction ActAction { get; set; } = new();
+
+    [Parameter]
+    public WfStateAction PersistedAction { get; set; } = new();
+
+    private List<int> actActionNotificationIds = [];
+    private EmailAttachedContent actAttachedContent = EmailAttachedContent.None;
+    private bool actConfirmSentMail;
+    private FwoNotification? legacyActionNotification;
+
+    protected override void OnParametersSet()
+    {
+        ResetLocalState();
+        LoadFromExternalParams();
+    }
+
+    private void ResetLocalState()
+    {
+        actActionNotificationIds = [];
+        actAttachedContent = EmailAttachedContent.None;
+        actConfirmSentMail = false;
+        legacyActionNotification = null;
+    }
+
+    private void LoadFromExternalParams()
+    {
+        if (string.IsNullOrWhiteSpace(ActAction.ExternalParams) || ActAction.ExternalParams == "{}")
+        {
+            return;
+        }
+
+        EmailActionParams emailActionParams = JsonSerializer.Deserialize<EmailActionParams>(ActAction.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
+        actActionNotificationIds = [.. emailActionParams.NotificationIds.Where(id => id > 0).Distinct()];
+        actAttachedContent = emailActionParams.AttachedContent;
+        actConfirmSentMail = emailActionParams.ConfirmSentMail;
+        if (actActionNotificationIds.Count == 0)
+        {
+            legacyActionNotification = emailActionParams.ToNotification();
+        }
+    }
+
+    private Task OnAttachedContentChanged(EmailAttachedContent attachedContent)
+    {
+        actAttachedContent = attachedContent;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    private Task OnConfirmSentMailChanged(ChangeEventArgs changeEventArgs)
+    {
+        actConfirmSentMail = bool.TryParse(changeEventArgs.Value?.ToString(), out bool parsedValue) && parsedValue;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    private Task SetActionNotificationIds(List<int> notificationIds)
+    {
+        actActionNotificationIds = [.. notificationIds.Distinct()];
+        return PersistActionNotificationIds();
+    }
+
+    public async Task<bool> PrepareForSaveAsync()
+    {
+        if (actActionNotificationIds.Count > 0)
+        {
+            UpdateExternalParams();
+            return true;
+        }
+
+        if (legacyActionNotification != null && !string.IsNullOrWhiteSpace(legacyActionNotification.EmailSubject))
+        {
+            legacyActionNotification.NotificationClient = NotificationClient.WfAction;
+            legacyActionNotification.Channel = NotificationChannel.Email;
+            legacyActionNotification.Deadline = NotificationDeadline.None;
+            if (string.IsNullOrWhiteSpace(legacyActionNotification.Name))
+            {
+                legacyActionNotification.Name = ActAction.Name;
+            }
+
+            FwoNotification savedNotification = await NotificationMutationHelper.AddAsync(apiConnection, NotificationClient.WfAction, legacyActionNotification);
+            actActionNotificationIds = [savedNotification.Id];
+            UpdateExternalParams();
+            return true;
+        }
+
+        DisplayMessageInUi(null, userConfig.GetText("save_action"), userConfig.GetText("E4011"), true);
+        return false;
+    }
+
+    public async Task CleanupOnCancelAsync()
+    {
+        if (ActAction.Id > 0)
+        {
+            return;
+        }
+
+        await DeleteActionNotifications(actActionNotificationIds);
+    }
+
+    private async Task PersistActionNotificationIds()
+    {
+        if (PersistedAction.Id <= 0 || PersistedAction.ActionType != nameof(StateActionTypes.SendEmail))
+        {
+            return;
+        }
+
+        string externalParams = EmailExternalParams();
+        int updatedId = await UpdateAction(PersistedAction, externalParams);
+        if (updatedId != PersistedAction.Id)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
+            return;
+        }
+
+        ActAction.ExternalParams = externalParams;
+    }
+
+    private void UpdateExternalParams()
+    {
+        ActAction.ExternalParams = EmailExternalParams();
+    }
+
+    private string EmailExternalParams()
+    {
+        return JsonSerializer.Serialize(new
+        {
+            notification_ids = actActionNotificationIds,
+            attached_content = actAttachedContent,
+            confirm_sent_mail = actConfirmSentMail
+        });
+    }
+
+    private async Task<int> UpdateAction(WfStateAction action, string externalParams)
+    {
+        var Variables = new
+        {
+            id = action.Id,
+            name = action.Name,
+            actionType = action.ActionType,
+            scope = action.Scope,
+            taskType = action.TaskType,
+            phase = action.Phase,
+            eventt = action.Event,
+            buttonText = action.ButtonText,
+            externalParameters = externalParams
+        };
+        return (await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateAction, Variables)).UpdatedId;
+    }
+
+    private async Task DeleteActionNotifications(IEnumerable<int> notificationIds)
+    {
+        foreach (int notificationId in notificationIds.Where(id => id > 0).Distinct())
+        {
+            await NotificationMutationHelper.DeleteAsync(apiConnection, notificationId);
+        }
+    }
+}

@@ -11,7 +11,28 @@ ALTER TABLE rule DROP COLUMN IF EXISTS rule_num;
 -- Zones are represented by the rule_from_zone and rule_to_zone link tables.
 DROP VIEW IF EXISTS v_active_access_allow_rules CASCADE;
 
-DROP MATERIALIZED VIEW IF EXISTS view_rule_with_owner CASCADE;
+-- The relation was a regular view in older installations and a materialized
+-- view in newer ones.  PostgreSQL errors when DROP MATERIALIZED VIEW targets
+-- a regular view, even with IF EXISTS, so determine its kind before dropping
+-- it.  This must happen before dropping columns the relation may depend on.
+CREATE OR REPLACE FUNCTION purge_view_rule_with_owner () RETURNS VOID AS $$
+DECLARE
+    r_temp_record RECORD;
+BEGIN
+    select INTO r_temp_record schemaname, viewname from pg_catalog.pg_views
+    where schemaname NOT IN ('pg_catalog', 'information_schema') and viewname='view_rule_with_owner'
+    order by schemaname, viewname;
+    IF FOUND THEN
+        DROP VIEW IF EXISTS view_rule_with_owner CASCADE;
+    END IF;
+    DROP MATERIALIZED VIEW IF EXISTS view_rule_with_owner CASCADE;
+    RETURN;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT * FROM purge_view_rule_with_owner ();
+
+DROP FUNCTION IF EXISTS purge_view_rule_with_owner ();
 
 ALTER TABLE "rule" DROP COLUMN IF EXISTS "rule_from_zone";
 
@@ -350,25 +371,6 @@ GROUP BY
     uno.owner_name,
     uno.recert_interval,
     uno.rule_last_certified;
-
-CREATE OR REPLACE FUNCTION purge_view_rule_with_owner () RETURNS VOID AS $$
-DECLARE
-    r_temp_record RECORD;
-BEGIN
-    select INTO r_temp_record schemaname, viewname from pg_catalog.pg_views
-    where schemaname NOT IN ('pg_catalog', 'information_schema') and viewname='view_rule_with_owner'
-    order by schemaname, viewname;
-    IF FOUND THEN
-        DROP VIEW IF EXISTS view_rule_with_owner CASCADE;
-    END IF;
-    DROP MATERIALIZED VIEW IF EXISTS view_rule_with_owner CASCADE;
-    RETURN;
-END;
-$$ LANGUAGE plpgsql;
-
-SELECT * FROM purge_view_rule_with_owner ();
-
-DROP FUNCTION purge_view_rule_with_owner ();
 
 -- LargeOwnerChange: remove MATERIALIZED for small installations
 -- SmallOwnerChange: add MATERIALIZED for large installations

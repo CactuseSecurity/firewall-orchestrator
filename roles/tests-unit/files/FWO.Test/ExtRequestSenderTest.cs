@@ -6,6 +6,7 @@ using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using RestSharp;
 using System.Net;
+using System.Reflection;
 
 namespace FWO.Test
 {
@@ -61,7 +62,7 @@ namespace FWO.Test
         [SetUp]
         public void Initialize()
         {
-
+            // The fixture owns immutable test data; each test creates its own sender instance.
         }
 
         [Test]
@@ -116,6 +117,48 @@ namespace FWO.Test
             ClassicAssert.AreEqual(0, localApiConnection.UpdateExtRequestCreation.Count);
             ClassicAssert.AreEqual(0, localApiConnection.UpdateExtRequestProcess.Count);
             ClassicAssert.AreEqual(0, localApiConnection.TriedToGetLdapsForHandleStateChange);
+        }
+
+        [TestCase("", null)]
+        [TestCase("{}", null)]
+        [TestCase("{\"ManagementId\":[]}", null)]
+        [TestCase("{\"ManagementId\":[23,42]}", 23)]
+        public void GetManagementId_ReturnsTheFirstConfiguredManagement(string queryVariables, int? expectedId)
+        {
+            int? managementId = InvokePrivateStatic<int?>("GetManagementId", queryVariables);
+
+            ClassicAssert.AreEqual(expectedId, managementId);
+        }
+
+        [TestCase(null, false)]
+        [TestCase("", false)]
+        [TestCase("GENERAL_ERROR", true)]
+        [TestCase("GENERAL_ERROR Unable to rollback against JDBC Connection", false)]
+        [TestCase("ILLEGAL_ARGUMENT_ERROR", true)]
+        [TestCase("FIELD_VALIDATION_ERROR", true)]
+        [TestCase("WEB_APPLICATION_ERROR", true)]
+        [TestCase("implementation failure", true)]
+        [TestCase("Check Point rule change tasks are not yet supported.", true)]
+        public void AnalyseForRejected_RecognizesPermanentFailures(string? content, bool expected)
+        {
+            RestResponse<int>? response = content == null ? null : new(new()) { Content = content };
+
+            bool rejected = InvokePrivateStatic<bool>("AnalyseForRejected", response);
+
+            ClassicAssert.AreEqual(expected, rejected);
+        }
+
+        [Test]
+        public void GetManagementId_RejectsMalformedJson()
+        {
+            Assert.Throws<TargetInvocationException>(() => InvokePrivateStatic<int?>("GetManagementId", "not-json"));
+        }
+
+        private static T InvokePrivateStatic<T>(string methodName, params object?[] parameters)
+        {
+            MethodInfo method = typeof(ExternalRequestSender).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException($"{methodName} not found.");
+            return (T)method.Invoke(null, parameters)!;
         }
     }
 }

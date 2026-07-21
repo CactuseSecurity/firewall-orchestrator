@@ -565,3 +565,7 @@ Not supported any longer are:
 ## 9.2.2 - 15.07.2026
 - add generic firewall import
 - enable azure2022ff for normalized config import
+
+## 9.2.3 - 17.07.2026
+- speed up standard rules reports by scoping flat rule paging to selected rulebases
+- add database index for standard rules report paging

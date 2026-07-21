@@ -125,6 +125,7 @@ namespace FWO.Basics
         public const string ManagementId = "management_id";
         public const string RuleIds = "ruleIds";
         public const string RuleId = "rule_id";
+        public const string RulebaseIds = "rulebaseIds";
     }
 
     public struct Placeholder

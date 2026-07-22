@@ -640,6 +640,8 @@ namespace FWO.Test
             ClassicAssert.AreEqual(1, result.UnModelledRules.Count);
             ClassicAssert.AreEqual(1, result.UnModelledRules[1].Count);
             ClassicAssert.AreEqual("NonModelledRule", result.UnModelledRules[1][0].Name);
+            ClassicAssert.AreEqual("Checkpoint1", result.UnModelledRules[1][0].ManagementName);
+            ClassicAssert.AreEqual("Gateway3", result.UnModelledRules[1][0].DeviceName);
 
             ClassicAssert.AreEqual(1, result.ConnsNotImplemented.Count);
             ClassicAssert.AreEqual(3, result.ConnsNotImplemented[0].Id);
@@ -649,10 +651,14 @@ namespace FWO.Test
             ClassicAssert.AreEqual("Conn2", result.OkRules[0].ModelledConnection.Name);
             ClassicAssert.AreEqual(1, result.OkRules[0].ImplementedRules.Count);
             ClassicAssert.AreEqual("xxxFWOC2yyy", result.OkRules[0].ImplementedRules[0].Name);
+            ClassicAssert.AreEqual("Checkpoint1", result.OkRules[0].ImplementedRules[0].ManagementName);
+            ClassicAssert.AreEqual("", result.OkRules[0].ImplementedRules[0].DeviceName);
 
             ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
             ClassicAssert.AreEqual("Conn1", result.RuleDifferences[0].ModelledConnection.Name);
             ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules.Count);
+            ClassicAssert.AreEqual("Checkpoint1", result.RuleDifferences[0].ImplementedRules[0].ManagementName);
+            ClassicAssert.AreEqual("Gateway1, Gateway2", result.RuleDifferences[0].ImplementedRules[0].DeviceName);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms.Length);
             ClassicAssert.AreEqual("AR504711-001", result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms[0].Object.Name);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].DisregardedTos.Length);

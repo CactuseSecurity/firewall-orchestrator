@@ -58,6 +58,7 @@ namespace FWO.Api.Client.Queries
                     GetQueryText("networkObject/fragments/networkObjectOverview.graphql") +
                     GetQueryText("networkService/fragments/networkServiceOverview.graphql") +
                     GetQueryText("user/fragments/userOverview.graphql") +
+                    GetQueryText("rule/fragments/ruleEnforcedOnGateways.graphql") +
                     GetQueryText("rule/fragments/ruleOverview.graphql");
                 ruleOverviewForChangeReportFragments =
                     GetQueryText("networkObject/fragments/networkObjectOverview.graphql") +
@@ -80,6 +81,7 @@ namespace FWO.Api.Client.Queries
                     ObjectQueries.networkObjectDetailsFragment +
                     ObjectQueries.networkServiceDetailsFragment +
                     ObjectQueries.userDetailsFragment +
+                    GetQueryText("rule/fragments/ruleEnforcedOnGateways.graphql") +
                     GetQueryText("rule/fragments/ruleDetailsForReport.graphql");
                 ruleDetailsForAppRuleReportFragments =
                     GetQueryText("networkObject/fragments/networkObjectDetailsForAppRules.graphql") +
@@ -111,7 +113,7 @@ namespace FWO.Api.Client.Queries
                 getRuleIdsOfImport = GetQueryText("rule/getRuleIdsOfImport.graphql");
                 getRuleUidsOfDevice = GetQueryText("rule/getRuleUidsOfDevice.graphql");
                 getRuleUidsOfRulebase = GetQueryText("rule/getRuleUidsOfRulebase.graphql");
-                getRulesByManagement = ruleDetailsFragments + GetQueryText("rule/getRulesByManagement.graphql");
+                getRulesByManagement = ruleDetailsFragments + GetQueryText("rule/fragments/ruleEnforcedOnGateways.graphql") + GetQueryText("rule/getRulesByManagement.graphql");
                 getModelledRulesByManagementName = ruleDetailsForReportFragments + GetQueryText("report/getModelledRulesByManagementName.graphql");
                 getModelledRulesByManagementComment = ruleDetailsForReportFragments + GetQueryText("report/getModelledRulesByManagementComment.graphql");
                 getNatRuleOverview = natRuleOverviewFragments + GetQueryText("rule/getNatRuleOverview.graphql");

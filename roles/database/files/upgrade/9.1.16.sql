@@ -250,6 +250,8 @@ transition_data AS (
 INSERT INTO request.state_matrix_transition (transition_group_id, from_state_id, to_state_id, sort_order)
 SELECT transition_group_id, from_state_id, to_state_id, sort_order
 FROM transition_data
+JOIN request.state from_state ON from_state.id = transition_data.from_state_id
+JOIN request.state to_state ON to_state.id = transition_data.to_state_id
 ON CONFLICT (transition_group_id, from_state_id, to_state_id) DO NOTHING;
 
 WITH phase_data AS (
@@ -273,6 +275,8 @@ derived_state_data AS (
 INSERT INTO request.state_matrix_derived_state (phase_matrix_id, from_state_id, derived_state_id)
 SELECT phase_matrix_id, from_state_id, derived_state_id
 FROM derived_state_data
+JOIN request.state from_state ON from_state.id = derived_state_data.from_state_id
+JOIN request.state derived_state ON derived_state.id = derived_state_data.derived_state_id
 ON CONFLICT (phase_matrix_id, from_state_id) DO NOTHING;
 
 DROP TABLE IF EXISTS pg_temp.tmp_state_matrix_key;

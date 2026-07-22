@@ -65,9 +65,10 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
         await transformer.TransformAsync(operation, CreateOwnerContext(), CancellationToken.None);
         string description = operation.Description!.ReplaceLineEndings("\n");
 
+        string normalizedDescription = NormalizeLineEndings(operation.Description);
         Assert.Multiple(() =>
         {
-            Assert.That(description, Does.Contain("""
+            Assert.That(normalizedDescription, Does.Contain("""
 ```json
 {
   "ownerLifecycleStateId": 1,
@@ -75,7 +76,7 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
 }
 ```
 """));
-            Assert.That(description, Does.Contain("""
+            Assert.That(normalizedDescription, Does.Contain("""
 ```json
 [
   {
@@ -87,6 +88,11 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
             Assert.That(description, Does.Not.Contain("{\"active\":true"));
             Assert.That(description, Does.Not.Contain("{\"id\":42"));
         });
+    }
+
+    private static string NormalizeLineEndings(string? text)
+    {
+        return (text ?? string.Empty).Replace("\r\n", "\n");
     }
 
     /// <summary>
@@ -234,6 +240,25 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
         await transformer.TransformAsync(operation, context, CancellationToken.None);
 
         Assert.That(operation.Description, Is.EqualTo("Existing description."));
+    }
+
+    [Test]
+    public void ApplyIpOnlyResponseSchema_ListsFullAndCompactAlternatives()
+    {
+        OpenApiSchema fullSchema = new();
+        OpenApiSchema ipOnlySchema = new();
+        OpenApiResponse response = new()
+        {
+            Content = new Dictionary<string, OpenApiMediaType>
+            {
+                ["application/json"] = new OpenApiMediaType { Schema = fullSchema }
+            }
+        };
+
+        OpenApiApplicationZonesResponseTransformer.ApplyIpOnlyResponseSchema(response, ipOnlySchema);
+
+        OpenApiSchema schema = (OpenApiSchema)response.Content!["application/json"].Schema!;
+        Assert.That(schema.OneOf, Is.EqualTo(new List<IOpenApiSchema> { fullSchema, ipOnlySchema }));
     }
 
     /// <summary>

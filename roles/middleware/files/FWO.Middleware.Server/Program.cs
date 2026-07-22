@@ -9,6 +9,7 @@ using FWO.Middleware.Server.OpenApi;
 using FWO.Middleware.Server.Services;
 using FWO.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Quartz;
@@ -123,6 +124,7 @@ builder.Services.AddOpenApi("v1", options =>
     options.AddOperationTransformer<OpenApiOperationNameTransformer>();
     options.AddOperationTransformer<OpenApiAuthorizationOperationTransformer>();
     options.AddOperationTransformer<OpenApiApiExampleOperationTransformer>();
+    options.AddOperationTransformer<OpenApiApplicationZonesResponseTransformer>();
     options.AddDocumentTransformer((document, context, cancellationToken) =>
     {
         document.Info = new OpenApiInfo
@@ -173,6 +175,8 @@ if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
 }
+
+app.UseForwardedHeaders(ReverseProxyForwardingOptions.Create());
 
 app.MapOpenApi(kApiDocsRoute);
 app.MapScalarApiReference(kApiDocsPageRoute, options =>

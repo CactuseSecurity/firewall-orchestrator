@@ -185,11 +185,6 @@
         if (disposing && eventService is not null && eventService.Initialized)
         {
             eventService.OnNavbarHeightChanged -= OnNavbarHeightChanged;
-
-            if (eventService.Initialized)
-            {
-                eventService.DisposeAsync().GetAwaiter();
-            }
         }
 
         _disposed = true;

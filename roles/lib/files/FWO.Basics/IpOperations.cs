@@ -1,6 +1,6 @@
 using System.Net;
-using System.Net.Sockets;
 using System.Numerics;
+using System.Net.Sockets;
 using DnsClient;
 using NetTools;
 
@@ -179,25 +179,7 @@ namespace FWO.Basics
 
         private static bool HasValidNetmask(IPAddressRange range)
         {
-            // Adapted from IPAddressRange.getPrefixLength() without exception handling.
-            byte[] addressBytes = range.Begin.GetAddressBytes();
-            if (range.Begin.Equals(range.End))
-            {
-                return true;
-            }
-
-            int num = addressBytes.Length * 8;
-            for (int i = 0; i < num; i++)
-            {
-                byte[] bitMask = Bits.GetBitMask(addressBytes.Length, i);
-                if (new IPAddress(Bits.And(addressBytes, bitMask)).Equals(range.Begin) &&
-                    new IPAddress(Bits.Or(addressBytes, Bits.Not(bitMask))).Equals(range.End))
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            return TryGetCidrNotation(range.Begin, range.End, out _);
         }
 
         /// <summary>
@@ -208,7 +190,12 @@ namespace FWO.Basics
         /// <returns><c>true</c> when the ranges overlap, otherwise <c>false</c>.</returns>
         public static bool RangeOverlapExists(IPAddressRange a, IPAddressRange b)
         {
-            return IpToUint(a.Begin) <= IpToUint(b.End) && IpToUint(b.Begin) <= IpToUint(a.End);
+            if (a.Begin.AddressFamily != b.Begin.AddressFamily)
+            {
+                return false;
+            }
+
+            return CompareIpValues(a.Begin, b.End) <= 0 && CompareIpValues(b.Begin, a.End) <= 0;
         }
 
         /// <summary>
@@ -238,8 +225,8 @@ namespace FWO.Basics
             if (startOverlap <= endOverlap)
             {
                 return new IPAddressRange(
-                    FromBigInteger(startOverlap, a.Begin.AddressFamily),
-                    FromBigInteger(endOverlap, a.Begin.AddressFamily)
+                    IPNetwork2.ToIPAddress(startOverlap, a.Begin.AddressFamily),
+                    IPNetwork2.ToIPAddress(endOverlap, a.Begin.AddressFamily)
                 );
             }
 
@@ -251,15 +238,7 @@ namespace FWO.Basics
         /// </summary>
         public static uint IpToUint(IPAddress ipAddress)
         {
-            byte[] bytes = ipAddress.GetAddressBytes();
-
-            // Convert from network byte order to host byte order.
-            if (BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(bytes);
-            }
-
-            return BitConverter.ToUInt32(bytes, 0);
+            return (uint)IPNetwork2.ToBigInteger(ipAddress);
         }
 
         /// <summary>
@@ -267,15 +246,7 @@ namespace FWO.Basics
         /// </summary>
         public static IPAddress UintToIp(uint ipAddress)
         {
-            byte[] bytes = BitConverter.GetBytes(ipAddress);
-
-            // Convert from host byte order to network byte order.
-            if (BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(bytes);
-            }
-
-            return new IPAddress(bytes);
+            return IPNetwork2.ToIPAddress(ipAddress, AddressFamily.InterNetwork);
         }
 
         /// <summary>
@@ -304,6 +275,55 @@ namespace FWO.Basics
         }
 
         /// <summary>
+        /// Converts start and end addresses to the shortest matching notation: a plain IP for a single address,
+        /// CIDR notation when the range spans exactly one network, and <c>start-end</c> for any other range.
+        /// </summary>
+        /// <param name="startIp">The first address of the range, with or without netmask.</param>
+        /// <param name="endIp">The last address of the range, with or without netmask. May be empty for a single address.</param>
+        /// <returns>The compact notation, or the unchanged <paramref name="startIp"/> when the input is not parsable.</returns>
+        public static string ToCompactNotation(string startIp, string endIp)
+        {
+            (string start, string end) = string.IsNullOrEmpty(endIp)
+                ? SplitIpToRange(startIp)
+                : (startIp.StripOffNetmask(), endIp.StripOffNetmask());
+
+            if (!IPAddress.TryParse(start, out IPAddress? startAddress)
+                || !IPAddress.TryParse(end, out IPAddress? endAddress)
+                || startAddress.AddressFamily != endAddress.AddressFamily)
+            {
+                return startIp;
+            }
+
+            if (startAddress.Equals(endAddress))
+            {
+                return startAddress.ToString();
+            }
+
+            return TryGetCidrNotation(startAddress, endAddress, out string cidrNotation)
+                ? cidrNotation
+                : $"{startAddress}-{endAddress}";
+        }
+
+        private static bool TryGetCidrNotation(IPAddress start, IPAddress end, out string cidrNotation)
+        {
+            try
+            {
+                cidrNotation = new IPAddressRange(start, end).ToCidrString();
+                return !string.IsNullOrEmpty(cidrNotation);
+            }
+            catch (ArgumentException)
+            {
+                cidrNotation = string.Empty;
+                return false;
+            }
+            catch (FormatException)
+            {
+                cidrNotation = string.Empty;
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Converts start and end addresses to dotted mask notation for the matching network.
         /// </summary>
         public static string ToDotNotation(string startIp, string endIp)
@@ -324,31 +344,11 @@ namespace FWO.Basics
                 throw new ArgumentException("Start and end IPs must be of the same address family.");
             }
 
-            // Walk from the most specific prefix down to the least specific prefix.
-            int maxPrefixLength = start.AddressFamily == AddressFamily.InterNetwork ? 32 : 128;
-
-            for (int prefixLength = maxPrefixLength; prefixLength >= 0; prefixLength--)
-            {
-                IPNetwork network = IPNetwork.Parse($"{start}/{prefixLength}");
-                if (network.Contains(start) && network.Contains(end))
-                {
-                    string subnetMask = start.AddressFamily == AddressFamily.InterNetwork
-                        ? GetIPv4SubnetMask(network.PrefixLength)
-                        : $"(IPv6) /{network.PrefixLength}";
-
-                    return $"{network.ToString().StripOffNetmask()}/{subnetMask}";
-                }
-            }
-
-            return "";
-        }
-
-        // Convert a prefix length to an IPv4 subnet mask.
-        private static string GetIPv4SubnetMask(int prefixLength)
-        {
-            uint mask = 0xffffffff << (32 - prefixLength);
-            uint[] bytes = [(mask >> 24) & 0xff, (mask >> 16) & 0xff, (mask >> 8) & 0xff, mask & 0xff];
-            return string.Join(".", bytes);
+            IPNetwork2 network = IPNetwork2.WideSubnet(start.ToString(), end.ToString());
+            string subnetMask = start.AddressFamily == AddressFamily.InterNetwork
+                ? network.Netmask.ToString()
+                : $"(IPv6) /{network.Cidr}";
+            return $"{network.Network}/{subnetMask}";
         }
 
         /// <summary>
@@ -484,34 +484,18 @@ namespace FWO.Basics
                 value = max;
             }
 
-            return FromBigInteger(value, family);
+            return IPNetwork2.ToIPAddress(value, family);
         }
 
         public static BigInteger ToBigInteger(IPAddress ip)
         {
-            byte[] bytes = ip.GetAddressBytes(); // Big-endian.
-            byte[] littleEndian = [.. bytes.Reverse(), 0]; // Little-endian plus unsigned padding.
-            return new BigInteger(littleEndian);
-        }
-
-        private static IPAddress FromBigInteger(BigInteger value, AddressFamily family)
-        {
-            int length = family == AddressFamily.InterNetwork ? 4 : 16;
-            byte[] bytesLittleEndian = value.ToByteArray(); // Little-endian.
-            byte[] bytesBigEndian = new byte[length];
-
-            for (int i = 0; i < length; i++)
-            {
-                bytesBigEndian[length - 1 - i] = i < bytesLittleEndian.Length ? bytesLittleEndian[i] : (byte)0;
-            }
-
-            return new IPAddress(bytesBigEndian);
+            return IPNetwork2.ToBigInteger(ip);
         }
 
         private static BigInteger MaxValue(AddressFamily family)
         {
             int bits = family == AddressFamily.InterNetwork ? 32 : 128;
-            return (BigInteger.One << bits) - 1;
+            return IPNetwork2.ToUint((byte)bits, family);
         }
 
         private static bool TryParseExplicitRange(string ipString, out IPAddressRange ipRange)

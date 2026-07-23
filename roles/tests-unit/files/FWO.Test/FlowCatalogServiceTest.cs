@@ -171,6 +171,34 @@ internal class FlowCatalogServiceTest
         });
     }
 
+    [TestCase("10.0.0.1", "10.0.0.1", "host")]
+    [TestCase("10.0.0.0", "10.0.0.255", "network")]
+    [TestCase("10.0.0.1", "10.0.0.255", "range")]
+    [TestCase("10.0.0.1/32", "10.0.0.1/32", "host")]
+    [TestCase("2001:db8::", "2001:db8::ffff", "network")]
+    [TestCase(null, null, "fqdn")]
+    [TestCase("", "", "fqdn")]
+    public async Task GetAddressObjectsAsync_ResolvesAddressType(string? ipStart, string? ipEnd, string expectedType)
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        apiConnection.AddressObjects =
+        [
+            new FlowNwObject
+            {
+                Id = 16,
+                Name = "AddressObject",
+                IpStart = ipStart,
+                IpEnd = ipEnd
+            }
+        ];
+
+        FlowCatalogService service = new(apiConnection);
+
+        List<AddressObjectResponse> result = await service.GetAddressObjectsAsync(null);
+
+        Assert.That(result[0].Type, Is.EqualTo(expectedType));
+    }
+
     [Test]
     public async Task GetServiceGroupsAsync_MapsShowInRequestFlag()
     {

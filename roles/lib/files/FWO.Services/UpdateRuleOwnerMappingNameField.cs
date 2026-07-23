@@ -86,11 +86,14 @@ namespace FWO.Services
             var connectionsToOwnerMap = connectionOwnersToMap.Where(c => c.AppId.HasValue)
                                               .ToDictionary(c => c.Id, c => c.AppId!.Value);
             var newRuleOwners = new List<RuleOwner>();
+            int rulesWithoutMarker = 0;
+            int rulesWithoutMatchingConnection = 0;
+            int invalidRules = 0;
 
             // iterate through rules and create new mappings based on NameField
             foreach (Rule rule in rulesToMap)
             {
-                var nameFieldValue = ExtractNameFieldValue(rule, globalConfig.ModModelledMarker, out var errorMessage);
+                var nameFieldValue = ExtractNameFieldValue(rule, globalConfig.ModModelledMarker, out var errorMessage, out NameFieldExtractionStatus status);
 
                 if (nameFieldValue.HasValue && connectionsToOwnerMap.TryGetValue(nameFieldValue.Value, out var ownerId))
                 {
@@ -101,61 +104,98 @@ namespace FWO.Services
                         RuleMetadataId = rule.Metadata.Id,
                         OwnerMappingSourceId = (int)OwnerMappingSourceStm.NameField
                     });
+                    continue;
                 }
-                else if (errorMessage != null)
+
+                if (status == NameFieldExtractionStatus.NoMarker)
                 {
-                    Log.WriteWarning(LogMessageTitle, $"Rule {rule.Id}: {errorMessage}");
+                    rulesWithoutMarker++;
+                }
+                else if (nameFieldValue.HasValue)
+                {
+                    rulesWithoutMatchingConnection++;
+                }
+                else
+                {
+                    invalidRules++;
+                    Log.WriteDebug(LogMessageTitle, $"Rule {rule.Id}: {errorMessage}");
                 }
             }
+
+            Log.WriteInfo(LogMessageTitle,
+                $"NameField rule_owner mapping checked {rulesToMap.Count} rules, created {newRuleOwners.Count} mappings, " +
+                $"skipped {rulesWithoutMarker} rules without marker, {rulesWithoutMatchingConnection} rules without matching connection/owner, " +
+                $"{invalidRules} invalid rules.");
+
             return newRuleOwners;
         }
 
         public static int? ExtractNameFieldValue(Rule rule, string modelledMarker, out string? errorMessage)
         {
+            return ExtractNameFieldValue(rule, modelledMarker, out errorMessage, out _);
+        }
+
+        private static int? ExtractNameFieldValue(Rule rule, string modelledMarker, out string? errorMessage, out NameFieldExtractionStatus status)
+        {
             errorMessage = null;
+            status = NameFieldExtractionStatus.Success;
 
             if (rule == null)
             {
+                status = NameFieldExtractionStatus.InvalidRule;
                 errorMessage = "Rule is null";
                 return null;
             }
 
             if (string.IsNullOrWhiteSpace(rule.Name))
             {
+                status = NameFieldExtractionStatus.InvalidRule;
                 errorMessage = $"rule.Name is null or empty for rule id {rule.Id}";
                 return null;
             }
 
             if (string.IsNullOrWhiteSpace(modelledMarker))
             {
+                status = NameFieldExtractionStatus.EmptyMarker;
                 errorMessage = $"modelledMarker is null or empty for rule id {rule.Id}";
                 return null;
             }
 
-
             try
             {
-                var regex = GetNameFieldRegex(modelledMarker);
-                var match = regex.Match(rule.Name);
-
+                Match match = GetNameFieldRegex(modelledMarker).Match(rule.Name);
                 if (!match.Success)
                 {
+                    status = NameFieldExtractionStatus.NoMarker;
                     errorMessage = $"No match for marker '{modelledMarker}' in '{rule.Name}'";
                     return null;
                 }
 
-                if (!int.TryParse(match.Groups[1].Value, out var connectionId))
+                if (!int.TryParse(match.Groups[1].Value, out int connectionId))
                 {
+                    status = NameFieldExtractionStatus.InvalidConnectionId;
                     errorMessage = $"Extracted value is not a valid int: '{match.Groups[1].Value}'";
                     return null;
                 }
+
                 return connectionId;
             }
             catch (Exception ex)
             {
+                status = NameFieldExtractionStatus.Error;
                 errorMessage = ex.Message;
                 return null;
             }
+        }
+
+        private enum NameFieldExtractionStatus
+        {
+            Success,
+            NoMarker,
+            InvalidRule,
+            EmptyMarker,
+            InvalidConnectionId,
+            Error
         }
 
         /// <summary>

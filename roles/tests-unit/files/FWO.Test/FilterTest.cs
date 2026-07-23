@@ -400,6 +400,43 @@ namespace FWO.Test
 
         [Test]
         [Parallelizable]
+        public void StandardRulesQueryBuildsSplitStructureAndRulePageQueries()
+        {
+            ReportTemplate t = new();
+            t.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("query standardRulesStructure", query.StandardRulesStructureQuery);
+            Assert.That(query.FullQuery, Is.Empty);
+            StringAssert.Contains("rulebase_links", query.StandardRulesStructureQuery);
+            StringAssert.DoesNotContain("rules (", query.StandardRulesStructureQuery);
+            StringAssert.Contains("query standardRulesPage", query.StandardRulesPageQuery);
+            StringAssert.Contains("firewall_rule", query.StandardRulesPageQuery);
+            StringAssert.Contains("$rulebaseIds: [Int!]", query.StandardRulesPageQuery);
+            StringAssert.Contains("rulebase_id: { _in: $rulebaseIds }", query.StandardRulesPageQuery);
+            StringAssert.Contains("rulebase_id", query.StandardRulesPageQuery);
+            StringAssert.Contains("rule_id: asc", query.StandardRulesPageQuery);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void StandardRulesQueryWithActiveTenantFilterSkipsSplitQueries()
+        {
+            ReportTemplate t = new();
+            t.ReportParams.ReportType = (int)ReportType.Rules;
+            t.ReportParams.TenantFilter.IsActive = true;
+            t.ReportParams.TenantFilter.TenantId = 2;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            Assert.That(query.StandardRulesStructureQuery, Is.Empty);
+            Assert.That(query.StandardRulesPageQuery, Is.Empty);
+            StringAssert.Contains("get_rules_for_tenant", query.FullQuery);
+        }
+
+        [Test]
+        [Parallelizable]
         public void OwnerFullTextFilterUsesResponsibles()
         {
             ReportTemplate t = new()

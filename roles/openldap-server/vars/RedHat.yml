@@ -1,6 +1,10 @@
+# client tools (ldapmodify, ldapdelete, ldapsearch) are needed in every installation mode,
+# so they are installed separately from the server packages
+openldap_client_pkgs:
+  - openldap-clients
+
 openldap_server_pkgs:
   - openldap-servers
-  - openldap-clients
   - openssl
   - python3-pyOpenSSL
 

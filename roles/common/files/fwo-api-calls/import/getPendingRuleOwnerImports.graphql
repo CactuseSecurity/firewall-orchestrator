@@ -5,6 +5,7 @@ query getPendingRuleOwnerImports {
     rule_owner_mapping_done: {_eq: false}
   } order_by: {control_id: asc}) {
     control_id
+    mgm_id
     import_type_id
   }
 }

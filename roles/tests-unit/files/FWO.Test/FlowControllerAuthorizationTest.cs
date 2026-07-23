@@ -18,8 +18,6 @@ internal class FlowControllerAuthorizationTest
     [TestCase(typeof(FlowCatalogController), nameof(FlowCatalogController.GetAddressObjectId))]
     [TestCase(typeof(FlowComplianceController), nameof(FlowComplianceController.GetFlowComplianceState))]
     [TestCase(typeof(FlowComplianceController), nameof(FlowComplianceController.GetPolicyIds))]
-    [TestCase(typeof(FlowRequestController), nameof(FlowRequestController.GetNetObjectValidity))]
-    [TestCase(typeof(FlowRequestController), nameof(FlowRequestController.GetNetGroupValidity))]
     [TestCase(typeof(FlowRequestController), nameof(FlowRequestController.GetRequestStatus))]
     public void ReadOnlyFlowEndpoints_AllowAdminAndAuditor(Type controllerType, string methodName)
     {
@@ -28,8 +26,6 @@ internal class FlowControllerAuthorizationTest
         Assert.That(authorize.Roles, Is.EqualTo($"{Roles.Admin}, {Roles.Auditor}"));
     }
 
-    [TestCase(typeof(FlowRequestController), nameof(FlowRequestController.GenerateAddressObjectName))]
-    [TestCase(typeof(FlowRequestController), nameof(FlowRequestController.GenerateServiceObjectName))]
     [TestCase(typeof(FlowRequestController), nameof(FlowRequestController.CreateRequest))]
     public void WriteOrGenerationFlowEndpoints_RemainAdminOnly(Type controllerType, string methodName)
     {

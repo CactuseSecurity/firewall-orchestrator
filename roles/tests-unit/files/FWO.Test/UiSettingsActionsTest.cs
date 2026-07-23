@@ -170,7 +170,7 @@ namespace FWO.Test
             {
                 ExternalParams = new BundleTasksActionParams
                 {
-                BundleType = BundleTaskType.TwoOutOfThree,
+                    BundleType = BundleTaskType.TwoOutOfThree,
                     CleanZones = true,
                     PolicyId = 77
                 }.ToExternalParams()

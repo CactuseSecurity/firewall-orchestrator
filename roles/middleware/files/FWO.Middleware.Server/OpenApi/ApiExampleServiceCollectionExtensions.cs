@@ -136,10 +136,10 @@ public sealed class CreateRequestRequestExample : ApiExampleProvider<CreateReque
             {
                 Action = "accept",
                 Name = "Allow app HTTPS",
-                SourceObjects = [1001],
-                DestinationObjects = [2001],
-                ServiceObjects = [3001],
-                TimeObjectId = 4001,
+                SourceObjects = [-1],
+                DestinationObjects = [-3],
+                ServiceObjects = [-2],
+                TimeObjectId = -4,
                 OwnerId = 42,
                 ViolationJustification = "Business-approved application traffic."
             }
@@ -148,7 +148,7 @@ public sealed class CreateRequestRequestExample : ApiExampleProvider<CreateReque
         [
             new CreateRequestRequest.CreateAddressObjectRequest
             {
-                Id = "srv-1",
+                Id = "-1",
                 Name = "app-server-1",
                 IpStart = "192.0.2.10",
                 IpEnd = "192.0.2.10"
@@ -158,16 +158,16 @@ public sealed class CreateRequestRequestExample : ApiExampleProvider<CreateReque
         [
             new CreateRequestRequest.CreateAddressGroupRequest
             {
-                Id = 2001,
+                Id = -3,
                 Name = "app-servers",
-                MemberIds = [1001]
+                MemberIds = [-1]
             }
         ],
         ServiceObjects =
         [
             new CreateRequestRequest.CreateServiceObjectRequest
             {
-                Id = "svc-https",
+                Id = "-2",
                 Name = "https",
                 Protocol = "tcp",
                 PortStart = 443,
@@ -178,19 +178,19 @@ public sealed class CreateRequestRequestExample : ApiExampleProvider<CreateReque
         [
             new CreateRequestRequest.CreateServiceGroupRequest
             {
-                Id = 3001,
+                Id = -5,
                 Name = "web-services",
-                MemberIds = [3002]
+                MemberIds = [-2]
             }
         ],
         TimeObjects =
         [
             new CreateRequestRequest.CreateTimeObjectRequest
             {
-                Id = "business-hours",
-                Name = "Business hours",
-                StartTime = "08:00",
-                EndTime = "18:00"
+                Id = "-4",
+                Name = "Temporary rule window",
+                StartTime = "2026-08-01T00:00:00Z",
+                EndTime = "2026-08-31T23:59:59Z"
             }
         ]
     };
@@ -386,6 +386,7 @@ public sealed class AddressObjectResponseExample : ApiExampleProvider<AddressObj
     {
         Id = 1001,
         Name = "app-server-1",
+        Type = "host",
         IpStart = "192.0.2.10",
         IpEnd = "192.0.2.10",
         State = "active",

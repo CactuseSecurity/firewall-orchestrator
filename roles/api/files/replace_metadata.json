@@ -18562,6 +18562,17 @@
                   "comment": ""
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "reqtask_id",
+                      "owner_id"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "check": {},
@@ -29429,7 +29440,6 @@
                 "name": "view_rule_with_owner",
                 "schema": "public"
               },
-              "object_relationships": [],
               "array_relationships": [
                 {
                   "name": "rule_froms",
@@ -32877,6 +32887,36 @@
                   "comment": ""
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "flow_nwgrp_id",
+                      "flow_nwobj_id",
+                      "flow_svcgrp_id",
+                      "flow_svcobj_id",
+                      "id",
+                      "network_object_id",
+                      "original_nat_id",
+                      "service_id",
+                      "task_id",
+                      "user_id",
+                      "group_name",
+                      "name",
+                      "rule_uid",
+                      "ip",
+                      "ip_end",
+                      "device_id",
+                      "ip_proto_id",
+                      "port",
+                      "port_end",
+                      "field",
+                      "request_action"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "check": {},
@@ -33495,6 +33535,42 @@
                 }
               ],
               "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "flow_access_id",
+                      "id",
+                      "ticket_id",
+                      "locked",
+                      "additional_info",
+                      "assigned_group",
+                      "devices",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "mgm_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "reason",
+                      "last_recert_date",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "request_action"
+                    ]
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "modeller",
                   "permission": {
@@ -35552,6 +35628,33 @@
               ],
               "insert_permissions": [
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "locked",
+                      "assigned_group",
+                      "external_ticket_id",
+                      "requester_dn",
+                      "requester_group",
+                      "title",
+                      "current_handler",
+                      "external_ticket_source",
+                      "recent_handler",
+                      "requester_id",
+                      "state_id",
+                      "tenant_id",
+                      "ticket_priority",
+                      "reason",
+                      "date_completed",
+                      "date_created",
+                      "ticket_deadline"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "check": {},
@@ -36088,6 +36191,17 @@
                       "ticket_id"
                     ]
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment_id",
+                      "ticket_id"
+                    ]
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "modeller",

@@ -96,7 +96,7 @@ namespace FWO.Test
             SetMember(component, "globalConfig", globalConfig);
             SetMember(component, "userConfig", userConfig);
             SetMember(component, "configData", editableConfig);
-            SetMember(component, "taskTypesActiveDict", Enum.GetValues(typeof(WfTaskType)).Cast<WfTaskType>().ToDictionary(type => type, _ => false));
+            SetMember(component, "taskTypesActiveDict", Enum.GetValues<WfTaskType>().ToDictionary(type => type, _ => false));
             SetMember(component, "prioList", new List<WfPriority>());
 
             Task saveTask = (Task)GetPrivateMethod(typeof(SettingsCustomizing), "Save").Invoke(component, [])!;
@@ -105,6 +105,42 @@ namespace FWO.Test
             Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
             ConfigItem flowDbConfig = apiConnection.LastConfigItems.Single(item => item.Key == "reqUseFlowDb");
             Assert.That(flowDbConfig.Value, Is.EqualTo("True"));
+        }
+
+        [Test]
+        public async Task Save_PersistsApiTicketInitialStateId()
+        {
+            SettingsCustomizing component = new();
+            WorkflowCustomizingApiConn apiConnection = new()
+            {
+                States = [new WfState { Id = 0, Name = "draft" }, new WfState { Id = 17, Name = "requested" }]
+            };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ReqAvailableTaskTypes = "[]",
+                ReqPriorities = "[]",
+                ReqApiTicketInitialStateId = -1
+            };
+            SimulatedUserConfig userConfig = new();
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
+            editableConfig.ReqApiTicketInitialStateId = 17;
+
+            SetMember(component, "apiConnection", apiConnection);
+            SetMember(component, "globalConfig", globalConfig);
+            SetMember(component, "userConfig", userConfig);
+            SetMember(component, "configData", editableConfig);
+            SetMember(component, "states", apiConnection.States);
+            SetMember(component, "stateIds", apiConnection.States.Select(state => state.Id).ToList());
+            SetMember(component, "selectedApiTicketInitialStateId", 17);
+            SetMember(component, "taskTypesActiveDict", Enum.GetValues<WfTaskType>().ToDictionary(type => type, _ => false));
+            SetMember(component, "prioList", new List<WfPriority>());
+
+            Task saveTask = (Task)GetPrivateMethod(typeof(SettingsCustomizing), "Save").Invoke(component, [])!;
+            await saveTask;
+
+            Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+            ConfigItem stateConfig = apiConnection.LastConfigItems.Single(item => item.Key == "reqApiTicketInitialStateId");
+            Assert.That(stateConfig.Value, Is.EqualTo("17"));
         }
 
         [Test]
@@ -126,7 +162,7 @@ namespace FWO.Test
             SetMember(component, "globalConfig", globalConfig);
             SetMember(component, "userConfig", userConfig);
             SetMember(component, "configData", editableConfig);
-            SetMember(component, "taskTypesActiveDict", Enum.GetValues(typeof(WfTaskType)).Cast<WfTaskType>().ToDictionary(type => type, _ => false));
+            SetMember(component, "taskTypesActiveDict", Enum.GetValues<WfTaskType>().ToDictionary(type => type, _ => false));
             SetMember(component, "prioList", new List<WfPriority>());
 
             Task saveTask = (Task)GetPrivateMethod(typeof(SettingsCustomizing), "Save").Invoke(component, [])!;
@@ -284,9 +320,15 @@ namespace FWO.Test
         {
             public int UpsertConfigCallCount { get; private set; }
             public List<ConfigItem> LastConfigItems { get; private set; } = [];
+            public List<WfState> States { get; set; } = [new WfState { Id = 0, Name = "draft" }];
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
+                if (query == RequestQueries.getStates && typeof(QueryResponseType) == typeof(List<WfState>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)States);
+                }
+
                 if (query == ConfigQueries.upsertConfigItems)
                 {
                     UpsertConfigCallCount++;

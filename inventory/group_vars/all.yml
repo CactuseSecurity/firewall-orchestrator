@@ -207,6 +207,8 @@ upgrade_files: []
 test_packages:
   - "{{ 'postgresql' if ansible_facts['os_family'] == 'RedHat' else 'postgresql-client' }}"
   - curl
+  # ldapdelete is used by the integration test cleanup handlers, which run on all hosts
+  - "{{ 'openldap-clients' if ansible_facts['os_family'] == 'RedHat' else 'ldap-utils' }}"
 
 test_dir: "{{ fworch_home }}/test"
 test_fortigate_name: "fortigate{{ test_postfix }}"

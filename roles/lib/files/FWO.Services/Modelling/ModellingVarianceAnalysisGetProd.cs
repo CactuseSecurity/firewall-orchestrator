@@ -78,6 +78,7 @@ namespace FWO.Services.Modelling
             foreach (var rule in rulesByMgt)
             {
                 rule.ManagementName = mgt.Name;
+                rule.DeviceName = string.Join(", ", rule.EnforcingGateways.Select(g => g.Content.Name).Where(n => !string.IsNullOrEmpty(n)));
                 string? connRef = FindModelledMarker(rule);
                 if (connRef != null)
                 {

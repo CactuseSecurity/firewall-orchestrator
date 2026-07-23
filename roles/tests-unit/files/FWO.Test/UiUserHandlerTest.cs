@@ -354,7 +354,7 @@ namespace FWO.Test
 
             await UiUserHandler.UpsertUiUser(apiConnection, user, loginHappened: false);
 
-                Assert.That(apiConnection.Queries, Is.EqualTo(kUpsertUiUserQuery));
+            Assert.That(apiConnection.Queries, Is.EqualTo(kUpsertUiUserQuery));
         }
 
         [Test]

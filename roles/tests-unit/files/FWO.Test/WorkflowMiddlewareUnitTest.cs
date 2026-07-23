@@ -446,13 +446,13 @@ namespace FWO.Test
 
                 Assert.Multiple(() =>
                 {
-                Assert.That(executed.Success, Is.True);
-                Assert.That(executed.ErrorMessage, Is.Empty);
-                Assert.That(executed.Messages, Is.Empty);
-                Assert.That(apiConnection.Queries, Has.Some.EqualTo(RequestQueries.getStates));
-                Assert.That(apiConnection.Queries, Has.Some.EqualTo(RequestQueries.getTicketById));
-                Assert.That(apiConnection.Roles, Does.Contain(Roles.MiddlewareServer));
-            });
+                    Assert.That(executed.Success, Is.True);
+                    Assert.That(executed.ErrorMessage, Is.Empty);
+                    Assert.That(executed.Messages, Is.Empty);
+                    Assert.That(apiConnection.Queries, Has.Some.EqualTo(RequestQueries.getStates));
+                    Assert.That(apiConnection.Queries, Has.Some.EqualTo(RequestQueries.getTicketById));
+                    Assert.That(apiConnection.Roles, Does.Contain(Roles.MiddlewareServer));
+                });
             }
             finally
             {

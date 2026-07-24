@@ -85,16 +85,13 @@ namespace FWO.Test
         private static SimulatedUserConfig CreateUserConfig()
         {
             SimulatedUserConfig userConfig = new();
-            userConfig.Translate = new Dictionary<string, string>
-            {
-                ["fetch_data"] = "fetch_data",
-                ["edit_app_server"] = "edit_app_server",
-                ["delete_app_server"] = "delete_app_server",
-                ["reactivate"] = "reactivate",
-                ["U9005"] = "Reactivate ",
-                ["U9007"] = "Cannot delete used ",
-                ["U9008"] = "Delete ",
-            };
+            SimulatedUserConfig.DummyTranslate["fetch_data"] = "fetch_data";
+            SimulatedUserConfig.DummyTranslate["edit_app_server"] = "edit_app_server";
+            SimulatedUserConfig.DummyTranslate["delete_app_server"] = "delete_app_server";
+            SimulatedUserConfig.DummyTranslate["reactivate"] = "reactivate";
+            SimulatedUserConfig.DummyTranslate["U9005"] = "Reactivate ";
+            SimulatedUserConfig.DummyTranslate["U9007"] = "Cannot delete used ";
+            SimulatedUserConfig.DummyTranslate["U9008"] = "Delete ";
             return userConfig;
         }
 
@@ -106,7 +103,7 @@ namespace FWO.Test
                 AppId = 7,
                 Name = name,
                 Ip = ip,
-                IpEnd = "",
+                IpEnd = ip,
                 ImportSource = importSource,
                 CustomType = 1,
                 InUse = inUse,

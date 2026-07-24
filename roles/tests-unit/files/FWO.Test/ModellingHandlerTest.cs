@@ -344,7 +344,7 @@ namespace FWO.Test
             bool result = await handler.Save();
 
             ClassicAssert.IsFalse(result);
-            ClassicAssert.AreEqual("E5102", message);
+            ClassicAssert.AreEqual(localUserConfig.GetText("E5102"), message);
         }
 
         [Test]

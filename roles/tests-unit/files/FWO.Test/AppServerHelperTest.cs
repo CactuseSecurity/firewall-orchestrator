@@ -162,7 +162,7 @@ namespace FWO.Test
                 AppId = 7,
                 Name = "existing-manual",
                 Ip = "10.0.0.1",
-                IpEnd = "",
+                IpEnd = "10.0.0.1",
                 ImportSource = "import"
             };
 
@@ -172,7 +172,7 @@ namespace FWO.Test
                 AppId = 7,
                 Name = "existing-import",
                 Ip = "10.0.0.1",
-                IpEnd = "",
+                IpEnd = "10.0.0.1",
                 ImportSource = GlobalConst.kManual,
                 IsDeleted = false
             };
@@ -208,7 +208,7 @@ namespace FWO.Test
                 AppId = 7,
                 Name = "reactivate",
                 Ip = "10.0.0.1",
-                IpEnd = "",
+                IpEnd = "10.0.0.1",
                 ImportSource = "import",
                 IsDeleted = true
             };
@@ -237,7 +237,7 @@ namespace FWO.Test
                 AppId = 7,
                 Name = "incoming",
                 Ip = "10.0.0.1",
-                IpEnd = "",
+                IpEnd = "10.0.0.1",
                 ImportSource = GlobalConst.kManual
             };
             ModellingAppServer higherPrio = new()
@@ -246,7 +246,7 @@ namespace FWO.Test
                 AppId = 7,
                 Name = "higher",
                 Ip = "10.0.0.1",
-                IpEnd = "",
+                IpEnd = "10.0.0.1",
                 ImportSource = "workflow",
                 IsDeleted = false
             };
@@ -267,7 +267,7 @@ namespace FWO.Test
                 AppId = 7,
                 Name = "incoming",
                 Ip = "10.0.0.1",
-                IpEnd = "",
+                IpEnd = "10.0.0.1",
                 ImportSource = GlobalConst.kManual
             };
             AppServerHelperTestApiConn apiConn = new()
@@ -289,7 +289,7 @@ namespace FWO.Test
                 AppId = 7,
                 Name = "incoming",
                 Ip = "10.0.0.1",
-                IpEnd = "",
+                IpEnd = "10.0.0.1",
                 ImportSource = GlobalConst.kManual,
                 CustomType = 1
             };
@@ -319,7 +319,7 @@ namespace FWO.Test
                 AppId = 7,
                 Name = "incoming",
                 Ip = "10.0.0.1",
-                IpEnd = "",
+                IpEnd = "10.0.0.1",
                 ImportSource = GlobalConst.kManual,
                 CustomType = 1
             };
@@ -333,7 +333,7 @@ namespace FWO.Test
                         AppId = 7,
                         Name = "higher-prio",
                         Ip = "10.0.0.1",
-                        IpEnd = "",
+                        IpEnd = "10.0.0.1",
                         ImportSource = "workflow",
                         IsDeleted = false
                     }

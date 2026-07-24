@@ -160,7 +160,8 @@ namespace FWO.Test
             ModellingAppServer appServer = new()
             {
                 Name = "srv1",
-                Ip = "10.0.0.1",
+                Ip = "10.0.0.1/32",
+                IpEnd = "10.0.0.1/32",
                 CustomType = 1
             };
             List<ModellingAppServer> available = new List<ModellingAppServer>();

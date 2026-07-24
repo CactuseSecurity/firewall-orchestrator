@@ -148,7 +148,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(eventArgs.Success, Is.False);
-                Assert.That(eventArgs.Data, Is.EqualTo("middleware failed"));
+                Assert.That((string?)eventArgs.Data, Is.EqualTo("middleware failed"));
             });
         }
 
@@ -188,7 +188,7 @@ namespace FWO.Test
         {
             return new HttpResponseMessage(statusCode)
             {
-                Content = new StringContent(body, Encoding.UTF8, "application/json")
+                Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json")
             };
         }
 

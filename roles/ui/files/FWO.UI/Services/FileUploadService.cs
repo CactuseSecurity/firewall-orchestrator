@@ -211,7 +211,7 @@ namespace FWO.Ui.Services
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
                 {
                     ComplianceMatrixImportEvent.EventArgs.Success = false;
-                    ComplianceMatrixImportEvent.EventArgs.Data = middlewareServerResponse.ErrorMessage;
+                    ComplianceMatrixImportEvent.EventArgs.Data = GetResponseMessage(middlewareServerResponse);
                 }
                 else
                 {
@@ -219,6 +219,28 @@ namespace FWO.Ui.Services
                     ComplianceMatrixImportEvent.EventArgs.Data = middlewareServerResponse.Data;
                 }
                 EventMediator.Publish(nameof(ImportComplianceMatrix), ComplianceMatrixImportEvent);
+            }
+        }
+
+        private static string? GetResponseMessage(RestResponse<string> response)
+        {
+            if (!string.IsNullOrWhiteSpace(response.ErrorMessage))
+            {
+                return response.ErrorMessage;
+            }
+
+            if (string.IsNullOrWhiteSpace(response.Content))
+            {
+                return null;
+            }
+
+            try
+            {
+                return JsonSerializer.Deserialize<string>(response.Content);
+            }
+            catch (JsonException)
+            {
+                return response.Content;
             }
         }
 

@@ -225,10 +225,11 @@ namespace FWO.Test
                 Assert.That(apiConn.GlobalServiceCalls, Is.EqualTo(1));
                 Assert.That(apiConn.AppServiceCalls, Is.EqualTo(1));
                 Assert.That(handler.AvailableServiceGroups.Select(s => s.Id), Is.EquivalentTo(new[] { 10, 12 }));
-                Assert.That(handler.AvailableServices.Select(s => s.Id), Is.EquivalentTo(new[] { 20, 22 }));
+                Assert.That(handler.AvailableServices.Select(s => s.Id), Is.EquivalentTo(new[] { 20, 21, 22 }));
                 Assert.That(handler.AvailableSvcElems, Does.Contain(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.ServiceGroup, 10)));
                 Assert.That(handler.AvailableSvcElems, Does.Contain(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.ServiceGroup, 12)));
                 Assert.That(handler.AvailableSvcElems, Does.Contain(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.Service, 20)));
+                Assert.That(handler.AvailableSvcElems, Does.Contain(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.Service, 21)));
                 Assert.That(handler.AvailableSvcElems, Does.Contain(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.Service, 22)));
             });
         }

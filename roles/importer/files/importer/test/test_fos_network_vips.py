@@ -1,5 +1,9 @@
-from fw_modules.fortiosmanagementREST.fos_models import FortiOSConfig, NwObjVip
-from fw_modules.fortiosmanagementREST.fos_network import normalize_vips
+from fw_modules.fortiosmanagementREST.fos_models import FortiOSConfig, NwObjAddress6, NwObjVip
+from fw_modules.fortiosmanagementREST.fos_network import (
+    normalize_single_ipv6_network_object,
+    normalize_vips,
+    parse_fortios_ip_range,
+)
 
 
 def _build_vip(name: str, uuid: str | None, extip: str | None) -> NwObjVip:
@@ -52,3 +56,30 @@ def test_normalize_vips_missing_extip_falls_back_to_name_uid_and_full_range():
     assert obj.obj_uid == "vip_empty"
     assert obj.obj_typ == "network"
     assert lookup["vip_empty"] == "vip_empty"
+
+
+def test_parse_fortios_ip_range_treats_equal_range_endpoints_as_host():
+    ip_start, ip_end, obj_typ = parse_fortios_ip_range("10.0.0.1-10.0.0.1", "vip_host", "test")
+
+    assert str(ip_start) == "10.0.0.1/32"
+    assert str(ip_end) == "10.0.0.1/32"
+    assert obj_typ == "host"
+
+
+def test_normalize_single_ipv6_network_object_marks_explicit_end_ip_as_range():
+    native_object = NwObjAddress6.model_validate(
+        {
+            "name": "ipv6_range",
+            "q_origin_key": "ipv6_range",
+            "uuid": "uuid-ipv6-range",
+            "type": "ipprefix",
+            "ip6": "2001:db8::1/128",
+            "end-ip": "2001:db8::2",
+        }
+    )
+    lookup: dict[str, str] = {}
+
+    result = normalize_single_ipv6_network_object(native_object, lookup)
+
+    assert result.obj_typ == "ip_range"
+    assert lookup["ipv6_range"] == "uuid-ipv6-range"

@@ -75,8 +75,7 @@ def normalize_single_ipv6_network_object(ip6_obj: NwObjAddress6, nw_obj_lookup_d
         ip_start = IPNetwork(f"{IPv6Address(network.first)}/128", version=6)
         if ip6_obj.end_ip and ip6_obj.end_ip != "::":
             ip_end = IPNetwork(f"{ip6_obj.end_ip}/128", version=6)
-            if ip_start != ip_end:
-                obj_typ = "ip_range"
+            obj_typ = "ip_range"
         else:
             ip_end = IPNetwork(f"{IPv6Address(network.last)}/128", version=6)
             if network.size > 1:
@@ -220,7 +219,8 @@ def parse_fortios_ip_range(ip_value: str | None, obj_name: str, context: str) ->
         start_raw, end_raw = ip_value.split("-", 1)
         ip_start = IPNetwork(f"{start_raw.strip()}/32")
         ip_end = IPNetwork(f"{end_raw.strip()}/32")
-        return ip_start, ip_end, "host" if ip_start == ip_end else "ip_range"
+        obj_typ = "host" if start_raw.strip() == end_raw.strip() else "ip_range"
+        return ip_start, ip_end, obj_typ
 
     ip_start = IPNetwork(f"{ip_value.strip()}/32")
     return ip_start, ip_start, "host"

@@ -13,7 +13,6 @@ namespace FWO.DeviceAutoDiscovery
     public class AutoDiscoveryFortiManager : AutoDiscoveryBase
     {
         const string AdomSeparator = "_";
-        const string VdomSeparator = "_";
 
         private readonly List<string> PredefinedAdoms = // TODO: move this to config file
             ["FortiAnalyzer", "FortiAuthenticator", "FortiCache", "FortiCarrier", "FortiFirewallCarrier", "FortiClient",

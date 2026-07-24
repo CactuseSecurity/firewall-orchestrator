@@ -217,7 +217,7 @@ else
     private bool ConfirmRejectRemovedTickets { get; set; } = false;
     private StateMatrix NewInterfaceStateMatrix { get; set; } = new();
     private WfHandler wfHandler = new();
-    private WfStateDict states = new();
+    private readonly WfStateDict states = new();
     private bool WorkInProgress = false;
     private List<RequestedInterfaceRow> OpenRemovedRequestedRows => [.. DisplayedRequestedInterfaceRows
         .Where(row => row.Connection.Removed && row.CanReject && row.TicketId != null)];

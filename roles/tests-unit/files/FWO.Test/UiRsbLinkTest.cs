@@ -48,9 +48,10 @@ namespace FWO.Test
             Assert.That(navigationManager.Uri, Is.EqualTo(link));
 
             // Mock JS interop
+            JSInterop.SetupVoid("initializeEventHandlers", _ => true).SetVoidResult();
             JSInterop.Setup<string>("getCurrentUrl").SetResult(link);
             JSRuntimeInvocationHandler<bool> scrollIntoRSBViewInvocation = JSInterop.Setup<bool>("scrollIntoRSBView", _ => true).SetResult(true);
-            JSRuntimeInvocationHandler removeUrlFragmentInvocation = JSInterop.SetupVoid("removeUrlFragment");
+            JSRuntimeInvocationHandler removeUrlFragmentInvocation = JSInterop.SetupVoid("removeUrlFragment").SetVoidResult();
 
             // Act
             Rule selectedRule = currentReport.ReportData.ManagementData[0].Rulebases[0].Rules[0];

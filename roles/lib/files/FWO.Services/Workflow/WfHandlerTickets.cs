@@ -135,7 +135,12 @@ namespace FWO.Services.Workflow
                     {
                         // insert new ticket
                         ActTicket.CreationDate = DateTime.Now;
-                        ActTicket.Requester = userConfig.User;
+                        UiUser requester = ActTicket.Requester ?? userConfig.User;
+                        if (requester.DbId <= 0 && userConfig.User.DbId > 0)
+                        {
+                            requester = userConfig.User;
+                        }
+                        ActTicket.Requester = requester;
                         ActTicket = await dbAcc.AddTicketToDb(ActTicket);
                         TicketList.Add(ActTicket);
                     }

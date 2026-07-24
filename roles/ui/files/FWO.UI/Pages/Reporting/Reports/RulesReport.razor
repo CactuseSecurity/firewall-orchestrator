@@ -352,22 +352,14 @@
 
     private RuleTreeItem[] GetRuleTreeItems(ManagementReport managementReport, DeviceReport deviceReport)
     {
-        List<RuleTreeItem> ruleTreeItems = new();
-
-        if (ruleTreeBuilder.RuleTreeCache.TryGetValue((managementReport.Id, deviceReport.Id), out RuleTreeItem? ruleTreeFromCache))
+        if (!ruleTreeBuilder.RuleTreeCache.TryGetValue((managementReport.Id, deviceReport.Id), out RuleTreeItem? ruleTree))
         {
-            for (int i = 0; i < ruleTreeFromCache.ElementsFlat.Count; i++)
-            {
-                RuleTreeItem ruleTreeItem = (RuleTreeItem)ruleTreeFromCache.ElementsFlat[i];
-
-                if (ruleTreeItem.IsVisible)
-                {
-                    ruleTreeItems.Add(ruleTreeItem);
-                }
-            }
+            // No tree built (yet) for this device - render an empty table instead of failing the whole report.
+            return [];
         }
-
-        return ruleTreeItems.ToArray();
+        return ruleTree.ElementsFlat
+            .Where(ruleTreeItem => ruleTreeItem.IsVisible)
+            .ToArray();
     }
 
     private void ToggleAll(ManagementReport management, DeviceReport device, bool collapse)
@@ -380,7 +372,7 @@
         // Get corresponding tree item for rule
 
         RuleTreeItem ruleTree = GetRuleTree(managementReport, deviceReport);
-        RuleTreeItem? treeItem = ruleTree.ElementsFlat.FirstOrDefault(element => element.Data == rule) as RuleTreeItem;
+        RuleTreeItem? treeItem = ruleTree.ItemsByRule.GetValueOrDefault(rule);
 
         if (treeItem == null)
         {
@@ -415,7 +407,7 @@
         // Get corresponding tree item for rule
 
         RuleTreeItem ruleTree = GetRuleTree(managementReport, deviceReport);
-        RuleTreeItem? treeItem = ruleTree.ElementsFlat.FirstOrDefault(element => element.Data == rule) as RuleTreeItem;
+        RuleTreeItem? treeItem = ruleTree.ItemsByRule.GetValueOrDefault(rule);
 
         if (treeItem != null)
         {

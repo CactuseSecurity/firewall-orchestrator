@@ -98,6 +98,17 @@
                 </button>
             </div>
         </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5546"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("api_ticket_initial_state")):</label>
+            <div class="col-sm-3">
+                <Dropdown ElementType="int?" @bind-SelectedElement="selectedApiTicketInitialStateId" ElementToString="StateDisplayName"
+                          Elements="stateIds.Select(stateId => (int?)stateId)" Nullable="true" NoneSelectedText="@(userConfig.GetText("use_default"))">
+                    <ElementTemplate Context="stateId">
+                        @(StateDisplayName(stateId))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5567"))">
             <label for="cbx_activate_path_analysis" class="col-form-label col-sm-3">@(userConfig.GetText("reqActivatePathAnalysis")):</label>
             <div class="col-sm-2">
@@ -164,19 +175,25 @@ else
     private bool editAllowedChangesByApproverMode = false;
     private bool editFlowIntegrationMode = false;
 
+    private List<WfState> states = [];
+    private List<int> stateIds = [];
     private List<WfTaskType> availableTaskTypes { get; set; } = [];
     private Dictionary<WfTaskType, bool> taskTypesActiveDict = [];
 
     private List<WfPriority> prioList = [];
+    private int? selectedApiTicketInitialStateId;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             configData = await globalConfig.GetEditableConfig();
+            states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates) ?? [];
+            stateIds = states.Select(state => state.Id).ToList();
+            selectedApiTicketInitialStateId = configData.ReqApiTicketInitialStateId >= 0 ? configData.ReqApiTicketInitialStateId : null;
             availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(configData.ReqAvailableTaskTypes) ?? throw new JsonException("Config data could not be parsed.");
             taskTypesActiveDict = [];
-            foreach(WfTaskType type in Enum.GetValues(typeof(WfTaskType)))
+            foreach(WfTaskType type in Enum.GetValues<WfTaskType>())
             {
                 taskTypesActiveDict.Add(type, availableTaskTypes.Contains(type));
             }
@@ -189,12 +206,20 @@ else
         }
     }
 
+    private string StateDisplayName(int? stateId)
+    {
+        return stateId == null
+            ? userConfig.GetText("use_default")
+            : states.FirstOrDefault(state => state.Id == stateId.Value)?.Name ?? stateId.Value.ToString();
+    }
+
     private async Task Save()
     {
         try
         {
             if (configData != null)
             {
+                configData.ReqApiTicketInitialStateId = selectedApiTicketInitialStateId ?? -1;
                 availableTaskTypes = [];
                 foreach(WfTaskType type in taskTypesActiveDict.Keys)
                 {

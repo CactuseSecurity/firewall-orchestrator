@@ -69,6 +69,8 @@ class TestCommonModuleSelection:
             ("fortiadom5ff", "FortiAdom5ffCommon"),
             ("checkpointR8x", "CheckpointR8xCommon"),
             ("fortiosmanagementREST", "FortiosManagementRESTCommon"),
+            ("genericfirewallmanagement1.0", "GenericFirewallCommon"),
+            ("azure2022ff", "Azure2022ffCommon"),
         ],
     )
     def test_get_module_selects_importer_for_known_package(

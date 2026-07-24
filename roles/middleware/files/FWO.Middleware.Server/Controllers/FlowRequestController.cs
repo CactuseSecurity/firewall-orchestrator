@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace FWO.Middleware.Server.Controllers;
 
 /// <summary>
-/// Provides flow request endpoints that are not implemented yet.
+/// Provides flow request endpoints.
 /// </summary>
 [Authorize]
 [ApiController]
@@ -75,9 +75,30 @@ public class FlowRequestController : ControllerBase
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}")]
     [HttpPost("createRequest")]
-    public ActionResult<CreateRequestResponse> CreateRequest([FromBody] CreateRequestRequest request)
+    [ProducesResponseType(typeof(CreateRequestResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<CreateRequestResponse>> CreateRequest([FromBody] CreateRequestRequest request)
     {
-        return StatusCode(StatusCodes.Status501NotImplemented);
+        try
+        {
+            if (request == null)
+            {
+                return BadRequest("Request body is missing.");
+            }
+            int requesterId = FWO.Basics.JwtClaimParser.ExtractIntClaimValues(User.Claims, "x-hasura-user-id").FirstOrDefault();
+            CreateRequestResponse response = await flowRequestService.CreateRequestAsync(request, requesterId);
+            return Ok(response);
+        }
+        catch (ArgumentException argumentException)
+        {
+            return BadRequest(argumentException.Message);
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Create Request", "Error while creating workflow request.", exception);
+            return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error");
+        }
     }
 
     /// <summary>

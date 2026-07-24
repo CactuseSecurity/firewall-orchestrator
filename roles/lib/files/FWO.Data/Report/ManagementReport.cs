@@ -238,12 +238,15 @@ namespace FWO.Data.Report
             {
                 if (source != null && source.Length > 0)
                 {
-                    target ??= Array.Empty<T>(); // sicherstellen, dass target nicht null ist
                     newObjects = true;
                     maxAddedCounts[key] = Math.Max(maxAddedCounts[key], source.Length);
+                    if (target == null || target.Length == 0)
+                    {
+                        return [.. source];
+                    }
                     return [.. target, .. source];
                 }
-                return target ?? Array.Empty<T>(); // falls target null, leeres Array zurückgeben
+                return target ?? Array.Empty<T>();
             }
 
             managementReport.Objects = MergeArray(managementReport.Objects, managementReportToMerge.Objects, "NetworkObjects");
@@ -256,11 +259,13 @@ namespace FWO.Data.Report
 
             MergeReportObjects(managementReport, managementReportToMerge, maxAddedCounts, ref newObjects);
 
+            Dictionary<int, RulebaseReport> rulebasesToMergeById = managementReportToMerge.Rulebases.ToDictionary(rulebase => rulebase.Id);
             foreach (RulebaseReport rulebaseReport in managementReport.Rulebases)
             {
-                if (!managementReportToMerge.Rulebases.Any(rbr => rbr.Id == rulebaseReport.Id))
+                if (!rulebasesToMergeById.TryGetValue(rulebaseReport.Id, out RulebaseReport? rulebaseReportToMerge))
+                {
                     throw new NotSupportedException("Cannot merge ManagementReports with different Rulebases.");
-                RulebaseReport rulebaseReportToMerge = managementReportToMerge.Rulebases.First(rbr => rbr.Id == rulebaseReport.Id);
+                }
                 if (rulebaseReportToMerge.Rules.Length > 0)
                 {
                     rulebaseReport.Rules = [.. rulebaseReport.Rules, .. rulebaseReportToMerge.Rules];

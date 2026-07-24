@@ -40,7 +40,7 @@
                                     @change
                                 </div>
                                 <div class="col-2">
-                                    <Dropdown ElementType="FwConfigChangeSelection" Elements="GetAvailableSelections()" SelectedElement="GetSelectedSelection(management, change)"
+                                    <Dropdown ElementType="FwConfigChangeSelection" Elements="GetAvailableSelections(change)" SelectedElement="GetSelectedSelection(management, change)"
                                               SelectedElementChanged="@(val => SetSelectedSelection(management, change, val))" ElementToString="selection => selection.DisplayName" Id="@($"dropdown-{management.Id}-{change.Replace(" ", "-")}")">
                                         <ElementTemplate Context="selection">
                                             @selection.DisplayName
@@ -145,7 +145,7 @@ else
             }
         }
 
-        foreach (ManagementFwConfigChangeState state in managementStates)
+        foreach (var state in managementStates)
         {
             state.SelectedChanges ??= new Dictionary<string, string>();
 
@@ -159,12 +159,17 @@ else
         }
     }
 
-    private List<FwConfigChangeSelection> GetAvailableSelections()
+    private List<FwConfigChangeSelection> GetAvailableSelections(string change)
     {
         List<FwConfigChangeSelection> selections =
         [
             new(ManagementFwConfigChangeTargets.Disabled, userConfig.GetText("disabled"))
         ];
+
+        if (change == ManagementFwConfigChangeCategories.RuleChanges)
+        {
+            selections.Add(new(ManagementFwConfigChangeTargets.InternalWork, userConfig.GetText("internal_work")));
+        }
 
         selections.AddRange(extTicketSystems.Select(system => new FwConfigChangeSelection(system.Id.ToString(), system.Name)));
         return selections;
@@ -176,7 +181,7 @@ else
             ? value
             : ManagementFwConfigChangeTargets.Disabled;
 
-        List<FwConfigChangeSelection> selections = GetAvailableSelections();
+        List<FwConfigChangeSelection> selections = GetAvailableSelections(change);
         return selections.FirstOrDefault(selection => selection.Value == selectedValue) ?? selections[0];
     }
 

@@ -206,71 +206,103 @@
 
     private async Task OwnerChanged(FwoOwner newOwner)
     {
-        if(newOwner != SelectedOwner)
+        if (newOwner == SelectedOwner)
         {
-            SelectedOwner = newOwner;
-            AppRoles = (await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getAppRoles, new { appId = SelectedOwner.Id })).OrderBy(x => x.Id).ToList();
-            AppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersForOwner, new { appId = SelectedOwner.Id });
-            NetworkAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(ModellingQueries.getAreas);
-            ServiceGroups = await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getServiceGroupsForApp, new { appId = SelectedOwner.Id });
-            Services = await apiConnection.SendQueryAsync<List<ModellingService>>(ModellingQueries.getServicesForApp, new { appId = SelectedOwner.Id });
-
-            if (orphanedView)
-            {
-                await LoadOrphanedAppRoleConnectionsForOwner();
-                await LoadOrphanedAppServerConnectionsForOwner();
-                await LoadOrphanedNetworkAreaConnectionsForOwner();
-                await LoadOrphanedServiceConnectionsForOwner();
-                await LoadOrphanedServiceGroupConnectionsForOwner();
-                return;
-            }
-
-            if(AppRoles.Count > 0)
-            {
-                await ARChanged(AppRoles[0]);
-            }
-            else
-            {
-                SelectedAppRole = null;
-                FoundConnections = [];
-            }
-            if (AppServers.Count > 0)
-            {
-                await AppServerChanged(AppServers[0]);
-            }
-            else
-            {
-                SelectedAppServer = null;
-                FoundAppServerConnections = [];
-            }
-            if (NetworkAreas.Count > 0)
-            {
-                await NetworkAreaChanged(NetworkAreas[0]);
-            }
-            else
-            {
-                SelectedNetworkArea = null;
-                FoundNetworkAreaConnections = [];
-            }
-            if (ServiceGroups.Count > 0)
-            {
-                await ServiceGroupChanged(ServiceGroups[0]);
-            }
-            else
-            {
-                SelectedServiceGroup = null;
-                FoundServiceGroupConnections = [];
-            }
-            if (Services.Count > 0)
-            {
-                await ServiceChanged(Services[0]);
-            }
-            else
-            {
-                SelectedService = null;
-                FoundServiceConnections = [];
-            }
+            return;
         }
+
+        SelectedOwner = newOwner;
+        await LoadOwnerObjects(newOwner);
+
+        if (orphanedView)
+        {
+            await LoadOrphanedConnectionsForOwner();
+            return;
+        }
+
+        await LoadConnectionsForSelectedObjects();
+    }
+
+    private async Task LoadOwnerObjects(FwoOwner owner)
+    {
+        AppRoles = (await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getAppRoles, new { appId = owner.Id })).OrderBy(x => x.Id).ToList();
+        AppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersForOwner, new { appId = owner.Id });
+        NetworkAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(ModellingQueries.getAreas);
+        ServiceGroups = await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getServiceGroupsForApp, new { appId = owner.Id });
+        Services = await apiConnection.SendQueryAsync<List<ModellingService>>(ModellingQueries.getServicesForApp, new { appId = owner.Id });
+    }
+
+    private async Task LoadOrphanedConnectionsForOwner()
+    {
+        await LoadOrphanedAppRoleConnectionsForOwner();
+        await LoadOrphanedAppServerConnectionsForOwner();
+        await LoadOrphanedNetworkAreaConnectionsForOwner();
+        await LoadOrphanedServiceConnectionsForOwner();
+        await LoadOrphanedServiceGroupConnectionsForOwner();
+    }
+
+    private async Task LoadConnectionsForSelectedObjects()
+    {
+        await LoadAppRoleConnections();
+        await LoadAppServerConnections();
+        await LoadNetworkAreaConnections();
+        await LoadServiceGroupConnections();
+        await LoadServiceConnections();
+    }
+
+    private async Task LoadAppRoleConnections()
+    {
+        if (AppRoles.Count > 0)
+        {
+            await ARChanged(AppRoles[0]);
+            return;
+        }
+        SelectedAppRole = null;
+        FoundConnections = [];
+    }
+
+    private async Task LoadAppServerConnections()
+    {
+        if (AppServers.Count > 0)
+        {
+            await AppServerChanged(AppServers[0]);
+            return;
+        }
+        SelectedAppServer = null;
+        FoundAppServerConnections = [];
+    }
+
+    private async Task LoadNetworkAreaConnections()
+    {
+        if (NetworkAreas.Count > 0)
+        {
+            await NetworkAreaChanged(NetworkAreas[0]);
+            return;
+        }
+        SelectedNetworkArea = null;
+        FoundNetworkAreaConnections = [];
+    }
+
+    private async Task LoadServiceGroupConnections()
+    {
+        if (ServiceGroups.Count > 0)
+        {
+            await ServiceGroupChanged(ServiceGroups[0]);
+            return;
+        }
+        SelectedServiceGroup = null;
+        FoundServiceGroupConnections = [];
+    }
+
+    private async Task LoadServiceConnections()
+    {
+        if (Services.Count > 0)
+        {
+            await ServiceChanged(Services[0]);
+            return;
+        }
+        SelectedService = null;
+        FoundServiceConnections = [];
     }
 
     private async Task OnOrphanedViewChanged()

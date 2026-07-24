@@ -407,7 +407,7 @@
             RecertHandler recertHandler = new(apiConnection, userConfig);
             foreach (var certRule in Certifications)
             {
-                if (await recertHandler.RecertifySingleRule(certRule, selectedOwner, actComment))
+                if (await RecertifyRuleAndCollectDeletion(recertHandler, certRule))
                 {
                     if (certRule.Metadata.Recert)
                     {
@@ -416,14 +416,6 @@
                     else
                     {
                         decerts++;
-                        if (await checkAllDecertified(certRule))
-                        {
-                            if (!deleteList.ContainsKey(certRule.RulebaseId))
-                            {
-                                deleteList.Add(certRule.RulebaseId, new List<string>());
-                            }
-                            deleteList[certRule.RulebaseId].Add(certRule.Uid ?? "");
-                        }
                     }
                 }
             }
@@ -431,6 +423,29 @@
         string txt = userConfig.GetText("recerts_executed") + recerts.ToString() + ", " +
         userConfig.GetText("decerts_executed") + decerts.ToString();
         DisplayMessageInUi(null, userConfig.GetText("execute_selected"), txt, false);
+    }
+
+    private async Task<bool> RecertifyRuleAndCollectDeletion(RecertHandler recertHandler, Rule certRule)
+    {
+        if (!await recertHandler.RecertifySingleRule(certRule, selectedOwner, actComment))
+        {
+            return false;
+        }
+
+        if (!certRule.Metadata.Recert && await checkAllDecertified(certRule))
+        {
+            AddRuleToDeleteList(certRule);
+        }
+        return true;
+    }
+
+    private void AddRuleToDeleteList(Rule rule)
+    {
+        if (!deleteList.ContainsKey(rule.RulebaseId))
+        {
+            deleteList.Add(rule.RulebaseId, new List<string>());
+        }
+        deleteList[rule.RulebaseId].Add(rule.Uid ?? "");
     }
 
     private async Task<bool> checkAllDecertified(Rule rule)

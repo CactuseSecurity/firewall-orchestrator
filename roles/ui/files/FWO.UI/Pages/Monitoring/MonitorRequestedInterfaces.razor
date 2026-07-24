@@ -483,25 +483,44 @@ else
             }
 
             WfTicket ticket = ticketResponse.Result;
+            ResolveRequestingAppsFromTicket(ticket);
+        }
+    }
 
-            foreach (WfReqTask task in ticket.Tasks)
-            {
-                int connId = task.GetAddInfoIntValueOrZero(AdditionalInfoKeys.ConnId);
-                int reqOwnerId = task.GetAddInfoIntValueOrZero(AdditionalInfoKeys.ReqOwner);
-                if (connId > 0 && !TicketStateIdByConnectionId.ContainsKey(connId))
-                {
-                    TicketStateIdByConnectionId[connId] = ticket.StateId;
-                }
-                if (connId > 0 && !TicketCreationDateByConnectionId.ContainsKey(connId))
-                {
-                    TicketCreationDateByConnectionId[connId] = ticket.CreationDate;
-                }
-                if (connId > 0 && reqOwnerId > 0 && !RequestingAppByConnectionId.ContainsKey(connId) &&
-                    OwnersById.TryGetValue(reqOwnerId, out FwoOwner? requestingOwner))
-                {
-                    RequestingAppByConnectionId[connId] = requestingOwner;
-                }
-            }
+    private void ResolveRequestingAppsFromTicket(WfTicket ticket)
+    {
+        foreach (WfReqTask task in ticket.Tasks)
+        {
+            int connId = task.GetAddInfoIntValueOrZero(AdditionalInfoKeys.ConnId);
+            int reqOwnerId = task.GetAddInfoIntValueOrZero(AdditionalInfoKeys.ReqOwner);
+            AddTicketState(connId, ticket);
+            AddTicketCreationDate(connId, ticket);
+            AddRequestingApp(connId, reqOwnerId);
+        }
+    }
+
+    private void AddTicketState(int connectionId, WfTicket ticket)
+    {
+        if (connectionId > 0 && !TicketStateIdByConnectionId.ContainsKey(connectionId))
+        {
+            TicketStateIdByConnectionId[connectionId] = ticket.StateId;
+        }
+    }
+
+    private void AddTicketCreationDate(int connectionId, WfTicket ticket)
+    {
+        if (connectionId > 0 && !TicketCreationDateByConnectionId.ContainsKey(connectionId))
+        {
+            TicketCreationDateByConnectionId[connectionId] = ticket.CreationDate;
+        }
+    }
+
+    private void AddRequestingApp(int connectionId, int requestingOwnerId)
+    {
+        if (connectionId > 0 && requestingOwnerId > 0 && !RequestingAppByConnectionId.ContainsKey(connectionId) &&
+            OwnersById.TryGetValue(requestingOwnerId, out FwoOwner? requestingOwner))
+        {
+            RequestingAppByConnectionId[connectionId] = requestingOwner;
         }
     }
 

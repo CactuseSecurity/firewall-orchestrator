@@ -4,6 +4,7 @@ using Bunit;
 using Bunit.TestDoubles;
 using FWO.Api.Client;
 using FWO.Config.Api;
+using FWO.Data;
 using FWO.Logging;
 using FWO.Report;
 using FWO.Ui.Services;
@@ -44,6 +45,7 @@ namespace FWO.Test
 
             BunitNavigationManager navigationManager = Services.GetRequiredService<BunitNavigationManager>();
             navigationManager.NavigateTo(link);
+            Assert.That(navigationManager.Uri, Is.EqualTo(link));
 
             // Mock JS interop
             JSInterop.Setup<string>("getCurrentUrl").SetResult(link);
@@ -51,29 +53,24 @@ namespace FWO.Test
             JSRuntimeInvocationHandler removeUrlFragmentInvocation = JSInterop.SetupVoid("removeUrlFragment");
 
             // Act
-            // tpurschke: this has to be rewritten as Device does not contain rules anymore
-            // IRenderedComponent<RightSidebar> cut = Render<RightSidebar>(parameters => parameters
-            //     .Add(p => p.CurrentReport, currentReport)
-            //     .Add(p => p.SelectedRules, [currentReport.ReportData.ManagementData[0].Devices[0].Rules![0]]));
+            Rule selectedRule = currentReport.ReportData.ManagementData[0].Rulebases[0].Rules[0];
+            List<Rule> selectedRules = new() { selectedRule };
+            IRenderedComponent<RightSidebar> cut = Render<RightSidebar>(parameters => parameters
+                .Add(p => p.CurrentReport, currentReport)
+                .Add(p => p.SelectedRules, selectedRules));
 
-            // manually trigger 
-            // IRenderedComponent<AnchorNavToRSB> anchorNavToRSB = cut.FindComponent<AnchorNavToRSB>();
-            // Task timeout = Task.Delay(2000);
-            // Task scrollTask = anchorNavToRSB.InvokeAsync(() => anchorNavToRSB.Instance.NavigateAndScrollToFragment());
-            // Task completedTask = await Task.WhenAny(scrollTask, timeout);
-            // if (completedTask == timeout)
-            // {
-            //     Log.WriteDebug("Test UI RSB", "NavigateAndScrollToFragment does not complete timely (circle dependency through state changes?)");
-            // }
-            // // Assert
-            // Assert.That(scrollIntoRSBViewInvocation.Invocations, Is.Not.Empty, "scrollIntoRSBView should have been called");
-            // JSRuntimeInvocation invocation = scrollIntoRSBViewInvocation.Invocations.First();
-            // object? parameter = invocation.Arguments[0];
-            // Assert.That(parameter, Is.Not.Null, "scrollIntoRSBView was called with a null parameter");
-            // Assert.That(parameter, Is.InstanceOf<string>(), "scrollIntoRSBView was called with a non-string parameter");
-            // Assert.That((string)parameter!, Is.Not.Empty, "scrollIntoRSBView was called with an empty string");
-            // IElement element = cut.Find($"#{parameter}");
-            // Assert.That(IsElementVisible(element), Is.True, "Element is not visible (might be incorrect tab or collapsed)");
+            IRenderedComponent<AnchorNavToRSB> anchorNavToRSB = cut.FindComponent<AnchorNavToRSB>();
+            await anchorNavToRSB.InvokeAsync(() => anchorNavToRSB.Instance.NavigateAndScrollToFragment());
+
+            Assert.That(scrollIntoRSBViewInvocation.Invocations, Is.Not.Empty, "scrollIntoRSBView should have been called");
+            Assert.That(removeUrlFragmentInvocation.Invocations, Is.Not.Empty, "removeUrlFragment should have been called");
+            JSRuntimeInvocation invocation = scrollIntoRSBViewInvocation.Invocations.First();
+            object? parameter = invocation.Arguments[0];
+            Assert.That(parameter, Is.InstanceOf<string>(), "scrollIntoRSBView was called with a non-string parameter");
+            string elementId = (string)parameter!;
+            Assert.That(elementId, Is.Not.Empty, "scrollIntoRSBView was called with an empty string");
+            IElement element = cut.Find($"#{elementId}");
+            Assert.That(IsElementVisible(element), Is.True, "Element is not visible (might be incorrect tab or collapsed)");
         }
 
         private bool IsElementVisible(IElement? element)

@@ -259,6 +259,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("reqUseFlowDb"), JsonPropertyName("reqUseFlowDb")]
         public bool ReqUseFlowDb { get; set; } = false;
 
+        [JsonProperty("reqApiTicketInitialStateId"), JsonPropertyName("reqApiTicketInitialStateId")]
+        public int ReqApiTicketInitialStateId { get; set; } = -1;
+
         [JsonProperty("reqFlowIntegration"), JsonPropertyName("reqFlowIntegration")]
         public string ReqFlowIntegration { get; set; } = System.Text.Json.JsonSerializer.Serialize(new FlowIntegrationConfig());
 
@@ -625,9 +628,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("reportingPersonalPreferredCollapseState"), JsonPropertyName("reportingPersonalPreferredCollapseState")]
         public PreferredCollapseState ReportingPersonalPreferredCollapseState { get; set; } = PreferredCollapseState.Collapsed;
+
         [JsonProperty("fwConfigChangeMgmSettings"), JsonPropertyName("fwConfigChangeMgmSettings")]
         public string FwConfigChangeMgmSettings { get; set; } = "[]";
-
 
 
         public ConfigData(bool editable = false)

@@ -281,15 +281,61 @@ namespace FWO.Services.Modelling
         private bool IsNwImplementation(NetworkLocation[] networkLocations, Dictionary<string, bool> specialUserObjects,
             Dictionary<string, bool> updatableObjects, ModellingConnection conn, bool source, ref List<NetworkLocation> disregardedLocations, bool continueAnalysis)
         {
-            List<ModellingAppServerWrapper> appServers = source ? conn.SourceAppServers : conn.DestinationAppServers;
-            List<ModellingAppRoleWrapper> appRoles = source ? conn.SourceAppRoles : conn.DestinationAppRoles;
-            List<ModellingNetworkAreaWrapper> areas = source ? conn.SourceAreas : conn.DestinationAreas;
-            List<ModellingNwGroupWrapper> otherGroups = source ? conn.SourceOtherGroups : conn.DestinationOtherGroups;
+            (List<ModellingAppServerWrapper> appServers, List<ModellingAppRoleWrapper> appRoles,
+                List<ModellingNetworkAreaWrapper> areas, List<ModellingNwGroupWrapper> otherGroups) = GetNwImplementationConfiguration(conn, source);
+            int specialUserAreaCount = GetRelevantAreaCount(areas, source ? AllowedSrcSpecUserAreas : AllowedDestSpecUserAreas);
+            int updatableObjectAreaCount = GetRelevantAreaCount(areas, source ? AllowedSrcUpdatableObjAreas : AllowedDestUpdatableObjAreas);
 
-            foreach (var loc in networkLocations)
+            ResetSurplusFlags(networkLocations);
+            if (!CompareNetworkLocations(networkLocations, appServers, appRoles, areas, otherGroups, disregardedLocations, continueAnalysis))
             {
-                loc.Object.IsSurplus = false;
+                return false;
             }
+            AdjustWithSpecialUserObjects(networkLocations, specialUserObjects, source, specialUserAreaCount, ref disregardedLocations);
+            AdjustWithUpdatableObjects(networkLocations, updatableObjects, source, updatableObjectAreaCount, ref disregardedLocations);
+            return disregardedLocations.Count == 0 && networkLocations.Where(n => n.Object.IsSurplus).ToList().Count == 0;
+        }
+
+        /// <summary>
+        /// Gets the modelled network objects for the requested connection direction.
+        /// </summary>
+        private static (List<ModellingAppServerWrapper> AppServers, List<ModellingAppRoleWrapper> AppRoles,
+            List<ModellingNetworkAreaWrapper> Areas, List<ModellingNwGroupWrapper> OtherGroups) GetNwImplementationConfiguration(ModellingConnection conn, bool source)
+        {
+            return source
+                ? (conn.SourceAppServers, conn.SourceAppRoles, conn.SourceAreas, conn.SourceOtherGroups)
+                : (conn.DestinationAppServers, conn.DestinationAppRoles, conn.DestinationAreas, conn.DestinationOtherGroups);
+        }
+
+        /// <summary>
+        /// Counts the distinct modelled areas that are configured for special handling.
+        /// </summary>
+        private static int GetRelevantAreaCount(List<ModellingNetworkAreaWrapper> areas, List<long> allowedAreaIds)
+        {
+            return ModellingNetworkAreaWrapper.Resolve(areas)
+                .Select(area => (long)area.Id)
+                .Distinct()
+                .Count(allowedAreaIds.Contains);
+        }
+
+        /// <summary>
+        /// Clears surplus markers left by a preceding network-object comparison.
+        /// </summary>
+        private static void ResetSurplusFlags(NetworkLocation[] networkLocations)
+        {
+            foreach (var location in networkLocations)
+            {
+                location.Object.IsSurplus = false;
+            }
+        }
+
+        /// <summary>
+        /// Compares network areas, application servers, and optionally unresolved network groups.
+        /// </summary>
+        private bool CompareNetworkLocations(NetworkLocation[] networkLocations, List<ModellingAppServerWrapper> appServers,
+            List<ModellingAppRoleWrapper> appRoles, List<ModellingNetworkAreaWrapper> areas, List<ModellingNwGroupWrapper> otherGroups,
+            List<NetworkLocation> disregardedLocations, bool continueAnalysis)
+        {
             if (!CompareNwAreas(networkLocations, areas, disregardedLocations, continueAnalysis) && !continueAnalysis)
             {
                 return false;
@@ -298,28 +344,27 @@ namespace FWO.Services.Modelling
             {
                 return false;
             }
-            if (!ruleRecognitionOption.NwResolveGroup && !CompareRemainingNwGroups(networkLocations, appRoles, otherGroups, disregardedLocations, continueAnalysis) && !continueAnalysis)
-            {
-                return false;
-            }
-            AdjustWithSpecialUserObjects(networkLocations, specialUserObjects, source, ref disregardedLocations);
-            AdjustWithUpdatableObjects(networkLocations, updatableObjects, source, ref disregardedLocations);
-            return disregardedLocations.Count == 0 && networkLocations.Where(n => n.Object.IsSurplus).ToList().Count == 0;
+            return ruleRecognitionOption.NwResolveGroup
+                || CompareRemainingNwGroups(networkLocations, appRoles, otherGroups, disregardedLocations, continueAnalysis)
+                || continueAnalysis;
         }
 
-        private void AdjustWithSpecialUserObjects(NetworkLocation[] networkLocations, Dictionary<string, bool> specialUserObjects, bool source, ref List<NetworkLocation> disregardedLocations)
+        private void AdjustWithSpecialUserObjects(NetworkLocation[] networkLocations, Dictionary<string, bool> specialUserObjects, bool source,
+            int specialUserAreaCount, ref List<NetworkLocation> disregardedLocations)
         {
             if (specialUserObjects.Count > 0 && disregardedLocations.Count > 0)
             {
-                List<NetworkLocation> surplusSpecUserLocations = [.. networkLocations.Where(n => n.Object.IsSurplus && specialUserObjects.ContainsKey(n.Object.Name.ToLower()))];
+                List<NetworkLocation> specUserLocations = GetPlaceholderSubstitutes(networkLocations, specialUserObjects);
                 List<NetworkLocation> remainingPossibleSpecObj = GetPossibleSpecObjects(disregardedLocations, source);
-                if (surplusSpecUserLocations.Count == remainingPossibleSpecObj.Count)
+                // A placeholder area stands in for any number of special user objects (so N objects cover 1 area),
+                // but a single object must not cover several areas - require at least as many objects as areas.
+                if (remainingPossibleSpecObj.Count > 0 && specUserLocations.Count >= specialUserAreaCount)
                 {
                     foreach (var location in remainingPossibleSpecObj)
                     {
                         disregardedLocations.Remove(location);
                     }
-                    foreach (var specUser in surplusSpecUserLocations.Select(s => s.Object))
+                    foreach (var specUser in specUserLocations.Select(s => s.Object))
                     {
                         specUser.IsSurplus = false;
                         specialUserObjects[specUser.Name.ToLower()] = true;
@@ -333,19 +378,36 @@ namespace FWO.Services.Modelling
             return [.. disregardedLocations.Where(l => l.Object.Type.Name == ObjectType.Group && (source ? AllowedSrcSpecUserAreas.Contains(l.Object.Id) : AllowedDestSpecUserAreas.Contains(l.Object.Id)))];
         }
 
-        private void AdjustWithUpdatableObjects(NetworkLocation[] networkLocations, Dictionary<string, bool> updatableObjects, bool source, ref List<NetworkLocation> disregardedLocations)
+        /// <summary>
+        /// Selects the modelled objects (matched by name) that may stand in for a placeholder area.
+        /// An object qualifies when it is surplus, or - only while IPs are compared - when it has no IP:
+        /// such an object can never match normally, so it always counts. Relying on the empty IP also
+        /// avoids the IP comparer deduping several IP-less objects (marking only the first as surplus)
+        /// and thereby undercounting them. When IPs are not compared the empty-IP signal is meaningless,
+        /// so the surplus flag alone decides.
+        /// </summary>
+        private List<NetworkLocation> GetPlaceholderSubstitutes(NetworkLocation[] networkLocations, Dictionary<string, bool> objectsByName)
+        {
+            return [.. networkLocations.Where(n => objectsByName.ContainsKey(n.Object.Name.ToLower())
+                && (n.Object.IsSurplus || (ruleRecognitionOption.NwRegardIp && string.IsNullOrEmpty(n.Object.IP))))];
+        }
+
+        private void AdjustWithUpdatableObjects(NetworkLocation[] networkLocations, Dictionary<string, bool> updatableObjects, bool source,
+            int updatableObjectAreaCount, ref List<NetworkLocation> disregardedLocations)
         {
             if (updatableObjects.Count > 0 && disregardedLocations.Count > 0)
             {
-                List<NetworkLocation> surplusUpdObjLocations = [.. networkLocations.Where(n => n.Object.IsSurplus && updatableObjects.ContainsKey(n.Object.Name.ToLower()))];
+                List<NetworkLocation> updObjLocations = GetPlaceholderSubstitutes(networkLocations, updatableObjects);
                 List<NetworkLocation> remainingPossibleUpdatableObj = GetPossibleUpdatableObjects(disregardedLocations, source);
-                if (surplusUpdObjLocations.Count == remainingPossibleUpdatableObj.Count)
+                // A placeholder area stands in for any number of updatable objects (so N objects cover 1 area),
+                // but a single object must not cover several areas - require at least as many objects as areas.
+                if (remainingPossibleUpdatableObj.Count > 0 && updObjLocations.Count >= updatableObjectAreaCount)
                 {
                     foreach (var location in remainingPossibleUpdatableObj)
                     {
                         disregardedLocations.Remove(location);
                     }
-                    foreach (var updObj in surplusUpdObjLocations.Select(s => s.Object))
+                    foreach (var updObj in updObjLocations.Select(s => s.Object))
                     {
                         updObj.IsSurplus = false;
                         updatableObjects[updObj.Name.ToLower()] = true;

@@ -16,4 +16,5 @@
     dest: "{{ fworch_home }}"
     rsync_opts:
       - "--chown={{ fworch_user }}:{{ fworch_group }}"
+      - "--delete-delay"
   become: true

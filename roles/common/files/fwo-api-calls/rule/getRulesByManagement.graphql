@@ -16,5 +16,6 @@ query getRulesByManagement (
   }
   order_by: { rule_num_numeric: asc }){
     ...ruleDetails
+    ...ruleEnforcedOnGateways
   }
 }

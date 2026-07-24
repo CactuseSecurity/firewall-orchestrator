@@ -114,31 +114,18 @@ Note that the following domains (and their sub-domains) must be reachable throug
 
 #### Pyhton proxy config
 
-Remember if your server resides behind a proxy that you will have to set the proxy for pip as follows before installing ansible:
-
-         pip config set global.proxy http://proxy:3128
+When using `scripts/install-ansible-from-venv.sh`, export the proxy variables described above. Pip automatically honors them; the script does not write a pip configuration file.
 
 
 In case of timeout issues (you might be behind a security proxy that does intensive scanning), try to install ansible using the command:
 
           pip --default-timeout=3600 install ansible
           
-##### issues with existing pip config
+##### Existing pip configuration
 
-In case of errors with existing pip config, do not use the script to create the venv but proceed as follows:
+The venv helper preserves any existing pip configuration, including an organization-provided package index. It sets only a command-local download timeout and does not create or change `$HOME/.config/pip/pip.conf`.
 
-remove any local pip config and install manually from the cloned repository directory:
-    
-    rm -f $HOME/.config/pip/pip.conf
-    cd firewall-orchestrator
-    sudo apt-get update
-    sudo apt-get install --yes python3-venv
-    python3 -m venv --clear $HOME/.fwo/installer-venv
-    source $HOME/.fwo/installer-venv/bin/activate
-    pip install -r requirements.txt
-    if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
-    pip install ansible
-    ansible-galaxy collection install -r collections/requirements.yml -p collections --force
+If that configuration cannot provide the required packages, have the package-index administrator correct the repository or use an approved index. Do not remove an existing user or OS-managed pip configuration as an installer workaround.
 
 ### Parameter "api_no_metadata" to prevent meta data import
 

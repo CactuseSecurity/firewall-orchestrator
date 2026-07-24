@@ -83,3 +83,22 @@ def test_normalize_single_ipv6_network_object_marks_explicit_end_ip_as_range():
 
     assert result.obj_typ == "ip_range"
     assert lookup["ipv6_range"] == "uuid-ipv6-range"
+
+
+def test_normalize_single_ipv6_network_object_treats_equal_endpoints_as_host():
+    native_object = NwObjAddress6.model_validate(
+        {
+            "name": "ipv6_host",
+            "q_origin_key": "ipv6_host",
+            "uuid": "uuid-ipv6-host",
+            "type": "ipprefix",
+            "ip6": "2001:db8::1/128",
+            "end-ip": "2001:db8::1",
+        }
+    )
+    lookup: dict[str, str] = {}
+
+    result = normalize_single_ipv6_network_object(native_object, lookup)
+
+    assert result.obj_typ == "host"
+    assert lookup["ipv6_host"] == "uuid-ipv6-host"

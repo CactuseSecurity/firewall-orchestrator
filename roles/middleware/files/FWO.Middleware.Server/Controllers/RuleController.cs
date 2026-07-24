@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using JsonRequired = System.Text.Json.Serialization.JsonRequiredAttribute;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
@@ -492,7 +493,7 @@ public class RulesByFilterResponse
 
 public class RuleFilter
 {
-    [System.Text.Json.Serialization.JsonRequired]
+    [JsonRequired]
     public int MinPrefixLength { get; set; }
     public string InField { get; set; } = "";
     public string Action { get; set; } = "";

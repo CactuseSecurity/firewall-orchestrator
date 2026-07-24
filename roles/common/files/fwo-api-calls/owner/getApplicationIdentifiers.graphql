@@ -1,0 +1,7 @@
+query getApplicationIdentifiers($where: owner_bool_exp = {}, $limit: Int, $offset: Int) {
+  owner_list: owner(where: $where, limit: $limit, offset: $offset, order_by: [{ name: asc }, { app_id_external: asc }, { id: asc }]) {
+    id
+    name
+    app_id_external
+  }
+}

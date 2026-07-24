@@ -1,5 +1,6 @@
 using FWO.Api.Client.Queries;
 using GraphQL;
+using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Services;
 
@@ -7,6 +8,16 @@ namespace FWO.Test
 {
     internal class ModellingHandlerTestApiConn : SimulatedApiConnection
     {
+        private static readonly ReturnIdWrapper NewAppRoleWrapper = new()
+        {
+            ReturnIds = new ReturnId[] { new ReturnId { NewIdLong = 123 } }
+        };
+
+        private static readonly ReturnIdWrapper EmptyReturnWrapper = new()
+        {
+            ReturnIds = new ReturnId[] { new ReturnId() }
+        };
+
         const string AppRoleId1 = "AR5000001";
         const string AppRoleId2 = "AR9101234-002";
         const string AppRoleId3 = "AR9901234-999";
@@ -14,6 +25,11 @@ namespace FWO.Test
         readonly ModellingAppRole AppRole2 = new() { Id = 2, IdString = AppRoleId2 };
         readonly ModellingAppRole AppRole3 = new() { Id = 3, IdString = AppRoleId3 };
 
+        public List<ModellingAppRole> DummyAppRoles { get; set; } = new List<ModellingAppRole> { new() { Id = 999, Name = "dummy" } };
+        public int NewAppRoleCalls { get; private set; }
+        public int UpdateAppRoleCalls { get; private set; }
+        public int AddNwObjectCalls { get; private set; }
+        public int RemoveNwObjectCalls { get; private set; }
 
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
@@ -41,12 +57,40 @@ namespace FWO.Test
                         }
                     }
                 }
+                else if (query == ModellingQueries.getDummyAppRole)
+                {
+                    appRoles = DummyAppRoles;
+                }
                 else
                 {
                     appRoles = [AppRole1];
                 }
 
                 GraphQLResponse<dynamic> response = new() { Data = appRoles };
+                return response.Data;
+            }
+            else if (responseType == typeof(ReturnIdWrapper) && query == ModellingQueries.newAppRole)
+            {
+                NewAppRoleCalls++;
+                GraphQLResponse<dynamic> response = new() { Data = NewAppRoleWrapper };
+                return response.Data;
+            }
+            else if (responseType == typeof(ReturnId) && query == ModellingQueries.updateAppRole)
+            {
+                UpdateAppRoleCalls++;
+                GraphQLResponse<dynamic> response = new() { Data = new ReturnId() };
+                return response.Data;
+            }
+            else if (responseType == typeof(ReturnId) && query == ModellingQueries.addNwObjectToNwGroup)
+            {
+                AddNwObjectCalls++;
+                GraphQLResponse<dynamic> response = new() { Data = new ReturnId() };
+                return response.Data;
+            }
+            else if (responseType == typeof(ReturnId) && query == ModellingQueries.removeNwObjectFromNwGroup)
+            {
+                RemoveNwObjectCalls++;
+                GraphQLResponse<dynamic> response = new() { Data = new ReturnId() };
                 return response.Data;
             }
             else if (responseType == typeof(List<ModellingConnection>))

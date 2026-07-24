@@ -6,6 +6,7 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using NUnit.Framework;
+using System.Reflection;
 
 namespace FWO.Test
 {
@@ -226,17 +227,196 @@ namespace FWO.Test
             Assert.That(apiConn.ReplaceInConnectionCalls, Is.EqualTo(1));
             Assert.That(apiConn.HistoryEntryCalls, Is.EqualTo(1));
         }
+
+        [Test]
+        public async Task NoHigherPrioActive_ReturnsFalse_WhenHigherPriorityAppServerExists()
+        {
+            ModellingAppServer incoming = new()
+            {
+                Id = 1,
+                AppId = 7,
+                Name = "incoming",
+                Ip = "10.0.0.1",
+                IpEnd = "",
+                ImportSource = GlobalConst.kManual
+            };
+            ModellingAppServer higherPrio = new()
+            {
+                Id = 2,
+                AppId = 7,
+                Name = "higher",
+                Ip = "10.0.0.1",
+                IpEnd = "",
+                ImportSource = "workflow",
+                IsDeleted = false
+            };
+            AppServerHelperTestApiConn apiConn = new();
+            apiConn.AppServersByIp = new List<ModellingAppServer> { higherPrio };
+
+            bool result = await AppServerHelper.NoHigherPrioActive(apiConn, incoming);
+
+            Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public async Task NoHigherPrioActive_ReturnsTrue_WhenLookupFails()
+        {
+            ModellingAppServer incoming = new()
+            {
+                Id = 1,
+                AppId = 7,
+                Name = "incoming",
+                Ip = "10.0.0.1",
+                IpEnd = "",
+                ImportSource = GlobalConst.kManual
+            };
+            AppServerHelperTestApiConn apiConn = new()
+            {
+                ThrowOnGetAppServersByIp = true
+            };
+
+            bool result = await AppServerHelper.NoHigherPrioActive(apiConn, incoming);
+
+            Assert.That(result, Is.True);
+        }
+
+        [Test]
+        public async Task UpsertAppServer_AddsWhenNoExistingSameIp()
+        {
+            ModellingAppServer incoming = new()
+            {
+                Id = 0,
+                AppId = 7,
+                Name = "incoming",
+                Ip = "10.0.0.1",
+                IpEnd = "",
+                ImportSource = GlobalConst.kManual,
+                CustomType = 1
+            };
+            AppServerHelperTestApiConn apiConn = new()
+            {
+                NewAppServerId = 99
+            };
+            UserConfig userConfig = new SimulatedUserConfig();
+            userConfig.User.Name = "tester";
+
+            (long? appServerId, string? existingName) = await AppServerHelper.UpsertAppServer(apiConn, userConfig, incoming, nameCheck: false);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(appServerId, Is.EqualTo(99));
+                Assert.That(existingName, Is.Null);
+                Assert.That(apiConn.NewAppServerCalls, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task UpsertAppServer_ReturnsExistingNameWhenHigherPriorityIsActive()
+        {
+            ModellingAppServer incoming = new()
+            {
+                Id = 1,
+                AppId = 7,
+                Name = "incoming",
+                Ip = "10.0.0.1",
+                IpEnd = "",
+                ImportSource = GlobalConst.kManual,
+                CustomType = 1
+            };
+            AppServerHelperTestApiConn apiConn = new()
+            {
+                AppServersByIp = new List<ModellingAppServer>
+                {
+                    new()
+                    {
+                        Id = 2,
+                        AppId = 7,
+                        Name = "higher-prio",
+                        Ip = "10.0.0.1",
+                        IpEnd = "",
+                        ImportSource = "workflow",
+                        IsDeleted = false
+                    }
+                }
+            };
+            UserConfig userConfig = new SimulatedUserConfig();
+
+            (long? appServerId, string? existingName) = await AppServerHelper.UpsertAppServer(apiConn, userConfig, incoming, nameCheck: false);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(appServerId, Is.Null);
+                Assert.That(existingName, Is.EqualTo("higher-prio"));
+            });
+        }
+
+        [Test]
+        public async Task AdjustAppServerNames_UpdatesNamesWhenConstructedNameDiffers()
+        {
+            ModellingAppServer appServer = new()
+            {
+                Id = 20,
+                AppId = 7,
+                Name = "old",
+                Ip = "10.0.0.1",
+                IpEnd = "10.0.0.2",
+                ImportSource = "import"
+            };
+            AppServerHelperTestApiConn apiConn = new()
+            {
+                AllAppServers = new List<ModellingAppServer> { appServer }
+            };
+            SimulatedUserConfig userConfig = new()
+            {
+                ModNamingConvention = "{\"appServerPrefix\":\"srv-\",\"networkPrefix\":\"net-\",\"ipRangePrefix\":\"rng-\"}",
+                OverwriteExistingNames = true
+            };
+
+            await AppServerHelper.AdjustAppServerNames(apiConn, userConfig);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(appServer.Name, Is.EqualTo("rng-10.0.0.1-10.0.0.2"));
+                Assert.That(appServer.ImportSource, Is.EqualTo(GlobalConst.kAdjustAppServerNames));
+                Assert.That(apiConn.SetNameCalls, Is.EqualTo(1));
+                Assert.That(apiConn.HistoryEntryCalls, Is.EqualTo(1));
+            });
+        }
     }
 
     internal sealed class AppServerHelperTestApiConn : SimulatedApiConnection
     {
+        private static readonly ReturnIdWrapper EmptyReturnWrapper = new()
+        {
+            ReturnIds = new ReturnId[] { new ReturnId() }
+        };
+
         private readonly List<ModellingAppServer> appServersByIp;
 
+        public bool ThrowOnGetAppServersByIp { get; set; }
+        public List<ModellingAppServer> AllAppServers { get; set; } = new List<ModellingAppServer>();
+        public List<ModellingAppServer> AppServersByIp
+        {
+            get => appServersByIp;
+            set
+            {
+                appServersByIp.Clear();
+                appServersByIp.AddRange(value);
+            }
+        }
+        public int NewAppServerCalls { get; private set; }
+        public long NewAppServerId { get; set; } = 99;
         public int UpdateAppServerCalls { get; private set; }
         public int SetDeletedCalls { get; private set; }
+        public int SetNameCalls { get; private set; }
         public int ReplaceInGroupCalls { get; private set; }
         public int ReplaceInConnectionCalls { get; private set; }
         public int HistoryEntryCalls { get; private set; }
+
+        public AppServerHelperTestApiConn()
+        {
+            appServersByIp = new List<ModellingAppServer>();
+        }
 
         public AppServerHelperTestApiConn(List<ModellingAppServer> appServersByIp)
         {
@@ -247,7 +427,21 @@ namespace FWO.Test
         {
             if (typeof(QueryResponseType) == typeof(List<ModellingAppServer>) && query == ModellingQueries.getAppServersByIp)
             {
+                if (ThrowOnGetAppServersByIp)
+                {
+                    throw new InvalidOperationException("getAppServersByIp failed");
+                }
                 return Task.FromResult((QueryResponseType)(object)appServersByIp);
+            }
+
+            if (typeof(QueryResponseType) == typeof(List<ModellingAppServer>) && query == ModellingQueries.getAppServersByName)
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<ModellingAppServer>());
+            }
+
+            if (typeof(QueryResponseType) == typeof(List<ModellingAppServer>) && query == ModellingQueries.getAllAppServers)
+            {
+                return Task.FromResult((QueryResponseType)(object)AllAppServers);
             }
 
             if (typeof(QueryResponseType) == typeof(ReturnId) && query == ModellingQueries.updateAppServer)
@@ -256,30 +450,45 @@ namespace FWO.Test
                 return Task.FromResult((QueryResponseType)(object)new ReturnId());
             }
 
+            if (typeof(QueryResponseType) == typeof(ReturnId) && query == ModellingQueries.setAppServerName)
+            {
+                SetNameCalls++;
+                return Task.FromResult((QueryResponseType)(object)new ReturnId());
+            }
+
+            if (typeof(QueryResponseType) == typeof(ReturnIdWrapper) && query == ModellingQueries.newAppServer)
+            {
+                NewAppServerCalls++;
+                return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                {
+                    ReturnIds = new ReturnId[] { new ReturnId { NewIdLong = NewAppServerId } }
+                });
+            }
+
             if (typeof(QueryResponseType) == typeof(ReturnIdWrapper))
             {
                 if (query == ModellingQueries.setAppServerDeletedState)
                 {
                     SetDeletedCalls++;
-                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper { ReturnIds = [new ReturnId()] });
+                    return Task.FromResult((QueryResponseType)(object)EmptyReturnWrapper);
                 }
 
                 if (query == ModellingQueries.updateNwObjectInNwGroup)
                 {
                     ReplaceInGroupCalls++;
-                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper { ReturnIds = [new ReturnId()] });
+                    return Task.FromResult((QueryResponseType)(object)EmptyReturnWrapper);
                 }
 
                 if (query == ModellingQueries.updateNwObjectInConnection)
                 {
                     ReplaceInConnectionCalls++;
-                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper { ReturnIds = [new ReturnId()] });
+                    return Task.FromResult((QueryResponseType)(object)EmptyReturnWrapper);
                 }
 
                 if (query == ModellingQueries.addHistoryEntry)
                 {
                     HistoryEntryCalls++;
-                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper { ReturnIds = [new ReturnId()] });
+                    return Task.FromResult((QueryResponseType)(object)EmptyReturnWrapper);
                 }
             }
 

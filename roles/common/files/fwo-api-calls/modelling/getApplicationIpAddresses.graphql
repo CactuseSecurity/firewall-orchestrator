@@ -1,0 +1,7 @@
+query getApplicationIpAddresses($where: owner_network_bool_exp = {}) {
+  owner_network(where: { _and: [{ nw_type: { _eq: 10 }, is_deleted: { _eq: false } }, $where] } order_by: [{ owner_id: asc }, { ip: asc }, { ip_end: asc }]) {
+    app_id: owner_id
+    ip
+    ip_end
+  }
+}

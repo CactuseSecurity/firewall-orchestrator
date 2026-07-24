@@ -66,12 +66,6 @@ namespace FWO.Test
             return (TException)exception.InnerException!;
         }
 
-        [SetUp]
-        public void Initialize()
-        {
-
-        }
-
         [Test]
         [Parallelizable]
         public void EmptySearch()
@@ -141,8 +135,8 @@ namespace FWO.Test
 
             object range = CreateDateTimeRange(TokenKind.EEQ, "this year");
 
-            Assert.That(GetDateTimeRangeBound(range, "Start"), Is.EqualTo(new DateTime(currentYear, 1, 1, 0, 0, 0)));
-            Assert.That(GetDateTimeRangeBound(range, "End"), Is.EqualTo(new DateTime(currentYear + 1, 1, 1, 0, 0, 0)));
+            Assert.That(GetDateTimeRangeBound(range, "Start"), Is.EqualTo(new DateTime(currentYear, 1, 1, 0, 0, 0, DateTimeKind.Unspecified)));
+            Assert.That(GetDateTimeRangeBound(range, "End"), Is.EqualTo(new DateTime(currentYear + 1, 1, 1, 0, 0, 0, DateTimeKind.Unspecified)));
         }
 
         [Test]
@@ -153,15 +147,15 @@ namespace FWO.Test
 
             object range = CreateDateTimeRange(TokenKind.EEQ, "last year");
 
-            Assert.That(GetDateTimeRangeBound(range, "Start"), Is.EqualTo(new DateTime(currentYear - 1, 1, 1, 0, 0, 0)));
-            Assert.That(GetDateTimeRangeBound(range, "End"), Is.EqualTo(new DateTime(currentYear, 1, 1, 0, 0, 0)));
+            Assert.That(GetDateTimeRangeBound(range, "Start"), Is.EqualTo(new DateTime(currentYear - 1, 1, 1, 0, 0, 0, DateTimeKind.Unspecified)));
+            Assert.That(GetDateTimeRangeBound(range, "End"), Is.EqualTo(new DateTime(currentYear, 1, 1, 0, 0, 0, DateTimeKind.Unspecified)));
         }
 
         [Test]
         [Parallelizable]
         public void DateTimeRange_LessThanCreatesOpenStartRange()
         {
-            DateTime expectedEnd = new(2025, 1, 1, 0, 0, 0);
+            DateTime expectedEnd = new(2025, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
 
             object range = CreateDateTimeRange(TokenKind.LSS, "2025-01-01");
 
@@ -173,7 +167,7 @@ namespace FWO.Test
         [Parallelizable]
         public void DateTimeRange_GreaterThanCreatesOpenEndRange()
         {
-            DateTime expectedStart = new(2025, 1, 1, 0, 0, 0);
+            DateTime expectedStart = new(2025, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
 
             object range = CreateDateTimeRange(TokenKind.GRT, "2025-01-01");
 
@@ -1063,7 +1057,7 @@ namespace FWO.Test
 
             DynGraphqlQuery query = Compiler.Compile(template);
 
-            string expected = new DateTime(DateTime.Now.Year, 1, 1, 0, 0, 0).ToString(DynGraphqlQuery.fullTimeFormat);
+            string expected = new DateTime(DateTime.Now.Year, 1, 1, 0, 0, 0, DateTimeKind.Unspecified).ToString(DynGraphqlQuery.fullTimeFormat);
             Assert.That(query.QueryVariables["lastHitLimit0"], Is.EqualTo(expected));
         }
 

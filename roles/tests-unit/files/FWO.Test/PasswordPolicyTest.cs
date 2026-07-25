@@ -60,7 +60,7 @@ namespace FWO.Test
             }), "E5415");
         }
 
-        private static GlobalConfig CreateGlobalConfig()
+        private static SimulatedGlobalConfig CreateGlobalConfig()
         {
             return new SimulatedGlobalConfig
             {

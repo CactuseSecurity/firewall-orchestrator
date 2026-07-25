@@ -5,6 +5,7 @@ using FWO.Test.Mocks;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Components.Forms;
 using NUnit.Framework;
+using RestSharp;
 using System.Net;
 using System.Reflection;
 using System.Text;
@@ -152,6 +153,51 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void GetResponseMessage_ReturnsErrorMessage_WhenPresent()
+        {
+            string? message = InvokeGetResponseMessage(new RestResponse<string>(new RestRequest())
+            {
+                ErrorMessage = "middleware failed",
+                Content = "\"ignored\""
+            });
+
+            Assert.That(message, Is.EqualTo("middleware failed"));
+        }
+
+        [Test]
+        public void GetResponseMessage_ReturnsNull_WhenContentIsEmpty()
+        {
+            string? message = InvokeGetResponseMessage(new RestResponse<string>(new RestRequest())
+            {
+                Content = ""
+            });
+
+            Assert.That(message, Is.Null);
+        }
+
+        [Test]
+        public void GetResponseMessage_DeserializesJsonStringContent()
+        {
+            string? message = InvokeGetResponseMessage(new RestResponse<string>(new RestRequest())
+            {
+                Content = JsonSerializer.Serialize("middleware failed")
+            });
+
+            Assert.That(message, Is.EqualTo("middleware failed"));
+        }
+
+        [Test]
+        public void GetResponseMessage_ReturnsRawContent_WhenContentIsNotJson()
+        {
+            string? message = InvokeGetResponseMessage(new RestResponse<string>(new RestRequest())
+            {
+                Content = "middleware failed"
+            });
+
+            Assert.That(message, Is.EqualTo("middleware failed"));
+        }
+
         private static FileUploadService CreateService(RecordingEventMediator mediator, TestMiddlewareClient? middlewareClient = null)
         {
             SimulatedUserConfig userConfig = new()
@@ -182,6 +228,14 @@ namespace FWO.Test
             PropertyInfo property = typeof(FileUploadService).GetProperty("UploadedData", BindingFlags.Instance | BindingFlags.NonPublic)
                 ?? throw new MissingFieldException(typeof(FileUploadService).FullName, "UploadedData");
             property.SetValue(service, Encoding.UTF8.GetBytes(data));
+        }
+
+        private static string? InvokeGetResponseMessage(RestResponse<string> response)
+        {
+            MethodInfo method = typeof(FileUploadService).GetMethod("GetResponseMessage", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new MissingMethodException(typeof(FileUploadService).FullName, "GetResponseMessage");
+
+            return (string?)method.Invoke(null, new object?[] { response });
         }
 
         private static HttpResponseMessage CreateJsonResponse(HttpStatusCode statusCode, string body)

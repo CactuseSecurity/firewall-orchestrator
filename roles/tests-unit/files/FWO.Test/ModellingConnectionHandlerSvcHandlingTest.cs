@@ -18,6 +18,12 @@ namespace FWO.Test
         private static readonly Action<Exception?, string, string, bool> DisplayMessageInUi = DefaultInit.DoNothing;
         private static readonly FwoOwner Application = new() { Id = 1, Name = "TestApp" };
         private static readonly ReturnIdWrapper HistoryReturn = new() { ReturnIds = [new ReturnId()] };
+        private static readonly long[] GlobalServiceGroupIds = [10, 12];
+        private static readonly long[] GlobalServiceIds = [20, 21, 22];
+        private static readonly long[] FilteredServiceGroupIds = [10, 12];
+        private static readonly long[] FilteredServiceIds = [20, 22];
+        private static readonly long[] SvcToAddIds = [4, 6];
+        private static readonly long[] SvcGrpToAddIds = [5, 7];
 
         private sealed class RecordingApiConnection : SimulatedApiConnection
         {
@@ -224,8 +230,8 @@ namespace FWO.Test
                 Assert.That(apiConn.AppServiceGroupCalls, Is.EqualTo(1));
                 Assert.That(apiConn.GlobalServiceCalls, Is.EqualTo(1));
                 Assert.That(apiConn.AppServiceCalls, Is.EqualTo(1));
-                Assert.That(handler.AvailableServiceGroups.Select(s => s.Id), Is.EquivalentTo(new[] { 10, 12 }));
-                Assert.That(handler.AvailableServices.Select(s => s.Id), Is.EquivalentTo(new[] { 20, 21, 22 }));
+                Assert.That(handler.AvailableServiceGroups.Select(s => s.Id), Is.EquivalentTo(GlobalServiceGroupIds));
+                Assert.That(handler.AvailableServices.Select(s => s.Id), Is.EquivalentTo(GlobalServiceIds));
                 Assert.That(handler.AvailableSvcElems, Does.Contain(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.ServiceGroup, 10)));
                 Assert.That(handler.AvailableSvcElems, Does.Contain(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.ServiceGroup, 12)));
                 Assert.That(handler.AvailableSvcElems, Does.Contain(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.Service, 20)));
@@ -262,8 +268,8 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(handler.AvailableServiceGroups.Select(s => s.Id), Is.EquivalentTo(new[] { 10, 12 }));
-                Assert.That(handler.AvailableServices.Select(s => s.Id), Is.EquivalentTo(new[] { 20, 22 }));
+                Assert.That(handler.AvailableServiceGroups.Select(s => s.Id), Is.EquivalentTo(FilteredServiceGroupIds));
+                Assert.That(handler.AvailableServices.Select(s => s.Id), Is.EquivalentTo(FilteredServiceIds));
                 Assert.That(handler.AvailableSvcElems, Has.Count.EqualTo(2));
                 Assert.That(handler.AvailableSvcElems, Does.Not.Contain(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.Service, 20)));
                 Assert.That(handler.AvailableSvcElems, Does.Contain(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.ServiceGroup, 10)));
@@ -578,8 +584,8 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(handler.SvcToAdd.Select(s => s.Id), Is.EquivalentTo(new[] { 4, 6 }));
-                Assert.That(handler.SvcGrpToAdd.Select(s => s.Id), Is.EquivalentTo(new[] { 5, 7 }));
+                Assert.That(handler.SvcToAdd.Select(s => s.Id), Is.EquivalentTo(SvcToAddIds));
+                Assert.That(handler.SvcGrpToAdd.Select(s => s.Id), Is.EquivalentTo(SvcGrpToAddIds));
             });
         }
     }

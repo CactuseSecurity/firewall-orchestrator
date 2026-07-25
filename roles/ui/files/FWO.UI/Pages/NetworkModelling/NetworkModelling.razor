@@ -1,6 +1,8 @@
 @using FWO.Data.Workflow
 @using FWO.ExternalSystems
 @using FWO.Data
+@using FWO.Config.Api
+@using FWO.Config.Api.Data
 @using FWO.Ui.Display
 @using FWO.Services.Workflow
 @using RestSharp
@@ -233,6 +235,11 @@ else
     private bool workInProgress = false;
     private bool InitDone = false;
 
+
+    protected override void OnInitialized()
+    {
+        userConfig.OnChange += OnUserConfigChanged;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -663,7 +670,13 @@ else
 
     public void Dispose()
     {
+        userConfig.OnChange -= OnUserConfigChanged;
         actTicketSubscription?.Dispose();
+    }
+
+    private async void OnUserConfigChanged(Config _, ConfigItem[] __)
+    {
+        await InvokeAsync(StateHasChanged);
     }
 
     private async void OnTicketUpdate(List<WfTicket> tickets)

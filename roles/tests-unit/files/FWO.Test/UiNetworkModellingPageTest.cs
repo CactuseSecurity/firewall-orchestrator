@@ -4,6 +4,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
@@ -11,8 +12,8 @@ using FWO.Middleware.Client;
 using FWO.Services.EventMediator;
 using FWO.Services.EventMediator.Interfaces;
 using FWO.Services.RuleTreeBuilder;
-using FWO.Ui.Services;
 using FWO.Ui.Pages.NetworkModelling;
+using FWO.Ui.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -25,6 +26,11 @@ namespace FWO.Test
     [TestFixture]
     internal class UiNetworkModellingPageTest
     {
+        private static readonly ConfigItem[] kModIconifyDisabledConfigItems =
+        [
+            new() { Key = "modIconify", Value = "false", User = 0 }
+        ];
+
         [Test]
         public async Task Render_SelectsRouteAppAndLoadsConnections()
         {
@@ -184,6 +190,34 @@ namespace FWO.Test
 
             NavigationManager navigation = context.Services.GetRequiredService<NavigationManager>();
             Assert.That(navigation.Uri, Does.EndWith("/report/generation/20"));
+        }
+
+        [Test]
+        public async Task Render_ReactsToModIconifyChange_ForPlainAndAuthorizedButtons()
+        {
+            await using BunitContext context = CreateContext([Roles.Admin, Roles.Recertifier], out NetworkModellingPageTestApiConn apiConn, out SimulatedUserConfig userConfig);
+            userConfig.ModIconify = true;
+            userConfig.User.Ownerships = [10];
+            userConfig.User.RecertOwnerships = [10];
+
+            IRenderedComponent<NetworkModelling> page = RenderPage(context, appId: "APP-A");
+
+            page.WaitForAssertion(() =>
+            {
+                Assert.That(page.Markup, Does.Contain("Alpha App"));
+                Assert.That(page.FindAll("button").Any(button => button.TextContent.Trim().Equals(userConfig.GetText("share_link"), StringComparison.Ordinal)), Is.False);
+                Assert.That(page.FindAll("button").Any(button => button.TextContent.Trim().Equals(userConfig.GetText("edit_app_server"), StringComparison.Ordinal)), Is.False);
+            });
+
+            userConfig.SubscriptionUpdateHandler(kModIconifyDisabledConfigItems);
+
+            page.WaitForAssertion(() =>
+            {
+                Assert.That(userConfig.ModIconify, Is.False);
+                Assert.That(page.FindAll("button").Any(button => button.TextContent.Trim().Equals(userConfig.GetText("share_link"), StringComparison.Ordinal)), Is.True);
+                Assert.That(page.FindAll("button").Any(button => button.TextContent.Trim().Equals(userConfig.GetText("generate_report"), StringComparison.Ordinal)), Is.True);
+                Assert.That(page.FindAll("button").Any(button => button.TextContent.Trim().Equals(userConfig.GetText("recertify"), StringComparison.Ordinal)), Is.True);
+            });
         }
 
         private static BunitContext CreateContext(

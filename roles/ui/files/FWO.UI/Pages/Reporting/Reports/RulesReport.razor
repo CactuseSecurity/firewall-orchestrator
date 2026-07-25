@@ -299,7 +299,7 @@
     #region Fields
 
     private ITable<RuleTreeItem>? _reportTable;
-    private bool[] _emptyColumns = new bool[ColumnsCount];
+    private readonly bool[] _emptyColumns = new bool[ColumnsCount];
 
     private NatRuleDisplayHtml? _ruleDisplay;
     private bool _showLastModifiedAfterLastHit => SelectedReportType == ReportType.UnusedRules || SelectedReportType == ReportType.AppRules;

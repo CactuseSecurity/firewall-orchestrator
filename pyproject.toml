@@ -63,7 +63,9 @@ exclude = [
     "scripts/acquire_lock.py",
     "scripts/gh-search.py",
     "scripts/json_pretty_print.py",
-    "scripts/release_lock.py"
+    "scripts/release_lock.py",
+    "AGENTS.md",
+    "CLAUDE.md",
 ]
 
 [tool.ruff.lint]

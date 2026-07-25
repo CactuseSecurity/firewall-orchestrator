@@ -196,7 +196,8 @@ namespace FWO.Test
 
             page.WaitForAssertion(() =>
             {
-                Assert.That(page.FindAll(".btn-group button").First().TextContent.Trim(), Is.EqualTo(userConfig.GetText("generate_report")));
+                IReadOnlyList<IElement> buttons = page.FindAll(".btn-group button");
+                Assert.That(buttons[0].TextContent.Trim(), Is.EqualTo(userConfig.GetText("generate_report")));
             });
 
             userConfig.ModIconify = true;
@@ -209,7 +210,8 @@ namespace FWO.Test
 
             page.WaitForAssertion(() =>
             {
-                Assert.That(page.FindAll(".btn-group button").First().InnerHtml, Does.Contain(Icons.GenerateReport));
+                IReadOnlyList<IElement> buttons = page.FindAll(".btn-group button");
+                Assert.That(buttons[0].InnerHtml, Does.Contain(Icons.GenerateReport));
             });
         }
 

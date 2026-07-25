@@ -7,11 +7,13 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Middleware;
+using FWO.Data.Workflow;
 using FWO.Middleware.Server;
 using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using Novell.Directory.Ldap;
 using NUnit.Framework;
 using System.Reflection;
 
@@ -21,6 +23,22 @@ namespace FWO.Test
     [Parallelizable]
     internal class AuthenticationTokenControllerTest
     {
+        private static readonly string[] kLoginUserCn = { "login-user" };
+        private static readonly string[] kLoginUserDn = { "uid=login-user,ou=users,dc=fworch,dc=internal" };
+        private static readonly string[] kReporterRoleValues = { Roles.Reporter };
+        private static readonly RefreshTokenInfo[] kRefreshTokenUserId7 = { new() { UserId = 7 } };
+        private static readonly UiUser[] kTokenUser = { new() { DbId = 7, Name = "token-user" } };
+        private static readonly UiUser[] kLoginUserResult =
+        {
+            new()
+            {
+                DbId = 7,
+                Name = "login-user",
+                Dn = "uid=login-user,ou=users,dc=fworch,dc=internal"
+            }
+        };
+        private static readonly string kSearchPassword = LdapTestSupport.CreateEncryptedSecret("searchpwd");
+
         [Test]
         public async Task GetAsync_ReturnsAnonymousJwt_WhenCredentialsAreMissing()
         {
@@ -50,6 +68,19 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GetAsync_ReturnsAnonymousJwt_WhenParametersAreNull()
+        {
+            AuthenticationTokenController controller = CreateController();
+
+            ActionResult<string> result = await controller.GetAsync(null!);
+
+            string jwt = ExtractOkString(result);
+            JwtSecurityToken token = new JwtSecurityTokenHandler().ReadJwtToken(jwt);
+
+            Assert.That(token.Claims.Single(claim => claim.Type == "x-hasura-default-role").Value, Is.EqualTo(Roles.Anonymous));
+        }
+
+        [Test]
         public async Task GetTokenPair_ReturnsAnonymousBootstrapPair_WhenCredentialsAreMissing()
         {
             AuthenticationTokenController controller = CreateController();
@@ -64,6 +95,20 @@ namespace FWO.Test
                 Assert.That(tokenPair.RefreshToken, Is.Empty);
                 Assert.That(token.Claims.Single(claim => claim.Type == "x-hasura-default-role").Value, Is.EqualTo(Roles.Anonymous));
             });
+        }
+
+        [Test]
+        public async Task GetTokenPair_ReturnsAnonymousBootstrapPair_WhenParametersAreNull()
+        {
+            AuthenticationTokenController controller = CreateController();
+
+            ActionResult<TokenPair> result = await controller.GetTokenPair(null!);
+
+            TokenPair tokenPair = ExtractOkValue(result);
+            JwtSecurityToken token = new JwtSecurityTokenHandler().ReadJwtToken(tokenPair.AccessToken);
+
+            Assert.That(tokenPair.RefreshToken, Is.Empty);
+            Assert.That(token.Claims.Single(claim => claim.Type == "x-hasura-default-role").Value, Is.EqualTo(Roles.Anonymous));
         }
 
         [Test]
@@ -161,6 +206,115 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task RefreshToken_ReturnsUnauthorizedWhenRefreshTokenIsUnknown()
+        {
+            AuthenticationTokenController controller = CreateController(new RecordingApiConnection
+            {
+                NextResult = Array.Empty<RefreshTokenInfo>()
+            });
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            Assert.That(result.Result, Is.TypeOf<UnauthorizedObjectResult>());
+            Assert.That(((UnauthorizedObjectResult)result.Result!).Value, Is.EqualTo("Invalid or expired refresh token"));
+        }
+
+        [Test]
+        public async Task RefreshToken_ReturnsUnauthorizedWhenUserCannotBeFound()
+        {
+            RecordingApiConnection apiConnection = new();
+            apiConnection.QueueResult(kRefreshTokenUserId7);
+            apiConnection.QueueResult(Array.Empty<UiUser>());
+            AuthenticationTokenController controller = CreateController(apiConnection);
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            Assert.That(result.Result, Is.TypeOf<UnauthorizedObjectResult>());
+            Assert.That(((UnauthorizedObjectResult)result.Result!).Value, Is.EqualTo("User not found"));
+        }
+
+        [Test]
+        public async Task RevokeToken_ReturnsUnauthorizedWhenRefreshTokenIsUnknown()
+        {
+            AuthenticationTokenController controller = CreateController(new RecordingApiConnection
+            {
+                NextResult = Array.Empty<RefreshTokenInfo>()
+            });
+
+            ActionResult result = await controller.RevokeToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            Assert.That(result, Is.TypeOf<UnauthorizedObjectResult>());
+            Assert.That(((UnauthorizedObjectResult)result).Value, Is.EqualTo("Invalid or expired refresh token"));
+        }
+
+        [Test]
+        public async Task RevokeToken_ReturnsUnauthorizedWhenRevocationAffectsNoRows()
+        {
+            RecordingApiConnection apiConnection = new();
+            apiConnection.QueueResult(kRefreshTokenUserId7);
+            apiConnection.QueueResult(kTokenUser);
+            apiConnection.QueueResult(new ReturnId { AffectedRows = 0 });
+            AuthenticationTokenController controller = CreateController(apiConnection);
+
+            ActionResult result = await controller.RevokeToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            Assert.That(result, Is.TypeOf<UnauthorizedObjectResult>());
+            Assert.That(((UnauthorizedObjectResult)result).Value, Is.EqualTo("Invalid or expired refresh token"));
+        }
+
+        [Test]
+        public async Task GetTokenPair_ReturnsAuthenticatedPair_WhenLdapAndApiSucceed()
+        {
+            RecordingApiConnection apiConnection = new()
+            {
+                Responder = (query, variables, resultType) => QueryResponse(query, resultType)
+            };
+            RecordingLdapClient ldapClient = new()
+            {
+                SearchResponder = (baseDn, scope, filter, attributes, typesOnly) =>
+                {
+                    if (baseDn == "ou=users,dc=fworch,dc=internal")
+                    {
+                        return LdapTestSupport.CreateSearchResults(
+                            LdapTestSupport.CreateEntry(
+                                "uid=login-user,ou=users,dc=fworch,dc=internal",
+                                new LdapAttribute("cn", kLoginUserCn)));
+                    }
+
+                    if (baseDn == "ou=roles,dc=fworch,dc=internal")
+                    {
+                        return LdapTestSupport.CreateSearchResults(
+                            LdapTestSupport.CreateEntry(
+                                "cn=reporter,ou=roles,dc=fworch,dc=internal",
+                                new LdapAttribute("cn", kReporterRoleValues),
+                                new LdapAttribute("uniqueMember", kLoginUserDn)));
+                    }
+
+                    return LdapTestSupport.CreateSearchResults();
+                }
+            };
+            AuthenticationTokenController controller = CreateController(
+                new List<Ldap> { CreateAuthLdap(ldapClient) },
+                apiConnection);
+
+            ActionResult<TokenPair> result = await controller.GetTokenPair(new AuthenticationTokenGetParameters
+            {
+                Username = "login-user",
+                Password = "password"
+            });
+
+            TokenPair tokenPair = ExtractOkValue(result);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(tokenPair.AccessToken, Is.Not.Empty);
+                Assert.That(tokenPair.RefreshToken, Is.Not.Empty);
+                Assert.That(apiConnection.LastQuery, Is.EqualTo(AuthQueries.storeRefreshToken));
+                Assert.That(ldapClient.SearchCalls, Is.Not.Empty);
+            });
+        }
+
+        [Test]
         public async Task AuthManagerValidateRefreshToken_ReturnsRefreshTokenInfo()
         {
             RecordingApiConnection apiConnection = new();
@@ -170,7 +324,8 @@ namespace FWO.Test
                 CreatedAt = DateTime.UtcNow.AddMinutes(-1),
                 ExpiresAt = DateTime.UtcNow.AddMinutes(30)
             };
-            apiConnection.NextResult = new[] { expectedTokenInfo };
+            RefreshTokenInfo[] nextResult = { expectedTokenInfo };
+            apiConnection.NextResult = nextResult;
 
             object authManager = CreateAuthManager(apiConnection);
 
@@ -318,12 +473,37 @@ namespace FWO.Test
 
         private static AuthenticationTokenController CreateController()
         {
+            return CreateController(new RecordingApiConnection());
+        }
+
+        private static AuthenticationTokenController CreateController(List<Ldap> ldaps, ApiConnection apiConnection)
+        {
             RSA rsa = RSA.Create(2048);
             return new AuthenticationTokenController(
                 new JwtWriter(new RsaSecurityKey(rsa)),
-                [],
-                new SimulatedApiConnection(),
+                ldaps,
+                apiConnection,
                 new FixedTokenLifetimeProvider());
+        }
+
+        private static AuthenticationTokenController CreateController(ApiConnection apiConnection)
+        {
+            return CreateController([], apiConnection);
+        }
+
+        private static TestableLdap CreateAuthLdap(RecordingLdapClient client)
+        {
+            return new TestableLdap(client)
+            {
+                Id = 11,
+                Address = "ldap.example.test",
+                Port = 389,
+                SearchUser = "cn=search,dc=fworch,dc=internal",
+                SearchUserPwd = kSearchPassword,
+                RoleSearchPath = "ou=roles,dc=fworch,dc=internal",
+                UserSearchPath = "ou=users,dc=fworch,dc=internal",
+                TenantId = 7
+            };
         }
 
         private static object CreateAuthManager(ApiConnection apiConnection, TokenLifetimeProvider? tokenLifetimeProvider = null)
@@ -381,7 +561,14 @@ namespace FWO.Test
             public string? LastOperationName { get; private set; }
             public int CallCount { get; private set; }
             public object? NextResult { get; set; }
+            public Queue<object> QueuedResults { get; } = new();
             public Exception? ThrowOnQuery { get; set; }
+            public Func<string, object?, Type, object?>? Responder { get; set; }
+
+            public void QueueResult(object result)
+            {
+                QueuedResults.Enqueue(result);
+            }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
@@ -395,6 +582,24 @@ namespace FWO.Test
                     throw ThrowOnQuery;
                 }
 
+                if (Responder != null)
+                {
+                    object? responderResult = Responder(query, variables, typeof(QueryResponseType));
+                    if (responderResult is QueryResponseType responderTypedResult)
+                    {
+                        return Task.FromResult(responderTypedResult);
+                    }
+                }
+
+                if (QueuedResults.Count > 0)
+                {
+                    object queuedResult = QueuedResults.Dequeue();
+                    if (queuedResult is QueryResponseType queuedTypedResult)
+                    {
+                        return Task.FromResult(queuedTypedResult);
+                    }
+                }
+
                 if (NextResult is QueryResponseType typedResult)
                 {
                     return Task.FromResult(typedResult);
@@ -402,6 +607,67 @@ namespace FWO.Test
 
                 return Task.FromResult(default(QueryResponseType)!);
             }
+        }
+
+        private static object? QueryResponse(string query, Type resultType)
+        {
+            if (resultType == typeof(UiUser[]))
+            {
+                if (query == AuthQueries.getUserByDbId)
+                {
+                    return kLoginUserResult;
+                }
+
+                if (query == AuthQueries.getUserByDn)
+                {
+                    return kLoginUserResult;
+                }
+            }
+
+            if (resultType == typeof(ReturnId))
+            {
+                if (query == AuthQueries.updateUserLastLogin)
+                {
+                    return new ReturnId { PasswordMustBeChanged = false };
+                }
+
+                if (query == AuthQueries.revokeRefreshToken)
+                {
+                    return new ReturnId { AffectedRows = 1 };
+                }
+            }
+
+            if (resultType == typeof(ReturnIdWrapper) && query == AuthQueries.storeRefreshToken)
+            {
+                return new ReturnIdWrapper();
+            }
+
+            if (resultType == typeof(List<FwoOwner>))
+            {
+                return new List<FwoOwner>();
+            }
+
+            if (resultType == typeof(List<WorkflowVisibilityGroup>))
+            {
+                return new List<WorkflowVisibilityGroup>();
+            }
+
+            if (resultType == typeof(Device[]))
+            {
+                return Array.Empty<Device>();
+            }
+
+            if (resultType == typeof(Management[]))
+            {
+                return Array.Empty<Management>();
+            }
+
+            if (resultType == typeof(Tenant[]))
+            {
+                return Array.Empty<Tenant>();
+            }
+
+            return null;
         }
 
         private sealed class FixedTokenLifetimeProvider : TokenLifetimeProvider

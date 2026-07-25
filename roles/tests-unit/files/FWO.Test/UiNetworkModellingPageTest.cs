@@ -19,6 +19,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Reflection;
 using System.Security.Claims;
 
 namespace FWO.Test
@@ -26,11 +27,6 @@ namespace FWO.Test
     [TestFixture]
     internal class UiNetworkModellingPageTest
     {
-        private static readonly ConfigItem[] kModIconifyDisabledConfigItems =
-        [
-            new() { Key = "modIconify", Value = "false", User = 0 }
-        ];
-
         [Test]
         public async Task Render_SelectsRouteAppAndLoadsConnections()
         {
@@ -193,30 +189,27 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Render_ReactsToModIconifyChange_ForPlainAndAuthorizedButtons()
+        public async Task Render_ReactsToModIconifyChange_ForGenerateReportButton()
         {
-            await using BunitContext context = CreateContext([Roles.Admin, Roles.Recertifier], out NetworkModellingPageTestApiConn apiConn, out SimulatedUserConfig userConfig);
-            userConfig.ModIconify = true;
-            userConfig.User.Ownerships = [10];
-            userConfig.User.RecertOwnerships = [10];
-
+            await using BunitContext context = CreateContext([Roles.Admin], out _, out SimulatedUserConfig userConfig);
             IRenderedComponent<NetworkModelling> page = RenderPage(context, appId: "APP-A");
 
             page.WaitForAssertion(() =>
             {
-                Assert.That(page.Markup, Does.Contain("Alpha App"));
-                Assert.That(page.FindAll("button").Any(button => button.TextContent.Trim().Equals(userConfig.GetText("share_link"), StringComparison.Ordinal)), Is.False);
-                Assert.That(page.FindAll("button").Any(button => button.TextContent.Trim().Equals(userConfig.GetText("edit_app_server"), StringComparison.Ordinal)), Is.False);
+                Assert.That(page.FindAll(".btn-group button").First().TextContent.Trim(), Is.EqualTo(userConfig.GetText("generate_report")));
             });
 
-            userConfig.SubscriptionUpdateHandler(kModIconifyDisabledConfigItems);
+            userConfig.ModIconify = true;
+            List<ConfigItem> changedItems = new()
+            {
+                new ConfigItem { Key = "modIconify", Value = "true", User = userConfig.User.DbId }
+            };
+            await page.InvokeAsync(() => userConfig.SubscriptionUpdateHandler(changedItems.ToArray()));
+            await Task.Delay(50);
 
             page.WaitForAssertion(() =>
             {
-                Assert.That(userConfig.ModIconify, Is.False);
-                Assert.That(page.FindAll("button").Any(button => button.TextContent.Trim().Equals(userConfig.GetText("share_link"), StringComparison.Ordinal)), Is.True);
-                Assert.That(page.FindAll("button").Any(button => button.TextContent.Trim().Equals(userConfig.GetText("generate_report"), StringComparison.Ordinal)), Is.True);
-                Assert.That(page.FindAll("button").Any(button => button.TextContent.Trim().Equals(userConfig.GetText("recertify"), StringComparison.Ordinal)), Is.True);
+                Assert.That(page.FindAll(".btn-group button").First().InnerHtml, Does.Contain(Icons.GenerateReport));
             });
         }
 

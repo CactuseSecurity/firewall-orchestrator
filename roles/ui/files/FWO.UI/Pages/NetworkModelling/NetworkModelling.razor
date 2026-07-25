@@ -234,15 +234,12 @@ else
     private bool firstErrorMessage = true;
     private bool workInProgress = false;
     private bool InitDone = false;
+    private bool disposed = false;
 
-
-    protected override void OnInitialized()
-    {
-        userConfig.OnChange += OnUserConfigChanged;
-    }
 
     protected override async Task OnInitializedAsync()
     {
+        userConfig.OnChange += OnUserConfigChanged;
         extStateHandler = new(apiConnection);
         await states.Init(apiConnection);
         await InitAppList();
@@ -670,13 +667,25 @@ else
 
     public void Dispose()
     {
+        disposed = true;
         userConfig.OnChange -= OnUserConfigChanged;
         actTicketSubscription?.Dispose();
     }
 
-    private async void OnUserConfigChanged(Config _, ConfigItem[] __)
+    private void OnUserConfigChanged(Config _, ConfigItem[] __)
     {
-        await InvokeAsync(StateHasChanged);
+        if (disposed)
+        {
+            return;
+        }
+
+        Task.Run(async () => await InvokeAsync(() =>
+        {
+            if (!disposed)
+            {
+                StateHasChanged();
+            }
+        }));
     }
 
     private async void OnTicketUpdate(List<WfTicket> tickets)

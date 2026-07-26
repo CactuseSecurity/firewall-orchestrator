@@ -87,13 +87,13 @@ namespace FWO.Test
         [Test]
         public void TestAppRole()
         {
-            ClassicAssert.AreEqual(false, ar1.Sanitize());
+            ClassicAssert.IsFalse(ar1.Sanitize());
             ClassicAssert.AreEqual($"<span class=\"{Icons.AppRole}\"></span> <span><b><span class=\"\" ><span class=\"\">{ar1.Name} ({ar1.IdString})</span></span></b></span>", ar1.DisplayWithIcon());
 
             ClassicAssert.AreEqual(ARName, ar1.Name);
             ClassicAssert.AreEqual(1, ar1.Number);
             ClassicAssert.AreEqual(ARName, ar1.IdString);
-            ClassicAssert.AreEqual(false, ar1.IsDeleted);
+            ClassicAssert.IsFalse(ar1.IsDeleted);
             ClassicAssert.AreEqual(1, ar1.Id);
             ClassicAssert.AreEqual("Comment nw1", ar1.Comment);
             ClassicAssert.AreEqual(null, ar1.Creator);

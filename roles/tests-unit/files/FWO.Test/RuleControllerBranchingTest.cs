@@ -31,7 +31,7 @@ namespace FWO.Test
                     {
                         OwnerId = 42
                     }
-                });
+                }, "req-owner");
 
             RulesByFilterResponse response = ExtractResponse(actionResult);
             ClassicAssert.AreEqual("req-owner", response.RequestId);
@@ -71,7 +71,7 @@ namespace FWO.Test
                             InField = "source"
                         }
                     }
-                });
+                }, "req-ip");
 
             RulesByFilterResponse response = ExtractResponse(actionResult);
             ClassicAssert.AreEqual("req-ip", response.RequestId);

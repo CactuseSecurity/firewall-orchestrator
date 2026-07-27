@@ -14,6 +14,7 @@ namespace FWO.Middleware.Server
     public abstract class RuleNotificationBodyBase(GlobalConfig globalConfig)
     {
         private static readonly List<int> RawRuleHtmlColumnIndexes = [2, 3, 4];
+        private static readonly TimeSpan RegexTimeout = TimeSpan.FromMilliseconds(100);
 
         /// <summary>
         /// Builds a plain-text rule notification body with the standard rule columns and optional extra columns.
@@ -109,7 +110,8 @@ namespace FWO.Middleware.Server
             Match match = Regex.Match(
                 customFieldsString,
                 $@"['""]{Regex.Escape(key)}['""]\s*:\s*['""](?<value>(?:\\.|[^'""])*)['""]",
-                RegexOptions.CultureInvariant);
+                RegexOptions.CultureInvariant,
+                RegexTimeout);
 
             return match.Success ? Regex.Unescape(match.Groups["value"].Value) : null;
         }

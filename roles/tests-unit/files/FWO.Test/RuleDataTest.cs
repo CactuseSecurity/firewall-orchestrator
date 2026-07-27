@@ -164,7 +164,7 @@ namespace FWO.Test
             {
                 NatRule = true,
                 AccessRule = false,
-                XlateRule = "1366",
+                XlateRule = 1366,
                 TranslatedRule = new Rule { Uid = "translated-rule" },
                 OrderNumber = 7,
                 Disabled = false,

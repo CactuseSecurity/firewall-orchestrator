@@ -133,7 +133,7 @@ namespace FWO.Data
                 RuleSrcZone = rule.SourceZone,
                 RuleDstZone = rule.DestinationZone,
                 RuleHeadText = rule.SectionHeader,
-                XlateRule = rule.TranslatedRule?.Uid ?? rule.XlateRule,
+                XlateRule = rule.TranslatedRule?.Uid,
                 NatRule = rule.NatRule,
                 AccessRule = rule.AccessRule
             };

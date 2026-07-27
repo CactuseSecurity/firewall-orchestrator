@@ -60,16 +60,23 @@ regeneration of the unit. Note that `After=` only orders, it does not pull a dep
 
 ## Services not owned by the installer
 
-`slapd` and `postgresql` are OS packages, not fworch units, but the stack does not come up without
-them. On Debian both are started and enabled by the package postinst; on RedHat neither is - a
-freshly installed package is left stopped and disabled. Both are therefore enabled explicitly:
+`postgresql`, `slapd` and the web server are OS packages, not fworch units, but the stack does not
+come up without them. On Debian the package postinst starts and enables them; on RedHat it does
+neither - a freshly installed package is left stopped and disabled. All three are therefore enabled
+explicitly:
 
-- `slapd` in `roles/openldap-server/tasks/main.yml`
 - `postgresql` in `roles/database/tasks/main.yml`
+- `slapd` in `roles/openldap-server/tasks/main.yml`
+- `httpd` / `apache2` in `roles/common/tasks/apache/global.{RedHat,Debian}.yml`
 
-Missing the postgresql case is what made the whole stack fail to come up after a reboot on RedHat:
-the database was only ever started as a side effect of restarting it after a configuration change,
-which does not happen on a re-run, and it was never enabled at all.
+Missing this is what made the stack fail to come up after a reboot on RedHat. Both postgres and
+apache were only ever started as a side effect of a `state: restarted` task that runs on a
+configuration change, which does not happen on a re-run, and neither was ever enabled. Without
+apache there are no `{{ api_web_port }}`, `{{ middleware_web_listener_port }}` or https listeners
+even when the services behind them are healthy.
+
+When adding a task that manages an OS service, always set `enabled` alongside `state` - a
+`state: restarted` on its own is not enough on RedHat.
 
 All services set `Restart=` together with `RestartSec` (from `fworch_systemd_restart_sec`) and
 `StartLimitIntervalSec=0`. Without disabling the start rate limit, a service that fails fast while

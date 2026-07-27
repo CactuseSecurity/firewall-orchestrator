@@ -84,22 +84,33 @@
   loop_control:
     label: "{{ item.item }}"
 
-# the database is not an fworch unit, but nothing in the stack survives a reboot without it and
-# RedHat does not enable it on package install
-- name: read the enablement state of the database service
-  command: "systemctl is-enabled {{ postgresql_package }}.service"
-  register: postgres_enabled_state
+# postgres, slapd and apache are OS packages rather than fworch units, but nothing in the stack
+# survives a reboot without them and RedHat enables none of them on package install
+- name: determine the supporting OS services expected on this host
+  set_fact:
+    expected_os_service_names: >-
+      {{
+        ([postgresql_package] if 'databaseserver' in group_names else [])
+        + (['slapd'] if 'middlewareserver' in group_names else [])
+        + ([webserver_package_name] if ['frontends', 'middlewareserver', 'apiserver'] | intersect(group_names) | length > 0 else [])
+      }}
+
+- name: read the enablement state of the supporting OS services
+  command: "systemctl is-enabled {{ item }}.service"
+  loop: "{{ expected_os_service_names }}"
+  register: os_service_enabled_states
   changed_when: false
   failed_when: false
   become: true
-  when: "'databaseserver' in group_names"
 
-- name: the database service must be enabled so that it starts after a reboot
+- name: every supporting OS service must be enabled so that it starts after a reboot
   assert:
     that:
-      - postgres_enabled_state.stdout | trim in enabled_unit_states
-    fail_msg: "{{ postgresql_package }} is '{{ postgres_enabled_state.stdout | trim }}' instead of enabled"
-  when: "'databaseserver' in group_names"
+      - item.stdout | trim in enabled_unit_states
+    fail_msg: "{{ item.item }} is '{{ item.stdout | trim }}' instead of enabled"
+  loop: "{{ os_service_enabled_states.results }}"
+  loop_control:
+    label: "{{ item.item }}"
 
 - name: read the installed unit files of the templated services
   slurp:

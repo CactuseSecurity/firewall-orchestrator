@@ -5,13 +5,13 @@ Wants=network-online.target
 StartLimitIntervalSec=0
 
 {% if 'apiserver' in group_names and 'middlewareserver' in group_names -%}
-After=network-online.target remote-fs.target nss-lookup.target {{ api_service_name }}.service {{ middleware_service_name }}.service
+After=network-online.target remote-fs.target nss-lookup.target {{ webserver_package_name }}.service {{ api_service_name }}.service {{ middleware_service_name }}.service
 {% elif 'apiserver' in group_names -%}
-After=network-online.target remote-fs.target nss-lookup.target {{ api_service_name }}.service
+After=network-online.target remote-fs.target nss-lookup.target {{ webserver_package_name }}.service {{ api_service_name }}.service
 {% elif 'middlewareserver' in group_names -%}
-After=network-online.target remote-fs.target nss-lookup.target {{ middleware_service_name }}.service
+After=network-online.target remote-fs.target nss-lookup.target {{ webserver_package_name }}.service {{ middleware_service_name }}.service
 {% else -%}
-After=network-online.target remote-fs.target nss-lookup.target
+After=network-online.target remote-fs.target nss-lookup.target {{ webserver_package_name }}.service
 {%- endif %}
 
 [Service]

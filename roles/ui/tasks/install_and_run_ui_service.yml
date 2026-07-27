@@ -35,6 +35,7 @@
   systemd:
     name: "{{ ui_service_name }}"
     enabled: true
+    daemon_reload: true
   become: true
 
 - name: start blazor ui

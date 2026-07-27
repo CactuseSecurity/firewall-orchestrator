@@ -1,0 +1,51 @@
+# Up to release 11.0 the fworch units were installed into the vendor unit directory
+# (/lib/systemd/system). They are now written to the local unit directory (/etc/systemd/system),
+# where the local copy takes precedence. Remove the superseded vendor copies so that both do not
+# drift apart, and re-create the enablement symlinks, which still point at the removed files.
+
+- name: check which {{ product_name }} units exist in the local unit directory
+  stat:
+    path: "{{ fworch_systemd_unit_dir }}/{{ item }}.service"
+  loop: "{{ fworch_systemd_unit_names }}"
+  register: fworch_local_systemd_units
+  become: true
+
+- name: collect units that have been relocated to the local unit directory
+  set_fact:
+    fworch_relocated_unit_names: "{{ fworch_local_systemd_units.results | selectattr('stat.exists') | map(attribute='item') | list }}"
+
+- name: remove superseded {{ product_name }} unit files from the vendor unit directory
+  file:
+    path: "{{ fworch_systemd_vendor_unit_dir }}/{{ item }}.service"
+    state: absent
+  loop: "{{ fworch_relocated_unit_names }}"
+  register: fworch_vendor_units_removed
+  become: true
+
+- name: collect the units whose vendor copy has just been removed
+  set_fact:
+    fworch_reenable_unit_names: "{{ fworch_vendor_units_removed.results | default([]) | selectattr('changed') | map(attribute='item') | list }}"
+
+- name: reload systemd after removing superseded unit files
+  systemd:
+    daemon_reload: true
+  become: true
+  when: fworch_reenable_unit_names | length > 0
+
+# systemd matches enablement symlinks by unit name, so a symlink still pointing into the vendor
+# directory keeps reporting the service as enabled while no longer resolving after a reboot
+- name: re-enable relocated services to repair their enablement symlinks
+  command: "systemctl reenable {{ item }}.service"
+  loop: "{{ fworch_reenable_unit_names }}"
+  changed_when: true
+  failed_when: false
+  become: true
+
+# reenable disables before it enables, so make sure a failed run does not leave a service behind
+# that no longer starts at boot at all
+- name: make sure every relocated service is still enabled
+  systemd:
+    name: "{{ item }}.service"
+    enabled: true
+  loop: "{{ fworch_reenable_unit_names }}"
+  become: true

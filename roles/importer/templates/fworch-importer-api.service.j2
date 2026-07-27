@@ -1,6 +1,8 @@
 [Unit]
 Description={{ product_name }} importer pure python
 Wants=network-online.target
+# keep retrying while api or middleware are still coming up instead of failing permanently
+StartLimitIntervalSec=0
 
 {% if 'apiserver' in group_names and 'middlewareserver' in group_names -%}
 After=network-online.target remote-fs.target nss-lookup.target {{ api_service_name }}.service {{ middleware_service_name }}.service
@@ -27,6 +29,7 @@ User={{ fworch_user }}
 KillSignal=SIGINT
 Group={{ fworch_group }}
 Restart=always
+RestartSec={{ fworch_systemd_restart_sec }}
 
 [Install]
 WantedBy=multi-user.target

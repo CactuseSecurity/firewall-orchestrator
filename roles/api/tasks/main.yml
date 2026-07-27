@@ -52,29 +52,24 @@
   register: api_service_unit_candidates
   when: installation_mode == "upgrade"
 
-- name: pick installed Hasura service name for upgrade reuse
+- name: pick installed Hasura service unit for upgrade reuse
   set_fact:
-    api_existing_service_name: >-
+    api_existing_service_unit: >-
       {{
         (
           api_service_unit_candidates.results
           | selectattr('stat.exists')
-          | map(attribute='item')
-          | map('first')
           | list
           | first
-        ) | default('')
+        ) | default({}, true)
       }}
-    api_existing_service_unit_path: >-
-      {{
-        (
-          api_service_unit_candidates.results
-          | selectattr('stat.exists')
-          | map(attribute='stat.path')
-          | list
-          | first
-        ) | default('')
-      }}
+  when: installation_mode == "upgrade"
+
+# item is a [service name, unit directory] pair produced by the product() loop above
+- name: derive Hasura service name and unit path from the detected unit
+  set_fact:
+    api_existing_service_name: "{{ (api_existing_service_unit.item | default([]) | first) | default('') }}"
+    api_existing_service_unit_path: "{{ (api_existing_service_unit.stat | default({})).path | default('') }}"
   when: installation_mode == "upgrade"
 
 - name: reuse installed Hasura service name during upgrade fallback

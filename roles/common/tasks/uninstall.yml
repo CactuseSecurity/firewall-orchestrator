@@ -96,6 +96,13 @@
     enabled: no
   ignore_errors: true
 
+- name: stop and disable {{ product_name }}-importer-api
+  service:
+    name: "{{ product_name }}-importer-api"
+    state: stopped
+    enabled: no
+  ignore_errors: true
+
 - name: stop and disable current Hasura API service
   service:
     name: "{{ api_service_name }}"
@@ -130,16 +137,6 @@
         - /etc/apache2/sites-enabled/{{ product_name }}-api.conf
         - /etc/apache2/sites-enabled/{{ product_name }}-mw.conf
         - /etc/apache2/sites-enabled/{{ product_name }}-maintenance.conf
-        - "{{ fworch_systemd_unit_dir }}/{{ api_service_name }}.service"
-        - "{{ fworch_systemd_unit_dir }}/fworch-hasura-docker-api.service"
-        - "{{ fworch_systemd_unit_dir }}/{{ middleware_service_name }}.service"
-        - "{{ fworch_systemd_unit_dir }}/{{ ui_service_name }}.service"
-        - "{{ fworch_systemd_unit_dir }}/{{ product_name }}-importer-api.service"
-        - /lib/systemd/system/{{ api_service_name }}.service
-        - /lib/systemd/system/fworch-hasura-docker-api.service
-        - /lib/systemd/system/{{ middleware_service_name }}.service
-        - /lib/systemd/system/{{ ui_service_name }}.service
-        - /lib/systemd/system/{{ product_name }}-importer-api.service
         - /var/lib/ldap/{{ product_name }}.internal
         - /var/lib/ldap/example.com
         - /var/lib/pgsql/data
@@ -148,6 +145,36 @@
         - /var/{{ product_name }}
         - /var/log/{{ product_name }}
       ignore_errors: true
+
+    - name: remove {{ product_name }} systemd unit files
+      file:
+        path: "{{ item.0 }}/{{ item.1 }}.service"
+        state: absent
+      loop: "{{ fworch_systemd_unit_search_dirs | product(fworch_systemd_unit_names) | list }}"
+      loop_control:
+        label: "{{ item.0 }}/{{ item.1 }}.service"
+      ignore_errors: true
+
+    - name: remove {{ product_name }} systemd drop-in directories
+      file:
+        path: "{{ item.0 }}/{{ item.1 }}.service.d"
+        state: absent
+      loop: "{{ fworch_systemd_unit_search_dirs | product(fworch_systemd_unit_names) | list }}"
+      loop_control:
+        label: "{{ item.0 }}/{{ item.1 }}.service.d"
+      ignore_errors: true
+
+    - name: reload systemd after removing {{ product_name }} unit files
+      systemd:
+        daemon_reload: true
+      ignore_errors: true
+
+    # drops any leftover failed state of the removed units so systemctl stays clean
+    - name: clear systemd state of removed {{ product_name }} services
+      command: "systemctl reset-failed {{ item }}.service"
+      loop: "{{ fworch_systemd_unit_names }}"
+      changed_when: false
+      failed_when: false
 
     - name: remove OS users and delete home directories
       user:

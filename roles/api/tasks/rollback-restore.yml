@@ -13,7 +13,7 @@
           api_restore_service_unit_candidates.results
           | selectattr('stat.exists')
           | map(attribute='item')
-          | map('first')
+          | map(attribute='0')
           | list
           | first
         ) | default(api_service_name)

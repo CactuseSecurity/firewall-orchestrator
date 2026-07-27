@@ -619,14 +619,22 @@ namespace FWO.Test
             Assert.That(selectionsField, Is.Not.Null);
             System.Collections.IEnumerable selections = (System.Collections.IEnumerable)selectionsField!.GetValue(component.Instance)!;
             object selection = selections.Cast<object>().Single();
-            selection.GetType().GetProperty("SearchText")!.SetValue(selection, "host");
+            PropertyInfo searchTextProperty = selection.GetType().GetProperty("SearchText")!;
+            PropertyInfo filteredCandidatesProperty = selection.GetType().GetProperty("FilteredCandidates")!;
 
-            var filteredCandidates = ((System.Collections.IEnumerable)selection.GetType().GetProperty("FilteredCandidates")!.GetValue(selection)!)
-                .Cast<NetworkObject>()
-                .ToList();
+            searchTextProperty.SetValue(selection, "host");
+            List<NetworkObject> candidatesByType = GetFilteredCandidates(selection, filteredCandidatesProperty);
+            Assert.That(candidatesByType.Select(candidate => candidate.Id), Is.EqualTo(kUnmappedNetworkCandidateIds));
+            Assert.That(candidatesByType.Select(candidate => candidate.Type.Name), Is.EqualTo(kUnmappedNetworkCandidateTypes));
 
-            Assert.That(filteredCandidates.Select(candidate => candidate.Id), Is.EqualTo(kUnmappedNetworkCandidateIds));
-            Assert.That(filteredCandidates.Select(candidate => candidate.Type.Name), Is.EqualTo(kUnmappedNetworkCandidateTypes));
+            searchTextProperty.SetValue(selection, "Object C");
+            Assert.That(GetFilteredCandidates(selection, filteredCandidatesProperty).Single().Id, Is.EqualTo(13));
+
+            searchTextProperty.SetValue(selection, "13");
+            Assert.That(GetFilteredCandidates(selection, filteredCandidatesProperty).Single().Id, Is.EqualTo(13));
+
+            searchTextProperty.SetValue(selection, "obj-c");
+            Assert.That(GetFilteredCandidates(selection, filteredCandidatesProperty).Single().Id, Is.EqualTo(13));
         }
 
         [Test]
@@ -667,6 +675,13 @@ namespace FWO.Test
             });
             context.Services.AddSingleton<AuthenticationStateProvider>(new FlowSettingsPagesAuthStateProvider(Roles.Admin));
             return context;
+        }
+
+        private static List<NetworkObject> GetFilteredCandidates(object selection, PropertyInfo filteredCandidatesProperty)
+        {
+            return ((System.Collections.IEnumerable)filteredCandidatesProperty.GetValue(selection)!)
+                .Cast<NetworkObject>()
+                .ToList();
         }
 
         private static BunitContext CreateCustomServiceCreateContext(out FlowServiceObjectsCustomCreateApiConn apiConnection)
@@ -925,8 +940,8 @@ namespace FWO.Test
                 {
                     Id = 1,
                     Name = "",
-                    IP = "",
-                    IpEnd = "",
+                    IP = null!,
+                    IpEnd = null!,
                     Uid = "local-1",
                     Active = true,
                     FlowNetworkObjectId = null,
@@ -937,8 +952,8 @@ namespace FWO.Test
                 {
                     Id = 3,
                     Name = "Second Local Object",
-                    IP = "",
-                    IpEnd = "",
+                    IP = null!,
+                    IpEnd = null!,
                     Uid = "local-2",
                     Active = true,
                     FlowNetworkObjectId = null,
@@ -2008,6 +2023,7 @@ namespace FWO.Test
     {
         public List<string> Queries { get; } = [];
         public List<(long ObjectId, long FlowNwobjId, bool ActiveOnMgm)> MappingCalls { get; } = [];
+        private readonly Management customObjectManagement;
 
         private readonly FlowNwObject flowNwObject = new()
         {
@@ -2054,8 +2070,8 @@ namespace FWO.Test
                 {
                     Id = 13,
                     Name = "Object C",
-                    IP = "",
-                    IpEnd = "",
+                    IP = null!,
+                    IpEnd = null!,
                     Uid = "obj-c",
                     Active = true,
                     Type = new NetworkObjectType { Id = 1, Name = "host" },
@@ -2066,9 +2082,33 @@ namespace FWO.Test
                 {
                     Id = 14,
                     Name = "Object D",
-                    IP = "",
-                    IpEnd = "",
+                    IP = null!,
+                    IpEnd = null!,
                     Uid = "obj-d",
+                    Active = true,
+                    Type = new NetworkObjectType { Id = 1, Name = "host" },
+                    FlowNetworkObjectId = null,
+                    FlowActive = false
+                },
+                new NetworkObject
+                {
+                    Id = 15,
+                    Name = "Group Candidate",
+                    IP = null!,
+                    IpEnd = null!,
+                    Uid = "group-candidate",
+                    Active = true,
+                    Type = new NetworkObjectType { Id = 2, Name = ObjectType.Group },
+                    FlowNetworkObjectId = null,
+                    FlowActive = false
+                },
+                new NetworkObject
+                {
+                    Id = 16,
+                    Name = "Technical Candidate",
+                    IP = "192.0.2.16",
+                    IpEnd = "",
+                    Uid = "technical-candidate",
                     Active = true,
                     Type = new NetworkObjectType { Id = 1, Name = "host" },
                     FlowNetworkObjectId = null,
@@ -2076,6 +2116,16 @@ namespace FWO.Test
                 }
             ]
         };
+
+        public FlowNetworkObjectsDuplicateResolverApiConn()
+        {
+            customObjectManagement = new Management
+            {
+                Id = management.Id,
+                Name = management.Name,
+                Objects = management.Objects.Where(nwObject => nwObject.FlowNetworkObjectId == null).ToArray()
+            };
+        }
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
@@ -2090,7 +2140,7 @@ namespace FWO.Test
             }
             if (query == FlowQueries.getFlowCustomObjectCandidates)
             {
-                return Task.FromResult((QueryResponseType)(object)new List<Management> { management });
+                return Task.FromResult((QueryResponseType)(object)new List<Management> { customObjectManagement });
             }
             if (query == FlowQueries.getFlowCustomObjectNamingCandidates)
             {

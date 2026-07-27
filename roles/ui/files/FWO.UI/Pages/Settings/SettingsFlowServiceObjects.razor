@@ -200,7 +200,7 @@ else
                                 <Column TableItem="NetworkService" Title="@(userConfig.GetText("uid"))" Field="@(service => service.Uid)" Sortable="true" Filterable="true" />
                                 <Column TableItem="NetworkService" Title="@(userConfig.GetText("details"))" Field="@(service => service.Id)" Sortable="false" Filterable="false" Context="service">
                                     <Template>
-                                        @FlowAdminHelper.FormatNetworkServiceTechnicalDetails(service)
+                                        @FlowAdminHelper.FormatNetworkServiceTechnicalDetails(service, false)
                                     </Template>
                                 </Column>
                                 <Column TableItem="NetworkService" Title="@(userConfig.GetText("actions"))" Field="@(service => service.Id)" Sortable="false" Filterable="false" Context="service">

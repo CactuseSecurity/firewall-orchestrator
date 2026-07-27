@@ -237,23 +237,6 @@ namespace FWO.Data.Flow
         }
 
         /// <summary>
-        /// Builds a searchable text blob for a custom flow object candidate.
-        /// </summary>
-        public static string BuildCustomObjectSearchText(NetworkObject candidate)
-        {
-            return string.Join(' ', [
-                candidate.Id.ToString(),
-                candidate.Name ?? "",
-                candidate.IP ?? "",
-                candidate.IpEnd ?? "",
-                candidate.Uid ?? "",
-                candidate.Active ? "active" : "inactive",
-                candidate.Type?.Id.ToString() ?? "",
-                candidate.Type?.Name ?? ""
-            ]);
-        }
-
-        /// <summary>
         /// Returns true when the object does not have an IP address or range and can therefore be used as a custom
         /// firewall object candidate.
         /// </summary>
@@ -261,11 +244,6 @@ namespace FWO.Data.Flow
         {
             return string.IsNullOrWhiteSpace(candidate.IP) &&
                    string.IsNullOrWhiteSpace(candidate.IpEnd);
-        }
-
-        private static bool IsGroupObject(NetworkObject candidate)
-        {
-            return string.Equals(candidate.Type?.Name, ObjectType.Group, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -436,39 +414,6 @@ namespace FWO.Data.Flow
             return string.IsNullOrWhiteSpace(summary)
                 ? moreText
                 : $"{summary}, {moreText}";
-        }
-
-        /// <summary>
-        /// Returns custom flow object candidates without technical addresses or group-object types and optionally
-        /// filters them by a case-insensitive search string. The exact search terms "active" and "inactive" filter
-        /// by object state.
-        /// </summary>
-        public static List<NetworkObject> FilterCustomObjectCandidates(IEnumerable<NetworkObject>? candidates, string? searchText)
-        {
-            IEnumerable<NetworkObject> filteredCandidates = (candidates ?? [])
-                .Where(candidate => HasNoTechnicalAddress(candidate) && !IsGroupObject(candidate));
-
-            if (!string.IsNullOrWhiteSpace(searchText))
-            {
-                string normalizedSearchText = searchText.Trim();
-                if (string.Equals(normalizedSearchText, "active", StringComparison.OrdinalIgnoreCase))
-                {
-                    filteredCandidates = filteredCandidates.Where(candidate => candidate.Active);
-                }
-                else if (string.Equals(normalizedSearchText, "inactive", StringComparison.OrdinalIgnoreCase))
-                {
-                    filteredCandidates = filteredCandidates.Where(candidate => !candidate.Active);
-                }
-                else
-                {
-                    filteredCandidates = filteredCandidates.Where(candidate =>
-                        BuildCustomObjectSearchText(candidate).Contains(normalizedSearchText, StringComparison.OrdinalIgnoreCase));
-                }
-            }
-
-            return [.. filteredCandidates
-                .OrderBy(candidate => candidate.Name ?? "", StringComparer.OrdinalIgnoreCase)
-                .ThenBy(candidate => candidate.Id)];
         }
 
         /// <summary>

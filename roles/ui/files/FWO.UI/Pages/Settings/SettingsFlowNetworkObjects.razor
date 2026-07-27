@@ -228,24 +228,14 @@ else
                                    ShowSearchBar="false"
                                    TableRowClass="@(nwObject => GetCustomObjectRowClass(selection, nwObject))">
                                 <Column TableItem="NetworkObject" Title="@(userConfig.GetText("uid"))" Field="@(nwObject => nwObject.Uid)" Sortable="true" Filterable="true" />
-                                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("details"))" Sortable="false" Filterable="false" Context="nwObject">
+                                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("name"))" Sortable="false" Filterable="false" Context="nwObject">
                                     <Template>
-                                        @FlowAdminHelper.FormatNetworkObjectTechnicalDetails(nwObject)
+                                        @FlowAdminHelper.FormatNetworkObjectTechnicalDetails(nwObject, false)
                                     </Template>
                                 </Column>
                                 <Column TableItem="NetworkObject" Title="@(userConfig.GetText("type"))" Sortable="false" Filterable="false" Context="nwObject">
                                     <Template>
                                         @(nwObject.Type?.Name ?? "")
-                                    </Template>
-                                </Column>
-                                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("ip"))" Field="@(nwObject => nwObject.IP)" Sortable="true" Filterable="true" Context="nwObject">
-                                    <Template>
-                                        @DisplayBase.DisplayIp(nwObject.IP, nwObject.IpEnd)
-                                    </Template>
-                                </Column>
-                                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("active"))" Field="@(nwObject => nwObject.Active)" Sortable="true" Filterable="true" Context="nwObject">
-                                    <Template>
-                                        @nwObject.Active.ShowAsHtml()
                                     </Template>
                                 </Column>
                                 <Column TableItem="NetworkObject" Title="@(userConfig.GetText("actions"))" Field="@(nwObject => nwObject.Id)" Sortable="false" Filterable="false" Context="nwObject">
@@ -427,13 +417,13 @@ else
             };
             customObjectSelections =
             [
-                .. selectableManagements.Select(management => new CustomObjectManagementSelection
+                .. customObjectManagements.Select(management => new CustomObjectManagementSelection
                 {
                     Management = management,
-                    Candidates = FlowAdminHelper.FilterCustomObjectCandidates(
-                        customObjectManagements.FirstOrDefault(candidateManagement => candidateManagement.Id == management.Id)?.Objects
-                            ?.Where(nwObject => nwObject.FlowNetworkObjectId == null),
-                        null),
+                    Candidates = [.. (management.Objects ?? []).Where(nwObject =>
+                        nwObject.IP == null &&
+                        nwObject.IpEnd == null &&
+                        !string.Equals(nwObject.Type?.Name, ObjectType.Group, StringComparison.OrdinalIgnoreCase))],
                     SelectedObject = null
                 })
             ];
@@ -692,6 +682,18 @@ else
         selection.SelectedObject = selection.SelectedObject?.Id == nwObject.Id ? null : nwObject;
     }
 
+    private static string BuildCustomObjectSearchText(NetworkObject nwObject)
+    {
+        return string.Join(' ', [
+            nwObject.Id.ToString(),
+            nwObject.Uid ?? "",
+            nwObject.Name ?? "",
+            nwObject.Type?.Name ?? "",
+            nwObject.IP ?? "",
+            nwObject.IpEnd ?? ""
+        ]).ToLowerInvariant();
+    }
+
     private sealed class CustomObjectManagementSelection
     {
         public Management Management { get; set; } = new();
@@ -701,7 +703,8 @@ else
         public List<NetworkObject> FilteredCandidates =>
             string.IsNullOrWhiteSpace(SearchText)
                 ? Candidates
-                : FlowAdminHelper.FilterCustomObjectCandidates(Candidates, SearchText);
+                : [.. Candidates.Where(nwObject => BuildCustomObjectSearchText(nwObject)
+                    .Contains(SearchText.Trim().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase))];
     }
 
 }

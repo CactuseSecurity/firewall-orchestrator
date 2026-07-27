@@ -9,8 +9,6 @@ namespace FWO.Test
     {
         private static readonly long[] kInactiveConflictObjectIds = [100L, 200L];
         private static readonly string[] kManagementNames = ["mgm-a", "mgm-b"];
-        private static readonly long[] kActiveMatchIds = [10L];
-        private static readonly long[] kInactiveMatchIds = [20L];
 
         [Test]
         public void BuildDuplicateGroups_FindsInactiveConflicts()
@@ -497,115 +495,6 @@ namespace FWO.Test
             Assert.That(groups, Has.Count.EqualTo(1));
             Assert.That(groups[0].FlowTimeObjectId, Is.EqualTo(41));
             Assert.That(groups[0].TimeObjects, Has.Count.EqualTo(2));
-        }
-
-        [Test]
-        public void FilterCustomObjectCandidates_FindsMatchesAcrossRelevantFields()
-        {
-            List<NetworkObject> candidates =
-            [
-                new NetworkObject
-                {
-                    Id = 10,
-                    Name = "thisisatestobject",
-                    IP = "",
-                    IpEnd = "",
-                    Uid = "uid-10",
-                    Active = false,
-                    Type = new NetworkObjectType { Id = 1, Name = "host" }
-                },
-                new NetworkObject
-                {
-                    Id = 20,
-                    Name = "another-object",
-                    IP = "",
-                    IpEnd = "",
-                    Uid = "uid-20",
-                    Active = true,
-                    Type = new NetworkObjectType { Id = 2, Name = "network" }
-                }
-            ];
-
-            List<NetworkObject> byName = FlowAdminHelper.FilterCustomObjectCandidates(candidates, "test");
-            List<NetworkObject> byId = FlowAdminHelper.FilterCustomObjectCandidates(candidates, "10");
-            List<NetworkObject> byUid = FlowAdminHelper.FilterCustomObjectCandidates(candidates, "uid-10");
-            List<NetworkObject> byType = FlowAdminHelper.FilterCustomObjectCandidates(candidates, "host");
-
-            Assert.That(byName, Has.Count.EqualTo(1));
-            Assert.That(byName[0].Id, Is.EqualTo(10));
-            Assert.That(byId, Has.Count.EqualTo(1));
-            Assert.That(byId[0].Id, Is.EqualTo(10));
-            Assert.That(byUid, Has.Count.EqualTo(1));
-            Assert.That(byUid[0].Id, Is.EqualTo(10));
-            Assert.That(byType, Has.Count.EqualTo(1));
-            Assert.That(byType[0].Id, Is.EqualTo(10));
-        }
-
-        [Test]
-        public void FilterCustomObjectCandidates_SkipsGroupObjectsWithoutTechnicalAddress()
-        {
-            List<NetworkObject> candidates =
-            [
-                new NetworkObject
-                {
-                    Id = 10,
-                    Name = "host-object",
-                    IP = "",
-                    IpEnd = "",
-                    Uid = "uid-10",
-                    Active = false,
-                    Type = new NetworkObjectType { Id = 1, Name = "host" }
-                },
-                new NetworkObject
-                {
-                    Id = 20,
-                    Name = "group-object",
-                    IP = "",
-                    IpEnd = "",
-                    Uid = "uid-20",
-                    Active = false,
-                    Type = new NetworkObjectType { Id = 2, Name = "Group" }
-                }
-            ];
-
-            List<NetworkObject> filtered = FlowAdminHelper.FilterCustomObjectCandidates(candidates, null);
-
-            Assert.That(filtered, Has.Count.EqualTo(1));
-            Assert.That(filtered[0].Id, Is.EqualTo(10));
-        }
-
-        [Test]
-        public void FilterCustomObjectCandidates_DoesNotMatchInactiveWhenSearchingForActive()
-        {
-            List<NetworkObject> candidates =
-            [
-                new NetworkObject
-                {
-                    Id = 10,
-                    Name = "active-object",
-                    IP = "",
-                    IpEnd = "",
-                    Uid = "uid-10",
-                    Active = true,
-                    Type = new NetworkObjectType { Id = 1, Name = "host" }
-                },
-                new NetworkObject
-                {
-                    Id = 20,
-                    Name = "inactive-object",
-                    IP = "",
-                    IpEnd = "",
-                    Uid = "uid-20",
-                    Active = false,
-                    Type = new NetworkObjectType { Id = 1, Name = "host" }
-                }
-            ];
-
-            List<NetworkObject> activeMatches = FlowAdminHelper.FilterCustomObjectCandidates(candidates, "active");
-            List<NetworkObject> inactiveMatches = FlowAdminHelper.FilterCustomObjectCandidates(candidates, "inactive");
-
-            Assert.That(activeMatches.Select(candidate => candidate.Id), Is.EqualTo(kActiveMatchIds));
-            Assert.That(inactiveMatches.Select(candidate => candidate.Id), Is.EqualTo(kInactiveMatchIds));
         }
 
         [Test]

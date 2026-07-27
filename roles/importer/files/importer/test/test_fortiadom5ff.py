@@ -1368,4 +1368,3 @@ class TestNatRulebaseWiring:
                 "is_section": False,
             }
         ]
-

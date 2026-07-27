@@ -1088,7 +1088,7 @@ def get_gateways_and_servers(sid: str = "", apiurl: str = "") -> list[dict[str, 
         try:
             result = cp_api_call(apiurl, "show-gateways-and-servers", {"details-level": "full", "offset": current}, sid)
         except Exception as e:
-            raise FwoImporterError(f"error while trying to get gateways and servers: {e}")
+            raise FwoImporterError(f"error while trying to get gateways and servers: {e}") from e
 
         if result is None or "objects" not in result:
             raise FwoImporterError("no objects received while trying to get gateways and servers")
@@ -1099,6 +1099,12 @@ def get_gateways_and_servers(sid: str = "", apiurl: str = "") -> list[dict[str, 
             raise FwoImporterError("result does not contain total or to field while trying to get gateways and servers")
 
         total = result["total"]
-        current = result["to"]
+        new_current = result["to"]
+        if new_current <= current:
+            raise FwoImporterError(
+                f"pagination did not advance while trying to get gateways and servers: "
+                f"'to'={new_current} did not exceed previous offset={current}"
+            )
+        current = new_current
 
     return gateways_and_servers

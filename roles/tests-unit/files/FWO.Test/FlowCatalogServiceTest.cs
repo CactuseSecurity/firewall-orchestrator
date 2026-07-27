@@ -260,6 +260,25 @@ internal class FlowCatalogServiceTest
     }
 
     [Test]
+    public async Task GetTimeObjectIdAsync_ReturnsEmptyResponseWhenNoMatchExists()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        FlowCatalogService service = new(apiConnection);
+
+        TimeObjectIdResponse result = await service.GetTimeObjectIdAsync(
+            new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 6, 1, 17, 30, 0, TimeSpan.Zero),
+            null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Id, Is.EqualTo(0));
+            Assert.That(result.Name, Is.EqualTo(string.Empty));
+            Assert.That(apiConnection.SentQueries[0], Is.EqualTo(FlowQueries.getFlowTimeObjectId));
+        });
+    }
+
+    [Test]
     public async Task GetAddressObjectsAsync_MapsShowInRequestFlag()
     {
         FlowCatalogServiceApiConn apiConnection = new();

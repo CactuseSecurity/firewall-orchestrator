@@ -253,6 +253,36 @@ internal class FlowControllerValidationTest
     }
 
     [Test]
+    public async Task FlowControllerValidation_GetTimeObjectId_AllowsMissingStartTime()
+    {
+        FlowCatalogController controller = new(new FlowCatalogService(new TimeObjectLookupApiConnection
+        {
+            TimeObjects =
+            [
+                new FlowTimeObject
+                {
+                    Id = 32,
+                    Name = "DeadlineOnly"
+                }
+            ]
+        }));
+
+        ActionResult<TimeObjectIdResponse> result = await controller.GetTimeObjectId(new GetTimeObjectIdRequest
+        {
+            EndTime = new DateTimeOffset(2026, 6, 1, 17, 30, 0, TimeSpan.Zero),
+            Filter = new VisibleInRequestFilter
+            {
+                VisibleInRequest = false
+            }
+        });
+
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        TimeObjectIdResponse response = (TimeObjectIdResponse)((OkObjectResult)result.Result!).Value!;
+        Assert.That(response.Id, Is.EqualTo(32));
+        Assert.That(response.Name, Is.EqualTo("DeadlineOnly"));
+    }
+
+    [Test]
     public async Task FlowControllerValidation_GetTimeObjectId_ReturnsMatchingResponse()
     {
         FlowCatalogController controller = new(new FlowCatalogService(new TimeObjectLookupApiConnection

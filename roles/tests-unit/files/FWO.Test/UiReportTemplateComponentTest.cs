@@ -18,17 +18,14 @@ namespace FWO.Test
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     internal class UiReportTemplateComponentTest
     {
-        private static readonly List<string> kModellerRoles = new() { Roles.Modeller };
-        private static readonly List<string> kAuditorRoles = new() { Roles.Auditor };
-        private static readonly List<string> kReporterRoles = new() { Roles.Reporter };
-        private static readonly List<int> kOwnership11 = new() { 11 };
-        private static readonly List<int> kEmptyOwnerships = new();
-        private static readonly List<ReportTemplate> kEmptyTemplates = new();
-        private static readonly List<FwoOwner> kEmptyOwners = new();
-        private static readonly List<FwoOwner> kOwnedAppOwners = new()
-        {
-            new FwoOwner { Id = 11, Name = "Owned App" }
-        };
+        private static readonly List<string> kModellerRoles = [Roles.Modeller];
+        private static readonly List<string> kAuditorRoles = [Roles.Auditor];
+        private static readonly List<string> kReporterRoles = [Roles.Reporter];
+        private static readonly List<int> kOwnership11 = [11];
+        private static readonly List<int> kEmptyOwnerships = [];
+        private static readonly List<ReportTemplate> kEmptyTemplates = [];
+        private static readonly List<FwoOwner> kEmptyOwners = [];
+        private static readonly List<FwoOwner> kOwnedAppOwners = [new FwoOwner { Id = 11, Name = "Owned App" }];
 
         private sealed class ReportTemplateComponentTestApiConn(IEnumerable<ReportTemplate> templates, IEnumerable<FwoOwner> owners) : SimulatedApiConnection
         {
@@ -315,7 +312,7 @@ namespace FWO.Test
             await using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),
                 CreateUserConfig(kReporterRoles, kEmptyOwnerships),
-                new ReportTemplateComponentTrackingApiConn(new List<ReportTemplate>()));
+                new ReportTemplateComponentTrackingApiConn([]));
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<ReportTemplateComponent>());
@@ -337,7 +334,7 @@ namespace FWO.Test
             await using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),
                 CreateUserConfig(kReporterRoles, kEmptyOwnerships),
-                new ReportTemplateComponentTrackingApiConn(new List<ReportTemplate>()));
+                new ReportTemplateComponentTrackingApiConn([]));
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<ReportTemplateComponent>());
@@ -357,10 +354,9 @@ namespace FWO.Test
         public async Task ReportTemplateComponent_Save_AddTemplate_RefreshesAndClosesDialog()
         {
             ReportTemplateComponentTrackingApiConn apiConnection = new(
-                new List<ReportTemplate>
-                {
+                [
                     CreateTemplate(1, "Existing template", ReportType.Rules, ownerId: 50)
-                });
+                ]);
 
             await using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),
@@ -391,10 +387,9 @@ namespace FWO.Test
         public async Task ReportTemplateComponent_Save_UpdateTemplate_ReplacesEntryAndClosesDialog()
         {
             ReportTemplateComponentTrackingApiConn apiConnection = new(
-                new List<ReportTemplate>
-                {
+                [
                     CreateTemplate(1, "Original template", ReportType.Rules, ownerId: 50)
-                });
+                ]);
 
             await using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),
@@ -428,10 +423,9 @@ namespace FWO.Test
         public async Task ReportTemplateComponent_DeleteTemplate_RemovesEntry()
         {
             ReportTemplateComponentTrackingApiConn apiConnection = new(
-                new List<ReportTemplate>
-                {
+                [
                     CreateTemplate(1, "Delete me", ReportType.Rules, ownerId: 50)
-                });
+                ]);
 
             await using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),
@@ -478,8 +472,8 @@ namespace FWO.Test
                 {
                     DbId = 50,
                     Language = "English",
-                    Roles = new List<string>(roles),
-                    Ownerships = new List<int>(ownerships)
+                    Roles = roles.ToList(),
+                    Ownerships = ownerships.ToList()
                 }
             };
         }

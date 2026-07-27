@@ -45,7 +45,7 @@ namespace FWO.Test
             SimulatedUserConfig userConfig = new();
             context.Services.AddSingleton<UserConfig>(userConfig);
 
-            List<(Exception? Exception, string Title)> messages = new List<(Exception? Exception, string Title)>();
+            List<(Exception? Exception, string Title)> messages = [];
             Action<Exception?, string, string, bool> displayMessageInUi = (exception, title, _, _) => messages.Add((exception, title));
 
             IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper =

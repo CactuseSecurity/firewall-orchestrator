@@ -27,7 +27,7 @@ namespace FWO.Test
         public async Task ReportExport_NoReportSelected_ShowsErrorMessage()
         {
             await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new List<(Exception? Exception, string Title, string Message, bool IsError)>();
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
 
             IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderComponent(
                 context,

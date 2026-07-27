@@ -33,13 +33,13 @@ namespace FWO.Test
             context.Services.AddSingleton<AuthenticationStateProvider>(new MonitoringTestAuthStateProvider(Roles.Admin));
             context.Services.AddSingleton<ApiConnection>(new ReportModellingParamSelectionTestApiConn());
             context.Services.AddScoped<DomEventService>();
-            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig { User = { Roles = new List<string> { Roles.Admin } } });
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig { User = { Roles = [Roles.Admin] } });
 
             FwoOwner firstOwner = new() { Id = 11, Name = "App One" };
             FwoOwner secondOwner = new() { Id = 12, Name = "App Two" };
             ModellingFilter modellingFilter = new()
             {
-                SelectedOwners = new List<FwoOwner> { firstOwner, secondOwner }
+                SelectedOwners = [firstOwner, secondOwner]
             };
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>

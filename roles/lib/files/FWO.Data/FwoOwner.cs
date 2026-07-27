@@ -37,7 +37,7 @@ namespace FWO.Data
         public string? ImportSource { get; set; }
 
         [JsonProperty("owner_networks"), JsonPropertyName("owner_networks")]
-        public OwnerNetwork[] OwnerNetworks { get; set; } = Array.Empty<OwnerNetwork>();
+        public OwnerNetwork[] OwnerNetworks { get; set; } = [];
 
         [JsonProperty("common_service_possible"), JsonPropertyName("common_service_possible")]
         public bool CommSvcPossible { get; set; } = false;
@@ -58,7 +58,7 @@ namespace FWO.Data
         public DateTime? NextRecertDate { get; set; }
 
         [JsonProperty("changelog_owners"), JsonPropertyName("changelog_owners")]
-        public List<OwnerChange> ChangelogOwners { get; set; } = new List<OwnerChange>();
+        public List<OwnerChange> ChangelogOwners { get; set; } = [];
 
         [JsonProperty("decomm_date"), JsonPropertyName("decomm_date")]
         public DateTime? DecommDate { get; set; }

@@ -45,13 +45,13 @@ namespace FWO.Test
         [Test]
         public void OwnerRecertReport_BooleanAdditionalInfoUsesShowAsHtml()
         {
-            List<OwnerConnectionReport> ownerData = new List<OwnerConnectionReport>
-            {
+            List<OwnerConnectionReport> ownerData =
+            [
                 BuildOwnerReport("EXT-BOOL", "Bool Owner", DateTime.Today.AddDays(-1), new Dictionary<string, string>
                 {
                     ["recert_required"] = "true"
                 })
-            };
+            ];
 
             IRenderedComponent<OwnerRecertReport> cut = Render<OwnerRecertReport>(parameters => parameters
                 .Add(p => p.OwnerData, ownerData)

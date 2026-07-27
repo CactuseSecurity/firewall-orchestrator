@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Middleware;
@@ -18,6 +19,37 @@ namespace FWO.Test
     [TestFixture]
     internal class ComplianceControllerTest
     {
+        [Test]
+        public async Task StartInitialComplianceCheck_ReturnsAcceptedAndMarksJobSucceeded()
+        {
+            ComplianceCheckStatusTracker tracker = new();
+            ComplianceCheckController controller = new(new DummyApiConnection(), tracker);
+
+            ActionResult<ComplianceCheckStartResult> result = controller.StartInitialComplianceCheck();
+
+            Assert.That(result.Result, Is.InstanceOf<AcceptedResult>());
+            ComplianceCheckStartResult startResult = (ComplianceCheckStartResult)((AcceptedResult)result.Result!).Value!;
+            ComplianceCheckJobStatus finalStatus = await WaitForTerminalStatusAsync(tracker, startResult.JobId);
+            Assert.That(finalStatus.Status, Is.EqualTo(ComplianceCheckExecutionStatus.Succeeded));
+            Assert.That(finalStatus.FinishedAt, Is.Not.Null);
+        }
+
+        [Test]
+        public async Task StartInitialComplianceCheck_WhenBackgroundExecutionFails_MarksJobFailed()
+        {
+            ComplianceCheckStatusTracker tracker = new();
+            ComplianceCheckController controller = new(new DummyApiConnection(throwOnViolationCount: true), tracker);
+
+            ActionResult<ComplianceCheckStartResult> result = controller.StartInitialComplianceCheck();
+
+            Assert.That(result.Result, Is.InstanceOf<AcceptedResult>());
+            ComplianceCheckStartResult startResult = (ComplianceCheckStartResult)((AcceptedResult)result.Result!).Value!;
+            ComplianceCheckJobStatus finalStatus = await WaitForTerminalStatusAsync(tracker, startResult.JobId);
+            Assert.That(finalStatus.Status, Is.EqualTo(ComplianceCheckExecutionStatus.Failed));
+            Assert.That(finalStatus.Message, Does.Contain("Violation count query failed."));
+            Assert.That(finalStatus.FinishedAt, Is.Not.Null);
+        }
+
         [Test]
         public void GetInitialComplianceCheckStatus_ReturnsNotFoundForUnknownJob()
         {
@@ -55,6 +87,55 @@ namespace FWO.Test
             ComplianceCheckJobStatus returnedJobStatus = (ComplianceCheckJobStatus)((OkObjectResult)result.Result!).Value!;
             Assert.That(returnedJobStatus.JobId, Is.EqualTo(jobStatus.JobId));
             Assert.That(returnedJobStatus.Status, Is.EqualTo(ComplianceCheckExecutionStatus.Queued));
+        }
+
+        [Test]
+        public async Task InitialComplianceCheck_ReturnsTrueWhenExecutionCompletes()
+        {
+            ComplianceCheckExecutionController controller = new(new DummyApiConnection());
+
+            bool result = await controller.InitialComplianceCheck();
+
+            Assert.That(result, Is.True);
+        }
+
+        [Test]
+        public async Task InitialComplianceCheck_ReturnsFalseWhenExecutionThrows()
+        {
+            ComplianceCheckExecutionController controller = new(new DummyApiConnection(throwOnViolationCount: true));
+
+            bool result = await controller.InitialComplianceCheck();
+
+            Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public async Task Post_ReturnsExceptionMessageWhenImportFails()
+        {
+            ComplianceController controller = new(new DummyApiConnection());
+
+            string result = await controller.Post(new ComplianceImportMatrixParameters
+            {
+                FileName = "matrix.csv",
+                Data = "name;value",
+                UserName = "tester",
+                UserDn = "cn=tester"
+            });
+
+            Assert.That(result, Is.Not.Empty);
+        }
+
+        [Test]
+        public async Task Get_ReturnsEmptyStringWhenReportGenerationFails()
+        {
+            ComplianceController controller = new(new DummyApiConnection());
+
+            string result = await controller.Get(new ComplianceReportParameters
+            {
+                ManagementIds = [1]
+            });
+
+            Assert.That(result, Is.Empty);
         }
 
         [Test]
@@ -258,11 +339,42 @@ namespace FWO.Test
             Assert.That(((StatusCodeResult)result.Result!).StatusCode, Is.EqualTo(500));
         }
 
+        [Test]
+        public async Task ResolveZonesForObjects_ReturnsBadRequestWhenValidationFails()
+        {
+            ComplianceZoneController controller = new(CreateZoneService(new DummyApiConnection(), 12));
+
+            ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.ResolveZonesForObjects(new ResolveZonesForObjectsRequest
+            {
+                Objects = []
+            });
+
+            Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("must contain at least one entry"));
+        }
+
         private sealed class DummyApiConnection : ApiConnection
         {
             private readonly ConfigItem[] configItems;
             private readonly List<ComplianceCriterion> matrices;
             private readonly List<ComplianceNetworkZone> zones;
+            private readonly Language[] languages =
+            [
+                new Language
+                {
+                    Name = GlobalConst.kEnglish,
+                    CultureInfo = "en-US"
+                }
+            ];
+            private readonly List<UiText> uiTexts =
+            [
+                new UiText
+                {
+                    Id = "internet_local_zone",
+                    Txt = "Internet/Local",
+                    Language = GlobalConst.kEnglish
+                }
+            ];
 
             public string? LastMatrixQuery { get; private set; }
             public object? LastMatrixQueryVariables { get; private set; }
@@ -276,17 +388,20 @@ namespace FWO.Test
                 List<ComplianceCriterion>? matrices = null,
                 List<ComplianceNetworkZone>? zones = null,
                 bool throwOnMatrixQuery = false,
-                bool throwOnNetworkZoneQuery = false)
+                bool throwOnNetworkZoneQuery = false,
+                bool throwOnViolationCount = false)
             {
                 this.configItems = configItems ?? [];
                 this.matrices = matrices ?? [];
                 this.zones = zones ?? [];
                 this.throwOnMatrixQuery = throwOnMatrixQuery;
                 this.throwOnNetworkZoneQuery = throwOnNetworkZoneQuery;
+                this.throwOnViolationCount = throwOnViolationCount;
             }
 
             private readonly bool throwOnMatrixQuery;
             private readonly bool throwOnNetworkZoneQuery;
+            private readonly bool throwOnViolationCount;
 
             public override void SetAuthHeader(string jwt) { }
             public override void SetRole(string role) { }
@@ -294,9 +409,33 @@ namespace FWO.Test
             public override void SwitchBack() { }
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
+                if (typeof(QueryResponseType) == typeof(Language[]) && query == ConfigQueries.getLanguages)
+                {
+                    return Task.FromResult((QueryResponseType)(object)languages);
+                }
+
+                if (typeof(QueryResponseType) == typeof(List<UiText>) &&
+                    (query == ConfigQueries.getTextsPerLanguage || query == ConfigQueries.getCustomTextsPerLanguage))
+                {
+                    return Task.FromResult((QueryResponseType)(object)uiTexts);
+                }
+
                 if (typeof(QueryResponseType) == typeof(ConfigItem[]) && query == ConfigQueries.getConfigItemsByUser)
                 {
                     return Task.FromResult((QueryResponseType)(object)configItems);
+                }
+
+                if (typeof(QueryResponseType) == typeof(AggregateCount) && query == ComplianceQueries.getViolationCount)
+                {
+                    if (throwOnViolationCount)
+                    {
+                        throw new InvalidOperationException("Violation count query failed.");
+                    }
+
+                    return Task.FromResult((QueryResponseType)(object)new AggregateCount
+                    {
+                        Aggregate = new Aggregate { Count = 0 }
+                    });
                 }
 
                 if (typeof(QueryResponseType) == typeof(List<ComplianceCriterion>) && query == ComplianceQueries.getMatrixById)
@@ -350,6 +489,23 @@ namespace FWO.Test
             };
 
             return new ComplianceZoneService(apiConnection, globalConfig);
+        }
+
+        private static async Task<ComplianceCheckJobStatus> WaitForTerminalStatusAsync(ComplianceCheckStatusTracker tracker, string jobId)
+        {
+            for (int attempt = 0; attempt < 80; attempt++)
+            {
+                ComplianceCheckJobStatus? currentStatus = tracker.Get(jobId);
+                if (currentStatus?.Status is ComplianceCheckExecutionStatus.Succeeded or ComplianceCheckExecutionStatus.Failed)
+                {
+                    return currentStatus;
+                }
+
+                await Task.Delay(25);
+            }
+
+            Assert.Fail($"Job '{jobId}' did not reach a terminal state in time.");
+            return null!;
         }
     }
 }

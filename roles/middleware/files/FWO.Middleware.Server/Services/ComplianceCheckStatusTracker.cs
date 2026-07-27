@@ -99,7 +99,7 @@ namespace FWO.Middleware.Server.Services
                     new KeyNotFoundException($"Compliance check job '{jobId}' was not found."));
             }
 
-            if (currentStatus?.Status is ComplianceCheckExecutionStatus.Succeeded or ComplianceCheckExecutionStatus.Failed)
+            if (currentStatus.Status is ComplianceCheckExecutionStatus.Succeeded or ComplianceCheckExecutionStatus.Failed)
             {
                 return Task.FromResult(currentStatus);
             }

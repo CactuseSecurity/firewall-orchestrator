@@ -569,3 +569,7 @@ Not supported any longer are:
 ## 9.2.3 - 17.07.2026
 - speed up standard rules reports by scoping flat rule paging to selected rulebases
 - add database index for standard rules report paging
+
+## 9.2.4 - 27.07.2026
+- update flow time object hashing to be timezone invariant
+- !resets the flow timeobject table

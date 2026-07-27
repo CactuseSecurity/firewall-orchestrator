@@ -27,7 +27,7 @@ reportMissingImports = false
 reportMissingTypeStubs = true
 
 [tool.ruff]
-required-version = "0.15.21"
+required-version = "0.16.0"
 line-length = 120
 indent-width = 4
 target-version = "py310"
@@ -64,7 +64,9 @@ exclude = [
     "scripts/acquire_lock.py",
     "scripts/gh-search.py",
     "scripts/json_pretty_print.py",
-    "scripts/release_lock.py"
+    "scripts/release_lock.py",
+    "AGENTS.md",
+    "CLAUDE.md",
 ]
 
 [tool.ruff.lint]
@@ -118,6 +120,8 @@ ignore = [
     "S113",    # Probable use of requests call without timeout
     "S104",    # Possible binding to all interfaces
     "S101",    # Usage of assert 
+    "CPY001",  # Missing copyright notice at top of file
+    "PLR0917", # Too many positional arguments
 ]
 fixable = ["ALL"]
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"

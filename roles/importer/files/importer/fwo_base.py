@@ -25,7 +25,7 @@ from services.service_provider import ServiceProvider
 from services.uid2id_mapper import Uid2IdMapper
 
 
-def sanitize(content: Any, lower: bool = False) -> None | str:
+def sanitize(content: Any, lower: bool = False) -> str | None:
     if content is None:
         return None
     result = str(content)

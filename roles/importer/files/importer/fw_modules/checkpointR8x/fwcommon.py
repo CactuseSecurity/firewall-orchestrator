@@ -380,6 +380,7 @@ def process_devices(
     import_state: ImportState,
     gateways_and_servers: list[dict[str, Any]],
 ) -> None:
+    fetched_nat_policy_uids: set[str] = set()
     for device in manager_details.devices:
         if device["importDisabled"] and not import_state.force_import:
             continue
@@ -436,7 +437,9 @@ def process_devices(
             policy_structure=policy,
         )
 
-        handle_nat_rules(native_config_domain, sid, import_state, policy)
+        if policy["uid"] not in fetched_nat_policy_uids:
+            handle_nat_rules(native_config_domain, sid, import_state, policy)
+            fetched_nat_policy_uids.add(policy["uid"])
 
         native_config_domain["gateways"].append(device_config)
 
@@ -588,6 +591,7 @@ def handle_nat_rules(native_config_domain: dict[str, Any], sid: str, import_stat
     show_params_rules: dict[str, Any] = {
         "limit": import_state.fwo_config.api_fetch_size,
         "use-object-dictionary": cp_const.use_object_dictionary,
+        "details-level": "standard",
         "package": policy["name"],
     }
     FWOLogger.debug(f"Getting NAT rules for package: {policy['name']}", 4)

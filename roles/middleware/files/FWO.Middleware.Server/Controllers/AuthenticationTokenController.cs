@@ -9,6 +9,7 @@ using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Novell.Directory.Ldap;
+using Quartz.Util;
 using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Authentication;
@@ -335,12 +336,11 @@ namespace FWO.Middleware.Server.Controllers
                 UiUser? auditUser = null;
 
                 UiUser[] revokeUsers = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDbId, new { userId = tokenInfo.UserId });
-                auditUser = revokeUsers.FirstOrDefault();
-
-                if (auditUser is null)
+                auditUser = revokeUsers.FirstOrDefault() ?? new UiUser()
                 {
-                    return Unauthorized("User not found");
-                }
+                    Name = tokenInfo.UserId.ToString(),
+                    Dn = ""
+                };
 
                 int revokedTokens = await authManager.RevokeRefreshToken(request.RefreshToken);
 

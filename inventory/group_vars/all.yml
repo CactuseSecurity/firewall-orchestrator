@@ -147,6 +147,8 @@ middleware_internal_port: 8880
 ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"
 ui_admin_testonly_password: "fworch.1"
 importer_password_file: "{{ fworch_secrets_dir }}/importer_pwd"
+# only used when installing with testkeys=true - never reaches a production installation
+importer_testonly_password: "not4production"
 
 ### dotnet
 dotnet_deb_name: "packages-microsoft-prod.deb"

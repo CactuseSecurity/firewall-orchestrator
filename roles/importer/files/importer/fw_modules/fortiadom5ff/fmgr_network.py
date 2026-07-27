@@ -169,39 +169,45 @@ def normalize_network_object_ipv6(obj_orig: dict[str, Any], obj: dict[str, Any])
 
 
 def normalize_vip_object(obj_orig: dict[str, Any], obj: dict[str, Any], nw_objects: list[dict[str, Any]]) -> None:
-    obj_zone = "global"
     obj.update({"obj_typ": "host"})
     if "extip" not in obj_orig or len(obj_orig["extip"]) == 0:
         FWOLogger.error("vip (extip): found empty extip field for " + obj_orig["name"])
-    else:
-        if len(obj_orig["extip"]) > 1:
-            FWOLogger.warning(
-                "vip (extip): found more than one extip, just using the first one for " + obj_orig["name"]
-            )
-        set_ip_in_obj(obj, obj_orig["extip"][0])  # resolving nat range if there is one
-        nat_obj: dict[str, Any] = {}
-        nat_obj.update({"obj_typ": "host"})
-        nat_obj.update({"obj_color": "black"})
-        nat_obj.update({"obj_comment": "FWO-auto-generated nat object for VIP"})
-        if (
-            "obj_ip_end" in obj
-        ):  # this obj is a range - include the end ip in name and uid as well to avoid akey conflicts
-            nat_obj.update({"obj_ip_end": str(obj["obj_ip_end"])})
+        return
 
-        normalize_vip_object_nat_ip(obj_orig, obj, nat_obj)
+    if len(obj_orig["extip"]) > 1:
+        FWOLogger.warning("vip (extip): found more than one extip, just using the first one for " + obj_orig["name"])
+    set_ip_in_obj(obj, obj_orig["extip"][0])  # resolving nat range if there is one
+    nat_obj: dict[str, Any] = {}
+    nat_obj.update({"obj_typ": "host"})
+    nat_obj.update({"obj_color": "black"})
+    nat_obj.update({"obj_comment": "FWO-auto-generated nat object for VIP"})
+    if "obj_ip_end" in obj:  # this obj is a range - include the end ip in name and uid as well to avoid akey conflicts
+        nat_obj.update({"obj_ip_end": str(obj["obj_ip_end"])})
 
-        if "obj_ip_end" not in nat_obj:
-            nat_obj.update({"obj_ip_end": str(obj["obj_nat_ip"])})
+    normalize_vip_object_nat_ip(obj_orig, obj, nat_obj)
 
-        if (
-            "associated-interface" in obj_orig and len(obj_orig["associated-interface"]) > 0
-        ):  # and obj_orig['associated-interface'][0] != 'any':
-            obj_zone = obj_orig["associated-interface"][0]
-        nat_obj.update({"obj_zone": obj_zone})
-        if (
-            nat_obj not in nw_objects
-        ):  # rare case when a destination nat is down for two different orig ips to the same dest ip
-            nw_objects.append(nat_obj)
+    if "obj_nat_ip" not in obj:
+        return
+
+    finalize_vip_nat_object(obj_orig, obj, nat_obj, nw_objects)
+
+
+def finalize_vip_nat_object(
+    obj_orig: dict[str, Any], obj: dict[str, Any], nat_obj: dict[str, Any], nw_objects: list[dict[str, Any]]
+) -> None:
+    if "obj_ip_end" not in nat_obj:
+        nat_obj.update({"obj_ip_end": str(obj["obj_nat_ip"])})
+
+    obj_zone = "global"
+    if (
+        "associated-interface" in obj_orig and len(obj_orig["associated-interface"]) > 0
+    ):  # and obj_orig['associated-interface'][0] != 'any':
+        obj_zone = obj_orig["associated-interface"][0]
+    nat_obj.update({"obj_zone": obj_zone})
+    if (
+        nat_obj not in nw_objects
+    ):  # rare case when a destination nat is down for two different orig ips to the same dest ip
+        nw_objects.append(nat_obj)
 
 
 def normalize_vip_object_nat_ip(obj_orig: dict[str, Any], obj: dict[str, Any], nat_obj: dict[str, Any]) -> None:

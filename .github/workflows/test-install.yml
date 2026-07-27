@@ -88,9 +88,9 @@ jobs:
 
       - run: python -m venv .venv
 
-      - run: "pip install --only-binary=cryptography --prefer-binary -r roles/importer/files/importer/requirements.txt"
+      - run: ".venv/bin/python -m pip install --only-binary=cryptography --prefer-binary -r roles/importer/files/importer/requirements.txt"
 
-      - run: "pip install --only-binary=cryptography --prefer-binary -r scripts/requirements.txt"
+      - run: ".venv/bin/python -m pip install --only-binary=cryptography --prefer-binary -r scripts/requirements.txt"
 
       - uses: astral-sh/ruff-action@278981a28ce3188b1e39527901f38254bf3aac89
         with:

@@ -288,6 +288,61 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TestSCRemoveTicketWithServiceWithoutProtocol()
+        {
+            List<WfReqTask> removeAnyReqTask =
+            [
+                ConstructAccTask(4, "old Connection3", 4, WfTaskType.rule_delete.ToString(), RequestAction.delete.ToString())
+            ];
+            removeAnyReqTask[0].Elements.RemoveAll(e => e.Field == ElemFieldType.service.ToString());
+            removeAnyReqTask[0].Elements.Add(new()
+            {
+                Id = 7,
+                TaskId = 4,
+                RequestAction = RequestAction.unchanged.ToString(),
+                Name = "Any",
+                Field = ElemFieldType.service.ToString()
+            });
+            removeAnyReqTask[0].Elements.Add(new()
+            {
+                Id = 8,
+                TaskId = 4,
+                RequestAction = RequestAction.unchanged.ToString(),
+                Name = "AnyOther",
+                Field = ElemFieldType.service.ToString()
+            });
+
+            SCTicket ticket = new(ticketSystem);
+            await ticket.CreateRequestString(removeAnyReqTask, ipProtos, NamingConvention);
+
+            ClassicAssert.IsTrue(ticket.TicketText.Contains("\"services\":{\"service\":[{\"@type\": \"ANY\"}]}"));
+        }
+
+        [Test]
+        public async Task TestSCRemoveTicketWithServiceGroup()
+        {
+            List<WfReqTask> removeGrpSvcReqTask =
+            [
+                ConstructAccTask(5, "old Connection4", 5, WfTaskType.rule_delete.ToString(), RequestAction.delete.ToString())
+            ];
+            removeGrpSvcReqTask[0].Elements.RemoveAll(e => e.Field == ElemFieldType.service.ToString());
+            removeGrpSvcReqTask[0].Elements.Add(new()
+            {
+                Id = 9,
+                TaskId = 5,
+                RequestAction = RequestAction.unchanged.ToString(),
+                Name = "SvcGrp1",
+                GroupName = "SvcGrp1",
+                Field = ElemFieldType.service.ToString()
+            });
+
+            SCTicket ticket = new(ticketSystem);
+            await ticket.CreateRequestString(removeGrpSvcReqTask, ipProtos, NamingConvention);
+
+            ClassicAssert.IsTrue(ticket.TicketText.Contains("\"services\":{\"service\":[{\"@type\": \"Object\", \"object_name\": \"SvcGrp1\", \"management_name\": \"CheckpointExt\"}]}"));
+        }
+
+        [Test]
         public async Task TestSCLookupRequesterIdSuccess()
         {
             ExternalTicketSystem lookupSystem = CreateTicketSystem(true);

@@ -72,7 +72,7 @@ namespace FWO.Test
             bool result = handler.ComSvcContainsOnlyNetworkAreasInDirection(Direction.Source, new List<ModellingNetworkArea>());
 
             // ASSERT
-            ClassicAssert.AreEqual(true, result, "Items marked for deletion should be properly excluded from validation");
+            ClassicAssert.IsTrue(result, "Items marked for deletion should be properly excluded from validation");
         }
 
         [Test]
@@ -112,7 +112,7 @@ namespace FWO.Test
             bool result = handler.ComSvcContainsOnlyNetworkAreasInDirection(Direction.Source, new List<ModellingNetworkArea>());
 
             // ASSERT
-            ClassicAssert.AreEqual(true, result, "Method should return true when only network areas remain after deletion");
+            ClassicAssert.IsTrue(result, "Method should return true when only network areas remain after deletion");
         }
 
         [Test]
@@ -151,7 +151,7 @@ namespace FWO.Test
             bool result = handler.ComSvcContainsOnlyNetworkAreasInDirection(Direction.Destination, new List<ModellingNetworkArea>());
 
             // ASSERT
-            ClassicAssert.AreEqual(false, result, "Method should return false when both areas and roles remain after deletion");
+            ClassicAssert.IsFalse(result, "Method should return false when both areas and roles remain after deletion");
         }
 
         [Test]
@@ -191,7 +191,7 @@ namespace FWO.Test
             bool result = handler.ComSvcContainsOnlyNetworkAreasInDirection(Direction.Source, new List<ModellingNetworkArea>());
 
             // ASSERT
-            ClassicAssert.AreEqual(true, result, "Method should return true when only areas are added");
+            ClassicAssert.IsTrue(result, "Method should return true when only areas are added");
         }
 
         [Test]
@@ -231,7 +231,7 @@ namespace FWO.Test
             bool result = handler.ComSvcContainsOnlyNetworkAreasInDirection(Direction.Source, new List<ModellingNetworkArea>());
 
             // ASSERT
-            ClassicAssert.AreEqual(false, result, "Method should return false when both areas and roles are added");
+            ClassicAssert.IsFalse(result, "Method should return false when both areas and roles are added");
         }
 
         [Test]
@@ -270,7 +270,7 @@ namespace FWO.Test
             bool result = handler.ComSvcContainsOnlyNetworkAreasInDirection(Direction.Source, selectedAreas);
 
             // ASSERT
-            ClassicAssert.AreEqual(true, result, "Method should return true when only network areas are provided via parameter");
+            ClassicAssert.IsTrue(result, "Method should return true when only network areas are provided via parameter");
         }
 
         [Test]
@@ -309,7 +309,7 @@ namespace FWO.Test
             bool result = handler.ComSvcContainsOnlyNetworkAreasInDirection(Direction.Source, selectedRoles);
 
             // ASSERT
-            ClassicAssert.AreEqual(false, result, "Method should return false when roles are added to existing areas");
+            ClassicAssert.IsFalse(result, "Method should return false when roles are added to existing areas");
         }
 
         [Test]
@@ -349,7 +349,7 @@ namespace FWO.Test
             bool result = handler.ComSvcContainsOnlyNetworkAreasInDirection(Direction.Destination, new List<ModellingNetworkArea>());
 
             // ASSERT
-            ClassicAssert.AreEqual(true, result, "Method should return true when both lists are empty after deletion");
+            ClassicAssert.IsTrue(result, "Method should return true when both lists are empty after deletion");
         }
 
         [Test]

@@ -237,7 +237,7 @@ def rlm_get_owners(token: str, api_url: str, rlm_version: float = 2.5) -> dict[s
         raise ApiFailureError(f"api: ERROR: could not get owners, api_url: {api_url!s}, status code: {response!s}")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     parser = argparse.ArgumentParser(description="Read configuration from FW management via API calls")
     parser.add_argument(
         "-c", "--config", default=default_config_file_name, help="Filename of custom config file for modelling imports"

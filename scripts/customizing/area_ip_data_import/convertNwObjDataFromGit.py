@@ -80,7 +80,7 @@ def generate_public_ipv4_networks_as_internet_area() -> list[dict[str, str]]:
     return [{"ip": net, "name": "inet"} for net in internet_subnets]
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     parser = argparse.ArgumentParser(description="Read configuration from FW management via API calls")
     parser.add_argument(
         "-c", "--config", default=DEFAULT_CONFIG_FILENAME, help="Filename of custom config file for modelling imports"

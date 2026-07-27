@@ -25,13 +25,13 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
@@ -77,17 +77,17 @@ jobs:
     name: Python Code Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11' 
 
-      - run: pip install -r roles/importer/files/importer/requirements.txt
+      - run: "pip install --only-binary=cryptography --prefer-binary -r roles/importer/files/importer/requirements.txt"
 
-      - run: pip install -r scripts/customizing/app_data_import/requirements-for-app-data-import.txt
+      - run: "pip install --only-binary=cryptography --prefer-binary -r scripts/requirements.txt"
 
-      - uses: astral-sh/ruff-action@0ce1b0bf8b818ef400413f810f8a11cdbda0034b
+      - uses: astral-sh/ruff-action@278981a28ce3188b1e39527901f38254bf3aac89
         with:
           version-file: "roles/importer/files/importer/requirements.txt"
 

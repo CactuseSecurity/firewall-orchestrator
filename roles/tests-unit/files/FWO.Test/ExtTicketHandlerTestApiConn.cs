@@ -16,6 +16,7 @@ namespace FWO.Test
         public string? AddExtRequestVars { get; set; }
         public string? AddedExtTicketSystem { get; set; }
         public string? AddedExtQueryVariables { get; set; }
+        public bool OmitExtReqRequestedStateMapping { get; set; }
         readonly string masterStateMatrix = "{\"config_value\":{\"request\":{\"matrix\":{\"0\":[0,49,620],\"49\":[49,620],\"620\":[620],\"1\":[1,2,3,4,630,631],\"2\":[1,2,3,4,630,631],\"3\":[3,4,630,631],\"4\":[4,630,631],\"630\":[630],\"631\":[631]},\"derived_states\":{\"0\":0,\"49\":49,\"620\":620,\"1\":1,\"2\":2,\"3\":3,\"4\":4,\"630\":630,\"631\":631},\"lowest_input_state\":0,\"lowest_start_state\":1,\"lowest_end_state\":49,\"active\":true},\"approval\":{\"matrix\":{\"49\":[60],\"60\":[60,99,610],\"99\":[99],\"610\":[610]},\"derived_states\":{\"49\":49,\"60\":60,\"99\":99,\"610\":610},\"lowest_input_state\":49,\"lowest_start_state\":60,\"lowest_end_state\":99,\"active\":false},\"planning\":{\"matrix\":{\"99\":[110],\"110\":[110,120,130,149],\"120\":[120,110,130,149],\"130\":[130,110,120,149,610],\"149\":[149],\"610\":[610]},\"derived_states\":{\"99\":99,\"110\":110,\"120\":110,\"130\":110,\"149\":149,\"610\":610},\"lowest_input_state\":99,\"lowest_start_state\":110,\"lowest_end_state\":149,\"active\":false},\"verification\":{\"matrix\":{\"149\":[160],\"160\":[160,199,610],\"199\":[199],\"610\":[610]},\"derived_states\":{\"149\":149,\"160\":160,\"199\":199,\"610\":610},\"lowest_input_state\":149,\"lowest_start_state\":160,\"lowest_end_state\":199,\"active\":false},\"implementation\":{\"matrix\":{\"99\":[210],\"210\":[210,220,249],\"220\":[220,210,249,610],\"249\":[249],\"610\":[610],\"49\":[49,600,610]},\"derived_states\":{\"99\":99,\"210\":210,\"220\":210,\"249\":249,\"610\":610,\"49\":49},\"lowest_input_state\":49,\"lowest_start_state\":210,\"lowest_end_state\":249,\"active\":true},\"review\":{\"matrix\":{\"249\":[260],\"260\":[260,270,299],\"270\":[210,270,260,299,610],\"299\":[299],\"610\":[610]},\"derived_states\":{\"249\":249,\"260\":260,\"270\":260,\"299\":299,\"610\":610},\"lowest_input_state\":249,\"lowest_start_state\":260,\"lowest_end_state\":299,\"active\":false},\"recertification\":{\"matrix\":{\"299\":[310],\"310\":[310,349,400],\"349\":[349],\"400\":[400]},\"derived_states\":{\"299\":299,\"310\":310,\"349\":349,\"400\":400},\"lowest_input_state\":299,\"lowest_start_state\":310,\"lowest_end_state\":349,\"active\":false}}}";
         readonly static WfReqElement srcARElem = new()
         {
@@ -48,7 +49,15 @@ namespace FWO.Test
             RuleUid = "1234567",
             Field = ElemFieldType.rule.ToString()
         };
-
+        readonly static WfReqElement followUpObjElem = new()
+        {
+            Id = 4,
+            RequestAction = RequestAction.create.ToString(),
+            GroupName = "ARxx12345-102",
+            Name = "AppServerY",
+            IpString = "123.0.0.9/32",
+            Field = ElemFieldType.source.ToString()
+        };
 
         readonly static WfReqTask reqTask1 = new()
         {
@@ -143,8 +152,19 @@ namespace FWO.Test
             AdditionalInfo = "{\"ConnId\":\"2\"}",
             SelectedDevices = "[1,2]"
         };
+        readonly static WfReqTask reqTask9 = new()
+        {
+            Id = 9,
+            Title = "Task9",
+            TicketId = 123,
+            TaskNumber = 9,
+            TaskType = WfTaskType.group_create.ToString(),
+            ManagementId = 1,
+            Elements = [followUpObjElem],
+            AdditionalInfo = "{\"ConnId\":\"3\",\"GrpName\":\"ARxx12345-102\"}"
+        };
 
-        readonly static WfTicket ticket123 = new() { Id = 123, Title = "Ticket1", Tasks = [reqTask1, reqTask2, reqTask3, reqTask4, reqTask5, reqTask6, reqTask7, reqTask8] };
+        readonly static WfTicket ticket123 = new() { Id = 123, Title = "Ticket1", Tasks = [reqTask1, reqTask2, reqTask3, reqTask4, reqTask5, reqTask6, reqTask7, reqTask8, reqTask9] };
 
         public ExtTicketHandlerTestApiConn()
         {
@@ -185,8 +205,52 @@ namespace FWO.Test
             reqTask8.StateId = 0;
             reqTask8.AdditionalInfo = "{\"ConnId\":\"2\"}";
             reqTask8.ImplementationTasks = [];
+            reqTask9.StateId = 0;
+            reqTask9.AdditionalInfo = "{\"ConnId\":\"3\",\"GrpName\":\"ARxx12345-102\"}";
+            reqTask9.ImplementationTasks = [];
         }
 
+        private static WfReqTask? FindReqTaskById(long id)
+        {
+            return ticket123.Tasks.FirstOrDefault(task => task.Id == id);
+        }
+
+        public static WfReqTask? GetReqTaskById(long id)
+        {
+            return FindReqTaskById(id);
+        }
+
+        public static WfReqTask? GetReqTaskByNumber(int taskNumber)
+        {
+            return ticket123.Tasks.FirstOrDefault(task => task.TaskNumber == taskNumber);
+        }
+
+        public static void SetReqTaskState(long id, int stateId)
+        {
+            WfReqTask? task = FindReqTaskById(id);
+            if (task != null)
+            {
+                task.StateId = stateId;
+            }
+        }
+
+        public static void SetReqTaskAddInfo(long id, string key, string value)
+        {
+            WfReqTask? task = FindReqTaskById(id);
+            if (task != null)
+            {
+                task.SetAddInfo(key, value);
+            }
+        }
+
+        public static void MarkReqTaskAsInternalWork(long id)
+        {
+            WfReqTask? task = FindReqTaskById(id);
+            if (task != null)
+            {
+                task.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
+            }
+        }
 
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
@@ -196,10 +260,15 @@ namespace FWO.Test
             {
                 List<WfExtState>? extStates =
                 [
-                    new(){ Id = 1, Name = "ExtReqInitialized", StateId = 1 },
-                    new(){ Id = 2, Name = "ExtReqRequested", StateId = 3 },
-                    new(){ Id = 3, Name = "ExtReqDone", StateId = 631 }
+                    new(){ Id = 1, Name = "ExtReqInitialized", StateId = 1 }
                 ];
+
+                if (!OmitExtReqRequestedStateMapping)
+                {
+                    extStates.Add(new() { Id = 2, Name = "ExtReqRequested", StateId = 3 });
+                }
+
+                extStates.Add(new() { Id = 3, Name = "ExtReqDone", StateId = 631 });
                 GraphQLResponse<dynamic> response = new() { Data = extStates };
                 return response.Data;
             }
@@ -265,43 +334,41 @@ namespace FWO.Test
             {
                 if (query == RequestQueries.updateRequestTaskAdditionalInfo && variables != null)
                 {
-                    string? Vars = variables.ToString();
-                    if (Vars != null)
+                    long reqTaskId = Convert.ToInt64(
+                        variables.GetType().GetProperty("id")?.GetValue(variables) ?? 0L);
+
+                    string? additionalInfo = variables.GetType().GetProperty("additionalInfo")?.GetValue(variables)?.ToString();
+
+                    WfReqTask? task = FindReqTaskById(reqTaskId);
+                    if (task != null)
                     {
-                        if (Vars.Contains("id = 1"))
-                        {
-                            reqTask1.AdditionalInfo = "{\"ConnId\":\"1\",\"ExtIcketId\":\"4711\"}";
-                        }
-                        else if (Vars.Contains("id = 2"))
-                        {
-                            reqTask2.AdditionalInfo = "{\"ConnId\":\"1\",\"ExtIcketId\":\"4712\"}";
-                        }
-                        else if (Vars.Contains("id = 3"))
-                        {
-                            reqTask3.AdditionalInfo = "{\"ConnId\":\"1\",\"ExtIcketId\":\"4712\"}";
-                        }
-                        else if (Vars.Contains("id = 4"))
-                        {
-                            reqTask4.AdditionalInfo = "{\"ConnId\":\"1\",\"ExtIcketId\":\"4713\"}";
-                        }
-                        else if (Vars.Contains("id = 5"))
-                        {
-                            reqTask5.AdditionalInfo = "{\"ConnId\":\"1\",\"ExtIcketId\":\"4713\"}";
-                        }
-                        else if (Vars.Contains("id = 6"))
-                        {
-                            reqTask6.AdditionalInfo = "{\"ConnId\":\"1\",\"ExtIcketId\":\"4714\"}";
-                        }
-                        else if (Vars.Contains("id = 7"))
-                        {
-                            reqTask7.AdditionalInfo = "{\"ConnId\":\"1\",\"ExtIcketId\":\"4714\"}";
-                        }
-                        else if (Vars.Contains("id = 8"))
-                        {
-                            reqTask8.AdditionalInfo = "{\"ConnId\":\"2\",\"ExtIcketId\":\"4714\"}";
-                        }
+                        task.AdditionalInfo = additionalInfo;
                     }
+
+                    ReturnId updatedReturnId = new() { UpdatedIdLong = reqTaskId };
+                    GraphQLResponse<dynamic> updatedResponse = new() { Data = updatedReturnId };
+                    return updatedResponse.Data;
                 }
+
+                if (query == RequestQueries.updateRequestTaskState && variables != null)
+                {
+                    long reqTaskId = Convert.ToInt64(
+                        variables.GetType().GetProperty("id")?.GetValue(variables) ?? 0L);
+
+                    int stateId = Convert.ToInt32(
+                        variables.GetType().GetProperty("state")?.GetValue(variables) ?? 0);
+
+                    WfReqTask? task = FindReqTaskById(reqTaskId);
+                    if (task != null)
+                    {
+                        task.StateId = stateId;
+                    }
+
+                    ReturnId stateReturnId = new() { UpdatedIdLong = reqTaskId };
+                    GraphQLResponse<dynamic> stateResponse = new() { Data = stateReturnId };
+                    return stateResponse.Data;
+                }
+
                 ReturnId returnId = new() { UpdatedIdLong = 1 };
                 GraphQLResponse<dynamic> response = new() { Data = returnId };
                 return response.Data;

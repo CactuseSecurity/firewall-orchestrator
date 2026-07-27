@@ -53,6 +53,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildRuleTree_PopulatesRuleItemLookup()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10, 11)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1)
+            ];
+
+            List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1);
+
+            Assert.That(_ruleTreeBuilder.RuleTree.ItemsByRule.Count, Is.EqualTo(flattenedRules.Count));
+            foreach (Rule rule in flattenedRules)
+            {
+                Assert.That(_ruleTreeBuilder.RuleTree.ItemsByRule.TryGetValue(rule, out RuleTreeItem? treeItem), Is.True);
+                Assert.That(treeItem!.Data, Is.SameAs(rule));
+            }
+        }
+
+        [Test]
         public void BuildRuleTree_ShuffledSectionAndLayerLinks_FollowsGraphNotInputOrder()
         {
             RulebaseReport[] rulebases =

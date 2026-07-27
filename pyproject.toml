@@ -26,7 +26,7 @@ reportMissingImports = false
 reportMissingTypeStubs = true
 
 [tool.ruff]
-required-version = "0.15.20"
+required-version = "0.16.0"
 line-length = 120
 indent-width = 4
 target-version = "py310"
@@ -63,7 +63,9 @@ exclude = [
     "scripts/acquire_lock.py",
     "scripts/gh-search.py",
     "scripts/json_pretty_print.py",
-    "scripts/release_lock.py"
+    "scripts/release_lock.py",
+    "AGENTS.md",
+    "CLAUDE.md",
 ]
 
 [tool.ruff.lint]
@@ -117,12 +119,15 @@ ignore = [
     "S113",    # Probable use of requests call without timeout
     "S104",    # Possible binding to all interfaces
     "S101",    # Usage of assert 
+    "CPY001",  # Missing copyright notice at top of file
+    "PLR0917", # Too many positional arguments
 ]
 fixable = ["ALL"]
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.per-file-ignores]
 "roles/importer/files/importer/test/**.py" = ["SLF001", "PLR2004"]
+"scripts/customizing/**/test_*.py" = ["FBT003", "PLR2004", "PT017", "S105"]
 
 
 [tool.ruff.format]
@@ -144,7 +149,9 @@ branch = true
 relative_files = true
 source = [
     "roles/importer/files/importer",
+    "scripts",
 ]
 omit = [
     "roles/importer/files/importer/test/*",
+    "scripts/**/test_*.py",
 ]

@@ -62,7 +62,7 @@ namespace FWO.Test
                 executablePath = SystemChromium.GetPath();
                 if (executablePath is null)
                 {
-                    string downloadPath = Path.Combine(Path.GetTempPath(), "fwo-puppeteer");
+                    string downloadPath = Path.Combine(TestContext.CurrentContext.WorkDirectory, "fwo-puppeteer");
                     Log.WriteInfo("Browser", $"Browser not found for current system - downloading to {downloadPath}...");
                     browserFetcher = new(new BrowserFetcherOptions() { Platform = platform, Browser = wantedBrowser, Path = downloadPath });
                     await browserFetcher.DownloadAsync();

@@ -104,7 +104,7 @@
         if (sourceIpRange != null && destinationIpRange != null)
         {
             displayOutput = true;
-            ComplianceCheck complianceCheck = new ComplianceCheck(userConfig, new GraphQlApiConnection(""));
+            ComplianceCheck complianceCheck = new ComplianceCheck(userConfig, _apiConnection);
             forbiddenCommunicationsOutput = complianceCheck.CheckIpRangeInputCompliance(sourceIpRange, destinationIpRange, networkZoneService.NetworkZones);
             compliant = forbiddenCommunicationsOutput.Count == 0;
         }

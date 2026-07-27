@@ -171,8 +171,8 @@
     private ModellingVarianceResult VarianceResult = new();
     private List<ModellingConnection> ModelledConnections = [];
     private List<ModellingConnection> ModellingErrors = [];
-    private List<ModellingAppRole> MissingAppRoles = [];
-    private List<ModellingAppRole> DifferingAppRoles = [];
+    private readonly List<ModellingAppRole> MissingAppRoles = [];
+    private readonly List<ModellingAppRole> DifferingAppRoles = [];
     private List<Rule> UnmodelledRules = [];
     private List<Rule> RulesFromDeletedConns = [];
     private bool AppZoneModelled;

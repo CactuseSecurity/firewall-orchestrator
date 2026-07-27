@@ -20,11 +20,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -32,7 +32,7 @@ jobs:
         run: |
           sudo apt update
           sudo DEBIAN_FRONTEND=noninteractive apt install build-essential ldap-utils libldap2-dev libsasl2-dev -y
-          python -m pip install ansible psycopg2-binary python-ldap requests
+          python -m pip install -r requirements.txt psycopg2-binary==2.9.11 python-ldap==3.4.5 requests==2.34.2
 
       - name: Install Ansible collections
         run: |

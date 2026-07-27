@@ -1,5 +1,6 @@
 
 using GraphQL;
+using FWO.Data;
 using FWO.Data.Report;
 using FWO.Services;
 
@@ -16,6 +17,14 @@ namespace FWO.Test
                 List<ManagementReport> reports = SimulatedReport.DetailedReport().ReportData.ManagementData;
                 GraphQLResponse<dynamic> response = new() { Data = reports };
                 return response.Data;
+            }
+            if (responseType == typeof(List<Rule>))
+            {
+                List<Rule> rules = SimulatedReport.DetailedReport().ReportData.ManagementData
+                    .SelectMany(management => management.Rulebases)
+                    .SelectMany(rulebase => rulebase.Rules)
+                    .ToList();
+                return (QueryResponseType)(object)rules;
             }
             else
             {

@@ -124,7 +124,6 @@ builder.Services.AddOpenApi("v1", options =>
     options.AddOperationTransformer<OpenApiOperationNameTransformer>();
     options.AddOperationTransformer<OpenApiAuthorizationOperationTransformer>();
     options.AddOperationTransformer<OpenApiApiExampleOperationTransformer>();
-    options.AddOperationTransformer<OpenApiApplicationZonesResponseTransformer>();
     options.AddDocumentTransformer((document, context, cancellationToken) =>
     {
         document.Info = new OpenApiInfo

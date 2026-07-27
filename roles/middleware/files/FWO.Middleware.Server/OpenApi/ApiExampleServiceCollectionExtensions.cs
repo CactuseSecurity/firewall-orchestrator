@@ -286,6 +286,7 @@ public sealed class AddressObjectResponseExample : ApiExampleProvider<AddressObj
     {
         Id = 1001,
         Name = "app-server-1",
+        Type = "host",
         IpStart = "192.0.2.10",
         IpEnd = "192.0.2.10",
         State = "active",

@@ -732,10 +732,10 @@ namespace FWO.Report.Filter
                         query.QueryParameters.Add("$import_id_start: bigint ");
                         query.QueryParameters.Add("$import_id_end: bigint ");
                         string removedStatement = $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
+                        string linkTypeStatement = "_or: [{link_type: {_is_null: true}}, {link_type: {_neq: 6}}]"; // Filter out NAT rulebase links
                         query.RulebaseLinkWhereStatement +=
                             $"created: {{_lte: $import_id_end }}" +
-                            removedStatement +
-                            $" _or: [{{link_type: {{_is_null: true}}}}, {{link_type: {{_neq: 6}}}}]"; // Filter out NAT rulebase links
+                            $"_and: [{{{removedStatement}}}, {{{linkTypeStatement}}}]";
                         query.NatRulebaseLinkWhereStatement +=
                             $"created: {{_lte: $import_id_end }}" +
                             $"_or: [{{is_initial: {{_eq: true}}, {removedStatement}}}, {{link_type: {{_eq: 6}}, {removedStatement}}}]";

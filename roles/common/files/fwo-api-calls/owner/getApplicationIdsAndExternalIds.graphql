@@ -1,6 +1,0 @@
-query getApplicationIdsAndExternalIds($where: owner_bool_exp = {}, $limit: Int, $offset: Int) {
-  owner_list: owner(where: $where, limit: $limit, offset: $offset, order_by: { name: asc }) {
-    id
-    app_id_external
-  }
-}

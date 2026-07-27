@@ -20,7 +20,7 @@ namespace FWO.Middleware.Server
             bool tenantAdded = false;
             try
             {
-                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
+                using ILdapClient connection = await GetBoundConnection(WriteUser, WriteUserPwd);
 
                 LdapAttributeSet attributeSet = new()
                 {
@@ -58,7 +58,7 @@ namespace FWO.Middleware.Server
             bool tenantDeleted = false;
             try
             {
-                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
+                using ILdapClient connection = await GetBoundConnection(WriteUser, WriteUserPwd);
 
                 try
                 {

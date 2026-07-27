@@ -6,10 +6,10 @@ using System.Security.Claims;
 namespace FWO.Middleware.Server.Services;
 
 /// <summary>
-/// Builds the GraphQL variables of the application-zone lookup so that every filter is applied by the API
+/// Builds the GraphQL variables of the application-address lookup so that every filter is applied by the API
 /// instead of the middleware.
 /// </summary>
-public static class ApplicationZoneQueryBuilder
+public static class ApplicationAddressQueryBuilder
 {
     private const string kEditableOwnersClaim = "x-hasura-editable-owners";
 
@@ -17,14 +17,14 @@ public static class ApplicationZoneQueryBuilder
     /// Builds the variables selecting the applications visible to the caller, including optional paging.
     /// </summary>
     public static Dictionary<string, object> BuildApplicationVariables(
-        GetApplicationZonesOptions options, ClaimsPrincipal user)
+        GetApplicationAddressesOptions options, ClaimsPrincipal user)
     {
-        ApplicationZoneFilter? filter = options.Filter;
+        ApplicationAddressFilter? filter = options.Filter;
         List<Dictionary<string, object>> predicates = [];
         GraphQlFilterBuilder.AddEqualsPredicate(predicates, "is_default", false);
-        GraphQlFilterBuilder.AddEqualsPredicate(predicates, "id", filter?.ApplicationId);
-        GraphQlFilterBuilder.AddWildcardPredicate(predicates, "name", filter?.ApplicationName);
-        GraphQlFilterBuilder.AddWildcardPredicate(predicates, "app_id_external", filter?.AppIdExternal);
+        AddApplicationIdPredicate(predicates, filter?.ApplicationId);
+        GraphQlFilterBuilder.AddWildcardPredicates(predicates, "name", filter?.ApplicationName);
+        GraphQlFilterBuilder.AddWildcardPredicates(predicates, "app_id_external", filter?.AppIdExternal);
         GraphQlFilterBuilder.AddOwnerActiveStatePredicate(predicates, options.ShowOnlyActiveState);
         if (ShouldRestrictToEditableApplications(user))
         {
@@ -42,27 +42,13 @@ public static class ApplicationZoneQueryBuilder
     }
 
     /// <summary>
-    /// Builds the variables selecting the application zones of the supplied applications.
+    /// Builds the variables selecting the app-server addresses of the supplied applications.
     /// </summary>
-    public static Dictionary<string, object> BuildApplicationZoneVariables(
-        List<int> applicationIds, ApplicationZoneFilter? filter)
+    public static Dictionary<string, object> BuildApplicationAddressVariables(List<int> applicationIds)
     {
         List<Dictionary<string, object>> predicates = [];
-        GraphQlFilterBuilder.AddInPredicate(predicates, "app_id", applicationIds);
-        GraphQlFilterBuilder.AddEqualsPredicate(predicates, "id", filter?.Id);
-        GraphQlFilterBuilder.AddWildcardPredicate(predicates, "name", filter?.Name);
-        GraphQlFilterBuilder.AddWildcardPredicate(predicates, "id_string", filter?.IdString);
+        GraphQlFilterBuilder.AddInPredicate(predicates, "owner_id", applicationIds);
         return new Dictionary<string, object> { ["where"] = GraphQlFilterBuilder.CombinePredicates(predicates) };
-    }
-
-    /// <summary>
-    /// Indicates whether the filter restricts concrete application zones, which excludes the placeholders
-    /// returned for applications without an application zone.
-    /// </summary>
-    public static bool HasZoneFilter(ApplicationZoneFilter? filter)
-    {
-        return filter is not null &&
-            (filter.Id is not null || filter.Name is not null || filter.IdString is not null || filter.IsDeleted is not null);
     }
 
     /// <summary>
@@ -78,6 +64,14 @@ public static class ApplicationZoneQueryBuilder
         if (value is not null)
         {
             variables[fieldName] = value.Value;
+        }
+    }
+
+    private static void AddApplicationIdPredicate(List<Dictionary<string, object>> predicates, List<int>? applicationIds)
+    {
+        if (applicationIds is { Count: > 0 })
+        {
+            GraphQlFilterBuilder.AddInPredicate(predicates, "id", applicationIds.Distinct().ToList());
         }
     }
 }

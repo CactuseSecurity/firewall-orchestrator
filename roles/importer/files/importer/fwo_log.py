@@ -175,7 +175,7 @@ class FWOLogger:
         logger = FWOLogger.instance.get_logger()
         LogLock.semaphore.acquire()
         try:
-            logger.exception(msg, exc_info=exc_info, stacklevel=2)
+            logger.exception(msg, exc_info=exc_info, stacklevel=2)  # noqa: LOG004
         finally:
             LogLock.semaphore.release()
 

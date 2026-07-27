@@ -18,7 +18,19 @@ namespace FWO.Test
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     internal class UiReportTemplateComponentTest
     {
-        private sealed class ReportTemplateComponentTestApiConn(List<ReportTemplate> templates, List<FwoOwner> owners) : SimulatedApiConnection
+        private static readonly List<string> kModellerRoles = new() { Roles.Modeller };
+        private static readonly List<string> kAuditorRoles = new() { Roles.Auditor };
+        private static readonly List<string> kReporterRoles = new() { Roles.Reporter };
+        private static readonly List<int> kOwnership11 = new() { 11 };
+        private static readonly List<int> kEmptyOwnerships = new();
+        private static readonly List<ReportTemplate> kEmptyTemplates = new();
+        private static readonly List<FwoOwner> kEmptyOwners = new();
+        private static readonly List<FwoOwner> kOwnedAppOwners = new()
+        {
+            new FwoOwner { Id = 11, Name = "Owned App" }
+        };
+
+        private sealed class ReportTemplateComponentTestApiConn(IEnumerable<ReportTemplate> templates, IEnumerable<FwoOwner> owners) : SimulatedApiConnection
         {
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
@@ -60,10 +72,13 @@ namespace FWO.Test
             SimulatedUserConfig.DummyTranslate.TryAdd("select_time", "Select time");
             SimulatedUserConfig.DummyTranslate.TryAdd("report_filters", "Report filters");
             SimulatedUserConfig.DummyTranslate.TryAdd("rule_filters", "Rule filters");
+            SimulatedUserConfig.DummyTranslate.TryAdd("variance_filters", "Variance filters");
             SimulatedUserConfig.DummyTranslate.TryAdd("save_template", "Save template");
             SimulatedUserConfig.DummyTranslate.TryAdd("edit_template", "Edit template");
             SimulatedUserConfig.DummyTranslate.TryAdd("delete_template", "Delete template");
             SimulatedUserConfig.DummyTranslate.TryAdd("open", "Open");
+            SimulatedUserConfig.DummyTranslate.TryAdd("from", "from");
+            SimulatedUserConfig.DummyTranslate.TryAdd("until", "until");
             SimulatedUserConfig.DummyTranslate.TryAdd("Days", "Days");
             SimulatedUserConfig.DummyTranslate.TryAdd("Weeks", "Wochen");
             SimulatedUserConfig.DummyTranslate.TryAdd("Months", "Months");
@@ -75,7 +90,7 @@ namespace FWO.Test
         {
             using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Modeller),
-                CreateUserConfig([Roles.Modeller], [11]),
+                CreateUserConfig(kModellerRoles, kOwnership11),
                 new ReportTemplateComponentTestApiConn(
                 [
                     CreateTemplate(1, "Connections template", ReportType.Connections, ownerId: 11),
@@ -83,7 +98,7 @@ namespace FWO.Test
                     CreateTemplate(3, "Workflow template", ReportType.TicketReport),
                     CreateTemplate(4, "Certificate template", ReportType.RecertificationEvent)
                 ],
-                [new FwoOwner { Id = 11, Name = "Owned App" }]));
+                kOwnedAppOwners));
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<ReportTemplateComponent>());
@@ -103,14 +118,14 @@ namespace FWO.Test
         {
             using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Auditor),
-                CreateUserConfig([Roles.Auditor], [11]),
+                CreateUserConfig(kAuditorRoles, kOwnership11),
                 new ReportTemplateComponentTestApiConn(
                 [
                     CreateTemplate(1, "Compliance template", ReportType.ComplianceReport),
                     CreateTemplate(2, "Workflow template", ReportType.TicketReport),
                     CreateTemplate(3, "Certificate template", ReportType.RecertificationEvent)
                 ],
-                [new FwoOwner { Id = 11, Name = "Owned App" }]));
+                kOwnedAppOwners));
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<ReportTemplateComponent>());
@@ -129,13 +144,13 @@ namespace FWO.Test
         {
             using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Modeller),
-                CreateUserConfig([Roles.Modeller], [11]),
+                CreateUserConfig(kModellerRoles, kOwnership11),
                 new ReportTemplateComponentTestApiConn(
                 [
                     CreateTemplate(1, "Owned connections template", ReportType.Connections, ownerId: 11),
                     CreateTemplate(2, "Foreign connections template", ReportType.Connections, ownerId: 12)
                 ],
-                [new FwoOwner { Id = 11, Name = "Owned App" }]));
+                kOwnedAppOwners));
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<ReportTemplateComponent>());
@@ -153,7 +168,7 @@ namespace FWO.Test
         {
             using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),
-                CreateUserConfig([Roles.Reporter], []),
+                CreateUserConfig(kReporterRoles, kEmptyOwnerships),
                 new ReportTemplateComponentTestApiConn(
                 [
                     CreateTemplate(1, "Rules template", ReportType.Rules),
@@ -161,7 +176,7 @@ namespace FWO.Test
                     CreateTemplate(3, "App rules template", ReportType.AppRules),
                     CreateTemplate(4, "Owners template", ReportType.Owners)
                 ],
-                []));
+                kEmptyOwners));
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<ReportTemplateComponent>());
@@ -181,8 +196,8 @@ namespace FWO.Test
         {
             using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),
-                CreateUserConfig([Roles.Reporter], []),
-                new ReportTemplateComponentTestApiConn([], []));
+                CreateUserConfig(kReporterRoles, kEmptyOwnerships),
+                new ReportTemplateComponentTestApiConn(kEmptyTemplates, kEmptyOwners));
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<ReportTemplateComponent>());
@@ -205,8 +220,8 @@ namespace FWO.Test
         {
             using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),
-                CreateUserConfig([Roles.Reporter], []),
-                new ReportTemplateComponentTestApiConn([], []));
+                CreateUserConfig(kReporterRoles, kEmptyOwnerships),
+                new ReportTemplateComponentTestApiConn(kEmptyTemplates, kEmptyOwners));
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<ReportTemplateComponent>());
@@ -225,8 +240,8 @@ namespace FWO.Test
         {
             using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),
-                CreateUserConfig([Roles.Reporter], []),
-                new ReportTemplateComponentTestApiConn([], []));
+                CreateUserConfig(kReporterRoles, kEmptyOwnerships),
+                new ReportTemplateComponentTestApiConn(kEmptyTemplates, kEmptyOwners));
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<ReportTemplateComponent>());
@@ -254,11 +269,11 @@ namespace FWO.Test
         [Test]
         public void ReportTemplateComponent_DisplayTime_ShowsChangeIntervalDescription()
         {
-            SimulatedUserConfig userConfig = CreateUserConfig([Roles.Reporter], []);
+            SimulatedUserConfig userConfig = CreateUserConfig(kReporterRoles, kEmptyOwnerships);
             using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),
                 userConfig,
-                new ReportTemplateComponentTestApiConn([], []));
+                new ReportTemplateComponentTestApiConn(kEmptyTemplates, kEmptyOwners));
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<ReportTemplateComponent>());
@@ -278,8 +293,8 @@ namespace FWO.Test
         {
             using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),
-                CreateUserConfig([Roles.Reporter], []),
-                new ReportTemplateComponentTestApiConn([], []));
+                CreateUserConfig(kReporterRoles, kEmptyOwnerships),
+                new ReportTemplateComponentTestApiConn(kEmptyTemplates, kEmptyOwners));
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<ReportTemplateComponent>());
@@ -291,7 +306,154 @@ namespace FWO.Test
 
             string displayTime = component.DisplayTime();
 
-            Assert.That(displayTime, Is.EqualTo("Open"));
+            Assert.That(displayTime, Is.EqualTo("open").IgnoreCase);
+        }
+
+        [Test]
+        public async Task ReportTemplateComponent_DisplayTime_ShowsUntilForOpenStart()
+        {
+            await using BunitContext context = CreateContext(
+                new MonitoringTestAuthStateProvider(Roles.Reporter),
+                CreateUserConfig(kReporterRoles, kEmptyOwnerships),
+                new ReportTemplateComponentTrackingApiConn(new List<ReportTemplate>()));
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
+                parameters.AddChildContent<ReportTemplateComponent>());
+            ReportTemplateComponent component = wrapper.FindComponent<ReportTemplateComponent>().Instance;
+            SetPrivateField(component, "reportTypeInEdit", ReportType.Changes);
+            component.reportTemplateInEdit.ReportParams.TimeFilter.TimeRangeType = TimeRangeType.Fixeddates;
+            component.reportTemplateInEdit.ReportParams.TimeFilter.OpenStart = true;
+            component.reportTemplateInEdit.ReportParams.TimeFilter.EndTime = new DateTime(2026, 7, 27, 14, 30, 0);
+
+            string displayTime = component.DisplayTime();
+
+            Assert.That(displayTime, Does.StartWith("until "));
+            Assert.That(displayTime, Does.Contain("2026"));
+        }
+
+        [Test]
+        public async Task ReportTemplateComponent_DisplayTime_ShowsFromForOpenEnd()
+        {
+            await using BunitContext context = CreateContext(
+                new MonitoringTestAuthStateProvider(Roles.Reporter),
+                CreateUserConfig(kReporterRoles, kEmptyOwnerships),
+                new ReportTemplateComponentTrackingApiConn(new List<ReportTemplate>()));
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
+                parameters.AddChildContent<ReportTemplateComponent>());
+            ReportTemplateComponent component = wrapper.FindComponent<ReportTemplateComponent>().Instance;
+            SetPrivateField(component, "reportTypeInEdit", ReportType.Changes);
+            component.reportTemplateInEdit.ReportParams.TimeFilter.TimeRangeType = TimeRangeType.Fixeddates;
+            component.reportTemplateInEdit.ReportParams.TimeFilter.StartTime = new DateTime(2026, 7, 27, 11, 15, 0);
+            component.reportTemplateInEdit.ReportParams.TimeFilter.OpenEnd = true;
+
+            string displayTime = component.DisplayTime();
+
+            Assert.That(displayTime, Does.StartWith("from "));
+            Assert.That(displayTime, Does.Contain("2026"));
+        }
+
+        [Test]
+        public async Task ReportTemplateComponent_Save_AddTemplate_RefreshesAndClosesDialog()
+        {
+            ReportTemplateComponentTrackingApiConn apiConnection = new(
+                new List<ReportTemplate>
+                {
+                    CreateTemplate(1, "Existing template", ReportType.Rules, ownerId: 50)
+                });
+
+            await using BunitContext context = CreateContext(
+                new MonitoringTestAuthStateProvider(Roles.Reporter),
+                CreateUserConfig(kReporterRoles, kEmptyOwnerships),
+                apiConnection);
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
+                parameters.AddChildContent<ReportTemplateComponent>());
+            wrapper.WaitForAssertion(() => Assert.That(wrapper.FindComponent<ReportTemplateComponent>().Instance.reportTemplates, Has.Count.EqualTo(1)));
+
+            ReportTemplateComponent component = wrapper.FindComponent<ReportTemplateComponent>().Instance;
+            ReportTemplate newTemplate = CreateTemplate(0, "Created template", ReportType.Rules);
+            newTemplate.Comment = "New comment";
+            component.NewTemplate(newTemplate);
+
+            await (Task)InvokePrivateMethod(component, "Save")!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.reportTemplates, Has.Count.EqualTo(2));
+                Assert.That(component.reportTemplates.Any(template => template.Name == "Created template"), Is.True);
+                Assert.That(GetPrivateField<bool>(component, "ShowAddTemplateDialog"), Is.False);
+                Assert.That(apiConnection.AddTemplateCalls, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task ReportTemplateComponent_Save_UpdateTemplate_ReplacesEntryAndClosesDialog()
+        {
+            ReportTemplateComponentTrackingApiConn apiConnection = new(
+                new List<ReportTemplate>
+                {
+                    CreateTemplate(1, "Original template", ReportType.Rules, ownerId: 50)
+                });
+
+            await using BunitContext context = CreateContext(
+                new MonitoringTestAuthStateProvider(Roles.Reporter),
+                CreateUserConfig(kReporterRoles, kEmptyOwnerships),
+                apiConnection);
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
+                parameters.AddChildContent<ReportTemplateComponent>());
+            wrapper.WaitForAssertion(() => Assert.That(wrapper.FindComponent<ReportTemplateComponent>().Instance.reportTemplates, Has.Count.EqualTo(1)));
+
+            ReportTemplateComponent component = wrapper.FindComponent<ReportTemplateComponent>().Instance;
+            ReportTemplate existingTemplate = component.reportTemplates[0];
+            existingTemplate.Name = "Updated template";
+            existingTemplate.Comment = "T0100";
+            SimulatedUserConfig.DummyTranslate["T0100"] = "Translated template comment";
+
+            InvokePrivateMethod(component, "EditTemplate", existingTemplate);
+            await (Task)InvokePrivateMethod(component, "Save")!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.reportTemplates, Has.Count.EqualTo(1));
+                Assert.That(component.reportTemplates[0].Name, Is.EqualTo("Updated template"));
+                Assert.That(component.reportTemplates[0].Comment, Is.EqualTo("Translated template comment"));
+                Assert.That(GetPrivateField<bool>(component, "ShowUpdateTemplateDialog"), Is.False);
+                Assert.That(apiConnection.UpdateTemplateCalls, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task ReportTemplateComponent_DeleteTemplate_RemovesEntry()
+        {
+            ReportTemplateComponentTrackingApiConn apiConnection = new(
+                new List<ReportTemplate>
+                {
+                    CreateTemplate(1, "Delete me", ReportType.Rules, ownerId: 50)
+                });
+
+            await using BunitContext context = CreateContext(
+                new MonitoringTestAuthStateProvider(Roles.Reporter),
+                CreateUserConfig(kReporterRoles, kEmptyOwnerships),
+                apiConnection);
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
+                parameters.AddChildContent<ReportTemplateComponent>());
+            wrapper.WaitForAssertion(() => Assert.That(wrapper.FindComponent<ReportTemplateComponent>().Instance.reportTemplates, Has.Count.EqualTo(1)));
+
+            ReportTemplateComponent component = wrapper.FindComponent<ReportTemplateComponent>().Instance;
+            component.reportTemplateInEdit = component.reportTemplates[0];
+            SetPrivateField(component, "ShowDeleteTemplateDialog", true);
+
+            await (Task)InvokePrivateMethod(component, "DeleteTemplate")!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.reportTemplates, Is.Empty);
+                Assert.That(GetPrivateField<bool>(component, "ShowDeleteTemplateDialog"), Is.False);
+                Assert.That(apiConnection.DeleteTemplateCalls, Is.EqualTo(1));
+            });
         }
 
         private static BunitContext CreateContext(AuthenticationStateProvider authStateProvider, UserConfig userConfig, ApiConnection apiConnection)
@@ -308,7 +470,7 @@ namespace FWO.Test
             return context;
         }
 
-        private static SimulatedUserConfig CreateUserConfig(List<string> roles, List<int> ownerships)
+        private static SimulatedUserConfig CreateUserConfig(IEnumerable<string> roles, IEnumerable<int> ownerships)
         {
             return new SimulatedUserConfig
             {
@@ -316,8 +478,8 @@ namespace FWO.Test
                 {
                     DbId = 50,
                     Language = "English",
-                    Roles = roles,
-                    Ownerships = ownerships
+                    Roles = new List<string>(roles),
+                    Ownerships = new List<int>(ownerships)
                 }
             };
         }
@@ -357,6 +519,82 @@ namespace FWO.Test
         {
             return instance.GetType().GetMethod(methodName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
                 ?.Invoke(instance, parameters);
+        }
+    }
+
+    internal sealed class ReportTemplateComponentTrackingApiConn : SimulatedApiConnection
+    {
+        private readonly List<ReportTemplate> templates;
+
+        public int GetTemplatesCalls { get; private set; }
+        public int AddTemplateCalls { get; private set; }
+        public int UpdateTemplateCalls { get; private set; }
+        public int DeleteTemplateCalls { get; private set; }
+
+        public ReportTemplateComponentTrackingApiConn(List<ReportTemplate> templates)
+        {
+            this.templates = templates;
+        }
+
+        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+        {
+            if (typeof(QueryResponseType) == typeof(List<FwoOwner>) && query == OwnerQueries.getOwners)
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<FwoOwner>());
+            }
+
+            if (typeof(QueryResponseType) == typeof(ReportTemplate[]) && query == ReportQueries.getReportTemplates)
+            {
+                GetTemplatesCalls++;
+                return Task.FromResult((QueryResponseType)(object)templates.ToArray());
+            }
+
+            if (typeof(QueryResponseType) == typeof(ReturnIdWrapper) && query == ReportQueries.addReportTemplate)
+            {
+                AddTemplateCalls++;
+                string name = GetAnonymousProperty<string>(variables!, "reportTemplateName");
+                int ownerId = GetAnonymousProperty<int>(variables!, "reportTemplateOwner");
+                int reportType = GetAnonymousProperty<ReportParams>(variables!, "reportParameters").ReportType;
+                ReportTemplate createdTemplate = new()
+                {
+                    Id = 99,
+                    Name = name,
+                    TemplateOwningUserId = ownerId,
+                    ReportParams = new ReportParams { ReportType = reportType }
+                };
+                templates.Add(createdTemplate);
+                return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                {
+                    ReturnIds = new ReturnId[] { new ReturnId { NewId = 99 } }
+                });
+            }
+
+            if (typeof(QueryResponseType) == typeof(object) && query == ReportQueries.updateReportTemplate)
+            {
+                UpdateTemplateCalls++;
+                return Task.FromResult((QueryResponseType)(object)new object());
+            }
+
+            if (typeof(QueryResponseType) == typeof(ReturnId) && query == ReportQueries.deleteReportTemplate)
+            {
+                DeleteTemplateCalls++;
+                int id = GetAnonymousProperty<int>(variables!, "reportTemplateId");
+                templates.RemoveAll(item => item.Id == id);
+                return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = 1 });
+            }
+
+            throw new NotImplementedException($"Unhandled query {query} for {typeof(QueryResponseType).Name}");
+        }
+
+        private static T GetAnonymousProperty<T>(object instance, string propertyName)
+        {
+            System.Reflection.PropertyInfo? property = instance.GetType().GetProperty(propertyName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+            if (property == null)
+            {
+                throw new MissingMemberException(instance.GetType().FullName, propertyName);
+            }
+
+            return (T)property.GetValue(instance)!;
         }
     }
 }

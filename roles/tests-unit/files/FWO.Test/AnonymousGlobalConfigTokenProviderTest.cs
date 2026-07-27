@@ -1,11 +1,10 @@
+using System.Collections.Concurrent;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
 using FWO.Data.Middleware;
-using FWO.Test.Mocks;
 using FWO.Ui.Services;
 using NUnit.Framework;
-using RestSharp;
-using System.Net;
-using System.Reflection;
-using System.Text;
 
 namespace FWO.Test
 {
@@ -17,9 +16,9 @@ namespace FWO.Test
         [Test]
         public async Task CreateTokenPairAsync_ReturnsTokenPairFromMiddlewareResponse()
         {
-            TestMiddlewareClient middlewareClient = new();
-            middlewareClient.UseHandler(new SingleResponseHandler(CreateJsonResponse(HttpStatusCode.OK, kTokenResponse)));
-            AnonymousGlobalConfigTokenProvider provider = CreateProvider(middlewareClient);
+            await using LocalMiddlewareServer server = new();
+            server.EnqueueResponse(kTokenResponse);
+            using AnonymousGlobalConfigTokenProvider provider = new(server.BaseUrl);
 
             TokenPair tokenPair = await provider.CreateTokenPairAsync(CancellationToken.None);
 
@@ -31,11 +30,11 @@ namespace FWO.Test
         }
 
         [Test]
-        public void CreateTokenPairAsync_ThrowsWhenAccessTokenIsMissing()
+        public async Task CreateTokenPairAsync_ThrowsWhenAccessTokenIsMissing()
         {
-            TestMiddlewareClient middlewareClient = new();
-            middlewareClient.UseHandler(new SingleResponseHandler(CreateJsonResponse(HttpStatusCode.OK, "{\"RefreshToken\":\"refresh-token\"}")));
-            AnonymousGlobalConfigTokenProvider provider = CreateProvider(middlewareClient);
+            await using LocalMiddlewareServer server = new();
+            server.EnqueueResponse("{\"RefreshToken\":\"refresh-token\"}");
+            using AnonymousGlobalConfigTokenProvider provider = new(server.BaseUrl);
 
             InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await provider.CreateTokenPairAsync(CancellationToken.None))!;
 
@@ -43,45 +42,85 @@ namespace FWO.Test
         }
 
         [Test]
-        public void CreateTokenPairAsync_ThrowsAfterDispose()
+        public async Task CreateTokenPairAsync_ThrowsAfterDispose()
         {
-            TestMiddlewareClient middlewareClient = new();
-            AnonymousGlobalConfigTokenProvider provider = CreateProvider(middlewareClient);
+            await using LocalMiddlewareServer server = new();
+            using AnonymousGlobalConfigTokenProvider provider = new(server.BaseUrl);
             provider.Dispose();
 
             Assert.ThrowsAsync<ObjectDisposedException>(async () => await provider.CreateTokenPairAsync(CancellationToken.None));
         }
 
-        private static AnonymousGlobalConfigTokenProvider CreateProvider(TestMiddlewareClient middlewareClient)
+        private sealed class LocalMiddlewareServer : IAsyncDisposable
         {
-            AnonymousGlobalConfigTokenProvider provider = new("https://middleware.example/");
-            FieldInfo field = typeof(AnonymousGlobalConfigTokenProvider).GetField("middlewareClient", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new MissingFieldException(typeof(AnonymousGlobalConfigTokenProvider).FullName, "middlewareClient");
-            ((IDisposable?)field.GetValue(provider))?.Dispose();
-            field.SetValue(provider, middlewareClient);
-            return provider;
-        }
+            private readonly HttpListener listener = new();
+            private readonly ConcurrentQueue<string> responses = new();
+            private readonly CancellationTokenSource cancellationTokenSource = new();
+            private readonly Task listenerTask;
 
-        private static HttpResponseMessage CreateJsonResponse(HttpStatusCode statusCode, string body)
-        {
-            return new HttpResponseMessage(statusCode)
+            public string BaseUrl { get; }
+
+            public LocalMiddlewareServer()
             {
-                Content = new StringContent(body, Encoding.UTF8, "application/json")
-            };
-        }
-
-        private sealed class SingleResponseHandler : HttpMessageHandler
-        {
-            private readonly HttpResponseMessage response;
-
-            public SingleResponseHandler(HttpResponseMessage response)
-            {
-                this.response = response;
+                int port = GetFreePort();
+                BaseUrl = $"http://127.0.0.1:{port}/";
+                listener.Prefixes.Add($"http://127.0.0.1:{port}/api/");
+                listener.Start();
+                listenerTask = Task.Run(ListenAsync);
             }
 
-            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            public void EnqueueResponse(string body)
             {
-                return Task.FromResult(response);
+                responses.Enqueue(body);
+            }
+
+            private async Task ListenAsync()
+            {
+                try
+                {
+                    while (!cancellationTokenSource.IsCancellationRequested)
+                    {
+                        HttpListenerContext context = await listener.GetContextAsync();
+                        string body = responses.TryDequeue(out string? responseBody) ? responseBody : "{}";
+                        byte[] bytes = Encoding.UTF8.GetBytes(body);
+
+                        context.Response.StatusCode = (int)HttpStatusCode.OK;
+                        context.Response.ContentType = "application/json";
+                        context.Response.ContentLength64 = bytes.Length;
+                        context.Response.OutputStream.Write(bytes, 0, bytes.Length);
+                        context.Response.OutputStream.Close();
+                    }
+                }
+                catch (HttpListenerException)
+                {
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+            }
+
+            public async ValueTask DisposeAsync()
+            {
+                cancellationTokenSource.Cancel();
+                listener.Close();
+                try
+                {
+                    await listenerTask;
+                }
+                catch
+                {
+                }
+
+                cancellationTokenSource.Dispose();
+            }
+
+            private static int GetFreePort()
+            {
+                TcpListener tcpListener = new(IPAddress.Loopback, 0);
+                tcpListener.Start();
+                int port = ((IPEndPoint)tcpListener.LocalEndpoint).Port;
+                tcpListener.Stop();
+                return port;
             }
         }
     }

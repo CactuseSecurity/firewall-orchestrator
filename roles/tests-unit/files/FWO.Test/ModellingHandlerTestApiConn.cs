@@ -13,11 +13,6 @@ namespace FWO.Test
             ReturnIds = new ReturnId[] { new ReturnId { NewIdLong = 123 } }
         };
 
-        private static readonly ReturnIdWrapper EmptyReturnWrapper = new()
-        {
-            ReturnIds = new ReturnId[] { new ReturnId() }
-        };
-
         const string AppRoleId1 = "AR5000001";
         const string AppRoleId2 = "AR9101234-002";
         const string AppRoleId3 = "AR9901234-999";

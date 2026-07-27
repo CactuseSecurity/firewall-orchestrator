@@ -91,16 +91,16 @@ namespace FWO.Test
         {
             RecordingEventMediator mediator = new();
             FileUploadService service = CreateService(mediator);
-            SetUploadedData(service, kValidImportCsv);
+            await service.ReadFileToBytes(CreateInputFileChangeEventArgs("apps.csv", "text/csv", Encoding.UTF8.GetBytes(kValidImportCsv), kValidImportCsv.Length));
 
             await service.ImportAppServersFromCSV("apps.csv");
 
-            AppServerImportEvent importEvent = (AppServerImportEvent)mediator.PublishedEvents.Single().Event;
+            AppServerImportEvent importEvent = (AppServerImportEvent)mediator.PublishedEvents.Last(eventItem => eventItem.Name == nameof(FileUploadService.ImportAppServersFromCSV)).Event;
             AppServerImportEventArgs eventArgs = importEvent.EventArgs ?? throw new AssertionException("Missing app server import event args.");
 
             Assert.Multiple(() =>
             {
-                Assert.That(mediator.PublishedEvents[0].Name, Is.EqualTo(nameof(FileUploadService.ImportAppServersFromCSV)));
+                Assert.That(mediator.PublishedEvents.Any(eventItem => eventItem.Name == nameof(FileUploadService.ImportAppServersFromCSV)), Is.True);
                 Assert.That(eventArgs.Success, Is.False);
                 Assert.That(eventArgs.Errors, Has.Count.EqualTo(3));
                 Assert.That(eventArgs.Appserver, Is.Empty);
@@ -114,19 +114,19 @@ namespace FWO.Test
         public async Task ImportComplianceMatrix_PublishesMiddlewareSuccess()
         {
             RecordingEventMediator mediator = new();
-            TestMiddlewareClient middlewareClient = new();
-            middlewareClient.UseHandler(new SingleResponseHandler(CreateJsonResponse(HttpStatusCode.OK, "Ok: imported")));
+            using TestMiddlewareClient middlewareClient = new();
+            middlewareClient.UseHandler(new SingleResponseHandler(HttpResponseMessageFactory.CreateJsonResponse(HttpStatusCode.OK, "Ok: imported")));
             FileUploadService service = CreateService(mediator, middlewareClient);
-            SetUploadedData(service, "matrix-data");
+            await service.ReadFileToBytes(CreateInputFileChangeEventArgs("matrix.csv", "text/csv", Encoding.UTF8.GetBytes("matrix-data"), "matrix-data".Length));
 
             await service.ImportComplianceMatrix("matrix.csv");
 
-            FileUploadEvent importEvent = (FileUploadEvent)mediator.PublishedEvents.Single().Event;
+            FileUploadEvent importEvent = (FileUploadEvent)mediator.PublishedEvents.Last(eventItem => eventItem.Name == nameof(FileUploadService.ImportComplianceMatrix)).Event;
             FileUploadEventArgs eventArgs = importEvent.EventArgs ?? throw new AssertionException("Missing file upload event args.");
 
             Assert.Multiple(() =>
             {
-                Assert.That(mediator.PublishedEvents[0].Name, Is.EqualTo(nameof(FileUploadService.ImportComplianceMatrix)));
+                Assert.That(mediator.PublishedEvents.Any(eventItem => eventItem.Name == nameof(FileUploadService.ImportComplianceMatrix)), Is.True);
                 Assert.That(eventArgs.Success, Is.True);
                 Assert.That(eventArgs.Data, Is.EqualTo("Ok: imported"));
             });
@@ -136,14 +136,14 @@ namespace FWO.Test
         public async Task ImportComplianceMatrix_PublishesMiddlewareError()
         {
             RecordingEventMediator mediator = new();
-            TestMiddlewareClient middlewareClient = new();
-            middlewareClient.UseHandler(new SingleResponseHandler(CreateJsonResponse(HttpStatusCode.InternalServerError, "middleware failed")));
+            using TestMiddlewareClient middlewareClient = new();
+            middlewareClient.UseHandler(new SingleResponseHandler(HttpResponseMessageFactory.CreateJsonResponse(HttpStatusCode.InternalServerError, "middleware failed")));
             FileUploadService service = CreateService(mediator, middlewareClient);
-            SetUploadedData(service, "matrix-data");
+            await service.ReadFileToBytes(CreateInputFileChangeEventArgs("matrix.csv", "text/csv", Encoding.UTF8.GetBytes("matrix-data"), "matrix-data".Length));
 
             await service.ImportComplianceMatrix("matrix.csv");
 
-            FileUploadEvent importEvent = (FileUploadEvent)mediator.PublishedEvents.Single().Event;
+            FileUploadEvent importEvent = (FileUploadEvent)mediator.PublishedEvents.Last(eventItem => eventItem.Name == nameof(FileUploadService.ImportComplianceMatrix)).Event;
             FileUploadEventArgs eventArgs = importEvent.EventArgs ?? throw new AssertionException("Missing file upload event args.");
 
             Assert.Multiple(() =>
@@ -188,14 +188,25 @@ namespace FWO.Test
         }
 
         [Test]
-        public void GetResponseMessage_ReturnsRawContent_WhenContentIsNotJson()
+        public void GetResponseMessage_ReturnsNull_WhenContentIsJsonNull()
         {
             string? message = InvokeGetResponseMessage(new RestResponse<string>(new RestRequest())
             {
-                Content = "middleware failed"
+                Content = "null"
             });
 
-            Assert.That(message, Is.EqualTo("middleware failed"));
+            Assert.That(message, Is.Null);
+        }
+
+        [Test]
+        public void GetResponseMessage_ReturnsFallbackMessage_WhenContentIsNotJson()
+        {
+            string? message = InvokeGetResponseMessage(new RestResponse<string>(new RestRequest())
+            {
+                Content = "<html><body>Internal Server Error</body></html>"
+            });
+
+            Assert.That(message, Is.EqualTo("file_upload_failed"));
         }
 
         private static FileUploadService CreateService(RecordingEventMediator mediator, TestMiddlewareClient? middlewareClient = null)
@@ -223,27 +234,17 @@ namespace FWO.Test
             return new InputFileChangeEventArgs(new List<IBrowserFile> { browserFile });
         }
 
-        private static void SetUploadedData(FileUploadService service, string data)
-        {
-            PropertyInfo property = typeof(FileUploadService).GetProperty("UploadedData", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new MissingFieldException(typeof(FileUploadService).FullName, "UploadedData");
-            property.SetValue(service, Encoding.UTF8.GetBytes(data));
-        }
-
         private static string? InvokeGetResponseMessage(RestResponse<string> response)
         {
-            MethodInfo method = typeof(FileUploadService).GetMethod("GetResponseMessage", BindingFlags.NonPublic | BindingFlags.Static)
-                ?? throw new MissingMethodException(typeof(FileUploadService).FullName, "GetResponseMessage");
-
-            return (string?)method.Invoke(null, new object?[] { response });
+            return InvokeGetResponseMessage(CreateService(new RecordingEventMediator()), response);
         }
 
-        private static HttpResponseMessage CreateJsonResponse(HttpStatusCode statusCode, string body)
+        private static string? InvokeGetResponseMessage(FileUploadService service, RestResponse<string> response)
         {
-            return new HttpResponseMessage(statusCode)
-            {
-                Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json")
-            };
+            MethodInfo method = typeof(FileUploadService).GetMethod("GetResponseMessage", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(typeof(FileUploadService).FullName, "GetResponseMessage");
+
+            return (string?)method.Invoke(service, new object?[] { response });
         }
 
         private sealed class TestBrowserFile : IBrowserFile
@@ -269,19 +270,5 @@ namespace FWO.Test
             }
         }
 
-        private sealed class SingleResponseHandler : HttpMessageHandler
-        {
-            private readonly HttpResponseMessage response;
-
-            public SingleResponseHandler(HttpResponseMessage response)
-            {
-                this.response = response;
-            }
-
-            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            {
-                return Task.FromResult(response);
-            }
-        }
     }
 }

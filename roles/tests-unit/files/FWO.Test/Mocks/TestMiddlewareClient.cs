@@ -1,5 +1,7 @@
 using FWO.Middleware.Client;
 using RestSharp;
+using RestSharp.Serializers;
+using RestSharp.Serializers.NewtonsoftJson;
 
 namespace FWO.Test.Mocks
 {
@@ -15,7 +17,13 @@ namespace FWO.Test.Mocks
         public void UseHandler(HttpMessageHandler handler)
         {
             restClient.Dispose();
-            restClient = new RestClient(handler, false, options => options.BaseUrl = new Uri(kBaseUrl));
+            restClient = new RestClient(handler, false, options => options.BaseUrl = new Uri(kBaseUrl), ConfigureRestClientSerialization);
+        }
+
+        private static void ConfigureRestClientSerialization(SerializerConfig config)
+        {
+            JsonNetSerializer serializer = new();
+            config.UseSerializer(() => serializer);
         }
     }
 }

@@ -222,7 +222,10 @@ namespace FWO.Ui.Services
             }
         }
 
-        private static string? GetResponseMessage(RestResponse<string> response)
+        /// <summary>
+        /// Extracts a user-facing message from a middleware response.
+        /// </summary>
+        private string? GetResponseMessage(RestResponse<string> response)
         {
             if (!string.IsNullOrWhiteSpace(response.ErrorMessage))
             {
@@ -240,7 +243,7 @@ namespace FWO.Ui.Services
             }
             catch (JsonException)
             {
-                return response.Content;
+                return UserConfig.GetText("file_upload_failed");
             }
         }
 

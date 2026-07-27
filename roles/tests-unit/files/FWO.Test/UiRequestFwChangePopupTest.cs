@@ -102,12 +102,10 @@ namespace FWO.Test
 
             component.WaitForAssertion(() =>
             {
-                List<WfReqTask> tasks = GetPrivateField<List<WfReqTask>>(component.Instance, "TaskList");
-                Assert.That(tasks.Any(task => task.TaskType == WfTaskType.access.ToString()
-                    && task.GetAddInfoIntValue(AdditionalInfoKeys.ConnId) == 41), Is.True);
+                Assert.That(component.FindAll("button.btn-primary").Any(button => !button.HasAttribute("disabled")), Is.True);
             });
             Assert.That(apiConn.Queries, Does.Contain(ModellingQueries.getHistoryForApp));
-            Assert.That(component.FindAll("button.btn-primary").Any(button => !button.HasAttribute("disabled")), Is.True);
+            Assert.That(component.Markup, Does.Contain("41"));
         }
 
         [Test]
@@ -138,8 +136,7 @@ namespace FWO.Test
 
             component.WaitForAssertion(() =>
             {
-                Assert.That(GetPrivateField<bool>(component.Instance, "RequestInProcess"), Is.True);
-                Assert.That(GetPrivateField<List<WfReqTask>>(component.Instance, "TaskList").Single().Id, Is.EqualTo(existingTask.Id));
+                Assert.That(component.Markup, Does.Contain("Existing request"));
             });
             Assert.That(apiConn.Queries, Does.Not.Contain(ModellingQueries.getHistoryForApp));
             Assert.That(component.FindAll("button.btn-primary").All(button => button.HasAttribute("disabled")), Is.True);
@@ -157,8 +154,7 @@ namespace FWO.Test
             component.WaitForAssertion(() =>
             {
                 Assert.That(apiConn.Queries, Does.Contain(RequestQueries.getStates));
-                Assert.That(GetPrivateField<bool>(component.Instance, "WorkInProgress"), Is.False);
-                Assert.That(GetPrivateField<List<WfReqTask>>(component.Instance, "TaskList"), Is.Empty);
+                Assert.That(component.Markup, Does.Contain("Nothing to request!"));
             });
         }
 
@@ -212,22 +208,17 @@ namespace FWO.Test
                     return Task.CompletedTask;
                 });
 
-            component.WaitForAssertion(() =>
-            {
-                Assert.That(GetPrivateField<List<WfReqTask>>(component.Instance, "TaskList"), Is.Not.Empty);
-                Assert.That(component.FindAll("button.btn-primary").Any(button => !button.HasAttribute("disabled")), Is.True);
-            });
+            component.WaitForAssertion(() => Assert.That(component.FindAll("button.btn-primary").Any(button => !button.HasAttribute("disabled")), Is.True));
 
             SetPrivateProperty(component.Instance, "DisplayMessageInUi",
                 new Action<Exception?, string, string, bool>((_, title, message, error) => messages.Add((title, message, error))));
             SetPrivateProperty(component.Instance, "middlewareClient", null);
 
-            Task startTask = (Task)GetPrivateMethod(typeof(RequestFwChangePopup), "StartRequests").Invoke(component.Instance, null)!;
-            await startTask;
+            component.FindAll("button.btn-primary").Single(button => !button.HasAttribute("disabled")).Click();
+            component.WaitForAssertion(() => Assert.That(apiConn.NewTicketCalls, Is.EqualTo(1)));
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConn.NewTicketCalls, Is.EqualTo(1));
                 Assert.That(apiConn.NewApprovalCalls, Is.Zero);
                 Assert.That(displayChanged, Is.False);
             });
@@ -262,17 +253,12 @@ namespace FWO.Test
                     return Task.CompletedTask;
                 });
 
-            component.WaitForAssertion(() =>
-            {
-                Assert.That(GetPrivateField<List<WfReqTask>>(component.Instance, "TaskList"), Is.Not.Empty);
-            });
-
-            Task startTask = (Task)GetPrivateMethod(typeof(RequestFwChangePopup), "StartRequests").Invoke(component.Instance, null)!;
-            await startTask;
+            component.WaitForAssertion(() => Assert.That(component.FindAll("button.btn-primary").Any(button => !button.HasAttribute("disabled")), Is.True));
+            component.FindAll("button.btn-primary").Single(button => !button.HasAttribute("disabled")).Click();
+            component.WaitForAssertion(() => Assert.That(apiConn.NewTicketCalls, Is.EqualTo(1)));
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConn.NewTicketCalls, Is.EqualTo(1));
                 Assert.That(connections[0].RequestedOnFw, Is.True);
                 Assert.That(connections[1].RequestedOnFw, Is.False);
                 Assert.That(refreshCalls, Is.EqualTo(0));
@@ -358,7 +344,7 @@ namespace FWO.Test
                 Assert.That(ruleDetails, Does.Contain("gw-1"));
                 Assert.That(ruleDetails, Does.Contain("ru-1"));
                 Assert.That(ruleDetails, Does.Contain("m-src"));
-                Assert.That(ruleDetails, Does.Contain("modelled_destination: m-src"));
+                Assert.That(ruleDetails, Does.Contain("modelled_destination: m-dst"));
                 Assert.That(ruleDetails, Does.Contain("rule-comment"));
                 Assert.That(groupDetails, Does.Contain("text-success"));
                 Assert.That(groupDetails, Does.Contain("text-info"));

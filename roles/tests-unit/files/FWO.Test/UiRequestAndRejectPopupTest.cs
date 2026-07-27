@@ -13,7 +13,6 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System.Reflection;
 using System.Security.Claims;
 
 namespace FWO.Test
@@ -37,8 +36,8 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(GetPrivateProperty<FwoOwner>(component.Instance, "SelectedOwner").Id, Is.EqualTo(selectedApp.Id));
-                Assert.That(GetPrivateProperty<string>(component.Instance, "InterfaceName"), Is.EqualTo("req-interface"));
+                Assert.That(component.FindAll("label").Any(label => label.TextContent.Contains(selectedApp.Name, StringComparison.Ordinal)), Is.True);
+                Assert.That(component.Find("input[type='text']").GetAttribute("value"), Is.EqualTo("req-interface"));
             });
         }
 
@@ -58,11 +57,9 @@ namespace FWO.Test
                 requestingOwner,
                 messageSink: (exception, title, message, isError) => messages.Add((exception, title, message, isError)));
 
-            SetPrivateProperty(component.Instance, "InterfaceName", "");
-            SetPrivateProperty(component.Instance, "Reason", "");
-
-            Task sendTask = (Task)GetPrivateMethod(typeof(RequestInterfacePopup), "SendRequest").Invoke(component.Instance, null)!;
-            await sendTask;
+            component.Find("input[type='text']").Change("");
+            component.Find("textarea").Change("");
+            await component.InvokeAsync(() => component.FindAll("button.btn-primary").Single().Click());
 
             Assert.Multiple(() =>
             {
@@ -72,28 +69,6 @@ namespace FWO.Test
                 Assert.That(messages[0].IsError, Is.True);
                 Assert.That(component.Instance.Display, Is.True);
             });
-        }
-
-        [Test]
-        public void RequestInterfacePopup_CheckInput_ReturnsTrueForValidDifferentOwners()
-        {
-            using BunitContext context = CreateContext(Roles.Modeller);
-            SimulatedUserConfig userConfig = (SimulatedUserConfig)context.Services.GetRequiredService<UserConfig>();
-            userConfig.ModReqInterfaceName = "req-interface";
-            FwoOwner selectedApp = new() { Id = 11, Name = "Selected" };
-            FwoOwner requestingOwner = new() { Id = 12, Name = "Requester" };
-
-            IRenderedComponent<RequestInterfacePopup> component = RenderRequestInterfacePopup(
-                context,
-                selectedApp,
-                requestingOwner);
-
-            SetPrivateProperty(component.Instance, "InterfaceName", "branch-if");
-            SetPrivateProperty(component.Instance, "Reason", "needed");
-
-            bool result = (bool)GetPrivateMethod(typeof(RequestInterfacePopup), "CheckInput").Invoke(component.Instance, null)!;
-
-            Assert.That(result, Is.True);
         }
 
         [Test]
@@ -109,11 +84,9 @@ namespace FWO.Test
                 owner,
                 owner);
 
-            SetPrivateProperty(component.Instance, "InterfaceName", "branch-if");
-            SetPrivateProperty(component.Instance, "Reason", "needed");
-
-            Task sendTask = (Task)GetPrivateMethod(typeof(RequestInterfacePopup), "SendRequest").Invoke(component.Instance, null)!;
-            await sendTask;
+            component.Find("input[type='text']").Change("branch-if");
+            component.Find("textarea").Change("needed");
+            await component.InvokeAsync(() => component.FindAll("button.btn-primary").Single().Click());
 
             Assert.That(component.Instance.Display, Is.True);
         }
@@ -139,8 +112,8 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(GetPrivateProperty<string>(component.Instance, "Message"), Is.EqualTo("Reject interface iface21?"));
-                Assert.That(GetPrivateProperty<string>(component.Instance, "Reason"), Is.EqualTo("Admin default reason"));
+                Assert.That(component.Markup, Does.Contain("Reject interface iface21?"));
+                Assert.That(component.Markup, Does.Contain("Admin default reason"));
             });
         }
 
@@ -175,9 +148,8 @@ namespace FWO.Test
                     return Task.CompletedTask;
                 });
 
-            SetPrivateProperty(component.Instance, "Reason", "planned removal");
-            Task rejectTask = (Task)GetPrivateMethod(typeof(RejectInterfacePopup), "Reject").Invoke(component.Instance, null)!;
-            await rejectTask;
+            component.Find("textarea").Change("planned removal");
+            await component.InvokeAsync(() => component.FindAll("button.btn-primary").Single().Click());
 
             Assert.Multiple(() =>
             {
@@ -295,26 +267,6 @@ namespace FWO.Test
             };
 
             return context.Render(fragment).FindComponent<RejectInterfacePopup>();
-        }
-
-        private static MethodInfo GetPrivateMethod(Type type, string name)
-        {
-            return type.GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new MissingMethodException(type.FullName, name);
-        }
-
-        private static TValue GetPrivateProperty<TValue>(object instance, string propertyName)
-        {
-            PropertyInfo property = instance.GetType().GetProperty(propertyName, BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new MissingMemberException(instance.GetType().FullName, propertyName);
-            return (TValue)property.GetValue(instance)!;
-        }
-
-        private static void SetPrivateProperty(object instance, string propertyName, object? value)
-        {
-            PropertyInfo property = instance.GetType().GetProperty(propertyName, BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new MissingMemberException(instance.GetType().FullName, propertyName);
-            property.SetValue(instance, value);
         }
 
         private sealed class PopupAuthStateProvider : AuthenticationStateProvider

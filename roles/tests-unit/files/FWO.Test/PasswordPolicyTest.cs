@@ -28,9 +28,14 @@ namespace FWO.Test
         public void CheckPolicy_ReturnsTrueForValidPassword()
         {
             GlobalConfig globalConfig = CreateGlobalConfig();
+            globalConfig.PwMinLength = 8;
+            globalConfig.PwUpperCaseRequired = true;
+            globalConfig.PwLowerCaseRequired = true;
+            globalConfig.PwNumberRequired = true;
+            globalConfig.PwSpecialCharactersRequired = true;
             SimulatedUserConfig userConfig = new();
 
-            bool result = PasswordPolicy.CheckPolicy("Abcdef1!", globalConfig, userConfig, out string errorMsg);
+            bool result = PasswordPolicy.CheckPolicy("Abc1!def", globalConfig, userConfig, out string errorMsg);
 
             Assert.Multiple(() =>
             {
@@ -41,7 +46,7 @@ namespace FWO.Test
 
         private static IEnumerable<TestCaseData> InvalidPasswordCases()
         {
-            yield return new TestCaseData("Ab1!", new Action<GlobalConfig>(config => config.PwMinLength = 8), "E54118");
+            yield return new TestCaseData("Ab1!", new Action<GlobalConfig>(config => config.PwMinLength = 8), "E5411" + 8);
             yield return new TestCaseData("abcdef1!", new Action<GlobalConfig>(config =>
             {
                 config.PwUpperCaseRequired = true;

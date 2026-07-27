@@ -109,18 +109,14 @@ namespace FWO.Middleware.Server.Services
             jobWaiters[waiter.Id] = waiter;
             waiter.RegisterCancellation(this, jobId, cancellationToken);
 
-            currentStatus = Get(jobId);
-            if (currentStatus?.Status is ComplianceCheckExecutionStatus.Succeeded or ComplianceCheckExecutionStatus.Failed)
-            {
-                CompleteTerminalWaiters(jobId, currentStatus);
-            }
+            TryCompleteWaiterIfJobIsTerminal(jobId, waiter);
 
             return waiter.Completion.Task;
         }
 
         private void Update(string jobId, ComplianceCheckExecutionStatus status, string message)
         {
-            jobStatuses.AddOrUpdate(
+            ComplianceCheckJobStatus jobStatus = jobStatuses.AddOrUpdate(
                 jobId,
                 _ => new ComplianceCheckJobStatus
                 {
@@ -138,10 +134,19 @@ namespace FWO.Middleware.Server.Services
                     return existingJobStatus;
                 });
 
-            if (status is ComplianceCheckExecutionStatus.Succeeded or ComplianceCheckExecutionStatus.Failed
-                && jobStatuses.TryGetValue(jobId, out ComplianceCheckJobStatus? jobStatus))
+            if (status is ComplianceCheckExecutionStatus.Succeeded or ComplianceCheckExecutionStatus.Failed)
             {
                 CompleteTerminalWaiters(jobId, jobStatus);
+            }
+        }
+
+        private void TryCompleteWaiterIfJobIsTerminal(string jobId, TerminalStatusWaiter waiter)
+        {
+            ComplianceCheckJobStatus? currentStatus = Get(jobId);
+            if (currentStatus?.Status is ComplianceCheckExecutionStatus.Succeeded or ComplianceCheckExecutionStatus.Failed)
+            {
+                waiter.Completion.TrySetResult(currentStatus);
+                CompleteTerminalWaiters(jobId, currentStatus);
             }
         }
 

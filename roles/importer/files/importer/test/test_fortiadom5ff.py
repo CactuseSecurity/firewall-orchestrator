@@ -12,7 +12,6 @@ from fw_modules.fortiadom5ff.fmgr_rule import (
     extract_nat_config_fields,
     find_addr_ref,
     ip_type,
-    parse_nat_rulebase,
     parse_nat_rules_in_rulebase,
     rule_parse_action,
     rule_parse_addresses,
@@ -1052,28 +1051,6 @@ class TestNatMiscHelpers:
         assert rule["rule_src"] == "src-net"
         assert rule["rule_src_refs"] == "src-net-uid"
 
-    def test_get_nat_policy_fetches_global_packages_when_adom_name_empty(self, mocker: MockerFixture):
-        api_mock = mocker.patch("fw_modules.fortiadom5ff.fmgr_getter.update_config_with_fortinet_api_call")
-        structure = {"": {"dev1": {"vdom1": {"local": "lpkg", "global": "gpkg"}}}}
-        native_config: dict[str, Any] = {"nat_rulebases": []}
-
-        fmgr_rule.get_nat_policy("sid", "url", native_config, structure, "", {"name": "dev1_vdom1"}, 100)
-
-        assert api_mock.call_count == len(fmgr_rule.nat_types)
-        called_paths = [call.args[3] for call in api_mock.call_args_list]
-        assert all("gpkg" in path for path in called_paths)
-
-    def test_get_nat_policy_fetches_adom_packages_when_adom_name_present(self, mocker: MockerFixture):
-        api_mock = mocker.patch("fw_modules.fortiadom5ff.fmgr_getter.update_config_with_fortinet_api_call")
-        structure = {"adom1": {"dev1": {"vdom1": {"local": "lpkg", "global": "gpkg"}}}}
-        native_config: dict[str, Any] = {"nat_rulebases": []}
-
-        fmgr_rule.get_nat_policy("sid", "url", native_config, structure, "adom1", {"name": "dev1_vdom1"}, 100)
-
-        assert api_mock.call_count == len(fmgr_rule.nat_types)
-        called_paths = [call.args[3] for call in api_mock.call_args_list]
-        assert all("lpkg" in path for path in called_paths)
-
     def test_create_xlate_rule_resets_translated_fields(self):
         rule = {
             "rule_type": "nat",
@@ -1304,52 +1281,7 @@ class TestParseNatRulesInRulebaseEdgeCases:
         warning_mock.assert_called_once()
 
 
-class TestParseNatRulebaseLegacy:
-    def test_parse_nat_rulebase_creates_match_and_xlate_rule_pair(self):
-        normalized_config_adom = _empty_normalized_config()
-        normalized_config_adom["network_objects"] = [
-            {"obj_name": "src-net", "obj_uid": "src-net-uid", "obj_ip": "10.0.0.0/24"},
-            {"obj_name": "dst-net", "obj_uid": "dst-net-uid", "obj_ip": "10.0.1.0/24"},
-        ]
-        normalized_config_adom["zone_objects"] = [{"zone_name": "inside"}, {"zone_name": "outside"}]
-        normalized_config_global = _empty_normalized_config()
-        nat_rulebase = [
-            {
-                "uuid": "legacy-nat-1",
-                "name": "legacy-nat-1",
-                "srcaddr": ["src-net"],
-                "dstaddr": ["dst-net"],
-                "service": ["ALL"],
-                "srcintf": ["inside"],
-                "dstintf": ["outside"],
-            }
-        ]
-
-        nat_rules = parse_nat_rulebase(
-            nat_rulebase, "central/dnat_pkg1", normalized_config_adom, normalized_config_global
-        )
-
-        assert len(nat_rules) == 2
-        assert normalized_config_adom["rules"] == nat_rules
-        match_rule, xlate_rule = nat_rules
-        assert match_rule.rule_uid == "legacy-nat-1"
-        assert match_rule.xlate_rule_uid == "legacy-nat-1_translated"
-        assert xlate_rule.rule_uid == "legacy-nat-1_translated"
-        assert xlate_rule.rule_dst == "Original"
-
-
 class TestNatRulebaseWiring:
-    def test_get_native_nat_rulebase_returns_matching_data(self):
-        native_config = {"nat_rulebases": [{"type": "central/dnat_rb1", "data": [{"uuid": "x"}]}]}
-        assert fmgr_rule.get_native_nat_rulebase(native_config, "central/dnat_rb1") == [{"uuid": "x"}]
-
-    def test_get_native_nat_rulebase_warns_and_returns_empty_when_missing(self, mocker: MockerFixture):
-        warning_mock = mocker.patch("fwo_log.FWOLogger.warning")
-        native_config: dict[str, Any] = {"nat_rulebases": []}
-
-        assert fmgr_rule.get_native_nat_rulebase(native_config, "central/dnat_missing") == []
-        warning_mock.assert_called_once()
-
     def test_insert_parent_nat_rulebase_creates_and_appends_once(self):
         normalized_config_adom: dict[str, Any] = {"policies": []}
         rulebase = fmgr_rule.insert_parent_nat_rulebase(normalized_config_adom, {}, "rb1", "mgm-uid")
@@ -1437,55 +1369,3 @@ class TestNatRulebaseWiring:
             }
         ]
 
-    def test_normalize_nat_rulebase_returns_early_for_nat_link(self):
-        normalized_config_adom: dict[str, Any] = {}
-        fmgr_rule.normalize_nat_rulebase({"type": "nat", "to_rulebase_uid": "x"}, {}, normalized_config_adom, {})
-        assert normalized_config_adom["nat_policies"] == []
-
-    def test_normalize_nat_rulebase_skips_section_links(self):
-        normalized_config_adom: dict[str, Any] = {}
-        native_config: dict[str, Any] = {"nat_rulebases": []}
-        fmgr_rule.normalize_nat_rulebase(
-            {"type": "ordered", "to_rulebase_uid": "rb1", "is_section": True}, native_config, normalized_config_adom, {}
-        )
-        assert normalized_config_adom["nat_policies"] == []
-
-    def test_normalize_nat_rulebase_parses_matching_type_and_warns_for_missing_ones(self, mocker: MockerFixture):
-        warning_mock = mocker.patch("fwo_log.FWOLogger.warning")
-        normalized_config_adom = _empty_normalized_config()
-        normalized_config_adom["network_objects"] = [
-            {"obj_name": "src-net", "obj_uid": "src-net-uid", "obj_ip": "10.0.0.0/24"},
-            {"obj_name": "dst-net", "obj_uid": "dst-net-uid", "obj_ip": "10.0.1.0/24"},
-        ]
-        normalized_config_adom["zone_objects"] = [{"zone_name": "inside"}, {"zone_name": "outside"}]
-        normalized_config_global = _empty_normalized_config()
-        nat_type_string = f"{fmgr_rule.nat_types[0]}_rb1"
-        native_config = {
-            "nat_rulebases": [
-                {
-                    "type": nat_type_string,
-                    "data": [
-                        {
-                            "uuid": "nat-rule-1",
-                            "name": "nat-rule-1",
-                            "srcaddr": ["src-net"],
-                            "dstaddr": ["dst-net"],
-                            "service": ["ALL"],
-                            "srcintf": ["inside"],
-                            "dstintf": ["outside"],
-                        }
-                    ],
-                }
-            ]
-        }
-
-        fmgr_rule.normalize_nat_rulebase(
-            {"type": "ordered", "to_rulebase_uid": "rb1", "is_section": False},
-            native_config,
-            normalized_config_adom,
-            normalized_config_global,
-        )
-
-        assert len(normalized_config_adom["nat_policies"]) == 1
-        assert len(normalized_config_adom["rules"]) == 2
-        assert warning_mock.call_count == len(fmgr_rule.nat_types) - 1

@@ -8,7 +8,7 @@ import fwo_const
 from fw_modules.fortiadom5ff import fmgr_getter
 from fw_modules.fortiadom5ff.fmgr_consts import nw_obj_types, svc_obj_types, user_obj_types
 from fw_modules.fortiadom5ff.fmgr_network import normalize_network_objects
-from fw_modules.fortiadom5ff.fmgr_rule import get_access_policy, get_nat_policy, normalize_rulebases
+from fw_modules.fortiadom5ff.fmgr_rule import get_access_policy, normalize_rulebases
 from fw_modules.fortiadom5ff.fmgr_service import normalize_service_objects
 from fw_modules.fortiadom5ff.fmgr_zone import get_zones, normalize_zones
 from fwo_base import ConfigAction, write_native_config_to_file
@@ -126,15 +126,6 @@ def get_native_config(config_in: FwConfigManagerListController, import_state: Im
                 device_config,
                 limit,
             )
-            get_nat_policy(
-                sid,
-                fm_api_url,
-                native_config_adom,
-                adom_device_vdom_policy_package_structure,
-                adom_name,
-                mgm_details_device,
-                limit,
-            )
 
     try:  # logout of fortimanager API
         fmgr_getter.logout(fm_api_url, sid)
@@ -153,7 +144,6 @@ def initialize_native_config_domain(mgm_details: Management) -> dict[str, Any]:
         "management_uid": mgm_details.uid,
         "objects": [],
         "rulebases": [],
-        "nat_rulebases": [],
         "zones": [],
         "gateways": [],
         "time_objects": [],

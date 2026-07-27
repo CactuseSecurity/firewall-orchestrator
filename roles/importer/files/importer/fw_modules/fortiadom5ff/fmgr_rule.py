@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from fw_modules.fortiadom5ff import fmgr_getter
-from fw_modules.fortiadom5ff.fmgr_consts import EXPECTED_NATIP_LIST_LENGTH, nat_types
+from fw_modules.fortiadom5ff.fmgr_consts import EXPECTED_NATIP_LIST_LENGTH
 from fw_modules.fortiadom5ff.fmgr_network import create_network_object
 from fw_modules.fortiadom5ff.fmgr_service import create_svc_object
 from fw_modules.fortiadom5ff.fmgr_zone import find_zones_in_normalized_config
@@ -83,7 +83,6 @@ def normalize_rulebases_for_each_link_destination(
     # Iterate over a snapshot because we may append NAT links while processing.
     for rulebase_link in list(gateway["rulebase_links"]):
         if _should_skip_rulebase_link(rulebase_link, fetched_rulebase_uids):
-            normalize_nat_rulebase(rulebase_link, native_config, normalized_config_adom, normalized_config_global)
             continue
 
         rulebase_to_parse, found_rulebase_in_global = _find_rulebase_to_parse_for_link(
@@ -119,9 +118,6 @@ def normalize_rulebases_for_each_link_destination(
             rulebase_to_parse,
             normalized_rulebase,
         )
-
-        # normalizing nat rulebases is work in progress
-        normalize_nat_rulebase(rulebase_link, native_config, normalized_config_adom, normalized_config_global)
 
 
 def _should_skip_rulebase_link(rulebase_link: dict[str, Any], fetched_rulebase_uids: list[str]) -> bool:
@@ -891,141 +887,6 @@ def add_users(users: list[str], rule: dict[str, Any]) -> None:
 ###################
 
 
-def get_nat_policy(
-    sid: str,
-    fm_api_url: str,
-    native_config: dict[str, Any],
-    adom_device_vdom_policy_package_structure: dict[str, Any],
-    adom_name: str,
-    mgm_details_device: dict[str, Any],
-    limit: int,
-):
-    local_pkg_name, global_pkg_name = find_packages(
-        adom_device_vdom_policy_package_structure, adom_name, mgm_details_device
-    )
-    if adom_name == "":
-        for nat_type in nat_types:
-            fmgr_getter.update_config_with_fortinet_api_call(
-                native_config["nat_rulebases"],
-                sid,
-                fm_api_url,
-                STRING_PM_CONFIG_GLOBAL_PKG + global_pkg_name + "/" + nat_type,
-                nat_type + "_global_" + global_pkg_name,
-                limit=limit,
-            )
-    else:
-        for nat_type in nat_types:
-            fmgr_getter.update_config_with_fortinet_api_call(
-                native_config["nat_rulebases"],
-                sid,
-                fm_api_url,
-                STRING_PM_CONFIG_ADOM + adom_name + STRING_PKG + local_pkg_name + "/" + nat_type,
-                nat_type + "_adom_" + adom_name + "_" + local_pkg_name,
-                limit=limit,
-            )
-
-
-# delete_v: ab hier kann sehr viel weg, ich lasses vorerst zB für die nat
-# pure nat rules
-
-
-def parse_nat_rulebase(
-    nat_rulebase: list[dict[str, Any]],
-    nat_type_string: str,
-    normalized_config_adom: dict[str, Any],
-    normalized_config_global: dict[str, Any],
-) -> list[RuleNormalized]:
-    nat_rules: list[RuleNormalized] = []
-    for _, rule_orig in enumerate(nat_rulebase):
-        rule_src_list, rule_src_refs_list = rule_parse_addresses(
-            rule_orig, "src", normalized_config_adom, normalized_config_global, is_nat=True
-        )  # because of is_nat = True, this will look for orig-addr
-        rule_dst_list, rule_dst_refs_list = rule_parse_addresses(
-            rule_orig, "dst", normalized_config_adom, normalized_config_global, is_nat=True
-        )  # because of is_nat = True, this will look for dst-addr
-
-        rule_svc_list, rule_svc_refs_list = rule_parse_service(rule_orig)
-
-        rule_src_zones = find_zones_in_normalized_config(
-            rule_orig.get("srcintf", []),
-            normalized_config_adom,
-            normalized_config_global,
-        )
-        rule_dst_zones = find_zones_in_normalized_config(
-            rule_orig.get("dstintf", []),
-            normalized_config_adom,
-            normalized_config_global,
-        )
-
-        rule_normalized = RuleNormalized(
-            rule_num_numeric=0,
-            rule_disabled=False,
-            rule_src_neg=False,
-            rule_src=LIST_DELIMITER.join(rule_src_list),
-            rule_src_refs=LIST_DELIMITER.join(rule_src_refs_list),
-            rule_dst_neg=False,
-            rule_dst=LIST_DELIMITER.join(rule_dst_list),
-            rule_dst_refs=LIST_DELIMITER.join(rule_dst_refs_list),
-            rule_svc_neg=False,
-            rule_svc=LIST_DELIMITER.join(rule_svc_list),
-            rule_svc_refs=LIST_DELIMITER.join(rule_svc_refs_list),
-            rule_action=RuleAction.DROP,
-            rule_track=RuleTrack.NONE,
-            rule_installon=nat_type_string,
-            rule_time="",  # Time-based rules not commonly used in basic Fortinet configs
-            rule_name=rule_orig.get("name", ""),
-            rule_uid=rule_orig.get("uuid"),
-            rule_custom_fields=str({}),
-            rule_implied=False,
-            rule_type=RuleType.NAT,
-            last_change_admin=rule_orig.get("_last-modified-by", ""),
-            parent_rule_uid=None,
-            last_hit=rule_parse_last_hit(rule_orig),
-            rule_comment=rule_orig.get("comments"),
-            rule_src_zone=LIST_DELIMITER.join(rule_src_zones),
-            rule_dst_zone=LIST_DELIMITER.join(rule_dst_zones),
-            rule_head_text=None,
-            xlate_rule_uid=f"{rule_orig.get('uuid')}_translated" if rule_orig.get("uuid") else None,
-            nat_rule=True,
-        )
-
-        xlate_rule = RuleNormalized(
-            rule_num_numeric=0,
-            rule_disabled=False,
-            rule_src_neg=False,
-            rule_src=LIST_DELIMITER.join(rule_src_list),
-            rule_src_refs=LIST_DELIMITER.join(rule_src_refs_list),
-            rule_dst_neg=False,
-            rule_dst="Original",
-            rule_dst_refs=LIST_DELIMITER.join(rule_dst_refs_list),
-            rule_svc_neg=False,
-            rule_svc=LIST_DELIMITER.join(rule_svc_list),
-            rule_svc_refs=LIST_DELIMITER.join(rule_svc_refs_list),
-            rule_action=RuleAction.DROP,
-            rule_track=RuleTrack.NONE,
-            rule_installon=nat_type_string,
-            rule_time="",  # Time-based rules not commonly used in basic Fortinet configs
-            rule_name=rule_orig.get("name", ""),
-            rule_uid=f"{rule_orig.get('uuid')}_translated" if rule_orig.get("uuid") else None,
-            rule_custom_fields=str({}),
-            rule_implied=False,
-            rule_type=RuleType.NAT,
-            last_change_admin=rule_orig.get("_last-modified-by", ""),
-            parent_rule_uid=None,
-            last_hit=rule_parse_last_hit(rule_orig),
-            rule_comment=rule_orig.get("comments"),
-            rule_src_zone=LIST_DELIMITER.join(rule_src_zones),
-            rule_dst_zone=LIST_DELIMITER.join(rule_dst_zones),
-            rule_head_text=None,
-            nat_rule=True,
-        )
-
-        nat_rules.append(rule_normalized)
-        nat_rules.append(xlate_rule)
-    normalized_config_adom["rules"].extend(nat_rules)
-    return nat_rules
-
-
 def create_xlate_rule(rule: dict[str, Any]) -> dict[str, Any]:
     xlate_rule = copy.deepcopy(rule)
     rule["rule_type"] = "combined"
@@ -1421,39 +1282,6 @@ def new_process_nat_rules_for_rulebase(
         rulebase_to_parse,
         normalized_nat_rulebase,
     )
-
-
-def normalize_nat_rulebase(
-    rulebase_link: dict[str, Any],
-    native_config: dict[str, Any],
-    normalized_config_adom: dict[str, Any],
-    normalized_config_global: dict[str, Any],
-):
-    normalized_config_adom.setdefault("nat_policies", [])
-    link_type = rulebase_link.get("link_type", rulebase_link.get("type", "ordered"))
-    if link_type == "nat":
-        return
-
-    if not rulebase_link["is_section"]:
-        for nat_type in nat_types:
-            nat_type_string = nat_type + "_" + rulebase_link["to_rulebase_uid"]
-            nat_rulebase = get_native_nat_rulebase(native_config, nat_type_string)
-            parse_nat_rulebase(
-                nat_rulebase,
-                nat_type_string,
-                normalized_config_adom,
-                normalized_config_global,
-            )
-
-            normalized_config_adom["nat_policies"].extend(nat_rulebase)  # pyright: ignore[reportUnknownMemberType]
-
-
-def get_native_nat_rulebase(native_config: dict[str, Any], nat_type_string: str) -> list[dict[str, Any]]:
-    for nat_rulebase in native_config["nat_rulebases"]:
-        if nat_type_string == nat_rulebase["type"]:
-            return nat_rulebase["data"]
-    FWOLogger.warning("no nat data for " + nat_type_string)
-    return []
 
 
 def insert_parent_nat_rulebase(

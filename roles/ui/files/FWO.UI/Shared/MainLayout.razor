@@ -114,7 +114,7 @@
     private bool showReloginDialog;
     private bool reloginAbortable;
     private string? password;
-    private ClaimsPrincipal? user;
+    private ClaimsPrincipal? User;
     private List<UIMessage> UIMessages = [];
     private Queue<UIMessage> UIMessageQue = [];
     private Timer? UIMessageQueTimer;
@@ -132,14 +132,14 @@
         locationChangingRegistration = NavigationManager.RegisterLocationChangingHandler(OnLocationChanging);
 
         AuthenticationState authState = await ((AuthStateProvider)authenticationProvider).GetAuthenticationStateAsync();
-        ClaimsPrincipal authUser = authState.User;
+        User = authState.User;
 
         UpdateAmbientModuleRole(NavigationManager.Uri);
         ambientRoleInitialized = true;
 
         if (userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
         {
-            alertSubscription = await apiConnection.RunWithMonitoringRole(authUser,
+            alertSubscription = await apiConnection.RunWithMonitoringRole(User,
                 () => Task.FromResult(apiConnection.GetSubscription<List<Alert>>(GraphqlExceptionHandler.Handle, OnAlertUpdate, MonitorQueries.subscribeAlertChanges)));
         }
 
@@ -280,7 +280,7 @@
 
     private void OnReloginRequired(ReloginRequiredEventArgs? e)
     {
-        if (user?.Identity?.IsAuthenticated == true && !string.IsNullOrWhiteSpace(e?.UserDn) && DistName.DnEquals(e.UserDn, userConfig.User.Dn))
+        if (User?.Identity?.IsAuthenticated == true && !string.IsNullOrWhiteSpace(e?.UserDn) && DistName.DnEquals(e.UserDn, userConfig.User.Dn))
         {
             ShowReloginDialog(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), reloginAbortable: false);
         }
@@ -332,7 +332,9 @@
 
     private void OnAlertUpdate(List<Alert> alerts)
     {
-        user = authenticationStateTask!.Result.User;
+        AuthenticationState authState = ((AuthStateProvider)authenticationProvider).GetAuthenticationStateAsync().Result;
+        User = authState.User;
+
         showAlert = userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor) && alerts.Count > 0;
 
         InvokeAsync(StateHasChanged);

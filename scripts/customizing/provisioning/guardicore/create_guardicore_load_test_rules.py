@@ -45,7 +45,7 @@ class GuardicoreLoadTestError(Exception):
     """Raised when the Guardicore load-test script fails."""
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args() -> argparse.Namespace:  # pragma: no cover
     parser = argparse.ArgumentParser(description="Create Guardicore load-test rules for two IP labels")
     parser.add_argument("--guardicore-url", required=True, help="Guardicore base URL, e.g. https://x.y.z")
     parser.add_argument("--guardicore-user", required=True, help="Guardicore username")
@@ -200,7 +200,7 @@ def publish(config: GuardicoreConfig) -> None:
     )
 
 
-def main() -> int:
+def main() -> int:  # pragma: no cover
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     logger = logging.getLogger(__name__)
     args = parse_args()
@@ -233,5 +233,5 @@ def main() -> int:
         return 1
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     sys.exit(main())

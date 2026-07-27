@@ -21,11 +21,18 @@ internal class FlowRequestContractTest
         Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<GenerateServiceObjectNameRequest>(json));
     }
 
-    [TestCase("""{"ipAddress":"10.0.0.1","minPrefixLength":24}""")]
-    [TestCase("""{"ipAddress":"10.0.0.1","netMask":24}""")]
-    public void GetNetObjectValidityRequest_RequiresPrefixParameters(string json)
+    [Test]
+    public void GetNetObjectValidityRequest_RequiresNetMask()
     {
-        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<GetNetObjectValidityRequest>(json));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<GetNetObjectValidityRequest>("""{"ipAddress":"10.0.0.1","minPrefixLength":24}"""));
+    }
+
+    [Test]
+    public void GetNetObjectValidityRequest_DefaultsMinPrefixLengthToOne()
+    {
+        GetNetObjectValidityRequest? request = JsonSerializer.Deserialize<GetNetObjectValidityRequest>("""{"ipAddress":"10.0.0.1","netMask":24}""");
+
+        Assert.That(request?.MinPrefixLength, Is.EqualTo(1));
     }
 
     [Test]

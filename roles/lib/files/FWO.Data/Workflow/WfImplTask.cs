@@ -134,6 +134,7 @@ namespace FWO.Data.Workflow
                         Port = implElem.Port ?? 0,
                         PortEnd = implElem.PortEnd,
                         ProtoId = implElem.ProtoId ?? 0,
+                        HasProtocol = implElem.ProtoId != null,
                         ServiceId = implElem.ServiceId,
                         FlowServiceObjectId = implElem.FlowServiceObjectId,
                         FlowServiceGroupId = implElem.FlowServiceGroupId,

@@ -1,10 +1,12 @@
 using System.Globalization;
-using System.Threading;
+using System.Net;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Flow;
+using FWO.Logging;
 using FWO.Middleware.Server.Responses;
+using NetTools;
 
 namespace FWO.Middleware.Server.Services;
 
@@ -250,11 +252,48 @@ public sealed class FlowCatalogService
         {
             Id = flowObject.Id,
             Name = flowObject.Name ?? string.Empty,
+            Type = ResolveAddressType(flowObject),
             IpStart = flowObject.IpStart ?? string.Empty,
             IpEnd = flowObject.IpEnd ?? string.Empty,
             State = flowObject.State,
             ShowInRequest = flowObject.ShowInRequestModule
         };
+    }
+
+    /// <summary>
+    /// Resolves the address object type from its IP range.
+    /// </summary>
+    private static string ResolveAddressType(FlowNwObject flowObject)
+    {
+        if (string.IsNullOrWhiteSpace(flowObject.IpStart) || string.IsNullOrWhiteSpace(flowObject.IpEnd))
+        {
+            return "fqdn";
+        }
+
+        string ipStartValue = flowObject.IpStart.Split('/', 2)[0];
+        string ipEndValue = flowObject.IpEnd.Split('/', 2)[0];
+        if (!IPAddress.TryParse(ipStartValue, out IPAddress? ipStart)
+            || !IPAddress.TryParse(ipEndValue, out IPAddress? ipEnd)
+            || ipStart.AddressFamily != ipEnd.AddressFamily)
+        {
+            Log.WriteWarning("FlowCatalogService", "ResolveAddressType - Invalid IP range: {flowObject.IpStart} - {flowObject.IpEnd}");
+            return "range";
+        }
+
+        if (ipStart.Equals(ipEnd))
+        {
+            return "host";
+        }
+
+        try
+        {
+            _ = new IPAddressRange(ipStart, ipEnd).GetPrefixLength();
+            return "network";
+        }
+        catch (FormatException)
+        {
+            return "range";
+        }
     }
 
     private static AddressGroupResponse ToAddressGroupResponse(FlowNwGroup flowGroup)

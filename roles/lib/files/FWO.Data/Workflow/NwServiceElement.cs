@@ -7,6 +7,7 @@ namespace FWO.Data.Workflow
         public int Port { get; set; }
         public int? PortEnd { get; set; }
         public int ProtoId { get; set; }
+        public bool HasProtocol { get; set; } = true;
         public long? ServiceId { get; set; }
         public long? FlowServiceObjectId { get; set; }
         public long? FlowServiceGroupId { get; set; }
@@ -23,7 +24,7 @@ namespace FWO.Data.Workflow
                 Field = ElemFieldType.service.ToString(),
                 Port = Port,
                 PortEnd = PortEnd,
-                ProtoId = ProtoId,
+                ProtoId = HasProtocol ? ProtoId : null,
                 ServiceId = ServiceId,
                 FlowServiceObjectId = FlowServiceObjectId,
                 FlowServiceGroupId = FlowServiceGroupId,
@@ -43,7 +44,7 @@ namespace FWO.Data.Workflow
                 Field = ElemFieldType.service.ToString(),
                 Port = Port,
                 PortEnd = PortEnd,
-                ProtoId = ProtoId,
+                ProtoId = HasProtocol ? ProtoId : null,
                 ServiceId = ServiceId,
                 Name = Name,
                 GroupName = GroupName

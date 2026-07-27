@@ -6,10 +6,12 @@ import traceback
 from pathlib import Path
 from socket import gethostname
 
+from fw_modules.azure2022ff.fwcommon import Azure2022ffCommon
 from fw_modules.checkpointR8x.fwcommon import CheckpointR8xCommon
 from fw_modules.ciscoasa9.fwcommon import CiscoAsa9Common
 from fw_modules.fortiadom5ff.fwcommon import FortiAdom5ffCommon
 from fw_modules.fortiosmanagementREST.fwcommon import FortiosManagementRESTCommon
+from fw_modules.generic.fwcommon import GenericFirewallCommon
 from fwo_const import IMPORTER_BASE_DIR
 from fwo_log import FWOLogger
 from model_controllers.fwconfig_import_rollback import FwConfigImportRollback
@@ -304,6 +306,10 @@ def get_module(import_state: ImportState) -> FwCommon:
         fw_module = CheckpointR8xCommon()
     elif pkg_name == "fortiosmanagementREST":
         fw_module = FortiosManagementRESTCommon()
+    elif pkg_name == "genericfirewallmanagement1.0":
+        fw_module = GenericFirewallCommon()
+    elif pkg_name == "azure2022ff":
+        fw_module = Azure2022ffCommon()
     else:
         raise FwoImporterError(f"import_management - no fwcommon module found for package name {pkg_name}")
 

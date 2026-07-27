@@ -238,6 +238,21 @@ namespace FWO.Test
         }
 
         [Test]
+        public void Constructor_UsesGlobalUserConfigValueWhenUserHasNoSpecificConfig()
+        {
+            SimulatedGlobalConfig globalConfig = new();
+            globalConfig.RawConfigItems =
+            [
+                new() { Key = "elementsPerFetch", Value = "777", User = 0 }
+            ];
+
+            using UserConfigApiConnection apiConnection = new([]);
+            UserConfig userConfig = new(globalConfig, apiConnection, new UiUser { DbId = 50, Language = "English" });
+
+            Assert.That(userConfig.ElementsPerFetch, Is.EqualTo(777));
+        }
+
+        [Test]
         public async Task WriteToDatabase_UpdatesCurrentConfigAfterPersistingChanges()
         {
             SimulatedGlobalConfig globalConfig = new()

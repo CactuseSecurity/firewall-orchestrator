@@ -604,8 +604,8 @@
         alertSubscription?.Dispose();
         locationChangingRegistration?.Dispose();
         apiConnection.OnExecutionModeChanged -= OnExecutionModeChanged;
-        apiConnection?.Dispose();
-        middlewareClient?.Dispose();
+        apiConnection.Dispose();
+        middlewareClient.Dispose();
         EventMediator.Unsubscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent));
         EventMediator.Unsubscribe<ReloginRequiredEvent>(nameof(ReloginRequiredEvent));
         tokenRefreshCoordinator.Stop();

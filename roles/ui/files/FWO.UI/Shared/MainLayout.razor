@@ -131,13 +131,16 @@
 
         locationChangingRegistration = NavigationManager.RegisterLocationChangingHandler(OnLocationChanging);
 
-        AuthenticationState authState = await ((AuthStateProvider)authenticationProvider).GetAuthenticationStateAsync();
-        User = authState.User;
+        if (authenticationStateTask != null)
+        {
+            AuthenticationState authState = await authenticationStateTask.WaitAsync(TimeSpan.FromSeconds(5));
+            User = authState.User;
+        }
 
         UpdateAmbientModuleRole(NavigationManager.Uri);
         ambientRoleInitialized = true;
 
-        if (userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
+        if (User != null && userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
         {
             alertSubscription = await apiConnection.RunWithMonitoringRole(User,
                 () => Task.FromResult(apiConnection.GetSubscription<List<Alert>>(GraphqlExceptionHandler.Handle, OnAlertUpdate, MonitorQueries.subscribeAlertChanges)));
@@ -168,12 +171,12 @@
 
     private void UpdateAmbientModuleRole(string location)
     {
-        if (authenticationStateTask == null)
+        if (User == null)
         {
             return;
         }
 
-        apiConnection.SetAmbientRole(authenticationStateTask.Result.User, GetAmbientRolesForLocation(location));
+        apiConnection.SetAmbientRole(User, GetAmbientRolesForLocation(location));
     }
 
     private List<string> GetAmbientRolesForLocation(string location)
@@ -332,9 +335,6 @@
 
     private void OnAlertUpdate(List<Alert> alerts)
     {
-        AuthenticationState authState = ((AuthStateProvider)authenticationProvider).GetAuthenticationStateAsync().Result;
-        User = authState.User;
-
         showAlert = userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor) && alerts.Count > 0;
 
         InvokeAsync(StateHasChanged);

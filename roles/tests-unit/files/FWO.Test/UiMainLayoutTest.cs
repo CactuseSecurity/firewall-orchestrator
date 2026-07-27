@@ -337,8 +337,12 @@ namespace FWO.Test
                 context.Services.AddSingleton(new KeyboardInputService());
                 context.Services.AddSingleton((ProtectedSessionStorage)RuntimeHelpers.GetUninitializedObject(typeof(ProtectedSessionStorage)));
                 context.Services.AddSingleton<AuthenticationStateProvider>(new MainLayoutAuthStateProvider(UserConfig.User.Name, UserConfig.User.Dn, userRoles));
-                NavigationManager = context.Services.GetRequiredService<NavigationManager>();
-                context.Services.GetRequiredService<BunitNavigationManager>().NavigateTo(initialUri);
+
+                var authProvider = context.Services.GetRequiredService<AuthenticationStateProvider>();
+                authProvider.GetAuthenticationStateAsync();
+
+                NavigationManager = context.Services.GetRequiredService<BunitNavigationManager>();
+                NavigationManager.NavigateTo(initialUri);
 
                 Layout = context.Render<CascadingAuthenticationState>(parameters => parameters.AddChildContent<MainLayout>())
                     .FindComponent<MainLayout>();
@@ -369,6 +373,7 @@ namespace FWO.Test
             {
                 return Task.FromResult(new AuthenticationState(principal));
             }
+
         }
 
         private sealed class MainLayoutTokenRefreshCoordinatorStub : ITokenRefreshCoordinator

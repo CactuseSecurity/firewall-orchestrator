@@ -87,6 +87,46 @@ internal class ComplianceZoneValidationTest
     }
 
     [Test]
+    public void ResolveZonesForObjects_RoundTripsNestedObjects()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.GroupObjectRequest
+                {
+                    Name = "Root Group",
+                    Members =
+                    [
+                        new ResolveZonesForObjectsRequest.LeafObjectRequest
+                        {
+                            Name = "Leaf",
+                            Type = "network",
+                            IpStart = "10.0.0.1",
+                            IpEnd = "10.0.0.10"
+                        }
+                    ]
+                }
+            ]
+        };
+
+        string json = JsonSerializer.Serialize(request);
+        ResolveZonesForObjectsRequest roundTrip = JsonSerializer.Deserialize<ResolveZonesForObjectsRequest>(json)!;
+
+        Assert.That(roundTrip.Objects, Has.Count.EqualTo(1));
+        Assert.That(roundTrip.Objects[0], Is.TypeOf<ResolveZonesForObjectsRequest.GroupObjectRequest>());
+        ResolveZonesForObjectsRequest.GroupObjectRequest group = (ResolveZonesForObjectsRequest.GroupObjectRequest)roundTrip.Objects[0];
+        Assert.That(group.Members[0], Is.TypeOf<ResolveZonesForObjectsRequest.LeafObjectRequest>());
+        ResolveZonesForObjectsRequest.LeafObjectRequest leaf = (ResolveZonesForObjectsRequest.LeafObjectRequest)group.Members[0];
+        Assert.Multiple(() =>
+        {
+            Assert.That(leaf.Type, Is.EqualTo("network"));
+            Assert.That(leaf.IpStart, Is.EqualTo("10.0.0.1"));
+            Assert.That(leaf.IpEnd, Is.EqualTo("10.0.0.10"));
+        });
+    }
+
+    [Test]
     public void ResolveZonesForObjects_RejectsEmptyRequest()
     {
         ResolveZonesForObjectsRequest request = new()
@@ -194,6 +234,31 @@ internal class ComplianceZoneValidationTest
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
             Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("requires a non-empty 'type'"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsObjectsWithoutMembersOrLeafFields()
+    {
+        string json = """
+        {
+          "objects": [
+            {
+              "name": "Forgotten Group"
+            }
+          ]
+        }
+        """;
+
+        ResolveZonesForObjectsRequest request = JsonSerializer.Deserialize<ResolveZonesForObjectsRequest>(json)!;
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("must define either non-empty 'members'"));
         });
     }
 
@@ -482,6 +547,72 @@ internal class ComplianceZoneValidationTest
             Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("does not support IPv6 addresses"));
             Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'ipStart'"));
             Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'ipEnd'"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsTooManyObjects()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects = Enumerable.Range(0, 2048)
+                .Select(index => (ResolveZonesForObjectsRequest.ObjectRequest)new ResolveZonesForObjectsRequest.GroupObjectRequest
+                {
+                    Name = $"Outer-{index}",
+                    Members =
+                    [
+                        new ResolveZonesForObjectsRequest.GroupObjectRequest
+                        {
+                            Name = $"Inner-{index}",
+                            Members =
+                            [
+                                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                                {
+                                    Name = $"Leaf-{index}",
+                                    Type = "host",
+                                    IpStart = "10.0.0.1",
+                                    IpEnd = "10.0.0.1"
+                                }
+                            ]
+                        }
+                    ]
+                })
+                .ToList()
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("at most 4096 objects"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsTooManyRanges()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects = Enumerable.Range(0, 2049)
+                .Select(index => (ResolveZonesForObjectsRequest.ObjectRequest)new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = $"Range-{index}",
+                    Type = "ip_range",
+                    IpStart = "10.0.0.1",
+                    IpEnd = "10.0.0.2"
+                })
+                .ToList()
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("at most 2048 IP ranges"));
         });
     }
 

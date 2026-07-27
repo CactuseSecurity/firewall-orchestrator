@@ -13,22 +13,8 @@ namespace FWO.Middleware.Server.Services;
 /// <summary>
 /// Resolves compliance zones for stored and provided network objects.
 /// </summary>
-public sealed class ComplianceZoneService
+public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalConfig globalConfig)
 {
-    private readonly ApiConnection apiConnection;
-    private readonly GlobalConfig globalConfig;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ComplianceZoneService"/> class.
-    /// </summary>
-    /// <param name="apiConnection">The shared API connection.</param>
-    /// <param name="globalConfig">The global configuration.</param>
-    public ComplianceZoneService(ApiConnection apiConnection, GlobalConfig globalConfig)
-    {
-        this.apiConnection = apiConnection;
-        this.globalConfig = globalConfig;
-    }
-
     /// <summary>
     /// Returns the zones defined by the configured designated zone matrix.
     /// </summary>
@@ -43,7 +29,7 @@ public sealed class ComplianceZoneService
     /// </summary>
     public async Task<List<ComplianceDesignatedZoneResponse>> ResolveZonesForObjectsAsync(ResolveZonesForObjectsRequest request)
     {
-        List<IPAddressRange> ranges = CollectRanges(request.Objects ?? []);
+        List<IPAddressRange> ranges = CollectRanges(request.Objects);
         if (ranges.Count == 0)
         {
             return [];
@@ -62,6 +48,7 @@ public sealed class ComplianceZoneService
             globalConfig.GetText("internet_local_zone"));
 
         return resolvedZones
+            .Where(IsPersistedMatrixZone)
             .OrderBy(zone => zone.Name, StringComparer.OrdinalIgnoreCase)
             .ThenBy(zone => zone.Id)
             .Select(MapDesignatedZoneResponse)
@@ -105,7 +92,7 @@ public sealed class ComplianceZoneService
     {
         if (node is ResolveZonesForObjectsRequest.GroupObjectRequest group)
         {
-            return CollectRanges(group.Members ?? []);
+            return CollectRanges(group.Members);
         }
 
         if (node is not ResolveZonesForObjectsRequest.LeafObjectRequest leaf)
@@ -129,14 +116,18 @@ public sealed class ComplianceZoneService
 
     private static string NormalizeObjectType(string objectType)
     {
-        return (objectType ?? string.Empty).ToLowerInvariant() switch
+        return objectType.ToLowerInvariant() switch
         {
             ObjectType.Host => ObjectType.Host,
             ObjectType.Network => ObjectType.Network,
             ObjectType.IPRange => ObjectType.IPRange,
-            ObjectType.Group => ObjectType.Group,
             _ => string.Empty
         };
+    }
+
+    private static bool IsPersistedMatrixZone(ComplianceNetworkZone zone)
+    {
+        return zone.Id > 0;
     }
 
     private static ComplianceDesignatedZoneResponse MapDesignatedZoneResponse(ComplianceNetworkZone zone)

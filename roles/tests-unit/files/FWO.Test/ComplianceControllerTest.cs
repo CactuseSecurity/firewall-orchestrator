@@ -29,7 +29,8 @@ namespace FWO.Test
 
             Assert.That(result.Result, Is.InstanceOf<AcceptedResult>());
             ComplianceCheckStartResult startResult = (ComplianceCheckStartResult)((AcceptedResult)result.Result!).Value!;
-            ComplianceCheckJobStatus finalStatus = await WaitForTerminalStatusAsync(tracker, startResult.JobId);
+            using CancellationTokenSource cancellationTokenSource = new(TimeSpan.FromSeconds(5));
+            ComplianceCheckJobStatus finalStatus = await tracker.WaitForTerminalStatusAsync(startResult.JobId, cancellationTokenSource.Token);
             Assert.That(finalStatus.Status, Is.EqualTo(ComplianceCheckExecutionStatus.Succeeded));
             Assert.That(finalStatus.FinishedAt, Is.Not.Null);
         }
@@ -44,7 +45,8 @@ namespace FWO.Test
 
             Assert.That(result.Result, Is.InstanceOf<AcceptedResult>());
             ComplianceCheckStartResult startResult = (ComplianceCheckStartResult)((AcceptedResult)result.Result!).Value!;
-            ComplianceCheckJobStatus finalStatus = await WaitForTerminalStatusAsync(tracker, startResult.JobId);
+            using CancellationTokenSource cancellationTokenSource = new(TimeSpan.FromSeconds(5));
+            ComplianceCheckJobStatus finalStatus = await tracker.WaitForTerminalStatusAsync(startResult.JobId, cancellationTokenSource.Token);
             Assert.That(finalStatus.Status, Is.EqualTo(ComplianceCheckExecutionStatus.Failed));
             Assert.That(finalStatus.Message, Does.Contain("Violation count query failed."));
             Assert.That(finalStatus.FinishedAt, Is.Not.Null);
@@ -491,21 +493,5 @@ namespace FWO.Test
             return new ComplianceZoneService(apiConnection, globalConfig);
         }
 
-        private static async Task<ComplianceCheckJobStatus> WaitForTerminalStatusAsync(ComplianceCheckStatusTracker tracker, string jobId)
-        {
-            for (int attempt = 0; attempt < 80; attempt++)
-            {
-                ComplianceCheckJobStatus? currentStatus = tracker.Get(jobId);
-                if (currentStatus?.Status is ComplianceCheckExecutionStatus.Succeeded or ComplianceCheckExecutionStatus.Failed)
-                {
-                    return currentStatus;
-                }
-
-                await Task.Delay(25);
-            }
-
-            Assert.Fail($"Job '{jobId}' did not reach a terminal state in time.");
-            return null!;
-        }
     }
 }

@@ -13,6 +13,7 @@ namespace FWO.Middleware.Server.Controllers;
 /// </summary>
 [Authorize]
 [ApiController]
+[Tags("Compliance")]
 [Route("api/Compliance")]
 public class ComplianceZoneController(ComplianceZoneService complianceZoneService) : ControllerBase
 {
@@ -20,8 +21,12 @@ public class ComplianceZoneController(ComplianceZoneService complianceZoneServic
     /// Returns the network zones of the configured designated zone matrix.
     /// </summary>
     /// <returns>The matrix zones, or an empty list if no matrix is configured.</returns>
-    [HttpGet("DesignatedZoneMatrix/Zones")]
+    [HttpGet("designatedZoneMatrix/zones")]
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+    [ProducesResponseType(typeof(List<ComplianceDesignatedZoneResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<List<ComplianceDesignatedZoneResponse>>> GetDesignatedZoneMatrixZones()
     {
         try
@@ -38,10 +43,16 @@ public class ComplianceZoneController(ComplianceZoneService complianceZoneServic
 
     /// <summary>
     /// Returns the zones occupied by object trees.
+    /// Only IPv4 leaf addresses are supported; IPv6 ranges are rejected during validation.
     /// </summary>
     /// <param name="request">The object tree to resolve.</param>
-    [HttpPost("ResolveZonesForObjects")]
+    [HttpPost("resolveZonesForObjects")]
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+    [ProducesResponseType(typeof(List<ComplianceDesignatedZoneResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<List<ComplianceDesignatedZoneResponse>>> ResolveZonesForObjects([FromBody] ResolveZonesForObjectsRequest request)
     {
         if (!ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult))

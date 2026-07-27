@@ -9,6 +9,7 @@ namespace FWO.Middleware.Server.Services
     public class ComplianceCheckStatusTracker
     {
         private readonly ConcurrentDictionary<string, ComplianceCheckJobStatus> jobStatuses = new();
+        private readonly ConcurrentDictionary<string, List<TaskCompletionSource<ComplianceCheckJobStatus>>> terminalWaiters = new();
 
         /// <summary>
         /// Creates a new queued compliance check status entry.
@@ -78,6 +79,41 @@ namespace FWO.Middleware.Server.Services
             Update(jobId, ComplianceCheckExecutionStatus.Failed, message);
         }
 
+        /// <summary>
+        /// Waits until the specified job reaches a terminal state.
+        /// </summary>
+        /// <param name="jobId">The job identifier.</param>
+        /// <param name="cancellationToken">Cancellation token for the wait operation.</param>
+        /// <returns>The terminal job status.</returns>
+        public Task<ComplianceCheckJobStatus> WaitForTerminalStatusAsync(string jobId, CancellationToken cancellationToken = default)
+        {
+            ComplianceCheckJobStatus? currentStatus = Get(jobId);
+            if (currentStatus?.Status is ComplianceCheckExecutionStatus.Succeeded or ComplianceCheckExecutionStatus.Failed)
+            {
+                return Task.FromResult(currentStatus);
+            }
+
+            TaskCompletionSource<ComplianceCheckJobStatus> waiter = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            if (cancellationToken.CanBeCanceled)
+            {
+                cancellationToken.Register(() => waiter.TrySetCanceled(cancellationToken));
+            }
+
+            List<TaskCompletionSource<ComplianceCheckJobStatus>> waiters = terminalWaiters.GetOrAdd(jobId, _ => []);
+            lock (waiters)
+            {
+                waiters.Add(waiter);
+            }
+
+            currentStatus = Get(jobId);
+            if (currentStatus?.Status is ComplianceCheckExecutionStatus.Succeeded or ComplianceCheckExecutionStatus.Failed)
+            {
+                CompleteTerminalWaiters(jobId, currentStatus);
+            }
+
+            return waiter.Task;
+        }
+
         private void Update(string jobId, ComplianceCheckExecutionStatus status, string message)
         {
             jobStatuses.AddOrUpdate(
@@ -97,6 +133,28 @@ namespace FWO.Middleware.Server.Services
                     existingJobStatus.FinishedAt = status is ComplianceCheckExecutionStatus.Succeeded or ComplianceCheckExecutionStatus.Failed ? DateTimeOffset.Now : null;
                     return existingJobStatus;
                 });
+
+            if (status is ComplianceCheckExecutionStatus.Succeeded or ComplianceCheckExecutionStatus.Failed
+                && jobStatuses.TryGetValue(jobId, out ComplianceCheckJobStatus? jobStatus))
+            {
+                CompleteTerminalWaiters(jobId, jobStatus);
+            }
+        }
+
+        private void CompleteTerminalWaiters(string jobId, ComplianceCheckJobStatus jobStatus)
+        {
+            if (!terminalWaiters.TryRemove(jobId, out List<TaskCompletionSource<ComplianceCheckJobStatus>>? waiters))
+            {
+                return;
+            }
+
+            lock (waiters)
+            {
+                foreach (TaskCompletionSource<ComplianceCheckJobStatus> waiter in waiters)
+                {
+                    waiter.TrySetResult(jobStatus);
+                }
+            }
         }
     }
 }

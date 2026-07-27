@@ -92,7 +92,7 @@ public sealed class ResolveZonesForObjectsRequestObjectConverter : JsonConverter
         using JsonDocument document = JsonDocument.ParseValue(ref reader);
         JsonElement root = document.RootElement;
         Type targetType = root.TryGetProperty("members", out _) ? typeof(ResolveZonesForObjectsRequest.GroupObjectRequest) : typeof(ResolveZonesForObjectsRequest.LeafObjectRequest);
-        return (ResolveZonesForObjectsRequest.ObjectRequest?)JsonSerializer.Deserialize(root.GetRawText(), targetType, options);
+        return (ResolveZonesForObjectsRequest.ObjectRequest?)root.Deserialize(targetType, options);
     }
 
     /// <inheritdoc />

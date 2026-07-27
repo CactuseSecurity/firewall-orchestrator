@@ -1,7 +1,6 @@
 using FWO.Basics;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
-using System.Net.Sockets;
 
 namespace FWO.Middleware.Server.Requests;
 
@@ -11,6 +10,9 @@ namespace FWO.Middleware.Server.Requests;
 public static class ResolveZonesForObjectsRequestValidator
 {
     private const string EndpointName = "resolveZonesForObjects";
+    private const int MaximumObjectDepth = 32;
+    private const int MaximumObjectCount = 4096;
+    private const int MaximumIpRangeCount = 2048;
 
     private static readonly RequestRootValidationSchema RootSchema = new(
         EndpointName,
@@ -54,7 +56,8 @@ public static class ResolveZonesForObjectsRequestValidator
             return false;
         }
 
-        if (!TryValidateObjects(request.Objects ?? [], "objects", out errorResult))
+        ValidationStatistics validationStatistics = new();
+        if (!TryValidateObjects(request.Objects, "objects", 1, validationStatistics, out errorResult))
         {
             return false;
         }
@@ -63,7 +66,12 @@ public static class ResolveZonesForObjectsRequestValidator
         return true;
     }
 
-    private static bool TryValidateObjects(IEnumerable<ResolveZonesForObjectsRequest.ObjectRequest> objects, string collectionName, out ActionResult? errorResult)
+    private static bool TryValidateObjects(
+        IEnumerable<ResolveZonesForObjectsRequest.ObjectRequest> objects,
+        string collectionName,
+        int depth,
+        ValidationStatistics validationStatistics,
+        out ActionResult? errorResult)
     {
         int index = 0;
         foreach (ResolveZonesForObjectsRequest.ObjectRequest? node in objects)
@@ -74,7 +82,14 @@ public static class ResolveZonesForObjectsRequestValidator
                 return false;
             }
 
-            if (!TryValidateObject(node, $"{collectionName} entry at index {index}", out errorResult))
+            validationStatistics.ObjectCount++;
+            if (validationStatistics.ObjectCount > MaximumObjectCount)
+            {
+                errorResult = new BadRequestObjectResult($"'{EndpointName}' accepts at most {MaximumObjectCount} objects per request.");
+                return false;
+            }
+
+            if (!TryValidateObject(node, $"{collectionName} entry at index {index}", depth, validationStatistics, out errorResult))
             {
                 return false;
             }
@@ -86,27 +101,41 @@ public static class ResolveZonesForObjectsRequestValidator
         return true;
     }
 
-    private static bool TryValidateObject(ResolveZonesForObjectsRequest.ObjectRequest node, string context, out ActionResult? errorResult)
+    private static bool TryValidateObject(
+        ResolveZonesForObjectsRequest.ObjectRequest node,
+        string context,
+        int depth,
+        ValidationStatistics validationStatistics,
+        out ActionResult? errorResult)
     {
         switch (node)
         {
             case ResolveZonesForObjectsRequest.GroupObjectRequest group:
-                return TryValidateGroup(group, context, out errorResult);
+                return TryValidateGroup(group, context, depth, validationStatistics, out errorResult);
             case ResolveZonesForObjectsRequest.LeafObjectRequest leaf:
-                return TryValidateLeaf(leaf, context, out errorResult);
+                return TryValidateLeaf(leaf, context, validationStatistics, out errorResult);
             default:
                 errorResult = new BadRequestObjectResult($"'{context}' has an unsupported object node type.");
                 return false;
         }
     }
 
-    private static bool TryValidateGroup(ResolveZonesForObjectsRequest.GroupObjectRequest group, string context, out ActionResult? errorResult)
+    private static bool TryValidateGroup(
+        ResolveZonesForObjectsRequest.GroupObjectRequest group,
+        string context,
+        int depth,
+        ValidationStatistics validationStatistics,
+        out ActionResult? errorResult)
     {
         if (group.AdditionalData is { Count: > 0 })
         {
-            string allowedShapes = string.Join(" or ", GroupKeys.Select(key => $"{{ \"{key.JsonName}\": ... }}"));
-            string keyHelp = string.Join(" ", GroupKeys.Select(key => $"'{key.JsonName}': {key.Description}"));
-            errorResult = new BadRequestObjectResult($"'{context}' only accepts {allowedShapes}. Valid keys: {keyHelp}");
+            errorResult = RequestValidationMessageBuilder.BuildAllowedKeysError(context, GroupKeys);
+            return false;
+        }
+
+        if (depth >= MaximumObjectDepth)
+        {
+            errorResult = new BadRequestObjectResult($"'{EndpointName}' supports at most {MaximumObjectDepth} nested object levels.");
             return false;
         }
 
@@ -116,16 +145,26 @@ public static class ResolveZonesForObjectsRequestValidator
             return false;
         }
 
-        return TryValidateObjects(group.Members, $"{context}.members", out errorResult);
+        return TryValidateObjects(group.Members, $"{context}.members", depth + 1, validationStatistics, out errorResult);
     }
 
-    private static bool TryValidateLeaf(ResolveZonesForObjectsRequest.LeafObjectRequest leaf, string context, out ActionResult? errorResult)
+    private static bool TryValidateLeaf(
+        ResolveZonesForObjectsRequest.LeafObjectRequest leaf,
+        string context,
+        ValidationStatistics validationStatistics,
+        out ActionResult? errorResult)
     {
         if (leaf.AdditionalData is { Count: > 0 })
         {
-            string allowedShapes = string.Join(" or ", LeafKeys.Select(key => $"{{ \"{key.JsonName}\": ... }}"));
-            string keyHelp = string.Join(" ", LeafKeys.Select(key => $"'{key.JsonName}': {key.Description}"));
-            errorResult = new BadRequestObjectResult($"'{context}' only accepts {allowedShapes}. Valid keys: {keyHelp}");
+            errorResult = RequestValidationMessageBuilder.BuildAllowedKeysError(context, LeafKeys);
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(leaf.Type)
+            && string.IsNullOrWhiteSpace(leaf.IpStart)
+            && string.IsNullOrWhiteSpace(leaf.IpEnd))
+        {
+            errorResult = new BadRequestObjectResult($"'{context}' must define either non-empty 'members' or the leaf fields 'type', 'ipStart', and 'ipEnd'.");
             return false;
         }
 
@@ -148,51 +187,23 @@ public static class ResolveZonesForObjectsRequestValidator
             return false;
         }
 
-        if (!TryValidateIpRange(leaf.IpStart, leaf.IpEnd, context, out errorResult))
+        if (!FlowComplianceRequestValidator.TryValidateIpRange(leaf.IpStart, leaf.IpEnd, context, out string? ipRangeError))
         {
+            errorResult = new BadRequestObjectResult(ipRangeError);
             return false;
         }
 
         if (string.Equals(leaf.Type, ObjectType.Host, StringComparison.OrdinalIgnoreCase)
-            && CompareIpAddresses(IPAddress.Parse(leaf.IpStart), IPAddress.Parse(leaf.IpEnd)) != 0)
+            && !IPAddress.Parse(leaf.IpStart).Equals(IPAddress.Parse(leaf.IpEnd)))
         {
             errorResult = new BadRequestObjectResult($"'{context}' entries of type '{ObjectType.Host}' must use the same 'ipStart' and 'ipEnd'.");
             return false;
         }
 
-        errorResult = null;
-        return true;
-    }
-
-    private static bool TryValidateIpRange(string ipStartValue, string ipEndValue, string context, out ActionResult? errorResult)
-    {
-        if (!IPAddress.TryParse(ipStartValue, out IPAddress? ipStart))
+        validationStatistics.RangeCount++;
+        if (validationStatistics.RangeCount > MaximumIpRangeCount)
         {
-            errorResult = new BadRequestObjectResult($"'{context}' has an invalid 'ipStart' value.");
-            return false;
-        }
-
-        if (!IPAddress.TryParse(ipEndValue, out IPAddress? ipEnd))
-        {
-            errorResult = new BadRequestObjectResult($"'{context}' has an invalid 'ipEnd' value.");
-            return false;
-        }
-
-        if (ipStart.AddressFamily != ipEnd.AddressFamily)
-        {
-            errorResult = new BadRequestObjectResult($"'{context}' must use the same address family for 'ipStart' and 'ipEnd'.");
-            return false;
-        }
-
-        if (ipStart.AddressFamily == AddressFamily.InterNetworkV6)
-        {
-            errorResult = new BadRequestObjectResult($"'{context}' does not support IPv6 addresses. Only IPv4 values are allowed for 'ipStart' and 'ipEnd'.");
-            return false;
-        }
-
-        if (CompareIpAddresses(ipStart, ipEnd) > 0)
-        {
-            errorResult = new BadRequestObjectResult($"'{context}' must satisfy 'ipStart' <= 'ipEnd'.");
+            errorResult = new BadRequestObjectResult($"'{EndpointName}' accepts at most {MaximumIpRangeCount} IP ranges per request.");
             return false;
         }
 
@@ -207,20 +218,10 @@ public static class ResolveZonesForObjectsRequestValidator
             || string.Equals(objectType, ObjectType.IPRange, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static int CompareIpAddresses(IPAddress left, IPAddress right)
+    private sealed class ValidationStatistics
     {
-        byte[] leftBytes = left.GetAddressBytes();
-        byte[] rightBytes = right.GetAddressBytes();
+        public int ObjectCount { get; set; }
 
-        for (int index = 0; index < leftBytes.Length; index++)
-        {
-            int compare = leftBytes[index].CompareTo(rightBytes[index]);
-            if (compare != 0)
-            {
-                return compare;
-            }
-        }
-
-        return 0;
+        public int RangeCount { get; set; }
     }
 }

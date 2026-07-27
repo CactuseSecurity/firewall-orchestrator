@@ -133,6 +133,92 @@ internal class ComplianceZoneServiceTest
     }
 
     [Test]
+    public async Task ResolveZonesForObjectsAsync_DoesNotExposeSyntheticInternetFallbackZone()
+    {
+        ComplianceZoneServiceApiConn apiConnection = new(
+            [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+            [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
+            [
+                new ComplianceNetworkZone
+                {
+                    Id = 10,
+                    Name = "DMZ",
+                    Description = "Demilitarized zone",
+                    IPRanges = [new NetTools.IPAddressRange(IPAddress.Parse("10.0.0.1"), IPAddress.Parse("10.0.0.1"))]
+                }
+            ]);
+        ComplianceZoneService service = new(apiConnection, new SimulatedGlobalConfig
+        {
+            ComplianceDesignatedZoneMatrixId = 12,
+            AutoCalculateInternetZone = false
+        });
+
+        List<ComplianceDesignatedZoneResponse> result = await service.ResolveZonesForObjectsAsync(new ResolveZonesForObjectsRequest
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "External Host",
+                    Type = "host",
+                    IpStart = "203.0.113.10",
+                    IpEnd = "203.0.113.10"
+                }
+            ]
+        });
+
+        Assert.That(result, Is.Empty);
+    }
+
+    [Test]
+    public async Task ResolveZonesForObjectsAsync_ResolvesRangeLeaves()
+    {
+        ComplianceZoneServiceApiConn apiConnection = new(
+            [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+            [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
+            [
+                new ComplianceNetworkZone
+                {
+                    Id = 10,
+                    Name = "Network Zone",
+                    Description = "Network zone",
+                    IPRanges = [new NetTools.IPAddressRange(IPAddress.Parse("10.0.2.5"), IPAddress.Parse("10.0.2.5"))]
+                },
+                new ComplianceNetworkZone
+                {
+                    Id = 20,
+                    Name = "Range Zone",
+                    Description = "Range zone",
+                    IPRanges = [new NetTools.IPAddressRange(IPAddress.Parse("10.0.3.7"), IPAddress.Parse("10.0.3.7"))]
+                }
+            ]);
+        ComplianceZoneService service = new(apiConnection, new SimulatedGlobalConfig { ComplianceDesignatedZoneMatrixId = 12 });
+
+        List<ComplianceDesignatedZoneResponse> result = await service.ResolveZonesForObjectsAsync(new ResolveZonesForObjectsRequest
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Network Leaf",
+                    Type = "network",
+                    IpStart = "10.0.2.1",
+                    IpEnd = "10.0.2.10"
+                },
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Range Leaf",
+                    Type = "ip_range",
+                    IpStart = "10.0.3.1",
+                    IpEnd = "10.0.3.10"
+                }
+            ]
+        });
+
+        Assert.That(result.Select(zone => zone.Name), Is.EqualTo(["Network Zone", "Range Zone"]));
+    }
+
+    [Test]
     public async Task ResolveZonesForObjectsAsync_UsesDefaultTypeNormalizationForUnknownLeafType()
     {
         ComplianceZoneServiceApiConn apiConnection = new(

@@ -18,6 +18,7 @@ namespace FWO.Middleware.Server.Controllers
     /// </summary>
     [Authorize]
     [ApiController]
+    [Tags("Compliance")]
     [Route("api/[controller]")]
     public class ComplianceController(ApiConnection apiConnection) : ControllerBase
     {

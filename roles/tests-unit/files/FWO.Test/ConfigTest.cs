@@ -8,6 +8,7 @@ using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server;
 using NUnit.Framework;
+using System.Text.RegularExpressions;
 
 namespace FWO.Test
 {
@@ -360,7 +361,14 @@ namespace FWO.Test
         public void ComplianceCheckSubscription_LimitCoversAllTrackedConfigKeys()
         {
             string subscription = ConfigQueries.subscribeComplianceCheckConfigChanges;
-            int trackedConfigKeyCount = subscription.Split("_eq:", StringSplitOptions.None).Length - 1;
+            MatchCollection configKeyFilters = Regex.Matches(
+                subscription,
+                @"config_key\s*:\s*\{(?<body>.*?)\}",
+                RegexOptions.Singleline);
+            int trackedConfigKeyCount = configKeyFilters
+                .SelectMany(match => Regex.Matches(match.Groups["body"].Value, "\"([^\"]+)\"").Select(quotedValue => quotedValue.Groups[1].Value))
+                .Distinct(StringComparer.Ordinal)
+                .Count();
             int limitStart = subscription.IndexOf("limit:", StringComparison.Ordinal);
 
             Assert.That(limitStart, Is.GreaterThanOrEqualTo(0), "Subscription limit not found.");

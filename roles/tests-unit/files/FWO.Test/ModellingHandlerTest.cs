@@ -90,8 +90,8 @@ namespace FWO.Test
         {
             ModellingConnection conn = new() { Id = 3, UsedInterfaceId = 1 };
             ClassicAssert.AreEqual("Interf1", await AppHandler!.ExtractUsedInterface(conn));
-            ClassicAssert.AreEqual(true, conn.SrcFromInterface);
-            ClassicAssert.AreEqual(false, conn.DstFromInterface);
+            ClassicAssert.IsTrue(conn.SrcFromInterface);
+            ClassicAssert.IsFalse(conn.DstFromInterface);
             ClassicAssert.AreEqual(0, conn.SourceAppServers.Count);
             ClassicAssert.AreEqual("AppRole1", conn.SourceAppRoles[0].Content.Name);
             ClassicAssert.AreEqual("NwGroup1", conn.SourceOtherGroups[0].Content.Name);
@@ -107,8 +107,8 @@ namespace FWO.Test
         {
             ModellingConnection conn = new() { Id = 4, UsedInterfaceId = 2 };
             ClassicAssert.AreEqual("Interf2", await AppHandler!.ExtractUsedInterface(conn));
-            ClassicAssert.AreEqual(false, conn.SrcFromInterface);
-            ClassicAssert.AreEqual(true, conn.DstFromInterface);
+            ClassicAssert.IsFalse(conn.SrcFromInterface);
+            ClassicAssert.IsTrue(conn.DstFromInterface);
             ClassicAssert.AreEqual(0, conn.SourceAppServers.Count);
             ClassicAssert.AreEqual(0, conn.SourceAppRoles.Count);
             ClassicAssert.AreEqual(0, conn.SourceOtherGroups.Count);

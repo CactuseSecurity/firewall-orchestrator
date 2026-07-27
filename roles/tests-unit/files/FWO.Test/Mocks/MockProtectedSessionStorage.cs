@@ -16,28 +16,28 @@ namespace FWO.Test.Mocks
         {
         }
 
-        public ValueTask<ProtectedBrowserStorageResult<TValue>> GetAsync<TValue>(string key)
+        public Task<ProtectedBrowserStorageResult<TValue>> GetAsync<TValue>(string key)
         {
             if (storage.TryGetValue(key, out var value) && value is TValue typedValue)
             {
                 var result = CreateSuccessResult(typedValue);
-                return ValueTask.FromResult(result);
+                return Task.FromResult(result);
             }
 
             var emptyResult = CreateFailureResult<TValue>();
-            return ValueTask.FromResult(emptyResult);
+            return Task.FromResult(emptyResult);
         }
 
-        public ValueTask SetAsync(string key, object value)
+        public Task SetAsync(string key, object value)
         {
             storage[key] = value;
-            return ValueTask.CompletedTask;
+            return Task.CompletedTask;
         }
 
-        public ValueTask DeleteAsync(string key)
+        public Task DeleteAsync(string key)
         {
             storage.Remove(key);
-            return ValueTask.CompletedTask;
+            return Task.CompletedTask;
         }
 
         public void Clear()

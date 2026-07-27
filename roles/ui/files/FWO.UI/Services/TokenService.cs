@@ -2,6 +2,7 @@ using FWO.Data.Middleware;
 using FWO.Logging;
 using FWO.Middleware.Client;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Microsoft.JSInterop;
 using RestSharp;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
@@ -30,7 +31,7 @@ namespace FWO.Ui.Services
         {
             this.middlewareClient = middlewareClient;
             this.sessionStorage = sessionStorage;
-            this.initializationTask = new Lazy<Task>(() => InitializeAsync());
+            this.initializationTask = new Lazy<Task>(InitializeAsync);
         }
 
         /// <summary>
@@ -54,15 +55,13 @@ namespace FWO.Ui.Services
             }
             catch (CryptographicException ex)
             {
-                Log.WriteWarning("Token", $"Unreadable protected session token pair detected, clearing stored data: {ex.Message}");
+                Log.WriteWarning("Token", $"Unreadable protected session token pair detected, trying to clear stored data: {ex.Message}");
 
                 await ClearStoredTokenPairCore();
             }
             catch (Exception ex)
             {
-                Log.WriteWarning("Token", $"Failed to restore token pair from session storage, clearing stored data: {ex.Message}");
-
-                await ClearStoredTokenPairCore();
+                Log.WriteWarning("Token", $"Failed to initialize session storage: {ex.Message}");
             }
         }
 
@@ -75,7 +74,15 @@ namespace FWO.Ui.Services
         {
             currentTokenPair = tokenPair;
 
-            await sessionStorage.SetAsync(TOKEN_PAIR_KEY, tokenPair);
+            try
+            {
+                await sessionStorage.SetAsync(TOKEN_PAIR_KEY, tokenPair)
+                    .WaitAsync(TimeSpan.FromSeconds(5));
+            }
+            catch (Exception)
+            {
+                Log.WriteDebug("Token", "SessionStorage is currently unavailable. Token synchronization will be retried after the client reconnects.");
+            }
         }
 
         /// <summary>
@@ -304,11 +311,12 @@ namespace FWO.Ui.Services
 
             try
             {
-                await sessionStorage.DeleteAsync(TOKEN_PAIR_KEY);
+                await sessionStorage.DeleteAsync(TOKEN_PAIR_KEY)
+                    .WaitAsync(TimeSpan.FromSeconds(5));
             }
             catch (Exception ex)
             {
-                Log.WriteWarning("Token", $"Failed to clear stored token pair: {ex.Message}");
+                Log.WriteDebug("Token", $"Failed to clear stored token pair: {ex.Message}");
             }
         }
     }

@@ -12,6 +12,7 @@ using FWO.Services.RuleTreeBuilder;
 using FWO.Ui.Auth;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using RestSharp;
 
 
@@ -55,7 +56,7 @@ string ProductVersion = ConfigFile.ProductVersion;
 
 builder.Services.AddScoped<ApiConnection>(_ => new GraphQlApiConnection(ApiUri));
 builder.Services.AddScoped<MiddlewareClient>(_ => new MiddlewareClient(MiddlewareUri));
-builder.Services.AddScoped<ISessionStorage, SessionStorageWrapper>();
+builder.Services.AddScoped<ISessionStorage, SessionStorage>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<ITokenRefreshCoordinator, TokenRefreshCoordinator>();
 builder.Services.AddSingleton<IPeriodicTaskRunnerFactory, PeriodicTaskRunnerFactory>();

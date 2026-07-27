@@ -127,23 +127,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task DisplayMessageInUi_JwtExpired_ShowsReloginMessageWithoutUiLog()
-        {
-            await using MainLayoutFixture fixture = new();
-            MainLayout layout = fixture.Layout.Instance;
-
-            InvokeDisplayMessage(layout, new Exception("JWTExpired"), "Token", "", true);
-
-            fixture.Layout.WaitForAssertion(() =>
-            {
-                Assert.That(GetPrivateFieldValue<bool>(layout, "showReloginDialog"), Is.True);
-                Assert.That(fixture.Layout.Markup, Does.Contain("jwt_expired_title"));
-                Assert.That(fixture.Layout.Markup, Does.Contain("jwt_expired_text"));
-            });
-            Assert.That(fixture.ApiConnection.UiLogs, Is.Empty);
-        }
-
-        [Test]
         public async Task AmbientRoleSmokeRoutesResolveToExpectedRoles()
         {
             await using MainLayoutFixture fixture = new();

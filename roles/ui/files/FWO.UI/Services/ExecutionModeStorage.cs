@@ -25,19 +25,29 @@ namespace FWO.Ui.Services
 
         public async Task SetExecutionMode(string executionMode)
         {
-            string modeToStore = string.IsNullOrWhiteSpace(executionMode) ? GlobalConst.kUserRolesSelection : executionMode;
-            await sessionStorage.SetAsync(ExecutionModeKey, modeToStore);
+            try
+            {
+                string modeToStore = string.IsNullOrWhiteSpace(executionMode) ? GlobalConst.kUserRolesSelection : executionMode;
+
+                await sessionStorage.SetAsync(ExecutionModeKey, modeToStore)
+                    .WaitAsync(TimeSpan.FromSeconds(5));
+            }
+            catch (Exception)
+            {
+                Log.WriteDebug("Execution Mode", "SessionStorage is currently unavailable.");
+            }
         }
 
         public async Task ClearExecutionMode()
         {
             try
             {
-                await sessionStorage.DeleteAsync(ExecutionModeKey);
+                await sessionStorage.DeleteAsync(ExecutionModeKey)
+                    .WaitAsync(TimeSpan.FromSeconds(5));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Log.WriteWarning("Execution Mode", $"Failed to clear execution mode from session storage: {ex.Message}");
+                Log.WriteDebug("Execution Mode", $"SessionStorage is currently unavailable.");
             }
         }
     }

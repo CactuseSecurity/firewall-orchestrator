@@ -511,24 +511,6 @@
 
     private async Task<bool> HandleSpecialException(Exception exception)
     {
-        if (exception.Message.Contains("JWTExpired"))
-        {
-            Log.WriteError(
-                "Auth Token Error",
-                "JWT expired in session.",
-                exception);
-
-            if (!showReloginDialog)
-            {
-                ShowReloginDialog(
-                    userConfig.GetText("jwt_expired_title"),
-                    userConfig.GetText("jwt_expired_text"),
-                    reloginAbortable: false);
-            }
-
-            return true;
-        }
-
         if (exception.Message == "no such type exists in the schema: 'cidr'")
         {
             var cause = userConfig.GetText("api_access");
@@ -619,6 +601,8 @@
         alertSubscription?.Dispose();
         locationChangingRegistration?.Dispose();
         apiConnection.OnExecutionModeChanged -= OnExecutionModeChanged;
+        apiConnection?.Dispose();
+        middlewareClient?.Dispose();
         EventMediator.Unsubscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent));
         EventMediator.Unsubscribe<ReloginRequiredEvent>(nameof(ReloginRequiredEvent));
         tokenRefreshCoordinator.Stop();

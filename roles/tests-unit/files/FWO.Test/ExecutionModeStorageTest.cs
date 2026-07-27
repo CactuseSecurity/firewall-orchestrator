@@ -92,22 +92,22 @@ namespace FWO.Test
                 this.deleteException = deleteException;
             }
 
-            public ValueTask<Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage.ProtectedBrowserStorageResult<TValue>> GetAsync<TValue>(string key)
+            public Task<Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage.ProtectedBrowserStorageResult<TValue>> GetAsync<TValue>(string key)
             {
                 if (getException != null)
                 {
                     throw getException;
                 }
 
-                return ValueTask.FromResult(CreateFailureResult<TValue>());
+                return Task.FromResult(CreateFailureResult<TValue>());
             }
 
-            public ValueTask SetAsync(string key, object value)
+            public Task SetAsync(string key, object value)
             {
-                return ValueTask.CompletedTask;
+                return Task.CompletedTask;
             }
 
-            public ValueTask DeleteAsync(string key)
+            public Task DeleteAsync(string key)
             {
                 DeleteCallCount++;
                 if (deleteException != null)
@@ -115,7 +115,7 @@ namespace FWO.Test
                     throw deleteException;
                 }
 
-                return ValueTask.CompletedTask;
+                return Task.CompletedTask;
             }
 
             private static Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage.ProtectedBrowserStorageResult<TValue> CreateFailureResult<TValue>()

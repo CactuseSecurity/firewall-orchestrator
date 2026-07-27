@@ -80,8 +80,6 @@ namespace FWO.Middleware.Client
 
                 if (tokenValidationResult.IsValid)
                 {
-                    Log.WriteAudit(JwtValidation, "Jwt was successfully validated.");
-
                     return new JwtValidationResult
                     {
                         Status = JwtValidationStatus.Success,
@@ -163,12 +161,6 @@ namespace FWO.Middleware.Client
             return $"{actionText} Potential attack: access_jti={accessToken.Id}, access_expires={accessToken.ValidTo.ToLocalTime():yyyy-MM-dd'T'HH:mm:sszzz}";
         }
 
-
-        public async Task<bool> Validate()
-        {
-            return (await ValidateToken()).IsSuccess;
-        }
-
         public Claim[] GetClaims()
         {
             Log.WriteDebug("Claims Jwt", "Reading claims from Jwt.");
@@ -176,14 +168,6 @@ namespace FWO.Middleware.Client
                 throw new ArgumentException(nameof(jwt), JwtNotValidated);
 
             return jwt.Claims.ToArray();
-        }
-
-        public TimeSpan TimeUntilExpiry()
-        {
-            if (jwt == null)
-                throw new ArgumentException(nameof(jwt), JwtNotValidated);
-
-            return jwt.ValidTo - DateTime.UtcNow;
         }
 
         public string GetRole()

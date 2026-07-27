@@ -23,6 +23,7 @@ using System.Security.Authentication;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text.Json;
+using Microsoft.AspNetCore.Components;
 
 namespace FWO.Test
 {
@@ -70,9 +71,10 @@ namespace FWO.Test
         {
             MockMiddlewareClient mockMiddlewareClient = new();
             MockProtectedSessionStorage mockSessionStorage = new();
-            EventMediator eventMediator = new();
+            EventMediator eventMediator = new();            
             TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
-            AuthStateProvider authStateProvider = new(tokenService, eventMediator);
+            NavigationManager navigationManager = default!;
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
 
             int publishCount = 0;
             eventMediator.Subscribe<ReloginRequiredEvent>(nameof(ReloginRequiredEvent), _ => publishCount++);
@@ -99,7 +101,8 @@ namespace FWO.Test
             MockProtectedSessionStorage mockSessionStorage = new();
             EventMediator eventMediator = new();
             TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
-            AuthStateProvider authStateProvider = new(tokenService, eventMediator);
+            NavigationManager navigationManager = default!;
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
 
             await tokenService.SetTokenPair(new TokenPair
             {
@@ -145,7 +148,8 @@ namespace FWO.Test
             MockProtectedSessionStorage mockSessionStorage = new();
             EventMediator eventMediator = new();
             TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
-            AuthStateProvider authStateProvider = new(tokenService, eventMediator);
+            NavigationManager navigationManager = default!;
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
 
             await tokenService.SetTokenPair(new TokenPair
             {
@@ -183,7 +187,8 @@ namespace FWO.Test
             MockProtectedSessionStorage mockSessionStorage = new();
             EventMediator eventMediator = new();
             TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
-            AuthStateProvider authStateProvider = new(tokenService, eventMediator);
+            NavigationManager navigationManager = default!;
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
 
             TokenPair rejectedTokenPair = new()
             {
@@ -215,7 +220,8 @@ namespace FWO.Test
             MockProtectedSessionStorage mockSessionStorage = new();
             EventMediator eventMediator = new();
             TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
-            AuthStateProvider authStateProvider = new(tokenService, eventMediator);
+            NavigationManager navigationManager = default!;
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
             UserConfig userConfig = new();
             TestApiConnection apiConnection = new();
             await tokenService.SetTokenPair(new TokenPair
@@ -267,7 +273,8 @@ namespace FWO.Test
             MockProtectedSessionStorage mockSessionStorage = new();
             EventMediator eventMediator = new();
             TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
-            AuthStateProvider authStateProvider = new(tokenService, eventMediator);
+            NavigationManager navigationManager = default!;
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
             UserConfig userConfig = new();
 
             string validAccessToken = GenerateJwtToken(privateKey, Roles.Reporter, DateTime.UtcNow.AddMinutes(10), BuildJwtClaims());
@@ -302,7 +309,8 @@ namespace FWO.Test
             EventMediator eventMediator = new();
             TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
             ExecutionModeStorage executionModeStorage = new(mockSessionStorage);
-            AuthStateProvider authStateProvider = new(tokenService, eventMediator, executionModeStorage);
+            NavigationManager navigationManager = default!;
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager, executionModeStorage);
             UserConfig userConfig = new();
             TestApiConnection apiConnection = new();
 

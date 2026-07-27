@@ -9,6 +9,7 @@ using FWO.Middleware.Client;
 using FWO.Services.EventMediator.Events;
 using FWO.Services.EventMediator.Interfaces;
 using FWO.Ui.Services;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using RestSharp;
 using System.IdentityModel.Tokens.Jwt;
@@ -21,7 +22,7 @@ namespace FWO.Ui.Auth
     /// <summary>
     /// Manages the authenticated UI user state based on JWT access and refresh tokens.
     /// </summary>
-    public class AuthStateProvider(TokenService tokenService, IEventMediator eventMediator, ExecutionModeStorage? executionModeStorage = null) : AuthenticationStateProvider
+    public class AuthStateProvider(TokenService tokenService, IEventMediator eventMediator, NavigationManager navigationManager, ExecutionModeStorage? executionModeStorage = null) : AuthenticationStateProvider
     {
         private enum JwtApplyStatus
         {
@@ -130,17 +131,19 @@ namespace FWO.Ui.Auth
             try
             {
                 await tokenService.RevokeTokens();
-            }
-            catch (Exception ex)
-            {
-                Log.WriteWarning("Deauthenticate", $"Token cleanup failed during logout: {ex.Message}");
-            }
-            finally
-            {
+
                 if (executionModeStorage != null)
                 {
                     await executionModeStorage.ClearExecutionMode();
                 }
+
+                user = new ClaimsPrincipal(new ClaimsIdentity());
+
+                navigationManager?.NavigateTo("", forceLoad: true);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteWarning("Deauthenticate", $"Token cleanup failed during logout: {ex.Message}");
             }
         }
 

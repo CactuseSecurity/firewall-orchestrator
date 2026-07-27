@@ -383,7 +383,7 @@ namespace FWO.Services.RuleTreeBuilder
                 return;
             }
 
-            foreach (RulebaseLink natLink in candidates.Where(LinksToBeProcessed.Contains).Where(link => link.LinkType == NatLinkType).ToList())
+            foreach (RulebaseLink natLink in candidates.Where(link => link.LinkType == NatLinkType).Where(LinksToBeProcessed.Contains).ToList())
             {
                 RemoveLinkFromProcessingQueue(natLink);
                 ProcessOrderedLayer(natLink.NextRulebaseId, parentNode);

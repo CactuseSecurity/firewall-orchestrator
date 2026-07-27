@@ -1498,6 +1498,8 @@ INSERT INTO txt VALUES ('save_app_role', 	    'German',	'App Rolle speichern');
 INSERT INTO txt VALUES ('save_app_role', 	    'English',	'Save App Role');
 INSERT INTO txt VALUES ('delete_app_role', 	    'German',	'App Rolle l&ouml;schen');
 INSERT INTO txt VALUES ('delete_app_role', 	    'English',	'Delete App Role');
+INSERT INTO txt VALUES ('change_app_role_forbidden', 'German',	'&Auml;ndern der App Rolle nicht erlaubt');
+INSERT INTO txt VALUES ('change_app_role_forbidden', 'English',	'Changing App Role not allowed');
 INSERT INTO txt VALUES ('display_app_role',     'German',	'App Rolle darstellen');
 INSERT INTO txt VALUES ('display_app_role',     'English',	'Display App Role');
 INSERT INTO txt VALUES ('to_app_role', 	        'German',	'Zu App Rolle');
@@ -4402,6 +4404,8 @@ INSERT INTO txt VALUES ('E9028', 'German',  'Angeforderte Schnittstelle ist bere
 INSERT INTO txt VALUES ('E9028', 'English', 'Requested interface is already published');
 INSERT INTO txt VALUES ('E9029', 'German',  'Ticket enth&auml;lt mehrere Anforderungsaufgaben');
 INSERT INTO txt VALUES ('E9029', 'English', 'Ticket has multiple request tasks');
+INSERT INTO txt VALUES ('E9030', 'German',  'App Rollen dieser Applikation d&uuml;rfen nur von deren Verantwortlichen mit der Rolle Modellierer ge&auml;ndert werden.');
+INSERT INTO txt VALUES ('E9030', 'English', 'Application roles of this application may only be changed by its owners with the modeller role.');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');
@@ -8465,10 +8469,12 @@ INSERT INTO txt VALUES ('H9032', 'English', 'App Server: Elementary components (
 INSERT INTO txt VALUES ('H9033', 'German',  'App-Rollen: Dienen der B&uuml;ndelung von App-Servern. Falls in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> so vorgesehen,
     m&uuml;ssen sie einer Netzwerkarea zugeh&ouml;ren. Beim Erstellen der App-Rolle muss dann zun&auml;chst eine Area ausgew&auml;hlt werden, nur von dieser werden dann die App-Server in der Bibliothek angeboten.
     Die Namen der App-Rollen m&uuml;ssen dann einer ebenfalls in den Einstellungen vorgegebenen Namenskonvention folgen.
+    Anlegen, Bearbeiten und L&ouml;schen von App-Rollen ist nur Verantwortlichen der Applikation mit der Rolle Modellierer erlaubt.
 ');
 INSERT INTO txt VALUES ('H9033', 'English', 'App Roles: Used for bundling of App Servers. If required in the <a href="/help/settings/modelling">Modelling Settings</a>,
     they have to belong to a network area. When creating an App Role, first a network area has to be selected, only App Servers belonging to this are are displayed then in the library.
     Names of the App Roles have to comply to a naming convention, defined in the Modelling Settings.
+    Creating, editing and deleting App Roles is only allowed for owners of the application holding the modeller role.
 ');
 INSERT INTO txt VALUES ('H9034', 'German',  'Netzwerkareas: Werden &uuml;ber die Subnetzdaten-Importschnittstelle (<a href="/help/settings/modelling">Import-Einstellungen</a>, <a href="/help/API/subnetdataimport">Import-Schnittstelle</a>) importiert.
     Sie k&ouml;nnen aus der Bibliothek heraus gesucht, selektiert und anschliessend in Quelle oder Ziel der Verbindungen &uuml;bernommen werden.

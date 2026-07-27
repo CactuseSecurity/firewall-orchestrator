@@ -1,5 +1,12 @@
 # Firewall Orchestrator Revision History
 
+## 9.2.4 - 26.07.2026
+- Installer: introduce a local internal CA role that issues server and client
+  identities for FWO services and installs the CA trust anchor on all FWO
+  hosts.
+- Security: internal GraphQL connections now use normal TLS certificate
+  validation.
+
 pre-5, a product called IT Security Organizer and was closed source. It was developed starting in 2005.
 In 2020 we decided to re-launch a new
 

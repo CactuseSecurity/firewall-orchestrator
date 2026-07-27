@@ -31,13 +31,35 @@ class FakeResponse:
         return self.payload
 
 
+TEST_CLIENT_CERTIFICATE = "/etc/fworch/secrets/client/client.crt"
+TEST_CLIENT_PRIVATE_KEY = "/etc/fworch/secrets/client/client.key"
+TEST_CA_CERTIFICATE = "/etc/fworch/fworch-internal-ca.crt"
+
+
+def write_tls_config(tmp_path: Path) -> str:
+    """Write a fworch.json holding the TLS identity and return its path."""
+    config_path = tmp_path / "fworch.json"
+    config_path.write_text(
+        json.dumps(
+            {
+                "tls_client_certificate": TEST_CLIENT_CERTIFICATE,
+                "tls_client_private_key": TEST_CLIENT_PRIVATE_KEY,
+                "tls_ca_certificate": TEST_CA_CERTIFICATE,
+            }
+        ),
+        encoding="utf-8",
+    )
+    return str(config_path)
+
+
 class FakeSession:
     response: FakeResponse = FakeResponse()
     request_payloads: ClassVar[list[dict[str, Any]]] = []
     raise_on_post: requests.exceptions.RequestException | None = None
 
     def __init__(self) -> None:
-        self.verify: bool = True
+        self.verify: bool | str = True
+        self.cert: tuple[str, str] | None = None
         self.headers: dict[str, str] = {}
 
     def __enter__(self) -> Self:
@@ -61,11 +83,15 @@ class FakeSession:
 
 
 @pytest.fixture(autouse=True)
-def reset_fake_session(monkeypatch: pytest.MonkeyPatch) -> None:
+def reset_fake_session(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     FakeSession.response = FakeResponse()
     FakeSession.request_payloads = []
     FakeSession.raise_on_post = None
     monkeypatch.setattr(customizing.requests, "Session", FakeSession)
+    # Redirect the config location only; the reader itself must stay under test, or a
+    # broken reader would go unnoticed the way it did for the importer.
+    customizing.read_tls_identity.cache_clear()
+    monkeypatch.setattr(customizing, "FWO_CONFIG_FILE", write_tls_config(tmp_path))
 
 
 def test_call_sends_graphql_payload_and_returns_json() -> None:
@@ -185,3 +211,64 @@ def test_read_json_file_and_credentials(tmp_path: Path, monkeypatch: pytest.Monk
 
     with pytest.raises(customizing.CustomizingError, match="while reading file"):
         customizing.read_json_file(str(tmp_path / "missing.json"))
+
+
+def test_call_presents_client_identity_and_internal_ca() -> None:
+    captured: dict[str, Any] = {}
+    original_post = FakeSession.post
+
+    def capture_post(self: FakeSession, url: str, data: str, timeout: int | tuple[int, int]) -> FakeResponse:
+        captured["cert"] = self.cert
+        captured["verify"] = self.verify
+        return original_post(self, url, data, timeout)
+
+    FakeSession.post = capture_post  # type: ignore[method-assign]
+    try:
+        customizing.call("https://fwo/graphql", "jwt", "query Test { ok }")
+    finally:
+        FakeSession.post = original_post  # type: ignore[method-assign]
+
+    assert captured["cert"] == (TEST_CLIENT_CERTIFICATE, TEST_CLIENT_PRIVATE_KEY)
+    # verify must name the CA file: requests resolves True to the certifi
+    # bundle, which does not contain FWO's internal CA.
+    assert captured["verify"] == TEST_CA_CERTIFICATE
+
+
+def test_read_tls_identity_returns_configured_paths(tmp_path: Path) -> None:
+    config_path = tmp_path / "fworch.json"
+    config_path.write_text(
+        json.dumps(
+            {
+                "tls_client_certificate": TEST_CLIENT_CERTIFICATE,
+                "tls_client_private_key": TEST_CLIENT_PRIVATE_KEY,
+                "tls_ca_certificate": TEST_CA_CERTIFICATE,
+            }
+        ),
+        encoding="utf-8",
+    )
+    customizing.read_tls_identity.cache_clear()
+
+    assert customizing.read_tls_identity(str(config_path)) == (
+        (TEST_CLIENT_CERTIFICATE, TEST_CLIENT_PRIVATE_KEY),
+        TEST_CA_CERTIFICATE,
+    )
+
+
+def test_read_tls_identity_reports_missing_key(tmp_path: Path) -> None:
+    config_path = tmp_path / "fworch.json"
+    config_path.write_text(json.dumps({"tls_client_certificate": TEST_CLIENT_CERTIFICATE}), encoding="utf-8")
+    customizing.read_tls_identity.cache_clear()
+
+    with pytest.raises(customizing.CustomizingError, match="TLS identity missing"):
+        customizing.read_tls_identity(str(config_path))
+
+
+def test_configure_tls_applies_identity_to_session(tmp_path: Path) -> None:
+    config_path = write_tls_config(tmp_path)
+    customizing.read_tls_identity.cache_clear()
+    session = FakeSession()
+
+    customizing.configure_tls(session, config_path)  # type: ignore[arg-type]
+
+    assert session.cert == (TEST_CLIENT_CERTIFICATE, TEST_CLIENT_PRIVATE_KEY)
+    assert session.verify == TEST_CA_CERTIFICATE

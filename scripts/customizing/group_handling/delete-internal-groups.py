@@ -1,19 +1,55 @@
 #!/usr/bin/python3
 # This script deletes internal groups in FWO
 import argparse
+import functools
+import json
 import logging
 import sys
 from argparse import ArgumentParser
 from enum import Enum
 from typing import Any
 
-import urllib3
 from requests import Session, exceptions
 
 DEFAULT_API_URL: str = "https://localhost:8888/api/"
+FWO_CONFIG_FILE: str = "/etc/fworch/fworch.json"
 HTTP_OK: int = 200
 # (connect, read) timeout tuple so a stalled endpoint cannot hang the group-handling run
 HTTP_TIMEOUT: tuple[int, int] = (60, 14400)
+
+
+@functools.lru_cache(maxsize=1)
+def read_tls_identity(fwo_config_filename: str) -> tuple[tuple[str, str] | None, str | bool]:
+    """
+    Return the local FWO client certificate pair and the internal CA bundle.
+
+    FWO endpoints present certificates from an internal CA that neither the system
+    store nor certifi knows, so the CA file has to be named explicitly. A remote
+    FWO installation has no local fworch.json, in which case verification falls
+    back to the default trust store rather than being switched off. A file that
+    exists but cannot be parsed is a real misconfiguration and is raised.
+    """
+    try:
+        with open(fwo_config_filename, encoding="utf-8") as config_file:
+            config: dict[str, Any] = json.load(config_file)
+    except OSError:
+        return (None, True)
+
+    certificate = config.get("tls_client_certificate")
+    private_key = config.get("tls_client_private_key")
+    ca_certificate = config.get("tls_ca_certificate")
+    client_identity = (
+        (certificate, private_key) if isinstance(certificate, str) and isinstance(private_key, str) else None
+    )
+    return (client_identity, ca_certificate if isinstance(ca_certificate, str) else True)
+
+
+def configure_tls(session: Session, fwo_config_filename: str | None = None) -> None:
+    """Present the local FWO client identity and verify against the internal CA."""
+    client_identity, ca_certificate = read_tls_identity(fwo_config_filename or FWO_CONFIG_FILE)
+    session.verify = ca_certificate
+    if client_identity is not None:
+        session.cert = client_identity
 
 
 class HttpCommand(Enum):
@@ -35,9 +71,8 @@ def fwo_rest_api_call(
     headers: dict[str, str] = {"Authorization": "Bearer " + jwt, "Content-Type": "application/json"}
 
     with Session() as session:
-        session.verify = False
+        configure_tls(session)
         http_method = getattr(session, command.lower())
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         response = http_method(api_url + endpoint_name, json=payload, headers=headers, timeout=HTTP_TIMEOUT)
 
         if response.status_code == HTTP_OK:
@@ -54,9 +89,8 @@ def get_jwt_token(user: str, password: str, api_url: str = DEFAULT_API_URL) -> s
     endpoint: str = api_url + "AuthenticationToken/Get"
 
     with Session() as session:
-        session.verify = False
+        configure_tls(session)
         try:
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             response = session.post(endpoint, json=payload, headers=headers, timeout=HTTP_TIMEOUT)
         except exceptions.RequestException:
             logger.exception("api: error during login to url: %s with user %s", endpoint, user)
@@ -128,6 +162,9 @@ if __name__ == "__main__":  # pragma: no cover
                 logger.warning("Failed to delete group %s", group)
 
     except Exception:
+        # without this the operator gets a bare exit 1 and no idea what went wrong,
+        # for example when fworch.json exists but cannot be parsed
+        logger.exception("deleting internal groups failed")
         sys.exit(1)
     else:
         sys.exit(0)

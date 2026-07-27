@@ -1,5 +1,5 @@
 ### general settings
-product_version: "9.2.3"
+product_version: "9.2.4"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
@@ -46,6 +46,39 @@ last_commit_id_file_path: "{{ fworch_conf_dir }}/last_commit_id.txt"
 fworch_secrets_dir: "{{ fworch_conf_dir }}/secrets"
 fworch_tmp_dir: "{{ fworch_home }}/tmp"
 importer_venv_dir: "{{ fworch_home }}/importer/importer-venv"
+
+### internal certificate authority
+# Only the settings below are global. Everything else the internalCA role needs
+# stays in roles/internalCA/defaults/main.yml - a variable must be defined in
+# exactly one of the two places, or the two copies drift apart.
+#
+# Global because roles other than internalCA read them: role defaults are only
+# in scope while their own role runs, so the api, middleware, ui, openldap-server,
+# common and tests-integration roles cannot see internalCA's defaults.
+
+# user facing switches, see documentation/certificates.md
+internalca_enabled: true
+api_require_client_certificate: true
+
+# read by roles/api, roles/middleware and roles/ui apache templates
+internalca_apache_certificate: "{{ fworch_secrets_dir }}/apache/server.crt"
+internalca_apache_private_key: "{{ fworch_secrets_dir }}/apache/server.key"
+
+# read by roles/common (fworch.json) and roles/tests-integration
+internalca_client_certificate: "{{ fworch_secrets_dir }}/client/client.crt"
+internalca_client_private_key: "{{ fworch_secrets_dir }}/client/client.key"
+
+# The issuer copy of the CA certificate exists only on the CA host and sits in a
+# root-only directory. Every host gets a world-readable copy at this path, and
+# that is the one all unprivileged consumers must reference. Read by roles/api,
+# roles/openldap-server, roles/common and roles/tests-integration.
+internalca_ca_trust_anchor: "{{ product_name }}-internal-ca.crt"
+internalca_ca_certificate_local: "{{ fworch_conf_dir }}/{{ internalca_ca_trust_anchor }}"
+# TLS clients trust this explicit CA bundle when connecting to an FWO Apache
+# endpoint. It defaults to the FWO internal CA. During an upgrade that retains
+# a customer-managed Apache certificate, set it to that certificate's issuing
+# root CA at the same path on every FWO client host.
+internalca_peer_ca_certificate: "{{ internalca_ca_certificate_local }}"
 
 # setting default proxy (may be overwritten via --extra-vars)
 # Lowercase proxy variables take precedence over uppercase when both are set.

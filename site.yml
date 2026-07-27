@@ -11,6 +11,18 @@
     - ui
     - api
 
+# Certificates are created after the common role has created the FWO user and
+# configuration directories, but before any service consumes them.
+- hosts: all
+  roles:
+    - { role: internalCA, when: "not installation_mode == 'uninstall'" }
+  tags:
+    - backend
+    - frontend
+    - importer
+    - ui
+    - certificates
+
 - hosts: databaseserver
   roles:
     - { role: database, when: "not installation_mode == 'uninstall'" }

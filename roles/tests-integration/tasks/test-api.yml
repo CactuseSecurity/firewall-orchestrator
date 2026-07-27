@@ -9,9 +9,13 @@
     body:
       query: ""
     body_format: json
-    validate_certs: false
+    validate_certs: true
+    ca_path: "{{ internalca_peer_ca_certificate }}"
+    client_cert: "{{ internalca_client_certificate }}"
+    client_key: "{{ internalca_client_private_key }}"
     return_content: true
   register: api_version
+  become: true
   changed_when: false
   failed_when: false
 
@@ -31,9 +35,13 @@
     body:
       query: "query { object(limit:3) {obj_name} }"
     body_format: json
-    validate_certs: false
+    validate_certs: true
+    ca_path: "{{ internalca_peer_ca_certificate }}"
+    client_cert: "{{ internalca_client_certificate }}"
+    client_key: "{{ internalca_client_private_key }}"
     return_content: true
   register: api_query_anonymous
+  become: true
   changed_when: false
   environment: "{{ proxy_env }}"
 
@@ -55,9 +63,13 @@
       Username: user1{{ test_postfix }}
       Password: "{{ test_user1_pw }}"
     body_format: json
-    validate_certs: false
+    validate_certs: true
+    ca_path: "{{ internalca_peer_ca_certificate }}"
+    client_cert: "{{ internalca_client_certificate }}"
+    client_key: "{{ internalca_client_private_key }}"
     return_content: true
   register: sample_JWT
+  become: true
   changed_when: false
   environment: "{{ proxy_env }}"
 
@@ -72,9 +84,13 @@
     body:
       query: "query text { txt(limit:3) { id } }"
     body_format: json
-    validate_certs: false
+    validate_certs: true
+    ca_path: "{{ internalca_peer_ca_certificate }}"
+    client_cert: "{{ internalca_client_certificate }}"
+    client_key: "{{ internalca_client_private_key }}"
     return_content: true
   register: api_query_anonymous_with_JWT
+  become: true
   changed_when: false
   environment: "{{ proxy_env }}"
 
@@ -108,9 +124,13 @@
     body:
       query: "{ stm_obj_typ(limit: 1) { obj_typ_name } }"
     body_format: json
-    validate_certs: false
+    validate_certs: true
+    ca_path: "{{ internalca_peer_ca_certificate }}"
+    client_cert: "{{ internalca_client_certificate }}"
+    client_key: "{{ internalca_client_private_key }}"
     return_content: true
   register: api_query_admin
+  become: true
   changed_when: false
   environment: "{{ proxy_env }}"
   no_log: true

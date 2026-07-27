@@ -1,0 +1,45 @@
+---
+- name: Create internal CA directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  loop:
+    - "{{ internalca_ca_dir }}"
+    - "{{ internalca_ca_issued_dir }}"
+  become: true
+
+- name: Generate internal CA private key
+  community.crypto.openssl_privatekey:
+    path: "{{ internalca_ca_private_key }}"
+    size: "{{ internalca_key_size if internalca_key_type == 'RSA' else omit }}"
+    type: "{{ internalca_key_type }}"
+    curve: "{{ internalca_key_curve if internalca_key_type == 'ECC' else omit }}"
+    mode: "0600"
+  become: true
+  no_log: true
+
+- name: Generate internal CA signing request
+  community.crypto.openssl_csr:
+    path: "{{ internalca_ca_csr }}"
+    privatekey_path: "{{ internalca_ca_private_key }}"
+    common_name: "{{ internalca_ca_common_name }}"
+    basic_constraints:
+      - CA:TRUE
+    key_usage:
+      - keyCertSign
+      - cRLSign
+  become: true
+
+- name: Generate internal CA certificate
+  community.crypto.x509_certificate:
+    path: "{{ internalca_ca_certificate }}"
+    privatekey_path: "{{ internalca_ca_private_key }}"
+    csr_path: "{{ internalca_ca_csr }}"
+    provider: selfsigned
+    selfsigned_not_after: "+{{ internalca_ca_validity_days }}d"
+    selfsigned_digest: sha256
+    mode: "0644"
+  become: true

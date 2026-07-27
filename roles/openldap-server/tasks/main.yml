@@ -31,6 +31,24 @@
             state: present
         loop: "{{ openldap_server_pkgs }}"
 
+      - name: Grant slapd access to its internal CA identity
+        file:
+            path: "{{ openldap_server_cert_path }}"
+            state: directory
+            recurse: true
+            owner: "{{ openldap_server_user }}"
+            group: "{{ openldap_server_user }}"
+        when: not (internalca_preserve_ldap_certificate | default(false) | bool)
+
+      - name: Allow slapd to traverse the certificate parent directory
+        file:
+            path: "{{ openldap_server_cert_path | dirname }}"
+            state: directory
+            owner: root
+            group: root
+            mode: "0755"
+        when: not (internalca_preserve_ldap_certificate | default(false) | bool)
+
       ### Clean up slapd.d
 
       - name: Create the empty configuration directory
@@ -74,21 +92,6 @@
         register: root_password
 
       ### TLS
-      - name: Create ldap certificates
-        include_role:
-            name: openssl-cert
-        vars:
-            openssl_cert_path: "{{ openldap_server_cert_path }}"
-            openssl_user: "{{ openldap_server_user }}"
-            openssl_private_key: "{{ openldap_server_private_key }}"
-            openssl_csr: "{{ openldap_server_csr }}"
-            openssl_country: "{{ openldap_server_country }}"
-            openssl_state: "{{ openldap_server_state }}"
-            openssl_location: "{{ openldap_server_location }}"
-            openssl_organization: "{{ openldap_server_organization }}"
-            openssl_email_address: "{{ openldap_server_email_address }}"
-            openssl_cert: "{{ openldap_server_cert }}"
-
       ### Config files
       - name: Create the directory for ldap database
         file:

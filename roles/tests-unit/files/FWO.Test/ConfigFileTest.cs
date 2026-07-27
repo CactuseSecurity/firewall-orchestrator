@@ -33,6 +33,9 @@ namespace FWO.Test
           ""fworch_home"": ""/usr/local/fworch"",
           ""middleware_native_uri"": ""http://127.0.0.3:8880/"",
           ""middleware_uri"": ""http://127.0.0.1:8880/"",
+          ""tls_client_certificate"": ""/etc/fworch/secrets/client/client.crt"",
+          ""tls_client_private_key"": ""/etc/fworch/secrets/client/client.key"",
+          ""tls_ca_certificate"": ""/etc/fworch/fworch-internal-ca.crt"",
           ""product_version"": ""500""
         }";
 
@@ -117,6 +120,9 @@ z2cAR6HkNFB63sh2qZwtC0utP3i3yXlDSxD8lQ7A7NYlifRszw==
             ClassicAssert.AreEqual("http://127.0.0.3:8880/", ConfigFile.MiddlewareServerNativeUri);
             ClassicAssert.AreEqual("http://127.0.0.1:8880/", ConfigFile.MiddlewareServerUri);
             ClassicAssert.AreEqual("https://127.0.0.1:9443/api/v1/graphqlo/", ConfigFile.ApiServerUri);
+            ClassicAssert.AreEqual("/etc/fworch/secrets/client/client.crt", ConfigFile.TlsClientCertificate);
+            ClassicAssert.AreEqual("/etc/fworch/secrets/client/client.key", ConfigFile.TlsClientPrivateKey);
+            ClassicAssert.AreEqual("/etc/fworch/fworch-internal-ca.crt", ConfigFile.TlsCaCertificate);
             ClassicAssert.AreEqual("500", ConfigFile.ProductVersion);
         }
 

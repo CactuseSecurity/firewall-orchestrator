@@ -19,6 +19,9 @@ namespace FWO.Test
         static readonly SimulatedUserConfig userConfig = new();
         static readonly Action<Exception?, string, string, bool> DisplayMessageInUi = DefaultInit.DoNothing;
         static readonly FwoOwner Application = new() { Id = 1, Name = "TestApp" };
+        // SimulatedUserConfig.GetText echoes unknown keys, so this is "<title key>:<message key>".
+        // E9015 would be the network-object placement error, which does not apply to role checks.
+        private const string kExpectedForbiddenMessage = "change_app_role_forbidden:E9030";
 
         [Test]
         public void RefreshSelectableNwObjects_IncludesCommonSelectedRolesAndServers()
@@ -53,6 +56,104 @@ namespace FWO.Test
             ClassicAssert.IsTrue(handler.AvailableNwElems.Contains(new KeyValuePair<int, long>((int)ModellingTypes.ModObjectType.Network, 20)));
             ClassicAssert.IsTrue(handler.AvailableNwElems.Contains(new KeyValuePair<int, long>((int)ModellingTypes.ModObjectType.AppRole, 30)));
             ClassicAssert.IsTrue(handler.AvailableNwElems.Contains(new KeyValuePair<int, long>((int)ModellingTypes.ModObjectType.AppServer, 40)));
+        }
+
+        /// <summary>
+        /// Only the modeller role may change modelling data. Admin deliberately has no
+        /// write access here even though it may view modelling reports, so this test
+        /// pins that rule down rather than leaving it implicit.
+        /// </summary>
+        [Test]
+        public void CanModifyAppRoles_AllowsOnlyOwningModellers()
+        {
+            ModellingConnection connection = new() { Id = 101 };
+            SimulatedUserConfig auditorConfig = new();
+            auditorConfig.User.Roles = new List<string> { Roles.Auditor };
+            ModellingConnectionHandler auditorHandler = CreateHandler(connection, auditorConfig);
+
+            SimulatedUserConfig adminConfig = new();
+            adminConfig.User.Roles = new List<string> { Roles.Admin };
+            ModellingConnectionHandler adminHandler = CreateHandler(connection, adminConfig);
+
+            SimulatedUserConfig modellerConfig = new();
+            modellerConfig.User.Roles = new List<string> { Roles.Modeller };
+            ModellingConnectionHandler modellerHandler = CreateHandler(connection, modellerConfig);
+
+            ClassicAssert.IsFalse(auditorHandler.CanModifyAppRoles());
+            ClassicAssert.IsFalse(adminHandler.CanModifyAppRoles());
+            ClassicAssert.IsTrue(modellerHandler.CanModifyAppRoles());
+
+            modellerHandler.IsOwner = false;
+
+            ClassicAssert.IsFalse(modellerHandler.CanModifyAppRoles());
+        }
+
+        [Test]
+        public void CreateAppRole_DoesNotOpenEditorForAuditor()
+        {
+            List<string> messages = [];
+            ModellingConnectionHandler handler = CreateAuditorHandler(102, messages);
+
+            handler.CreateAppRole();
+
+            ClassicAssert.IsFalse(handler.AddAppRoleMode);
+            ClassicAssert.IsFalse(handler.EditAppRoleMode);
+            ClassicAssert.AreEqual(1, messages.Count);
+            ClassicAssert.AreEqual(kExpectedForbiddenMessage, messages[0]);
+        }
+
+        /// <summary>
+        /// Editing and deleting used to fail silently, leaving the user without any hint
+        /// why nothing happened. All three paths must report the same reason.
+        /// </summary>
+        [Test]
+        public void EditAppRole_ReportsForbiddenInsteadOfSilentlyDoingNothing()
+        {
+            List<string> messages = [];
+            ModellingConnectionHandler handler = CreateAuditorHandler(103, messages);
+
+            handler.EditAppRole(new ModellingAppRole() { Id = 1 });
+
+            ClassicAssert.IsFalse(handler.EditAppRoleMode);
+            ClassicAssert.AreEqual(1, messages.Count);
+            ClassicAssert.AreEqual(kExpectedForbiddenMessage, messages[0]);
+        }
+
+        [Test]
+        public async Task RequestDeleteAppRole_ReportsForbiddenInsteadOfSilentlyDoingNothing()
+        {
+            List<string> messages = [];
+            ModellingConnectionHandler handler = CreateAuditorHandler(104, messages);
+
+            await handler.RequestDeleteAppRole(new ModellingAppRole() { Id = 1 });
+
+            ClassicAssert.IsFalse(handler.DeleteAppRoleMode);
+            ClassicAssert.AreEqual(1, messages.Count);
+            ClassicAssert.AreEqual(kExpectedForbiddenMessage, messages[0]);
+        }
+
+        /// <summary>
+        /// A null application role is not an authorization problem, so it stays silent.
+        /// </summary>
+        [Test]
+        public void AppRoleActions_StayQuietForMissingAppRole()
+        {
+            List<string> messages = [];
+            ModellingConnectionHandler handler = CreateAuditorHandler(105, messages);
+
+            handler.EditAppRole(null);
+
+            ClassicAssert.IsEmpty(messages);
+        }
+
+        private static ModellingConnectionHandler CreateAuditorHandler(int connectionId, List<string> messages)
+        {
+            ModellingConnection connection = new() { Id = connectionId };
+            SimulatedUserConfig auditorConfig = new();
+            auditorConfig.User.Roles = new List<string> { Roles.Auditor };
+            List<ModellingConnection> connections = [connection];
+            Action<Exception?, string, string, bool> displayMessage = (_, title, text, _) => messages.Add($"{title}:{text}");
+            return new ModellingConnectionHandler(new ModellingHandlerTestApiConn(), auditorConfig, Application, connections, connection, false, false, displayMessage, DefaultInit.DoNothing, true);
         }
 
         [Test]

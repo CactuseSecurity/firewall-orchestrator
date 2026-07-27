@@ -1,0 +1,45 @@
+---
+# Settings used only inside this role. Anything another role reads lives in
+# inventory/group_vars/all.yml instead, because role defaults are out of scope
+# once a different role runs. No variable belongs in both files.
+
+# A single CA is retained on the middleware server. Its private key never
+# leaves that host; only the public CA certificate is installed elsewhere.
+internalca_ca_host: "{{ groups['middlewareserver'] | first }}"
+internalca_ca_dir: "{{ fworch_secrets_dir }}/ca"
+internalca_ca_private_key: "{{ internalca_ca_dir }}/ca.key"
+internalca_ca_csr: "{{ internalca_ca_dir }}/ca.csr"
+internalca_ca_certificate: "{{ internalca_ca_dir }}/ca.crt"
+internalca_ca_issued_dir: "{{ internalca_ca_dir }}/issued"
+internalca_ca_common_name: "{{ product_name }} Internal CA"
+internalca_ca_validity_days: 3650
+internalca_certificate_validity_days: 825
+# An installer run this close to expiry re-signs the issued certificates.
+internalca_renewal_threshold_days: 30
+
+# P-256 is the default. Set internalca_key_type to RSA when legacy TLS clients
+# or TLS-inspection appliances require RSA certificates; it then uses
+# internalca_key_size instead of internalca_key_curve.
+internalca_key_type: ECC
+internalca_key_curve: secp256r1
+internalca_key_size: 3072
+
+# Signing requests are only consumed while this role issues the certificates.
+# The certificate and key paths they belong to are global.
+internalca_client_csr: "{{ fworch_secrets_dir }}/client/client.csr"
+internalca_apache_csr: "{{ fworch_secrets_dir }}/apache/server.csr"
+
+# Apache serves the API, middleware and UI endpoints. A host running more
+# than one of these services uses one host identity with all local endpoint
+# names in its SAN extension.
+internalca_issue_apache_certificate: true
+internalca_legacy_apache_certificate: "{{ apache_ssl_dir }}/server.crt"
+internalca_legacy_apache_private_key: "{{ apache_ssl_dir }}/server.key"
+
+# OpenLDAP runs alongside the middleware but uses a separate key because its
+# daemon cannot read the Apache private key. These paths must stay in step with
+# openldap_server_cert_path in roles/openldap-server/defaults/main.yml.
+internalca_ldap_cert_dir: "{{ '/etc/openldap' if ansible_facts['os_family'] == 'RedHat' else '/etc/ldap' }}/certs/{{ openldap_server_domain_name | default(product_name ~ '.internal') }}"
+internalca_ldap_certificate: "{{ internalca_ldap_cert_dir }}/openldap_cert.crt"
+internalca_ldap_private_key: "{{ internalca_ldap_cert_dir }}/openldap_private_key.pem"
+internalca_ldap_csr: "{{ internalca_ldap_cert_dir }}/openldap_private_key.csr"

@@ -7,8 +7,9 @@ import traceback
 from pprint import pformat
 from typing import TYPE_CHECKING, Any
 
-import fwo_globals
+import fwo_config
 import requests
+from fwo_config import read_tls_identity
 from fwo_const import FWO_API_HTTP_IMPORT_TIMEOUT, FWO_HTTP_TIMEOUT
 from fwo_exceptions import FwoApiLoginFailedError, FwoApiServiceUnavailableError, FwoApiTimeoutError, FwoImporterError
 from fwo_log import FWOLogger
@@ -36,6 +37,22 @@ class FwoApi:
         self.query_info = {}
         self.query_analyzer = QueryAnalyzer()
 
+    @staticmethod
+    def _configure_internal_api_session(session: requests.Session) -> None:
+        """
+        Present the local FWO client identity and verify the peer against the internal CA.
+
+        requests resolves verify=True to the certifi bundle, which does not contain
+        the internal CA, so the CA file installed by the installer is named explicitly.
+
+        The identity is read from the config file rather than the ServiceProvider: login
+        runs before the container is populated and again after every management, where
+        main_loop has reset it.
+        """
+        tls_identity = read_tls_identity(fwo_config.FWO_CONFIG_FILE)
+        session.cert = (tls_identity.client_certificate, tls_identity.client_private_key)
+        session.verify = tls_identity.ca_certificate
+
     def call(
         self,
         query: str,
@@ -61,10 +78,7 @@ class FwoApi:
 
         try:
             with requests.Session() as session:
-                if fwo_globals.verify_certs is None:  # only for first FWO API call (getting info on cert verification)
-                    session.verify = False
-                else:
-                    session.verify = fwo_globals.verify_certs
+                self._configure_internal_api_session(session)
                 session.headers.update(request_headers)
 
                 if analyze_payload and self.query_info["chunking_info"]["needs_chunking"]:
@@ -117,10 +131,7 @@ class FwoApi:
             raise FwoApiLoginFailedError("fwo_api: user_management_api_base_url is None during login")
 
         with requests.Session() as session:
-            if fwo_globals.verify_certs is None:  # only for first FWO API call (getting info on cert verification)
-                session.verify = False
-            else:
-                session.verify = fwo_globals.verify_certs
+            FwoApi._configure_internal_api_session(session)
             session.headers.update({"Content-Type": JSON_CONTENT_TYPE})
 
             try:
@@ -138,10 +149,7 @@ class FwoApi:
                 return response.text
             error_txt = (
                 "fwo_api: ERROR: did not receive a JWT during login"
-                ", api_url: "
-                + str(user_management_api_base_url)
-                + ", ssl_verification: "
-                + str(fwo_globals.verify_certs)
+                ", api_url: " + str(user_management_api_base_url) + ", ssl_verification: " + str(session.verify)
             )
             raise FwoApiLoginFailedError(error_txt)
 
@@ -167,11 +175,7 @@ class FwoApi:
         url = fwo_config["user_management_api_base_url"] + endpoint.lstrip("/")
 
         with requests.Session() as session:
-            if fwo_globals.verify_certs is None:
-                session.verify = False
-            else:
-                session.verify = fwo_globals.verify_certs
-
+            self._configure_internal_api_session(session)
             session.headers.update({"Authorization": f"Bearer {self.fwo_jwt}", "Content-Type": JSON_CONTENT_TYPE})
 
             try:

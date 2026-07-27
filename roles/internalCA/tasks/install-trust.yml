@@ -1,0 +1,50 @@
+---
+# Consumers that cannot use the OS trust store need an explicit CA file. The
+# issuer copy lives in a root-only directory and does not exist on other hosts,
+# so every host keeps its own world-readable copy next to the FWO config.
+- name: Install internal CA certificate for FWO components
+  copy:
+    content: "{{ hostvars[internalca_ca_host].internalca_ca_certificate_pem | b64decode }}"
+    dest: "{{ internalca_ca_certificate_local }}"
+    owner: root
+    group: "{{ fworch_group }}"
+    mode: "0644"
+  become: true
+
+- name: Install internal CA on Debian trust store
+  copy:
+    content: "{{ hostvars[internalca_ca_host].internalca_ca_certificate_pem | b64decode }}"
+    dest: "/usr/local/share/ca-certificates/{{ internalca_ca_trust_anchor }}"
+    owner: root
+    group: root
+    mode: "0644"
+  register: internalca_debian_ca_anchor
+  become: true
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Refresh Debian CA trust store
+  command: update-ca-certificates
+  changed_when: false
+  become: true
+  when:
+    - ansible_facts['os_family'] == 'Debian'
+    - internalca_debian_ca_anchor.changed
+
+- name: Install internal CA on RedHat trust store
+  copy:
+    content: "{{ hostvars[internalca_ca_host].internalca_ca_certificate_pem | b64decode }}"
+    dest: "/etc/pki/ca-trust/source/anchors/{{ internalca_ca_trust_anchor }}"
+    owner: root
+    group: root
+    mode: "0644"
+  register: internalca_redhat_ca_anchor
+  become: true
+  when: ansible_facts['os_family'] == 'RedHat'
+
+- name: Refresh RedHat CA trust store
+  command: update-ca-trust extract
+  changed_when: false
+  become: true
+  when:
+    - ansible_facts['os_family'] == 'RedHat'
+    - internalca_redhat_ca_anchor.changed

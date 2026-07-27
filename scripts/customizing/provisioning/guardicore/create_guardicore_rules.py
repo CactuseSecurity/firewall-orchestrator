@@ -1373,7 +1373,7 @@ def main() -> int:  # pragma: no cover
         publish_revision_if_needed(args, logger, guardicore_config, sorted_rulesets)
         logger.info("Done. Created %s rule(s), skipped %s connection(s).", created, skipped)
         return 0
-    except GuardicoreRuleProvisioningError:
+    except (GuardicoreRuleProvisioningError, json.JSONDecodeError):
         logger.exception("Guardicore rule provisioning failed.")
         return 1
 

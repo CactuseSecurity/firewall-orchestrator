@@ -1,0 +1,119 @@
+---
+- name: Create internal CA certificate directories
+  file:
+    path: "{{ item.private_key | dirname }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "0750"
+  loop: "{{ internalca_certificate_profiles }}"
+  become: true
+
+- name: Generate internal CA certificate private keys
+  community.crypto.openssl_privatekey:
+    path: "{{ item.private_key }}"
+    size: "{{ internalca_key_size if internalca_key_type == 'RSA' else omit }}"
+    type: "{{ internalca_key_type }}"
+    curve: "{{ internalca_key_curve if internalca_key_type == 'ECC' else omit }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "0640"
+  loop: "{{ internalca_certificate_profiles }}"
+  become: true
+  no_log: true
+
+- name: Generate internal CA certificate signing requests
+  community.crypto.openssl_csr:
+    path: "{{ item.csr }}"
+    privatekey_path: "{{ item.private_key }}"
+    common_name: "{{ item.common_name }}"
+    subject_alt_name: "{{ item.subject_alt_name | default(omit) }}"
+    key_usage:
+      - digitalSignature
+      - keyEncipherment
+    extended_key_usage: "{{ item.extended_key_usage }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "0640"
+  loop: "{{ internalca_certificate_profiles }}"
+  become: true
+
+- name: Read internal CA certificate signing requests
+  slurp:
+    src: "{{ item.csr }}"
+  loop: "{{ internalca_certificate_profiles }}"
+  register: internalca_certificate_csrs
+  become: true
+
+- name: Create issuer directories for host certificates
+  file:
+    path: "{{ internalca_ca_issued_dir }}/{{ inventory_hostname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  delegate_to: "{{ internalca_ca_host }}"
+  become: true
+
+# x509_certificate is idempotent and would keep an expired certificate in place,
+# so an installer run inside the renewal window re-signs the CSR explicitly.
+- name: Check remaining validity of already issued host certificates
+  community.crypto.x509_certificate_info:
+    path: "{{ internalca_ca_issued_dir }}/{{ inventory_hostname }}/{{ item.name }}.crt"
+    valid_at:
+      renewal_window: "+{{ internalca_renewal_threshold_days }}d"
+  loop: "{{ internalca_certificate_profiles }}"
+  register: internalca_issued_certificate_info
+  failed_when: false
+  changed_when: false
+  delegate_to: "{{ internalca_ca_host }}"
+  become: true
+
+- name: Sign host certificates with the internal CA
+  community.crypto.x509_certificate:
+    path: "{{ internalca_ca_issued_dir }}/{{ inventory_hostname }}/{{ item.item.name }}.crt"
+    csr_content: "{{ item.content | b64decode }}"
+    ownca_path: "{{ internalca_ca_certificate }}"
+    ownca_privatekey_path: "{{ internalca_ca_private_key }}"
+    provider: ownca
+    ownca_not_after: "+{{ internalca_certificate_validity_days }}d"
+    ownca_digest: sha256
+    # valid_at is absent when no certificate has been issued yet, so guard the
+    # lookup instead of chaining onto an undefined value.
+    force: "{{ not (internalca_issued_certificate_info.results[internalca_profile_index].valid_at | default({}, true)).get('renewal_window', false) }}"
+    mode: "0644"
+  loop: "{{ internalca_certificate_csrs.results }}"
+  loop_control:
+    index_var: internalca_profile_index
+  delegate_to: "{{ internalca_ca_host }}"
+  become: true
+
+- name: Read signed host certificates from issuer
+  slurp:
+    src: "{{ internalca_ca_issued_dir }}/{{ inventory_hostname }}/{{ item.name }}.crt"
+  loop: "{{ internalca_certificate_profiles }}"
+  delegate_to: "{{ internalca_ca_host }}"
+  register: internalca_signed_certificates
+  become: true
+
+- name: Install internal CA signed host certificates
+  copy:
+    content: "{{ item.content | b64decode }}"
+    dest: "{{ item.item.certificate }}"
+    owner: "{{ item.item.owner }}"
+    group: "{{ item.item.group }}"
+    mode: "0644"
+  loop: "{{ internalca_signed_certificates.results }}"
+  register: internalca_installed_certificates
+  become: true
+
+- name: Record renewal of the client identity
+  set_fact:
+    internalca_client_identity_changed: >-
+      {{
+        internalca_installed_certificates.results
+        | selectattr('item.item.name', 'equalto', 'client')
+        | selectattr('changed')
+        | list
+        | length > 0
+      }}

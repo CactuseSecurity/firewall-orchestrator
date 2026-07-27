@@ -779,7 +779,7 @@ def main() -> int:  # pragma: no cover
         )
         return 0
 
-    except GuardicoreProvisioningError:
+    except (GuardicoreProvisioningError, json.JSONDecodeError):
         logger.exception("Guardicore provisioning failed.")
         return 1
 

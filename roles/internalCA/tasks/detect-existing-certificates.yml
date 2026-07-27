@@ -1,0 +1,161 @@
+---
+# Decides whether an already installed certificate belongs to the operator and
+# must be left alone. Anything FWO issued itself - the historical self-signed
+# certificate or a leaf from our own internal CA - is replaced so it keeps
+# being renewed.
+- name: Select installed Apache configuration file
+  set_fact:
+    internalca_existing_apache_configuration: >-
+      {{
+        http_conf_dir ~ product_name ~ '-api.conf'
+        if 'apiserver' in group_names
+        else http_conf_dir ~ product_name ~ '-mw.conf'
+        if 'middlewareserver' in group_names
+        else http_conf_dir ~ product_name ~ '-ui.conf'
+      }}
+  when: "'apiserver' in group_names or 'middlewareserver' in group_names or 'frontends' in group_names"
+
+- name: Read installed Apache configuration
+  slurp:
+    src: "{{ internalca_existing_apache_configuration }}"
+  register: internalca_existing_apache_configuration_content
+  failed_when: false
+  when: internalca_existing_apache_configuration is defined
+
+# Block scalars keep backslashes verbatim, so these patterns use single
+# backslashes. Doubling them would silently never match and fall through to the
+# legacy defaults below.
+- name: Determine existing Apache certificate paths
+  set_fact:
+    internalca_existing_apache_certificate: >-
+      {{
+        (internalca_existing_apache_configuration_content.content | default('') | b64decode
+        | regex_findall('(?m)^\s*SSLCertificateFile\s+([^\s]+)') | first)
+        | default(internalca_legacy_apache_certificate, true)
+      }}
+    internalca_existing_apache_private_key: >-
+      {{
+        (internalca_existing_apache_configuration_content.content | default('') | b64decode
+        | regex_findall('(?m)^\s*SSLCertificateKeyFile\s+([^\s]+)') | first)
+        | default(internalca_legacy_apache_private_key, true)
+      }}
+  when: internalca_existing_apache_configuration is defined
+
+- name: Check existing Apache certificate and private key
+  stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ internalca_existing_apache_certificate }}"
+    - "{{ internalca_existing_apache_private_key }}"
+  register: internalca_existing_apache_files
+  become: true
+  when: internalca_existing_apache_configuration is defined
+
+# x509_certificate_info works for every key algorithm; the previous
+# "openssl rsa -modulus" comparison aborted on EC keys, which are the default.
+- name: Read existing Apache certificate identity
+  community.crypto.x509_certificate_info:
+    path: "{{ internalca_existing_apache_certificate }}"
+  register: internalca_existing_apache_certificate_info
+  failed_when: false
+  become: true
+  when:
+    - internalca_existing_apache_configuration is defined
+    - internalca_existing_apache_files.results[0].stat.exists
+
+- name: Read existing Apache private key identity
+  community.crypto.openssl_privatekey_info:
+    path: "{{ internalca_existing_apache_private_key }}"
+  register: internalca_existing_apache_key_info
+  failed_when: false
+  become: true
+  when:
+    - internalca_existing_apache_configuration is defined
+    - internalca_existing_apache_files.results[1].stat.exists
+
+- name: Preserve customer managed Apache certificates
+  set_fact:
+    internalca_preserve_apache_certificate: >-
+      {{
+        internalca_existing_apache_files.results[0].stat.exists
+        and internalca_existing_apache_files.results[1].stat.exists
+        and 'public_key_fingerprints' in internalca_existing_apache_certificate_info
+        and 'public_key_fingerprints' in internalca_existing_apache_key_info
+        and internalca_existing_apache_certificate_info.public_key_fingerprints.sha256
+            == internalca_existing_apache_key_info.public_key_fingerprints.sha256
+        and internalca_existing_apache_certificate_info.issuer.get('commonName', '') != internalca_ca_common_name
+        and not (
+          internalca_existing_apache_certificate_info.subject.get('organizationName', '') == 'Cactus eSecurity'
+          and internalca_existing_apache_certificate_info.issuer.get('organizationName', '') == 'Cactus eSecurity'
+        )
+      }}
+  when: internalca_existing_apache_configuration is defined
+
+- name: Retain customer managed Apache certificate paths
+  set_fact:
+    internalca_apache_certificate: "{{ internalca_existing_apache_certificate }}"
+    internalca_apache_private_key: "{{ internalca_existing_apache_private_key }}"
+    internalca_issue_apache_certificate: false
+  when: internalca_preserve_apache_certificate | default(false) | bool
+
+# Applies to any Apache endpoint FWO clients verify, not just the API: the
+# integration tests validate the middleware and UI endpoints against the same
+# trust bundle, so a retained certificate on those hosts fails just as hard.
+- name: Require an explicit trust bundle for a retained Apache certificate
+  fail:
+    msg: >-
+      The existing Apache certificate on {{ inventory_hostname }} is customer
+      managed. Set internalca_peer_ca_certificate to the path of its issuing
+      root CA certificate on every FWO component before upgrading. The default
+      FWO internal CA cannot validate the retained certificate.
+  when:
+    - internalca_preserve_apache_certificate | default(false) | bool
+    - internalca_peer_ca_certificate == internalca_ca_certificate_local
+
+- name: Check existing LDAP certificate and private key
+  stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ internalca_ldap_certificate }}"
+    - "{{ internalca_ldap_private_key }}"
+  register: internalca_existing_ldap_files
+  become: true
+  when: "'middlewareserver' in group_names"
+
+- name: Read existing LDAP certificate identity
+  community.crypto.x509_certificate_info:
+    path: "{{ internalca_ldap_certificate }}"
+  register: internalca_existing_ldap_certificate_info
+  failed_when: false
+  become: true
+  when:
+    - "'middlewareserver' in group_names"
+    - internalca_existing_ldap_files.results[0].stat.exists
+
+- name: Read existing LDAP private key identity
+  community.crypto.openssl_privatekey_info:
+    path: "{{ internalca_ldap_private_key }}"
+  register: internalca_existing_ldap_key_info
+  failed_when: false
+  become: true
+  when:
+    - "'middlewareserver' in group_names"
+    - internalca_existing_ldap_files.results[1].stat.exists
+
+- name: Preserve customer managed LDAP certificates
+  set_fact:
+    internalca_preserve_ldap_certificate: >-
+      {{
+        internalca_existing_ldap_files.results[0].stat.exists
+        and internalca_existing_ldap_files.results[1].stat.exists
+        and 'public_key_fingerprints' in internalca_existing_ldap_certificate_info
+        and 'public_key_fingerprints' in internalca_existing_ldap_key_info
+        and internalca_existing_ldap_certificate_info.public_key_fingerprints.sha256
+            == internalca_existing_ldap_key_info.public_key_fingerprints.sha256
+        and internalca_existing_ldap_certificate_info.issuer.get('commonName', '') != internalca_ca_common_name
+        and not (
+          internalca_existing_ldap_certificate_info.subject.get('organizationName', '') == 'IT'
+          and internalca_existing_ldap_certificate_info.issuer.get('organizationName', '') == 'IT'
+        )
+      }}
+  when: "'middlewareserver' in group_names"

@@ -1,4 +1,6 @@
 # this playbook contains web server availabitlity tests
+# Every endpoint is verified against the internal CA, so a broken certificate
+# chain or a missing SAN fails the integration run instead of passing silently.
 
 - name: test middleware web server availability
   uri:
@@ -7,7 +9,8 @@
     headers:
       Content-Type: html/text
     body:
-    validate_certs: false
+    validate_certs: true
+    ca_path: "{{ internalca_peer_ca_certificate }}"
     return_content: true
   register: web_call_result
   changed_when: false
@@ -22,16 +25,22 @@
     msg: "url: {{ web_call_result.url }}, status: {{ web_call_result.status }}"
   when: "'middlewareserver' in group_names and web_call_result.status!=200"
   
+# The API vhost requires a client certificate, and the client private key is
+# only readable by the FWO service account, hence become.
 - name: test api web server availability
   uri:
-    url: "https://{{ api_network_listening_ip_address }}:9443/api/"
+    url: "https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/"
     method: GET
     headers:
       Content-Type: html/text
     body:
-    validate_certs: false
+    validate_certs: true
+    ca_path: "{{ internalca_peer_ca_certificate }}"
+    client_cert: "{{ internalca_client_certificate }}"
+    client_key: "{{ internalca_client_private_key }}"
     return_content: true
   register: web_call_result
+  become: true
   changed_when: false
   failed_when: false
   until: web_call_result.status == 200
@@ -51,7 +60,8 @@
     headers:
       Content-Type: html/text
     body:
-    validate_certs: false
+    validate_certs: true
+    ca_path: "{{ internalca_peer_ca_certificate }}"
     return_content: true
   register: web_call_result
   changed_when: false

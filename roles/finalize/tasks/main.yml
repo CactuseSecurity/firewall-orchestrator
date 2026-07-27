@@ -142,11 +142,11 @@
     state: restarted
     daemon_reload: true
   become: true
-  when: "'middlewareserver' in group_names and (mw_deploy_changed | default(false))"
+  when: "'middlewareserver' in group_names and (mw_deploy_changed | default(false) or internalca_client_identity_changed | default(false))"
 
 - name: finally restart UI
   ansible.builtin.systemd:
     name: "{{ product_name }}-ui"
     state: restarted
   become: true
-  when: "'frontends' in group_names and (ui_deploy_changed | default(false))"
+  when: "'frontends' in group_names and (ui_deploy_changed | default(false) or internalca_client_identity_changed | default(false))"

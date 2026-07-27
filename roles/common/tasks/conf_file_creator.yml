@@ -21,6 +21,9 @@
         api_hasura_jwt_alg: "{{ api_hasura_jwt_alg }}"
         middleware_native_uri: "http://{{ middleware_hostname }}:{{ middleware_internal_port }}/"
         middleware_uri: "{{ middleware_uri }}"
+        tls_client_certificate: "{{ internalca_client_certificate }}"
+        tls_client_private_key: "{{ internalca_client_private_key }}"
+        tls_ca_certificate: "{{ internalca_peer_ca_certificate }}"
         remote_addresses: []
 
   - name: create central conf file by dumping varibale as json file
@@ -31,5 +34,31 @@
       group: "{{ fworch_group }}"
       mode: "0640"
     when: installation_mode == "new"
+
+  - name: Read existing configuration during upgrade
+    slurp:
+      src: "{{ fworch_conf_file }}"
+    register: existing_config_json
+    when: installation_mode == "upgrade"
+
+  - name: Add TLS identity paths during upgrade
+    copy:
+      content: >-
+        {{
+          (
+            existing_config_json.content | b64decode | from_json
+          ) | combine(
+            {
+              'tls_client_certificate': internalca_client_certificate,
+              'tls_client_private_key': internalca_client_private_key,
+              'tls_ca_certificate': internalca_peer_ca_certificate
+            }
+          ) | to_nice_json
+        }}
+      dest: "{{ fworch_conf_file }}"
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+      mode: "0640"
+    when: installation_mode == "upgrade"
 
   become: true

@@ -35,8 +35,13 @@
 	SSLEngine on
 	{{ apache_ssl_protocol }}
 	{{ apache_ssl_cipher_suite }}
-	SSLCertificateFile /etc/{{ webserver_package_name }}/ssl/server.crt
-	SSLCertificateKeyFile /etc/{{ webserver_package_name }}/ssl/server.key
+	SSLCertificateFile {{ internalca_apache_certificate }}
+	SSLCertificateKeyFile {{ internalca_apache_private_key }}
+{% if api_require_client_certificate | bool %}
+	SSLCACertificateFile {{ internalca_ca_certificate_local }}
+	SSLVerifyClient require
+	SSLVerifyDepth 1
+{% endif %}
 
     # --- Security Headers ---
 <IfModule mod_headers.c>

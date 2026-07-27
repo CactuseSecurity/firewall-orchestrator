@@ -5,18 +5,10 @@ openldap_path: "dc=example,dc=com"
 openldap_server: "127.0.0.1"
 openldap_port: 636
 
-#The paths to key, csr and cert
+#The paths to key and cert, issued by the internalCA role
 openldap_server_cert_path: "{{ openldap_server_app_path }}/certs/{{ openldap_server_domain_name }}"
 openldap_server_private_key: "{{ openldap_server_cert_path }}/openldap_private_key.pem"
-openldap_server_csr: "{{ openldap_server_cert_path }}/openldap_private_key.csr"
 openldap_server_cert: "{{ openldap_server_cert_path }}/openldap_cert.crt"
-
-#The self signed ssl parameters
-openldap_server_country: US
-openldap_server_state: oregon
-openldap_server_location: portland
-openldap_server_organization: IT
-openldap_server_email_address: "{{ product_name }}@cactus.de"
 
 openldap_server_enable_ssl: true
 openldap_server_services: >-

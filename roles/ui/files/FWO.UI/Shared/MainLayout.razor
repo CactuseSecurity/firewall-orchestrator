@@ -131,8 +131,9 @@
 
         locationChangingRegistration = NavigationManager.RegisterLocationChangingHandler(OnLocationChanging);
 
-        user = authenticationStateTask!.Result.User;
-        ClaimsPrincipal authUser = user;
+        AuthenticationState authState = await ((AuthStateProvider)authenticationProvider).GetAuthenticationStateAsync();
+        ClaimsPrincipal authUser = authState.User;
+
         UpdateAmbientModuleRole(NavigationManager.Uri);
         ambientRoleInitialized = true;
 

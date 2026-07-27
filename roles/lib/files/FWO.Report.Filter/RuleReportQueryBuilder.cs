@@ -148,11 +148,88 @@ namespace FWO.Report.Filter
                 }}";
         }
 
+        /// <summary>
+        /// Builds the one-time management, device, and rulebase-link query for standard NAT Rules reports.
+        /// </summary>
+        internal static string ConstructNatStructureQuery(DynGraphqlQuery query, ReportTemplate filter)
+        {
+            string importParams = string.IsNullOrWhiteSpace(query.NatRulebaseLinkWhereStatement)
+                ? ""
+                : "$import_id_start: bigint $import_id_end: bigint";
+
+            return $@"
+                query standardNatRulesStructure ($mgmId: [Int!] {importParams})
+                {{
+                    management({kManagementWhereString})
+                    {{
+                        id: mgm_id
+                        uid: mgm_uid
+                        name: mgm_name
+                        devices ({GetDeviceWhereFilter(filter.ReportParams.DeviceFilter)})
+                        {{
+                            id: dev_id
+                            name: dev_name
+                            uid: dev_uid
+                            rulebase_links(
+                                where: {{ {query.NatRulebaseLinkWhereStatement} }}
+                            ) {{
+                                link_type
+                                is_initial
+                                is_global
+                                is_section
+                                gw_id
+                                from_rule_id
+                                from_rulebase_id
+                                to_rulebase_id
+                                created
+                                removed
+                            }}
+                        }}
+                        rulebases {{
+                            name
+                            id
+                        }}
+                    }}
+                }}";
+        }
+
+        /// <summary>
+        /// Builds the paged flat-rule query used by standard NAT Rules reports after the static rulebase graph was fetched once.
+        /// </summary>
+        internal static string ConstructNatPageQuery(DynGraphqlQuery query, string paramString, ReportTemplate filter)
+        {
+            return $@"
+                {GetRulesFragmentDef(filter)}
+                query standardNatRulesPage ({paramString} $rulebaseIds: [Int!])
+                {{
+                    firewall_rule(
+                        limit: $limit
+                        offset: $offset
+                        where: {{
+                            mgm_id: {{ _in: $mgmId }}
+                            rulebase_id: {{ _in: $rulebaseIds }}
+                            nat_rule: {{ _eq: true }}
+                            ruleByXlateRule: {{}}
+                            {query.RuleWhereStatement}
+                        }}
+                        order_by: [{{ rulebase_id: asc }}, {{ rule_num_numeric: asc }}, {{ rule_id: asc }}]
+                    )
+                    {{
+                        mgm_id: mgm_id
+                        ...{GetRulesFragmentCall(filter)}
+                    }}
+                }}";
+        }
+
         private static string GetRulesFragmentDef(ReportTemplate filter)
         {
             if ((ReportType)filter.ReportParams.ReportType == ReportType.AppRules)
             {
                 return RuleQueries.ruleDetailsForAppRuleReportFragments;
+            }
+            if ((ReportType)filter.ReportParams.ReportType == ReportType.NatRules)
+            {
+                return filter.Detailed ? RuleQueries.natRuleDetailsForReportFragments : RuleQueries.natRuleOverviewFragments;
             }
             return filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments;
         }
@@ -162,6 +239,10 @@ namespace FWO.Report.Filter
             if ((ReportType)filter.ReportParams.ReportType == ReportType.AppRules)
             {
                 return "ruleDetailsForAppRuleReport";
+            }
+            if ((ReportType)filter.ReportParams.ReportType == ReportType.NatRules)
+            {
+                return filter.Detailed ? "natRuleDetails" : "natRuleOverview";
             }
             return filter.Detailed ? "ruleDetailsForReport" : "ruleOverview";
         }

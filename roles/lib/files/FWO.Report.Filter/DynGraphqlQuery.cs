@@ -460,7 +460,17 @@ namespace FWO.Report.Filter
                     break;
 
                 case ReportType.NatRules:
-                    query.FullQuery = Queries.Compact(ConstructNatRulesQuery(query, paramString, filter));
+                    // The nested rulebases query cannot apply the get_rules_for_tenant function,
+                    // so tenant-filtered reports must use the legacy nested query.
+                    if (filter.ReportParams.TenantFilter.IsActive)
+                    {
+                        query.FullQuery = Queries.Compact(ConstructNatRulesQuery(query, paramString, filter));
+                    }
+                    else
+                    {
+                        query.StandardRulesStructureQuery = Queries.Compact(RuleReportQueryBuilder.ConstructNatStructureQuery(query, filter));
+                        query.StandardRulesPageQuery = Queries.Compact(RuleReportQueryBuilder.ConstructNatPageQuery(query, paramString, filter));
+                    }
                     break;
 
                 case ReportType.Connections:

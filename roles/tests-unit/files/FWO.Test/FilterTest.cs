@@ -431,6 +431,45 @@ namespace FWO.Test
 
         [Test]
         [Parallelizable]
+        public void NatRulesQueryBuildsSplitStructureAndRulePageQueries()
+        {
+            ReportTemplate t = new();
+            t.ReportParams.ReportType = (int)ReportType.NatRules;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("query standardNatRulesStructure", query.StandardRulesStructureQuery);
+            Assert.That(query.FullQuery, Is.Empty);
+            StringAssert.Contains("rulebase_links", query.StandardRulesStructureQuery);
+            StringAssert.DoesNotContain("rules (", query.StandardRulesStructureQuery);
+            StringAssert.Contains("query standardNatRulesPage", query.StandardRulesPageQuery);
+            StringAssert.Contains("firewall_rule", query.StandardRulesPageQuery);
+            StringAssert.Contains("$rulebaseIds: [Int!]", query.StandardRulesPageQuery);
+            StringAssert.Contains("rulebase_id: { _in: $rulebaseIds }", query.StandardRulesPageQuery);
+            StringAssert.Contains("nat_rule: { _eq: true }", query.StandardRulesPageQuery);
+            StringAssert.Contains("ruleByXlateRule: {}", query.StandardRulesPageQuery);
+            StringAssert.Contains("rule_id: asc", query.StandardRulesPageQuery);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void NatRulesQueryWithActiveTenantFilterSkipsSplitQueries()
+        {
+            ReportTemplate t = new();
+            t.ReportParams.ReportType = (int)ReportType.NatRules;
+            t.ReportParams.TenantFilter.IsActive = true;
+            t.ReportParams.TenantFilter.TenantId = 2;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            Assert.That(query.StandardRulesStructureQuery, Is.Empty);
+            Assert.That(query.StandardRulesPageQuery, Is.Empty);
+            StringAssert.Contains("query natRulesReport", query.FullQuery);
+            StringAssert.Contains("get_rules_for_tenant", query.FullQuery);
+        }
+
+        [Test]
+        [Parallelizable]
         public void OwnerFullTextFilterUsesResponsibles()
         {
             ReportTemplate t = new()

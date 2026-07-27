@@ -52,7 +52,8 @@ namespace FWO.Report
             Stopwatch totalStopwatch = Stopwatch.StartNew();
             Stopwatch phaseStopwatch = Stopwatch.StartNew();
 
-            if (ReportType == ReportType.Rules && !string.IsNullOrWhiteSpace(Query.StandardRulesStructureQuery) && !string.IsNullOrWhiteSpace(Query.StandardRulesPageQuery))
+            if ((ReportType == ReportType.Rules || ReportType == ReportType.NatRules)
+                && !string.IsNullOrWhiteSpace(Query.StandardRulesStructureQuery) && !string.IsNullOrWhiteSpace(Query.StandardRulesPageQuery))
             {
                 await GenerateStandardRulesReport(elementsPerFetch, apiConnection, callback, phaseStopwatch, totalStopwatch, ct);
                 return;

@@ -342,6 +342,19 @@ def test_parse_opnsense_config_allows_empty_user_description() -> None:
     assert config.users[0].description is None
 
 
+def test_parse_opnsense_config_allows_dynamic_interface_addresses() -> None:
+    native_config = _native_config()
+    opnsense = cast("dict[str, Any]", native_config["opnsense"])
+    interface = cast("dict[str, Any]", opnsense["interfaces"]["lan"])
+    interface["ipaddr"] = "dhcp"
+    interface["ipaddrv6"] = "dhcp6"
+
+    config = parse_opnsense_config(native_config)
+
+    assert config.interfaces["lan"].ip4_address is None
+    assert config.interfaces["lan"].ip6_address is None
+
+
 def test_parse_opnsense_config_mvc_rules_without_flag_fields_stay_unset() -> None:
     native_config = _native_config_with_mvc_filter_rules()
     opnsense = cast("dict[str, Any]", native_config["opnsense"])

@@ -34,6 +34,18 @@ def _normalize_presence_flag(value: Any) -> bool:
     return bool(value)
 
 
+def _normalize_interface_address(value: Any) -> Any:
+    if isinstance(value, str) and value.strip().lower() in {
+        "dhcp",
+        "dhcp6",
+        "none",
+        "slaac",
+        "track6",
+    }:
+        return None
+    return value
+
+
 class UserScopeEnum(str, Enum):
     SYSTEM = "system"
     USER = "user"
@@ -318,6 +330,11 @@ class OPNsenseInterface(BaseModel):
     @classmethod
     def normalize_flag(cls, value: Any) -> bool:
         return _normalize_presence_flag(value)
+
+    @field_validator("ip4_address", "ip6_address", mode="before")
+    @classmethod
+    def normalize_dynamic_address(cls, value: Any) -> Any:
+        return _normalize_interface_address(value)
 
 
 # https://github.com/opnsense/core/blob/8bc595681e13fec63ef0f6e3fcc292cfff67496c/src/opnsense/mvc/app/models/OPNsense/Auth/User.xml

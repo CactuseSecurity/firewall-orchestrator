@@ -1,13 +1,14 @@
 [Unit]
 Description={{ product_name }} Blazor UI
+Wants=network-online.target
 {% if 'apiserver' in group_names and 'middlewareserver' in group_names -%}
-After=network.target remote-fs.target nss-lookup.target {{ api_service_name }}.service {{ middleware_service_name }}.service
+After=network-online.target remote-fs.target nss-lookup.target {{ api_service_name }}.service {{ middleware_service_name }}.service
 {% elif 'apiserver' in group_names -%}
-After=network.target remote-fs.target nss-lookup.target {{ api_service_name }}.service
+After=network-online.target remote-fs.target nss-lookup.target {{ api_service_name }}.service
 {% elif 'middlewareserver' in group_names -%}
-After=network.target remote-fs.target nss-lookup.target {{ middleware_service_name }}.service
+After=network-online.target remote-fs.target nss-lookup.target {{ middleware_service_name }}.service
 {% else -%}
-After=network.target remote-fs.target nss-lookup.target
+After=network-online.target remote-fs.target nss-lookup.target
 {%- endif %}
 
 [Service]
@@ -20,5 +21,7 @@ ExecStart={{ ui_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}/FWO.U
 SyslogIdentifier={{ ui_syslog_id }}
 User={{ fworch_user }}
 Environment=
+Restart=on-failure
+RestartSec=10
 [Install]
 WantedBy=multi-user.target

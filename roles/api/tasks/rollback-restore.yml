@@ -1,7 +1,7 @@
 - name: collect installed Hasura service unit candidates for rollback
   stat:
-    path: "/lib/systemd/system/{{ item }}.service"
-  loop: "{{ [api_service_name] + (api_legacy_service_names | default([])) }}"
+    path: "{{ item.1 }}/{{ item.0 }}.service"
+  loop: "{{ ([api_service_name] + (api_legacy_service_names | default([]))) | product(fworch_systemd_unit_search_dirs) | list }}"
   register: api_restore_service_unit_candidates
   become: true
 
@@ -13,6 +13,7 @@
           api_restore_service_unit_candidates.results
           | selectattr('stat.exists')
           | map(attribute='item')
+          | map('first')
           | list
           | first
         ) | default(api_service_name)

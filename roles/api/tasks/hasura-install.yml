@@ -463,13 +463,27 @@
             1
           )
       }}
-    dest: "/lib/systemd/system/{{ api_service_name }}.service"
+    dest: "{{ fworch_systemd_unit_dir }}/{{ api_service_name }}.service"
     backup: true
     mode: "0644"
     owner: "root"
   become: true
   when:
     - not api_reuse_existing_hasura_image | bool
+
+- name: migrate reused Hasura systemd service to local unit directory
+  copy:
+    src: "{{ api_existing_service_unit_path }}"
+    dest: "{{ fworch_systemd_unit_dir }}/{{ api_service_name }}.service"
+    remote_src: true
+    backup: true
+    mode: "0644"
+    owner: "root"
+  become: true
+  when:
+    - api_reuse_existing_hasura_image | bool
+    - api_existing_service_unit_path | default('') | length > 0
+    - api_existing_service_unit_path != fworch_systemd_unit_dir ~ '/' ~ api_service_name ~ '.service'
 
 - name: remove legacy Docker API service unit
   file:

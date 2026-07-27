@@ -1,9 +1,10 @@
 [Unit]
 Description=FWOrch Middleware Server
+Wants=network-online.target
 {% if 'apiserver' in group_names -%}
-After=network.target remote-fs.target nss-lookup.target {{ api_service_name }}.service slapd.service
+After=network-online.target remote-fs.target nss-lookup.target {{ api_service_name }}.service slapd.service
 {% else -%}
-After=network.target remote-fs.target nss-lookup.target slapd.service
+After=network-online.target remote-fs.target nss-lookup.target slapd.service
 {%- endif %}
 [Service]
 WorkingDirectory={{ middleware_server_start_dir }}

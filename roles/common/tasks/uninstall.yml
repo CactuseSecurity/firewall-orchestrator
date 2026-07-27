@@ -130,8 +130,16 @@
         - /etc/apache2/sites-enabled/{{ product_name }}-api.conf
         - /etc/apache2/sites-enabled/{{ product_name }}-mw.conf
         - /etc/apache2/sites-enabled/{{ product_name }}-maintenance.conf
+        - "{{ fworch_systemd_unit_dir }}/{{ api_service_name }}.service"
+        - "{{ fworch_systemd_unit_dir }}/fworch-hasura-docker-api.service"
+        - "{{ fworch_systemd_unit_dir }}/{{ middleware_service_name }}.service"
+        - "{{ fworch_systemd_unit_dir }}/{{ ui_service_name }}.service"
+        - "{{ fworch_systemd_unit_dir }}/{{ product_name }}-importer-api.service"
         - /lib/systemd/system/{{ api_service_name }}.service
         - /lib/systemd/system/fworch-hasura-docker-api.service
+        - /lib/systemd/system/{{ middleware_service_name }}.service
+        - /lib/systemd/system/{{ ui_service_name }}.service
+        - /lib/systemd/system/{{ product_name }}-importer-api.service
         - /var/lib/ldap/{{ product_name }}.internal
         - /var/lib/ldap/example.com
         - /var/lib/pgsql/data

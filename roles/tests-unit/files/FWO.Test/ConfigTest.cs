@@ -14,7 +14,7 @@ namespace FWO.Test
 {
     [TestFixture]
     [Parallelizable]
-    internal class ConfigTest
+    internal partial class ConfigTest
     {
         private sealed class UserConfigApiConnection(ConfigItem[] configItems) : ApiConnection
         {
@@ -361,12 +361,9 @@ namespace FWO.Test
         public void ComplianceCheckSubscription_LimitCoversAllTrackedConfigKeys()
         {
             string subscription = ConfigQueries.subscribeComplianceCheckConfigChanges;
-            MatchCollection configKeyFilters = Regex.Matches(
-                subscription,
-                @"config_key\s*:\s*\{(?<body>.*?)\}",
-                RegexOptions.Singleline);
+            MatchCollection configKeyFilters = ConfigKeyFiltersRegex().Matches(subscription);
             int trackedConfigKeyCount = configKeyFilters
-                .SelectMany(match => Regex.Matches(match.Groups["body"].Value, "\"([^\"]+)\"").Select(quotedValue => quotedValue.Groups[1].Value))
+                .SelectMany(match => QuotedValueRegex().Matches(match.Groups["body"].Value).Select(quotedValue => quotedValue.Groups[1].Value))
                 .Distinct(StringComparer.Ordinal)
                 .Count();
             int limitStart = subscription.IndexOf("limit:", StringComparison.Ordinal);
@@ -379,6 +376,12 @@ namespace FWO.Test
 
             Assert.That(int.Parse(limitValue), Is.GreaterThanOrEqualTo(trackedConfigKeyCount));
         }
+
+        [GeneratedRegex(@"config_key\s*:\s*\{(?<body>.*?)\}", RegexOptions.Singleline)]
+        private static partial Regex ConfigKeyFiltersRegex();
+
+        [GeneratedRegex("\"([^\"]+)\"")]
+        private static partial Regex QuotedValueRegex();
 
         [Test]
         public void ConfigData_DefaultsFlowSyncSleepTimeToDisabled()

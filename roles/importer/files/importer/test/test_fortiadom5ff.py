@@ -1033,10 +1033,6 @@ class TestGetAndLinkRulebases:
 
 
 class TestNatMiscHelpers:
-    def test_handle_combined_nat_rule_is_not_implemented(self):
-        with pytest.raises(NotImplementedError):
-            fmgr_rule.handle_combined_nat_rule({}, {}, {}, 0, 1)
-
     def test_add_users_to_rule_adds_groups_and_users(self):
         rule = {"rule_src": "src-net", "rule_src_refs": "src-net-uid"}
         fmgr_rule.add_users_to_rule({"groups": ["grp1"], "users": ["user1"]}, rule)
@@ -1050,39 +1046,6 @@ class TestNatMiscHelpers:
 
         assert rule["rule_src"] == "src-net"
         assert rule["rule_src_refs"] == "src-net-uid"
-
-    def test_create_xlate_rule_resets_translated_fields(self):
-        rule = {
-            "rule_type": "nat",
-            "rule_comment": "keep-me",
-            "rule_disabled": True,
-            "rule_src": "src-net",
-            "rule_src_refs": "src-net-uid",
-            "rule_dst": "dst-net",
-            "rule_dst_refs": "dst-net-uid",
-            "rule_svc": "HTTPS",
-            "rule_svc_refs": "HTTPS",
-        }
-
-        xlate_rule = fmgr_rule.create_xlate_rule(rule)
-
-        assert rule["rule_type"] == "combined"
-        assert xlate_rule["rule_type"] == "xlate"
-        assert xlate_rule["rule_comment"] is None
-        assert xlate_rule["rule_disabled"] is False
-        assert xlate_rule["rule_src"] == "Original"
-        assert xlate_rule["rule_dst"] == "Original"
-        assert xlate_rule["rule_svc"] == "Original"
-        # original rule is untouched apart from rule_type
-        assert rule["rule_src"] == "src-net"
-
-    def test_extract_nat_objects_returns_only_objects_with_nat_ip(self):
-        all_nwobjects = [
-            {"obj_name": "with-nat", "obj_nat_ip": "1.2.3.4"},
-            {"obj_name": "without-nat"},
-        ]
-        result = fmgr_rule.extract_nat_objects(["with-nat", "without-nat", "missing"], all_nwobjects)
-        assert result == [{"obj_name": "with-nat", "obj_nat_ip": "1.2.3.4"}]
 
     def test_is_nat_rule_detects_snat_flag(self):
         is_snat, is_dnat = fmgr_rule.is_nat_rule({"nat": 1}, _empty_normalized_config(), _empty_normalized_config())
@@ -1284,13 +1247,13 @@ class TestParseNatRulesInRulebaseEdgeCases:
 class TestNatRulebaseWiring:
     def test_insert_parent_nat_rulebase_creates_and_appends_once(self):
         normalized_config_adom: dict[str, Any] = {"policies": []}
-        rulebase = fmgr_rule.insert_parent_nat_rulebase(normalized_config_adom, {}, "rb1", "mgm-uid")
+        rulebase = fmgr_rule.insert_parent_nat_rulebase(normalized_config_adom, "rb1", "mgm-uid")
 
         assert rulebase.uid == "nat-rulebase-rb1"
         assert rulebase.name == "NAT"
         assert normalized_config_adom["policies"] == [rulebase]
 
-        fmgr_rule.insert_parent_nat_rulebase(normalized_config_adom, {}, "rb1", "mgm-uid")
+        fmgr_rule.insert_parent_nat_rulebase(normalized_config_adom, "rb1", "mgm-uid")
         assert len(normalized_config_adom["policies"]) == 1
 
     def test_insert_nat_rulebase_link_adds_link_once(self):

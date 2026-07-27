@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import ipaddress
 import json
 from datetime import datetime, timezone
@@ -853,17 +852,6 @@ def has_rulebase_data(
     return has_data
 
 
-def handle_combined_nat_rule(
-    rule: dict[str, Any],
-    rule_orig: dict[str, Any],
-    config2import: dict[str, Any],
-    nat_rule_number: int,
-    dev_id: int,
-) -> dict[str, Any] | None:
-    # TODO: see fOS_rule for reference implementation
-    raise NotImplementedError("handle_combined_nat_rule is not implemented yet")
-
-
 def add_users_to_rule(rule_orig: dict[str, Any], rule: dict[str, Any]) -> None:
     if "groups" in rule_orig:
         add_users(rule_orig["groups"], rule)
@@ -885,32 +873,6 @@ def add_users(users: list[str], rule: dict[str, Any]) -> None:
 ###################
 # NAT STARTS HERE #
 ###################
-
-
-def create_xlate_rule(rule: dict[str, Any]) -> dict[str, Any]:
-    xlate_rule = copy.deepcopy(rule)
-    rule["rule_type"] = "combined"
-    xlate_rule["rule_type"] = "xlate"
-    xlate_rule["rule_comment"] = None
-    xlate_rule["rule_disabled"] = False
-    xlate_rule["rule_src"] = "Original"
-    xlate_rule["rule_src_refs"] = "Original"
-    xlate_rule["rule_dst"] = "Original"
-    xlate_rule["rule_dst_refs"] = "Original"
-    xlate_rule["rule_svc"] = "Original"
-    xlate_rule["rule_svc_refs"] = "Original"
-    return xlate_rule
-
-
-def extract_nat_objects(nwobj_list: list[str], all_nwobjects: list[dict[str, str]]) -> list[dict[str, str]]:
-    nat_obj_list: list[dict[str, str]] = []
-    for obj in nwobj_list:
-        for obj2 in all_nwobjects:
-            if obj2["obj_name"] == obj:
-                if "obj_nat_ip" in obj2:
-                    nat_obj_list.append(obj2)
-                break
-    return nat_obj_list
 
 
 def is_nat_rule(
@@ -1031,7 +993,6 @@ def parse_nat_rules_in_rulebase(
     Extracts NAT rules from a rulebase and creates normalized NAT rules.
     Creates two RuleNormalized objects per NAT rule (original + translated).
     """
-    rule_num = 0
     for native_rule in rulebase_to_parse.get("data", []):
         # Check if this is a NAT rule
         is_snat, is_dnat = is_nat_rule(native_rule, normalized_config_adom, normalized_config_global)
@@ -1181,8 +1142,6 @@ def parse_nat_rules_in_rulebase(
         if rule_translated.rule_uid:
             normalized_nat_rulebase.rules[rule_translated.rule_uid] = rule_translated
 
-        rule_num += 1
-
 
 def _as_list(val: Any) -> list[Any] | None:  # pyright: ignore[reportUnknownParameterType]
     if isinstance(val, list) and val:
@@ -1265,7 +1224,6 @@ def new_process_nat_rules_for_rulebase(
 
     normalized_nat_rulebase = insert_parent_nat_rulebase(
         normalized_config_adom,
-        normalized_config_global,
         normalized_rulebase.uid,
         normalized_rulebase.mgm_uid,
     )
@@ -1286,7 +1244,6 @@ def new_process_nat_rules_for_rulebase(
 
 def insert_parent_nat_rulebase(
     normalized_config_adom: dict[str, Any],
-    _normalized_config_global: dict[str, Any],
     rulebase_uid: str,
     mgm_uid: str,
 ) -> Rulebase:

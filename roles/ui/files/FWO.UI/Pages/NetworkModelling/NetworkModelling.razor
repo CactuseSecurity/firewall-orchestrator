@@ -672,20 +672,23 @@ else
         actTicketSubscription?.Dispose();
     }
 
-    private void OnUserConfigChanged(Config _, ConfigItem[] __)
+    /// <summary>
+    /// Re-renders the page when user configuration changes.
+    /// </summary>
+    private void OnUserConfigChanged(Config config, ConfigItem[] configItems)
     {
         if (disposed)
         {
             return;
         }
 
-        Task.Run(async () => await InvokeAsync(() =>
+        _ = InvokeAsync(() =>
         {
             if (!disposed)
             {
                 StateHasChanged();
             }
-        }));
+        });
     }
 
     private async void OnTicketUpdate(List<WfTicket> tickets)

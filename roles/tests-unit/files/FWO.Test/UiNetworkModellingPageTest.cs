@@ -19,7 +19,6 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System.Reflection;
 using System.Security.Claims;
 
 namespace FWO.Test
@@ -192,7 +191,12 @@ namespace FWO.Test
         public async Task Render_ReactsToModIconifyChange_ForGenerateReportButton()
         {
             await using BunitContext context = CreateContext([Roles.Admin], out _, out SimulatedUserConfig userConfig);
-            IRenderedComponent<NetworkModelling> page = RenderPage(context, appId: "APP-A");
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters => parameters
+                .AddChildContent<NetworkModelling>(child =>
+                {
+                    child.Add(page => page.AppId, "APP-A");
+                }));
+            IRenderedComponent<NetworkModelling> page = wrapper.FindComponent<NetworkModelling>();
 
             page.WaitForAssertion(() =>
             {
@@ -200,19 +204,19 @@ namespace FWO.Test
                 Assert.That(buttons[0].TextContent.Trim(), Is.EqualTo(userConfig.GetText("generate_report")));
             });
 
-            userConfig.ModIconify = true;
             List<ConfigItem> changedItems = new()
             {
                 new ConfigItem { Key = "modIconify", Value = "true", User = userConfig.User.DbId }
             };
             await page.InvokeAsync(() => userConfig.SubscriptionUpdateHandler(changedItems.ToArray()));
-            await Task.Delay(50);
 
             page.WaitForAssertion(() =>
             {
                 IReadOnlyList<IElement> buttons = page.FindAll(".btn-group button");
                 Assert.That(buttons[0].InnerHtml, Does.Contain(Icons.GenerateReport));
             });
+
+            wrapper.Dispose();
         }
 
         private static BunitContext CreateContext(
@@ -255,7 +259,7 @@ namespace FWO.Test
                     {
                         child.Add(page => page.ConnId, connId);
                     }
-                }));
+            }));
             return wrapper.FindComponent<NetworkModelling>();
         }
 

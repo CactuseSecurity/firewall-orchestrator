@@ -92,6 +92,7 @@
 
     protected override void OnParametersSet()
     {
+        UpdateAdditionalInfoValues();
         overdueOwners = [.. OwnerData.Select(o => o.Owner).Where(o => o.RecertOverdue)];
         upcomingOwners = [.. OwnerData.Select(o => o.Owner).Where(o => o.RecertUpcoming)];
         furtherOwners = [.. OwnerData.Select(o => o.Owner).Where(o => o.RecertActive && !o.RecertOverdue && !o.RecertUpcoming)];
@@ -105,6 +106,14 @@
             .ThenBy(owner => owner.Name)
             .ToList();
         allRecertified = !furtherOwners.Any(o => o.NextRecertDate == null);
+    }
+
+    private void UpdateAdditionalInfoValues()
+    {
+        foreach (FwoOwner owner in OwnerData.Select(o => o.Owner))
+        {
+            owner.AdditionalInfoValue = OwnerRecertDisplay.FormatAdditionalInfoValue(owner, OwnerAdditionalInfoKey);
+        }
     }
 
     private string GetOverdueHeadline()

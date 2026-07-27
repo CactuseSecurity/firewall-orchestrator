@@ -18,6 +18,9 @@ namespace FWO.Data
         [JsonProperty("additional_info"), JsonPropertyName("additional_info")]
         public Dictionary<string, string>? AdditionalInfo { get; set; }
 
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public string AdditionalInfoValue { get; set; } = "";
+
         [JsonProperty("criticality"), JsonPropertyName("criticality")]
         public string? Criticality { get; set; }
 
@@ -34,7 +37,7 @@ namespace FWO.Data
         public string? ImportSource { get; set; }
 
         [JsonProperty("owner_networks"), JsonPropertyName("owner_networks")]
-        public OwnerNetwork[] OwnerNetworks { get; set; } = [];
+        public OwnerNetwork[] OwnerNetworks { get; set; } = Array.Empty<OwnerNetwork>();
 
         [JsonProperty("common_service_possible"), JsonPropertyName("common_service_possible")]
         public bool CommSvcPossible { get; set; } = false;
@@ -55,7 +58,7 @@ namespace FWO.Data
         public DateTime? NextRecertDate { get; set; }
 
         [JsonProperty("changelog_owners"), JsonPropertyName("changelog_owners")]
-        public List<OwnerChange> ChangelogOwners { get; set; } = [];
+        public List<OwnerChange> ChangelogOwners { get; set; } = new List<OwnerChange>();
 
         [JsonProperty("decomm_date"), JsonPropertyName("decomm_date")]
         public DateTime? DecommDate { get; set; }
@@ -83,6 +86,7 @@ namespace FWO.Data
             LastRecertCheck = owner.LastRecertCheck;
             RecertCheckParamString = owner.RecertCheckParamString;
             AdditionalInfo = owner.AdditionalInfo == null ? null : new Dictionary<string, string>(owner.AdditionalInfo);
+            AdditionalInfoValue = owner.AdditionalInfoValue;
             Criticality = owner.Criticality;
             OwnerLifeCycleStateId = owner.OwnerLifeCycleStateId;
             OwnerLifeCycleState = owner.OwnerLifeCycleState == null ? null : new OwnerLifeCycleState(owner.OwnerLifeCycleState);

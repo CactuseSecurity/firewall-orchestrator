@@ -25,14 +25,14 @@ namespace FWO.Test
         {
             FwoOwner owner = new()
             {
-                ChangelogOwners =
-                [
+                ChangelogOwners = new List<OwnerChange>
+                {
                     new()
                     {
                         ChangeAction = ChangelogActionType.INSERT,
                         ChangeImport = new() { Time = new DateTime(2026, 2, 1) }
                     }
-                ]
+                }
             };
 
             Assert.That(OwnerRecertDisplay.FormatLastRecertified(owner, new SimulatedUserConfig()), Is.EqualTo("01.02.2026 (Created)"));
@@ -54,15 +54,29 @@ namespace FWO.Test
         {
             FwoOwner owner = new()
             {
-                OwnerResponsibles =
-                [
+                OwnerResponsibles = new List<OwnerResponsible>
+                {
                     new() { ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeMain, Dn = "cn=z.user,ou=users,dc=test,dc=local" },
                     new() { ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeMain, Dn = "cn=a.user,ou=users,dc=test,dc=local" },
                     new() { ResponsibleTypeId = 99, Dn = "cn=other.user,ou=users,dc=test,dc=local" }
-                ]
+                }
             };
 
             Assert.That(OwnerRecertDisplay.FormatMainResponsibles(owner), Is.EqualTo("a.user, z.user"));
+        }
+
+        [Test]
+        public void FormatAdditionalInfoValue_ReturnsRequestedValue()
+        {
+            FwoOwner owner = new()
+            {
+                AdditionalInfo = new Dictionary<string, string>
+                {
+                    ["business_unit"] = "Finance"
+                }
+            };
+
+            Assert.That(OwnerRecertDisplay.FormatAdditionalInfoValue(owner, "business_unit"), Is.EqualTo("Finance"));
         }
 
         [Test]
@@ -70,11 +84,11 @@ namespace FWO.Test
         {
             FwoOwner owner = new()
             {
-                OwnerResponsibles =
-                [
+                OwnerResponsibles = new List<OwnerResponsible>
+                {
                     new() { ResponsibleTypeId = 7, Dn = "cn=first.group,ou=groups,dc=test,dc=local" },
                     new() { ResponsibleTypeId = 7, Dn = "cn=second.group,ou=groups,dc=test,dc=local" }
-                ]
+                }
             };
 
             Assert.That(OwnerRecertDisplay.FormatResponsibles(owner, 7, "; "), Is.EqualTo("first.group; second.group"));
@@ -86,11 +100,11 @@ namespace FWO.Test
             const string invalidDn = "not-a-distinguished-name";
             FwoOwner owner = new()
             {
-                OwnerResponsibles =
-                [
+                OwnerResponsibles = new List<OwnerResponsible>
+                {
                     new() { ResponsibleTypeId = 7, Dn = "" },
                     new() { ResponsibleTypeId = 7, Dn = invalidDn }
-                ]
+                }
             };
 
             Assert.That(OwnerRecertDisplay.FormatResponsibles(owner, 7, ", "), Is.EqualTo(invalidDn));

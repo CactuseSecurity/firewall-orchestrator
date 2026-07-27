@@ -34,7 +34,7 @@
     }
     @if (HasAdditionalInfoColumn())
     {
-        <Column TableItem="FwoOwner" Title="@AdditionalInfoColumnTitle" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+        <Column TableItem="FwoOwner" Title="@AdditionalInfoColumnTitle" Field="@(x => x.AdditionalInfoValue)" Sortable="true" Filterable="true">
            <Template>
                 @((MarkupString)GetAdditionalInfoValueHtml(context))
             </Template>

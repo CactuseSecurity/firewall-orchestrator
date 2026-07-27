@@ -45,13 +45,13 @@ namespace FWO.Test
         [Test]
         public void OwnerRecertReport_BooleanAdditionalInfoUsesShowAsHtml()
         {
-            List<OwnerConnectionReport> ownerData =
-            [
-                BuildOwnerReport("EXT-BOOL", "Bool Owner", DateTime.Today.AddDays(-1), new()
+            List<OwnerConnectionReport> ownerData = new List<OwnerConnectionReport>
+            {
+                BuildOwnerReport("EXT-BOOL", "Bool Owner", DateTime.Today.AddDays(-1), new Dictionary<string, string>
                 {
                     ["recert_required"] = "true"
                 })
-            ];
+            };
 
             IRenderedComponent<OwnerRecertReport> cut = Render<OwnerRecertReport>(parameters => parameters
                 .Add(p => p.OwnerData, ownerData)
@@ -61,6 +61,7 @@ namespace FWO.Test
             Assert.That(cut.Markup, Does.Contain("Label: recert_required"));
             Assert.That(cut.Markup, Does.Contain("bi bi-check-lg"));
             Assert.That(cut.Markup, Does.Not.Contain(">true<"));
+            Assert.That(ownerData[0].Owner.AdditionalInfoValue, Is.EqualTo("true"));
         }
 
         private static OwnerConnectionReport BuildOwnerReport(string extAppId, string name, DateTime nextRecertDate,

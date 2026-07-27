@@ -330,7 +330,7 @@ class OPNsenseUser(BaseModel):
     email: str | None  # /opnsense/system/user/email
     privileges: list[str] | None = Field(alias="priv")  # /opnsense/system/user/priv
     expires: str | None  # /opnsense/system/user/expires
-    description: str = Field(alias="descr")  # /opnsense/system/user/descr
+    description: str | None = Field(alias="descr")  # /opnsense/system/user/descr
 
     @field_validator("privileges", mode="before")
     @classmethod

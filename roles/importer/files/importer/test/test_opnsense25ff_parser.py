@@ -332,6 +332,16 @@ def test_parse_opnsense_config_defaults_missing_user_disabled_flag() -> None:
     assert config.users[0].disabled is False
 
 
+def test_parse_opnsense_config_allows_empty_user_description() -> None:
+    native_config = _native_config()
+    opnsense = cast("dict[str, Any]", native_config["opnsense"])
+    cast("dict[str, Any]", opnsense["system"]["user"][0])["descr"] = None
+
+    config = parse_opnsense_config(native_config)
+
+    assert config.users[0].description is None
+
+
 def test_parse_opnsense_config_mvc_rules_without_flag_fields_stay_unset() -> None:
     native_config = _native_config_with_mvc_filter_rules()
     opnsense = cast("dict[str, Any]", native_config["opnsense"])

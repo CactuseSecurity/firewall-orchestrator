@@ -84,6 +84,23 @@
   loop_control:
     label: "{{ item.item }}"
 
+# the database is not an fworch unit, but nothing in the stack survives a reboot without it and
+# RedHat does not enable it on package install
+- name: read the enablement state of the database service
+  command: "systemctl is-enabled {{ postgresql_package }}.service"
+  register: postgres_enabled_state
+  changed_when: false
+  failed_when: false
+  become: true
+  when: "'databaseserver' in group_names"
+
+- name: the database service must be enabled so that it starts after a reboot
+  assert:
+    that:
+      - postgres_enabled_state.stdout | trim in enabled_unit_states
+    fail_msg: "{{ postgresql_package }} is '{{ postgres_enabled_state.stdout | trim }}' instead of enabled"
+  when: "'databaseserver' in group_names"
+
 - name: read the installed unit files of the templated services
   slurp:
     src: "{{ fworch_systemd_unit_dir }}/{{ item }}.service"

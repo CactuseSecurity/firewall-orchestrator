@@ -303,6 +303,12 @@
         ['network-online.target', 'remote-fs.target', 'nss-lookup.target']
         + (['postgresql.service'] if 'databaseserver' in group_names else [])
       }}
+    # After= only orders, it does not pull the dependency in, so name it in Wants= as well
+    api_hasura_systemd_wants: >-
+      {{
+        ['network-online.target']
+        + (['postgresql.service'] if 'databaseserver' in group_names else [])
+      }}
 
 - name: ensure Hasura image is present
   block:
@@ -509,7 +515,7 @@
     content: |
       # managed by the {{ product_name }} installer - do not edit
       [Unit]
-      Wants=network-online.target
+      Wants={{ api_hasura_systemd_wants | join(' ') }}
       After={{ api_hasura_systemd_after | join(' ') }}
       # without this the default start rate limit puts the service into a permanent failed
       # state after a few fast failures, e.g. while the database is still starting up

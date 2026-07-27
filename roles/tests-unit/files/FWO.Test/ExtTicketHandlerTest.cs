@@ -490,6 +490,38 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task HandleStateChangeRequestedWithoutStateMappingStillUpdatesBundledExternalTicketIds()
+        {
+            SimulatedUserConfig localUserConfig = new();
+            ExtTicketHandlerTestApiConn.ResetTicketTasks();
+            ExtTicketHandlerTestApiConn localApiConnection = new()
+            {
+                OmitExtReqRequestedStateMapping = true
+            };
+
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+
+            ExternalRequest externalRequest = new()
+            {
+                Id = 1,
+                TicketId = 123,
+                TaskNumber = 1,
+                ExtRequestState = ExtStates.ExtReqRequested.ToString(),
+                ExtTicketId = "4711",
+                ExtQueryVariables = "{\"BundledTasks\":[1,2,3]}"
+            };
+
+            await handler.HandleStateChange(externalRequest);
+
+            for (int taskNumber = 1; taskNumber <= 3; ++taskNumber)
+            {
+                WfReqTask? task = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(taskNumber);
+                ClassicAssert.IsNotNull(task, $"Task {taskNumber} should exist.");
+                ClassicAssert.AreEqual("4711", task!.GetAddInfoValue(AdditionalInfoKeys.ExtIcketId));
+            }
+        }
+
+        [Test]
         public async Task HandleStateChangeDonePromotesAllConsecutiveInternalWorkRuleTasksToPlanning()
         {
             SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();

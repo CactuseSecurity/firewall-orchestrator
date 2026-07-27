@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using JsonRequired = System.Text.Json.Serialization.JsonRequiredAttribute;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
@@ -41,10 +42,13 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
     /// An <see cref="ActionResult{T}"/> containing a <see cref="RulesByFilterResponse"/> on success,
     /// or a suitable error result on failure.
     /// </returns>
+    /// <param name="request">The owner- or IP-based rule filter request.</param>
+    /// <param name="requestId">Optional client request identifier supplied through the <c>X-Request-Id</c> header.</param>
     [HttpPost("GetRulesByFilter")]
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     public async Task<ActionResult<RulesByFilterResponse>> GetRulesByFilter(
-        [FromBody] RulesByFilterRequest request)
+        [FromBody] RulesByFilterRequest request,
+        [FromHeader(Name = "X-Request-Id")] string? requestId = null)
     {
         try
         {
@@ -57,10 +61,9 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
             GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection);
             UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
 
-            string requestId = HttpContext.Request.Headers["X-Request-Id"].FirstOrDefault()
-                               ?? Guid.NewGuid().ToString();
+            string resolvedRequestId = requestId ?? Guid.NewGuid().ToString();
 
-            LogSiemEntry(request, requestId);
+            LogSiemEntry(request, resolvedRequestId);
 
             List<RuleDetail> rules;
             if (request.Query.OwnerId is not null)
@@ -84,7 +87,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                 rules = fetchedRules ?? [];
             }
 
-            return Ok(CreateRulesByFilterResponse(requestId, rules));
+            return Ok(CreateRulesByFilterResponse(resolvedRequestId, rules));
         }
         catch (Exception exception)
         {
@@ -490,6 +493,7 @@ public class RulesByFilterResponse
 
 public class RuleFilter
 {
+    [JsonRequired]
     public int MinPrefixLength { get; set; }
     public string InField { get; set; } = "";
     public string Action { get; set; } = "";

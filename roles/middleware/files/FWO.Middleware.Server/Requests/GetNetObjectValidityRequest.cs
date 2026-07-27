@@ -21,9 +21,8 @@ public sealed class GetNetObjectValidityRequest
     public int NetMask { get; set; }
 
     /// <summary>
-    /// Gets the MinPrefixLength value.
+    /// Gets the minimum prefix length. Defaults to 1 to preserve the F1 contract when the value is omitted.
     /// </summary>
-    [JsonRequired]
     [JsonPropertyName("minPrefixLength")]
-    public int MinPrefixLength { get; set; }
+    public int MinPrefixLength { get; set; } = 1;
 }

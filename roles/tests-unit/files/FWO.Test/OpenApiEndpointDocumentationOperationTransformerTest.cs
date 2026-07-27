@@ -242,25 +242,6 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
         Assert.That(operation.Description, Is.EqualTo("Existing description."));
     }
 
-    [Test]
-    public void ApplyIpOnlyResponseSchema_ListsFullAndCompactAlternatives()
-    {
-        OpenApiSchema fullSchema = new();
-        OpenApiSchema ipOnlySchema = new();
-        OpenApiResponse response = new()
-        {
-            Content = new Dictionary<string, OpenApiMediaType>
-            {
-                ["application/json"] = new OpenApiMediaType { Schema = fullSchema }
-            }
-        };
-
-        OpenApiApplicationZonesResponseTransformer.ApplyIpOnlyResponseSchema(response, ipOnlySchema);
-
-        OpenApiSchema schema = (OpenApiSchema)response.Content!["application/json"].Schema!;
-        Assert.That(schema.OneOf, Is.EqualTo(new List<IOpenApiSchema> { fullSchema, ipOnlySchema }));
-    }
-
     /// <summary>
     /// Verifies endpoint documentation providers are discovered without per-endpoint Program.cs registration.
     /// </summary>

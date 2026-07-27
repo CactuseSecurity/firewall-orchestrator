@@ -27,7 +27,7 @@ internal class FlowControllerAuthorizationTest
     }
 
     [TestCase(typeof(FlowRequestController), nameof(FlowRequestController.CreateRequest))]
-    public void WriteOrGenerationFlowEndpoints_RemainAdminOnly(Type controllerType, string methodName)
+    public void WriteFlowEndpoints_RemainAdminOnly(Type controllerType, string methodName)
     {
         AuthorizeAttribute authorize = GetAuthorizeAttribute(controllerType, methodName);
 

@@ -9,7 +9,7 @@ namespace FWO.Middleware.Server.Services
     public class ComplianceCheckStatusTracker
     {
         private readonly ConcurrentDictionary<string, ComplianceCheckJobStatus> jobStatuses = new();
-        private readonly ConcurrentDictionary<string, List<TaskCompletionSource<ComplianceCheckJobStatus>>> terminalWaiters = new();
+        private readonly ConcurrentDictionary<string, ConcurrentDictionary<Guid, TerminalStatusWaiter>> terminalWaiters = new();
 
         /// <summary>
         /// Creates a new queued compliance check status entry.
@@ -87,23 +87,27 @@ namespace FWO.Middleware.Server.Services
         /// <returns>The terminal job status.</returns>
         public Task<ComplianceCheckJobStatus> WaitForTerminalStatusAsync(string jobId, CancellationToken cancellationToken = default)
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return Task.FromCanceled<ComplianceCheckJobStatus>(cancellationToken);
+            }
+
             ComplianceCheckJobStatus? currentStatus = Get(jobId);
+            if (currentStatus is null)
+            {
+                return Task.FromException<ComplianceCheckJobStatus>(
+                    new KeyNotFoundException($"Compliance check job '{jobId}' was not found."));
+            }
+
             if (currentStatus?.Status is ComplianceCheckExecutionStatus.Succeeded or ComplianceCheckExecutionStatus.Failed)
             {
                 return Task.FromResult(currentStatus);
             }
 
-            TaskCompletionSource<ComplianceCheckJobStatus> waiter = new(TaskCreationOptions.RunContinuationsAsynchronously);
-            if (cancellationToken.CanBeCanceled)
-            {
-                cancellationToken.Register(() => waiter.TrySetCanceled(cancellationToken));
-            }
-
-            List<TaskCompletionSource<ComplianceCheckJobStatus>> waiters = terminalWaiters.GetOrAdd(jobId, _ => []);
-            lock (waiters)
-            {
-                waiters.Add(waiter);
-            }
+            TerminalStatusWaiter waiter = new();
+            ConcurrentDictionary<Guid, TerminalStatusWaiter> jobWaiters = terminalWaiters.GetOrAdd(jobId, _ => new());
+            jobWaiters[waiter.Id] = waiter;
+            waiter.RegisterCancellation(this, jobId, cancellationToken);
 
             currentStatus = Get(jobId);
             if (currentStatus?.Status is ComplianceCheckExecutionStatus.Succeeded or ComplianceCheckExecutionStatus.Failed)
@@ -111,7 +115,7 @@ namespace FWO.Middleware.Server.Services
                 CompleteTerminalWaiters(jobId, currentStatus);
             }
 
-            return waiter.Task;
+            return waiter.Completion.Task;
         }
 
         private void Update(string jobId, ComplianceCheckExecutionStatus status, string message)
@@ -143,18 +147,59 @@ namespace FWO.Middleware.Server.Services
 
         private void CompleteTerminalWaiters(string jobId, ComplianceCheckJobStatus jobStatus)
         {
-            if (!terminalWaiters.TryRemove(jobId, out List<TaskCompletionSource<ComplianceCheckJobStatus>>? waiters))
+            if (!terminalWaiters.TryRemove(jobId, out ConcurrentDictionary<Guid, TerminalStatusWaiter>? waiters))
             {
                 return;
             }
 
-            lock (waiters)
+            foreach (TerminalStatusWaiter waiter in waiters.Values)
             {
-                foreach (TaskCompletionSource<ComplianceCheckJobStatus> waiter in waiters)
-                {
-                    waiter.TrySetResult(jobStatus);
-                }
+                waiter.Completion.TrySetResult(jobStatus);
             }
         }
+
+        private void CancelTerminalWaiter(string jobId, TerminalStatusWaiter waiter, CancellationToken cancellationToken)
+        {
+            if (terminalWaiters.TryGetValue(jobId, out ConcurrentDictionary<Guid, TerminalStatusWaiter>? waiters)
+                && waiters.TryRemove(waiter.Id, out TerminalStatusWaiter? removedWaiter))
+            {
+                removedWaiter.Completion.TrySetCanceled(cancellationToken);
+            }
+        }
+
+        private sealed class TerminalStatusWaiter
+        {
+            private CancellationTokenRegistration cancellationRegistration;
+
+            public Guid Id { get; } = Guid.NewGuid();
+
+            public TaskCompletionSource<ComplianceCheckJobStatus> Completion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            public void RegisterCancellation(ComplianceCheckStatusTracker tracker, string jobId, CancellationToken cancellationToken)
+            {
+                if (!cancellationToken.CanBeCanceled)
+                {
+                    return;
+                }
+
+                cancellationRegistration = cancellationToken.Register(static state =>
+                {
+                    TerminalStatusWaiterState waiterState = (TerminalStatusWaiterState)state!;
+                    waiterState.Tracker.CancelTerminalWaiter(waiterState.JobId, waiterState.Waiter, waiterState.CancellationToken);
+                }, new TerminalStatusWaiterState(tracker, jobId, this, cancellationToken));
+
+                _ = Completion.Task.ContinueWith(
+                    _ => cancellationRegistration.Dispose(),
+                    CancellationToken.None,
+                    TaskContinuationOptions.ExecuteSynchronously,
+                    TaskScheduler.Default);
+            }
+        }
+
+        private sealed record TerminalStatusWaiterState(
+            ComplianceCheckStatusTracker Tracker,
+            string JobId,
+            TerminalStatusWaiter Waiter,
+            CancellationToken CancellationToken);
     }
 }

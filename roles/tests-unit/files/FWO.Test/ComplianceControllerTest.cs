@@ -64,6 +64,35 @@ namespace FWO.Test
         }
 
         [Test]
+        public void WaitForTerminalStatusAsync_ReturnsFaultedTaskForUnknownJob()
+        {
+            ComplianceCheckStatusTracker tracker = new();
+
+            Task<ComplianceCheckJobStatus> result = tracker.WaitForTerminalStatusAsync("missing");
+
+            Assert.ThrowsAsync<KeyNotFoundException>(async () => await result);
+        }
+
+        [Test]
+        public async Task WaitForTerminalStatusAsync_RemovesCanceledWaiterAndAllowsLaterWaits()
+        {
+            ComplianceCheckStatusTracker tracker = new();
+            ComplianceCheckJobStatus jobStatus = tracker.CreateQueuedJob();
+            using CancellationTokenSource cancellationTokenSource = new();
+
+            Task<ComplianceCheckJobStatus> canceledWait = tracker.WaitForTerminalStatusAsync(jobStatus.JobId, cancellationTokenSource.Token);
+            cancellationTokenSource.Cancel();
+
+            Assert.ThrowsAsync<TaskCanceledException>(async () => await canceledWait);
+
+            Task<ComplianceCheckJobStatus> terminalWait = tracker.WaitForTerminalStatusAsync(jobStatus.JobId);
+            tracker.SetSucceeded(jobStatus.JobId);
+
+            ComplianceCheckJobStatus terminalStatus = await terminalWait;
+            Assert.That(terminalStatus.Status, Is.EqualTo(ComplianceCheckExecutionStatus.Succeeded));
+        }
+
+        [Test]
         public void StartInitialComplianceCheck_ReturnsConflictWhenJobAlreadyActive()
         {
             ComplianceCheckStatusTracker tracker = new();

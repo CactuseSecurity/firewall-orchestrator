@@ -222,7 +222,7 @@ namespace FWO.Test
         public void NatRulesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting nat rules report html generation");
-            ReportNatRules reportNatRules = new(query, userConfig, ReportType.NatRules)
+            ReportNatRules reportNatRules = new(query, userConfig, ReportType.NatRules, new MockRuleTreeBuilder())
             {
                 ReportData = ConstructNatRuleReport()
             };

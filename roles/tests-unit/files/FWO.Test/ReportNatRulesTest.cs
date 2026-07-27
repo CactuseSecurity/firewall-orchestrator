@@ -3,6 +3,7 @@ using FWO.Data;
 using FWO.Data.Report;
 using FWO.Report;
 using FWO.Report.Filter;
+using FWO.Test.Mocks;
 using FWO.Ui.Display;
 using NUnit.Framework;
 
@@ -20,7 +21,7 @@ namespace FWO.Test
         {
             var userConfig = new SimulatedUserConfig();
             _display = new NatRuleDisplayHtml(userConfig);
-            _report = new ReportNatRules(new DynGraphqlQuery(""), userConfig, ReportType.NatRules);
+            _report = new ReportNatRules(new DynGraphqlQuery(""), userConfig, ReportType.NatRules, new MockRuleTreeBuilder());
         }
 
         [Test]

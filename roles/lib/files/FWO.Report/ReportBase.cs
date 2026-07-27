@@ -160,7 +160,7 @@ namespace FWO.Report
                 ReportType.Changes => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter, reportFilter.ReportParams.IncludeObjects),
                 ReportType.ResolvedChanges => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter, reportFilter.ReportParams.IncludeObjects),
                 ReportType.ResolvedChangesTech => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter, reportFilter.ReportParams.IncludeObjects),
-                ReportType.NatRules => new ReportNatRules(query, userConfig, repType, ruleTreeBuilder),
+                ReportType.NatRules => new ReportNatRules(query, userConfig, repType, ruleTreeBuilder ?? throw new ArgumentNullException(nameof(ruleTreeBuilder), "NAT rules report requires a rule tree builder.")),
                 ReportType.Recertification => new ReportRules(query, userConfig, repType, ruleTreeBuilder),
                 ReportType.UnusedRules => new ReportRules(query, userConfig, repType, ruleTreeBuilder),
                 ReportType.Connections => new ReportConnections(query, userConfig, repType),

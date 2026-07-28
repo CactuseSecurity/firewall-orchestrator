@@ -23,6 +23,7 @@ namespace FWO.Ui.Services
     public class AnonymousGlobalConfigTokenProvider : IAnonymousGlobalConfigTokenProvider, IDisposable
     {
         private readonly MiddlewareClient middlewareClient;
+        private readonly bool ownsClient;
         private bool disposed;
 
         /// <summary>
@@ -30,7 +31,7 @@ namespace FWO.Ui.Services
         /// </summary>
         /// <param name="middlewareServerUri">Base URI of the FWO middleware server.</param>
         public AnonymousGlobalConfigTokenProvider(string middlewareServerUri)
-            : this(new MiddlewareClient(middlewareServerUri))
+            : this(new MiddlewareClient(middlewareServerUri), ownsClient: true)
         {
         }
 
@@ -38,9 +39,10 @@ namespace FWO.Ui.Services
         /// Creates a provider with a custom middleware client.
         /// </summary>
         /// <param name="middlewareClient">Middleware client used for requests.</param>
-        internal AnonymousGlobalConfigTokenProvider(MiddlewareClient middlewareClient)
+        internal AnonymousGlobalConfigTokenProvider(MiddlewareClient middlewareClient, bool ownsClient = false)
         {
             this.middlewareClient = middlewareClient;
+            this.ownsClient = ownsClient;
         }
 
         /// <inheritdoc />
@@ -70,7 +72,7 @@ namespace FWO.Ui.Services
                 return;
             }
 
-            if (disposing)
+            if (disposing && ownsClient)
             {
                 middlewareClient.Dispose();
             }

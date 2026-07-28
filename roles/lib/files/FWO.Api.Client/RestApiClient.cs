@@ -39,7 +39,7 @@ namespace FWO.Api.Client
             return new RestClient(restClientOptions, null, ConfigureRestClientSerialization);
         }
 
-        private static void ConfigureRestClientSerialization(SerializerConfig config)
+        protected static void ConfigureRestClientSerialization(SerializerConfig config)
         {
             JsonNetSerializer serializer = new(); // Case insensivitive is enabled by default
             config.UseSerializer(() => serializer);

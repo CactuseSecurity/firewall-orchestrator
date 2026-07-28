@@ -220,7 +220,13 @@ namespace FWO.Test
             userConfig.User.Dn = "uid=tester,ou=people,dc=example,dc=com";
 
             MockApiConnection apiConnection = new();
-            return new FileUploadService(apiConnection.AsSub(), userConfig, middlewareClient ?? new TestMiddlewareClient(), kAllowedFileFormats, mediator);
+            if (middlewareClient is not null)
+            {
+                return new FileUploadService(apiConnection.AsSub(), userConfig, middlewareClient, kAllowedFileFormats, mediator);
+            }
+
+            using TestMiddlewareClient defaultMiddlewareClient = new();
+            return new FileUploadService(apiConnection.AsSub(), userConfig, defaultMiddlewareClient, kAllowedFileFormats, mediator);
         }
 
         private static ReadOnlyMemory<byte> GetLogoBytes()

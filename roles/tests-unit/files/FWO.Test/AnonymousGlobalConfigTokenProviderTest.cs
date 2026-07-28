@@ -14,7 +14,7 @@ namespace FWO.Test
         [Test]
         public async Task CreateTokenPairAsync_ReturnsTokenPairFromMiddlewareResponse()
         {
-            TestMiddlewareClient middlewareClient = new();
+            using TestMiddlewareClient middlewareClient = new();
             middlewareClient.UseHandler(new SingleResponseHandler(HttpStatusCode.OK, kTokenResponse));
             using AnonymousGlobalConfigTokenProvider provider = new(middlewareClient);
 
@@ -28,23 +28,34 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task CreateTokenPairAsync_ThrowsWhenAccessTokenIsMissing()
+        public void CreateTokenPairAsync_ThrowsWhenAccessTokenIsMissing()
         {
-            TestMiddlewareClient middlewareClient = new();
+            using TestMiddlewareClient middlewareClient = new();
             middlewareClient.UseHandler(new SingleResponseHandler(HttpStatusCode.OK, "{\"RefreshToken\":\"refresh-token\"}"));
             using AnonymousGlobalConfigTokenProvider provider = new(middlewareClient);
 
-            InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await provider.CreateTokenPairAsync(CancellationToken.None))!;
+            InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(() => provider.CreateTokenPairAsync(CancellationToken.None))!;
 
             Assert.That(exception.Message, Does.Contain("Could not create anonymous global config token"));
         }
 
         [Test]
-        public async Task CreateTokenPairAsync_ThrowsAfterDispose()
+        public void CreateTokenPairAsync_ThrowsOnNonSuccessStatus()
         {
-            TestMiddlewareClient middlewareClient = new();
-            middlewareClient.UseHandler(new SingleResponseHandler(HttpStatusCode.OK, kTokenResponse));
-            AnonymousGlobalConfigTokenProvider provider = new(middlewareClient);
+            using TestMiddlewareClient middlewareClient = new();
+            middlewareClient.UseHandler(new SingleResponseHandler(HttpStatusCode.InternalServerError, kTokenResponse));
+            using AnonymousGlobalConfigTokenProvider provider = new(middlewareClient);
+
+            InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(() => provider.CreateTokenPairAsync(CancellationToken.None))!;
+
+            Assert.That(exception.Message, Does.Contain("Could not create anonymous global config token"));
+        }
+
+        [Test]
+        public void CreateTokenPairAsync_ThrowsAfterDispose()
+        {
+            using TestMiddlewareClient middlewareClient = new();
+            using AnonymousGlobalConfigTokenProvider provider = new(middlewareClient);
             provider.Dispose();
 
             Assert.ThrowsAsync<ObjectDisposedException>(() => provider.CreateTokenPairAsync(CancellationToken.None));

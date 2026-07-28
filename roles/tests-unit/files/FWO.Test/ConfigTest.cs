@@ -8,12 +8,13 @@ using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server;
 using NUnit.Framework;
+using System.Text.RegularExpressions;
 
 namespace FWO.Test
 {
     [TestFixture]
     [Parallelizable]
-    internal class ConfigTest
+    internal partial class ConfigTest
     {
         private sealed class UserConfigApiConnection(ConfigItem[] configItems) : ApiConnection
         {
@@ -349,6 +350,38 @@ namespace FWO.Test
             Assert.That(ConfigQueries.subscribeFlowSyncConfigChanges, Does.Contain("flowSyncSleepTime"));
             Assert.That(ConfigQueries.subscribeFlowSyncConfigChanges, Does.Contain("flowNamingSourceManagementRanking"));
         }
+
+        [Test]
+        public void ComplianceCheckSubscription_ContainsDesignatedZoneMatrix()
+        {
+            Assert.That(ConfigQueries.subscribeComplianceCheckConfigChanges, Does.Contain("complianceDesignatedZoneMatrix"));
+        }
+
+        [Test]
+        public void ComplianceCheckSubscription_LimitCoversAllTrackedConfigKeys()
+        {
+            string subscription = ConfigQueries.subscribeComplianceCheckConfigChanges;
+            MatchCollection configKeyFilters = ConfigKeyFiltersRegex().Matches(subscription);
+            int trackedConfigKeyCount = configKeyFilters
+                .SelectMany(match => QuotedValueRegex().Matches(match.Groups["body"].Value).Select(quotedValue => quotedValue.Groups[1].Value))
+                .Distinct(StringComparer.Ordinal)
+                .Count();
+            int limitStart = subscription.IndexOf("limit:", StringComparison.Ordinal);
+
+            Assert.That(limitStart, Is.GreaterThanOrEqualTo(0), "Subscription limit not found.");
+
+            string limitText = subscription[(limitStart + "limit:".Length)..].TrimStart();
+            int limitEnd = limitText.IndexOfAny(['\r', '\n', ')']);
+            string limitValue = limitEnd >= 0 ? limitText[..limitEnd] : limitText;
+
+            Assert.That(int.Parse(limitValue), Is.GreaterThanOrEqualTo(trackedConfigKeyCount));
+        }
+
+        [GeneratedRegex(@"config_key\s*:\s*\{(?<body>.*?)\}", RegexOptions.Singleline)]
+        private static partial Regex ConfigKeyFiltersRegex();
+
+        [GeneratedRegex("\"([^\"]+)\"")]
+        private static partial Regex QuotedValueRegex();
 
         [Test]
         public void ConfigData_DefaultsFlowSyncSleepTimeToDisabled()

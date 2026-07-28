@@ -1,4 +1,4 @@
-# Up to release 11.0 the fworch units were installed into the vendor unit directory
+# Up to release 9.2.3 the fworch units were installed into the vendor unit directory
 # (/lib/systemd/system). They are now written to the local unit directory (/etc/systemd/system),
 # where the local copy takes precedence. Remove the superseded vendor copies so that both do not
 # drift apart, and re-create the enablement symlinks, which still point at the removed files.
@@ -48,4 +48,24 @@
     name: "{{ item }}.service"
     enabled: true
   loop: "{{ fworch_reenable_unit_names }}"
+  become: true
+
+# earlier releases wrote the unit files with backup=true, which dropped a
+# <unit>.service.<pid>.<date>@<time>~ copy next to every unit on each change. The units are
+# rendered from the installer, so those copies have no recovery value - they only clutter the
+# unit directories. Scoped to fworch unit names to leave backups of foreign units alone.
+- name: find backup copies of {{ product_name }} unit files left behind by earlier releases
+  find:
+    paths: "{{ fworch_systemd_unit_search_dirs }}"
+    patterns: "{{ fworch_systemd_unit_names | map('regex_replace', '$', '.service.*~') | list }}"
+  register: fworch_systemd_unit_backups
+  become: true
+
+- name: remove backup copies of {{ product_name }} unit files
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ fworch_systemd_unit_backups.files | default([]) }}"
+  loop_control:
+    label: "{{ item.path }}"
   become: true

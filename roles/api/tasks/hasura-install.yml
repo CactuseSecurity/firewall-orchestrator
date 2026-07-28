@@ -470,7 +470,6 @@
           )
       }}
     dest: "{{ fworch_systemd_unit_dir }}/{{ api_service_name }}.service"
-    backup: true
     mode: "0644"
     owner: "root"
   become: true
@@ -482,7 +481,6 @@
     src: "{{ api_existing_service_unit_path }}"
     dest: "{{ fworch_systemd_unit_dir }}/{{ api_service_name }}.service"
     remote_src: true
-    backup: true
     mode: "0644"
     owner: "root"
   become: true

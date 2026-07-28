@@ -583,5 +583,5 @@ Not supported any longer are:
 - close some test gaps in middleware server
 - fix legacy sonar findings
 - fix config change in modelling
-- feat new REST API endpoint: ResolveZonesforObject
-- feat new REST API endpoint: time pbject ID Lookup
+- feat new REST API endpoint: ResolveZonesForObjects
+- feat new REST API endpoint: time object ID lookup

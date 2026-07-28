@@ -3,7 +3,7 @@
 ## Unit locations
 
 All systemd units owned by the installer are written to the local unit directory
-`/etc/systemd/system`. Up to release 11.0 they were installed into the vendor directory
+`/etc/systemd/system`. Up to release 9.2.3 they were installed into the vendor directory
 `/lib/systemd/system`, which belongs to the package manager and is not the correct place for
 units maintained by an administrator or an installer.
 
@@ -37,6 +37,11 @@ required because systemd matches enablement symlinks by unit name: a symlink in
 `multi-user.target.wants` that still points into the vendor directory keeps reporting the service
 as `enabled` while no longer resolving to a unit file, so the service would silently not start on
 the next reboot.
+
+The unit files are written without `backup`, so that no `<unit>.service.<pid>.<date>@<time>~`
+copies pile up in the unit directories - the units are rendered by the installer and a stale copy
+of a previous revision has no recovery value. The same task deletes the copies that earlier
+releases left behind, in both unit directories and scoped to the fworch unit names.
 
 ## Startup ordering and restart behaviour
 

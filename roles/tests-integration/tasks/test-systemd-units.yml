@@ -49,6 +49,23 @@
       superseded unit files still present in {{ fworch_systemd_vendor_unit_dir }}:
       {{ vendor_unit_files.results | selectattr('stat.exists') | map(attribute='item') | list }}
 
+# the installer used to write the units with backup=true, which left a copy of every previous
+# revision next to the unit; finalize cleans them up and no task may create new ones
+- name: search both unit directories for leftover unit file backup copies
+  find:
+    paths: "{{ fworch_systemd_unit_search_dirs }}"
+    patterns: "{{ fworch_systemd_unit_names | map('regex_replace', '$', '.service.*~') | list }}"
+  register: leftover_unit_backups
+  become: true
+
+- name: no unit file backup copies may be left behind in the unit directories
+  assert:
+    that:
+      - leftover_unit_backups.files | default([]) | length == 0
+    fail_msg: >-
+      unit file backup copies still present:
+      {{ leftover_unit_backups.files | default([]) | map(attribute='path') | list }}
+
 - name: read the unit path systemd resolves each service to
   command: "systemctl show {{ item }}.service --property=FragmentPath --value"
   loop: "{{ expected_unit_names }}"

@@ -189,10 +189,10 @@ def normalize_vip_object(obj_orig: dict[str, Any], obj: dict[str, Any], nw_objec
     if "obj_nat_ip" not in obj:
         return
 
-    finalize_vip_nat_object(obj_orig, obj, nat_obj, nw_objects)
+    _finalize_vip_nat_object(obj_orig, obj, nat_obj, nw_objects)
 
 
-def finalize_vip_nat_object(
+def _finalize_vip_nat_object(
     obj_orig: dict[str, Any], obj: dict[str, Any], nat_obj: dict[str, Any], nw_objects: list[dict[str, Any]]
 ) -> None:
     if "obj_ip_end" not in nat_obj:
@@ -213,11 +213,13 @@ def finalize_vip_nat_object(
 def normalize_vip_object_nat_ip(obj_orig: dict[str, Any], obj: dict[str, Any], nat_obj: dict[str, Any]) -> None:
     # now dealing with the nat ip obj (mappedip)
     if "mappedip" not in obj_orig or len(obj_orig["mappedip"]) == 0:
-        FWOLogger.warning("vip (extip): found empty mappedip field for " + obj_orig["name"])
+        FWOLogger.warning("vip (mappedip): found empty mappedip field for " + obj_orig["name"])
         return
 
     if len(obj_orig["mappedip"]) > 1:
-        FWOLogger.warning("vip (extip): found more than one mappedip, just using the first one for " + obj_orig["name"])
+        FWOLogger.warning(
+            "vip (mappedip): found more than one mappedip, just using the first one for " + obj_orig["name"]
+        )
     nat_ip = obj_orig["mappedip"][0]
     set_ip_in_obj(nat_obj, str(nat_ip))
     obj.update({"obj_nat_ip": str(nat_obj["obj_ip"])})  # save nat ip in vip obj
@@ -233,16 +235,19 @@ def normalize_vip_object_nat_ip(obj_orig: dict[str, Any], obj: dict[str, Any], n
     ###### range handling
 
 
-def set_ip_in_obj(
-    nw_obj: dict[str, Any], ip: str
-) -> None:  # add start and end ip in nw_obj if it is a range, otherwise do nothing
+def set_ip_in_obj(nw_obj: dict[str, Any], ip: str) -> None:
+    # sets start and end ip in nw_obj for a range, or just the ip for a host - clearing any
+    # previously set obj_ip_end so a stale range end can't leak in from an earlier ip in nw_obj
     if "-" in ip:  # dealing with range
         ip_start, ip_end = ip.split("-")
         nw_obj.update({"obj_ip": str(ip_start)})
         if ip_end != ip_start:
             nw_obj.update({"obj_ip_end": str(ip_end)})
+        else:
+            nw_obj.pop("obj_ip_end", None)
     else:
         nw_obj.update({"obj_ip": str(ip)})
+        nw_obj.pop("obj_ip_end", None)
 
 
 # for members of groups, the name of the member obj needs to be fetched separately (starting from API v1.?)

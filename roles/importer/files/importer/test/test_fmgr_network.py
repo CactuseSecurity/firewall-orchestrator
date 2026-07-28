@@ -85,6 +85,19 @@ def test_normalize_vip_object_with_extip_range_sets_obj_ip_end():
     assert obj["obj_ip_end"] == "203.0.113.10"
 
 
+def test_normalize_vip_object_with_extip_range_and_host_mappedip_does_not_leak_extip_end():
+    obj_orig = {"name": "vip_range_host_nat", "extip": ["1.1.1.1-1.1.1.5"], "mappedip": ["10.0.0.1"]}
+    obj: dict[str, Any] = {}
+    nw_objects: list[dict[str, Any]] = []
+
+    normalize_vip_object(obj_orig, obj, nw_objects)
+
+    assert obj["obj_nat_ip_end"] == "10.0.0.1"
+    nat_obj = nw_objects[0]
+    assert nat_obj["obj_ip_end"] == "10.0.0.1"
+    assert nat_obj["obj_name"] == "10.0.0.1_NatNwObj"
+
+
 def test_normalize_vip_object_with_associated_interface_sets_nat_obj_zone():
     obj_orig = {
         "name": "vip_zone",

@@ -3,7 +3,7 @@ from __future__ import annotations
 import ipaddress
 import json
 from datetime import datetime, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import fwo_const
 from fw_modules.checkpointR8x import cp_const
@@ -12,11 +12,17 @@ from fwo_base import cidr_to_range
 from fwo_const import ANY_IP_END, ANY_IP_START, LIST_DELIMITER
 from fwo_log import FWOLogger
 from models.time_object import TimeObject
-from services.service_provider import ServiceProvider
+
+if TYPE_CHECKING:
+    from fwo_api_call import FwoApiCall
 
 
 def normalize_network_objects(
-    full_config: dict[str, Any], config2import: dict[str, Any], import_id: int, mgm_id: int = 0
+    fwo_api_call: FwoApiCall,
+    full_config: dict[str, Any],
+    config2import: dict[str, Any],
+    import_id: int,
+    mgm_id: int = 0,
 ):
     nw_objects: list[dict[str, Any]] = []
     global_domain = initialize_global_domain(full_config["objects"])
@@ -24,7 +30,7 @@ def normalize_network_objects(
     for obj_dict in full_config["objects"]:
         if obj_dict["type"] in cp_const.time_obj_table_names:
             continue  # time objects are handled in separate function
-        collect_nw_objects(obj_dict, nw_objects, global_domain, mgm_id=mgm_id)
+        collect_nw_objects(fwo_api_call, obj_dict, nw_objects, global_domain, mgm_id=mgm_id)
 
         for nw_obj in nw_objects:
             nw_obj.update({"control_id": import_id})
@@ -67,7 +73,11 @@ def initialize_global_domain(objects: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def collect_nw_objects(
-    object_table: dict[str, Any], nw_objects: list[dict[str, Any]], global_domain: dict[str, Any], mgm_id: int = 0
+    fwo_api_call: FwoApiCall,
+    object_table: dict[str, Any],
+    nw_objects: list[dict[str, Any]],
+    global_domain: dict[str, Any],
+    mgm_id: int = 0,
 ) -> None:
     """
     Collect nw_objects from object tables and write them into global nw_objects dict
@@ -80,7 +90,7 @@ def collect_nw_objects(
                 if is_obj_already_collected(nw_objects, obj):
                     continue
                 member_refs, member_names = handle_members(obj)
-                ip_addr = get_ip_of_obj(obj, mgm_id=mgm_id)
+                ip_addr = get_ip_of_obj(fwo_api_call, obj, mgm_id=mgm_id)
                 obj_type, first_ip, last_ip = handle_object_type_and_ip(obj, ip_addr)
                 comments = get_comment_and_color_of_obj(obj)
 
@@ -217,7 +227,7 @@ def validate_ip_address(address: str) -> bool:
         return False
 
 
-def get_ip_of_obj(obj: dict[str, Any], mgm_id: int | None = None) -> str | None:
+def get_ip_of_obj(fwo_api_call: FwoApiCall, obj: dict[str, Any], mgm_id: int | None = None) -> str | None:
     if "ipv4-address" in obj:
         ip_addr = obj["ipv4-address"]
     elif "ipv6-address" in obj:
@@ -240,16 +250,13 @@ def get_ip_of_obj(obj: dict[str, Any], mgm_id: int | None = None) -> str | None:
         pass  # ignore None and ranges here
     elif not validate_ip_address(ip_addr):
         alert_description = "object is not a valid ip address (" + str(ip_addr) + ")"
-        service_provider = ServiceProvider()
-        global_state = service_provider.get_global_state()
-        api_call = global_state.import_state.api_call
-        api_call.create_data_issue(
+        fwo_api_call.create_data_issue(
             severity=2, obj_name=obj["name"], object_type=obj["type"], description=alert_description, mgm_id=mgm_id
         )
         alert_description = (
             "object '" + obj["name"] + "' (type=" + obj["type"] + ") is not a valid ip address (" + str(ip_addr) + ")"
         )
-        api_call.set_alert(
+        fwo_api_call.set_alert(
             title="import error",
             severity=2,
             description=alert_description,

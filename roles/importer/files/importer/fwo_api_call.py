@@ -14,10 +14,9 @@ from fwo_log import FWOLogger
 from query_analyzer import QueryAnalyzer
 
 if TYPE_CHECKING:
-    from model_controllers.import_state_controller import ImportStateController
     from model_controllers.management_controller import ManagementController
     from models.fwconfig_normalized import FwConfigNormalized
-    from models.import_state import ImportState
+    from states.import_state import ImportState
 
 # NOTE: we cannot import ImportState(Controller) here due to circular refs
 
@@ -159,7 +158,7 @@ class FwoApiCall:
     def unlock_import(self, import_state: ImportState, success: bool):
         import_id = import_state.import_id
         mgm_id = import_state.mgm_details.mgm_id
-        import_stats = import_state.stats
+        import_stats = import_state.statistics_controller
 
         try:
             query_variables: dict[str, Any] = {
@@ -224,7 +223,7 @@ class FwoApiCall:
             FWOLogger.exception("failed to delete config without changes")
 
     def get_error_string_from_imp_control(
-        self, _: ImportStateController, query_variables: dict[str, Any]
+        self, _: ImportState, query_variables: dict[str, Any]
     ) -> list[dict[str, Any]]:  # TYPING: confirm return type
         error_query = (
             "query getErrors($importId:bigint) { import_control(where:{control_id:{_eq:$importId}}) { import_errors } }"
@@ -400,17 +399,17 @@ class FwoApiCall:
             + ")"
             + str(" threw errors," if exception is not None else " successful,")
             + " total change count: "
-            + str(import_state.stats.get_total_change_number())
+            + str(import_state.statistics_controller.get_total_change_number())
             + ", rule change count: "
-            + str(import_state.stats.get_rule_change_number())
+            + str(import_state.statistics_controller.get_rule_change_number())
             + ", duration: "
             + str(int(time.time()) - import_state.start_time)
             + "s"
         )
         import_result += ", ERRORS: " + exception_message if exception_message is not None else ""
 
-        if import_state.stats.get_change_details() != {} and exception is None:
-            import_result += ", change details: " + str(import_state.stats.get_change_details())
+        if import_state.statistics_controller.get_change_details() != {} and exception is None:
+            import_result += ", change details: " + str(import_state.statistics_controller.get_change_details())
 
         if exception is not None:
             self.create_data_issue(severity=1, description=exception_message)

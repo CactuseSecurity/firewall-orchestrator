@@ -73,3 +73,6 @@ cov.xml
 **/.claude/
 FWO.local.runsettings
 **/*.lscache
+
+.agents
+*.csproj.lscache

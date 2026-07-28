@@ -157,6 +157,7 @@ namespace FWO.Test
             {"host","Host"},
             {"network","Network"},
             {"ip_range","IP Range"},
+            {"internet_local_zone","Internet/Local"},
             {"connections","Connections"},
             {"interfaces","Interfaces"},
             {"own_common_services","Own Common Services"},

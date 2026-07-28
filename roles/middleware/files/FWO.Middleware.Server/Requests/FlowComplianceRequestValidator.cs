@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using System.Net.Sockets;
 
 namespace FWO.Middleware.Server.Requests;
 
@@ -86,7 +87,17 @@ public static class FlowComplianceRequestValidator
     /// </summary>
     public static bool TryValidateIpRange(string ipStart, string ipEnd, string collectionName, int itemIndex, out string? errorMessage)
     {
-        (bool isValid, string? validationError) = ValidateIpRange(ipStart, ipEnd, collectionName, itemIndex);
+        (bool isValid, string? validationError) = ValidateIpRange(ipStart, ipEnd, detail => $"'{collectionName}' entry at index {itemIndex} {detail}");
+        errorMessage = validationError;
+        return isValid;
+    }
+
+    /// <summary>
+    /// Validates a single IPv4 range using the same semantics as flow compliance requests.
+    /// </summary>
+    public static bool TryValidateIpRange(string ipStart, string ipEnd, string context, out string? errorMessage)
+    {
+        (bool isValid, string? validationError) = ValidateIpRange(ipStart, ipEnd, detail => $"'{context}' {detail}");
         errorMessage = validationError;
         return isValid;
     }
@@ -141,11 +152,7 @@ public static class FlowComplianceRequestValidator
     {
         if (item.AdditionalData is { Count: > 0 })
         {
-            string allowedShapes = string.Join(" or ", allowedKeys.Select(key => $"{{ \"{key.JsonName}\": ... }}"));
-            string keyHelp = string.Join(" ", allowedKeys.Select(key => $"'{key.JsonName}': {key.Description}"));
-
-            errorResult = new BadRequestObjectResult(
-                $"'{collectionName}' only accepts {allowedShapes}. Valid keys: {keyHelp}");
+            errorResult = RequestValidationMessageBuilder.BuildAllowedKeysError($"{collectionName} entry at index {itemIndex}", allowedKeys);
             return false;
         }
 
@@ -174,7 +181,7 @@ public static class FlowComplianceRequestValidator
 
     private static (bool IsValid, string? ErrorMessage) TryValidateIpRange(GetFlowComplianceStateRequest.IpRangeRequest ipRange, string collectionName, int itemIndex)
     {
-        return ValidateIpRange(ipRange.IpStart, ipRange.IpEnd, collectionName, itemIndex);
+        return ValidateIpRange(ipRange.IpStart, ipRange.IpEnd, detail => $"'{collectionName}' entry at index {itemIndex} {detail}");
     }
 
     private static (bool IsValid, string? ErrorMessage) TryValidateServiceRange(GetFlowComplianceStateRequest.ServiceRangeRequest serviceRange, string collectionName, int itemIndex)
@@ -182,26 +189,31 @@ public static class FlowComplianceRequestValidator
         return ValidateServiceRange(serviceRange.PortStart, serviceRange.PortEnd, collectionName, itemIndex);
     }
 
-    private static (bool IsValid, string? ErrorMessage) ValidateIpRange(string ipStartValue, string ipEndValue, string collectionName, int itemIndex)
+    private static (bool IsValid, string? ErrorMessage) ValidateIpRange(string ipStartValue, string ipEndValue, Func<string, string> errorFactory)
     {
         if (!IPAddress.TryParse(ipStartValue, out IPAddress? ipStart))
         {
-            return (false, $"'{collectionName}' entry at index {itemIndex} has an invalid 'ipStart' value.");
+            return (false, errorFactory("has an invalid 'ipStart' value."));
         }
 
         if (!IPAddress.TryParse(ipEndValue, out IPAddress? ipEnd))
         {
-            return (false, $"'{collectionName}' entry at index {itemIndex} has an invalid 'ipEnd' value.");
+            return (false, errorFactory("has an invalid 'ipEnd' value."));
         }
 
         if (ipStart.AddressFamily != ipEnd.AddressFamily)
         {
-            return (false, $"'{collectionName}' entry at index {itemIndex} must use the same address family for 'ipStart' and 'ipEnd'.");
+            return (false, errorFactory("must use the same address family for 'ipStart' and 'ipEnd'."));
+        }
+
+        if (ipStart.AddressFamily == AddressFamily.InterNetworkV6)
+        {
+            return (false, errorFactory("does not support IPv6 addresses. Only IPv4 values are allowed for 'ipStart' and 'ipEnd'."));
         }
 
         if (CompareIpAddresses(ipStart, ipEnd) > 0)
         {
-            return (false, $"'{collectionName}' entry at index {itemIndex} must satisfy 'ipStart' <= 'ipEnd'.");
+            return (false, errorFactory("must satisfy 'ipStart' <= 'ipEnd'."));
         }
 
         return (true, null);

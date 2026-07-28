@@ -78,7 +78,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception)
             {
-                Log.WriteDebug("Token", "SessionStorage is currently unavailable. Token synchronization will be retried after the client reconnects.");
+                Log.WriteDebug("Token", "SessionStorage is currently unavailable.");
             }
         }
 

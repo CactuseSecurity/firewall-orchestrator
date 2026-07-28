@@ -214,7 +214,6 @@ namespace FWO.ExternalSystems.CheckPoint
         }
 
         #endregion
-
         #region External Processing
 
         public override async Task<RestResponse<int>> CreateExternalTicket()
@@ -227,7 +226,6 @@ namespace FWO.ExternalSystems.CheckPoint
             {
                 EnsureExecutionPlanLoaded();
                 RestResponse<int> response = await ExecuteAllSteps();
-                TicketId = checkPointClient.CurrentSessionId;
 
                 if (!IsSynchronousSuccess(response))
                 {

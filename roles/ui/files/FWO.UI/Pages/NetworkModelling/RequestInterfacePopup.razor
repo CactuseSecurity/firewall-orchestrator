@@ -26,12 +26,11 @@
             </div>
             <div class="row mt-2 me-auto">
                 <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("reason"))*:</label>
-                <div class="col-sm-9">
-                    <textarea rows="5" type="text" class="w-100" @bind="Reason" />
-                    <small class="form-text text-muted d-block mt-1">
-                        @(userConfig.GetText("request_interface_reason_help"))
-                    </small>
-                </div>
+                <textarea rows="5" type="text" class="col-sm-9" @bind="Reason" />
+                <small class="offset-sm-3 col-sm-9 form-text text-muted mt-1">
+                    <strong>@(userConfig.GetText("note"))</strong>
+                    @(userConfig.GetText("request_interface_reason_help"))
+                </small>
             </div>
         }
     </Body>

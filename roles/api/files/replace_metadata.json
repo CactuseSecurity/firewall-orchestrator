@@ -2457,6 +2457,78 @@
             },
             {
               "table": {
+                "name": "log_entry",
+                "schema": "logging"
+              },
+              "object_relationships": [
+                {
+                  "name": "stm_ip_proto",
+                  "using": {
+                    "foreign_key_constraint_on": "service_protocol"
+                  }
+                },
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "log_count",
+                      "source",
+                      "destination",
+                      "service_protocol",
+                      "service_port",
+                      "allowed",
+                      "modelled",
+                      "log_time",
+                      "logging_rule_name",
+                      "owner_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "log_count",
+                      "source",
+                      "destination",
+                      "service_protocol",
+                      "service_port",
+                      "allowed",
+                      "modelled",
+                      "log_time",
+                      "logging_rule_name",
+                      "owner_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "change_history",
                 "schema": "modelling"
               },
@@ -14012,6 +14084,18 @@
                   }
                 },
                 {
+                  "name": "log_entries",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_id",
+                      "table": {
+                        "name": "log_entry",
+                        "schema": "logging"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "notifications",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -24787,6 +24871,18 @@
                       "table": {
                         "name": "implelement",
                         "schema": "request"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "log_entries",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "service_protocol",
+                      "table": {
+                        "name": "log_entry",
+                        "schema": "logging"
                       }
                     }
                   }

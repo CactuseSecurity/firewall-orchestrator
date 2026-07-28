@@ -569,3 +569,6 @@ Not supported any longer are:
 ## 9.2.3 - 17.07.2026
 - speed up standard rules reports by scoping flat rule paging to selected rulebases
 - add database index for standard rules report paging
+
+## 9.4.0 - 28.07.2026
+- add logging schema for imported traffic log entries with their owner and count

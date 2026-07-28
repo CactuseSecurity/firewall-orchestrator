@@ -328,6 +328,27 @@ namespace FWO.Config.Api.Data
         [JsonProperty("importAppDataStartAt"), JsonPropertyName("importAppDataStartAt")]
         public DateTime ImportAppDataStartAt { get; set; } = DateTime.Now;
 
+        [JsonProperty("importLogDataPath"), JsonPropertyName("importLogDataPath")]
+        public string ImportLogDataPath { get; set; } = "[]";
+
+        [JsonProperty("importLogDataScriptArgs"), JsonPropertyName("importLogDataScriptArgs")]
+        public string ImportLogDataScriptArgs { get; set; } = "";
+
+        [JsonProperty("importLogDataSleepTime"), JsonPropertyName("importLogDataSleepTime")]
+        public int ImportLogDataSleepTime { get; set; } = 24;
+
+        [JsonProperty("importLogDataSleepTimeUnit"), JsonPropertyName("importLogDataSleepTimeUnit")]
+        public LogDataImportIntervalUnit ImportLogDataSleepTimeUnit { get; set; } = LogDataImportIntervalUnit.Hours;
+
+        [JsonProperty("importLogDataStartAt"), JsonPropertyName("importLogDataStartAt")]
+        public DateTime ImportLogDataStartAt { get; set; } = DateTime.Now;
+
+        [JsonProperty("importLogDataMaxEntries"), JsonPropertyName("importLogDataMaxEntries")]
+        public int ImportLogDataMaxEntries { get; set; } = 1000;
+
+        [JsonProperty("logDataRetentionDays"), JsonPropertyName("logDataRetentionDays")]
+        public int LogDataRetentionDays { get; set; } = 90;
+
         [JsonProperty("OwnerSoruceMappingID"), JsonPropertyName("OwnerSoruceMappingID")]
         public int OwnerSoruceMappingID { get; set; } = 0;
 

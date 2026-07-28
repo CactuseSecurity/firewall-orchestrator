@@ -100,6 +100,46 @@ def update_git_repo(
         return False
 
 
+def commit_and_push_deletions(
+    git_repo_target_dir: str,
+    files_to_delete: list[Path],
+    commit_message: str,
+    logger: logging.Logger,
+    git_username: str | None = None,
+    git_password: str | None = None,
+) -> bool:
+    """Delete tracked files, commit their removal and push it to origin."""
+    try:
+        repo: Any = git.Repo(git_repo_target_dir)
+        relative_paths: list[str] = []
+        repo_path: Path = Path(git_repo_target_dir).resolve()
+        for file_path in files_to_delete:
+            resolved_path: Path = file_path.resolve()
+            relative_paths.append(str(resolved_path.relative_to(repo_path)))
+            resolved_path.unlink(missing_ok=True)
+        repo.git.add(update=True)
+        if not repo.is_dirty(index=True, working_tree=True, untracked_files=False):
+            return True
+        repo.index.commit(commit_message)
+        if git_username is not None and git_password is not None:
+            with tempfile.TemporaryDirectory() as askpass_dir:
+                env = {
+                    **os.environ,
+                    "GIT_ASKPASS": create_git_askpass_script(askpass_dir),
+                    "GIT_ASKPASS_USERNAME": git_username,
+                    "GIT_ASKPASS_PASSWORD": git_password,
+                    "GIT_TERMINAL_PROMPT": "0",
+                }
+                repo.git.push("origin", "HEAD", env=env)
+        else:
+            repo.git.push("origin", "HEAD")
+        logger.info("deleted and pushed log data files: %s", ", ".join(relative_paths))
+        return True
+    except Exception:
+        logger.exception("could not commit and push log data file deletions")
+        return False
+
+
 def read_file_from_git_repo(
     repo_url: str,
     git_repo_target_dir: str,

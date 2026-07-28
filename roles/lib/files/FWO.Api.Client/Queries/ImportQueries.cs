@@ -12,6 +12,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string getMaxImportId;
         public static readonly string addImportForOwner;
         public static readonly string addImportForRuleOwner;
+        public static readonly string addImportForLog;
+        public static readonly string completeLogImport;
         public static readonly string updateImportControlForRuleOwnerFull;
         public static readonly string updateImportControlForRuleOwnerInc;
         public static readonly string getPendingRuleOwnerImports;
@@ -27,6 +29,8 @@ namespace FWO.Api.Client.Queries
                 getMaxImportId = GetQueryText("import/getMaxImportId.graphql");
                 addImportForOwner = GetQueryText("import/addImportForOwner.graphql");
                 addImportForRuleOwner = GetQueryText("import/addImportForRuleOwner.graphql");
+                addImportForLog = GetQueryText("import/addImportForLog.graphql");
+                completeLogImport = GetQueryText("import/completeLogImport.graphql");
                 updateImportControlForRuleOwnerFull = GetQueryText("import/updateImportControlForRuleOwnerFull.graphql");
                 getPendingRuleOwnerImports = GetQueryText("import/getPendingRuleOwnerImports.graphql");
                 updateImportControlForRuleOwnerInc = GetQueryText("import/updateImportControlForRuleOwnerInc.graphql");

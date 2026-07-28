@@ -1,0 +1,21 @@
+@page "/help/settings/logging"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar {
+    @{
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml");
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@(userConfig.GetText("logging"))</h3>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5694")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5695")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5696")))</li>
+    </ul>
+</div>

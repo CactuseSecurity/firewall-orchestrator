@@ -114,6 +114,11 @@ Alter table "rule" add constraint "fk_rule_rulebase_id" foreign key ("rulebase_i
 Alter table "rule" add constraint "rule_rule_metadata_mgm_id_rule_uid_f_key"
   foreign key ("mgm_id", "rule_uid") references "rule_metadata" ("mgm_id", "rule_uid") on update restrict on delete cascade;
 Alter table "rule" add constraint "flow_access_id_foreign_key" foreign key ("flow_access_id") references "flow"."access" ("access_id") on update restrict on delete set null;
+
+ALTER TABLE logging.log_entry ADD CONSTRAINT log_entry_service_protocol_foreign_key
+    FOREIGN KEY (service_protocol) REFERENCES stm_ip_proto(ip_proto_id) ON UPDATE RESTRICT ON DELETE SET NULL;
+ALTER TABLE logging.log_entry ADD CONSTRAINT log_entry_owner_foreign_key
+    FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
   
 Alter table "rulebase" add CONSTRAINT fk_rulebase_mgm_id foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
 Alter table "rulebase_link" add constraint "fk_rulebase_link_from_rulebase_id" foreign key ("from_rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;

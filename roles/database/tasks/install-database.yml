@@ -102,12 +102,16 @@
       - fworch-create-tables-modelling.sql
       - fworch-create-tables-request.sql
       - fworch-create-tables-flow.sql
+      - fworch-create-tables-logging.sql
       - fworch-create-tables-compliance.sql
       - fworch-create-constraints.sql
       - fworch-create-foreign-keys.sql
       - fworch-create-indices.sql
       - fworch-create-triggers.sql
       - fworch-fill-stm.sql
+      - fworch-fill-config.sql
+      - fworch-report-config.sql
+      - fworch-request-config.sql
       - fworch-views-materialized.sql
       - fworch-create-tables-jwt-refresh.sql
     when: installation_mode == "new"

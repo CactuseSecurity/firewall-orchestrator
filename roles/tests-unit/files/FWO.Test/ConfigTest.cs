@@ -4,6 +4,7 @@ using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data;
+using FWO.Data.Enums;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server;
@@ -348,6 +349,20 @@ namespace FWO.Test
         {
             Assert.That(ConfigQueries.subscribeFlowSyncConfigChanges, Does.Contain("flowSyncSleepTime"));
             Assert.That(ConfigQueries.subscribeFlowSyncConfigChanges, Does.Contain("flowNamingSourceManagementRanking"));
+        }
+
+        [Test]
+        public void LogDataImportSubscription_ContainsIntervalUnit()
+        {
+            Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("importLogDataSleepTimeUnit"));
+        }
+
+        [Test]
+        public void ConfigData_DefaultsLogDataImportIntervalUnitToHours()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.ImportLogDataSleepTimeUnit, Is.EqualTo(LogDataImportIntervalUnit.Hours));
         }
 
         [Test]

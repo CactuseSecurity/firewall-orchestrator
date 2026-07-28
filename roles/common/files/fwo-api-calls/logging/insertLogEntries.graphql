@@ -1,0 +1,5 @@
+mutation insertLogEntries($entries: [logging_log_entry_insert_input!]!) {
+  insert_logging_log_entry(objects: $entries) {
+    affected_rows
+  }
+}

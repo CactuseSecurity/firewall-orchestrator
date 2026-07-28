@@ -1,0 +1,15 @@
+subscription subscribeImportLogDataConfigChanges {
+  config(where: {_or: [
+    {config_key: {_eq: "importLogDataSleepTime"}},
+    {config_key: {_eq: "importLogDataSleepTimeUnit"}},
+    {config_key: {_eq: "importLogDataStartAt"}},
+    {config_key: {_eq: "importLogDataPath"}},
+    {config_key: {_eq: "importLogDataScriptArgs"}},
+    {config_key: {_eq: "importLogDataMaxEntries"}},
+    {config_key: {_eq: "logDataRetentionDays"}}
+  ]}) {
+    config_key
+    config_value
+    config_user
+  }
+}

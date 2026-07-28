@@ -40,5 +40,24 @@ namespace FWO.Ui.Data.Extensions
                 };
             }
         }
+
+        extension(LogDataImportIntervalUnit unit)
+        {
+            /// <summary>
+            /// Returns the localized label for a log data import interval unit.
+            /// </summary>
+            public string ToString(UserConfig userConfig)
+            {
+                ArgumentNullException.ThrowIfNull(userConfig);
+
+                return unit switch
+                {
+                    LogDataImportIntervalUnit.Seconds => userConfig.GetText("Seconds"),
+                    LogDataImportIntervalUnit.Minutes => userConfig.GetText("Minutes2"),
+                    LogDataImportIntervalUnit.Hours => userConfig.GetText("Hours"),
+                    _ => unit.ToString(),
+                };
+            }
+        }
     }
 }

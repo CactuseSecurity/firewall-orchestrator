@@ -1,0 +1,5 @@
+mutation deleteExpiredLogEntries($expiryTime: timestamptz!) {
+  delete_logging_log_entry(where: {log_time: {_lt: $expiryTime}}) {
+    affected_rows
+  }
+}

@@ -1024,6 +1024,8 @@ INSERT INTO txt VALUES ('Hours', 		        'German',	'Stunde(n)');
 INSERT INTO txt VALUES ('Hours', 		        'English',	'Hour(s)');
 INSERT INTO txt VALUES ('Minutes2', 		    'German',	'Minute(n)');
 INSERT INTO txt VALUES ('Minutes2', 		    'English',	'Minute(s)');
+INSERT INTO txt VALUES ('Seconds', 		    'German',	'Sekunde(n)');
+INSERT INTO txt VALUES ('Seconds', 		    'English',	'Second(s)');
 
 -- archive
 INSERT INTO txt VALUES ('download',				'German', 	'Herunterladen');
@@ -2976,6 +2978,14 @@ INSERT INTO txt VALUES ('importAppDataScriptArgs', 'German', 'Skriptparameter (o
 INSERT INTO txt VALUES ('importAppDataScriptArgs', 'English', 'Script parameters (optional)');
 INSERT INTO txt VALUES ('importAppDataSleepTime','German', 	'Import Appdaten-Intervall (in Stunden)');
 INSERT INTO txt VALUES ('importAppDataSleepTime','English', 'Import App data sleep time (in hours)');
+INSERT INTO txt VALUES ('logging', 'German', 'Protokollierung');
+INSERT INTO txt VALUES ('logging', 'English', 'Logging');
+INSERT INTO txt VALUES ('importLogDataPath', 'German', 'Pfad und Name des Logdaten-Imports (ohne Endung)');
+INSERT INTO txt VALUES ('importLogDataPath', 'English', 'Path and Name of Log data import (without ending)');
+INSERT INTO txt VALUES ('importLogDataScriptArgs', 'German', 'Skriptparameter (optional)');
+INSERT INTO txt VALUES ('importLogDataScriptArgs', 'English', 'Script parameters (optional)');
+INSERT INTO txt VALUES ('importLogDataSleepTime', 'German', 'Logdaten-Importintervall');
+INSERT INTO txt VALUES ('importLogDataSleepTime', 'English', 'Log data import interval');
 INSERT INTO txt VALUES ('ownerDataImportSyncUsers', 'German', 'App-Verantwortliche synchronisieren');
 INSERT INTO txt VALUES ('ownerDataImportSyncUsers', 'English', 'Sync owner responsibles');
 INSERT INTO txt VALUES ('importAppDataStartAt', 'German', 	'Import Appdaten-Start');
@@ -6731,6 +6741,12 @@ INSERT INTO txt VALUES ('H5611', 'English', 'Path and Name of App data import (w
 ');
 INSERT INTO txt VALUES ('H5611a', 'German',  'Skriptparameter (optional): Zus&auml;tzliche Parameter, die an das Appdaten-Importskript &uuml;bergeben werden, z.B. "-f foldername".');
 INSERT INTO txt VALUES ('H5611a', 'English', 'Script parameters (optional): Additional parameters passed to the app data import script, e.g. "-f foldername".');
+INSERT INTO txt VALUES ('H5694', 'German', 'Pfad und Name des Logdaten-Imports (ohne Endung): Hier werden Logdaten-Importskripte und -dateien unterhalb von scripts/customizing oder etc im konfigurierten Produkt-Verzeichnis eingetragen.');
+INSERT INTO txt VALUES ('H5694', 'English', 'Path and Name of Log data import (without ending): Log data import scripts and files below scripts/customizing or etc in the configured product directory are entered here.');
+INSERT INTO txt VALUES ('H5695', 'German', 'Skriptparameter (optional): Zus&auml;tzliche Parameter, die an das Logdaten-Importskript &uuml;bergeben werden.');
+INSERT INTO txt VALUES ('H5695', 'English', 'Script parameters (optional): Additional parameters passed to the log data import script.');
+INSERT INTO txt VALUES ('H5696', 'German', 'Logdaten-Importintervall: Legt fest, wie oft der Logdaten-Import ausgeführt wird.');
+INSERT INTO txt VALUES ('H5696', 'English', 'Log data import interval: Defines how often log data is imported.');
 INSERT INTO txt VALUES ('H5612', 'German',  'Import Appdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Appdaten-Import-L&auml;ufen.
     Ein Wert 0 bedeutet, dass der Appdaten-Import deaktiviert ist. Default-Wert = 0.
 ');

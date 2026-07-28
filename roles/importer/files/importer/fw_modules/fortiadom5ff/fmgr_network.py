@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import ipaddress
-from typing import Any, cast
+from typing import Any
 
 from fw_modules.fortiadom5ff.fmgr_consts import nw_obj_types
 from fw_modules.fortiadom5ff.fmgr_zone import find_zones_in_normalized_config
@@ -275,19 +275,23 @@ def normalize_vip_real_servers(
 
 
 def extract_real_server_ips(obj_orig: dict[str, Any]) -> list[str]:
-    real_servers: Any = obj_orig.get("realservers")
-    if not isinstance(real_servers, list):
-        return []
-
+    real_server_entries: list[Any] = obj_orig.get("realservers") or []
     real_server_ips: list[str] = []
-    for real_server in cast("list[Any]", real_servers):
-        if not isinstance(real_server, dict):
-            continue
-        real_server_ip: Any = cast("dict[str, Any]", real_server).get("ip")
-        if real_server_ip is None or str(real_server_ip).strip() == "":
-            continue
-        real_server_ips.append(str(real_server_ip).strip())
+    for real_server in real_server_entries:
+        real_server_ip = extract_real_server_ip(real_server)
+        if real_server_ip is not None:
+            real_server_ips.append(real_server_ip)
     return real_server_ips
+
+
+def extract_real_server_ip(real_server: Any) -> str | None:
+    get_field = getattr(real_server, "get", None)  # tolerates entries that are not dicts
+    if not callable(get_field):
+        return None
+    real_server_ip: Any = get_field("ip")
+    if real_server_ip is None or str(real_server_ip).strip() == "":
+        return None
+    return str(real_server_ip).strip()
 
 
 def report_vip_without_nat_target(obj_orig: dict[str, Any]) -> None:

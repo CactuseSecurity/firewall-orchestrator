@@ -1,11 +1,8 @@
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any
 
 from fw_modules.fortiadom5ff.fmgr_network import normalize_vip_object, normalize_vip_object_nat_ip
 from fw_modules.fortiadom5ff.fmgr_rule import expand_vip_real_servers
 from services.service_provider import ServiceProvider
-
-if TYPE_CHECKING:
-    from unittest.mock import MagicMock
 
 
 def _normalized_config(network_objects: list[dict[str, Any]] | None = None) -> dict[str, Any]:
@@ -213,6 +210,16 @@ class TestNormalizeVipObjectRealServers:
         assert obj["obj_nat_real_server_refs"] == ["10.0.0.1_NatNwObj"]
         assert len(nw_objects) == 1
 
+    def test_non_list_realservers_is_ignored(self):
+        obj_orig = {"name": "LB-broken", "extip": ["203.0.113.5"], "realservers": "not-a-list"}
+        obj: dict[str, Any] = {}
+        nw_objects: list[dict[str, Any]] = []
+
+        normalize_vip_object(obj_orig, obj, nw_objects)
+
+        assert "obj_nat_real_server_refs" not in obj
+        assert nw_objects == []
+
     def test_mappedip_takes_precedence_over_realservers(self):
         obj_orig = {
             "name": "vip_both",
@@ -235,10 +242,9 @@ class TestVipWithoutNatTarget:
 
         normalize_vip_object(obj_orig, {}, [])
 
-        api_call = ServiceProvider().get_global_state().import_state.api_call
-        create_data_issue = cast("MagicMock", api_call.create_data_issue)
-        create_data_issue.assert_called_once()
-        assert create_data_issue.call_args.kwargs["obj_name"] == "vip_no_nat"
+        api_call: Any = ServiceProvider().get_global_state().import_state.api_call
+        api_call.create_data_issue.assert_called_once()
+        assert api_call.create_data_issue.call_args.kwargs["obj_name"] == "vip_no_nat"
 
 
 class TestExpandVipRealServers:

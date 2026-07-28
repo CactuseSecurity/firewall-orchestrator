@@ -36,7 +36,9 @@ def get_config(
         os_api_url = f"https://{import_state.state.mgm_details.hostname}:{import_state.state.mgm_details.port!s}/api/core/backup/download/this"
         with requests.Session() as session:
             session.verify = import_state.state.verify_certs
-            session.auth = HTTPBasicAuth(import_state.state.mgm_details.import_user, import_state.state.mgm_details.secret)
+            session.auth = HTTPBasicAuth(
+                import_state.state.mgm_details.import_user, import_state.state.mgm_details.secret
+            )
 
             # Stage 1: config retrieval
             FWOLogger.debug("[*] receiving OPNsense config.xml ...")

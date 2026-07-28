@@ -20,12 +20,4 @@ namespace FWO.Test.Mocks
             restClient = new RestClient(handler, false, options => options.BaseUrl = new Uri(middlewareApiBaseUrl), ConfigureRestClientSerialization);
         }
     }
-
-    internal sealed class ThrowingHttpMessageHandler : HttpMessageHandler
-    {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            throw new InvalidOperationException("Unexpected middleware call in test. Install a handler with UseHandler before invoking middleware methods.");
-        }
-    }
 }

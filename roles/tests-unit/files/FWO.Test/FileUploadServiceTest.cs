@@ -218,7 +218,7 @@ namespace FWO.Test
             SimulatedUserConfig userConfig = new()
             {
                 ModNamingConvention = "{}",
-                ModAppServerTypes = JsonSerializer.Serialize<List<AppServerType>>([new AppServerType { Id = 1, Name = "TypeA" }])
+                ModAppServerTypes = JsonSerializer.Serialize(new List<AppServerType> { new AppServerType { Id = 1, Name = "TypeA" } })
             };
             userConfig.User.Name = "tester";
             userConfig.User.Dn = "uid=tester,ou=people,dc=example,dc=com";
@@ -235,7 +235,7 @@ namespace FWO.Test
         private static InputFileChangeEventArgs CreateInputFileChangeEventArgs(string fileName, string contentType, ReadOnlyMemory<byte> content, long size)
         {
             TestBrowserFile browserFile = new(fileName, contentType, content, size);
-            return new InputFileChangeEventArgs([browserFile]);
+            return new InputFileChangeEventArgs(new List<IBrowserFile> { browserFile });
         }
 
         private static string? InvokeGetResponseMessage(RestResponse<string> response)

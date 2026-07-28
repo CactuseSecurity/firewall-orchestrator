@@ -26,4 +26,11 @@ namespace FWO.Test.Mocks
         }
     }
 
+    internal sealed class ThrowingHttpMessageHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException("Unexpected middleware call in test. Install a handler with UseHandler before invoking middleware methods.");
+        }
+    }
 }

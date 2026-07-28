@@ -55,7 +55,7 @@ namespace FWO.Test
         public void CreateTokenPairAsync_ThrowsAfterDispose()
         {
             using TestMiddlewareClient middlewareClient = new();
-            using AnonymousGlobalConfigTokenProvider provider = new(middlewareClient);
+            AnonymousGlobalConfigTokenProvider provider = new(middlewareClient);
             provider.Dispose();
 
             Assert.ThrowsAsync<ObjectDisposedException>(() => provider.CreateTokenPairAsync(CancellationToken.None));

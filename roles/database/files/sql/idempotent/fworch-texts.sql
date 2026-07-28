@@ -1956,6 +1956,12 @@ INSERT INTO txt VALUES ('update_app_role',      'German',   'Ge&auml;nderte AppR
 INSERT INTO txt VALUES ('update_app_role',      'English',  'Update AppRole: ');
 INSERT INTO txt VALUES ('new_svc_grp',          'German',   'Neue Servicegruppe: ');
 INSERT INTO txt VALUES ('new_svc_grp',          'English',  'New Servicegroup: ');
+INSERT INTO txt VALUES ('current_members',      'German',   'Aktuelle Mitglieder');
+INSERT INTO txt VALUES ('current_members',      'English',  'Current Members');
+INSERT INTO txt VALUES ('members_to_add',       'German',   'Hinzuzuf&uuml;gende Mitglieder');
+INSERT INTO txt VALUES ('members_to_add',       'English',  'Members to add');
+INSERT INTO txt VALUES ('members_to_remove',    'German',   'Zu entfernende Mitglieder');
+INSERT INTO txt VALUES ('members_to_remove',    'English',  'Members to remove');
 INSERT INTO txt VALUES ('add_members',          'German',   ': Mitglieder hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_members',          'English',  ': Add Members');
 INSERT INTO txt VALUES ('remove_members',       'German',   ': Mitglieder entfernen');

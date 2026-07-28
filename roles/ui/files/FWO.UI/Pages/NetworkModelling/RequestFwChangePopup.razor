@@ -1,14 +1,11 @@
+@using System.Net
 @using FWO.Compliance
 @using FWO.Data.Middleware
 @using FWO.Data.Workflow
-@using FWO.Services.Workflow
-@using FWO.Middleware.Client
-@using FWO.Report
 @using FWO.ExternalSystems.Tufin.SecureChange
-@using Newtonsoft.Json
+@using FWO.Middleware.Client
+@using FWO.Services.Workflow
 @using RestSharp
-@using System.Net
-@using System.Text.Json.Serialization
 
 @implements IDisposable
 
@@ -29,7 +26,7 @@
                 <div class="col-sm-2">@(userConfig.GetText("state")): </div>
                 <div class="col-sm-10">@(UserConfig.PureLineStat(ChangeStatus))</div>
             </div>
-            @if(TaskList.Count == 0)
+            @if (TaskList.Count == 0)
             {
                 <br>
                 <b>@(userConfig.GetText("U9026"))</b>
@@ -225,7 +222,7 @@
 
     private void SetActTicketStatus(WfTicket intTicket)
     {
-        if(extStateHandler!= null)
+        if (extStateHandler != null)
         {
             intTicket.UpdateCidrsInTaskElements();
             TaskList = [.. intTicket.Tasks];
@@ -317,22 +314,59 @@
 
     private string DisplayMembers(WfReqTask task)
     {
-        List<string> members = [];
-        if (task.IsNetworkFlavor())
+        List<WfReqElement> currentMembers = [.. task.Elements.Where(IsCurrentMember)];
+        List<WfReqElement> membersToAdd = [.. task.Elements.Where(IsMemberToAdd)];
+        List<WfReqElement> membersToRemove = [.. task.Elements.Where(IsMemberToRemove)];
+
+        List<string> rows = [];
+
+        if (currentMembers.Count > 0 && task.TaskType == WfTaskType.group_modify.ToString())
         {
-            foreach (var elem in task.Elements)
-            {
-                members.Add($"<span class=\"{CssClass(elem)}\" >{DisplayBase.DisplayIpWithName(WfElementBase.ToNetworkObject(elem))}</span>");
-            }
+            rows.Add(DisplayMemberRow(userConfig.GetText("current_members"), currentMembers));
         }
-        else
+
+        if (membersToAdd.Count > 0)
         {
-            foreach (var elem in task.Elements)
-            {
-                members.Add($"<span class=\"{CssClass(elem)}\" >{elem.Port + "/" + ipProtos.Find(x => x.Id == elem.ProtoId)?.Name}</span>");
-            }
+            rows.Add(DisplayMemberRow(userConfig.GetText("members_to_add"), membersToAdd));
         }
-        return userConfig.GetText("members") + ": " + string.Join(", ", members);
+
+        if (membersToRemove.Count > 0)
+        {
+            rows.Add(DisplayMemberRow(userConfig.GetText("members_to_remove"), membersToRemove));
+        }
+
+        return string.Join("<br>", rows);
+    }
+
+    private string DisplayMemberRow(string label, List<WfReqElement> members)
+    {
+        return $"<b>{label}:</b> " + string.Join(", ", members.ConvertAll(DisplayMember));
+    }
+
+    private string DisplayMember(WfReqElement elem)
+    {
+        if (elem.Field == ElemFieldType.service.ToString())
+        {
+            return $"<span class=\"{CssClass(elem)}\" >{elem.Port + "/" + ipProtos.Find(x => x.Id == elem.ProtoId)?.Name}</span>";
+        }
+
+        return $"<span class=\"{CssClass(elem)}\" >{DisplayBase.DisplayIpWithName(WfElementBase.ToNetworkObject(elem))}</span>";
+    }
+
+    private static bool IsCurrentMember(WfReqElement elem)
+    {
+        return elem.RequestAction == RequestAction.unchanged.ToString() || string.IsNullOrWhiteSpace(elem.RequestAction);
+    }
+
+    private static bool IsMemberToAdd(WfReqElement elem)
+    {
+        return elem.RequestAction == RequestAction.create.ToString() ||
+            elem.RequestAction == RequestAction.addAfterCreation.ToString();
+    }
+
+    private static bool IsMemberToRemove(WfReqElement elem)
+    {
+        return elem.RequestAction == RequestAction.delete.ToString();
     }
 
     private string CssClass(WfReqElement elem)
@@ -430,7 +464,7 @@
         IEnumerable<ModellingConnection> connectionsToMark = userConfig.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications
             ? Connections.Where(connection => RequestedConnectionIds().Contains(connection.Id))
             : Connections;
-        foreach(var conn in connectionsToMark.Where(c => !c.RequestedOnFw))
+        foreach (var conn in connectionsToMark.Where(c => !c.RequestedOnFw))
         {
             await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.updateConnectionFwRequested, new { id = conn.Id });
             conn.RequestedOnFw = true;

@@ -42,15 +42,12 @@ namespace FWO.Ui.Services
         {
             try
             {
-                ProtectedBrowserStorageResult<TokenPair> result = await sessionStorage.GetAsync<TokenPair>(TOKEN_PAIR_KEY);
+                ProtectedBrowserStorageResult<TokenPair> result = await sessionStorage.GetAsync<TokenPair>(TOKEN_PAIR_KEY)
+                    .WaitAsync(TimeSpan.FromSeconds(5));
 
                 if (result.Success && result.Value != null)
                 {
                     currentTokenPair = result.Value;
-                }
-                else
-                {
-                    currentTokenPair = null;
                 }
             }
             catch (CryptographicException ex)

@@ -94,7 +94,11 @@
             {
                 await eventService.Initialize(jsRuntime);
             }
-            eventService.OnNavbarHeightChanged += OnNavbarHeightChanged;
+
+            if (!_disposed && eventService is not null)
+            {
+                eventService.OnNavbarHeightChanged += OnNavbarHeightChanged;
+            }
         }
     }
 
@@ -182,7 +186,7 @@
             return;
         }
 
-        if (disposing && eventService is not null && eventService.Initialized)
+        if (disposing && eventService is not null)
         {
             eventService.OnNavbarHeightChanged -= OnNavbarHeightChanged;
         }

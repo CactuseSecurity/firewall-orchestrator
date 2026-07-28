@@ -76,10 +76,10 @@ namespace FWO.Middleware.Client
                 JsonWebTokenHandler handler = new();
                 TokenValidationResult tokenValidationResult = await handler.ValidateTokenAsync(jwtString, validationParameters);
 
-                jwt = tokenValidationResult.SecurityToken as JsonWebToken;
-
                 if (tokenValidationResult.IsValid)
                 {
+                    jwt = tokenValidationResult.SecurityToken as JsonWebToken;
+
                     return new JwtValidationResult
                     {
                         Status = JwtValidationStatus.Success,

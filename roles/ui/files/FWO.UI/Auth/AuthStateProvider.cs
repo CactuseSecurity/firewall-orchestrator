@@ -126,7 +126,7 @@ namespace FWO.Ui.Auth
         /// <summary>
         /// Deauthenticates the current user and clears any persisted session state.
         /// </summary>
-        public async Task Deauthenticate()
+        public async Task Deauthenticate(string navigationUri = "", bool forceNavigation = true)
         {
             try
             {
@@ -139,7 +139,10 @@ namespace FWO.Ui.Auth
 
                 user = new ClaimsPrincipal(new ClaimsIdentity());
 
-                navigationManager?.NavigateTo("", forceLoad: true);
+                if (forceNavigation)
+                {
+                    navigationManager.NavigateTo(navigationUri, forceLoad: true);
+                }
             }
             catch (Exception ex)
             {
@@ -313,11 +316,11 @@ namespace FWO.Ui.Auth
                     await tokenService.SetTokenPair(tokenPair);
                     return;
                 case JwtApplyStatus.UnauthorizedRole:
-                    await Deauthenticate();
+                    await Deauthenticate(forceNavigation: false);
                     throw new AuthenticationException(result.ErrorCode ?? "not_authorized");
                 case JwtApplyStatus.Expired:
                 case JwtApplyStatus.Invalid:
-                    await Deauthenticate();
+                    await Deauthenticate(forceNavigation: false);
                     throw new AuthenticationException("not_authorized");
             }
 

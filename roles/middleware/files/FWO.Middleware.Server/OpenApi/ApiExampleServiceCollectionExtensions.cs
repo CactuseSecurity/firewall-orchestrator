@@ -24,6 +24,7 @@ public static class ApiExampleServiceCollectionExtensions
         services.AddSingleton<IApiExampleProvider, GetRequestStatusRequestExample>();
         services.AddSingleton<IApiExampleProvider, VisibleInRequestFilterExample>();
         services.AddSingleton<IApiExampleProvider, GetFlowComplianceStateRequestExample>();
+        services.AddSingleton<IApiExampleProvider, ResolveZonesForObjectsRequestExample>();
         services.AddSingleton<IApiExampleProvider, GetOwnersRequestExample>();
         services.AddSingleton<IApiExampleProvider, GenerateAddressObjectNameResponseExample>();
         services.AddSingleton<IApiExampleProvider, GenerateServiceObjectNameResponseExample>();
@@ -32,6 +33,7 @@ public static class ApiExampleServiceCollectionExtensions
         services.AddSingleton<IApiExampleProvider, CreateRequestResponseExample>();
         services.AddSingleton<IApiExampleProvider, GetRequestStatusResponseExample>();
         services.AddSingleton<IApiExampleProvider, FlowComplianceStateResponseExample>();
+        services.AddSingleton<IApiExampleProvider, ComplianceDesignatedZoneResponseExample>();
         services.AddSingleton<IApiExampleProvider, GetPolicyIdsResponseExample>();
         services.AddSingleton<IApiExampleProvider, AddressObjectResponseExample>();
         services.AddSingleton<IApiExampleProvider, AddressGroupResponseExample>();
@@ -258,6 +260,48 @@ public sealed class GetFlowComplianceStateRequestExample : ApiExampleProvider<Ge
 }
 
 /// <summary>
+/// Provides a typed example for <see cref="ResolveZonesForObjectsRequest"/>.
+/// </summary>
+public sealed class ResolveZonesForObjectsRequestExample : ApiExampleProvider<ResolveZonesForObjectsRequest>
+{
+    /// <inheritdoc />
+    public override ResolveZonesForObjectsRequest GetExample() => new()
+    {
+        Objects =
+        [
+            new ResolveZonesForObjectsRequest.GroupObjectRequest
+            {
+                Name = "preview-group",
+                Members =
+                [
+                    new ResolveZonesForObjectsRequest.LeafObjectRequest
+                    {
+                        Name = "branch-a",
+                        Type = "network",
+                        IpStart = "10.0.0.1",
+                        IpEnd = "10.0.0.1"
+                    },
+                    new ResolveZonesForObjectsRequest.GroupObjectRequest
+                    {
+                        Name = "branch-b",
+                        Members =
+                        [
+                            new ResolveZonesForObjectsRequest.LeafObjectRequest
+                            {
+                                Name = "leaf",
+                                Type = "ip_range",
+                                IpStart = "10.0.1.1",
+                                IpEnd = "10.0.1.10"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    };
+}
+
+/// <summary>
 /// Provides a typed example for <see cref="GetOwnersRequest"/>.
 /// </summary>
 public sealed class GetOwnersRequestExample : ApiExampleProvider<GetOwnersRequest>
@@ -354,6 +398,28 @@ public sealed class FlowComplianceStateResponseExample : ApiExampleProvider<Flow
                 Type = "missing-approval"
             }
         ]
+    };
+}
+
+/// <summary>
+/// Provides a typed example for <see cref="ComplianceDesignatedZoneResponse"/>.
+/// </summary>
+public sealed class ComplianceDesignatedZoneResponseExample : ApiExampleProvider<ComplianceDesignatedZoneResponse>
+{
+    /// <inheritdoc />
+    public override ComplianceDesignatedZoneResponse GetExample() => new()
+    {
+        Id = 7,
+        Name = "DMZ",
+        Description = "Demilitarized zone",
+        IpRanges =
+            [
+                new ComplianceDesignatedZoneIpRangeResponse
+                {
+                    IpStart = "10.0.0.0",
+                    IpEnd = "10.0.0.255"
+                }
+            ]
     };
 }
 

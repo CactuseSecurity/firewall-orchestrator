@@ -386,10 +386,13 @@ namespace FWO.Test
 
     internal sealed class AppServerHelperTestApiConn : SimulatedApiConnection
     {
-        private static readonly ReturnIdWrapper EmptyReturnWrapper = new()
+        private static ReturnIdWrapper CreateEmptyReturnWrapper()
         {
-            ReturnIds = new ReturnId[] { new ReturnId() }
-        };
+            return new ReturnIdWrapper
+            {
+                ReturnIds = [new ReturnId()]
+            };
+        }
 
         private readonly List<ModellingAppServer> appServersByIp;
 
@@ -470,25 +473,25 @@ namespace FWO.Test
                 if (query == ModellingQueries.setAppServerDeletedState)
                 {
                     SetDeletedCalls++;
-                    return Task.FromResult((QueryResponseType)(object)EmptyReturnWrapper);
+                    return Task.FromResult((QueryResponseType)(object)CreateEmptyReturnWrapper());
                 }
 
                 if (query == ModellingQueries.updateNwObjectInNwGroup)
                 {
                     ReplaceInGroupCalls++;
-                    return Task.FromResult((QueryResponseType)(object)EmptyReturnWrapper);
+                    return Task.FromResult((QueryResponseType)(object)CreateEmptyReturnWrapper());
                 }
 
                 if (query == ModellingQueries.updateNwObjectInConnection)
                 {
                     ReplaceInConnectionCalls++;
-                    return Task.FromResult((QueryResponseType)(object)EmptyReturnWrapper);
+                    return Task.FromResult((QueryResponseType)(object)CreateEmptyReturnWrapper());
                 }
 
                 if (query == ModellingQueries.addHistoryEntry)
                 {
                     HistoryEntryCalls++;
-                    return Task.FromResult((QueryResponseType)(object)EmptyReturnWrapper);
+                    return Task.FromResult((QueryResponseType)(object)CreateEmptyReturnWrapper());
                 }
             }
 

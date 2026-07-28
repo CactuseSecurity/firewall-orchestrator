@@ -30,8 +30,17 @@ namespace FWO.Ui.Services
         /// </summary>
         /// <param name="middlewareServerUri">Base URI of the FWO middleware server.</param>
         public AnonymousGlobalConfigTokenProvider(string middlewareServerUri)
+            : this(new MiddlewareClient(middlewareServerUri))
         {
-            middlewareClient = new MiddlewareClient(middlewareServerUri);
+        }
+
+        /// <summary>
+        /// Creates a provider with a custom middleware client.
+        /// </summary>
+        /// <param name="middlewareClient">Middleware client used for requests.</param>
+        internal AnonymousGlobalConfigTokenProvider(MiddlewareClient middlewareClient)
+        {
+            this.middlewareClient = middlewareClient;
         }
 
         /// <inheritdoc />

@@ -8,10 +8,13 @@ namespace FWO.Test
 {
     internal class ModellingHandlerTestApiConn : SimulatedApiConnection
     {
-        private static readonly ReturnIdWrapper NewAppRoleWrapper = new()
+        private static ReturnIdWrapper CreateNewAppRoleWrapper()
         {
-            ReturnIds = new ReturnId[] { new ReturnId { NewIdLong = 123 } }
-        };
+            return new ReturnIdWrapper
+            {
+                ReturnIds = [new ReturnId { NewIdLong = 123 }]
+            };
+        }
 
         const string AppRoleId1 = "AR5000001";
         const string AppRoleId2 = "AR9101234-002";
@@ -67,7 +70,7 @@ namespace FWO.Test
             else if (responseType == typeof(ReturnIdWrapper) && query == ModellingQueries.newAppRole)
             {
                 NewAppRoleCalls++;
-                GraphQLResponse<dynamic> response = new() { Data = NewAppRoleWrapper };
+                GraphQLResponse<dynamic> response = new() { Data = CreateNewAppRoleWrapper() };
                 return response.Data;
             }
             else if (responseType == typeof(ReturnId) && query == ModellingQueries.updateAppRole)

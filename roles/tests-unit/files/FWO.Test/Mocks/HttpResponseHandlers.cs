@@ -9,10 +9,10 @@ namespace FWO.Test.Mocks
         private readonly HttpStatusCode statusCode;
         private readonly string body;
 
-        public SingleResponseHandler(HttpResponseMessage response)
+        public SingleResponseHandler(HttpStatusCode statusCode, string body)
         {
-            statusCode = response.StatusCode;
-            body = response.Content?.ReadAsStringAsync().GetAwaiter().GetResult() ?? string.Empty;
+            this.statusCode = statusCode;
+            this.body = body;
         }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -26,14 +26,4 @@ namespace FWO.Test.Mocks
         }
     }
 
-    internal static class HttpResponseMessageFactory
-    {
-        public static HttpResponseMessage CreateJsonResponse(HttpStatusCode statusCode, string body)
-        {
-            return new HttpResponseMessage(statusCode)
-            {
-                Content = new StringContent(System.Text.Json.JsonSerializer.Serialize(body), Encoding.UTF8, "application/json")
-            };
-        }
-    }
 }

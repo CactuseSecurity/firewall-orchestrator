@@ -115,7 +115,7 @@ namespace FWO.Test
         {
             RecordingEventMediator mediator = new();
             using TestMiddlewareClient middlewareClient = new();
-            middlewareClient.UseHandler(new SingleResponseHandler(HttpResponseMessageFactory.CreateJsonResponse(HttpStatusCode.OK, "Ok: imported")));
+            middlewareClient.UseHandler(new SingleResponseHandler(HttpStatusCode.OK, JsonSerializer.Serialize("Ok: imported")));
             FileUploadService service = CreateService(mediator, middlewareClient);
             await service.ReadFileToBytes(CreateInputFileChangeEventArgs("matrix.csv", "text/csv", Encoding.UTF8.GetBytes("matrix-data"), "matrix-data".Length));
 
@@ -137,7 +137,7 @@ namespace FWO.Test
         {
             RecordingEventMediator mediator = new();
             using TestMiddlewareClient middlewareClient = new();
-            middlewareClient.UseHandler(new SingleResponseHandler(HttpResponseMessageFactory.CreateJsonResponse(HttpStatusCode.InternalServerError, "middleware failed")));
+            middlewareClient.UseHandler(new SingleResponseHandler(HttpStatusCode.InternalServerError, JsonSerializer.Serialize("middleware failed")));
             FileUploadService service = CreateService(mediator, middlewareClient);
             await service.ReadFileToBytes(CreateInputFileChangeEventArgs("matrix.csv", "text/csv", Encoding.UTF8.GetBytes("matrix-data"), "matrix-data".Length));
 

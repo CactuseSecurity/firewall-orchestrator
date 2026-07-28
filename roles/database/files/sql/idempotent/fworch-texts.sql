@@ -7225,7 +7225,7 @@ INSERT INTO txt VALUES ('H6940', 'German',  'Die Flow-REST-API wird unter dem ge
     <ul>
         <li><b>FlowCatalogController</b>: Lesezugriffe auf Adress-, Dienst- und Zeitobjekte f&uuml;r Flow- und Request-bezogene Auswahllisten sowie Id-Aufl&ouml;sungen.</li>
         <li><b>FlowComplianceController</b>: Policy-Auswahl und Compliance-Pr&uuml;fung f&uuml;r synthetische Flows.</li>
-        <li><b>FlowRequestController</b>: Endpunkte für Flow-bezogene Request-Erzeugung und Statusabfrage.</li>
+        <li><b>FlowRequestController</b>: Endpunkte f&uuml;r Flow-bezogene Request-Erzeugung und Statusabfrage.</li>
     </ul>
     Die folgenden Seiten dokumentieren die drei Controller getrennt, damit die einzelnen Endpunkte schneller auffindbar bleiben.
     <ul>

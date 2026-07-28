@@ -251,7 +251,7 @@ namespace FWO.Test
                 IsDeleted = false
             };
             AppServerHelperTestApiConn apiConn = new();
-            apiConn.AppServersByIp = new List<ModellingAppServer> { higherPrio };
+            apiConn.AppServersByIp = [higherPrio];
 
             bool result = await AppServerHelper.NoHigherPrioActive(apiConn, incoming);
 
@@ -325,8 +325,8 @@ namespace FWO.Test
             };
             AppServerHelperTestApiConn apiConn = new()
             {
-                AppServersByIp = new List<ModellingAppServer>
-                {
+                AppServersByIp =
+                [
                     new()
                     {
                         Id = 2,
@@ -337,7 +337,7 @@ namespace FWO.Test
                         ImportSource = "workflow",
                         IsDeleted = false
                     }
-                }
+                ]
             };
             UserConfig userConfig = new SimulatedUserConfig();
 
@@ -364,7 +364,7 @@ namespace FWO.Test
             };
             AppServerHelperTestApiConn apiConn = new()
             {
-                AllAppServers = new List<ModellingAppServer> { appServer }
+                AllAppServers = [appServer]
             };
             SimulatedUserConfig userConfig = new()
             {
@@ -397,7 +397,7 @@ namespace FWO.Test
         private readonly List<ModellingAppServer> appServersByIp;
 
         public bool ThrowOnGetAppServersByIp { get; set; }
-        public List<ModellingAppServer> AllAppServers { get; set; } = new List<ModellingAppServer>();
+        public List<ModellingAppServer> AllAppServers { get; set; } = [];
         public List<ModellingAppServer> AppServersByIp
         {
             get => appServersByIp;
@@ -418,7 +418,7 @@ namespace FWO.Test
 
         public AppServerHelperTestApiConn()
         {
-            appServersByIp = new List<ModellingAppServer>();
+            appServersByIp = [];
         }
 
         public AppServerHelperTestApiConn(List<ModellingAppServer> appServersByIp)
@@ -439,7 +439,8 @@ namespace FWO.Test
 
             if (typeof(QueryResponseType) == typeof(List<ModellingAppServer>) && query == ModellingQueries.getAppServersByName)
             {
-                return Task.FromResult((QueryResponseType)(object)new List<ModellingAppServer>());
+                List<ModellingAppServer> emptyAppServers = [];
+                return Task.FromResult((QueryResponseType)(object)emptyAppServers);
             }
 
             if (typeof(QueryResponseType) == typeof(List<ModellingAppServer>) && query == ModellingQueries.getAllAppServers)

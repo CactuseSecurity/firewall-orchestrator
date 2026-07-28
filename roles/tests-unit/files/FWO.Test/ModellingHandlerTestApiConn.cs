@@ -23,7 +23,7 @@ namespace FWO.Test
         readonly ModellingAppRole AppRole2 = new() { Id = 2, IdString = AppRoleId2 };
         readonly ModellingAppRole AppRole3 = new() { Id = 3, IdString = AppRoleId3 };
 
-        public List<ModellingAppRole> DummyAppRoles { get; set; } = new List<ModellingAppRole> { new() { Id = 999, Name = "dummy" } };
+        public List<ModellingAppRole> DummyAppRoles { get; set; } = [new() { Id = 999, Name = "dummy" }];
         public int NewAppRoleCalls { get; private set; }
         public int UpdateAppRoleCalls { get; private set; }
         public int AddNwObjectCalls { get; private set; }

@@ -18,20 +18,21 @@ namespace FWO.Test
     {
         private static readonly string kAllowedFileFormats = ".png,.csv";
         private static readonly string kLogoText = "logo-bytes";
-        private static readonly List<string> kValidImportCsvLines = new List<string>
-        {
+        private static readonly List<string> kValidImportCsvLines =
+        [
             "App-Server-Name,External-App-ID,App-Server-Typ,App-IP-Address-Range",
             "Server1,App1,TypeA,not-an-ip",
             "Server2,App2,MissingType,10.0.0.2/32",
             "broken|line"
-        };
+        ];
         private static readonly string kValidImportCsv = string.Join(Environment.NewLine, kValidImportCsvLines);
 
         [Test]
         public async Task ReadFileToBytes_WithSupportedFile_PublishesSuccessAndAllowsLogoImport()
         {
             RecordingEventMediator mediator = new();
-            FileUploadService service = CreateService(mediator);
+            using TestMiddlewareClient middlewareClient = new();
+            FileUploadService service = CreateService(mediator, middlewareClient);
             ReadOnlyMemory<byte> logoBytes = GetLogoBytes();
             InputFileChangeEventArgs args = CreateInputFileChangeEventArgs("logo.png", "image/png", logoBytes, logoBytes.Length);
 
@@ -53,7 +54,8 @@ namespace FWO.Test
         public async Task ReadFileToBytes_RejectsUnsupportedExtension()
         {
             RecordingEventMediator mediator = new();
-            FileUploadService service = CreateService(mediator);
+            using TestMiddlewareClient middlewareClient = new();
+            FileUploadService service = CreateService(mediator, middlewareClient);
             ReadOnlyMemory<byte> logoBytes = GetLogoBytes();
             InputFileChangeEventArgs args = CreateInputFileChangeEventArgs("logo.txt", "text/plain", logoBytes, logoBytes.Length);
 
@@ -72,7 +74,8 @@ namespace FWO.Test
         public async Task ReadFileToBytes_RejectsOversizedFile()
         {
             RecordingEventMediator mediator = new();
-            FileUploadService service = CreateService(mediator);
+            using TestMiddlewareClient middlewareClient = new();
+            FileUploadService service = CreateService(mediator, middlewareClient);
             ReadOnlyMemory<byte> logoBytes = GetLogoBytes();
             InputFileChangeEventArgs args = CreateInputFileChangeEventArgs("logo.png", "image/png", logoBytes, GlobalConst.MaxUploadFileSize + 1);
 
@@ -90,7 +93,8 @@ namespace FWO.Test
         public async Task ImportAppServersFromCsv_PublishesErrorsForMalformedAndInvalidRows()
         {
             RecordingEventMediator mediator = new();
-            FileUploadService service = CreateService(mediator);
+            using TestMiddlewareClient middlewareClient = new();
+            FileUploadService service = CreateService(mediator, middlewareClient);
             await service.ReadFileToBytes(CreateInputFileChangeEventArgs("apps.csv", "text/csv", Encoding.UTF8.GetBytes(kValidImportCsv), kValidImportCsv.Length));
 
             await service.ImportAppServersFromCSV("apps.csv");
@@ -209,24 +213,18 @@ namespace FWO.Test
             Assert.That(message, Is.EqualTo("file_upload_failed"));
         }
 
-        private static FileUploadService CreateService(RecordingEventMediator mediator, TestMiddlewareClient? middlewareClient = null)
+        private static FileUploadService CreateService(RecordingEventMediator mediator, TestMiddlewareClient middlewareClient)
         {
             SimulatedUserConfig userConfig = new()
             {
                 ModNamingConvention = "{}",
-                ModAppServerTypes = JsonSerializer.Serialize(new List<AppServerType> { new AppServerType { Id = 1, Name = "TypeA" } })
+                ModAppServerTypes = JsonSerializer.Serialize<List<AppServerType>>([new AppServerType { Id = 1, Name = "TypeA" }])
             };
             userConfig.User.Name = "tester";
             userConfig.User.Dn = "uid=tester,ou=people,dc=example,dc=com";
 
             MockApiConnection apiConnection = new();
-            if (middlewareClient is not null)
-            {
-                return new FileUploadService(apiConnection.AsSub(), userConfig, middlewareClient, kAllowedFileFormats, mediator);
-            }
-
-            using TestMiddlewareClient defaultMiddlewareClient = new();
-            return new FileUploadService(apiConnection.AsSub(), userConfig, defaultMiddlewareClient, kAllowedFileFormats, mediator);
+            return new FileUploadService(apiConnection.AsSub(), userConfig, middlewareClient, kAllowedFileFormats, mediator);
         }
 
         private static ReadOnlyMemory<byte> GetLogoBytes()
@@ -237,12 +235,13 @@ namespace FWO.Test
         private static InputFileChangeEventArgs CreateInputFileChangeEventArgs(string fileName, string contentType, ReadOnlyMemory<byte> content, long size)
         {
             TestBrowserFile browserFile = new(fileName, contentType, content, size);
-            return new InputFileChangeEventArgs(new List<IBrowserFile> { browserFile });
+            return new InputFileChangeEventArgs([browserFile]);
         }
 
         private static string? InvokeGetResponseMessage(RestResponse<string> response)
         {
-            return InvokeGetResponseMessage(CreateService(new RecordingEventMediator()), response);
+            using TestMiddlewareClient middlewareClient = new();
+            return InvokeGetResponseMessage(CreateService(new RecordingEventMediator(), middlewareClient), response);
         }
 
         private static string? InvokeGetResponseMessage(FileUploadService service, RestResponse<string> response)
@@ -250,7 +249,8 @@ namespace FWO.Test
             MethodInfo method = typeof(FileUploadService).GetMethod("GetResponseMessage", BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new MissingMethodException(typeof(FileUploadService).FullName, "GetResponseMessage");
 
-            return (string?)method.Invoke(service, new object?[] { response });
+            object?[] invokeArgs = new object?[] { response };
+            return (string?)method.Invoke(service, invokeArgs);
         }
 
         private sealed class TestBrowserFile : IBrowserFile

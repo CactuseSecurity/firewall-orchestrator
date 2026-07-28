@@ -79,6 +79,33 @@ def test_get_config_wraps_request_errors(
     session.__enter__.return_value = session
     session.get.side_effect = requests.exceptions.Timeout("timeout")
     mocker.patch.object(fwcommon.requests, "Session", return_value=session)
+    logger = mocker.patch.object(fwcommon.FWOLogger, "exception")
 
     with pytest.raises(FwoNativeConfigFetchError, match="API request failed"):
         fwcommon.get_config(config, import_state_controller)
+
+    logger.assert_called_once_with("[-] get_config: API request failed: timeout", exc_info=True)
+
+
+def test_get_config_logs_unexpected_processing_errors_with_traceback(
+    mocker: MockerFixture,
+    import_state_controller: ImportStateController,
+) -> None:
+    config = FwConfigManagerListController.generate_empty_config()
+    response = mocker.Mock()
+    response.content = b"<opnsense>invalid</opnsense>"
+    response.raise_for_status = mocker.Mock()
+    session = mocker.MagicMock()
+    session.__enter__.return_value = session
+    session.get.return_value = response
+    mocker.patch.object(fwcommon.requests, "Session", return_value=session)
+    mocker.patch.object(fwcommon.xmltodict, "parse", side_effect=ValueError("invalid XML"))
+    logger = mocker.patch.object(fwcommon.FWOLogger, "exception")
+
+    with pytest.raises(ValueError, match="invalid XML"):
+        fwcommon.get_config(config, import_state_controller)
+
+    logger.assert_called_once_with(
+        "[-] get_config: failed to process OPNsense configuration",
+        exc_info=True,
+    )

@@ -316,6 +316,8 @@ def _parse_opnsense_gateways(config: dict[str, Any]) -> list[OPNsenseGateway]:
     gateways_parsed: list[OPNsenseGateway] = []
 
     for gw in _as_dict_list(gateways):
+        if gw.get("disabled") == "1":
+            continue
         gw_parsed = OPNsenseGateway.model_validate(gw)
         gateways_parsed.append(gw_parsed)
 

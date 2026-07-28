@@ -28,16 +28,16 @@ class OPNsense25common(FwCommon):
 def get_config(
     config_in: FwConfigManagerListController, import_state: ImportStateController
 ) -> tuple[int, FwConfigManagerListController]:
-    ensure_device_name(import_state)
+    try:
+        ensure_device_name(import_state)
 
-    # retrieve full opnsense config into full_config
-    # curl -kv -u "$key:$secret" 'https://{opensense}/api/core/backup/download/this'
-    os_api_url = f"https://{import_state.state.mgm_details.hostname}:{import_state.state.mgm_details.port!s}/api/core/backup/download/this"
-    with requests.Session() as session:
-        session.verify = import_state.state.verify_certs
-        session.auth = HTTPBasicAuth(import_state.state.mgm_details.import_user, import_state.state.mgm_details.secret)
+        # retrieve full opnsense config into full_config
+        # curl -kv -u "$key:$secret" 'https://{opensense}/api/core/backup/download/this'
+        os_api_url = f"https://{import_state.state.mgm_details.hostname}:{import_state.state.mgm_details.port!s}/api/core/backup/download/this"
+        with requests.Session() as session:
+            session.verify = import_state.state.verify_certs
+            session.auth = HTTPBasicAuth(import_state.state.mgm_details.import_user, import_state.state.mgm_details.secret)
 
-        try:
             # Stage 1: config retrieval
             FWOLogger.debug("[*] receiving OPNsense config.xml ...")
             response = session.get(os_api_url, timeout=60)
@@ -58,7 +58,10 @@ def get_config(
 
             return 0, config_in
 
-        except requests.exceptions.RequestException as e:
-            msg = f"[-] get_config: API request failed: {e}"
-            FWOLogger.error(msg)
-            raise FwoNativeConfigFetchError(msg) from e
+    except requests.exceptions.RequestException as error:
+        msg = f"[-] get_config: API request failed: {error}"
+        FWOLogger.exception(msg, exc_info=True)
+        raise FwoNativeConfigFetchError(msg) from error
+    except Exception:
+        FWOLogger.exception("[-] get_config: failed to process OPNsense configuration", exc_info=True)
+        raise

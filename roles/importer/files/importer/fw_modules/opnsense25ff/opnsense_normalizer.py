@@ -831,7 +831,7 @@ def normalize_opnsense_config(
     for name in svc_objects:
         new_svc_objects[svc_objects[name].svc_uid] = svc_objects[name]
         svc_member_refs = new_svc_objects[svc_objects[name].svc_uid].svc_member_refs
-        if svc_member_refs is None:
+        if svc_member_refs is None or len(svc_member_refs) == 0:
             continue
         member: list[str] = []
         for m in svc_member_refs.split("|"):

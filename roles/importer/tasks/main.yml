@@ -85,8 +85,7 @@
     - name: copy api-importer systemd service script
       template:
         src: "{{ product_name }}-importer-api.service.j2"
-        dest: "/lib/systemd/system/{{ product_name }}-importer-api.service"
-        backup: true
+        dest: "{{ fworch_systemd_unit_dir }}/{{ product_name }}-importer-api.service"
         mode: "0644"
         owner: "root"
       become: true

@@ -1,6 +1,8 @@
 @using FWO.Data.Workflow
 @using FWO.ExternalSystems
 @using FWO.Data
+@using FWO.Config.Api
+@using FWO.Config.Api.Data
 @using FWO.Ui.Display
 @using FWO.Services.Workflow
 @using RestSharp
@@ -232,10 +234,12 @@ else
     private bool firstErrorMessage = true;
     private bool workInProgress = false;
     private bool InitDone = false;
+    private bool disposed = false;
 
 
     protected override async Task OnInitializedAsync()
     {
+        userConfig.OnChange += OnUserConfigChanged;
         extStateHandler = new(apiConnection);
         await states.Init(apiConnection);
         await InitAppList();
@@ -663,7 +667,28 @@ else
 
     public void Dispose()
     {
+        disposed = true;
+        userConfig.OnChange -= OnUserConfigChanged;
         actTicketSubscription?.Dispose();
+    }
+
+    /// <summary>
+    /// Re-renders the page when user configuration changes.
+    /// </summary>
+    private void OnUserConfigChanged(Config config, ConfigItem[] configItems)
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        _ = InvokeAsync(() =>
+        {
+            if (!disposed)
+            {
+                StateHasChanged();
+            }
+        });
     }
 
     private async void OnTicketUpdate(List<WfTicket> tickets)

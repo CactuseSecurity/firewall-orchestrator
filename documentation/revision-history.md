@@ -585,3 +585,6 @@ Not supported any longer are:
 - fix config change in modelling
 - feat new REST API endpoint: ResolveZonesForObjects
 - feat new REST API endpoint: time object ID lookup
+
+## 9.3 - 28.07.2026
+- new import module for OPNsense firewalls

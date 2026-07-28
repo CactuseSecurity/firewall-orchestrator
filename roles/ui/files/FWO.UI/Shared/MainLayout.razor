@@ -607,7 +607,5 @@
         EventMediator.Unsubscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent));
         EventMediator.Unsubscribe<ReloginRequiredEvent>(nameof(ReloginRequiredEvent));
         tokenRefreshCoordinator.Stop();
-        apiConnection.Dispose();
-        middlewareClient.Dispose();
     }
 }

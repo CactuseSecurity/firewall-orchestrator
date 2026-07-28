@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import ipaddress
-from typing import Any
+from typing import Any, cast
 
 from fw_modules.fortiadom5ff.fmgr_consts import nw_obj_types
 from fw_modules.fortiadom5ff.fmgr_zone import find_zones_in_normalized_config
@@ -9,6 +9,7 @@ from fwo_base import sort_and_join_refs
 from fwo_const import ANY_IP_END, ANY_IP_START, LIST_DELIMITER, NAT_POSTFIX
 from fwo_exceptions import FwoImporterErrorInconsistenciesError
 from fwo_log import FWOLogger
+from services.service_provider import ServiceProvider
 
 IPV6_OBJECT_TYPE_SUFFIXES = (
     "firewall/address6",
@@ -204,23 +205,23 @@ def normalize_vip_object(obj_orig: dict[str, Any], obj: dict[str, Any], nw_objec
 
     normalize_vip_object_nat_ip(obj_orig, obj, nat_obj)
 
-    if "obj_nat_ip" not in obj:
+    obj_zone = get_vip_zone(obj_orig)
+    if "obj_nat_ip" in obj:  # classic vip: a mapped ip was found
+        _finalize_vip_nat_object(obj, nat_obj, nw_objects, obj_zone)
         return
 
-    _finalize_vip_nat_object(obj_orig, obj, nat_obj, nw_objects)
+    # no mappedip: for virtual server (load balancer) vips the nat targets are in realservers instead
+    if normalize_vip_real_servers(obj_orig, obj, nw_objects, obj_zone):
+        return
+
+    report_vip_without_nat_target(obj_orig)
 
 
 def _finalize_vip_nat_object(
-    obj_orig: dict[str, Any], obj: dict[str, Any], nat_obj: dict[str, Any], nw_objects: list[dict[str, Any]]
+    obj: dict[str, Any], nat_obj: dict[str, Any], nw_objects: list[dict[str, Any]], obj_zone: str
 ) -> None:
     if "obj_ip_end" not in nat_obj:
         nat_obj.update({"obj_ip_end": str(obj["obj_nat_ip"])})
-
-    obj_zone = "global"
-    if (
-        "associated-interface" in obj_orig and len(obj_orig["associated-interface"]) > 0
-    ):  # and obj_orig['associated-interface'][0] != 'any':
-        obj_zone = obj_orig["associated-interface"][0]
     nat_obj.update({"obj_zone": obj_zone})
     if (
         nat_obj not in nw_objects
@@ -228,10 +229,83 @@ def _finalize_vip_nat_object(
         nw_objects.append(nat_obj)
 
 
+def get_vip_zone(obj_orig: dict[str, Any]) -> str:
+    if (
+        "associated-interface" in obj_orig and len(obj_orig["associated-interface"]) > 0
+    ):  # and obj_orig['associated-interface'][0] != 'any':
+        return str(obj_orig["associated-interface"][0])
+    return "global"
+
+
+def normalize_vip_real_servers(
+    obj_orig: dict[str, Any], obj: dict[str, Any], nw_objects: list[dict[str, Any]], obj_zone: str
+) -> bool:
+    """
+    Normalizes the realservers of a virtual server vip into one host object per real server.
+
+    Returns True if at least one real server could be normalized. The uids of the created objects
+    are kept on the vip object so the nat rule parser can use them as translated destinations.
+    """
+    real_server_ips = extract_real_server_ips(obj_orig)
+    if len(real_server_ips) == 0:
+        return False
+
+    real_server_refs: list[str] = []
+    for real_server_ip in real_server_ips:
+        real_server_obj: dict[str, Any] = {
+            "obj_typ": "host",
+            "obj_color": "black",
+            "obj_comment": "FWO-auto-generated nat object for VIP real server",
+            "obj_zone": obj_zone,
+        }
+        set_ip_in_obj(real_server_obj, real_server_ip)
+        if "obj_ip_end" not in real_server_obj:
+            real_server_obj.update({"obj_ip_end": str(real_server_obj["obj_ip"])})
+        real_server_obj.update({"obj_name": str(real_server_obj["obj_ip"]) + NAT_POSTFIX})
+        real_server_obj.update({"obj_uid": str(real_server_obj["obj_name"])})
+
+        if real_server_obj["obj_uid"] not in real_server_refs:
+            real_server_refs.append(str(real_server_obj["obj_uid"]))
+        if real_server_obj not in nw_objects:  # several vips may share the same real server
+            nw_objects.append(real_server_obj)
+
+    # working-only key, dropped when the dict is validated into the NetworkObject model
+    obj.update({"obj_nat_real_server_refs": real_server_refs})
+    return True
+
+
+def extract_real_server_ips(obj_orig: dict[str, Any]) -> list[str]:
+    real_servers: Any = obj_orig.get("realservers")
+    if not isinstance(real_servers, list):
+        return []
+
+    real_server_ips: list[str] = []
+    for real_server in cast("list[Any]", real_servers):
+        if not isinstance(real_server, dict):
+            continue
+        real_server_ip: Any = cast("dict[str, Any]", real_server).get("ip")
+        if real_server_ip is None or str(real_server_ip).strip() == "":
+            continue
+        real_server_ips.append(str(real_server_ip).strip())
+    return real_server_ips
+
+
+def report_vip_without_nat_target(obj_orig: dict[str, Any]) -> None:
+    description = (
+        "vip: found no nat target (neither mappedip nor realservers) for " + obj_orig["name"] + " - nat info is missing"
+    )
+    FWOLogger.warning(description)
+    try:
+        api_call = ServiceProvider().get_global_state().import_state.api_call
+        api_call.create_data_issue(obj_name=obj_orig["name"], severity=1, description=description)
+    except Exception:  # a missing data issue must never break the import
+        FWOLogger.debug("could not create data issue for vip without nat target " + obj_orig["name"])
+
+
 def normalize_vip_object_nat_ip(obj_orig: dict[str, Any], obj: dict[str, Any], nat_obj: dict[str, Any]) -> None:
     # now dealing with the nat ip obj (mappedip)
     if "mappedip" not in obj_orig or len(obj_orig["mappedip"]) == 0:
-        FWOLogger.warning("vip (mappedip): found empty mappedip field for " + obj_orig["name"])
+        FWOLogger.debug("vip (mappedip): found empty mappedip field for " + obj_orig["name"])
         return
 
     if len(obj_orig["mappedip"]) > 1:

@@ -26,7 +26,12 @@
             </div>
             <div class="row mt-2 me-auto">
                 <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("reason"))*:</label>
-                <textarea rows="5" type="text" class="col-sm-9" @bind="Reason" />
+                <div class="col-sm-9">
+                    <textarea rows="5" type="text" class="w-100" @bind="Reason" />
+                    <small class="form-text text-muted d-block mt-1">
+                        @(userConfig.GetText("request_interface_reason_help"))
+                    </small>
+                </div>
             </div>
         }
     </Body>

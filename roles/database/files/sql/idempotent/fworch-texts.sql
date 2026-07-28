@@ -2992,6 +2992,8 @@ INSERT INTO txt VALUES ('networkAreaRequired',  'German',   'Netzwerkarea vorges
 INSERT INTO txt VALUES ('networkAreaRequired',  'English',  'Network Area Required');
 INSERT INTO txt VALUES ('modReqInterfaceName',  'German',   'Name der beantragten Schnittstelle');
 INSERT INTO txt VALUES ('modReqInterfaceName',  'English',  'Name of requested interface');
+INSERT INTO txt VALUES ('request_interface_reason_help', 'German',  'Hinweis: Bitte beschreiben Sie Ihre Anforderung so vollst&auml;ndig und klar wie m&ouml;glich, damit die Applikationsverantwortlichen den Bedarf verstehen und die passende Schnittstelle bereitstellen k&ouml;nnen. Falls bekannt, geben Sie bitte relevante technische Details wie IP-Adressen, Ports oder Protokolle an.');
+INSERT INTO txt VALUES ('request_interface_reason_help', 'English', 'Note: Please describe your requirement as completely and clearly as possible so that the application owners can understand the need and provide the appropriate interface. If known, please include relevant technical details such as IP addresses, ports, or protocols.');
 INSERT INTO txt VALUES ('modReqEmailReceiver',  'German',   'Empf&auml;nger der Antragsbenachrichtigung');
 INSERT INTO txt VALUES ('modReqEmailReceiver',  'English',  'Receiver of request email');
 INSERT INTO txt VALUES ('modReqEmailRequesterInCc','German','Antragssteller in CC');

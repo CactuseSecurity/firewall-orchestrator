@@ -115,6 +115,24 @@ def test_normalize_services_adds_builtin_named_ports() -> None:
     assert services["https"].svc_port_end == 443
 
 
+def test_normalize_services_adds_builtin_imap_port() -> None:
+    rule = OPNsenseAccessRule.model_validate(
+        {
+            "@uuid": "r-imap",
+            "type": "pass",
+            "descr": "allow imap to fw",
+            "destination": {"network": "(self)", "port": "imap"},
+        }
+    )
+    config = OPNsenseConfig(hostname="fw", access_rules=[rule])
+
+    services = _normalize_services(config)
+
+    assert services["imap"].svc_port == 143
+    assert services["imap"].svc_port_end == 143
+    assert "placeholder" not in (services["imap"].svc_comment or "")
+
+
 def test_normalize_services_creates_placeholder_for_unknown_named_port() -> None:
     rule = OPNsenseAccessRule.model_validate(
         {

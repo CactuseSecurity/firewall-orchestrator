@@ -297,7 +297,7 @@ def _parse_opnsense_aliases(
         if alias.get("type") == AliasTypeEnum.HOST:
             alias_parsed = OPNsenseHostAlias.model_validate(alias)
             host_aliases_parsed[alias_parsed.name] = alias_parsed
-        elif alias.get("type") == AliasTypeEnum.NETWORK:
+        elif alias.get("type") in {AliasTypeEnum.NETWORK, AliasTypeEnum.NETWORKGROUP}:
             alias_parsed = OPNsenseNetworkAlias.model_validate(alias)
             net_aliases_parsed[alias_parsed.name] = alias_parsed
         elif alias.get("type") == AliasTypeEnum.PORT:

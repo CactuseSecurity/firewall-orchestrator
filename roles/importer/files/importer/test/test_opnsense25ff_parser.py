@@ -174,6 +174,39 @@ def test_parse_opnsense_config_buckets_aliases_by_type() -> None:
     assert "web" not in config.host_aliases
 
 
+def test_parse_opnsense_config_buckets_network_group_aliases_as_network_aliases() -> None:
+    native_config = _native_config()
+    aliases = cast(
+        "list[dict[str, Any]]",
+        native_config["opnsense"]["OPNsense"]["Firewall"]["Alias"]["aliases"]["alias"],
+    )
+    aliases.extend(
+        [
+            {
+                "@uuid": "a3",
+                "enabled": "1",
+                "name": "Internal2OPNsense",
+                "type": "networkgroup",
+                "content": "internal",
+                "description": "internal network group",
+            },
+            {
+                "@uuid": "a4",
+                "enabled": "1",
+                "name": "g_test_1",
+                "type": "networkgroup",
+                "content": "Internal2OPNsense",
+                "description": "nested network group",
+            },
+        ]
+    )
+
+    config = parse_opnsense_config(native_config)
+
+    assert set(config.net_aliases) == {"Internal2OPNsense", "g_test_1"}
+    assert config.net_aliases["g_test_1"].childs[0] is config.net_aliases["Internal2OPNsense"]
+
+
 def test_parse_opnsense_config_enriches_aliases() -> None:
     config = parse_opnsense_config(_native_config())
 

@@ -68,7 +68,8 @@ namespace FWO.Test
 
             IRenderedComponent<CascadingAuthenticationState> component = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<MonitorScheduler>());
-            return new TestSetup(context, component.FindComponent<MonitorScheduler>().Instance);
+            IRenderedComponent<MonitorScheduler> scheduler = component.FindComponent<MonitorScheduler>();
+            return new TestSetup(context, scheduler, scheduler.Instance);
         }
 
         [Test]
@@ -132,7 +133,7 @@ namespace FWO.Test
                 Assert.That(blankInterval.ToString(), Does.Contain("text-muted"));
                 Assert.That(filledInterval.ToString(), Does.Contain("scheduler_interval_description"));
                 Assert.That(noRunTime.ToString(), Does.Contain("text-muted"));
-                Assert.That(startingNow.ToString(), Is.EqualTo("now"));
+                Assert.That(startingNow.ToString(), Is.EqualTo("scheduler_now"));
                 Assert.That(successStatus.ToString(), Does.Contain("text-success"));
                 Assert.That(failedStatus.ToString(), Does.Contain("text-danger"));
                 Assert.That(emptyStatus.ToString(), Does.Contain("text-muted"));
@@ -152,7 +153,7 @@ namespace FWO.Test
 
             object[] triggerArgs = new object[1];
             triggerArgs[0] = "Initial";
-            await (Task)GetPrivateMethod("TriggerJob", typeof(string)).Invoke(setup.Component, triggerArgs)!;
+            await setup.Rendered.InvokeAsync(() => (Task)GetPrivateMethod("TriggerJob", typeof(string)).Invoke(setup.Component, triggerArgs)!);
 
             List<SchedulerJobInfo> jobs = GetPrivateField<List<SchedulerJobInfo>>(setup.Component, "jobs");
             Assert.Multiple(() =>
@@ -215,7 +216,7 @@ namespace FWO.Test
             return jobs;
         }
 
-        private sealed record TestSetup(BunitContext Context, MonitorScheduler Component) : IDisposable
+        private sealed record TestSetup(BunitContext Context, IRenderedComponent<MonitorScheduler> Rendered, MonitorScheduler Component) : IDisposable
         {
             public void Dispose()
             {
@@ -269,7 +270,8 @@ namespace FWO.Test
                 if (!string.IsNullOrWhiteSpace(body))
                 {
                     using JsonDocument document = JsonDocument.Parse(body);
-                    if (document.RootElement.TryGetProperty("JobName", out JsonElement jobName))
+                    if (document.RootElement.TryGetProperty("JobName", out JsonElement jobName)
+                        || document.RootElement.TryGetProperty("jobName", out jobName))
                     {
                         RunJobNames.Add(jobName.GetString() ?? string.Empty);
                     }

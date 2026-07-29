@@ -8,6 +8,7 @@ using FWO.Data.Workflow;
 using FWO.Middleware.Client;
 using FWO.Services.Workflow;
 using FWO.Ui.Pages.Monitoring;
+using FWO.Ui.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,6 +40,26 @@ namespace FWO.Test
             return (T)field.GetValue(component)!;
         }
 
+        private static T GetPrivateProperty<T>(MonitorExternalRequestTickets component, string propertyName)
+        {
+            PropertyInfo? property = typeof(MonitorExternalRequestTickets).GetProperty(propertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (property == null)
+            {
+                throw new MissingMemberException(typeof(MonitorExternalRequestTickets).FullName, propertyName);
+            }
+            return (T)property.GetValue(component)!;
+        }
+
+        private static void SetPrivateProperty(MonitorExternalRequestTickets component, string propertyName, object? value)
+        {
+            PropertyInfo? property = typeof(MonitorExternalRequestTickets).GetProperty(propertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (property == null)
+            {
+                throw new MissingMemberException(typeof(MonitorExternalRequestTickets).FullName, propertyName);
+            }
+            property.SetValue(component, value);
+        }
+
         private static MonitorExternalRequestTickets RenderComponent(MonitorExternalRequestTicketsApiConn apiConn)
         {
             BunitContext context = new();
@@ -50,6 +71,7 @@ namespace FWO.Test
             context.Services.AddSingleton<ApiConnection>(apiConn);
             context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
             context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            context.Services.AddScoped<DomEventService>();
 
             IRenderedComponent<CascadingAuthenticationState> component = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<MonitorExternalRequestTickets>());
@@ -67,7 +89,7 @@ namespace FWO.Test
                 Assert.That(apiConn.OwnerQueryCount, Is.EqualTo(1));
                 Assert.That(apiConn.OwnerTicketQueryCount, Is.EqualTo(1));
                 Assert.That(apiConn.OpenRequestQueryCount, Is.EqualTo(1));
-                Assert.That(apiConn.StateQueryCount, Is.EqualTo(1));
+                Assert.That(apiConn.StateQueryCount, Is.EqualTo(2));
                 Assert.That(apiConn.WorkflowConfigurationQueryCount, Is.GreaterThan(0));
                 Assert.That(GetPrivateField<bool>(component, "InitComplete"), Is.True);
                 Assert.That(GetPrivateField<List<FwoOwner>>(component, "allOwners"), Has.Count.EqualTo(2));
@@ -76,6 +98,23 @@ namespace FWO.Test
                 Assert.That(GetPrivateField<List<OwnerTicket>>(component, "ownerTickets")[0].Ticket.Id, Is.EqualTo(30));
                 Assert.That(GetPrivateField<List<ExternalRequest>>(component, "relevantRequests"), Has.Count.EqualTo(1));
                 Assert.That(GetPrivateField<StateMatrix>(component, "MasterStateMatrix").LowestEndState, Is.EqualTo(50));
+            });
+        }
+
+        [Test]
+        public void OnInitializedAsync_WithNoOwners_SkipsOwnerSpecificQueries()
+        {
+            MonitorExternalRequestTicketsApiConn apiConn = new();
+            apiConn.Owners.Clear();
+
+            MonitorExternalRequestTickets component = RenderComponent(apiConn);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.OwnerTicketQueryCount, Is.EqualTo(0));
+                Assert.That(apiConn.OpenRequestQueryCount, Is.EqualTo(0));
+                Assert.That(GetPrivateField<bool>(component, "InitComplete"), Is.True);
+                Assert.That(GetPrivateField<List<FwoOwner>>(component, "allOwners"), Is.Empty);
             });
         }
 
@@ -97,6 +136,92 @@ namespace FWO.Test
                 Assert.That(GetPrivateField<FwoOwner>(component, "actOwner").Id, Is.EqualTo(77));
                 Assert.That(apiConn.OwnerTicketQueryCount, Is.EqualTo(2));
                 Assert.That(apiConn.OpenRequestQueryCount, Is.EqualTo(2));
+            });
+        }
+
+        [Test]
+        public async Task InitData_WhenOwnerTicketLookupFails_ReportsFetchDataError()
+        {
+            MonitorExternalRequestTicketsApiConn apiConn = new();
+            MonitorExternalRequestTickets component = RenderComponent(apiConn);
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+
+            SetPrivateProperty(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, title, message, errorFlag) =>
+                messages.Add((exception, title, message, errorFlag))));
+            apiConn.ThrowOnOwnerTicketQuery = true;
+
+            await (Task)GetPrivateMethod("InitData", typeof(FwoOwner)).Invoke(component, new object[]
+            {
+                new FwoOwner
+                {
+                    Id = 77,
+                    Name = "Broken owner"
+                }
+            })!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.OwnerTicketQueryCount, Is.EqualTo(2));
+                Assert.That(apiConn.OpenRequestQueryCount, Is.EqualTo(2));
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Title, Is.EqualTo(new SimulatedUserConfig().GetText("fetch_data")));
+                Assert.That(messages[0].Message, Is.Empty);
+                Assert.That(messages[0].ErrorFlag, Is.True);
+                Assert.That(messages[0].Exception, Is.TypeOf<InvalidOperationException>());
+            });
+        }
+
+        [Test]
+        public async Task SendReinitRequest_WhenMiddlewareClientIsMissing_ReportsReinitError()
+        {
+            MonitorExternalRequestTicketsApiConn apiConn = new();
+            MonitorExternalRequestTickets component = RenderComponent(apiConn);
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+
+            SetPrivateProperty(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, title, message, errorFlag) =>
+                messages.Add((exception, title, message, errorFlag))));
+            SetPrivateProperty(component, "middlewareClient", null);
+            GetPrivateMethod("RequestReInit", typeof(OwnerTicket)).Invoke(component, new object[]
+            {
+                CreateOwnerTicket(88, 49)
+            });
+
+            await (Task)GetPrivateMethod("SendReinitRequest").Invoke(component, Array.Empty<object>())!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Title, Is.EqualTo(new SimulatedUserConfig().GetText("reinit_ext_request")));
+                Assert.That(messages[0].Message, Is.Empty);
+                Assert.That(messages[0].ErrorFlag, Is.True);
+                Assert.That(messages[0].Exception, Is.TypeOf<NullReferenceException>());
+            });
+        }
+
+        [Test]
+        public async Task SendCloseTicket_WhenAuthenticationStateIsMissing_ReportsRejectError()
+        {
+            MonitorExternalRequestTicketsApiConn apiConn = new();
+            MonitorExternalRequestTickets component = RenderComponent(apiConn);
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+
+            SetPrivateProperty(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, title, message, errorFlag) =>
+                messages.Add((exception, title, message, errorFlag))));
+            SetPrivateProperty(component, "authenticationStateTask", null);
+            GetPrivateMethod("RequestClose", typeof(OwnerTicket)).Invoke(component, new object[]
+            {
+                CreateOwnerTicket(89, 49)
+            });
+
+            await (Task)GetPrivateMethod("SendCloseTicket").Invoke(component, Array.Empty<object>())!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Title, Is.EqualTo(new SimulatedUserConfig().GetText("reject_ticket")));
+                Assert.That(messages[0].Message, Is.Empty);
+                Assert.That(messages[0].ErrorFlag, Is.True);
+                Assert.That(messages[0].Exception, Is.TypeOf<NullReferenceException>());
             });
         }
 
@@ -195,6 +320,17 @@ namespace FWO.Test
             Assert.That(GetPrivateField<bool>(component, "DetailsMode"), Is.False);
         }
 
+        [Test]
+        public void UpdatePageSize_StoresValue()
+        {
+            MonitorExternalRequestTicketsApiConn apiConn = new();
+            MonitorExternalRequestTickets component = RenderComponent(apiConn);
+
+            GetPrivateMethod("UpdatePageSize", typeof(int)).Invoke(component, new object[] { 37 });
+
+            Assert.That(GetPrivateProperty<int>(component, "PageSize"), Is.EqualTo(37));
+        }
+
         private static OwnerTicket CreateOwnerTicket(long ticketId, int stateId)
         {
             return new OwnerTicket
@@ -221,6 +357,7 @@ namespace FWO.Test
         public int OwnerTicketQueryCount { get; private set; }
         public int OpenRequestQueryCount { get; private set; }
         public int WorkflowConfigurationQueryCount { get; private set; }
+        public bool ThrowOnOwnerTicketQuery { get; set; }
 
         public List<WfState> States { get; } = new();
         public List<FwoOwner> Owners { get; } = new();
@@ -230,6 +367,7 @@ namespace FWO.Test
         public MonitorExternalRequestTicketsApiConn()
         {
             States.Add(new WfState { Id = 0, Name = "Zero" });
+            States.Add(new WfState { Id = 20, Name = "Twenty" });
             States.Add(new WfState { Id = 49, Name = "FortyNine" });
             States.Add(new WfState { Id = 50, Name = "Fifty" });
 
@@ -264,6 +402,10 @@ namespace FWO.Test
             if (typeof(QueryResponseType) == typeof(List<OwnerTicket>) && query == MonitorQueries.getOwnerTickets)
             {
                 OwnerTicketQueryCount++;
+                if (ThrowOnOwnerTicketQuery)
+                {
+                    throw new InvalidOperationException("Owner ticket lookup failed");
+                }
                 return Task.FromResult((QueryResponseType)(object)OwnerTickets);
             }
 

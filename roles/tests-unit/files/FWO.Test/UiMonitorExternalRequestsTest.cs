@@ -38,6 +38,26 @@ namespace FWO.Test
             return (T)field.GetValue(component)!;
         }
 
+        private static T GetPrivateProperty<T>(MonitorExternalRequests component, string propertyName)
+        {
+            PropertyInfo? property = typeof(MonitorExternalRequests).GetProperty(propertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (property == null)
+            {
+                throw new MissingMemberException(typeof(MonitorExternalRequests).FullName, propertyName);
+            }
+            return (T)property.GetValue(component)!;
+        }
+
+        private static void SetPrivateProperty(MonitorExternalRequests component, string propertyName, object? value)
+        {
+            PropertyInfo? property = typeof(MonitorExternalRequests).GetProperty(propertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (property == null)
+            {
+                throw new MissingMemberException(typeof(MonitorExternalRequests).FullName, propertyName);
+            }
+            property.SetValue(component, value);
+        }
+
         private static MonitorExternalRequests RenderComponent(MonitorExternalRequestsApiConn apiConn)
         {
             BunitContext context = new();
@@ -76,6 +96,30 @@ namespace FWO.Test
                 Assert.That(storedRequests, Has.Count.EqualTo(2));
                 Assert.That(storedRequests[0].Id, Is.EqualTo(20));
                 Assert.That(storedRequests[1].Id, Is.EqualTo(10));
+            });
+        }
+
+        [Test]
+        public async Task FetchData_WhenOpenRequestLookupFails_ReportsFetchDataError()
+        {
+            MonitorExternalRequestsApiConn apiConn = new();
+            apiConn.ThrowOnOpenRequestQuery = true;
+            MonitorExternalRequests component = RenderComponent(apiConn);
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+
+            SetPrivateProperty(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, title, message, errorFlag) =>
+                messages.Add((exception, title, message, errorFlag))));
+
+            await (Task)GetPrivateMethod("FetchData").Invoke(component, Array.Empty<object>())!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.OpenRequestQueryCount, Is.EqualTo(2));
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Title, Is.EqualTo(new SimulatedUserConfig().GetText("fetch_data")));
+                Assert.That(messages[0].Message, Is.Empty);
+                Assert.That(messages[0].ErrorFlag, Is.True);
+                Assert.That(messages[0].Exception, Is.TypeOf<InvalidOperationException>());
             });
         }
 
@@ -123,6 +167,37 @@ namespace FWO.Test
         }
 
         [Test]
+        public void RequestChangeState_MapsAllowedStatesForKnownStates()
+        {
+            MonitorExternalRequestsApiConn apiConn = new();
+            MonitorExternalRequests component = RenderComponent(apiConn);
+
+            Assert.Multiple(() =>
+            {
+                AssertRequestStateMapping(component, 101, ExtStates.ExtReqInitialized, new List<ExtStates>
+                {
+                    ExtStates.ExtReqRejected,
+                    ExtStates.ExtReqAckRejected,
+                    ExtStates.ExtReqDiscarded
+                });
+                AssertRequestStateMapping(component, 102, ExtStates.ExtReqFailed, new List<ExtStates>
+                {
+                    ExtStates.ExtReqRejected,
+                    ExtStates.ExtReqAckRejected,
+                    ExtStates.ExtReqDiscarded
+                });
+                AssertRequestStateMapping(component, 103, ExtStates.ExtReqRejected, new List<ExtStates>
+                {
+                    ExtStates.ExtReqAckRejected
+                });
+                AssertRequestStateMapping(component, 104, ExtStates.ExtReqDone, new List<ExtStates>
+                {
+                    ExtStates.ExtReqAcknowledged
+                });
+            });
+        }
+
+        [Test]
         public void Details_OpensRequestDialog()
         {
             MonitorExternalRequestsApiConn apiConn = new();
@@ -156,6 +231,33 @@ namespace FWO.Test
                 Assert.That(apiConn.LastUnlockedLocked, Is.False);
                 Assert.That(apiConn.OpenRequestQueryCount, Is.EqualTo(2));
             });
+        }
+
+        [Test]
+        public async Task PatchState_WhenMiddlewareClientIsMissing_ThrowsNullReferenceException()
+        {
+            MonitorExternalRequestsApiConn apiConn = new();
+            MonitorExternalRequests component = RenderComponent(apiConn);
+            SetPrivateProperty(component, "middlewareClient", null);
+            GetPrivateMethod("RequestChangeState", typeof(ExternalRequest)).Invoke(component, new object[]
+            {
+                CreateRequest(55, ExtStates.ExtReqRequested, false)
+            });
+
+            Task patchTask = (Task)GetPrivateMethod("PatchState").Invoke(component, Array.Empty<object>())!;
+
+            Assert.ThrowsAsync<NullReferenceException>(async () => await patchTask);
+        }
+
+        [Test]
+        public void UpdatePageSize_StoresValue()
+        {
+            MonitorExternalRequestsApiConn apiConn = new();
+            MonitorExternalRequests component = RenderComponent(apiConn);
+
+            GetPrivateMethod("UpdatePageSize", typeof(int)).Invoke(component, new object[] { 37 });
+
+            Assert.That(GetPrivateProperty<int>(component, "PageSize"), Is.EqualTo(37));
         }
 
         [Test]
@@ -197,6 +299,26 @@ namespace FWO.Test
                 Locked = locked
             };
         }
+
+        private static void AssertRequestStateMapping(
+            MonitorExternalRequests component,
+            long requestId,
+            ExtStates sourceState,
+            List<ExtStates> expectedStates)
+        {
+            GetPrivateMethod("RequestChangeState", typeof(ExternalRequest)).Invoke(component, new object[]
+            {
+                CreateRequest(requestId, sourceState, false)
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetPrivateField<ExternalRequest>(component, "actRequest").Id, Is.EqualTo(requestId));
+                Assert.That(GetPrivateField<List<ExtStates>>(component, "availableStates"), Is.EqualTo(expectedStates));
+                Assert.That(GetPrivateField<ExtStates>(component, "actState"), Is.EqualTo(expectedStates[0]));
+                Assert.That(GetPrivateField<bool>(component, "ChangeStateMode"), Is.True);
+            });
+        }
     }
 
     internal sealed class MonitorExternalRequestsApiConn : SimulatedApiConnection
@@ -207,12 +329,17 @@ namespace FWO.Test
         public int UnlockQueryCount { get; private set; }
         public long LastUnlockedId { get; private set; }
         public bool LastUnlockedLocked { get; private set; }
+        public bool ThrowOnOpenRequestQuery { get; set; }
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
             if (typeof(QueryResponseType) == typeof(List<ExternalRequest>) && query == ExtRequestQueries.getOpenRequests)
             {
                 OpenRequestQueryCount++;
+                if (ThrowOnOpenRequestQuery)
+                {
+                    throw new InvalidOperationException("Open request lookup failed");
+                }
                 LastRequestedStates = GetStringList(variables, "states");
                 return Task.FromResult((QueryResponseType)(object)OpenRequests);
             }

@@ -6,6 +6,7 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Middleware.Client;
+using FWO.Services.Modelling;
 using FWO.Ui.Pages.Monitoring;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -49,9 +50,20 @@ namespace FWO.Test
             field.SetValue(component, value);
         }
 
+        private static void SetPrivateProperty<T>(MonitorModelling component, string name, T value)
+        {
+            PropertyInfo? property = typeof(MonitorModelling).GetProperty(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (property == null)
+            {
+                throw new MissingMemberException(typeof(MonitorModelling).FullName, name);
+            }
+            property.SetValue(component, value);
+        }
+
         private static Task InvokePrivateTask(MonitorModelling component, string name, params object[] args)
         {
-            return (Task)GetPrivateMethod(name).Invoke(component, args)!;
+            Type[] parameterTypes = Array.ConvertAll(args, arg => arg?.GetType() ?? typeof(object));
+            return (Task)GetPrivateMethod(name, parameterTypes).Invoke(component, args)!;
         }
 
         private static MonitorModelling RenderComponent(BunitContext context, ApiConnection apiConnection)
@@ -182,9 +194,32 @@ namespace FWO.Test
             Assert.That(apiConn.AreaQueryCount, Is.EqualTo(2));
             Assert.That(apiConn.ServiceGroupQueryCount, Is.EqualTo(2));
             Assert.That(apiConn.ServiceQueryCount, Is.EqualTo(2));
+            Assert.That(apiConn.ConnectionsQueryCount, Is.EqualTo(2));
+            Assert.That(apiConn.ResolvedConnectionsQueryCount, Is.EqualTo(4));
             Assert.That(apiConn.RemoveNwGroupCalls, Is.Zero);
             Assert.That(apiConn.RemoveServiceGroupCalls, Is.Zero);
             Assert.That(apiConn.RemoveServiceCalls, Is.Zero);
+        }
+
+        [Test]
+        public async Task OwnerChanged_OrphanedView_UsesOrphanedLoaders()
+        {
+            MonitorModellingTestApiConn apiConn = new();
+            await using BunitContext context = new();
+            MonitorModelling component = RenderComponent(context, apiConn);
+            await InvokePrivateTask(component, "OnInitializedAsync");
+
+            int connectionIdQueriesBefore = apiConn.ConnectionIdQueryCount;
+            SetPrivateField(component, "orphanedView", true);
+            SetPrivateField(component, "HandlerBase", new MonitorModellingHandlerStub(apiConn, new SimulatedUserConfig()));
+            FwoOwner newOwner = new() { Id = 77, Name = "Owner 77" };
+
+            await InvokePrivateTask(component, "OwnerChanged", newOwner);
+
+            Assert.That(GetPrivateField<FwoOwner>(component, "SelectedOwner").Id, Is.EqualTo(77));
+            Assert.That(apiConn.ConnectionIdQueryCount, Is.EqualTo(connectionIdQueriesBefore));
+            Assert.That(apiConn.ConnectionsQueryCount, Is.EqualTo(4));
+            Assert.That(apiConn.ResolvedConnectionsQueryCount, Is.EqualTo(2));
         }
 
         [Test]
@@ -292,7 +327,91 @@ namespace FWO.Test
             Assert.That(result[0].Services, Has.Count.EqualTo(1));
             Assert.That(result[0].ServiceGroups, Is.Empty);
         }
-    }
+
+        [Test]
+        public async Task RemoveAllOrphans_RemovesMatchingConnectionsAndReportsSummary()
+        {
+            MonitorModellingTestApiConn apiConn = new();
+            apiConn.OwnerConnections = new List<ModellingConnection>
+            {
+                new ModellingConnection
+                {
+                    Id = 100,
+                    UsedInterfaceId = 201,
+                    SourceAppRoles = new List<ModellingAppRoleWrapper>
+                    {
+                        new ModellingAppRoleWrapper { Content = new ModellingAppRole { Id = 501, GroupType = (int)ModellingTypes.ModObjectType.AppRole } }
+                    },
+                    SourceAppServers = new List<ModellingAppServerWrapper>
+                    {
+                        new ModellingAppServerWrapper { Content = new ModellingAppServer { Id = 601 } }
+                    }
+                }
+            };
+            apiConn.ResolvedOwnerConnections = new List<ModellingConnection>
+            {
+                new ModellingConnection
+                {
+                    Id = 200,
+                    UsedInterfaceId = 202,
+                    SourceAreas = new List<ModellingNetworkAreaWrapper>
+                    {
+                        new ModellingNetworkAreaWrapper { Content = new ModellingNetworkArea { Id = 901 } }
+                    }
+                }
+            };
+            apiConn.ConnectionByIdResponses = new Dictionary<long, ModellingConnection>
+            {
+                {
+                    201,
+                    new ModellingConnection
+                    {
+                        Id = 201,
+                        SourceAppRoles = new List<ModellingAppRoleWrapper>
+                        {
+                            new ModellingAppRoleWrapper { Content = new ModellingAppRole { Id = 1, GroupType = (int)ModellingTypes.ModObjectType.AppRole } }
+                        },
+                        SourceAppServers = new List<ModellingAppServerWrapper>
+                        {
+                            new ModellingAppServerWrapper { Content = new ModellingAppServer { Id = 2 } }
+                        }
+                    }
+                },
+                {
+                    202,
+                    new ModellingConnection
+                    {
+                        Id = 202,
+                        SourceAreas = new List<ModellingNetworkAreaWrapper>
+                        {
+                            new ModellingNetworkAreaWrapper { Content = new ModellingNetworkArea { Id = 3 } }
+                        }
+                    }
+                }
+            };
+
+            await using BunitContext context = new();
+            MonitorModelling component = RenderComponent(context, apiConn);
+            await InvokePrivateTask(component, "OnInitializedAsync");
+            SetPrivateField(component, "HandlerBase", new MonitorModellingHandlerStub(apiConn, new SimulatedUserConfig()));
+
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+            SetPrivateProperty(component, "DisplayMessageInUi", new Action<Exception?, string, string, bool>((exception, title, message, errorFlag) =>
+                messages.Add((exception, title, message, errorFlag))));
+
+            await InvokePrivateTask(component, "RemoveAllOrphans");
+
+            Assert.That(apiConn.ConnectionByIdQueryCount, Is.EqualTo(3));
+            Assert.That(apiConn.RemoveNwGroupCalls, Is.EqualTo(2));
+            Assert.That(apiConn.RemoveAppServerCalls, Is.EqualTo(1));
+            Assert.That(apiConn.RemoveServiceGroupCalls, Is.Zero);
+            Assert.That(apiConn.RemoveServiceCalls, Is.Zero);
+            Assert.That(messages, Has.Count.EqualTo(1));
+            Assert.That(messages[0].Title, Is.EqualTo(new SimulatedUserConfig().GetText("delete")));
+            Assert.That(messages[0].ErrorFlag, Is.False);
+            Assert.That(messages[0].Message, Does.Contain(new SimulatedUserConfig().GetText("orphaned_entries_removed")));
+        }
+        }
 
     internal sealed class MonitorModellingTestApiConn : SimulatedApiConnection
     {
@@ -304,9 +423,17 @@ namespace FWO.Test
         public int AreaQueryCount { get; private set; }
         public int ServiceGroupQueryCount { get; private set; }
         public int ServiceQueryCount { get; private set; }
+        public int ConnectionIdQueryCount { get; private set; }
+        public int ConnectionByIdQueryCount { get; private set; }
+        public int ConnectionsQueryCount { get; private set; }
+        public int ResolvedConnectionsQueryCount { get; private set; }
         public int RemoveNwGroupCalls => NwGroupRemovals.Count;
+        public int RemoveAppServerCalls { get; private set; }
         public int RemoveServiceGroupCalls => ServiceGroupRemovals.Count;
         public int RemoveServiceCalls { get; private set; }
+        public List<ModellingConnection> OwnerConnections { get; set; } = new();
+        public List<ModellingConnection> ResolvedOwnerConnections { get; set; } = new();
+        public Dictionary<long, ModellingConnection> ConnectionByIdResponses { get; set; } = new();
         private static readonly List<FwoOwner> kOwners = new() { new FwoOwner { Id = 11, Name = "Owner 1" } };
         private static readonly List<ModellingAppRole> kAppRoles = new() { new ModellingAppRole { Id = 21, Name = "AppRole 1" } };
         private static readonly List<ModellingAppServer> kAppServers = new() { new ModellingAppServer { Id = 31, Name = "AppServer 1", Ip = "192.0.2.31/32" } };
@@ -374,6 +501,7 @@ namespace FWO.Test
             {
                 if (query == ModellingQueries.getConnectionsForNwGroup)
                 {
+                    ConnectionIdQueryCount++;
                     return Task.FromResult((QueryResponseType)(object)new List<ModellingConnectionWrapper>());
                 }
             }
@@ -385,6 +513,7 @@ namespace FWO.Test
                     || query == ModellingQueries.getConnectionIdsForServiceGroup
                     || query == ModellingQueries.getConnectionIdsForService)
                 {
+                    ConnectionIdQueryCount++;
                     Type wrapperType = typeof(MonitorModelling).GetNestedType("ConnectionIdWrapper", BindingFlags.NonPublic)
                         ?? throw new MissingMemberException(typeof(MonitorModelling).FullName, "ConnectionIdWrapper");
                     object result = Activator.CreateInstance(typeof(List<>).MakeGenericType(wrapperType))
@@ -397,8 +526,27 @@ namespace FWO.Test
             {
                 if (query == ModellingQueries.getConnections || query == ModellingQueries.getConnectionsResolved)
                 {
-                    return Task.FromResult((QueryResponseType)(object)new List<ModellingConnection>());
+                    if (query == ModellingQueries.getConnections)
+                    {
+                        ConnectionsQueryCount++;
+                        return Task.FromResult((QueryResponseType)(object)new List<ModellingConnection>(OwnerConnections));
+                    }
+
+                    ResolvedConnectionsQueryCount++;
+                    return Task.FromResult((QueryResponseType)(object)new List<ModellingConnection>(ResolvedOwnerConnections));
                 }
+            }
+
+            if (typeof(QueryResponseType) == typeof(List<ModellingConnection>) && query == ModellingQueries.getConnectionById)
+            {
+                ConnectionByIdQueryCount++;
+                long id = GetLong(variables, "id");
+                if (ConnectionByIdResponses.TryGetValue(id, out ModellingConnection? response))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<ModellingConnection> { response });
+                }
+
+                return Task.FromResult((QueryResponseType)(object)new List<ModellingConnection>());
             }
 
             if (typeof(QueryResponseType) == typeof(ReturnId))
@@ -409,6 +557,12 @@ namespace FWO.Test
                     long connectionId = GetLong(variables, "connectionId");
                     int field = GetInt(variables, "connectionField");
                     NwGroupRemovals.Add(new NwGroupRemoval(nwGroupId, connectionId, field));
+                    return Task.FromResult((QueryResponseType)(object)new ReturnId());
+                }
+
+                if (query == ModellingQueries.removeAppServerFromConnection)
+                {
+                    RemoveAppServerCalls++;
                     return Task.FromResult((QueryResponseType)(object)new ReturnId());
                 }
 
@@ -440,6 +594,14 @@ namespace FWO.Test
         {
             object? value = variables?.GetType().GetProperty(propertyName)?.GetValue(variables);
             return value != null ? Convert.ToInt32(value) : 0;
+        }
+    }
+
+    internal sealed class MonitorModellingHandlerStub : ModellingHandlerBase
+    {
+        public MonitorModellingHandlerStub(ApiConnection apiConnection, UserConfig userConfig)
+            : base(apiConnection, userConfig, (_, _, _, _) => { })
+        {
         }
     }
 

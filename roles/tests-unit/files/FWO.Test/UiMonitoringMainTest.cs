@@ -4,16 +4,22 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Middleware;
 using FWO.Middleware.Client;
+using FWO.Test.Mocks;
 using FWO.Ui.Pages.Monitoring;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
+using System.Net;
+using System.Net.Http;
 using System.Reflection;
 using System.Security.Claims;
+using System.Text;
 using System.Text.Json;
+using System.Threading;
 
 namespace FWO.Test
 {
@@ -80,6 +86,11 @@ namespace FWO.Test
 
         private static MonitoringMainTestSetup RenderComponent(params string[] roles)
         {
+            return RenderComponent(null, roles);
+        }
+
+        private static MonitoringMainTestSetup RenderComponent(MiddlewareClient? middlewareClient, params string[] roles)
+        {
             BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
@@ -87,7 +98,7 @@ namespace FWO.Test
             context.Services.AddSingleton<AuthenticationStateProvider>(new MonitoringTestAuthStateProvider(roles));
             MonitoringMainTestApiConn apiConn = new();
             context.Services.AddSingleton<ApiConnection>(apiConn);
-            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddSingleton(middlewareClient ?? new MiddlewareClient("http://localhost/"));
             SimulatedUserConfig userConfig = new();
             context.Services.AddSingleton<UserConfig>(userConfig);
 
@@ -240,11 +251,30 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ShowImportRollback_InvalidJson_ReportsError()
+        {
+            using MonitoringMainTestSetup setup = RenderComponent();
+            MonitoringMain monitoring = setup.Component;
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+            SetPrivateProperty(monitoring, "DisplayMessageInUi", new Action<Exception?, string, string, bool>((exception, title, message, errorFlag) =>
+                messages.Add((exception, title, message, errorFlag))));
+
+            Alert alert = new() { JsonData = "not-json", ManagementId = 12 };
+
+            InvokePrivateVoid(monitoring, "ShowImportRollback", alert);
+
+            Assert.That(messages, Has.Count.EqualTo(1));
+            Assert.That(messages[0].Title, Is.EqualTo("handle_alert"));
+            Assert.That(messages[0].ErrorFlag, Is.True);
+            Assert.That(GetPrivateField<bool>(monitoring, "RollbackMode"), Is.False);
+        }
+
+        [Test]
         public void ShowImportRollback_ValidJson_EnablesRollbackMode()
         {
             using MonitoringMainTestSetup setup = RenderComponent();
             MonitoringMain monitoring = setup.Component;
-            ImportControl[] controls =
+            List<ImportControl> controls = new List<ImportControl>
             {
                 new ImportControl
                 {
@@ -255,7 +285,7 @@ namespace FWO.Test
             Alert alert = new()
             {
                 ManagementId = 55,
-                JsonData = JsonSerializer.Serialize(controls)
+                JsonData = JsonSerializer.Serialize(controls.ToArray())
             };
 
             InvokePrivateVoid(monitoring, "ShowImportRollback", alert);
@@ -299,6 +329,28 @@ namespace FWO.Test
         }
 
         [Test]
+        public void RequestAcknowledgeAllOpen_SetsMode()
+        {
+            using MonitoringMainTestSetup setup = RenderComponent();
+            MonitoringMain monitoring = setup.Component;
+
+            InvokePrivateVoid(monitoring, "RequestAcknowledgeAllOpen");
+
+            Assert.That(GetPrivateField<bool>(monitoring, "AckAllMode"), Is.True);
+        }
+
+        [Test]
+        public void UpdatePageSize_StoresValue()
+        {
+            using MonitoringMainTestSetup setup = RenderComponent();
+            MonitoringMain monitoring = setup.Component;
+
+            InvokePrivateVoid(monitoring, "UpdatePageSize", 37);
+
+            Assert.That(GetPrivateField<int>(monitoring, "PageSize"), Is.EqualTo(37));
+        }
+
+        [Test]
         public void ConstructMessage_CombinesNonZeroCounters()
         {
             using MonitoringMainTestSetup setup = RenderComponent();
@@ -312,6 +364,86 @@ namespace FWO.Test
             string message = (string)InvokePrivateMethod(monitoring, "ConstructMessage")!;
 
             Assert.That(message, Is.EqualTo($"1 {userConfig.GetText("managements")} 2 {userConfig.GetText("users")} 3 {userConfig.GetText("owners")} {userConfig.GetText("deleted")}"));
+        }
+
+        [Test]
+        public void ConstructMessage_WithNoCounters_ReturnsNothingDeleted()
+        {
+            using MonitoringMainTestSetup setup = RenderComponent();
+            MonitoringMain monitoring = setup.Component;
+            SimulatedUserConfig userConfig = setup.UserConfig;
+
+            string message = (string)InvokePrivateMethod(monitoring, "ConstructMessage")!;
+
+            Assert.That(message, Is.EqualTo($"{userConfig.GetText("nothing")} {userConfig.GetText("deleted")}"));
+        }
+
+        [Test]
+        public async Task RemoveSampleData_DeletesDemoEntriesAndBuildsSummary()
+        {
+            TestMiddlewareClient middlewareClient = new("http://localhost/");
+            MonitoringMainCleanupHandler handler = new()
+            {
+                InternalGroups = new List<GroupGetReturnParameters>
+                {
+                    new GroupGetReturnParameters { GroupDn = "cn=group_demo,ou=groups,dc=example,dc=com" },
+                    new GroupGetReturnParameters { GroupDn = "cn=group_regular,ou=groups,dc=example,dc=com" }
+                }
+            };
+            middlewareClient.UseHandler(handler);
+
+            await using MonitoringMainTestSetup setup = RenderComponent(middlewareClient);
+            setup.UserConfig.User.Roles.Add(Roles.Admin);
+            MonitoringMain monitoring = setup.Component;
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+            SetPrivateProperty(monitoring, "DisplayMessageInUi", new Action<Exception?, string, string, bool>((exception, title, message, errorFlag) =>
+                messages.Add((exception, title, message, errorFlag))));
+
+            Alert alert = new() { Id = 99 };
+            SetPrivateField(monitoring, "actAlert", alert);
+            SetPrivateField(monitoring, "alertEntrys", new List<Alert> { alert });
+            setup.ApiConn.Managements.Clear();
+            setup.ApiConn.Managements.Add(new Management { Id = 1, Name = "mgm_demo" });
+            setup.ApiConn.Managements.Add(new Management { Id = 2, Name = "mgm_regular" });
+            setup.ApiConn.Credentials.Clear();
+            setup.ApiConn.Credentials.Add(new ImportCredential { Id = 3, Name = "cred_demo" });
+            setup.ApiConn.Credentials.Add(new ImportCredential { Id = 4, Name = "cred_regular" });
+            setup.ApiConn.Users.Clear();
+            setup.ApiConn.Users.Add(new UiUser { DbId = 5, Name = "user_demo", LdapConnection = new UiLdapConnection { Id = 15 } });
+            setup.ApiConn.Users.Add(new UiUser { DbId = 6, Name = "user_regular", LdapConnection = new UiLdapConnection { Id = 16 } });
+            setup.ApiConn.Tenants.Clear();
+            setup.ApiConn.Tenants.Add(new Tenant { Id = 7, Name = "tenant_demo" });
+            setup.ApiConn.Tenants.Add(new Tenant { Id = 8, Name = "tenant_regular" });
+            setup.ApiConn.Owners.Clear();
+            setup.ApiConn.Owners.Add(new FwoOwner { Id = 9, Name = "owner_demo" });
+            setup.ApiConn.Owners.Add(new FwoOwner { Id = 10, Name = "owner_regular" });
+
+            await InvokePrivateTask(monitoring, "RemoveSampleData");
+
+            Assert.That(setup.ApiConn.ManagementQueryCalls, Is.EqualTo(1));
+            Assert.That(setup.ApiConn.CredentialQueryCalls, Is.EqualTo(1));
+            Assert.That(setup.ApiConn.UserQueryCalls, Is.EqualTo(1));
+            Assert.That(setup.ApiConn.TenantQueryCalls, Is.EqualTo(1));
+            Assert.That(setup.ApiConn.OwnerQueryCalls, Is.EqualTo(1));
+            Assert.That(setup.ApiConn.ManagementDeleteQueryCalls, Is.EqualTo(1));
+            Assert.That(setup.ApiConn.CredentialDeleteQueryCalls, Is.EqualTo(1));
+            Assert.That(setup.ApiConn.OwnerDeleteQueryCalls, Is.EqualTo(1));
+            Assert.That(handler.DeleteUserCalls, Is.EqualTo(1));
+            Assert.That(handler.DeleteTenantCalls, Is.EqualTo(1));
+            Assert.That(handler.DeleteGroupCalls, Is.EqualTo(1));
+            Assert.That(setup.ApiConn.AcknowledgedAlertIds, Is.EqualTo(new List<long> { 99L }));
+            Assert.That(GetPrivateField<List<Alert>>(monitoring, "alertEntrys"), Is.Empty);
+            Assert.That(GetPrivateField<bool>(monitoring, "RemoveSampleDataMode"), Is.False);
+            Assert.That(GetPrivateField<bool>(monitoring, "workInProgress"), Is.False);
+            Assert.That(messages, Has.Count.EqualTo(1));
+            Assert.That(messages[0].Title, Is.EqualTo(setup.UserConfig.GetText("remove_sample_data")));
+            Assert.That(messages[0].ErrorFlag, Is.False);
+            Assert.That(messages[0].Message, Does.Contain(setup.UserConfig.GetText("deleted")));
+            Assert.That(messages[0].Message, Does.Contain(setup.UserConfig.GetText("managements")));
+            Assert.That(messages[0].Message, Does.Contain(setup.UserConfig.GetText("users")));
+            Assert.That(messages[0].Message, Does.Contain(setup.UserConfig.GetText("tenants")));
+            Assert.That(messages[0].Message, Does.Contain(setup.UserConfig.GetText("groups")));
+            Assert.That(messages[0].Message, Does.Contain(setup.UserConfig.GetText("owners")));
         }
 
         [Test]
@@ -367,21 +499,58 @@ namespace FWO.Test
         public int AckAllAffectedRows { get; set; } = 1;
         public int ManagementQueryCalls { get; private set; }
         public int OpenAlertQueryCalls { get; private set; }
-        private static readonly List<Management> kManagements = new() { new Management { Id = 1, Name = "mgm-demo" } };
-        private static readonly List<Alert> kAlerts = new() { new Alert { Id = 1, Source = "monitoring", Title = "alert" } };
+        public int CredentialQueryCalls { get; private set; }
+        public int UserQueryCalls { get; private set; }
+        public int TenantQueryCalls { get; private set; }
+        public int OwnerQueryCalls { get; private set; }
+        public int ManagementDeleteQueryCalls { get; private set; }
+        public int CredentialDeleteQueryCalls { get; private set; }
+        public int UserDeleteQueryCalls { get; private set; }
+        public int TenantDeleteQueryCalls { get; private set; }
+        public int OwnerDeleteQueryCalls { get; private set; }
+        public List<Management> Managements { get; } = new List<Management> { new Management { Id = 1, Name = "mgm_demo" } };
+        public List<ImportCredential> Credentials { get; } = new List<ImportCredential> { new ImportCredential { Id = 2, Name = "cred_demo" } };
+        public List<UiUser> Users { get; } = new List<UiUser> { new UiUser { DbId = 3, Name = "user_demo", LdapConnection = new UiLdapConnection { Id = 13 } } };
+        public List<Tenant> Tenants { get; } = new List<Tenant> { new Tenant { Id = 4, Name = "tenant_demo" } };
+        public List<FwoOwner> Owners { get; } = new List<FwoOwner> { new FwoOwner { Id = 5, Name = "owner_demo" } };
+        public List<Alert> OpenAlerts { get; } = new List<Alert> { new Alert { Id = 1, Source = "monitoring", Title = "alert" } };
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
             if (typeof(QueryResponseType) == typeof(List<Management>) && query == DeviceQueries.getManagementNames)
             {
                 ManagementQueryCalls++;
-                return Task.FromResult((QueryResponseType)(object)new List<Management>(kManagements));
+                return Task.FromResult((QueryResponseType)(object)new List<Management>(Managements));
             }
 
             if (typeof(QueryResponseType) == typeof(List<Alert>) && query == MonitorQueries.getOpenAlerts)
             {
                 OpenAlertQueryCalls++;
-                return Task.FromResult((QueryResponseType)(object)new List<Alert>(kAlerts));
+                return Task.FromResult((QueryResponseType)(object)new List<Alert>(OpenAlerts));
+            }
+
+            if (typeof(QueryResponseType) == typeof(List<ImportCredential>) && query == DeviceQueries.getCredentials)
+            {
+                CredentialQueryCalls++;
+                return Task.FromResult((QueryResponseType)(object)new List<ImportCredential>(Credentials));
+            }
+
+            if (typeof(QueryResponseType) == typeof(List<UiUser>) && query == AuthQueries.getUsers)
+            {
+                UserQueryCalls++;
+                return Task.FromResult((QueryResponseType)(object)new List<UiUser>(Users));
+            }
+
+            if (typeof(QueryResponseType) == typeof(List<Tenant>) && query == AuthQueries.getTenants)
+            {
+                TenantQueryCalls++;
+                return Task.FromResult((QueryResponseType)(object)new List<Tenant>(Tenants));
+            }
+
+            if (typeof(QueryResponseType) == typeof(List<FwoOwner>) && query == OwnerQueries.getOwners)
+            {
+                OwnerQueryCalls++;
+                return Task.FromResult((QueryResponseType)(object)new List<FwoOwner>(Owners));
             }
 
             if (typeof(QueryResponseType) == typeof(ReturnId))
@@ -404,9 +573,78 @@ namespace FWO.Test
                     AcknowledgeAllCalls++;
                     return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = AckAllAffectedRows });
                 }
+
+                if (query == DeviceQueries.deleteManagement)
+                {
+                    ManagementDeleteQueryCalls++;
+                    int id = Convert.ToInt32(variables?.GetType().GetProperty("id")?.GetValue(variables) ?? 0);
+                    return Task.FromResult((QueryResponseType)(object)new ReturnId { DeletedId = id });
+                }
+
+                if (query == DeviceQueries.deleteCredential)
+                {
+                    CredentialDeleteQueryCalls++;
+                    int id = Convert.ToInt32(variables?.GetType().GetProperty("id")?.GetValue(variables) ?? 0);
+                    return Task.FromResult((QueryResponseType)(object)new ReturnId { DeletedId = id });
+                }
+
+                if (query == OwnerQueries.deleteOwner)
+                {
+                    OwnerDeleteQueryCalls++;
+                    int id = Convert.ToInt32(variables?.GetType().GetProperty("id")?.GetValue(variables) ?? 0);
+                    return Task.FromResult((QueryResponseType)(object)new ReturnId { DeletedId = id });
+                }
             }
 
             throw new NotImplementedException();
+        }
+    }
+
+    internal sealed class MonitoringMainCleanupHandler : HttpMessageHandler
+    {
+        public List<GroupGetReturnParameters> InternalGroups { get; set; } = new List<GroupGetReturnParameters>();
+        public int DeleteUserCalls { get; private set; }
+        public int DeleteTenantCalls { get; private set; }
+        public int DeleteGroupCalls { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (request.RequestUri != null && request.RequestUri.AbsolutePath.EndsWith("/Group", StringComparison.OrdinalIgnoreCase))
+            {
+                if (request.Method == HttpMethod.Get)
+                {
+                    return Task.FromResult(CreateJsonResponse(HttpStatusCode.OK, JsonSerializer.Serialize(InternalGroups)));
+                }
+
+                if (request.Method == HttpMethod.Delete)
+                {
+                    DeleteGroupCalls++;
+                    return Task.FromResult(CreateJsonResponse(HttpStatusCode.OK, "true"));
+                }
+            }
+
+            if (request.RequestUri != null && request.RequestUri.AbsolutePath.EndsWith("/User", StringComparison.OrdinalIgnoreCase) && request.Method == HttpMethod.Delete)
+            {
+                DeleteUserCalls++;
+                return Task.FromResult(CreateJsonResponse(HttpStatusCode.OK, "true"));
+            }
+
+            if (request.RequestUri != null && request.RequestUri.AbsolutePath.EndsWith("/Tenant", StringComparison.OrdinalIgnoreCase) && request.Method == HttpMethod.Delete)
+            {
+                DeleteTenantCalls++;
+                return Task.FromResult(CreateJsonResponse(HttpStatusCode.OK, "true"));
+            }
+
+            return Task.FromResult(CreateJsonResponse(HttpStatusCode.NotFound, "{}"));
+        }
+
+        private static HttpResponseMessage CreateJsonResponse(HttpStatusCode statusCode, string body)
+        {
+            return new HttpResponseMessage(statusCode)
+            {
+                Content = new StringContent(body, Encoding.UTF8, "application/json"),
+                ReasonPhrase = statusCode == HttpStatusCode.OK ? "OK" : "Not Found"
+            };
         }
     }
 

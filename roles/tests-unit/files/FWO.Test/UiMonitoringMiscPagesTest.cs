@@ -6,6 +6,7 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Middleware.Client;
 using FWO.Ui.Pages.Monitoring;
+using FWO.Ui.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -59,6 +60,7 @@ namespace FWO.Test
             context.Services.AddSingleton<AuthenticationStateProvider>(new MonitoringTestAuthStateProvider(Roles.Admin));
             context.Services.AddSingleton<ApiConnection>(apiConn);
             context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddScoped<DomEventService>();
 
             SimulatedUserConfig userConfig = new();
             configureUserConfig?.Invoke(userConfig);

@@ -14,7 +14,8 @@
 
 - name: check for middleware service unit
   stat:
-    path: "/lib/systemd/system/{{ middleware_service_name }}.service"
+    path: "{{ item }}/{{ middleware_service_name }}.service"
+  loop: "{{ fworch_systemd_unit_search_dirs }}"
   register: middleware_service_unit
   become: true
 
@@ -24,4 +25,4 @@
     state: restarted
     daemon_reload: true
   become: true
-  when: middleware_service_unit.stat.exists
+  when: middleware_service_unit.results | selectattr('stat.exists') | list | length > 0

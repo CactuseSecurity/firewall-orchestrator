@@ -1,0 +1,171 @@
+# verifies that all fworch services are installed in the local systemd unit directory, are
+# enabled, and are hardened against failing permanently while a dependency is still starting
+
+- debug:
+    msg: starting systemd unit integration tests
+
+- name: determine the units expected on this host
+  set_fact:
+    expected_unit_names: >-
+      {{
+        ([api_service_name] if 'apiserver' in group_names else [])
+        + ([middleware_service_name] if 'middlewareserver' in group_names else [])
+        + ([product_name ~ '-ui'] if 'frontends' in group_names else [])
+        + ([product_name ~ '-importer-api'] if 'importers' in group_names else [])
+      }}
+    enabled_unit_states:
+      - enabled
+      - enabled-runtime
+
+- name: check unit files in the local systemd unit directory
+  stat:
+    path: "{{ fworch_systemd_unit_dir }}/{{ item }}.service"
+  loop: "{{ expected_unit_names }}"
+  register: local_unit_files
+  become: true
+
+- name: all expected units must live in the local unit directory
+  assert:
+    that:
+      - local_unit_files.results | rejectattr('stat.exists') | list | length == 0
+    fail_msg: >-
+      missing unit files in {{ fworch_systemd_unit_dir }}:
+      {{ local_unit_files.results | rejectattr('stat.exists') | map(attribute='item') | list }}
+
+# only units this host actually manages are checked - a vendor unit without a local counterpart
+# belongs to a component that is not installed here and is deliberately left alone
+- name: check for leftover unit files in the vendor systemd unit directory
+  stat:
+    path: "{{ fworch_systemd_vendor_unit_dir }}/{{ item }}.service"
+  loop: "{{ expected_unit_names + (api_legacy_service_names | default([]) if 'apiserver' in group_names else []) }}"
+  register: vendor_unit_files
+  become: true
+
+- name: no fworch unit file may be left behind in the vendor unit directory
+  assert:
+    that:
+      - vendor_unit_files.results | selectattr('stat.exists') | list | length == 0
+    fail_msg: >-
+      superseded unit files still present in {{ fworch_systemd_vendor_unit_dir }}:
+      {{ vendor_unit_files.results | selectattr('stat.exists') | map(attribute='item') | list }}
+
+# the installer used to write the units with backup=true, which left a copy of every previous
+# revision next to the unit; finalize cleans them up and no task may create new ones
+- name: search both unit directories for leftover unit file backup copies
+  find:
+    paths: "{{ fworch_systemd_unit_search_dirs }}"
+    patterns: "{{ fworch_systemd_unit_names | map('regex_replace', '$', '.service.*~') | list }}"
+  register: leftover_unit_backups
+  become: true
+
+- name: no unit file backup copies may be left behind in the unit directories
+  assert:
+    that:
+      - leftover_unit_backups.files | default([]) | length == 0
+    fail_msg: >-
+      unit file backup copies still present:
+      {{ leftover_unit_backups.files | default([]) | map(attribute='path') | list }}
+
+- name: read the unit path systemd resolves each service to
+  command: "systemctl show {{ item }}.service --property=FragmentPath --value"
+  loop: "{{ expected_unit_names }}"
+  register: unit_fragment_paths
+  changed_when: false
+  become: true
+
+- name: systemd must resolve every service to the local unit directory
+  assert:
+    that:
+      - item.stdout | trim | dirname == fworch_systemd_unit_dir
+    fail_msg: "{{ item.item }} resolves to '{{ item.stdout | trim }}' instead of a unit in {{ fworch_systemd_unit_dir }}"
+  loop: "{{ unit_fragment_paths.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+# a dangling enablement symlink pointing into the vendor directory keeps reporting the service as
+# enabled to ansible while no longer starting it after a reboot, so ask systemd itself
+- name: read the enablement state of every service
+  command: "systemctl is-enabled {{ item }}.service"
+  loop: "{{ expected_unit_names }}"
+  register: unit_enabled_states
+  changed_when: false
+  failed_when: false
+  become: true
+
+- name: every service must be enabled so that it starts after a reboot
+  assert:
+    that:
+      - item.stdout | trim in enabled_unit_states
+    fail_msg: "{{ item.item }} is '{{ item.stdout | trim }}' instead of enabled"
+  loop: "{{ unit_enabled_states.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+# postgres, slapd and apache are OS packages rather than fworch units, but nothing in the stack
+# survives a reboot without them and RedHat enables none of them on package install
+- name: determine the supporting OS services expected on this host
+  set_fact:
+    expected_os_service_names: >-
+      {{
+        ([postgresql_package] if 'databaseserver' in group_names else [])
+        + (['slapd'] if 'middlewareserver' in group_names else [])
+        + ([webserver_package_name] if ['frontends', 'middlewareserver', 'apiserver'] | intersect(group_names) | length > 0 else [])
+      }}
+
+- name: read the enablement state of the supporting OS services
+  command: "systemctl is-enabled {{ item }}.service"
+  loop: "{{ expected_os_service_names }}"
+  register: os_service_enabled_states
+  changed_when: false
+  failed_when: false
+  become: true
+
+- name: every supporting OS service must be enabled so that it starts after a reboot
+  assert:
+    that:
+      - item.stdout | trim in enabled_unit_states
+    fail_msg: "{{ item.item }} is '{{ item.stdout | trim }}' instead of enabled"
+  loop: "{{ os_service_enabled_states.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: read the installed unit files of the templated services
+  slurp:
+    src: "{{ fworch_systemd_unit_dir }}/{{ item }}.service"
+  loop: "{{ expected_unit_names | reject('equalto', api_service_name) | list }}"
+  register: templated_unit_files
+  become: true
+
+- name: every templated unit must restart and must not run into the systemd start rate limit
+  assert:
+    that:
+      - "'After=network-online.target' in unit_content"
+      - "'StartLimitIntervalSec=0' in unit_content"
+      - "'Restart=' in unit_content"
+      - "'RestartSec=' ~ fworch_systemd_restart_sec in unit_content"
+    fail_msg: "{{ item.item }} is missing startup ordering or restart hardening"
+  vars:
+    unit_content: "{{ item.content | b64decode }}"
+  loop: "{{ templated_unit_files.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: read the Hasura systemd drop-in
+  slurp:
+    src: "{{ fworch_systemd_unit_dir }}/{{ api_service_name }}.service.d/{{ product_name }}-startup.conf"
+  register: hasura_service_dropin
+  become: true
+  when: "'apiserver' in group_names"
+
+# the Hasura unit is generated by podman, so its ordering only exists in the drop-in
+- name: the Hasura drop-in must carry the startup ordering and restart hardening
+  assert:
+    that:
+      - "'After=network-online.target' in dropin_content"
+      - "'StartLimitIntervalSec=0' in dropin_content"
+      - "'RestartSec=' ~ fworch_systemd_restart_sec in dropin_content"
+      - "'databaseserver' not in group_names or 'postgresql.service' in dropin_content"
+    fail_msg: "the Hasura drop-in does not order the api service after its dependencies"
+  vars:
+    dropin_content: "{{ hasura_service_dropin.content | b64decode }}"
+  when: "'apiserver' in group_names"

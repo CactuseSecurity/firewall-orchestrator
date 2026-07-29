@@ -9,7 +9,7 @@
 @inject UiSessionTracker sessionTracker
 @inject IPeriodicTaskRunnerFactory periodicTaskRunnerFactory
 
-@implements IDisposable
+@implements IAsyncDisposable
 
 <div class="input-group">
     <h3>@(userConfig.GetText("monitoring"))</h3>
@@ -151,17 +151,30 @@
 
     private string LoadAverageDisplay => SystemUsageDisplay.FormatLoadAverage(Usage);
 
+    private bool CanViewUsage => userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor);
+
     protected override void OnInitialized()
     {
-        if (!userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
+        if (CanViewUsage)
         {
-            return;
+            Refresh();
         }
+    }
 
-        Refresh();
-        refreshRunner = periodicTaskRunnerFactory.Create(RefreshAsync,
-            TimeSpan.FromSeconds(kRefreshIntervalSeconds), nameof(MonitorSystemUsage));
-        refreshRunner.Start();
+    /// <summary>
+    /// Starts the refresh timer. This deliberately does not happen in OnInitialized: that method also runs
+    /// while the page is prerendered, and disposing the prerendered component would then block the render
+    /// dispatcher the timer loop needs to finish, which deadlocks the whole request.
+    /// </summary>
+    /// <param name="firstRender">True on the first render of the interactive component.</param>
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender && CanViewUsage && refreshRunner == null)
+        {
+            refreshRunner = periodicTaskRunnerFactory.Create(RefreshAsync,
+                TimeSpan.FromSeconds(kRefreshIntervalSeconds), nameof(MonitorSystemUsage));
+            refreshRunner.Start();
+        }
     }
 
     /// <summary>
@@ -198,11 +211,16 @@
     }
 
     /// <summary>
-    /// Stops the refresh timer when the page is left.
+    /// Stops the refresh timer when the page is left. The timer is shut down on a background thread because
+    /// disposing it waits for a running refresh, which in turn needs the render dispatcher of this component.
     /// </summary>
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        refreshRunner?.Dispose();
+        IPeriodicTaskRunner? runner = refreshRunner;
         refreshRunner = null;
+        if (runner != null)
+        {
+            await Task.Run(runner.Dispose);
+        }
     }
 }

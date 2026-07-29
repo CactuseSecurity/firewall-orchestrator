@@ -287,22 +287,65 @@ namespace FWO.Test
         }
 
         [Test]
-        public void Dispose_StopsTheRefreshRunner()
+        public async Task DisposeAsync_StopsTheRefreshRunner()
         {
             using BunitContext context = new();
             FakeSystemUsageCollector collector = new(CreateSnapshot());
             FakePeriodicTaskRunnerFactory factory = new();
 
             IRenderedComponent<MonitorSystemUsage> page = Render(context, collector, new UiSessionTracker(), factory, Roles.Admin);
-            page.Instance.Dispose();
+            await page.Instance.DisposeAsync();
             // disposing twice must stay harmless
-            page.Instance.Dispose();
+            await page.Instance.DisposeAsync();
 
             Assert.Multiple(() =>
             {
                 Assert.That(factory.LastRunner, Is.Not.Null);
                 Assert.That(factory.LastRunner!.Started, Is.True);
                 Assert.That(factory.LastRunner!.Disposed, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task DisposeAsync_ShutsTheRunnerDownWithoutBlockingTheCaller()
+        {
+            using BunitContext context = new();
+            FakeSystemUsageCollector collector = new(CreateSnapshot());
+            FakePeriodicTaskRunnerFactory factory = new();
+            IRenderedComponent<MonitorSystemUsage> page = Render(context, collector, new UiSessionTracker(), factory, Roles.Admin);
+
+            // the real runner blocks in Dispose until its loop ended, and that loop needs the render
+            // dispatcher: shutting it down inline would deadlock the circuit
+            using ManualResetEventSlim runnerShutdown = new(false);
+            factory.LastRunner!.DisposeGate = runnerShutdown;
+
+            ValueTask disposal = page.Instance.DisposeAsync();
+            bool completedWhileRunnerWasBlocked = disposal.IsCompleted;
+            runnerShutdown.Set();
+            await disposal;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(completedWhileRunnerWasBlocked, Is.False);
+                Assert.That(factory.LastRunner.Disposed, Is.True);
+            });
+        }
+
+        [Test]
+        public void Page_StartsTheRefreshTimerOnlyAfterTheFirstRender()
+        {
+            using BunitContext context = new();
+            FakeSystemUsageCollector collector = new(CreateSnapshot());
+            FakePeriodicTaskRunnerFactory factory = new();
+
+            IRenderedComponent<MonitorSystemUsage> page = Render(context, collector, new UiSessionTracker(), factory, Roles.Admin);
+            page.Render();
+
+            Assert.Multiple(() =>
+            {
+                // the timer must never be created more than once, no matter how often the page re-renders
+                Assert.That(factory.CreateCount, Is.EqualTo(1));
+                Assert.That(factory.LastRunner!.Started, Is.True);
             });
         }
 
@@ -327,6 +370,12 @@ namespace FWO.Test
             public bool Started { get; private set; }
             public bool Disposed { get; private set; }
 
+            /// <summary>
+            /// Optional gate letting a test hold up the shutdown, imitating the blocking dispose of the
+            /// real <see cref="PeriodicTaskRunner"/>.
+            /// </summary>
+            public ManualResetEventSlim? DisposeGate { get; set; }
+
             public void Start()
             {
                 Started = true;
@@ -334,6 +383,7 @@ namespace FWO.Test
 
             public void Dispose()
             {
+                DisposeGate?.Wait();
                 Disposed = true;
             }
         }
@@ -342,8 +392,11 @@ namespace FWO.Test
         {
             public FakePeriodicTaskRunner? LastRunner { get; private set; }
 
+            public int CreateCount { get; private set; }
+
             public IPeriodicTaskRunner Create(Func<Task> callback, TimeSpan interval, string taskName = "")
             {
+                CreateCount++;
                 LastRunner = new FakePeriodicTaskRunner(callback);
                 return LastRunner;
             }

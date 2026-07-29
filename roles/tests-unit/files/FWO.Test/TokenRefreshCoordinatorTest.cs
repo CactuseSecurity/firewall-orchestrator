@@ -37,10 +37,10 @@ namespace FWO.Test
             Assert.That(runnerFactory.CreateCallCount, Is.EqualTo(2));
             Assert.That(runnerFactory.StartCallCount, Is.EqualTo(2));
 
-            coordinator1.Stop();
+            await coordinator1.StopAsync();
             Assert.That(runnerFactory.DisposeCallCount, Is.EqualTo(1));
 
-            coordinator2.Stop();
+            await coordinator2.StopAsync();
             Assert.That(runnerFactory.DisposeCallCount, Is.EqualTo(2));
         }
 
@@ -56,22 +56,67 @@ namespace FWO.Test
             Assert.That(runnerFactory.CreateCallCount, Is.EqualTo(1));
             Assert.That(runnerFactory.StartCallCount, Is.EqualTo(1));
 
-            coordinator.Stop();
+            await coordinator.StopAsync();
             Assert.That(runnerFactory.DisposeCallCount, Is.EqualTo(1));
         }
 
         [Test]
-        public void Stop_WhenCalledTwice_DisposesRunnerOnlyOnce()
+        public async Task StopAsync_WhenCalledTwice_DisposesRunnerOnlyOnce()
         {
             TrackingPeriodicTaskRunnerFactory runnerFactory = new();
             TokenRefreshCoordinator coordinator = CreateCoordinator(new MockProtectedSessionStorage(), runnerFactory);
 
-            coordinator.StartAsync().GetAwaiter().GetResult();
+            await coordinator.StartAsync();
 
-            coordinator.Stop();
-            coordinator.Stop();
+            await coordinator.StopAsync();
+            await coordinator.StopAsync();
 
             Assert.That(runnerFactory.DisposeCallCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task StopAsync_ShutsTheRunnerDownWithoutBlocking()
+        {
+            TrackingPeriodicTaskRunnerFactory runnerFactory = new();
+            TokenRefreshCoordinator coordinator = CreateCoordinator(new MockProtectedSessionStorage(), runnerFactory);
+
+            await coordinator.StartAsync();
+            await coordinator.StopAsync();
+
+            Assert.Multiple(() =>
+            {
+                // the blocking shutdown would deadlock when called from the render dispatcher
+                Assert.That(runnerFactory.AsyncDisposeCallCount, Is.EqualTo(1));
+                Assert.That(runnerFactory.SyncDisposeCallCount, Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task DisposeAsync_StopsTheRunner()
+        {
+            TrackingPeriodicTaskRunnerFactory runnerFactory = new();
+            TokenRefreshCoordinator coordinator = CreateCoordinator(new MockProtectedSessionStorage(), runnerFactory);
+
+            await coordinator.StartAsync();
+            await coordinator.DisposeAsync();
+
+            Assert.That(runnerFactory.AsyncDisposeCallCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task Dispose_StillStopsTheRunnerSynchronously()
+        {
+            TrackingPeriodicTaskRunnerFactory runnerFactory = new();
+            TokenRefreshCoordinator coordinator = CreateCoordinator(new MockProtectedSessionStorage(), runnerFactory);
+
+            await coordinator.StartAsync();
+            coordinator.Dispose();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(runnerFactory.SyncDisposeCallCount, Is.EqualTo(1));
+                Assert.That(runnerFactory.DisposeCallCount, Is.EqualTo(1));
+            });
         }
 
         private static TokenRefreshCoordinator CreateCoordinator(MockProtectedSessionStorage sessionStorage, TrackingPeriodicTaskRunnerFactory runnerFactory)
@@ -93,7 +138,10 @@ namespace FWO.Test
         {
             public int CreateCallCount;
             public int StartCallCount;
-            public int DisposeCallCount;
+            public int SyncDisposeCallCount;
+            public int AsyncDisposeCallCount;
+
+            public int DisposeCallCount => SyncDisposeCallCount + AsyncDisposeCallCount;
 
             public IPeriodicTaskRunner Create(Func<Task> callback, TimeSpan interval, string taskName = "")
             {
@@ -121,7 +169,13 @@ namespace FWO.Test
 
             public void Dispose()
             {
-                factory.DisposeCallCount++;
+                factory.SyncDisposeCallCount++;
+            }
+
+            public ValueTask DisposeAsync()
+            {
+                factory.AsyncDisposeCallCount++;
+                return ValueTask.CompletedTask;
             }
         }
 

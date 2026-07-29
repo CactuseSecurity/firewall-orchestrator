@@ -211,8 +211,8 @@
     }
 
     /// <summary>
-    /// Stops the refresh timer when the page is left. The timer is shut down on a background thread because
-    /// disposing it waits for a running refresh, which in turn needs the render dispatcher of this component.
+    /// Stops the refresh timer when the page is left. The shutdown is awaited rather than blocked on,
+    /// because a refresh still in flight needs the render dispatcher this method runs on.
     /// </summary>
     public async ValueTask DisposeAsync()
     {
@@ -220,7 +220,7 @@
         refreshRunner = null;
         if (runner != null)
         {
-            await Task.Run(runner.Dispose);
+            await runner.DisposeAsync();
         }
     }
 }

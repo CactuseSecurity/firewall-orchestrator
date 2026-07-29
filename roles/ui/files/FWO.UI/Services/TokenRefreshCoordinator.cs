@@ -76,20 +76,16 @@ namespace FWO.Ui.Services
         }
 
         /// <inheritdoc />
-        public void Stop()
+        public async Task StopAsync()
         {
-            startStopLock.Wait();
+            await startStopLock.WaitAsync();
             try
             {
-                if (!started)
+                IPeriodicTaskRunner? runnerToStop = DetachRunner();
+                if (runnerToStop != null)
                 {
-                    return;
+                    await runnerToStop.DisposeAsync();
                 }
-
-                started = false;
-                navigationManager.LocationChanged -= OnLocationChanged;
-                runner?.Dispose();
-                runner = null;
             }
             finally
             {
@@ -98,9 +94,45 @@ namespace FWO.Ui.Services
         }
 
         /// <inheritdoc />
+        public async ValueTask DisposeAsync()
+        {
+            await StopAsync();
+        }
+
+        /// <summary>
+        /// Stops the refresh loop synchronously. Prefer <see cref="StopAsync"/> when running on a thread the
+        /// refresh callback depends on, because this method can only wait for a limited time.
+        /// </summary>
         public void Dispose()
         {
-            Stop();
+            startStopLock.Wait();
+            try
+            {
+                DetachRunner()?.Dispose();
+            }
+            finally
+            {
+                startStopLock.Release();
+            }
+        }
+
+        /// <summary>
+        /// Detaches the running refresh loop from this coordinator. The caller has to shut the returned
+        /// runner down. Must only be called while <see cref="startStopLock"/> is held.
+        /// </summary>
+        /// <returns>The runner to be shut down, or null if the coordinator was not started.</returns>
+        private IPeriodicTaskRunner? DetachRunner()
+        {
+            if (!started)
+            {
+                return null;
+            }
+
+            started = false;
+            navigationManager.LocationChanged -= OnLocationChanged;
+            IPeriodicTaskRunner? runnerToStop = runner;
+            runner = null;
+            return runnerToStop;
         }
 
         private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)

@@ -386,6 +386,12 @@ namespace FWO.Test
                 DisposeGate?.Wait();
                 Disposed = true;
             }
+
+            public async ValueTask DisposeAsync()
+            {
+                // imitates the real runner: the shutdown waits for the loop, but off the calling thread
+                await Task.Run(Dispose);
+            }
         }
 
         internal sealed class FakePeriodicTaskRunnerFactory : IPeriodicTaskRunnerFactory

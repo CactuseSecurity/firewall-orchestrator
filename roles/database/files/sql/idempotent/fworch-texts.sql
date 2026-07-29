@@ -75,6 +75,8 @@ INSERT INTO txt VALUES ('AnyActivity',          'German',   'Beliebige Aktivit&a
 INSERT INTO txt VALUES ('AnyActivity',          'English',  'Any Activity');
 INSERT INTO txt VALUES ('None',			        'German', 	'Keine(r/s)');
 INSERT INTO txt VALUES ('None',			        'English', 	'None');
+INSERT INTO txt VALUES ('note_prefix',           'German',   'Hinweis');
+INSERT INTO txt VALUES ('note_prefix',           'English',  'Note');
 INSERT INTO txt VALUES ('FromFlowDb',            'German',   'aus Flow DB');
 INSERT INTO txt VALUES ('FromFlowDb',            'English',  'from Flow DB');
 INSERT INTO txt VALUES ('Manually',              'German',   'manuell');
@@ -4015,6 +4017,8 @@ INSERT INTO txt VALUES ('U9040', 'German',  'Sind sie sicher, dass sie @@COUNT@@
 INSERT INTO txt VALUES ('U9040', 'English', 'Are you sure you want to close @@COUNT@@ ticket(s) as rejected?');
 INSERT INTO txt VALUES ('U9041', 'German',  'Sind sie sicher, dass sie @@COUNT@@ Ticket(s) als erledigt schliessen wollen?');
 INSERT INTO txt VALUES ('U9041', 'English', 'Are you sure you want to close @@COUNT@@ ticket(s) as done?');
+INSERT INTO txt VALUES ('U9042', 'German',  'Bitte beschreiben Sie Ihre Anforderung m&ouml;glichst vollst&auml;ndig und verst&auml;ndlich, damit die Verantwortlichen der Anwendung den Bedarf nachvollziehen und die passende Schnittstelle bereitstellen k&ouml;nnen. Falls bekannt, erg&auml;nzen Sie bitte relevante technische Angaben wie IP-Adressen, Ports oder Protokolle.');
+INSERT INTO txt VALUES ('U9042', 'English', 'Please describe your requirement as completely and clearly as possible so that the application owners can understand the need and provide the appropriate interface. If known, please include relevant technical details such as IP addresses, ports, or protocols.');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');

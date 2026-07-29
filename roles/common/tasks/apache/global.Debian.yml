@@ -32,8 +32,10 @@
     - name: enable global security settings
       command: "a2enconf security"
 
-    - name: restart apache
+    # the Debian package already enables apache2, this keeps both platforms explicit
+    - name: restart apache and make it start at host startup
       service:
         name: "{{ webserver_package_name }}"
         state: restarted
+        enabled: true
   become: true

@@ -257,5 +257,279 @@ namespace FWO.Test
             idFixString.ConvertAreaToAppRoleFixedPart("NA99");
             ClassicAssert.AreEqual("001", await AppRoleHandler.ProposeFreeAppRoleNumber(idFixString));
         }
+
+        [Test]
+        public void AppServerToAppRole_AddsOnlyEligibleServers()
+        {
+            ModellingAppServer existing = new() { Id = 1, Name = "Existing" };
+            ModellingAppServer queued = new() { Id = 2, Name = "Queued" };
+            ModellingAppServer deleted = new() { Id = 3, Name = "Deleted", IsDeleted = true };
+            ModellingAppRole role = new()
+            {
+                AppServers = new List<ModellingAppServerWrapper>
+                {
+                    new() { Content = existing }
+                }
+            };
+            ModellingAppRoleHandler handler = new(
+                new ModellingHandlerTestApiConn(),
+                new SimulatedUserConfig { ModNamingConvention = userConfig.ModNamingConvention },
+                new FwoOwner { Id = 1 },
+                new List<ModellingAppRole>(),
+                role,
+                new List<ModellingAppServer>(),
+                new List<KeyValuePair<int, long>>(),
+                false,
+                DisplayMessageInUi,
+                IsOwner);
+
+            handler.AppServerToAppRole(new List<ModellingAppServer> { existing, queued, queued, deleted });
+
+            ClassicAssert.AreEqual(1, handler.AppServerToAdd.Count);
+            ClassicAssert.AreEqual(2, handler.AppServerToAdd[0].Id);
+        }
+
+        [Test]
+        public async Task InitAppRole_WithAreaSelectsMembersAndProposesFreeNumber()
+        {
+            List<ModellingAppRole> appRoles = new();
+            List<KeyValuePair<int, long>> nwElems = new();
+            ModellingAppRoleHandler handler = new(apiConnection, userConfig, Application, appRoles, new ModellingAppRole(),
+                AvailableAppServers, nwElems, true, DisplayMessageInUi, IsOwner);
+            ModellingNetworkArea area = new()
+            {
+                Name = "Area1",
+                IdString = TestArea.IdString,
+                IpData = TestArea.IpData
+            };
+
+            await handler.InitAppRole(area);
+            handler.CountMembers(area);
+
+            ClassicAssert.AreEqual(area, handler.ActAppRole.Area);
+            ClassicAssert.AreEqual("00002", handler.ActAppRole.ManagedIdString.FreePart);
+            ClassicAssert.AreEqual(3, handler.AppServersInArea.Count);
+            ClassicAssert.AreEqual(3, area.MemberCount);
+        }
+
+        [Test]
+        public async Task Save_ReturnsFalse_WhenAppRoleMissingNameOrId()
+        {
+            string? message = null;
+            SimulatedUserConfig localUserConfig = new()
+            {
+                ModNamingConvention = userConfig.ModNamingConvention,
+                Translate = new Dictionary<string, string>
+                {
+                    ["E5102"] = "E5102"
+                }
+            };
+            ModellingAppRole role = new()
+            {
+                Name = "",
+                IdString = "AR"
+            };
+            ModellingAppRoleHandler handler = new(
+                new ModellingHandlerTestApiConn(),
+                localUserConfig,
+                new FwoOwner { Id = 1 },
+                new List<ModellingAppRole>(),
+                role,
+                new List<ModellingAppServer>(),
+                new List<KeyValuePair<int, long>>(),
+                true,
+                (_, _, text, _) => message = text,
+                IsOwner);
+
+            bool result = await handler.Save();
+
+            ClassicAssert.IsFalse(result);
+            ClassicAssert.AreEqual(localUserConfig.GetText("E5102"), message);
+        }
+
+        [Test]
+        public async Task Save_ReturnsFalse_WhenAppRoleIdStringAlreadyExists()
+        {
+            string? message = null;
+            SimulatedUserConfig localUserConfig = new()
+            {
+                ModNamingConvention = userConfig.ModNamingConvention,
+                Translate = new Dictionary<string, string>
+                {
+                    ["E5102"] = "E5102",
+                    ["E9003"] = "E9003"
+                }
+            };
+            ModellingAppRole role = new()
+            {
+                Name = "Role",
+                IdString = "AR5000002"
+            };
+            ModellingAppRoleHandler handler = new(
+                new ModellingHandlerTestApiConn(),
+                localUserConfig,
+                new FwoOwner { Id = 1 },
+                new List<ModellingAppRole>(),
+                role,
+                new List<ModellingAppServer>(),
+                new List<KeyValuePair<int, long>>(),
+                false,
+                (_, _, text, _) => message = text,
+                IsOwner);
+
+            await handler.InitAppRole(null);
+            handler.ActAppRole.IdString = "AR5000001";
+
+            bool result = await handler.Save();
+
+            ClassicAssert.IsFalse(result);
+            ClassicAssert.AreEqual("AR5000001: E9003", message);
+        }
+
+        [Test]
+        public async Task Save_AddsAppRoleAndAssociatedServersWhenValid()
+        {
+            ModellingHandlerTestApiConn apiConn = new();
+            SimulatedUserConfig localUserConfig = new()
+            {
+                ModNamingConvention = userConfig.ModNamingConvention,
+                Translate = new Dictionary<string, string>
+                {
+                    ["E5102"] = "E5102"
+                }
+            };
+            ModellingAppServer appServer = new() { Id = 10, Name = "Srv10" };
+            ModellingAppRole role = new()
+            {
+                Name = "Role",
+                IdString = "AR5000002",
+                AppServers = new List<ModellingAppServerWrapper>
+                {
+                    new() { Content = appServer }
+                }
+            };
+            List<ModellingAppRole> appRoles = new();
+            List<ModellingAppServer> availableAppServers = new();
+            List<KeyValuePair<int, long>> availableNwElems = new();
+            ModellingAppRoleHandler handler = new(
+                apiConn,
+                localUserConfig,
+                new FwoOwner { Id = 1 },
+                appRoles,
+                role,
+                availableAppServers,
+                availableNwElems,
+                true,
+                DisplayMessageInUi,
+                IsOwner);
+
+            handler.ActAppRole.IdString = "AR5000002";
+
+            bool result = await handler.Save();
+
+            ClassicAssert.IsTrue(result);
+            ClassicAssert.AreEqual(123, handler.ActAppRole.Id);
+            ClassicAssert.AreEqual(1, apiConn.NewAppRoleCalls);
+            ClassicAssert.AreEqual(1, apiConn.AddNwObjectCalls);
+            ClassicAssert.AreEqual(1, appRoles.Count);
+            ClassicAssert.AreEqual(1, availableNwElems.Count);
+        }
+
+        [Test]
+        public async Task Save_UpdatesAppRoleAndAppliesQueuedServerChanges()
+        {
+            ModellingHandlerTestApiConn apiConn = new();
+            SimulatedUserConfig localUserConfig = new()
+            {
+                ModNamingConvention = userConfig.ModNamingConvention,
+                Translate = new Dictionary<string, string>
+                {
+                    ["E5102"] = "E5102"
+                }
+            };
+            ModellingAppServer removeServer = new() { Id = 11, Name = "Remove" };
+            ModellingAppServer addServer = new() { Id = 12, Name = "Add" };
+            ModellingAppRole role = new()
+            {
+                Id = 9,
+                Name = "Role",
+                IdString = "AR5000009",
+                AppServers = new List<ModellingAppServerWrapper>
+                {
+                    new() { Content = removeServer }
+                }
+            };
+            List<ModellingAppRole> appRoles = new List<ModellingAppRole> { role };
+            ModellingAppRoleHandler handler = new(
+                apiConn,
+                localUserConfig,
+                new FwoOwner { Id = 1 },
+                appRoles,
+                role,
+                new List<ModellingAppServer>(),
+                new List<KeyValuePair<int, long>>(),
+                false,
+                DisplayMessageInUi,
+                IsOwner);
+
+            await handler.InitAppRole(null);
+            handler.AppServerToDelete.Add(removeServer);
+            handler.AppServerToAdd.Add(addServer);
+
+            bool result = await handler.Save();
+
+            ClassicAssert.IsTrue(result);
+            ClassicAssert.AreEqual(1, apiConn.UpdateAppRoleCalls);
+            ClassicAssert.AreEqual(1, apiConn.RemoveNwObjectCalls);
+            ClassicAssert.AreEqual(1, apiConn.AddNwObjectCalls);
+            ClassicAssert.AreEqual(0, handler.AppServerToAdd.Count);
+            ClassicAssert.AreEqual(0, handler.AppServerToDelete.Count);
+        }
+
+        [Test]
+        public async Task GetDummyAppRole_ReturnsExistingDummyRole()
+        {
+            ModellingAppRole expected = new() { Id = 77, Name = "dummy" };
+            ModellingHandlerTestApiConn apiConn = new()
+            {
+                DummyAppRoles = new List<ModellingAppRole> { expected }
+            };
+            AppRoleHandler = new(apiConn, userConfig, Application, AvailableAppRoles, new ModellingAppRole(),
+                AvailableAppServers, AvailableNwElems, AddAppRoleMode, DisplayMessageInUi, IsOwner);
+
+            ModellingAppRole result = await AppRoleHandler.GetDummyAppRole();
+
+            ClassicAssert.AreEqual(expected.Id, result.Id);
+            ClassicAssert.AreEqual(0, apiConn.NewAppRoleCalls);
+        }
+
+        [Test]
+        public async Task GetDummyAppRole_CreatesFallbackWhenMissing()
+        {
+            ModellingHandlerTestApiConn apiConn = new()
+            {
+                DummyAppRoles = new List<ModellingAppRole>()
+            };
+            AppRoleHandler = new(apiConn, userConfig, Application, AvailableAppRoles, new ModellingAppRole(),
+                AvailableAppServers, AvailableNwElems, AddAppRoleMode, DisplayMessageInUi, IsOwner);
+
+            ModellingAppRole result = await AppRoleHandler.GetDummyAppRole();
+
+            ClassicAssert.AreEqual(GlobalConst.kDummyAppRole, result.Name);
+            ClassicAssert.AreEqual(1, apiConn.NewAppRoleCalls);
+            ClassicAssert.AreEqual(1, AvailableAppRoles.Count);
+        }
+
+        [Test]
+        public void CleanUp_ResetsQueuedAppServerChanges()
+        {
+            AppRoleHandler!.AppServerToAdd = new List<ModellingAppServer> { new() { Id = 1 } };
+            AppRoleHandler.AppServerToDelete = new List<ModellingAppServer> { new() { Id = 2 } };
+
+            AppRoleHandler.CleanUp();
+
+            ClassicAssert.AreEqual(0, AppRoleHandler.AppServerToAdd.Count);
+            ClassicAssert.AreEqual(0, AppRoleHandler.AppServerToDelete.Count);
+        }
     }
 }

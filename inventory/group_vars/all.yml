@@ -256,3 +256,6 @@ apache_security_headers:
 apache_global_settings_file: "{{ '/etc/httpd/conf.d/security.conf' if ansible_facts['os_family'] == 'RedHat' else '/etc/apache2/conf-available/security.conf' }}"
 apache_ssl_protocol: "SSLProtocol -all +TLSv1.2 +TLSv1.3"
 apache_ssl_cipher_suite: "SSLCipherSuite ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:!aNULL:!MD5:!DSS:!SHA1"
+# max size of a single request header field; the apache default of 8190 bytes is too small for the
+# jwt in the "Authorization" header of users with many roles, owners or visible devices
+apache_limit_request_field_size: 32768

@@ -16119,7 +16119,8 @@
                       "next_recert_date",
                       "recert_date"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 },
@@ -16158,7 +16159,8 @@
                       "next_recert_date",
                       "recert_date"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 },
@@ -20284,7 +20286,8 @@
                       "dev_id",
                       "rule_id"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 },
@@ -20342,7 +20345,8 @@
                       "dev_id": {
                         "_in": "x-hasura-visible-devices"
                       }
-                    }
+                    },
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 },
@@ -20359,7 +20363,8 @@
                       "dev_id": {
                         "_in": "x-hasura-visible-devices"
                       }
-                    }
+                    },
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 },
@@ -20376,7 +20381,8 @@
                       "dev_id": {
                         "_in": "x-hasura-visible-devices"
                       }
-                    }
+                    },
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 },

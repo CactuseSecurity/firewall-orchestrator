@@ -1,9 +1,11 @@
+using FWO.Basics;
 using FWO.Data;
 using FWO.Middleware.Server;
 using Microsoft.IdentityModel.Tokens;
 using NUnit.Framework;
 using System.Reflection;
 using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 
 namespace FWO.Test
@@ -103,6 +105,66 @@ namespace FWO.Test
             Assert.That("Authorization: Bearer ".Length + jwt.Length, Is.LessThan(kApacheHeaderFieldLimit));
         }
 
+        [TestCase(Roles.Admin, Roles.Admin)]
+        [TestCase(Roles.Auditor, Roles.Auditor)]
+        [TestCase(Roles.FwAdmin, Roles.FwAdmin)]
+        [TestCase(Roles.ReporterViewAll, Roles.ReporterViewAll)]
+        [TestCase(Roles.Reporter, Roles.Reporter)]
+        [TestCase(Roles.Recertifier, Roles.Recertifier)]
+        [TestCase(Roles.Modeller, Roles.Modeller)]
+        public void SetClaimsPicksTheHighestRankedRoleAsDefaultRole(string role, string expectedDefaultRole)
+        {
+            // every user also holds the lowest ranked role, so the ranking decides
+            UiUser user = new()
+            {
+                Name = "test-user",
+                Roles = [Roles.Requester, role]
+            };
+
+            ClaimsIdentity claimsIdentity = InvokeSetClaims(user);
+
+            Assert.That(claimsIdentity.FindFirst("x-hasura-default-role")?.Value, Is.EqualTo(expectedDefaultRole));
+        }
+
+        [Test]
+        public void SetClaimsFallsBackToTheFirstRoleWhenNoneIsRanked()
+        {
+            UiUser user = new()
+            {
+                Name = "test-user",
+                Roles = [Roles.Requester, Roles.Approver]
+            };
+
+            ClaimsIdentity claimsIdentity = InvokeSetClaims(user);
+
+            Assert.That(claimsIdentity.FindFirst("x-hasura-default-role")?.Value, Is.EqualTo(Roles.Requester));
+        }
+
+        [Test]
+        public void SetClaimsLeavesDefaultRoleEmptyForUserWithoutRoles()
+        {
+            UiUser user = new() { Name = "test-user", Roles = [] };
+
+            ClaimsIdentity claimsIdentity = InvokeSetClaims(user);
+
+            Assert.That(claimsIdentity.FindFirst("x-hasura-default-role")?.Value, Is.Empty);
+        }
+
+        [Test]
+        public void CreateJwtForInternalRolesIssuesSingleRoleTokens()
+        {
+            JwtWriter writer = new(new RsaSecurityKey(RSA.Create(2048)));
+
+            string middlewareToken = writer.CreateJWTMiddlewareServer(TimeSpan.FromMinutes(5));
+            string reporterToken = writer.CreateJWTReporterViewall(TimeSpan.FromMinutes(5));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ReadDefaultRole(middlewareToken), Is.EqualTo(Roles.MiddlewareServer));
+                Assert.That(ReadDefaultRole(reporterToken), Is.EqualTo(Roles.ReporterViewAll));
+            });
+        }
+
         [Test]
         public void SetClaimsAddsJwtIdClaim()
         {
@@ -117,6 +179,12 @@ namespace FWO.Test
 
             Assert.That(jtiClaim, Is.Not.Null);
             Assert.That(Guid.TryParse(jtiClaim!.Value, out _), Is.True);
+        }
+
+        private static string? ReadDefaultRole(string jwt)
+        {
+            return new JwtSecurityTokenHandler().ReadJwtToken(jwt).Claims
+                .FirstOrDefault(claim => claim.Type == "x-hasura-default-role")?.Value;
         }
 
         private static ClaimsIdentity InvokeSetClaims(UiUser user)

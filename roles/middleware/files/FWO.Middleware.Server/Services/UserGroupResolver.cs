@@ -57,7 +57,8 @@ public class UserGroupResolver
 
         foreach (Ldap ldap in ldaps)
         {
-            LdapEntry? ldapUser = await GetUserEntry(ldap, userDn);
+            // GetUserDetailsFromLdap logs and swallows connection problems itself, returning null
+            LdapEntry? ldapUser = await ldap.GetUserDetailsFromLdap(userDn);
             if (ldapUser != null)
             {
                 return await GetGroups(ldapUser, ldap);
@@ -91,19 +92,6 @@ public class UserGroupResolver
     {
         List<string> userDnList = [userDn];
         return await ldap.GetGroups(userDnList);
-    }
-
-    private static async Task<LdapEntry?> GetUserEntry(Ldap ldap, string userDn)
-    {
-        try
-        {
-            return await ldap.GetUserDetailsFromLdap(userDn);
-        }
-        catch (Exception exception)
-        {
-            Log.WriteError("Resolve user groups", $"Could not read user {userDn} from ldap {ldap.Address}:{ldap.Port}.", exception);
-            return null;
-        }
     }
 
     private static string? GetGroupPath(Ldap ldap)

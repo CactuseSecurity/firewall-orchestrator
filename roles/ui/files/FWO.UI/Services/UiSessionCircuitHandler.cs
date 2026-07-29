@@ -8,7 +8,7 @@ namespace FWO.Ui.Services
     /// Reports the lifetime and the logged in user of a Blazor circuit to the <see cref="UiSessionTracker"/>.
     /// Registered as scoped service, so one instance exists per circuit.
     /// </summary>
-    public class UiSessionCircuitHandler : CircuitHandler, IDisposable
+    public sealed class UiSessionCircuitHandler : CircuitHandler, IDisposable
     {
         /// <summary>
         /// Claim holding the distinguished name of the logged in user.
@@ -76,7 +76,6 @@ namespace FWO.Ui.Services
                 authenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
                 sessionTracker.Unregister(SessionId);
             }
-            GC.SuppressFinalize(this);
         }
 
         private void OnAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask)

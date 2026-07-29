@@ -38,6 +38,23 @@
 
     private double BoundedPercent => Math.Clamp(Percent, 0, 100);
 
-    private string BarClass => BoundedPercent >= kCriticalThresholdPercent ? "bg-danger"
-        : BoundedPercent >= kWarningThresholdPercent ? "bg-warning" : "bg-success";
+    private string BarClass => GetBarClass(BoundedPercent);
+
+    /// <summary>
+    /// Returns the bootstrap colour class matching the severity of the given usage.
+    /// </summary>
+    /// <param name="percent">Usage in percent.</param>
+    /// <returns>The css class of the progress bar.</returns>
+    private static string GetBarClass(double percent)
+    {
+        if (percent >= kCriticalThresholdPercent)
+        {
+            return "bg-danger";
+        }
+        if (percent >= kWarningThresholdPercent)
+        {
+            return "bg-warning";
+        }
+        return "bg-success";
+    }
 }

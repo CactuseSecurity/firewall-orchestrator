@@ -67,13 +67,11 @@ namespace FWO.Ui.Services
                 }
 
                 disposed = true;
-                cancellationTokenSource.Cancel();
                 taskToWaitFor = executionTask;
+                cancellationTokenSource.Cancel();
             }
 
-            taskToWaitFor.GetAwaiter().GetResult();
             cancellationTokenSource.Dispose();
-            GC.SuppressFinalize(this);
         }
 
         private async Task RunAsync(CancellationToken cancellationToken)

@@ -1,0 +1,209 @@
+@using FWO.Services.SystemUsage
+
+@page "/monitoring"
+@page "/monitoring/system_usage"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}")]
+
+@inject UserConfig userConfig
+@inject ISystemUsageCollector systemUsageCollector
+@inject UiSessionTracker sessionTracker
+@inject IPeriodicTaskRunnerFactory periodicTaskRunnerFactory
+
+@implements IDisposable
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("monitoring"))</h3>
+    <HelpLink Page="monitoring" />
+</div>
+@(userConfig.GetText("U7001"))
+<hr />
+
+<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")">
+    <div class="input-group">
+        <h5>@(userConfig.GetText("system_usage"))</h5>
+        <HelpLink Page="monitoring/system_usage" />
+    </div>
+    <p>@(userConfig.GetText("U7004"))</p>
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <button type="button" class="btn btn-sm btn-primary" @onclick="Refresh">@(DisplayService.DisplayButton(userConfig, "refresh", Icons.Refresh))</button>
+        <span class="text-muted">@(userConfig.GetText("last_updated")): @LastUpdatedDisplay</span>
+    </div>
+
+    <div class="row">
+        <div class="col-sm-6 col-lg-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="usage-tile-value">@Sessions.LoggedInUsers</div>
+                    <div>@(userConfig.GetText("logged_in_users"))</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="usage-tile-value">@Sessions.OpenSessions</div>
+                    <div>@(userConfig.GetText("open_sessions"))</div>
+                    <div class="text-muted">@(userConfig.GetText("connected_sessions")): @Sessions.ConnectedSessions</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="usage-tile-value">@Usage.ProcessorCount</div>
+                    <div>@(userConfig.GetText("cpu_cores"))</div>
+                    <div class="text-muted">@(userConfig.GetText("load_average")): @LoadAverageDisplay</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="usage-tile-value">@SystemUsageDisplay.FormatBytes(Usage.MemoryAvailableBytes)</div>
+                    <div>@(userConfig.GetText("memory_available"))</div>
+                    <div class="text-muted">@(userConfig.GetText("memory_total")): @SystemUsageDisplay.FormatBytes(Usage.MemoryTotalBytes)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!Usage.SourceAvailable)
+    {
+        <div class="alert alert-warning">@(userConfig.GetText("usage_data_unavailable"))</div>
+    }
+
+    <div class="row">
+        <div class="col-lg-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6>@(userConfig.GetText("memory_usage"))</h6>
+                    <UsageGauge Caption="@(userConfig.GetText("memory_used"))" Percent="@Usage.MemoryUsedPercent"
+                                Detail="@($"{SystemUsageDisplay.FormatBytes(Usage.MemoryUsedBytes)} / {SystemUsageDisplay.FormatBytes(Usage.MemoryTotalBytes)}")" />
+                    <UsageGauge Caption="@(userConfig.GetText("swap_usage"))" Percent="@Usage.SwapUsedPercent"
+                                Detail="@($"{SystemUsageDisplay.FormatBytes(Usage.SwapUsedBytes)} / {SystemUsageDisplay.FormatBytes(Usage.SwapTotalBytes)}")" />
+                    <UsageSparkline Values="@MemoryHistory" Caption="@(userConfig.GetText("memory_usage"))"
+                                    EmptyText="@(userConfig.GetText("collecting_data"))" LineClass="usage-sparkline-secondary" AreaClass="usage-sparkline-secondary" />
+                    <div class="text-muted">@(userConfig.GetText("memory_free")): @SystemUsageDisplay.FormatBytes(Usage.MemoryFreeBytes)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6>@(userConfig.GetText("cpu_usage"))</h6>
+                    <UsageGauge Caption="@(userConfig.GetText("system"))" Percent="@Usage.CpuUsedPercent"
+                                Detail="@SystemUsageDisplay.FormatPercent(Usage.CpuUsedPercent)" />
+                    <UsageGauge Caption="@(userConfig.GetText("ui_process"))" Percent="@Usage.ProcessCpuPercent"
+                                Detail="@SystemUsageDisplay.FormatPercent(Usage.ProcessCpuPercent)" />
+                    <UsageSparkline Values="@CpuHistory" Caption="@(userConfig.GetText("cpu_usage"))"
+                                    EmptyText="@(userConfig.GetText("collecting_data"))" />
+                    <div class="text-muted">@(userConfig.GetText("load_average")): @LoadAverageDisplay</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6>@(userConfig.GetText("ui_process"))</h6>
+                    <div class="row">
+                        <div class="col-sm-6 col-lg-3">
+                            <div>@(userConfig.GetText("working_set"))</div>
+                            <div class="usage-tile-value">@SystemUsageDisplay.FormatBytes(Usage.ProcessWorkingSetBytes)</div>
+                        </div>
+                        <div class="col-sm-6 col-lg-3">
+                            <div>@(userConfig.GetText("managed_heap"))</div>
+                            <div class="usage-tile-value">@SystemUsageDisplay.FormatBytes(Usage.ProcessManagedHeapBytes)</div>
+                        </div>
+                        <div class="col-sm-6 col-lg-3">
+                            <div>@(userConfig.GetText("threads"))</div>
+                            <div class="usage-tile-value">@Usage.ProcessThreadCount</div>
+                        </div>
+                        <div class="col-sm-6 col-lg-3">
+                            <div>@(userConfig.GetText("uptime"))</div>
+                            <div class="usage-tile-value">@SystemUsageDisplay.FormatDuration(Usage.ProcessUpTime)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</ExecutionModeAuthorizeView>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private const int kRefreshIntervalSeconds = 5;
+    private const int kMaxHistoryPoints = 60;
+
+    private SystemUsageSnapshot Usage { get; set; } = new();
+    private UiSessionOverview Sessions { get; set; } = new();
+    private List<double> CpuHistory { get; set; } = [];
+    private List<double> MemoryHistory { get; set; } = [];
+    private IPeriodicTaskRunner? refreshRunner;
+
+    private string LastUpdatedDisplay => Usage.CollectedAt == DateTime.MinValue
+        ? "-" : Usage.CollectedAt.ToLocalTime().ToString("G");
+
+    private string LoadAverageDisplay => SystemUsageDisplay.FormatLoadAverage(Usage);
+
+    protected override void OnInitialized()
+    {
+        if (!userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
+        {
+            return;
+        }
+
+        Refresh();
+        refreshRunner = periodicTaskRunnerFactory.Create(RefreshAsync,
+            TimeSpan.FromSeconds(kRefreshIntervalSeconds), nameof(MonitorSystemUsage));
+        refreshRunner.Start();
+    }
+
+    /// <summary>
+    /// Samples the current usage values and appends them to the displayed history.
+    /// </summary>
+    private void Refresh()
+    {
+        try
+        {
+            Usage = systemUsageCollector.Collect();
+            Sessions = sessionTracker.GetOverview();
+            AppendHistory(CpuHistory, Usage.CpuUsedPercent);
+            AppendHistory(MemoryHistory, Usage.MemoryUsedPercent);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("system_usage"), "", true);
+        }
+    }
+
+    private async Task RefreshAsync()
+    {
+        Refresh();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private static void AppendHistory(List<double> history, double value)
+    {
+        history.Add(value);
+        while (history.Count > kMaxHistoryPoints)
+        {
+            history.RemoveAt(0);
+        }
+    }
+
+    /// <summary>
+    /// Stops the refresh timer when the page is left.
+    /// </summary>
+    public void Dispose()
+    {
+        refreshRunner?.Dispose();
+        refreshRunner = null;
+        GC.SuppressFinalize(this);
+    }
+}

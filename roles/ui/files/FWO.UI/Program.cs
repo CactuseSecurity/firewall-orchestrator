@@ -9,6 +9,7 @@ using FWO.Services;
 using FWO.Services.EventMediator;
 using FWO.Services.EventMediator.Interfaces;
 using FWO.Services.RuleTreeBuilder;
+using FWO.Services.SystemUsage;
 using FWO.Ui.Auth;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -62,6 +63,12 @@ builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<ITokenRefreshCoordinator, TokenRefreshCoordinator>();
 builder.Services.AddSingleton<IPeriodicTaskRunnerFactory, PeriodicTaskRunnerFactory>();
 builder.Services.AddScoped<ExecutionModeStorage>();
+
+// system usage monitoring: track the open circuits and sample the resource usage of this UI server
+builder.Services.AddSingleton<UiSessionTracker>();
+builder.Services.AddScoped<CircuitHandler, UiSessionCircuitHandler>();
+builder.Services.AddSingleton<ISystemUsageSource, ProcSystemUsageSource>();
+builder.Services.AddSingleton<ISystemUsageCollector, SystemUsageCollector>();
 
 // Create "anonymous" (empty) jwt
 MiddlewareClient middlewareClient = new(MiddlewareUri);

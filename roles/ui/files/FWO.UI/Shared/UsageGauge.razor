@@ -1,0 +1,43 @@
+@* Labelled progress bar visualizing a usage percentage, colour coded by severity thresholds. *@
+@using System.Globalization
+
+<div class="mb-3">
+    <div class="d-flex justify-content-between">
+        <span>@Caption</span>
+        <span>@Detail</span>
+    </div>
+    <div class="progress" role="progressbar" aria-label="@Caption" aria-valuenow="@((int)Math.Round(BoundedPercent))" aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-bar @BarClass" style="width: @(BoundedPercent.ToString("0.##", CultureInfo.InvariantCulture))%">
+            @(BoundedPercent.ToString("0.#", CultureInfo.InvariantCulture))%
+        </div>
+    </div>
+</div>
+
+@code
+{
+    private const double kWarningThresholdPercent = 70;
+    private const double kCriticalThresholdPercent = 90;
+
+    /// <summary>
+    /// Label shown on the left hand side above the bar.
+    /// </summary>
+    [Parameter]
+    public string Caption { get; set; } = "";
+
+    /// <summary>
+    /// Additional information shown on the right hand side above the bar, e.g. absolute values.
+    /// </summary>
+    [Parameter]
+    public string Detail { get; set; } = "";
+
+    /// <summary>
+    /// Usage in percent.
+    /// </summary>
+    [Parameter]
+    public double Percent { get; set; }
+
+    private double BoundedPercent => Math.Clamp(Percent, 0, 100);
+
+    private string BarClass => BoundedPercent >= kCriticalThresholdPercent ? "bg-danger"
+        : BoundedPercent >= kWarningThresholdPercent ? "bg-warning" : "bg-success";
+}

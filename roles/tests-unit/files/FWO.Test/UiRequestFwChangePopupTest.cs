@@ -16,11 +16,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System.Net.Http;
 using System.Reflection;
 using System.Security.Claims;
 using System.Text.Json;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace FWO.Test
 {
@@ -442,6 +440,7 @@ namespace FWO.Test
             Assert.That(details, Does.Not.Contain("<b>Members to remove:</b>"));
             Assert.That(details, Does.Contain("443/tcp"));
             Assert.That(details, Does.Contain("class=\"text-success\""));
+            Assert.That(details, Does.Not.Contain("MyServiceGroup"));
         }
 
         private static SimulatedUserConfig CreateUserConfig()
@@ -527,7 +526,8 @@ namespace FWO.Test
                     Field = ElemFieldType.service.ToString(),
                     Name = "https",
                     Port = 443,
-                    ProtoId = 6
+                    ProtoId = 6,
+                    GroupName = "MyServiceGroup"
                 }
             };
 

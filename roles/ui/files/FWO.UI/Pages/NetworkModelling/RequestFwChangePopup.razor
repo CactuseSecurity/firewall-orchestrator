@@ -298,7 +298,7 @@
         List<string> services = [];
         foreach (var elem in task.Elements.Where(e => e.Field == ElemFieldType.service.ToString()))
         {
-            services.Add(DisplayServiceElement(elem));
+            services.Add(DisplayServiceElement(elem, true));
         }
         return string.Join(", ", services);
     }
@@ -308,7 +308,7 @@
     /// </summary>
     private string DisplayMembers(WfReqTask task)
     {
-        List<WfReqElement> currentMembers = [.. task.Elements.Where(elem => IsCurrentMember(elem) || IsUnknownMemberAction(elem))];
+        List<WfReqElement> currentMembers = [.. task.Elements.Where(IsCurrentMember)];
         List<WfReqElement> membersToAdd = [.. task.Elements.Where(IsMemberToAdd)];
         List<WfReqElement> membersToRemove = [.. task.Elements.Where(IsMemberToRemove)];
 
@@ -333,14 +333,6 @@
     }
 
     /// <summary>
-    /// Returns true for member actions that do not match a known bucket.
-    /// </summary>
-    private static bool IsUnknownMemberAction(WfReqElement elem)
-    {
-        return !IsCurrentMember(elem) && !IsMemberToAdd(elem) && !IsMemberToRemove(elem);
-    }
-
-    /// <summary>
     /// Builds one labelled member row while preserving per-member styling.
     /// </summary>
     private string DisplayMemberRow(string label, List<WfReqElement> members)
@@ -354,18 +346,18 @@
     private string DisplayMember(WfReqElement elem)
     {
         string memberText = elem.Field == ElemFieldType.service.ToString()
-            ? DisplayServiceElement(elem)
+            ? DisplayServiceElement(elem, false)
             : DisplayBase.DisplayIpWithName(WfElementBase.ToNetworkObject(elem));
 
         return $"<span class=\"{CssClass(elem)}\" >{WebUtility.HtmlEncode(memberText)}</span>";
     }
 
     /// <summary>
-    /// Builds the display text for one service element.
+    /// Builds the display text for one service element, optionally resolving service-group references by name.
     /// </summary>
-    private string DisplayServiceElement(WfReqElement elem)
+    private string DisplayServiceElement(WfReqElement elem, bool resolveGroupName)
     {
-        if (!string.IsNullOrWhiteSpace(elem.GroupName))
+        if (resolveGroupName && !string.IsNullOrWhiteSpace(elem.GroupName))
         {
             return elem.GroupName;
         }
@@ -379,11 +371,11 @@
     }
 
     /// <summary>
-    /// Returns true for members that already exist in the group.
+    /// Returns true for members that should be displayed as current members.
     /// </summary>
     private static bool IsCurrentMember(WfReqElement elem)
     {
-        return elem.RequestAction == RequestAction.unchanged.ToString() || string.IsNullOrWhiteSpace(elem.RequestAction);
+        return !IsMemberToAdd(elem) && !IsMemberToRemove(elem);
     }
 
     /// <summary>

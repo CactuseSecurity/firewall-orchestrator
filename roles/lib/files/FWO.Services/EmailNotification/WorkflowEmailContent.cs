@@ -187,7 +187,7 @@ namespace FWO.Services
                 .Where(text => !string.IsNullOrWhiteSpace(text))
                 .Distinct());
         }
-        
+
         private static bool IsGroupTask(WfTaskBase task)
         {
             return task.TaskType == WfTaskType.group_create.ToString()
@@ -215,6 +215,7 @@ namespace FWO.Services
                 ? BuildGroupServiceMemberText(element, protocolNamesById)
                 : BuildGroupObjectMemberText(element);
         }
+
         private static bool IsMemberToAdd(WfReqElement element)
         {
             return element.RequestAction == RequestAction.create.ToString()
@@ -225,6 +226,7 @@ namespace FWO.Services
         {
             return element.RequestAction == RequestAction.delete.ToString();
         }
+
         private static string BuildGroupObjectMemberText(WfElementBase element)
         {
             string displayName = FirstNonEmpty(element.Name, element.RuleUid, BuildIpRange(element), element.GroupName);

@@ -585,3 +585,4 @@ Not supported any longer are:
 - fix config change in modelling
 - feat new REST API endpoint: ResolveZonesForObjects
 - feat new REST API endpoint: time object ID lookup
+- changed workflow email group member CSV/JSON output to separate current, added and removed members

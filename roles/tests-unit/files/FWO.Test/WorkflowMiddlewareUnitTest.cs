@@ -24,10 +24,11 @@ namespace FWO.Test
     [TestFixture]
     internal class WorkflowMiddlewareUnitTest
     {
-        private static readonly string[] kExpectedParsedGroups =
+        private static readonly List<string> kNoUserGroups = [];
+        private static readonly string[] kExpectedAssignedGroupDns =
         [
-            "cn=a,dc=fworch,dc=internal",
-            "cn=b,dc=fworch,dc=internal"
+            "cn=assignees,ou=groups,dc=fworch,dc=internal",
+            "cn=approvers,ou=groups,dc=fworch,dc=internal"
         ];
         private static readonly string[] kGetUserEmailsQuery = [AuthQueries.getUserEmails];
         private static readonly string[] kExpectedResolvedUserDns = ["uid=user,ou=users,dc=test"];
@@ -884,7 +885,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void WorkflowController_CallerCanAccessVisibility_RequiresMatchingVisibilityGroup()
+        public async Task WorkflowController_CallerCanAccessVisibility_RequiresMatchingVisibilityGroup()
         {
             WfHandler handler = new()
             {
@@ -908,9 +909,9 @@ namespace FWO.Test
                 }
             };
 
-            bool allowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessVisibility",
+            bool allowed = await InvokeCallerCanAccessVisibility(
                 PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-workflow-visibility-groups", "{7}")), handler, WfObjectScopes.Ticket, new WfTicket { StateId = 10 });
-            bool rejected = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessVisibility",
+            bool rejected = await InvokeCallerCanAccessVisibility(
                 PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-workflow-visibility-groups", "{9}")), handler, WfObjectScopes.Ticket, new WfTicket { StateId = 10 });
 
             Assert.Multiple(() =>
@@ -921,7 +922,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void WorkflowController_CallerCanAccessVisibility_DeniesUntaggedObjectsForExclusiveMembers()
+        public async Task WorkflowController_CallerCanAccessVisibility_DeniesUntaggedObjectsForExclusiveMembers()
         {
             WfHandler handler = new()
             {
@@ -935,14 +936,14 @@ namespace FWO.Test
                 }
             };
 
-            bool allowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessVisibility",
+            bool allowed = await InvokeCallerCanAccessVisibility(
                 PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-workflow-visibility-groups", "{7}")), handler, WfObjectScopes.Ticket, new WfTicket { StateId = 10 });
 
             Assert.That(allowed, Is.False);
         }
 
         [Test]
-        public void WorkflowController_CallerCanAccessVisibility_SkipsChecksWhenFeatureIsDisabled()
+        public async Task WorkflowController_CallerCanAccessVisibility_SkipsChecksWhenFeatureIsDisabled()
         {
             WfHandler handler = new()
             {
@@ -959,48 +960,38 @@ namespace FWO.Test
                 }
             };
 
-            bool allowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessVisibility",
+            bool allowed = await InvokeCallerCanAccessVisibility(
                 PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-workflow-visibility-groups", "{9}")), handler, WfObjectScopes.Ticket, new WfTicket { StateId = 10 });
 
             Assert.That(allowed, Is.True);
         }
 
         [Test]
-        public void WorkflowController_CallerCanAccessVisibility_AllowsExplicitApprovalGroupAssignment()
+        public void WorkflowController_IsExplicitlyAssigned_AllowsExplicitApprovalGroupAssignment()
         {
             string approvalGroupDn = "cn=approvers,ou=groups,dc=fworch,dc=internal";
-            WfHandler handler = new()
-            {
-                userConfig = new SimulatedUserConfig
-                {
-                    ReqVisibilityBased = true
-                },
-                MasterStateMatrix = new StateMatrix
-                {
-                    StateVisibilityGroupIds = new Dictionary<int, List<int>>
-                    {
-                        [10] = [7]
-                    }
-                }
-            };
             WfApproval approval = new()
             {
                 Id = 31,
                 StateId = 10,
                 ApproverGroup = approvalGroupDn
             };
+            List<string> userGroups = [approvalGroupDn];
 
-            bool allowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessVisibility",
-                PrincipalWithRolesAndClaims(
-                    [Roles.Approver],
-                    new Claim("x-hasura-groups", System.Text.Json.JsonSerializer.Serialize(new List<string> { approvalGroupDn }))),
-                handler, WfObjectScopes.Approval, approval);
+            bool allowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "IsExplicitlyAssignedToUserOrGroups",
+                PrincipalWithRolesAndClaims([Roles.Approver]), approval, userGroups);
+            bool rejected = InvokePrivateStatic<bool>(typeof(WorkflowController), "IsExplicitlyAssignedToUserOrGroups",
+                PrincipalWithRolesAndClaims([Roles.Approver]), approval, kNoUserGroups);
 
-            Assert.That(allowed, Is.True);
+            Assert.Multiple(() =>
+            {
+                Assert.That(allowed, Is.True);
+                Assert.That(rejected, Is.False);
+            });
         }
 
         [Test]
-        public void WorkflowController_CallerCanAccessVisibility_AllowsExplicitHandlerAssignment()
+        public async Task WorkflowController_CallerCanAccessVisibility_AllowsExplicitHandlerAssignment()
         {
             WfHandler handler = new()
             {
@@ -1022,41 +1013,53 @@ namespace FWO.Test
                 CurrentHandler = new UiUser { DbId = 7, Dn = "uid=handler,dc=fworch,dc=internal" }
             };
 
-            bool allowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessVisibility",
+            bool allowed = await InvokeCallerCanAccessVisibility(
                 PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-user-id", "7")), handler, WfObjectScopes.Ticket, ticket);
 
             Assert.That(allowed, Is.True);
         }
 
         [Test]
-        public void WorkflowController_CallerCanAccessVisibility_AllowsExplicitStatefulGroupAssignment()
+        public void WorkflowController_IsExplicitlyAssigned_AllowsExplicitStatefulGroupAssignment()
         {
             string assignedGroupDn = "cn=assignees,ou=groups,dc=fworch,dc=internal";
-            WfHandler handler = new()
-            {
-                userConfig = new SimulatedUserConfig
-                {
-                    ReqVisibilityBased = true
-                },
-                MasterStateMatrix = new StateMatrix
-                {
-                    StateVisibilityGroupIds = new Dictionary<int, List<int>>
-                    {
-                        [10] = [7]
-                    }
-                }
-            };
             WfTicket ticket = new()
             {
                 StateId = 10,
                 AssignedGroup = assignedGroupDn
             };
+            List<string> userGroups = [assignedGroupDn];
 
-            bool allowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessVisibility",
-                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-groups", System.Text.Json.JsonSerializer.Serialize(new List<string> { assignedGroupDn }))),
-                handler, WfObjectScopes.Ticket, ticket);
+            bool allowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "IsExplicitlyAssignedToUserOrGroups",
+                PrincipalWithRolesAndClaims([Roles.Approver]), ticket, userGroups);
+            bool rejected = InvokePrivateStatic<bool>(typeof(WorkflowController), "IsExplicitlyAssignedToUserOrGroups",
+                PrincipalWithRolesAndClaims([Roles.Approver]), ticket, kNoUserGroups);
 
-            Assert.That(allowed, Is.True);
+            Assert.Multiple(() =>
+            {
+                Assert.That(allowed, Is.True);
+                Assert.That(rejected, Is.False);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_CollectAssignedGroupDns_ReturnsOnlyNonEmptyGroupDns()
+        {
+            WfApproval approvalWithBoth = new()
+            {
+                AssignedGroup = "cn=assignees,ou=groups,dc=fworch,dc=internal",
+                ApproverGroup = "cn=approvers,ou=groups,dc=fworch,dc=internal"
+            };
+            WfTicket ticketWithout = new() { AssignedGroup = "  " };
+
+            List<string> both = InvokePrivateStatic<List<string>>(typeof(WorkflowController), "CollectAssignedGroupDns", approvalWithBoth);
+            List<string> none = InvokePrivateStatic<List<string>>(typeof(WorkflowController), "CollectAssignedGroupDns", ticketWithout);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(both, Is.EqualTo(kExpectedAssignedGroupDns));
+                Assert.That(none, Is.Empty);
+            });
         }
 
         [Test]
@@ -1080,31 +1083,18 @@ namespace FWO.Test
                 [Roles.Approver],
                 new Claim("x-hasura-user-id", "17"),
                 new Claim("x-hasura-uuid", "uid=test,dc=fworch,dc=internal"),
-                new Claim("x-hasura-workflow-visibility-groups", "{ 2, 4, x, 9 }"),
-                new Claim("x-hasura-groups", "[\"cn=a,dc=fworch,dc=internal\", \"cn=b,dc=fworch,dc=internal\"]"));
+                new Claim("x-hasura-workflow-visibility-groups", "{ 2, 4, x, 9 }"));
 
             HashSet<int> ids = InvokePrivateStatic<HashSet<int>>(typeof(WorkflowController), "GetClaimIds", user, "x-hasura-workflow-visibility-groups");
             int? userId = InvokePrivateStatic<int?>(typeof(WorkflowController), "GetClaimInt", user, "x-hasura-user-id");
-            List<string> groups = InvokePrivateStatic<List<string>>(typeof(WorkflowController), "GetClaimStrings", user, "x-hasura-groups");
             string? uuid = InvokePrivateStatic<string?>(typeof(WorkflowController), "GetClaimValue", user, "x-hasura-uuid");
 
             Assert.Multiple(() =>
             {
                 Assert.That(ids, Is.EquivalentTo([2, 4, 9]));
                 Assert.That(userId, Is.EqualTo(17));
-                Assert.That(groups, Is.EqualTo(kExpectedParsedGroups));
                 Assert.That(uuid, Is.EqualTo("uid=test,dc=fworch,dc=internal"));
             });
-        }
-
-        [Test]
-        public void WorkflowController_GetClaimStrings_ReturnsEmptyListForInvalidJson()
-        {
-            ClaimsPrincipal user = PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-groups", "not-json"));
-
-            List<string> groups = InvokePrivateStatic<List<string>>(typeof(WorkflowController), "GetClaimStrings", user, "x-hasura-groups");
-
-            Assert.That(groups, Is.Empty);
         }
 
         [Test]
@@ -1311,6 +1301,15 @@ namespace FWO.Test
             MethodInfo method = type.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static)
                 ?? throw new InvalidOperationException($"{methodName} not found.");
             return (T)method.Invoke(null, parameters)!;
+        }
+
+        private static async Task<bool> InvokeCallerCanAccessVisibility(ClaimsPrincipal user, WfHandler handler,
+            WfObjectScopes scope, WfStatefulObject statefulObject)
+        {
+            WorkflowController controller = CreateWorkflowController(user);
+            MethodInfo method = typeof(WorkflowController).GetMethod("CallerCanAccessVisibility", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("CallerCanAccessVisibility not found.");
+            return await (Task<bool>)method.Invoke(controller, [user, handler, scope, statefulObject])!;
         }
 
         private static async Task<T> InvokePrivateStaticAsync<T>(Type type, string methodName, params object?[] parameters)

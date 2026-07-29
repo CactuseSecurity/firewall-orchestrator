@@ -1,15 +1,19 @@
 using FWO.Data;
 using FWO.Middleware.Server;
+using Microsoft.IdentityModel.Tokens;
 using NUnit.Framework;
 using System.Reflection;
 using System.Security.Claims;
-using System.Text.Json;
+using System.Security.Cryptography;
 
 namespace FWO.Test
 {
     [TestFixture]
     public class JwtWriterClaimsTest
     {
+        // apache rejects a single request header field larger than this by default (LimitRequestFieldSize)
+        private const int kApacheHeaderFieldLimit = 8190;
+
         [Test]
         public void SetClaimsAddsVisibleScopeClaimsWhenTenantIsMissing()
         {
@@ -63,7 +67,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void SetClaimsAddsHasuraGroupClaimAsJsonText()
+        public void SetClaimsOmitsGroupDnsToKeepTokenSmall()
         {
             UiUser user = new()
             {
@@ -74,24 +78,29 @@ namespace FWO.Test
 
             ClaimsIdentity claimsIdentity = InvokeSetClaims(user);
 
-            Assert.That(claimsIdentity.FindFirst("x-hasura-groups")?.Value,
-                Is.EqualTo(JsonSerializer.Serialize(user.Groups)));
+            Assert.Multiple(() =>
+            {
+                Assert.That(claimsIdentity.FindFirst("x-hasura-groups"), Is.Null);
+                Assert.That(claimsIdentity.Claims.Any(claim => claim.Value.Contains("ou=groups,dc=example,dc=com")), Is.False);
+            });
         }
 
         [Test]
-        public void SetClaimsAddsHasuraGroupClaimThatCanBeParsedBack()
+        public void CreateJwtStaysBelowWebServerHeaderLimitForManyGroups()
         {
+            // apache rejects a single request header field above 8190 bytes by default. The jwt travels in
+            // "Authorization: Bearer ...", so a user with many group memberships must not blow that budget.
             UiUser user = new()
             {
                 Name = "test-user",
-                Roles = ["reporter"],
-                Groups = ["cn=approver,ou=groups,dc=example,dc=com", "cn=auditor,ou=groups,dc=example,dc=com"]
+                Dn = "cn=test-user,ou=users,ou=operator,dc=fworch,dc=internal",
+                Roles = ["reporter", "modeller", "requester"],
+                Groups = [.. Enumerable.Range(0, 500).Select(index => $"cn=app-owner-group-{index:D4},ou=groups,ou=operator,dc=fworch,dc=internal")]
             };
 
-            ClaimsIdentity claimsIdentity = InvokeSetClaims(user);
-            List<string> parsedGroups = FWO.Basics.JwtClaimParser.ExtractStringClaimValues(claimsIdentity.Claims, "x-hasura-groups");
+            string jwt = new JwtWriter(new RsaSecurityKey(RSA.Create(2048))).CreateJWT(user, TimeSpan.FromHours(1));
 
-            Assert.That(parsedGroups, Is.EqualTo(user.Groups));
+            Assert.That("Authorization: Bearer ".Length + jwt.Length, Is.LessThan(kApacheHeaderFieldLimit));
         }
 
         [Test]

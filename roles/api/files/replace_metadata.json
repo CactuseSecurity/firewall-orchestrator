@@ -16035,7 +16035,8 @@
                       "next_recert_date",
                       "recert_date"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 },
@@ -16074,7 +16075,8 @@
                       "next_recert_date",
                       "recert_date"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 },

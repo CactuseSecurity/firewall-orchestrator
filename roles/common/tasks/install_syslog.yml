@@ -122,8 +122,9 @@
 
   become: true
 
-- name: reload rsyslog service
+- name: reload rsyslog service and make it start at host startup
   service:
     name: "rsyslog"
     state: restarted
+    enabled: true
   become: true

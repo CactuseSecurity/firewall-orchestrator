@@ -13,7 +13,7 @@ namespace FWO.Ui.Services
         private readonly object lifecycleLock = new();
         private Task executionTask = Task.CompletedTask;
         private int started;
-        private bool disposed;
+        //private bool disposed;
         private readonly string TaskName;
 
         /// <summary>
@@ -35,42 +35,60 @@ namespace FWO.Ui.Services
             TaskName = taskName;
         }
 
-        /// <summary>
-        /// Starts the periodic background execution.
-        /// </summary>
+        ///// <summary>
+        ///// Starts the periodic background execution.
+        ///// </summary>
+        //public void Start()
+        //{
+        //    lock (lifecycleLock)
+        //    {
+        //        ObjectDisposedException.ThrowIf(disposed, this);
+
+        //        if (Interlocked.Exchange(ref started, 1) == 1)
+        //        {
+        //            return;
+        //        }
+
+        //        Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)}{(!string.IsNullOrWhiteSpace(TaskName) ? $" {TaskName}" : "")} started.");
+        //        executionTask = RunAsync(cancellationTokenSource.Token);
+        //    }
+        //}
+
         public void Start()
         {
-            lock (lifecycleLock)
+            Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)}{(!string.IsNullOrWhiteSpace(TaskName) ? $" {TaskName}" : "")} started.");
+
+            if (Interlocked.Exchange(ref started, 1) == 1)
             {
-                ObjectDisposedException.ThrowIf(disposed, this);
-
-                if (Interlocked.Exchange(ref started, 1) == 1)
-                {
-                    return;
-                }
-
-                Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)}{(!string.IsNullOrWhiteSpace(TaskName) ? $" {TaskName}" : "")} started.");
-                executionTask = RunAsync(cancellationTokenSource.Token);
+                return;
             }
+
+            _ = RunAsync(cancellationTokenSource.Token);
         }
 
-        /// <inheritdoc />
+        ///// <inheritdoc />
+        //public void Dispose()
+        //{
+        //    Task taskToWaitFor;
+
+        //    lock (lifecycleLock)
+        //    {
+        //        if (disposed)
+        //        {
+        //            return;
+        //        }
+
+        //        disposed = true;
+        //        taskToWaitFor = executionTask;
+        //        cancellationTokenSource.Cancel();
+        //    }
+
+        //    cancellationTokenSource.Dispose();
+        //}
+
         public void Dispose()
         {
-            Task taskToWaitFor;
-
-            lock (lifecycleLock)
-            {
-                if (disposed)
-                {
-                    return;
-                }
-
-                disposed = true;
-                taskToWaitFor = executionTask;
-                cancellationTokenSource.Cancel();
-            }
-
+            cancellationTokenSource.Cancel();
             cancellationTokenSource.Dispose();
         }
 
@@ -92,15 +110,15 @@ namespace FWO.Ui.Services
             }
             catch (TaskCanceledException)
             {
-                Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)} {(!string.IsNullOrWhiteSpace(TaskName) ? TaskName : "")} stopped.");
+                Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)}{(!string.IsNullOrWhiteSpace(TaskName) ? $" {TaskName}" : "")} stopped.");
             }
             catch (OperationCanceledException)
             {
-                Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)} {(!string.IsNullOrWhiteSpace(TaskName) ? TaskName : "")} stopped.");
+                Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)}{(!string.IsNullOrWhiteSpace(TaskName) ? $" {TaskName}" : "")} stopped.");
             }
             catch (Exception ex)
             {
-                Log.WriteError(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)} {(!string.IsNullOrWhiteSpace(TaskName) ? TaskName : "")} ran into an exception: {ex}", ex);
+                Log.WriteError(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)}{(!string.IsNullOrWhiteSpace(TaskName) ? $" {TaskName}" : "")} ran into an exception: {ex}", ex);
             }
         }
     }

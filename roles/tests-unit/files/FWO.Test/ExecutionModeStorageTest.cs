@@ -55,7 +55,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task GetExecutionModeClearsStorageAndReturnsNullWhenSessionStorageThrows()
+        public async Task GetExecutionModeReturnsNullWhenSessionStorageThrows()
         {
             ThrowingSessionStorage sessionStorage = new(getException: new InvalidOperationException("get failed"));
             ExecutionModeStorage storage = new(sessionStorage);
@@ -65,7 +65,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(result, Is.Null);
-                Assert.That(sessionStorage.DeleteCallCount, Is.EqualTo(1));
+                Assert.That(sessionStorage.DeleteCallCount, Is.EqualTo(0));
             });
         }
 

@@ -76,9 +76,9 @@ namespace FWO.Ui.Services
                 await sessionStorage.SetAsync(TOKEN_PAIR_KEY, tokenPair)
                     .WaitAsync(TimeSpan.FromSeconds(5));
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                Log.WriteDebug("Token", "SessionStorage is currently unavailable.");
+                Log.WriteWarning("Token", $"Failed to write token pair to session storage: {ex.Message}.");
             }
         }
 
@@ -313,7 +313,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception ex)
             {
-                Log.WriteDebug("Token", $"Failed to clear stored token pair: {ex.Message}");
+                Log.WriteDebug("Token", $"Failed to clear stored token pair: {ex.Message}.");
             }
         }
     }

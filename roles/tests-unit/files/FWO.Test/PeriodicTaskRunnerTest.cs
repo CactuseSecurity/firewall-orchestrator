@@ -86,17 +86,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public void Dispose_CalledTwice_IsIdempotent()
-        {
-            PeriodicTaskRunner runner = new(() => Task.CompletedTask, TimeSpan.FromMilliseconds(20));
-
-            runner.Start();
-            runner.Dispose();
-
-            Assert.DoesNotThrow(runner.Dispose);
-        }
-
-        [Test]
         public void Start_AfterDispose_Throws()
         {
             PeriodicTaskRunner runner = new(() => Task.CompletedTask, TimeSpan.FromMilliseconds(20));

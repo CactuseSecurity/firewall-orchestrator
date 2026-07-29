@@ -1,6 +1,7 @@
 using FWO.Basics;
 using FWO.Logging;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using System.Security.Cryptography;
 
 namespace FWO.Ui.Services
 {
@@ -12,13 +13,23 @@ namespace FWO.Ui.Services
         {
             try
             {
-                ProtectedBrowserStorageResult<string> result = await sessionStorage.GetAsync<string>(ExecutionModeKey);
+                ProtectedBrowserStorageResult<string> result = await sessionStorage.GetAsync<string>(ExecutionModeKey)
+                    .WaitAsync(TimeSpan.FromSeconds(5));
+
                 return result.Success && !string.IsNullOrWhiteSpace(result.Value) ? result.Value : null;
+            }
+            catch (CryptographicException ex)
+            {
+                Log.WriteWarning("Execution Mode", $"Unreadable protected session execution mode detected, trying to clear stored data: {ex.Message}");
+
+                await ClearExecutionMode();
+
+                return null;
             }
             catch (Exception ex)
             {
-                Log.WriteWarning("Execution Mode", $"Failed to restore execution mode from session storage: {ex.Message}");
-                await ClearExecutionMode();
+                Log.WriteWarning("Execution Mode", $"Failed to read execution mode from session storage: {ex.Message}");
+
                 return null;
             }
         }
@@ -32,9 +43,9 @@ namespace FWO.Ui.Services
                 await sessionStorage.SetAsync(ExecutionModeKey, modeToStore)
                     .WaitAsync(TimeSpan.FromSeconds(5));
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                Log.WriteDebug("Execution Mode", "SessionStorage is currently unavailable.");
+                Log.WriteWarning("Execution Mode", $"Failed to write execution mode to session storage: {ex.Message}.");
             }
         }
 
@@ -45,9 +56,9 @@ namespace FWO.Ui.Services
                 await sessionStorage.DeleteAsync(ExecutionModeKey)
                     .WaitAsync(TimeSpan.FromSeconds(5));
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                Log.WriteDebug("Execution Mode", $"SessionStorage is currently unavailable.");
+                Log.WriteWarning("Execution Mode", $"Failed to clear stored execution mode: {ex.Message}.");
             }
         }
     }

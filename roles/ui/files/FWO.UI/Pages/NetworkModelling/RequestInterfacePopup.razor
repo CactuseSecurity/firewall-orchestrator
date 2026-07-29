@@ -25,11 +25,11 @@
                 <input type="text" class="col-sm-8" @bind="InterfaceName" />
             </div>
             <div class="row mt-2 me-auto">
-                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("reason"))*:</label>
-                <textarea rows="5" type="text" class="col-sm-9" @bind="Reason" />
-                <small class="offset-sm-3 col-sm-9 form-text text-muted mt-1">
-                    <strong>@(userConfig.GetText("note"))</strong>
-                    @(userConfig.GetText("request_interface_reason_help"))
+                <label for="txt_reason" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("reason"))*:</label>
+                <textarea id="txt_reason" rows="5" type="text" class="col-sm-9" aria-describedby="txt_reason_help" @bind="Reason" />
+                <small id="txt_reason_help" class="offset-sm-3 col-sm-9 form-text text-muted mt-1">
+                    <strong>@(userConfig.GetText("note_prefix")):</strong>
+                    @(userConfig.GetText("U9042"))
                 </small>
             </div>
         }

@@ -635,7 +635,9 @@ namespace FWO.Middleware.Server.Controllers
 
             List<Task> ldapRoleRequests = [];
 
-            foreach (Ldap currentLdap in ldaps.Where(l => l.HasRoleHandling()))
+            // inactive connections must not contribute roles: the injected ldap list is a startup snapshot
+            // that still contains deactivated connections, and login itself only binds against active ones
+            foreach (Ldap currentLdap in ldaps.Where(l => l.Active && l.HasRoleHandling()))
             {
                 // if current Ldap has roles stored
                 ldapRoleRequests.Add(Task.Run(async () =>

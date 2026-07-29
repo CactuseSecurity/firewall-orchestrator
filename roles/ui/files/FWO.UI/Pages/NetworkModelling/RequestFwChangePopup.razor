@@ -298,29 +298,23 @@
         List<string> services = [];
         foreach (var elem in task.Elements.Where(e => e.Field == ElemFieldType.service.ToString()))
         {
-            if (elem.GroupName != null)
-            {
-                services.Add(elem.GroupName);
-            }
-            else
-            {
-                IpProtocol? ipProtocol = ipProtos.Find(x => x.Id == elem.ProtoId);
-                string portRange = IpProtocol.HasPorts(ipProtocol?.Id) ? SCAccessRequestTicketTask.DisplayPortRange(elem.Port ?? 0, elem.PortEnd) + "/" : "";
-                services.Add(portRange + ipProtocol?.Name ?? "");
-            }
+            services.Add(DisplayServiceElement(elem));
         }
         return string.Join(", ", services);
     }
 
+    /// <summary>
+    /// Builds grouped member rows for group create and modify request tasks.
+    /// </summary>
     private string DisplayMembers(WfReqTask task)
     {
-        List<WfReqElement> currentMembers = [.. task.Elements.Where(IsCurrentMember)];
+        List<WfReqElement> currentMembers = [.. task.Elements.Where(elem => IsCurrentMember(elem) || IsUnknownMemberAction(elem))];
         List<WfReqElement> membersToAdd = [.. task.Elements.Where(IsMemberToAdd)];
         List<WfReqElement> membersToRemove = [.. task.Elements.Where(IsMemberToRemove)];
 
         List<string> rows = [];
 
-        if (currentMembers.Count > 0 && task.TaskType == WfTaskType.group_modify.ToString())
+        if (currentMembers.Count > 0)
         {
             rows.Add(DisplayMemberRow(userConfig.GetText("current_members"), currentMembers));
         }
@@ -338,32 +332,72 @@
         return string.Join("<br>", rows);
     }
 
+    /// <summary>
+    /// Returns true for member actions that do not match a known bucket.
+    /// </summary>
+    private static bool IsUnknownMemberAction(WfReqElement elem)
+    {
+        return !IsCurrentMember(elem) && !IsMemberToAdd(elem) && !IsMemberToRemove(elem);
+    }
+
+    /// <summary>
+    /// Builds one labelled member row while preserving per-member styling.
+    /// </summary>
     private string DisplayMemberRow(string label, List<WfReqElement> members)
     {
-        return $"<b>{label}:</b> " + string.Join(", ", members.ConvertAll(DisplayMember));
+        return $"<b>{WebUtility.HtmlEncode(label)}:</b> " + string.Join(", ", members.ConvertAll(DisplayMember));
     }
 
+    /// <summary>
+    /// Builds the display text for one group member.
+    /// </summary>
     private string DisplayMember(WfReqElement elem)
     {
-        if (elem.Field == ElemFieldType.service.ToString())
-        {
-            return $"<span class=\"{CssClass(elem)}\" >{elem.Port + "/" + ipProtos.Find(x => x.Id == elem.ProtoId)?.Name}</span>";
-        }
+        string memberText = elem.Field == ElemFieldType.service.ToString()
+            ? DisplayServiceElement(elem)
+            : DisplayBase.DisplayIpWithName(WfElementBase.ToNetworkObject(elem));
 
-        return $"<span class=\"{CssClass(elem)}\" >{DisplayBase.DisplayIpWithName(WfElementBase.ToNetworkObject(elem))}</span>";
+        return $"<span class=\"{CssClass(elem)}\" >{WebUtility.HtmlEncode(memberText)}</span>";
     }
 
+    /// <summary>
+    /// Builds the display text for one service element.
+    /// </summary>
+    private string DisplayServiceElement(WfReqElement elem)
+    {
+        if (!string.IsNullOrWhiteSpace(elem.GroupName))
+        {
+            return elem.GroupName;
+        }
+
+        IpProtocol? ipProtocol = ipProtos.Find(x => x.Id == elem.ProtoId);
+        string portRange = IpProtocol.HasPorts(ipProtocol?.Id)
+            ? SCAccessRequestTicketTask.DisplayPortRange(elem.Port ?? 0, elem.PortEnd) + "/"
+            : "";
+
+        return portRange + (ipProtocol?.Name ?? "");
+    }
+
+    /// <summary>
+    /// Returns true for members that already exist in the group.
+    /// </summary>
     private static bool IsCurrentMember(WfReqElement elem)
     {
         return elem.RequestAction == RequestAction.unchanged.ToString() || string.IsNullOrWhiteSpace(elem.RequestAction);
     }
 
+    /// <summary>
+    /// Returns true for members requested for addition.
+    /// </summary>
     private static bool IsMemberToAdd(WfReqElement elem)
     {
         return elem.RequestAction == RequestAction.create.ToString() ||
             elem.RequestAction == RequestAction.addAfterCreation.ToString();
     }
 
+    /// <summary>
+    /// Returns true for members requested for removal.
+    /// </summary>
     private static bool IsMemberToRemove(WfReqElement elem)
     {
         return elem.RequestAction == RequestAction.delete.ToString();

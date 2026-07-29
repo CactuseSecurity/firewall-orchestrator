@@ -20,6 +20,7 @@ using System.Net.Http;
 using System.Reflection;
 using System.Security.Claims;
 using System.Text.Json;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace FWO.Test
 {
@@ -82,12 +83,6 @@ namespace FWO.Test
                 throw new MissingFieldException(instance.GetType().FullName, fieldName);
             }
             field.SetValue(instance, value);
-        }
-
-        private static MethodInfo GetPrivateMethod(Type type, string name)
-        {
-            return type.GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new MissingMethodException(type.FullName, name);
         }
 
         private static object? InvokePrivate(object instance, string methodName, params object?[] parameters)
@@ -335,10 +330,10 @@ namespace FWO.Test
                 ]
             };
 
-            string accessDetails = (string)GetPrivateMethod(typeof(RequestFwChangePopup), "DisplayTaskDetails").Invoke(component.Instance, [accessTask])!;
-            string ruleDetails = (string)GetPrivateMethod(typeof(RequestFwChangePopup), "DisplayTaskDetails").Invoke(component.Instance, [ruleDeleteTask])!;
-            string groupDetails = (string)GetPrivateMethod(typeof(RequestFwChangePopup), "DisplayTaskDetails").Invoke(component.Instance, [groupModifyTask])!;
-            string emptyDetails = (string)GetPrivateMethod(typeof(RequestFwChangePopup), "DisplayTaskDetails").Invoke(component.Instance, [new WfReqTask { TaskType = "unsupported" }])!;
+            string accessDetails = (string)InvokePrivate(component.Instance, "DisplayTaskDetails", accessTask)!;
+            string ruleDetails = (string)InvokePrivate(component.Instance, "DisplayTaskDetails", ruleDeleteTask)!;
+            string groupDetails = (string)InvokePrivate(component.Instance, "DisplayTaskDetails", groupModifyTask)!;
+            string emptyDetails = (string)InvokePrivate(component.Instance, "DisplayTaskDetails", new WfReqTask { TaskType = "unsupported" })!;
 
             Assert.Multiple(() =>
             {
@@ -360,6 +355,44 @@ namespace FWO.Test
                 Assert.That(groupDetails, Does.Contain("24/tcp"));
                 Assert.That(emptyDetails, Is.Empty);
             });
+        }
+
+        [Test]
+        public void DisplayTaskDetails_ForGroupMembers_DoesNotDropUnknownRequestAction()
+        {
+            RequestFwChangePopupTestApiConn apiConn = new();
+            SimulatedUserConfig userConfig = CreateUserConfig();
+
+            using BunitContext context = new();
+            IRenderedComponent<RequestFwChangePopup> component = RenderPopup(context, apiConn, userConfig, new() { Id = 7, Name = "App" }, []);
+
+            WfReqTask task = new()
+            {
+                TaskType = WfTaskType.group_create.ToString(),
+                Elements =
+                [
+                    new()
+            {
+                RequestAction = RequestAction.unchanged.ToString(),
+                Field = ElemFieldType.source.ToString(),
+                Name = "unchanged-host",
+                IpString = "192.0.2.20/32"
+            },
+            new()
+            {
+                RequestAction = "foreign-action",
+                Field = ElemFieldType.source.ToString(),
+                Name = "foreign-host",
+                IpString = "192.0.2.21/32"
+            }
+                ]
+            };
+
+            string details = (string)InvokePrivate(component.Instance, "DisplayTaskDetails", task)!;
+
+            Assert.That(details, Does.Contain("<b>Current Members:</b>"));
+            Assert.That(details, Does.Contain("unchanged-host"));
+            Assert.That(details, Does.Contain("foreign-host"));
         }
 
         [Test]

@@ -48,8 +48,11 @@
         create: true
         mode: "0644"
 
-    - name: restart apache
+    # RedHat does not enable httpd when the package is installed, so without enabled the ui, the
+    # api and the middleware web listeners are all gone after a reboot
+    - name: restart apache and make it start at host startup
       service:
         name: "{{ webserver_package_name }}"
         state: restarted
+        enabled: true
   become: true

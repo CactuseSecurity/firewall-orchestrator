@@ -55,7 +55,7 @@ public class UserGroupResolver
             return [];
         }
 
-        foreach (Ldap ldap in ldaps)
+        foreach (Ldap ldap in ldaps.Where(ldap => ldap.Active))
         {
             // GetUserDetailsFromLdap logs and swallows connection problems itself, returning null
             LdapEntry? ldapUser = await ldap.GetUserDetailsFromLdap(userDn);
@@ -74,7 +74,7 @@ public class UserGroupResolver
         object groupsLock = new();
         List<Task> ldapRoleRequests = [];
 
-        foreach (Ldap currentLdap in ldaps.Where(ldap => ldap.IsInternal()))
+        foreach (Ldap currentLdap in ldaps.Where(ldap => ldap.Active && ldap.IsInternal()))
         {
             ldapRoleRequests.Add(Task.Run(async () =>
             {

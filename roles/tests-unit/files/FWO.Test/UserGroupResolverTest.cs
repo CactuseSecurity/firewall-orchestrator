@@ -107,6 +107,33 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GetGroupsForUserDn_IgnoresInactiveLdapBeforeActiveLdap()
+        {
+            RecordingLdapClient inactiveConnection = new()
+            {
+                ReadResult = LdapTestSupport.CreateEntry(kUserDn, new LdapAttribute("memberOf", $"cn=inactive,{kInternalGroupPath}"))
+            };
+            Ldap inactive = CreateLdap(inactiveConnection, kInternalUserPath, kInternalGroupPath);
+            inactive.Active = false;
+            RecordingLdapClient activeConnection = new()
+            {
+                ReadResult = LdapTestSupport.CreateEntry(kUserDn, new LdapAttribute("memberOf", $"cn=active,{kInternalGroupPath}"))
+            };
+            Ldap active = CreateLdap(activeConnection, kInternalUserPath, kInternalGroupPath);
+            List<Ldap> configuredLdaps = new() { inactive, active };
+            UserGroupResolver resolver = new(configuredLdaps);
+
+            List<string> groups = await resolver.GetGroupsForUserDn(kUserDn);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(groups, Is.EqualTo(new List<string> { $"cn=active,{kInternalGroupPath}" }));
+                Assert.That(inactiveConnection.ReadCalls, Is.Empty);
+                Assert.That(activeConnection.ReadCalls, Does.Contain(kUserDn));
+            });
+        }
+
+        [Test]
         public async Task GetGroups_ResolvesMemberOfForAnInternalUserWithoutFanOut()
         {
             Ldap hosting = CreateLdap(new RecordingLdapClient(), kInternalUserPath, kInternalGroupPath);
@@ -139,6 +166,28 @@ namespace FWO.Test
 
             // the external hosting ldap triggers the internal fan-out; the memberOf groups survive it
             Assert.That(groups, Is.EqualTo(new List<string> { externalGroupDn }));
+        }
+
+        [Test]
+        public async Task GetGroups_DoesNotFanOutToInactiveInternalLdap()
+        {
+            string externalUserDn = "cn=testuser,ou=users,dc=example,dc=com";
+            string externalGroupDn = $"cn=external-group,{kExternalGroupPath}";
+            Ldap hosting = CreateLdap(new RecordingLdapClient(), kExternalUserPath, kExternalGroupPath);
+            RecordingLdapClient inactiveConnection = new();
+            Ldap inactiveInternal = CreateLdap(inactiveConnection, kInternalUserPath, kInternalGroupPath);
+            inactiveInternal.Active = false;
+            List<Ldap> configuredLdaps = new() { hosting, inactiveInternal };
+            UserGroupResolver resolver = new(configuredLdaps);
+            LdapEntry userEntry = LdapTestSupport.CreateEntry(externalUserDn, new LdapAttribute("memberOf", externalGroupDn));
+
+            List<string> groups = await resolver.GetGroups(userEntry, hosting);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(groups, Is.EqualTo(new List<string> { externalGroupDn }));
+                Assert.That(inactiveConnection.SearchCalls, Is.Empty);
+            });
         }
 
         [Test]

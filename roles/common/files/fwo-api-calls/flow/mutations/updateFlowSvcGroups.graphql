@@ -1,0 +1,5 @@
+mutation updateFlowSvcGroups($updates: [flow_svcgroup_updates!]!) {
+  update_flow_svcgroup_many(updates: $updates) {
+    affected_rows
+  }
+}

@@ -38,6 +38,8 @@ namespace FWO.Test
             }
         };
         private static readonly string kSearchPassword = LdapTestSupport.CreateEncryptedSecret("searchpwd");
+        private const string kRoleSearchPath = "ou=roles,dc=fworch,dc=internal";
+        private const string kRoleUserDn = "uid=login-user,ou=users,dc=fworch,dc=internal";
 
         [Test]
         public async Task GetAsync_ReturnsAnonymousJwt_WhenCredentialsAreMissing()
@@ -471,6 +473,54 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task AuthManagerGetRoles_DoesNotQueryInactiveLdap()
+        {
+            // a retired but still reachable directory must not be consulted for roles, while the active one is
+            TestableLdap inactiveLdap = CreateRoleLdap();
+            inactiveLdap.Active = false;
+            TestableLdap activeLdap = CreateRoleLdap();
+            object authManager = CreateAuthManager(new RecordingApiConnection(), new FixedTokenLifetimeProvider(),
+                new List<Ldap> { inactiveLdap, activeLdap });
+
+            await InvokeAuthManagerAsync<List<string>>(authManager, "GetRoles", CreateRoleUser());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(inactiveLdap.ConnectCount, Is.Zero);
+                Assert.That(activeLdap.ConnectCount, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task AuthManagerGetRoles_FallsBackToAnonymousWhenEveryRoleLdapIsInactive()
+        {
+            TestableLdap inactiveLdap = CreateRoleLdap();
+            inactiveLdap.Active = false;
+            object authManager = CreateAuthManager(new RecordingApiConnection(), new FixedTokenLifetimeProvider(),
+                new List<Ldap> { inactiveLdap });
+
+            List<string> roles = await InvokeAuthManagerAsync<List<string>>(authManager, "GetRoles", CreateRoleUser());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(roles, Is.EqualTo(new List<string> { Roles.Anonymous }));
+                Assert.That(inactiveLdap.ConnectCount, Is.Zero);
+            });
+        }
+
+        [Test]
+        public async Task AuthManagerGetRoles_SkipsActiveLdapWithoutRoleHandling()
+        {
+            TestableLdap ldapWithoutRoles = CreateRoleLdap(roleSearchPath: "");
+            object authManager = CreateAuthManager(new RecordingApiConnection(), new FixedTokenLifetimeProvider(),
+                new List<Ldap> { ldapWithoutRoles });
+
+            await InvokeAuthManagerAsync<List<string>>(authManager, "GetRoles", CreateRoleUser());
+
+            Assert.That(ldapWithoutRoles.ConnectCount, Is.Zero);
+        }
+
         private static AuthenticationTokenController CreateController()
         {
             return CreateController(new RecordingApiConnection());
@@ -506,16 +556,37 @@ namespace FWO.Test
             };
         }
 
-        private static object CreateAuthManager(ApiConnection apiConnection, TokenLifetimeProvider? tokenLifetimeProvider = null)
+        private static object CreateAuthManager(ApiConnection apiConnection, TokenLifetimeProvider? tokenLifetimeProvider = null, List<Ldap>? ldaps = null)
         {
             Type authManagerType = typeof(AuthenticationTokenController).Assembly.GetType("FWO.Middleware.Server.Controllers.AuthManager", throwOnError: true)!;
             RSA rsa = RSA.Create(2048);
             return Activator.CreateInstance(
                 authManagerType,
                 new JwtWriter(new RsaSecurityKey(rsa)),
-                new List<Ldap>(),
+                ldaps ?? new List<Ldap>(),
                 apiConnection,
                 tokenLifetimeProvider ?? new FixedTokenLifetimeProvider())!;
+        }
+
+        private static UiUser CreateRoleUser()
+        {
+            return new UiUser { Name = "login-user", Dn = kRoleUserDn };
+        }
+
+        /// <summary>
+        /// Builds an ldap for the role lookup. An empty role search path turns role handling off.
+        /// </summary>
+        private static TestableLdap CreateRoleLdap(string roleSearchPath = kRoleSearchPath)
+        {
+            return new TestableLdap(new RecordingLdapClient())
+            {
+                Address = "ldap.example.test",
+                Port = 389,
+                SearchUser = "cn=search,dc=fworch,dc=internal",
+                SearchUserPwd = kSearchPassword,
+                RoleSearchPath = roleSearchPath,
+                UserSearchPath = "ou=users,dc=fworch,dc=internal"
+            };
         }
 
         private static async Task<ReturnType> InvokeAuthManagerAsync<ReturnType>(object authManager, string methodName, params object?[] arguments)

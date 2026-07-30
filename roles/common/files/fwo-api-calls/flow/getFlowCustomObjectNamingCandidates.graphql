@@ -1,10 +1,9 @@
-query getFlowCustomObjectCandidates($management_id: [Int!]) {
+query getFlowCustomObjectNamingCandidates($management_id: [Int!]) {
   management(
     where: {
       mgm_id: { _in: $management_id }
       hide_in_gui: { _eq: false }
       stm_dev_typ: {
-        dev_typ_is_multi_mgmt: { _eq: false }
         is_pure_routing_device: { _eq: false }
       }
     }
@@ -16,7 +15,6 @@ query getFlowCustomObjectCandidates($management_id: [Int!]) {
       where: {
         active: { _eq: true }
         removed: { _is_null: true }
-        flow_nwobj_id: { _is_null: true }
       }
       order_by: [{ obj_name: asc }, { obj_id: asc }]
     ) {

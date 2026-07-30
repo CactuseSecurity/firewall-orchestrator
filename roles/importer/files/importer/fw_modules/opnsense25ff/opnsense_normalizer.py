@@ -7,6 +7,7 @@ from typing import Any
 import fw_modules.opnsense25ff.opnsense_helper as os_helper
 from fw_modules.opnsense25ff.opnsense_constants import (
     BUILTIN_SERVICE_PORTS,
+    FLOATING_RULEBASE_NAME,
     IP_PROTO_NUMBERS,
     MAX_DEPTH,
     PORT_BASED_PROTOCOLS,
@@ -842,7 +843,7 @@ def _create_rulebase(name: str, mgm_uid: str, rule_uid: str, rule: RuleNormalize
 
 def _access_rule_rulebase_name(rule: OPNsenseAccessRule, os_config: OPNsenseConfig) -> str | None:
     if rule.is_floating:
-        return "floating"
+        return FLOATING_RULEBASE_NAME
     has_single_positive_interface = len(rule.interface) == 1 and not rule.any_interface and not rule.interface_neg
     if has_single_positive_interface and (
         rule.interface[0] in os_config.interfaces or rule.interface[0] in os_config.interface_groups
@@ -858,6 +859,26 @@ def _upsert_rulebase_rule(
         rbs_dict[rulebase_name] = _create_rulebase(rulebase_name, mgm_uid, rule_uid, rule)
         return
     rbs_dict[rulebase_name].rules[rule_uid] = rule
+
+
+def _rulebase_order_keys(os_config: OPNsenseConfig) -> dict[str, tuple[int, int]]:
+    # OPNsense evaluates floating rules first, then interface group rules, then interface rules,
+    # so the rulebases must be chained in that order regardless of the order the rules appear in
+    order_keys: dict[str, tuple[int, int]] = {FLOATING_RULEBASE_NAME: (0, 0)}
+    for position, group_name in enumerate(os_config.interface_groups):
+        order_keys[group_name] = (1, position)
+    for position, interface_name in enumerate(os_config.interfaces):
+        order_keys.setdefault(interface_name, (2, position))
+    return order_keys
+
+
+def _sort_rulebases(rbs_dict: dict[str, Rulebase], os_config: OPNsenseConfig) -> list[Rulebase]:
+    order_keys = _rulebase_order_keys(os_config)
+    # everything not known from the config (e.g. the unassigned rulebase) is chained last,
+    # keeping the order in which it was encountered
+    fallback_key = (3, 0)
+    sorted_names = sorted(rbs_dict, key=lambda name: order_keys.get(name, fallback_key))
+    return [rbs_dict[name] for name in sorted_names]
 
 
 def _create_rulebases_from_access_rules(os_config: OPNsenseConfig, mgm_uid: str) -> list[Rulebase]:
@@ -878,7 +899,7 @@ def _create_rulebases_from_access_rules(os_config: OPNsenseConfig, mgm_uid: str)
             )
             rulebase_name = UNASSIGNED_RULEBASE_NAME
         _upsert_rulebase_rule(rbs_dict, rulebase_name, mgm_uid, rule_uid, r_normalized)
-    return list(rbs_dict.values())
+    return _sort_rulebases(rbs_dict, os_config)
 
 
 def _get_rulebase_links_from_rulebases(rbs: list[Rulebase]) -> list[RulebaseLinkUidBased]:
@@ -892,7 +913,8 @@ def _get_rulebase_links_from_rulebases(rbs: list[Rulebase]) -> list[RulebaseLink
             to_rulebase_uid=rbs[i].uid,
             link_type="ordered",
             is_initial=(i == 0),
-            is_global=True,
+            # a standalone firewall has no global policy, all rulebases belong to this gateway
+            is_global=False,
             is_section=False,
         )
         rb_links.append(link)

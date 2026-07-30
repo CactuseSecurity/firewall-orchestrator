@@ -4,6 +4,7 @@ import json
 from typing import Any
 
 import pytest
+from fw_modules.opnsense25ff.opnsense_constants import UNASSIGNED_RULEBASE_NAME
 from fw_modules.opnsense25ff.opnsense_model import (
     AliasTypeEnum,
     FilterRuleActionEnum,
@@ -347,6 +348,8 @@ def test_get_rulebase_links_orders_and_marks_initial() -> None:
     assert (links[2].from_rulebase_uid, links[2].to_rulebase_uid) == ("rb1", "rb2")
     assert all(link.link_type == "ordered" for link in links)
     assert [link.is_initial for link in links] == [True, False, False]
+    # a standalone firewall has no global policy
+    assert all(link.is_global is False for link in links)
 
 
 def test_create_rulebases_from_access_rules_uses_physical_interface() -> None:
@@ -1000,3 +1003,59 @@ def test_normalize_services_keeps_unqualified_names_for_ambiguous_protocols(os_p
     assert services["53"].ip_proto is None
     assert "53/tcp" not in services
     assert _create_normalized_rule_from_access_rule(rule).rule_svc == "53"
+
+
+def _rulebase_rule(uid: str, interface: str | None) -> OPNsenseAccessRule:
+    rule: dict[str, Any] = {"@uuid": uid, "type": "pass", "descr": uid, "destination": {"any": None}}
+    if interface is None:
+        rule["floating"] = "yes"
+    else:
+        rule["interface"] = interface
+    return OPNsenseAccessRule.model_validate(rule)
+
+
+def _rulebase_order_config() -> OPNsenseConfig:
+    ifgroup = OPNsenseIfGroup.model_validate({"@uuid": "ifg", "ifname": "dmz_group", "members": "opt1", "descr": "g"})
+    interfaces = {
+        name: OPNsenseInterface.model_validate({"name": name, "enable": "1", "if": f"em{index}"})
+        for index, name in enumerate(["wan", "lan", "opt1"])
+    }
+    return OPNsenseConfig(
+        hostname="fw",
+        interfaces=interfaces,
+        interface_groups={"dmz_group": ifgroup},
+        access_rules=[
+            _rulebase_rule("r-lan", "lan"),
+            _rulebase_rule("r-float", None),
+            _rulebase_rule("r-group", "dmz_group"),
+            _rulebase_rule("r-wan", "wan"),
+            _rulebase_rule("r-unassigned", "ghost-interface"),
+        ],
+    )
+
+
+def test_create_rulebases_orders_floating_groups_and_interfaces() -> None:
+    config = _rulebase_order_config()
+
+    rulebases = _create_rulebases_from_access_rules(config, "mgm-uid")
+
+    # OPNsense evaluates floating rules first, then interface groups, then interfaces -
+    # the order the rules appear in config.xml must not influence the chain
+    assert [rb.name for rb in rulebases] == ["floating", "dmz_group", "wan", "lan", UNASSIGNED_RULEBASE_NAME]
+
+
+def test_rulebase_links_follow_the_evaluation_order() -> None:
+    config = _rulebase_order_config()
+
+    rulebases = _create_rulebases_from_access_rules(config, "mgm-uid")
+    links = _get_rulebase_links_from_rulebases(rulebases)
+
+    rulebase_names_by_uid = {rb.uid: rb.name for rb in rulebases}
+    assert links[0].is_initial is True
+    assert rulebase_names_by_uid[links[0].to_rulebase_uid] == "floating"
+    assert [rulebase_names_by_uid[link.to_rulebase_uid] for link in links[1:]] == [
+        "dmz_group",
+        "wan",
+        "lan",
+        UNASSIGNED_RULEBASE_NAME,
+    ]

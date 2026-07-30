@@ -41,6 +41,14 @@ once per protocol. `any` and `tcp/udp` rules cannot be expressed as a single `ip
 plain, protocol-agnostic service. Non-port protocols (ICMP, ESP, GRE, ...) become a service named
 after the protocol.
 
+## Rulebase order
+
+Rules are split into one rulebase per interface, plus `floating` for floating rules and
+`unassigned` for rules that match no single interface. The rulebases are chained in the order
+OPNsense evaluates them - floating rules first, then interface group rules, then interface rules in
+`config.xml` order - so the order in which the rules happen to appear in the file does not influence
+the imported rule order. Unknown rulebases (e.g. `unassigned`) are chained last.
+
 ## Rule uids
 
 Rules are keyed by their `@uuid`. Legacy rules written by older OPNsense/pfSense generations may

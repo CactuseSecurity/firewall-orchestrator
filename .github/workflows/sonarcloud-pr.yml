@@ -77,6 +77,21 @@ jobs:
           git fetch base "+refs/heads/$BASE_REF:refs/remotes/origin/$BASE_REF"
           git branch -f "$BASE_REF" "origin/$BASE_REF"
 
+      # Keep the project version in sync with the branch analysis so the
+      # "previous version" new code baseline stays consistent across both.
+      - name: Resolve product version
+        id: product_version
+        shell: bash
+        run: |
+          set -o pipefail
+          version="$(sed -n 's/^product_version:[[:space:]]*"\{0,1\}\([^"[:space:]]\{1,\}\)"\{0,1\}[[:space:]]*$/\1/p' inventory/group_vars/all.yml | head -n 1)"
+          if [ -z "$version" ]; then
+            echo "Unable to read product_version from inventory/group_vars/all.yml" >&2
+            exit 1
+          fi
+          echo "Analyzing as project version $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
       - name: Set up Java
         uses: actions/setup-java@v5
         with:
@@ -119,15 +134,19 @@ jobs:
         run: python -m pip install -r roles/importer/files/importer/requirements.txt -r scripts/requirements.txt coverage==7.15.0
 
       - name: Build and analyze pull request
+        shell: bash
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
           PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PRODUCT_VERSION: ${{ steps.product_version.outputs.version }}
         run: |
+          set -o pipefail
           for attempt in 1 2 3; do
             if .sonar/scanner/dotnet-sonarscanner begin \
               /k:"${SONAR_PROJECT_KEY}" \
               /o:"${SONAR_ORGANIZATION}" \
+              /v:"${PRODUCT_VERSION}" \
               /d:sonar.token="${SONAR_TOKEN}" \
               /d:sonar.host.url="https://sonarcloud.io" \
               /d:sonar.qualitygate.wait=true \
@@ -156,10 +175,17 @@ jobs:
           python -m coverage run -m pytest -q roles/importer/files/importer/test scripts
           python -m coverage xml -o python-coverage.xml
           for attempt in 1 2 3; do
-            if .sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${SONAR_TOKEN}"; then
+            if .sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${SONAR_TOKEN}" 2>&1 | tee sonar-end.log; then
               break
             else
               status=$?
+            fi
+
+            # A failing quality gate is a verdict, not a transient error -
+            # retrying it only triples the runtime of an already failed run.
+            if grep -q "QUALITY GATE STATUS: FAILED" sonar-end.log; then
+              echo "Quality gate failed, see the SonarCloud dashboard for details - not retrying."
+              exit "$status"
             fi
 
             if [ "$attempt" -eq 3 ]; then

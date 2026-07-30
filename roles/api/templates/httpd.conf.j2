@@ -12,6 +12,10 @@
     #     LimitRequestBody 250M
     # </Location>
 
+	# the jwt is sent in the "Authorization" header and grows with the permissions of the user,
+	# so raise the per-header limit from the 8190 byte default to the kestrel default of 32KB
+	LimitRequestFieldSize {{ apache_limit_request_field_size }}
+
 	# set buffer to 128KB
 	ProxyIOBufferSize 131072
 	

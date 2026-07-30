@@ -1,7 +1,6 @@
 query getOwnersForRuleOwnerNameField {
   modelling_connection(
     where: {
-      removed: { _eq: false }
       app_id: { _is_null: false }
       owner: { active: { _eq: true } }
     }

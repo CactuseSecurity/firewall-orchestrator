@@ -105,7 +105,8 @@ def test_link_opnsense_ports_expands_ports_ranges_and_nested_aliases() -> None:
     assert isinstance(range_child, OPNsensePort)
     assert range_child.is_range is True
     assert (range_child.port, range_child.port_end) == (8000, 8080)
-    assert range_child.name == "__p_8000:8080"
+    # alias members keep the plain literal as name so they dedupe with ports used in rules
+    assert range_child.name == "8000:8080"
 
     # a value pointing at another alias links the alias object itself
     nested_child = nested.childs[0]

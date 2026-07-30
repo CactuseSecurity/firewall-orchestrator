@@ -63,7 +63,9 @@ def link_opnsense_ports_from_port_aliases(config: OPNsenseConfig) -> None:
     for alias_name, alias in port_aliases.items():
         for p in alias.value:
             if is_int(p.split(":", 1)[0]):
-                p_name = "__p_" + p
+                # the plain port literal is used as name so that alias members and ports
+                # referenced directly by a rule normalize to the same service object
+                p_name = p
                 p_is_range = False
                 p_port = 0
                 p_port_end = 0
@@ -144,10 +146,12 @@ def xlinking_rules_to_aliases(config: OPNsenseConfig) -> None:
 
 
 def _create_host_alias_child(value: str) -> OPNsenseHost:
+    # the plain address literal is used as name so that alias members and addresses
+    # referenced directly by a rule normalize to the same network object
     is_range = is_ip_range(value)
     start, end = value.split("-", 1) if is_range else (value, value)
     return OPNsenseHost(
-        name="__h_" + value,
+        name=value,
         is_range=is_range,
         host=IPAddress(start),
         host_end=IPAddress(end),
@@ -162,7 +166,7 @@ def _resolve_net_or_host_child(value: str, config: OPNsenseConfig) -> AliasChild
     if is_ip(value) or is_ip_range(value):
         return _create_host_alias_child(value)
     if is_ip_subnet(value):
-        return OPNsenseNetwork(name="__n_" + value, net=IPNetwork(value))
+        return OPNsenseNetwork(name=value, net=IPNetwork(value))
     return value
 
 

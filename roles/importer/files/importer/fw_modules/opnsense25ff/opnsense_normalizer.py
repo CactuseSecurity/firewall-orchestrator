@@ -253,6 +253,12 @@ def _create_any_svc_object() -> ServiceObject:
 
 
 def _create_service_from_protocol(name: str) -> ServiceObject:
+    ip_proto = IP_PROTO_NUMBERS.get(name.lower())
+    if ip_proto is None:
+        FWOLogger.warning(
+            f"[-] _create_service_from_protocol: no IP protocol number known for {name} - "
+            "creating service without protocol"
+        )
     return ServiceObject(
         svc_uid=fwo_base_generate_hash_from_dict({"svc_obj": name}),
         svc_name=name,
@@ -260,7 +266,7 @@ def _create_service_from_protocol(name: str) -> ServiceObject:
         svc_port_end=None,
         svc_color="",
         svc_typ="simple",
-        ip_proto=IP_PROTO_NUMBERS.get(name.lower()),
+        ip_proto=ip_proto,
         svc_member_refs=None,
         svc_member_names=None,
         svc_comment=name,

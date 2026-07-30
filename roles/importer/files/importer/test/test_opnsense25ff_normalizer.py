@@ -1,6 +1,7 @@
 # pyright: reportPrivateUsage=false
 # tests target internal normalizer helpers, hence private-usage is allowed here
 import json
+from typing import Any
 
 import pytest
 from fw_modules.opnsense25ff.opnsense_model import (
@@ -31,6 +32,7 @@ from fw_modules.opnsense25ff.opnsense_normalizer import (
     _update_network_objects_from_access_rules,
     normalize_opnsense_config,
 )
+from fw_modules.opnsense25ff.opnsense_parser import parse_opnsense_config
 from fwo_exceptions import FwoImporterError
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.import_state_controller import ImportStateController
@@ -226,6 +228,41 @@ def test_normalize_services_disambiguates_icmpv6() -> None:
     assert "ICMPv6" in services
     assert services["ICMPv6"].ip_proto == 58
     assert _create_normalized_rule_from_access_rule(rule).rule_svc == "ICMPv6"
+
+
+@pytest.mark.parametrize(
+    ("os_protocol", "expected_proto"),
+    [
+        ("sctp", 132),
+        ("l2tp", 115),
+        ("eigrp", 88),
+        ("vrrp", 112),
+        ("ipv6-icmp", 58),
+        ("ipcomp", 108),
+    ],
+)
+def test_normalize_services_resolves_further_ip_protocols(os_protocol: str, expected_proto: int) -> None:
+    rule = OPNsenseAccessRule.model_validate(
+        {"@uuid": "r-proto", "type": "pass", "descr": "d", "protocol": os_protocol}
+    )
+    config = OPNsenseConfig(hostname="fw", access_rules=[rule])
+
+    services = _normalize_services(config)
+
+    assert services[os_protocol.upper()].ip_proto == expected_proto
+
+
+def test_normalize_services_warns_about_unknown_ip_protocol(mocker: MockerFixture) -> None:
+    warning = mocker.patch("fw_modules.opnsense25ff.opnsense_normalizer.FWOLogger.warning")
+    rule = OPNsenseAccessRule.model_validate(
+        {"@uuid": "r-unknown-proto", "type": "pass", "descr": "d", "protocol": "made-up"}
+    )
+    config = OPNsenseConfig(hostname="fw", access_rules=[rule])
+
+    services = _normalize_services(config)
+
+    assert services["MADE-UP"].ip_proto is None
+    assert any("no IP protocol number known" in str(call) for call in warning.call_args_list)
 
 
 @pytest.mark.parametrize(
@@ -822,3 +859,76 @@ def test_normalize_opnsense_config_builds_manager_config_with_uid_refs(
     lan_object = next(obj for obj in normalized_config.network_objects.values() if obj.obj_name == "lan")
     assert set(rule.rule_dst_refs.split("|")) == {lan_object.obj_uid, "Any"}
     assert rule.rule_svc_refs == "uid-web-ports"
+
+
+def _alias_dedup_native_config() -> dict[str, Any]:
+    return {
+        "opnsense": {
+            "system": {"hostname": "fw", "domain": "example.com"},
+            "OPNsense": {
+                "Firewall": {
+                    "Alias": {
+                        "aliases": {
+                            "alias": [
+                                {
+                                    "@uuid": "a-hosts",
+                                    "enabled": "1",
+                                    "name": "WebServers",
+                                    "type": "host",
+                                    "content": "192.0.2.10\n192.0.2.0/24",
+                                    "description": "web servers",
+                                },
+                                {
+                                    "@uuid": "a-ports",
+                                    "enabled": "1",
+                                    "name": "WebPorts",
+                                    "type": "port",
+                                    "content": "80",
+                                    "description": "web ports",
+                                },
+                            ]
+                        }
+                    }
+                }
+            },
+            "filter": {
+                "rule": [
+                    {
+                        "@uuid": "r-alias",
+                        "type": "pass",
+                        "descr": "via alias",
+                        "interface": "lan",
+                        "source": {"address": "WebServers"},
+                        "destination": {"address": "WebServers", "port": "WebPorts"},
+                    },
+                    {
+                        "@uuid": "r-literal",
+                        "type": "pass",
+                        "descr": "via literal",
+                        "interface": "lan",
+                        "source": {"address": "192.0.2.10"},
+                        "destination": {"address": "192.0.2.0/24", "port": "80"},
+                    },
+                ]
+            },
+        }
+    }
+
+
+def test_alias_members_and_rule_literals_share_one_object() -> None:
+    config = parse_opnsense_config(_alias_dedup_native_config())
+
+    nw_objs = _normalize_network_objects(config)
+    _update_network_objects_from_access_rules(config, nw_objs)
+    svc_objs = _normalize_services(config)
+
+    # no synthetic "__h_"/"__n_"/"__p_" names leak into the normalized objects ...
+    assert not [name for name in nw_objs if name.startswith("__")]
+    assert not [name for name in svc_objs if name.startswith("__")]
+    # ... and alias members are the very same objects the rule literals resolve to
+    assert nw_objs["WebServers"].obj_member_names == "192.0.2.0/24|192.0.2.10"
+    assert nw_objs["192.0.2.10"].obj_typ == "host"
+    assert nw_objs["192.0.2.0/24"].obj_typ == "network"
+    assert svc_objs["WebPorts"].svc_member_names == "80"
+    assert svc_objs["80"].svc_port == 80
+    assert len([obj for obj in nw_objs.values() if str(obj.obj_ip) == "192.0.2.10/32"]) == 1

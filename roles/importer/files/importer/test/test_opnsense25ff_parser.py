@@ -415,3 +415,53 @@ def test_parse_opnsense_config_tolerates_malformed_revision_time() -> None:
     config = parse_opnsense_config(native_config)
 
     assert config.last_change is None
+
+
+def test_parse_opnsense_config_accepts_entries_without_optional_elements() -> None:
+    # config.xml omits empty elements: a group without members carries no <member>/<priv>,
+    # a user without contact data no <email>/<expires>, a dhcp gateway no address
+    native_config = _native_config()
+    opnsense = cast("dict[str, Any]", native_config["opnsense"])
+    system = cast("dict[str, Any]", opnsense["system"])
+    system["group"] = [{"@uuid": "g2", "gid": "1999", "name": "empty-group", "scope": "system"}]
+    system["user"] = [{"@uuid": "u2", "uid": "1000", "name": "operator", "scope": "user"}]
+    opnsense["OPNsense"]["Gateways"] = {
+        "gateway_item": {"@uuid": "gw1", "name": "WAN_DHCP", "interface": "wan", "gateway": "dynamic"}
+    }
+
+    config = parse_opnsense_config(native_config)
+
+    assert [group.name for group in config.user_groups] == ["empty-group"]
+    assert config.user_groups[0].member_uids is None
+    assert [user.name for user in config.users] == ["operator"]
+    assert config.users[0].email is None
+    assert [gw.name for gw in config.gateways] == ["WAN_DHCP"]
+    assert config.gateways[0].gw_addr is None
+    assert config.gateways[0].is_default_gw is False
+
+
+def test_parse_opnsense_config_skips_unparsable_entries_without_aborting() -> None:
+    native_config = _native_config()
+    opnsense = cast("dict[str, Any]", native_config["opnsense"])
+    cast("dict[str, Any]", opnsense["system"])["group"] = [
+        {"@uuid": "g3", "gid": "not-a-number", "name": "broken", "scope": "system"}
+    ]
+    cast("dict[str, Any]", opnsense["interfaces"])["broken"] = {"if": "em9", "subnet": "not-a-number"}
+
+    config = parse_opnsense_config(native_config)
+
+    # the invalid entries are dropped, everything else is still imported
+    assert config.user_groups == []
+    assert "broken" not in config.interfaces
+    assert "lan" in config.interfaces
+    assert len(config.access_rules) > 0
+
+
+def test_parse_opnsense_config_keeps_unknown_interface_types() -> None:
+    native_config = _native_config()
+    opnsense = cast("dict[str, Any]", native_config["opnsense"])
+    cast("dict[str, Any]", opnsense["interfaces"])["vlan01"] = {"if": "em0_vlan10", "type": "vlan"}
+
+    config = parse_opnsense_config(native_config)
+
+    assert config.interfaces["vlan01"].type == "vlan"

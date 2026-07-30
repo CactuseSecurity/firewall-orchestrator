@@ -1,7 +1,7 @@
 # parsing retrieved config.xml from OPNsense into opnsense_model
 
 from datetime import datetime, timezone
-from typing import Any, TypeGuard, cast
+from typing import Any, TypeGuard, TypeVar, cast
 
 import fw_modules.opnsense25ff.opnsense_helper as os_helper
 from fw_modules.opnsense25ff.opnsense_constants import OPNSENSE_UUID_ALIAS, PREDEFINED_RULE_UID_PREFIX
@@ -22,10 +22,23 @@ from fw_modules.opnsense25ff.opnsense_model import (
 )
 from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
+from pydantic import BaseModel, ValidationError
+
+TParsedModel = TypeVar("TParsedModel", bound=BaseModel)
 
 
 def _is_dict(value: object) -> TypeGuard[dict[str, Any]]:
     return isinstance(value, dict)
+
+
+def _validate_or_warn(model: type[TParsedModel], data: dict[str, Any], context: str) -> TParsedModel | None:
+    # config.xml sections other than the rules are supplementary: a single malformed entry
+    # must not abort the whole import (access rules are validated strictly on purpose)
+    try:
+        return model.model_validate(data)
+    except ValidationError as validation_error:
+        FWOLogger.warning(f"[-] {context}: skipping entry that could not be parsed: {validation_error}")
+        return None
 
 
 def _as_object_list(value: Any) -> list[object]:
@@ -82,8 +95,9 @@ def _parse_opnsense_user_groups(config: dict[str, Any]) -> list[OPNsenseUserGrou
     user_groups: list[OPNsenseUserGroup] = []
 
     for group in _as_dict_list(groups):
-        group_parsed = OPNsenseUserGroup.model_validate(group)
-        user_groups.append(group_parsed)
+        group_parsed = _validate_or_warn(OPNsenseUserGroup, group, "_parse_opnsense_user_groups")
+        if group_parsed is not None:
+            user_groups.append(group_parsed)
 
     return user_groups
 
@@ -94,8 +108,9 @@ def _parse_opnsense_users(config: dict[str, Any]) -> list[OPNsenseUser]:
     users_parsed: list[OPNsenseUser] = []
 
     for user in _as_dict_list(users):
-        user_parsed = OPNsenseUser.model_validate(user)
-        users_parsed.append(user_parsed)
+        user_parsed = _validate_or_warn(OPNsenseUser, user, "_parse_opnsense_users")
+        if user_parsed is not None:
+            users_parsed.append(user_parsed)
 
     return users_parsed
 
@@ -108,7 +123,9 @@ def _parse_opnsense_interfaces(config: dict[str, Any]) -> dict[str, OPNsenseInte
     for iface, iface_config in interfaces.items():
         if not _is_dict(iface_config):
             continue
-        if_parsed = OPNsenseInterface.model_validate(iface_config)
+        if_parsed = _validate_or_warn(OPNsenseInterface, iface_config, f"_parse_opnsense_interfaces ({iface})")
+        if if_parsed is None:
+            continue
         if_parsed.name = iface
         ifaces_parsed[if_parsed.name] = if_parsed
 
@@ -121,8 +138,9 @@ def _parse_opnsense_if_groups(config: dict[str, Any]) -> dict[str, OPNsenseIfGro
     ifgroups_parsed: dict[str, OPNsenseIfGroup] = {}
 
     for ifgroup in _as_dict_list(ifgroups):
-        ifgroup_parsed = OPNsenseIfGroup.model_validate(ifgroup)
-        ifgroups_parsed[ifgroup_parsed.name] = ifgroup_parsed
+        ifgroup_parsed = _validate_or_warn(OPNsenseIfGroup, ifgroup, "_parse_opnsense_if_groups")
+        if ifgroup_parsed is not None:
+            ifgroups_parsed[ifgroup_parsed.name] = ifgroup_parsed
 
     return ifgroups_parsed
 
@@ -278,6 +296,12 @@ def _parse_opnsense_nat_rules(config: dict[str, Any]) -> list[OPNsenseNATRule]:
     return rules_parsed
 
 
+def _store_alias(model: type[OPNsenseAlias], alias: dict[str, Any], target: dict[str, Any]) -> None:
+    alias_parsed = _validate_or_warn(model, alias, "_parse_opnsense_aliases")
+    if alias_parsed is not None:
+        target[alias_parsed.name] = alias_parsed
+
+
 def _parse_opnsense_aliases(
     config: dict[str, Any],
 ) -> tuple[
@@ -295,17 +319,14 @@ def _parse_opnsense_aliases(
 
     for alias in _as_dict_list(aliases):
         if alias.get("type") == AliasTypeEnum.HOST:
-            alias_parsed = OPNsenseHostAlias.model_validate(alias)
-            host_aliases_parsed[alias_parsed.name] = alias_parsed
+            _store_alias(OPNsenseHostAlias, alias, host_aliases_parsed)
         elif alias.get("type") in {AliasTypeEnum.NETWORK, AliasTypeEnum.NETWORKGROUP}:
-            alias_parsed = OPNsenseNetworkAlias.model_validate(alias)
-            net_aliases_parsed[alias_parsed.name] = alias_parsed
+            _store_alias(OPNsenseNetworkAlias, alias, net_aliases_parsed)
         elif alias.get("type") == AliasTypeEnum.PORT:
-            alias_parsed = OPNsensePortAlias.model_validate(alias)
-            port_aliases_parsed[alias_parsed.name] = alias_parsed
+            _store_alias(OPNsensePortAlias, alias, port_aliases_parsed)
         else:
-            alias_parsed = OPNsenseAlias.model_validate(alias)
-            misc_aliases_parsed[alias_parsed.name] = alias_parsed
+            # unknown/new alias types land here and are kept as generic aliases
+            _store_alias(OPNsenseAlias, alias, misc_aliases_parsed)
 
     return misc_aliases_parsed, host_aliases_parsed, net_aliases_parsed, port_aliases_parsed
 
@@ -318,8 +339,9 @@ def _parse_opnsense_gateways(config: dict[str, Any]) -> list[OPNsenseGateway]:
     for gw in _as_dict_list(gateways):
         if gw.get("disabled") == "1":
             continue
-        gw_parsed = OPNsenseGateway.model_validate(gw)
-        gateways_parsed.append(gw_parsed)
+        gw_parsed = _validate_or_warn(OPNsenseGateway, gw, "_parse_opnsense_gateways")
+        if gw_parsed is not None:
+            gateways_parsed.append(gw_parsed)
 
     return gateways_parsed
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from fw_modules.opnsense25ff.opnsense_constants import OPNSENSE_UUID_ALIAS
 from pydantic import AliasPath, BaseModel, ConfigDict, Field, field_validator
@@ -34,14 +34,22 @@ def _normalize_presence_flag(value: Any) -> bool:
     return bool(value)
 
 
-def _normalize_interface_address(value: Any) -> Any:
-    if isinstance(value, str) and value.strip().lower() in {
-        "dhcp",
-        "dhcp6",
-        "none",
-        "slaac",
-        "track6",
-    }:
+def _normalize_mvc_flag(value: Any) -> bool:
+    # MVC sections write empty elements for empty values, so an empty tag means "not set"
+    # (the opposite of the legacy presence flags handled by _normalize_presence_flag)
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "yes", "true"}
+    return bool(value)
+
+
+# keywords used instead of an address for dynamically assigned interfaces and gateways
+DYNAMIC_ADDRESS_KEYWORDS: frozenset[str] = frozenset({"dhcp", "dhcp6", "dynamic", "none", "slaac", "track6"})
+
+
+def _normalize_optional_address(value: Any) -> Any:
+    if isinstance(value, str) and (not value.strip() or value.strip().lower() in DYNAMIC_ADDRESS_KEYWORDS):
         return None
     return value
 
@@ -93,8 +101,8 @@ class FilterRuleIPProtoEnum(str, Enum):
 class OPNsenseIfGroup(BaseModel):
     uuid: str = Field(alias=OPNSENSE_UUID_ALIAS)  # /opnsense/ifgroups/ifgroupentry[x]/@uuid
     name: str = Field(alias="ifname")  # /opnsense/ifgroups/ifgroupentry[x]/ifname
-    members: list[str]  # /opnsense/ifgroups/ifgroupentry[x]/members
-    description: str | None = Field(alias="descr")  # /opnsense/ifgroups/ifgroupentry[x]/descr
+    members: list[str] = Field(default_factory=list)  # /opnsense/ifgroups/ifgroupentry[x]/members
+    description: str | None = Field(alias="descr", default=None)  # /opnsense/ifgroups/ifgroupentry[x]/descr
 
     @field_validator("members", mode="before")
     @classmethod
@@ -104,11 +112,22 @@ class OPNsenseIfGroup(BaseModel):
 
 class OPNsenseGateway(BaseModel):
     uuid: str = Field(alias=OPNSENSE_UUID_ALIAS)  # /opnsense/OPNsense/Gateways/gateway_item[x]/@uuid
-    disabled: bool  # /opnsense/OPNsense/Gateways/gateway_item[x]/disabled
+    disabled: bool = False  # /opnsense/OPNsense/Gateways/gateway_item[x]/disabled
     name: str  # /opnsense/OPNsense/Gateways/gateway_item[x]/name
-    interface: str  # /opnsense/OPNsense/Gateways/gateway_item[x]/interface
-    gw_addr: IPAddress = Field(alias="gateway")  # /opnsense/OPNsense/Gateways/gateway_item[x]/gateway
-    is_default_gw: bool = Field(alias="defaultgw")  # /opnsense/OPNsense/Gateways/gateway_item[x]/defaultgw
+    interface: str = ""  # /opnsense/OPNsense/Gateways/gateway_item[x]/interface
+    # dynamic (dhcp/ppp) gateways store keywords instead of an address
+    gw_addr: IPAddress | None = Field(alias="gateway", default=None)  # .../gateway_item[x]/gateway
+    is_default_gw: bool = Field(alias="defaultgw", default=False)  # .../gateway_item[x]/defaultgw
+
+    @field_validator("disabled", "is_default_gw", mode="before")
+    @classmethod
+    def normalize_flag(cls, value: Any) -> bool:
+        return _normalize_mvc_flag(value)
+
+    @field_validator("gw_addr", mode="before")
+    @classmethod
+    def normalize_dynamic_address(cls, value: Any) -> Any:
+        return _normalize_optional_address(value)
 
 
 class OPNsensePort(BaseModel):  # retrievable via port aliases
@@ -133,10 +152,10 @@ class OPNsenseNetwork(BaseModel):  # retrievable via host aliases
 # https://github.com/opnsense/core/blob/8bc595681e13fec63ef0f6e3fcc292cfff67496c/src/opnsense/mvc/app/models/OPNsense/Firewall/Alias.xml
 class OPNsenseAlias(BaseModel):
     uuid: str = Field(alias=OPNSENSE_UUID_ALIAS)  # /opnsense/OPNsense/Firewall/Aliases/alias[x]/@uuid
-    enabled: bool  # /opnsense/OPNsense/Firewall/Aliases/alias[x]/enabled
+    enabled: bool = True  # /opnsense/OPNsense/Firewall/Aliases/alias[x]/enabled
     name: str  # /opnsense/OPNsense/Firewall/Aliases/alias[x]/name
     type: AliasTypeEnum  # /opnsense/OPNsense/Firewall/Aliases/alias[x]/type
-    value: list[str] = Field(alias="content")  # /opnsense/OPNsense/Firewall/Aliases/alias[x]/content
+    value: list[str] = Field(alias="content", default_factory=list)  # .../Aliases/alias[x]/content
     is_used_by: list[OPNsenseAlias | OPNsenseAccessRule | OPNsenseNATRule] = Field(
         default_factory=lambda: cast("list[OPNsenseAlias | OPNsenseAccessRule | OPNsenseNATRule]", [])
     )  # linking metaobjects using this object
@@ -146,6 +165,11 @@ class OPNsenseAlias(BaseModel):
     @classmethod
     def normalize_value(cls, value: Any) -> list[str]:
         return _normalize_to_str_list(value, "\n")
+
+    @field_validator("enabled", mode="before")
+    @classmethod
+    def normalize_flag(cls, value: Any) -> bool:
+        return _normalize_mvc_flag(value)
 
 
 class OPNsenseHostAlias(OPNsenseAlias):
@@ -318,13 +342,14 @@ class OPNsenseNATRule(BaseModel):
 class OPNsenseInterface(BaseModel):
     name: str = ""  # /opnsense/interfaces[x]            (identifier)
     enabled: bool = Field(alias="enable", default=True)  # /opnsense/interfaces[x]/enable
-    hw_interface: str = Field(alias="if")  # /opnsense/interfaces[x]/if         (assigned hardware interface)
+    hw_interface: str = Field(alias="if", default="")  # /opnsense/interfaces[x]/if  (assigned hw interface)
     description: str | None = Field(alias="descr", default="")  # /opnsense/interfaces[x]/descr
     ip4_address: IPAddress | None = Field(alias="ipaddr", default=None)  # /opnsense/interfaces[x]/ipaddr
     ip4_subnet: int | None = Field(alias="subnet", default=None)  # /opnsense/interfaces[x]/subnet
     ip6_address: IPAddress | None = Field(alias="ipaddrv6", default=None)  # /opnsense/interfaces[x]/ipaddrv6
     ip6_subnet: int | None = Field(alias="subnetv6", default=None)  # /opnsense/interfaces[x]/subnetv6
-    type: Literal["group", "none", "undef"] | None = "undef"  # /opnsense/interfaces[x]/type
+    # kept as free-form string: OPNsense may introduce further interface types
+    type: str | None = "undef"  # /opnsense/interfaces[x]/type
 
     @field_validator("enabled", mode="before")
     @classmethod
@@ -334,20 +359,22 @@ class OPNsenseInterface(BaseModel):
     @field_validator("ip4_address", "ip6_address", mode="before")
     @classmethod
     def normalize_dynamic_address(cls, value: Any) -> Any:
-        return _normalize_interface_address(value)
+        return _normalize_optional_address(value)
 
 
 # https://github.com/opnsense/core/blob/8bc595681e13fec63ef0f6e3fcc292cfff67496c/src/opnsense/mvc/app/models/OPNsense/Auth/User.xml
 class OPNsenseUser(BaseModel):
-    uuid: str = Field(alias=OPNSENSE_UUID_ALIAS)  # /opnsense/system/user/@uuid
-    uid: int  # /opnsense/system/user/uid
+    # all elements but the name are optional: config.xml omits empty ones (e.g. a user without
+    # privileges has no <priv> element at all), and a missing one must not abort the import
+    uuid: str = Field(alias=OPNSENSE_UUID_ALIAS, default="")  # /opnsense/system/user/@uuid
+    uid: int | None = None  # /opnsense/system/user/uid
     name: str  # /opnsense/system/user/name
     disabled: bool = False  # /opnsense/system/user/disabled
-    scope: UserScopeEnum  # /opnsense/system/user/scope
-    email: str | None  # /opnsense/system/user/email
-    privileges: list[str] | None = Field(alias="priv")  # /opnsense/system/user/priv
-    expires: str | None  # /opnsense/system/user/expires
-    description: str | None = Field(alias="descr")  # /opnsense/system/user/descr
+    scope: UserScopeEnum | None = None  # /opnsense/system/user/scope
+    email: str | None = None  # /opnsense/system/user/email
+    privileges: list[str] | None = Field(alias="priv", default=None)  # /opnsense/system/user/priv
+    expires: str | None = None  # /opnsense/system/user/expires
+    description: str | None = Field(alias="descr", default=None)  # /opnsense/system/user/descr
 
     @field_validator("privileges", mode="before")
     @classmethod
@@ -361,13 +388,14 @@ class OPNsenseUser(BaseModel):
 
 
 class OPNsenseUserGroup(BaseModel):
-    uuid: str = Field(alias=OPNSENSE_UUID_ALIAS)  # /opnsense/system/group/@uuid
-    gid: int  # /opnsense/system/group/gid
+    # see OPNsenseUser: an empty group carries neither <member> nor <priv>
+    uuid: str = Field(alias=OPNSENSE_UUID_ALIAS, default="")  # /opnsense/system/group/@uuid
+    gid: int | None = None  # /opnsense/system/group/gid
     name: str  # /opnsense/system/group/name
-    scope: UserScopeEnum  # /opnsense/system/group/scope
-    description: str | None  # /opnsense/system/group/description
-    privileges: list[str] = Field(alias="priv")  # /opnsense/system/group/priv
-    member_uids: list[int] | None = Field(alias="member")  # /opnsense/system/group/member
+    scope: UserScopeEnum | None = None  # /opnsense/system/group/scope
+    description: str | None = None  # /opnsense/system/group/description
+    privileges: list[str] = Field(alias="priv", default_factory=list)  # /opnsense/system/group/priv
+    member_uids: list[int] | None = Field(alias="member", default=None)  # /opnsense/system/group/member
 
     @field_validator("privileges", mode="before")
     @classmethod

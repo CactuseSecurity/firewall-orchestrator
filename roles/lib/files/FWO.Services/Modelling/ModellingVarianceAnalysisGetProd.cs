@@ -42,7 +42,7 @@ namespace FWO.Services.Modelling
             }
         }
 
-        private async Task<bool> GetModelledRulesProductionState(ModellingFilter modellingFilter, bool useNameFieldRuleOwnerPreFilter = true)
+        private async Task<bool> GetModelledRulesProductionState(ModellingFilter modellingFilter)
         {
             try
             {
@@ -53,7 +53,7 @@ namespace FWO.Services.Modelling
                 foreach (Management mgt in RelevantManagements)
                 {
                     varianceResult.UnModelledRules.Add(mgt.Id, []);
-                    List<Rule>? rulesByMgt = await GetRules(mgt.Id, modellingFilter, useNameFieldRuleOwnerPreFilter);
+                    List<Rule>? rulesByMgt = await GetRules(mgt.Id, modellingFilter);
                     if (rulesByMgt != null)
                     {
                         IdentifyModelledRules(mgt, rulesByMgt);
@@ -139,12 +139,12 @@ namespace FWO.Services.Modelling
             }
         }
 
-        private async Task<List<Rule>?> GetRules(int mgtId, ModellingFilter modellingFilter, bool useNameFieldRuleOwnerPreFilter)
+        private async Task<List<Rule>?> GetRules(int mgtId, ModellingFilter modellingFilter)
         {
             long? relImpId = await GetRelevantImportId(mgtId);
             await GetRuleDevices(mgtId, modellingFilter);
 
-            if (relImpId != null && useNameFieldRuleOwnerPreFilter && ShouldUseNameFieldRuleOwnerPreFilter(modellingFilter) && await IsRuleOwnerMappingCurrent(mgtId, relImpId.Value))
+            if (relImpId != null && ShouldUseNameFieldRuleOwnerPreFilter(modellingFilter) && await IsRuleOwnerMappingCurrent(mgtId, relImpId.Value))
             {
                 List<Rule>? preFilteredRules = await TryGetNameFieldRuleOwnerPrefilteredRules(mgtId, relImpId);
                 if (preFilteredRules?.Count > 0)
@@ -191,11 +191,11 @@ namespace FWO.Services.Modelling
         }
 
         /// <summary>
-        /// Uses the NameField rule_owner mapping as a prefilter only for the normal variance rule load.
-        /// AnalyseRemainingRules must inspect rules beyond the current owner's mapped modelled rules,
-        /// and RulesForDeletedConns may need historical/deleted model references that are not guaranteed
-        /// to have an active rule_owner entry. Those expanded modes therefore keep using the existing
-        /// marker-based rule loading path.
+        /// Uses the NameField rule_owner mapping as a prefilter when marker-based modelled
+        /// rule loading is sufficient. AnalyseRemainingRules must inspect rules beyond the
+        /// current owner's mapped modelled rules and therefore keeps using the full rule load.
+        /// Deleted model references can use the prefilter because removed modelling
+        /// connections stay included in the NameField rule_owner mapping.
         /// </summary>
         private bool ShouldUseNameFieldRuleOwnerPreFilter(ModellingFilter modellingFilter)
         {
@@ -203,14 +203,13 @@ namespace FWO.Services.Modelling
                 && userConfig.ModModelledMarkerLocation == MarkerLocation.Rulename
                 && owner.Id > 0
                 && !string.IsNullOrWhiteSpace(userConfig.ModModelledMarker)
-                && !modellingFilter.AnalyseRemainingRules
-                && !modellingFilter.RulesForDeletedConns;
+                && !modellingFilter.AnalyseRemainingRules;
         }
 
         /// <summary>
-        /// Checks import_control backlog for firewall-import driven rule_owner mapping lag.
-        /// Owner/model changes are expected to update rule_owner mapping promptly; without an
-        /// import_control marker there is no cheap freshness signal here.
+        /// Checks whether successful imports with pending rule_owner mapping can affect this management.
+        /// When such backlog exists, the marker query is safer than the NameField prefilter because
+        /// the mapping table may be incomplete.
         /// </summary>
         private async Task<bool> IsRuleOwnerMappingCurrent(int mgtId, long relImpId)
         {
@@ -218,11 +217,12 @@ namespace FWO.Services.Modelling
             {
                 PendingRuleOwnerMappingImports ??= await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getPendingRuleOwnerImports) ?? [];
 
-                bool hasRelevantPendingImport = PendingRuleOwnerMappingImports.Any(import => import.ControlId <= relImpId && (!import.MgmId.HasValue || import.MgmId.Value == mgtId));
+                bool hasRelevantPendingImport = PendingRuleOwnerMappingImports.Any(import => !import.MgmId.HasValue || import.MgmId.Value == mgtId);
+
                 if (hasRelevantPendingImport)
                 {
                     Log.WriteDebug("Variance Rule Loading",
-                        $"Skipping NameField rule_owner prefilter because pending rule_owner mapping imports exist for management {mgtId} up to import {relImpId}.");
+                        $"Skipping NameField rule_owner prefilter because pending rule_owner mapping imports exist for management {mgtId}.");
                 }
 
                 return !hasRelevantPendingImport;

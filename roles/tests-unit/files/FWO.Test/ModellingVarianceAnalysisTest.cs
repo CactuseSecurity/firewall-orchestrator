@@ -1171,6 +1171,22 @@ namespace FWO.Test
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
             Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
         }
+        [Test]
+
+        public async Task TestNameFieldRuleOwnerPreFilterFindsDeletedConnectionForRequestFlow()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterDeletedConnectionApiConn apiConnection = new();
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            List<WfReqTask> taskList = await analysis.AnalyseModelledConnectionsForRequest([]);
+
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
+            Assert.That(taskList, Has.Some.Matches<WfReqTask>(task =>
+                task.TaskType == WfTaskType.rule_delete.ToString()
+                && task.Title == "Delete Rule: FWOC5047"));
+        }
 
         [Test]
         public async Task TestNameFieldRuleOwnerPreFilterSkippedForPendingRuleOwnerMapping()
@@ -1201,23 +1217,15 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task TestNameFieldRuleOwnerPreFilterSkippedForExpandedRuleModes()
+        public async Task TestNameFieldRuleOwnerPreFilterSkippedForAnalyseRemainingRules()
         {
             SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new();
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
 
-            foreach (ModellingFilter modellingFilter in new ModellingFilter[]
-            {
-                new() { AnalyseRemainingRules = true },
-                new() { RulesForDeletedConns = true }
-            })
-            {
-                RuleOwnerPreFilterRoutingApiConn apiConnection = new();
-                ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+            await analysis.AnalyseRulesVsModelledConnections([], new() { AnalyseRemainingRules = true }, false);
 
-                await analysis.AnalyseRulesVsModelledConnections([], modellingFilter, false);
-
-                Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
-            }
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
         }
 
         private static SimulatedUserConfig CreateNameFieldPreFilterUserConfig()
@@ -1232,7 +1240,7 @@ namespace FWO.Test
             };
         }
 
-        private sealed class RuleOwnerPreFilterRoutingApiConn : SimulatedApiConnection
+        private class RuleOwnerPreFilterRoutingApiConn : SimulatedApiConnection
         {
             public List<string> Queries { get; } = [];
             public bool ReturnRuleOwnerRules { get; init; } = true;
@@ -1303,6 +1311,48 @@ namespace FWO.Test
             }
         }
 
+        private sealed class RuleOwnerPreFilterDeletedConnectionApiConn : RuleOwnerPreFilterRoutingApiConn
+        {
+            private const int kDeletedConnectionId = 5047;
+
+            public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                await DefaultInit.DoNothing();
+
+                if (typeof(QueryResponseType) == typeof(List<Rule>) && query == RuleQueries.getModelledRulesByRuleOwnerNameField)
+                {
+                    Queries.Add(query);
+                    List<Rule> rules =
+                    [
+                        new()
+                        {
+                            Id = kDeletedConnectionId,
+                            Name = "FWOC5047",
+                            MgmtId = 1
+                        }
+                    ];
+                    return (QueryResponseType)(object)rules;
+                }
+
+                if (typeof(QueryResponseType) == typeof(List<ModellingConnection>) && query == ModellingQueries.getDeletedConnections)
+                {
+                    Queries.Add(query);
+                    List<ModellingConnection> connections =
+                    [
+                        new()
+                        {
+                            Id = kDeletedConnectionId,
+                            Name = "DeletedConn5047",
+                            Removed = true,
+                            Services = [new() { Content = Svc1 }]
+                        }
+                    ];
+                    return (QueryResponseType)(object)connections;
+                }
+
+                return await base.SendQueryAsync<QueryResponseType>(query, variables, operationName, chunkingOptions);
+            }
+        }
         [Test]
         public async Task TestNATHeuristic()
         {

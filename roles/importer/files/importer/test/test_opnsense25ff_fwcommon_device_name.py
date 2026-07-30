@@ -70,6 +70,46 @@ def test_get_config_fetches_sanitizes_and_normalizes_config(
     normalizer.assert_called_once_with(config, import_state=import_state_controller)
 
 
+def test_get_config_uses_native_config_from_file_without_api_call(
+    mocker: MockerFixture,
+    import_state_controller: ImportStateController,
+) -> None:
+    config = FwConfigManagerListController.generate_empty_config()
+    config.native_config = {"opnsense": {"system": {"hostname": "fw"}}}
+    session_factory = mocker.patch.object(fwcommon.requests, "Session")
+    sanitizer = mocker.patch.object(
+        fwcommon,
+        "remove_opnsense_sensitive_data",
+        return_value={"opnsense": {"sanitized": True}},
+    )
+    normalizer = mocker.patch.object(fwcommon, "normalize_opnsense_config", return_value=config)
+
+    rc, result = fwcommon.get_config(config, import_state_controller)
+
+    assert rc == 0
+    assert result is config
+    session_factory.assert_not_called()
+    sanitizer.assert_called_once_with({"opnsense": {"system": {"hostname": "fw"}}})
+    normalizer.assert_called_once_with(config, import_state=import_state_controller)
+    assert config.native_config == {"opnsense": {"sanitized": True}}
+
+
+def test_get_config_adds_manager_set_for_native_file_configs(
+    mocker: MockerFixture,
+    import_state_controller: ImportStateController,
+) -> None:
+    config = FwConfigManagerListController.generate_empty_config()
+    config.ManagerSet = []
+    config.native_config = {"opnsense": {"system": {"hostname": "fw"}}}
+    mocker.patch.object(fwcommon, "remove_opnsense_sensitive_data", return_value=config.native_config)
+    mocker.patch.object(fwcommon, "normalize_opnsense_config", return_value=config)
+
+    fwcommon.get_config(config, import_state_controller)
+
+    assert len(config.ManagerSet) == 1
+    assert config.ManagerSet[0].manager_uid == import_state_controller.state.mgm_details.uid
+
+
 def test_get_config_wraps_request_errors(
     mocker: MockerFixture,
     import_state_controller: ImportStateController,

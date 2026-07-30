@@ -1,9 +1,66 @@
 # sanitizing irrelevant parts of the config.xml
 from typing import Any, TypeGuard, cast
 
+from fw_modules.opnsense25ff.opnsense_constants import MAX_SANITIZER_DEPTH
+
+# Element names that carry credentials anywhere in config.xml. The deny-list below only covers
+# the sections known today, so every remaining section is additionally swept for these keys.
+# None of them is read by the parser, so removing them cannot break normalization.
+SENSITIVE_KEY_NAMES: frozenset[str] = frozenset(
+    {
+        "api_key",
+        "apikey",
+        "apikeys",
+        "apisecret",
+        "auth_token",
+        "authorizedkeys",
+        "authtoken",
+        "bindpw",
+        "ddnsdomainkey",
+        "key",
+        "ldap_bindpw",
+        "md5-hash",
+        "nt-hash",
+        "otp_seed",
+        "pass",
+        "passwd",
+        "password",
+        "pre-shared-key",
+        "private-key",
+        "privatekey",
+        "privkey",
+        "prv",
+        "psk",
+        "pwd",
+        "radius_secret",
+        "secret",
+        "shared_secret",
+        "sharedkey",
+        "token",
+        "tsigkey",
+    }
+)
+
 
 def _is_dict(value: object) -> TypeGuard[dict[str, Any]]:
     return isinstance(value, dict)
+
+
+def _redact_sensitive_keys(value: object, depth: int = 0) -> None:
+    # defense in depth: drop every credential-bearing element regardless of the section it lives in,
+    # so plugin sections not covered by the explicit deny-list below cannot leak into debug dumps
+    if depth >= MAX_SANITIZER_DEPTH:
+        return
+    if isinstance(value, list):
+        for item in cast("list[object]", value):
+            _redact_sensitive_keys(item, depth + 1)
+        return
+    if not _is_dict(value):
+        return
+    for sensitive_key in [key for key in value if key.lower() in SENSITIVE_KEY_NAMES]:
+        value.pop(sensitive_key, None)
+    for child in list(value.values()):
+        _redact_sensitive_keys(child, depth + 1)
 
 
 def _get_dict(data: dict[str, Any], *keys: str) -> dict[str, Any]:
@@ -72,11 +129,13 @@ def remove_opnsense_sensitive_data(native_config: dict[str, Any]) -> dict[str, A
         "cron",
         "crowdsec",
         "DHCRelay",
+        "DynDNS",  # contains dynamic dns account passwords and api tokens
         "ftpproxies",
         "IDS",
         "monit",
         "Netflow",
         "ntopng",
+        "OpenVPNExport",  # contains client certificate/key export credentials
         "postfix",
         "redis",
         "Syslog",
@@ -106,8 +165,14 @@ def remove_opnsense_sensitive_data(native_config: dict[str, Any]) -> dict[str, A
     _get_dict(opnsense, "Deciso", "UserPortal", "group_options").pop("otp_seed", None)
 
     # remove not necessary system level settings:
-    system_excludes = ["dhcpdv6", "openvpn", "rrd", "snmpd", "sysctl", "widgets"]
+    # - dyndnses: legacy dynamic dns accounts (passwords/api tokens)
+    # - authserver is nested below system and holds ldap bind and radius secrets
+    system_excludes = ["dhcpdv6", "dyndnses", "openvpn", "rrd", "snmpd", "sysctl", "widgets"]
     for sys_ex in system_excludes:
         opnsense.pop(sys_ex, None)
+    _get_dict(opnsense, "system").pop("authserver", None)
+
+    # sweep all remaining sections for credential-bearing elements
+    _redact_sensitive_keys(native_config)
 
     return native_config

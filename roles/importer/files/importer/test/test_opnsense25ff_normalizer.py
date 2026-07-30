@@ -383,7 +383,9 @@ def test_update_network_objects_detects_interface_address_object() -> None:
 
     assert "lanip" in nw_objs
     assert nw_objs["lanip"].obj_name == "lanip"
-    assert nw_objs["lanip"].obj_typ == "group"
+    assert nw_objs["lanip"].obj_typ == "host"
+    assert str(nw_objs["lanip"].obj_ip) == "10.1.1.87/32"
+    assert str(nw_objs["lanip"].obj_ip_end) == "10.1.1.87/32"
 
 
 def test_update_network_objects_detects_interface_object() -> None:
@@ -410,7 +412,9 @@ def test_update_network_objects_detects_interface_object() -> None:
 
     assert "lan" in nw_objs
     assert nw_objs["lan"].obj_name == "lan"
-    assert nw_objs["lan"].obj_typ == "group"
+    assert nw_objs["lan"].obj_typ == "network"
+    assert str(nw_objs["lan"].obj_ip) == "10.1.1.0/32"
+    assert str(nw_objs["lan"].obj_ip_end) == "10.1.1.255/32"
 
 
 def test_update_network_objects_detects_ips_subnets_ranges_and_ifgroups() -> None:
@@ -441,6 +445,132 @@ def test_update_network_objects_detects_ips_subnets_ranges_and_ifgroups() -> Non
     assert nw_objs["10.0.0.1-10.0.0.9"].obj_typ == "ip_range"
     assert nw_objs["lan_group"].obj_typ == "group"
     assert nw_objs["lan_group"].obj_uid == "ifg"
+    # the referenced interface is unknown here, so the group stays without members
+    assert nw_objs["lan_group"].obj_member_refs is None
+
+
+def _dual_stack_interface(name: str) -> OPNsenseInterface:
+    return OPNsenseInterface.model_validate(
+        {
+            "name": name,
+            "enable": "1",
+            "if": "em0",
+            "descr": name.upper(),
+            "ipaddr": "10.1.1.87",
+            "subnet": "24",
+            "ipaddrv6": "2001:db8::1",
+            "subnetv6": "64",
+        }
+    )
+
+
+def _interface_selector_rule(uid: str, selector: str) -> OPNsenseAccessRule:
+    return OPNsenseAccessRule.model_validate(
+        {"@uuid": uid, "type": "pass", "descr": "d", "source": {"network": selector}}
+    )
+
+
+def test_update_network_objects_creates_dual_stack_interface_net_members() -> None:
+    config = OPNsenseConfig(
+        hostname="fw",
+        interfaces={"lan": _dual_stack_interface("lan")},
+        access_rules=[_interface_selector_rule("r-lan", "lan")],
+    )
+
+    nw_objs: dict[str, NetworkObject] = {}
+    _update_network_objects_from_access_rules(config, nw_objs)
+
+    assert nw_objs["lan"].obj_typ == "group"
+    assert nw_objs["lan"].obj_member_refs == "lan_v4|lan_v6"
+    assert nw_objs["lan_v4"].obj_typ == "network"
+    assert str(nw_objs["lan_v4"].obj_ip) == "10.1.1.0/32"
+    assert str(nw_objs["lan_v4"].obj_ip_end) == "10.1.1.255/32"
+    assert nw_objs["lan_v6"].obj_typ == "network"
+    assert str(nw_objs["lan_v6"].obj_ip) == "2001:db8::/128"
+
+
+def test_update_network_objects_creates_dual_stack_interface_address_members() -> None:
+    config = OPNsenseConfig(
+        hostname="fw",
+        interfaces={"lan": _dual_stack_interface("lan")},
+        access_rules=[_interface_selector_rule("r-lan-ip", "lanip")],
+    )
+
+    nw_objs: dict[str, NetworkObject] = {}
+    _update_network_objects_from_access_rules(config, nw_objs)
+
+    assert nw_objs["lanip"].obj_typ == "group"
+    assert nw_objs["lanip"].obj_member_refs == "lanip_v4|lanip_v6"
+    assert nw_objs["lanip_v4"].obj_typ == "host"
+    assert str(nw_objs["lanip_v4"].obj_ip) == "10.1.1.87/32"
+    assert nw_objs["lanip_v6"].obj_typ == "host"
+    assert str(nw_objs["lanip_v6"].obj_ip) == "2001:db8::1/128"
+
+
+def test_update_network_objects_keeps_dynamic_interface_as_empty_group() -> None:
+    config = OPNsenseConfig(
+        hostname="fw",
+        interfaces={
+            "wan": OPNsenseInterface.model_validate({"name": "wan", "enable": "1", "if": "em1", "ipaddr": "dhcp"})
+        },
+        access_rules=[_interface_selector_rule("r-wan", "wan")],
+    )
+
+    nw_objs: dict[str, NetworkObject] = {}
+    _update_network_objects_from_access_rules(config, nw_objs)
+
+    assert nw_objs["wan"].obj_typ == "group"
+    assert nw_objs["wan"].obj_member_refs is None
+    assert nw_objs["wan"].obj_ip is None
+
+
+def test_update_network_objects_fills_ifgroup_with_interface_members() -> None:
+    ifgroup = OPNsenseIfGroup.model_validate(
+        {"@uuid": "ifg", "ifname": "lan_group", "members": "lan,opt1", "descr": "g"}
+    )
+    config = OPNsenseConfig(
+        hostname="fw",
+        interfaces={
+            "lan": OPNsenseInterface.model_validate(
+                {"name": "lan", "enable": "1", "if": "em0", "ipaddr": "10.1.1.87", "subnet": "24"}
+            ),
+            "opt1": OPNsenseInterface.model_validate(
+                {"name": "opt1", "enable": "1", "if": "em2", "ipaddr": "10.2.2.1", "subnet": "24"}
+            ),
+        },
+        interface_groups={"lan_group": ifgroup},
+        access_rules=[_interface_selector_rule("r-grp", "lan_group")],
+    )
+
+    nw_objs: dict[str, NetworkObject] = {}
+    _update_network_objects_from_access_rules(config, nw_objs)
+
+    assert nw_objs["lan_group"].obj_member_refs == "lan|opt1"
+    assert nw_objs["lan_group"].obj_member_names == "lan|opt1"
+    assert nw_objs["lan"].obj_typ == "network"
+    assert str(nw_objs["opt1"].obj_ip) == "10.2.2.0/32"
+
+
+def test_update_network_objects_skips_unknown_ifgroup_members() -> None:
+    ifgroup = OPNsenseIfGroup.model_validate(
+        {"@uuid": "ifg", "ifname": "lan_group", "members": "lan,ghost", "descr": "g"}
+    )
+    config = OPNsenseConfig(
+        hostname="fw",
+        interfaces={
+            "lan": OPNsenseInterface.model_validate(
+                {"name": "lan", "enable": "1", "if": "em0", "ipaddr": "10.1.1.87", "subnet": "24"}
+            )
+        },
+        interface_groups={"lan_group": ifgroup},
+        access_rules=[_interface_selector_rule("r-grp", "lan_group")],
+    )
+
+    nw_objs: dict[str, NetworkObject] = {}
+    _update_network_objects_from_access_rules(config, nw_objs)
+
+    assert nw_objs["lan_group"].obj_member_refs == "lan"
+    assert "ghost" not in nw_objs
 
 
 def _net_obj(name: str, uid: str) -> NetworkObject:

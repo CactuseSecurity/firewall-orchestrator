@@ -1,6 +1,7 @@
 # mapping the opnsense model into normalized import model
 
 import json
+from collections.abc import Callable
 from typing import Any
 
 import fw_modules.opnsense25ff.opnsense_helper as os_helper
@@ -506,7 +507,110 @@ def _create_network_objects_from_urltable_alias(alias: OPNsenseAlias) -> Network
     )
 
 
-def _create_network_objects_from_ifgroup(ifgroup: OPNsenseIfGroup) -> NetworkObject:
+def _interface_comment(interface: OPNsenseInterface) -> str:
+    return (
+        f"{interface.hw_interface}: {interface.ip4_address}{interface.ip4_subnet}|"
+        f"{interface.ip6_address}|{interface.ip6_subnet} :{interface.description}"
+    )
+
+
+def _interface_networks(interface: OPNsenseInterface) -> list[tuple[str, IPNetwork]]:
+    # one entry per configured address family, dynamic addresses (dhcp, slaac, ...) are parsed as None
+    networks: list[tuple[str, IPNetwork]] = []
+    if interface.ip4_address is not None and interface.ip4_subnet is not None:
+        networks.append(("v4", IPNetwork(f"{interface.ip4_address}/{interface.ip4_subnet}")))
+    if interface.ip6_address is not None and interface.ip6_subnet is not None:
+        networks.append(("v6", IPNetwork(f"{interface.ip6_address}/{interface.ip6_subnet}")))
+    return networks
+
+
+def _create_iface_group_object(name: str, members: list[str], comment: str | None) -> NetworkObject:
+    return NetworkObject(
+        obj_uid=fwo_base_generate_hash_from_dict({"iface_obj": name}),
+        obj_name=name,
+        obj_ip=None,
+        obj_ip_end=None,
+        obj_color="",
+        obj_typ="group",
+        obj_member_refs=sort_and_join(members) if len(members) > 0 else None,
+        obj_member_names=sort_and_join(members) if len(members) > 0 else None,
+        obj_comment=comment,
+    )
+
+
+def _create_iface_net_object(name: str, network: IPNetwork, comment: str) -> NetworkObject:
+    # "$interface net" selector: the subnet configured on the interface
+    return NetworkObject(
+        obj_uid=fwo_base_generate_hash_from_dict({"iface_obj": name}),
+        obj_name=name,
+        obj_ip=IPNetwork(f"{IPAddress(network.cidr.first, version=network.version)}"),
+        obj_ip_end=IPNetwork(f"{IPAddress(network.cidr.last, version=network.version)}"),
+        obj_color="",
+        obj_typ="network",
+        obj_member_refs=None,
+        obj_member_names=None,
+        obj_comment=comment,
+    )
+
+
+def _create_iface_address_object(name: str, network: IPNetwork, comment: str) -> NetworkObject:
+    # "$interface address" selector: the address configured on the interface itself
+    return NetworkObject(
+        obj_uid=fwo_base_generate_hash_from_dict({"iface_obj": name}),
+        obj_name=name,
+        obj_ip=IPNetwork(f"{network.ip}"),
+        obj_ip_end=IPNetwork(f"{network.ip}"),
+        obj_color="",
+        obj_typ="host",
+        obj_member_refs=None,
+        obj_member_names=None,
+        obj_comment=comment,
+    )
+
+
+def _create_interface_selector_object(
+    name: str,
+    interface: OPNsenseInterface,
+    nw_objs: dict[str, NetworkObject],
+    create_member: Callable[[str, IPNetwork, str], NetworkObject],
+) -> NetworkObject:
+    comment = _interface_comment(interface)
+    networks = _interface_networks(interface)
+
+    # interfaces without a static address (dhcp, slaac, unconfigured) stay an empty group
+    if len(networks) == 0:
+        return _create_iface_group_object(name, [], comment)
+    if len(networks) == 1:
+        return create_member(name, networks[0][1], comment)
+
+    # dual-stack interfaces become a group of their IPv4 and IPv6 member object
+    members: list[str] = []
+    for suffix, network in networks:
+        member_name = f"{name}_{suffix}"
+        if member_name not in nw_objs:
+            nw_objs[member_name] = create_member(member_name, network, comment)
+        members.append(member_name)
+    return _create_iface_group_object(name, members, comment)
+
+
+def _create_network_objects_from_ifgroup(
+    ifgroup: OPNsenseIfGroup, os_config: OPNsenseConfig, nw_objs: dict[str, NetworkObject]
+) -> NetworkObject:
+    members: list[str] = []
+
+    for member_name in ifgroup.members:
+        if not member_name:
+            continue
+        if member_name not in nw_objs:
+            member_interface = os_config.interfaces.get(member_name)
+            if member_interface is None:
+                FWOLogger.warning(
+                    f"[-] interface group {ifgroup.name} references unknown interface {member_name} - skipping member"
+                )
+                continue
+            nw_objs[member_name] = _create_network_objects_from_interface(member_interface, nw_objs)
+        members.append(member_name)
+
     return NetworkObject(
         obj_uid=ifgroup.uuid,
         obj_name=ifgroup.name,
@@ -514,38 +618,22 @@ def _create_network_objects_from_ifgroup(ifgroup: OPNsenseIfGroup) -> NetworkObj
         obj_ip_end=None,
         obj_color="",
         obj_typ="group",
-        obj_member_refs=None,
-        obj_member_names=None,
+        obj_member_refs=sort_and_join(members) if len(members) > 0 else None,
+        obj_member_names=sort_and_join(members) if len(members) > 0 else None,
         obj_comment=ifgroup.description,
     )
 
 
-def _create_network_objects_from_interface(interface: OPNsenseInterface) -> NetworkObject:
-    return NetworkObject(
-        obj_uid=fwo_base_generate_hash_from_dict({"iface_obj": interface.name}),
-        obj_name=interface.name,
-        obj_ip=None,
-        obj_ip_end=None,
-        obj_color="",
-        obj_typ="group",
-        obj_member_refs=None,
-        obj_member_names=None,
-        obj_comment=f"{interface.hw_interface}: {interface.ip4_address}{interface.ip4_subnet}|{interface.ip6_address}|{interface.ip6_subnet} :{interface.description}",
-    )
+def _create_network_objects_from_interface(
+    interface: OPNsenseInterface, nw_objs: dict[str, NetworkObject]
+) -> NetworkObject:
+    return _create_interface_selector_object(interface.name, interface, nw_objs, _create_iface_net_object)
 
 
-def _create_network_objects_from_iface_ip(interface: OPNsenseInterface) -> NetworkObject:
-    return NetworkObject(
-        obj_uid=fwo_base_generate_hash_from_dict({"iface_obj": f"{interface.name}ip"}),
-        obj_name=f"{interface.name}ip",
-        obj_ip=None,
-        obj_ip_end=None,
-        obj_color="",
-        obj_typ="group",
-        obj_member_refs=None,
-        obj_member_names=None,
-        obj_comment=f"{interface.name}ip: {interface.ip4_address}{interface.ip4_subnet}|{interface.ip6_address}|{interface.ip6_subnet} :{interface.description}",
-    )
+def _create_network_objects_from_iface_ip(
+    interface: OPNsenseInterface, nw_objs: dict[str, NetworkObject]
+) -> NetworkObject:
+    return _create_interface_selector_object(f"{interface.name}ip", interface, nw_objs, _create_iface_address_object)
 
 
 def _access_rule_network_targets(rule: OPNsenseAccessRule) -> set[str]:
@@ -581,23 +669,27 @@ def _create_plain_network_object_from_target(target: str) -> NetworkObject | Non
     return None
 
 
-def _create_interface_network_object_from_target(target: str, os_config: OPNsenseConfig) -> NetworkObject | None:
+def _create_interface_network_object_from_target(
+    target: str, os_config: OPNsenseConfig, nw_objs: dict[str, NetworkObject]
+) -> NetworkObject | None:
     if target in os_config.interface_groups:
-        return _create_network_objects_from_ifgroup(os_config.interface_groups[target])
+        return _create_network_objects_from_ifgroup(os_config.interface_groups[target], os_config, nw_objs)
     if target in os_config.interfaces and target not in os_config.interface_groups:
-        return _create_network_objects_from_interface(os_config.interfaces[target])
+        return _create_network_objects_from_interface(os_config.interfaces[target], nw_objs)
 
     interface_name = target.removesuffix("ip")
     if interface_name in os_config.interfaces:
-        return _create_network_objects_from_iface_ip(os_config.interfaces[interface_name])
+        return _create_network_objects_from_iface_ip(os_config.interfaces[interface_name], nw_objs)
     return None
 
 
-def _create_network_object_from_rule_target(target: str, os_config: OPNsenseConfig) -> NetworkObject | None:
+def _create_network_object_from_rule_target(
+    target: str, os_config: OPNsenseConfig, nw_objs: dict[str, NetworkObject]
+) -> NetworkObject | None:
     obj = _create_plain_network_object_from_target(target)
     if obj is not None:
         return obj
-    return _create_interface_network_object_from_target(target, os_config)
+    return _create_interface_network_object_from_target(target, os_config, nw_objs)
 
 
 def _update_network_objects_from_access_rules(os_config: OPNsenseConfig, nw_objs: dict[str, NetworkObject]) -> None:
@@ -605,7 +697,7 @@ def _update_network_objects_from_access_rules(os_config: OPNsenseConfig, nw_objs
         for target in _access_rule_network_targets(rule):
             if target in nw_objs:
                 continue
-            obj = _create_network_object_from_rule_target(target, os_config)
+            obj = _create_network_object_from_rule_target(target, os_config, nw_objs)
             if obj is None:
                 FWOLogger.warning(
                     f"[*] detected unknown network object {target} in rule {rule.uuid} - creating placeholder group"

@@ -226,5 +226,5 @@ For a feature-centric, thematically grouped view see
 ### 9.2.3 — 17.07.2026 (DEVELOP)
 - Standard rules report generation now scopes flat rule paging to selected rulebases and adds a supporting database index.
 
-### 9.3 — 20.07.2026 (MAIN)
+### 9.3 — 30.07.2026 (MAIN)
 - New OPNsense standalone (25ff) import module: imports OPNsense firewall configs via the full config.xml core backup API.

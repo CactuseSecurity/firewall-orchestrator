@@ -299,23 +299,22 @@ def import_from_file(
 def get_module(import_state: ImportState) -> FwCommon:
     # pick product-specific importer:
     pkg_name = get_module_package_name(import_state)
-    match pkg_name:
-        case "ciscoasa9":
-            fw_module = CiscoAsa9Common()
-        case "fortiadom5ff":
-            fw_module = FortiAdom5ffCommon()
-        case "checkpointR8x":
-            fw_module = CheckpointR8xCommon()
-        case "fortiosmanagementREST":
-            fw_module = FortiosManagementRESTCommon()
-        case "opnsensestandalone25ff":
-            fw_module = OPNsense25common()
-        case "genericfirewallmanagement1.0":
-            fw_module = GenericFirewallCommon()
-        case "azure2022ff":
-            fw_module = Azure2022ffCommon()
-        case _:
-            raise FwoImporterError(f"import_management - no fwcommon module found for package name {pkg_name}")
+    if pkg_name == "ciscoasa9":
+        fw_module = CiscoAsa9Common()
+    elif pkg_name == "fortiadom5ff":
+        fw_module = FortiAdom5ffCommon()
+    elif pkg_name == "checkpointR8x":
+        fw_module = CheckpointR8xCommon()
+    elif pkg_name == "fortiosmanagementREST":
+        fw_module = FortiosManagementRESTCommon()
+    elif pkg_name == "opnsensestandalone25ff":
+        fw_module = OPNsense25common()
+    elif pkg_name == "genericfirewallmanagement1.0":
+        fw_module = GenericFirewallCommon()
+    elif pkg_name == "azure2022ff":
+        fw_module = Azure2022ffCommon()
+    else:
+        raise FwoImporterError(f"import_management - no fwcommon module found for package name {pkg_name}")
 
     return fw_module
 

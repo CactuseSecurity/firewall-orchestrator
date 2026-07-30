@@ -3,6 +3,8 @@ PREDEFINED_RULE_UID_PREFIX = "opnsense-default-rule-"
 # rulebase collecting rules that cannot be assigned to a single interface rulebase
 UNASSIGNED_RULEBASE_NAME = "unassigned"
 MAX_DEPTH: int = 10
+# maximum nesting level walked by the sanitizer when redacting credential-bearing keys
+MAX_SANITIZER_DEPTH: int = 25
 BUILTIN_SERVICE_PORTS: dict[str, int] = {
     "http": 80,
     "https": 443,

@@ -1,6 +1,9 @@
+# pyright: reportPrivateUsage=false
+# the recursion bound of the internal sweep is tested directly, hence private-usage is allowed here
 from typing import Any
 
-from fw_modules.opnsense25ff.opnsense_sanitizer import remove_opnsense_sensitive_data
+from fw_modules.opnsense25ff.opnsense_constants import MAX_SANITIZER_DEPTH
+from fw_modules.opnsense25ff.opnsense_sanitizer import _redact_sensitive_keys, remove_opnsense_sensitive_data
 
 # Non-credential placeholder used for fields the sanitizer is expected to strip.
 # Routing the values through a variable avoids hard-coded credential literals in
@@ -23,7 +26,9 @@ def _native_config_with_secrets() -> dict[str, Any]:
                         "landing_page": "/ui",
                         "dashboard": "d",
                     }
-                ]
+                ],
+                "authserver": [{"name": "ldap", "ldap_bindpw": _PLACEHOLDER}],
+                "hostname": "fw",
             },
             "OPNsense": {
                 "IPsec": {"preSharedKeys": {"preSharedKey": [{"ident": "a", "Key": _PLACEHOLDER}]}},
@@ -36,8 +41,12 @@ def _native_config_with_secrets() -> dict[str, Any]:
                 "Netflow": {"x": 1},
                 "Syslog": {"y": 2},
                 "wireguard": {"server": {"servers": {"server": [{"privkey": _PLACEHOLDER}]}}},
+                "DynDNS": {"accounts": {"account": [{"service": "dyndns", "password": _PLACEHOLDER}]}},
+                "Nginx": {"upstream": {"servers": {"server": [{"name": "web", "token": _PLACEHOLDER}]}}},
             },
             "Deciso": {"UserPortal": {"group_options": {"otp_seed": _PLACEHOLDER}}},
+            "dyndnses": {"dyndns": [{"host": "example.org", "password": _PLACEHOLDER}]},
+            "dhcpd": {"lan": {"ddnsdomainkey": _PLACEHOLDER, "range": {"from": "10.0.0.10"}}},
             "hasync": {"x": 1},
             "openvpn": {"y": 2},
             "ipsec": {"phase1": [{"ikeid": "1", "pre-shared-key": _PLACEHOLDER, "private-key": _PLACEHOLDER}]},
@@ -141,6 +150,46 @@ def test_remove_opnsense_sensitive_data_strips_legacy_ipsec_ppp_and_wireguard() 
     assert ppp["ptpid"] == "0"
 
     assert "wireguard" not in opnsense["OPNsense"]
+
+
+def test_remove_opnsense_sensitive_data_drops_dyndns_and_auth_sections() -> None:
+    out = remove_opnsense_sensitive_data(_native_config_with_secrets())
+    opnsense = out["opnsense"]
+
+    assert "DynDNS" not in opnsense["OPNsense"]
+    assert "dyndnses" not in opnsense
+    assert "authserver" not in opnsense["system"]
+    # non-sensitive system data is preserved
+    assert opnsense["system"]["hostname"] == "fw"
+
+
+def test_remove_opnsense_sensitive_data_sweeps_sections_without_deny_list_entry() -> None:
+    out = remove_opnsense_sensitive_data(_native_config_with_secrets())
+    opnsense = out["opnsense"]
+
+    nginx_server = opnsense["OPNsense"]["Nginx"]["upstream"]["servers"]["server"][0]
+    assert "token" not in nginx_server
+    assert nginx_server["name"] == "web"
+
+    dhcpd_lan = opnsense["dhcpd"]["lan"]
+    assert "ddnsdomainkey" not in dhcpd_lan
+    assert dhcpd_lan["range"] == {"from": "10.0.0.10"}
+
+
+def test_redact_sensitive_keys_stops_at_max_depth() -> None:
+    # secrets within the supported nesting level are removed, deeper levels are not walked
+    deep: dict[str, Any] = {"password": _PLACEHOLDER}
+    for _ in range(MAX_SANITIZER_DEPTH + 2):
+        deep = {"level": deep, "password": _PLACEHOLDER}
+
+    _redact_sensitive_keys(deep)
+
+    assert "password" not in deep
+    current = deep
+    for _ in range(MAX_SANITIZER_DEPTH - 1):
+        current = current["level"]
+        assert "password" not in current
+    assert "password" in current["level"]
 
 
 def test_remove_opnsense_sensitive_data_handles_singleton_sections() -> None:

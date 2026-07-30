@@ -1,7 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
-using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Logging;
@@ -9,7 +8,6 @@ using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Novell.Directory.Ldap;
-using Quartz.Util;
 using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Authentication;

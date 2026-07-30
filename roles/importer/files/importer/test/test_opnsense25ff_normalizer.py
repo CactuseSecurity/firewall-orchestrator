@@ -932,3 +932,71 @@ def test_alias_members_and_rule_literals_share_one_object() -> None:
     assert svc_objs["WebPorts"].svc_member_names == "80"
     assert svc_objs["80"].svc_port == 80
     assert len([obj for obj in nw_objs.values() if str(obj.obj_ip) == "192.0.2.10/32"]) == 1
+
+
+def _port_rule(uid: str, protocol: str, dest_port: str | None) -> OPNsenseAccessRule:
+    destination: dict[str, Any] = {"any": None}
+    if dest_port is not None:
+        destination["port"] = dest_port
+    return OPNsenseAccessRule.model_validate(
+        {"@uuid": uid, "type": "pass", "descr": "d", "protocol": protocol, "destination": destination}
+    )
+
+
+def test_normalize_services_separates_tcp_and_udp_port_services() -> None:
+    tcp_rule = _port_rule("r-tcp", "tcp", "53")
+    udp_rule = _port_rule("r-udp", "udp", "53")
+    config = OPNsenseConfig(hostname="fw", access_rules=[tcp_rule, udp_rule])
+
+    services = _normalize_services(config)
+
+    assert (services["53/tcp"].svc_port, services["53/tcp"].ip_proto) == (53, 6)
+    assert (services["53/udp"].svc_port, services["53/udp"].ip_proto) == (53, 17)
+    assert services["53/tcp"].svc_uid != services["53/udp"].svc_uid
+    assert _create_normalized_rule_from_access_rule(tcp_rule).rule_svc == "53/tcp"
+    assert _create_normalized_rule_from_access_rule(udp_rule).rule_svc == "53/udp"
+
+
+def test_normalize_services_keeps_protocol_for_rules_without_port() -> None:
+    rule = _port_rule("r-tcp-any", "tcp", None)
+    config = OPNsenseConfig(hostname="fw", access_rules=[rule])
+
+    services = _normalize_services(config)
+
+    # a "tcp, any port" rule must not degrade to the protocol-agnostic Any service
+    assert services["Any/tcp"].ip_proto == 6
+    assert (services["Any/tcp"].svc_port, services["Any/tcp"].svc_port_end) == (1, 65535)
+    assert _create_normalized_rule_from_access_rule(rule).rule_svc == "Any/tcp"
+
+
+def test_normalize_services_instantiates_port_alias_per_protocol() -> None:
+    alias = _port_alias("web-ports")
+    alias.childs.append(OPNsensePort(name="80", is_range=False, port=80, port_end=None))
+    alias.childs.append(OPNsensePort(name="443", is_range=False, port=443, port_end=None))
+    rule = _port_rule("r-alias", "tcp", "web-ports")
+    config = OPNsenseConfig(hostname="fw", port_aliases={alias.name: alias}, access_rules=[rule])
+
+    services = _normalize_services(config)
+
+    qualified_group = services["web-ports/tcp"]
+    assert qualified_group.svc_typ == "group"
+    assert qualified_group.svc_member_names == "443/tcp|80/tcp"
+    # groups stay without a protocol, their members carry it
+    assert qualified_group.ip_proto is None
+    assert services["80/tcp"].ip_proto == 6
+    assert services["443/tcp"].ip_proto == 6
+    # the protocol-agnostic alias objects are still normalized
+    assert services["web-ports"].svc_member_names == "443|80"
+
+
+@pytest.mark.parametrize("os_protocol", ["any", "tcp/udp"])
+def test_normalize_services_keeps_unqualified_names_for_ambiguous_protocols(os_protocol: str) -> None:
+    rule = _port_rule("r-ambiguous", os_protocol, "53")
+    config = OPNsenseConfig(hostname="fw", access_rules=[rule])
+
+    services = _normalize_services(config)
+
+    # neither "any" nor "tcp/udp" can be expressed as a single ip_proto
+    assert services["53"].ip_proto is None
+    assert "53/tcp" not in services
+    assert _create_normalized_rule_from_access_rule(rule).rule_svc == "53"

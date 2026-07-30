@@ -1,5 +1,7 @@
 OPNSENSE_UUID_ALIAS = "@uuid"
 PREDEFINED_RULE_UID_PREFIX = "opnsense-default-rule-"
+# prefix for uids generated for legacy rules that carry no uuid in config.xml
+FALLBACK_RULE_UID_PREFIX = "opnsense-rule-"
 # rulebase collecting rules that cannot be assigned to a single interface rulebase
 UNASSIGNED_RULEBASE_NAME = "unassigned"
 MAX_DEPTH: int = 10
@@ -16,6 +18,12 @@ BUILTIN_SERVICE_PORTS: dict[str, int] = {
 # OPNsense rule protocols that are matched by port (services derive from destination ports).
 # "any" is included so that protocol-less rules keep their "Any" service.
 PORT_BASED_PROTOCOLS: frozenset[str] = frozenset({"any", "tcp", "udp", "tcp/udp"})
+
+# Port-based protocols that can be expressed as the single ip_proto of a service object.
+# "tcp/udp" cannot ("6 or 17") and therefore stays protocol-agnostic, like "any".
+QUALIFIABLE_PORT_PROTOCOLS: frozenset[str] = frozenset({"tcp", "udp"})
+# separates port and protocol in the name of a protocol-specific service (e.g. "https/tcp")
+SERVICE_PROTOCOL_SEPARATOR = "/"
 
 # IANA IP protocol numbers for non-port protocols selectable in OPNsense rules
 # (https://github.com/opnsense/core/blob/master/src/opnsense/mvc/app/models/OPNsense/Firewall/Filter.xml).

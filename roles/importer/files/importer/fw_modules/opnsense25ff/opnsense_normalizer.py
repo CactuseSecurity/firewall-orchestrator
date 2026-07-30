@@ -10,6 +10,8 @@ from fw_modules.opnsense25ff.opnsense_constants import (
     IP_PROTO_NUMBERS,
     MAX_DEPTH,
     PORT_BASED_PROTOCOLS,
+    QUALIFIABLE_PORT_PROTOCOLS,
+    SERVICE_PROTOCOL_SEPARATOR,
     UNASSIGNED_RULEBASE_NAME,
 )
 from fw_modules.opnsense25ff.opnsense_model import (
@@ -161,11 +163,25 @@ def _protocol_service_name(rule: OPNsenseAccessRule) -> str:
     return rule.protocol.upper()
 
 
+def _rule_service_protocol(rule: OPNsenseAccessRule) -> str | None:
+    # A service object carries a single IP protocol, so only rules restricted to TCP or UDP
+    # can be qualified; "any" and "tcp/udp" stay protocol-agnostic.
+    protocol = rule.protocol.lower()
+    if protocol in QUALIFIABLE_PORT_PROTOCOLS:
+        return protocol
+    return None
+
+
+def _qualified_service_name(name: str, protocol: str | None) -> str:
+    return name if protocol is None else f"{name}{SERVICE_PROTOCOL_SEPARATOR}{protocol}"
+
+
 def _rule_service_names(rule: OPNsenseAccessRule) -> list[str]:
     # Port-based protocols (TCP/UDP and the "any" default) derive their services from the
     # destination ports. Non-port protocols (e.g. ICMP, ESP, GRE) become a protocol service.
     if _is_port_based_protocol(rule.protocol):
-        return [_service_ref_name(ref) for ref in rule.dest_port]
+        protocol = _rule_service_protocol(rule)
+        return [_qualified_service_name(_service_ref_name(ref), protocol) for ref in rule.dest_port]
     return [_protocol_service_name(rule)]
 
 
@@ -425,6 +441,86 @@ def _port_service_from_dest_port(dest_port: str) -> ServiceObject | None:
     return None
 
 
+def _qualify_service(base: ServiceObject, protocol: str, member_names: str | None) -> ServiceObject:
+    qualified_name = _qualified_service_name(base.svc_name, protocol)
+    return ServiceObject(
+        svc_uid=fwo_base_generate_hash_from_dict({"svc_obj": qualified_name}),
+        svc_name=qualified_name,
+        svc_port=base.svc_port,
+        svc_port_end=base.svc_port_end,
+        svc_color="",
+        svc_typ=base.svc_typ,
+        # only the leaf services carry the protocol, groups stay without one like all other groups
+        ip_proto=None if base.svc_typ == "group" else IP_PROTO_NUMBERS.get(protocol),
+        svc_member_refs=member_names,
+        svc_member_names=member_names,
+        svc_comment=base.svc_comment,
+        svc_timeout=None,
+        rpc_nr=None,
+    )
+
+
+def _register_qualified_service(
+    name: str, protocol: str, svc_objs: dict[str, ServiceObject], depth: int
+) -> ServiceObject | None:
+    # port aliases carry no protocol in OPNsense - the protocol comes from the referencing rule,
+    # so an alias used by a TCP and a UDP rule needs one service object per protocol
+    qualified_name = _qualified_service_name(name, protocol)
+    if qualified_name in svc_objs:
+        return svc_objs[qualified_name]
+    base = svc_objs.get(name)
+    if base is None:
+        return None
+    if depth >= MAX_DEPTH:
+        _warn_max_depth_reached(depth)
+        return None
+
+    member_names: str | None = None
+    if base.svc_member_names:
+        members = [
+            _qualified_member_name(member, protocol, svc_objs, depth) for member in base.svc_member_names.split("|")
+        ]
+        member_names = sort_and_join(members)
+
+    qualified = _qualify_service(base, protocol, member_names)
+    svc_objs[qualified_name] = qualified
+    return qualified
+
+
+def _qualified_member_name(member: str, protocol: str, svc_objs: dict[str, ServiceObject], depth: int) -> str:
+    qualified_member = _register_qualified_service(member, protocol, svc_objs, depth + 1)
+    return qualified_member.svc_name if qualified_member is not None else member
+
+
+def _create_port_service_for_rule(dest_port: str, rule: OPNsenseAccessRule) -> ServiceObject:
+    svc = _port_service_from_dest_port(dest_port)
+    if svc is None:
+        FWOLogger.warning(
+            f"[-] _update_service_objects_from_access_rules: unresolved named port {dest_port} "
+            f"in rule {rule.uuid} - creating placeholder service"
+        )
+        svc = _create_placeholder_service(dest_port)
+    return svc
+
+
+def _update_service_objects_from_rule_ports(rule: OPNsenseAccessRule, svc_objs: dict[str, ServiceObject]) -> None:
+    protocol = _rule_service_protocol(rule)
+
+    for ref in rule.dest_port:
+        dest_port = _service_ref_name(ref)
+        if _qualified_service_name(dest_port, protocol) in svc_objs:
+            continue
+        if dest_port in svc_objs:
+            # known alias (or the special "Any" service): derive the protocol variant from it
+            if protocol is not None:
+                _register_qualified_service(dest_port, protocol, svc_objs, 0)
+            continue
+        svc = _create_port_service_for_rule(dest_port, rule)
+        if protocol is not None:
+            svc = _qualify_service(svc, protocol, None)
+        svc_objs[svc.svc_name] = svc
+
+
 def _update_service_objects_from_access_rules(
     rules: list[OPNsenseAccessRule], svc_objs: dict[str, ServiceObject]
 ) -> None:
@@ -437,16 +533,7 @@ def _update_service_objects_from_access_rules(
                 svc_objs[protocol_name] = _create_service_from_protocol(protocol_name)
             continue
 
-        # add all plain ports or port-ranges not currently normalized
-        for dest_port in {ref for ref in rule.dest_port if isinstance(ref, str)} - set(svc_objs.keys()):
-            svc = _port_service_from_dest_port(dest_port)
-            if svc is None:
-                FWOLogger.warning(
-                    f"[-] _update_service_objects_from_access_rules: unresolved named port {dest_port} "
-                    f"in rule {rule.uuid} - creating placeholder service"
-                )
-                svc = _create_placeholder_service(dest_port)
-            svc_objs[svc.svc_name] = svc
+        _update_service_objects_from_rule_ports(rule, svc_objs)
 
 
 def _normalize_services(os_config: OPNsenseConfig) -> dict[str, ServiceObject]:

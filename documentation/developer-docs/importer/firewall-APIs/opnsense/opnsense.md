@@ -31,6 +31,22 @@ groups, aliases and gateways - are therefore parsed leniently: an entry that can
 logged and skipped instead of aborting the import. Access rules are the exception and stay strict,
 so that no rule is ever silently dropped.
 
+## Services and protocols
+
+A rule's protocol is part of its service in the FWO model, while OPNsense keeps it on the rule and
+its port aliases are protocol-agnostic. Rules restricted to TCP or UDP therefore reference a
+protocol-specific service named `<port>/<protocol>` (e.g. `53/tcp`, `Any/tcp`, `WebPorts/tcp`),
+carrying the matching `ip_proto`; a port alias used by both a TCP and a UDP rule is instantiated
+once per protocol. `any` and `tcp/udp` rules cannot be expressed as a single `ip_proto` and keep the
+plain, protocol-agnostic service. Non-port protocols (ICMP, ESP, GRE, ...) become a service named
+after the protocol.
+
+## Rule uids
+
+Rules are keyed by their `@uuid`. Legacy rules written by older OPNsense/pfSense generations may
+have none; those get a deterministic uid derived from the rule content (prefix `opnsense-rule-`), so
+it stays stable when the rule is moved. Identical uid-less rules are disambiguated by a counter.
+
 ## Object naming
 
 Addresses and ports written directly into an alias are normalized under their plain literal

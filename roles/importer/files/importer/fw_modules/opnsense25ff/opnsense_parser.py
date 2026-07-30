@@ -4,7 +4,11 @@ from datetime import datetime, timezone
 from typing import Any, TypeGuard, TypeVar, cast
 
 import fw_modules.opnsense25ff.opnsense_helper as os_helper
-from fw_modules.opnsense25ff.opnsense_constants import OPNSENSE_UUID_ALIAS, PREDEFINED_RULE_UID_PREFIX
+from fw_modules.opnsense25ff.opnsense_constants import (
+    FALLBACK_RULE_UID_PREFIX,
+    OPNSENSE_UUID_ALIAS,
+    PREDEFINED_RULE_UID_PREFIX,
+)
 from fw_modules.opnsense25ff.opnsense_model import (
     AliasTypeEnum,
     OPNsenseAccessRule,
@@ -20,7 +24,7 @@ from fw_modules.opnsense25ff.opnsense_model import (
     OPNsenseUser,
     OPNsenseUserGroup,
 )
-from fwo_exceptions import FwoImporterError
+from fwo_base import generate_hash_from_dict
 from fwo_log import FWOLogger
 from pydantic import BaseModel, ValidationError
 
@@ -172,15 +176,31 @@ def _predefined_rule_uid(rule: dict[str, Any]) -> str | None:
     return None
 
 
-def _ensure_rule_uid(rule: dict[str, Any], rule_index: int) -> dict[str, Any]:
-    if rule.get(OPNSENSE_UUID_ALIAS):
-        return rule
+def _fallback_rule_uid(rule: dict[str, Any], used_uids: set[str]) -> str:
+    # legacy rules written by older OPNsense/pfSense generations carry no uuid: derive a
+    # deterministic one from the rule content so that it stays stable across imports even
+    # when the rule is moved, and disambiguate identical rules by a counter
+    base_uid = f"{FALLBACK_RULE_UID_PREFIX}{generate_hash_from_dict(rule)}"
+    uid = base_uid
+    duplicate_count = 1
+    while uid in used_uids:
+        duplicate_count += 1
+        uid = f"{base_uid}-{duplicate_count!s}"
+    return uid
 
-    predefined_rule_uid = _predefined_rule_uid(rule)
-    if predefined_rule_uid is not None:
-        return {**rule, OPNSENSE_UUID_ALIAS: predefined_rule_uid}
 
-    raise FwoImporterError(f"OPNsense rule at position {rule_index + 1} has no uuid and is not a predefined rule")
+def _ensure_rule_uid(rule: dict[str, Any], rule_index: int, used_uids: set[str]) -> dict[str, Any]:
+    rule_uid = str(rule.get(OPNSENSE_UUID_ALIAS) or "") or _predefined_rule_uid(rule)
+
+    if rule_uid is None:
+        rule_uid = _fallback_rule_uid(rule, used_uids)
+        FWOLogger.warning(
+            f"[-] _ensure_rule_uid: OPNsense rule at position {rule_index + 1} has no uuid - "
+            f"using generated uid {rule_uid}"
+        )
+
+    used_uids.add(rule_uid)
+    return {**rule, OPNSENSE_UUID_ALIAS: rule_uid}
 
 
 def _mvc_endpoint(rule: dict[str, Any], prefix: str) -> dict[str, Any]:
@@ -271,9 +291,10 @@ def _parse_opnsense_access_rules(config: dict[str, Any]) -> list[OPNsenseAccessR
     rules = legacy_rules + mvc_rules
 
     rules_parsed: list[OPNsenseAccessRule] = []
+    used_uids: set[str] = set()
 
     for rule_index, rule in enumerate(rules):
-        rule_with_uid = _ensure_rule_uid(rule, rule_index)
+        rule_with_uid = _ensure_rule_uid(rule, rule_index, used_uids)
         rule_parsed = OPNsenseAccessRule.model_validate(rule_with_uid)
         if "Any" in rule_parsed.interface:
             rule_parsed.any_interface = True

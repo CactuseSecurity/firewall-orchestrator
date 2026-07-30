@@ -1,10 +1,8 @@
 from typing import Any, cast
 
-import pytest
-from fw_modules.opnsense25ff.opnsense_constants import PREDEFINED_RULE_UID_PREFIX
+from fw_modules.opnsense25ff.opnsense_constants import FALLBACK_RULE_UID_PREFIX, PREDEFINED_RULE_UID_PREFIX
 from fw_modules.opnsense25ff.opnsense_model import FilterRuleIPProtoEnum
 from fw_modules.opnsense25ff.opnsense_parser import parse_opnsense_config
-from fwo_exceptions import FwoImporterError
 
 
 def _native_config() -> dict[str, Any]:
@@ -279,15 +277,34 @@ def test_parse_opnsense_config_keeps_predefined_uid_when_non_identity_content_ch
     assert parse_opnsense_config(native_config).access_rules[0].uuid == initial_uid
 
 
-def test_parse_opnsense_config_rejects_unknown_uuidless_rule() -> None:
+def test_parse_opnsense_config_generates_uid_for_uuidless_rule() -> None:
     native_config = _native_config()
     opnsense = cast("dict[str, Any]", native_config["opnsense"])
     filter_config = cast("dict[str, Any]", opnsense["filter"])
     rules = cast("list[dict[str, Any]]", filter_config["rule"])
     rules[0].pop("@uuid")
 
-    with pytest.raises(FwoImporterError, match="has no uuid and is not a predefined rule"):
-        parse_opnsense_config(native_config)
+    generated_uid = parse_opnsense_config(native_config).access_rules[0].uuid
+
+    assert generated_uid is not None
+    assert generated_uid.startswith(FALLBACK_RULE_UID_PREFIX)
+    # the generated uid is derived from the rule content, so it survives reordering
+    rules.append(rules.pop(0))
+    assert parse_opnsense_config(native_config).access_rules[-1].uuid == generated_uid
+
+
+def test_parse_opnsense_config_disambiguates_identical_uuidless_rules() -> None:
+    native_config = _native_config()
+    opnsense = cast("dict[str, Any]", native_config["opnsense"])
+    filter_config = cast("dict[str, Any]", opnsense["filter"])
+    rules = cast("list[dict[str, Any]]", filter_config["rule"])
+    rules[0].pop("@uuid")
+    rules.insert(1, dict(rules[0]))
+
+    uuidless_uids = [rule.uuid for rule in parse_opnsense_config(native_config).access_rules if rule.uuid is not None]
+
+    # identical rules must not share a uid - the second one would overwrite the first
+    assert len(uuidless_uids) == len(set(uuidless_uids))
 
 
 def test_parse_opnsense_config_reads_mvc_filter_rules() -> None:

@@ -1,6 +1,5 @@
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
-using Microsoft.AspNetCore.Session;
 using System.Reflection;
 
 namespace FWO.Test.Mocks

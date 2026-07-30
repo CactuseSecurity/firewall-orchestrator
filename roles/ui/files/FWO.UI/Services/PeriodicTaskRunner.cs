@@ -10,10 +10,7 @@ namespace FWO.Ui.Services
         private readonly Func<Task> callback;
         private readonly TimeSpan interval;
         private readonly CancellationTokenSource cancellationTokenSource = new();
-        private readonly object lifecycleLock = new();
-        private Task executionTask = Task.CompletedTask;
         private int started;
-        //private bool disposed;
         private readonly string TaskName;
 
         /// <summary>
@@ -35,25 +32,6 @@ namespace FWO.Ui.Services
             TaskName = taskName;
         }
 
-        ///// <summary>
-        ///// Starts the periodic background execution.
-        ///// </summary>
-        //public void Start()
-        //{
-        //    lock (lifecycleLock)
-        //    {
-        //        ObjectDisposedException.ThrowIf(disposed, this);
-
-        //        if (Interlocked.Exchange(ref started, 1) == 1)
-        //        {
-        //            return;
-        //        }
-
-        //        Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)}{(!string.IsNullOrWhiteSpace(TaskName) ? $" {TaskName}" : "")} started.");
-        //        executionTask = RunAsync(cancellationTokenSource.Token);
-        //    }
-        //}
-
         public void Start()
         {
             Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)}{(!string.IsNullOrWhiteSpace(TaskName) ? $" {TaskName}" : "")} started.");
@@ -65,26 +43,6 @@ namespace FWO.Ui.Services
 
             _ = RunAsync(cancellationTokenSource.Token);
         }
-
-        ///// <inheritdoc />
-        //public void Dispose()
-        //{
-        //    Task taskToWaitFor;
-
-        //    lock (lifecycleLock)
-        //    {
-        //        if (disposed)
-        //        {
-        //            return;
-        //        }
-
-        //        disposed = true;
-        //        taskToWaitFor = executionTask;
-        //        cancellationTokenSource.Cancel();
-        //    }
-
-        //    cancellationTokenSource.Dispose();
-        //}
 
         public void Dispose()
         {

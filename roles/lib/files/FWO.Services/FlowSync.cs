@@ -69,6 +69,7 @@ namespace FWO.Services
 
             var mgmIdsBySuperMgmId = await apiConnection.SendQueryAsync<List<SuperMgmToMgmsMapping>>(DeviceQueries.getMgmIdsBySuperMgmId) ?? [];
             var superMgmToSubMgmIds = mgmIdsBySuperMgmId.ToDictionary(mgm => mgm.SuperMgmId, mgm => mgm.SubMgmIds.Select(sub => sub.MgmId).ToList());
+            HashSet<int> allSubManagementIds = [.. superMgmToSubMgmIds.Values.SelectMany(subMgmIds => subMgmIds)];
             var importsToSync = new List<ImportControl>(pendingImports);
 
 
@@ -113,6 +114,7 @@ namespace FWO.Services
                     .OrderBy(group => rankingPositions.GetValueOrDefault(group.Key, int.MaxValue))
                     .ThenBy(group => group.Max(import => import.ControlId))];
             }
+            pendingByManagement = [.. pendingByManagement.OrderBy(group => allSubManagementIds.Contains(group.Key))];
 
             bool syncedAny = false;
             HashSet<int> successfullySyncedManagementIds = [];
@@ -206,7 +208,14 @@ namespace FWO.Services
                 }
 
                 long maxImportId = managementGroup.Max(import => import.ControlId);
-                await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.updateImportControlForFlowSync, new { controlId = maxImportId, mgmId, flowSyncDone = true });
+                try
+                {
+                    await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.updateImportControlForFlowSync, new { controlId = maxImportId, mgmId, flowSyncDone = true });
+                }
+                catch (Exception exception)
+                {
+                    Log.WriteError(LogMessageTitle, $"Failed to mark flow sync for management {mgmId} as complete.", exception);
+                }
             }
         }
 

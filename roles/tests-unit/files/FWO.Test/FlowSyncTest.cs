@@ -366,6 +366,47 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Run_SynchronizesSuperManagementBeforeHigherRankedSubManagement()
+        {
+            FlowSyncTestApiConn apiConn = new();
+            apiConn.PendingImports.Add(new ImportControl { ControlId = 1, MgmId = 1 });
+            apiConn.PendingImports.Add(new ImportControl { ControlId = 2, MgmId = 2 });
+            apiConn.PendingImports.Add(new ImportControl { ControlId = 3, MgmId = 3 });
+            SuperMgmToMgmsMapping superMgmToMgmsMapping = new()
+            {
+                SuperMgmId = 1
+            };
+            superMgmToMgmsMapping.SubMgmIds.Add(new SubMgmId { MgmId = 2 });
+            apiConn.SuperMgmToMgmsMappings.Add(superMgmToMgmsMapping);
+            FlowSync flowSync = new(apiConn, new GlobalConfig { FlowNamingSourceManagementRanking = "[2,3,1]" });
+
+            await flowSync.Run();
+
+            List<int> expectedManagementDataRequests = new() { 3, 1, 2 };
+            Assert.That(apiConn.ManagementDataRequests, Is.EqualTo(expectedManagementDataRequests));
+        }
+
+        [Test]
+        public async Task Run_SynchronizesSuperManagementBeforeOlderSubManagementImport()
+        {
+            FlowSyncTestApiConn apiConn = new();
+            apiConn.PendingImports.Add(new ImportControl { ControlId = 1, MgmId = 2 });
+            apiConn.PendingImports.Add(new ImportControl { ControlId = 2, MgmId = 1 });
+            SuperMgmToMgmsMapping superMgmToMgmsMapping = new()
+            {
+                SuperMgmId = 1
+            };
+            superMgmToMgmsMapping.SubMgmIds.Add(new SubMgmId { MgmId = 2 });
+            apiConn.SuperMgmToMgmsMappings.Add(superMgmToMgmsMapping);
+            FlowSync flowSync = new(apiConn, new GlobalConfig());
+
+            await flowSync.Run();
+
+            List<int> expectedManagementDataRequests = new() { 1, 2 };
+            Assert.That(apiConn.ManagementDataRequests, Is.EqualTo(expectedManagementDataRequests));
+        }
+
+        [Test]
         public async Task Run_InsertsMissingFlowObjectsAccessAndUpdatesMappings()
         {
             NetworkObject source = CreateNetworkObject(1, "src", "10.0.0.1", "10.0.0.1");

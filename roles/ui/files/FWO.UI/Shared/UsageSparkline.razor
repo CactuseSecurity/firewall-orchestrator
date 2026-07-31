@@ -8,6 +8,10 @@
             <polygon class="usage-sparkline-area @AreaClass" points="@AreaPoints" />
             <polyline class="usage-sparkline-line @LineClass" points="@LinePoints" />
         </svg>
+        <div class="usage-sparkline-time d-flex justify-content-between text-muted small">
+            <span>@StartTime</span>
+            <span>@EndTime</span>
+        </div>
     }
     else
     {
@@ -43,6 +47,18 @@
     /// </summary>
     [Parameter]
     public string EmptyText { get; set; } = "";
+
+    /// <summary>
+    /// Localized time of the oldest displayed sample.
+    /// </summary>
+    [Parameter]
+    public string StartTime { get; set; } = "";
+
+    /// <summary>
+    /// Localized time of the newest displayed sample.
+    /// </summary>
+    [Parameter]
+    public string EndTime { get; set; } = "";
 
     /// <summary>
     /// Css class applied to the trend line.

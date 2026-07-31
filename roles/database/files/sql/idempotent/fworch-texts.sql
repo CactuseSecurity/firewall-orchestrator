@@ -7569,10 +7569,10 @@ INSERT INTO txt VALUES ('H7107', 'English', 'Logged-in users and open sessions: 
     "Connected" states how many of those sessions currently have an active browser connection.');
 INSERT INTO txt VALUES ('H7108', 'German', 'Speicher- und CPU-Auslastung beziehen sich auf das gesamte System. "Verf&uuml;gbarer Speicher" ist der Speicher,
     der neuen Anwendungen ohne Auslagern zur Verf&uuml;gung steht, und damit aussagekr&auml;ftiger als der komplett unbenutzte "Freie Speicher".
-    Die Verlaufsgrafiken zeigen die Messwerte, seit die Seite ge&ouml;ffnet wurde.');
+    Die Verlaufsgrafiken zeigen die Messwerte, seit die Seite ge&ouml;ffnet wurde. Die Zeitangaben darunter markieren den dargestellten Messzeitraum.');
 INSERT INTO txt VALUES ('H7108', 'English', 'Memory and CPU usage refer to the whole system. "Available Memory" is the memory that can be given to new
     applications without swapping and is therefore more meaningful than the completely unused "Free Memory".
-    The trend graphs show the measurements taken since the page was opened.');
+    The trend graphs show the measurements taken since the page was opened. The timestamps below them mark the displayed measurement period.');
 INSERT INTO txt VALUES ('H7109', 'German', 'Der Abschnitt "UI-Prozess" zeigt die Werte des UI-Servers selbst: belegter Arbeitsspeicher, Gr&ouml;sse des verwalteten
     Heaps, Anzahl der Threads und die Laufzeit seit dem letzten Start. Weitere Dienste (Importer, Middleware, Datenbank, API) folgen sp&auml;ter.');
 INSERT INTO txt VALUES ('H7109', 'English', 'The "UI Process" section shows the values of the UI server itself: used working set, size of the managed heap,

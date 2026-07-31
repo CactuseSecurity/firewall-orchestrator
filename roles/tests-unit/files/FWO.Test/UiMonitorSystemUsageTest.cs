@@ -1,4 +1,5 @@
 using Bunit;
+using AngleSharp.Dom;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Services.SystemUsage;
@@ -211,13 +212,43 @@ namespace FWO.Test
             List<double> values = [0, 50, 100];
 
             IRenderedComponent<UsageSparkline> sparkline = context.Render<UsageSparkline>(parameters =>
-                parameters.Add(component => component.Values, values).Add(component => component.Caption, "cpu"));
+                parameters.Add(component => component.Values, values)
+                    .Add(component => component.Caption, "cpu")
+                    .Add(component => component.StartTime, "10:00:00")
+                    .Add(component => component.EndTime, "10:05:00"));
 
             Assert.Multiple(() =>
             {
                 // 3 samples over a viewbox of 100 x 30: x = 0/50/100, y = 30/15/0
                 Assert.That(sparkline.Markup, Does.Contain(@"points=""0,30 50,15 100,0"""));
                 Assert.That(sparkline.Markup, Does.Contain(@"points=""0,30 0,30 50,15 100,0 100,30"""));
+                Assert.That(sparkline.Find(".usage-sparkline-time").TextContent, Does.Contain("10:00:00"));
+                Assert.That(sparkline.Find(".usage-sparkline-time").TextContent, Does.Contain("10:05:00"));
+            });
+        }
+
+        [Test]
+        public void Page_ShowsActualTimeRangeBelowUsageHistories()
+        {
+            using BunitContext context = new();
+            SystemUsageSnapshot firstSnapshot = CreateSnapshot();
+            FakeSystemUsageCollector collector = new(firstSnapshot);
+            IRenderedComponent<MonitorSystemUsage> page = Render(context, collector, new UiSessionTracker(), Roles.Admin);
+            SystemUsageSnapshot secondSnapshot = CreateSnapshot(30);
+            secondSnapshot.CollectedAt = firstSnapshot.CollectedAt.AddSeconds(5);
+
+            collector.Snapshot = secondSnapshot;
+            InvokePrivateMethod(page.Instance, "Refresh");
+            page.Render();
+
+            string expectedStart = firstSnapshot.CollectedAt.ToLocalTime().ToString("T");
+            string expectedEnd = secondSnapshot.CollectedAt.ToLocalTime().ToString("T");
+            IReadOnlyList<IElement> timeRanges = page.FindAll(".usage-sparkline-time");
+            Assert.Multiple(() =>
+            {
+                Assert.That(timeRanges, Has.Count.EqualTo(2));
+                Assert.That(timeRanges[0].TextContent, Does.Contain(expectedStart));
+                Assert.That(timeRanges[0].TextContent, Does.Contain(expectedEnd));
             });
         }
 

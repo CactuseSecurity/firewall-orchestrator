@@ -82,7 +82,8 @@
                     <UsageGauge Caption="@(userConfig.GetText("swap_usage"))" Percent="@Usage.SwapUsedPercent"
                                 Detail="@($"{SystemUsageDisplay.FormatBytes(Usage.SwapUsedBytes)} / {SystemUsageDisplay.FormatBytes(Usage.SwapTotalBytes)}")" />
                     <UsageSparkline Values="@MemoryHistory" Caption="@(userConfig.GetText("memory_usage"))"
-                                    EmptyText="@(userConfig.GetText("collecting_data"))" LineClass="usage-sparkline-secondary" AreaClass="usage-sparkline-secondary" />
+                                    EmptyText="@(userConfig.GetText("collecting_data"))" StartTime="@HistoryStartTime" EndTime="@HistoryEndTime"
+                                    LineClass="usage-sparkline-secondary" AreaClass="usage-sparkline-secondary" />
                     <div class="text-muted">@(userConfig.GetText("memory_free")): @SystemUsageDisplay.FormatBytes(Usage.MemoryFreeBytes)</div>
                 </div>
             </div>
@@ -96,7 +97,7 @@
                     <UsageGauge Caption="@(userConfig.GetText("ui_process"))" Percent="@Usage.ProcessCpuPercent"
                                 Detail="@SystemUsageDisplay.FormatPercent(Usage.ProcessCpuPercent)" />
                     <UsageSparkline Values="@CpuHistory" Caption="@(userConfig.GetText("cpu_usage"))"
-                                    EmptyText="@(userConfig.GetText("collecting_data"))" />
+                                    EmptyText="@(userConfig.GetText("collecting_data"))" StartTime="@HistoryStartTime" EndTime="@HistoryEndTime" />
                     <div class="text-muted">@(userConfig.GetText("load_average")): @LoadAverageDisplay</div>
                 </div>
             </div>
@@ -144,12 +145,17 @@
     private UiSessionOverview Sessions { get; set; } = new();
     private List<double> CpuHistory { get; set; } = [];
     private List<double> MemoryHistory { get; set; } = [];
+    private List<DateTime> HistoryTimes { get; set; } = [];
     private IPeriodicTaskRunner? refreshRunner;
 
     private string LastUpdatedDisplay => Usage.CollectedAt == DateTime.MinValue
         ? "-" : Usage.CollectedAt.ToLocalTime().ToString("G");
 
     private string LoadAverageDisplay => SystemUsageDisplay.FormatLoadAverage(Usage);
+
+    private string HistoryStartTime => HistoryTimes.Count > 0 ? HistoryTimes[0].ToLocalTime().ToString("T") : "";
+
+    private string HistoryEndTime => HistoryTimes.Count > 0 ? HistoryTimes[^1].ToLocalTime().ToString("T") : "";
 
     private bool CanViewUsage => userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor);
 
@@ -188,6 +194,7 @@
             Sessions = sessionTracker.GetOverview();
             AppendHistory(CpuHistory, Usage.CpuUsedPercent);
             AppendHistory(MemoryHistory, Usage.MemoryUsedPercent);
+            AppendHistory(HistoryTimes, Usage.CollectedAt);
         }
         catch (Exception exception)
         {
@@ -204,7 +211,13 @@
         });
     }
 
-    private static void AppendHistory(List<double> history, double value)
+    /// <summary>
+    /// Appends a value and keeps the history within the displayed sample limit.
+    /// </summary>
+    /// <typeparam name="T">Type of the history value.</typeparam>
+    /// <param name="history">History receiving the value.</param>
+    /// <param name="value">Value to append.</param>
+    private static void AppendHistory<T>(List<T> history, T value)
     {
         history.Add(value);
         while (history.Count > kMaxHistoryPoints)

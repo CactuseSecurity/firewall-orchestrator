@@ -191,5 +191,227 @@ namespace FWO.Test
             Assert.That(result, Is.EqualTo("replacement-name"));
         }
 
+        [Test]
+        public void ResolveMissingNameFromDuplicateSelection_ReturnsSelectedNameOnlyForUnnamedObjects()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(FlowNamingHelper.ResolveMissingNameFromDuplicateSelection("", "duplicate-name"), Is.EqualTo("duplicate-name"));
+                Assert.That(FlowNamingHelper.ResolveMissingNameFromDuplicateSelection("existing-name", "duplicate-name"), Is.Null);
+                Assert.That(FlowNamingHelper.ResolveMissingNameFromDuplicateSelection("", ""), Is.Null);
+            });
+        }
+
+        [Test]
+        public void ResolveNwObjectNameByRanking_UsesFirstRankedManagementWithMappedName()
+        {
+            FlowNwObject nwObject = new()
+            {
+                Id = 42,
+                Name = "old-name"
+            };
+            List<Management> managements =
+            [
+                new Management
+                {
+                    Id = 1,
+                    Objects =
+                    [
+                        new NetworkObject
+                        {
+                            Id = 100,
+                            Name = "forti-name",
+                            FlowNetworkObjectId = 42,
+                            FlowActive = true
+                        }
+                    ]
+                },
+                new Management
+                {
+                    Id = 2,
+                    Objects =
+                    [
+                        new NetworkObject
+                        {
+                            Id = 200,
+                            Name = "checkpoint-name",
+                            FlowNetworkObjectId = 42,
+                            FlowActive = true
+                        }
+                    ]
+                }
+            ];
+
+            string result = FlowNamingHelper.ResolveNwObjectNameByRanking(nwObject, managements, [2, 1], nwObject.Name!);
+
+            Assert.That(result, Is.EqualTo("checkpoint-name"));
+        }
+
+        [Test]
+        public void ResolveNwGroupNameByRanking_FallsBackToActiveCandidateWhenRankingHasNoName()
+        {
+            FlowNwGroup nwGroup = new()
+            {
+                Id = 55,
+                Name = "old-group"
+            };
+            List<Management> managements =
+            [
+                new Management
+                {
+                    Id = 1,
+                    Objects =
+                    [
+                        new NetworkObject
+                        {
+                            Id = 100,
+                            Name = "",
+                            FlowNetworkGroupId = 55,
+                            FlowActive = false
+                        }
+                    ]
+                },
+                new Management
+                {
+                    Id = 2,
+                    Objects =
+                    [
+                        new NetworkObject
+                        {
+                            Id = 200,
+                            Name = "active-group-name",
+                            FlowNetworkGroupId = 55,
+                            FlowActive = true
+                        }
+                    ]
+                }
+            ];
+
+            string result = FlowNamingHelper.ResolveNwGroupNameByRanking(nwGroup, managements, [1], nwGroup.Name);
+
+            Assert.That(result, Is.EqualTo("active-group-name"));
+        }
+
+        [Test]
+        public void ResolveSvcObjectNameByRanking_UsesFirstUsableMappedName()
+        {
+            FlowSvcObject svcObject = new()
+            {
+                Id = 77,
+                Name = "old-service"
+            };
+            List<Management> managements =
+            [
+                new Management
+                {
+                    Id = 1,
+                    Services =
+                    [
+                        new NetworkService
+                        {
+                            Id = 100,
+                            Name = "",
+                            FlowServiceObjectId = 77,
+                            FlowActive = true
+                        }
+                    ]
+                },
+                new Management
+                {
+                    Id = 2,
+                    Services =
+                    [
+                        new NetworkService
+                        {
+                            Id = 200,
+                            Name = "usable-service-name",
+                            FlowServiceObjectId = 77,
+                            FlowActive = false
+                        }
+                    ]
+                }
+            ];
+
+            string result = FlowNamingHelper.ResolveSvcObjectNameByRanking(svcObject, managements, [1], svcObject.Name);
+
+            Assert.That(result, Is.EqualTo("usable-service-name"));
+        }
+
+        [Test]
+        public void ResolveSvcGroupNameByRanking_UsesRankedManagementBeforeEarlierActiveCandidate()
+        {
+            FlowSvcGroup svcGroup = new()
+            {
+                Id = 88,
+                Name = "old-service-group"
+            };
+            List<Management> managements =
+            [
+                new Management
+                {
+                    Id = 1,
+                    Services =
+                    [
+                        new NetworkService
+                        {
+                            Id = 100,
+                            Name = "first-active-name",
+                            FlowServiceGroupId = 88,
+                            FlowActive = true
+                        }
+                    ]
+                },
+                new Management
+                {
+                    Id = 2,
+                    Services =
+                    [
+                        new NetworkService
+                        {
+                            Id = 200,
+                            Name = "ranked-name",
+                            FlowServiceGroupId = 88,
+                            FlowActive = false
+                        }
+                    ]
+                }
+            ];
+
+            string result = FlowNamingHelper.ResolveSvcGroupNameByRanking(svcGroup, managements, [2, 1], svcGroup.Name);
+
+            Assert.That(result, Is.EqualTo("ranked-name"));
+        }
+
+        [Test]
+        public void ResolveTimeObjectNameByRanking_ReturnsFallbackWhenNoMappedNamesExist()
+        {
+            FlowTimeObject timeObject = new()
+            {
+                Id = 99,
+                Name = "old-time"
+            };
+            List<Management> managements =
+            [
+                new Management
+                {
+                    Id = 1,
+                    TimeObjects =
+                    [
+                        new TimeObject
+                        {
+                            Id = 100,
+                            Name = "",
+                            FlowTimeObjectId = 99,
+                            FlowActive = true
+                        }
+                    ]
+                }
+            ];
+
+            string result = FlowNamingHelper.ResolveTimeObjectNameByRanking(timeObject, managements, [1], timeObject.Name);
+
+            Assert.That(result, Is.EqualTo("old-time"));
+        }
+
     }
 }

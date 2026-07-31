@@ -76,20 +76,56 @@ namespace FWO.Ui.Services
         }
 
         /// <inheritdoc />
-        public void Stop()
+        public async Task StopAsync()
         {
+            IPeriodicTaskRunner? runnerToStop = await DetachRunnerAsync();
+            if (runnerToStop != null)
+            {
+                // shut down outside the lock: the runner may need arbitrarily long to end its loop and must
+                // not keep a concurrent Dispose waiting on the lock while it does
+                await runnerToStop.DisposeAsync();
+            }
+        }
+
+        /// <inheritdoc />
+        public async ValueTask DisposeAsync()
+        {
+            await StopAsync();
+        }
+
+        /// <summary>
+        /// Stops the refresh loop synchronously. Prefer <see cref="StopAsync"/> when running on a thread the
+        /// refresh callback depends on, because this method can only wait for a limited time.
+        /// </summary>
+        public void Dispose()
+        {
+            // detaching only takes the lock for the short bookkeeping below, so the bounded wait of the
+            // runner's synchronous shutdown stays the only thing this thread can block on for long
+            IPeriodicTaskRunner? runnerToStop;
             startStopLock.Wait();
             try
             {
-                if (!started)
-                {
-                    return;
-                }
+                runnerToStop = DetachRunner();
+            }
+            finally
+            {
+                startStopLock.Release();
+            }
 
-                started = false;
-                navigationManager.LocationChanged -= OnLocationChanged;
-                runner?.Dispose();
-                runner = null;
+            runnerToStop?.Dispose();
+        }
+
+        /// <summary>
+        /// Detaches the running refresh loop from this coordinator while holding <see cref="startStopLock"/>.
+        /// The caller has to shut the returned runner down.
+        /// </summary>
+        /// <returns>The runner to be shut down, or null if the coordinator was not started.</returns>
+        private async Task<IPeriodicTaskRunner?> DetachRunnerAsync()
+        {
+            await startStopLock.WaitAsync();
+            try
+            {
+                return DetachRunner();
             }
             finally
             {
@@ -97,10 +133,23 @@ namespace FWO.Ui.Services
             }
         }
 
-        /// <inheritdoc />
-        public void Dispose()
+        /// <summary>
+        /// Detaches the running refresh loop from this coordinator. The caller has to shut the returned
+        /// runner down. Must only be called while <see cref="startStopLock"/> is held.
+        /// </summary>
+        /// <returns>The runner to be shut down, or null if the coordinator was not started.</returns>
+        private IPeriodicTaskRunner? DetachRunner()
         {
-            Stop();
+            if (!started)
+            {
+                return null;
+            }
+
+            started = false;
+            navigationManager.LocationChanged -= OnLocationChanged;
+            IPeriodicTaskRunner? runnerToStop = runner;
+            runner = null;
+            return runnerToStop;
         }
 
         private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)

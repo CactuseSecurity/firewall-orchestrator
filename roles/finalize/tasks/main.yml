@@ -47,6 +47,9 @@
   import_tasks: run-upgrades.yml
   when: "installation_mode == 'upgrade'"
 
+- name: clean up unit files left behind in the vendor systemd unit directory
+  import_tasks: relocate-systemd-units.yml
+
 - name: call external python scripts to set some customer specific config settings via API
   script: "{{ item }}"
   args:

@@ -24,6 +24,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Routing;
 
 namespace FWO.Test
 {
@@ -71,7 +72,7 @@ namespace FWO.Test
         {
             MockMiddlewareClient mockMiddlewareClient = new();
             MockProtectedSessionStorage mockSessionStorage = new();
-            EventMediator eventMediator = new();            
+            EventMediator eventMediator = new();
             TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
             NavigationManager navigationManager = default!;
             AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
@@ -334,6 +335,36 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task Deauthenticate_ClearsAuthenticationStateAndStoredTokens_WithoutNavigation()
+        {
+            MockMiddlewareClient mockMiddlewareClient = new();
+            MockProtectedSessionStorage mockSessionStorage = new();
+            EventMediator eventMediator = new();
+            TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
+            TestNavigationManager navigationManager = new();
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
+
+            await tokenService.SetTokenPair(new TokenPair
+            {
+                AccessToken = "access-token",
+                RefreshToken = "refresh-token",
+                AccessTokenExpires = DateTime.UtcNow.AddMinutes(10),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(1)
+            });
+            SetAuthenticatedUser(authStateProvider, TestApiConnection.TestUserDn);
+
+            await authStateProvider.Deauthenticate(forceNavigation: false);
+            AuthenticationState authenticationState = await authStateProvider.GetAuthenticationStateAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(authenticationState.User.Identity?.IsAuthenticated, Is.False);
+                Assert.That(mockSessionStorage.ContainsKey("token_pair"), Is.False);
+                Assert.That(navigationManager.Uri, Is.EqualTo("http://localhost/"));
+            });
+        }
+
         private static void SetAuthenticatedUser(AuthStateProvider authStateProvider, string userDn)
         {
             ClaimsIdentity identity = new(
@@ -443,6 +474,24 @@ namespace FWO.Test
                     new GraphQLRequest(subscription, variables, operationName),
                     exceptionHandler,
                     subscriptionUpdateHandler);
+            }
+        }
+
+        private sealed class TestNavigationManager : NavigationManager
+        {
+            public TestNavigationManager()
+            {
+                Initialize("http://localhost/", "http://localhost/");
+            }
+
+            protected override void NavigateToCore(string uri, bool forceLoad)
+            {
+                Uri = ToAbsoluteUri(uri).ToString();
+            }
+
+            protected override void NavigateToCore(string uri, NavigationOptions options)
+            {
+                Uri = ToAbsoluteUri(uri).ToString();
             }
         }
     }

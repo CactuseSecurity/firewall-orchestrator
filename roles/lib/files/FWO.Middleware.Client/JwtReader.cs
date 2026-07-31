@@ -88,7 +88,7 @@ namespace FWO.Middleware.Client
                 }
 
                 if (tokenValidationResult.Exception is SecurityTokenExpiredException)
-                {                    
+                {
                     return new JwtValidationResult
                     {
                         Status = JwtValidationStatus.Expired

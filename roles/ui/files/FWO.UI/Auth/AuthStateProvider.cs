@@ -131,22 +131,30 @@ namespace FWO.Ui.Auth
             try
             {
                 await tokenService.RevokeTokens();
-
-                if (executionModeStorage != null)
-                {
-                    await executionModeStorage.ClearExecutionMode();
-                }
-
-                user = new ClaimsPrincipal(new ClaimsIdentity());
-
-                if (forceNavigation)
-                {
-                    navigationManager.NavigateTo(navigationUri, forceLoad: true);
-                }
             }
             catch (Exception ex)
             {
                 Log.WriteWarning("Deauthenticate", $"Token cleanup failed during logout: {ex.Message}");
+            }
+
+            try
+            {
+                if (executionModeStorage != null)
+                {
+                    await executionModeStorage.ClearExecutionMode();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteWarning("Deauthenticate", $"Execution mode cleanup failed during logout: {ex.Message}");
+            }
+
+            user = new ClaimsPrincipal(new ClaimsIdentity());
+            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
+
+            if (forceNavigation)
+            {
+                navigationManager.NavigateTo(navigationUri, forceLoad: true);
             }
         }
 
@@ -261,7 +269,7 @@ namespace FWO.Ui.Auth
                     return false;
                 case JwtApplyStatus.Invalid:
                 case JwtApplyStatus.UnauthorizedRole:
-                    await Deauthenticate();
+                    await Deauthenticate(forceNavigation: false);
                     return false;
                 default:
                     return false;

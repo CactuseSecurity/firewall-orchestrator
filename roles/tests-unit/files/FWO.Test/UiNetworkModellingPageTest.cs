@@ -259,7 +259,7 @@ namespace FWO.Test
                     {
                         child.Add(page => page.ConnId, connId);
                     }
-            }));
+                }));
             return wrapper.FindComponent<NetworkModelling>();
         }
 

@@ -12,7 +12,7 @@ namespace FWO.Test
         private const double kClockTicksPerSecond = 100;
         private const string kMiddlewareKey = "middleware";
         private const string kImporterKey = "importer";
-        private const string kApiKey = "api";
+        private const string kApiKey = "hasura_api";
         private const string kDatabaseKey = "database";
         private const string kLdapKey = "ldap_server";
 

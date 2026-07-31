@@ -37,7 +37,7 @@ namespace FWO.Services.SystemUsage
         [
             new("middleware", kMiddlewareProcessNames, true),
             new("importer", kImporterProcessNames, true),
-            new("api", kApiProcessNames, true),
+            new("hasura_api", kApiProcessNames, true),
             // database and ldap are matched by executable name only, otherwise commands mentioning them would be counted
             new("database", kDatabaseProcessNames, false),
             new("ldap_server", kLdapProcessNames, false)

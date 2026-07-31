@@ -3321,6 +3321,8 @@ INSERT INTO txt VALUES ('importer',             'German', 	'Importer');
 INSERT INTO txt VALUES ('importer',             'English', 	'Importer');
 INSERT INTO txt VALUES ('database',             'German', 	'Datenbank');
 INSERT INTO txt VALUES ('database',             'English', 	'Database');
+INSERT INTO txt VALUES ('hasura_api',           'German', 	'Hasura API');
+INSERT INTO txt VALUES ('hasura_api',           'English', 	'Hasura API');
 INSERT INTO txt VALUES ('ldap_server',          'German', 	'LDAP-Server');
 INSERT INTO txt VALUES ('ldap_server',          'English', 	'LDAP Server');
 INSERT INTO txt VALUES ('processes',            'German', 	'Prozesse');
@@ -7595,12 +7597,12 @@ INSERT INTO txt VALUES ('H7109', 'German', 'Der Abschnitt "UI-Prozess" zeigt die
     Heaps, Anzahl der Threads und die Laufzeit seit dem letzten Start.');
 INSERT INTO txt VALUES ('H7109', 'English', 'The "UI Process" section shows the values of the UI server itself: used working set, size of the managed heap,
     number of threads and the uptime since its last start.');
-INSERT INTO txt VALUES ('H7110', 'German', 'Der Abschnitt "Weitere Dienste auf diesem Server" zeigt dieselben Werte f&uuml;r Middleware, Importer, API, Datenbank und LDAP-Server,
+INSERT INTO txt VALUES ('H7110', 'German', 'Der Abschnitt "Weitere Dienste auf diesem Server" zeigt dieselben Werte f&uuml;r Middleware, Importer, Hasura API, Datenbank und LDAP-Server,
     sofern diese auf demselben Server wie die UI laufen. Dienste auf anderen Servern der Installation werden nicht aufgef&uuml;hrt.
     Besteht ein Dienst aus mehreren Prozessen (z. B. die Datenbank), sind deren Werte aufsummiert und die Spalte "Prozesse" zeigt ihre Anzahl;
     der Arbeitsspeicher kann dabei h&ouml;her wirken als tats&auml;chlich belegt, da sich die Prozesse Speicher teilen.
     Die CPU-Auslastung bezieht sich wie beim UI-Prozess auf alle Kerne zusammen: 100 % bedeutet, dass alle Kerne ausgelastet sind.');
-INSERT INTO txt VALUES ('H7110', 'English', 'The "Other Services on this Host" section shows the same values for middleware, importer, API, database and LDAP server,
+INSERT INTO txt VALUES ('H7110', 'English', 'The "Other Services on this Host" section shows the same values for middleware, importer, Hasura API, database and LDAP server,
     as far as they run on the same host as the UI. Services on other hosts of the installation are not listed.
     If a service consists of several processes (the database for example), their values are summed up and the "Processes" column shows their number;
     the memory can then look higher than it really is, because the processes share memory.

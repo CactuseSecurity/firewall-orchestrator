@@ -590,6 +590,6 @@ Not supported any longer are:
 - update flow time object hashing to be timezone invariant
 - ! resets the flow timeobject and access tables
 
-
 ## 9.2.6 - 31.07.2026
 - make rule change-ID custom field names configurable in compliance settings
+- ! breaking change: old hard-coded default value "Datum-Regelpruefung" is dropped and replaced, so existing installations using this feature be impacted!

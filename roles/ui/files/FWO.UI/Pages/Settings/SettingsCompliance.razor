@@ -491,12 +491,13 @@ else
         {
             if (configData != null)
             {
-                PrepareChangeIdKeys();
+                List<string> mergedChangeIdKeys = MergeChangeIdKeys();
                 configData.ComplianceCheckStartAt = complianceCheckStartDate.Date.Add(complianceCheckStartTime.TimeOfDay);
                 configData.ComplianceCheckPolicyId = actPolicy?.Id ?? 0;
                 configData.ComplianceDesignatedZoneMatrixId = designatedZoneMatrix?.Id ?? 0;
-                configData.CustomFieldChangeIdKey = JsonSerializer.Serialize(ChangeIdKeys);
+                configData.CustomFieldChangeIdKey = JsonSerializer.Serialize(mergedChangeIdKeys);
                 await globalConfig.WriteToDatabase(configData, ApiConnection);
+                CommitChangeIdKeys(mergedChangeIdKeys);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }
             else
@@ -524,18 +525,24 @@ else
     }
 
     /// <summary>
-    /// Applies additions and removals collected by the change-ID key editor.
+    /// Builds the key list resulting from the additions and removals collected by the change-ID key editor,
+    /// leaving the editor state untouched so a failed save keeps the pending changes.
     /// </summary>
-    private void PrepareChangeIdKeys()
+    /// <returns>The merged keys.</returns>
+    private List<string> MergeChangeIdKeys()
     {
-        foreach (string key in ChangeIdKeysToDelete)
-        {
-            ChangeIdKeys.Remove(key);
-        }
-        foreach (string key in ChangeIdKeysToAdd)
-        {
-            ChangeIdKeys.Add(key);
-        }
+        List<string> mergedKeys = [.. ChangeIdKeys.Where(key => !ChangeIdKeysToDelete.Contains(key))];
+        mergedKeys.AddRange(ChangeIdKeysToAdd);
+        return mergedKeys;
+    }
+
+    /// <summary>
+    /// Applies the successfully persisted change-ID keys to the editor and clears the pending queues.
+    /// </summary>
+    /// <param name="persistedKeys">Keys written to the database.</param>
+    private void CommitChangeIdKeys(List<string> persistedKeys)
+    {
+        ChangeIdKeys = persistedKeys;
         ChangeIdKeysToDelete = [];
         ChangeIdKeysToAdd = [];
     }
@@ -544,7 +551,7 @@ else
     /// Reads a JSON key list while retaining compatibility with legacy single-key values.
     /// </summary>
     /// <param name="keysJson">JSON list or legacy plain-text key.</param>
-    /// <returns>The configured keys.</returns>
+    /// <returns>The configured keys, or an empty list if the stored value cannot be parsed.</returns>
     private static List<string> DeserializeChangeIdKeys(string keysJson)
     {
         if (string.IsNullOrWhiteSpace(keysJson))
@@ -553,9 +560,21 @@ else
         }
 
         string trimmedKeys = keysJson.Trim();
-        return trimmedKeys.StartsWith('[') && trimmedKeys.EndsWith(']')
-            ? JsonSerializer.Deserialize<List<string>>(trimmedKeys) ?? []
-            : [trimmedKeys];
+        if (!trimmedKeys.StartsWith('[') || !trimmedKeys.EndsWith(']'))
+        {
+            return [trimmedKeys];
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(trimmedKeys) ?? [];
+        }
+        catch (JsonException exception)
+        {
+            // keep the settings page usable so the invalid value can be corrected here
+            Log.WriteWarning("Read Config", $"Config item \"CustomFieldChangeIdKey\" contains unsupported value \"{keysJson}\". Using empty key list. {exception.Message}");
+            return [];
+        }
     }
 
     /// <summary>

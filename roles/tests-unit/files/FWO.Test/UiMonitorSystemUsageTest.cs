@@ -423,6 +423,12 @@ namespace FWO.Test
                 DisposeGate?.Wait();
                 Disposed = true;
             }
+
+            /// <inheritdoc />
+            public async ValueTask DisposeAsync()
+            {
+                await Task.Run(Dispose);
+            }
         }
 
         internal sealed class FakePeriodicTaskRunnerFactory : IPeriodicTaskRunnerFactory

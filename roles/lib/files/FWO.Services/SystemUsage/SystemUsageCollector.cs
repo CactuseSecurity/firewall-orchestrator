@@ -47,7 +47,12 @@ namespace FWO.Services.SystemUsage
             lock (sampleLock)
             {
                 DateTime now = source.UtcNow;
-                if (lastSnapshot != null && now - lastSnapshot.CollectedAt < kMinSampleInterval)
+                TimeSpan elapsedSinceLastSample = lastSnapshot == null
+                    ? TimeSpan.MaxValue
+                    : now - lastSnapshot.CollectedAt;
+                if (lastSnapshot != null
+                    && elapsedSinceLastSample >= TimeSpan.Zero
+                    && elapsedSinceLastSample < kMinSampleInterval)
                 {
                     return lastSnapshot;
                 }
@@ -212,6 +217,8 @@ namespace FWO.Services.SystemUsage
         {
             const int kIdleFieldIndex = 4;
             const int kIoWaitFieldIndex = 5;
+            const int kGuestFieldIndex = 9;
+            const int kGuestNiceFieldIndex = 10;
 
             busyTicks = 0;
             totalTicks = 0;
@@ -221,6 +228,14 @@ namespace FWO.Services.SystemUsage
                 {
                     return false;
                 }
+
+                // Linux also includes guest and guest_nice in user and nice, so counting those fields
+                // separately would double-count CPU time on virtualization hosts.
+                if (index == kGuestFieldIndex || index == kGuestNiceFieldIndex)
+                {
+                    continue;
+                }
+
                 totalTicks += ticks;
                 // idle and iowait are the only non busy states of the aggregated cpu line
                 if (index != kIdleFieldIndex && index != kIoWaitFieldIndex)

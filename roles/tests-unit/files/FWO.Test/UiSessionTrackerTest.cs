@@ -106,6 +106,24 @@ namespace FWO.Test
         }
 
         [Test]
+        public void SetUser_CountsSameNameWithDifferentDnsAsSeparateUsers()
+        {
+            UiSessionTracker tracker = CreateTracker();
+            tracker.Register("session1");
+            tracker.Register("session2");
+
+            tracker.SetUser("session1", "operator", "uid=operator,ou=tenant1,ou=user");
+            tracker.SetUser("session2", "operator", "uid=operator,ou=tenant2,ou=user");
+            UiSessionOverview overview = tracker.GetOverview();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(overview.AuthenticatedSessions, Is.EqualTo(2));
+                Assert.That(overview.LoggedInUsers, Is.EqualTo(2));
+            });
+        }
+
+        [Test]
         public void SetUser_WithEmptyNameMarksSessionAnonymousAgain()
         {
             UiSessionTracker tracker = CreateTracker();

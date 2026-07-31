@@ -173,15 +173,18 @@ namespace FWO.Test
             FakeSystemUsageCollector collector = new(CreateSnapshot());
             FakePeriodicTaskRunnerFactory factory = new();
             IRenderedComponent<MonitorSystemUsage> page = Render(context, collector, new UiSessionTracker(), factory, Roles.Admin);
+            SynchronizationContext? rendererSynchronizationContext = collector.LastSynchronizationContext;
 
             collector.Snapshot = CreateSnapshot(80);
-            await page.InvokeAsync(() => factory.LastRunner!.Callback());
+            await Task.Run(() => factory.LastRunner!.Callback());
 
             List<double> cpuHistory = GetPrivateProperty<List<double>>(page.Instance, "CpuHistory");
             Assert.Multiple(() =>
             {
+                Assert.That(rendererSynchronizationContext, Is.Not.Null);
                 Assert.That(cpuHistory, Has.Count.EqualTo(2));
                 Assert.That(cpuHistory[1], Is.EqualTo(80));
+                Assert.That(collector.LastSynchronizationContext, Is.SameAs(rendererSynchronizationContext));
             });
         }
 
@@ -357,9 +360,12 @@ namespace FWO.Test
 
             public int CollectCount { get; private set; }
 
+            public SynchronizationContext? LastSynchronizationContext { get; private set; }
+
             public SystemUsageSnapshot Collect()
             {
                 CollectCount++;
+                LastSynchronizationContext = SynchronizationContext.Current;
                 return ThrowOnCollect ? throw new InvalidOperationException("counters unavailable") : Snapshot;
             }
         }

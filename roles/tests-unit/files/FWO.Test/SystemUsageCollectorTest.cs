@@ -28,6 +28,9 @@ namespace FWO.Test
             "cpu0 600 0 300 4350 250 0 0 0\n" +
             "intr 12999\n";
 
+        private const string kStatGuestFirstSample = "cpu  1000 0 500 8000 500 0 0 0 200 100\n";
+        private const string kStatGuestSecondSample = "cpu  1100 0 500 8900 500 0 0 0 300 100\n";
+
         private const string kLoadAvg = "0.52 1.25 2.00 2/1234 5678\n";
 
         private static FakeSystemUsageSource CreateSource()
@@ -170,6 +173,39 @@ namespace FWO.Test
                 Assert.That(second, Is.Not.SameAs(first));
                 Assert.That(source.MemInfoReadCount, Is.EqualTo(2));
             });
+        }
+
+        [Test]
+        public void Collect_SamplesAgainWhenClockMovesBackwards()
+        {
+            FakeSystemUsageSource source = CreateSource();
+            SystemUsageCollector collector = new(source);
+            SystemUsageSnapshot first = collector.Collect();
+
+            source.UtcNow = source.UtcNow.AddMinutes(-5);
+            SystemUsageSnapshot second = collector.Collect();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(second, Is.Not.SameAs(first));
+                Assert.That(source.MemInfoReadCount, Is.EqualTo(2));
+            });
+        }
+
+        [Test]
+        public void Collect_DoesNotDoubleCountGuestCpuTicks()
+        {
+            FakeSystemUsageSource source = CreateSource();
+            source.Stat = kStatGuestFirstSample;
+            SystemUsageCollector collector = new(source);
+            collector.Collect();
+
+            source.UtcNow = source.UtcNow.AddSeconds(10);
+            source.Stat = kStatGuestSecondSample;
+            SystemUsageSnapshot snapshot = collector.Collect();
+
+            // guest delta is already included in user: busy delta 100, total delta 1000 -> 10 %
+            Assert.That(snapshot.CpuUsedPercent, Is.EqualTo(10).Within(0.01));
         }
 
         [Test]

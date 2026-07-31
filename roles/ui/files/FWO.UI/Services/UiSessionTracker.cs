@@ -87,7 +87,8 @@ namespace FWO.Ui.Services
                 ConnectedSessions = currentSessions.Count(session => session.Connected),
                 AuthenticatedSessions = currentSessions.Count(session => session.Authenticated),
                 LoggedInUsers = currentSessions.Where(session => session.Authenticated)
-                    .Select(session => session.UserName.ToLowerInvariant()).Distinct().Count(),
+                    .Select(session => string.IsNullOrWhiteSpace(session.UserDn) ? session.UserName : session.UserDn)
+                    .Distinct(StringComparer.OrdinalIgnoreCase).Count(),
                 Sessions = currentSessions
             };
         }

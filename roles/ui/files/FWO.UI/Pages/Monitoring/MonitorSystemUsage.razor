@@ -197,8 +197,11 @@
 
     private async Task RefreshAsync()
     {
-        Refresh();
-        await InvokeAsync(StateHasChanged);
+        await InvokeAsync(() =>
+        {
+            Refresh();
+            StateHasChanged();
+        });
     }
 
     private static void AppendHistory(List<double> history, double value)

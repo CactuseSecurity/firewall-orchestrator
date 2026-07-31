@@ -306,7 +306,7 @@ namespace FWO.Test
             SetPrivateProperty(monitoring, "DisplayMessageInUi", new Action<Exception?, string, string, bool>((exception, title, message, errorFlag) =>
                 messages.Add((exception, title, message, errorFlag))));
 
-            Alert alert = new() { JsonData = JsonSerializer.Serialize(new ImportControl[0]) };
+            Alert alert = new() { JsonData = JsonSerializer.Serialize(Array.Empty<ImportControl>()) };
 
             InvokePrivateVoid(monitoring, "ShowImportRollback", alert);
 

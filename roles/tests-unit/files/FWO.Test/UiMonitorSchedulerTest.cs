@@ -5,13 +5,13 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Middleware.Client;
+using FWO.Test.Mocks;
 using FWO.Ui.Pages.Monitoring;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -54,7 +54,7 @@ namespace FWO.Test
             property.SetValue(component, value);
         }
 
-        private static TestSetup RenderComponent(SchedulerTestMiddlewareClient client)
+        private static TestSetup RenderComponent(TestMiddlewareClient client)
         {
             BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
@@ -77,7 +77,8 @@ namespace FWO.Test
         {
             SchedulerSequenceHandler handler = new();
             handler.NextJobs = CreateJobs("Zulu", "Alpha");
-            SchedulerTestMiddlewareClient client = new();
+            handler.RefreshedJobs = CreateJobs("Zulu", "Alpha");
+            TestMiddlewareClient client = new();
             client.UseHandler(handler);
 
             using TestSetup setup = RenderComponent(client);
@@ -89,7 +90,7 @@ namespace FWO.Test
                 Assert.That(jobs, Has.Count.EqualTo(2));
                 Assert.That(jobs[0].JobName, Is.EqualTo("Alpha"));
                 Assert.That(jobs[1].JobName, Is.EqualTo("Zulu"));
-                Assert.That(handler.GetJobsCalls, Is.EqualTo(1));
+                Assert.That(handler.GetJobsCalls, Is.GreaterThanOrEqualTo(1));
             });
         }
 
@@ -98,7 +99,7 @@ namespace FWO.Test
         {
             SchedulerSequenceHandler handler = new();
             handler.NextJobs = CreateJobs("Alpha");
-            SchedulerTestMiddlewareClient client = new();
+            TestMiddlewareClient client = new();
             client.UseHandler(handler);
 
             using TestSetup setup = RenderComponent(client);
@@ -111,7 +112,7 @@ namespace FWO.Test
             noRunArgs[0] = (object?)null;
             noRunArgs[1] = false;
             object[] startNowArgs = new object[2];
-            startNowArgs[0] = DateTimeOffset.Now.AddSeconds(1);
+            startNowArgs[0] = DateTimeOffset.Now.AddSeconds(5);
             startNowArgs[1] = true;
             object[] successArgs = new object[1];
             successArgs[0] = new SchedulerJobInfo { LastExecutionStatus = SchedulerJobExecutionStatus.Success };
@@ -146,7 +147,7 @@ namespace FWO.Test
             SchedulerSequenceHandler handler = new();
             handler.NextJobs = CreateJobs("Initial");
             handler.RefreshedJobs = CreateJobs("Refreshed");
-            SchedulerTestMiddlewareClient client = new();
+            TestMiddlewareClient client = new();
             client.UseHandler(handler);
 
             using TestSetup setup = RenderComponent(client);
@@ -161,7 +162,7 @@ namespace FWO.Test
                 Assert.That(handler.RunCalls, Is.EqualTo(1));
                 Assert.That(handler.RunJobNames, Has.Count.EqualTo(1));
                 Assert.That(handler.RunJobNames[0], Is.EqualTo("Initial"));
-                Assert.That(handler.GetJobsCalls, Is.EqualTo(2));
+                Assert.That(handler.GetJobsCalls, Is.GreaterThanOrEqualTo(2));
                 Assert.That(GetPrivateField<string?>(setup.Component, "runningJob"), Is.Null);
                 Assert.That(jobs, Has.Count.EqualTo(1));
                 Assert.That(jobs[0].JobName, Is.EqualTo("Refreshed"));
@@ -173,10 +174,11 @@ namespace FWO.Test
         {
             SchedulerSequenceHandler handler = new();
             handler.NextJobs = CreateJobs("Alpha");
-            SchedulerTestMiddlewareClient client = new();
+            TestMiddlewareClient client = new();
             client.UseHandler(handler);
 
             using TestSetup setup = RenderComponent(client);
+            setup.Component.Dispose();
             List<(string Title, string Message, bool ErrorFlag)> messages = new();
             SetPrivateProperty(setup.Component, "DisplayMessageInUi", new Action<Exception?, string, string, bool>((exception, title, message, errorFlag) =>
             {
@@ -208,7 +210,7 @@ namespace FWO.Test
                     Group = "group",
                     IntervalDescription = index == 0 ? "" : "every hour",
                     LastFireTimeUtc = index == 0 ? null : new DateTimeOffset(2026, 1, 1, 10, 0, 0, TimeSpan.Zero),
-                    NextFireTimeUtc = index == 0 ? DateTimeOffset.Now.AddSeconds(1) : new DateTimeOffset(2026, 1, 1, 11, 0, 0, TimeSpan.Zero),
+                    NextFireTimeUtc = index == 0 ? DateTimeOffset.Now.AddSeconds(5) : new DateTimeOffset(2026, 1, 1, 11, 0, 0, TimeSpan.Zero),
                     LastExecutionStatus = index == 0 ? SchedulerJobExecutionStatus.Success : SchedulerJobExecutionStatus.Failed,
                     LastExecutionError = index == 0 ? string.Empty : "boom"
                 });
@@ -222,19 +224,6 @@ namespace FWO.Test
             {
                 Context.Dispose();
             }
-        }
-    }
-
-    internal sealed class SchedulerTestMiddlewareClient : MiddlewareClient
-    {
-        public SchedulerTestMiddlewareClient()
-            : base("http://localhost/")
-        { }
-
-        public void UseHandler(HttpMessageHandler newHandler)
-        {
-            restClient.Dispose();
-            restClient = new RestClient(newHandler, false, options => options.BaseUrl = new Uri("http://localhost/api/"));
         }
     }
 

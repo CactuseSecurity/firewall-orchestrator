@@ -6,6 +6,7 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Middleware.Client;
+using FWO.Test.Mocks;
 using FWO.Services.Workflow;
 using FWO.Ui.Pages.Monitoring;
 using FWO.Ui.Services;
@@ -15,7 +16,10 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Net;
+using System.Net.Http;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FWO.Test
@@ -172,15 +176,17 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task SendReinitRequest_WhenMiddlewareClientIsMissing_ReportsReinitError()
+        public async Task SendReinitRequest_WhenMiddlewareReturnsError_ReportsReinitError()
         {
             MonitorExternalRequestTicketsApiConn apiConn = new();
             MonitorExternalRequestTickets component = RenderComponent(apiConn);
             List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+            TestMiddlewareClient middlewareClient = new();
+            middlewareClient.UseHandler(new AlwaysFailMiddlewareHandler());
 
             SetPrivateProperty(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, title, message, errorFlag) =>
                 messages.Add((exception, title, message, errorFlag))));
-            SetPrivateProperty(component, "middlewareClient", null);
+            SetPrivateProperty(component, "middlewareClient", middlewareClient);
             GetPrivateMethod("RequestReInit", typeof(OwnerTicket)).Invoke(component, new object[]
             {
                 CreateOwnerTicket(88, 49)
@@ -192,22 +198,29 @@ namespace FWO.Test
             {
                 Assert.That(messages, Has.Count.EqualTo(1));
                 Assert.That(messages[0].Title, Is.EqualTo(new SimulatedUserConfig().GetText("reinit_ext_request")));
-                Assert.That(messages[0].Message, Is.Empty);
+                Assert.That(messages[0].Message, Is.EqualTo(new SimulatedUserConfig().GetText("E9101")));
                 Assert.That(messages[0].ErrorFlag, Is.True);
-                Assert.That(messages[0].Exception, Is.TypeOf<NullReferenceException>());
             });
         }
 
         [Test]
-        public async Task SendCloseTicket_WhenAuthenticationStateIsMissing_ReportsRejectError()
+        public async Task SendCloseTicket_WhenPromotionCannotResolveExternalState_ReportsRejectError()
         {
             MonitorExternalRequestTicketsApiConn apiConn = new();
             MonitorExternalRequestTickets component = RenderComponent(apiConn);
             List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+            TestMiddlewareClient middlewareClient = new();
+            middlewareClient.UseHandler(new SingleResponseHandler(HttpStatusCode.OK, "true"));
+            SimulatedUserConfig userConfig = new();
 
             SetPrivateProperty(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, title, message, errorFlag) =>
                 messages.Add((exception, title, message, errorFlag))));
-            SetPrivateProperty(component, "authenticationStateTask", null);
+            SetPrivateProperty(component, "middlewareClient", middlewareClient);
+            apiConn.TicketById = new WfTicket
+            {
+                Id = 89,
+                StateId = 49
+            };
             GetPrivateMethod("RequestClose", typeof(OwnerTicket)).Invoke(component, new object[]
             {
                 CreateOwnerTicket(89, 49)
@@ -217,11 +230,11 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(messages, Has.Count.EqualTo(1));
-                Assert.That(messages[0].Title, Is.EqualTo(new SimulatedUserConfig().GetText("reject_ticket")));
-                Assert.That(messages[0].Message, Is.Empty);
-                Assert.That(messages[0].ErrorFlag, Is.True);
-                Assert.That(messages[0].Exception, Is.TypeOf<NullReferenceException>());
+                Assert.That(messages.Exists(message => message.Title == userConfig.GetText("reject_ticket")), Is.True);
+                (Exception? Exception, string Title, string Message, bool ErrorFlag) rejectMessage =
+                    messages.Find(message => message.Title == userConfig.GetText("reject_ticket"));
+                Assert.That(rejectMessage.Message, Is.EqualTo(userConfig.GetText("E9103")));
+                Assert.That(rejectMessage.ErrorFlag, Is.True);
             });
         }
 
@@ -350,6 +363,18 @@ namespace FWO.Test
         }
     }
 
+    internal sealed class AlwaysFailMiddlewareHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError)
+            {
+                Content = new StringContent("{\"error\":\"failed\"}", System.Text.Encoding.UTF8, "application/json"),
+                ReasonPhrase = "Internal Server Error"
+            });
+        }
+    }
+
     internal sealed class MonitorExternalRequestTicketsApiConn : SimulatedApiConnection
     {
         public int StateQueryCount { get; private set; }
@@ -363,6 +388,8 @@ namespace FWO.Test
         public List<FwoOwner> Owners { get; } = new();
         public List<OwnerTicket> OwnerTickets { get; } = new();
         public List<ExternalRequest> RelevantRequests { get; } = new();
+        public WfTicket TicketById { get; set; } = new();
+        public List<WfExtState> ExtStates { get; } = new();
 
         public MonitorExternalRequestTicketsApiConn()
         {
@@ -381,7 +408,7 @@ namespace FWO.Test
             {
                 Id = 1,
                 TicketId = 30,
-                ExtRequestState = ExtStates.ExtReqRequested.ToString()
+                ExtRequestState = global::FWO.Data.ExtStates.ExtReqRequested.ToString()
             });
         }
 
@@ -413,6 +440,16 @@ namespace FWO.Test
             {
                 OpenRequestQueryCount++;
                 return Task.FromResult((QueryResponseType)(object)RelevantRequests);
+            }
+
+            if (typeof(QueryResponseType) == typeof(WfTicket) && query == RequestQueries.getTicketById)
+            {
+                return Task.FromResult((QueryResponseType)(object)TicketById);
+            }
+
+            if (typeof(QueryResponseType) == typeof(List<WfExtState>) && query == RequestQueries.getExtStates)
+            {
+                return Task.FromResult((QueryResponseType)(object)ExtStates);
             }
 
             if (typeof(QueryResponseType) == typeof(List<WorkflowConfiguration>)

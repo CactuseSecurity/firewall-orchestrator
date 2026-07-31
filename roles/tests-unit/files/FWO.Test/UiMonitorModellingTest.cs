@@ -411,7 +411,7 @@ namespace FWO.Test
             Assert.That(messages[0].ErrorFlag, Is.False);
             Assert.That(messages[0].Message, Does.Contain(new SimulatedUserConfig().GetText("orphaned_entries_removed")));
         }
-        }
+    }
 
     internal sealed class MonitorModellingTestApiConn : SimulatedApiConnection
     {

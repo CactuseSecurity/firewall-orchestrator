@@ -6,6 +6,7 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Middleware.Client;
+using FWO.Test.Mocks;
 using FWO.Ui.Pages.Monitoring;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -234,19 +235,31 @@ namespace FWO.Test
         }
 
         [Test]
-        public void PatchState_WhenMiddlewareClientIsMissing_ThrowsNullReferenceException()
+        public async Task PatchState_WhenMiddlewareReturnsError_ReportsChangeStateError()
         {
             MonitorExternalRequestsApiConn apiConn = new();
             MonitorExternalRequests component = RenderComponent(apiConn);
-            SetPrivateProperty(component, "middlewareClient", null);
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+            TestMiddlewareClient middlewareClient = new();
+            middlewareClient.UseHandler(new AlwaysFailMiddlewareHandler());
+
+            SetPrivateProperty(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, title, message, errorFlag) =>
+                messages.Add((exception, title, message, errorFlag))));
+            SetPrivateProperty(component, "middlewareClient", middlewareClient);
             GetPrivateMethod("RequestChangeState", typeof(ExternalRequest)).Invoke(component, new object[]
             {
                 CreateRequest(55, ExtStates.ExtReqRequested, false)
             });
 
-            Task patchTask = (Task)GetPrivateMethod("PatchState").Invoke(component, Array.Empty<object>())!;
+            await (Task)GetPrivateMethod("PatchState").Invoke(component, Array.Empty<object>())!;
 
-            Assert.ThrowsAsync<NullReferenceException>(async () => await patchTask);
+            Assert.Multiple(() =>
+            {
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Title, Is.EqualTo(new SimulatedUserConfig().GetText("change_state")));
+                Assert.That(messages[0].Message, Is.EqualTo(new SimulatedUserConfig().GetText("E9102")));
+                Assert.That(messages[0].ErrorFlag, Is.True);
+            });
         }
 
         [Test]

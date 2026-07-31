@@ -397,7 +397,7 @@ namespace FWO.Services.Modelling
         /// objects with a dummy full-range IP, so several different objects can look identical to the
         /// IP comparer and only one receives the surplus flag.
         /// </summary>
-        private List<NetworkLocation> GetUpdatableObjectSubstitutes(NetworkLocation[] networkLocations, Dictionary<string, bool> updatableObjects)
+        private static List<NetworkLocation> GetUpdatableObjectSubstitutes(NetworkLocation[] networkLocations, Dictionary<string, bool> updatableObjects)
         {
             return [.. networkLocations.Where(n => updatableObjects.ContainsKey(n.Object.Name.ToLower()) && (n.Object.IsSurplus || IsDynamicDummyIpObject(n.Object)))];
         }

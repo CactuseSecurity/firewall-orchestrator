@@ -80,10 +80,13 @@ namespace FWO.Ui.Services
             }
 
             // the loop is still inside a callback that apparently needs this thread: give up waiting instead
-            // of blocking forever. The loop is cancelled and ends as soon as the callback returns.
+            // of blocking forever. The loop is cancelled and ends as soon as the callback returns, so the
+            // cancellation source is released from that continuation rather than being leaked here.
             Log.WriteWarning(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)}{DescribeTask()} did not stop " +
                 $"within {kSynchronousShutdownTimeout.TotalSeconds} seconds and is left to finish in the background. " +
                 $"Use {nameof(DisposeAsync)} when disposing from a thread the callback depends on.");
+            taskToWaitFor.ContinueWith(_ => CompleteShutdown(), CancellationToken.None,
+                TaskContinuationOptions.None, TaskScheduler.Default);
         }
 
         /// <inheritdoc />

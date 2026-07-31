@@ -18,6 +18,9 @@ namespace FWO.Test
     [NonParallelizable]
     public class TokenRefreshCoordinatorTest
     {
+        private static readonly TimeSpan kTestTimeout = TimeSpan.FromSeconds(5);
+
+
         [Test]
         public async Task StartAsync_CreatesSeparateRunnerPerCoordinatorInstance()
         {
@@ -119,7 +122,28 @@ namespace FWO.Test
             });
         }
 
-        private static TokenRefreshCoordinator CreateCoordinator(MockProtectedSessionStorage sessionStorage, TrackingPeriodicTaskRunnerFactory runnerFactory)
+        [Test]
+        public async Task Dispose_WhileStopAsyncShutsTheRunnerDown_DoesNotWaitForIt()
+        {
+            BlockingPeriodicTaskRunnerFactory runnerFactory = new();
+            TokenRefreshCoordinator coordinator = CreateCoordinator(new MockProtectedSessionStorage(), runnerFactory);
+            await coordinator.StartAsync();
+
+            Task stopTask = coordinator.StopAsync();
+            await runnerFactory.AsyncDisposeEntered.Task.WaitAsync(kTestTimeout);
+
+            // the coordinator must not keep the start/stop lock while the runner shuts down, otherwise this
+            // synchronous Dispose blocks for as long as the shutdown takes - the deadlock this class avoids
+            Task disposeTask = Task.Run(coordinator.Dispose);
+            Task finishedFirst = await Task.WhenAny(disposeTask, Task.Delay(kTestTimeout));
+
+            runnerFactory.ReleaseAsyncDispose();
+            await stopTask;
+
+            Assert.That(finishedFirst, Is.EqualTo(disposeTask), "Dispose must not wait for an ongoing asynchronous shutdown");
+        }
+
+        private static TokenRefreshCoordinator CreateCoordinator(MockProtectedSessionStorage sessionStorage, IPeriodicTaskRunnerFactory runnerFactory)
         {
             MockMiddlewareClient middlewareClient = new();
             TokenService tokenService = new(middlewareClient, sessionStorage);
@@ -176,6 +200,56 @@ namespace FWO.Test
             {
                 factory.AsyncDisposeCallCount++;
                 return ValueTask.CompletedTask;
+            }
+        }
+
+        /// <summary>
+        /// Hands out a runner whose asynchronous shutdown blocks until the test releases it.
+        /// </summary>
+        private sealed class BlockingPeriodicTaskRunnerFactory : IPeriodicTaskRunnerFactory
+        {
+            public TaskCompletionSource AsyncDisposeEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            private readonly TaskCompletionSource asyncDisposeReleased = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            public IPeriodicTaskRunner Create(Func<Task> callback, TimeSpan interval, string taskName = "")
+            {
+                _ = callback;
+                _ = interval;
+                _ = taskName;
+                return new BlockingPeriodicTaskRunner(this);
+            }
+
+            /// <summary>
+            /// Lets the pending asynchronous shutdown finish.
+            /// </summary>
+            public void ReleaseAsyncDispose()
+            {
+                asyncDisposeReleased.TrySetResult();
+            }
+
+            private sealed class BlockingPeriodicTaskRunner : IPeriodicTaskRunner
+            {
+                private readonly BlockingPeriodicTaskRunnerFactory factory;
+
+                public BlockingPeriodicTaskRunner(BlockingPeriodicTaskRunnerFactory factory)
+                {
+                    this.factory = factory;
+                }
+
+                public void Start()
+                {
+                }
+
+                public void Dispose()
+                {
+                }
+
+                public async ValueTask DisposeAsync()
+                {
+                    factory.AsyncDisposeEntered.TrySetResult();
+                    await factory.asyncDisposeReleased.Task;
+                }
             }
         }
 

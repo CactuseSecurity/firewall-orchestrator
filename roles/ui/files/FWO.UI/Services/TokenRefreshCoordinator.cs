@@ -78,18 +78,12 @@ namespace FWO.Ui.Services
         /// <inheritdoc />
         public async Task StopAsync()
         {
-            await startStopLock.WaitAsync();
-            try
+            IPeriodicTaskRunner? runnerToStop = await DetachRunnerAsync();
+            if (runnerToStop != null)
             {
-                IPeriodicTaskRunner? runnerToStop = DetachRunner();
-                if (runnerToStop != null)
-                {
-                    await runnerToStop.DisposeAsync();
-                }
-            }
-            finally
-            {
-                startStopLock.Release();
+                // shut down outside the lock: the runner may need arbitrarily long to end its loop and must
+                // not keep a concurrent Dispose waiting on the lock while it does
+                await runnerToStop.DisposeAsync();
             }
         }
 
@@ -105,10 +99,33 @@ namespace FWO.Ui.Services
         /// </summary>
         public void Dispose()
         {
+            // detaching only takes the lock for the short bookkeeping below, so the bounded wait of the
+            // runner's synchronous shutdown stays the only thing this thread can block on for long
+            IPeriodicTaskRunner? runnerToStop;
             startStopLock.Wait();
             try
             {
-                DetachRunner()?.Dispose();
+                runnerToStop = DetachRunner();
+            }
+            finally
+            {
+                startStopLock.Release();
+            }
+
+            runnerToStop?.Dispose();
+        }
+
+        /// <summary>
+        /// Detaches the running refresh loop from this coordinator while holding <see cref="startStopLock"/>.
+        /// The caller has to shut the returned runner down.
+        /// </summary>
+        /// <returns>The runner to be shut down, or null if the coordinator was not started.</returns>
+        private async Task<IPeriodicTaskRunner?> DetachRunnerAsync()
+        {
+            await startStopLock.WaitAsync();
+            try
+            {
+                return DetachRunner();
             }
             finally
             {

@@ -1,6 +1,7 @@
 using FWO.Ui.Services;
 using NUnit.Framework;
 using System.Collections.Concurrent;
+using System.Reflection;
 using System.Threading;
 
 namespace FWO.Test
@@ -234,9 +235,66 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void Dispose_AfterGivingUp_StillReleasesTheCancellationSourceOnceTheLoopEnds()
+        {
+            SingleThreadedSynchronizationContext dispatcher = new();
+            TaskCompletionSource<bool> callbackEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            PeriodicTaskRunner? abandonedRunner = null;
+
+            bool completed = dispatcher.Run(() =>
+            {
+                PeriodicTaskRunner runner = new(async () =>
+                {
+                    callbackEntered.TrySetResult(true);
+                    await dispatcher.PostAsync(() => { });
+                }, TimeSpan.FromMilliseconds(20));
+
+                abandonedRunner = runner;
+                runner.Start();
+                callbackEntered.Task.Wait(TimeSpan.FromSeconds(5));
+                runner.Dispose();
+            }, TimeSpan.FromSeconds(60));
+
+            Assert.That(completed, Is.True);
+
+            // the dispatcher thread is free again, so the abandoned loop can finish - and the runner has to
+            // clean up after itself instead of leaking the cancellation source it gave up waiting for
+            dispatcher.Drain();
+
+            Assert.That(WaitForCancellationSourceRelease(abandonedRunner!), Is.True,
+                "the cancellation source must be released once the abandoned loop ends");
+        }
+
+        /// <summary>
+        /// Waits until the runner released its cancellation source, which is only observable internally.
+        /// </summary>
+        /// <param name="runner">Runner that was disposed without waiting for its loop.</param>
+        /// <returns>True if the cancellation source was released within the timeout.</returns>
+        private static bool WaitForCancellationSourceRelease(PeriodicTaskRunner runner)
+        {
+            FieldInfo releaseFlag = typeof(PeriodicTaskRunner).GetField("cancellationSourceDisposed",
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingFieldException(nameof(PeriodicTaskRunner), "cancellationSourceDisposed");
+
+            DateTime deadline = DateTime.UtcNow.AddSeconds(5);
+            while (DateTime.UtcNow < deadline)
+            {
+                if ((bool)releaseFlag.GetValue(runner)!)
+                {
+                    return true;
+                }
+
+                Thread.Sleep(20);
+            }
+
+            return false;
+        }
+
         /// <summary>
         /// Minimal single threaded synchronization context imitating the Blazor render dispatcher: posted
         /// work can only run on the one dispatcher thread, so nothing progresses while that thread is busy.
+        /// Queued work runs only when a test explicitly calls <see cref="Drain"/>.
         /// </summary>
         private sealed class SingleThreadedSynchronizationContext : SynchronizationContext
         {
@@ -251,6 +309,17 @@ namespace FWO.Test
             public override void Post(SendOrPostCallback callback, object? state)
             {
                 queue.Enqueue(() => callback(state));
+            }
+
+            /// <summary>
+            /// Runs everything queued so far, imitating a dispatcher thread that became free again.
+            /// </summary>
+            public void Drain()
+            {
+                while (queue.TryDequeue(out Action? work))
+                {
+                    work();
+                }
             }
 
             /// <summary>

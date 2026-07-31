@@ -47,6 +47,32 @@ namespace FWO.Test
             throw new MissingFieldException(type.FullName, memberName);
         }
 
+        private static AngleSharp.Dom.IElement FindElementByText(List<AngleSharp.Dom.IElement> elements, string text)
+        {
+            foreach (AngleSharp.Dom.IElement element in elements)
+            {
+                if (element.TextContent.Contains(text))
+                {
+                    return element;
+                }
+            }
+
+            throw new InvalidOperationException($"Element containing '{text}' was not found.");
+        }
+
+        private static ConfigItem FindConfigItem(List<ConfigItem> configItems, string key)
+        {
+            foreach (ConfigItem configItem in configItems)
+            {
+                if (configItem.Key == key)
+                {
+                    return configItem;
+                }
+            }
+
+            throw new InvalidOperationException($"Config item '{key}' was not found.");
+        }
+
         [Test]
         public async Task HandleAllowedChangesByApproverChanged_PersistsConfigImmediately()
         {
@@ -103,7 +129,7 @@ namespace FWO.Test
             await saveTask;
 
             Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
-            ConfigItem flowDbConfig = apiConnection.LastConfigItems.Single(item => item.Key == "reqUseFlowDb");
+            ConfigItem flowDbConfig = FindConfigItem(apiConnection.LastConfigItems, "reqUseFlowDb");
             Assert.That(flowDbConfig.Value, Is.EqualTo("True"));
         }
 
@@ -139,7 +165,7 @@ namespace FWO.Test
             await saveTask;
 
             Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
-            ConfigItem stateConfig = apiConnection.LastConfigItems.Single(item => item.Key == "reqApiTicketInitialStateId");
+            ConfigItem stateConfig = FindConfigItem(apiConnection.LastConfigItems, "reqApiTicketInitialStateId");
             Assert.That(stateConfig.Value, Is.EqualTo("17"));
         }
 
@@ -169,7 +195,7 @@ namespace FWO.Test
             await saveTask;
 
             Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
-            ConfigItem considerBundlingConfig = apiConnection.LastConfigItems.Single(item => item.Key == "reqConsiderBundling");
+            ConfigItem considerBundlingConfig = FindConfigItem(apiConnection.LastConfigItems, "reqConsiderBundling");
             Assert.That(considerBundlingConfig.Value, Is.EqualTo("True"));
         }
 
@@ -274,7 +300,8 @@ namespace FWO.Test
             {
                 IRenderedComponent<SettingsCustomizing> settings = wrapper.FindComponent<SettingsCustomizing>();
                 string sortLabelText = userConfig.GetText("reqCreateRequestTaskSortConfig");
-                var sortLabel = settings.FindAll("label").Single(label => label.TextContent.Contains(sortLabelText));
+                List<AngleSharp.Dom.IElement> sortLabels = settings.FindAll("label").ToList();
+                AngleSharp.Dom.IElement sortLabel = FindElementByText(sortLabels, sortLabelText);
                 Assert.That(sortLabel.GetAttribute("title"), Is.EqualTo(userConfig.PureLine("C9034")));
                 IRenderedComponent<CreateRequestTaskSortConfigPopup> popup = settings.FindComponent<CreateRequestTaskSortConfigPopup>();
                 Assert.That(popup.Instance.Display, Is.False);
@@ -282,7 +309,8 @@ namespace FWO.Test
 
             IRenderedComponent<SettingsCustomizing> settingsComponent = wrapper.FindComponent<SettingsCustomizing>();
             string expectedLabelText = userConfig.GetText("reqCreateRequestTaskSortConfig");
-            var label = settingsComponent.FindAll("label").Single(element => element.TextContent.Contains(expectedLabelText));
+            List<AngleSharp.Dom.IElement> labels = settingsComponent.FindAll("label").ToList();
+            AngleSharp.Dom.IElement label = FindElementByText(labels, expectedLabelText);
             label.ParentElement!.ParentElement!.QuerySelector("button")!.Click();
 
             wrapper.WaitForAssertion(() =>
@@ -317,9 +345,9 @@ namespace FWO.Test
                 .Add(p => p.Display, true)
                 .Add(p => p.ConfigValue, new CreateRequestTaskSortConfig().ToConfigValue()));
 
-            IReadOnlyList<AngleSharp.Dom.IElement> rows = popup.FindAll(".form-group.row.mt-2.align-items-center").ToList();
-            AngleSharp.Dom.IElement allowSplitRow = popup.FindAll("div.form-group.row.mt-2")
-                .Single(row => row.TextContent.Contains(userConfig.GetText("allow_task_split")));
+            List<AngleSharp.Dom.IElement> rows = popup.FindAll(".form-group.row.mt-2.align-items-center").ToList();
+            List<AngleSharp.Dom.IElement> allRows = popup.FindAll("div.form-group.row.mt-2").ToList();
+            AngleSharp.Dom.IElement allowSplitRow = FindElementByText(allRows, userConfig.GetText("allow_task_split"));
 
             Assert.Multiple(() =>
             {
@@ -377,7 +405,7 @@ namespace FWO.Test
             {
                 Assert.That(display, Is.False);
                 Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
-                Assert.That(apiConnection.LastConfigItems.Single(item => item.Key == "reqCreateRequestTaskSortConfig").Value, Is.EqualTo(savedValue));
+                Assert.That(FindConfigItem(apiConnection.LastConfigItems, "reqCreateRequestTaskSortConfig").Value, Is.EqualTo(savedValue));
                 Assert.That(saved.GroupModifyAddPriority, Is.EqualTo(0));
                 Assert.That(saved.GroupCreatePriority, Is.EqualTo(1));
                 Assert.That(saved.AccessPriority, Is.EqualTo(2));
@@ -416,7 +444,9 @@ namespace FWO.Test
                 .Add(p => p.ConfigValue, new CreateRequestTaskSortConfig().ToConfigValue())
                 .Add(p => p.ConfigValueChanged, EventCallback.Factory.Create<string>(this, _ => configChangedCalled = true)));
 
-            popup.FindAll(".btn-group").Last().QuerySelectorAll("button").Last().Click();
+            List<AngleSharp.Dom.IElement> buttonGroups = popup.FindAll(".btn-group").ToList();
+            List<AngleSharp.Dom.IElement> buttons = buttonGroups[buttonGroups.Count - 1].QuerySelectorAll("button").ToList();
+            buttons[buttons.Count - 1].Click();
 
             Assert.Multiple(() =>
             {
@@ -457,7 +487,7 @@ namespace FWO.Test
 
             popup.WaitForAssertion(() =>
             {
-                IReadOnlyList<AngleSharp.Dom.IElement> rows = popup.FindAll(".form-group.row.mt-2.align-items-center").ToList();
+                List<AngleSharp.Dom.IElement> rows = popup.FindAll(".form-group.row.mt-2.align-items-center").ToList();
                 Assert.That(rows[0].TextContent, Does.Contain(userConfig.GetText("group_modify") + userConfig.GetText("add_members")));
                 Assert.That(rows[1].TextContent, Does.Contain(userConfig.GetText("create_group")));
             });
@@ -467,7 +497,7 @@ namespace FWO.Test
             CreateRequestTaskSortConfig saved = CreateRequestTaskSortConfig.Parse(savedValue);
             Assert.That(saved.GroupModifyAddPriority, Is.EqualTo(0));
             Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
-            Assert.That(apiConnection.LastConfigItems.Single(item => item.Key == "reqCreateRequestTaskSortConfig").Value, Is.EqualTo(savedValue));
+            Assert.That(FindConfigItem(apiConnection.LastConfigItems, "reqCreateRequestTaskSortConfig").Value, Is.EqualTo(savedValue));
         }
 
         [Test]
@@ -504,7 +534,7 @@ namespace FWO.Test
                 .Add(p => p.Display, true)
                 .Add(p => p.ConfigValue, sortConfig.ToConfigValue()));
 
-            IReadOnlyList<AngleSharp.Dom.IElement> rows = popup.FindAll(".form-group.row.mt-2.align-items-center").ToList();
+            List<AngleSharp.Dom.IElement> rows = popup.FindAll(".form-group.row.mt-2.align-items-center").ToList();
 
             Assert.Multiple(() =>
             {

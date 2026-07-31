@@ -589,3 +589,6 @@ Not supported any longer are:
 ## 9.2.5 - 29.07.2026
 - update flow time object hashing to be timezone invariant
 - ! resets the flow timeobject and access tables
+
+## 9.2.6 - 31.07.2026
+- add upgrade seed for request task sort configuration

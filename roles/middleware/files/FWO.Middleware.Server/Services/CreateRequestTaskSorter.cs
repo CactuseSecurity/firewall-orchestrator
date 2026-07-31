@@ -61,6 +61,8 @@ public static class CreateRequestTaskSorter
             var taskType when taskType == WfTaskType.group_modify.ToString() && hasAddElements && hasRemoveElements => Math.Min(sortConfig.GroupModifyAddPriority, sortConfig.GroupModifyRemovePriority),
             var taskType when taskType == WfTaskType.group_modify.ToString() && hasAddElements => sortConfig.GroupModifyAddPriority,
             var taskType when taskType == WfTaskType.access.ToString() => sortConfig.AccessPriority,
+            // These priorities are currently unused by createRequest; they become relevant
+            // once the API can emit rule_modify and rule_delete tasks as well.
             var taskType when taskType == WfTaskType.rule_modify.ToString() => sortConfig.RuleModifyPriority,
             var taskType when taskType == WfTaskType.rule_delete.ToString() => sortConfig.RuleDeletePriority,
             var taskType when taskType == WfTaskType.group_modify.ToString() && hasRemoveElements => sortConfig.GroupModifyRemovePriority,

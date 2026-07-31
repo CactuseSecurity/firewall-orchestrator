@@ -7568,10 +7568,12 @@ INSERT INTO txt VALUES ('H7107', 'English', 'Logged-in users and open sessions: 
     A user can therefore hold several sessions, whereas the number of logged-in users counts every user only once.
     "Connected" states how many of those sessions currently have an active browser connection.');
 INSERT INTO txt VALUES ('H7108', 'German', 'Speicher- und CPU-Auslastung beziehen sich auf das gesamte System. "Verf&uuml;gbarer Speicher" ist der Speicher,
-    der neuen Anwendungen ohne Auslagern zur Verf&uuml;gung steht, und damit aussagekr&auml;ftiger als der komplett unbenutzte "Freie Speicher".
+    der neuen Anwendungen ohne Auslagern zur Verf&uuml;gung steht. Er enth&auml;lt neben dem komplett unbenutzten Speicher auch die Caches,
+    die der Kernel bei Bedarf sofort wieder freigibt, und ist damit der aussagekr&auml;ftige Wert f&uuml;r den Speicherbedarf.
     Die Verlaufsgrafiken zeigen die Messwerte, seit die Seite ge&ouml;ffnet wurde. Die Zeitangaben darunter markieren den dargestellten Messzeitraum.');
 INSERT INTO txt VALUES ('H7108', 'English', 'Memory and CPU usage refer to the whole system. "Available Memory" is the memory that can be given to new
-    applications without swapping and is therefore more meaningful than the completely unused "Free Memory".
+    applications without swapping. Besides the completely unused memory it also contains the caches the kernel hands back on demand,
+    which makes it the meaningful figure for judging the memory situation.
     The trend graphs show the measurements taken since the page was opened. The timestamps below them mark the displayed measurement period.');
 INSERT INTO txt VALUES ('H7109', 'German', 'Der Abschnitt "UI-Prozess" zeigt die Werte des UI-Servers selbst: belegter Arbeitsspeicher, Gr&ouml;sse des verwalteten
     Heaps, Anzahl der Threads und die Laufzeit seit dem letzten Start. Weitere Dienste (Importer, Middleware, Datenbank, API) folgen sp&auml;ter.');

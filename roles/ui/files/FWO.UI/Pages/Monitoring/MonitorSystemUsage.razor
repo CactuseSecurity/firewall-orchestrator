@@ -84,7 +84,7 @@
                     <UsageSparkline Values="@MemoryHistory" Caption="@(userConfig.GetText("memory_usage"))"
                                     EmptyText="@(userConfig.GetText("collecting_data"))" StartTime="@HistoryStartTime" EndTime="@HistoryEndTime"
                                     LineClass="usage-sparkline-secondary" AreaClass="usage-sparkline-secondary" />
-                    <div class="text-muted">@(userConfig.GetText("memory_free")): @SystemUsageDisplay.FormatBytes(Usage.MemoryFreeBytes)</div>
+                    <div class="text-muted">@(userConfig.GetText("memory_available")): @SystemUsageDisplay.FormatBytes(Usage.MemoryAvailableBytes)</div>
                 </div>
             </div>
         </div>

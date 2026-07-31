@@ -116,6 +116,23 @@ namespace FWO.Test
         }
 
         [Test]
+        public void Page_ShowsAvailableMemoryOnlyWithoutFreeMemory()
+        {
+            using BunitContext context = new();
+            FakeSystemUsageCollector collector = new(CreateSnapshot());
+            UiSessionTracker tracker = new();
+
+            IRenderedComponent<MonitorSystemUsage> page = Render(context, collector, tracker, Roles.Admin);
+
+            Assert.Multiple(() =>
+            {
+                // 8000 MB available, the free memory of 2000 MB would only be confusing next to it
+                Assert.That(page.Markup, Does.Contain("memory_available: 7.8 GB"));
+                Assert.That(page.Markup, Does.Not.Contain("memory_free"));
+            });
+        }
+
+        [Test]
         public void Page_CollectsInitialSampleOnOpen()
         {
             using BunitContext context = new();

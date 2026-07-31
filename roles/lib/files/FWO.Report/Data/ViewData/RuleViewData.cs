@@ -65,7 +65,7 @@ namespace FWO.Report.Data.ViewData
             InstallOn = SafeCall(rule, "InstallOn", () => ResolveInstallOn(rule, devices ?? []));
             Compliance = SafeCall(rule, "Compliance", () => ResolveCompliance(rule, complianceViolationType));
             ViolationDetails = SafeCall(rule, "ViolationDetails", () => rule.ViolationDetails);
-            ChangeID = SafeCall(rule, "ChangeID", () => { var value = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]", out var errorMessage); return value ?? errorMessage ?? ""; });
+            ChangeID = SafeCall(rule, "ChangeID", () => natRuleDisplayHtml.DisplayChangeId(rule));
             AdoITID = SafeCall(rule, "AdoITID", () => { var value = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-3\",\"AdoIT\"]", out var errorMessage); return value ?? errorMessage ?? ""; });
             Comment = SafeCall(rule, "Comment", () => rule.Comment ?? "");
             LastModified = SafeCall(rule, "LastModified", () => RuleDisplayBase.DisplayLastModified(rule));

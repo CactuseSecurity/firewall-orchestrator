@@ -4,7 +4,6 @@ using FWO.Data;
 using FWO.Report;
 using FWO.Services;
 using FWO.Ui.Display;
-using System.Text.RegularExpressions;
 
 namespace FWO.Middleware.Server
 {
@@ -14,7 +13,6 @@ namespace FWO.Middleware.Server
     public abstract class RuleNotificationBodyBase(GlobalConfig globalConfig)
     {
         private static readonly List<int> RawRuleHtmlColumnIndexes = [2, 3, 4];
-        private static readonly TimeSpan RegexTimeout = TimeSpan.FromMilliseconds(100);
 
         /// <summary>
         /// Builds a plain-text rule notification body with the standard rule columns and optional extra columns.
@@ -81,42 +79,18 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Extracts a change identifier from rule custom fields.
         /// </summary>
-        /// <param name="customFieldsString">Serialized rule custom fields.</param>
+        /// <param name="rule">Rule containing the serialized custom fields.</param>
         /// <returns>The extracted change identifier or an empty string.</returns>
-        private static string ExtractChangeId(string customFieldsString)
+        protected string ExtractChangeId(Rule rule)
         {
-            if (string.IsNullOrWhiteSpace(customFieldsString))
-            {
-                return "";
-            }
-
-            string? field2 = TryExtractCustomFieldValue(customFieldsString, GlobalConst.kField2);
-            if (!string.IsNullOrWhiteSpace(field2))
-            {
-                return field2;
-            }
-
-            string? fallback = TryExtractCustomFieldValue(customFieldsString, GlobalConst.kDatumRegelpr);
-            if (!string.IsNullOrWhiteSpace(fallback))
-            {
-                return fallback;
-            }
-
-            return "";
+            string? changeId = CustomFieldResolver.ExtractCustomFieldValue<string>(
+                rule,
+                GlobalConfig.CustomFieldChangeIdKey,
+                out _);
+            return changeId ?? "";
         }
 
-        private static string? TryExtractCustomFieldValue(string customFieldsString, string key)
-        {
-            Match match = Regex.Match(
-                customFieldsString,
-                $@"['""]{Regex.Escape(key)}['""]\s*:\s*['""](?<value>(?:\\.|[^'""])*)['""]",
-                RegexOptions.CultureInvariant,
-                RegexTimeout);
-
-            return match.Success ? Regex.Unescape(match.Groups["value"].Value) : null;
-        }
-
-        private static NotificationTableRow CreateNotificationRow<TRule>(
+        private NotificationTableRow CreateNotificationRow<TRule>(
             TRule rule,
             RuleDisplayHtml ruleDisplayHtml,
             Func<TRule, IEnumerable<string?>>? getExtraCellValues)
@@ -125,7 +99,7 @@ namespace FWO.Middleware.Server
             string? sourceHtml = ruleDisplayHtml.DisplaySource(rule, OutputLocation.export, ReportType.ResolvedRules);
             string? destinationHtml = ruleDisplayHtml.DisplayDestination(rule, OutputLocation.export, ReportType.ResolvedRules);
             string? servicesHtml = ruleDisplayHtml.DisplayServices(rule, OutputLocation.export, ReportType.ResolvedRules);
-            string changeId = ExtractChangeId(rule.CustomFields);
+            string changeId = ExtractChangeId(rule);
             string lastHit = rule.Metadata.LastHit?.ToString("yyyy-MM-dd") ?? "";
 
             List<string?> htmlCells =

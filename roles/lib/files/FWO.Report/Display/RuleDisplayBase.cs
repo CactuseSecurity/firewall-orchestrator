@@ -2,6 +2,7 @@ using System.Text;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Report;
 using FWO.Report.Filter;
 
@@ -10,6 +11,19 @@ namespace FWO.Ui.Display
     public class RuleDisplayBase(UserConfig userConfig)
     {
         protected UserConfig userConfig = userConfig;
+
+        /// <summary>
+        /// Resolves the change identifier from the first configured matching rule custom field.
+        /// </summary>
+        /// <param name="rule">Rule containing the serialized custom fields.</param>
+        /// <returns>The configured custom field value, an error description, or an empty string.</returns>
+        public string DisplayChangeId(Rule rule)
+        {
+            string keysJson = userConfig.GlobalConfig?.CustomFieldChangeIdKey
+                ?? new ConfigData().CustomFieldChangeIdKey;
+            string? value = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, keysJson, out string? errorMessage);
+            return value ?? errorMessage ?? "";
+        }
 
         public static string DisplayHierarchicalNumber(Rule rule)
         {

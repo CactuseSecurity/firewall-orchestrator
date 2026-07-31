@@ -335,7 +335,7 @@ namespace FWO.Config.Api.Data
         public string CustomFieldOwnerKey { get; set; } = "";
 
         [JsonProperty("CustomFieldChangeIdKey"), JsonPropertyName("CustomFieldChangeIdKey")]
-        public string CustomFieldChangeIdKey { get; set; } = "";
+        public string CustomFieldChangeIdKey { get; set; } = "[\"field-2\",\"ChangeId\"]";
 
         [JsonProperty("rolesWithAppDataImport"), JsonPropertyName("rolesWithAppDataImport")]
         public string RolesWithAppDataImport { get; set; } = "[]";

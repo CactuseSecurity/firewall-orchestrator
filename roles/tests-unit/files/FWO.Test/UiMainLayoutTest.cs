@@ -387,13 +387,20 @@ namespace FWO.Test
                 return Task.CompletedTask;
             }
 
-            public void Stop()
+            public Task StopAsync()
             {
                 StopCallCount++;
+                return Task.CompletedTask;
             }
 
             public void Dispose()
             {
+                StopCallCount++;
+            }
+
+            public ValueTask DisposeAsync()
+            {
+                return new ValueTask(StopAsync());
             }
         }
     }

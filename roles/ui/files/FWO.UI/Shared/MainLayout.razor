@@ -22,7 +22,7 @@
 @inject IEventMediator EventMediator
 @inject TokenService TokenService
 
-@implements IDisposable
+@implements IAsyncDisposable
 
 <NavigationMenu @bind-ShowAlert="showAlert" />
 
@@ -591,7 +591,7 @@
         await AlertHelper.SetAlert(apiConnection, title, message, GlobalConst.kUi, AlertCode.UiError, alertData);
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         if (UIMessageQueTimer is not null)
         {
@@ -605,6 +605,8 @@
         apiConnection.OnExecutionModeChanged -= OnExecutionModeChanged;        
         EventMediator.Unsubscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent));
         EventMediator.Unsubscribe<ReloginRequiredEvent>(nameof(ReloginRequiredEvent));
-        tokenRefreshCoordinator.Stop();
+        // awaited instead of stopped synchronously: this runs on the render dispatcher, which a refresh
+        // still in flight needs to finish
+        await tokenRefreshCoordinator.StopAsync();
     }
 }

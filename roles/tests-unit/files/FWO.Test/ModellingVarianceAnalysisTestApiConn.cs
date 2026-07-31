@@ -17,8 +17,23 @@ namespace FWO.Test
         static readonly NetworkObject Nwgroup3 = new() { Id = 3, Name = "AR504711-003", Type = new() { Name = ObjectType.Group }, ObjectGroupFlats = [new() { Object = NwObj1 }] };
         static readonly NetworkObject SpecObj1 = new() { Id = 21, Name = "SpecObj1", Type = new() { Name = "Something else" } };
         static readonly NetworkObject SpecObj2 = new() { Id = 21, Name = "SpecObj2", Type = new() { Name = "Something else" } };
-        static readonly NetworkObject UpdObj1 = new() { Id = 31, Name = "UpdObj1", Type = new() { Name = "Something else" } };
-        static readonly NetworkObject UpdObj2 = new() { Id = 32, Name = "UpdObj2", Type = new() { Name = "Something else" } };
+        static readonly NetworkObject UpdObj1 = new()
+        {
+            Id = 31,
+            Name = "UpdObj1",
+            IP = "0.0.0.0/32",
+            IpEnd = "255.255.255.255/32",
+            Type = new() { Name = "dynamic_net_obj" }
+        };
+
+        static readonly NetworkObject UpdObj2 = new()
+        {
+            Id = 32,
+            Name = "UpdObj2",
+            IP = "0.0.0.0/32",
+            IpEnd = "255.255.255.255/32",
+            Type = new() { Name = "dynamic_net_obj" }
+        };
 
         static readonly ModellingAppServer AppServer1 = new() { Id = 13, Name = "AppServerUnchanged", Ip = "1.2.3.4/32", IpEnd = "1.2.3.4/32" };
         static readonly ModellingAppServer AppServer2 = new() { Id = 14, Name = "AppServerNew1_32", Ip = "1.1.1.1/32", IpEnd = "1.1.1.1/32" };

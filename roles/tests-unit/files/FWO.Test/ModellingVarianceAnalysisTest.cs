@@ -926,8 +926,8 @@ namespace FWO.Test
         [Test]
         public async Task TestAnalyseRuleStatusMultipleUpdatableObjects()
         {
-            // Issue #4979: two updatable objects (rule FWOC8: UpdObj1 + UpdObj2) modelled by a single
-            // placeholder area must still be recognized as implementation.
+            // Check Point imports updatable objects as dynamic_net_obj with the same dummy IP range.
+            // Two such objects modelled by a single placeholder area must still be recognized by name.
             userConfig.ModUpdatableObjAreas = "[{\"area_id\":3,\"use_in_src\":false,\"use_in_dst\":true}]";
             try
             {

@@ -1,5 +1,6 @@
-from typing import TypeAlias
+from typing import Any, TypeAlias, TypeGuard, cast
 
+from fw_modules.opnsense25ff.opnsense_constants import MAX_DEPTH
 from fw_modules.opnsense25ff.opnsense_model import (
     OPNsenseAccessRule,
     OPNsenseAlias,
@@ -20,6 +21,45 @@ PortRef: TypeAlias = str | OPNsensePortAlias
 AddressRef: TypeAlias = str | OPNsenseHostAlias | OPNsenseNetworkAlias
 RuleRef: TypeAlias = OPNsenseAlias | OPNsenseAccessRule | OPNsenseNATRule
 AliasChild: TypeAlias = str | OPNsenseHost | OPNsenseNetwork | OPNsenseHostAlias | OPNsenseNetworkAlias
+
+
+def warn_max_depth_reached(depth: int) -> None:
+    FWOLogger.warning(f"[-] depth {depth} reached maximum {MAX_DEPTH}. Abort recursion...")
+
+
+# ── accessors for the xmltodict representation of config.xml ──
+# xmltodict maps a single child element to a dict and repeated ones to a list, so every
+# lookup has to cope with both shapes as well as with absent elements
+
+
+def is_dict(value: object) -> TypeGuard[dict[str, Any]]:
+    return isinstance(value, dict)
+
+
+def as_object_list(value: Any) -> list[object]:
+    return cast("list[object]", value)
+
+
+def get_value(data: dict[str, Any], *keys: str) -> object:
+    current: object = data
+    for key in keys:
+        if not is_dict(current):
+            return None
+        current = current.get(key)
+    return current
+
+
+def get_dict(data: dict[str, Any], *keys: str) -> dict[str, Any]:
+    current = get_value(data, *keys)
+    return current if is_dict(current) else {}
+
+
+def as_dict_list(value: object) -> list[dict[str, Any]]:
+    if is_dict(value):
+        return [value]
+    if isinstance(value, list):
+        return [item for item in as_object_list(value) if is_dict(item)]
+    return []
 
 
 def is_int(s: str) -> bool:

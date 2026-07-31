@@ -1,7 +1,7 @@
 # parsing retrieved config.xml from OPNsense into opnsense_model
 
 from datetime import datetime, timezone
-from typing import Any, TypeGuard, TypeVar, cast
+from typing import Any, TypeVar
 
 import fw_modules.opnsense25ff.opnsense_helper as os_helper
 from fw_modules.opnsense25ff.opnsense_constants import (
@@ -31,10 +31,6 @@ from pydantic import BaseModel, ValidationError
 TParsedModel = TypeVar("TParsedModel", bound=BaseModel)
 
 
-def _is_dict(value: object) -> TypeGuard[dict[str, Any]]:
-    return isinstance(value, dict)
-
-
 def _validate_or_warn(model: type[TParsedModel], data: dict[str, Any], context: str) -> TParsedModel | None:
     # config.xml sections other than the rules are supplementary: a single malformed entry
     # must not abort the whole import (access rules are validated strictly on purpose)
@@ -45,35 +41,9 @@ def _validate_or_warn(model: type[TParsedModel], data: dict[str, Any], context: 
         return None
 
 
-def _as_object_list(value: Any) -> list[object]:
-    return cast("list[object]", value)
-
-
-def _get_value(data: dict[str, Any], *keys: str) -> object:
-    current: object = data
-    for key in keys:
-        if not _is_dict(current):
-            return None
-        current = current.get(key)
-    return current
-
-
-def _get_dict(data: dict[str, Any], *keys: str) -> dict[str, Any]:
-    current = _get_value(data, *keys)
-    return current if _is_dict(current) else {}
-
-
-def _as_dict_list(value: object) -> list[dict[str, Any]]:
-    if _is_dict(value):
-        return [value]
-    if isinstance(value, list):
-        return [item for item in _as_object_list(value) if _is_dict(item)]
-    return []
-
-
 def _parse_opnsense_hostname(config: dict[str, Any]) -> str:
-    hostname = _get_value(config, "opnsense", "system", "hostname")
-    domain = _get_value(config, "opnsense", "system", "domain")
+    hostname = os_helper.get_value(config, "opnsense", "system", "hostname")
+    domain = os_helper.get_value(config, "opnsense", "system", "domain")
 
     if isinstance(hostname, str) and isinstance(domain, str) and hostname and domain:
         return f"{hostname}.{domain}"
@@ -94,11 +64,11 @@ def _parse_timestamp(seconds: object) -> str | None:
 
 
 def _parse_opnsense_user_groups(config: dict[str, Any]) -> list[OPNsenseUserGroup]:
-    groups = _get_value(config, "opnsense", "system", "group")
+    groups = os_helper.get_value(config, "opnsense", "system", "group")
 
     user_groups: list[OPNsenseUserGroup] = []
 
-    for group in _as_dict_list(groups):
+    for group in os_helper.as_dict_list(groups):
         group_parsed = _validate_or_warn(OPNsenseUserGroup, group, "_parse_opnsense_user_groups")
         if group_parsed is not None:
             user_groups.append(group_parsed)
@@ -107,11 +77,11 @@ def _parse_opnsense_user_groups(config: dict[str, Any]) -> list[OPNsenseUserGrou
 
 
 def _parse_opnsense_users(config: dict[str, Any]) -> list[OPNsenseUser]:
-    users = _get_value(config, "opnsense", "system", "user")
+    users = os_helper.get_value(config, "opnsense", "system", "user")
 
     users_parsed: list[OPNsenseUser] = []
 
-    for user in _as_dict_list(users):
+    for user in os_helper.as_dict_list(users):
         user_parsed = _validate_or_warn(OPNsenseUser, user, "_parse_opnsense_users")
         if user_parsed is not None:
             users_parsed.append(user_parsed)
@@ -120,12 +90,12 @@ def _parse_opnsense_users(config: dict[str, Any]) -> list[OPNsenseUser]:
 
 
 def _parse_opnsense_interfaces(config: dict[str, Any]) -> dict[str, OPNsenseInterface]:
-    interfaces = _get_dict(config, "opnsense", "interfaces")
+    interfaces = os_helper.get_dict(config, "opnsense", "interfaces")
 
     ifaces_parsed: dict[str, OPNsenseInterface] = {}
 
     for iface, iface_config in interfaces.items():
-        if not _is_dict(iface_config):
+        if not os_helper.is_dict(iface_config):
             continue
         if_parsed = _validate_or_warn(OPNsenseInterface, iface_config, f"_parse_opnsense_interfaces ({iface})")
         if if_parsed is None:
@@ -137,11 +107,11 @@ def _parse_opnsense_interfaces(config: dict[str, Any]) -> dict[str, OPNsenseInte
 
 
 def _parse_opnsense_if_groups(config: dict[str, Any]) -> dict[str, OPNsenseIfGroup]:
-    ifgroups = _get_value(config, "opnsense", "ifgroups", "ifgroupentry")
+    ifgroups = os_helper.get_value(config, "opnsense", "ifgroups", "ifgroupentry")
 
     ifgroups_parsed: dict[str, OPNsenseIfGroup] = {}
 
-    for ifgroup in _as_dict_list(ifgroups):
+    for ifgroup in os_helper.as_dict_list(ifgroups):
         ifgroup_parsed = _validate_or_warn(OPNsenseIfGroup, ifgroup, "_parse_opnsense_if_groups")
         if ifgroup_parsed is not None:
             ifgroups_parsed[ifgroup_parsed.name] = ifgroup_parsed
@@ -154,7 +124,7 @@ def _single_interface_name(rule: dict[str, Any]) -> str | None:
     if isinstance(rule_interface, str) and rule_interface:
         return rule_interface
     if isinstance(rule_interface, list):
-        interface_names = _as_object_list(rule_interface)
+        interface_names = os_helper.as_object_list(rule_interface)
         if len(interface_names) == 1 and isinstance(interface_names[0], str):
             return interface_names[0]
     return None
@@ -163,8 +133,8 @@ def _single_interface_name(rule: dict[str, Any]) -> str | None:
 def _predefined_rule_uid(rule: dict[str, Any]) -> str | None:
     interface_name = _single_interface_name(rule)
     ipprotocol = rule.get("ipprotocol")
-    source = _get_dict(rule, "source")
-    destination = _get_dict(rule, "destination")
+    source = os_helper.get_dict(rule, "source")
+    destination = os_helper.get_dict(rule, "destination")
 
     if (
         interface_name is not None
@@ -250,11 +220,13 @@ def _normalize_mvc_filter_rule(rule: dict[str, Any]) -> dict[str, Any]:
 
 
 def _get_legacy_filter_rules(config: dict[str, Any]) -> list[dict[str, Any]]:
-    return _as_dict_list(_get_value(config, "opnsense", "filter", "rule"))
+    return os_helper.as_dict_list(os_helper.get_value(config, "opnsense", "filter", "rule"))
 
 
 def _get_mvc_filter_rules(config: dict[str, Any]) -> list[dict[str, Any]]:
-    mvc_rules = _as_dict_list(_get_value(config, "opnsense", "OPNsense", "Firewall", "Filter", "rules", "rule"))
+    mvc_rules = os_helper.as_dict_list(
+        os_helper.get_value(config, "opnsense", "OPNsense", "Firewall", "Filter", "rules", "rule")
+    )
     return sorted(mvc_rules, key=lambda rule: int(str(rule.get("sequence") or "0")))
 
 
@@ -265,19 +237,19 @@ def _has_rule_endpoint_value(endpoint: dict[str, Any], key: str) -> bool:
     if isinstance(value, str):
         return value != ""
     if isinstance(value, list):
-        return len(_as_object_list(value)) > 0
+        return len(os_helper.as_object_list(value)) > 0
     return True
 
 
 def _apply_endpoint_any_defaults(rule: OPNsenseAccessRule, raw_rule: dict[str, Any]) -> None:
-    source = _get_dict(raw_rule, "source")
+    source = os_helper.get_dict(raw_rule, "source")
     if "any" in source:
         rule.source_address = ["Any"]
         rule.source_network = []
     elif _has_rule_endpoint_value(source, "network") and not _has_rule_endpoint_value(source, "address"):
         rule.source_address = []
 
-    destination = _get_dict(raw_rule, "destination")
+    destination = os_helper.get_dict(raw_rule, "destination")
     if "any" in destination:
         rule.dest_address = ["Any"]
         rule.dest_network = []
@@ -305,11 +277,11 @@ def _parse_opnsense_access_rules(config: dict[str, Any]) -> list[OPNsenseAccessR
 
 
 def _parse_opnsense_nat_rules(config: dict[str, Any]) -> list[OPNsenseNATRule]:
-    outbound_rules = _get_value(config, "opnsense", "nat", "outbound", "rule")
+    outbound_rules = os_helper.get_value(config, "opnsense", "nat", "outbound", "rule")
 
     rules_parsed: list[OPNsenseNATRule] = []
 
-    for rule in _as_dict_list(outbound_rules):
+    for rule in os_helper.as_dict_list(outbound_rules):
         rule_parsed = OPNsenseNATRule.model_validate(rule)
         rule_parsed.is_outbound = True
         rules_parsed.append(rule_parsed)
@@ -331,14 +303,14 @@ def _parse_opnsense_aliases(
     dict[str, OPNsenseNetworkAlias],
     dict[str, OPNsensePortAlias],
 ]:
-    aliases = _get_value(config, "opnsense", "OPNsense", "Firewall", "Alias", "aliases", "alias")
+    aliases = os_helper.get_value(config, "opnsense", "OPNsense", "Firewall", "Alias", "aliases", "alias")
 
     misc_aliases_parsed: dict[str, OPNsenseAlias] = {}
     port_aliases_parsed: dict[str, OPNsensePortAlias] = {}
     host_aliases_parsed: dict[str, OPNsenseHostAlias] = {}
     net_aliases_parsed: dict[str, OPNsenseNetworkAlias] = {}
 
-    for alias in _as_dict_list(aliases):
+    for alias in os_helper.as_dict_list(aliases):
         if alias.get("type") == AliasTypeEnum.HOST:
             _store_alias(OPNsenseHostAlias, alias, host_aliases_parsed)
         elif alias.get("type") in {AliasTypeEnum.NETWORK, AliasTypeEnum.NETWORKGROUP}:
@@ -353,11 +325,11 @@ def _parse_opnsense_aliases(
 
 
 def _parse_opnsense_gateways(config: dict[str, Any]) -> list[OPNsenseGateway]:
-    gateways = _get_value(config, "opnsense", "OPNsense", "Gateways", "gateway_item")
+    gateways = os_helper.get_value(config, "opnsense", "OPNsense", "Gateways", "gateway_item")
 
     gateways_parsed: list[OPNsenseGateway] = []
 
-    for gw in _as_dict_list(gateways):
+    for gw in os_helper.as_dict_list(gateways):
         if gw.get("disabled") == "1":
             continue
         gw_parsed = _validate_or_warn(OPNsenseGateway, gw, "_parse_opnsense_gateways")
@@ -370,7 +342,7 @@ def _parse_opnsense_gateways(config: dict[str, Any]) -> list[OPNsenseGateway]:
 def parse_opnsense_config(config: dict[str, Any]) -> OPNsenseConfig:
 
     hostname = _parse_opnsense_hostname(config)
-    last_change = _parse_timestamp(_get_value(config, "opnsense", "revision", "time"))
+    last_change = _parse_timestamp(os_helper.get_value(config, "opnsense", "revision", "time"))
     user_groups = _parse_opnsense_user_groups(config)
     users = _parse_opnsense_users(config)
     interfaces = _parse_opnsense_interfaces(config)

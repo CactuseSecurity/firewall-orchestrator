@@ -51,8 +51,9 @@ namespace FWO.Services.SystemUsage
         /// </summary>
         /// <param name="now">Point in time (UTC) of this sample.</param>
         /// <param name="processorCount">Number of logical processors, used to relate the CPU time to all cores.</param>
+        /// <param name="memoryTotalBytes">Physical memory of the system, used to relate the memory of a service to it.</param>
         /// <returns>One entry per service found, in the order of the service definitions.</returns>
-        public List<ServiceUsage> Scan(DateTime now, int processorCount)
+        public List<ServiceUsage> Scan(DateTime now, int processorCount, long memoryTotalBytes)
         {
             Dictionary<string, ServiceAccumulator> accumulators = [];
             foreach (int processId in source.ListProcessIds())
@@ -68,7 +69,8 @@ namespace FWO.Services.SystemUsage
             {
                 if (accumulators.TryGetValue(definition.NameKey, out ServiceAccumulator? accumulator))
                 {
-                    services.Add(BuildUsage(definition.NameKey, accumulator, elapsedSeconds, processorCount, systemUpTimeSeconds));
+                    services.Add(BuildUsage(definition.NameKey, accumulator, new SampleContext(elapsedSeconds,
+                        processorCount, systemUpTimeSeconds, memoryTotalBytes)));
                     currentCpuTicks[definition.NameKey] = accumulator.CpuTicks;
                 }
             }
@@ -121,19 +123,25 @@ namespace FWO.Services.SystemUsage
                 : kServiceDefinitions.Find(candidate => candidate.MatchCommandLine && commandLineNames.Exists(candidate.Matches));
         }
 
-        private ServiceUsage BuildUsage(string nameKey, ServiceAccumulator accumulator, double elapsedSeconds,
-            int processorCount, double systemUpTimeSeconds)
+        private ServiceUsage BuildUsage(string nameKey, ServiceAccumulator accumulator, SampleContext context)
         {
-            TimeSpan upTime = CalculateUpTime(accumulator.EarliestStartTicks, systemUpTimeSeconds);
+            TimeSpan upTime = CalculateUpTime(accumulator.EarliestStartTicks, context.SystemUpTimeSeconds);
             return new ServiceUsage
             {
                 NameKey = nameKey,
                 ProcessCount = accumulator.ProcessCount,
                 MemoryBytes = accumulator.MemoryBytes,
+                MemoryPercent = CalculateMemoryPercent(accumulator.MemoryBytes, context.MemoryTotalBytes),
                 ThreadCount = accumulator.ThreadCount,
                 UpTime = upTime,
-                CpuPercent = CalculateCpuPercent(nameKey, accumulator.CpuTicks, elapsedSeconds, processorCount, upTime)
+                CpuPercent = CalculateCpuPercent(nameKey, accumulator.CpuTicks, context.ElapsedSeconds,
+                    context.ProcessorCount, upTime)
             };
+        }
+
+        private static double CalculateMemoryPercent(long memoryBytes, long memoryTotalBytes)
+        {
+            return memoryTotalBytes > 0 ? Math.Clamp(kFullPercent * memoryBytes / memoryTotalBytes, 0, kFullPercent) : 0;
         }
 
         private double CalculateCpuPercent(string nameKey, long cpuTicks, double elapsedSeconds,
@@ -229,6 +237,12 @@ namespace FWO.Services.SystemUsage
         /// Values of one process taken from its stat file below /proc.
         /// </summary>
         private readonly record struct ProcessStat(string Comm, long CpuTicks, int ThreadCount, long StartTicks);
+
+        /// <summary>
+        /// System values of one sample that all services are related to.
+        /// </summary>
+        private readonly record struct SampleContext(double ElapsedSeconds, int ProcessorCount,
+            double SystemUpTimeSeconds, long MemoryTotalBytes);
 
         /// <summary>
         /// Describes how the processes of one service are recognized.

@@ -9,6 +9,7 @@ namespace FWO.Test
     {
         private const int kPageSize = 4096;
         private const int kProcessorCount = 4;
+        private const long kMemoryTotalBytes = 100000L * kPageSize;
         private const double kClockTicksPerSecond = 100;
         private const string kMiddlewareKey = "middleware";
         private const string kImporterKey = "importer";
@@ -102,7 +103,7 @@ namespace FWO.Test
         {
             ServiceUsageScanner scanner = new(CreateSource());
 
-            List<ServiceUsage> services = scanner.Scan(kFirstSampleTime, kProcessorCount);
+            List<ServiceUsage> services = scanner.Scan(kFirstSampleTime, kProcessorCount, kMemoryTotalBytes);
 
             Assert.Multiple(() =>
             {
@@ -122,13 +123,15 @@ namespace FWO.Test
         {
             ServiceUsageScanner scanner = new(CreateSource());
 
-            ServiceUsage database = FindService(scanner.Scan(kFirstSampleTime, kProcessorCount), kDatabaseKey);
+            ServiceUsage database = FindService(scanner.Scan(kFirstSampleTime, kProcessorCount, kMemoryTotalBytes), kDatabaseKey);
 
             Assert.Multiple(() =>
             {
                 // the two database processes are counted together, the systemctl command is not one of them
                 Assert.That(database.ProcessCount, Is.EqualTo(2));
                 Assert.That(database.MemoryBytes, Is.EqualTo(4500 * kPageSize));
+                // 4500 of the 100000 memory pages of the system
+                Assert.That(database.MemoryPercent, Is.EqualTo(4.5).Within(0.001));
                 Assert.That(database.ThreadCount, Is.EqualTo(2));
                 // the uptime is the one of the oldest process: 1000 seconds up minus 300 seconds until its start
                 Assert.That(database.UpTime, Is.EqualTo(TimeSpan.FromSeconds(700)));
@@ -141,7 +144,7 @@ namespace FWO.Test
             FakeSystemUsageSource source = CreateSource();
             ServiceUsageScanner scanner = new(source);
 
-            List<ServiceUsage> services = scanner.Scan(kFirstSampleTime, kProcessorCount);
+            List<ServiceUsage> services = scanner.Scan(kFirstSampleTime, kProcessorCount, kMemoryTotalBytes);
 
             // the systemctl process would add 9000 pages and 1800 ticks if it were counted as database
             Assert.That(FindService(services, kDatabaseKey).MemoryBytes, Is.EqualTo(4500 * kPageSize));
@@ -152,7 +155,7 @@ namespace FWO.Test
         {
             ServiceUsageScanner scanner = new(CreateSource());
 
-            ServiceUsage middleware = FindService(scanner.Scan(kFirstSampleTime, kProcessorCount), kMiddlewareKey);
+            ServiceUsage middleware = FindService(scanner.Scan(kFirstSampleTime, kProcessorCount, kMemoryTotalBytes), kMiddlewareKey);
 
             // 150 ticks of cpu time in 600 seconds of uptime on four cores
             double expectedPercent = 100.0 * (150 / kClockTicksPerSecond) / (600 * kProcessorCount);
@@ -164,11 +167,11 @@ namespace FWO.Test
         {
             FakeSystemUsageSource source = CreateSource();
             ServiceUsageScanner scanner = new(source);
-            scanner.Scan(kFirstSampleTime, kProcessorCount);
+            scanner.Scan(kFirstSampleTime, kProcessorCount, kMemoryTotalBytes);
 
             // the middleware consumed two full seconds of cpu time during the ten seconds until the next sample
             source.ProcFiles["101/stat"] = BuildStat(101, "FWO.Middleware.", 250, 100, 20, 40000);
-            ServiceUsage middleware = FindService(scanner.Scan(kFirstSampleTime.AddSeconds(10), kProcessorCount), kMiddlewareKey);
+            ServiceUsage middleware = FindService(scanner.Scan(kFirstSampleTime.AddSeconds(10), kProcessorCount, kMemoryTotalBytes), kMiddlewareKey);
 
             // two seconds of cpu time in ten seconds is half a core, which is an eighth of the four cores
             Assert.That(middleware.CpuPercent, Is.EqualTo(5).Within(0.001));
@@ -179,11 +182,11 @@ namespace FWO.Test
         {
             FakeSystemUsageSource source = CreateSource();
             ServiceUsageScanner scanner = new(source);
-            scanner.Scan(kFirstSampleTime, kProcessorCount);
+            scanner.Scan(kFirstSampleTime, kProcessorCount, kMemoryTotalBytes);
 
             // the service was restarted and starts counting its cpu time from the beginning again
             source.ProcFiles["101/stat"] = BuildStat(101, "FWO.Middleware.", 10, 5, 20, 99000);
-            ServiceUsage middleware = FindService(scanner.Scan(kFirstSampleTime.AddSeconds(10), kProcessorCount), kMiddlewareKey);
+            ServiceUsage middleware = FindService(scanner.Scan(kFirstSampleTime.AddSeconds(10), kProcessorCount, kMemoryTotalBytes), kMiddlewareKey);
 
             Assert.That(middleware.CpuPercent, Is.EqualTo(0));
         }
@@ -196,7 +199,7 @@ namespace FWO.Test
             AddProcess(source, 201, BuildStat(201, "sshd", 10, 10, 1, 1000), 100, BuildCommandLine("/usr/sbin/sshd", "-D"));
             ServiceUsageScanner scanner = new(source);
 
-            Assert.That(scanner.Scan(kFirstSampleTime, kProcessorCount), Is.Empty);
+            Assert.That(scanner.Scan(kFirstSampleTime, kProcessorCount, kMemoryTotalBytes), Is.Empty);
         }
 
         [Test]
@@ -208,7 +211,7 @@ namespace FWO.Test
             source.ProcFiles["104/stat"] = "104 (postgres) S 1 1\n";
             ServiceUsageScanner scanner = new(source);
 
-            List<ServiceUsage> services = scanner.Scan(kFirstSampleTime, kProcessorCount);
+            List<ServiceUsage> services = scanner.Scan(kFirstSampleTime, kProcessorCount, kMemoryTotalBytes);
 
             Assert.Multiple(() =>
             {
@@ -219,18 +222,34 @@ namespace FWO.Test
         }
 
         [Test]
+        public void Scan_WithoutKnownTotalMemoryReportsNoMemoryShare()
+        {
+            ServiceUsageScanner scanner = new(CreateSource());
+
+            ServiceUsage middleware = FindService(scanner.Scan(kFirstSampleTime, kProcessorCount, 0), kMiddlewareKey);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(middleware.MemoryPercent, Is.EqualTo(0));
+                Assert.That(middleware.MemoryBytes, Is.EqualTo(1000 * kPageSize));
+            });
+        }
+
+        [Test]
         public void Scan_WithoutUpTimeReportsNoUpTimeAndNoCpuUsage()
         {
             FakeSystemUsageSource source = CreateSource();
             source.ProcFiles.Remove("uptime");
             ServiceUsageScanner scanner = new(source);
 
-            ServiceUsage middleware = FindService(scanner.Scan(kFirstSampleTime, kProcessorCount), kMiddlewareKey);
+            ServiceUsage middleware = FindService(scanner.Scan(kFirstSampleTime, kProcessorCount, kMemoryTotalBytes), kMiddlewareKey);
 
             Assert.Multiple(() =>
             {
                 Assert.That(middleware.UpTime, Is.EqualTo(TimeSpan.Zero));
                 Assert.That(middleware.CpuPercent, Is.EqualTo(0));
+                // the memory share does not depend on the uptime and is still known
+                Assert.That(middleware.MemoryPercent, Is.EqualTo(1).Within(0.001));
             });
         }
     }

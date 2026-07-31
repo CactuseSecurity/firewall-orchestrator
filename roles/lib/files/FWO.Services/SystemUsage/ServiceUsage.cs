@@ -27,6 +27,11 @@ namespace FWO.Services.SystemUsage
         public long MemoryBytes { get; set; }
 
         /// <summary>
+        /// Share of the physical memory of the system used by this service, in percent.
+        /// </summary>
+        public double MemoryPercent { get; set; }
+
+        /// <summary>
         /// Number of threads of all processes of this service.
         /// </summary>
         public int ThreadCount { get; set; }

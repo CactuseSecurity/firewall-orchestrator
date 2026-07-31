@@ -55,6 +55,7 @@ namespace FWO.Test
                     ProcessCount = 1,
                     CpuPercent = 12.5,
                     MemoryBytes = 200 * kMegaByte,
+                    MemoryPercent = 1.25,
                     ThreadCount = 25,
                     UpTime = TimeSpan.FromMinutes(90)
                 },
@@ -64,6 +65,7 @@ namespace FWO.Test
                     ProcessCount = 7,
                     CpuPercent = 3,
                     MemoryBytes = 800 * kMegaByte,
+                    MemoryPercent = 5,
                     ThreadCount = 7,
                     UpTime = TimeSpan.FromHours(26)
                 }
@@ -170,12 +172,12 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                // one row per service: name, cpu, memory, threads, processes, uptime
-                Assert.That(serviceCells, Has.Count.EqualTo(12));
-                Assert.That(serviceCells.GetRange(0, 6),
-                    Is.EqualTo(new List<string> { "middleware", "12.5 %", "200 MB", "25", "1", "01:30" }));
-                Assert.That(serviceCells.GetRange(6, 6),
-                    Is.EqualTo(new List<string> { "database", "3 %", "800 MB", "7", "7", "1d 02:00" }));
+                // one row per service: name, cpu, memory, memory share, threads, processes, uptime
+                Assert.That(serviceCells, Has.Count.EqualTo(14));
+                Assert.That(serviceCells.GetRange(0, 7),
+                    Is.EqualTo(new List<string> { "middleware", "12.5 %", "200 MB", "1.3 %", "25", "1", "01:30" }));
+                Assert.That(serviceCells.GetRange(7, 7),
+                    Is.EqualTo(new List<string> { "database", "3 %", "800 MB", "5 %", "7", "7", "1d 02:00" }));
                 Assert.That(page.Markup, Does.Not.Contain("no_services_found"));
             });
         }

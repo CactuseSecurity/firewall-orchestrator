@@ -101,6 +101,8 @@ namespace FWO.Test
                 Assert.That(snapshot.Services, Has.Count.EqualTo(1));
                 Assert.That(snapshot.Services[0].NameKey, Is.EqualTo("database"));
                 Assert.That(snapshot.Services[0].ThreadCount, Is.EqualTo(3));
+                // the memory share is related to the total memory of the same sample: 1000 pages of 16000000 kB
+                Assert.That(snapshot.Services[0].MemoryPercent, Is.EqualTo(0.025).Within(0.0001));
             });
         }
 

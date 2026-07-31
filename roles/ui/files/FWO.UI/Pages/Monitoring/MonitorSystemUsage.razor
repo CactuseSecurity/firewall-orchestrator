@@ -150,6 +150,7 @@
                                     <th scope="col">@(userConfig.GetText("service"))</th>
                                     <th scope="col">@(userConfig.GetText("cpu_usage"))</th>
                                     <th scope="col">@(userConfig.GetText("working_set"))</th>
+                                    <th scope="col">@(userConfig.GetText("memory_usage"))</th>
                                     <th scope="col">@(userConfig.GetText("threads"))</th>
                                     <th scope="col">@(userConfig.GetText("processes"))</th>
                                     <th scope="col">@(userConfig.GetText("uptime"))</th>
@@ -162,6 +163,7 @@
                                         <td>@(userConfig.GetText(service.NameKey))</td>
                                         <td>@SystemUsageDisplay.FormatPercent(service.CpuPercent)</td>
                                         <td>@SystemUsageDisplay.FormatBytes(service.MemoryBytes)</td>
+                                        <td>@SystemUsageDisplay.FormatPercent(service.MemoryPercent)</td>
                                         <td>@service.ThreadCount</td>
                                         <td>@service.ProcessCount</td>
                                         <td>@SystemUsageDisplay.FormatDuration(service.UpTime)</td>

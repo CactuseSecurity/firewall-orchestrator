@@ -81,7 +81,7 @@ namespace FWO.Services.SystemUsage
             bool memoryRead = ApplyMemory(snapshot);
             bool cpuRead = ApplyCpu(snapshot);
             ApplyLoadAverage(snapshot);
-            snapshot.Services = serviceScanner.Scan(now, snapshot.ProcessorCount);
+            snapshot.Services = serviceScanner.Scan(now, snapshot.ProcessorCount, snapshot.MemoryTotalBytes);
             snapshot.SourceAvailable = memoryRead && cpuRead;
             return snapshot;
         }

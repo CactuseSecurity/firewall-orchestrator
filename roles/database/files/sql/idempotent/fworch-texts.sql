@@ -2664,6 +2664,8 @@ INSERT INTO txt VALUES ('ruleOwnershipMode',    'German',   'Regel-Eigent&uuml;m
 INSERT INTO txt VALUES ('ruleOwnershipMode',    'English',  'Rule Ownership Mode');
 INSERT INTO txt VALUES ('reqPriorities',        'German', 	'Priorit&auml;ten');
 INSERT INTO txt VALUES ('reqPriorities',        'English', 	'Priorities');
+INSERT INTO txt VALUES ('reqCreateRequestTaskSortConfig', 'German',  'Sortierpriorit&auml;ten f&uuml;r Antragsaufgaben');
+INSERT INTO txt VALUES ('reqCreateRequestTaskSortConfig', 'English', 'Request task sort priorities');
 INSERT INTO txt VALUES ('reqAutoCreateImplTasks','German', 	'Autom. Erzeugen von Implementierungs-Auftr&auml;gen');
 INSERT INTO txt VALUES ('reqAutoCreateImplTasks','English', 'Auto-create implementation tasks');
 INSERT INTO txt VALUES ('reqConsiderBundling',  'German', 	'B&uuml;ndelung ber&uuml;cksichtigen');
@@ -2936,6 +2938,8 @@ INSERT INTO txt VALUES ('allow_modelling',      'German',   'Modelling erlauben'
 INSERT INTO txt VALUES ('allow_modelling',      'English',  'Allow modelling');
 INSERT INTO txt VALUES ('allow_recertification','German',   'Rezertifizierung erlauben');
 INSERT INTO txt VALUES ('allow_recertification','English',  'Allow recertification');
+INSERT INTO txt VALUES ('allow_task_split',     'German',   'Aufgabenteilung erlauben');
+INSERT INTO txt VALUES ('allow_task_split',     'English',  'Allow task split');
 INSERT INTO txt VALUES ('add_responsible_type', 'German',   'Verantwortlichkeitsstufe hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_responsible_type', 'English',  'Add responsible type');
 INSERT INTO txt VALUES ('edit_responsible_type','German',   'Verantwortlichkeitsstufe bearbeiten');
@@ -4591,6 +4595,10 @@ INSERT INTO txt VALUES ('C9031', 'German',  'Sie ben&ouml;tigen die Rolle recert
 INSERT INTO txt VALUES ('C9031', 'English', 'You need the recertifier role to recertify this owner.');
 INSERT INTO txt VALUES ('C9032', 'German',  'Sie sind diesem Owner nicht als rezertifizierbare verantwortliche Person zugewiesen.');
 INSERT INTO txt VALUES ('C9032', 'English', 'You are not assigned to this owner as a recertifiable responsible person.');
+INSERT INTO txt VALUES ('C9033', 'German',  'Aufgabenteilung erlauben: Wenn deaktiviert, werden gemischte Gruppen&auml;nderungen nicht aufgespalten. Sie erhalten dann die fr&uuml;heste der beiden Priorit&auml;ten f&uuml;r "Mitglieder hinzuf&uuml;gen" oder "Mitglieder entfernen". Wenn aktiviert, werden gemischte Gruppen&auml;nderungen vor dem Sortieren in zwei separate Teilaufgaben aufgeteilt.');
+INSERT INTO txt VALUES ('C9033', 'English', 'Allow task split: If disabled, mixed group modifications are not split. They then get the earlier of the two priorities for "added members" or "removed members". If enabled, mixed group modifications are split into two separate tasks before sorting.');
+INSERT INTO txt VALUES ('C9034', 'German',  'Sortierpriorit&auml;ten f&uuml;r Antragsaufgaben: Hier kann die Reihenfolge festgelegt werden, in der neue Antragsaufgaben vor dem Speichern sortiert werden. Die Reihenfolge gilt von oben nach unten; gemischte Gruppen&auml;nderungen k&ouml;nnen optional in getrennte Teilaufgaben aufgespalten werden.');
+INSERT INTO txt VALUES ('C9034', 'English', 'Request task sort priorities: Defines the order used to sort newly created request tasks before saving. The order applies from top to bottom; mixed group modifications can optionally be split into separate subtasks.');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -6676,6 +6684,8 @@ INSERT INTO txt VALUES ('H5598', 'German',  'Hier werden die globalen Einstellun
 INSERT INTO txt VALUES ('H5598', 'English', 'This page is used to manage global external request settings as well as configured external ticket systems and their templates.');
 INSERT INTO txt VALUES ('H5599', 'German',  'Tasktyp: Typ des Tasks im externen Auftragssystem.');
 INSERT INTO txt VALUES ('H5599', 'English', 'Task Type: Type of the task in the external ticket system.');
+INSERT INTO txt VALUES ('H5600', 'German',  'Antragsauftrags-Sortierung: Hier werden die Speichern-Priorit&auml;ten f&uuml;r Gruppenanlage, Gruppen&auml;nderung mit Hinzuf&uuml;gen, Zugriff, Regel&auml;nderung, Regel l&ouml;schen, Gruppen&auml;nderung mit Entfernen und Gruppenl&ouml;schung festgelegt. Wenn eine Gruppen&auml;nderung gleichzeitig Mitglieder hinzuf&uuml;gt und entfernt, kann sie in zwei Teilaufgaben aufgespalten werden.');
+INSERT INTO txt VALUES ('H5600', 'English', 'Request task sorting: Defines the save priorities for group creation, group modification with added members, access, rule modification, rule deletion, group modification with removed members, and group deletion. If a group modification both adds and removes members, it can be split into two separate tasks.');
 
 INSERT INTO txt VALUES ('H5601', 'German',  'Hier werden die Einstellungen f&uuml;r die Netzwerk-Modellierung verwaltet.
     Dies betrifft Vordefinierte Dienste, Darstellung verschiedener Elemente, Definition von Namenskonventionen sowie Scheduling-Einstellungen f&uuml;r die zu importierenden Objekte:

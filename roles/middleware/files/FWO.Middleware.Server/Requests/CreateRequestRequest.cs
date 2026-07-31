@@ -38,6 +38,13 @@ public sealed class CreateRequestRequest
     public string Title { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets whether request tasks are sorted before the ticket is saved.
+    /// Defaults to false so the existing build order stays unchanged unless callers opt in.
+    /// </summary>
+    [JsonPropertyName("sortTasks")]
+    public bool SortTasks { get; set; } = false;
+
+    /// <summary>
     /// Gets the Rules value.
     /// </summary>
     [JsonPropertyName("rules")]

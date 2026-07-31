@@ -271,6 +271,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("reqPriorities"), JsonPropertyName("reqPriorities")]
         public string ReqPriorities { get; set; } = "[]";
 
+        [JsonProperty("reqCreateRequestTaskSortConfig"), JsonPropertyName("reqCreateRequestTaskSortConfig")]
+        public string ReqCreateRequestTaskSortConfig { get; set; } = System.Text.Json.JsonSerializer.Serialize(new CreateRequestTaskSortConfig());
+
         [JsonProperty("reqAutoCreateImplTasks"), JsonPropertyName("reqAutoCreateImplTasks")]
         public AutoCreateImplTaskOptions ReqAutoCreateImplTasks { get; set; } = AutoCreateImplTaskOptions.never;
 

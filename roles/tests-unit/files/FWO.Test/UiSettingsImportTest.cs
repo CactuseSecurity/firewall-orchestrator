@@ -5,7 +5,7 @@ using System.Reflection;
 namespace FWO.Test
 {
     [TestFixture]
-    internal class UiSettingsComplianceTest
+    internal class UiSettingsImportTest
     {
         [Test]
         public void DeserializeChangeIdKeys_ReadsJsonAndLegacyValues()
@@ -30,7 +30,7 @@ namespace FWO.Test
         [Test]
         public void AddChangeIdKey_TrimsAndRejectsDuplicateKeys()
         {
-            SettingsCompliance component = new();
+            SettingsImport component = new();
             SetField(component, "ChangeIdKeys", new List<string> { "field-2" });
             SetField(component, "ChangeIdKeysToAdd", new List<string>());
             SetField(component, "ActiveChangeIdKey", " TicketId ");
@@ -49,7 +49,7 @@ namespace FWO.Test
         [Test]
         public void MergeChangeIdKeys_AppliesPendingChangesWithoutTouchingEditorState()
         {
-            SettingsCompliance component = new();
+            SettingsImport component = new();
             SetField(component, "ChangeIdKeys", new List<string> { "field-2", "obsolete" });
             SetField(component, "ChangeIdKeysToAdd", new List<string> { "ChangeId" });
             SetField(component, "ChangeIdKeysToDelete", new List<string> { "obsolete" });
@@ -66,7 +66,7 @@ namespace FWO.Test
         [Test]
         public void CommitChangeIdKeys_AppliesPersistedKeysAndClearsQueues()
         {
-            SettingsCompliance component = new();
+            SettingsImport component = new();
             SetField(component, "ChangeIdKeys", new List<string> { "field-2", "obsolete" });
             SetField(component, "ChangeIdKeysToAdd", new List<string> { "ChangeId" });
             SetField(component, "ChangeIdKeysToDelete", new List<string> { "obsolete" });
@@ -87,19 +87,19 @@ namespace FWO.Test
                 ?? throw new InvalidOperationException("DeserializeChangeIdKeys returned null."));
         }
 
-        private static void InvokeInstanceMethod(SettingsCompliance component, string methodName)
+        private static void InvokeInstanceMethod(SettingsImport component, string methodName)
         {
             GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance).Invoke(component, null);
         }
 
-        private static List<string> InvokeMergeChangeIdKeys(SettingsCompliance component)
+        private static List<string> InvokeMergeChangeIdKeys(SettingsImport component)
         {
             MethodInfo method = GetMethod("MergeChangeIdKeys", BindingFlags.NonPublic | BindingFlags.Instance);
             return (List<string>)(method.Invoke(component, null)
                 ?? throw new InvalidOperationException("MergeChangeIdKeys returned null."));
         }
 
-        private static void InvokeCommitChangeIdKeys(SettingsCompliance component, List<string> persistedKeys)
+        private static void InvokeCommitChangeIdKeys(SettingsImport component, List<string> persistedKeys)
         {
             MethodInfo method = GetMethod("CommitChangeIdKeys", BindingFlags.NonPublic | BindingFlags.Instance);
             object?[] arguments = new object?[1];
@@ -109,16 +109,16 @@ namespace FWO.Test
 
         private static MethodInfo GetMethod(string methodName, BindingFlags bindingFlags)
         {
-            return typeof(SettingsCompliance).GetMethod(methodName, bindingFlags)
-                ?? throw new MissingMethodException(typeof(SettingsCompliance).FullName, methodName);
+            return typeof(SettingsImport).GetMethod(methodName, bindingFlags)
+                ?? throw new MissingMethodException(typeof(SettingsImport).FullName, methodName);
         }
 
-        private static void SetField<T>(SettingsCompliance component, string fieldName, T value)
+        private static void SetField<T>(SettingsImport component, string fieldName, T value)
         {
             GetFieldInfo(fieldName).SetValue(component, value);
         }
 
-        private static T GetField<T>(SettingsCompliance component, string fieldName)
+        private static T GetField<T>(SettingsImport component, string fieldName)
         {
             return (T)(GetFieldInfo(fieldName).GetValue(component)
                 ?? throw new InvalidOperationException($"Field {fieldName} returned null."));
@@ -126,8 +126,8 @@ namespace FWO.Test
 
         private static FieldInfo GetFieldInfo(string fieldName)
         {
-            return typeof(SettingsCompliance).GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new MissingFieldException(typeof(SettingsCompliance).FullName, fieldName);
+            return typeof(SettingsImport).GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingFieldException(typeof(SettingsImport).FullName, fieldName);
         }
     }
 }

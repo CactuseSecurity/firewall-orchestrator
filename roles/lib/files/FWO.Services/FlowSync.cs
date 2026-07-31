@@ -132,6 +132,11 @@ namespace FWO.Services
                 }
             }
 
+            if (syncedAny)
+            {
+                Log.WriteInfo(LogMessageTitle, "Flow sync completed.");
+            }
+
             return syncedAny;
         }
 

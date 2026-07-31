@@ -234,7 +234,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task PatchState_WhenMiddlewareClientIsMissing_ThrowsNullReferenceException()
+        public void PatchState_WhenMiddlewareClientIsMissing_ThrowsNullReferenceException()
         {
             MonitorExternalRequestsApiConn apiConn = new();
             MonitorExternalRequests component = RenderComponent(apiConn);

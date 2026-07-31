@@ -28,7 +28,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception ex)
             {
-                Log.WriteWarning("Execution Mode", $"Failed to read execution mode from session storage: {ex.Message}");
+                Log.WriteWarning("Execution Mode", $"Failed to read execution mode from session storage: {ex.Message}. {GlobalConst.BrowserResourceSaving}.");
 
                 return null;
             }
@@ -45,7 +45,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception ex)
             {
-                Log.WriteWarning("Execution Mode", $"Failed to write execution mode to session storage: {ex.Message}.");
+                Log.WriteWarning("Execution Mode", $"Failed to write execution mode to session storage: {ex.Message}. {GlobalConst.BrowserResourceSaving}.");
             }
         }
 
@@ -58,7 +58,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception ex)
             {
-                Log.WriteWarning("Execution Mode", $"Failed to clear stored execution mode: {ex.Message}.");
+                Log.WriteWarning("Execution Mode", $"Failed to clear stored execution mode: {ex.Message}. {GlobalConst.BrowserResourceSaving}.");
             }
         }
     }

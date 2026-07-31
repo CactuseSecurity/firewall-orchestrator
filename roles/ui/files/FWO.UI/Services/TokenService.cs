@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Data.Middleware;
 using FWO.Logging;
 using FWO.Middleware.Client;
@@ -60,7 +61,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception ex)
             {
-                Log.WriteWarning("Token", $"Failed to initialize session storage: {ex.Message}");
+                Log.WriteWarning("Token", $"Failed to initialize session storage: {ex.Message}. {GlobalConst.BrowserResourceSaving}.");
                 return false;
             }
         }
@@ -105,7 +106,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception ex)
             {
-                Log.WriteWarning("Token", $"Failed to write token pair to session storage: {ex.Message}.");
+                Log.WriteWarning("Token", $"Failed to write token pair to session storage: {ex.Message}. {GlobalConst.BrowserResourceSaving}.");
             }
         }
 
@@ -341,7 +342,7 @@ namespace FWO.Ui.Services
             }
             catch (Exception ex)
             {
-                Log.WriteDebug("Token", $"Failed to clear stored token pair: {ex.Message}.");
+                Log.WriteDebug("Token", $"Failed to clear stored token pair: {ex.Message}. {GlobalConst.BrowserResourceSaving}.");
             }
         }
     }

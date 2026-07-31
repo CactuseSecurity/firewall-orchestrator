@@ -200,8 +200,12 @@ internal class FlowRequestServiceTest
         });
     }
 
-    [Test]
-    public async Task CreateRequest_ReturnsCreatedTicketAndResolvesTemporaryIds()
+    [TestCase("2026-07-01T08:00:00Z", "2026-07-01T18:00:00Z", DateTimeKind.Utc)]
+    [TestCase("2026-07-01T08:00:00", "2026-07-01T18:00:00", DateTimeKind.Unspecified)]
+    public async Task CreateRequest_ReturnsCreatedTicketAndResolvesTemporaryIds(
+        string startTime,
+        string endTime,
+        DateTimeKind expectedDateTimeKind)
     {
         FlowRequestServiceApiConn apiConnection = new()
         {
@@ -244,8 +248,8 @@ internal class FlowRequestServiceTest
                 {
                     Id = "-3",
                     Name = "business-hours",
-                    StartTime = "2026-07-01T08:00:00Z",
-                    EndTime = "2026-07-01T18:00:00Z"
+                    StartTime = startTime,
+                    EndTime = endTime
                 }
             ],
             Rules =
@@ -282,6 +286,8 @@ internal class FlowRequestServiceTest
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].ServiceGroupId, Is.Null);
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetBeginDate, Is.Not.Null);
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetEndDate, Is.Not.Null);
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetBeginDate!.Value.Kind, Is.EqualTo(expectedDateTimeKind));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetEndDate!.Value.Kind, Is.EqualTo(expectedDateTimeKind));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue(AdditionalInfoKeys.TimeObjectId), Is.EqualTo("-3"));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue("timeStart"), Is.EqualTo(""));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue("timeEnd"), Is.EqualTo(""));

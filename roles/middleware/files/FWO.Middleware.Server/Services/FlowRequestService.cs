@@ -4,6 +4,7 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data.Workflow;
 using FWO.Data;
+using FWO.Logging;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Services.Workflow;
@@ -696,7 +697,16 @@ public sealed class FlowRequestService
         {
             try
             {
-                return DateTime.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+                DateTime parsedDateTime = DateTime.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+                if (parsedDateTime.Kind == DateTimeKind.Unspecified)
+                {
+                    TimeSpan utcOffset = TimeZoneInfo.Local.GetUtcOffset(parsedDateTime);
+                    Log.WriteWarning(
+                        "Flow Request",
+                        $"Time object {fieldName} '{value}' has no timezone offset. Interpreting it as middleware local time with UTC offset {utcOffset}.");
+                }
+
+                return parsedDateTime;
             }
             catch (FormatException exception)
             {

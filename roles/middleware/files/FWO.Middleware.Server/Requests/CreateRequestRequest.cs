@@ -266,13 +266,13 @@ public sealed class CreateRequestRequest
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets the StartTime value.
+        /// Gets the start time. Values without a timezone offset are interpreted in the middleware host's local time zone.
         /// </summary>
         [JsonPropertyName("startTime")]
         public string StartTime { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets the EndTime value.
+        /// Gets the end time. Values without a timezone offset are interpreted in the middleware host's local time zone.
         /// </summary>
         [JsonPropertyName("endTime")]
         public string EndTime { get; set; } = string.Empty;

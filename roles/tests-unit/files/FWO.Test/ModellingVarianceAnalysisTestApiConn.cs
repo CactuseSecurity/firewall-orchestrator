@@ -15,8 +15,23 @@ namespace FWO.Test
         static readonly NetworkObject NwObj2 = new() { Id = 11, Name = "AppServerOld", IP = "1.0.0.0", Type = new() { Name = ObjectType.Host } };
         static readonly NetworkObject Nwgroup1 = new() { Id = 1, Name = "AR504711-001", Type = new() { Name = ObjectType.Group }, ObjectGroupFlats = [new() { Object = NwObj1 }, new() { Object = NwObj2 }] };
         static readonly NetworkObject Nwgroup3 = new() { Id = 3, Name = "AR504711-003", Type = new() { Name = ObjectType.Group }, ObjectGroupFlats = [new() { Object = NwObj1 }] };
-        static readonly NetworkObject SpecObj1 = new() { Id = 21, Name = "SpecObj1", Type = new() { Name = "Something else" } };
-        static readonly NetworkObject SpecObj2 = new() { Id = 21, Name = "SpecObj2", Type = new() { Name = "Something else" } };
+        static readonly NetworkObject SpecObj1 = new()
+        {
+            Id = 21,
+            Name = "SpecObj1",
+            IP = "0.0.0.0/32",
+            IpEnd = "0.0.0.0/32",
+            Type = new() { Name = "access-role" }
+        };
+
+        static readonly NetworkObject SpecObj2 = new()
+        {
+            Id = 22,
+            Name = "SpecObj2",
+            IP = "0.0.0.0/32",
+            IpEnd = "0.0.0.0/32",
+            Type = new() { Name = "access-role" }
+        };
         static readonly NetworkObject UpdObj1 = new()
         {
             Id = 31,

@@ -389,28 +389,30 @@ namespace FWO.Services.Modelling
         private List<NetworkLocation> GetPlaceholderSubstitutes(NetworkLocation[] networkLocations, Dictionary<string, bool> objectsByName)
         {
             return [.. networkLocations.Where(n => objectsByName.ContainsKey(n.Object.Name.ToLower())
-                && (n.Object.IsSurplus || (ruleRecognitionOption.NwRegardIp && string.IsNullOrEmpty(n.Object.IP))))];
+                        && (n.Object.IsSurplus || (ruleRecognitionOption.NwRegardIp && string.IsNullOrEmpty(n.Object.IP)) || IsAccessRoleObject(n.Object)))];
         }
 
         /// <summary>
-        /// Selects updatable objects by name. Check Point imports updatable objects as dynamic network
-        /// objects with a dummy full-range IP, so several different objects can look identical to the
-        /// IP comparer and only one receives the surplus flag.
+        /// Selects updatable objects by name. Dynamic network objects are importer-created identity
+        /// objects, so several different objects can look identical to the IP comparer.
         /// </summary>
         private static List<NetworkLocation> GetUpdatableObjectSubstitutes(NetworkLocation[] networkLocations, Dictionary<string, bool> updatableObjects)
         {
-            return [.. networkLocations.Where(n => updatableObjects.ContainsKey(n.Object.Name.ToLower()) && (n.Object.IsSurplus || IsDynamicDummyIpObject(n.Object)))];
+            return [.. networkLocations.Where(n => updatableObjects.ContainsKey(n.Object.Name.ToLower()) && (n.Object.IsSurplus || IsDynamicNetworkObject(n.Object)))];
         }
 
-        private static bool IsDynamicDummyIpObject(NetworkObject networkObject)
+        private static bool IsAccessRoleObject(NetworkObject networkObject)
+        {
+            const string kAccessRoleNetworkObjectType = "access-role";
+
+            return string.Equals(networkObject.Type.Name, kAccessRoleNetworkObjectType, StringComparison.Ordinal);
+        }
+
+        private static bool IsDynamicNetworkObject(NetworkObject networkObject)
         {
             const string kDynamicNetworkObjectType = "dynamic_net_obj";
-            const string kDummyIpStart = "0.0.0.0/32";
-            const string kDummyIpEnd = "255.255.255.255/32";
 
-            return string.Equals(networkObject.Type.Name, kDynamicNetworkObjectType, StringComparison.Ordinal)
-                && string.Equals(networkObject.IP, kDummyIpStart, StringComparison.Ordinal)
-                && string.Equals(networkObject.IpEnd, kDummyIpEnd, StringComparison.Ordinal);
+            return string.Equals(networkObject.Type.Name, kDynamicNetworkObjectType, StringComparison.Ordinal);
         }
 
         private void AdjustWithUpdatableObjects(NetworkLocation[] networkLocations, Dictionary<string, bool> updatableObjects, bool source, int updatableObjectAreaCount, ref List<NetworkLocation> disregardedLocations)

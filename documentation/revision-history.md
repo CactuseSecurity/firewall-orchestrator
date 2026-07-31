@@ -585,3 +585,7 @@ Not supported any longer are:
 - fix config change in modelling
 - feat new REST API endpoint: ResolveZonesForObjects
 - feat new REST API endpoint: time object ID lookup
+
+## 9.2.5 - 29.07.2026
+- update flow time object hashing to be timezone invariant
+- ! resets the flow timeobject and access tables

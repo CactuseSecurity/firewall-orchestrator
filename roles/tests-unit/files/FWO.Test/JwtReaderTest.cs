@@ -127,5 +127,62 @@ namespace FWO.Test
 
             Assert.That(result.Status, Is.EqualTo(JwtValidationStatus.Invalid));
         }
+
+        [Test]
+        public async Task ValidateToken_WhenAudienceIsInvalid_ShouldReturnInvalidStatus()
+        {
+            using RSA rsa = RSA.Create(2048);
+            RsaSecurityKey privateKey = new(rsa.ExportParameters(true));
+            RsaSecurityKey publicKey = new(rsa.ExportParameters(false));
+            JwtPublicKeyField.SetValue(null, publicKey);
+
+            JwtSecurityToken token = new(
+                issuer: FWO.Basics.JwtConstants.Issuer,
+                audience: "wrong-audience",
+                expires: DateTime.UtcNow.AddMinutes(5),
+                signingCredentials: new SigningCredentials(privateKey, SecurityAlgorithms.RsaSha256));
+
+            string jwtString = new JwtSecurityTokenHandler().WriteToken(token);
+
+            JwtReader jwtReader = new(jwtString);
+            JwtValidationResult result = await jwtReader.ValidateToken();
+
+            Assert.That(result.Status, Is.EqualTo(JwtValidationStatus.Invalid));
+        }
+
+        [Test]
+        public async Task ValidateToken_WhenIssuerIsInvalid_ShouldReturnInvalidStatus()
+        {
+            using RSA rsa = RSA.Create(2048);
+            RsaSecurityKey privateKey = new(rsa.ExportParameters(true));
+            RsaSecurityKey publicKey = new(rsa.ExportParameters(false));
+            JwtPublicKeyField.SetValue(null, publicKey);
+
+            JwtSecurityToken token = new(
+                issuer: "wrong-issuer",
+                audience: FWO.Basics.JwtConstants.Audience,
+                expires: DateTime.UtcNow.AddMinutes(5),
+                signingCredentials: new SigningCredentials(privateKey, SecurityAlgorithms.RsaSha256));
+
+            string jwtString = new JwtSecurityTokenHandler().WriteToken(token);
+
+            JwtReader jwtReader = new(jwtString);
+            JwtValidationResult result = await jwtReader.ValidateToken();
+
+            Assert.That(result.Status, Is.EqualTo(JwtValidationStatus.Invalid));
+        }
+
+        [Test]
+        public async Task ValidateToken_WhenJwtIsMalformed_ShouldReturnInvalidStatus()
+        {
+            using RSA rsa = RSA.Create(2048);
+            RsaSecurityKey publicKey = new(rsa.ExportParameters(false));
+            JwtPublicKeyField.SetValue(null, publicKey);
+
+            JwtReader jwtReader = new("not-a-jwt");
+            JwtValidationResult result = await jwtReader.ValidateToken();
+
+            Assert.That(result.Status, Is.EqualTo(JwtValidationStatus.Invalid));
+        }
     }
 }

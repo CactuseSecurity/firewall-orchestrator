@@ -288,7 +288,7 @@ namespace FWO.Middleware.Server.Controllers
                 {
                     WriteAudit(nameof(RefreshToken), $"Refresh token for User \"{user.Name}\" with DN: \"{user.Dn}\" was already consumed or revoked.");
 
-                    return BadRequest("Invalid or expired refresh token");
+                    return Unauthorized("Invalid or expired refresh token");
                 }
 
                 TokenPair newTokens = await authManager.CreateTokenPair(user);
@@ -346,7 +346,7 @@ namespace FWO.Middleware.Server.Controllers
                 {
                     WriteAudit(nameof(RevokeToken), $"Refresh token for User \"{auditUser.Name}\" with DN: \"{auditUser.Dn}\" was already consumed or revoked.");
 
-                    return BadRequest("Invalid or expired refresh token");
+                    return Unauthorized("Invalid or expired refresh token");
                 }
 
                 WriteAudit(nameof(RevokeToken), $"Revoked auth tokens for User \"{auditUser.Name}\" with DN: \"{auditUser.Dn}\".");

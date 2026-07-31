@@ -125,6 +125,7 @@
         EventMediator.Subscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent), _ => OnPermissionsChanged(_.EventArgs));
         EventMediator.Subscribe<ReloginRequiredEvent>(nameof(ReloginRequiredEvent), _ => OnReloginRequired(_.EventArgs));
         apiConnection.OnExecutionModeChanged += OnExecutionModeChanged;
+        authenticationProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
 
         DisplayMessageInUiFunction = DisplayMessageInUi;
 
@@ -132,18 +133,21 @@
 
         if (authenticationStateTask != null)
         {
-            AuthenticationState authState = await authenticationStateTask.WaitAsync(TimeSpan.FromSeconds(5));
-            User = authState.User;
+            try
+            {
+                AuthenticationState authState = await authenticationStateTask.WaitAsync(TimeSpan.FromSeconds(5));
+                await ApplyAuthenticationStateAsync(authState);
+            }
+            catch (TimeoutException ex)
+            {
+                Log.WriteWarning(nameof(MainLayout), $"Timed out while waiting for authentication state during layout initialization: {ex.Message}");
+            }
         }
 
         UpdateAmbientModuleRole(NavigationManager.Uri);
         ambientRoleInitialized = true;
 
-        if (User != null && userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
-        {
-            alertSubscription = await apiConnection.RunWithMonitoringRole(User,
-                () => Task.FromResult(apiConnection.GetSubscription<List<Alert>>(GraphqlExceptionHandler.Handle, OnAlertUpdate, MonitorQueries.subscribeAlertChanges)));
-        }
+        await EnsureAlertSubscriptionAsync();
 
         UIMessageQueTimer = new()
         {
@@ -168,14 +172,50 @@
         UpdateAmbientModuleRole(NavigationManager.Uri);
     }
 
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> authStateTask)
+    {
+        try
+        {
+            AuthenticationState authState = await authStateTask;
+            await InvokeAsync(async () =>
+            {
+                await ApplyAuthenticationStateAsync(authState);
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            Log.WriteWarning(nameof(MainLayout), $"Failed to process authentication state change: {ex.Message}");
+        }
+    }
+
+    private async Task ApplyAuthenticationStateAsync(AuthenticationState authState)
+    {
+        User = authState.User;
+        UpdateAmbientModuleRole(NavigationManager.Uri);
+        await EnsureAlertSubscriptionAsync();
+    }
+
     private void UpdateAmbientModuleRole(string location)
     {
         if (User == null)
         {
+            Log.WriteDebug(nameof(MainLayout), "Skipping ambient role update because no authenticated user is available yet.");
             return;
         }
 
         apiConnection.SetAmbientRole(User, GetAmbientRolesForLocation(location));
+    }
+
+    private async Task EnsureAlertSubscriptionAsync()
+    {
+        if (alertSubscription != null || User == null || !userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
+        {
+            return;
+        }
+
+        alertSubscription = await apiConnection.RunWithMonitoringRole(User,
+            () => Task.FromResult(apiConnection.GetSubscription<List<Alert>>(GraphqlExceptionHandler.Handle, OnAlertUpdate, MonitorQueries.subscribeAlertChanges)));
     }
 
     private List<string> GetAmbientRolesForLocation(string location)
@@ -603,6 +643,7 @@
         alertSubscription?.Dispose();
         locationChangingRegistration?.Dispose();
         apiConnection.OnExecutionModeChanged -= OnExecutionModeChanged;        
+        authenticationProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
         EventMediator.Unsubscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent));
         EventMediator.Unsubscribe<ReloginRequiredEvent>(nameof(ReloginRequiredEvent));
         // awaited instead of stopped synchronously: this runs on the render dispatcher, which a refresh

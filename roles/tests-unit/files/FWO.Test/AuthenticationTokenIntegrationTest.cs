@@ -253,10 +253,10 @@ namespace FWO.Test
 
             // Assert
             int successCount = responses.Count(response => response.IsSuccessStatusCode);
-            int badRequestCount = responses.Count(response => response.StatusCode == HttpStatusCode.BadRequest);
+            int unauthorizedCount = responses.Count(response => response.StatusCode == HttpStatusCode.Unauthorized);
 
             Assert.That(successCount, Is.EqualTo(1), "Exactly one concurrent refresh request should succeed.");
-            Assert.That(badRequestCount, Is.EqualTo(refreshTasks.Length - 1), "All other concurrent refresh requests should be rejected.");
+            Assert.That(unauthorizedCount, Is.EqualTo(refreshTasks.Length - 1), "All other concurrent refresh requests should be rejected.");
         }
 
         #endregion

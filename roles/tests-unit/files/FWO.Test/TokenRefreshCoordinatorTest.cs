@@ -261,6 +261,50 @@ namespace FWO.Test
             await coordinator.StopAsync();
         }
 
+        [Test]
+        public async Task StartAsync_WhenSessionRestoreFails_ClearsStoredTokens()
+        {
+            using RSA rsa = RSA.Create(2048);
+            RsaSecurityKey privateKey = new(rsa.ExportParameters(true));
+            RsaSecurityKey publicKey = new(rsa.ExportParameters(false));
+            JwtPrivateKeyField.SetValue(null, privateKey);
+            JwtPublicKeyField.SetValue(null, publicKey);
+
+            MockMiddlewareClient middlewareClient = new()
+            {
+                ShouldRefreshSucceed = false
+            };
+            MockProtectedSessionStorage sessionStorage = new();
+            TokenService tokenService = new(middlewareClient, sessionStorage);
+            EventMediator eventMediator = new();
+            TestNavigationManager navigationManager = new();
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
+            TokenRefreshCoordinator coordinator = new(
+                tokenService,
+                authStateProvider,
+                new RecordingApiConnection(),
+                middlewareClient,
+                new UserConfig(),
+                new TrackingPeriodicTaskRunnerFactory(),
+                navigationManager);
+
+            await tokenService.SetTokenPair(new TokenPair
+            {
+                AccessToken = GenerateJwtToken(privateKey, Roles.Reporter, DateTime.UtcNow.AddMinutes(-5)),
+                RefreshToken = "refresh-token",
+                AccessTokenExpires = DateTime.UtcNow.AddMinutes(-5),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(1)
+            });
+
+            await coordinator.StartAsync();
+
+            Assert.That(middlewareClient.RefreshTokenCallCount, Is.EqualTo(1));
+            Assert.That(await tokenService.GetTokenPair(), Is.Null);
+            Assert.That(sessionStorage.ContainsKey("token_pair"), Is.False);
+
+            await coordinator.StopAsync();
+        }
+
         private static TokenRefreshCoordinator CreateCoordinator(MockProtectedSessionStorage sessionStorage, IPeriodicTaskRunnerFactory runnerFactory)
         {
             MockMiddlewareClient middlewareClient = new();

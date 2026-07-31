@@ -250,7 +250,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task RevokeToken_ReturnsBadRequestWhenRevocationAffectsNoRows()
+        public async Task RevokeToken_ReturnsUnauthorizedWhenRevocationAffectsNoRows()
         {
             RecordingApiConnection apiConnection = new();
             apiConnection.QueueResult(kRefreshTokenUserId7);
@@ -260,8 +260,8 @@ namespace FWO.Test
 
             ActionResult result = await controller.RevokeToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
 
-            Assert.That(result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result).Value, Is.EqualTo("Invalid or expired refresh token"));
+            Assert.That(result, Is.TypeOf<UnauthorizedObjectResult>());
+            Assert.That(((UnauthorizedObjectResult)result).Value, Is.EqualTo("Invalid or expired refresh token"));
         }
 
         [Test]

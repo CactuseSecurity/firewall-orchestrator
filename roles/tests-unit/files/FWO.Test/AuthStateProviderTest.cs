@@ -25,6 +25,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
+using System.Runtime.CompilerServices;
 
 namespace FWO.Test
 {
@@ -397,6 +398,25 @@ namespace FWO.Test
             {
                 Assert.That(authenticationState.User.Identity?.IsAuthenticated, Is.False);
                 Assert.That(mockSessionStorage.ContainsKey("token_pair"), Is.False);
+                Assert.That(navigationManager.Uri, Is.EqualTo("http://localhost/"));
+            });
+        }
+
+        [Test]
+        public async Task Deauthenticate_WhenTokenCleanupThrows_StillClearsAuthenticationState()
+        {
+            EventMediator eventMediator = new();
+            TestNavigationManager navigationManager = new();
+            TokenService brokenTokenService = (TokenService)RuntimeHelpers.GetUninitializedObject(typeof(TokenService));
+            AuthStateProvider authStateProvider = new(brokenTokenService, eventMediator, navigationManager);
+            SetAuthenticatedUser(authStateProvider, TestApiConnection.TestUserDn);
+
+            await authStateProvider.Deauthenticate(forceNavigation: false);
+            AuthenticationState authenticationState = await authStateProvider.GetAuthenticationStateAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(authenticationState.User.Identity?.IsAuthenticated, Is.False);
                 Assert.That(navigationManager.Uri, Is.EqualTo("http://localhost/"));
             });
         }

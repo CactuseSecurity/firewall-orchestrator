@@ -955,6 +955,37 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TestAnalyseRuleStatusMissingOneOfMultipleUpdatableObjectsWithDummyIp()
+        {
+            userConfig.ModUpdatableObjAreas = "[{\"area_id\":3,\"use_in_src\":false,\"use_in_dst\":true}]";
+            try
+            {
+                ModellingConnection connTwoUpdObj = new()
+                {
+                    Id = 9,
+                    Name = "Conn9",
+                    SourceAppServers = [new() { Content = AS1 }],
+                    DestinationAreas = [new() { Content = new ModellingNetworkArea() { Id = 3, Name = "NA-UpdArea" } }],
+                    Services = [new() { Content = Svc1 }],
+                    ExtraConfigs = [new() { ExtraConfigType = "updatable_obj", ExtraConfigText = "UpdObj1" },
+                            new() { ExtraConfigType = "updatable_obj", ExtraConfigText = "UpdObj2" }]
+                };
+                List<ModellingConnection> connections = [connTwoUpdObj];
+                ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+                ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(connections, new(), false);
+
+                ClassicAssert.AreEqual(0, result.ConnsNotImplemented.Count);
+                ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
+                ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].UnusedUpdatableObjects.Count);
+                ClassicAssert.AreEqual("updobj2", result.RuleDifferences[0].ImplementedRules[0].UnusedUpdatableObjects[0]);
+            }
+            finally
+            {
+                userConfig.ModUpdatableObjAreas = "";
+            }
+        }
+
+        [Test]
         public async Task TestAnalyseRuleStatusSingleUpdatableObjectDoesNotMatchMultipleAreas()
         {
             userConfig.ModUpdatableObjAreas = "[{\"area_id\":1,\"use_in_src\":false,\"use_in_dst\":true}, {\"area_id\":3,\"use_in_src\":false,\"use_in_dst\":true}]";

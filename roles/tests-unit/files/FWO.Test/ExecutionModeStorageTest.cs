@@ -69,6 +69,21 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GetExecutionMode_WhenProtectedPayloadIsUnreadable_ClearsStoredValue()
+        {
+            ThrowingSessionStorage sessionStorage = new(getException: new System.Security.Cryptography.CryptographicException("bad payload"));
+            ExecutionModeStorage storage = new(sessionStorage);
+
+            string? result = await storage.GetExecutionMode();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.Null);
+                Assert.That(sessionStorage.DeleteCallCount, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
         public async Task ClearExecutionModeSwallowsDeleteFailures()
         {
             ThrowingSessionStorage sessionStorage = new(deleteException: new InvalidOperationException("delete failed"));

@@ -209,6 +209,42 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task RestoreAuthenticationState_WhenStoredAccessTokenContainsImporterRole_ShouldDeauthenticateWithoutRefresh()
+        {
+            using RSA rsa = RSA.Create(2048);
+            RsaSecurityKey privateKey = new(rsa.ExportParameters(true));
+            RsaSecurityKey publicKey = new(rsa.ExportParameters(false));
+            JwtPrivateKeyField.SetValue(null, privateKey);
+            JwtPublicKeyField.SetValue(null, publicKey);
+
+            MockMiddlewareClient mockMiddlewareClient = new();
+            MockProtectedSessionStorage mockSessionStorage = new();
+            EventMediator eventMediator = new();
+            TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
+            NavigationManager navigationManager = default!;
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
+
+            await tokenService.SetTokenPair(new TokenPair
+            {
+                AccessToken = GenerateJwtToken(privateKey, Roles.Importer, DateTime.UtcNow.AddMinutes(10), BuildJwtClaims()),
+                RefreshToken = "refresh-token",
+                AccessTokenExpires = DateTime.UtcNow.AddMinutes(10),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(1)
+            });
+
+            bool restored = await authStateProvider.RestoreAuthenticationState(new TestApiConnection(), mockMiddlewareClient, new UserConfig());
+            AuthenticationState authenticationState = await authStateProvider.GetAuthenticationStateAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(restored, Is.False);
+                Assert.That(authenticationState.User.Identity?.IsAuthenticated, Is.False);
+                Assert.That(mockMiddlewareClient.RefreshTokenCallCount, Is.EqualTo(0));
+                Assert.That(mockSessionStorage.ContainsKey("token_pair"), Is.False);
+            });
+        }
+
+        [Test]
         public async Task RestoreAuthenticationState_WhenAccessTokenExpired_ShouldRefreshAndAuthenticate()
         {
             using RSA rsa = RSA.Create(2048);
@@ -363,6 +399,31 @@ namespace FWO.Test
                 Assert.That(mockSessionStorage.ContainsKey("token_pair"), Is.False);
                 Assert.That(navigationManager.Uri, Is.EqualTo("http://localhost/"));
             });
+        }
+
+        [Test]
+        public async Task ConfirmPasswordChanged_ReemitsAuthenticatedState()
+        {
+            MockMiddlewareClient mockMiddlewareClient = new();
+            MockProtectedSessionStorage mockSessionStorage = new();
+            EventMediator eventMediator = new();
+            TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
+            NavigationManager navigationManager = default!;
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
+            SetAuthenticatedUser(authStateProvider, TestApiConnection.TestUserDn);
+
+            AuthenticationState? publishedState = null;
+            TaskCompletionSource<bool> published = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            authStateProvider.AuthenticationStateChanged += async task =>
+            {
+                publishedState = await task;
+                published.TrySetResult(true);
+            };
+
+            authStateProvider.ConfirmPasswordChanged();
+            await published.Task;
+
+            Assert.That(publishedState?.User.FindFirstValue("x-hasura-uuid"), Is.EqualTo(TestApiConnection.TestUserDn));
         }
 
         private static void SetAuthenticatedUser(AuthStateProvider authStateProvider, string userDn)

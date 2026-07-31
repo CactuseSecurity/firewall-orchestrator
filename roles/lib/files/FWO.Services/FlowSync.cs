@@ -115,15 +115,18 @@ namespace FWO.Services
             }
 
             bool syncedAny = false;
+            HashSet<int> successfullySyncedManagementIds = [];
 
             foreach (var managementGroup in pendingByManagement)
             {
                 int mgmId = managementGroup.Key;
-                var importsForManagement = managementGroup.OrderBy(import => import.ControlId).ToList();
 
                 try
                 {
-                    await SyncManagementAsync(mgmId, importsForManagement, useManagementNamesForFlow);
+                    if (await SyncManagementAsync(mgmId, useManagementNamesForFlow))
+                    {
+                        successfullySyncedManagementIds.Add(mgmId);
+                    }
                     syncedAny = true;
                 }
                 catch (Exception exception)
@@ -131,6 +134,8 @@ namespace FWO.Services
                     Log.WriteError(LogMessageTitle, $"Flow sync failed for management {mgmId}.", exception);
                 }
             }
+
+            await CompletePendingImportsAsync(pendingByManagement, superMgmToSubMgmIds, successfullySyncedManagementIds);
 
             if (syncedAny)
             {
@@ -142,16 +147,16 @@ namespace FWO.Services
 
         /// <summary>
         /// Synchronizes a single management: fetches normalized objects, calculates hashes,
-        /// inserts missing flows, updates mappings, and marks imports as complete.
+        /// inserts missing flows, and updates mappings.
         /// </summary>
-        private async Task SyncManagementAsync(int mgmId, List<ImportControl> importsForManagement, bool useManagementNamesForFlow)
+        private async Task<bool> SyncManagementAsync(int mgmId, bool useManagementNamesForFlow)
         {
             var managementData = (await apiConnection.SendQueryAsync<List<FlowSyncManagementData>>(FlowQueries.getFlowSyncManagementData, new { mgmId }))?.FirstOrDefault();
 
             if (managementData == null)
             {
                 Log.WriteWarning(LogMessageTitle, $"No management data returned for mgm_id {mgmId}.");
-                return;
+                return false;
             }
 
             var flowData = await GetFlowSyncDataAsync(mgmId);
@@ -159,7 +164,7 @@ namespace FWO.Services
             if (flowData.HasHashInconsistencies())
             {
                 Log.WriteError(LogMessageTitle, $"Hash inconsistencies found for management {mgmId}.");
-                return;
+                return false;
             }
 
             // Process simple objects first, as they are used in groups and accesses
@@ -179,9 +184,30 @@ namespace FWO.Services
             // remove flow mappings from all normalized entries that are set to removed
             await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.updateFlowMappingsForRemoved, new { mgmId });
 
-            // Mark imports as completed
-            var maxImportId = importsForManagement.Max(i => i.ControlId);
-            var updateCount = await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.updateImportControlForFlowSync, new { controlId = maxImportId, mgmId, flowSyncDone = true });
+            return true;
+        }
+
+        /// <summary>
+        /// Marks original pending imports as complete when their managements and required sub-managements synchronized successfully.
+        /// </summary>
+        private async Task CompletePendingImportsAsync(List<IGrouping<int, ImportControl>> pendingImportsByManagement, Dictionary<int, List<int>> superMgmToSubMgmIds, HashSet<int> successfullySyncedManagementIds)
+        {
+            foreach (var managementGroup in pendingImportsByManagement)
+            {
+                int mgmId = managementGroup.Key;
+                List<int> requiredSubManagementIds = superMgmToSubMgmIds.GetValueOrDefault(mgmId, []);
+                bool allRequiredManagementsSynced = successfullySyncedManagementIds.Contains(mgmId)
+                    && requiredSubManagementIds.All(successfullySyncedManagementIds.Contains);
+
+                if (!allRequiredManagementsSynced)
+                {
+                    Log.WriteWarning(LogMessageTitle, $"Not marking flow sync for management {mgmId} as complete because a sub-management did not synchronize.");
+                    continue;
+                }
+
+                long maxImportId = managementGroup.Max(import => import.ControlId);
+                await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.updateImportControlForFlowSync, new { controlId = maxImportId, mgmId, flowSyncDone = true });
+            }
         }
 
         /// <summary>

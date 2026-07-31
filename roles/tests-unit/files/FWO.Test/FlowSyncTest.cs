@@ -334,10 +334,35 @@ namespace FWO.Test
             bool result = await flowSync.Run();
 
             List<int> expectedManagementDataRequests = new() { 1, 2, 3 };
-            List<(long ControlId, int MgmId)> expectedCompletedImportControlUpdates = new() { (9, 1), (9, 2), (9, 3) };
+            List<(long ControlId, int MgmId)> expectedCompletedImportControlUpdates = new() { (9, 1) };
             Assert.That(result, Is.True);
             Assert.That(apiConn.ManagementDataRequests, Is.EqualTo(expectedManagementDataRequests));
             Assert.That(apiConn.CompletedImportControlUpdates, Is.EqualTo(expectedCompletedImportControlUpdates));
+        }
+
+        [Test]
+        public async Task Run_DoesNotCompleteSuperManagementImportWhenSubManagementSyncFails()
+        {
+            FlowSyncTestApiConn apiConn = new();
+            apiConn.PendingImports.Add(new ImportControl { ControlId = 9, MgmId = 1 });
+            SuperMgmToMgmsMapping superMgmToMgmsMapping = new()
+            {
+                SuperMgmId = 1
+            };
+            superMgmToMgmsMapping.SubMgmIds.Add(new SubMgmId { MgmId = 2 });
+            superMgmToMgmsMapping.SubMgmIds.Add(new SubMgmId { MgmId = 3 });
+            apiConn.SuperMgmToMgmsMappings.Add(superMgmToMgmsMapping);
+            apiConn.ManagementDataById.Add(1, new FlowSyncManagementData { Id = 1 });
+            apiConn.ManagementDataById.Add(2, new FlowSyncManagementData { Id = 2 });
+            apiConn.ManagementIdsWithoutData.Add(3);
+            FlowSync flowSync = new(apiConn, new GlobalConfig());
+
+            bool result = await flowSync.Run();
+
+            List<int> expectedManagementDataRequests = new() { 1, 2, 3 };
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.ManagementDataRequests, Is.EqualTo(expectedManagementDataRequests));
+            Assert.That(apiConn.CompletedImportControlUpdates, Is.Empty);
         }
 
         [Test]

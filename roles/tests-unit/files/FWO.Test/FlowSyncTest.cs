@@ -45,6 +45,9 @@ namespace FWO.Test
             public Dictionary<int, FlowSyncManagementData> ManagementDataById { get; set; } = [];
             public HashSet<int> ManagementIdsWithoutData { get; } = [];
             public List<ImportControl> PendingImports { get; set; } = [];
+            public List<SuperMgmToMgmsMapping> SuperMgmToMgmsMappings { get; set; } = new();
+            public List<int> ManagementDataRequests { get; } = new();
+            public List<(long ControlId, int MgmId)> CompletedImportControlUpdates { get; } = new();
 
             public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
@@ -52,9 +55,14 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)PendingImports);
                 }
+                if (query == DeviceQueries.getMgmIdsBySuperMgmId)
+                {
+                    return Task.FromResult((T)(object)SuperMgmToMgmsMappings);
+                }
                 if (query == FlowQueries.getFlowSyncManagementData)
                 {
                     int mgmId = GetVariable<int>(variables, "mgmId");
+                    ManagementDataRequests.Add(mgmId);
                     if (ManagementIdsWithoutData.Contains(mgmId))
                     {
                         return Task.FromResult((T)(object)new List<FlowSyncManagementData>());
@@ -231,6 +239,7 @@ namespace FWO.Test
                 if (query == FlowQueries.updateImportControlForFlowSync)
                 {
                     CompletedImportControlId = GetVariable<long>(variables, "controlId");
+                    CompletedImportControlUpdates.Add((CompletedImportControlId.Value, GetVariable<int>(variables, "mgmId")));
                     return Task.FromResult((T)(object)new MutationResult { AffectedRows = 1 });
                 }
 
@@ -303,6 +312,32 @@ namespace FWO.Test
             Assert.That(apiConn.InsertedNetworkObjects, Is.Empty);
             Assert.That(apiConn.RemovedMappingsCleared, Is.False);
             Assert.That(apiConn.CompletedImportControlId, Is.Null);
+        }
+
+        [Test]
+        public async Task Run_SynchronizesSubManagementsForPendingSuperManagementImport()
+        {
+            FlowSyncTestApiConn apiConn = new();
+            apiConn.PendingImports.Add(new ImportControl { ControlId = 9, MgmId = 1 });
+            SuperMgmToMgmsMapping superMgmToMgmsMapping = new()
+            {
+                SuperMgmId = 1
+            };
+            superMgmToMgmsMapping.SubMgmIds.Add(new SubMgmId { MgmId = 2 });
+            superMgmToMgmsMapping.SubMgmIds.Add(new SubMgmId { MgmId = 3 });
+            apiConn.SuperMgmToMgmsMappings.Add(superMgmToMgmsMapping);
+            apiConn.ManagementDataById.Add(1, new FlowSyncManagementData { Id = 1 });
+            apiConn.ManagementDataById.Add(2, new FlowSyncManagementData { Id = 2 });
+            apiConn.ManagementDataById.Add(3, new FlowSyncManagementData { Id = 3 });
+            FlowSync flowSync = new(apiConn, new GlobalConfig());
+
+            bool result = await flowSync.Run();
+
+            List<int> expectedManagementDataRequests = new() { 1, 2, 3 };
+            List<(long ControlId, int MgmId)> expectedCompletedImportControlUpdates = new() { (9, 1), (9, 2), (9, 3) };
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.ManagementDataRequests, Is.EqualTo(expectedManagementDataRequests));
+            Assert.That(apiConn.CompletedImportControlUpdates, Is.EqualTo(expectedCompletedImportControlUpdates));
         }
 
         [Test]

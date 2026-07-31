@@ -1,0 +1,8 @@
+query getMgmIdsBySuperMgmId {
+  management (where: {is_super_manager: {_eq:true}}) {
+    mgm_id
+    sub_mgms: managementByMultiDeviceManagerId {
+      mgm_id
+    }
+  }
+}

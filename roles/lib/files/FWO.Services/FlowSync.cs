@@ -65,7 +65,28 @@ namespace FWO.Services
                 return false;
             }
 
-            var pendingByManagement = pendingImports
+            // for each super management's import, add dummy sub-management imports for all sub-managements to ensure they are synced as well
+
+            var mgmIdsBySuperMgmId = await apiConnection.SendQueryAsync<List<SuperMgmToMgmsMapping>>(DeviceQueries.getMgmIdsBySuperMgmId) ?? [];
+            var superMgmToSubMgmIds = mgmIdsBySuperMgmId.ToDictionary(mgm => mgm.SuperMgmId, mgm => mgm.SubMgmIds.Select(sub => sub.MgmId).ToList());
+            var importsToSync = new List<ImportControl>(pendingImports);
+
+
+            foreach (var pendingImport in pendingImports.Where(import => import.MgmId.HasValue))
+            {
+                var subManagementIds = superMgmToSubMgmIds.GetValueOrDefault(pendingImport.MgmId!.Value, []);
+
+                foreach (var subManagementId in subManagementIds)
+                {
+                    importsToSync.Add(new ImportControl
+                    {
+                        ControlId = pendingImport.ControlId,
+                        MgmId = subManagementId
+                    });
+                }
+            }
+
+            var pendingByManagement = importsToSync
                 .Where(import => import.MgmId.HasValue)
                 .GroupBy(import => import.MgmId!.Value)
                 .OrderBy(group => group.Max(import => import.ControlId))

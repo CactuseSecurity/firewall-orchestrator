@@ -16,6 +16,11 @@ namespace FWO.Services.SystemUsage
         public bool SourceAvailable { get; set; }
 
         /// <summary>
+        /// Usage of the other FWO services running on the same host, empty if none of them was found.
+        /// </summary>
+        public List<ServiceUsage> Services { get; set; } = [];
+
+        /// <summary>
         /// Total physical memory of the system in bytes.
         /// </summary>
         public long MemoryTotalBytes { get; set; }

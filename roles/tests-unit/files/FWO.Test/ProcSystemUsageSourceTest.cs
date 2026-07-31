@@ -65,6 +65,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ListProcessIds_ReturnsTheRunningProcessesOnLinux()
+        {
+            ProcSystemUsageSource source = new();
+
+            IReadOnlyList<int> processIds = source.ListProcessIds();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(source.MemoryPageSizeBytes, Is.GreaterThan(0));
+                if (OperatingSystem.IsLinux())
+                {
+                    // the test process itself is always among them and its stat file has to be readable
+                    Assert.That(processIds, Does.Contain(Environment.ProcessId));
+                    Assert.That(source.ReadProcFile($"{Environment.ProcessId}/stat"), Is.Not.Null.And.Not.Empty);
+                }
+                else
+                {
+                    Assert.That(processIds, Is.Empty);
+                }
+            });
+        }
+
+        [Test]
         public void Collector_WorksWithTheRealSource()
         {
             SystemUsageCollector collector = new(new ProcSystemUsageSource());

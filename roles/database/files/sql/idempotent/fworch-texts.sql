@@ -3313,6 +3313,20 @@ INSERT INTO txt VALUES ('swap_usage',           'German', 	'Auslagerungsspeicher
 INSERT INTO txt VALUES ('swap_usage',           'English', 	'Swap Usage');
 INSERT INTO txt VALUES ('ui_process',           'German', 	'UI-Prozess');
 INSERT INTO txt VALUES ('ui_process',           'English', 	'UI Process');
+INSERT INTO txt VALUES ('system_services',      'German', 	'Weitere Dienste auf diesem Server');
+INSERT INTO txt VALUES ('system_services',      'English', 	'Other Services on this Host');
+INSERT INTO txt VALUES ('middleware',           'German', 	'Middleware');
+INSERT INTO txt VALUES ('middleware',           'English', 	'Middleware');
+INSERT INTO txt VALUES ('importer',             'German', 	'Importer');
+INSERT INTO txt VALUES ('importer',             'English', 	'Importer');
+INSERT INTO txt VALUES ('database',             'German', 	'Datenbank');
+INSERT INTO txt VALUES ('database',             'English', 	'Database');
+INSERT INTO txt VALUES ('ldap_server',          'German', 	'LDAP-Server');
+INSERT INTO txt VALUES ('ldap_server',          'English', 	'LDAP Server');
+INSERT INTO txt VALUES ('processes',            'German', 	'Prozesse');
+INSERT INTO txt VALUES ('processes',            'English', 	'Processes');
+INSERT INTO txt VALUES ('no_services_found',    'German', 	'Auf diesem Server laufen keine weiteren Dienste des Firewall Orchestrator.');
+INSERT INTO txt VALUES ('no_services_found',    'English', 	'No other Firewall Orchestrator services are running on this host.');
 INSERT INTO txt VALUES ('working_set',          'German', 	'Arbeitsspeicher');
 INSERT INTO txt VALUES ('working_set',          'English', 	'Working Set');
 INSERT INTO txt VALUES ('managed_heap',         'German', 	'Verwalteter Heap');
@@ -3997,6 +4011,8 @@ INSERT INTO txt VALUES ('U7002', 'German',  'Daten sind dann verloren. Erw&auml;
 INSERT INTO txt VALUES ('U7002', 'English', 'Data will be lost. Consider deactivation.');
 INSERT INTO txt VALUES ('U7004', 'German',  'Aktuelle Ressourcennutzung des Firewall Orchestrator');
 INSERT INTO txt VALUES ('U7004', 'English', 'Current resource usage of the Firewall Orchestrator');
+INSERT INTO txt VALUES ('U7005', 'German',  'Dienste, die auf demselben Server wie die UI laufen. Die CPU-Auslastung bezieht sich auf alle Kerne zusammen, Werte mehrerer Prozesse eines Dienstes sind aufsummiert.');
+INSERT INTO txt VALUES ('U7005', 'English', 'Services running on the same host as the UI. The CPU usage relates to all cores combined, values of services consisting of several processes are summed up.');
 INSERT INTO txt VALUES ('U7003', 'German',  'L&ouml;scht alle Beispieldaten (auf "_demo" endend): Managements, Login-Daten, Gateways, Nutzer, Mandanten, Gruppen, Eigent&uuml;mer');
 INSERT INTO txt VALUES ('U7003', 'English', 'Deletes all sample data (ending with "_demo"): managements, credentials, gateways, users, tenants, groups, owners');
 INSERT INTO txt VALUES ('U7101', 'German',  'Archiv der Alarme mit Best&auml;tigungen');
@@ -7576,9 +7592,19 @@ INSERT INTO txt VALUES ('H7108', 'English', 'Memory and CPU usage refer to the w
     which makes it the meaningful figure for judging the memory situation.
     The trend graphs show the measurements taken since the page was opened. The timestamps below them mark the displayed measurement period.');
 INSERT INTO txt VALUES ('H7109', 'German', 'Der Abschnitt "UI-Prozess" zeigt die Werte des UI-Servers selbst: belegter Arbeitsspeicher, Gr&ouml;sse des verwalteten
-    Heaps, Anzahl der Threads und die Laufzeit seit dem letzten Start. Weitere Dienste (Importer, Middleware, Datenbank, API) folgen sp&auml;ter.');
+    Heaps, Anzahl der Threads und die Laufzeit seit dem letzten Start.');
 INSERT INTO txt VALUES ('H7109', 'English', 'The "UI Process" section shows the values of the UI server itself: used working set, size of the managed heap,
-    number of threads and the uptime since its last start. Further services (importer, middleware, database, API) will follow later.');
+    number of threads and the uptime since its last start.');
+INSERT INTO txt VALUES ('H7110', 'German', 'Der Abschnitt "Weitere Dienste auf diesem Server" zeigt dieselben Werte f&uuml;r Middleware, Importer, API, Datenbank und LDAP-Server,
+    sofern diese auf demselben Server wie die UI laufen. Dienste auf anderen Servern der Installation werden nicht aufgef&uuml;hrt.
+    Besteht ein Dienst aus mehreren Prozessen (z. B. die Datenbank), sind deren Werte aufsummiert und die Spalte "Prozesse" zeigt ihre Anzahl;
+    der Arbeitsspeicher kann dabei h&ouml;her wirken als tats&auml;chlich belegt, da sich die Prozesse Speicher teilen.
+    Die CPU-Auslastung bezieht sich wie beim UI-Prozess auf alle Kerne zusammen: 100 % bedeutet, dass alle Kerne ausgelastet sind.');
+INSERT INTO txt VALUES ('H7110', 'English', 'The "Other Services on this Host" section shows the same values for middleware, importer, API, database and LDAP server,
+    as far as they run on the same host as the UI. Services on other hosts of the installation are not listed.
+    If a service consists of several processes (the database for example), their values are summed up and the "Processes" column shows their number;
+    the memory can then look higher than it really is, because the processes share memory.
+    Like for the UI process the CPU usage relates to all cores combined: 100 % means that all cores are busy.');
 INSERT INTO txt VALUES ('H7030', 'German', 'Die Workflow-Ticket-&Uuml;berwachung zeigt Tickets mit ihren Antrags- und Umsetzungsaufgaben.
     Die Filter f&uuml;r Aufgabentyp und Status greifen auf allen Ebenen: Ein Ticket wird angezeigt, wenn es mindestens eine Aufgabe eines gew&auml;hlten Typs enth&auml;lt und wenn das Ticket selbst, eine Antragsaufgabe, eine Umsetzungsaufgabe oder eine Genehmigung einen der gew&auml;hlten Status besitzt.
 ');

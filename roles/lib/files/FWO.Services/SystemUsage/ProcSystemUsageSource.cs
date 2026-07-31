@@ -33,6 +33,9 @@ namespace FWO.Services.SystemUsage
         public int ProcessorCount => Environment.ProcessorCount;
 
         /// <inheritdoc />
+        public int MemoryPageSizeBytes => Environment.SystemPageSize;
+
+        /// <inheritdoc />
         public DateTime UtcNow => DateTime.UtcNow;
 
         /// <inheritdoc />
@@ -60,6 +63,29 @@ namespace FWO.Services.SystemUsage
             {
                 // the counters are best effort only, a missing or unreadable file must not break the caller
                 return null;
+            }
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<int> ListProcessIds()
+        {
+            try
+            {
+                List<int> processIds = [];
+                foreach (string directory in Directory.EnumerateDirectories(kProcDirectory))
+                {
+                    // every process owns a directory named after its id, the other entries are kernel information
+                    if (int.TryParse(Path.GetFileName(directory), out int processId))
+                    {
+                        processIds.Add(processId);
+                    }
+                }
+                return processIds;
+            }
+            catch (Exception)
+            {
+                // the counters are best effort only, an unreadable /proc must not break the caller
+                return [];
             }
         }
 

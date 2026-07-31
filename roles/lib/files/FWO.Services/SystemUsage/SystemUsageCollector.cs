@@ -34,6 +34,7 @@ namespace FWO.Services.SystemUsage
         private const double kFullPercent = 100.0;
 
         private readonly object sampleLock = new();
+        private readonly ServiceUsageScanner serviceScanner = new(source);
 
         private SystemUsageSnapshot? lastSnapshot;
         private long lastCpuBusyTicks;
@@ -80,6 +81,7 @@ namespace FWO.Services.SystemUsage
             bool memoryRead = ApplyMemory(snapshot);
             bool cpuRead = ApplyCpu(snapshot);
             ApplyLoadAverage(snapshot);
+            snapshot.Services = serviceScanner.Scan(now, snapshot.ProcessorCount);
             snapshot.SourceAvailable = memoryRead && cpuRead;
             return snapshot;
         }

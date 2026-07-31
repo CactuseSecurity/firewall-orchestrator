@@ -40,8 +40,34 @@ namespace FWO.Test
                 ProcessWorkingSetBytes = 400 * kMegaByte,
                 ProcessManagedHeapBytes = 120 * kMegaByte,
                 ProcessThreadCount = 42,
-                ProcessStartTime = new DateTime(2026, 7, 29, 8, 0, 0, DateTimeKind.Utc)
+                ProcessStartTime = new DateTime(2026, 7, 29, 8, 0, 0, DateTimeKind.Utc),
+                Services = CreateServices()
             };
+        }
+
+        private static List<ServiceUsage> CreateServices()
+        {
+            return
+            [
+                new ServiceUsage
+                {
+                    NameKey = "middleware",
+                    ProcessCount = 1,
+                    CpuPercent = 12.5,
+                    MemoryBytes = 200 * kMegaByte,
+                    ThreadCount = 25,
+                    UpTime = TimeSpan.FromMinutes(90)
+                },
+                new ServiceUsage
+                {
+                    NameKey = "database",
+                    ProcessCount = 7,
+                    CpuPercent = 3,
+                    MemoryBytes = 800 * kMegaByte,
+                    ThreadCount = 7,
+                    UpTime = TimeSpan.FromHours(26)
+                }
+            ];
         }
 
         private static IRenderedComponent<MonitorSystemUsage> Render(BunitContext context,
@@ -129,6 +155,46 @@ namespace FWO.Test
                 // 8000 MB available, the free memory of 2000 MB would only be confusing next to it
                 Assert.That(page.Markup, Does.Contain("memory_available: 7.8 GB"));
                 Assert.That(page.Markup, Does.Not.Contain("memory_free"));
+            });
+        }
+
+        [Test]
+        public void Page_ShowsUsageOfTheOtherServicesOnThisHost()
+        {
+            using BunitContext context = new();
+            FakeSystemUsageCollector collector = new(CreateSnapshot());
+            UiSessionTracker tracker = new();
+
+            IRenderedComponent<MonitorSystemUsage> page = Render(context, collector, tracker, Roles.Admin);
+            List<string> serviceCells = [.. page.FindAll("tbody tr td").Select(cell => cell.TextContent.Trim())];
+
+            Assert.Multiple(() =>
+            {
+                // one row per service: name, cpu, memory, threads, processes, uptime
+                Assert.That(serviceCells, Has.Count.EqualTo(12));
+                Assert.That(serviceCells.GetRange(0, 6),
+                    Is.EqualTo(new List<string> { "middleware", "12.5 %", "200 MB", "25", "1", "01:30" }));
+                Assert.That(serviceCells.GetRange(6, 6),
+                    Is.EqualTo(new List<string> { "database", "3 %", "800 MB", "7", "7", "1d 02:00" }));
+                Assert.That(page.Markup, Does.Not.Contain("no_services_found"));
+            });
+        }
+
+        [Test]
+        public void Page_WithoutOtherServicesShowsHintInsteadOfTable()
+        {
+            using BunitContext context = new();
+            SystemUsageSnapshot snapshot = CreateSnapshot();
+            snapshot.Services = [];
+            FakeSystemUsageCollector collector = new(snapshot);
+            UiSessionTracker tracker = new();
+
+            IRenderedComponent<MonitorSystemUsage> page = Render(context, collector, tracker, Roles.Admin);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(page.Markup, Does.Contain("no_services_found"));
+                Assert.That(page.FindAll("tbody tr"), Is.Empty);
             });
         }
 

@@ -9,9 +9,20 @@ namespace FWO.Services.SystemUsage
         /// <summary>
         /// Reads one of the kernel status files below /proc.
         /// </summary>
-        /// <param name="fileName">File name below /proc, e.g. "meminfo".</param>
+        /// <param name="fileName">File name below /proc, e.g. "meminfo" or "1234/stat".</param>
         /// <returns>The file content or null if it cannot be read.</returns>
         string? ReadProcFile(string fileName);
+
+        /// <summary>
+        /// Lists the ids of all processes currently visible below /proc.
+        /// </summary>
+        /// <returns>The process ids, empty if they cannot be read.</returns>
+        IReadOnlyList<int> ListProcessIds();
+
+        /// <summary>
+        /// Size of a memory page in bytes, needed to convert the page counts reported by the kernel.
+        /// </summary>
+        int MemoryPageSizeBytes { get; }
 
         /// <summary>
         /// Re-reads the counters of the own process. Called once before the process values of a sample are

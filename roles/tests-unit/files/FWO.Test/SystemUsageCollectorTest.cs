@@ -85,6 +85,34 @@ namespace FWO.Test
         }
 
         [Test]
+        public void Collect_IncludesTheServicesRunningOnThisHost()
+        {
+            FakeSystemUsageSource source = CreateSource();
+            source.ProcFiles["uptime"] = "1000.00 3900.00\n";
+            source.ProcessIds.Add(101);
+            source.ProcFiles["101/stat"] = "101 (postgres) S 1 1 1 0 -1 4194560 1000 0 0 0 400 200 0 0 20 0 3 0 30000 1 2\n";
+            source.ProcFiles["101/statm"] = "20000 1000 500 100 0 3000 0\n";
+            SystemUsageCollector collector = new(source);
+
+            SystemUsageSnapshot snapshot = collector.Collect();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(snapshot.Services, Has.Count.EqualTo(1));
+                Assert.That(snapshot.Services[0].NameKey, Is.EqualTo("database"));
+                Assert.That(snapshot.Services[0].ThreadCount, Is.EqualTo(3));
+            });
+        }
+
+        [Test]
+        public void Collect_WithoutOtherServicesLeavesTheServiceListEmpty()
+        {
+            SystemUsageCollector collector = new(CreateSource());
+
+            Assert.That(collector.Collect().Services, Is.Empty);
+        }
+
+        [Test]
         public void Collect_ParsesLoadAverageAndProcessValues()
         {
             FakeSystemUsageSource source = CreateSource();
@@ -305,6 +333,14 @@ namespace FWO.Test
         public int MemInfoReadCount { get; private set; }
         public int RefreshProcessInfoCount { get; private set; }
 
+        /// <summary>
+        /// Contents of the remaining files below /proc, keyed by their path, e.g. "42/stat".
+        /// </summary>
+        public Dictionary<string, string> ProcFiles { get; } = [];
+
+        public List<int> ProcessIds { get; } = [];
+        public int MemoryPageSizeBytes { get; set; } = 4096;
+
         public TimeSpan ProcessCpuTime { get; set; }
         public long ProcessWorkingSetBytes { get; set; }
         public long ProcessPrivateMemoryBytes { get; set; }
@@ -331,8 +367,13 @@ namespace FWO.Test
                 case "loadavg":
                     return LoadAvg;
                 default:
-                    return null;
+                    return ProcFiles.TryGetValue(fileName, out string? content) ? content : null;
             }
+        }
+
+        public IReadOnlyList<int> ListProcessIds()
+        {
+            return ProcessIds;
         }
     }
 }

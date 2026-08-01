@@ -1160,7 +1160,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task TestNameFieldRuleOwnerPreFilterSkippedForRequestFlow()
+        public async Task TestNameFieldRuleOwnerPreFilterUsedForRequestFlow()
         {
             SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
             RuleOwnerPreFilterRoutingApiConn apiConnection = new();
@@ -1168,8 +1168,8 @@ namespace FWO.Test
 
             await analysis.AnalyseModelledConnectionsForRequest([]);
 
-            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
-            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
         }
 
         [Test]

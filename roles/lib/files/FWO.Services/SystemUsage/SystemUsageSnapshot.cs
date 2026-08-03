@@ -5,6 +5,8 @@ namespace FWO.Services.SystemUsage
     /// </summary>
     public class SystemUsageSnapshot
     {
+        private const double kFullPercent = 100.0;
+
         /// <summary>
         /// Point in time (UTC) at which the values were sampled.
         /// </summary>
@@ -19,6 +21,12 @@ namespace FWO.Services.SystemUsage
         /// Usage of the other FWO services running on the same host, empty if none of them was found.
         /// </summary>
         public List<ServiceUsage> Services { get; set; } = [];
+
+        /// <summary>
+        /// True if processes of other users could be read. If false, <see cref="Services"/> is incomplete
+        /// because the operating system hides them, not because the services are not running.
+        /// </summary>
+        public bool ServicesVisible { get; set; } = true;
 
         /// <summary>
         /// Total physical memory of the system in bytes.
@@ -127,7 +135,7 @@ namespace FWO.Services.SystemUsage
 
         private static double Percentage(long part, long total)
         {
-            return total > 0 ? Math.Clamp(100.0 * part / total, 0, 100) : 0;
+            return total > 0 ? Math.Clamp(kFullPercent * part / total, 0, kFullPercent) : 0;
         }
     }
 }

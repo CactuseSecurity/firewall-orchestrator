@@ -3329,6 +3329,8 @@ INSERT INTO txt VALUES ('processes',            'German', 	'Prozesse');
 INSERT INTO txt VALUES ('processes',            'English', 	'Processes');
 INSERT INTO txt VALUES ('no_services_found',    'German', 	'Auf diesem Server laufen keine weiteren Dienste des Firewall Orchestrator.');
 INSERT INTO txt VALUES ('no_services_found',    'English', 	'No other Firewall Orchestrator services are running on this host.');
+INSERT INTO txt VALUES ('services_not_visible', 'German', 	'Prozesse anderer Nutzer sind auf diesem Server nicht sichtbar. Die Liste der Dienste kann daher unvollst&auml;ndig sein.');
+INSERT INTO txt VALUES ('services_not_visible', 'English', 	'Processes of other users are not visible on this host. The list of services may therefore be incomplete.');
 INSERT INTO txt VALUES ('working_set',          'German', 	'Arbeitsspeicher');
 INSERT INTO txt VALUES ('working_set',          'English', 	'Working Set');
 INSERT INTO txt VALUES ('managed_heap',         'German', 	'Verwalteter Heap');

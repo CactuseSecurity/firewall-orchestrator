@@ -5,11 +5,12 @@ namespace FWO.Services.SystemUsage
     /// <summary>
     /// Reads the operating system counters from the Linux /proc file system and the own process.
     /// </summary>
-    public class ProcSystemUsageSource : ISystemUsageSource
+    public sealed class ProcSystemUsageSource : ISystemUsageSource, IDisposable
     {
         private const string kProcDirectory = "/proc";
 
         private readonly Process process = Process.GetCurrentProcess();
+        private bool disposed;
 
         /// <inheritdoc />
         public TimeSpan ProcessCpuTime => ReadProcessValue(currentProcess => currentProcess.TotalProcessorTime, TimeSpan.Zero);
@@ -24,6 +25,8 @@ namespace FWO.Services.SystemUsage
         public long ProcessManagedHeapBytes => GC.GetTotalMemory(false);
 
         /// <inheritdoc />
+        // reading Threads builds a fresh collection on every call, which is why the collector takes this
+        // value once per sample rather than per displayed field
         public int ProcessThreadCount => ReadProcessValue(currentProcess => currentProcess.Threads.Count, 0);
 
         /// <inheritdoc />
@@ -56,8 +59,10 @@ namespace FWO.Services.SystemUsage
         {
             try
             {
-                string path = Path.Combine(kProcDirectory, fileName);
-                return File.Exists(path) ? File.ReadAllText(path) : null;
+                // deliberately no File.Exists probe beforehand: a process can vanish between the check and
+                // the read anyway, so the failure has to be handled here in any case, and the extra call
+                // would double the file system round trips of a scan across all processes of the host
+                return File.ReadAllText(Path.Combine(kProcDirectory, fileName));
             }
             catch (Exception)
             {
@@ -86,6 +91,19 @@ namespace FWO.Services.SystemUsage
             {
                 // the counters are best effort only, an unreadable /proc must not break the caller
                 return [];
+            }
+        }
+
+        /// <summary>
+        /// Releases the handle on the own process. The source lives as long as the service does, so this
+        /// only runs when the dependency injection container is shut down.
+        /// </summary>
+        public void Dispose()
+        {
+            if (!disposed)
+            {
+                disposed = true;
+                process.Dispose();
             }
         }
 

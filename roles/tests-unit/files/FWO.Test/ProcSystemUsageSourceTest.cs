@@ -88,6 +88,18 @@ namespace FWO.Test
         }
 
         [Test]
+        public void Dispose_ReleasesTheProcessHandleAndStaysHarmlessWhenRepeated()
+        {
+            ProcSystemUsageSource source = new();
+
+            source.Dispose();
+            source.Dispose();
+
+            // the counters are best effort, a disposed source falls back instead of throwing
+            Assert.That(source.ProcessWorkingSetBytes, Is.EqualTo(0));
+        }
+
+        [Test]
         public void Collector_WorksWithTheRealSource()
         {
             SystemUsageCollector collector = new(new ProcSystemUsageSource());

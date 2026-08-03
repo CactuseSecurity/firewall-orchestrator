@@ -33,9 +33,12 @@ namespace FWO.Test
 
         private const string kLoadAvg = "0.52 1.25 2.00 2/1234 5678\n";
 
+        // the stat file of the init process, readable only while processes of other users are visible
+        private const string kInitProcessStatFile = "1/stat";
+
         private static FakeSystemUsageSource CreateSource()
         {
-            return new FakeSystemUsageSource
+            FakeSystemUsageSource source = new()
             {
                 MemInfo = kMemInfo,
                 Stat = kStatFirstSample,
@@ -49,6 +52,8 @@ namespace FWO.Test
                 UtcNow = new DateTime(2026, 7, 29, 10, 0, 0, DateTimeKind.Utc),
                 ProcessCpuTime = TimeSpan.FromSeconds(60)
             };
+            source.ProcFiles[kInitProcessStatFile] = "1 (systemd) S 0 1 1 0 -1 4194560 1000 0 0 0 10 10 0 0 20 0 1 0 0 1 2\n";
+            return source;
         }
 
         [Test]
@@ -110,8 +115,32 @@ namespace FWO.Test
         public void Collect_WithoutOtherServicesLeavesTheServiceListEmpty()
         {
             SystemUsageCollector collector = new(CreateSource());
+            SystemUsageSnapshot snapshot = collector.Collect();
 
-            Assert.That(collector.Collect().Services, Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(snapshot.Services, Is.Empty);
+                // the services really are not running, as opposed to being hidden from this process
+                Assert.That(snapshot.ServicesVisible, Is.True);
+            });
+        }
+
+        [Test]
+        public void Collect_WithHiddenForeignProcessesMarksTheServicesInvisible()
+        {
+            FakeSystemUsageSource source = CreateSource();
+            // a /proc mounted with hidepid only shows the own processes, the init process of root is gone
+            source.ProcFiles.Remove(kInitProcessStatFile);
+            SystemUsageCollector collector = new(source);
+
+            SystemUsageSnapshot snapshot = collector.Collect();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(snapshot.ServicesVisible, Is.False);
+                // the system counters themselves are still readable
+                Assert.That(snapshot.SourceAvailable, Is.True);
+            });
         }
 
         [Test]
@@ -340,6 +369,11 @@ namespace FWO.Test
         /// </summary>
         public Dictionary<string, string> ProcFiles { get; } = [];
 
+        /// <summary>
+        /// Names of all files requested below /proc, in the order they were read.
+        /// </summary>
+        public List<string> ReadProcFileNames { get; } = [];
+
         public List<int> ProcessIds { get; } = [];
         public int MemoryPageSizeBytes { get; set; } = 4096;
 
@@ -359,6 +393,7 @@ namespace FWO.Test
 
         public string? ReadProcFile(string fileName)
         {
+            ReadProcFileNames.Add(fileName);
             switch (fileName)
             {
                 case "meminfo":

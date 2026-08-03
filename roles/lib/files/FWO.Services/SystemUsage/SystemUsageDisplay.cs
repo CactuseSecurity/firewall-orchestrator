@@ -9,6 +9,7 @@ namespace FWO.Services.SystemUsage
     {
         private static readonly List<string> kByteUnits = ["B", "KB", "MB", "GB", "TB", "PB"];
         private const double kUnitStep = 1024.0;
+        private const double kFullPercent = 100.0;
 
         /// <summary>
         /// Formats a byte count with a binary unit prefix, e.g. "1.5 GB".
@@ -44,7 +45,7 @@ namespace FWO.Services.SystemUsage
         /// <returns>The formatted value.</returns>
         public static string FormatPercent(double percent)
         {
-            return $"{Math.Clamp(percent, 0, 100).ToString("0.#", CultureInfo.InvariantCulture)} %";
+            return $"{Math.Clamp(percent, 0, kFullPercent).ToString("0.#", CultureInfo.InvariantCulture)} %";
         }
 
         /// <summary>

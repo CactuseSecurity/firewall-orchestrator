@@ -15,6 +15,8 @@ namespace FWO.Services.SystemUsage
         private const string kStatmFileName = "statm";
         private const string kCommandLineFileName = "cmdline";
         private const string kUpTimeFile = "uptime";
+        // the init process belongs to root and is therefore only readable if foreign processes are visible
+        private const int kInitProcessId = 1;
         // times below /proc are reported in USER_HZ, which Linux fixes at 100 on all supported architectures
         private const double kClockTicksPerSecond = 100.0;
         private const double kFullPercent = 100.0;
@@ -24,8 +26,16 @@ namespace FWO.Services.SystemUsage
         private const int kStartTimeFieldIndex = 19;
         private const int kResidentPagesFieldIndex = 1;
 
+        // the kernel cuts the executable name in the stat file off after this many characters
+        private const int kMaxExecutableNameLength = 15;
+
         private static readonly char[] kFieldSeparators = [' ', '\t', '\n', '\r'];
         private static readonly char[] kArgumentSeparators = ['\0'];
+
+        // a service started through an interpreter carries the interpreter as executable name, its own name
+        // is then only found on the command line. Matched as prefixes, because the name of an interpreter
+        // usually carries its version, e.g. "python3.11".
+        private static readonly List<string> kInterpreterNamePrefixes = ["python", "dotnet"];
 
         private static readonly List<string> kMiddlewareProcessNames = ["FWO.Middleware.Server"];
         private static readonly List<string> kImporterProcessNames = ["import_main_loop.py"];
@@ -85,6 +95,18 @@ namespace FWO.Services.SystemUsage
             return services;
         }
 
+        /// <summary>
+        /// Checks whether processes of other users are visible at all. A /proc mounted with the hidepid
+        /// option only shows the own processes, and services running on another host or in another process
+        /// namespace are invisible as well. Without this check an empty scan result could not be told apart
+        /// from services that really are not running here.
+        /// </summary>
+        /// <returns>True if foreign processes can be read.</returns>
+        public bool ForeignProcessesVisible()
+        {
+            return source.ReadProcFile($"{kInitProcessId}/{kStatFileName}") != null;
+        }
+
         private void AddProcess(int processId, Dictionary<string, ServiceAccumulator> accumulators)
         {
             string? statContent = source.ReadProcFile($"{processId}/{kStatFileName}");
@@ -115,12 +137,30 @@ namespace FWO.Services.SystemUsage
                 return definition;
             }
 
-            // the executable name of the kernel is cut off after 15 characters, so the command line is needed
-            // to recognize services with longer names
+            if (!MayHideNameOnCommandLine(executableName))
+            {
+                return null;
+            }
+
+            // the executable name of the kernel is cut off, so the command line is needed to recognize
+            // services with longer names
             List<string> commandLineNames = ReadCommandLineNames(processId);
             return commandLineNames.Count == 0
                 ? null
                 : kServiceDefinitions.Find(candidate => candidate.MatchCommandLine && commandLineNames.Exists(candidate.Matches));
+        }
+
+        /// <summary>
+        /// Checks whether the name of a service can still be hidden behind the given executable name.
+        /// Reading the command line of every process of the host would double the cost of a scan, and only
+        /// a name cut off by the kernel or an interpreter running a script elsewhere can carry one.
+        /// </summary>
+        /// <param name="executableName">Executable name as reported in the stat file.</param>
+        /// <returns>True if the command line still has to be examined.</returns>
+        private static bool MayHideNameOnCommandLine(string executableName)
+        {
+            return executableName.Length >= kMaxExecutableNameLength
+                || kInterpreterNamePrefixes.Exists(prefix => executableName.StartsWith(prefix, StringComparison.Ordinal));
         }
 
         private ServiceUsage BuildUsage(string nameKey, ServiceAccumulator accumulator, SampleContext context)

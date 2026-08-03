@@ -139,21 +139,34 @@ namespace FWO.Test
         {
             UiSessionTracker tracker = new();
             SessionTestAuthStateProvider authStateProvider = new();
-            UiSessionCircuitHandler handler = new(tracker, authStateProvider);
-            await OpenCircuit(handler);
-            handler.Dispose();
-
+            UiSessionCircuitHandler disposedHandler = new(tracker, authStateProvider);
+            await OpenCircuit(disposedHandler);
+            disposedHandler.Dispose();
             // re-create the entry the disposed handler used, so that a still attached handler would fill it
-            tracker.Register(handler.SessionId);
+            tracker.Register(disposedHandler.SessionId);
+
+            // a second handler stays attached and marks the point at which the notification has been
+            // processed, so that the assertion does not have to wait for a fixed span of time
+            using UiSessionCircuitHandler attachedHandler = new(tracker, authStateProvider);
+            await OpenCircuit(attachedHandler);
             authStateProvider.SetUser("tim", "uid=tim,ou=operator");
             authStateProvider.RaiseAuthenticationStateChanged();
-            await Task.Delay(kStateChangeTimeoutMs / 4);
 
+            Assert.That(() => tracker.GetOverview().LoggedInUsers, Is.EqualTo(1).After(kStateChangeTimeoutMs, 20));
+            List<UiSession> sessions = tracker.GetOverview().Sessions;
             Assert.Multiple(() =>
             {
-                Assert.That(tracker.GetOverview().OpenSessions, Is.EqualTo(1));
-                Assert.That(tracker.GetOverview().LoggedInUsers, Is.EqualTo(0));
+                Assert.That(sessions, Has.Count.EqualTo(2));
+                // only the attached handler stored the user, the disposed one ignored the notification
+                Assert.That(FindSession(sessions, disposedHandler.SessionId).Authenticated, Is.False);
+                Assert.That(FindSession(sessions, attachedHandler.SessionId).UserName, Is.EqualTo("tim"));
             });
+        }
+
+        private static UiSession FindSession(List<UiSession> sessions, string sessionId)
+        {
+            return sessions.Find(session => session.SessionId == sessionId)
+                ?? throw new AssertionException($"session {sessionId} was not found");
         }
 
         [Test]

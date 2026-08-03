@@ -1,3 +1,4 @@
+using FWO.Logging;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using System.Security.Claims;
@@ -85,6 +86,13 @@ namespace FWO.Ui.Services
                 if (task.Status == TaskStatus.RanToCompletion)
                 {
                     ApplyUser(task.Result);
+                }
+                else if (task.IsFaulted)
+                {
+                    // the exception has to be touched here, an unobserved one would resurface later on
+                    // as an UnobservedTaskException of the finalizer
+                    Log.WriteError(nameof(UiSessionCircuitHandler),
+                        $"Could not read the authentication state of session {SessionId}.", task.Exception);
                 }
             }, TaskScheduler.Default);
         }

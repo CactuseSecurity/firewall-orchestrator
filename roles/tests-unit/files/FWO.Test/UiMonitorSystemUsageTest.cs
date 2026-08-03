@@ -106,6 +106,14 @@ namespace FWO.Test
             return (T)property.GetValue(page)!;
         }
 
+        private static void SetPrivateProperty<T>(MonitorSystemUsage page, string propertyName, T value)
+        {
+            PropertyInfo property = typeof(MonitorSystemUsage).GetProperty(propertyName,
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMemberException(typeof(MonitorSystemUsage).FullName, propertyName);
+            property.SetValue(page, value);
+        }
+
         private static void InvokePrivateMethod(MonitorSystemUsage page, string methodName)
         {
             MethodInfo method = typeof(MonitorSystemUsage).GetMethod(methodName,
@@ -201,6 +209,43 @@ namespace FWO.Test
         }
 
         [Test]
+        public void Page_WithHiddenProcessesDoesNotClaimThatNoServicesRun()
+        {
+            using BunitContext context = new();
+            SystemUsageSnapshot snapshot = CreateSnapshot();
+            snapshot.Services = [];
+            snapshot.ServicesVisible = false;
+            FakeSystemUsageCollector collector = new(snapshot);
+
+            IRenderedComponent<MonitorSystemUsage> page = Render(context, collector, new UiSessionTracker(), Roles.Admin);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(page.Markup, Does.Contain("services_not_visible"));
+                // stating that nothing runs here would be wrong, the services are only invisible
+                Assert.That(page.Markup, Does.Not.Contain("no_services_found"));
+            });
+        }
+
+        [Test]
+        public void Page_WithHiddenProcessesStillShowsTheServicesItFound()
+        {
+            using BunitContext context = new();
+            SystemUsageSnapshot snapshot = CreateSnapshot();
+            snapshot.ServicesVisible = false;
+            FakeSystemUsageCollector collector = new(snapshot);
+
+            IRenderedComponent<MonitorSystemUsage> page = Render(context, collector, new UiSessionTracker(), Roles.Admin);
+
+            Assert.Multiple(() =>
+            {
+                // the list is incomplete, but what could be read stays visible next to the warning
+                Assert.That(page.Markup, Does.Contain("services_not_visible"));
+                Assert.That(page.FindAll("tbody tr"), Has.Count.EqualTo(2));
+            });
+        }
+
+        [Test]
         public void Page_CollectsInitialSampleOnOpen()
         {
             using BunitContext context = new();
@@ -288,6 +333,46 @@ namespace FWO.Test
                 Assert.That(GetPrivateProperty<List<double>>(page.Instance, "CpuHistory"), Is.Empty);
                 Assert.That(page.Markup, Does.Contain("alert-warning"));
             });
+        }
+
+        [Test]
+        public void Refresh_ReportsAFailureStreakOnlyOnce()
+        {
+            using BunitContext context = new();
+            FakeSystemUsageCollector collector = new(CreateSnapshot());
+            IRenderedComponent<MonitorSystemUsage> page = Render(context, collector, new UiSessionTracker(), Roles.Admin);
+            List<string> messages = [];
+            SetPrivateProperty(page.Instance, "DisplayMessageInUi",
+                new Action<Exception?, string, string, bool>((_, title, _, _) => messages.Add(title)));
+
+            collector.ThrowOnCollect = true;
+            // the timer samples every few seconds, a lasting failure must not repeat the message every tick
+            InvokePrivateMethod(page.Instance, "Refresh");
+            InvokePrivateMethod(page.Instance, "Refresh");
+            InvokePrivateMethod(page.Instance, "Refresh");
+
+            Assert.That(messages, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public void Refresh_ReportsAgainAfterTheCountersRecovered()
+        {
+            using BunitContext context = new();
+            FakeSystemUsageCollector collector = new(CreateSnapshot());
+            IRenderedComponent<MonitorSystemUsage> page = Render(context, collector, new UiSessionTracker(), Roles.Admin);
+            List<string> messages = [];
+            SetPrivateProperty(page.Instance, "DisplayMessageInUi",
+                new Action<Exception?, string, string, bool>((_, title, _, _) => messages.Add(title)));
+
+            collector.ThrowOnCollect = true;
+            InvokePrivateMethod(page.Instance, "Refresh");
+            collector.ThrowOnCollect = false;
+            InvokePrivateMethod(page.Instance, "Refresh");
+            collector.ThrowOnCollect = true;
+            InvokePrivateMethod(page.Instance, "Refresh");
+
+            // a new failure after a successful sample is a new incident and is reported again
+            Assert.That(messages, Has.Count.EqualTo(2));
         }
 
         [Test]
@@ -433,8 +518,8 @@ namespace FWO.Test
             FakePeriodicTaskRunnerFactory factory = new();
             IRenderedComponent<MonitorSystemUsage> page = Render(context, collector, new UiSessionTracker(), factory, Roles.Admin);
 
-            // the real runner blocks in Dispose until its loop ended, and that loop needs the render
-            // dispatcher: shutting it down inline would deadlock the circuit
+            // the real runner waits for its loop to end, and that loop needs the render dispatcher:
+            // the shutdown therefore has to be awaited instead of blocking the caller
             using ManualResetEventSlim runnerShutdown = new(false);
             factory.LastRunner!.DisposeGate = runnerShutdown;
 

@@ -20,6 +20,9 @@ namespace FWO.Test
         // the system has been up for 1000 seconds when the first sample is taken
         private const string kUpTime = "1000.00 3900.00\n";
 
+        // the stat file of the init process, readable only while processes of other users are visible
+        private const string kInitProcessStatFile = "1/stat";
+
         private static readonly DateTime kFirstSampleTime = new(2026, 7, 31, 10, 0, 0, DateTimeKind.Utc);
 
         /// <summary>
@@ -72,6 +75,7 @@ namespace FWO.Test
                 MemoryPageSizeBytes = kPageSize
             };
             source.ProcFiles["uptime"] = kUpTime;
+            source.ProcFiles[kInitProcessStatFile] = BuildStat(1, "systemd", 10, 10, 1, 0);
 
             // the middleware is only recognizable by its command line, the kernel cuts its name off after 15 characters
             AddProcess(source, 101, BuildStat(101, "FWO.Middleware.", 100, 50, 20, 40000), 1000,
@@ -233,6 +237,75 @@ namespace FWO.Test
                 Assert.That(middleware.MemoryPercent, Is.EqualTo(0));
                 Assert.That(middleware.MemoryBytes, Is.EqualTo(1000 * kPageSize));
             });
+        }
+
+        [Test]
+        public void Scan_DoesNotReadTheCommandLineOfEveryProcess()
+        {
+            FakeSystemUsageSource source = CreateSource();
+            ServiceUsageScanner scanner = new(source);
+
+            scanner.Scan(kFirstSampleTime, kProcessorCount, kMemoryTotalBytes);
+
+            Assert.Multiple(() =>
+            {
+                // an ordinary short executable name cannot hide a service, so its command line stays untouched
+                Assert.That(source.ReadProcFileNames, Does.Not.Contain("107/cmdline"));
+                // a name cut off by the kernel and an interpreter still have to be looked at
+                Assert.That(source.ReadProcFileNames, Does.Contain("101/cmdline"));
+                Assert.That(source.ReadProcFileNames, Does.Contain("102/cmdline"));
+            });
+        }
+
+        [TestCase("python")]
+        [TestCase("python3")]
+        [TestCase("python3.11")]
+        public void Scan_FindsTheImporterBehindAnyPythonVersion(string interpreterName)
+        {
+            FakeSystemUsageSource source = new() { ProcessorCount = kProcessorCount, MemoryPageSizeBytes = kPageSize };
+            source.ProcFiles["uptime"] = kUpTime;
+            AddProcess(source, 302, BuildStat(302, interpreterName, 200, 100, 5, 50000), 2000,
+                BuildCommandLine($"/usr/local/fworch/importer/.venv/bin/{interpreterName}",
+                    "/usr/local/fworch/importer/import_main_loop.py"));
+            ServiceUsageScanner scanner = new(source);
+
+            List<ServiceUsage> services = scanner.Scan(kFirstSampleTime, kProcessorCount, kMemoryTotalBytes);
+
+            Assert.That(FindService(services, kImporterKey).ProcessCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void Scan_FindsAServiceBehindALongExecutableName()
+        {
+            FakeSystemUsageSource source = new() { ProcessorCount = kProcessorCount, MemoryPageSizeBytes = kPageSize };
+            source.ProcFiles["uptime"] = kUpTime;
+            // the kernel reports exactly 15 characters, the full name is only on the command line
+            AddProcess(source, 301, BuildStat(301, "FWO.Middleware.", 100, 50, 20, 40000), 1000,
+                BuildCommandLine("/usr/local/fworch/middleware/bin/Release/net10.0/FWO.Middleware.Server"));
+            ServiceUsageScanner scanner = new(source);
+
+            List<ServiceUsage> services = scanner.Scan(kFirstSampleTime, kProcessorCount, kMemoryTotalBytes);
+
+            Assert.That(FindService(services, kMiddlewareKey).MemoryBytes, Is.EqualTo(1000 * kPageSize));
+        }
+
+        [Test]
+        public void ForeignProcessesVisible_WithReadableInitProcess()
+        {
+            ServiceUsageScanner scanner = new(CreateSource());
+
+            Assert.That(scanner.ForeignProcessesVisible(), Is.True);
+        }
+
+        [Test]
+        public void ForeignProcessesVisible_WithHiddenInitProcessReportsThemInvisible()
+        {
+            FakeSystemUsageSource source = CreateSource();
+            // a /proc mounted with hidepid only shows the own processes, the init process of root is gone
+            source.ProcFiles.Remove(kInitProcessStatFile);
+            ServiceUsageScanner scanner = new(source);
+
+            Assert.That(scanner.ForeignProcessesVisible(), Is.False);
         }
 
         [Test]

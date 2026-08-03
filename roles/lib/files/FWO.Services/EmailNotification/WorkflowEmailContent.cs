@@ -158,11 +158,11 @@ namespace FWO.Services
 
             foreach (WfReqElement element in task.Elements)
             {
-                if (IsMemberToRemove(element))
+                if (element.IsMemberToRemove())
                 {
                     membersToRemove.Add(element);
                 }
-                else if (IsMemberToAdd(element))
+                else if (element.IsMemberToAdd())
                 {
                     membersToAdd.Add(element);
                 }
@@ -214,17 +214,6 @@ namespace FWO.Services
             return element.Field == ElemFieldType.service.ToString()
                 ? BuildGroupServiceMemberText(element, protocolNamesById)
                 : BuildGroupObjectMemberText(element);
-        }
-
-        private static bool IsMemberToAdd(WfReqElement element)
-        {
-            return element.RequestAction == RequestAction.create.ToString()
-                || element.RequestAction == RequestAction.addAfterCreation.ToString();
-        }
-
-        private static bool IsMemberToRemove(WfReqElement element)
-        {
-            return element.RequestAction == RequestAction.delete.ToString();
         }
 
         private static string BuildGroupObjectMemberText(WfElementBase element)

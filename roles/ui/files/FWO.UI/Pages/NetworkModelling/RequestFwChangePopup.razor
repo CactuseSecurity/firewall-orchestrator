@@ -237,12 +237,12 @@
             return userConfig.GetText("source") + ": " + DisplayNwObjects(task, ElemFieldType.source.ToString()) +
                 "<br>" + userConfig.GetText("service") + ": " + DisplayServices(task) +
                 "<br>" + userConfig.GetText("destination") + ": " + DisplayNwObjects(task, ElemFieldType.destination.ToString()) +
-                (task.Comments.Count > 0 ? "<br>" + userConfig.GetText("comment") + ": " + task.Comments.First().Comment.CommentText : "");
+                DisplayComment(task);
         }
         else if (task.TaskType == WfTaskType.rule_modify.ToString() || task.TaskType == WfTaskType.rule_delete.ToString())
         {
             return userConfig.GetText("gateway") + ": " + DisplayDevices(task) +
-                "<br>" + userConfig.GetText("rule_uid") + ": " + (task.GetRuleElements().FirstOrDefault()?.RuleUid ?? "") +
+                "<br>" + userConfig.GetText("rule_uid") + ": " + HtmlEncode(task.GetRuleElements().FirstOrDefault()?.RuleUid) +
                 "<br>" + userConfig.GetText("source") + ": " + DisplayNwObjects(task, ElemFieldType.source.ToString()) +
                 (task.TaskType == WfTaskType.rule_delete.ToString() && task.Elements.Where(e => e.Field == ElemFieldType.modelled_source.ToString()).ToList().Count > 0 ?
                     "<br>" + userConfig.GetText("modelled_source") + ": " + DisplayNwObjects(task, ElemFieldType.modelled_source.ToString()) : "") +
@@ -250,7 +250,7 @@
                 "<br>" + userConfig.GetText("destination") + ": " + DisplayNwObjects(task, ElemFieldType.destination.ToString()) +
                 (task.TaskType == WfTaskType.rule_delete.ToString() && task.Elements.Where(e => e.Field == ElemFieldType.modelled_destination.ToString()).ToList().Count > 0 ?
                     "<br>" + userConfig.GetText("modelled_destination") + ": " + DisplayNwObjects(task, ElemFieldType.modelled_destination.ToString()) : "") +
-                (task.Comments.Count > 0 ? "<br>" + userConfig.GetText("comment") + ": " + task.Comments.First().Comment.CommentText : "");
+                DisplayComment(task);
         }
         else if (task.TaskType == WfTaskType.group_create.ToString() || task.TaskType == WfTaskType.group_modify.ToString())
         {
@@ -273,7 +273,7 @@
         {
             DevNames.Add(Devices.FirstOrDefault(d => d.Id == devId)?.Name ?? "");
         }
-        return string.Join(", ", DevNames);
+        return string.Join(", ", DevNames.Select(HtmlEncode));
     }
 
     private string DisplayNwObjects(WfReqTask task, string fieldType)
@@ -283,11 +283,11 @@
         {
             if (elem.GroupName != null)
             {
-                nwObjects.Add(elem.GroupName);
+                nwObjects.Add(HtmlEncode(elem.GroupName));
             }
             else
             {
-                nwObjects.Add(DisplayBase.DisplayIpWithName(WfElementBase.ToNetworkObject(elem)));
+                nwObjects.Add(HtmlEncode(DisplayBase.DisplayIpWithName(WfElementBase.ToNetworkObject(elem))));
             }
         }
         return string.Join(", ", nwObjects);
@@ -298,7 +298,7 @@
         List<string> services = [];
         foreach (var elem in task.Elements.Where(e => e.Field == ElemFieldType.service.ToString()))
         {
-            services.Add(DisplayServiceElement(elem, true));
+            services.Add(HtmlEncode(DisplayServiceElement(elem, true)));
         }
         return string.Join(", ", services);
     }
@@ -308,9 +308,9 @@
     /// </summary>
     private string DisplayMembers(WfReqTask task)
     {
-        List<WfReqElement> currentMembers = [.. task.Elements.Where(IsCurrentMember)];
-        List<WfReqElement> membersToAdd = [.. task.Elements.Where(IsMemberToAdd)];
-        List<WfReqElement> membersToRemove = [.. task.Elements.Where(IsMemberToRemove)];
+        List<WfReqElement> currentMembers = [.. task.Elements.Where(element => element.IsCurrentMember())];
+        List<WfReqElement> membersToAdd = [.. task.Elements.Where(element => element.IsMemberToAdd())];
+        List<WfReqElement> membersToRemove = [.. task.Elements.Where(element => element.IsMemberToRemove())];
 
         List<string> rows = [];
 
@@ -363,36 +363,13 @@
         }
 
         IpProtocol? ipProtocol = ipProtos.Find(x => x.Id == elem.ProtoId);
-        string portRange = IpProtocol.HasPorts(ipProtocol?.Id)
+        bool showPort = elem.Port != null && (IpProtocol.HasPorts(ipProtocol?.Id) || ipProtocol == null);
+        string portRange = showPort
             ? SCAccessRequestTicketTask.DisplayPortRange(elem.Port ?? 0, elem.PortEnd) + "/"
             : "";
 
-        return portRange + (ipProtocol?.Name ?? "");
-    }
-
-    /// <summary>
-    /// Returns true for members that should be displayed as current members.
-    /// </summary>
-    private static bool IsCurrentMember(WfReqElement elem)
-    {
-        return !IsMemberToAdd(elem) && !IsMemberToRemove(elem);
-    }
-
-    /// <summary>
-    /// Returns true for members requested for addition.
-    /// </summary>
-    private static bool IsMemberToAdd(WfReqElement elem)
-    {
-        return elem.RequestAction == RequestAction.create.ToString() ||
-            elem.RequestAction == RequestAction.addAfterCreation.ToString();
-    }
-
-    /// <summary>
-    /// Returns true for members requested for removal.
-    /// </summary>
-    private static bool IsMemberToRemove(WfReqElement elem)
-    {
-        return elem.RequestAction == RequestAction.delete.ToString();
+        string protocolName = ipProtocol?.Name ?? elem.ProtoId?.ToString() ?? "";
+        return portRange + protocolName;
     }
 
     private string CssClass(WfReqElement elem)
@@ -631,6 +608,18 @@
         List<WfReqTask> updatedTasks = [.. TaskList];
         updatedTasks[taskIndex] = task;
         TaskList = updatedTasks;
+    }
+
+    private static string HtmlEncode(string? value)
+    {
+        return WebUtility.HtmlEncode(value ?? "");
+    }
+
+    private string DisplayComment(WfReqTask task)
+    {
+        return task.Comments.Count > 0
+            ? "<br>" + userConfig.GetText("comment") + ": " + HtmlEncode(task.Comments.First().Comment.CommentText)
+            : "";
     }
 
     private void Close()

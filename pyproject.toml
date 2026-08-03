@@ -4,6 +4,7 @@ include = [
     "scripts"
 ]
 extraPaths = ["roles/importer/files/importer"]
+venvPath = "."
 venv = ".venv"
 pythonPlatform = "Linux"
 

@@ -589,4 +589,8 @@ Not supported any longer are:
 ## 9.2.5 - 29.07.2026
 - update flow time object hashing to be timezone invariant
 - ! resets the flow timeobject and access tables
+
+
+## 9.3 - 31.07.2026
+- new import module for OPNsense firewalls
 - changed workflow email CSV/JSON output and firewall request popup to separate current, added and removed group members

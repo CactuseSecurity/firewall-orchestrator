@@ -27,12 +27,7 @@ jobs:
       - name: Gate trusted PR sources
         shell: bash
         run: |
-          trusted_owners='${{ vars.SONAR_TRUSTED_FORK_OWNERS || '[]' }}'
-          pr_owner='${{ github.event.pull_request.head.repo.owner.login }}'
-          base_repo='${{ github.repository }}'
-          head_repo='${{ github.event.pull_request.head.repo.full_name }}'
-
-          if [ "$head_repo" = "$base_repo" ]; then
+          if [ "$HEAD_REPO" = "$BASE_REPO" ]; then
             exit 0
           fi
 
@@ -54,6 +49,8 @@ jobs:
         env:
           TRUSTED_OWNERS: ${{ vars.SONAR_TRUSTED_FORK_OWNERS || '[]' }}
           PR_OWNER: ${{ github.event.pull_request.head.repo.owner.login }}
+          BASE_REPO: ${{ github.repository }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
 
       - name: Checkout PR head
         uses: actions/checkout@v7

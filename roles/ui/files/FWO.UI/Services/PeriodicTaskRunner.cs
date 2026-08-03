@@ -145,10 +145,8 @@ namespace FWO.Ui.Services
                 // while the thread that started it is blocked waiting for exactly that
                 while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
                 {
-                    if (cancellationToken.IsCancellationRequested)
-                    {
-                        break;
-                    }
+                    // do not invoke the callback when cancellation happened after the tick completed
+                    cancellationToken.ThrowIfCancellationRequested();
 
                     await callback().ConfigureAwait(false);
                 }

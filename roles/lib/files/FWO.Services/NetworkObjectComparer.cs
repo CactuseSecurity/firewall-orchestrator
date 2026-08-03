@@ -18,6 +18,12 @@ namespace FWO.Services
                 return false;
             }
 
+            if (nwObject1.IsSpecialConfigObjectType() || nwObject2.IsSpecialConfigObjectType())
+            {
+                return string.Equals(nwObject1.Type.Name, nwObject2.Type.Name, StringComparison.Ordinal)
+                    && string.Equals(nwObject1.Name, nwObject2.Name, StringComparison.Ordinal);
+            }
+
             return (!option.NwRegardIp || (string.Equals(nwObject1.IP, nwObject2.IP, StringComparison.Ordinal)
                     && string.Equals(nwObject1.IpEnd, nwObject2.IpEnd, StringComparison.Ordinal)))
                 && (!option.NwRegardName || string.Equals(nwObject1.Name, nwObject2.Name, StringComparison.Ordinal));
@@ -28,6 +34,11 @@ namespace FWO.Services
             if (nwObject is null)
             {
                 return 0;
+            }
+
+            if (nwObject.IsSpecialConfigObjectType())
+            {
+                return HashCode.Combine(nwObject.Type.Name, nwObject.Name);
             }
 
             return (option.NwRegardIp ? HashCode.Combine(nwObject.IP, nwObject.IpEnd) : 0)

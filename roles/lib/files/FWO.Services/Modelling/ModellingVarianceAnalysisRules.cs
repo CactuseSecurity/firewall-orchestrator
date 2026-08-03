@@ -389,37 +389,14 @@ namespace FWO.Services.Modelling
         private List<NetworkLocation> GetPlaceholderSubstitutes(NetworkLocation[] networkLocations, Dictionary<string, bool> objectsByName)
         {
             return [.. networkLocations.Where(n => objectsByName.ContainsKey(n.Object.Name.ToLower())
-                        && (n.Object.IsSurplus || (ruleRecognitionOption.NwRegardIp && string.IsNullOrEmpty(n.Object.IP)) || IsAccessRoleObject(n.Object)))];
-        }
-
-        /// <summary>
-        /// Selects updatable objects by name. Dynamic network objects are importer-created identity
-        /// objects, so several different objects can look identical to the IP comparer.
-        /// </summary>
-        private static List<NetworkLocation> GetUpdatableObjectSubstitutes(NetworkLocation[] networkLocations, Dictionary<string, bool> updatableObjects)
-        {
-            return [.. networkLocations.Where(n => updatableObjects.ContainsKey(n.Object.Name.ToLower()) && (n.Object.IsSurplus || IsDynamicNetworkObject(n.Object)))];
-        }
-
-        private static bool IsAccessRoleObject(NetworkObject networkObject)
-        {
-            const string kAccessRoleNetworkObjectType = "access-role";
-
-            return string.Equals(networkObject.Type.Name, kAccessRoleNetworkObjectType, StringComparison.Ordinal);
-        }
-
-        private static bool IsDynamicNetworkObject(NetworkObject networkObject)
-        {
-            const string kDynamicNetworkObjectType = "dynamic_net_obj";
-
-            return string.Equals(networkObject.Type.Name, kDynamicNetworkObjectType, StringComparison.Ordinal);
+                && (n.Object.IsSurplus || (ruleRecognitionOption.NwRegardIp && string.IsNullOrEmpty(n.Object.IP))))];
         }
 
         private void AdjustWithUpdatableObjects(NetworkLocation[] networkLocations, Dictionary<string, bool> updatableObjects, bool source, int updatableObjectAreaCount, ref List<NetworkLocation> disregardedLocations)
         {
             if (updatableObjects.Count > 0 && disregardedLocations.Count > 0)
             {
-                List<NetworkLocation> updObjLocations = GetUpdatableObjectSubstitutes(networkLocations, updatableObjects);
+                List<NetworkLocation> updObjLocations = GetPlaceholderSubstitutes(networkLocations, updatableObjects);
                 List<NetworkLocation> remainingPossibleUpdatableObj = GetPossibleUpdatableObjects(disregardedLocations, source);
                 // A placeholder area stands in for any number of updatable objects (so N objects cover 1 area),
                 // but a single object must not cover several areas - require at least as many objects as areas.

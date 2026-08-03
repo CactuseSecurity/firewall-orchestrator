@@ -93,6 +93,7 @@ namespace FWO.Basics
         public const string Host = "host";
         public const string Network = "network";
         public const string IPRange = "ip_range";
+        public const string DynamicNetObj = "dynamic_net_obj";
         public const string AccessRole = "access-role";
     }
 

@@ -169,49 +169,57 @@ def normalize_network_object_ipv6(obj_orig: dict[str, Any], obj: dict[str, Any])
 
 
 def normalize_vip_object(obj_orig: dict[str, Any], obj: dict[str, Any], nw_objects: list[dict[str, Any]]) -> None:
-    obj_zone = "global"
     obj.update({"obj_typ": "host"})
     if "extip" not in obj_orig or len(obj_orig["extip"]) == 0:
         FWOLogger.error("vip (extip): found empty extip field for " + obj_orig["name"])
-    else:
-        if len(obj_orig["extip"]) > 1:
-            FWOLogger.warning(
-                "vip (extip): found more than one extip, just using the first one for " + obj_orig["name"]
-            )
-        set_ip_in_obj(obj, obj_orig["extip"][0])  # resolving nat range if there is one
-        nat_obj: dict[str, Any] = {}
-        nat_obj.update({"obj_typ": "host"})
-        nat_obj.update({"obj_color": "black"})
-        nat_obj.update({"obj_comment": "FWO-auto-generated nat object for VIP"})
-        if (
-            "obj_ip_end" in obj
-        ):  # this obj is a range - include the end ip in name and uid as well to avoid akey conflicts
-            nat_obj.update({"obj_ip_end": str(obj["obj_ip_end"])})
+        return
 
-        normalize_vip_object_nat_ip(obj_orig, obj, nat_obj)
+    if len(obj_orig["extip"]) > 1:
+        FWOLogger.warning("vip (extip): found more than one extip, just using the first one for " + obj_orig["name"])
+    set_ip_in_obj(obj, obj_orig["extip"][0])  # resolving nat range if there is one
+    nat_obj: dict[str, Any] = {}
+    nat_obj.update({"obj_typ": "host"})
+    nat_obj.update({"obj_color": "black"})
+    nat_obj.update({"obj_comment": "FWO-auto-generated nat object for VIP"})
+    if "obj_ip_end" in obj:  # this obj is a range - include the end ip in name and uid as well to avoid akey conflicts
+        nat_obj.update({"obj_ip_end": str(obj["obj_ip_end"])})
 
-        if "obj_ip_end" not in nat_obj:
-            nat_obj.update({"obj_ip_end": str(obj["obj_nat_ip"])})
+    normalize_vip_object_nat_ip(obj_orig, obj, nat_obj)
 
-        if (
-            "associated-interface" in obj_orig and len(obj_orig["associated-interface"]) > 0
-        ):  # and obj_orig['associated-interface'][0] != 'any':
-            obj_zone = obj_orig["associated-interface"][0]
-        nat_obj.update({"obj_zone": obj_zone})
-        if (
-            nat_obj not in nw_objects
-        ):  # rare case when a destination nat is down for two different orig ips to the same dest ip
-            nw_objects.append(nat_obj)
+    if "obj_nat_ip" not in obj:
+        return
+
+    _finalize_vip_nat_object(obj_orig, obj, nat_obj, nw_objects)
+
+
+def _finalize_vip_nat_object(
+    obj_orig: dict[str, Any], obj: dict[str, Any], nat_obj: dict[str, Any], nw_objects: list[dict[str, Any]]
+) -> None:
+    if "obj_ip_end" not in nat_obj:
+        nat_obj.update({"obj_ip_end": str(obj["obj_nat_ip"])})
+
+    obj_zone = "global"
+    if (
+        "associated-interface" in obj_orig and len(obj_orig["associated-interface"]) > 0
+    ):  # and obj_orig['associated-interface'][0] != 'any':
+        obj_zone = obj_orig["associated-interface"][0]
+    nat_obj.update({"obj_zone": obj_zone})
+    if (
+        nat_obj not in nw_objects
+    ):  # rare case when a destination nat is down for two different orig ips to the same dest ip
+        nw_objects.append(nat_obj)
 
 
 def normalize_vip_object_nat_ip(obj_orig: dict[str, Any], obj: dict[str, Any], nat_obj: dict[str, Any]) -> None:
     # now dealing with the nat ip obj (mappedip)
     if "mappedip" not in obj_orig or len(obj_orig["mappedip"]) == 0:
-        FWOLogger.warning("vip (extip): found empty mappedip field for " + obj_orig["name"])
+        FWOLogger.warning("vip (mappedip): found empty mappedip field for " + obj_orig["name"])
         return
 
     if len(obj_orig["mappedip"]) > 1:
-        FWOLogger.warning("vip (extip): found more than one mappedip, just using the first one for " + obj_orig["name"])
+        FWOLogger.warning(
+            "vip (mappedip): found more than one mappedip, just using the first one for " + obj_orig["name"]
+        )
     nat_ip = obj_orig["mappedip"][0]
     set_ip_in_obj(nat_obj, str(nat_ip))
     obj.update({"obj_nat_ip": str(nat_obj["obj_ip"])})  # save nat ip in vip obj
@@ -227,16 +235,19 @@ def normalize_vip_object_nat_ip(obj_orig: dict[str, Any], obj: dict[str, Any], n
     ###### range handling
 
 
-def set_ip_in_obj(
-    nw_obj: dict[str, Any], ip: str
-) -> None:  # add start and end ip in nw_obj if it is a range, otherwise do nothing
+def set_ip_in_obj(nw_obj: dict[str, Any], ip: str) -> None:
+    # sets start and end ip in nw_obj for a range, or just the ip for a host - clearing any
+    # previously set obj_ip_end so a stale range end can't leak in from an earlier ip in nw_obj
     if "-" in ip:  # dealing with range
         ip_start, ip_end = ip.split("-")
         nw_obj.update({"obj_ip": str(ip_start)})
         if ip_end != ip_start:
             nw_obj.update({"obj_ip_end": str(ip_end)})
+        else:
+            nw_obj.pop("obj_ip_end", None)
     else:
         nw_obj.update({"obj_ip": str(ip)})
+        nw_obj.pop("obj_ip_end", None)
 
 
 # for members of groups, the name of the member obj needs to be fetched separately (starting from API v1.?)

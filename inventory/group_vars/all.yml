@@ -1,5 +1,5 @@
 ### general settings
-product_version: "9.2.3"
+product_version: "9.2.5"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
@@ -46,6 +46,22 @@ last_commit_id_file_path: "{{ fworch_conf_dir }}/last_commit_id.txt"
 fworch_secrets_dir: "{{ fworch_conf_dir }}/secrets"
 fworch_tmp_dir: "{{ fworch_home }}/tmp"
 importer_venv_dir: "{{ fworch_home }}/importer/importer-venv"
+# units are installed into the local (admin owned) unit directory; the vendor directory is
+# package manager territory and is only kept around to find and clean up pre-11.0 installations
+fworch_systemd_unit_dir: /etc/systemd/system
+fworch_systemd_vendor_unit_dir: /lib/systemd/system
+fworch_systemd_unit_search_dirs:
+  - "{{ fworch_systemd_unit_dir }}"
+  - "{{ fworch_systemd_vendor_unit_dir }}"
+# all systemd units owned by fworch (current and legacy names), used for relocation and uninstall
+fworch_systemd_unit_names: >-
+  {{
+    [api_service_name, middleware_service_name, product_name ~ '-ui', product_name ~ '-importer-api']
+    + (api_legacy_service_names | default([]))
+  }}
+# restart delay for all fworch services - long enough to keep a service that waits for a
+# dependency from running into the default systemd start rate limit
+fworch_systemd_restart_sec: 10
 
 # setting default proxy (may be overwritten via --extra-vars)
 # Lowercase proxy variables take precedence over uppercase when both are set.
@@ -131,6 +147,8 @@ middleware_internal_port: 8880
 ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"
 ui_admin_testonly_password: "fworch.1"
 importer_password_file: "{{ fworch_secrets_dir }}/importer_pwd"
+# only used when installing with testkeys=true - never reaches a production installation
+importer_testonly_password: "not4production"
 
 ### dotnet
 dotnet_deb_name: "packages-microsoft-prod.deb"
@@ -238,3 +256,6 @@ apache_security_headers:
 apache_global_settings_file: "{{ '/etc/httpd/conf.d/security.conf' if ansible_facts['os_family'] == 'RedHat' else '/etc/apache2/conf-available/security.conf' }}"
 apache_ssl_protocol: "SSLProtocol -all +TLSv1.2 +TLSv1.3"
 apache_ssl_cipher_suite: "SSLCipherSuite ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:!aNULL:!MD5:!DSS:!SHA1"
+# max size of a single request header field; the apache default of 8190 bytes is too small for the
+# jwt in the "Authorization" header of users with many roles, owners or visible devices
+apache_limit_request_field_size: 32768

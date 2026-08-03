@@ -1,0 +1,674 @@
+@page "/settings/flows/general"
+
+@using FWO.Api.Client.Queries
+@using FWO.Config.Api
+@using FWO.Config.Api.Data
+@using FWO.Data
+@using FWO.Data.Flow
+@using Microsoft.AspNetCore.Components.Authorization
+
+@attribute [Authorize(Roles = $"{Roles.Admin}")]
+
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("flow_general_settings"))</h3>
+    <HelpLink Page="settings/flows/general" />
+</div>
+
+<div class="mb-2">
+    <label class="form-label form-label-sm mb-1">@(userConfig.GetText("flow_naming")):</label>
+    <div>
+        @if (namingManagementRanking.Count > 0)
+        {
+            <table class="table table-sm table-bordered th-bg-secondary mb-0 w-auto">
+                <thead>
+                    <tr>
+                        <th class="text-nowrap">@(userConfig.GetText("sort_order"))</th>
+                        <th>@(userConfig.GetText("management"))</th>
+                        <th class="text-nowrap">@(userConfig.GetText("actions"))</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int index = 0; index < namingManagementRanking.Count; index++)
+                    {
+                        Management management = namingManagementRanking[index];
+                        <tr @key="management.Id">
+                            <td>@(index + 1)</td>
+                            <td>@management.Name</td>
+                            <td>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-secondary" disabled="@(index == 0)" @onclick:stopPropagation="true" @onclick="() => MoveNamingManagement(management, -1)" title="@(userConfig.GetText("move_up"))">
+                                        <span class="@Icons.CollapseUp"></span>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-secondary" disabled="@(index == namingManagementRanking.Count - 1)" @onclick:stopPropagation="true" @onclick="() => MoveNamingManagement(management, 1)" title="@(userConfig.GetText("move_down"))">
+                                        <span class="@Icons.CollapseDown"></span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <div class="text-muted small">-</div>
+        }
+        <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+            <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-primary" disabled="@workInProgress" @onclick="SaveNamingSource">
+                    @if (workInProgress)
+                    {
+                        <Loading CssClass="me-1" />
+                    }
+                    @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+                </button>
+                <button type="button" class="btn btn-sm btn-warning" disabled="@workInProgress" @onclick="OpenRecalculateConfirm">@(DisplayService.DisplayButton(userConfig, "recalculate_flow_names", Icons.Refresh))</button>
+            </div>
+            <div class="text-muted small">
+                @($"{userConfig.GetText("current")}: {SelectedNamingManagement?.Name ?? "-"}")
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mb-2">
+    <label class="form-label form-label-sm mb-1">@(userConfig.GetText("reset_flow_db")):</label>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <button type="button" class="btn btn-sm btn-danger" disabled="@workInProgress" @onclick="OpenResetFlowDbConfirm">
+            @(DisplayService.DisplayButton(userConfig, "reset_flow_db", Icons.Refresh))
+        </button>
+        <div class="text-muted small">
+            @(userConfig.GetText("reset_flow_db_hint"))
+        </div>
+    </div>
+</div>
+
+<Confirm @bind-Display="RecalculateConfirmMode" PerformAction="RecalculateFlowNames" Title="@(userConfig.GetText("recalculate_flow_names"))"
+         Message="@(userConfig.GetText("recalculate_flow_names_confirm"))" />
+
+<Confirm @bind-Display="ResetFlowDbConfirmMode" PerformAction="ResetFlowDb" Title="@(userConfig.GetText("reset_flow_db"))"
+         Message="@(userConfig.GetText("reset_flow_db_confirm"))" />
+
+<InProgress Display="workInProgress" />
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private List<FlowNwObject> flowNwObjects = [];
+    private List<FlowNwGroup> flowNwGroups = [];
+    private List<FlowSvcObject> flowSvcObjects = [];
+    private List<FlowSvcGroup> flowSvcGroups = [];
+    private List<FlowTimeObject> flowTimeObjects = [];
+    private List<Management> selectableManagements = [];
+    private List<Management> namingManagementRanking = [];
+    private List<Management> namingNetworkObjectManagements = [];
+    private List<Management> namingNetworkGroupManagements = [];
+    private List<Management> namingServiceManagements = [];
+    private List<Management> namingTimeManagements = [];
+    private ConfigData? configData;
+    private bool workInProgress = false;
+    private bool RecalculateConfirmMode = false;
+    private bool ResetFlowDbConfirmMode = false;
+
+    private Management? SelectedNamingManagement => namingManagementRanking.FirstOrDefault();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        try
+        {
+            workInProgress = true;
+            StateHasChanged();
+
+            if (!userConfig.CanUseAnyRole(Roles.Admin))
+            {
+                workInProgress = false;
+                return;
+            }
+
+            configData = await globalConfig.GetEditableConfig();
+            selectableManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowSelectableManagements);
+            InitializeNamingManagementRanking();
+            flowNwObjects = await apiConnection.SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowNwObjectCatalog);
+            flowNwGroups = await apiConnection.SendQueryAsync<List<FlowNwGroup>>(FlowQueries.getFlowAddressGroups) ?? [];
+            flowSvcObjects = await apiConnection.SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowServiceObjects) ?? [];
+            flowSvcGroups = await apiConnection.SendQueryAsync<List<FlowSvcGroup>>(FlowQueries.getFlowServiceGroups) ?? [];
+            flowTimeObjects = await apiConnection.SendQueryAsync<List<FlowTimeObject>>(FlowQueries.getFlowTimeObjects) ?? [];
+            await LoadNamingCandidateManagements(forceReload: true);
+
+            workInProgress = false;
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("flow_general_settings"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task SaveNamingSource()
+    {
+        try
+        {
+            if (configData == null)
+            {
+                return;
+            }
+
+            workInProgress = true;
+            StateHasChanged();
+
+            await SaveNamingManagementRankingAsync();
+            List<int> preferredManagementRanking = GetNamingManagementRankingIds();
+            await BackfillMissingNamesAsync(preferredManagementRanking);
+
+            DisplayMessageInUi(null, userConfig.GetText("flow_naming"), userConfig.GetText("U5301"), false);
+            workInProgress = false;
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("flow_naming"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task SaveNamingManagementRankingAsync()
+    {
+        if (configData == null)
+        {
+            return;
+        }
+
+        List<int> preferredManagementRanking = GetNamingManagementRankingIds();
+        configData.FlowNamingSourceManagementRanking = FlowNamingHelper.SerializeManagementRanking(preferredManagementRanking);
+        await globalConfig.WriteToDatabase(configData, apiConnection);
+    }
+
+    private void InitializeNamingManagementRanking()
+    {
+        if (configData == null)
+        {
+            namingManagementRanking = [.. selectableManagements];
+            return;
+        }
+
+        List<int> preferredManagementRanking = FlowNamingHelper.ParseManagementRanking(configData.FlowNamingSourceManagementRanking);
+        List<int> normalizedRanking = FlowNamingHelper.NormalizeManagementRanking(
+            preferredManagementRanking,
+            selectableManagements.Select(management => management.Id));
+
+        Dictionary<int, Management> managementById = selectableManagements.ToDictionary(management => management.Id);
+        namingManagementRanking = [.. normalizedRanking
+            .Select(managementId => managementById.GetValueOrDefault(managementId))
+            .Where(management => management != null)
+            .Select(management => management!)];
+    }
+
+    private List<int> GetNamingManagementRankingIds()
+    {
+        return [.. namingManagementRanking.Select(management => management.Id)];
+    }
+
+    private void MoveNamingManagement(Management management, int offset)
+    {
+        int index = namingManagementRanking.FindIndex(item => item.Id == management.Id);
+        int targetIndex = index + offset;
+        if (index < 0 || targetIndex < 0 || targetIndex >= namingManagementRanking.Count)
+        {
+            return;
+        }
+
+        (namingManagementRanking[index], namingManagementRanking[targetIndex]) = (namingManagementRanking[targetIndex], namingManagementRanking[index]);
+    }
+
+    private void OpenRecalculateConfirm()
+    {
+        RecalculateConfirmMode = true;
+    }
+
+    private async Task RecalculateFlowNames()
+    {
+        try
+        {
+            if (configData == null)
+            {
+                return;
+            }
+
+            await SaveNamingManagementRankingAsync();
+            RecalculateConfirmMode = false;
+            workInProgress = true;
+            StateHasChanged();
+
+            List<int> preferredManagementRanking = FlowNamingHelper.ParseManagementRanking(configData.FlowNamingSourceManagementRanking);
+            await RecalculateNamesAsync(preferredManagementRanking);
+
+            workInProgress = false;
+            await Refresh();
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("recalculate_flow_names"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
+    private void OpenResetFlowDbConfirm()
+    {
+        ResetFlowDbConfirmMode = true;
+    }
+
+    private async Task ResetFlowDb()
+    {
+        try
+        {
+            ResetFlowDbConfirmMode = false;
+            workInProgress = true;
+            StateHasChanged();
+
+            await apiConnection.SendQueryAsync<MutationResult>(FlowMutations.resetFlowDB);
+
+            workInProgress = false;
+            await Refresh();
+            DisplayMessageInUi(null, userConfig.GetText("reset_flow_db"), userConfig.GetText("U5330"), false);
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("reset_flow_db"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task LoadNamingCandidateManagements(bool forceReload = false)
+    {
+        if (!forceReload &&
+            namingNetworkObjectManagements.Count > 0 &&
+            namingNetworkGroupManagements.Count > 0 &&
+            namingServiceManagements.Count > 0 &&
+            namingTimeManagements.Count > 0)
+        {
+            return;
+        }
+
+        List<int> managementIds = [.. selectableManagements.Select(management => management.Id)];
+        if (managementIds.Count == 0)
+        {
+            namingNetworkObjectManagements = [];
+            namingNetworkGroupManagements = [];
+            namingServiceManagements = [];
+            namingTimeManagements = [];
+            return;
+        }
+
+        namingNetworkObjectManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowCustomObjectNamingCandidates, new
+        {
+            management_id = managementIds
+        }) ?? [];
+        namingNetworkGroupManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowCustomObjectNamingCandidates, new
+        {
+            management_id = managementIds
+        }) ?? [];
+        namingServiceManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowCustomServiceNamingCandidates, new
+        {
+            management_id = managementIds
+        }) ?? [];
+        namingTimeManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowCustomTimeObjectNamingCandidates, new
+        {
+            management_id = managementIds
+        }) ?? [];
+    }
+
+    private void ReplaceFlowNwObjectInCatalog(FlowNwObject updatedObject)
+    {
+        int objectIndex = flowNwObjects.FindIndex(flowObject => flowObject.Id == updatedObject.Id);
+        if (objectIndex >= 0)
+        {
+            flowNwObjects[objectIndex] = updatedObject;
+        }
+    }
+
+    private void ReplaceFlowNwGroupInCatalog(FlowNwGroup updatedGroup)
+    {
+        int groupIndex = flowNwGroups.FindIndex(flowGroup => flowGroup.Id == updatedGroup.Id);
+        if (groupIndex >= 0)
+        {
+            flowNwGroups[groupIndex] = updatedGroup;
+        }
+    }
+
+    private void ReplaceFlowSvcObjectInCatalog(FlowSvcObject updatedObject)
+    {
+        int objectIndex = flowSvcObjects.FindIndex(flowObject => flowObject.Id == updatedObject.Id);
+        if (objectIndex >= 0)
+        {
+            flowSvcObjects[objectIndex] = updatedObject;
+        }
+    }
+
+    private void ReplaceFlowSvcGroupInCatalog(FlowSvcGroup updatedGroup)
+    {
+        int groupIndex = flowSvcGroups.FindIndex(flowGroup => flowGroup.Id == updatedGroup.Id);
+        if (groupIndex >= 0)
+        {
+            flowSvcGroups[groupIndex] = updatedGroup;
+        }
+    }
+
+    private void ReplaceFlowTimeObjectInCatalog(FlowTimeObject updatedObject)
+    {
+        int objectIndex = flowTimeObjects.FindIndex(flowObject => flowObject.Id == updatedObject.Id);
+        if (objectIndex >= 0)
+        {
+            flowTimeObjects[objectIndex] = updatedObject;
+        }
+    }
+
+    private async Task SendFlowBatchUpdateAsync(string mutation, List<object> updates, int expectedAffectedRows)
+    {
+        if (updates.Count == 0)
+        {
+            return;
+        }
+
+        List<MutationResult> result = await apiConnection.SendQueryAsync<List<MutationResult>>(mutation, new
+        {
+            updates
+        }) ?? [];
+
+        int affectedRows = result.Sum(item => item.AffectedRows);
+
+        if (affectedRows != expectedAffectedRows)
+        {
+            throw new InvalidOperationException($"Expected {expectedAffectedRows} updated rows but got {affectedRows}.");
+        }
+    }
+
+    /// <summary>
+    /// Backfills missing names for all supported flow object types using the configured management ranking.
+    /// </summary>
+    private async Task BackfillMissingNamesAsync(IReadOnlyList<int> preferredManagementRanking)
+    {
+        await ApplyFlowNameUpdatesAsync(
+            flowNwObjects.Where(nwObject => string.IsNullOrWhiteSpace(nwObject.Name)),
+            nwObject => FlowNamingHelper.ResolveMissingNwObjectNameByRanking(nwObject, namingNetworkObjectManagements, preferredManagementRanking, ""),
+            (_, resolvedName) => !string.IsNullOrWhiteSpace(resolvedName),
+            CreateUpdatedFlowNwObject,
+            BuildFlowNwObjectUpdate,
+            ReplaceFlowNwObjectInCatalog,
+            FlowMutations.updateFlowNwObjects);
+
+        await ApplyFlowNameUpdatesAsync(
+            flowNwGroups.Where(nwGroup => string.IsNullOrWhiteSpace(nwGroup.Name)),
+            nwGroup => FlowNamingHelper.ResolveNwGroupNameByRanking(nwGroup, namingNetworkGroupManagements, preferredManagementRanking, ""),
+            (_, resolvedName) => !string.IsNullOrWhiteSpace(resolvedName),
+            CreateUpdatedFlowNwGroup,
+            BuildFlowNwGroupUpdate,
+            ReplaceFlowNwGroupInCatalog,
+            FlowMutations.updateFlowNwGroups);
+
+        await ApplyFlowNameUpdatesAsync(
+            flowSvcObjects.Where(svcObject => string.IsNullOrWhiteSpace(svcObject.Name)),
+            svcObject => FlowNamingHelper.ResolveMissingSvcObjectNameByRanking(svcObject, namingServiceManagements, preferredManagementRanking, ""),
+            (_, resolvedName) => !string.IsNullOrWhiteSpace(resolvedName),
+            CreateUpdatedFlowSvcObject,
+            BuildFlowSvcObjectUpdate,
+            ReplaceFlowSvcObjectInCatalog,
+            FlowMutations.updateFlowSvcObjects);
+
+        await ApplyFlowNameUpdatesAsync(
+            flowSvcGroups.Where(svcGroup => string.IsNullOrWhiteSpace(svcGroup.Name)),
+            svcGroup => FlowNamingHelper.ResolveSvcGroupNameByRanking(svcGroup, namingServiceManagements, preferredManagementRanking, ""),
+            (_, resolvedName) => !string.IsNullOrWhiteSpace(resolvedName),
+            CreateUpdatedFlowSvcGroup,
+            BuildFlowSvcGroupUpdate,
+            ReplaceFlowSvcGroupInCatalog,
+            FlowMutations.updateFlowSvcGroups);
+
+        await ApplyFlowNameUpdatesAsync(
+            flowTimeObjects.Where(timeObject => string.IsNullOrWhiteSpace(timeObject.Name)),
+            timeObject => FlowNamingHelper.ResolveMissingTimeObjectNameByRanking(timeObject, namingTimeManagements, preferredManagementRanking, ""),
+            (_, resolvedName) => !string.IsNullOrWhiteSpace(resolvedName),
+            CreateUpdatedFlowTimeObject,
+            BuildFlowTimeObjectUpdate,
+            ReplaceFlowTimeObjectInCatalog,
+            FlowMutations.updateFlowTimeObjects);
+    }
+
+    /// <summary>
+    /// Recalculates names for all supported flow object types using the configured management ranking.
+    /// </summary>
+    private async Task RecalculateNamesAsync(IReadOnlyList<int> preferredManagementRanking)
+    {
+        await ApplyFlowNameUpdatesAsync(
+            flowNwObjects,
+            nwObject => FlowNamingHelper.ResolveNwObjectNameByRanking(nwObject, namingNetworkObjectManagements, preferredManagementRanking, nwObject.Name ?? ""),
+            (nwObject, resolvedName) => !string.Equals(resolvedName, nwObject.Name, StringComparison.Ordinal),
+            CreateUpdatedFlowNwObject,
+            BuildFlowNwObjectUpdate,
+            ReplaceFlowNwObjectInCatalog,
+            FlowMutations.updateFlowNwObjects);
+
+        await ApplyFlowNameUpdatesAsync(
+            flowNwGroups,
+            nwGroup => FlowNamingHelper.ResolveNwGroupNameByRanking(nwGroup, namingNetworkGroupManagements, preferredManagementRanking, nwGroup.Name),
+            (nwGroup, resolvedName) => !string.Equals(resolvedName, nwGroup.Name, StringComparison.Ordinal),
+            CreateUpdatedFlowNwGroup,
+            BuildFlowNwGroupUpdate,
+            ReplaceFlowNwGroupInCatalog,
+            FlowMutations.updateFlowNwGroups);
+
+        await ApplyFlowNameUpdatesAsync(
+            flowSvcObjects,
+            svcObject => FlowNamingHelper.ResolveSvcObjectNameByRanking(svcObject, namingServiceManagements, preferredManagementRanking, svcObject.Name),
+            (svcObject, resolvedName) => !string.Equals(resolvedName, svcObject.Name, StringComparison.Ordinal),
+            CreateUpdatedFlowSvcObject,
+            BuildFlowSvcObjectUpdate,
+            ReplaceFlowSvcObjectInCatalog,
+            FlowMutations.updateFlowSvcObjects);
+
+        await ApplyFlowNameUpdatesAsync(
+            flowSvcGroups,
+            svcGroup => FlowNamingHelper.ResolveSvcGroupNameByRanking(svcGroup, namingServiceManagements, preferredManagementRanking, svcGroup.Name),
+            (svcGroup, resolvedName) => !string.Equals(resolvedName, svcGroup.Name, StringComparison.Ordinal),
+            CreateUpdatedFlowSvcGroup,
+            BuildFlowSvcGroupUpdate,
+            ReplaceFlowSvcGroupInCatalog,
+            FlowMutations.updateFlowSvcGroups);
+
+        await ApplyFlowNameUpdatesAsync(
+            flowTimeObjects,
+            timeObject => FlowNamingHelper.ResolveTimeObjectNameByRanking(timeObject, namingTimeManagements, preferredManagementRanking, timeObject.Name),
+            (timeObject, resolvedName) => !string.Equals(resolvedName, timeObject.Name, StringComparison.Ordinal),
+            CreateUpdatedFlowTimeObject,
+            BuildFlowTimeObjectUpdate,
+            ReplaceFlowTimeObjectInCatalog,
+            FlowMutations.updateFlowTimeObjects);
+    }
+
+    private async Task ApplyFlowNameUpdatesAsync<TFlowObject>(
+        IEnumerable<TFlowObject> sourceObjects,
+        Func<TFlowObject, string> resolveName,
+        Func<TFlowObject, string, bool> shouldUpdate,
+        Func<TFlowObject, string, TFlowObject> createUpdatedObject,
+        Func<TFlowObject, string, object> buildUpdate,
+        Action<TFlowObject> replaceInCatalog,
+        string mutation)
+    {
+        List<TFlowObject> updatedObjects = [];
+        List<object> updates = [];
+
+        foreach (TFlowObject flowObject in sourceObjects.ToList())
+        {
+            string resolvedName = resolveName(flowObject);
+            if (!shouldUpdate(flowObject, resolvedName))
+            {
+                continue;
+            }
+
+            updatedObjects.Add(createUpdatedObject(flowObject, resolvedName));
+            updates.Add(buildUpdate(flowObject, resolvedName));
+        }
+
+        await SendFlowBatchUpdateAsync(mutation, updates, updatedObjects.Count);
+        foreach (TFlowObject updatedObject in updatedObjects)
+        {
+            replaceInCatalog(updatedObject);
+        }
+    }
+
+    private static FlowNwObject CreateUpdatedFlowNwObject(FlowNwObject nwObject, string resolvedName)
+    {
+        return new FlowNwObject
+        {
+            Id = nwObject.Id,
+            Name = resolvedName,
+            IpStart = nwObject.IpStart,
+            IpEnd = nwObject.IpEnd,
+            Hash = nwObject.Hash,
+            State = nwObject.State,
+            RemovedDate = nwObject.RemovedDate,
+            ShowInRequestModule = nwObject.ShowInRequestModule
+        };
+    }
+
+    private static object BuildFlowNwObjectUpdate(FlowNwObject nwObject, string resolvedName)
+    {
+        return new
+        {
+            where = new { nwobj_id = new { _eq = nwObject.Id } },
+            _set = new
+            {
+                name = resolvedName,
+                show_in_request_module = nwObject.ShowInRequestModule
+            }
+        };
+    }
+
+    private static FlowNwGroup CreateUpdatedFlowNwGroup(FlowNwGroup nwGroup, string resolvedName)
+    {
+        return new FlowNwGroup
+        {
+            Id = nwGroup.Id,
+            Name = resolvedName,
+            Hash = nwGroup.Hash,
+            State = nwGroup.State,
+            RemovedDate = nwGroup.RemovedDate,
+            ShowInRequestModule = nwGroup.ShowInRequestModule,
+            NwGroupMembers = [.. nwGroup.NwGroupMembers]
+        };
+    }
+
+    private static object BuildFlowNwGroupUpdate(FlowNwGroup nwGroup, string resolvedName)
+    {
+        return new
+        {
+            where = new { nwgrp_id = new { _eq = nwGroup.Id } },
+            _set = new
+            {
+                name = resolvedName,
+                show_in_request_module = nwGroup.ShowInRequestModule
+            }
+        };
+    }
+
+    private static FlowSvcObject CreateUpdatedFlowSvcObject(FlowSvcObject svcObject, string resolvedName)
+    {
+        return new FlowSvcObject
+        {
+            Id = svcObject.Id,
+            Name = resolvedName,
+            PortStart = svcObject.PortStart,
+            PortEnd = svcObject.PortEnd,
+            ProtoId = svcObject.ProtoId,
+            Hash = svcObject.Hash,
+            State = svcObject.State,
+            RemovedDate = svcObject.RemovedDate,
+            ShowInRequestModule = svcObject.ShowInRequestModule
+        };
+    }
+
+    private static object BuildFlowSvcObjectUpdate(FlowSvcObject svcObject, string resolvedName)
+    {
+        return new
+        {
+            where = new { svcobj_id = new { _eq = svcObject.Id } },
+            _set = new
+            {
+                name = resolvedName,
+                show_in_request_module = svcObject.ShowInRequestModule
+            }
+        };
+    }
+
+    private static FlowSvcGroup CreateUpdatedFlowSvcGroup(FlowSvcGroup svcGroup, string resolvedName)
+    {
+        return new FlowSvcGroup
+        {
+            Id = svcGroup.Id,
+            Name = resolvedName,
+            Hash = svcGroup.Hash,
+            State = svcGroup.State,
+            RemovedDate = svcGroup.RemovedDate,
+            ShowInRequestModule = svcGroup.ShowInRequestModule,
+            SvcGroupMembers = [.. svcGroup.SvcGroupMembers]
+        };
+    }
+
+    private static object BuildFlowSvcGroupUpdate(FlowSvcGroup svcGroup, string resolvedName)
+    {
+        return new
+        {
+            where = new { svcgrp_id = new { _eq = svcGroup.Id } },
+            _set = new
+            {
+                name = resolvedName,
+                show_in_request_module = svcGroup.ShowInRequestModule
+            }
+        };
+    }
+
+    private static FlowTimeObject CreateUpdatedFlowTimeObject(FlowTimeObject timeObject, string resolvedName)
+    {
+        return new FlowTimeObject
+        {
+            Id = timeObject.Id,
+            Name = resolvedName,
+            StartTime = timeObject.StartTime,
+            EndTime = timeObject.EndTime,
+            Hash = timeObject.Hash,
+            State = timeObject.State,
+            RemovedDate = timeObject.RemovedDate,
+            ShowInRequestModule = timeObject.ShowInRequestModule
+        };
+    }
+
+    private static object BuildFlowTimeObjectUpdate(FlowTimeObject timeObject, string resolvedName)
+    {
+        return new
+        {
+            where = new { timeobj_id = new { _eq = timeObject.Id } },
+            _set = new
+            {
+                name = resolvedName,
+                show_in_request_module = timeObject.ShowInRequestModule
+            }
+        };
+    }
+}

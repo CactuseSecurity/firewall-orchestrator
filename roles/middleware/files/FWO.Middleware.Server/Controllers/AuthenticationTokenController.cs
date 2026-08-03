@@ -529,38 +529,15 @@ namespace FWO.Middleware.Server.Controllers
             return jwtWriter.CreateJWT(authenticatedUser, accessLifetime);
         }
 
+        /// <summary>
+        /// Resolves the ldap group memberships of the given user.
+        /// </summary>
+        /// <param name="ldapUser">Ldap entry of the user.</param>
+        /// <param name="ldap">Ldap connection hosting the user.</param>
+        /// <returns>Distinct list of group dns the user belongs to.</returns>
         public async Task<List<string>> GetGroups(LdapEntry ldapUser, Ldap ldap)
         {
-            HashSet<string> userGroups = new(DistName.DnComparer);
-            userGroups.UnionWith(ldap.GetGroups(ldapUser));
-            string? groupPath = !string.IsNullOrWhiteSpace(ldap.GroupSearchPath) ? ldap.GroupSearchPath : ldap.GroupWritePath;
-            AddResolvedGroupMemberships(userGroups, await ldap.GetGroups([ldapUser.Dn]), groupPath);
-            if (!ldap.IsInternal())
-            {
-                object groupsLock = new();
-                List<Task> ldapRoleRequests = [];
-
-                foreach (Ldap currentLdap in ldaps.Where(l => l.IsInternal()))
-                {
-                    ldapRoleRequests.Add(Task.Run(async () =>
-                    {
-                        // Get groups from current Ldap
-                        List<string> currentGroups = await currentLdap.GetGroups([ldapUser.Dn]);
-                        lock (groupsLock)
-                        {
-                            string? groupPath = !string.IsNullOrWhiteSpace(currentLdap.GroupSearchPath) ? currentLdap.GroupSearchPath : currentLdap.GroupWritePath;
-                            AddResolvedGroupMemberships(userGroups, currentGroups, groupPath);
-                        }
-                    }));
-                }
-                await Task.WhenAll(ldapRoleRequests);
-            }
-            return userGroups.ToList();
-        }
-
-        private static void AddResolvedGroupMemberships(HashSet<string> userGroups, IEnumerable<string> groupNames, string? groupPath)
-        {
-            userGroups.UnionWith(Ldap.BuildGroupDns(groupNames, groupPath));
+            return await new UserGroupResolver(ldaps).GetGroups(ldapUser, ldap);
         }
 
         public async Task<(LdapEntry, Ldap)> AuthenticateInAnyLdap(UiUser user, bool validatePassword)
@@ -658,7 +635,9 @@ namespace FWO.Middleware.Server.Controllers
 
             List<Task> ldapRoleRequests = [];
 
-            foreach (Ldap currentLdap in ldaps.Where(l => l.HasRoleHandling()))
+            // inactive connections must not contribute roles: the injected ldap list is a startup snapshot
+            // that still contains deactivated connections, and login itself only binds against active ones
+            foreach (Ldap currentLdap in ldaps.Where(l => l.Active && l.HasRoleHandling()))
             {
                 // if current Ldap has roles stored
                 ldapRoleRequests.Add(Task.Run(async () =>

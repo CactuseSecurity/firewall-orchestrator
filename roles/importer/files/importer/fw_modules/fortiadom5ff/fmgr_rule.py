@@ -282,7 +282,7 @@ def parse_single_rule(
     rulebase: Rulebase,
 ):
     """Parses a single native Fortinet rule into a normalized rule and adds it to the given rulebase."""
-    is_nat_rule = any(key in native_rule and native_rule[key] == 1 for key in ["nat", "nat46", "nat64"])
+    rule_has_nat_flag = any(key in native_rule and native_rule[key] == 1 for key in ["nat", "nat46", "nat64"])
 
     # Extract basic rule information
     rule_disabled = True  # Default to disabled
@@ -298,14 +298,14 @@ def parse_single_rule(
         "src",
         normalized_config_adom,
         normalized_config_global,
-        is_nat=is_nat_rule,
+        is_nat=rule_has_nat_flag,
     )
     rule_dst_list, rule_dst_refs_list = rule_parse_addresses(
         native_rule,
         "dst",
         normalized_config_adom,
         normalized_config_global,
-        is_nat=is_nat_rule,
+        is_nat=rule_has_nat_flag,
     )
 
     rule_svc_list, rule_svc_refs_list = rule_parse_service(native_rule)

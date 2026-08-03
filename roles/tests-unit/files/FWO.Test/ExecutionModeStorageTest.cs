@@ -1,7 +1,6 @@
 using FWO.Basics;
 using FWO.Test.Mocks;
 using FWO.Ui.Services;
-using Microsoft.AspNetCore.Session;
 using NUnit.Framework;
 using System.Reflection;
 
@@ -55,9 +54,24 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task GetExecutionModeClearsStorageAndReturnsNullWhenSessionStorageThrows()
+        public async Task GetExecutionModeReturnsNullWhenSessionStorageThrows()
         {
             ThrowingSessionStorage sessionStorage = new(getException: new InvalidOperationException("get failed"));
+            ExecutionModeStorage storage = new(sessionStorage);
+
+            string? result = await storage.GetExecutionMode();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.Null);
+                Assert.That(sessionStorage.DeleteCallCount, Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task GetExecutionMode_WhenProtectedPayloadIsUnreadable_ClearsStoredValue()
+        {
+            ThrowingSessionStorage sessionStorage = new(getException: new System.Security.Cryptography.CryptographicException("bad payload"));
             ExecutionModeStorage storage = new(sessionStorage);
 
             string? result = await storage.GetExecutionMode();
@@ -92,22 +106,22 @@ namespace FWO.Test
                 this.deleteException = deleteException;
             }
 
-            public ValueTask<Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage.ProtectedBrowserStorageResult<TValue>> GetAsync<TValue>(string key)
+            public Task<Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage.ProtectedBrowserStorageResult<TValue>> GetAsync<TValue>(string key)
             {
                 if (getException != null)
                 {
                     throw getException;
                 }
 
-                return ValueTask.FromResult(CreateFailureResult<TValue>());
+                return Task.FromResult(CreateFailureResult<TValue>());
             }
 
-            public ValueTask SetAsync(string key, object value)
+            public Task SetAsync(string key, object value)
             {
-                return ValueTask.CompletedTask;
+                return Task.CompletedTask;
             }
 
-            public ValueTask DeleteAsync(string key)
+            public Task DeleteAsync(string key)
             {
                 DeleteCallCount++;
                 if (deleteException != null)
@@ -115,7 +129,7 @@ namespace FWO.Test
                     throw deleteException;
                 }
 
-                return ValueTask.CompletedTask;
+                return Task.CompletedTask;
             }
 
             private static Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage.ProtectedBrowserStorageResult<TValue> CreateFailureResult<TValue>()

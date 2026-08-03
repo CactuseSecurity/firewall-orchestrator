@@ -117,12 +117,12 @@ ALTER TABLE changelog_rule
         ON DELETE CASCADE,
     DROP CONSTRAINT changelog_rule_new_rule_id_fkey,
     ADD CONSTRAINT changelog_rule_new_rule_id_fkey FOREIGN KEY (new_rule_id)
-        REFERENCES public.rule (rule_id) MATCH SIMPLE
+        REFERENCES firewall.rule (rule_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
     DROP CONSTRAINT changelog_rule_old_rule_id_fkey,
     ADD CONSTRAINT changelog_rule_old_rule_id_fkey FOREIGN KEY (old_rule_id)
-        REFERENCES public.rule (rule_id) MATCH SIMPLE
+        REFERENCES firewall.rule (rule_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE;
 
@@ -251,7 +251,7 @@ ALTER TABLE firewall.nw_object
         ON DELETE CASCADE,
     DROP CONSTRAINT nw_object_zone_id_fkey,
     ADD CONSTRAINT nw_object_zone_id_fkey FOREIGN KEY (zone_id)
-        REFERENCES public.zone (zone_id) MATCH SIMPLE
+        REFERENCES firewall.zone (zone_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE;
 
@@ -388,7 +388,7 @@ ALTER TABLE zone
 --         ON DELETE CASCADE,
 --     DROP CONSTRAINT rule_order_rule_id_fkey,
 --     ADD CONSTRAINT rule_order_rule_id_fkey FOREIGN KEY (rule_id)
---         REFERENCES public.rule (rule_id) MATCH SIMPLE
+--         REFERENCES firewall.rule (rule_id) MATCH SIMPLE
 --         ON UPDATE RESTRICT
 --         ON DELETE CASCADE;
 
@@ -507,7 +507,7 @@ ALTER TABLE rule_from
         ON DELETE CASCADE,
     DROP CONSTRAINT rule_from_rule_id_fkey,
     ADD CONSTRAINT rule_from_rule_id_fkey FOREIGN KEY (rule_id)
-        REFERENCES public.rule (rule_id) MATCH SIMPLE
+        REFERENCES firewall.rule (rule_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
     DROP CONSTRAINT rule_from_user_id_fkey,
@@ -529,7 +529,7 @@ ALTER TABLE rule_to
         ON DELETE CASCADE,
     DROP CONSTRAINT rule_to_rule_id_fkey,
     ADD CONSTRAINT rule_to_rule_id_fkey FOREIGN KEY (rule_id)
-        REFERENCES public.rule (rule_id) MATCH SIMPLE
+        REFERENCES firewall.rule (rule_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE;
 
@@ -541,7 +541,7 @@ ALTER TABLE rule_service
         ON DELETE CASCADE,
     DROP CONSTRAINT rule_service_rule_id_fkey,
     ADD CONSTRAINT rule_service_rule_id_fkey FOREIGN KEY (rule_id)
-        REFERENCES public.rule (rule_id) MATCH SIMPLE
+        REFERENCES firewall.rule (rule_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
     DROP CONSTRAINT rule_service_svc_id_fkey,
@@ -553,7 +553,7 @@ ALTER TABLE rule_service
 -- ALTER TABLE temp_filtered_rule_ids
 -- 	DROP CONSTRAINT temp_filtered_rule_ids_rule_id_fkey,
 -- 	ADD CONSTRAINT temp_filtered_rule_ids_rule_id_fkey FOREIGN KEY (rule_id)
---         REFERENCES public.rule (rule_id) MATCH SIMPLE
+--         REFERENCES firewall.rule (rule_id) MATCH SIMPLE
 --         ON UPDATE RESTRICT
 --         ON DELETE CASCADE;
 

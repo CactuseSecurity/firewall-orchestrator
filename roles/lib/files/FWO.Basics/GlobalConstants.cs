@@ -75,6 +75,11 @@ namespace FWO.Basics
 
         public const int MaxUploadFileSize = 5 * 1024 * 1024; // 5 MB
 
+        // qad: these two strings should be replaced by customer specific setting values asap
+        public const string kField2 = "field-2";
+        public const string kDatumRegelpr = "Datum-Regelpruefung";
+
+        public const string BrowserResourceSaving = "This may occur when a browser goes into resource saving mode";
     }
 
     public struct PageName

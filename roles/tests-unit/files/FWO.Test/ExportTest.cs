@@ -429,7 +429,7 @@ namespace FWO.Test
 
             string csv = report.ExportToCsv();
 
-            StringAssert.Contains("\"Label: business_unit\",", csv);
+            StringAssert.Contains("\"add_info: business_unit\",", csv);
             StringAssert.Contains("\"EXT-OVERDUE\",\"Overdue Owner\",\"overdue.main, overdue.second\",\"", csv);
             StringAssert.Contains("\",\"overdue.user\",\"Payments\",", csv);
         }
@@ -517,7 +517,7 @@ namespace FWO.Test
 
             StringAssert.DoesNotContain("<p>Owners: Overdue Owner; Upcoming Owner; Further Owner; Inactive Owner</p>", html);
             StringAssert.Contains("<p>Other filters: TestFilter</p>", html);
-            StringAssert.DoesNotContain("<p>Label: business_unit (existing)</p>", html);
+            StringAssert.DoesNotContain("<p>add_info: business_unit (existing)</p>", html);
             StringAssert.Contains("<td>overdue.user</td><td>Payments</td>", html);
         }
 
@@ -534,8 +534,8 @@ namespace FWO.Test
 
             string html = RemoveLinebreaks(report.ExportToHtml());
 
-            StringAssert.DoesNotContain("Label: business_unit (existing)", html);
-            StringAssert.Contains("<th>Label: business_unit</th>", html);
+            StringAssert.DoesNotContain("add_info: business_unit (existing)", html);
+            StringAssert.Contains("<th>add_info: business_unit</th>", html);
             StringAssert.Contains("EXT-OVERDUE", html);
             StringAssert.Contains("EXT-UPCOMING", html);
             StringAssert.Contains("EXT-FURTHER", html);
@@ -543,38 +543,38 @@ namespace FWO.Test
         }
 
         [Test]
-        public void OwnerRecertificationGenerateHtmlHidesDisplayOnlyLabelFilter()
+        public void OwnerRecertificationGenerateHtmlHidesDisplayOnlyAddInfoFilter()
         {
             ReportOwnerRecerts report = new(new DynGraphqlQuery(""), userConfig, ReportType.OwnerRecertification)
             {
                 ReportData = ConstructOwnerRecertReport()
             };
-            report.ReportData.OwnerLabelFilter = new LabelFilter
+            report.ReportData.OwnerAddInfoFilter = new AddInfoFilter
             {
                 Name = "business_unit",
-                Mode = LabelFilterMode.display_only
+                Mode = AddInfoFilterMode.display_only
             };
             report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner.AdditionalInfo =
                 new() { ["business_unit"] = "Payments" };
 
             string html = RemoveLinebreaks(report.ExportToHtml());
 
-            StringAssert.DoesNotContain("<p>Label: business_unit", html);
-            StringAssert.Contains("<th>Label: business_unit</th>", html);
+            StringAssert.DoesNotContain("<p>add_info: business_unit", html);
+            StringAssert.Contains("<th>add_info: business_unit</th>", html);
             StringAssert.DoesNotContain("Owners: ", html);
         }
 
         [Test]
-        public void OwnerRecertificationGenerateHtmlShowsValueLabelFilter()
+        public void OwnerRecertificationGenerateHtmlShowsValueAddInfoFilter()
         {
             ReportOwnerRecerts report = new(new DynGraphqlQuery(""), userConfig, ReportType.OwnerRecertification)
             {
                 ReportData = ConstructOwnerRecertReport()
             };
-            report.ReportData.OwnerLabelFilter = new LabelFilter
+            report.ReportData.OwnerAddInfoFilter = new AddInfoFilter
             {
                 Name = "business_unit",
-                Mode = LabelFilterMode.value,
+                Mode = AddInfoFilterMode.value,
                 Value = "Payments"
             };
             report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner.AdditionalInfo =
@@ -582,8 +582,8 @@ namespace FWO.Test
 
             string html = RemoveLinebreaks(report.ExportToHtml());
 
-            StringAssert.Contains("<p>Label: business_unit=Payments</p>", html);
-            StringAssert.DoesNotContain("Label: business_unit (", html);
+            StringAssert.Contains("<p>add_info: business_unit=Payments</p>", html);
+            StringAssert.DoesNotContain("add_info: business_unit (", html);
             StringAssert.DoesNotContain("<p>Other filters: TestFilter</p>", html);
         }
 
@@ -594,10 +594,10 @@ namespace FWO.Test
             {
                 ReportData = ConstructOwnerRecertReport()
             };
-            report.ReportData.OwnerLabelFilter = new LabelFilter
+            report.ReportData.OwnerAddInfoFilter = new AddInfoFilter
             {
                 Name = "business_unit",
-                Mode = LabelFilterMode.existing
+                Mode = AddInfoFilterMode.existing
             };
             report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner.AdditionalInfo =
                 new() { ["business_unit"] = "Payments" };

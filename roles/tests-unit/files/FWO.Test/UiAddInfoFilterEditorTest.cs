@@ -11,149 +11,149 @@ using System.Reflection;
 namespace FWO.Test
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    public class UiLabelFilterEditorTest
+    public class UiAddInfoFilterEditorTest
     {
         private static readonly List<string> kPolicyCheckLabelNames = new() { "policy_check" };
         private static readonly List<string> kBusinessUnitLabelNames = new() { "business_unit" };
 
         [Test]
-        public async Task LabelFilterEditor_RendersSummaryForEmptyValueAndModeFilters()
+        public async Task AddInfoFilterEditor_RendersSummaryForEmptyValueAndModeFilters()
         {
             await using BunitContext context = CreateContext();
-            LabelFilter filter = new();
-            IRenderedComponent<LabelFilterEditor> cut = context.Render<LabelFilterEditor>(parameters => parameters
-                .Add(p => p.LabelFilter, filter)
-                .Add(p => p.AvailableLabelNames, kPolicyCheckLabelNames)
+            AddInfoFilter filter = new();
+            IRenderedComponent<AddInfoFilterEditor> cut = context.Render<AddInfoFilterEditor>(parameters => parameters
+                .Add(p => p.AddInfoFilter, filter)
+                .Add(p => p.AvailableAddInfoNames, kPolicyCheckLabelNames)
                 .Add(p => p.AllowFreeText, true)
-                .Add(p => p.DefaultMode, LabelFilterMode.display_only)
+                .Add(p => p.DefaultMode, AddInfoFilterMode.display_only)
                 .Add(p => p.IdPrefix, "testLabel"));
 
             Assert.That(cut.Find("#testLabel-summary").GetAttribute("value"), Is.EqualTo("-"));
 
-            cut = context.Render<LabelFilterEditor>(parameters => parameters
-                .Add(p => p.LabelFilter, new LabelFilter
+            cut = context.Render<AddInfoFilterEditor>(parameters => parameters
+                .Add(p => p.AddInfoFilter, new AddInfoFilter
                 {
                     Name = "policy_check",
-                    Mode = LabelFilterMode.value,
+                    Mode = AddInfoFilterMode.value,
                     Value = "passed"
                 })
-                .Add(p => p.AvailableLabelNames, kPolicyCheckLabelNames)
+                .Add(p => p.AvailableAddInfoNames, kPolicyCheckLabelNames)
                 .Add(p => p.IdPrefix, "testLabel"));
             Assert.That(cut.Find("#testLabel-summary").GetAttribute("value"), Is.EqualTo("policy_check: passed"));
 
-            cut = context.Render<LabelFilterEditor>(parameters => parameters
-                .Add(p => p.LabelFilter, new LabelFilter
+            cut = context.Render<AddInfoFilterEditor>(parameters => parameters
+                .Add(p => p.AddInfoFilter, new AddInfoFilter
                 {
                     Name = "policy_check",
-                    Mode = LabelFilterMode.display_only
+                    Mode = AddInfoFilterMode.display_only
                 })
-                .Add(p => p.AvailableLabelNames, kPolicyCheckLabelNames)
+                .Add(p => p.AvailableAddInfoNames, kPolicyCheckLabelNames)
                 .Add(p => p.IdPrefix, "testLabel"));
             Assert.That(cut.Find("#testLabel-summary").GetAttribute("value"), Is.EqualTo("policy_check: Display only").IgnoreCase);
         }
 
         [Test]
-        public async Task LabelFilterEditor_ApplyLabelFilterDialog_NotifiesParent()
+        public async Task AddInfoFilterEditor_ApplyAddInfoFilterDialog_NotifiesParent()
         {
             await using BunitContext context = CreateContext();
-            LabelFilter? changedFilter = null;
-            IRenderedComponent<LabelFilterEditor> cut = context.Render<LabelFilterEditor>(parameters => parameters
-                .Add(p => p.LabelFilter, new LabelFilter())
-                .Add(p => p.LabelFilterChanged, updated => changedFilter = updated)
-                .Add(p => p.AvailableLabelNames, kBusinessUnitLabelNames)
+            AddInfoFilter? changedFilter = null;
+            IRenderedComponent<AddInfoFilterEditor> cut = context.Render<AddInfoFilterEditor>(parameters => parameters
+                .Add(p => p.AddInfoFilter, new AddInfoFilter())
+                .Add(p => p.AddInfoFilterChanged, updated => changedFilter = updated)
+                .Add(p => p.AvailableAddInfoNames, kBusinessUnitLabelNames)
                 .Add(p => p.IdPrefix, "testLabel"));
 
-            SetPrivateField(cut.Instance, "labelFilterDraft", new LabelFilter
+            SetPrivateField(cut.Instance, "addInfoFilterDraft", new AddInfoFilter
             {
                 Name = "business_unit",
-                Mode = LabelFilterMode.value,
+                Mode = AddInfoFilterMode.value,
                 Value = "true"
             });
 
-            await InvokePrivateTask(cut, cut.Instance, "ApplyLabelFilterDialog");
+            await InvokePrivateTask(cut, cut.Instance, "ApplyAddInfoFilterDialog");
 
             Assert.Multiple(() =>
             {
-                Assert.That(cut.Instance.LabelFilter.Name, Is.EqualTo("business_unit"));
-                Assert.That(cut.Instance.LabelFilter.Mode, Is.EqualTo(LabelFilterMode.value));
-                Assert.That(cut.Instance.LabelFilter.Value, Is.EqualTo("true"));
+                Assert.That(cut.Instance.AddInfoFilter.Name, Is.EqualTo("business_unit"));
+                Assert.That(cut.Instance.AddInfoFilter.Mode, Is.EqualTo(AddInfoFilterMode.value));
+                Assert.That(cut.Instance.AddInfoFilter.Value, Is.EqualTo("true"));
                 Assert.That(changedFilter, Is.Not.Null);
                 Assert.That(changedFilter!.Name, Is.EqualTo("business_unit"));
             });
         }
 
         [Test]
-        public async Task LabelFilterEditor_DeleteLabelFilterDialog_NotifiesParent()
+        public async Task AddInfoFilterEditor_DeleteAddInfoFilterDialog_NotifiesParent()
         {
             await using BunitContext context = CreateContext();
-            LabelFilter? changedFilter = null;
-            IRenderedComponent<LabelFilterEditor> cut = context.Render<LabelFilterEditor>(parameters => parameters
-                .Add(p => p.LabelFilter, new LabelFilter
+            AddInfoFilter? changedFilter = null;
+            IRenderedComponent<AddInfoFilterEditor> cut = context.Render<AddInfoFilterEditor>(parameters => parameters
+                .Add(p => p.AddInfoFilter, new AddInfoFilter
                 {
                     Name = "policy_check",
-                    Mode = LabelFilterMode.value,
+                    Mode = AddInfoFilterMode.value,
                     Value = "passed"
                 })
-                .Add(p => p.LabelFilterChanged, updated => changedFilter = updated)
-                .Add(p => p.AvailableLabelNames, kPolicyCheckLabelNames)
+                .Add(p => p.AddInfoFilterChanged, updated => changedFilter = updated)
+                .Add(p => p.AvailableAddInfoNames, kPolicyCheckLabelNames)
                 .Add(p => p.IdPrefix, "testLabel"));
 
-            SetPrivateField(cut.Instance, "showLabelFilterDialog", true);
-            await InvokePrivateTask(cut, cut.Instance, "DeleteLabelFilterDialog");
+            SetPrivateField(cut.Instance, "showAddInfoFilterDialog", true);
+            await InvokePrivateTask(cut, cut.Instance, "DeleteAddInfoFilterDialog");
 
             Assert.Multiple(() =>
             {
-                Assert.That(cut.Instance.LabelFilter.Name, Is.EqualTo(string.Empty));
-                Assert.That(cut.Instance.LabelFilter.Mode, Is.EqualTo(LabelFilterMode.existing));
-                Assert.That(cut.Instance.LabelFilter.Value, Is.EqualTo(string.Empty));
+                Assert.That(cut.Instance.AddInfoFilter.Name, Is.EqualTo(string.Empty));
+                Assert.That(cut.Instance.AddInfoFilter.Mode, Is.EqualTo(AddInfoFilterMode.existing));
+                Assert.That(cut.Instance.AddInfoFilter.Value, Is.EqualTo(string.Empty));
                 Assert.That(changedFilter, Is.Not.Null);
                 Assert.That(changedFilter!.Name, Is.EqualTo(string.Empty));
             });
         }
 
         [Test]
-        public async Task LabelFilterEditor_AddsMissingLabelNameToDropdown()
+        public async Task AddInfoFilterEditor_AddsMissingLabelNameToDropdown()
         {
             await using BunitContext context = CreateContext();
-            IRenderedComponent<LabelFilterEditor> cut = context.Render<LabelFilterEditor>(parameters => parameters
-                .Add(p => p.LabelFilter, new LabelFilter
+            IRenderedComponent<AddInfoFilterEditor> cut = context.Render<AddInfoFilterEditor>(parameters => parameters
+                .Add(p => p.AddInfoFilter, new AddInfoFilter
                 {
                     Name = "custom_label",
-                    Mode = LabelFilterMode.existing
+                    Mode = AddInfoFilterMode.existing
                 })
-                .Add(p => p.AvailableLabelNames, Array.Empty<string>())
+                .Add(p => p.AvailableAddInfoNames, Array.Empty<string>())
                 .Add(p => p.IdPrefix, "testLabel"));
 
-            List<string> availableLabelNames = GetPrivateMember<List<string>>(cut.Instance, "availableLabelNames");
+            List<string> availableAddInfoNames = GetPrivateMember<List<string>>(cut.Instance, "availableAddInfoNames");
 
-            Assert.That(availableLabelNames, Does.Contain("custom_label"));
+            Assert.That(availableAddInfoNames, Does.Contain("custom_label"));
         }
 
         [Test]
-        public async Task LabelFilterEditor_OpensEmptyFilterWithDisplayOnlyDefaultMode()
+        public async Task AddInfoFilterEditor_OpensEmptyFilterWithDisplayOnlyDefaultMode()
         {
             await using BunitContext context = CreateContext();
-            IRenderedComponent<LabelFilterEditor> cut = context.Render<LabelFilterEditor>(parameters => parameters
-                .Add(p => p.LabelFilter, new LabelFilter())
-                .Add(p => p.AvailableLabelNames, kPolicyCheckLabelNames)
-                .Add(p => p.DefaultMode, LabelFilterMode.display_only)
+            IRenderedComponent<AddInfoFilterEditor> cut = context.Render<AddInfoFilterEditor>(parameters => parameters
+                .Add(p => p.AddInfoFilter, new AddInfoFilter())
+                .Add(p => p.AvailableAddInfoNames, kPolicyCheckLabelNames)
+                .Add(p => p.DefaultMode, AddInfoFilterMode.display_only)
                 .Add(p => p.IdPrefix, "testLabel"));
 
             cut.Find("#testLabel-editButton").Click();
 
-            LabelFilter draft = GetPrivateMember<LabelFilter>(cut.Instance, "labelFilterDraft");
+            AddInfoFilter draft = GetPrivateMember<AddInfoFilter>(cut.Instance, "addInfoFilterDraft");
 
-            Assert.That(draft.Mode, Is.EqualTo(LabelFilterMode.display_only));
+            Assert.That(draft.Mode, Is.EqualTo(AddInfoFilterMode.display_only));
         }
 
         [Test]
-        public async Task LabelFilterEditor_CommitsTypedFreeTextAndKeepsItOnReopen()
+        public async Task AddInfoFilterEditor_CommitsTypedFreeTextAndKeepsItOnReopen()
         {
             await using BunitContext context = CreateContext();
-            LabelFilter filter = new();
-            IRenderedComponent<LabelFilterEditor> cut = context.Render<LabelFilterEditor>(parameters => parameters
-                .Add(p => p.LabelFilter, filter)
-                .Add(p => p.AvailableLabelNames, kPolicyCheckLabelNames)
+            AddInfoFilter filter = new();
+            IRenderedComponent<AddInfoFilterEditor> cut = context.Render<AddInfoFilterEditor>(parameters => parameters
+                .Add(p => p.AddInfoFilter, filter)
+                .Add(p => p.AvailableAddInfoNames, kPolicyCheckLabelNames)
                 .Add(p => p.AllowFreeText, true)
                 .Add(p => p.IdPrefix, "testLabel"));
 
@@ -165,7 +165,7 @@ namespace FWO.Test
 
             cut.Find("#testLabel-saveButton").Click();
 
-            Assert.That(cut.Instance.LabelFilter.Name, Is.EqualTo("custom_label"));
+            Assert.That(cut.Instance.AddInfoFilter.Name, Is.EqualTo("custom_label"));
             Assert.That(cut.Find("#testLabel-summary").GetAttribute("value"), Is.EqualTo("custom_label: Display only").IgnoreCase);
         }
 

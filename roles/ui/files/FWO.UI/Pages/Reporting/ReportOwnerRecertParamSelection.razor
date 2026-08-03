@@ -33,7 +33,7 @@ else
     public EventCallback<ModellingFilter> ModellingFilterChanged { get; set; }
 
     [Parameter]
-    public IEnumerable<string>? AvailableLabelNames { get; set; }
+    public IEnumerable<string>? AvailableAddInfoNames { get; set; }
 
     [Parameter]
     public bool UseFormLayout { get; set; }
@@ -59,35 +59,35 @@ else
                    checked="@ModellingFilter.MergeOwnerRecertTables" @onchange="ToggleMergeOwnerRecertTables" />
             <label class="@CheckboxLabelClass" for="mergeOwnerRecertTables">@(userConfig.GetText("merge_owner_recert_tables"))</label>
         </div>
-        <LabelFilterEditor LabelFilter="ModellingFilter.OwnerLabelFilter"
-                           LabelFilterChanged="HandleLabelFilterChanged"
-                           AvailableLabelNames="availableLabelNames"
+        <AddInfoFilterEditor AddInfoFilter="ModellingFilter.OwnerAddInfoFilter"
+                           AddInfoFilterChanged="HandleAddInfoFilterChanged"
+                           AvailableAddInfoNames="availableAddInfoNames"
                            IdPrefix="ownerLabel"
                            UseFormLayout="UseFormLayout"
                            UseLightText="UseLightText"
                            AllowFreeText="true"
-                           DefaultMode="LabelFilterMode.display_only"
+                           DefaultMode="AddInfoFilterMode.display_only"
                            TooltipTextKey="C1004" />
     </text>;
 
-    private List<string> availableLabelNames = new();
-    private bool availableLabelNamesLoaded;
+    private List<string> availableAddInfoNames = new();
+    private bool availableAddInfoNamesLoaded;
 
     protected override async Task OnParametersSetAsync()
     {
-        SyncLegacyLabelFilter();
+        SyncLegacyAddInfoFilter();
 
-        if (AvailableLabelNames != null)
+        if (AvailableAddInfoNames != null)
         {
-            availableLabelNames = NormalizeAvailableLabelNames(AvailableLabelNames);
-            availableLabelNamesLoaded = true;
+            availableAddInfoNames = NormalizeAvailableAddInfoNames(AvailableAddInfoNames);
+            availableAddInfoNamesLoaded = true;
             return;
         }
 
-        if (!availableLabelNamesLoaded)
+        if (!availableAddInfoNamesLoaded)
         {
-            availableLabelNames = await LoadAvailableLabelNames();
-            availableLabelNamesLoaded = true;
+            availableAddInfoNames = await LoadAvailableAddInfoNames();
+            availableAddInfoNamesLoaded = true;
         }
     }
 
@@ -109,46 +109,46 @@ else
         await ModellingFilterChanged.InvokeAsync(ModellingFilter);
     }
 
-    private void SyncLegacyLabelFilter()
+    private void SyncLegacyAddInfoFilter()
     {
-        if (!string.IsNullOrWhiteSpace(ModellingFilter.OwnerAdditionalInfoKey) && string.IsNullOrWhiteSpace(ModellingFilter.OwnerLabelFilter.Name))
+        if (!string.IsNullOrWhiteSpace(ModellingFilter.OwnerAdditionalInfoKey) && string.IsNullOrWhiteSpace(ModellingFilter.OwnerAddInfoFilter.Name))
         {
-            ModellingFilter.OwnerLabelFilter.Name = ModellingFilter.OwnerAdditionalInfoKey;
-            ModellingFilter.OwnerLabelFilter.Mode = LabelFilterMode.display_only;
+            ModellingFilter.OwnerAddInfoFilter.Name = ModellingFilter.OwnerAdditionalInfoKey;
+            ModellingFilter.OwnerAddInfoFilter.Mode = AddInfoFilterMode.display_only;
         }
 
-        if (!string.IsNullOrWhiteSpace(ModellingFilter.OwnerLabelFilter.Name))
+        if (!string.IsNullOrWhiteSpace(ModellingFilter.OwnerAddInfoFilter.Name))
         {
-            ModellingFilter.OwnerAdditionalInfoKey = ModellingFilter.OwnerLabelFilter.Name;
+            ModellingFilter.OwnerAdditionalInfoKey = ModellingFilter.OwnerAddInfoFilter.Name;
         }
     }
 
-    private async Task HandleLabelFilterChanged(LabelFilter labelFilter)
+    private async Task HandleAddInfoFilterChanged(AddInfoFilter addInfoFilter)
     {
-        ModellingFilter.OwnerLabelFilter = new(labelFilter);
-        ModellingFilter.OwnerAdditionalInfoKey = ModellingFilter.OwnerLabelFilter.Name;
+        ModellingFilter.OwnerAddInfoFilter = new(addInfoFilter);
+        ModellingFilter.OwnerAdditionalInfoKey = ModellingFilter.OwnerAddInfoFilter.Name;
         await ModellingFilterChanged.InvokeAsync(ModellingFilter);
     }
 
-    private List<string> NormalizeAvailableLabelNames(IEnumerable<string> labelNames)
+    private List<string> NormalizeAvailableAddInfoNames(IEnumerable<string> addInfoNames)
     {
-        return labelNames
-            .Where(labelName => !string.IsNullOrWhiteSpace(labelName))
+        return addInfoNames
+            .Where(addInfoName => !string.IsNullOrWhiteSpace(addInfoName))
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(labelName => labelName, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(addInfoName => addInfoName, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
 
-    private async Task<List<string>> LoadAvailableLabelNames()
+    private async Task<List<string>> LoadAvailableAddInfoNames()
     {
         try
         {
             List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
-            return NormalizeAvailableLabelNames(owners.SelectMany(owner => owner.AdditionalInfo?.Keys ?? Enumerable.Empty<string>()));
+            return NormalizeAvailableAddInfoNames(owners.SelectMany(owner => owner.AdditionalInfo?.Keys ?? Enumerable.Empty<string>()));
         }
         catch
         {
-            Log.WriteError(nameof(ReportOwnerRecertParamSelection), "Loading available owner label names failed.");
+            Log.WriteError(nameof(ReportOwnerRecertParamSelection), "Loading available owner additional info names failed.");
             return [];
         }
     }

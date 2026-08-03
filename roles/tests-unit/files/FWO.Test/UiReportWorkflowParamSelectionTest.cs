@@ -22,7 +22,7 @@ namespace FWO.Test
     internal class UiReportWorkflowParamSelectionTest
     {
         private static readonly int[] kClosedStateIds = [10, 12];
-        private static readonly string[] kExpectedWorkflowLabelNames = [AdditionalInfoKeys.ReqOwner, "policy_check_result"];
+        private static readonly string[] kExpectedWorkflowAddInfoNames = [AdditionalInfoKeys.ReqOwner, "policy_check_result"];
 
         private static T GetPrivateMember<T>(object instance, string memberName)
         {
@@ -275,7 +275,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void BuildAvailableLabelNames_IncludesAdditionalInfoAndDeduplicatedConditionalAutoPromoteLabels()
+        public void BuildAvailableAddInfoNames_IncludesAdditionalInfoAndDeduplicatedConditionalAutoPromoteLabels()
         {
             ConditionalAutoPromoteParams conditionalParams = new()
             {
@@ -296,16 +296,16 @@ namespace FWO.Test
                 ExternalParams = JsonSerializer.Serialize(duplicateConditionalParams)
             };
 
-            List<string> labelNames = (List<string>)(typeof(ReportWorkflowParamSelection)
-                .GetMethod("BuildAvailableLabelNames", BindingFlags.NonPublic | BindingFlags.Static)
+            List<string> addInfoNames = (List<string>)(typeof(ReportWorkflowParamSelection)
+                .GetMethod("BuildAvailableAddInfoNames", BindingFlags.NonPublic | BindingFlags.Static)
                 ?.Invoke(null, [new List<WfStateAction> { action, duplicateAction }])
-                ?? throw new MissingMethodException(nameof(ReportWorkflowParamSelection), "BuildAvailableLabelNames"));
+                ?? throw new MissingMethodException(nameof(ReportWorkflowParamSelection), "BuildAvailableAddInfoNames"));
 
             Assert.Multiple(() =>
             {
-                Assert.That(labelNames, Does.Contain(AdditionalInfoKeys.ReqOwner));
-                Assert.That(labelNames, Does.Contain("policy_check_result"));
-                Assert.That(labelNames.Count(label => string.Equals(label, "policy_check_result", StringComparison.OrdinalIgnoreCase)), Is.EqualTo(1));
+                Assert.That(addInfoNames, Does.Contain(AdditionalInfoKeys.ReqOwner));
+                Assert.That(addInfoNames, Does.Contain("policy_check_result"));
+                Assert.That(addInfoNames.Count(addInfo => string.Equals(addInfo, "policy_check_result", StringComparison.OrdinalIgnoreCase)), Is.EqualTo(1));
             });
         }
 
@@ -347,13 +347,13 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task HandleLabelFilterChanged_CopiesFilterAndNotifiesParent()
+        public async Task HandleAddInfoFilterChanged_CopiesFilterAndNotifiesParent()
         {
             await using BunitContext context = CreateContext();
-            LabelFilter sourceFilter = new()
+            AddInfoFilter sourceFilter = new()
             {
                 Name = "policy_check",
-                Mode = LabelFilterMode.value,
+                Mode = AddInfoFilterMode.value,
                 Value = "passed"
             };
             WorkflowFilter? changedFilter = null;
@@ -362,17 +362,17 @@ namespace FWO.Test
                 .Add(p => p.WorkflowFilterChanged, EventCallback.Factory.Create<WorkflowFilter>(context, updated => changedFilter = updated))
                 .Add(p => p.SelectedReportType, ReportType.TicketReport));
 
-            await cut.InvokeAsync(() => (Task)(InvokePrivateMethod(cut.Instance, "HandleLabelFilterChanged", sourceFilter)
+            await cut.InvokeAsync(() => (Task)(InvokePrivateMethod(cut.Instance, "HandleAddInfoFilterChanged", sourceFilter)
                 ?? throw new InvalidOperationException("Expected label-filter task.")));
             sourceFilter.Value = "mutated";
 
             Assert.Multiple(() =>
             {
-                Assert.That(cut.Instance.WorkflowFilter.LabelFilter.Name, Is.EqualTo("policy_check"));
-                Assert.That(cut.Instance.WorkflowFilter.LabelFilter.Value, Is.EqualTo("passed"));
+                Assert.That(cut.Instance.WorkflowFilter.AddInfoFilter.Name, Is.EqualTo("policy_check"));
+                Assert.That(cut.Instance.WorkflowFilter.AddInfoFilter.Value, Is.EqualTo("passed"));
                 Assert.That(changedFilter, Is.Not.Null);
-                Assert.That(changedFilter!.LabelFilter.Name, Is.EqualTo("policy_check"));
-                Assert.That(changedFilter.LabelFilter.Value, Is.EqualTo("passed"));
+                Assert.That(changedFilter!.AddInfoFilter.Name, Is.EqualTo("policy_check"));
+                Assert.That(changedFilter.AddInfoFilter.Value, Is.EqualTo("passed"));
             });
         }
 
@@ -384,21 +384,21 @@ namespace FWO.Test
             SetMember(component, "userConfig", new SimulatedUserConfig());
             SetMember(component, "allStates", new List<WfState> { new() { Id = 999, Name = "stale" } });
             SetMember(component, "availablePhases", new List<string> { "stale" });
-            SetMember(component, "availableLabelNames", new List<string> { "stale" });
+            SetMember(component, "availableAddInfoNames", new List<string> { "stale" });
 
             await (Task)(InvokePrivateMethod(component, "OnInitializedAsync")
                 ?? throw new InvalidOperationException("Expected initialization task."));
 
             List<WfState> allStates = GetPrivateMember<List<WfState>>(component, "allStates");
             List<string> availablePhases = GetPrivateMember<List<string>>(component, "availablePhases");
-            List<string> availableLabelNames = GetPrivateMember<List<string>>(component, "availableLabelNames");
+            List<string> availableAddInfoNames = GetPrivateMember<List<string>>(component, "availableAddInfoNames");
 
             Assert.Multiple(() =>
             {
                 Assert.That(allStates, Is.Empty);
                 Assert.That(availablePhases, Is.Empty);
-                Assert.That(availableLabelNames, Does.Contain(AdditionalInfoKeys.ReqOwner));
-                Assert.That(availableLabelNames, Does.Not.Contain("policy_check_result"));
+                Assert.That(availableAddInfoNames, Does.Contain(AdditionalInfoKeys.ReqOwner));
+                Assert.That(availableAddInfoNames, Does.Not.Contain("policy_check_result"));
             });
         }
 
@@ -430,8 +430,8 @@ namespace FWO.Test
                 var dropdownItems = cut.FindAll("button.dropdown-item");
                 string menuMarkup = string.Join(" ", dropdownItems.Select(item => item.TextContent));
 
-                Assert.That(menuMarkup, Does.Contain(kExpectedWorkflowLabelNames[0]));
-                Assert.That(menuMarkup, Does.Contain(kExpectedWorkflowLabelNames[1]));
+                Assert.That(menuMarkup, Does.Contain(kExpectedWorkflowAddInfoNames[0]));
+                Assert.That(menuMarkup, Does.Contain(kExpectedWorkflowAddInfoNames[1]));
             });
         }
 

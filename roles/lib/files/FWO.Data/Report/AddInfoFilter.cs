@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace FWO.Data.Report
 {
-    public enum LabelFilterMode
+    public enum AddInfoFilterMode
     {
         not_existing,
         existing,
@@ -11,25 +11,25 @@ namespace FWO.Data.Report
         display_only
     }
 
-    public class LabelFilter
+    public class AddInfoFilter
     {
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
 
         [JsonProperty("mode"), JsonPropertyName("mode")]
-        public LabelFilterMode Mode { get; set; } = LabelFilterMode.existing;
+        public AddInfoFilterMode Mode { get; set; } = AddInfoFilterMode.existing;
 
         [JsonProperty("value"), JsonPropertyName("value")]
         public string Value { get; set; } = "";
 
-        public LabelFilter()
+        public AddInfoFilter()
         { }
 
-        public LabelFilter(LabelFilter? labelFilter)
+        public AddInfoFilter(AddInfoFilter? addInfoFilter)
         {
-            Name = labelFilter?.Name ?? "";
-            Mode = labelFilter?.Mode ?? LabelFilterMode.existing;
-            Value = labelFilter?.Value ?? "";
+            Name = addInfoFilter?.Name ?? "";
+            Mode = addInfoFilter?.Mode ?? AddInfoFilterMode.existing;
+            Value = addInfoFilter?.Value ?? "";
         }
     }
 }

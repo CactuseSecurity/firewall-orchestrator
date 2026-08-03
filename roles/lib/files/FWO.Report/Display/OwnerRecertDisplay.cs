@@ -43,9 +43,9 @@ namespace FWO.Ui.Display
                 : WebUtility.HtmlEncode(value);
         }
 
-        public static bool MatchesAdditionalInfoFilter(FwoOwner owner, LabelFilter filter)
+        public static bool MatchesAdditionalInfoFilter(FwoOwner owner, AddInfoFilter filter)
         {
-            if (string.IsNullOrWhiteSpace(filter.Name) || filter.Mode == LabelFilterMode.display_only)
+            if (string.IsNullOrWhiteSpace(filter.Name) || filter.Mode == AddInfoFilterMode.display_only)
             {
                 return true;
             }
@@ -53,9 +53,9 @@ namespace FWO.Ui.Display
             string value = FormatAdditionalInfoValue(owner, filter.Name);
             return filter.Mode switch
             {
-                LabelFilterMode.existing => !string.IsNullOrWhiteSpace(value),
-                LabelFilterMode.not_existing => string.IsNullOrWhiteSpace(value),
-                LabelFilterMode.value => string.Equals(value, filter.Value, StringComparison.Ordinal),
+                AddInfoFilterMode.existing => !string.IsNullOrWhiteSpace(value),
+                AddInfoFilterMode.not_existing => string.IsNullOrWhiteSpace(value),
+                AddInfoFilterMode.value => string.Equals(value, filter.Value, StringComparison.Ordinal),
                 _ => true
             };
         }

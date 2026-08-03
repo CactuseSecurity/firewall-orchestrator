@@ -730,6 +730,8 @@ INSERT INTO txt VALUES ('name', 				'German', 	'Name');
 INSERT INTO txt VALUES ('name', 				'English', 	'Name');
 INSERT INTO txt VALUES ('label',                'German',   'Label');
 INSERT INTO txt VALUES ('label',                'English',  'Label');
+INSERT INTO txt VALUES ('add_info',             'German',   'Zus. Info');
+INSERT INTO txt VALUES ('add_info',             'English',  'Add. Info');
 INSERT INTO txt VALUES ('user_deleted',		    'German', 	'Nutzer gel&ouml;scht');
 INSERT INTO txt VALUES ('user_deleted',		    'English', 	'User deleted');
 INSERT INTO txt VALUES ('user_added',		    'German', 	'Nutzer hinzugef&uuml;gt');

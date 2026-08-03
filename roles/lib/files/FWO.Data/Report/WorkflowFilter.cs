@@ -62,7 +62,7 @@ namespace FWO.Data.Report
         public string Phase { get; set; } = "";
 
         [JsonProperty("label_filter"), JsonPropertyName("label_filter")]
-        public LabelFilter LabelFilter { get; set; } = new();
+        public AddInfoFilter AddInfoFilter { get; set; } = new();
 
         [JsonProperty("detailed_view"), JsonPropertyName("detailed_view")]
         public bool DetailedView { get; set; } = false;
@@ -79,7 +79,7 @@ namespace FWO.Data.Report
             TaskTypes = workflowFilter.TaskTypes.Count > 0 ? [.. workflowFilter.TaskTypes] : DefaultTaskTypes();
             StateIds = [.. workflowFilter.StateIds];
             Phase = workflowFilter.Phase;
-            LabelFilter = new(workflowFilter.LabelFilter);
+            AddInfoFilter = new(workflowFilter.AddInfoFilter);
             DetailedView = workflowFilter.DetailedView;
             ShowFullTicket = workflowFilter.ShowFullTicket;
         }

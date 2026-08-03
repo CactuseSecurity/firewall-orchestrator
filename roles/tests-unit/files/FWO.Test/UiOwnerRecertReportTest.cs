@@ -66,17 +66,17 @@ namespace FWO.Test
 
             IRenderedComponent<OwnerRecertReport> cut = Render<OwnerRecertReport>(parameters => parameters
                 .Add(p => p.OwnerData, ownerData)
-                .Add(p => p.OwnerLabelFilter, new LabelFilter { Name = "recert_required", Mode = LabelFilterMode.display_only })
+                .Add(p => p.OwnerAddInfoFilter, new AddInfoFilter { Name = "recert_required", Mode = AddInfoFilterMode.display_only })
                 .Add(p => p.RecertificationDisplayPeriod, 7));
 
-            Assert.That(cut.Markup, Does.Contain("Label: recert_required"));
+            Assert.That(cut.Markup, Does.Contain("add_info: recert_required"));
             Assert.That(cut.Markup, Does.Contain("bi bi-check-lg"));
             Assert.That(cut.Markup, Does.Not.Contain(">true<"));
             Assert.That(ownerData[0].Owner.AdditionalInfoValue, Is.EqualTo("true"));
         }
 
         [Test]
-        public void OwnerRecertReport_LabelFilterHidesNonMatchingOwners()
+        public void OwnerRecertReport_AddInfoFilterHidesNonMatchingOwners()
         {
             List<OwnerConnectionReport> ownerData =
             [
@@ -86,10 +86,10 @@ namespace FWO.Test
 
             IRenderedComponent<OwnerRecertReport> cut = Render<OwnerRecertReport>(parameters => parameters
                 .Add(p => p.OwnerData, ownerData)
-                .Add(p => p.OwnerLabelFilter, new LabelFilter
+                .Add(p => p.OwnerAddInfoFilter, new AddInfoFilter
                 {
                     Name = "department",
-                    Mode = LabelFilterMode.value,
+                    Mode = AddInfoFilterMode.value,
                     Value = "A"
                 })
                 .Add(p => p.RecertificationDisplayPeriod, 7));
@@ -99,7 +99,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void OwnerRecertReport_UsesOwnerAdditionalInfoKeyWhenLabelFilterIsMissing()
+        public void OwnerRecertReport_UsesOwnerAdditionalInfoKeyWhenAddInfoFilterIsMissing()
         {
             List<OwnerConnectionReport> ownerData =
             [
@@ -116,7 +116,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(cut.Markup, Does.Contain("Label: business_unit"));
+                Assert.That(cut.Markup, Does.Contain("add_info: business_unit"));
                 Assert.That(cut.Markup, Does.Contain("Payments"));
                 Assert.That(ownerData[0].Owner.AdditionalInfoValue, Is.EqualTo("Payments"));
             });

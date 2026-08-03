@@ -43,7 +43,7 @@ namespace FWO.Test
             IRenderedComponent<ReportOwnerRecertParamSelection> cut = context.Render<ReportOwnerRecertParamSelection>(parameters => parameters
                 .Add(p => p.ModellingFilter, new ModellingFilter
                 {
-                    OwnerLabelFilter = new LabelFilter { Name = "ConnId" }
+                    OwnerAddInfoFilter = new AddInfoFilter { Name = "ConnId" }
                 })
                 .Add(p => p.UseLightText, false));
 
@@ -70,7 +70,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ReportOwnerRecertParamSelection_UpdatesOwnerLabelFilter()
+        public async Task ReportOwnerRecertParamSelection_UpdatesOwnerAddInfoFilter()
         {
             await using BunitContext context = CreateContext(new ReportOwnerRecertParamSelectionTestApiConnection());
             ModellingFilter filter = new();
@@ -79,33 +79,33 @@ namespace FWO.Test
                 .Add(p => p.ModellingFilter, filter)
                 .Add(p => p.ModellingFilterChanged, updated => changedFilter = updated));
 
-            IRenderedComponent<LabelFilterEditor> editor = cut.FindComponent<LabelFilterEditor>();
-            SetPrivateField(editor.Instance, "labelFilterDraft", new LabelFilter
+            IRenderedComponent<AddInfoFilterEditor> editor = cut.FindComponent<AddInfoFilterEditor>();
+            SetPrivateField(editor.Instance, "addInfoFilterDraft", new AddInfoFilter
             {
                 Name = "business_unit",
-                Mode = LabelFilterMode.value,
+                Mode = AddInfoFilterMode.value,
                 Value = "true"
             });
 
-            await InvokePrivateTask(editor, editor.Instance, "ApplyLabelFilterDialog");
+            await InvokePrivateTask(editor, editor.Instance, "ApplyAddInfoFilterDialog");
 
-            Assert.That(filter.OwnerLabelFilter.Name, Is.EqualTo("business_unit"));
-            Assert.That(filter.OwnerLabelFilter.Mode, Is.EqualTo(LabelFilterMode.value));
-            Assert.That(filter.OwnerLabelFilter.Value, Is.EqualTo("true"));
+            Assert.That(filter.OwnerAddInfoFilter.Name, Is.EqualTo("business_unit"));
+            Assert.That(filter.OwnerAddInfoFilter.Mode, Is.EqualTo(AddInfoFilterMode.value));
+            Assert.That(filter.OwnerAddInfoFilter.Value, Is.EqualTo("true"));
             Assert.That(filter.OwnerAdditionalInfoKey, Is.EqualTo("business_unit"));
             Assert.That(changedFilter, Is.SameAs(filter));
         }
 
         [Test]
-        public async Task ReportOwnerRecertParamSelection_DeletesOwnerLabelFilter()
+        public async Task ReportOwnerRecertParamSelection_DeletesOwnerAddInfoFilter()
         {
             await using BunitContext context = CreateContext(new ReportOwnerRecertParamSelectionTestApiConnection());
             ModellingFilter filter = new()
             {
-                OwnerLabelFilter = new LabelFilter
+                OwnerAddInfoFilter = new AddInfoFilter
                 {
                     Name = "custom_owner_label",
-                    Mode = LabelFilterMode.value,
+                    Mode = AddInfoFilterMode.value,
                     Value = "foo"
                 },
                 OwnerAdditionalInfoKey = "custom_owner_label"
@@ -115,13 +115,13 @@ namespace FWO.Test
                 .Add(p => p.ModellingFilter, filter)
                 .Add(p => p.ModellingFilterChanged, updated => changedFilter = updated));
 
-            IRenderedComponent<LabelFilterEditor> editor = cut.FindComponent<LabelFilterEditor>();
-            SetPrivateField(editor.Instance, "showLabelFilterDialog", true);
-            await InvokePrivateTask(editor, editor.Instance, "DeleteLabelFilterDialog");
+            IRenderedComponent<AddInfoFilterEditor> editor = cut.FindComponent<AddInfoFilterEditor>();
+            SetPrivateField(editor.Instance, "showAddInfoFilterDialog", true);
+            await InvokePrivateTask(editor, editor.Instance, "DeleteAddInfoFilterDialog");
 
-            Assert.That(filter.OwnerLabelFilter.Name, Is.EqualTo(string.Empty));
-            Assert.That(filter.OwnerLabelFilter.Mode, Is.EqualTo(LabelFilterMode.existing));
-            Assert.That(filter.OwnerLabelFilter.Value, Is.EqualTo(string.Empty));
+            Assert.That(filter.OwnerAddInfoFilter.Name, Is.EqualTo(string.Empty));
+            Assert.That(filter.OwnerAddInfoFilter.Mode, Is.EqualTo(AddInfoFilterMode.existing));
+            Assert.That(filter.OwnerAddInfoFilter.Value, Is.EqualTo(string.Empty));
             Assert.That(filter.OwnerAdditionalInfoKey, Is.EqualTo(string.Empty));
             Assert.That(changedFilter, Is.SameAs(filter));
         }
@@ -156,51 +156,51 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ReportOwnerRecertParamSelection_LoadsAvailableLabelNamesFromOwnersAndAppendsCurrentSelection()
+        public async Task ReportOwnerRecertParamSelection_LoadsAvailableAddInfoNamesFromOwnersAndAppendsCurrentSelection()
         {
             await using BunitContext context = CreateContext(new ReportOwnerRecertParamSelectionTestApiConnection());
             IRenderedComponent<ReportOwnerRecertParamSelection> cut = context.Render<ReportOwnerRecertParamSelection>(parameters => parameters
                 .Add(p => p.ModellingFilter, new ModellingFilter
                 {
-                    OwnerLabelFilter = new LabelFilter
+                    OwnerAddInfoFilter = new AddInfoFilter
                     {
                         Name = "custom_owner_label"
                     }
                 }));
 
-            IRenderedComponent<LabelFilterEditor> editor = cut.FindComponent<LabelFilterEditor>();
-            List<string> availableLabelNames = GetPrivateMember<List<string>>(editor.Instance, "availableLabelNames");
+            IRenderedComponent<AddInfoFilterEditor> editor = cut.FindComponent<AddInfoFilterEditor>();
+            List<string> availableAddInfoNames = GetPrivateMember<List<string>>(editor.Instance, "availableAddInfoNames");
 
             Assert.Multiple(() =>
             {
-                Assert.That(availableLabelNames, Does.Contain("business_unit"));
-                Assert.That(availableLabelNames, Does.Contain("region"));
-                Assert.That(availableLabelNames, Does.Contain("service_tier"));
-                Assert.That(availableLabelNames, Does.Contain("custom_owner_label"));
+                Assert.That(availableAddInfoNames, Does.Contain("business_unit"));
+                Assert.That(availableAddInfoNames, Does.Contain("region"));
+                Assert.That(availableAddInfoNames, Does.Contain("service_tier"));
+                Assert.That(availableAddInfoNames, Does.Contain("custom_owner_label"));
             });
         }
 
         [Test]
-        public async Task ReportOwnerRecertParamSelection_UsesProvidedAvailableLabelNamesWithoutQueryingOwners()
+        public async Task ReportOwnerRecertParamSelection_UsesProvidedAvailableAddInfoNamesWithoutQueryingOwners()
         {
             await using BunitContext context = CreateContext(new ThrowingApiConnection());
             IRenderedComponent<ReportOwnerRecertParamSelection> cut = context.Render<ReportOwnerRecertParamSelection>(parameters => parameters
                 .Add(p => p.ModellingFilter, new ModellingFilter
                 {
-                    OwnerLabelFilter = new LabelFilter
+                    OwnerAddInfoFilter = new AddInfoFilter
                     {
                         Name = "custom_owner_label"
                     }
                 })
-                .Add(p => p.AvailableLabelNames, new List<string> { "team_label" }));
+                .Add(p => p.AvailableAddInfoNames, new List<string> { "team_label" }));
 
-            IRenderedComponent<LabelFilterEditor> editor = cut.FindComponent<LabelFilterEditor>();
-            List<string> availableLabelNames = GetPrivateMember<List<string>>(editor.Instance, "availableLabelNames");
+            IRenderedComponent<AddInfoFilterEditor> editor = cut.FindComponent<AddInfoFilterEditor>();
+            List<string> availableAddInfoNames = GetPrivateMember<List<string>>(editor.Instance, "availableAddInfoNames");
 
             Assert.Multiple(() =>
             {
-                Assert.That(availableLabelNames, Does.Contain("team_label"));
-                Assert.That(availableLabelNames, Does.Contain("custom_owner_label"));
+                Assert.That(availableAddInfoNames, Does.Contain("team_label"));
+                Assert.That(availableAddInfoNames, Does.Contain("custom_owner_label"));
             });
         }
 

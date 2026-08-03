@@ -239,23 +239,23 @@ namespace FWO.Test
         }
 
         [Test]
-        public void GetLabelValue_ReturnsDistinctNonEmptyValues()
+        public void GetAddInfoValue_ReturnsDistinctNonEmptyValues()
         {
-            const string labelName = "externalId";
+            const string addInfoName = "externalId";
             WfReqTask firstTask = new() { Id = 1 };
             WfReqTask duplicateTask = new() { Id = 2 };
             WfReqTask emptyTask = new() { Id = 3 };
-            firstTask.SetAddInfo(labelName, "CR-7");
-            duplicateTask.SetAddInfo(labelName, "CR-7");
-            emptyTask.SetAddInfo(labelName, "");
+            firstTask.SetAddInfo(addInfoName, "CR-7");
+            duplicateTask.SetAddInfo(addInfoName, "CR-7");
+            emptyTask.SetAddInfo(addInfoName, "");
             WfTicket ticket = new()
             {
                 Tasks = [firstTask, duplicateTask, emptyTask]
             };
 
-            string labelValue = WorkflowTicketSelectionHelper.GetLabelValue(ticket, labelName);
+            string addInfoValue = WorkflowTicketSelectionHelper.GetAddInfoValue(ticket, addInfoName);
 
-            Assert.That(labelValue, Is.EqualTo("CR-7"));
+            Assert.That(addInfoValue, Is.EqualTo("CR-7"));
         }
     }
 }

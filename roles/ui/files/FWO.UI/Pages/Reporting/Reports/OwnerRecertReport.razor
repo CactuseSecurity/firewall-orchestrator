@@ -32,14 +32,14 @@
     @if (MergeOwnerRecertTables)
     {
         <h5>@(GetMergedHeadline())</h5>
-        <OwnerRecertTable Owners="mergedOwners" AdditionalInfoKey="@OwnerAdditionalInfoKey" />
+        <OwnerRecertTable Owners="mergedOwners" AdditionalInfoKey="@GetEffectiveOwnerAdditionalInfoKey()" />
     }
     else
     {
         @if (overdueOwners.Count > 0)
         {
             <h5>@(GetOverdueHeadline())</h5>
-            <OwnerRecertTable Owners="overdueOwners" AdditionalInfoKey="@OwnerAdditionalInfoKey" />
+            <OwnerRecertTable Owners="overdueOwners" AdditionalInfoKey="@GetEffectiveOwnerAdditionalInfoKey()" />
         }
         else
         {
@@ -49,7 +49,7 @@
         @if (upcomingOwners.Count > 0)
         {
             <h5>@(GetUpcomingHeadline())</h5>
-            <OwnerRecertTable Owners="upcomingOwners" AdditionalInfoKey="@OwnerAdditionalInfoKey" />
+            <OwnerRecertTable Owners="upcomingOwners" AdditionalInfoKey="@GetEffectiveOwnerAdditionalInfoKey()" />
         }
         else if (RecertificationDisplayPeriod > 0)
         {
@@ -59,12 +59,12 @@
         @if (furtherOwners.Count > 0)
         {
             <h5>@(GetFurtherHeadline())</h5>
-            <OwnerRecertTable Owners="furtherOwners" AdditionalInfoKey="@OwnerAdditionalInfoKey" />
+            <OwnerRecertTable Owners="furtherOwners" AdditionalInfoKey="@GetEffectiveOwnerAdditionalInfoKey()" />
         }
         @if (inactiveOwners.Count > 0)
         {
             <h5>@(GetInactiveHeadline())</h5>
-            <OwnerRecertTable Owners="inactiveOwners" ShowRecertData="false" AdditionalInfoKey="@OwnerAdditionalInfoKey" />
+            <OwnerRecertTable Owners="inactiveOwners" ShowRecertData="false" AdditionalInfoKey="@GetEffectiveOwnerAdditionalInfoKey()" />
         }
     }
 }
@@ -84,9 +84,9 @@
     public string OwnerAdditionalInfoKey { get; set; } = "";
 
     [Parameter]
-    public LabelFilter OwnerLabelFilter { get; set; } = new();
+    public AddInfoFilter OwnerAddInfoFilter { get; set; } = new();
 
-    private LabelFilter effectiveOwnerLabelFilter = new();
+    private AddInfoFilter effectiveOwnerAddInfoFilter = new();
     private List<FwoOwner> overdueOwners = [];
     private List<FwoOwner> upcomingOwners = [];
     private List<FwoOwner> furtherOwners = [];
@@ -98,8 +98,8 @@
 
     protected override void OnParametersSet()
     {
-        effectiveOwnerLabelFilter = GetEffectiveOwnerLabelFilter();
-        displayedOwnerData = [.. OwnerData.Where(owner => OwnerRecertDisplay.MatchesAdditionalInfoFilter(owner.Owner, effectiveOwnerLabelFilter))];
+        effectiveOwnerAddInfoFilter = GetEffectiveOwnerAddInfoFilter();
+        displayedOwnerData = [.. OwnerData.Where(owner => OwnerRecertDisplay.MatchesAdditionalInfoFilter(owner.Owner, effectiveOwnerAddInfoFilter))];
         UpdateAdditionalInfoValues();
         overdueOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(o => o.RecertOverdue)];
         upcomingOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(o => o.RecertUpcoming)];
@@ -126,28 +126,28 @@
 
     private string GetEffectiveOwnerAdditionalInfoKey()
     {
-        return !string.IsNullOrWhiteSpace(effectiveOwnerLabelFilter.Name)
-            ? effectiveOwnerLabelFilter.Name
+        return !string.IsNullOrWhiteSpace(effectiveOwnerAddInfoFilter.Name)
+            ? effectiveOwnerAddInfoFilter.Name
             : OwnerAdditionalInfoKey;
     }
 
-    private LabelFilter GetEffectiveOwnerLabelFilter()
+    private AddInfoFilter GetEffectiveOwnerAddInfoFilter()
     {
-        if (!string.IsNullOrWhiteSpace(OwnerLabelFilter.Name))
+        if (!string.IsNullOrWhiteSpace(OwnerAddInfoFilter.Name))
         {
-            return new LabelFilter(OwnerLabelFilter);
+            return new AddInfoFilter(OwnerAddInfoFilter);
         }
 
         if (!string.IsNullOrWhiteSpace(OwnerAdditionalInfoKey))
         {
-            return new LabelFilter
+            return new AddInfoFilter
             {
                 Name = OwnerAdditionalInfoKey,
-                Mode = LabelFilterMode.display_only
+                Mode = AddInfoFilterMode.display_only
             };
         }
 
-        return new LabelFilter();
+        return new AddInfoFilter();
     }
 
     private string GetOverdueHeadline()

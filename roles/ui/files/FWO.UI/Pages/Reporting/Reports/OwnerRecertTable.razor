@@ -54,7 +54,7 @@
     [Parameter]
     public string AdditionalInfoKey { get; set; } = "";
 
-    private string AdditionalInfoColumnTitle => $"{userConfig.GetText("label")}: {AdditionalInfoKey}";
+    private string AdditionalInfoColumnTitle => $"{userConfig.GetText("add_info")}: {AdditionalInfoKey}";
 
     private string GetRecertifierName(FwoOwner owner)
     {

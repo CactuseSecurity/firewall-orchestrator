@@ -511,10 +511,10 @@ namespace FWO.Report.Filter
                 }
             }
 
-            string? labelFilter = BuildTicketLabelFilter(query, filter.ReportParams.WorkflowFilter.LabelFilter);
-            if (!string.IsNullOrWhiteSpace(labelFilter))
+            string? addInfoFilter = BuildTicketAddInfoFilter(query, filter.ReportParams.WorkflowFilter.AddInfoFilter);
+            if (!string.IsNullOrWhiteSpace(addInfoFilter))
             {
-                ticketFilters.Add(labelFilter);
+                ticketFilters.Add(addInfoFilter);
             }
 
             return ticketFilters;
@@ -639,19 +639,19 @@ namespace FWO.Report.Filter
             return query.WorkflowReferenceDateFilter ?? workflowFilter.ReferenceDate;
         }
 
-        private static string? BuildTicketLabelFilter(DynGraphqlQuery query, LabelFilter labelFilter)
+        private static string? BuildTicketAddInfoFilter(DynGraphqlQuery query, AddInfoFilter addInfoFilter)
         {
-            if (string.IsNullOrWhiteSpace(labelFilter.Name))
+            if (string.IsNullOrWhiteSpace(addInfoFilter.Name))
             {
                 return null;
             }
 
-            return labelFilter.Mode switch
+            return addInfoFilter.Mode switch
             {
-                LabelFilterMode.not_existing => BuildTicketLabelExistsFilter(query, labelFilter.Name, negate: true),
-                LabelFilterMode.existing => BuildTicketLabelExistsFilter(query, labelFilter.Name, negate: false),
-                LabelFilterMode.value => BuildTicketLabelValueFilter(query, labelFilter.Name, labelFilter.Value),
-                LabelFilterMode.display_only => null,
+                AddInfoFilterMode.not_existing => BuildTicketLabelExistsFilter(query, addInfoFilter.Name, negate: true),
+                AddInfoFilterMode.existing => BuildTicketLabelExistsFilter(query, addInfoFilter.Name, negate: false),
+                AddInfoFilterMode.value => BuildTicketLabelValueFilter(query, addInfoFilter.Name, addInfoFilter.Value),
+                AddInfoFilterMode.display_only => null,
                 _ => null
             };
         }

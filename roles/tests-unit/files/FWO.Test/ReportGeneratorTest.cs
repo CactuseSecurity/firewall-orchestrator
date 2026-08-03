@@ -228,8 +228,8 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(report!.ReportData.OwnerAdditionalInfoKey, Is.EqualTo("business_unit"));
-                Assert.That(report.ReportData.OwnerLabelFilter.Name, Is.EqualTo("business_unit"));
-                Assert.That(report.ReportData.OwnerLabelFilter.Mode, Is.EqualTo(LabelFilterMode.display_only));
+                Assert.That(report.ReportData.OwnerAddInfoFilter.Name, Is.EqualTo("business_unit"));
+                Assert.That(report.ReportData.OwnerAddInfoFilter.Mode, Is.EqualTo(AddInfoFilterMode.display_only));
             });
         }
 

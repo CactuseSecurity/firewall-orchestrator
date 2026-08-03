@@ -35,7 +35,7 @@ else
     private IEnumerable<WfTaskType?> selectedTaskTypesForUi = [];
     private List<WfState> allStates = [];
     private IEnumerable<int?> selectedStateIdsForUi = [];
-    private List<string> availableLabelNames = [];
+    private List<string> availableAddInfoNames = [];
 
     private List<WfTaskType?> availableTaskTypes => [null, .. availableRealTaskTypes.Cast<WfTaskType?>()];
     private List<WfState> availableStates => GetAvailableStates();
@@ -79,7 +79,7 @@ else
             {
                 availablePhases.Add(GlobalConst.kClosed);
             }
-            availableLabelNames = BuildAvailableLabelNames(actions);
+            availableAddInfoNames = BuildAvailableAddInfoNames(actions);
         }
         catch
         {
@@ -87,7 +87,7 @@ else
             masterStateMatrix = new();
             masterRequestStateMatrix = new();
             availablePhases = [];
-            availableLabelNames = BuildAvailableLabelNames([]);
+            availableAddInfoNames = BuildAvailableAddInfoNames([]);
         }
     }
 
@@ -175,13 +175,13 @@ else
                 </Dropdown>
             </div>
         </div>
-        <LabelFilterEditor LabelFilter="WorkflowFilter.LabelFilter"
-                           LabelFilterChanged="HandleLabelFilterChanged"
-                           AvailableLabelNames="availableLabelNames"
+        <AddInfoFilterEditor AddInfoFilter="WorkflowFilter.AddInfoFilter"
+                           AddInfoFilterChanged="HandleAddInfoFilterChanged"
+                           AvailableAddInfoNames="availableAddInfoNames"
                            IdPrefix="workflowLabel"
                            UseFormLayout="UseFormLayout"
                            UseLightText="UseLightText"
-                           DefaultMode="LabelFilterMode.existing"
+                           DefaultMode="AddInfoFilterMode.existing"
                            TooltipTextKey="H1522" />
         <div class="@BooleanFieldContainerClass" data-toggle="tooltip" title="@(userConfig.PureLine("H1524"))">
             <label class="@BooleanFieldLabelClass" for="@DetailedViewCheckboxId">@(userConfig.GetText("detailed_view")):</label>
@@ -353,9 +353,9 @@ else
         return usedStateIds;
     }
 
-    private static List<string> BuildAvailableLabelNames(IEnumerable<WfStateAction> actions)
+    private static List<string> BuildAvailableAddInfoNames(IEnumerable<WfStateAction> actions)
     {
-        HashSet<string> labelNames = new(GetKnownAdditionalInfoKeys());
+        HashSet<string> addInfoNames = new(GetKnownAdditionalInfoKeys());
 
         foreach (WfStateAction action in actions)
         {
@@ -367,16 +367,16 @@ else
             if (WfStateAction.TryParseAutoPromoteParams(action.ExternalParams, out _, out ConditionalAutoPromoteParams? conditionalParams)
                 && !string.IsNullOrWhiteSpace(conditionalParams?.CheckResultLabel))
             {
-                labelNames.Add(conditionalParams.CheckResultLabel);
+                addInfoNames.Add(conditionalParams.CheckResultLabel);
             }
         }
 
-        return [.. labelNames.OrderBy(label => label, StringComparer.OrdinalIgnoreCase)];
+        return [.. addInfoNames.OrderBy(label => label, StringComparer.OrdinalIgnoreCase)];
     }
 
-    private async Task HandleLabelFilterChanged(LabelFilter labelFilter)
+    private async Task HandleAddInfoFilterChanged(AddInfoFilter addInfoFilter)
     {
-        WorkflowFilter.LabelFilter = new(labelFilter);
+        WorkflowFilter.AddInfoFilter = new(addInfoFilter);
         await WorkflowFilterChanged.InvokeAsync(WorkflowFilter);
     }
 

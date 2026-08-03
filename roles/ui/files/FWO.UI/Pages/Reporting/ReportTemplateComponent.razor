@@ -130,7 +130,7 @@
             @if (reportTypeInEdit == ReportType.OwnerRecertification)
             {
                 <ReportOwnerRecertParamSelection @bind-ModellingFilter="reportTemplateInEdit.ReportParams.ModellingFilter"
-                                                 AvailableLabelNames="GetOwnerAdditionalInfoKeys(recertOwnerList)"
+                                                 AvailableAddInfoNames="GetOwnerAdditionalInfoKeys(recertOwnerList)"
                                                  UseLightText="false"
                                                  UseFormLayout="true" />
                 <ReportRecertParamSelection @bind-FilterInput="reportTemplateInEdit.Filter"

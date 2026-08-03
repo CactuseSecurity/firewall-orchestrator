@@ -23,7 +23,7 @@ namespace FWO.Data.Report
         public bool ShowInactiveRecertOwners { get; set; } = false;
         public bool MergeOwnerRecertTables { get; set; } = false;
         public string OwnerAdditionalInfoKey { get; set; } = "";
-        public LabelFilter OwnerLabelFilter { get; set; } = new();
+        public AddInfoFilter OwnerAddInfoFilter { get; set; } = new();
         public long? OwnerRecertId { get; set; }
         public long? ReportId { get; set; }
 
@@ -51,7 +51,7 @@ namespace FWO.Data.Report
             ShowInactiveRecertOwners = modellingFilter.ShowInactiveRecertOwners;
             MergeOwnerRecertTables = modellingFilter.MergeOwnerRecertTables;
             OwnerAdditionalInfoKey = modellingFilter.OwnerAdditionalInfoKey;
-            OwnerLabelFilter = new(modellingFilter.OwnerLabelFilter);
+            OwnerAddInfoFilter = new(modellingFilter.OwnerAddInfoFilter);
             OwnerRecertId = modellingFilter.OwnerRecertId;
             ReportId = modellingFilter.ReportId;
         }

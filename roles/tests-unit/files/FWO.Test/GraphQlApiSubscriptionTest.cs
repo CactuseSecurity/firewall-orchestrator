@@ -4,6 +4,7 @@ using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using System.Net.WebSockets;
 using System.Security.Claims;
 
 namespace FWO.Test
@@ -11,6 +12,13 @@ namespace FWO.Test
     [TestFixture]
     internal class GraphQlApiSubscriptionTest
     {
+        /// <summary>
+        /// Mirrors the number of connection interruptions GraphQlApiSubscription logs quietly
+        /// before escalating to the external exception handler.
+        /// </summary>
+        private const int kQuietTransportFailureLimit = 3;
+
+
         [Test]
         public void ApiSubscriptionDisposeCallsImplementationOnlyOnce()
         {
@@ -119,25 +127,153 @@ namespace FWO.Test
         }
 
         [Test]
-        public void GraphQlApiSubscriptionThrowsForResponseWithoutResultProperty()
+        public void GraphQlApiSubscriptionReportsResponseWithoutResultPropertyWithoutThrowing()
+        {
+            ManualGraphQlObservable stream = new();
+            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(stream);
+            TestApiConnection apiConnection = new();
+            List<Exception> handledExceptions = [];
+            using StreamBackedGraphQlApiSubscription<string> subscription = CreateStreamBackedSubscription<string>(apiConnection, _ => { }, handledExceptions.Add);
+
+            Assert.DoesNotThrow(() => stream.Emit(new GraphQLResponse<object> { Data = new JObject() }));
+            Assert.That(handledExceptions, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public void GraphQlApiSubscriptionReportsUnconvertibleResultWithoutThrowing()
+        {
+            ManualGraphQlObservable stream = new();
+            StreamBackedGraphQlApiSubscription<int>.Streams.Enqueue(stream);
+            TestApiConnection apiConnection = new();
+            List<Exception> handledExceptions = [];
+            using StreamBackedGraphQlApiSubscription<int> subscription = CreateStreamBackedSubscription<int>(apiConnection, _ => { }, handledExceptions.Add);
+
+            Assert.DoesNotThrow(() => stream.Emit(new GraphQLResponse<object> { Data = new JObject { ["test"] = "not-an-int" } }));
+            Assert.That(handledExceptions.Single(), Is.TypeOf<FormatException>());
+        }
+
+        [Test]
+        public void GraphQlApiSubscriptionKeepsStreamAliveAfterUnconvertibleResult()
+        {
+            ManualGraphQlObservable stream = new();
+            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(stream);
+            TestApiConnection apiConnection = new();
+            string? receivedValue = null;
+            using StreamBackedGraphQlApiSubscription<string> subscription = CreateStreamBackedSubscription<string>(apiConnection, value => receivedValue = value, _ => { });
+
+            stream.Emit(new GraphQLResponse<object> { Data = new JObject() });
+            stream.Emit(new GraphQLResponse<object> { Data = new JObject { ["test"] = "value" } });
+
+            Assert.That(receivedValue, Is.EqualTo("value"));
+        }
+
+        [Test]
+        public void GraphQlApiSubscriptionDoesNotThrowForExpiredJwt()
+        {
+            ManualGraphQlObservable stream = new();
+            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(stream);
+            TestApiConnection apiConnection = new();
+            int exceptionCount = 0;
+            using StreamBackedGraphQlApiSubscription<string> subscription = CreateStreamBackedSubscription<string>(apiConnection, _ => { }, _ => exceptionCount++);
+
+            Assert.DoesNotThrow(() => stream.EmitError(new InvalidOperationException("Could not verify JWT: JWTExpired")));
+            Assert.That(exceptionCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void GraphQlApiSubscriptionStopsStreamForExpiredJwt()
         {
             ManualGraphQlObservable stream = new();
             StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(stream);
             TestApiConnection apiConnection = new();
             using StreamBackedGraphQlApiSubscription<string> subscription = CreateStreamBackedSubscription<string>(apiConnection, _ => { });
 
-            Assert.Throws<Exception>(() => stream.Emit(new GraphQLResponse<object> { Data = new JObject() }));
+            stream.EmitError(new InvalidOperationException("Could not verify JWT: JWTExpired"));
+
+            Assert.That(stream.ActiveSubscription!.DisposeCount, Is.EqualTo(1));
         }
 
         [Test]
-        public void GraphQlApiSubscriptionThrowsForUnconvertibleResult()
+        public void GraphQlApiSubscriptionKeepsQuietForFirstConnectionInterruptions()
         {
             ManualGraphQlObservable stream = new();
-            StreamBackedGraphQlApiSubscription<int>.Streams.Enqueue(stream);
+            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(stream);
             TestApiConnection apiConnection = new();
-            using StreamBackedGraphQlApiSubscription<int> subscription = CreateStreamBackedSubscription<int>(apiConnection, _ => { });
+            int exceptionCount = 0;
+            using StreamBackedGraphQlApiSubscription<string> subscription = CreateStreamBackedSubscription<string>(apiConnection, _ => { }, _ => exceptionCount++);
 
-            Assert.Throws<FormatException>(() => stream.Emit(new GraphQLResponse<object> { Data = new JObject { ["test"] = "not-an-int" } }));
+            for (int interruption = 0; interruption < kQuietTransportFailureLimit; interruption++)
+            {
+                stream.EmitError(new WebSocketException("The remote party closed the WebSocket connection"));
+            }
+
+            Assert.That(exceptionCount, Is.EqualTo(0));
+            Assert.That(stream.ActiveSubscription!.IsDisposed, Is.False);
+        }
+
+        [Test]
+        public void GraphQlApiSubscriptionEscalatesPersistentConnectionInterruptions()
+        {
+            ManualGraphQlObservable stream = new();
+            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(stream);
+            TestApiConnection apiConnection = new();
+            int exceptionCount = 0;
+            using StreamBackedGraphQlApiSubscription<string> subscription = CreateStreamBackedSubscription<string>(apiConnection, _ => { }, _ => exceptionCount++);
+
+            for (int interruption = 0; interruption <= kQuietTransportFailureLimit; interruption++)
+            {
+                stream.EmitError(new WebSocketException("The remote party closed the WebSocket connection"));
+            }
+
+            Assert.That(exceptionCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void GraphQlApiSubscriptionResetsInterruptionCountAfterSuccessfulUpdate()
+        {
+            ManualGraphQlObservable stream = new();
+            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(stream);
+            TestApiConnection apiConnection = new();
+            int exceptionCount = 0;
+            using StreamBackedGraphQlApiSubscription<string> subscription = CreateStreamBackedSubscription<string>(apiConnection, _ => { }, _ => exceptionCount++);
+
+            for (int interruption = 0; interruption < kQuietTransportFailureLimit; interruption++)
+            {
+                stream.EmitError(new WebSocketException("The remote party closed the WebSocket connection"));
+            }
+
+            stream.Emit(new GraphQLResponse<object> { Data = new JObject { ["test"] = "value" } });
+            stream.EmitError(new WebSocketException("The remote party closed the WebSocket connection"));
+
+            Assert.That(exceptionCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void GraphQlApiSubscriptionReportsFailedStreamWithoutThrowing()
+        {
+            ManualGraphQlObservable stream = new();
+            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(stream);
+            TestApiConnection apiConnection = new();
+            List<Exception> handledExceptions = [];
+            using StreamBackedGraphQlApiSubscription<string> subscription = CreateStreamBackedSubscription<string>(apiConnection, _ => { }, handledExceptions.Add);
+
+            Assert.DoesNotThrow(() => stream.FailStream(new InvalidOperationException("stream failed")));
+            Assert.That(handledExceptions.Single().Message, Is.EqualTo("stream failed"));
+        }
+
+        [Test]
+        public void GraphQlApiSubscriptionIgnoresFailedStreamAfterDispose()
+        {
+            ManualGraphQlObservable stream = new();
+            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(stream);
+            TestApiConnection apiConnection = new();
+            int exceptionCount = 0;
+            StreamBackedGraphQlApiSubscription<string> subscription = CreateStreamBackedSubscription<string>(apiConnection, _ => { }, _ => exceptionCount++);
+
+            subscription.Dispose();
+
+            Assert.DoesNotThrow(() => stream.FailStream(new InvalidOperationException("stream failed")));
+            Assert.That(exceptionCount, Is.EqualTo(0));
         }
 
         private static TestGraphQlApiSubscription<T> CreateSubscription<T>(ApiConnection apiConnection)
@@ -276,6 +412,15 @@ namespace FWO.Test
             public void EmitError(Exception exception)
             {
                 ExceptionHandler?.Invoke(exception);
+            }
+
+            /// <summary>
+            /// Terminates the sequence with an error, as Rx does when the receive pipeline gives up.
+            /// </summary>
+            /// <param name="exception">The exception that fails the sequence.</param>
+            public void FailStream(Exception exception)
+            {
+                observer?.OnError(exception);
             }
         }
 

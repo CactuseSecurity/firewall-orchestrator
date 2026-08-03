@@ -3,6 +3,8 @@ using GraphQL;
 using GraphQL.Client.Http;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics.CodeAnalysis;
+using System.Net.Sockets;
+using System.Net.WebSockets;
 using System.Text.RegularExpressions;
 
 namespace FWO.Api.Client
@@ -13,6 +15,20 @@ namespace FWO.Api.Client
     {
         [GeneratedRegex(@"subscription\s(?'subscriptionName'.*?)[\s\(\{]")]
         private static partial Regex SubscriptionNameRegex();
+
+        private const string kLogCategory = "GraphQL Subscription";
+        private const string kJwtExpiredMarker = "JWTExpired";
+
+        /// <summary>
+        /// Number of consecutive connection interruptions that are logged as warnings before the
+        /// subscription is treated as broken and reported to the external exception handler.
+        /// </summary>
+        private const int kQuietTransportFailureLimit = 3;
+
+        /// <summary>
+        /// Upper bound for walking the inner exception chain when classifying an exception.
+        /// </summary>
+        private const int kMaxExceptionChainDepth = 10;
 
         public delegate void SubscriptionUpdate(SubscriptionResponseType response);
         public event SubscriptionUpdate? OnUpdate;
@@ -27,6 +43,7 @@ namespace FWO.Api.Client
 
         private readonly object _lock = new();
         private bool _disposed;
+        private int _consecutiveTransportFailures;
 
         public GraphQlApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate onUpdate)
         {
@@ -57,7 +74,7 @@ namespace FWO.Api.Client
                 _subscriptionStream = CreateSubscriptionStream(subscriptionExceptionHandler);
                 Log.WriteDebug("API", "API subscription created.");
 
-                _subscription = _subscriptionStream.Subscribe(Subscribe);
+                _subscription = _subscriptionStream.Subscribe(Subscribe, HandleStreamFailure);
             }
         }
 
@@ -76,12 +93,7 @@ namespace FWO.Api.Client
                 // Leads to this method getting called again
                 if (response.Data == null)
                 {
-                    // Terminate subscription
-                    lock (_lock)
-                    {
-                        _subscription?.Dispose();
-                        _subscription = null;
-                    }
+                    StopStream();
                 }
                 else
                 {
@@ -89,13 +101,29 @@ namespace FWO.Api.Client
                     JProperty prop = (JProperty)(data.First ?? throw new Exception($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
                     JToken result = prop.Value;
                     SubscriptionResponseType returnValue = result.ToObject<SubscriptionResponseType>() ?? throw new Exception($"Could not convert result from Json to {typeof(SubscriptionResponseType)}.\nJson: {response.Data}");
+                    Interlocked.Exchange(ref _consecutiveTransportFailures, 0);
                     OnUpdate?.Invoke(returnValue);
                 }
             }
             catch (Exception ex)
             {
-                Log.WriteError("GraphQL Subscription", "Subscription lead to exception", ex);
-                throw;
+                // Rethrowing here would escape into the receive pipeline and be rethrown on a thread
+                // where nothing can catch it, killing the subscription because of a single bad message.
+                Log.WriteError(kLogCategory, $"Subscription {DescribeSubscription()} lead to exception", ex);
+                ExternalExceptionHandler(ex);
+            }
+        }
+
+        /// <summary>
+        /// Unsubscribes from the current stream without disposing this subscription, so that it can be
+        /// recreated later on (e.g. by <see cref="ApiConnection.ReconnectSubscriptionsAsync"/>).
+        /// </summary>
+        private void StopStream()
+        {
+            lock (_lock)
+            {
+                _subscription?.Dispose();
+                _subscription = null;
             }
         }
 
@@ -104,6 +132,15 @@ namespace FWO.Api.Client
             return _graphQlClient.CreateSubscriptionStream<dynamic>(Request, exceptionHandler);
         }
 
+        /// <summary>
+        /// Handles exceptions raised inside the receive pipeline of the GraphQL client.
+        /// </summary>
+        /// <remarks>
+        /// This method must never throw. The client recreates the connection when the handler returns
+        /// normally, whereas an exception thrown by the handler fails the observable sequence permanently
+        /// and leaves the subscription dead until the next token refresh recreates it.
+        /// </remarks>
+        /// <param name="exception">The exception reported by the receive pipeline.</param>
         private void HandleSubscriptionException(Exception exception)
         {
             if (IsDisposed)
@@ -111,12 +148,123 @@ namespace FWO.Api.Client
                 return;
             }
 
-            if (exception.Message.Contains("JWTExpired"))
+            if (IsJwtExpired(exception))
             {
-                throw exception;
+                // Reconnecting would just repeat the same rejected token, so the stream is stopped
+                // and picked up again by the next token refresh.
+                Log.WriteWarning(kLogCategory, $"Subscription {DescribeSubscription()} was closed because the JWT expired. It is recreated with the next token refresh.");
+                StopStream();
+                return;
             }
 
+            if (IsTransportInterruption(exception))
+            {
+                HandleTransportInterruption(exception);
+                return;
+            }
+
+            Interlocked.Exchange(ref _consecutiveTransportFailures, 0);
             ExternalExceptionHandler(exception);
+        }
+
+        /// <summary>
+        /// Reports a lost connection. Single drops are expected during normal operation because the
+        /// client reconnects on its own, so they are logged as warnings without a stack trace. Only a
+        /// connection that stays down is escalated to the external exception handler.
+        /// </summary>
+        /// <param name="exception">The transport exception that interrupted the stream.</param>
+        private void HandleTransportInterruption(Exception exception)
+        {
+            int failureCount = Interlocked.Increment(ref _consecutiveTransportFailures);
+
+            if (failureCount <= kQuietTransportFailureLimit)
+            {
+                Log.WriteWarning(kLogCategory, $"Connection for subscription {DescribeSubscription()} was interrupted " +
+                    $"(attempt {failureCount} of {kQuietTransportFailureLimit}), reconnecting: {exception.Message}");
+                return;
+            }
+
+            Log.WriteError(kLogCategory, $"Connection for subscription {DescribeSubscription()} could not be " +
+                $"reestablished after {failureCount} attempts.", exception);
+            ExternalExceptionHandler(exception);
+        }
+
+        /// <summary>
+        /// Handles a failed observable sequence. Without an error handler on the subscription, Rx rethrows
+        /// the exception on the producer thread, where it surfaces as an unhandled background exception.
+        /// </summary>
+        /// <param name="exception">The exception that terminated the stream.</param>
+        private void HandleStreamFailure(Exception exception)
+        {
+            if (IsDisposed)
+            {
+                return;
+            }
+
+            StopStream();
+
+            Log.WriteError(kLogCategory, $"Subscription {DescribeSubscription()} stopped after an unrecoverable " +
+                "stream error. It is recreated with the next token refresh.", exception);
+            ExternalExceptionHandler(exception);
+        }
+
+        /// <summary>
+        /// Checks whether an exception was caused by the API rejecting an expired JWT.
+        /// </summary>
+        /// <param name="exception">The exception to classify.</param>
+        /// <returns>True if the exception chain reports an expired JWT.</returns>
+        private static bool IsJwtExpired(Exception exception)
+        {
+            return EnumerateExceptionChain(exception)
+                .Any(inner => inner.Message.Contains(kJwtExpiredMarker, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Checks whether an exception is a connection interruption that the GraphQL client recovers
+        /// from by reconnecting, rather than a genuine subscription failure.
+        /// </summary>
+        /// <param name="exception">The exception to classify.</param>
+        /// <returns>True if the exception chain contains a transport level failure.</returns>
+        private static bool IsTransportInterruption(Exception exception)
+        {
+            return EnumerateExceptionChain(exception)
+                .Any(inner => inner is WebSocketException or SocketException or IOException
+                    or HttpRequestException or OperationCanceledException);
+        }
+
+        /// <summary>
+        /// Walks an exception and its inner exceptions up to a bounded depth.
+        /// </summary>
+        /// <param name="exception">The exception to start from.</param>
+        /// <returns>The exception followed by its inner exceptions.</returns>
+        private static IEnumerable<Exception> EnumerateExceptionChain(Exception exception)
+        {
+            Exception? current = exception;
+
+            for (int depth = 0; current != null && depth < kMaxExceptionChainDepth; depth++)
+            {
+                yield return current;
+                current = current.InnerException;
+            }
+        }
+
+        /// <summary>
+        /// Builds a readable name for this subscription for log messages.
+        /// </summary>
+        /// <returns>The subscription name, the operation name or the generic type name.</returns>
+        private string DescribeSubscription()
+        {
+            if (TryGetSubscriptionNameFromQuery(Request.Query, out string subscriptionName))
+            {
+                return subscriptionName;
+            }
+
+            if (!string.IsNullOrWhiteSpace(Request.OperationName))
+            {
+                return Request.OperationName;
+            }
+
+            return $"{nameof(GraphQlApiSubscription<>)}<{nameof(SubscriptionResponseType)}>";
         }
 
         private static bool TryGetSubscriptionNameFromQuery(string? query, out string subscriptionName)
@@ -140,22 +288,7 @@ namespace FWO.Api.Client
 
         internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
         {
-            string creationText = "";
-
-            if (TryGetSubscriptionNameFromQuery(Request.Query, out string subscriptionName))
-            {
-                creationText = $"Recreating {subscriptionName}";
-            }
-            else if (!string.IsNullOrWhiteSpace(Request.OperationName))
-            {
-                creationText = $"Recreating {Request.OperationName}";
-            }
-            else
-            {
-                creationText = $"Recreating {nameof(GraphQlApiSubscription<>)}<{nameof(SubscriptionResponseType)}>";
-            }
-
-            Log.WriteInfo("GraphQL Subscription", creationText);
+            Log.WriteInfo(kLogCategory, $"Recreating {DescribeSubscription()}");
 
             return new GraphQlApiSubscription<SubscriptionResponseType>(
                 _apiConnection,

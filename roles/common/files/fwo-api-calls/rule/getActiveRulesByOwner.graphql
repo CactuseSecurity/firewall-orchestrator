@@ -46,7 +46,6 @@ query getActiveRulesByOwner($ownerId: Int!) {
           where: {
             active: { _eq: true }
             removed: { _is_null: true }
-            access_rule: { _eq: true }
           }
         ) {
           id_flat: objgrp_flat_id

@@ -1271,9 +1271,7 @@ def insert_parent_nat_rulebase(
 ) -> Rulebase:
     # Creates a NAT rulebase for the given access rulebase.
     nat_rulebase_uid = "nat-rulebase-" + rulebase_uid
-    existing_nat_rulebase = next(
-        (rb for rb in normalized_config_adom["policies"] if rb.uid == nat_rulebase_uid), None
-    )
+    existing_nat_rulebase = next((rb for rb in normalized_config_adom["policies"] if rb.uid == nat_rulebase_uid), None)
 
     if existing_nat_rulebase is not None:
         return existing_nat_rulebase

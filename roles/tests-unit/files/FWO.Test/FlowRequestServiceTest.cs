@@ -505,6 +505,176 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
+    public async Task CreateRequest_UsesStoredTaskSortConfigWhenValid()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
+            RuleActions = [new RuleAction { Id = 1, Name = "accept", Allowed = true }]
+        };
+        FlowRequestService service = new(apiConnection, new GlobalConfig
+        {
+            ReqCreateRequestTaskSortConfig = """
+                {"group_create_priority":1,"group_modify_add_priority":2,"access_priority":0,"rule_modify_priority":3,"rule_delete_priority":4,"group_modify_remove_priority":5,"group_delete_priority":6,"allow_task_split":true}
+                """
+        });
+
+        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Sorted request",
+            AddressObjects =
+            [
+                new CreateRequestRequest.CreateAddressObjectRequest
+                {
+                    Id = "-1",
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateRequestRequest.CreateServiceObjectRequest
+                {
+                    Id = "-2",
+                    Name = "https",
+                    Protocol = "tcp",
+                    PortStart = 443,
+                    PortEnd = 443
+                }
+            ],
+            AddressGroups =
+            [
+                new CreateRequestRequest.CreateAddressGroupRequest
+                {
+                    Id = -3,
+                    Name = "app-servers",
+                    MemberIds = [-1]
+                }
+            ],
+            ServiceGroups =
+            [
+                new CreateRequestRequest.CreateServiceGroupRequest
+                {
+                    Id = -4,
+                    Name = "web-services",
+                    MemberIds = [-2]
+                }
+            ],
+            Rules =
+            [
+                new CreateRequestRequest.CreateRequestRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [-3],
+                    DestinationObjects = [-3],
+                    ServiceObjects = [-4]
+                }
+            ],
+            SortTasks = true
+        }, 77);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Status, Is.EqualTo("draft"));
+            Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
+            Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(3));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TaskType, Is.EqualTo(WfTaskType.access.ToString()));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[1].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[2].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
+        });
+    }
+
+    [Test]
+    public async Task CreateRequest_FallsBackToDefaultTaskSortConfigWhenStoredConfigIsInvalid()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
+            RuleActions = [new RuleAction { Id = 1, Name = "accept", Allowed = true }]
+        };
+        FlowRequestService service = new(apiConnection, new GlobalConfig
+        {
+            ReqCreateRequestTaskSortConfig = "{not valid json"
+        });
+
+        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Fallback request",
+            AddressObjects =
+            [
+                new CreateRequestRequest.CreateAddressObjectRequest
+                {
+                    Id = "-1",
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateRequestRequest.CreateServiceObjectRequest
+                {
+                    Id = "-2",
+                    Name = "https",
+                    Protocol = "tcp",
+                    PortStart = 443,
+                    PortEnd = 443
+                }
+            ],
+            AddressGroups =
+            [
+                new CreateRequestRequest.CreateAddressGroupRequest
+                {
+                    Id = -3,
+                    Name = "app-servers",
+                    MemberIds = [-1]
+                }
+            ],
+            ServiceGroups =
+            [
+                new CreateRequestRequest.CreateServiceGroupRequest
+                {
+                    Id = -4,
+                    Name = "web-services",
+                    MemberIds = [-2]
+                }
+            ],
+            Rules =
+            [
+                new CreateRequestRequest.CreateRequestRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [-3],
+                    DestinationObjects = [-3],
+                    ServiceObjects = [-4]
+                }
+            ],
+            SortTasks = true
+        }, 77);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Status, Is.EqualTo("draft"));
+            Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
+            Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(3));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[1].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[2].TaskType, Is.EqualTo(WfTaskType.access.ToString()));
+        });
+    }
+
+    [Test]
     public async Task CreateRequest_ReturnsOkResponseAndUsesPayloadRequester()
     {
         FlowRequestServiceApiConn apiConnection = new()

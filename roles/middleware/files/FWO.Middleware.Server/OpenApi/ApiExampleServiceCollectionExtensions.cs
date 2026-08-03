@@ -132,6 +132,7 @@ public sealed class CreateRequestRequestExample : ApiExampleProvider<CreateReque
         RuleContactName = "Bob Approver",
         RuleContactId = "bob",
         Title = "Allow HTTPS to application server",
+        SortTasks = false,
         Rules =
         [
             new CreateRequestRequest.CreateRequestRuleRequest

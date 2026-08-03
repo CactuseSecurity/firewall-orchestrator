@@ -1,0 +1,182 @@
+@using FWO.Config.Api
+@using FWO.Config.Api.Data
+@using FWO.Data.Workflow
+
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("reqCreateRequestTaskSortConfig"))" Show="@Display" Size=PopupSize.Medium OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <form>
+                @for (int index = 0; index < sortItems.Count; index++)
+                {
+                    int currentIndex = index;
+                    SortItem item = sortItems[index];
+                    <div class="form-group row mt-2 align-items-center">
+                        <div class="col-sm-7">
+                            @item.Label
+                        </div>
+                        <div class="col-sm-2 text-center">
+                            @(index + 1)
+                        </div>
+                        <div class="col-sm-3">
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-secondary" disabled="@(!CanMoveUp(currentIndex))" @onclick="() => MoveItemUp(currentIndex)">
+                                    <span class="@Icons.CollapseUp"></span>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-secondary" disabled="@(!CanMoveDown(currentIndex))" @onclick="() => MoveItemDown(currentIndex)">
+                                    <span class="@Icons.CollapseDown"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+                <hr />
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("C9033"))">
+                    <label class="col-form-label col-sm-8">@(userConfig.GetText("allow_task_split")):</label>
+                    <div class="col-sm-4">
+                        <input type="checkbox" @bind="actConfig.AllowTaskSplit" />
+                    </div>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Confirm">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public string ConfigValue { get; set; } = "";
+
+    [Parameter]
+    public EventCallback<string> ConfigValueChanged { get; set; }
+
+    private CreateRequestTaskSortConfig actConfig = new();
+    private List<SortItem> sortItems = [];
+
+    protected override void OnParametersSet()
+    {
+        if (Display)
+        {
+            actConfig = CreateRequestTaskSortConfig.Parse(ConfigValue);
+            sortItems = new List<SortItem>
+            {
+                new(SortItemKind.GroupCreate, userConfig.GetText("create_group"), actConfig.GroupCreatePriority),
+                new(SortItemKind.GroupModifyAdd, userConfig.GetText("group_modify") + userConfig.GetText("add_members"), actConfig.GroupModifyAddPriority),
+                new(SortItemKind.Access, userConfig.GetText("access"), actConfig.AccessPriority),
+                new(SortItemKind.RuleModify, userConfig.GetText("modify_rule"), actConfig.RuleModifyPriority),
+                new(SortItemKind.RuleDelete, userConfig.GetText("remove_rule"), actConfig.RuleDeletePriority),
+                new(SortItemKind.GroupModifyRemove, userConfig.GetText("group_modify") + userConfig.GetText("remove_members"), actConfig.GroupModifyRemovePriority),
+                new(SortItemKind.GroupDelete, userConfig.GetText("delete_group"), actConfig.GroupDeletePriority)
+            }
+            .OrderBy(item => item.Priority)
+            .ToList();
+        }
+    }
+
+    private async Task Confirm()
+    {
+        ApplyOrderToConfig();
+        ConfigData editableConfig = await globalConfig.GetEditableConfig();
+        editableConfig.ReqCreateRequestTaskSortConfig = actConfig.ToConfigValue();
+        await globalConfig.WriteToDatabase(editableConfig, apiConnection);
+        await ConfigValueChanged.InvokeAsync(editableConfig.ReqCreateRequestTaskSortConfig);
+        Close();
+    }
+
+    private bool CanMoveUp(int index)
+    {
+        return index > 0;
+    }
+
+    private bool CanMoveDown(int index)
+    {
+        return index < sortItems.Count - 1;
+    }
+
+    private void MoveItemUp(int index)
+    {
+        if (!CanMoveUp(index))
+        {
+            return;
+        }
+
+        (sortItems[index - 1], sortItems[index]) = (sortItems[index], sortItems[index - 1]);
+    }
+
+    private void MoveItemDown(int index)
+    {
+        if (!CanMoveDown(index))
+        {
+            return;
+        }
+
+        (sortItems[index + 1], sortItems[index]) = (sortItems[index], sortItems[index + 1]);
+    }
+
+    private void ApplyOrderToConfig()
+    {
+        for (int i = 0; i < sortItems.Count; i++)
+        {
+            int priority = i;
+            switch (sortItems[i].Kind)
+            {
+                case SortItemKind.GroupCreate:
+                    actConfig.GroupCreatePriority = priority;
+                    break;
+                case SortItemKind.GroupModifyAdd:
+                    actConfig.GroupModifyAddPriority = priority;
+                    break;
+                case SortItemKind.Access:
+                    actConfig.AccessPriority = priority;
+                    break;
+                case SortItemKind.RuleModify:
+                    actConfig.RuleModifyPriority = priority;
+                    break;
+                case SortItemKind.RuleDelete:
+                    actConfig.RuleDeletePriority = priority;
+                    break;
+                case SortItemKind.GroupModifyRemove:
+                    actConfig.GroupModifyRemovePriority = priority;
+                    break;
+                case SortItemKind.GroupDelete:
+                    actConfig.GroupDeletePriority = priority;
+                    break;
+            }
+        }
+    }
+
+    private void Close()
+    {
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+
+    private sealed record SortItem(SortItemKind Kind, string Label, int Priority);
+
+    private enum SortItemKind
+    {
+        GroupCreate,
+        GroupModifyAdd,
+        Access,
+        RuleModify,
+        RuleDelete,
+        GroupModifyRemove,
+        GroupDelete
+    }
+}

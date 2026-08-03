@@ -166,7 +166,7 @@ public sealed class FlowRequestService
     /// <summary>
     /// Builds the ticket object that is persisted through the existing whole-ticket insert path.
     /// </summary>
-    private static WfTicket BuildTicket(CreateRequestRequest request, int ticketStateId, int requesterId, Dictionary<int, FwoOwner> ownersById, Dictionary<string, int> ruleActionIds,
+    private WfTicket BuildTicket(CreateRequestRequest request, int ticketStateId, int requesterId, Dictionary<int, FwoOwner> ownersById, Dictionary<string, int> ruleActionIds,
         Dictionary<string, int> protocolIds)
     {
         Dictionary<int, CreateRequestEntity> entities = BuildEntityIndex(request, protocolIds);
@@ -175,6 +175,8 @@ public sealed class FlowRequestService
 
         tasks.AddRange(BuildGroupTasks(request, entities, ticketStateId, ref taskNumber));
         tasks.AddRange(BuildRuleTasks(request, entities, ticketStateId, ownersById, ruleActionIds, ref taskNumber));
+        CreateRequestTaskSortConfig sortConfig = CreateRequestTaskSortConfig.Parse(globalConfig.ReqCreateRequestTaskSortConfig);
+        tasks = CreateRequestTaskSorter.OrderForSave(tasks, request.SortTasks, sortConfig);
 
         return new WfTicket
         {

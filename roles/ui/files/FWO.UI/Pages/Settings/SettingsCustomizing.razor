@@ -108,6 +108,14 @@
                     </ElementTemplate>
                 </Dropdown>
             </div>
+            <div class="col-sm-2">
+                <label class="col-form-label" data-toggle="tooltip" title="@(userConfig.PureLine("C9034"))">@(userConfig.GetText("reqCreateRequestTaskSortConfig")):</label>
+            </div>
+            <div class="col-sm-2">
+                <button type="button" class="btn btn-sm btn-warning" @onclick="() => editCreateRequestTaskSortConfigMode = true">
+                    @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                </button>
+            </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5567"))">
             <label for="cbx_activate_path_analysis" class="col-form-label col-sm-3">@(userConfig.GetText("reqActivatePathAnalysis")):</label>
@@ -161,6 +169,7 @@ else
 {
     <AllowedChangesByApprover @bind-Display="editAllowedChangesByApproverMode" ConfigValue="@configData.ReqAllowedChangesByApprover" ConfigValueChanged="HandleAllowedChangesByApproverChanged" />
     <FlowIntegration @bind-Display="editFlowIntegrationMode" ConfigValue="@configData.ReqFlowIntegration" ConfigValueChanged="HandleFlowIntegrationChanged" />
+    <CreateRequestTaskSortConfigPopup @bind-Display="editCreateRequestTaskSortConfigMode" ConfigValue="@configData.ReqCreateRequestTaskSortConfig" ConfigValueChanged="HandleCreateRequestTaskSortConfigChanged" />
 }
 
 
@@ -174,6 +183,7 @@ else
     private bool InitComplete = false;
     private bool editAllowedChangesByApproverMode = false;
     private bool editFlowIntegrationMode = false;
+    private bool editCreateRequestTaskSortConfigMode = false;
 
     private List<WfState> states = [];
     private List<int> stateIds = [];
@@ -283,6 +293,25 @@ else
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
+        }
+    }
+
+    private Task HandleCreateRequestTaskSortConfigChanged(string configValue)
+    {
+        try
+        {
+            if (configData == null)
+            {
+                throw new ArgumentException("Create request task sort settings were updated before the settings page was initialized.");
+            }
+
+            configData.ReqCreateRequestTaskSortConfig = configValue;
+            return Task.CompletedTask;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
+            return Task.CompletedTask;
         }
     }
 }

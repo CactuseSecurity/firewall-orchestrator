@@ -52,6 +52,33 @@ internal class FlowRequestContractTest
     }
 
     [Test]
+    public void CreateRequestRequest_DefaultsSortTasksToFalse()
+    {
+        CreateRequestRequest? request = JsonSerializer.Deserialize<CreateRequestRequest>(
+            """{"requestorName":"Alice Example","requestorId":"alice","ruleContactName":"Bob Approver","ruleContactId":"bob","title":"Allow HTTPS"}""");
+
+        Assert.That(request?.SortTasks, Is.False);
+    }
+
+    [Test]
+    public void CreateRequestRequest_SerializesSortTasks()
+    {
+        CreateRequestRequest request = new()
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Allow HTTPS",
+            SortTasks = true
+        };
+
+        string json = JsonSerializer.Serialize(request);
+
+        Assert.That(json, Does.Contain("\"sortTasks\":true"));
+    }
+
+    [Test]
     public void GetRequestStatusResponse_UsesExpectedJsonNames()
     {
         GetRequestStatusResponse response = new()

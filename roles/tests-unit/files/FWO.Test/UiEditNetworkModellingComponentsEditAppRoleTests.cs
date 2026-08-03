@@ -63,7 +63,7 @@ namespace FWO.Test
                 {
                     Assert.That(handler.ActAppRole.Area, Is.Not.Null);
                     Assert.That(handler.ActAppRole.Area!.Id, Is.EqualTo(area1.Id));
-                Assert.That(handler.AppServersInArea.Select(server => server.Id), Is.EquivalentTo(new List<long> { matchingServer.Id }));
+                    Assert.That(handler.AppServersInArea.Select(server => server.Id), Is.EquivalentTo(new List<long> { matchingServer.Id }));
                     Assert.That(area1.MemberCount, Is.EqualTo(1));
                     Assert.That(area2.MemberCount, Is.EqualTo(0));
                 });

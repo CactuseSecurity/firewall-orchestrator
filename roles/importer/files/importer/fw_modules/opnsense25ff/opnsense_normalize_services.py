@@ -6,6 +6,7 @@ from fw_modules.opnsense25ff.opnsense_constants import (
     IP_PROTO_NUMBERS,
     MAX_DEPTH,
     PORT_BASED_PROTOCOLS,
+    PORT_RANGE_SEPARATORS,
     QUALIFIABLE_PORT_PROTOCOLS,
     SERVICE_PROTOCOL_SEPARATOR,
 )
@@ -175,13 +176,21 @@ def _normalize_services_from_port_alias(
     return service
 
 
+def _split_port_range(dest_port: str) -> list[str]:
+    # OPNsense writes port ranges as "8000:8080", imported configs may use "8000-8080"
+    for separator in PORT_RANGE_SEPARATORS:
+        if separator in dest_port:
+            return dest_port.split(separator, 1)
+    return [dest_port]
+
+
 def _port_service_from_dest_port(dest_port: str) -> ServiceObject | None:
     builtin_service_port = BUILTIN_SERVICE_PORTS.get(dest_port.lower())
     if builtin_service_port is not None:
         return _create_services_from_port_definition(
             OPNsensePort(name=dest_port, is_range=False, port=builtin_service_port, port_end=None)
         )
-    plain_portlist_candidate = dest_port.split("-", 1)
+    plain_portlist_candidate = _split_port_range(dest_port)
     if not os_helper.is_int(plain_portlist_candidate[0]):
         return None
     port = int(plain_portlist_candidate[0])

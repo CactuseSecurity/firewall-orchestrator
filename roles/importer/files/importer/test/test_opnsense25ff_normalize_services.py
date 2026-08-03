@@ -231,6 +231,46 @@ def test_normalize_services_instantiates_port_alias_per_protocol() -> None:
     assert services["web-ports"].svc_member_names == "443|80"
 
 
+@pytest.mark.parametrize("dest_port", ["8000:8080", "8000-8080"])
+def test_normalize_services_resolves_direct_port_range(dest_port: str) -> None:
+    rule = _port_rule("r-range", "tcp", dest_port)
+    config = OPNsenseConfig(hostname="fw", access_rules=[rule])
+
+    services = normalize_services(config)
+
+    qualified_name = f"{dest_port}/tcp"
+    svc = services[qualified_name]
+    # port ranges must keep their bounds instead of degrading to an unresolved placeholder
+    assert (svc.svc_port, svc.svc_port_end) == (8000, 8080)
+    assert svc.ip_proto == 6
+    assert "placeholder" not in (svc.svc_comment or "")
+    assert _create_normalized_rule_from_access_rule(rule).rule_svc == qualified_name
+
+
+def test_normalize_services_matches_direct_port_range_to_alias_member() -> None:
+    alias = _port_alias("high-ports")
+    alias.childs.append(OPNsensePort(name="8000:8080", is_range=True, port=8000, port_end=8080))
+    rule = _port_rule("r-range-direct", "any", "8000:8080")
+    config = OPNsenseConfig(hostname="fw", port_aliases={alias.name: alias}, access_rules=[rule])
+
+    services = normalize_services(config)
+
+    # the alias member and the directly referenced range normalize to the very same service
+    assert (services["8000:8080"].svc_port, services["8000:8080"].svc_port_end) == (8000, 8080)
+    assert services["high-ports"].svc_member_names == "8000:8080"
+
+
+def test_normalize_services_creates_placeholder_for_malformed_port_range() -> None:
+    rule = _port_rule("r-bad-range", "tcp", "8000:http")
+    config = OPNsenseConfig(hostname="fw", access_rules=[rule])
+
+    services = normalize_services(config)
+
+    svc = services["8000:http/tcp"]
+    assert svc.svc_port is None
+    assert "placeholder" in (svc.svc_comment or "")
+
+
 @pytest.mark.parametrize("os_protocol", ["any", "tcp/udp"])
 def test_normalize_services_keeps_unqualified_names_for_ambiguous_protocols(os_protocol: str) -> None:
     rule = _port_rule("r-ambiguous", os_protocol, "53")

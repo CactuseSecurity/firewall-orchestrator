@@ -26,6 +26,9 @@ PORT_BASED_PROTOCOLS: frozenset[str] = frozenset({"any", "tcp", "udp", "tcp/udp"
 QUALIFIABLE_PORT_PROTOCOLS: frozenset[str] = frozenset({"tcp", "udp"})
 # separates port and protocol in the name of a protocol-specific service (e.g. "https/tcp")
 SERVICE_PROTOCOL_SEPARATOR = "/"
+# separators OPNsense accepts between start and end port of a port range. ":" is the native
+# syntax used in aliases and rule ports (e.g. "8000:8080"), "-" appears in imported configs.
+PORT_RANGE_SEPARATORS: tuple[str, ...] = (":", "-")
 
 # IANA IP protocol numbers for non-port protocols selectable in OPNsense rules
 # (https://github.com/opnsense/core/blob/master/src/opnsense/mvc/app/models/OPNsense/Firewall/Filter.xml).

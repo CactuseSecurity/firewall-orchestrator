@@ -422,7 +422,7 @@ def process_devices(
                 device_config,
                 policy,
                 is_global=False,
-                native_config_domain=native_config_global_domain,
+                native_config_domain=native_config_domain,
             )
 
         add_ordered_layers_to_native_config(
@@ -557,11 +557,8 @@ def define_initial_rulebase_links(
     device_config: dict[str, Any],
     policy: dict[str, Any],
     is_global: bool,
-    native_config_domain: dict[str, Any] | None,
+    native_config_domain: dict[str, Any],
 ):
-    if native_config_domain is None:
-        native_config_domain = {"rulebases": []}
-
     if not any(rb["uid"] == policy["uid"] for rb in native_config_domain["rulebases"]):
         native_config_domain["rulebases"].append({"uid": policy["uid"], "name": policy["name"], "chunks": []})
 

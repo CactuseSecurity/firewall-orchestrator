@@ -10,6 +10,7 @@ using FWO.Ui.Pages.Reporting;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.JSInterop;
 using NUnit.Framework;
 using System.Linq;
 using System.Reflection;
@@ -21,6 +22,7 @@ namespace FWO.Test
     internal class UiReportWorkflowParamSelectionTest
     {
         private static readonly int[] kClosedStateIds = [10, 12];
+        private static readonly string[] kExpectedWorkflowLabelNames = [AdditionalInfoKeys.ReqOwner, "policy_check_result"];
 
         private static T GetPrivateMember<T>(object instance, string memberName)
         {
@@ -400,6 +402,39 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task ReportWorkflowParamSelection_LabelDropdown_ShowsAvailableValues()
+        {
+            await using BunitContext context = CreateContext(
+                [
+                    new WfStateAction
+                    {
+                        ActionType = StateActionTypes.AutoPromote.ToString(),
+                        ExternalParams = JsonSerializer.Serialize(new ConditionalAutoPromoteParams
+                        {
+                            CheckResultLabel = "policy_check_result"
+                        })
+                    }
+                ]);
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+
+            IRenderedComponent<ReportWorkflowParamSelection> cut = context.Render<ReportWorkflowParamSelection>(parameters => parameters
+                .Add(p => p.WorkflowFilter, new WorkflowFilter())
+                .Add(p => p.SelectedReportType, ReportType.TicketReport));
+
+            cut.Find("#workflowLabel-editButton").Click();
+            cut.Find("#dropdown-input-workflowLabel-nameDropdown").Focus();
+
+            cut.WaitForAssertion(() =>
+            {
+                var dropdownItems = cut.FindAll("button.dropdown-item");
+                string menuMarkup = string.Join(" ", dropdownItems.Select(item => item.TextContent));
+
+                Assert.That(menuMarkup, Does.Contain(kExpectedWorkflowLabelNames[0]));
+                Assert.That(menuMarkup, Does.Contain(kExpectedWorkflowLabelNames[1]));
+            });
+        }
+
         private static void SetClosedWorkflowStateScope(ReportWorkflowParamSelection component)
         {
             GlobalStateMatrix masterStateMatrix = new()
@@ -436,13 +471,14 @@ namespace FWO.Test
             SetMember(component, "allStates", states);
         }
 
-        private static BunitContext CreateContext()
+        private static BunitContext CreateContext(IEnumerable<WfStateAction>? actions = null)
         {
             BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddLocalization();
             context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
             context.Services.AddScoped<DomEventService>();
-            context.Services.AddSingleton<ApiConnection>(new WorkflowReportSelectionTestApiConnection());
+            context.Services.AddSingleton<ApiConnection>(new WorkflowReportSelectionTestApiConnection(actions));
             return context;
         }
 
@@ -465,6 +501,13 @@ namespace FWO.Test
 
         private sealed class WorkflowReportSelectionTestApiConnection : SimulatedApiConnection
         {
+            private readonly List<WfStateAction> actions;
+
+            public WorkflowReportSelectionTestApiConnection(IEnumerable<WfStateAction>? actions = null)
+            {
+                this.actions = actions?.ToList() ?? [];
+            }
+
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 _ = variables;
@@ -478,7 +521,7 @@ namespace FWO.Test
 
                 if (typeof(QueryResponseType) == typeof(List<WfStateAction>) && query == RequestQueries.getActions)
                 {
-                    return Task.FromResult((QueryResponseType)(object)new List<WfStateAction>());
+                    return Task.FromResult((QueryResponseType)(object)actions);
                 }
 
                 if (typeof(QueryResponseType) == typeof(List<WorkflowConfiguration>)

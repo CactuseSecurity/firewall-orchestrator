@@ -24,6 +24,7 @@ namespace FWO.Test
             IRenderedComponent<LabelFilterEditor> cut = context.Render<LabelFilterEditor>(parameters => parameters
                 .Add(p => p.LabelFilter, filter)
                 .Add(p => p.AvailableLabelNames, kPolicyCheckLabelNames)
+                .Add(p => p.AllowFreeText, true)
                 .Add(p => p.IdPrefix, "testLabel"));
 
             Assert.That(cut.Find("#testLabel-summary").GetAttribute("value"), Is.EqualTo("-"));
@@ -151,6 +152,7 @@ namespace FWO.Test
             IRenderedComponent<LabelFilterEditor> cut = context.Render<LabelFilterEditor>(parameters => parameters
                 .Add(p => p.LabelFilter, filter)
                 .Add(p => p.AvailableLabelNames, kPolicyCheckLabelNames)
+                .Add(p => p.AllowFreeText, true)
                 .Add(p => p.IdPrefix, "testLabel"));
 
             cut.Find("#testLabel-editButton").Click();

@@ -24,7 +24,7 @@ else
         <div class="form-group row mt-2" data-toggle="tooltip" title="@TooltipText">
             <label for="@NameDropdownId" class="@PopupLabelClass">@(userConfig.GetText("name")):</label>
             <div class="col-sm-9">
-                <Dropdown Id="@NameDropdownId" ElementType="string" @bind-SelectedElement="labelFilterDraft.Name" ElementToString="labelName => labelName" Elements="availableLabelNames" AllowFreeText="true">
+                <Dropdown Id="@NameDropdownId" ElementType="string" @bind-SelectedElement="labelFilterDraft.Name" ElementToString="labelName => labelName" Elements="availableLabelNames" AllowFreeText="AllowFreeText">
                     <ElementTemplate Context="labelName">
                         @labelName
                     </ElementTemplate>
@@ -76,6 +76,9 @@ else
 
     [Parameter]
     public bool UseLightText { get; set; } = true;
+
+    [Parameter]
+    public bool AllowFreeText { get; set; }
 
     [Parameter]
     public string TooltipTextKey { get; set; } = "";

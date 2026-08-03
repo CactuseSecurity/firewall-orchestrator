@@ -67,7 +67,7 @@ namespace FWO.Test
                         Filter = new RuleFilter
                         {
                             Action = "any",
-                            MinPrefixLength = 16,
+                            MinPrefixLength = 32,
                             InField = "source"
                         }
                     }
@@ -80,6 +80,33 @@ namespace FWO.Test
             ClassicAssert.AreEqual(42, response.Result.Rules[0].OwnerInformation.OwnerIds[0]);
             ClassicAssert.AreEqual("owner-from-custom", response.Result.Rules[0].OwnerInformation.ExtAppId);
             ClassicAssert.AreEqual("chg-4711", response.Result.Rules[0].AdditionalInformation.ChangeId);
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldIncludeRuleWhenAnyFlattenedSourceObjectMatches()
+        {
+            RuleController controller = CreateController(new BranchingApiConnection(), "req-group");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                    Query = new RulesByFilterQuery
+                    {
+                        IpAddress = "10.1.2.3",
+                        Filter = new RuleFilter
+                        {
+                            Action = "any",
+                            MinPrefixLength = 24,
+                            InField = "source"
+                        }
+                    }
+                }, "req-group");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            ClassicAssert.AreEqual("req-group", response.RequestId);
+            ClassicAssert.AreEqual(2, response.Result.Count);
+            CollectionAssert.AreEquivalent(new[] { "Source", "MatchingGroup" }, response.Result.Rules.Select(rule => rule.Name));
         }
 
         [Test]
@@ -179,6 +206,7 @@ namespace FWO.Test
                     return Task.FromResult((QueryResponseType)(object)new List<Rule>
                     {
                         BuildMatchingRule(101),
+                        BuildGroupRule(303),
                         BuildNonMatchingRule(202)
                     });
                 }
@@ -234,6 +262,7 @@ namespace FWO.Test
                 return new Rule
                 {
                     Id = ruleId,
+                    Name = "Source",
                     RuleOwner = [new RuleOwner { OwnerId = 42, OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField }],
                     Froms =
                     [
@@ -283,6 +312,64 @@ namespace FWO.Test
                                 IpEnd = "192.168.1.1",
                                 Type = new NetworkObjectType { Name = ObjectType.Network }
                             })
+                    ],
+                    Tos = [],
+                    CustomFields = "{'owner_key':'owner-from-custom','change_key':'chg-4711'}"
+                };
+            }
+
+            private static Rule BuildGroupRule(long ruleId)
+            {
+                NetworkObject matchingMember = new()
+                {
+                    Id = 31,
+                    Name = "MatchingMember",
+                    IP = "10.1.2.0",
+                    IpEnd = "10.1.2.255",
+                    Type = new NetworkObjectType { Name = ObjectType.Network }
+                };
+
+                NetworkObject broadMember = new()
+                {
+                    Id = 32,
+                    Name = "BroadMember",
+                    IP = "10.0.0.0",
+                    IpEnd = "10.255.255.255",
+                    Type = new NetworkObjectType { Name = ObjectType.Network }
+                };
+
+                NetworkObject unsupportedMember = new()
+                {
+                    Id = 33,
+                    Name = "Ipv6Member",
+                    IP = "2001:db8::",
+                    IpEnd = "2001:db8::ffff",
+                    Type = new NetworkObjectType { Name = ObjectType.Network }
+                };
+
+                NetworkObject group = new()
+                {
+                    Id = 30,
+                    Name = "MatchingGroup",
+                    Type = new NetworkObjectType { Name = ObjectType.Group },
+                    ObjectGroupFlats =
+                    [
+                        new GroupFlat<NetworkObject> { Object = matchingMember },
+                        new GroupFlat<NetworkObject> { Object = broadMember },
+                        new GroupFlat<NetworkObject> { Object = unsupportedMember }
+                    ]
+                };
+
+                return new Rule
+                {
+                    Id = ruleId,
+                    Name = "MatchingGroup",
+                    RuleOwner = [new RuleOwner { OwnerId = 42, OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField }],
+                    Froms =
+                    [
+                        new NetworkLocation(
+                            new NetworkUser { Name = "source" },
+                            group)
                     ],
                     Tos = [],
                     CustomFields = "{'owner_key':'owner-from-custom','change_key':'chg-4711'}"

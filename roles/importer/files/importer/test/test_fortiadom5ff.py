@@ -1144,7 +1144,24 @@ class TestNatMiscHelpers:
 
         assert translated_ips == ["1.2.3.4/32"]
         assert translated_uids == ["rule-1_Translated_IP"]
-        assert normalized_config_adom["network_objects"][0]["obj_uid"] == "rule-1_Translated_IP"
+        created_obj = normalized_config_adom["network_objects"][0]
+        assert created_obj["obj_uid"] == "rule-1_Translated_IP"
+        assert created_obj["obj_ip"] == "1.2.3.4"
+        assert created_obj["obj_ip_end"] == "1.2.3.4"
+
+    def test_parse_nat_ip_preserves_translated_range_for_wider_mask(self):
+        normalized_config_adom = _empty_normalized_config()
+        native_rule = {"uuid": "rule-1", "name": "rule-name"}
+
+        translated_ips, translated_uids = fmgr_rule.parse_nat_ip(
+            ["1.2.3.0", "255.255.255.0"], native_rule, normalized_config_adom
+        )
+
+        assert translated_ips == ["1.2.3.0/24"]
+        assert translated_uids == ["rule-1_Translated_IP"]
+        created_obj = normalized_config_adom["network_objects"][0]
+        assert created_obj["obj_ip"] == "1.2.3.0"
+        assert created_obj["obj_ip_end"] == "1.2.3.255"
 
     def test_parse_nat_ip_warns_and_returns_empty_for_unexpected_entry_count(self, mocker: MockerFixture):
         warning_mock = mocker.patch("fwo_log.FWOLogger.warning")

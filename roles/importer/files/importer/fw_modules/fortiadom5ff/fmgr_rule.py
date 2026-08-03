@@ -18,7 +18,6 @@ from fwo_exceptions import (
 from fwo_log import FWOLogger
 from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
 from models.rulebase import Rulebase
-from netaddr import IPNetwork
 
 NETWORK_OBJECT = "network_object"
 STRING_PKG = "/pkg/"
@@ -936,14 +935,15 @@ def parse_nat_ip(
         FWOLogger.warning(f"Unexpected number of entries for NAT IP parsing: {len(entries)}. Expected 2.")
         return [], []
 
-    parsed_ip = str(IPNetwork(f"{entries[0]}/{entries[1]}"))
+    ip_net = ipaddress.ip_network(f"{entries[0]}/{entries[1]}", strict=False)
+    parsed_ip = str(ip_net)
     uid = f"{native_rule.get('uuid', 'Translated_IP')}_Translated_IP"
     normalized_config_adom["network_objects"].append(
         create_network_object(
             name=native_rule.get("name", "Translated_IP"),
             obj_type="network",
-            ip=parsed_ip,
-            ip_end=parsed_ip,
+            ip=str(ip_net.network_address),
+            ip_end=str(ip_net.broadcast_address),
             uid=uid,
             color="black",
             comment="Translated IP network object created by FWO importer for NAT purposes",

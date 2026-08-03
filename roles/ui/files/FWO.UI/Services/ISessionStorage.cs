@@ -3,23 +3,23 @@ using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 namespace FWO.Ui.Services
 {
     /// <summary>
-    /// Interface for session storage operations to enable testing.
+    /// Interface for session storage operations.
     /// </summary>
     public interface ISessionStorage
     {
         /// <summary>
         /// Gets a value from session storage.
         /// </summary>
-        ValueTask<ProtectedBrowserStorageResult<TValue>> GetAsync<TValue>(string key);
+        Task<ProtectedBrowserStorageResult<TValue>> GetAsync<TValue>(string key);
 
         /// <summary>
         /// Sets a value in session storage.
         /// </summary>
-        ValueTask SetAsync(string key, object value);
+        Task SetAsync(string key, object value);
 
         /// <summary>
         /// Deletes a value from session storage.
         /// </summary>
-        ValueTask DeleteAsync(string key);
+        Task DeleteAsync(string key);
     }
 }

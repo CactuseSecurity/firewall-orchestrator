@@ -1,5 +1,10 @@
+@using FWO.Api.Client
+@using FWO.Api.Client.Queries
+@using FWO.Data
 @using FWO.Data.Report
+@using FWO.Data.Workflow
 
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 @if (UseFormLayout)
@@ -27,6 +32,9 @@ else
     public EventCallback<ModellingFilter> ModellingFilterChanged { get; set; }
 
     [Parameter]
+    public IEnumerable<string>? AvailableLabelNames { get; set; }
+
+    [Parameter]
     public bool UseFormLayout { get; set; }
 
     [Parameter]
@@ -50,14 +58,35 @@ else
                    checked="@ModellingFilter.MergeOwnerRecertTables" @onchange="ToggleMergeOwnerRecertTables" />
             <label class="@CheckboxLabelClass" for="mergeOwnerRecertTables">@(userConfig.GetText("merge_owner_recert_tables"))</label>
         </div>
-        <div class="mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("C1004"))">
-            <label class="@FieldLabelClass" for="ownerAdditionalInfoKey">@(userConfig.GetText("label")):</label>
-            <input id="ownerAdditionalInfoKey" type="text" class="form-control form-control-sm"
-                   value="@ModellingFilter.OwnerAdditionalInfoKey" @onchange="ChangeOwnerAdditionalInfoKey" />
-        </div>
+        <LabelFilterEditor LabelFilter="ModellingFilter.OwnerLabelFilter"
+                           LabelFilterChanged="HandleLabelFilterChanged"
+                           AvailableLabelNames="availableLabelNames"
+                           IdPrefix="ownerLabel"
+                           UseFormLayout="UseFormLayout"
+                           UseLightText="UseLightText"
+                           TooltipTextKey="C1004" />
     </text>;
 
-    private string FieldLabelClass => UseLightText ? "text-white" : string.Empty;
+    private List<string> availableLabelNames = new();
+    private bool availableLabelNamesLoaded;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        SyncLegacyLabelFilter();
+
+        if (AvailableLabelNames != null)
+        {
+            availableLabelNames = NormalizeAvailableLabelNames(AvailableLabelNames);
+            availableLabelNamesLoaded = true;
+            return;
+        }
+
+        if (!availableLabelNamesLoaded)
+        {
+            availableLabelNames = await LoadAvailableLabelNames();
+            availableLabelNamesLoaded = true;
+        }
+    }
 
     private async Task ToggleShowAllOwners(ChangeEventArgs args)
     {
@@ -77,9 +106,45 @@ else
         await ModellingFilterChanged.InvokeAsync(ModellingFilter);
     }
 
-    private async Task ChangeOwnerAdditionalInfoKey(ChangeEventArgs args)
+    private void SyncLegacyLabelFilter()
     {
-        ModellingFilter.OwnerAdditionalInfoKey = args.Value?.ToString()?.Trim() ?? "";
+        if (!string.IsNullOrWhiteSpace(ModellingFilter.OwnerAdditionalInfoKey) && string.IsNullOrWhiteSpace(ModellingFilter.OwnerLabelFilter.Name))
+        {
+            ModellingFilter.OwnerLabelFilter.Name = ModellingFilter.OwnerAdditionalInfoKey;
+        }
+
+        if (!string.IsNullOrWhiteSpace(ModellingFilter.OwnerLabelFilter.Name))
+        {
+            ModellingFilter.OwnerAdditionalInfoKey = ModellingFilter.OwnerLabelFilter.Name;
+        }
+    }
+
+    private async Task HandleLabelFilterChanged(LabelFilter labelFilter)
+    {
+        ModellingFilter.OwnerLabelFilter = new(labelFilter);
+        ModellingFilter.OwnerAdditionalInfoKey = ModellingFilter.OwnerLabelFilter.Name;
         await ModellingFilterChanged.InvokeAsync(ModellingFilter);
+    }
+
+    private List<string> NormalizeAvailableLabelNames(IEnumerable<string> labelNames)
+    {
+        return labelNames
+            .Where(labelName => !string.IsNullOrWhiteSpace(labelName))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(labelName => labelName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private async Task<List<string>> LoadAvailableLabelNames()
+    {
+        try
+        {
+            List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            return NormalizeAvailableLabelNames(owners.SelectMany(owner => owner.AdditionalInfo?.Keys ?? Enumerable.Empty<string>()));
+        }
+        catch
+        {
+            return new List<string>();
+        }
     }
 }

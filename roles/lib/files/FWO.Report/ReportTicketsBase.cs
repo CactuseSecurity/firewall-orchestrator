@@ -472,7 +472,7 @@ namespace FWO.Report
 
             if (!string.IsNullOrWhiteSpace(ReportData.WorkflowFilter.LabelFilter.Name))
             {
-                string labelFilter = ReportData.WorkflowFilter.LabelFilter.Mode == WorkflowLabelFilterMode.value
+                string labelFilter = ReportData.WorkflowFilter.LabelFilter.Mode == LabelFilterMode.value
                     ? $"{ReportData.WorkflowFilter.LabelFilter.Name}={ReportData.WorkflowFilter.LabelFilter.Value}"
                     : $"{ReportData.WorkflowFilter.LabelFilter.Name} ({userConfig.GetText(ReportData.WorkflowFilter.LabelFilter.Mode.ToString())})";
                 filterParts.Add($"{userConfig.GetText("label")}: {labelFilter}");

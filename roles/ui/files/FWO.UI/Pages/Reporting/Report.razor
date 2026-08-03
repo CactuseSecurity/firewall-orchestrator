@@ -191,7 +191,11 @@
                                 break;
 
                             case ReportType.OwnerRecertification:
-                                <OwnerRecertReport OwnerData="currentReport.ReportData.OwnerData" RecertificationDisplayPeriod="currentReport.ReportData.RecertificationDisplayPeriod" MergeOwnerRecertTables="currentReport.ReportData.MergeOwnerRecertTables" OwnerAdditionalInfoKey="@currentReport.ReportData.OwnerAdditionalInfoKey" />
+                                <OwnerRecertReport OwnerData="currentReport.ReportData.OwnerData"
+                                                   RecertificationDisplayPeriod="currentReport.ReportData.RecertificationDisplayPeriod"
+                                                   MergeOwnerRecertTables="currentReport.ReportData.MergeOwnerRecertTables"
+                                                   OwnerAdditionalInfoKey="@currentReport.ReportData.OwnerAdditionalInfoKey"
+                                                   OwnerLabelFilter="currentReport.ReportData.OwnerLabelFilter" />
                                 break;
 
                             case ReportType.Owners:

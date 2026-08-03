@@ -1495,7 +1495,7 @@ namespace FWO.Test
                 Filter = ""
             };
             template.ReportParams.ReportType = (int)ReportType.TicketReport;
-            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.value, Value = "true" };
+            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = LabelFilterMode.value, Value = "true" };
 
             DynGraphqlQuery query = Compiler.Compile(template);
 
@@ -1512,7 +1512,7 @@ namespace FWO.Test
                 Filter = ""
             };
             template.ReportParams.ReportType = (int)ReportType.TicketReport;
-            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.not_existing };
+            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = LabelFilterMode.not_existing };
 
             DynGraphqlQuery query = Compiler.Compile(template);
 
@@ -1529,7 +1529,7 @@ namespace FWO.Test
                 Filter = ""
             };
             template.ReportParams.ReportType = (int)ReportType.TicketReport;
-            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.display_only };
+            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = LabelFilterMode.display_only };
 
             DynGraphqlQuery query = Compiler.Compile(template);
 

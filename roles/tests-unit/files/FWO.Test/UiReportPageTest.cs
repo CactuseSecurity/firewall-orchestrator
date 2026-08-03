@@ -11,6 +11,7 @@ using FWO.Report.Filter.FilterTypes;
 using FWO.Middleware.Client;
 using FWO.Services.RuleTreeBuilder;
 using FWO.Ui.Pages.Reporting;
+using FWO.Ui.Pages.Reporting.Reports;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
@@ -35,6 +36,11 @@ namespace FWO.Test
             SimulatedUserConfig.DummyTranslate.TryAdd("report_filters", "Report filters");
             SimulatedUserConfig.DummyTranslate.TryAdd("rule_filters", "Rule filters");
             SimulatedUserConfig.DummyTranslate.TryAdd("owner", "Owner");
+            SimulatedUserConfig.DummyTranslate.TryAdd("workflow", "Workflow");
+            SimulatedUserConfig.DummyTranslate.TryAdd("task_type", "Task type");
+            SimulatedUserConfig.DummyTranslate.TryAdd("phase", "Phase");
+            SimulatedUserConfig.DummyTranslate.TryAdd("state", "State");
+            SimulatedUserConfig.DummyTranslate.TryAdd("detailed_view", "Detailed view");
             SimulatedUserConfig.DummyTranslate.TryAdd("all", "All");
             SimulatedUserConfig.DummyTranslate.TryAdd("generate_report", "Generate report");
             SimulatedUserConfig.DummyTranslate.TryAdd("save_as_template", "Save as template");
@@ -170,6 +176,110 @@ namespace FWO.Test
                 Assert.That(GetPrivateField<bool>(report, "resetToEmptyDevFilter"), Is.False);
                 Assert.That(GetPrivateField<bool>(report, "_showRightSidebar"), Is.False);
                 Assert.That(GetPrivateField<int>(report, "sidebarRightWidth"), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task ReportRender_OwnerRecertification_RendersOwnerRecertReportBranch()
+        {
+            TrackingReportPageApiConnection apiConnection = new(
+                CreateManagements(),
+                new List<FwoOwner>(),
+                new List<FwoOwner>());
+
+            await using BunitContext context = CreateContext(
+                new MonitoringTestAuthStateProvider(Roles.Reporter),
+                new List<string> { Roles.Reporter },
+                apiConnection,
+                new List<ReportType>
+                {
+                    ReportType.OwnerRecertification
+                },
+                out SimulatedUserConfig userConfig);
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderReport(context, null);
+
+            ReportPage component = wrapper.FindComponent<ReportPage>().Instance;
+            MethodInfo? stateHasChanged = typeof(ComponentBase).GetMethod("StateHasChanged", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(stateHasChanged, Is.Not.Null);
+
+            await wrapper.InvokeAsync(() =>
+            {
+                SetPrivateField(component, "currentReport", new ReportOwnerRecerts(new DynGraphqlQuery("dummy"), userConfig, ReportType.OwnerRecertification)
+                {
+                    ReportData = new ReportData
+                    {
+                        OwnerData =
+                        [
+                            new OwnerConnectionReport
+                            {
+                                Owner = new FwoOwner
+                                {
+                                    Id = 77,
+                                    ExtAppId = "EXT-77",
+                                    Name = "Recert Owner",
+                                    RecertActive = true,
+                                    RecertOverdue = true,
+                                    AdditionalInfo = new Dictionary<string, string>
+                                    {
+                                        ["business_unit"] = "Payments"
+                                    }
+                                }
+                            }
+                        ],
+                        RecertificationDisplayPeriod = 7,
+                        OwnerAdditionalInfoKey = "business_unit"
+                    }
+                });
+
+                stateHasChanged!.Invoke(component, null);
+            });
+
+            wrapper.WaitForAssertion(() =>
+            {
+                Assert.That(wrapper.FindComponent<OwnerRecertReport>().Markup, Does.Contain("Recert Owner"));
+                Assert.That(wrapper.Markup, Does.Contain("business_unit"));
+                Assert.That(wrapper.Markup, Does.Contain("Payments"));
+            });
+        }
+
+        [Test]
+        public async Task ReportRender_WorkflowReport_RendersWorkflowParamSelectionBranch()
+        {
+            TrackingReportPageApiConnection apiConnection = new(
+                CreateManagements(),
+                new List<FwoOwner>(),
+                new List<FwoOwner>());
+
+            await using BunitContext context = CreateContext(
+                new MonitoringTestAuthStateProvider(Roles.Reporter),
+                new List<string> { Roles.Reporter },
+                apiConnection,
+                new List<ReportType>
+                {
+                    ReportType.TicketReport
+                },
+                out _);
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderReport(context, null);
+            wrapper.WaitForAssertion(() => Assert.That(GetPrivateField<bool>(wrapper.FindComponent<ReportPage>().Instance, "InitDone"), Is.True));
+            ReportPage component = wrapper.FindComponent<ReportPage>().Instance;
+
+            MethodInfo? stateHasChanged = typeof(ComponentBase).GetMethod("StateHasChanged", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(stateHasChanged, Is.Not.Null);
+
+            await wrapper.InvokeAsync(() =>
+            {
+                InvokePrivateMethod(component, "ReportTypeChanged", ReportType.TicketReport);
+                stateHasChanged!.Invoke(component, null);
+            });
+
+            ReportFilters reportFilters = GetPrivateField<ReportFilters>(component, "actReportFilters");
+            Assert.Multiple(() =>
+            {
+                Assert.That(reportFilters.ReportType, Is.EqualTo(ReportType.TicketReport));
+                Assert.That(GetPrivateField<bool>(component, "_showRightSidebar"), Is.False);
+                Assert.That(GetPrivateField<int>(component, "sidebarRightWidth"), Is.EqualTo(0));
             });
         }
 

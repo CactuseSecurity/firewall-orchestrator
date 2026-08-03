@@ -1906,6 +1906,8 @@ INSERT INTO txt VALUES ('copy_to_clipboard', 	'German',	'in Zwischenablage kopie
 INSERT INTO txt VALUES ('copy_to_clipboard', 	'English',	'Copy to clipboard');
 INSERT INTO txt VALUES ('workflow_filters',		'German', 	'Workflow-Filter');
 INSERT INTO txt VALUES ('workflow_filters',	    'English', 	'Workflow Filters');
+INSERT INTO txt VALUES ('other_filters',		'German', 	'Weitere Filter');
+INSERT INTO txt VALUES ('other_filters',	    'English', 	'Other filters');
 INSERT INTO txt VALUES ('rule_filters',		    'German', 	'Regel-Filter');
 INSERT INTO txt VALUES ('rule_filters',			'English', 	'Rule Filters');
 INSERT INTO txt VALUES ('variance_filters',		'German', 	'Soll-Ist-Filter');
@@ -4898,6 +4900,8 @@ INSERT INTO txt VALUES ('H1303', 'English', 'After clicking the "Export Report" 
     Also the possibility to name and save the report in the <a href="/help/reporting/archive">archive</a> is given.
     Another Popup allows then to download the selected output files separately.
 ');
+INSERT INTO txt VALUES ('H1304', 'German',  'Eigent&uuml;mer-Recertification-Exporte verwenden denselben Auswahldialog f&uuml;r Labels wie die Report-Seitenleiste, und der ausgew&auml;hlte Label-Filter wird auf die exportierten Daten angewendet.');
+INSERT INTO txt VALUES ('H1304', 'English', 'Owner recertification exports use the same label selection popup as the report sidebar, and the selected label filter is applied to the exported data.');
 INSERT INTO txt VALUES ('H1401', 'German',  'Im unteren Teil der Hauptseite werden die Ausgabedaten des generierten Reports dargestellt.
     Unerw&uuml;nschte Spalten k&ouml;nnen mit der jeweiligen "-" Schaltfl&auml;che ausgeblendet werden.
     Wenn dargestellt, k&ouml;nnen die Spalten auch zum Sortieren oder Filtern genutzt werden.<br>

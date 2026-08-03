@@ -1,6 +1,7 @@
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Report;
 using System.Net;
 
 namespace FWO.Ui.Display
@@ -40,6 +41,23 @@ namespace FWO.Ui.Display
             return TryParseBooleanValue(value, out bool boolValue)
                 ? boolValue.ShowAsHtml().ToString()
                 : WebUtility.HtmlEncode(value);
+        }
+
+        public static bool MatchesAdditionalInfoFilter(FwoOwner owner, LabelFilter filter)
+        {
+            if (string.IsNullOrWhiteSpace(filter.Name) || filter.Mode == LabelFilterMode.display_only)
+            {
+                return true;
+            }
+
+            string value = FormatAdditionalInfoValue(owner, filter.Name);
+            return filter.Mode switch
+            {
+                LabelFilterMode.existing => !string.IsNullOrWhiteSpace(value),
+                LabelFilterMode.not_existing => string.IsNullOrWhiteSpace(value),
+                LabelFilterMode.value => string.Equals(value, filter.Value, StringComparison.Ordinal),
+                _ => true
+            };
         }
 
         public static bool TryParseBooleanValue(string value, out bool boolValue)

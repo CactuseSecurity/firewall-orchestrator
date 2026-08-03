@@ -129,7 +129,10 @@
             }
             @if (reportTypeInEdit == ReportType.OwnerRecertification)
             {
-                <ReportOwnerRecertParamSelection @bind-ModellingFilter="reportTemplateInEdit.ReportParams.ModellingFilter" UseLightText="false" UseFormLayout="true" />
+                <ReportOwnerRecertParamSelection @bind-ModellingFilter="reportTemplateInEdit.ReportParams.ModellingFilter"
+                                                 AvailableLabelNames="GetOwnerAdditionalInfoKeys(recertOwnerList)"
+                                                 UseLightText="false"
+                                                 UseFormLayout="true" />
                 <ReportRecertParamSelection @bind-FilterInput="reportTemplateInEdit.Filter"
                                             @bind-RecertFilter="reportTemplateInEdit.ReportParams.RecertFilter"
                                             ReportType="reportTypeInEdit"
@@ -298,6 +301,16 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("template_fetch"), "", true);
         }
+    }
+
+    private static List<string> GetOwnerAdditionalInfoKeys(IEnumerable<FwoOwner> owners)
+    {
+        return owners
+            .SelectMany(owner => owner.AdditionalInfo?.Keys ?? Enumerable.Empty<string>())
+            .Where(key => !string.IsNullOrWhiteSpace(key))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(key => key, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     public void Collapse()

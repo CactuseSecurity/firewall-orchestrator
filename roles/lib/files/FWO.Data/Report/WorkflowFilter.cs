@@ -40,36 +40,6 @@ namespace FWO.Data.Report
         }
     }
 
-    public enum WorkflowLabelFilterMode
-    {
-        not_existing,
-        existing,
-        value,
-        display_only
-    }
-
-    public class WorkflowLabelFilter
-    {
-        [JsonProperty("name"), JsonPropertyName("name")]
-        public string Name { get; set; } = "";
-
-        [JsonProperty("mode"), JsonPropertyName("mode")]
-        public WorkflowLabelFilterMode Mode { get; set; } = WorkflowLabelFilterMode.existing;
-
-        [JsonProperty("value"), JsonPropertyName("value")]
-        public string Value { get; set; } = "";
-
-        public WorkflowLabelFilter()
-        { }
-
-        public WorkflowLabelFilter(WorkflowLabelFilter workflowLabelFilter)
-        {
-            Name = workflowLabelFilter.Name;
-            Mode = workflowLabelFilter.Mode;
-            Value = workflowLabelFilter.Value;
-        }
-    }
-
     public class WorkflowFilter
     {
         [JsonProperty("reference_date"), JsonPropertyName("reference_date")]
@@ -92,7 +62,7 @@ namespace FWO.Data.Report
         public string Phase { get; set; } = "";
 
         [JsonProperty("label_filter"), JsonPropertyName("label_filter")]
-        public WorkflowLabelFilter LabelFilter { get; set; } = new();
+        public LabelFilter LabelFilter { get; set; } = new();
 
         [JsonProperty("detailed_view"), JsonPropertyName("detailed_view")]
         public bool DetailedView { get; set; } = false;

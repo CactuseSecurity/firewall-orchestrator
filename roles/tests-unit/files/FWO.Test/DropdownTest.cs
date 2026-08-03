@@ -4,7 +4,9 @@ using System.Reflection;
 using Bunit;
 using FWO.Ui.Services;
 using FWO.Ui.Shared;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.JSInterop;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -137,6 +139,65 @@ namespace FWO.Test
 
             Assert.That(dropdown.SelectedElements, Is.EqualTo(["two"]));
             Assert.That(dropdown.Toggled, Is.False);
+        }
+
+        /// <summary>
+        /// Verifies that free text is committed on blur for string dropdowns when the feature is enabled.
+        /// </summary>
+        [Test]
+        public async Task HandleBlur_WithFreeTextEnabled_CommitsTrimmedStringSelection()
+        {
+            Services.AddScoped<DomEventService>();
+            JSInterop.Mode = JSRuntimeMode.Loose;
+            string? selectedValue = null;
+            IRenderedComponent<Dropdown<string>> renderedDropdown = Render<Dropdown<string>>(parameters => parameters
+                .Add(p => p.AllowFreeText, true)
+                .Add(p => p.Elements, new[] { "Alpha", "Beta" })
+                .Add(p => p.NoneSelectedText, "none")
+                .Add(p => p.SelectedElements, [])
+                .Add(p => p.SelectedElementChanged, value => selectedValue = value));
+            Dropdown<string> dropdown = renderedDropdown.Instance;
+            MethodInfo handleBlurMethod = GetInstanceMethod("HandleBlur", typeof(FocusEventArgs));
+            FieldInfo searchValueField = typeof(Dropdown<string>).GetField("searchValue", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingFieldException(typeof(Dropdown<string>).FullName, "searchValue");
+            searchValueField.SetValue(dropdown, "  custom label  ");
+
+            await renderedDropdown.InvokeAsync(() => (Task)handleBlurMethod.Invoke(dropdown, [new FocusEventArgs()])!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(dropdown.SelectedElements, Is.EqualTo(["custom label"]));
+                Assert.That(selectedValue, Is.EqualTo("custom label"));
+                Assert.That(GetSearchValue(dropdown), Is.EqualTo("custom label"));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that opening the dropdown keeps typed free text when the feature is enabled for strings.
+        /// </summary>
+        [Test]
+        public async Task ShowMenu_WithFreeTextEnabled_PreservesTypedString()
+        {
+            Services.AddScoped<DomEventService>();
+            JSInterop.Mode = JSRuntimeMode.Loose;
+            IRenderedComponent<Dropdown<string>> renderedDropdown = Render<Dropdown<string>>(parameters => parameters
+                .Add(p => p.AllowFreeText, true)
+                .Add(p => p.Elements, new[] { "Alpha", "Beta" })
+                .Add(p => p.NoneSelectedText, "none")
+                .Add(p => p.SelectedElements, []));
+            Dropdown<string> dropdown = renderedDropdown.Instance;
+            MethodInfo showMenuMethod = GetInstanceMethod("ShowMenu", typeof(FocusEventArgs));
+            FieldInfo searchValueField = typeof(Dropdown<string>).GetField("searchValue", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingFieldException(typeof(Dropdown<string>).FullName, "searchValue");
+            searchValueField.SetValue(dropdown, "typed value");
+
+            await renderedDropdown.InvokeAsync(() => (Task)showMenuMethod.Invoke(dropdown, [new FocusEventArgs()])!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetSearchValue(dropdown), Is.EqualTo("typed value"));
+                Assert.That(dropdown.Toggled, Is.False);
+            });
         }
     }
 }

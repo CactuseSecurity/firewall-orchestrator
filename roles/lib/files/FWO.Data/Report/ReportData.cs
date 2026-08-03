@@ -22,6 +22,7 @@ namespace FWO.Data.Report
         public int RecertificationDisplayPeriod { get; set; } = 0;
         public bool MergeOwnerRecertTables { get; set; } = false;
         public string OwnerAdditionalInfoKey { get; set; } = "";
+        public LabelFilter OwnerLabelFilter { get; set; } = new();
 
         public ReportData()
         { }
@@ -39,6 +40,7 @@ namespace FWO.Data.Report
             RecertificationDisplayPeriod = reportData.RecertificationDisplayPeriod;
             MergeOwnerRecertTables = reportData.MergeOwnerRecertTables;
             OwnerAdditionalInfoKey = reportData.OwnerAdditionalInfoKey;
+            OwnerLabelFilter = new(reportData.OwnerLabelFilter);
         }
     }
 }

@@ -305,7 +305,7 @@ namespace FWO.Report
 
         private void ReplaceOwnerFilter(string? ownerFilter)
         {
-            if (ownerFilter != null && ownerFilter != "")
+            if (!string.IsNullOrWhiteSpace(ownerFilter))
             {
                 HtmlTemplate = HtmlTemplate.Replace("##OwnerFilters##", userConfig.GetText("owners") + ": " + ownerFilter);
             }
@@ -317,7 +317,7 @@ namespace FWO.Report
 
         private void ReplaceOtherFilter(string? otherFilter)
         {
-            if (otherFilter != null && ReportType != ReportType.RecertEventReport)
+            if (!string.IsNullOrWhiteSpace(otherFilter) && ReportType != ReportType.RecertEventReport)
             {
                 if (ReportType.IsWorkflowReport())
                 {
@@ -326,6 +326,10 @@ namespace FWO.Report
                 else if (ReportType.IsRulebaseReport())
                 {
                     HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("managements") + ": " + otherFilter);
+                }
+                else if (ReportType == ReportType.OwnerRecertification)
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("other_filters") + ": " + otherFilter);
                 }
                 else
                 {

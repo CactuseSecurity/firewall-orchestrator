@@ -485,6 +485,7 @@ namespace FWO.Test
             {"TicketReport","Ticket Report"},
             {"TicketChangeReport","Ticket Change Report"},
             {"workflow_filters","Workflow Filters"},
+            {"other_filters","Other filters"},
             {"variance_filters","Variance Filters"},
             {"rules_for_deleted_conns","Rules from deleted connections"},
             {"analyse_remaining_rules","Analyse remaining rules"},

@@ -639,7 +639,7 @@ namespace FWO.Report.Filter
             return query.WorkflowReferenceDateFilter ?? workflowFilter.ReferenceDate;
         }
 
-        private static string? BuildTicketLabelFilter(DynGraphqlQuery query, WorkflowLabelFilter labelFilter)
+        private static string? BuildTicketLabelFilter(DynGraphqlQuery query, LabelFilter labelFilter)
         {
             if (string.IsNullOrWhiteSpace(labelFilter.Name))
             {
@@ -648,10 +648,10 @@ namespace FWO.Report.Filter
 
             return labelFilter.Mode switch
             {
-                WorkflowLabelFilterMode.not_existing => BuildTicketLabelExistsFilter(query, labelFilter.Name, negate: true),
-                WorkflowLabelFilterMode.existing => BuildTicketLabelExistsFilter(query, labelFilter.Name, negate: false),
-                WorkflowLabelFilterMode.value => BuildTicketLabelValueFilter(query, labelFilter.Name, labelFilter.Value),
-                WorkflowLabelFilterMode.display_only => null,
+                LabelFilterMode.not_existing => BuildTicketLabelExistsFilter(query, labelFilter.Name, negate: true),
+                LabelFilterMode.existing => BuildTicketLabelExistsFilter(query, labelFilter.Name, negate: false),
+                LabelFilterMode.value => BuildTicketLabelValueFilter(query, labelFilter.Name, labelFilter.Value),
+                LabelFilterMode.display_only => null,
                 _ => null
             };
         }

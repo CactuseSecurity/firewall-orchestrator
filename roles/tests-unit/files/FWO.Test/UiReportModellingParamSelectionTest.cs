@@ -84,7 +84,7 @@ namespace FWO.Test
                 {
                     Assert.That(modellingFilter.SelectedOwners, Has.Count.EqualTo(2));
                     Assert.That(modellingFilter.SelectedOwners[0].Name, Is.EqualTo("App One"));
-                    Assert.That(wrapper.Markup, Does.Contain("ownerAdditionalInfoKey"));
+                    Assert.That(wrapper.Markup, Does.Contain("ownerLabel-summary"));
                 });
             });
         }

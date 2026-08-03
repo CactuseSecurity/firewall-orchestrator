@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Reflection;
 
 namespace FWO.Test
 {
@@ -304,6 +305,37 @@ namespace FWO.Test
             string displayTime = component.DisplayTime();
 
             Assert.That(displayTime, Is.EqualTo("open").IgnoreCase);
+        }
+
+        [Test]
+        public void ReportTemplateComponent_GetOwnerAdditionalInfoKeys_DeduplicatesAndSortsKeys()
+        {
+            MethodInfo? method = typeof(ReportTemplateComponent).GetMethod("GetOwnerAdditionalInfoKeys", BindingFlags.NonPublic | BindingFlags.Static);
+            Assert.That(method, Is.Not.Null);
+
+            List<FwoOwner> owners =
+            [
+                new()
+                {
+                    AdditionalInfo = new Dictionary<string, string>
+                    {
+                        ["region"] = "EMEA",
+                        ["business_unit"] = "Payments"
+                    }
+                },
+                new()
+                {
+                    AdditionalInfo = new Dictionary<string, string>
+                    {
+                        ["service_tier"] = "gold",
+                        ["REGION"] = "APAC"
+                    }
+                }
+            ];
+
+            List<string> keys = (List<string>)method!.Invoke(null, [owners])!;
+
+            Assert.That(keys, Is.EqualTo(new List<string> { "business_unit", "region", "service_tier" }));
         }
 
         [Test]

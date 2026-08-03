@@ -1,5 +1,6 @@
 using FWO.Basics;
 using FWO.Data;
+using FWO.Data.Report;
 using FWO.Ui.Display;
 using NUnit.Framework;
 
@@ -77,6 +78,71 @@ namespace FWO.Test
             };
 
             Assert.That(OwnerRecertDisplay.FormatAdditionalInfoValue(owner, "business_unit"), Is.EqualTo("Finance"));
+        }
+
+        [Test]
+        public void MatchesAdditionalInfoFilter_CoversAllModes()
+        {
+            FwoOwner owner = new()
+            {
+                AdditionalInfo = new Dictionary<string, string>
+                {
+                    ["business_unit"] = "Finance"
+                }
+            };
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(OwnerRecertDisplay.MatchesAdditionalInfoFilter(owner, new LabelFilter
+                {
+                    Name = "",
+                    Mode = LabelFilterMode.display_only
+                }), Is.True);
+
+                Assert.That(OwnerRecertDisplay.MatchesAdditionalInfoFilter(owner, new LabelFilter
+                {
+                    Name = "business_unit",
+                    Mode = LabelFilterMode.display_only
+                }), Is.True);
+
+                Assert.That(OwnerRecertDisplay.MatchesAdditionalInfoFilter(owner, new LabelFilter
+                {
+                    Name = "business_unit",
+                    Mode = LabelFilterMode.existing
+                }), Is.True);
+
+                Assert.That(OwnerRecertDisplay.MatchesAdditionalInfoFilter(owner, new LabelFilter
+                {
+                    Name = "missing_label",
+                    Mode = LabelFilterMode.existing
+                }), Is.False);
+
+                Assert.That(OwnerRecertDisplay.MatchesAdditionalInfoFilter(owner, new LabelFilter
+                {
+                    Name = "business_unit",
+                    Mode = LabelFilterMode.not_existing
+                }), Is.False);
+
+                Assert.That(OwnerRecertDisplay.MatchesAdditionalInfoFilter(owner, new LabelFilter
+                {
+                    Name = "missing_label",
+                    Mode = LabelFilterMode.not_existing
+                }), Is.True);
+
+                Assert.That(OwnerRecertDisplay.MatchesAdditionalInfoFilter(owner, new LabelFilter
+                {
+                    Name = "business_unit",
+                    Mode = LabelFilterMode.value,
+                    Value = "Finance"
+                }), Is.True);
+
+                Assert.That(OwnerRecertDisplay.MatchesAdditionalInfoFilter(owner, new LabelFilter
+                {
+                    Name = "business_unit",
+                    Mode = LabelFilterMode.value,
+                    Value = "Other"
+                }), Is.False);
+            });
         }
 
         [Test]

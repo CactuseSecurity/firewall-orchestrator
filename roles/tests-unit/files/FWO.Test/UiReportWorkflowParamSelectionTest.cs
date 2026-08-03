@@ -1,9 +1,17 @@
+using Bunit;
 using FWO.Basics;
+using FWO.Api.Client;
+using FWO.Config.Api;
+using FWO.Api.Client.Queries;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 using FWO.Ui.Pages.Reporting;
+using FWO.Ui.Services;
+using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 
@@ -145,6 +153,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TaskTypesChanged_EmptySelection_UsesAllRealTaskTypes()
+        {
+            ReportWorkflowParamSelection component = CreateComponent(new WorkflowFilter
+            {
+                TaskTypes = [WfTaskType.access]
+            });
+
+            Task task = (Task)(InvokePrivateMethod(component, "TaskTypesChanged", Array.Empty<WfTaskType?>())
+                ?? throw new InvalidOperationException("Expected change task."));
+            await task;
+
+            IEnumerable<WfTaskType?> selectedTaskTypes =
+                GetPrivateMember<IEnumerable<WfTaskType?>>(component, "selectedTaskTypesForUi");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.WorkflowFilter.TaskTypes, Does.Not.Contain(WfTaskType.master));
+                Assert.That(component.WorkflowFilter.TaskTypes.Count, Is.EqualTo(Enum.GetValues(typeof(WfTaskType)).Length - 1));
+                Assert.That(selectedTaskTypes, Is.Empty);
+            });
+        }
+
+        [Test]
         public async Task TaskTypesChanged_SubsetSelection_StoresSubsetForFilterAndUi()
         {
             ReportWorkflowParamSelection component = CreateComponent();
@@ -196,6 +227,28 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task StateIdsChanged_EmptySelection_ClearsStateFilter()
+        {
+            ReportWorkflowParamSelection component = CreateComponent(new WorkflowFilter
+            {
+                StateIds = [2, 3]
+            });
+            SetWorkflowStateScope(component);
+
+            Task task = (Task)(InvokePrivateMethod(component, "StateIdsChanged", Array.Empty<int?>())
+                ?? throw new InvalidOperationException("Expected change task."));
+            await task;
+
+            IEnumerable<int?> selectedStateIds = GetPrivateMember<IEnumerable<int?>>(component, "selectedStateIdsForUi");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.WorkflowFilter.StateIds, Is.Empty);
+                Assert.That(selectedStateIds, Is.Empty);
+            });
+        }
+
+        [Test]
         public async Task StateIdsChanged_NullSelection_ClearsStateFilter()
         {
             ReportWorkflowParamSelection component = CreateComponent(new WorkflowFilter
@@ -218,98 +271,13 @@ namespace FWO.Test
         }
 
         [Test]
-        public void GetLabelFilterSummary_HandlesEmptyExactAndModeFilters()
-        {
-            ReportWorkflowParamSelection component = CreateComponent();
-
-            string emptySummary = (string)(InvokePrivateMethod(component, "GetLabelFilterSummary")
-                ?? throw new InvalidOperationException("Expected empty label summary."));
-
-            component.WorkflowFilter.LabelFilter = new()
-            {
-                Name = "policy_check",
-                Mode = WorkflowLabelFilterMode.value,
-                Value = "passed"
-            };
-            string valueSummary = (string)(InvokePrivateMethod(component, "GetLabelFilterSummary")
-                ?? throw new InvalidOperationException("Expected value label summary."));
-
-            component.WorkflowFilter.LabelFilter = new()
-            {
-                Name = "policy_check",
-                Mode = WorkflowLabelFilterMode.not_existing
-            };
-            string modeSummary = (string)(InvokePrivateMethod(component, "GetLabelFilterSummary")
-                ?? throw new InvalidOperationException("Expected mode label summary."));
-            component.WorkflowFilter.LabelFilter = new()
-            {
-                Name = "policy_check",
-                Mode = WorkflowLabelFilterMode.display_only
-            };
-            string displayOnlySummary = (string)(InvokePrivateMethod(component, "GetLabelFilterSummary")
-                ?? throw new InvalidOperationException("Expected display only label summary."));
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(emptySummary, Is.EqualTo("-"));
-                Assert.That(valueSummary, Is.EqualTo("policy_check: passed"));
-                Assert.That(modeSummary, Is.EqualTo("policy_check: not existing"));
-                Assert.That(displayOnlySummary, Is.EqualTo("policy_check: Display only"));
-            });
-        }
-
-        [Test]
-        public void OnParametersSet_AddsSelectedLabelNameToAvailableNames()
-        {
-            ReportWorkflowParamSelection component = CreateComponent(new WorkflowFilter
-            {
-                LabelFilter = new()
-                {
-                    Name = "custom_policy_label",
-                    Mode = WorkflowLabelFilterMode.existing
-                }
-            });
-
-            InvokePrivateMethod(component, "OnParametersSet");
-
-            List<string> availableLabelNames = GetPrivateMember<List<string>>(component, "availableLabelNames");
-
-            Assert.That(availableLabelNames, Does.Contain("custom_policy_label"));
-        }
-
-        [Test]
-        public async Task DeleteLabelFilterDialog_ResetsFilterAndClosesDialog()
-        {
-            ReportWorkflowParamSelection component = CreateComponent(new WorkflowFilter
-            {
-                LabelFilter = new()
-                {
-                    Name = "policy_check",
-                    Mode = WorkflowLabelFilterMode.value,
-                    Value = "passed"
-                }
-            });
-            SetMember(component, "showLabelFilterDialog", true);
-
-            Task task = (Task)(InvokePrivateMethod(component, "DeleteLabelFilterDialog")
-                ?? throw new InvalidOperationException("Expected delete task."));
-            await task;
-
-            bool showLabelFilterDialog = GetPrivateMember<bool>(component, "showLabelFilterDialog");
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(component.WorkflowFilter.LabelFilter.Name, Is.EqualTo(string.Empty));
-                Assert.That(component.WorkflowFilter.LabelFilter.Mode, Is.EqualTo(WorkflowLabelFilterMode.existing));
-                Assert.That(component.WorkflowFilter.LabelFilter.Value, Is.EqualTo(string.Empty));
-                Assert.That(showLabelFilterDialog, Is.False);
-            });
-        }
-
-        [Test]
-        public void BuildAvailableLabelNames_IncludesAdditionalInfoAndConditionalAutoPromoteLabels()
+        public void BuildAvailableLabelNames_IncludesAdditionalInfoAndDeduplicatedConditionalAutoPromoteLabels()
         {
             ConditionalAutoPromoteParams conditionalParams = new()
+            {
+                CheckResultLabel = "policy_check_result"
+            };
+            ConditionalAutoPromoteParams duplicateConditionalParams = new()
             {
                 CheckResultLabel = "policy_check_result"
             };
@@ -318,17 +286,216 @@ namespace FWO.Test
                 ActionType = StateActionTypes.AutoPromote.ToString(),
                 ExternalParams = JsonSerializer.Serialize(conditionalParams)
             };
+            WfStateAction duplicateAction = new()
+            {
+                ActionType = StateActionTypes.AutoPromote.ToString(),
+                ExternalParams = JsonSerializer.Serialize(duplicateConditionalParams)
+            };
 
             List<string> labelNames = (List<string>)(typeof(ReportWorkflowParamSelection)
                 .GetMethod("BuildAvailableLabelNames", BindingFlags.NonPublic | BindingFlags.Static)
-                ?.Invoke(null, [new List<WfStateAction> { action }])
+                ?.Invoke(null, [new List<WfStateAction> { action, duplicateAction }])
                 ?? throw new MissingMethodException(nameof(ReportWorkflowParamSelection), "BuildAvailableLabelNames"));
 
             Assert.Multiple(() =>
             {
                 Assert.That(labelNames, Does.Contain(AdditionalInfoKeys.ReqOwner));
                 Assert.That(labelNames, Does.Contain("policy_check_result"));
+                Assert.That(labelNames.Count(label => string.Equals(label, "policy_check_result", StringComparison.OrdinalIgnoreCase)), Is.EqualTo(1));
             });
+        }
+
+        [Test]
+        public void GetAvailableStates_ClosedPhase_ReturnsOnlyClosedStates()
+        {
+            ReportWorkflowParamSelection component = CreateComponent(new WorkflowFilter
+            {
+                Phase = GlobalConst.kClosed
+            });
+            SetClosedWorkflowStateScope(component);
+
+            List<WfState> availableStates = (List<WfState>)(InvokePrivateMethod(component, "GetAvailableStates")
+                ?? throw new InvalidOperationException("Expected available states."));
+
+            Assert.That(availableStates.Select(state => state.Id), Is.EqualTo(new[] { 10, 12 }));
+        }
+
+        [Test]
+        public void GetAvailableStates_InvalidPhase_ReturnsStatesInScope()
+        {
+            ReportWorkflowParamSelection component = CreateComponent(new WorkflowFilter
+            {
+                Phase = "not_a_phase"
+            });
+            SetWorkflowStateScope(component);
+
+            List<WfState> allStates = GetPrivateMember<List<WfState>>(component, "allStates");
+            allStates.Add(new WfState { Id = 99, Name = "unused" });
+
+            List<WfState> availableStates = (List<WfState>)(InvokePrivateMethod(component, "GetAvailableStates")
+                ?? throw new InvalidOperationException("Expected available states."));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(availableStates, Has.Count.EqualTo(7));
+                Assert.That(availableStates.Select(state => state.Id), Does.Not.Contain(99));
+            });
+        }
+
+        [Test]
+        public async Task HandleLabelFilterChanged_CopiesFilterAndNotifiesParent()
+        {
+            await using BunitContext context = CreateContext();
+            LabelFilter sourceFilter = new()
+            {
+                Name = "policy_check",
+                Mode = LabelFilterMode.value,
+                Value = "passed"
+            };
+            WorkflowFilter? changedFilter = null;
+            IRenderedComponent<ReportWorkflowParamSelection> cut = context.Render<ReportWorkflowParamSelection>(parameters => parameters
+                .Add(p => p.WorkflowFilter, new WorkflowFilter())
+                .Add(p => p.WorkflowFilterChanged, EventCallback.Factory.Create<WorkflowFilter>(context, updated => changedFilter = updated))
+                .Add(p => p.SelectedReportType, ReportType.TicketReport));
+
+            await cut.InvokeAsync(() => (Task)(InvokePrivateMethod(cut.Instance, "HandleLabelFilterChanged", sourceFilter)
+                ?? throw new InvalidOperationException("Expected label-filter task.")));
+            sourceFilter.Value = "mutated";
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(cut.Instance.WorkflowFilter.LabelFilter.Name, Is.EqualTo("policy_check"));
+                Assert.That(cut.Instance.WorkflowFilter.LabelFilter.Value, Is.EqualTo("passed"));
+                Assert.That(changedFilter, Is.Not.Null);
+                Assert.That(changedFilter!.LabelFilter.Name, Is.EqualTo("policy_check"));
+                Assert.That(changedFilter.LabelFilter.Value, Is.EqualTo("passed"));
+            });
+        }
+
+        [Test]
+        public async Task OnInitializedAsync_WhenInitialQueriesFail_UsesKnownLabelNamesOnly()
+        {
+            ReportWorkflowParamSelection component = CreateComponent();
+            SetMember(component, "apiConnection", new ThrowingWorkflowApiConnection());
+            SetMember(component, "userConfig", new SimulatedUserConfig());
+            SetMember(component, "allStates", new List<WfState> { new() { Id = 999, Name = "stale" } });
+            SetMember(component, "availablePhases", new List<string> { "stale" });
+            SetMember(component, "availableLabelNames", new List<string> { "stale" });
+
+            await (Task)(InvokePrivateMethod(component, "OnInitializedAsync")
+                ?? throw new InvalidOperationException("Expected initialization task."));
+
+            List<WfState> allStates = GetPrivateMember<List<WfState>>(component, "allStates");
+            List<string> availablePhases = GetPrivateMember<List<string>>(component, "availablePhases");
+            List<string> availableLabelNames = GetPrivateMember<List<string>>(component, "availableLabelNames");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(allStates, Is.Empty);
+                Assert.That(availablePhases, Is.Empty);
+                Assert.That(availableLabelNames, Does.Contain(AdditionalInfoKeys.ReqOwner));
+                Assert.That(availableLabelNames, Does.Not.Contain("policy_check_result"));
+            });
+        }
+
+        private static void SetClosedWorkflowStateScope(ReportWorkflowParamSelection component)
+        {
+            GlobalStateMatrix masterStateMatrix = new()
+            {
+                GlobalMatrix = new Dictionary<WorkflowPhases, StateMatrix>
+                {
+                    [WorkflowPhases.request] = new()
+                    {
+                        Active = true,
+                        LowestInputState = 10,
+                        LowestStartedState = 10,
+                        LowestEndState = 13,
+                        Matrix = new Dictionary<int, List<int>>
+                        {
+                            [10] = [12]
+                        }
+                    }
+                }
+            };
+            StateMatrix requestStateMatrix = new()
+            {
+                MinTicketCompleted = 10
+            };
+            List<WfState> states =
+            [
+                new() { Id = 9, Name = "before" },
+                new() { Id = 10, Name = "closed start" },
+                new() { Id = 12, Name = "closed middle" },
+                new() { Id = 15, Name = "after" }
+            ];
+
+            SetMember(component, "masterStateMatrix", masterStateMatrix);
+            SetMember(component, "masterRequestStateMatrix", requestStateMatrix);
+            SetMember(component, "allStates", states);
+        }
+
+        private static BunitContext CreateContext()
+        {
+            BunitContext context = new();
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            context.Services.AddScoped<DomEventService>();
+            context.Services.AddSingleton<ApiConnection>(new WorkflowReportSelectionTestApiConnection());
+            return context;
+        }
+
+        private sealed class ThrowingWorkflowApiConnection : SimulatedApiConnection
+        {
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                _ = variables;
+                _ = operationName;
+                _ = chunkingOptions;
+
+                if (query == RequestQueries.getStates)
+                {
+                    throw new InvalidOperationException("query failed");
+                }
+
+                throw new NotImplementedException(query);
+            }
+        }
+
+        private sealed class WorkflowReportSelectionTestApiConnection : SimulatedApiConnection
+        {
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                _ = variables;
+                _ = operationName;
+                _ = chunkingOptions;
+
+                if (typeof(QueryResponseType) == typeof(List<WfState>) && query == RequestQueries.getStates)
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<WfState>());
+                }
+
+                if (typeof(QueryResponseType) == typeof(List<WfStateAction>) && query == RequestQueries.getActions)
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<WfStateAction>());
+                }
+
+                if (typeof(QueryResponseType) == typeof(List<WorkflowConfiguration>)
+                    && (query == RequestQueries.getActiveStateMatrixConfiguration || query == RequestQueries.getStateMatrixConfigurationByName))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<WorkflowConfiguration>
+                    {
+                        new()
+                        {
+                            Id = 1,
+                            Name = "Test configuration",
+                            IsActive = true,
+                            Phases = []
+                        }
+                    });
+                }
+
+                throw new NotImplementedException($"Unhandled query {query} for {typeof(QueryResponseType).Name}");
+            }
         }
     }
 }

@@ -25,7 +25,7 @@ namespace FWO.Test
                     TaskTypes = [WfTaskType.access, WfTaskType.rule_modify],
                     StateIds = [3, 7],
                     Phase = "implementation",
-                    LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.value, Value = "true" },
+                    LabelFilter = new() { Name = "policy_check", Mode = LabelFilterMode.value, Value = "true" },
                     DetailedView = true,
                     ShowFullTicket = false
                 }
@@ -38,7 +38,7 @@ namespace FWO.Test
             Assert.That(reportParams.WorkflowFilter.StateIds, Is.EqualTo(new List<int> { 3, 7 }));
             Assert.That(reportParams.WorkflowFilter.Phase, Is.EqualTo("implementation"));
             Assert.That(reportParams.WorkflowFilter.LabelFilter.Name, Is.EqualTo("policy_check"));
-            Assert.That(reportParams.WorkflowFilter.LabelFilter.Mode, Is.EqualTo(WorkflowLabelFilterMode.value));
+            Assert.That(reportParams.WorkflowFilter.LabelFilter.Mode, Is.EqualTo(LabelFilterMode.value));
             Assert.That(reportParams.WorkflowFilter.LabelFilter.Value, Is.EqualTo("true"));
             Assert.That(reportParams.WorkflowFilter.DetailedView, Is.True);
             Assert.That(reportParams.WorkflowFilter.ShowFullTicket, Is.False);
@@ -84,7 +84,7 @@ namespace FWO.Test
                         TaskTypes = [WfTaskType.access, WfTaskType.rule_delete],
                         StateIds = [9],
                         Phase = "review",
-                        LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.not_existing },
+                        LabelFilter = new() { Name = "policy_check", Mode = LabelFilterMode.not_existing },
                         DetailedView = true,
                         ShowFullTicket = false
                     },
@@ -100,7 +100,7 @@ namespace FWO.Test
             Assert.That(filters.WorkflowFilter.StateIds, Is.EqualTo(new List<int> { 9 }));
             Assert.That(filters.WorkflowFilter.Phase, Is.EqualTo("review"));
             Assert.That(filters.WorkflowFilter.LabelFilter.Name, Is.EqualTo("policy_check"));
-            Assert.That(filters.WorkflowFilter.LabelFilter.Mode, Is.EqualTo(WorkflowLabelFilterMode.not_existing));
+            Assert.That(filters.WorkflowFilter.LabelFilter.Mode, Is.EqualTo(LabelFilterMode.not_existing));
             Assert.That(filters.WorkflowFilter.LabelFilter.Value, Is.EqualTo(string.Empty));
             Assert.That(filters.WorkflowFilter.DetailedView, Is.True);
             Assert.That(filters.WorkflowFilter.ShowFullTicket, Is.False);

@@ -1,5 +1,6 @@
 ﻿@using FWO.Ui.Display
 @using FWO.Config.Api
+@using FWO.Data.Report
 @using FWO.Report
 @using FWO.Report.Filter
 @using FWO.Data.Modelling
@@ -7,7 +8,7 @@
 
 @inject UserConfig userConfig
 
-@if (OwnerData.Count > 0)
+@if (displayedOwnerData.Count > 0)
 {
     @if (ShowStatistics)
     {
@@ -82,21 +83,37 @@
     [Parameter]
     public string OwnerAdditionalInfoKey { get; set; } = "";
 
+    [Parameter]
+    public LabelFilter OwnerLabelFilter { get; set; } = new();
+
     private List<FwoOwner> overdueOwners = [];
     private List<FwoOwner> upcomingOwners = [];
     private List<FwoOwner> furtherOwners = [];
     private List<FwoOwner> inactiveOwners = [];
     private List<FwoOwner> mergedOwners = [];
+    private List<OwnerConnectionReport> displayedOwnerData = [];
     private bool allRecertified = false;
     private bool ShowStatistics => true;
 
     protected override void OnParametersSet()
     {
+        if (string.IsNullOrWhiteSpace(OwnerLabelFilter.Name) && !string.IsNullOrWhiteSpace(OwnerAdditionalInfoKey))
+        {
+            OwnerLabelFilter = new LabelFilter
+            {
+                Name = OwnerAdditionalInfoKey
+            };
+        }
+        if (!string.IsNullOrWhiteSpace(OwnerLabelFilter.Name))
+        {
+            OwnerAdditionalInfoKey = OwnerLabelFilter.Name;
+        }
+        displayedOwnerData = [.. OwnerData.Where(owner => OwnerRecertDisplay.MatchesAdditionalInfoFilter(owner.Owner, OwnerLabelFilter))];
         UpdateAdditionalInfoValues();
-        overdueOwners = [.. OwnerData.Select(o => o.Owner).Where(o => o.RecertOverdue)];
-        upcomingOwners = [.. OwnerData.Select(o => o.Owner).Where(o => o.RecertUpcoming)];
-        furtherOwners = [.. OwnerData.Select(o => o.Owner).Where(o => o.RecertActive && !o.RecertOverdue && !o.RecertUpcoming)];
-        inactiveOwners = [.. OwnerData.Select(o => o.Owner).Where(o => !o.RecertActive).OrderBy(o => o.Id)];
+        overdueOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(o => o.RecertOverdue)];
+        upcomingOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(o => o.RecertUpcoming)];
+        furtherOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(o => o.RecertActive && !o.RecertOverdue && !o.RecertUpcoming)];
+        inactiveOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(o => !o.RecertActive).OrderBy(o => o.Id)];
         mergedOwners = overdueOwners
             .Concat(upcomingOwners)
             .Concat(furtherOwners)
@@ -110,7 +127,7 @@
 
     private void UpdateAdditionalInfoValues()
     {
-        foreach (FwoOwner owner in OwnerData.Select(o => o.Owner))
+        foreach (FwoOwner owner in displayedOwnerData.Select(o => o.Owner))
         {
             owner.AdditionalInfoValue = OwnerRecertDisplay.FormatAdditionalInfoValue(owner, OwnerAdditionalInfoKey);
         }

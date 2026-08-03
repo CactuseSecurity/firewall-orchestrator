@@ -790,7 +790,7 @@ namespace FWO.Test
         {
             ReportTemplate template = new();
             template.ReportParams.ReportType = (int)ReportType.TicketReport;
-            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.display_only };
+            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = LabelFilterMode.display_only };
             ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
             List<WfTicket> tickets =
             [
@@ -833,7 +833,7 @@ namespace FWO.Test
             template.ReportParams.WorkflowFilter.StateIds = [9];
             template.ReportParams.WorkflowFilter.DetailedView = true;
             template.ReportParams.WorkflowFilter.ShowFullTicket = false;
-            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.existing };
+            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = LabelFilterMode.existing };
             ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
 
             await report.Generate(0, new ReportTicketChangesApiConnection([]), _ => Task.CompletedTask, CancellationToken.None);
@@ -854,7 +854,7 @@ namespace FWO.Test
             ReportTemplate template = new();
             template.ReportParams.ReportType = (int)ReportType.TicketReport;
             template.ReportParams.WorkflowFilter.DetailedView = false;
-            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.existing };
+            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = LabelFilterMode.existing };
             ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
             List<WfTicket> tickets =
             [

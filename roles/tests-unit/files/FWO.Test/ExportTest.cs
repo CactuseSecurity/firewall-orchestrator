@@ -515,8 +515,52 @@ namespace FWO.Test
 
             string html = RemoveLinebreaks(report.ExportToHtml());
 
-            StringAssert.Contains("<th>Label: business_unit</th>", html);
+            StringAssert.DoesNotContain("<p>Owners: Overdue Owner; Upcoming Owner; Further Owner; Inactive Owner</p>", html);
+            StringAssert.Contains("<p>Other filters: TestFilter</p>", html);
+            StringAssert.Contains("<p>Filter: business_unit (existing)</p>", html);
             StringAssert.Contains("<td>overdue.user</td><td>Payments</td>", html);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateHtmlHidesDisplayOnlyLabelFilter()
+        {
+            ReportOwnerRecerts report = new(new DynGraphqlQuery(""), userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerLabelFilter = new LabelFilter
+            {
+                Name = "business_unit",
+                Mode = LabelFilterMode.display_only
+            };
+            report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner.AdditionalInfo =
+                new() { ["business_unit"] = "Payments" };
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            StringAssert.DoesNotContain("Filter: business_unit", html);
+            StringAssert.DoesNotContain("Owners: ", html);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateHtmlSkipsEmptyDeviceFilterLine()
+        {
+            ReportOwnerRecerts report = new(new DynGraphqlQuery(""), userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerLabelFilter = new LabelFilter
+            {
+                Name = "business_unit",
+                Mode = LabelFilterMode.existing
+            };
+            report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner.AdditionalInfo =
+                new() { ["business_unit"] = "Payments" };
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            StringAssert.DoesNotContain("Devices:", html);
+            StringAssert.DoesNotContain("Other filters:", html);
         }
 
         [Test]

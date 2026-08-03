@@ -31,7 +31,7 @@ namespace FWO.Config.Api.Data
 
         public static ColorScheme GetSchemeByName(string name)
         {
-            return AvailableSchemes.FirstOrDefault(s => s.Name == name) ?? AvailableSchemes.First(s => s.IsDefault);
+            return AvailableSchemes.FirstOrDefault(s => s.Name == name) ?? AvailableSchemes.FirstOrDefault(s => s.IsDefault) ?? AvailableSchemes.First();
         }
     }
 

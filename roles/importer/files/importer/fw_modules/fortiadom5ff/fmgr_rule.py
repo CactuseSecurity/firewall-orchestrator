@@ -1271,6 +1271,13 @@ def insert_parent_nat_rulebase(
 ) -> Rulebase:
     # Creates a NAT rulebase for the given access rulebase.
     nat_rulebase_uid = "nat-rulebase-" + rulebase_uid
+    existing_nat_rulebase = next(
+        (rb for rb in normalized_config_adom["policies"] if rb.uid == nat_rulebase_uid), None
+    )
+
+    if existing_nat_rulebase is not None:
+        return existing_nat_rulebase
+
     normalized_nat_rulebase = Rulebase(
         uid=nat_rulebase_uid,
         mgm_uid=mgm_uid,
@@ -1278,9 +1285,7 @@ def insert_parent_nat_rulebase(
         rules={},
     )
 
-    # Add to adom policies (avoid duplicates)
-    if not any(rb for rb in normalized_config_adom["policies"] if rb.uid == normalized_nat_rulebase.uid):
-        normalized_config_adom["policies"].append(normalized_nat_rulebase)
+    normalized_config_adom["policies"].append(normalized_nat_rulebase)
 
     return normalized_nat_rulebase
 

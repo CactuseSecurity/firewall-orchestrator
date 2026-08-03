@@ -1337,8 +1337,9 @@ class TestNatRulebaseWiring:
         assert rulebase.name == "NAT"
         assert normalized_config_adom["policies"] == [rulebase]
 
-        fmgr_rule.insert_parent_nat_rulebase(normalized_config_adom, "rb1", "mgm-uid")
+        rulebase_again = fmgr_rule.insert_parent_nat_rulebase(normalized_config_adom, "rb1", "mgm-uid")
         assert len(normalized_config_adom["policies"]) == 1
+        assert rulebase_again is rulebase
 
     def test_insert_nat_rulebase_link_adds_link_once(self):
         gateway: dict[str, Any] = {"rulebase_links": []}

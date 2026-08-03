@@ -540,13 +540,8 @@ div.modal-body > * > div.table-responsive {
     overflow-x: inherit;
 }
 
-div.modal-body > div.table-responsive > table.sticky-header thead {
-    top: calc(var(--bs-custom-modal-margin-top) + 1em - 1px);
-}
-
-div.modal-body > * > div.table-responsive > table.sticky-header thead {
-    top: calc(var(--bs-custom-modal-margin-top) + 1em - 1px);
-}
+/* No modal specific sticky offset needed: the scroll container of a table in a popup is
+    the .modal-content box itself, so the offset of the generic .sticky-header rule applies. */
 
 .small-helptext {
     color: hsl(39, 100%, 50%);

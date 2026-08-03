@@ -20,6 +20,8 @@ namespace FWO.Test
     [TestFixture]
     internal class UiReportWorkflowParamSelectionTest
     {
+        private static readonly int[] kClosedStateIds = [10, 12];
+
         private static T GetPrivateMember<T>(object instance, string memberName)
         {
             Type type = instance.GetType();
@@ -147,7 +149,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(component.WorkflowFilter.TaskTypes, Does.Not.Contain(WfTaskType.master));
-                Assert.That(component.WorkflowFilter.TaskTypes.Count, Is.EqualTo(Enum.GetValues(typeof(WfTaskType)).Length - 1));
+                Assert.That(component.WorkflowFilter.TaskTypes.Count, Is.EqualTo(Enum.GetValues<WfTaskType>().Length - 1));
                 Assert.That(selectedTaskTypes, Is.Empty);
             });
         }
@@ -170,7 +172,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(component.WorkflowFilter.TaskTypes, Does.Not.Contain(WfTaskType.master));
-                Assert.That(component.WorkflowFilter.TaskTypes.Count, Is.EqualTo(Enum.GetValues(typeof(WfTaskType)).Length - 1));
+                Assert.That(component.WorkflowFilter.TaskTypes.Count, Is.EqualTo(Enum.GetValues<WfTaskType>().Length - 1));
                 Assert.That(selectedTaskTypes, Is.Empty);
             });
         }
@@ -317,7 +319,7 @@ namespace FWO.Test
             List<WfState> availableStates = (List<WfState>)(InvokePrivateMethod(component, "GetAvailableStates")
                 ?? throw new InvalidOperationException("Expected available states."));
 
-            Assert.That(availableStates.Select(state => state.Id), Is.EqualTo(new[] { 10, 12 }));
+            Assert.That(availableStates.Select(state => state.Id), Is.EqualTo(kClosedStateIds));
         }
 
         [Test]

@@ -543,6 +543,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public void OwnerRecertificationGenerateHtmlShowsValueLabelFilter()
+        {
+            ReportOwnerRecerts report = new(new DynGraphqlQuery(""), userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerLabelFilter = new LabelFilter
+            {
+                Name = "business_unit",
+                Mode = LabelFilterMode.value,
+                Value = "Payments"
+            };
+            report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner.AdditionalInfo =
+                new() { ["business_unit"] = "Payments" };
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            StringAssert.Contains("<p>Filter: business_unit=Payments</p>", html);
+            StringAssert.DoesNotContain("Filter: business_unit (", html);
+            StringAssert.DoesNotContain("<p>Other filters: TestFilter</p>", html);
+        }
+
+        [Test]
         public void OwnerRecertificationGenerateHtmlSkipsEmptyDeviceFilterLine()
         {
             ReportOwnerRecerts report = new(new DynGraphqlQuery(""), userConfig, ReportType.OwnerRecertification)

@@ -98,9 +98,20 @@ else
     private string DeleteButtonId => $"{Prefix}-deleteButton";
     private string CancelButtonId => $"{Prefix}-cancelButton";
     private string TooltipText => string.IsNullOrWhiteSpace(TooltipTextKey) ? string.Empty : userConfig.PureLine(TooltipTextKey);
-    private string SummaryLabelClass => UseFormLayout
-        ? $"col-sm-3 col-form-label col-form-label-sm{(UseLightText ? " text-white" : string.Empty)}"
-        : $"form-label{(UseLightText ? " text-white" : string.Empty)}";
+    private string SummaryLabelClass
+    {
+        get
+        {
+            string labelClass = UseFormLayout
+                ? "col-sm-3 col-form-label col-form-label-sm"
+                : "form-label";
+            if (UseLightText)
+            {
+                labelClass += " text-white";
+            }
+            return labelClass;
+        }
+    }
     private string PopupLabelClass => "col-sm-3 col-form-label col-form-label-sm";
 
     private RenderFragment SummaryContent => @<div class="input-group">

@@ -143,7 +143,7 @@ namespace FWO.Test
             SetComponentProperty(component, nameof(ReportedTickets.AddInfoName), addInfoName);
 
             string addInfoValue = (string)(InvokePrivateMethod(component, "GetAddInfoValue", ticket)
-                ?? throw new InvalidOperationException("Expected label value."));
+                ?? throw new InvalidOperationException("Expected additional info value."));
 
             Assert.That(addInfoValue, Is.EqualTo("CR-7"));
         }

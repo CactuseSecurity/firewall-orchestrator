@@ -435,6 +435,28 @@ namespace FWO.Test
         }
 
         [Test]
+        public void OwnerRecertificationGenerateCsvShowsAddInfoFilterSummaryForValueMode()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerAddInfoFilter = new AddInfoFilter
+            {
+                Name = "business_unit",
+                Mode = AddInfoFilterMode.value,
+                Value = "Payments"
+            };
+            report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner.AdditionalInfo =
+                new() { ["business_unit"] = "Payments" };
+
+            string csv = report.ExportToCsv();
+
+            StringAssert.Contains("# add_info: business_unit=Payments", csv);
+            StringAssert.Contains("\"add_info: business_unit\",", csv);
+        }
+
+        [Test]
         public void OwnerRecertificationGenerateCsvWithoutUpcomingSectionForZeroDisplayPeriod()
         {
             ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)

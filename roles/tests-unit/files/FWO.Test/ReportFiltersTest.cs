@@ -125,6 +125,54 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ReportData_CopyConstructor_CopiesOwnerAddInfoFilter()
+        {
+            ReportData reportData = new()
+            {
+                OwnerAdditionalInfoKey = "business_unit",
+                OwnerAddInfoFilter = new AddInfoFilter
+                {
+                    Name = "business_unit",
+                    Mode = AddInfoFilterMode.value,
+                    Value = "Payments"
+                }
+            };
+
+            ReportData copiedFromNull = new((ReportData?)null);
+            ReportData copiedReportData = new(reportData);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(copiedFromNull.OwnerAdditionalInfoKey, Is.Empty);
+                Assert.That(copiedFromNull.OwnerAddInfoFilter.Name, Is.Empty);
+                Assert.That(copiedFromNull.OwnerAddInfoFilter.Mode, Is.EqualTo(AddInfoFilterMode.existing));
+                Assert.That(copiedReportData.OwnerAdditionalInfoKey, Is.EqualTo("business_unit"));
+                Assert.That(copiedReportData.OwnerAddInfoFilter.Name, Is.EqualTo("business_unit"));
+                Assert.That(copiedReportData.OwnerAddInfoFilter.Mode, Is.EqualTo(AddInfoFilterMode.value));
+                Assert.That(copiedReportData.OwnerAddInfoFilter.Value, Is.EqualTo("Payments"));
+                Assert.That(ReferenceEquals(copiedReportData.OwnerAddInfoFilter, reportData.OwnerAddInfoFilter), Is.False);
+            });
+        }
+
+        [Test]
+        public void ModellingFilter_CopyConstructor_NullSourceKeepsDefaults()
+        {
+            ModellingFilter copiedFilter = new(null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(copiedFilter.SelectedOwners, Is.Empty);
+                Assert.That(copiedFilter.SelectedTemplateOwner.Id, Is.EqualTo(0));
+                Assert.That(copiedFilter.ShowSourceMatch, Is.True);
+                Assert.That(copiedFilter.ShowDestinationMatch, Is.True);
+                Assert.That(copiedFilter.OwnerAddInfoFilter.Name, Is.Empty);
+                Assert.That(copiedFilter.OwnerAddInfoFilter.Mode, Is.EqualTo(AddInfoFilterMode.existing));
+                Assert.That(copiedFilter.OwnerRecertId, Is.Null);
+                Assert.That(copiedFilter.ReportId, Is.Null);
+            });
+        }
+
+        [Test]
         public void Init_CopiesGlobalDefaultForIncludeObjectChanges()
         {
             SimulatedGlobalConfig globalConfig = new() { ImpChangeIncludeObjectChanges = true };

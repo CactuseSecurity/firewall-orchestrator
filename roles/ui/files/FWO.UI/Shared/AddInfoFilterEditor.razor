@@ -169,7 +169,7 @@ else
         addInfoFilterDraft.Name = labelName ?? string.Empty;
         if (AllowFreeText
             && !string.IsNullOrWhiteSpace(addInfoFilterDraft.Name)
-            && !availableAddInfoNames.Any(label => string.Equals(label, addInfoFilterDraft.Name, StringComparison.OrdinalIgnoreCase)))
+            && !availableAddInfoNames.Any(addInfo => string.Equals(addInfo, addInfoFilterDraft.Name, StringComparison.OrdinalIgnoreCase)))
         {
             addInfoFilterDraft.Mode = DefaultMode;
         }
@@ -203,12 +203,12 @@ else
             return;
         }
 
-        if (availableAddInfoNames.Any(label => string.Equals(label, AddInfoFilter.Name, StringComparison.OrdinalIgnoreCase)))
+        if (availableAddInfoNames.Any(addInfo => string.Equals(addInfo, AddInfoFilter.Name, StringComparison.OrdinalIgnoreCase)))
         {
             return;
         }
 
         availableAddInfoNames.Add(AddInfoFilter.Name);
-        availableAddInfoNames = [.. availableAddInfoNames.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(label => label, StringComparer.OrdinalIgnoreCase)];
+        availableAddInfoNames = [.. availableAddInfoNames.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(addInfo => addInfo, StringComparer.OrdinalIgnoreCase)];
     }
 }

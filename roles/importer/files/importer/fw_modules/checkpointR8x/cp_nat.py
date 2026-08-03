@@ -77,12 +77,13 @@ def parse_native_nat_rulebases(
         if "nat_rule_chunks" not in nat_rulebase:
             continue
 
-        normalized_nat_rulebase = insert_parent_nat_rulebase(gateway, import_state, normalized_config)
         normalized_gateway = next((gw for gw in normalized_config["gateways"] if gw["Uid"] == gateway["uid"]), None)
 
         if normalized_gateway is None:
             FWOLogger.warning("Could not find normalized gateway for NAT rulebase, skipping: " + str(gateway["uid"]))
             continue
+
+        normalized_nat_rulebase = insert_parent_nat_rulebase(gateway, import_state, normalized_config)
 
         initial_gateway_link = get_initial_nat_rulebase_link(gateway, normalized_config)
 

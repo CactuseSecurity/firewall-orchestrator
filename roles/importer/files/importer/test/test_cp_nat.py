@@ -423,7 +423,7 @@ class TestParseNativeNatRulebases:
             gateway, nat_rulebases, import_state_controller.state, normalized_config, {"policies": []}
         )
 
-        assert len(normalized_config["policies"]) == 1  # NAT parent rulebase is still created
+        assert normalized_config["policies"] == []  # no orphan NAT rulebase for an unknown gateway
         assert normalized_config["gateways"][0]["RulebaseLinks"] == [
             {"is_initial": True, "link_type": "policy", "to_rulebase_uid": "rb-access"}
         ]

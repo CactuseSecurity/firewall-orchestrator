@@ -82,6 +82,10 @@ def normalize_rulebases_for_each_link_destination(
     # Iterate over a snapshot because we may append NAT links while processing.
     for rulebase_link in list(gateway["rulebase_links"]):
         if _should_skip_rulebase_link(rulebase_link, fetched_rulebase_uids):
+            # The rulebase itself may already have been parsed for another gateway/VDOM
+            # sharing the same policy package, but this gateway still needs its own link
+            # to that rulebase's NAT rulebase, if one was created.
+            _link_gateway_to_existing_nat_rulebase_if_applicable(rulebase_link, gateway, normalized_config_adom)
             continue
 
         rulebase_to_parse, found_rulebase_in_global = _find_rulebase_to_parse_for_link(
@@ -127,6 +131,24 @@ def _should_skip_rulebase_link(rulebase_link: dict[str, Any], fetched_rulebase_u
     return not (
         rulebase_link["to_rulebase_uid"] not in fetched_rulebase_uids and rulebase_link["to_rulebase_uid"] != ""
     )
+
+
+def _link_gateway_to_existing_nat_rulebase_if_applicable(
+    rulebase_link: dict[str, Any],
+    gateway: dict[str, Any],
+    normalized_config_adom: dict[str, Any],
+) -> None:
+    link_type = rulebase_link.get("link_type", rulebase_link.get("type", "ordered"))
+    to_rulebase_uid = rulebase_link.get("to_rulebase_uid", "")
+    if link_type == "nat" or to_rulebase_uid == "":
+        return
+    nat_rulebase_uid = "nat-rulebase-" + to_rulebase_uid
+    if any(rulebase.uid == nat_rulebase_uid for rulebase in normalized_config_adom["policies"]):
+        insert_nat_rulebase_link(
+            from_rulebase_uid=to_rulebase_uid,
+            to_rulebase_uid=nat_rulebase_uid,
+            gateway=gateway,
+        )
 
 
 def _find_rulebase_to_parse_for_link(

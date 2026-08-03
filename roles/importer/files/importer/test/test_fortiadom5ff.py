@@ -851,6 +851,73 @@ class TestNormalizeRulebases:
 
         assert normalized_config_adom["policies"] == []
 
+    def test_normalize_rulebases_links_nat_rulebase_for_every_gateway_sharing_package(self):
+        gateway1: dict[str, Any] = {
+            "rulebase_links": [{"to_rulebase_uid": "rb1", "type": "ordered", "is_section": False}]
+        }
+        gateway2: dict[str, Any] = {
+            "rulebase_links": [{"to_rulebase_uid": "rb1", "type": "ordered", "is_section": False}]
+        }
+        native_config: dict[str, Any] = {
+            "gateways": [gateway1, gateway2],
+            "rulebases": [
+                {
+                    "uid": "rb1",
+                    "type": "rb1",
+                    "data": [
+                        {
+                            "uuid": "nat-1",
+                            "name": "nat-1",
+                            "nat": 1,
+                            "status": 1,
+                            "srcaddr": ["src-net"],
+                            "dstaddr": ["dst-net"],
+                            "service": ["ALL"],
+                            "srcintf": ["inside"],
+                            "dstintf": ["outside"],
+                        }
+                    ],
+                }
+            ],
+            "nat_rulebases": [],
+        }
+        native_config_global: dict[str, Any] = {}
+        normalized_config_adom = _empty_normalized_config()
+        normalized_config_adom["network_objects"] = [
+            {"obj_name": "src-net", "obj_uid": "src-net-uid", "obj_ip": "10.0.0.0/24"},
+            {"obj_name": "dst-net", "obj_uid": "dst-net-uid", "obj_ip": "10.0.1.0/24"},
+            {"obj_name": "all", "obj_uid": "all-uid", "obj_ip": "0.0.0.0/32"},
+            {"obj_name": "all", "obj_uid": "all-uid-v6", "obj_ip": "::/0"},
+        ]
+        normalized_config_adom["zone_objects"] = [
+            {"zone_name": "inside"},
+            {"zone_name": "outside"},
+            {"zone_name": "any"},
+        ]
+        normalized_config_global = _empty_normalized_config()
+
+        fmgr_rule.normalize_rulebases(
+            "mgm-uid", native_config, native_config_global, normalized_config_adom, normalized_config_global, False
+        )
+
+        # Only one NAT rulebase should be created for the shared package...
+        nat_rulebases = [rb for rb in normalized_config_adom["policies"] if rb.uid == "nat-rulebase-rb1"]
+        assert len(nat_rulebases) == 1
+
+        # ...but both gateways must get their own link to it.
+        for gateway in (gateway1, gateway2):
+            nat_links = [link for link in gateway["rulebase_links"] if link.get("type") == "nat"]
+            assert nat_links == [
+                {
+                    "from_rulebase_uid": "rb1",
+                    "to_rulebase_uid": "nat-rulebase-rb1",
+                    "type": "nat",
+                    "is_initial": False,
+                    "is_global": False,
+                    "is_section": False,
+                }
+            ]
+
     def test_normalize_rulebases_for_each_link_destination_warns_on_missing_rulebase(self, mocker: MockerFixture):
         warning_mock = mocker.patch("fwo_log.FWOLogger.warning")
         gateway = {"rulebase_links": [{"to_rulebase_uid": "missing-rb", "type": "ordered", "is_section": False}]}

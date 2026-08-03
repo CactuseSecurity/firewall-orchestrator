@@ -1237,7 +1237,7 @@ def new_process_nat_rules_for_rulebase(
     normalized_rulebase: Rulebase,
 ) -> None:
     has_nat_rules = any(
-        any(key in native_rule and native_rule[key] == 1 for key in ["nat", "nat46", "nat64"])
+        any(is_nat_rule(native_rule, normalized_config_adom, normalized_config_global))
         for native_rule in rulebase_to_parse.get("data", [])
     )
 

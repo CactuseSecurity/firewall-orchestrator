@@ -1015,6 +1015,10 @@ def parse_nat_rules_in_rulebase(
     Extracts NAT rules from a rulebase and creates normalized NAT rules.
     Creates two RuleNormalized objects per NAT rule (original + translated).
     """
+    # Prepare translated fields: if a translated field equals the original,
+    # replace it with the standard placeholder object "Original".
+    ensure_original_objects(normalized_config_adom, normalized_config_global)
+
     for native_rule in rulebase_to_parse.get("data", []):
         # Check if this is a NAT rule
         is_snat, is_dnat = is_nat_rule(native_rule, normalized_config_adom, normalized_config_global)
@@ -1053,10 +1057,6 @@ def parse_nat_rules_in_rulebase(
         if not rule_uid:
             FWOLogger.warning("NAT rule without UUID, skipping")
             continue
-
-        # Prepare translated fields: if a translated field equals the original,
-        # replace it with the standard placeholder object "Original".
-        ensure_original_objects(normalized_config_adom, normalized_config_global)
 
         translated_dst_list = list(rule_dst_list)
         translated_dst_refs_list = list(rule_dst_refs_list)

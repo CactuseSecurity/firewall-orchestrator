@@ -172,7 +172,7 @@ h2,
 h3,
 h4,
 h5 {
-    color: var(--heading-color, #2FA5ED);
+    color: #2fa5ed;
     font-weight: bold;
 }
 

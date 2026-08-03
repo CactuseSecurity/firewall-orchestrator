@@ -10,6 +10,14 @@ Tested with "read-only all" user permissions:
 
 And created an API key `$OS_API_KEY:$OS_API_SECRET`.
 
+## Configure Credentials
+1. Generate API key
+```
+key=1gFfvKPQvG9O4tuHtJFwREjrkdvw9SM9XereOvemGFNU7iF8s4dPeL2B88bkeagNBfSy37/QuiyElOdU
+secret=4N4yTQZATPa/Tj+IUiyXNFsB2r0Kpjt8lQ6UDjsaNZgo0vd/l+ByD3dBR61T/b/8Jz5rleZytIuzpO6R
+```
+2. Create Credentials and put "key" from the file in Username and "secret" in Password field. 
+
 ## Config source
 
 The importer only calls the core backup API (`/api/core/backup/download/this`) when no native config

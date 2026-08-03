@@ -1,10 +1,12 @@
 using System.Globalization;
-using System.Threading;
+using System.Net;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Flow;
+using FWO.Logging;
 using FWO.Middleware.Server.Responses;
+using NetTools;
 
 namespace FWO.Middleware.Server.Services;
 
@@ -115,6 +117,20 @@ public sealed class FlowCatalogService
             : new ServiceObjectIdResponse { Id = flowObject.Id, Name = flowObject.Name };
     }
 
+    /// <summary>
+    /// Performs the GetTimeObjectIdAsync operation.
+    /// </summary>
+    public async Task<TimeObjectIdResponse> GetTimeObjectIdAsync(DateTimeOffset? startTime, DateTimeOffset? endTime, bool? visibleInRequest)
+    {
+        List<FlowTimeObject> result = await apiConnection.SendQueryAsync<List<FlowTimeObject>>(
+            FlowQueries.getFlowTimeObjectId,
+            BuildLookupQueryVariables(visibleInRequest, ("start_time", startTime), ("end_time", endTime))) ?? [];
+        FlowTimeObject? flowObject = result.FirstOrDefault();
+        return flowObject == null
+            ? new TimeObjectIdResponse()
+            : new TimeObjectIdResponse { Id = flowObject.Id, Name = flowObject.Name ?? string.Empty };
+    }
+
     private async Task<List<FlowNwObject>> LoadFlowNwObjectsAsync(bool? visibleInRequest)
     {
         return await apiConnection.SendQueryAsync<List<FlowNwObject>>(
@@ -209,14 +225,14 @@ public sealed class FlowCatalogService
     }
 
     /// <summary>
-    /// Builds query variables for lookup requests with equality predicates.
+    /// Builds query variables for lookup requests with equality or null predicates.
     /// </summary>
-    private static Dictionary<string, object> BuildLookupQueryVariables(bool? visibleInRequest, params (string FieldName, object Value)[] conditions)
+    private static Dictionary<string, object> BuildLookupQueryVariables(bool? visibleInRequest, params (string FieldName, object? Value)[] conditions)
     {
         Dictionary<string, object> whereClause = BuildVisibleInRequestWhereClause(visibleInRequest);
-        foreach ((string fieldName, object value) in conditions)
+        foreach ((string fieldName, object? value) in conditions)
         {
-            whereClause[fieldName] = BuildEqualsExpression(value);
+            whereClause[fieldName] = BuildLookupExpression(value);
         }
 
         return new Dictionary<string, object> { ["where"] = whereClause };
@@ -230,18 +246,20 @@ public sealed class FlowCatalogService
         Dictionary<string, object> whereClause = [];
         if (visibleInRequest.HasValue)
         {
-            whereClause["show_in_request_module"] = BuildEqualsExpression(visibleInRequest.Value);
+            whereClause["show_in_request_module"] = BuildLookupExpression(visibleInRequest.Value);
         }
 
         return whereClause;
     }
 
     /// <summary>
-    /// Builds a Hasura _eq expression for the supplied value.
+    /// Builds a Hasura lookup expression for the supplied value.
     /// </summary>
-    private static Dictionary<string, object> BuildEqualsExpression(object value)
+    private static Dictionary<string, object> BuildLookupExpression(object? value)
     {
-        return new Dictionary<string, object> { ["_eq"] = value };
+        return value == null
+            ? new Dictionary<string, object> { ["_is_null"] = true }
+            : new Dictionary<string, object> { ["_eq"] = value };
     }
 
     private static AddressObjectResponse ToAddressObjectResponse(FlowNwObject flowObject)
@@ -250,11 +268,48 @@ public sealed class FlowCatalogService
         {
             Id = flowObject.Id,
             Name = flowObject.Name ?? string.Empty,
+            Type = ResolveAddressType(flowObject),
             IpStart = flowObject.IpStart ?? string.Empty,
             IpEnd = flowObject.IpEnd ?? string.Empty,
             State = flowObject.State,
             ShowInRequest = flowObject.ShowInRequestModule
         };
+    }
+
+    /// <summary>
+    /// Resolves the address object type from its IP range.
+    /// </summary>
+    private static string ResolveAddressType(FlowNwObject flowObject)
+    {
+        if (string.IsNullOrWhiteSpace(flowObject.IpStart) || string.IsNullOrWhiteSpace(flowObject.IpEnd))
+        {
+            return "fqdn";
+        }
+
+        string ipStartValue = flowObject.IpStart.Split('/', 2)[0];
+        string ipEndValue = flowObject.IpEnd.Split('/', 2)[0];
+        if (!IPAddress.TryParse(ipStartValue, out IPAddress? ipStart)
+            || !IPAddress.TryParse(ipEndValue, out IPAddress? ipEnd)
+            || ipStart.AddressFamily != ipEnd.AddressFamily)
+        {
+            Log.WriteWarning("FlowCatalogService", "ResolveAddressType - Invalid IP range: {flowObject.IpStart} - {flowObject.IpEnd}");
+            return "range";
+        }
+
+        if (ipStart.Equals(ipEnd))
+        {
+            return "host";
+        }
+
+        try
+        {
+            _ = new IPAddressRange(ipStart, ipEnd).GetPrefixLength();
+            return "network";
+        }
+        catch (FormatException)
+        {
+            return "range";
+        }
     }
 
     private static AddressGroupResponse ToAddressGroupResponse(FlowNwGroup flowGroup)

@@ -65,9 +65,10 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
         await transformer.TransformAsync(operation, CreateOwnerContext(), CancellationToken.None);
         string description = operation.Description!.ReplaceLineEndings("\n");
 
+        string normalizedDescription = NormalizeLineEndings(operation.Description);
         Assert.Multiple(() =>
         {
-            Assert.That(description, Does.Contain("""
+            Assert.That(normalizedDescription, Does.Contain("""
 ```json
 {
   "ownerLifecycleStateId": 1,
@@ -75,7 +76,7 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
 }
 ```
 """));
-            Assert.That(description, Does.Contain("""
+            Assert.That(normalizedDescription, Does.Contain("""
 ```json
 [
   {
@@ -87,6 +88,11 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
             Assert.That(description, Does.Not.Contain("{\"active\":true"));
             Assert.That(description, Does.Not.Contain("{\"id\":42"));
         });
+    }
+
+    private static string NormalizeLineEndings(string? text)
+    {
+        return (text ?? string.Empty).Replace("\r\n", "\n");
     }
 
     /// <summary>
@@ -328,6 +334,28 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
         await transformer.TransformAsync(operation, context, CancellationToken.None);
 
         Assert.That(operation.Responses, Is.Null);
+    }
+
+    [Test]
+    public void ComplianceZoneController_ActionsDeclareProducedStatusCodes()
+    {
+        MethodInfo getZonesMethod = typeof(ComplianceZoneController).GetMethod(nameof(ComplianceZoneController.GetDesignatedZoneMatrixZones))!;
+        MethodInfo resolveMethod = typeof(ComplianceZoneController).GetMethod(nameof(ComplianceZoneController.ResolveZonesForObjects))!;
+
+        int[] getZoneStatusCodes = getZonesMethod.GetCustomAttributes<ProducesResponseTypeAttribute>()
+            .Select(attribute => attribute.StatusCode)
+            .OrderBy(statusCode => statusCode)
+            .ToArray();
+        int[] resolveStatusCodes = resolveMethod.GetCustomAttributes<ProducesResponseTypeAttribute>()
+            .Select(attribute => attribute.StatusCode)
+            .OrderBy(statusCode => statusCode)
+            .ToArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(getZoneStatusCodes, Is.EqualTo([200, 401, 403, 500]));
+            Assert.That(resolveStatusCodes, Is.EqualTo([200, 400, 401, 403, 500]));
+        });
     }
 
     private static OpenApiApiExampleOperationTransformer CreateTransformerWithExamples()

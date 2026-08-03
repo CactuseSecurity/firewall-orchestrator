@@ -13,6 +13,8 @@ namespace FWO.Test
     [TestFixture]
     internal class FlowSyncTest
     {
+        private const int kCentralEuropeanOffsetHours = 1;
+
         private sealed class FlowSyncTestApiConn : SimulatedApiConnection
         {
             private long nextFlowNetworkObjectId = 100;
@@ -642,6 +644,28 @@ namespace FWO.Test
             Assert.That(mappings[hash].Single().Id, Is.EqualTo(7));
             Assert.That(mappings[hash].Single().FlowId, Is.Null);
             Assert.That(mappings[hash].Single().FlowActive, Is.True);
+        }
+
+        [Test]
+        public void TryBuildFlowTimeObj_WritesTimeBoundsAsUtc()
+        {
+            DateTime expectedStartTime = new(2026, 1, 15, 14, 0, 0, DateTimeKind.Utc);
+            DateTime expectedEndTime = new(2026, 1, 15, 15, 0, 0, DateTimeKind.Utc);
+            DateTime localStartTime = new DateTimeOffset(2026, 1, 15, 15, 0, 0, TimeSpan.FromHours(kCentralEuropeanOffsetHours)).LocalDateTime;
+            DateTime localEndTime = new DateTimeOffset(2026, 1, 15, 16, 0, 0, TimeSpan.FromHours(kCentralEuropeanOffsetHours)).LocalDateTime;
+            TimeObject timeObj = new() { Id = 7, Name = "maintenance-window", StartTime = localStartTime, EndTime = localEndTime };
+            FlowSyncFlowData flowData = CreateFlowData();
+            Dictionary<string, FlowTimeObjectInsert> pendingInserts = [];
+            Dictionary<string, List<FlowMappingUpdate>> mappings = [];
+
+            bool result = InvokePrivateStatic<bool>("TryBuildFlowTimeObj", timeObj, flowData, pendingInserts, mappings, true);
+
+            FlowTimeObjectInsert insertedTimeObject = pendingInserts.Values.Single();
+            Assert.That(result, Is.True);
+            Assert.That(insertedTimeObject.StartTime, Is.EqualTo(expectedStartTime));
+            Assert.That(insertedTimeObject.EndTime, Is.EqualTo(expectedEndTime));
+            Assert.That(insertedTimeObject.StartTime!.Value.Kind, Is.EqualTo(DateTimeKind.Utc));
+            Assert.That(insertedTimeObject.EndTime!.Value.Kind, Is.EqualTo(DateTimeKind.Utc));
         }
 
         [Test]

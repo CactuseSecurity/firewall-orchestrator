@@ -6,10 +6,11 @@
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject TokenService tokenService
 
 <div class="input-group">
     <h3>@(userConfig.GetText("gateways"))</h3>
-    <HelpLink Page="settings/gateways"/>
+    <HelpLink Page="settings/gateways" />
 </div>
 @(userConfig.GetText("U5112"))
 <hr />
@@ -76,7 +77,7 @@
                 <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5152"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
                     <div class="col-sm-8">
-                        <textarea rows="3" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("comment")) @bind="actDevice.Comment"></textarea>   
+                        <textarea rows="3" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("comment")) @bind="actDevice.Comment"></textarea>
                     </div>
                 </div>
                 <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5154"))">
@@ -108,14 +109,14 @@
                         </div>
                     </div>
                 }
-                else if(actDevice.DeviceType.Manufacturer == "Check Point" ||
-                    actDevice.DeviceType.Manufacturer == "Fortinet" || 
+                else if (actDevice.DeviceType.Manufacturer == "Check Point" ||
+                    actDevice.DeviceType.Manufacturer == "Fortinet" ||
                     actDevice.DeviceType.Manufacturer == "Cisco" ||
                     actDevice.DeviceType.Manufacturer == "Palo Alto" ||
                     actDevice.DeviceType.Manufacturer == "Microsoft" ||
                     actDevice.DeviceType.Manufacturer == "VMWare")
                 {
-                    @if (actDevice.DeviceType.Id==25) // Fortinet FortiOS Gateway REST
+                    @if (actDevice.DeviceType.Id == 25) // Fortinet FortiOS Gateway REST
                     {   // we can only have one policy, so setting fixed policy name (idential to importer module fortiOSmanagementREST)
                         actDevice.LocalRulebase = "access_rules";
                         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5155"))">
@@ -125,7 +126,7 @@
                             </div>
                         </div>
                     }
-                    else if(actDevice.DeviceType.Manufacturer != "Check Point" && actDevice.DeviceType.Manufacturer != "Fortinet" )
+                    else if (actDevice.DeviceType.Manufacturer != "Check Point" && actDevice.DeviceType.Manufacturer != "Fortinet")
                     {
                         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5155"))">
                             <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("local_package")):</label>
@@ -160,15 +161,15 @@
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-                </NotAuthorized> 
+                </NotAuthorized>
             </ExecutionModeAuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
 
-<ConfirmDelete @bind-Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_gateway")" DeleteMessage="@(userConfig.GetText("U5103") + " " + actDevice.Name + "?")"/>
-<InProgress Display="workInProgress"/>
+<ConfirmDelete @bind-Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_gateway")" DeleteMessage="@(userConfig.GetText("U5103") + " " + actDevice.Name + "?")" />
+<InProgress Display="workInProgress" />
 
 
 @code
@@ -194,29 +195,45 @@
             devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
             deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(DeviceQueries.getDeviceTypeDetails);
 
-            JwtReader jwt = new (userConfig.User.Jwt);
+            string? accessToken = await tokenService.GetAccessToken();
+
+            if (string.IsNullOrWhiteSpace(accessToken))
+            {
+                throw new AuthenticationException("not_authorized");
+            }
+
+            JwtReader jwt = new(accessToken);
             JwtValidationResult validationResult = await jwt.ValidateToken();
+
             if (!validationResult.IsSuccess)
             {
-                throw new AuthenticationException(validationResult.Status == JwtValidationStatus.Expired ? "JWTExpired" : "not_authorized");
+                throw new AuthenticationException("not_authorized");
             }
+
             if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
+            {
                 managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
+            }
             else
+            {
                 managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
+            }
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_gateways"), "", true);
         }
+
+        await base.OnInitializedAsync();
     }
+
 
     private void setMatchingDevTypes(Management management)
     {
         actDevice.Management = management;
         matchingDeviceTypes = deviceTypes.Where(x => x.Manufacturer == deviceTypes.Find(
             y => y.Id == managements.Find(z => z.Id == actDevice.Management.Id)?.DeviceType.Id)?.Manufacturer);
-        if(matchingDeviceTypes.FirstOrDefault(x => x.Id == actDevice.DeviceType.Id) == null)
+        if (matchingDeviceTypes.FirstOrDefault(x => x.Id == actDevice.DeviceType.Id) == null)
         {
             actDevice.DeviceType = matchingDeviceTypes.FirstOrDefault() ?? new DeviceType();
         }

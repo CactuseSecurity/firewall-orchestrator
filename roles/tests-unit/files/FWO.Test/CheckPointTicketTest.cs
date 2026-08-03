@@ -75,6 +75,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CreateRequestStringForGroupCreateReplacesSlashInNetworkObjectName()
+        {
+            CheckPointTicket ticket = new(checkPointSystem);
+            List<WfReqTask> tasks = new() { CreateGroupCreateTaskWithNewNetworkMemberHavingSlashInName() };
+            List<IpProtocol> ipProtos = new();
+
+            await ticket.CreateRequestString(tasks, ipProtos, new ModellingNamingConvention());
+
+            using JsonDocument document = JsonDocument.Parse(ticket.TicketText);
+            List<JsonElement> planSteps = document.RootElement.GetProperty("Steps").EnumerateArray().ToList();
+
+            ClassicAssert.AreEqual(4, planSteps.Count);
+            ClassicAssert.AreEqual(CheckPointTaskTypes.NetworkCreate, planSteps[1].GetProperty("TaskType").GetString());
+            ClassicAssert.AreEqual(CheckPointTaskTypes.GroupAddMembers, planSteps[2].GetProperty("TaskType").GetString());
+
+            JsonElement networkBody = planSteps[1].GetProperty("Body");
+            ClassicAssert.AreEqual("netz_1.2.3.4_25", networkBody.GetProperty("name").GetString());
+
+            JsonElement addMemberBody = planSteps[2].GetProperty("Body");
+            ClassicAssert.AreEqual("netz_1.2.3.4_25", addMemberBody.GetProperty("members").GetProperty("add")[0].GetString());
+        }
+
+        [Test]
         public async Task CreateExternalTicketRetriesGroupMemberObjectCreationWithIgnoreWarnings()
         {
 
@@ -219,6 +242,48 @@ namespace FWO.Test
             JsonElement removeMemberBody = planSteps[2].GetProperty("Body");
             ClassicAssert.AreEqual("cp-group", removeMemberBody.GetProperty("name").GetString());
             ClassicAssert.AreEqual("member-remove", removeMemberBody.GetProperty("members").GetProperty("remove")[0].GetString());
+        }
+
+        [Test]
+        public async Task CreateRequestStringForGroupModifyReplacesSlashInRemovedNetworkMemberName()
+        {
+            ExternalTicketSystem groupModifyCheckPointSystem = new()
+            {
+                Id = 1,
+                TypeId = 9,
+                Authorization = "X-chkp-sid: xyz",
+                Name = "CheckPoint",
+                Url = "https://checkpoint-test.xxx.de/web_api/",
+                Templates =
+                [
+                    new()
+            {
+                TaskType = WfTaskType.group_modify.ToString(),
+                TicketTemplate = "@@TASKS@@",
+                TasksTemplate = "{\"name\":\"@@GROUPNAME@@\",\"members\":@@MEMBERS@@}"
+            },
+            new()
+            {
+                TaskType = CheckPointTaskTypes.Publish,
+                TicketTemplate = "{}"
+            }
+                ]
+            };
+
+            CheckPointTicket ticket = new(groupModifyCheckPointSystem);
+
+            await ticket.CreateRequestString([CreateGroupModifyTaskWithRemovedNetworkMemberHavingSlashInName()], [], new ModellingNamingConvention());
+
+            using JsonDocument document = JsonDocument.Parse(ticket.TicketText);
+            List<JsonElement> planSteps = [.. document.RootElement.GetProperty("Steps").EnumerateArray()];
+
+            ClassicAssert.AreEqual(2, planSteps.Count);
+            ClassicAssert.AreEqual(CheckPointTaskTypes.GroupRemoveMembers, planSteps[0].GetProperty("TaskType").GetString());
+            ClassicAssert.AreEqual(CheckPointTaskTypes.Publish, planSteps[1].GetProperty("TaskType").GetString());
+
+            JsonElement removeMemberBody = planSteps[0].GetProperty("Body");
+            ClassicAssert.AreEqual("cp-group", removeMemberBody.GetProperty("name").GetString());
+            ClassicAssert.AreEqual("netz_1.2.3.4_25", removeMemberBody.GetProperty("members").GetProperty("remove")[0].GetString());
         }
 
         [Test]
@@ -435,6 +500,27 @@ namespace FWO.Test
             };
         }
 
+        private static WfReqTask CreateGroupModifyTaskWithRemovedNetworkMemberHavingSlashInName()
+        {
+            return new()
+            {
+                Id = 4,
+                TaskNumber = 4,
+                TaskType = WfTaskType.group_modify.ToString(),
+                AdditionalInfo = "{\"GrpName\":\"cp-group\"}",
+                Elements =
+                [
+                    new()
+            {
+                Name = "netz_1.2.3.4/25",
+                Field = ElemFieldType.source.ToString(),
+                IpString = "1.2.3.4/25",
+                RequestAction = RequestAction.delete.ToString()
+            }
+                ]
+            };
+        }
+
         private static WfReqTask CreateGroupCreateTaskWithNewHostMember()
         {
             return new()
@@ -453,6 +539,27 @@ namespace FWO.Test
                         RequestAction = RequestAction.create.ToString()
                     }
                 ]
+            };
+        }
+
+        private static WfReqTask CreateGroupCreateTaskWithNewNetworkMemberHavingSlashInName()
+        {
+            return new()
+            {
+                Id = 3,
+                TaskNumber = 3,
+                TaskType = WfTaskType.group_create.ToString(),
+                AdditionalInfo = "{\"GrpName\":\"cp-group\"}",
+                Elements = new List<WfReqElement>
+                {
+                    new()
+                    {
+                        Name = "netz_1.2.3.4/25",
+                        Field = ElemFieldType.source.ToString(),
+                        IpString = "1.2.3.4/25",
+                        RequestAction = RequestAction.create.ToString()
+                    }
+                }
             };
         }
 

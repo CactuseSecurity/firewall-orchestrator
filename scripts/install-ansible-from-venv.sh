@@ -6,25 +6,10 @@
 # for this you also need access to pypi.org (either directly or through proxy) 
 # for downloading ansible
 
-set_pip_config_if_compatible() {
-    local key="$1"
-    local desired_value="$2"
-    local current_value
-
-    current_value="$(pip config get "$key" 2>/dev/null || true)"
-    if [[ -z "$current_value" ]]; then
-        pip config set "$key" "$desired_value"
-    elif [[ "$current_value" != "$desired_value" ]]; then
-        echo "Existing pip config $key=$current_value conflicts with requested value $desired_value." >&2
-        echo "Please adjust the existing pip configuration manually and rerun this script." >&2
-        return 1
-    fi
-    return 0
-}
-
 main() {
     local python_bin="python3"
     local venv_dir="${FWORCH_INSTALLER_VENV:-$HOME/.fwo/installer-venv}"
+    local -a pip_install_options=(--default-timeout 3600)
 
     if [[ ! -f /etc/os-release ]]; then
         echo "Could not detect operating system: /etc/os-release missing."
@@ -33,15 +18,15 @@ main() {
 
     . /etc/os-release
 
-    # ansible==12.3.0 (see requirements.txt) requires Python >=3.11. On RHEL/Rocky 9
-    # the platform python3 is 3.9, so the venv must be built with python3.11 there.
+    # requirements.txt pins the production Ansible version for Python 3.11.
+    # On RHEL/Rocky 9 the platform python3 is 3.9, so the venv must use python3.11 there.
     case "${ID_LIKE:-$ID}" in
         *debian*)
             sudo apt update || return $?
-            sudo apt install python3-venv -y || return $?
+            sudo apt install python3-venv build-essential libldap2-dev libsasl2-dev -y || return $?
             ;;
         *rhel*|*fedora*)
-            sudo dnf install python3.11 python3.11-pip -y || return $?
+            sudo dnf install python3.11 python3.11-pip python3.11-devel gcc openldap-devel cyrus-sasl-devel -y || return $?
             python_bin="python3.11"
             ;;
         *)
@@ -54,16 +39,13 @@ main() {
     "$python_bin" -m venv --clear "$venv_dir" || return $?
 
     source "$venv_dir/bin/activate" || return $?
-    if [[ "${http_proxy:-}" != "" ]];
-    then
-        set_pip_config_if_compatible global.proxy "$http_proxy" || return $?
-    fi
-    set_pip_config_if_compatible global.default-timeout 3600 || return $?
-    pip install -r requirements.txt || return $?
+    # pip automatically honors the standard HTTP(S)_PROXY environment variables.
+    # Keep the timeout command-local so this script never changes user pip config.
+    pip install "${pip_install_options[@]}" -r requirements.txt || return $?
     if [[ -f scripts/requirements.txt ]]; then
-        pip install -r scripts/requirements.txt || return $?
+        pip install "${pip_install_options[@]}" -r scripts/requirements.txt || return $?
     fi
-    pip install ansible || return $?
+    pip install "${pip_install_options[@]}" ansible || return $?
     ansible-galaxy collection install -r collections/requirements.yml -p collections --force || return $?
 }
 

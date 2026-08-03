@@ -11,12 +11,13 @@ Tested with "read-only all" user permissions:
 And created an API key `$OS_API_KEY:$OS_API_SECRET`.
 
 ## Configure Credentials
-1. Generate API key
+1. Generate API key via the Web UI of the OPNSense device: System - Access Users - Add
+2. Download the file (example content):
 ```
-key=1gFfvKPQvG9O4tuHtJFwREjrkdvw9SM9XereOvemGFNU7iF8s4dPeL2B88bkeagNBfSy37/QuiyElOdU
-secret=4N4yTQZATPa/Tj+IUiyXNFsB2r0Kpjt8lQ6UDjsaNZgo0vd/l+ByD3dBR61T/b/8Jz5rleZytIuzpO6R
+key=xxx
+secret=yyy
 ```
-2. Create Credentials and put "key" from the file in Username and "secret" in Password field. 
+3. Create Credentials and put "key" from the file in Username and "secret" in Password field. 
 
 ## Config source
 

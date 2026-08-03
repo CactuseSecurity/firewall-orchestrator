@@ -5797,6 +5797,15 @@ Ein L&ouml;schen ist erst m&ouml;glich, wenn die Zugangsdaten nirgends mehr verw
         <li>Im FortiGate Web Interface: Erstelle einen "REST API Admin" e.g. "fworch" mit "ro_admin" Profil und kopiere den API Schl&uuml;ssel</li>
         <li>In der Firewall Orchestrator WebUI: erstelle neue Import Login-Daten mit username "fworch" und Passwort = API Schl&uuml;ssel</li>
     </ol>
+    <br>
+    F&uuml;r den OPNsense Import via REST API:
+    <ol>
+        <li>Im OPNsense Web Interface: Erzeuge einen API Schl&uuml;ssel unter System - Zugang - Benutzer - Hinzuf&uuml;gen</li>
+        <li>Lade die erzeugte Datei herunter, sie enth&auml;lt je eine Zeile mit Schl&uuml;ssel und Geheimnis, Beispielinhalt:<br>
+            <code>key=xxx</code><br>
+            <code>secret=yyy</code></li>
+        <li>In der Firewall Orchestrator WebUI: erstelle neue Import Login-Daten mit Import Nutzer = Wert von "key" und Passwort = Wert von "secret"</li>
+    </ol>
 ');
 INSERT INTO txt VALUES ('H5130', 'English', 'Manage credentials for importing firewall configuration data.
 Credentials can be used for logging in to one or multiple firewall managements.
@@ -5807,6 +5816,15 @@ Credentials can only be deleted when they are not used for importing any managem
         <li>In FortiGate Web UI: Create Read Only Admin Profile e.g. "ro_admin"</li>
         <li>In FortiGate Web UI: Create new "REST API Admin" e.g. "fworch" with "ro_admin" profile and copy API key</li>
         <li>In Firewall Orchestrator UI create new credentials with username "fworch" and password = API key</li>
+    </ol>
+    <br>
+    For OPNsense import via REST API:
+    <ol>
+        <li>In OPNsense Web UI: Generate an API key under System - Access - Users - Add</li>
+        <li>Download the generated file, it contains one key and one secret line, example content:<br>
+            <code>key=1gFfvKPQvG9O4tuHtJFwREjrkdvw9SM9XereOvemGFNU7iF8s4dPeL2B88bkeagNBfSy37/QuiyElOdU</code><br>
+            <code>secret=4N4yTQZATPa/Tj+IUiyXNFsB2r0Kpjt8lQ6UDjsaNZgo0vd/l+ByD3dBR61T/b/8Jz5rleZytIuzpO6R</code></li>
+        <li>In Firewall Orchestrator UI create new credentials with username = value of "key" and password = value of "secret"</li>
     </ol>
 ');
 INSERT INTO txt VALUES ('H5131', 'German',  'Name*: Ein beliebiger Name, der diese Zugangsdaten eindeutig beschreibt.

@@ -517,8 +517,29 @@ namespace FWO.Test
 
             StringAssert.DoesNotContain("<p>Owners: Overdue Owner; Upcoming Owner; Further Owner; Inactive Owner</p>", html);
             StringAssert.Contains("<p>Other filters: TestFilter</p>", html);
-            StringAssert.Contains("<p>Filter: business_unit (existing)</p>", html);
+            StringAssert.DoesNotContain("<p>Label: business_unit (existing)</p>", html);
             StringAssert.Contains("<td>overdue.user</td><td>Payments</td>", html);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateHtmlLegacyAdditionalInfoKeyKeepsAllOwnersVisible()
+        {
+            ReportOwnerRecerts report = new(new DynGraphqlQuery(""), userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerAdditionalInfoKey = "business_unit";
+            report.ReportData.OwnerData.First(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner.AdditionalInfo =
+                new() { ["business_unit"] = "Payments" };
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            StringAssert.DoesNotContain("Label: business_unit (existing)", html);
+            StringAssert.Contains("<th>Label: business_unit</th>", html);
+            StringAssert.Contains("EXT-OVERDUE", html);
+            StringAssert.Contains("EXT-UPCOMING", html);
+            StringAssert.Contains("EXT-FURTHER", html);
+            StringAssert.Contains("EXT-INACTIVE", html);
         }
 
         [Test]
@@ -538,7 +559,8 @@ namespace FWO.Test
 
             string html = RemoveLinebreaks(report.ExportToHtml());
 
-            StringAssert.DoesNotContain("Filter: business_unit", html);
+            StringAssert.DoesNotContain("<p>Label: business_unit", html);
+            StringAssert.Contains("<th>Label: business_unit</th>", html);
             StringAssert.DoesNotContain("Owners: ", html);
         }
 
@@ -560,8 +582,8 @@ namespace FWO.Test
 
             string html = RemoveLinebreaks(report.ExportToHtml());
 
-            StringAssert.Contains("<p>Filter: business_unit=Payments</p>", html);
-            StringAssert.DoesNotContain("Filter: business_unit (", html);
+            StringAssert.Contains("<p>Label: business_unit=Payments</p>", html);
+            StringAssert.DoesNotContain("Label: business_unit (", html);
             StringAssert.DoesNotContain("<p>Other filters: TestFilter</p>", html);
         }
 

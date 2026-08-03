@@ -53,6 +53,14 @@ namespace FWO.Report
 
     public abstract class ReportBase
     {
+        protected sealed class HtmlFrameOptions
+        {
+            public string? OtherFilter { get; set; }
+            public string? OwnerFilter { get; set; }
+            public TimeFilter? TimeFilter { get; set; }
+            public string FilterTextKey { get; set; } = "filter";
+        }
+
         protected StringBuilder HtmlTemplate = new($@"
 <!DOCTYPE html>
 <html>
@@ -245,18 +253,19 @@ namespace FWO.Report
                     .Replace("\r", "<br>");
         }
 
-        protected string GenerateHtmlFrameBase(string title, string filter, DateTime date, StringBuilder htmlReport, string? otherFilter = null, string? ownerFilter = null, TimeFilter? timeFilter = null)
+        protected string GenerateHtmlFrameBase(string title, string filter, DateTime date, StringBuilder htmlReport, HtmlFrameOptions? options = null)
         {
             if (string.IsNullOrEmpty(htmlExport))
             {
+                HtmlFrameOptions frameOptions = options ?? new();
                 string body = htmlReport.ToString();
                 HtmlTemplate = HtmlTemplate.Replace("##Title##", title);
-                ReplaceFilter(filter);
+                ReplaceFilter(filter, frameOptions.FilterTextKey);
                 HtmlTemplate = HtmlTemplate.Replace("##GeneratedOn##", userConfig.GetText("generated_on"));
                 HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
-                ReplaceDateOfConfig(timeFilter);
-                ReplaceOwnerFilter(ownerFilter);
-                ReplaceOtherFilter(otherFilter);
+                ReplaceDateOfConfig(frameOptions.TimeFilter);
+                ReplaceOwnerFilter(frameOptions.OwnerFilter);
+                ReplaceOtherFilter(frameOptions.OtherFilter);
 
                 string htmlToC = BuildHTMLToC(body);
                 HtmlTemplate = HtmlTemplate.Replace("##ToC##", htmlToC);
@@ -268,11 +277,11 @@ namespace FWO.Report
             return htmlExport;
         }
 
-        private void ReplaceFilter(string filter)
+        private void ReplaceFilter(string filter, string filterTextKey)
         {
             if (filter != "")
             {
-                HtmlTemplate = HtmlTemplate.Replace("##Filter##", userConfig.GetText("filter") + ": " + filter);
+                HtmlTemplate = HtmlTemplate.Replace("##Filter##", userConfig.GetText(filterTextKey) + ": " + filter);
             }
             else
             {

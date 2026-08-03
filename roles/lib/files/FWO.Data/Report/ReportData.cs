@@ -27,8 +27,13 @@ namespace FWO.Data.Report
         public ReportData()
         { }
 
-        public ReportData(ReportData reportData)
+        public ReportData(ReportData? reportData)
         {
+            if (reportData == null)
+            {
+                return;
+            }
+
             ManagementData = reportData.ManagementData;
             OwnerData = reportData.OwnerData;
             GlobalComSvc = reportData.GlobalComSvc;

@@ -80,7 +80,20 @@ namespace FWO.Report
             report.ReportData.RecertificationDisplayPeriod = reportTemplate.ReportParams.RecertFilter.RecertificationDisplayPeriod;
             report.ReportData.MergeOwnerRecertTables = reportTemplate.ReportParams.ModellingFilter.MergeOwnerRecertTables;
             report.ReportData.OwnerLabelFilter = new(reportTemplate.ReportParams.ModellingFilter.OwnerLabelFilter);
-            report.ReportData.OwnerAdditionalInfoKey = report.ReportData.OwnerLabelFilter.Name;
+            if (string.IsNullOrWhiteSpace(report.ReportData.OwnerLabelFilter.Name)
+                && !string.IsNullOrWhiteSpace(reportTemplate.ReportParams.ModellingFilter.OwnerAdditionalInfoKey))
+            {
+                report.ReportData.OwnerLabelFilter = new LabelFilter
+                {
+                    Name = reportTemplate.ReportParams.ModellingFilter.OwnerAdditionalInfoKey,
+                    Mode = LabelFilterMode.display_only
+                };
+            }
+
+            if (!string.IsNullOrWhiteSpace(report.ReportData.OwnerLabelFilter.Name))
+            {
+                report.ReportData.OwnerAdditionalInfoKey = report.ReportData.OwnerLabelFilter.Name;
+            }
             foreach (var owner in report.ReportData.OwnerData.Select(o => o.Owner))
             {
                 if (!owner.RecertActive)

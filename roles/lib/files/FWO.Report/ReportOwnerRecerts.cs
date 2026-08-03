@@ -11,6 +11,8 @@ namespace FWO.Report
 {
     public class ReportOwnerRecerts(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : ReportOwnersBase(query, userConfig, reportType)
     {
+        private LabelFilter activeOwnerLabelFilter = new();
+
         public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
             List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(Query.FullQuery, Query.QueryVariables);
@@ -23,7 +25,8 @@ namespace FWO.Report
 
         public override string ExportToCsv()
         {
-            LabelFilter ownerLabelFilter = GetEffectiveOwnerLabelFilter();
+            activeOwnerLabelFilter = GetEffectiveOwnerLabelFilter();
+            LabelFilter ownerLabelFilter = activeOwnerLabelFilter;
             List<OwnerConnectionReport> displayedOwnerData = GetDisplayedOwnerData(ownerLabelFilter);
             List<FwoOwner> overdueOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => ow.RecertOverdue)];
             List<FwoOwner> upcomingOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => ow.RecertUpcoming)];
@@ -36,11 +39,11 @@ namespace FWO.Report
             string labelFilterSummary = BuildOwnerLabelFilterSummary(ownerLabelFilter);
             if (!string.IsNullOrWhiteSpace(labelFilterSummary))
             {
-                report.AppendLine($"# label filter: {labelFilterSummary}");
+                report.AppendLine($"# {userConfig.GetText("label")}: {labelFilterSummary}");
             }
             if (!string.IsNullOrWhiteSpace(Query.RawFilter))
             {
-                report.AppendLine($"# other filters: {Query.RawFilter}");
+                report.AppendLine($"# {userConfig.GetText("other_filters")}: {Query.RawFilter}");
             }
             report.AppendLine($"# {userConfig.GetText("statistics")}");
             report.AppendLine($"# {GetOverdueHeadline()}: {overdueOwners.Count}");
@@ -84,7 +87,8 @@ namespace FWO.Report
 
         public override string ExportToHtml()
         {
-            LabelFilter ownerLabelFilter = GetEffectiveOwnerLabelFilter();
+            activeOwnerLabelFilter = GetEffectiveOwnerLabelFilter();
+            LabelFilter ownerLabelFilter = activeOwnerLabelFilter;
             List<OwnerConnectionReport> displayedOwnerData = GetDisplayedOwnerData(ownerLabelFilter);
             List<FwoOwner> overdueOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => ow.RecertOverdue)];
             List<FwoOwner> upcomingOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => ow.RecertUpcoming)];
@@ -97,7 +101,11 @@ namespace FWO.Report
             AppendOwnerRecertTablesHtml(ref report, overdueOwners, upcomingOwners, furtherOwners, inactiveOwners);
 
             string labelFilterSummary = BuildOwnerLabelFilterSummary(ownerLabelFilter);
-            return GenerateHtmlFrameBase(userConfig.GetText(ReportType.ToString()), labelFilterSummary, DateTime.Now, report, Query.RawFilter);
+            return GenerateHtmlFrameBase(userConfig.GetText(ReportType.ToString()), labelFilterSummary, DateTime.Now, report, new HtmlFrameOptions
+            {
+                OtherFilter = Query.RawFilter,
+                FilterTextKey = "label"
+            });
         }
 
         private void AppendOwnerRecertStatisticsHtml(ref StringBuilder report, List<FwoOwner> overdueOwners, List<FwoOwner> upcomingOwners,
@@ -290,7 +298,7 @@ namespace FWO.Report
 
         private bool HasOwnerAdditionalInfoColumn()
         {
-            return !string.IsNullOrWhiteSpace(GetEffectiveOwnerLabelFilter().Name);
+            return !string.IsNullOrWhiteSpace(activeOwnerLabelFilter.Name);
         }
 
         private List<OwnerConnectionReport> GetDisplayedOwnerData(LabelFilter ownerLabelFilter)
@@ -329,7 +337,8 @@ namespace FWO.Report
             {
                 return new LabelFilter
                 {
-                    Name = ReportData.OwnerAdditionalInfoKey
+                    Name = ReportData.OwnerAdditionalInfoKey,
+                    Mode = LabelFilterMode.display_only
                 };
             }
 
@@ -338,12 +347,12 @@ namespace FWO.Report
 
         private string GetOwnerAdditionalInfoHeadline()
         {
-            return $"{userConfig.GetText("label")}: {GetEffectiveOwnerLabelFilter().Name}";
+            return $"{userConfig.GetText("label")}: {activeOwnerLabelFilter.Name}";
         }
 
         private string GetOwnerAdditionalInfoValue(FwoOwner owner)
         {
-            return OwnerRecertDisplay.FormatAdditionalInfoValue(owner, GetEffectiveOwnerLabelFilter().Name);
+            return OwnerRecertDisplay.FormatAdditionalInfoValue(owner, activeOwnerLabelFilter.Name);
         }
 
         private string FormatOwnerAdditionalInfoValueHtml(FwoOwner owner)

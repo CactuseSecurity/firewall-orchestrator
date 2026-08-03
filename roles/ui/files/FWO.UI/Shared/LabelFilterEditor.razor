@@ -24,7 +24,7 @@ else
         <div class="form-group row mt-2" data-toggle="tooltip" title="@TooltipText">
             <label for="@NameDropdownId" class="@PopupLabelClass">@(userConfig.GetText("name")):</label>
             <div class="col-sm-9">
-                <Dropdown Id="@NameDropdownId" ElementType="string" @bind-SelectedElement="labelFilterDraft.Name" ElementToString="labelName => labelName" Elements="availableLabelNames" AllowFreeText="AllowFreeText">
+                <Dropdown Id="@NameDropdownId" ElementType="string" SelectedElement="labelFilterDraft.Name" SelectedElementChanged="HandleLabelNameChanged" ElementToString="labelName => labelName" Elements="availableLabelNames" AllowFreeText="AllowFreeText">
                     <ElementTemplate Context="labelName">
                         @labelName
                     </ElementTemplate>
@@ -81,12 +81,15 @@ else
     public bool AllowFreeText { get; set; }
 
     [Parameter]
+    public LabelFilterMode DefaultMode { get; set; } = LabelFilterMode.display_only;
+
+    [Parameter]
     public string TooltipTextKey { get; set; } = "";
 
     [Parameter]
     public string IdPrefix { get; set; } = "labelFilter";
 
-    private readonly List<LabelFilterMode> availableLabelFilterModes = [.. Enum.GetValues(typeof(LabelFilterMode)).Cast<LabelFilterMode>()];
+    private readonly List<LabelFilterMode> availableLabelFilterModes = [.. Enum.GetValues<LabelFilterMode>()];
     private List<string> availableLabelNames = [];
     private bool showLabelFilterDialog;
     private LabelFilter labelFilterDraft = new();
@@ -156,9 +159,22 @@ else
             && string.IsNullOrWhiteSpace(labelFilterDraft.Value)
             && labelFilterDraft.Mode == LabelFilterMode.existing)
         {
-            labelFilterDraft.Mode = LabelFilterMode.display_only;
+            labelFilterDraft.Mode = DefaultMode;
         }
         showLabelFilterDialog = true;
+    }
+
+    private Task HandleLabelNameChanged(string? labelName)
+    {
+        labelFilterDraft.Name = labelName ?? string.Empty;
+        if (AllowFreeText
+            && !string.IsNullOrWhiteSpace(labelFilterDraft.Name)
+            && !availableLabelNames.Any(label => string.Equals(label, labelFilterDraft.Name, StringComparison.OrdinalIgnoreCase)))
+        {
+            labelFilterDraft.Mode = DefaultMode;
+        }
+
+        return Task.CompletedTask;
     }
 
     private void CloseLabelFilterDialog()

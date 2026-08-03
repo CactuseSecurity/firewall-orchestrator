@@ -31,8 +31,13 @@ namespace FWO.Data.Report
         public ModellingFilter()
         { }
 
-        public ModellingFilter(ModellingFilter modellingFilter)
+        public ModellingFilter(ModellingFilter? modellingFilter)
         {
+            if (modellingFilter == null)
+            {
+                return;
+            }
+
             SelectedOwners = modellingFilter.SelectedOwners;
             SelectedTemplateOwner = modellingFilter.SelectedTemplateOwner;
             ShowSourceMatch = modellingFilter.ShowSourceMatch;

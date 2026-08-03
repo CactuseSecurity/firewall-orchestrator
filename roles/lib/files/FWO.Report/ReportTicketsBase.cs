@@ -134,7 +134,10 @@ namespace FWO.Report
             }
 
             report.AppendLine("</table>");
-            return GenerateHtmlFrameBase(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report, BuildWorkflowFilterSummary());
+            return GenerateHtmlFrameBase(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report, new HtmlFrameOptions
+            {
+                OtherFilter = BuildWorkflowFilterSummary()
+            });
         }
 
         /// <inheritdoc />

@@ -29,7 +29,10 @@ namespace FWO.Report
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport)
         {
             string? ownerFilter = ReportType.IsOwnerReport() ? null : string.Join("; ", ReportData.OwnerData.ConvertAll(o => o.Name));
-            return GenerateHtmlFrameBase(title, filter, date, htmlReport, null, ownerFilter);
+            return GenerateHtmlFrameBase(title, filter, date, htmlReport, new HtmlFrameOptions
+            {
+                OwnerFilter = ownerFilter
+            });
         }
     }
 }

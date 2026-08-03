@@ -25,11 +25,11 @@ namespace FWO.Data.Report
         public LabelFilter()
         { }
 
-        public LabelFilter(LabelFilter labelFilter)
+        public LabelFilter(LabelFilter? labelFilter)
         {
-            Name = labelFilter.Name;
-            Mode = labelFilter.Mode;
-            Value = labelFilter.Value;
+            Name = labelFilter?.Name ?? "";
+            Mode = labelFilter?.Mode ?? LabelFilterMode.existing;
+            Value = labelFilter?.Value ?? "";
         }
     }
 }

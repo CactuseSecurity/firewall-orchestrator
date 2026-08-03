@@ -213,5 +213,30 @@ namespace FWO.Test
                 Assert.That(dropdown.Toggled, Is.False);
             });
         }
+
+        /// <summary>
+        /// Verifies that opening a free-text string dropdown still shows the available values immediately.
+        /// </summary>
+        [Test]
+        public async Task ShowMenu_WithFreeTextEnabled_InitializesVisibleOptions()
+        {
+            Services.AddScoped<DomEventService>();
+            JSInterop.Mode = JSRuntimeMode.Loose;
+            IRenderedComponent<Dropdown<string>> renderedDropdown = Render<Dropdown<string>>(parameters => parameters
+                .Add(p => p.AllowFreeText, true)
+                .Add(p => p.Elements, kAlphaBeta)
+                .Add(p => p.NoneSelectedText, "none")
+                .Add(p => p.SelectedElements, Array.Empty<string>()));
+            Dropdown<string> dropdown = renderedDropdown.Instance;
+            MethodInfo showMenuMethod = GetInstanceMethod("ShowMenu", typeof(FocusEventArgs));
+
+            await renderedDropdown.InvokeAsync(() => (Task)showMenuMethod.Invoke(dropdown, kFocusArgs)!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(dropdown.FilteredElements, Is.EqualTo(kAlphaBeta));
+                Assert.That(dropdown.Toggled, Is.False);
+            });
+        }
     }
 }

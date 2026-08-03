@@ -86,6 +86,7 @@
     [Parameter]
     public LabelFilter OwnerLabelFilter { get; set; } = new();
 
+    private LabelFilter effectiveOwnerLabelFilter = new();
     private List<FwoOwner> overdueOwners = [];
     private List<FwoOwner> upcomingOwners = [];
     private List<FwoOwner> furtherOwners = [];
@@ -97,18 +98,8 @@
 
     protected override void OnParametersSet()
     {
-        if (string.IsNullOrWhiteSpace(OwnerLabelFilter.Name) && !string.IsNullOrWhiteSpace(OwnerAdditionalInfoKey))
-        {
-            OwnerLabelFilter = new LabelFilter
-            {
-                Name = OwnerAdditionalInfoKey
-            };
-        }
-        if (!string.IsNullOrWhiteSpace(OwnerLabelFilter.Name))
-        {
-            OwnerAdditionalInfoKey = OwnerLabelFilter.Name;
-        }
-        displayedOwnerData = [.. OwnerData.Where(owner => OwnerRecertDisplay.MatchesAdditionalInfoFilter(owner.Owner, OwnerLabelFilter))];
+        effectiveOwnerLabelFilter = GetEffectiveOwnerLabelFilter();
+        displayedOwnerData = [.. OwnerData.Where(owner => OwnerRecertDisplay.MatchesAdditionalInfoFilter(owner.Owner, effectiveOwnerLabelFilter))];
         UpdateAdditionalInfoValues();
         overdueOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(o => o.RecertOverdue)];
         upcomingOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(o => o.RecertUpcoming)];
@@ -129,8 +120,34 @@
     {
         foreach (FwoOwner owner in displayedOwnerData.Select(o => o.Owner))
         {
-            owner.AdditionalInfoValue = OwnerRecertDisplay.FormatAdditionalInfoValue(owner, OwnerAdditionalInfoKey);
+            owner.AdditionalInfoValue = OwnerRecertDisplay.FormatAdditionalInfoValue(owner, GetEffectiveOwnerAdditionalInfoKey());
         }
+    }
+
+    private string GetEffectiveOwnerAdditionalInfoKey()
+    {
+        return !string.IsNullOrWhiteSpace(effectiveOwnerLabelFilter.Name)
+            ? effectiveOwnerLabelFilter.Name
+            : OwnerAdditionalInfoKey;
+    }
+
+    private LabelFilter GetEffectiveOwnerLabelFilter()
+    {
+        if (!string.IsNullOrWhiteSpace(OwnerLabelFilter.Name))
+        {
+            return new LabelFilter(OwnerLabelFilter);
+        }
+
+        if (!string.IsNullOrWhiteSpace(OwnerAdditionalInfoKey))
+        {
+            return new LabelFilter
+            {
+                Name = OwnerAdditionalInfoKey,
+                Mode = LabelFilterMode.display_only
+            };
+        }
+
+        return new LabelFilter();
     }
 
     private string GetOverdueHeadline()

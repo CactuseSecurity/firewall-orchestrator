@@ -25,6 +25,7 @@ namespace FWO.Test
                 .Add(p => p.LabelFilter, filter)
                 .Add(p => p.AvailableLabelNames, kPolicyCheckLabelNames)
                 .Add(p => p.AllowFreeText, true)
+                .Add(p => p.DefaultMode, LabelFilterMode.display_only)
                 .Add(p => p.IdPrefix, "testLabel"));
 
             Assert.That(cut.Find("#testLabel-summary").GetAttribute("value"), Is.EqualTo("-"));
@@ -54,7 +55,7 @@ namespace FWO.Test
         [Test]
         public async Task LabelFilterEditor_ApplyLabelFilterDialog_NotifiesParent()
         {
-            using BunitContext context = CreateContext();
+            await using BunitContext context = CreateContext();
             LabelFilter? changedFilter = null;
             IRenderedComponent<LabelFilterEditor> cut = context.Render<LabelFilterEditor>(parameters => parameters
                 .Add(p => p.LabelFilter, new LabelFilter())
@@ -84,7 +85,7 @@ namespace FWO.Test
         [Test]
         public async Task LabelFilterEditor_DeleteLabelFilterDialog_NotifiesParent()
         {
-            using BunitContext context = CreateContext();
+            await using BunitContext context = CreateContext();
             LabelFilter? changedFilter = null;
             IRenderedComponent<LabelFilterEditor> cut = context.Render<LabelFilterEditor>(parameters => parameters
                 .Add(p => p.LabelFilter, new LabelFilter
@@ -135,6 +136,7 @@ namespace FWO.Test
             IRenderedComponent<LabelFilterEditor> cut = context.Render<LabelFilterEditor>(parameters => parameters
                 .Add(p => p.LabelFilter, new LabelFilter())
                 .Add(p => p.AvailableLabelNames, kPolicyCheckLabelNames)
+                .Add(p => p.DefaultMode, LabelFilterMode.display_only)
                 .Add(p => p.IdPrefix, "testLabel"));
 
             cut.Find("#testLabel-editButton").Click();

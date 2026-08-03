@@ -208,6 +208,32 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GenerateFromTemplate_OwnerRecertificationPreservesLegacyAdditionalInfoKey()
+        {
+            FwoOwner owner = BuildOwner(11, DateTime.Now.AddDays(10));
+            owner.AdditionalInfo = new Dictionary<string, string>
+            {
+                ["business_unit"] = "Payments"
+            };
+            ReportTemplate template = BuildTemplate(ReportType.OwnerRecertification);
+            template.ReportParams.ModellingFilter.OwnerAdditionalInfoKey = "business_unit";
+
+            ReportBase? report = await ReportGenerator.GenerateFromTemplate(
+                template,
+                new ReportGeneratorApiConnection([owner]),
+                new SimulatedUserConfig(),
+                DisplayNothing);
+
+            Assert.That(report, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(report!.ReportData.OwnerAdditionalInfoKey, Is.EqualTo("business_unit"));
+                Assert.That(report.ReportData.OwnerLabelFilter.Name, Is.EqualTo("business_unit"));
+                Assert.That(report.ReportData.OwnerLabelFilter.Mode, Is.EqualTo(LabelFilterMode.display_only));
+            });
+        }
+
+        [Test]
         public async Task GenerateFromTemplate_StatisticsAggregatesOnlyRelevantManagements()
         {
             ReportTemplate template = BuildTemplate(ReportType.Statistics);

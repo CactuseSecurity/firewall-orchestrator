@@ -3,6 +3,7 @@
 @using FWO.Data
 @using FWO.Data.Report
 @using FWO.Data.Workflow
+@using FWO.Logging
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -65,6 +66,7 @@ else
                            UseFormLayout="UseFormLayout"
                            UseLightText="UseLightText"
                            AllowFreeText="true"
+                           DefaultMode="LabelFilterMode.display_only"
                            TooltipTextKey="C1004" />
     </text>;
 
@@ -112,6 +114,7 @@ else
         if (!string.IsNullOrWhiteSpace(ModellingFilter.OwnerAdditionalInfoKey) && string.IsNullOrWhiteSpace(ModellingFilter.OwnerLabelFilter.Name))
         {
             ModellingFilter.OwnerLabelFilter.Name = ModellingFilter.OwnerAdditionalInfoKey;
+            ModellingFilter.OwnerLabelFilter.Mode = LabelFilterMode.display_only;
         }
 
         if (!string.IsNullOrWhiteSpace(ModellingFilter.OwnerLabelFilter.Name))
@@ -145,7 +148,8 @@ else
         }
         catch
         {
-            return new List<string>();
+            Log.WriteError(nameof(ReportOwnerRecertParamSelection), "Loading available owner label names failed.");
+            return [];
         }
     }
 }

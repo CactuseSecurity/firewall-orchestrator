@@ -222,6 +222,12 @@
         {
             ClearFilter();
         }
+        else
+        {
+            Filter(string.IsNullOrWhiteSpace(searchValue) || string.Equals(searchValue, NoneSelectedText, StringComparison.Ordinal)
+                ? ""
+                : searchValue);
+        }
         try
         {
             IJSRuntime? localJsRuntime = jsRuntime;

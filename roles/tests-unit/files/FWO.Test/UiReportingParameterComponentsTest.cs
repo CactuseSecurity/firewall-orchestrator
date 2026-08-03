@@ -13,8 +13,6 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using Microsoft.JSInterop;
-using System.Reflection;
-using System.Text;
 
 namespace FWO.Test
 {
@@ -284,13 +282,18 @@ namespace FWO.Test
                 Assert.That(component.Markup, Does.Contain("download_json"));
             });
 
-            await component.InvokeAsync(() => (Task)InvokePrivateMethod(component.Instance, "DownloadFile", "report.csv", "text/csv", Encoding.UTF8.GetBytes(reportFile.Csv!))!);
-            Assert.That(downloadInvocation.Invocations, Is.Not.Empty);
-            JSRuntimeInvocation invocation = downloadInvocation.Invocations.First();
-            Assert.That(invocation.Arguments[0], Is.EqualTo("report.csv"));
-            Assert.That(invocation.Arguments[1], Is.EqualTo("text/csv"));
+            component.Find("btn.btn.btn-sm.btn-info.m-1").Click();
 
-            InvokePrivateMethod(component.Instance, "Close");
+            component.WaitForAssertion(() =>
+            {
+                Assert.That(downloadInvocation.Invocations, Is.Not.Empty);
+                JSRuntimeInvocation invocation = downloadInvocation.Invocations.First();
+                Assert.That(invocation.Arguments[0], Is.EqualTo("report.csv"));
+                Assert.That(invocation.Arguments[1], Is.EqualTo("text/csv"));
+            });
+
+            component.WaitForAssertion(() => Assert.That(component.Markup, Does.Contain("btn-danger")));
+            component.Find("button.btn.btn-sm.btn-danger").Click();
             Assert.That(closed, Is.True);
         }
 
@@ -352,15 +355,5 @@ namespace FWO.Test
                     .Add(p => p.DisplayTime, displayTime)));
         }
 
-        private static object? InvokePrivateMethod(object instance, string methodName, params object?[] args)
-        {
-            MethodInfo? method = instance.GetType().GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance);
-            if (method == null)
-            {
-                throw new MissingMethodException(instance.GetType().FullName, methodName);
-            }
-
-            return method.Invoke(instance, args);
-        }
     }
 }

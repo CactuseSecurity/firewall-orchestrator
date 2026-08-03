@@ -58,8 +58,10 @@ namespace FWO.Data.Flow
                 throw new ArgumentException("Time object must have either start or end time defined for hash generation. For custom objects, consider using GenerateRandomHash instead.");
             }
 
-            // Deterministic hash from time range (using ISO 8601 format for reproducibility)
-            string input = $"{startTime:O}-{endTime:O}";
+            // Normalize to UTC so equivalent instants with different offsets produce the same hash.
+            DateTime? utcStartTime = startTime?.ToUniversalTime();
+            DateTime? utcEndTime = endTime?.ToUniversalTime();
+            string input = $"{utcStartTime:O}-{utcEndTime:O}";
             return ComputeSha256(input);
         }
 

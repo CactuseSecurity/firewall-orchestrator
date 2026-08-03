@@ -450,8 +450,8 @@ namespace FWO.Services
                 var newInsert = new FlowTimeObjectInsert
                 {
                     Name = useManagementNamesForFlow ? timeObj.Name : null,
-                    StartTime = timeObj.StartTime,
-                    EndTime = timeObj.EndTime,
+                    StartTime = timeObj.StartTime?.ToUniversalTime(),
+                    EndTime = timeObj.EndTime?.ToUniversalTime(),
                     TimeObjHash = hash,
                     State = FlowState.Implemented,
                     RemovedDate = null,

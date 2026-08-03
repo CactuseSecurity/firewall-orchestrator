@@ -143,6 +143,142 @@ internal class FlowCatalogServiceTest
     }
 
     [Test]
+    public async Task GetTimeObjectIdAsync_ReturnsMatchingObjectAndAppliesVisibilityFilter()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        apiConnection.TimeObjects =
+        [
+            new FlowTimeObject
+            {
+                Id = 31,
+                Name = "BusinessHours"
+            }
+        ];
+
+        FlowCatalogService service = new(apiConnection);
+
+        TimeObjectIdResponse result = await service.GetTimeObjectIdAsync(
+            new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 6, 1, 17, 30, 0, TimeSpan.Zero),
+            true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Id, Is.EqualTo(31));
+            Assert.That(result.Name, Is.EqualTo("BusinessHours"));
+            Assert.That(apiConnection.SentQueries[0], Is.EqualTo(FlowQueries.getFlowTimeObjectId));
+            AssertWhereClauseContains(GetWhereClause(apiConnection.SentVariables[0]),
+                ("start_time", new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero)),
+                ("end_time", new DateTimeOffset(2026, 6, 1, 17, 30, 0, TimeSpan.Zero)),
+                ("show_in_request_module", true));
+        });
+    }
+
+    [Test]
+    public async Task GetTimeObjectIdAsync_AllowsStartOnlyLookups()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        apiConnection.TimeObjects =
+        [
+            new FlowTimeObject
+            {
+                Id = 33,
+                Name = "DeadlineOnly"
+            }
+        ];
+
+        FlowCatalogService service = new(apiConnection);
+
+        TimeObjectIdResponse result = await service.GetTimeObjectIdAsync(
+            new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero),
+            null,
+            null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Id, Is.EqualTo(33));
+            Assert.That(result.Name, Is.EqualTo("DeadlineOnly"));
+            AssertWhereClauseContainsLookup(GetWhereClause(apiConnection.SentVariables[0]),
+                ("start_time", new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero)),
+                ("end_time", null));
+        });
+    }
+
+    [Test]
+    public async Task GetTimeObjectIdAsync_AllowsEndOnlyLookups()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        apiConnection.TimeObjects =
+        [
+            new FlowTimeObject
+            {
+                Id = 34,
+                Name = "StartOnly"
+            }
+        ];
+
+        FlowCatalogService service = new(apiConnection);
+
+        TimeObjectIdResponse result = await service.GetTimeObjectIdAsync(
+            null,
+            new DateTimeOffset(2026, 6, 1, 17, 30, 0, TimeSpan.Zero),
+            false);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Id, Is.EqualTo(34));
+            Assert.That(result.Name, Is.EqualTo("StartOnly"));
+            AssertWhereClauseContainsLookup(GetWhereClause(apiConnection.SentVariables[0]),
+                ("start_time", null),
+                ("end_time", new DateTimeOffset(2026, 6, 1, 17, 30, 0, TimeSpan.Zero)),
+                ("show_in_request_module", false));
+        });
+    }
+
+    [Test]
+    public async Task GetTimeObjectIdAsync_NormalizesNullNameToEmptyString()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        apiConnection.TimeObjects =
+        [
+            new FlowTimeObject
+            {
+                Id = 32,
+                Name = null!
+            }
+        ];
+
+        FlowCatalogService service = new(apiConnection);
+
+        TimeObjectIdResponse result = await service.GetTimeObjectIdAsync(
+            new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 6, 1, 17, 30, 0, TimeSpan.Zero),
+            null);
+
+        Assert.That(result.Name, Is.EqualTo(string.Empty));
+        Assert.That(result.Id, Is.EqualTo(32));
+    }
+
+    [Test]
+    public async Task GetTimeObjectIdAsync_ReturnsEmptyResponseWhenNoMatchExists()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        FlowCatalogService service = new(apiConnection);
+
+        TimeObjectIdResponse result = await service.GetTimeObjectIdAsync(
+            new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 6, 1, 17, 30, 0, TimeSpan.Zero),
+            null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Id, Is.EqualTo(0));
+            Assert.That(result.Name, Is.EqualTo(string.Empty));
+            Assert.That(apiConnection.SentQueries[0], Is.EqualTo(FlowQueries.getFlowTimeObjectId));
+        });
+    }
+
+    [Test]
     public async Task GetAddressObjectsAsync_MapsShowInRequestFlag()
     {
         FlowCatalogServiceApiConn apiConnection = new();
@@ -482,6 +618,26 @@ internal class FlowCatalogServiceTest
             Assert.That(conditionObject, Is.TypeOf<Dictionary<string, object>>(), $"Expected _eq expression for {fieldName}.");
             Dictionary<string, object> equalsExpression = (Dictionary<string, object>)conditionObject!;
             Assert.That(equalsExpression.TryGetValue("_eq", out object? actualValue), Is.True, $"Missing _eq for {fieldName}.");
+            Assert.That(actualValue, Is.EqualTo(expectedValue), $"Unexpected value for {fieldName}.");
+        }
+    }
+
+    private static void AssertWhereClauseContainsLookup(Dictionary<string, object> whereClause, params (string FieldName, object? ExpectedValue)[] conditions)
+    {
+        foreach ((string fieldName, object? expectedValue) in conditions)
+        {
+            Assert.That(whereClause.TryGetValue(fieldName, out object? conditionObject), Is.True, $"Missing where clause for {fieldName}.");
+            Assert.That(conditionObject, Is.TypeOf<Dictionary<string, object>>(), $"Expected lookup expression for {fieldName}.");
+            Dictionary<string, object> expression = (Dictionary<string, object>)conditionObject!;
+
+            if (expectedValue == null)
+            {
+                Assert.That(expression.TryGetValue("_is_null", out object? isNullValue), Is.True, $"Missing _is_null for {fieldName}.");
+                Assert.That(isNullValue, Is.EqualTo(true), $"Unexpected null predicate for {fieldName}.");
+                continue;
+            }
+
+            Assert.That(expression.TryGetValue("_eq", out object? actualValue), Is.True, $"Missing _eq for {fieldName}.");
             Assert.That(actualValue, Is.EqualTo(expectedValue), $"Unexpected value for {fieldName}.");
         }
     }

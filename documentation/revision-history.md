@@ -569,3 +569,27 @@ Not supported any longer are:
 ## 9.2.3 - 17.07.2026
 - speed up standard rules reports by scoping flat rule paging to selected rulebases
 - add database index for standard rules report paging
+- increase of unit-tests
+- split + enhance Wf Action Settings
+- fix: recognize multiple updatable objects by @tpurschke in #4980
+- fix missing enforcement of rule
+- feat new REST API endpoint: create request/ticket
+- feat new REST API endpoint: getIpDataForOwners - get application ip addresses
+- feat new REST API endpoint: flow return nwobj type
+- Fix/installer pip config redhat
+
+## 9.2.4 - 28.07.2026
+- fix startup behaviour of fworch services on redhat/rocky
+- close some test gaps in middleware server
+- fix legacy sonar findings
+- fix config change in modelling
+- feat new REST API endpoint: ResolveZonesForObjects
+- feat new REST API endpoint: time object ID lookup
+
+## 9.2.5 - 29.07.2026
+- update flow time object hashing to be timezone invariant
+- ! resets the flow timeobject and access tables
+
+
+## 9.3 - 31.07.2026
+- new import module for OPNsense firewalls

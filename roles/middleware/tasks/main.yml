@@ -107,6 +107,7 @@
     bind_pw: "{{ ldap_manager_pwd }}"
     validate_certs: "{{ openldap_server_enable_ssl | ternary(false, omit) }}"
     ca_path: "{{ openldap_server_enable_ssl | ternary(openldap_server_cert, omit) }}"
+  become: true
   when: installation_mode == 'new'
   no_log: true
 
@@ -133,6 +134,7 @@
     bind_pw: "{{ ldap_manager_pwd }}"
     validate_certs: "{{ openldap_server_enable_ssl | ternary(false, omit) }}"
     ca_path: "{{ openldap_server_enable_ssl | ternary(openldap_server_cert, omit) }}"
+  become: true
   when: installation_mode == 'new'
   no_log: true
 
@@ -145,6 +147,7 @@
     bind_pw: "{{ ldap_manager_pwd }}"
     validate_certs: "{{ openldap_server_enable_ssl | ternary(false, omit) }}"
     ca_path: "{{ openldap_server_enable_ssl | ternary(openldap_server_cert, omit) }}"
+  become: true
   when: installation_mode == "new"
   no_log: true
 
@@ -157,6 +160,7 @@
     bind_pw: "{{ ldap_manager_pwd }}"
     validate_certs: "{{ openldap_server_enable_ssl | ternary(false, omit) }}"
     ca_path: "{{ openldap_server_enable_ssl | ternary(openldap_server_cert, omit) }}"
+  become: true
   when: installation_mode == "new"
   no_log: true
 
@@ -169,6 +173,7 @@
     bind_pw: "{{ ldap_manager_pwd }}"
     validate_certs: "{{ openldap_server_enable_ssl | ternary(false, omit) }}"
     ca_path: "{{ openldap_server_enable_ssl | ternary(openldap_server_cert, omit) }}"
+  become: true
   when: audit_user is defined and auditor_initial_pwd is defined and installation_mode=='new'
   no_log: true
 

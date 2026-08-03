@@ -117,6 +117,20 @@ public sealed class FlowCatalogService
             : new ServiceObjectIdResponse { Id = flowObject.Id, Name = flowObject.Name };
     }
 
+    /// <summary>
+    /// Performs the GetTimeObjectIdAsync operation.
+    /// </summary>
+    public async Task<TimeObjectIdResponse> GetTimeObjectIdAsync(DateTimeOffset? startTime, DateTimeOffset? endTime, bool? visibleInRequest)
+    {
+        List<FlowTimeObject> result = await apiConnection.SendQueryAsync<List<FlowTimeObject>>(
+            FlowQueries.getFlowTimeObjectId,
+            BuildLookupQueryVariables(visibleInRequest, ("start_time", startTime), ("end_time", endTime))) ?? [];
+        FlowTimeObject? flowObject = result.FirstOrDefault();
+        return flowObject == null
+            ? new TimeObjectIdResponse()
+            : new TimeObjectIdResponse { Id = flowObject.Id, Name = flowObject.Name ?? string.Empty };
+    }
+
     private async Task<List<FlowNwObject>> LoadFlowNwObjectsAsync(bool? visibleInRequest)
     {
         return await apiConnection.SendQueryAsync<List<FlowNwObject>>(
@@ -211,14 +225,14 @@ public sealed class FlowCatalogService
     }
 
     /// <summary>
-    /// Builds query variables for lookup requests with equality predicates.
+    /// Builds query variables for lookup requests with equality or null predicates.
     /// </summary>
-    private static Dictionary<string, object> BuildLookupQueryVariables(bool? visibleInRequest, params (string FieldName, object Value)[] conditions)
+    private static Dictionary<string, object> BuildLookupQueryVariables(bool? visibleInRequest, params (string FieldName, object? Value)[] conditions)
     {
         Dictionary<string, object> whereClause = BuildVisibleInRequestWhereClause(visibleInRequest);
-        foreach ((string fieldName, object value) in conditions)
+        foreach ((string fieldName, object? value) in conditions)
         {
-            whereClause[fieldName] = BuildEqualsExpression(value);
+            whereClause[fieldName] = BuildLookupExpression(value);
         }
 
         return new Dictionary<string, object> { ["where"] = whereClause };
@@ -232,18 +246,20 @@ public sealed class FlowCatalogService
         Dictionary<string, object> whereClause = [];
         if (visibleInRequest.HasValue)
         {
-            whereClause["show_in_request_module"] = BuildEqualsExpression(visibleInRequest.Value);
+            whereClause["show_in_request_module"] = BuildLookupExpression(visibleInRequest.Value);
         }
 
         return whereClause;
     }
 
     /// <summary>
-    /// Builds a Hasura _eq expression for the supplied value.
+    /// Builds a Hasura lookup expression for the supplied value.
     /// </summary>
-    private static Dictionary<string, object> BuildEqualsExpression(object value)
+    private static Dictionary<string, object> BuildLookupExpression(object? value)
     {
-        return new Dictionary<string, object> { ["_eq"] = value };
+        return value == null
+            ? new Dictionary<string, object> { ["_is_null"] = true }
+            : new Dictionary<string, object> { ["_eq"] = value };
     }
 
     private static AddressObjectResponse ToAddressObjectResponse(FlowNwObject flowObject)

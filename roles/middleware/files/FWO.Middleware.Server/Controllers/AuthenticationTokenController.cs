@@ -1,7 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
-using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Logging;
@@ -120,8 +119,8 @@ namespace FWO.Middleware.Server.Controllers
                 // Delegated tokens are not refreshable: withholding the refresh token prevents an admin-issued
                 // short-lived delegated session from being rotated into a normal full-lifetime user session (#4654).
                 TokenPair tokenPair = await authManager.CreateTokenPair(authenticatedTargetUser, issueRefreshToken: false);
-                WriteTokenPairAudit("IssueDelegatedTokenPair", tokenPair, authenticatedAdminUser,
-                    $"Issued delegated token pair for target user \"{authenticatedTargetUser.Name}\".");
+
+                WriteTokenPairAudit("IssueDelegatedTokenPair", tokenPair, authenticatedAdminUser, $"Issued delegated token pair for target user \"{authenticatedTargetUser.Name}\".");
 
                 return Ok(tokenPair);
             }
@@ -162,10 +161,11 @@ namespace FWO.Middleware.Server.Controllers
                 AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
 
                 UiUser? authenticatedUser = await authManager.AuthenticateAndBuildUserAsync(user, validatePassword: true);
-                TimeSpan accessLifetime = authenticatedUser == null
-                    ? tokenLifetimeProvider.GetAnonymousTokenLifetime()
-                    : await tokenLifetimeProvider.GetUserAccessTokenLifetimeAsync(apiConnection);
+
+                TimeSpan accessLifetime = authenticatedUser == null ? tokenLifetimeProvider.GetAnonymousTokenLifetime() : await tokenLifetimeProvider.GetUserAccessTokenLifetimeAsync(apiConnection);
+
                 string jwt = jwtWriter.CreateJWT(authenticatedUser, accessLifetime);
+
                 WriteJwtAudit("IssueAccessToken", jwt, authenticatedUser, authenticatedUser == null
                     ? "Issued anonymous bootstrap access token."
                     : "Issued access token after successful authentication.");
@@ -286,15 +286,15 @@ namespace FWO.Middleware.Server.Controllers
 
                 if (revokedTokens != 1)
                 {
-                    Log.WriteWarning("Token Refresh", $"Refresh token for user {user.Name} was already consumed or revoked.");
+                    WriteAudit(nameof(RefreshToken), $"Refresh token for User \"{user.Name}\" with DN: \"{user.Dn}\" was already consumed or revoked.");
+
                     return Unauthorized("Invalid or expired refresh token");
                 }
 
-                // Create new token pair
                 TokenPair newTokens = await authManager.CreateTokenPair(user);
 
-                Log.WriteInfo("Token Refresh", $"Successfully refreshed tokens for user {user.Name}");
-                WriteTokenPairAudit("RefreshTokenPair", newTokens, user, "Refreshed token pair after refresh-token rotation.");
+                WriteAudit(nameof(RefreshToken), $"Successfully rotated auth tokens for User \"{user.Name}\" with DN: \"{user.Dn}\".");
+
                 return Ok(newTokens);
             }
             catch (Exception ex)
@@ -332,20 +332,24 @@ namespace FWO.Middleware.Server.Controllers
                 }
 
                 UiUser? auditUser = null;
+
                 UiUser[] revokeUsers = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDbId, new { userId = tokenInfo.UserId });
-                auditUser = revokeUsers.FirstOrDefault();
+                auditUser = revokeUsers.FirstOrDefault() ?? new UiUser()
+                {
+                    Name = tokenInfo.UserId.ToString(),
+                    Dn = ""
+                };
 
                 int revokedTokens = await authManager.RevokeRefreshToken(request.RefreshToken);
 
                 if (revokedTokens != 1)
                 {
+                    WriteAudit(nameof(RevokeToken), $"Refresh token for User \"{auditUser.Name}\" with DN: \"{auditUser.Dn}\" was already consumed or revoked.");
+
                     return Unauthorized("Invalid or expired refresh token");
                 }
 
-                Log.WriteInfo("Token Refresh", $"Successfully revoked refresh token");
-                WriteAudit("RevokeRefreshToken",
-                    $"Revoked refresh token for user_id={tokenInfo.UserId}.",
-                    auditUser);
+                WriteAudit(nameof(RevokeToken), $"Revoked auth tokens for User \"{auditUser.Name}\" with DN: \"{auditUser.Dn}\".");
 
                 return Ok();
             }
@@ -438,15 +442,16 @@ namespace FWO.Middleware.Server.Controllers
         /// <param name="title">Audit title.</param>
         /// <param name="text">Audit text.</param>
         /// <param name="actingUser">User that triggered the action, if available.</param>
-        private static void WriteAudit(string title, string text, UiUser? actingUser)
+        private static void WriteAudit(string title, string text, UiUser? actingUser = null)
         {
             if (actingUser != null)
             {
                 Log.WriteAudit(title, text, actingUser.Name, actingUser.Dn);
-                return;
             }
-
-            Log.WriteAudit(title, text);
+            else
+            {
+                Log.WriteAudit(title, text);
+            }
         }
     }
 
@@ -529,38 +534,15 @@ namespace FWO.Middleware.Server.Controllers
             return jwtWriter.CreateJWT(authenticatedUser, accessLifetime);
         }
 
+        /// <summary>
+        /// Resolves the ldap group memberships of the given user.
+        /// </summary>
+        /// <param name="ldapUser">Ldap entry of the user.</param>
+        /// <param name="ldap">Ldap connection hosting the user.</param>
+        /// <returns>Distinct list of group dns the user belongs to.</returns>
         public async Task<List<string>> GetGroups(LdapEntry ldapUser, Ldap ldap)
         {
-            HashSet<string> userGroups = new(DistName.DnComparer);
-            userGroups.UnionWith(ldap.GetGroups(ldapUser));
-            string? groupPath = !string.IsNullOrWhiteSpace(ldap.GroupSearchPath) ? ldap.GroupSearchPath : ldap.GroupWritePath;
-            AddResolvedGroupMemberships(userGroups, await ldap.GetGroups([ldapUser.Dn]), groupPath);
-            if (!ldap.IsInternal())
-            {
-                object groupsLock = new();
-                List<Task> ldapRoleRequests = [];
-
-                foreach (Ldap currentLdap in ldaps.Where(l => l.IsInternal()))
-                {
-                    ldapRoleRequests.Add(Task.Run(async () =>
-                    {
-                        // Get groups from current Ldap
-                        List<string> currentGroups = await currentLdap.GetGroups([ldapUser.Dn]);
-                        lock (groupsLock)
-                        {
-                            string? groupPath = !string.IsNullOrWhiteSpace(currentLdap.GroupSearchPath) ? currentLdap.GroupSearchPath : currentLdap.GroupWritePath;
-                            AddResolvedGroupMemberships(userGroups, currentGroups, groupPath);
-                        }
-                    }));
-                }
-                await Task.WhenAll(ldapRoleRequests);
-            }
-            return userGroups.ToList();
-        }
-
-        private static void AddResolvedGroupMemberships(HashSet<string> userGroups, IEnumerable<string> groupNames, string? groupPath)
-        {
-            userGroups.UnionWith(Ldap.BuildGroupDns(groupNames, groupPath));
+            return await new UserGroupResolver(ldaps).GetGroups(ldapUser, ldap);
         }
 
         public async Task<(LdapEntry, Ldap)> AuthenticateInAnyLdap(UiUser user, bool validatePassword)
@@ -658,7 +640,9 @@ namespace FWO.Middleware.Server.Controllers
 
             List<Task> ldapRoleRequests = [];
 
-            foreach (Ldap currentLdap in ldaps.Where(l => l.HasRoleHandling()))
+            // inactive connections must not contribute roles: the injected ldap list is a startup snapshot
+            // that still contains deactivated connections, and login itself only binds against active ones
+            foreach (Ldap currentLdap in ldaps.Where(l => l.Active && l.HasRoleHandling()))
             {
                 // if current Ldap has roles stored
                 ldapRoleRequests.Add(Task.Run(async () =>

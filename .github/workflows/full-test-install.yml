@@ -5,9 +5,14 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - develop
+      - main
 
 jobs:
   test-install:
+    if: github.event_name != 'pull_request' || startsWith(github.head_ref, 'dependabot/')
     name: Test install on ${{ matrix.os }} with Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     env:
@@ -15,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, ubuntu-22.04]
+        os: [ubuntu-26.04, ubuntu-24.04, ubuntu-22.04]
         python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
     steps:
       - uses: actions/checkout@v7

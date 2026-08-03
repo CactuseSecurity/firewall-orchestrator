@@ -12,9 +12,10 @@
 @if (InitComplete)
 {
 	<div class="position-sticky" style="z-index:15; top:0px;">
+		@{ ColorScheme currentColorScheme = ColorScheme.GetSchemeByName(globalConfig.ColorScheme); }
 		<nav id="navbar" class="navbar navbar-expand-xl navbar-dark bg-blue shadow w-100"
-		 style="--bg-color:@(ColorScheme.GetSchemeByName(globalConfig.ColorScheme).Hex);
-         --bg-color-2:@(ColorScheme.GetSchemeByName(globalConfig.ColorScheme).Hex2);">
+		 style="--bg-color:@(currentColorScheme.Hex);
+         --bg-color-2:@(currentColorScheme.Hex2);">
 			<a class="navbar-brand pad-10" href="#">
 				@if (globalConfig.UseCustomLogo)
 				{

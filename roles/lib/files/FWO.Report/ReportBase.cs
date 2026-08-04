@@ -98,7 +98,7 @@ namespace FWO.Report
         // every pdf export starts its own headless browser, which costs a few hundred megabytes while it
         // runs. nothing else limits how many exports happen at once, so without this gate a handful of
         // simultaneous exports is enough to drive the whole service into the out of memory killer.
-        private const int kMaxConcurrentPdfRenders = 2;
+        protected const int kMaxConcurrentPdfRenders = 2;
         private static readonly SemaphoreSlim PdfRenderGate = new(kMaxConcurrentPdfRenders, kMaxConcurrentPdfRenders);
 
 
@@ -434,12 +434,20 @@ namespace FWO.Report
                 executablePath = latestInstalledBrowser.GetExecutablePath();
             }
 
-            // hold the gate for the whole browser lifetime, not just the launch, so that at most
-            // kMaxConcurrentPdfRenders headless browsers are resident at any one time
+            return await RunGatedPdfRender(() => RenderPdfInBrowser(html, format, executablePath, wantedBrowser));
+        }
+
+        /// <summary>
+        /// Runs a pdf render behind the concurrency gate. The gate is held for the whole render rather
+        /// than just the browser launch, so that at most <see cref="kMaxConcurrentPdfRenders"/> headless
+        /// browsers are resident at any one time. The slot is returned even if the render throws.
+        /// </summary>
+        protected static async Task<string?> RunGatedPdfRender(Func<Task<string?>> render)
+        {
             await PdfRenderGate.WaitAsync();
             try
             {
-                return await RenderPdfInBrowser(html, format, executablePath, wantedBrowser);
+                return await render();
             }
             finally
             {

@@ -23,29 +23,38 @@ namespace FWO.Test
             private readonly List<ManagementReport> relevantImports;
             private readonly Dictionary<int, ManagementReport> statisticsByManagementId;
             private readonly List<ModellingConnection> commonServices;
+            private readonly List<ModellingConnection> ownerConnections;
             private readonly List<WfTicket> tickets;
             private readonly List<WfState> states;
+            private readonly List<WfExtState> extStates;
             private readonly List<OwnerLifeCycleState> ownerLifeCycleStates;
             private readonly List<OwnerResponsibleType> ownerResponsibleTypes;
+            private readonly bool emptyForUnknownLists;
 
             public ReportGeneratorApiConnection(
                 List<FwoOwner>? owners = null,
                 List<ManagementReport>? relevantImports = null,
                 Dictionary<int, ManagementReport>? statisticsByManagementId = null,
                 List<ModellingConnection>? commonServices = null,
+                List<ModellingConnection>? ownerConnections = null,
                 List<WfTicket>? tickets = null,
                 List<WfState>? states = null,
+                List<WfExtState>? extStates = null,
                 List<OwnerLifeCycleState>? ownerLifeCycleStates = null,
-                List<OwnerResponsibleType>? ownerResponsibleTypes = null)
+                List<OwnerResponsibleType>? ownerResponsibleTypes = null,
+                bool emptyForUnknownLists = false)
             {
                 this.owners = owners ?? [];
                 this.relevantImports = relevantImports ?? [];
                 this.statisticsByManagementId = statisticsByManagementId ?? [];
                 this.commonServices = commonServices ?? [];
+                this.ownerConnections = ownerConnections ?? [];
                 this.tickets = tickets ?? [];
                 this.states = states ?? [];
+                this.extStates = extStates ?? [];
                 this.ownerLifeCycleStates = ownerLifeCycleStates ?? [];
                 this.ownerResponsibleTypes = ownerResponsibleTypes ?? [];
+                this.emptyForUnknownLists = emptyForUnknownLists;
             }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
@@ -57,6 +66,10 @@ namespace FWO.Test
                 if (typeof(QueryResponseType) == typeof(List<WfState>) && query == RequestQueries.getStates)
                 {
                     return Task.FromResult((QueryResponseType)(object)states);
+                }
+                if (typeof(QueryResponseType) == typeof(List<WfExtState>) && query == RequestQueries.getExtStates)
+                {
+                    return Task.FromResult((QueryResponseType)(object)extStates);
                 }
                 if (typeof(QueryResponseType) == typeof(List<OwnerLifeCycleState>) && query == OwnerQueries.getOwnerLifeCycleStates)
                 {
@@ -74,6 +87,11 @@ namespace FWO.Test
                 {
                     return Task.FromResult((QueryResponseType)(object)commonServices);
                 }
+                if (typeof(QueryResponseType) == typeof(List<ModellingConnection>))
+                {
+                    // the connection query the connection related reports issue for the selected owner
+                    return Task.FromResult((QueryResponseType)(object)ownerConnections);
+                }
                 if (typeof(QueryResponseType) == typeof(List<FwoOwner>))
                 {
                     return Task.FromResult((QueryResponseType)(object)owners);
@@ -86,6 +104,14 @@ namespace FWO.Test
                 {
                     int mgmId = GetVariable<int>(variables, QueryVar.MgmId);
                     return Task.FromResult((QueryResponseType)(object)new List<ManagementReport> { statisticsByManagementId[mgmId] });
+                }
+                if (emptyForUnknownLists && typeof(QueryResponseType).IsGenericType
+                    && typeof(QueryResponseType).GetGenericTypeDefinition() == typeof(List<>))
+                {
+                    // the variance analysis pulls in managements, areas and more on its way through.
+                    // those are covered by their own tests - here an empty result is enough to let the
+                    // generator walk the whole variance branch.
+                    return Task.FromResult((QueryResponseType)Activator.CreateInstance(typeof(QueryResponseType))!);
                 }
                 throw new NotImplementedException($"Unexpected query type {typeof(QueryResponseType).Name}.");
             }
@@ -275,6 +301,100 @@ namespace FWO.Test
             new() { Id = 88, Name = "shared-service" }
         ];
 
+        private static readonly List<FwoOwner> SelectedOwnersForConnections =
+        [
+            new() { Id = 41, Name = "owner-41" },
+            new() { Id = 42, Name = "owner-42" }
+        ];
+
+        private static readonly List<ModellingConnection> OwnerConnections =
+        [
+            new() { Id = 501, Name = "regular-connection" },
+            new() { Id = 502, Name = "interface-connection", IsInterface = true },
+            new() { Id = 503, Name = "common-service-connection", IsCommonService = true }
+        ];
+
+        [Test]
+        public async Task GenerateFromTemplate_ConnectionsBuildsOwnerDataForEverySelectedOwner()
+        {
+            ReportTemplate template = BuildTemplate(ReportType.Connections);
+            template.ReportParams.ModellingFilter.SelectedOwners = SelectedOwnersForConnections;
+
+            ReportBase? report = await ReportGenerator.GenerateFromTemplate(
+                template,
+                new ReportGeneratorApiConnection(ownerConnections: OwnerConnections),
+                new SimulatedUserConfig(),
+                DisplayNothing);
+
+            Assert.That(report, Is.Not.Null);
+            Assert.That(report!.ReportData.OwnerData, Has.Count.EqualTo(2));
+            Assert.Multiple(() =>
+            {
+                Assert.That(report.ReportData.OwnerData[0].Name, Is.EqualTo("owner-41"));
+                Assert.That(report.ReportData.OwnerData[1].Name, Is.EqualTo("owner-42"));
+            });
+        }
+
+        [Test]
+        public async Task GenerateFromTemplate_VarianceAnalysisRunsTheVarianceBranchPerOwner()
+        {
+            // the variance branch used to reach for a static field to find the report it was building,
+            // so it has to keep working now that the report is handed to it explicitly
+            ReportTemplate template = BuildTemplate(ReportType.VarianceAnalysis);
+            template.ReportParams.ModellingFilter.SelectedOwners = [SelectedOwnersForConnections[0]];
+
+            ReportBase? report = await ReportGenerator.GenerateFromTemplate(
+                template,
+                new ReportGeneratorApiConnection(emptyForUnknownLists: true),
+                BuildVarianceUserConfig(),
+                DisplayNothing);
+
+            Assert.That(report, Is.Not.Null);
+            Assert.That(report, Is.InstanceOf<ReportVariances>());
+            Assert.That(report!.ReportData.OwnerData, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task GenerateFromTemplate_VarianceAnalysisCountsElementsOnTheReportItIsBuilding()
+        {
+            // with the static field the count landed on whichever report was generated last on the
+            // whole server, so two owners in one report had to be counted onto that same report
+            ReportTemplate template = BuildTemplate(ReportType.VarianceAnalysis);
+            template.ReportParams.ModellingFilter.SelectedOwners = SelectedOwnersForConnections;
+
+            ReportBase? report = await ReportGenerator.GenerateFromTemplate(
+                template,
+                new ReportGeneratorApiConnection(emptyForUnknownLists: true),
+                BuildVarianceUserConfig(),
+                DisplayNothing);
+
+            Assert.That(report, Is.Not.Null);
+            Assert.That(report!.ReportData.ElementsCount, Is.GreaterThanOrEqualTo(0));
+            Assert.That(report.ReportData.OwnerData, Has.Count.EqualTo(2));
+        }
+
+        [Test]
+        public async Task GenerateFromTemplate_ConnectionsSplitsConnectionsIntoTheirCategories()
+        {
+            ReportTemplate template = BuildTemplate(ReportType.Connections);
+            template.ReportParams.ModellingFilter.SelectedOwners = [SelectedOwnersForConnections[0]];
+
+            ReportBase? report = await ReportGenerator.GenerateFromTemplate(
+                template,
+                new ReportGeneratorApiConnection(ownerConnections: OwnerConnections),
+                new SimulatedUserConfig(),
+                DisplayNothing);
+
+            Assert.That(report, Is.Not.Null);
+            OwnerConnectionReport ownerData = report!.ReportData.OwnerData[0];
+            Assert.Multiple(() =>
+            {
+                Assert.That(ownerData.RegularConnections, Has.Count.EqualTo(1));
+                Assert.That(ownerData.Interfaces, Has.Count.EqualTo(1));
+                Assert.That(ownerData.CommonServices, Has.Count.EqualTo(1));
+            });
+        }
+
         [Test]
         public void GenerateFromTemplate_KeepsNoReportInStaticState()
         {
@@ -408,6 +528,15 @@ namespace FWO.Test
         private static ObjectStatistics BuildStatistics(int count)
         {
             return new() { ObjectAggregate = new() { ObjectCount = count } };
+        }
+
+        /// <summary>
+        /// The variance analysis deserializes the naming convention out of the user config, so it needs
+        /// valid json there rather than the empty default.
+        /// </summary>
+        private static SimulatedUserConfig BuildVarianceUserConfig()
+        {
+            return new SimulatedUserConfig { ModNamingConvention = "{}" };
         }
 
         private static void DisplayNothing(Exception? exception, string title, string message, bool show)

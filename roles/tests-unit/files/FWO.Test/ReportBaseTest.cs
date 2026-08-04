@@ -15,6 +15,9 @@ namespace FWO.Test
     [Parallelizable]
     public class ReportBaseTest
     {
+        private const int kFailedRenderAttempts = 3;
+        private const int kConcurrentRenderProbes = 6;
+
         private sealed class TestReportBase() : ReportBase(new DynGraphqlQuery(""), new SimulatedUserConfig(), ReportType.TicketReport)
         {
             public static string OutputCsvPublic(string? input)
@@ -26,6 +29,41 @@ namespace FWO.Test
             {
                 return ToUtcString(input);
             }
+
+            public override Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
+            {
+                return Task.CompletedTask;
+            }
+
+            public override string ExportToCsv()
+            {
+                return string.Empty;
+            }
+
+            public override string ExportToJson()
+            {
+                return string.Empty;
+            }
+
+            public override string ExportToHtml()
+            {
+                return string.Empty;
+            }
+
+            public override string SetDescription()
+            {
+                return string.Empty;
+            }
+        }
+
+        private sealed class GatedRenderReportBase() : ReportBase(new DynGraphqlQuery(""), new SimulatedUserConfig(), ReportType.TicketReport)
+        {
+            public static Task<string?> RunGated(Func<Task<string?>> render)
+            {
+                return RunGatedPdfRender(render);
+            }
+
+            public static int MaxConcurrentRenders => kMaxConcurrentPdfRenders;
 
             public override Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
             {
@@ -365,6 +403,75 @@ namespace FWO.Test
 
             Assert.DoesNotThrow(report.ReleaseExportCache);
             Assert.That(report.ExportToHtml(), Does.Contain("frame body"));
+        }
+
+        [Test]
+        public async Task GatedPdfRenderReturnsTheRenderedResult()
+        {
+            string? result = await GatedRenderReportBase.RunGated(() => Task.FromResult<string?>("pdf"));
+
+            Assert.That(result, Is.EqualTo("pdf"));
+        }
+
+        [Test]
+        public void GatedPdfRenderPropagatesRenderFailures()
+        {
+            Assert.ThrowsAsync<NotSupportedException>(async () =>
+                await GatedRenderReportBase.RunGated(() => throw new NotSupportedException("bad paper format")));
+        }
+
+        [Test]
+        public async Task GatedPdfRenderReturnsTheSlotAfterAFailedRender()
+        {
+            // a slot leaked on the failure path would deadlock every later export
+            for (int attempt = 0; attempt < kFailedRenderAttempts; attempt++)
+            {
+                Assert.ThrowsAsync<NotSupportedException>(async () =>
+                    await GatedRenderReportBase.RunGated(() => throw new NotSupportedException("bad paper format")));
+            }
+
+            Task<string?> afterFailures = GatedRenderReportBase.RunGated(() => Task.FromResult<string?>("still works"));
+
+            Assert.That(await afterFailures, Is.EqualTo("still works"));
+        }
+
+        [Test]
+        public async Task GatedPdfRenderNeverRunsMoreBrowsersThanTheLimit()
+        {
+            // this is the whole point of the gate: each render is a headless browser worth hundreds
+            // of megabytes, so more of them at once than the limit is what triggers the oom killer
+            int running = 0;
+            int peak = 0;
+            object peakLock = new();
+            using SemaphoreSlim release = new(0, kConcurrentRenderProbes);
+
+            async Task<string?> Render()
+            {
+                lock (peakLock)
+                {
+                    running++;
+                    peak = Math.Max(peak, running);
+                }
+                await release.WaitAsync();
+                lock (peakLock)
+                {
+                    running--;
+                }
+                return "pdf";
+            }
+
+            List<Task<string?>> renders = [];
+            for (int probe = 0; probe < kConcurrentRenderProbes; probe++)
+            {
+                renders.Add(GatedRenderReportBase.RunGated(Render));
+            }
+
+            // let them all finish, then check how many were ever inside the gate at the same time
+            release.Release(kConcurrentRenderProbes);
+            await Task.WhenAll(renders);
+
+            Assert.That(peak, Is.LessThanOrEqualTo(GatedRenderReportBase.MaxConcurrentRenders));
+            Assert.That(peak, Is.GreaterThan(0));
         }
 
         [Test]

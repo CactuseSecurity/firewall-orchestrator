@@ -109,7 +109,8 @@ namespace FWO.Data
         }
 
         /// <summary>
-        /// True for imported object types whose stored IP range is only a placeholder.
+        /// True for imported object types whose IP fields do not carry stable identity for rule comparison.
+        /// Modelled network objects keep the default empty type name, so they are not treated as special identity objects.
         /// </summary>
         public bool IsSpecialConfigObjectType()
         {

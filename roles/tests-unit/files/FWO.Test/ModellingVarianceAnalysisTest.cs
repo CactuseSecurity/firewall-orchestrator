@@ -977,6 +977,7 @@ namespace FWO.Test
 
                 ClassicAssert.AreEqual(0, result.ConnsNotImplemented.Count);
                 ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
+                ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules.Count);
                 ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].UnusedUpdatableObjects.Count);
                 ClassicAssert.AreEqual("updobj2", result.RuleDifferences[0].ImplementedRules[0].UnusedUpdatableObjects[0]);
             }
@@ -1032,6 +1033,28 @@ namespace FWO.Test
                                 new() { ExtraConfigType = "IDA_user", ExtraConfigText = "SpecObj2" }]
             };
             List<ModellingConnection> connections = [connTwoSpecUsers];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(connections, new(), false);
+
+            ClassicAssert.AreEqual(0, result.ConnsNotImplemented.Count);
+            ClassicAssert.AreEqual(0, result.RuleDifferences.Count);
+        }
+
+        [Test]
+        public async Task TestAnalyseRuleStatusSpecialUserObjectWithoutIp()
+        {
+            ModellingConnection connSpecUserWithoutIp = new()
+            {
+                Id = 12,
+                Name = "Conn12",
+                SourceAppServers = [new() { Content = AS1 }],
+                SourceAreas = [new() { Content = new ModellingNetworkArea() { Id = 1, Name = "NA-SpecUserArea" } }],
+                DestinationAppRoles = [new() { Content = AR3 }],
+                Services = [new() { Content = Svc1 }],
+                ExtraConfigs = [new() { ExtraConfigType = "IDA_user", ExtraConfigText = "SpecObjWithoutIp" }]
+            };
+
+            List<ModellingConnection> connections = [connSpecUserWithoutIp];
             ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
             ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(connections, new(), false);
 

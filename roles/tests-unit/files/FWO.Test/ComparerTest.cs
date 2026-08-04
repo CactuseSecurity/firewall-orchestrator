@@ -41,6 +41,14 @@ namespace FWO.Test
         static readonly NetworkObject AccessRoleObj1 = new() { Name = "AccessRoleObj1", IP = "0.0.0.0/32", IpEnd = "0.0.0.0/32", Type = new() { Name = ObjectType.AccessRole } };
         static readonly NetworkObject AccessRoleObj2 = new() { Name = "AccessRoleObj2", IP = "0.0.0.0/32", IpEnd = "0.0.0.0/32", Type = new() { Name = ObjectType.AccessRole } };
 
+        static readonly NetworkObject NonSpecialObjSameNameAndIp = new()
+        {
+            Name = "DynamicObj1",
+            IP = "0.0.0.0/32",
+            IpEnd = "255.255.255.255/32",
+            Type = new() { Name = ObjectType.Host }
+        };
+
         static readonly NetworkObject NwGrp1 = new() { Name = "NwGrp1", ObjectGroupFlats = [new GroupFlat<NetworkObject>() { Object = NwObj1 }] };
         static readonly NetworkObject NwGrp2 = new() { Name = "NwGrp2", ObjectGroupFlats = [new GroupFlat<NetworkObject>() { Object = NwObj1 }] };
         static readonly NetworkObject NwGrp3 = new() { Name = "NwGrp3", ObjectGroupFlats = [new GroupFlat<NetworkObject>() { Object = NwObj2 }] };
@@ -248,9 +256,11 @@ namespace FWO.Test
             ClassicAssert.IsFalse(networkObjectComparer.Equals(DynamicObj1, DynamicObj2));
             ClassicAssert.IsTrue(networkObjectComparer.Equals(DynamicObj1, DynamicObj1OtherIp));
             ClassicAssert.IsFalse(networkObjectComparer.Equals(AccessRoleObj1, AccessRoleObj2));
+            ClassicAssert.IsFalse(networkObjectComparer.Equals(DynamicObj1, NonSpecialObjSameNameAndIp));
             ClassicAssert.IsFalse(networkObjectComparer.GetHashCode(DynamicObj1) == networkObjectComparer.GetHashCode(DynamicObj2));
             ClassicAssert.IsTrue(networkObjectComparer.GetHashCode(DynamicObj1) == networkObjectComparer.GetHashCode(DynamicObj1OtherIp));
             ClassicAssert.IsFalse(networkObjectComparer.GetHashCode(AccessRoleObj1) == networkObjectComparer.GetHashCode(AccessRoleObj2));
+            ClassicAssert.IsFalse(networkObjectComparer.GetHashCode(DynamicObj1) == networkObjectComparer.GetHashCode(NonSpecialObjSameNameAndIp));
         }
 
         [Test]
@@ -332,6 +342,7 @@ namespace FWO.Test
             ClassicAssert.IsFalse(networkObjectGroupComparer.GetHashCode(NwGrp1) == networkObjectGroupComparer.GetHashCode(NwGrp6));
 
             ruleRecognitionOption.NwRegardGroupName = false;
+            ruleRecognitionOption.NwRegardName = false;
             networkObjectGroupComparer = new(ruleRecognitionOption);
 
             ClassicAssert.IsFalse(networkObjectGroupComparer.Equals(NwGrpWithDynamicObj1, NwGrpWithDynamicObj2));

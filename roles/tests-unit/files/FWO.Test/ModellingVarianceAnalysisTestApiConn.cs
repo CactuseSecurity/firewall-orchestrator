@@ -32,6 +32,14 @@ namespace FWO.Test
             IpEnd = "0.0.0.0/32",
             Type = new() { Name = ObjectType.AccessRole }
         };
+
+        static readonly NetworkObject SpecObjWithoutIp = new()
+        {
+            Id = 23,
+            Name = "SpecObjWithoutIp",
+            Type = new() { Name = ObjectType.AccessRole }
+        };
+
         static readonly NetworkObject UpdObj1 = new()
         {
             Id = 31,
@@ -163,6 +171,14 @@ namespace FWO.Test
             Tos = [new(new(), Nwgroup3)],
             Services = [new() { Content = Svc1 }]
         };
+        static readonly Rule Rule14 = new()
+        {
+            Name = "FWOC12",
+            MgmtId = 1,
+            Froms = [new(new(), SpecObjWithoutIp), new(new(), NwObj1)],
+            Tos = [new(new(), Nwgroup3)],
+            Services = [new() { Content = Svc1 }]
+        };
         static readonly DeviceReport DevRep1 = new()
         {
             Id = 1,
@@ -229,7 +245,7 @@ namespace FWO.Test
             }
             else if (responseType == typeof(List<Rule>))
             {
-                GraphQLResponse<dynamic> response = new() { Data = new List<Rule>() { new(Rule1), new(Rule2), new(Rule3), new(Rule4), new(Rule5), new(Rule6), new(Rule7), new(Rule8), new(Rule9), new(Rule10), new(Rule11), new(Rule12), new(Rule13) } };
+                GraphQLResponse<dynamic> response = new() { Data = new List<Rule>() { new(Rule1), new(Rule2), new(Rule3), new(Rule4), new(Rule5), new(Rule6), new(Rule7), new(Rule8), new(Rule9), new(Rule10), new(Rule11), new(Rule12), new(Rule13), new(Rule14) } };
                 return response.Data;
             }
             else if (responseType == typeof(List<ModellingConnection>))

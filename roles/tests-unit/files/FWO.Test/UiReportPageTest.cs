@@ -138,6 +138,37 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DisposingThePageTwiceDoesNotThrow()
+        {
+            // the framework disposes the page, and losing the circuit disposes it again - a second
+            // Cancel on the already disposed source would take the teardown down with it
+            await using BunitContext context = CreateContext();
+            IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
+            ReportPage reportPage = page.FindComponent<ReportPage>().Instance;
+            CancellationTokenSource tokenSource = GetTokenSource(reportPage);
+
+            reportPage.Dispose();
+
+            Assert.DoesNotThrow(reportPage.Dispose);
+            Assert.That(IsDisposed(tokenSource), Is.True);
+        }
+
+        [Test]
+        public async Task DisposingThePageSurvivesAFailingCancellation()
+        {
+            // Cancel rethrows whatever a cancellation callback threw, and that must not escape the
+            // teardown - the token source still has to be released
+            await using BunitContext context = CreateContext();
+            IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
+            ReportPage reportPage = page.FindComponent<ReportPage>().Instance;
+            CancellationTokenSource tokenSource = GetTokenSource(reportPage);
+            tokenSource.Token.Register(() => throw new InvalidOperationException("callback failed"));
+
+            Assert.DoesNotThrow(reportPage.Dispose);
+            Assert.That(IsDisposed(tokenSource), Is.True);
+        }
+
+        [Test]
         public async Task GeneratingAReportReleasesThePreviousTokenSource()
         {
             // every generation used to leave its predecessor behind undisposed

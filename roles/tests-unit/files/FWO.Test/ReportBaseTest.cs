@@ -17,6 +17,7 @@ namespace FWO.Test
     {
         private const int kFailedRenderAttempts = 3;
         private const int kConcurrentRenderProbes = 6;
+        private const int kShortGateWaitMilliseconds = 50;
 
         private sealed class TestReportBase() : ReportBase(new DynGraphqlQuery(""), new SimulatedUserConfig(), ReportType.TicketReport)
         {
@@ -63,7 +64,14 @@ namespace FWO.Test
                 return RunGatedPdfRender(render);
             }
 
+            public static Task<string?> RunGated(Func<Task<string?>> render, TimeSpan gateWaitTimeout)
+            {
+                return RunGatedPdfRender(render, gateWaitTimeout);
+            }
+
             public static int MaxConcurrentRenders => kMaxConcurrentPdfRenders;
+
+            public static int GateWaitSeconds => kPdfRenderGateWaitSeconds;
 
             public override Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
             {
@@ -435,11 +443,12 @@ namespace FWO.Test
             Assert.That(await afterFailures, Is.EqualTo("still works"));
         }
 
-        [Test]
-        public async Task GatedPdfRenderNeverRunsMoreBrowsersThanTheLimit()
+        /// <summary>
+        /// Runs more renders than the gate allows at once and reports how many of them were ever
+        /// inside the gate at the same time.
+        /// </summary>
+        private static async Task<int> MeasurePeakConcurrentRenders()
         {
-            // this is the whole point of the gate: each render is a headless browser worth hundreds
-            // of megabytes, so more of them at once than the limit is what triggers the oom killer
             int running = 0;
             int peak = 0;
             object peakLock = new();
@@ -469,9 +478,113 @@ namespace FWO.Test
             // let them all finish, then check how many were ever inside the gate at the same time
             release.Release(kConcurrentRenderProbes);
             await Task.WhenAll(renders);
+            return peak;
+        }
+
+        /// <summary>
+        /// Holds every render slot until <see cref="GateOccupation.ReleaseAll"/> is called, so that a
+        /// further render has to wait for the gate. Callers must release in a finally block, or the
+        /// gate stays saturated for every later test in this process.
+        /// </summary>
+        private sealed class GateOccupation(SemaphoreSlim release, List<Task<string?>> occupants)
+        {
+            public async Task ReleaseAll()
+            {
+                release.Release(occupants.Count);
+                await Task.WhenAll(occupants);
+                release.Dispose();
+            }
+        }
+
+        private static async Task<GateOccupation> SaturateTheGate()
+        {
+            int slots = GatedRenderReportBase.MaxConcurrentRenders;
+            SemaphoreSlim release = new(0, slots);
+            using SemaphoreSlim entered = new(0, slots);
+            List<Task<string?>> occupants = [];
+
+            for (int slot = 0; slot < slots; slot++)
+            {
+                occupants.Add(GatedRenderReportBase.RunGated(async () =>
+                {
+                    entered.Release();
+                    await release.WaitAsync();
+                    return "pdf";
+                }));
+            }
+            // only once every occupant is inside the gate is the next render guaranteed to have to wait
+            for (int slot = 0; slot < slots; slot++)
+            {
+                await entered.WaitAsync();
+            }
+            return new GateOccupation(release, occupants);
+        }
+
+        [Test]
+        public async Task GatedPdfRenderNeverRunsMoreBrowsersThanTheLimit()
+        {
+            // this is the whole point of the gate: each render is a headless browser worth hundreds
+            // of megabytes, so more of them at once than the limit is what triggers the oom killer
+            int peak = await MeasurePeakConcurrentRenders();
 
             Assert.That(peak, Is.LessThanOrEqualTo(GatedRenderReportBase.MaxConcurrentRenders));
             Assert.That(peak, Is.GreaterThan(0));
+        }
+
+        [Test]
+        public async Task GatedPdfRenderFailsInsteadOfWaitingForeverForABusyGate()
+        {
+            // the gate is process wide, so an unbounded wait would leave the user's circuit hanging
+            // on a slot that a wedged render might never give back
+            GateOccupation occupation = await SaturateTheGate();
+            try
+            {
+                Assert.ThrowsAsync<TimeoutException>(async () => await GatedRenderReportBase.RunGated(
+                    () => Task.FromResult<string?>("pdf"), TimeSpan.FromMilliseconds(kShortGateWaitMilliseconds)));
+            }
+            finally
+            {
+                await occupation.ReleaseAll();
+            }
+        }
+
+        [Test]
+        public async Task GatedPdfRenderDoesNotHandBackASlotItNeverGotWhenTheWaitTimedOut()
+        {
+            GateOccupation occupation = await SaturateTheGate();
+            try
+            {
+                Assert.ThrowsAsync<TimeoutException>(async () => await GatedRenderReportBase.RunGated(
+                    () => Task.FromResult<string?>("pdf"), TimeSpan.FromMilliseconds(kShortGateWaitMilliseconds)));
+            }
+            finally
+            {
+                await occupation.ReleaseAll();
+            }
+
+            // releasing a slot that was never taken would raise the gate's limit for the whole process
+            int peak = await MeasurePeakConcurrentRenders();
+
+            Assert.That(peak, Is.LessThanOrEqualTo(GatedRenderReportBase.MaxConcurrentRenders));
+        }
+
+        [Test]
+        public async Task GatedPdfRenderWaitsForAFreeSlotWithinTheTimeout()
+        {
+            // a render that only has to queue must still go through rather than fail early
+            GateOccupation occupation = await SaturateTheGate();
+            Task<string?> queued = GatedRenderReportBase.RunGated(
+                () => Task.FromResult<string?>("queued pdf"), TimeSpan.FromSeconds(GatedRenderReportBase.GateWaitSeconds));
+
+            await occupation.ReleaseAll();
+
+            Assert.That(await queued, Is.EqualTo("queued pdf"));
+        }
+
+        [Test]
+        public void TheDefaultGateWaitIsFinite()
+        {
+            Assert.That(GatedRenderReportBase.GateWaitSeconds, Is.GreaterThan(0));
         }
 
         [Test]

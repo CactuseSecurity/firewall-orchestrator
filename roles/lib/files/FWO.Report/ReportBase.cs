@@ -454,12 +454,15 @@ namespace FWO.Report
         /// Waiting for a slot is bounded: the gate is shared by the whole process, so an export that
         /// cannot get one has to fail with a message rather than block the user's circuit forever.
         /// </summary>
-        protected static async Task<string?> RunGatedPdfRender(Func<Task<string?>> render)
+        /// <param name="render">The render to run while holding a slot.</param>
+        /// <param name="gateWaitTimeout">How long to wait for a slot. Defaults to <see cref="kPdfRenderGateWaitSeconds"/>.</param>
+        protected static async Task<string?> RunGatedPdfRender(Func<Task<string?>> render, TimeSpan? gateWaitTimeout = null)
         {
-            if (!await PdfRenderGate.WaitAsync(TimeSpan.FromSeconds(kPdfRenderGateWaitSeconds)))
+            TimeSpan slotWaitTimeout = gateWaitTimeout ?? TimeSpan.FromSeconds(kPdfRenderGateWaitSeconds);
+            if (!await PdfRenderGate.WaitAsync(slotWaitTimeout))
             {
-                Log.WriteAlert("Report Export", $"No pdf render slot became available within {kPdfRenderGateWaitSeconds} seconds.");
-                throw new TimeoutException($"Too many report exports are running at the moment. Please try again in a few minutes.");
+                Log.WriteAlert("Report Export", $"No pdf render slot became available within {slotWaitTimeout.TotalSeconds} seconds.");
+                throw new TimeoutException("Too many report exports are running at the moment. Please try again in a few minutes.");
             }
             try
             {

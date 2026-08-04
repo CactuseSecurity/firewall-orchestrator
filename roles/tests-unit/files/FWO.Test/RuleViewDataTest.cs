@@ -156,17 +156,18 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ExtractCustomFieldValue_InvalidKeysJson_ReturnsDefaultAndError()
+        public void ExtractCustomFieldValue_InvalidKeysJson_ReturnsDefaultWithoutExposingRuleData()
         {
             var rule = new Rule
             {
-                CustomFields = "{'field-2':'abc'}"
+                CustomFields = "{'field-2':'abc','secret-field':'internal-data'}"
             };
 
             var result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",]", out var errorMessage);
 
+            // an unreadable key setting is a config problem and must never surface rule data
             Assert.That(result, Is.Null);
-            Assert.That(errorMessage, Is.Not.Null);
+            Assert.That(errorMessage, Is.Null);
         }
 
         [Test]

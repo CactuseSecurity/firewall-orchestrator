@@ -2,7 +2,6 @@ using System.Text;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Config.Api;
-using FWO.Config.Api.Data;
 using FWO.Report;
 using FWO.Report.Filter;
 
@@ -12,6 +11,8 @@ namespace FWO.Ui.Display
     {
         protected UserConfig userConfig = userConfig;
 
+        private readonly CustomFieldKeyCache changeIdKeyCache = new();
+
         /// <summary>
         /// Resolves the change identifier from the first configured matching rule custom field.
         /// </summary>
@@ -19,9 +20,8 @@ namespace FWO.Ui.Display
         /// <returns>The configured custom field value, an error description, or an empty string.</returns>
         public string DisplayChangeId(Rule rule)
         {
-            string keysJson = userConfig.GlobalConfig?.CustomFieldChangeIdKey
-                ?? new ConfigData().CustomFieldChangeIdKey;
-            string? value = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, keysJson, out string? errorMessage);
+            string keysJson = userConfig.GlobalConfig?.CustomFieldChangeIdKey ?? GlobalConst.kDefaultChangeIdKeys;
+            string? value = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, changeIdKeyCache.GetKeys(keysJson), out string? errorMessage);
             return value ?? errorMessage ?? "";
         }
 

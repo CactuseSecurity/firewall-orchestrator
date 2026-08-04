@@ -41,6 +41,9 @@ namespace FWO.Report.Data.ViewData
         public bool Show { get; set; } = true;
         public ILogger Logger { get; set; } = new Logger();
 
+        // qad: should be replaced by a customer specific setting value asap, see CustomFieldChangeIdKey
+        private static readonly List<string> AdoItIdCustomFieldKeys = ["field-3", "AdoIT"];
+
         public RuleViewData()
         {
 
@@ -66,7 +69,7 @@ namespace FWO.Report.Data.ViewData
             Compliance = SafeCall(rule, "Compliance", () => ResolveCompliance(rule, complianceViolationType));
             ViolationDetails = SafeCall(rule, "ViolationDetails", () => rule.ViolationDetails);
             ChangeID = SafeCall(rule, "ChangeID", () => natRuleDisplayHtml.DisplayChangeId(rule));
-            AdoITID = SafeCall(rule, "AdoITID", () => { var value = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-3\",\"AdoIT\"]", out var errorMessage); return value ?? errorMessage ?? ""; });
+            AdoITID = SafeCall(rule, "AdoITID", () => { var value = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, AdoItIdCustomFieldKeys, out var errorMessage); return value ?? errorMessage ?? ""; });
             Comment = SafeCall(rule, "Comment", () => rule.Comment ?? "");
             LastModified = SafeCall(rule, "LastModified", () => RuleDisplayBase.DisplayLastModified(rule));
             RuleTime = SafeCall(rule, "RuleTime", () => natRuleDisplayHtml.DisplayRuleTime(rule));

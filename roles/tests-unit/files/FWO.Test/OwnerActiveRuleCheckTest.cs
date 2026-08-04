@@ -1,4 +1,5 @@
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Middleware.Server;
@@ -121,7 +122,7 @@ namespace FWO.Test
 
         private static string InvokeExtractChangeId(
             string customFields,
-            string changeIdKeys = "[\"field-2\",\"ChangeId\"]")
+            string changeIdKeys = GlobalConst.kDefaultChangeIdKeys)
         {
             GlobalConfig globalConfig = new() { CustomFieldChangeIdKey = changeIdKeys };
             RuleNotificationBodyHarness harness = new(globalConfig);

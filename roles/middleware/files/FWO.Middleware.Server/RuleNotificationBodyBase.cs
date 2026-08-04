@@ -14,6 +14,8 @@ namespace FWO.Middleware.Server
     {
         private static readonly List<int> RawRuleHtmlColumnIndexes = [2, 3, 4];
 
+        private readonly CustomFieldKeyCache changeIdKeyCache = new();
+
         /// <summary>
         /// Builds a plain-text rule notification body with the standard rule columns and optional extra columns.
         /// </summary>
@@ -85,7 +87,7 @@ namespace FWO.Middleware.Server
         {
             string? changeId = CustomFieldResolver.ExtractCustomFieldValue<string>(
                 rule,
-                GlobalConfig.CustomFieldChangeIdKey,
+                changeIdKeyCache.GetKeys(GlobalConfig.CustomFieldChangeIdKey),
                 out _);
             return changeId ?? "";
         }

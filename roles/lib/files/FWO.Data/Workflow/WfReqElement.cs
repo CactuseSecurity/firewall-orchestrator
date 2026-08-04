@@ -33,5 +33,21 @@ namespace FWO.Data.Workflow
             Cidr = element.Cidr;
             CidrEnd = element.CidrEnd;
         }
+
+        public bool IsMemberToAdd()
+        {
+            return RequestAction == Workflow.RequestAction.create.ToString()
+                || RequestAction == Workflow.RequestAction.addAfterCreation.ToString();
+        }
+
+        public bool IsMemberToRemove()
+        {
+            return RequestAction == Workflow.RequestAction.delete.ToString();
+        }
+
+        public bool IsCurrentMember()
+        {
+            return !IsMemberToAdd() && !IsMemberToRemove();
+        }
     }
 }

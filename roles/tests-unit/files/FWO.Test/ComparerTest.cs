@@ -48,30 +48,26 @@ namespace FWO.Test
         static readonly NetworkObject NwGrp5 = new() { Name = "NwGrp1", ObjectGroupFlats = [new GroupFlat<NetworkObject>() { Object = NwObj3 }] };
         static readonly NetworkObject NwGrp6 = new() { Name = "NwGrp1", ObjectGroupFlats = [new GroupFlat<NetworkObject>() { Object = NwObj1 }, new GroupFlat<NetworkObject>() { Object = NwObj3 }] };
 
-        static readonly GroupFlat<NetworkObject>[] MixedIdentityObjectsOrder1 =
+        static readonly GroupFlat<NetworkObject>[] DynamicObj1GroupFlats =
         {
-            new GroupFlat<NetworkObject>() { Object = DynamicObj1 },
-            new GroupFlat<NetworkObject>() { Object = NwObj1 },
-            new GroupFlat<NetworkObject>() { Object = DynamicObj2 }
-        };
-
-        static readonly GroupFlat<NetworkObject>[] MixedIdentityObjectsOrder2 =
-        {
-            new GroupFlat<NetworkObject>() { Object = DynamicObj2 },
-            new GroupFlat<NetworkObject>() { Object = NwObj1 },
             new GroupFlat<NetworkObject>() { Object = DynamicObj1 }
         };
 
-        static readonly NetworkObject NwGrpWithMixedIdentityObjects1 = new()
+        static readonly GroupFlat<NetworkObject>[] DynamicObj2GroupFlats =
         {
-            Name = "NwGrpWithMixedIdentityObjects1",
-            ObjectGroupFlats = MixedIdentityObjectsOrder1
+            new GroupFlat<NetworkObject>() { Object = DynamicObj2 }
         };
 
-        static readonly NetworkObject NwGrpWithMixedIdentityObjects2 = new()
+        static readonly NetworkObject NwGrpWithDynamicObj1 = new()
         {
-            Name = "NwGrpWithMixedIdentityObjects2",
-            ObjectGroupFlats = MixedIdentityObjectsOrder2
+            Name = "NwGrpWithDynamicObj1",
+            ObjectGroupFlats = DynamicObj1GroupFlats
+        };
+
+        static readonly NetworkObject NwGrpWithDynamicObj2 = new()
+        {
+            Name = "NwGrpWithDynamicObj2",
+            ObjectGroupFlats = DynamicObj2GroupFlats
         };
 
         static readonly ModellingAppZone AppZone1 = new() { IdString = "AZ1", AppServers = [] };
@@ -338,8 +334,8 @@ namespace FWO.Test
             ruleRecognitionOption.NwRegardGroupName = false;
             networkObjectGroupComparer = new(ruleRecognitionOption);
 
-            ClassicAssert.IsTrue(networkObjectGroupComparer.Equals(NwGrpWithMixedIdentityObjects1, NwGrpWithMixedIdentityObjects2));
-            ClassicAssert.IsTrue(networkObjectGroupComparer.GetHashCode(NwGrpWithMixedIdentityObjects1) == networkObjectGroupComparer.GetHashCode(NwGrpWithMixedIdentityObjects2));
+            ClassicAssert.IsFalse(networkObjectGroupComparer.Equals(NwGrpWithDynamicObj1, NwGrpWithDynamicObj2));
+            ClassicAssert.IsFalse(networkObjectGroupComparer.GetHashCode(NwGrpWithDynamicObj1) == networkObjectGroupComparer.GetHashCode(NwGrpWithDynamicObj2));
             ClassicAssert.IsTrue(networkObjectGroupComparer.Equals(NwGrp1, NwGrp1));
             ClassicAssert.IsTrue(networkObjectGroupComparer.Equals(NwGrp1, NwGrp2));
             ClassicAssert.IsFalse(networkObjectGroupComparer.Equals(NwGrp1, NwGrp3));

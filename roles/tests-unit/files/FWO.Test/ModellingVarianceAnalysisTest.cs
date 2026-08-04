@@ -954,6 +954,7 @@ namespace FWO.Test
             }
         }
 
+        // Validates partial implementation reporting. The dummy-IP regression guard is covered by the multiple-object implementation tests and comparer tests.
         [Test]
         public async Task TestAnalyseRuleStatusMissingOneOfMultipleUpdatableObjectsWithDummyIp()
         {

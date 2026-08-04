@@ -379,12 +379,10 @@ namespace FWO.Services.Modelling
         }
 
         /// <summary>
-        /// Selects the modelled objects (matched by name) that may stand in for a placeholder area.
-        /// An object qualifies when it is surplus, or - only while IPs are compared - when it has no IP:
-        /// such an object can never match normally, so it always counts. Relying on the empty IP also
-        /// avoids the IP comparer deduping several IP-less objects (marking only the first as surplus)
-        /// and thereby undercounting them. When IPs are not compared the empty-IP signal is meaningless,
-        /// so the surplus flag alone decides.
+        /// Selects production objects, matched by name, that may stand in for a modelled placeholder area.
+        /// Normally an object qualifies after the comparer marked it as surplus.
+        /// IP-less objects remain a fallback for objects that cannot participate in IP comparison while IP matching is enabled.
+        /// Imported name-only identity objects with dummy IP ranges are handled by NetworkObjectComparer and are not special-cased here.
         /// </summary>
         private List<NetworkLocation> GetPlaceholderSubstitutes(NetworkLocation[] networkLocations, Dictionary<string, bool> objectsByName)
         {

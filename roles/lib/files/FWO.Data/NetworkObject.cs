@@ -108,6 +108,9 @@ namespace FWO.Data
                 IP == "::/128" && IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128";
         }
 
+        /// <summary>
+        /// True for imported object types whose stored IP range is only a placeholder.
+        /// </summary>
         public bool IsSpecialConfigObjectType()
         {
             return string.Equals(Type.Name, ObjectType.DynamicNetObj, StringComparison.Ordinal)

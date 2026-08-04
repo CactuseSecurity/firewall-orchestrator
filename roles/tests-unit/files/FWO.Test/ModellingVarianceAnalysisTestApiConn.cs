@@ -21,7 +21,7 @@ namespace FWO.Test
             Name = "SpecObj1",
             IP = "0.0.0.0/32",
             IpEnd = "0.0.0.0/32",
-            Type = new() { Name = "access-role" }
+            Type = new() { Name = ObjectType.AccessRole }
         };
 
         static readonly NetworkObject SpecObj2 = new()
@@ -30,7 +30,7 @@ namespace FWO.Test
             Name = "SpecObj2",
             IP = "0.0.0.0/32",
             IpEnd = "0.0.0.0/32",
-            Type = new() { Name = "access-role" }
+            Type = new() { Name = ObjectType.AccessRole }
         };
         static readonly NetworkObject UpdObj1 = new()
         {
@@ -38,7 +38,7 @@ namespace FWO.Test
             Name = "UpdObj1",
             IP = "0.0.0.0/32",
             IpEnd = "255.255.255.255/32",
-            Type = new() { Name = "dynamic_net_obj" }
+            Type = new() { Name = ObjectType.DynamicNetObj }
         };
 
         static readonly NetworkObject UpdObj2 = new()
@@ -47,7 +47,7 @@ namespace FWO.Test
             Name = "UpdObj2",
             IP = "0.0.0.0/32",
             IpEnd = "255.255.255.255/32",
-            Type = new() { Name = "dynamic_net_obj" }
+            Type = new() { Name = ObjectType.DynamicNetObj }
         };
 
         static readonly ModellingAppServer AppServer1 = new() { Id = 13, Name = "AppServerUnchanged", Ip = "1.2.3.4/32", IpEnd = "1.2.3.4/32" };

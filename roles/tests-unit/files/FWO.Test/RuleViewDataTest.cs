@@ -107,6 +107,25 @@ namespace FWO.Test
         }
 
         [Test]
+        public void RuleViewData_UsesLegacyChangeIdKeyWithoutExposingOtherCustomFields()
+        {
+            GlobalConfig globalConfig = new SimulatedGlobalConfig
+            {
+                CustomFieldChangeIdKey = "Datum-Regelpruefung"
+            };
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig, registerOnChangeHandler: false);
+            NatRuleDisplayHtml ruleDisplay = new(userConfig);
+            Rule rule = new()
+            {
+                CustomFields = "{'Datum-Regelpruefung':'CHG-7','secret-field':'internal-data'}"
+            };
+
+            RuleViewData viewData = new(rule, ruleDisplay, OutputLocation.report, true);
+
+            Assert.That(viewData.ChangeID, Is.EqualTo("CHG-7"));
+        }
+
+        [Test]
         public void RuleViewData_UsesDefaultChangeIdCustomFieldKeys()
         {
             UserConfig userConfig = new();
@@ -144,7 +163,7 @@ namespace FWO.Test
                 CustomFields = "{'field-2':'abc'}"
             };
 
-            var result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "invalid json", out var errorMessage);
+            var result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",]", out var errorMessage);
 
             Assert.That(result, Is.Null);
             Assert.That(errorMessage, Is.Not.Null);

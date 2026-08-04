@@ -13,7 +13,7 @@ namespace FWO.Data
         /// </summary>
         /// <typeparam name="T">The expected target type of the custom field value.</typeparam>
         /// <param name="rule">The rule containing the serialized custom fields.</param>
-        /// <param name="keysJson">A JSON array of candidate custom field keys to check in order.</param>
+        /// <param name="keysJson">A JSON array of candidate custom field keys, or a legacy plain-text key.</param>
         /// <returns>
         /// The deserialized custom field value when a matching key is found and can be converted to <typeparamref name="T"/>;
         /// otherwise, <see langword="default"/>.
@@ -33,7 +33,7 @@ namespace FWO.Data
             try
             {
                 customFields = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(nonNullableRule.CustomFields.Replace("'", "\"")) ?? new Dictionary<string, JsonElement>();
-                keysList = JsonSerializer.Deserialize<List<string>>(keysJson) ?? new List<string>();
+                keysList = DeserializeKeys(keysJson);
             }
             catch (JsonException e)
             {
@@ -73,6 +73,22 @@ namespace FWO.Data
                 }
             }
             return default;
+        }
+
+        /// <summary>
+        /// Reads an ordered JSON key list while retaining compatibility with legacy single-key values.
+        /// </summary>
+        /// <param name="keysJson">JSON list or legacy plain-text key.</param>
+        /// <returns>The configured custom field keys.</returns>
+        private static List<string> DeserializeKeys(string keysJson)
+        {
+            string trimmedKeys = keysJson.Trim();
+            if (!trimmedKeys.StartsWith('[') || !trimmedKeys.EndsWith(']'))
+            {
+                return [trimmedKeys];
+            }
+
+            return JsonSerializer.Deserialize<List<string>>(trimmedKeys) ?? [];
         }
     }
 }

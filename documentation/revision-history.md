@@ -585,3 +585,14 @@ Not supported any longer are:
 - fix config change in modelling
 - feat new REST API endpoint: ResolveZonesForObjects
 - feat new REST API endpoint: time object ID lookup
+
+## 9.2.5 - 29.07.2026
+- update flow time object hashing to be timezone invariant
+- ! resets the flow timeobject and access tables
+
+
+## 9.3 - 31.07.2026
+- new import module for OPNsense firewalls
+
+## 9.3.1 - 03.08.2026
+- changed workflow email CSV/JSON output and firewall request popup to separate current, added and removed group members

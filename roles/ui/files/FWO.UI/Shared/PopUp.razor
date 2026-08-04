@@ -19,16 +19,16 @@
                     <div class="modal-body">
                         @Body
                     </div>
-                    @if (Size != PopupSize.XSmall)
-                    {
-                        <div class="custom-modal-footer">
-                            <hr>
-                            <div class="@FooterCssClass">
-                                @Footer
-                            </div>
-                        </div>
-                    }
                 </div>
+                @if (Size != PopupSize.XSmall)
+                {
+                    <div class="custom-modal-footer">
+                        <hr>
+                        <div class="@FooterCssClass">
+                            @Footer
+                        </div>
+                    </div>
+                }
             </div>
         </div>
     </div>
@@ -69,11 +69,11 @@
         {
             case PopupSize.Auto: return "custom-modal-auto";
             case PopupSize.FullScreen: return "custom-modal-fs";
-            case PopupSize.XLarge: return "custom-modal-xl";
-            case PopupSize.Large: return "custom-modal-lg";
-            case PopupSize.Medium: return "custom-modal-md";
-            case PopupSize.Small: return "custom-modal-sm";
-            case PopupSize.XSmall: return "custom-modal-xs";
+            case PopupSize.XLarge: return "custom-modal-xl custom-modal-center";
+            case PopupSize.Large: return "custom-modal-lg custom-modal-center";
+            case PopupSize.Medium: return "custom-modal-md custom-modal-center";
+            case PopupSize.Small: return "custom-modal-sm custom-modal-center";
+            case PopupSize.XSmall: return "custom-modal-xs custom-modal-center";
             default: return "custom-modal-sm";
         }
     }

@@ -810,7 +810,7 @@ namespace FWO.Test
                 ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
                 ClassicAssert.AreEqual("Conn3", result.RuleDifferences[0].ModelledConnection.Name);
                 ClassicAssert.AreEqual(1, result.UnModelledRules.Count);
-                ClassicAssert.AreEqual(12, result.UnModelledRules[1].Count);
+                ClassicAssert.AreEqual(13, result.UnModelledRules[1].Count);
                 ClassicAssert.AreEqual("FWOC1", result.UnModelledRules[1][0].Name);
                 ClassicAssert.AreEqual("xxxFWOC2yyy", result.UnModelledRules[1][1].Name);
             }

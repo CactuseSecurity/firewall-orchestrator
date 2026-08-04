@@ -596,3 +596,4 @@ Not supported any longer are:
 ## 9.3.1 - 03.08.2026
 - make rule change-ID custom field names configurable in compliance settings
 - ! breaking change: old hard-coded default value "Datum-Regelpruefung" is dropped and replaced, so existing installations using this feature be impacted!
+- changed workflow email CSV/JSON output and firewall request popup to separate current, added and removed group members

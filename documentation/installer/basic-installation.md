@@ -1,6 +1,6 @@
 # Basic server installation
 
-Install Firewall Orchestrator on a dedicated Debian 12+ or Ubuntu 22.04+ server. Use an account that can run `sudo`. For proxy, upgrade, test, or other non-default setups, see the [advanced installation guide](install-advanced.md).
+Install Firewall Orchestrator on a dedicated Red Hat 9+, Rocky 9+, Debian 12+ or Ubuntu 22.04+ server. Use an account that can run `sudo`. For proxy, upgrade, test, or other non-default setups, see the [advanced installation guide](install-advanced.md).
 
 1. Install Git and clone the repository:
 

@@ -100,7 +100,9 @@ namespace FWO.Services
                     userConfig.GetText("type"),
                     userConfig.GetText("title"),
                     userConfig.GetText("action"),
-                    userConfig.GetText("members")
+                    userConfig.GetText("current_members"),
+                    userConfig.GetText("members_to_add"),
+                    userConfig.GetText("members_to_remove")
                 ],
                 Rows = [.. rows]
             };
@@ -134,14 +136,56 @@ namespace FWO.Services
 
         private static WorkflowGroupRow BuildGroupRequestRow(WfReqTask task, UserConfig userConfig, Dictionary<int, string>? protocolNamesById)
         {
+            WorkflowGroupMembers members = BuildGroupMembers(task, protocolNamesById);
+
             return new()
             {
                 Task = BuildTaskReference(task.TaskNumber, task.Id),
                 Type = userConfig.GetText(task.TaskType),
                 Title = task.Title,
                 Action = task.RequestAction,
-                Members = BuildGroupMemberList(task, protocolNamesById)
+                CurrentMembers = members.CurrentMembers,
+                MembersToAdd = members.MembersToAdd,
+                MembersToRemove = members.MembersToRemove
             };
+        }
+
+        private static WorkflowGroupMembers BuildGroupMembers(WfReqTask task, Dictionary<int, string>? protocolNamesById)
+        {
+            List<WfElementBase> currentMembers = [];
+            List<WfElementBase> membersToAdd = [];
+            List<WfElementBase> membersToRemove = [.. task.RemovedElements];
+
+            foreach (WfReqElement element in task.Elements)
+            {
+                if (element.IsMemberToRemove())
+                {
+                    membersToRemove.Add(element);
+                }
+                else if (element.IsMemberToAdd())
+                {
+                    membersToAdd.Add(element);
+                }
+                else
+                {
+                    currentMembers.Add(element);
+                }
+            }
+
+            return new()
+            {
+                CurrentMembers = BuildGroupMemberList(currentMembers, protocolNamesById),
+                MembersToAdd = BuildGroupMemberList(membersToAdd, protocolNamesById),
+                MembersToRemove = BuildGroupMemberList(membersToRemove, protocolNamesById)
+            };
+        }
+
+        private static string BuildGroupMemberList(IEnumerable<WfElementBase> elements, Dictionary<int, string>? protocolNamesById)
+        {
+            return string.Join(", ", elements
+                .Select(element => BuildGroupMemberText(element, protocolNamesById))
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .Distinct());
         }
 
         private static bool IsGroupTask(WfTaskBase task)
@@ -165,36 +209,11 @@ namespace FWO.Services
                 .Distinct());
         }
 
-        private static string BuildGroupMemberList(WfReqTask task, Dictionary<int, string>? protocolNamesById)
-        {
-            List<WfElementBase> elements = [.. task.Elements, .. task.RemovedElements];
-            return string.Join(", ", elements
-                .Select(element => BuildGroupMemberText(element, protocolNamesById))
-                .Where(text => !string.IsNullOrWhiteSpace(text))
-                .Distinct());
-        }
-
         private static string BuildGroupMemberText(WfElementBase element, Dictionary<int, string>? protocolNamesById)
         {
-            string memberText = element.Field == ElemFieldType.service.ToString()
+            return element.Field == ElemFieldType.service.ToString()
                 ? BuildGroupServiceMemberText(element, protocolNamesById)
                 : BuildGroupObjectMemberText(element);
-            string elementAction = GetElementAction(element);
-            if (string.IsNullOrWhiteSpace(elementAction) || elementAction == RequestAction.create.ToString())
-            {
-                return memberText;
-            }
-            return string.IsNullOrWhiteSpace(memberText) ? elementAction : $"{elementAction}: {memberText}";
-        }
-
-        private static string GetElementAction(WfElementBase element)
-        {
-            return element switch
-            {
-                WfReqElement reqElement => reqElement.RequestAction,
-                WfImplElement implElement => implElement.ImplAction,
-                _ => ""
-            };
         }
 
         private static string BuildGroupObjectMemberText(WfElementBase element)
@@ -383,12 +402,16 @@ namespace FWO.Services
         public string Type { get; set; } = "";
         public string Title { get; set; } = "";
         public string Action { get; set; } = "";
-        public string Members { get; set; } = "";
+        public string CurrentMembers { get; set; } = "";
+        public string MembersToAdd { get; set; } = "";
+        public string MembersToRemove { get; set; } = "";
 
         public bool HasContent()
         {
             return !string.IsNullOrWhiteSpace(Title)
-                || !string.IsNullOrWhiteSpace(Members);
+                || !string.IsNullOrWhiteSpace(CurrentMembers)
+                || !string.IsNullOrWhiteSpace(MembersToAdd)
+                || !string.IsNullOrWhiteSpace(MembersToRemove);
         }
 
         public NotificationTableRow ToTableRow()
@@ -403,12 +426,18 @@ namespace FWO.Services
 
         public List<string> ToCells()
         {
-            return [Task, Type, Title, Action, Members];
+            return [Task, Type, Title, Action, CurrentMembers, MembersToAdd, MembersToRemove];
         }
 
         public object ToJsonObject()
         {
             return this;
         }
+    }
+    internal class WorkflowGroupMembers
+    {
+        public string CurrentMembers { get; set; } = "";
+        public string MembersToAdd { get; set; } = "";
+        public string MembersToRemove { get; set; } = "";
     }
 }

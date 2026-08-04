@@ -54,7 +54,15 @@
 </PopUp>
 
 @code {
+    // the payload travels to the browser over the circuit, so a large report on a slow connection can
+    // easily outlast the one minute default for a js interop call. an export that took minutes to
+    // build must not be thrown away because the transfer was a little slower than that default.
+    private const int kDownloadTimeoutMinutes = 10;
+
     private bool Downloading = false;
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public string Title { get; set; } = "EMPTY_TITLE";
@@ -102,7 +110,8 @@
     /// <summary>
     /// Hands the payload to the browser as a stream. The encoded copy is scoped to this call instead
     /// of being pinned as an interop argument, and streaming avoids the base64 inflation that a
-    /// byte[] argument would add to the interop message on top of it.
+    /// byte[] argument would add to the interop message on top of it. The call only completes once the
+    /// browser has pulled the whole stream, so it is given its own generous timeout.
     /// </summary>
     private async Task DownloadStream(string fileName, string contentType, byte[] data)
     {
@@ -113,11 +122,15 @@
 
             using MemoryStream stream = new(data);
             using DotNetStreamReference streamReference = new(stream);
-            await JSRuntime.InvokeVoidAsync("DownloadFileFromStream", fileName, contentType, streamReference);
+            await JSRuntime.InvokeVoidAsync("DownloadFileFromStream", TimeSpan.FromMinutes(kDownloadTimeoutMinutes),
+                fileName, contentType, streamReference);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            Debug.WriteLine(ex.ToString());
+            // a swallowed failure here is indistinguishable from a download that never started, and
+            // Debug.WriteLine is compiled out of the release build - so it has to be reported properly
+            Log.WriteError("Report Download", $"Transferring {fileName} to the browser failed.", exception);
+            DisplayMessageInUi(exception, userConfig.GetText("download"), userConfig.GetText("download_failed"), true);
         }
         finally
         {

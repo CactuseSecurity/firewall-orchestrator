@@ -491,6 +491,39 @@ namespace FWO.Test
         }
 
         [Test]
+        public void Page_ExecutionModeChangeStartsAndStopsMonitoring()
+        {
+            using BunitContext context = new();
+            FakeSystemUsageCollector collector = new(CreateSnapshot());
+            FakePeriodicTaskRunnerFactory factory = new();
+            IRenderedComponent<MonitorSystemUsage> page = Render(context, collector,
+                new UiSessionTracker(), factory, Roles.Admin, Roles.Reporter);
+            UserConfig userConfig = context.Services.GetRequiredService<UserConfig>();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(collector.CollectCount, Is.EqualTo(0));
+                Assert.That(factory.CreateCount, Is.EqualTo(0));
+            });
+
+            userConfig.SetExecutionMode(Roles.Admin);
+            page.WaitForAssertion(() =>
+            {
+                Assert.That(collector.CollectCount, Is.EqualTo(1));
+                Assert.That(factory.CreateCount, Is.EqualTo(1));
+                Assert.That(factory.LastRunner!.Started, Is.True);
+                Assert.That(page.Markup, Does.Contain("usage-sparkline"));
+            });
+            FakePeriodicTaskRunner activeRunner = factory.LastRunner!;
+
+            userConfig.SetExecutionMode(GlobalConst.kUserRolesSelection);
+            page.WaitForAssertion(() =>
+            {
+                Assert.That(activeRunner.Disposed, Is.True);
+            });
+        }
+
+        [Test]
         public async Task DisposeAsync_StopsTheRefreshRunner()
         {
             using BunitContext context = new();

@@ -195,8 +195,12 @@
     private List<double> CpuHistory { get; set; } = [];
     private List<double> MemoryHistory { get; set; } = [];
     private List<DateTime> HistoryTimes { get; set; } = [];
+    private readonly SemaphoreSlim monitoringStateSemaphore = new(1, 1);
     private IPeriodicTaskRunner? refreshRunner;
     private bool refreshFailureReported;
+    private bool interactiveRenderCompleted;
+    private bool monitoringActive;
+    private bool disposed;
 
     private string LastUpdatedDisplay => Usage.CollectedAt == DateTime.MinValue
         ? "-" : Usage.CollectedAt.ToLocalTime().ToString("G");
@@ -211,7 +215,9 @@
 
     protected override void OnInitialized()
     {
-        if (CanViewUsage)
+        userConfig.OnChange += OnUserConfigChanged;
+        monitoringActive = CanViewUsage;
+        if (monitoringActive)
         {
             Refresh();
         }
@@ -225,11 +231,82 @@
     /// <param name="firstRender">True on the first render of the interactive component.</param>
     protected override void OnAfterRender(bool firstRender)
     {
-        if (firstRender && CanViewUsage && refreshRunner == null)
+        if (firstRender)
         {
-            refreshRunner = periodicTaskRunnerFactory.Create(RefreshAsync,
-                TimeSpan.FromSeconds(kRefreshIntervalSeconds), nameof(MonitorSystemUsage));
-            refreshRunner.Start();
+            interactiveRenderCompleted = true;
+            StartRefreshRunner();
+        }
+    }
+
+    /// <summary>
+    /// Reconciles sampling with the role selected as the current execution mode.
+    /// </summary>
+    /// <param name="config">Changed user configuration.</param>
+    /// <param name="configItems">Configuration items included in the change.</param>
+    private void OnUserConfigChanged(Config config, ConfigItem[] configItems)
+    {
+        if (!disposed)
+        {
+            _ = InvokeAsync(UpdateMonitoringStateAsync);
+        }
+    }
+
+    /// <summary>
+    /// Starts or stops sampling after an execution-mode change and takes an immediate sample when access is gained.
+    /// </summary>
+    private async Task UpdateMonitoringStateAsync()
+    {
+        await monitoringStateSemaphore.WaitAsync();
+        try
+        {
+            if (disposed || monitoringActive == CanViewUsage)
+            {
+                return;
+            }
+
+            monitoringActive = CanViewUsage;
+            if (monitoringActive)
+            {
+                Refresh();
+                StartRefreshRunner();
+            }
+            else
+            {
+                await StopRefreshRunnerAsync();
+            }
+            StateHasChanged();
+        }
+        finally
+        {
+            monitoringStateSemaphore.Release();
+        }
+    }
+
+    /// <summary>
+    /// Starts periodic sampling once the interactive component is rendered and monitoring is active.
+    /// </summary>
+    private void StartRefreshRunner()
+    {
+        if (disposed || !interactiveRenderCompleted || !monitoringActive || refreshRunner != null)
+        {
+            return;
+        }
+
+        refreshRunner = periodicTaskRunnerFactory.Create(RefreshAsync,
+            TimeSpan.FromSeconds(kRefreshIntervalSeconds), nameof(MonitorSystemUsage));
+        refreshRunner.Start();
+    }
+
+    /// <summary>
+    /// Detaches and asynchronously stops the current refresh runner.
+    /// </summary>
+    private async Task StopRefreshRunnerAsync()
+    {
+        IPeriodicTaskRunner? runner = refreshRunner;
+        refreshRunner = null;
+        if (runner != null)
+        {
+            await runner.DisposeAsync();
         }
     }
 
@@ -290,11 +367,21 @@
     /// </summary>
     public async ValueTask DisposeAsync()
     {
-        IPeriodicTaskRunner? runner = refreshRunner;
-        refreshRunner = null;
-        if (runner != null)
+        if (disposed)
         {
-            await runner.DisposeAsync();
+            return;
+        }
+
+        disposed = true;
+        userConfig.OnChange -= OnUserConfigChanged;
+        await monitoringStateSemaphore.WaitAsync();
+        try
+        {
+            await StopRefreshRunnerAsync();
+        }
+        finally
+        {
+            monitoringStateSemaphore.Release();
         }
     }
 }

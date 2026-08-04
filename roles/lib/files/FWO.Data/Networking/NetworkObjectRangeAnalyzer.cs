@@ -65,11 +65,13 @@ namespace FWO.Data.Networking
         /// </summary>
         public bool MatchesIpFilter(IPAddress ipAddress, int minPrefix, IEnumerable<NetworkObject> objects)
         {
-            List<NetworkObjectRangeAnalysis> analyses = AnalyzeMany(objects);
-            return analyses.Any(analysis =>
-                analysis.IsSupported
-                && analysis.PrefixLength >= minPrefix
-                && IsIpInRange(ipAddress, analysis.Start, analysis.End));
+            return objects
+                .Where(obj => obj.Type.Name != ObjectType.Group)
+                .Select(Analyze)
+                .Any(analysis =>
+                    analysis.IsSupported
+                    && analysis.PrefixLength >= minPrefix
+                    && IsIpInRange(ipAddress, analysis.Start, analysis.End));
         }
 
         /// <summary>

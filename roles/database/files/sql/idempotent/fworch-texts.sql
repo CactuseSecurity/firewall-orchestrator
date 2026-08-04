@@ -3293,6 +3293,68 @@ INSERT INTO txt VALUES ('refreshtoken_lifetime','German',   'Refresh Token G&uum
 INSERT INTO txt VALUES ('refreshtoken_lifetime','English',  'Refresh Token Lifetime');
 
 -- monitoring
+INSERT INTO txt VALUES ('system',               'German', 	'System');
+INSERT INTO txt VALUES ('system',               'English', 	'System');
+INSERT INTO txt VALUES ('system_usage',         'German', 	'Systemauslastung');
+INSERT INTO txt VALUES ('system_usage',         'English', 	'System Usage');
+INSERT INTO txt VALUES ('logged_in_users',      'German', 	'Angemeldete Nutzer');
+INSERT INTO txt VALUES ('logged_in_users',      'English', 	'Logged-in Users');
+INSERT INTO txt VALUES ('open_sessions',        'German', 	'Offene Sitzungen');
+INSERT INTO txt VALUES ('open_sessions',        'English', 	'Open Sessions');
+INSERT INTO txt VALUES ('connected_sessions',   'German', 	'Verbunden');
+INSERT INTO txt VALUES ('connected_sessions',   'English', 	'Connected');
+INSERT INTO txt VALUES ('cpu_usage',            'German', 	'CPU-Auslastung');
+INSERT INTO txt VALUES ('cpu_usage',            'English', 	'CPU Usage');
+INSERT INTO txt VALUES ('cpu_cores',            'German', 	'Prozessorkerne');
+INSERT INTO txt VALUES ('cpu_cores',            'English', 	'CPU Cores');
+INSERT INTO txt VALUES ('load_average',         'German', 	'Systemlast (1/5/15 min)');
+INSERT INTO txt VALUES ('load_average',         'English', 	'Load Average (1/5/15 min)');
+INSERT INTO txt VALUES ('memory_usage',         'German', 	'Speicherauslastung');
+INSERT INTO txt VALUES ('memory_usage',         'English', 	'Memory Usage');
+INSERT INTO txt VALUES ('memory_total',         'German', 	'Gesamtspeicher');
+INSERT INTO txt VALUES ('memory_total',         'English', 	'Total Memory');
+INSERT INTO txt VALUES ('memory_used',          'German', 	'Belegter Speicher');
+INSERT INTO txt VALUES ('memory_used',          'English', 	'Used Memory');
+INSERT INTO txt VALUES ('memory_free',          'German', 	'Freier Speicher');
+INSERT INTO txt VALUES ('memory_free',          'English', 	'Free Memory');
+INSERT INTO txt VALUES ('memory_available',     'German', 	'Verf&uuml;gbarer Speicher');
+INSERT INTO txt VALUES ('memory_available',     'English', 	'Available Memory');
+INSERT INTO txt VALUES ('swap_usage',           'German', 	'Auslagerungsspeicher');
+INSERT INTO txt VALUES ('swap_usage',           'English', 	'Swap Usage');
+INSERT INTO txt VALUES ('ui_process',           'German', 	'UI-Prozess');
+INSERT INTO txt VALUES ('ui_process',           'English', 	'UI Process');
+INSERT INTO txt VALUES ('system_services',      'German', 	'Weitere Dienste auf diesem Server');
+INSERT INTO txt VALUES ('system_services',      'English', 	'Other Services on this Host');
+INSERT INTO txt VALUES ('middleware',           'German', 	'Middleware');
+INSERT INTO txt VALUES ('middleware',           'English', 	'Middleware');
+INSERT INTO txt VALUES ('importer',             'German', 	'Importer');
+INSERT INTO txt VALUES ('importer',             'English', 	'Importer');
+INSERT INTO txt VALUES ('database',             'German', 	'Datenbank');
+INSERT INTO txt VALUES ('database',             'English', 	'Database');
+INSERT INTO txt VALUES ('hasura_api',           'German', 	'Hasura API');
+INSERT INTO txt VALUES ('hasura_api',           'English', 	'Hasura API');
+INSERT INTO txt VALUES ('ldap_server',          'German', 	'LDAP-Server');
+INSERT INTO txt VALUES ('ldap_server',          'English', 	'LDAP Server');
+INSERT INTO txt VALUES ('processes',            'German', 	'Prozesse');
+INSERT INTO txt VALUES ('processes',            'English', 	'Processes');
+INSERT INTO txt VALUES ('no_services_found',    'German', 	'Auf diesem Server laufen keine weiteren Dienste des Firewall Orchestrator.');
+INSERT INTO txt VALUES ('no_services_found',    'English', 	'No other Firewall Orchestrator services are running on this host.');
+INSERT INTO txt VALUES ('services_not_visible', 'German', 	'Prozesse anderer Nutzer sind auf diesem Server nicht sichtbar. Die Liste der Dienste kann daher unvollst&auml;ndig sein.');
+INSERT INTO txt VALUES ('services_not_visible', 'English', 	'Processes of other users are not visible on this host. The list of services may therefore be incomplete.');
+INSERT INTO txt VALUES ('working_set',          'German', 	'Arbeitsspeicher');
+INSERT INTO txt VALUES ('working_set',          'English', 	'Working Set');
+INSERT INTO txt VALUES ('managed_heap',         'German', 	'Verwalteter Heap');
+INSERT INTO txt VALUES ('managed_heap',         'English', 	'Managed Heap');
+INSERT INTO txt VALUES ('threads',              'German', 	'Threads');
+INSERT INTO txt VALUES ('threads',              'English', 	'Threads');
+INSERT INTO txt VALUES ('uptime',               'German', 	'Laufzeit');
+INSERT INTO txt VALUES ('uptime',               'English', 	'Uptime');
+INSERT INTO txt VALUES ('last_updated',         'German', 	'Zuletzt aktualisiert');
+INSERT INTO txt VALUES ('last_updated',         'English', 	'Last updated');
+INSERT INTO txt VALUES ('collecting_data',      'German', 	'Daten werden gesammelt ...');
+INSERT INTO txt VALUES ('collecting_data',      'English', 	'Collecting data ...');
+INSERT INTO txt VALUES ('usage_data_unavailable', 'German', 	'Die Systemwerte konnten nicht ermittelt werden. Auslastungsdaten stehen nur auf Linux-Systemen zur Verf&uuml;gung.');
+INSERT INTO txt VALUES ('usage_data_unavailable', 'English', 	'The system counters could not be read. Usage data is only available on Linux systems.');
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
 INSERT INTO txt VALUES ('open_alerts',          'English', 	'Open Alerts');
 INSERT INTO txt VALUES ('all_alerts',           'German', 	'Alle Alarme');
@@ -3961,6 +4023,10 @@ INSERT INTO txt VALUES ('U7001', 'German',  '&Uuml;berblick der Ereignisse im Fi
 INSERT INTO txt VALUES ('U7001', 'English', 'Alerts and events inside Firewall Orchestrator');
 INSERT INTO txt VALUES ('U7002', 'German',  'Daten sind dann verloren. Erw&auml;gen Sie eine Deaktivierung.');
 INSERT INTO txt VALUES ('U7002', 'English', 'Data will be lost. Consider deactivation.');
+INSERT INTO txt VALUES ('U7004', 'German',  'Aktuelle Ressourcennutzung des Firewall Orchestrator');
+INSERT INTO txt VALUES ('U7004', 'English', 'Current resource usage of the Firewall Orchestrator');
+INSERT INTO txt VALUES ('U7005', 'German',  'Dienste, die auf demselben Server wie die UI laufen. Die CPU-Auslastung bezieht sich auf alle Kerne zusammen, Werte mehrerer Prozesse eines Dienstes sind aufsummiert.');
+INSERT INTO txt VALUES ('U7005', 'English', 'Services running on the same host as the UI. The CPU usage relates to all cores combined, values of services consisting of several processes are summed up.');
 INSERT INTO txt VALUES ('U7003', 'German',  'L&ouml;scht alle Beispieldaten (auf "_demo" endend): Managements, Login-Daten, Gateways, Nutzer, Mandanten, Gruppen, Eigent&uuml;mer');
 INSERT INTO txt VALUES ('U7003', 'English', 'Deletes all sample data (ending with "_demo"): managements, credentials, gateways, users, tenants, groups, owners');
 INSERT INTO txt VALUES ('U7101', 'German',  'Archiv der Alarme mit Best&auml;tigungen');
@@ -7519,6 +7585,48 @@ INSERT INTO txt VALUES ('H7016', 'German', 'Das Kapitel "Workflow" bietet eine &
 ');
 INSERT INTO txt VALUES ('H7016', 'English', 'The "Workflow" chapter provides an overview of all workflow tickets and allows administrative state changes.
 ');
+INSERT INTO txt VALUES ('H7017', 'German', 'Das Kapitel "System" zeigt die aktuelle Ressourcennutzung des Firewall Orchestrator selbst
+    und ist gleichzeitig die Startseite des Monitoring-Bereichs.
+');
+INSERT INTO txt VALUES ('H7017', 'English', 'The "System" chapter shows the current resource usage of the Firewall Orchestrator itself
+    and is at the same time the start page of the monitoring section.
+');
+INSERT INTO txt VALUES ('H7106', 'German', 'Die Systemauslastung zeigt einen &Uuml;berblick &uuml;ber die aktuelle Ressourcennutzung des UI-Servers und des Betriebssystems, auf dem er l&auml;uft.
+    Die Werte werden alle f&uuml;nf Sekunden automatisch aktualisiert, mit "Aktualisieren" kann eine Messung sofort ausgel&ouml;st werden.
+');
+INSERT INTO txt VALUES ('H7106', 'English', 'System usage gives an overview of the current resource usage of the UI server and of the operating system it runs on.
+    The values are refreshed automatically every five seconds, "Refresh" triggers a measurement immediately.
+');
+INSERT INTO txt VALUES ('H7107', 'German', 'Angemeldete Nutzer und offene Sitzungen: Eine Sitzung entspricht einem ge&ouml;ffneten Browser-Tab.
+    Ein Nutzer kann also mehrere Sitzungen besitzen, die Anzahl der angemeldeten Nutzer z&auml;hlt jeden Nutzer nur einmal.
+    "Verbunden" gibt an, wie viele dieser Sitzungen gerade eine aktive Verbindung zum Browser haben.');
+INSERT INTO txt VALUES ('H7107', 'English', 'Logged-in users and open sessions: one session corresponds to one open browser tab.
+    A user can therefore hold several sessions, whereas the number of logged-in users counts every user only once.
+    "Connected" states how many of those sessions currently have an active browser connection.');
+INSERT INTO txt VALUES ('H7108', 'German', 'Speicher- und CPU-Auslastung beziehen sich auf das gesamte System. "Verf&uuml;gbarer Speicher" ist der Speicher,
+    der neuen Anwendungen ohne Auslagern zur Verf&uuml;gung steht. Er enth&auml;lt neben dem komplett unbenutzten Speicher auch die Caches,
+    die der Kernel bei Bedarf sofort wieder freigibt, und ist damit der aussagekr&auml;ftige Wert f&uuml;r den Speicherbedarf.
+    Die Verlaufsgrafiken zeigen die Messwerte, seit die Seite ge&ouml;ffnet wurde. Die Zeitangaben darunter markieren den dargestellten Messzeitraum.');
+INSERT INTO txt VALUES ('H7108', 'English', 'Memory and CPU usage refer to the whole system. "Available Memory" is the memory that can be given to new
+    applications without swapping. Besides the completely unused memory it also contains the caches the kernel hands back on demand,
+    which makes it the meaningful figure for judging the memory situation.
+    The trend graphs show the measurements taken since the page was opened. The timestamps below them mark the displayed measurement period.');
+INSERT INTO txt VALUES ('H7109', 'German', 'Der Abschnitt "UI-Prozess" zeigt die Werte des UI-Servers selbst: belegter Arbeitsspeicher, Gr&ouml;sse des verwalteten
+    Heaps, Anzahl der Threads und die Laufzeit seit dem letzten Start.');
+INSERT INTO txt VALUES ('H7109', 'English', 'The "UI Process" section shows the values of the UI server itself: used working set, size of the managed heap,
+    number of threads and the uptime since its last start.');
+INSERT INTO txt VALUES ('H7110', 'German', 'Der Abschnitt "Weitere Dienste auf diesem Server" zeigt dieselben Werte f&uuml;r Middleware, Importer, Hasura API, Datenbank und LDAP-Server,
+    sofern diese auf demselben Server wie die UI laufen. Dienste auf anderen Servern der Installation werden nicht aufgef&uuml;hrt.
+    Besteht ein Dienst aus mehreren Prozessen (z. B. die Datenbank), sind deren Werte aufsummiert und die Spalte "Prozesse" zeigt ihre Anzahl;
+    der Arbeitsspeicher kann dabei h&ouml;her wirken als tats&auml;chlich belegt, da sich die Prozesse Speicher teilen.
+    Die Speicherauslastung gibt den Anteil am gesamten Arbeitsspeicher des Servers an.
+    Die CPU-Auslastung bezieht sich wie beim UI-Prozess auf alle Kerne zusammen: 100 % bedeutet, dass alle Kerne ausgelastet sind.');
+INSERT INTO txt VALUES ('H7110', 'English', 'The "Other Services on this Host" section shows the same values for middleware, importer, Hasura API, database and LDAP server,
+    as far as they run on the same host as the UI. Services on other hosts of the installation are not listed.
+    If a service consists of several processes (the database for example), their values are summed up and the "Processes" column shows their number;
+    the memory can then look higher than it really is, because the processes share memory.
+    The memory usage states the share of the total memory of the host.
+    Like for the UI process the CPU usage relates to all cores combined: 100 % means that all cores are busy.');
 INSERT INTO txt VALUES ('H7030', 'German', 'Die Workflow-Ticket-&Uuml;berwachung zeigt Tickets mit ihren Antrags- und Umsetzungsaufgaben.
     Die Filter f&uuml;r Aufgabentyp und Status greifen auf allen Ebenen: Ein Ticket wird angezeigt, wenn es mindestens eine Aufgabe eines gew&auml;hlten Typs enth&auml;lt und wenn das Ticket selbst, eine Antragsaufgabe, eine Umsetzungsaufgabe oder eine Genehmigung einen der gew&auml;hlten Status besitzt.
 ');

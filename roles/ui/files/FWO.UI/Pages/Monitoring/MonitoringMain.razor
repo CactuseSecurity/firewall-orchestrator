@@ -5,7 +5,6 @@
 @using System.Net
 @using System.Text.Json
 
-@page "/monitoring"
 @page "/monitoring/main"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}")]
 

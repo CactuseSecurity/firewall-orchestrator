@@ -239,11 +239,9 @@
     }
 
     /// <summary>
-    /// Reconciles sampling with the role selected as the current execution mode.
+    /// Schedules monitoring-state reconciliation after user configuration changes.
     /// </summary>
-    /// <param name="config">Changed user configuration.</param>
-    /// <param name="configItems">Configuration items included in the change.</param>
-    private void OnUserConfigChanged(Config config, ConfigItem[] configItems)
+    private void OnUserConfigChanged(Config __, ConfigItem[] ___)
     {
         if (!disposed)
         {

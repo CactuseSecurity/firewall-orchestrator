@@ -9,15 +9,12 @@ namespace FWO.Test
     /// assembly at build time (see FWO.Test.csproj), so no file of another component is read at runtime.
     /// </summary>
     [TestFixture]
-    internal class UiPopUpStyleTest
+    internal partial class UiPopUpStyleTest
     {
         private const string kPopUpCssResource = "FWO.Test.PopUp.css";
         private const string kSiteCssResource = "FWO.Test.site.css";
         private const string kModalMarginVariable = "--bs-custom-modal-margin-top";
-
-        private static readonly Regex kCommentPattern = new(@"/\*.*?\*/", RegexOptions.Singleline);
-        private static readonly Regex kTransformPattern = new(@"(^|[;{\s])transform\s*:", RegexOptions.Multiline);
-        private static readonly Regex kCenterRulePattern = new(@"\.custom-modal-center\s*\{(?<body>[^}]*)\}");
+        private const int knMilliseconds = 1000;
 
         /// <summary>
         /// All rules of the popup stylesheet apply to the modal itself, which is an ancestor of every
@@ -29,7 +26,7 @@ namespace FWO.Test
         {
             string popUpCss = ReadStyleSheetWithoutComments(kPopUpCssResource);
 
-            Assert.That(kTransformPattern.IsMatch(popUpCss), Is.False,
+            Assert.That(TransformDeclarationRegex().IsMatch(popUpCss), Is.False,
                 "The modal must not use a transform: it would shift every position: fixed element inside the popup.");
         }
 
@@ -42,7 +39,7 @@ namespace FWO.Test
         {
             string popUpCss = ReadStyleSheetWithoutComments(kPopUpCssResource);
 
-            Match centerRule = kCenterRulePattern.Match(popUpCss);
+            Match centerRule = CenterRuleRegex().Match(popUpCss);
             Assert.That(centerRule.Success, Is.True, "The class centering the popups is missing.");
 
             string declarations = NormalizeWhitespace(centerRule.Groups["body"].Value);
@@ -76,12 +73,24 @@ namespace FWO.Test
             using Stream stream = assembly.GetManifestResourceStream(resourceName)
                 ?? throw new InvalidOperationException($"Embedded stylesheet '{resourceName}' not found.");
             using StreamReader reader = new(stream);
-            return kCommentPattern.Replace(reader.ReadToEnd(), "");
+            return CommentRegex().Replace(reader.ReadToEnd(), "");
         }
 
         private static string NormalizeWhitespace(string declarations)
         {
-            return Regex.Replace(declarations, @"\s+", " ");
+            return WhitespaceRegex().Replace(declarations, " ");
         }
+
+        [GeneratedRegex(@"/\*.*?\*/", RegexOptions.Singleline, knMilliseconds)]
+        private static partial Regex CommentRegex();
+
+        [GeneratedRegex(@"(^|[;{\s])transform\s*:", RegexOptions.Multiline, knMilliseconds)]
+        private static partial Regex TransformDeclarationRegex();
+
+        [GeneratedRegex(@"\.custom-modal-center\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
+        private static partial Regex CenterRuleRegex();
+
+        [GeneratedRegex(@"\s+", RegexOptions.None, knMilliseconds)]
+        private static partial Regex WhitespaceRegex();
     }
 }

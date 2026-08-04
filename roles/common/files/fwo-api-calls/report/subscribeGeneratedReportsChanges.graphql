@@ -1,5 +1,5 @@
-subscription subscribeGeneratedReportsChanges {
-  report(order_by:{report_id:desc}) {
+subscription subscribeGeneratedReportsChanges($limit: Int) {
+  report(order_by:{report_id:desc}, limit: $limit) {
     report_id
     report_name
     report_start_time

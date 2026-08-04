@@ -270,6 +270,54 @@ namespace FWO.Test
             Assert.That(report, Is.Null);
         }
 
+        private static readonly List<ModellingConnection> SharedCommonServices =
+        [
+            new() { Id = 88, Name = "shared-service" }
+        ];
+
+        [Test]
+        public void GenerateFromTemplate_KeepsNoReportInStaticState()
+        {
+            // the generator used to park the report in a static field while building a connection
+            // related report and never cleared it. that kept the last one generated on the whole
+            // server alive for the lifetime of the process, and let two users generating a variance
+            // report at the same time write into each other's report.
+            List<FieldInfo> reportHoldingStatics = typeof(ReportGenerator)
+                .GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
+                .Where(field => typeof(ReportBase).IsAssignableFrom(field.FieldType)
+                             || typeof(ReportData).IsAssignableFrom(field.FieldType))
+                .ToList();
+
+            Assert.That(reportHoldingStatics, Is.Empty,
+                $"ReportGenerator must stay stateless but holds: {string.Join(", ", reportHoldingStatics.Select(field => field.Name))}");
+        }
+
+        [Test]
+        public async Task GenerateFromTemplate_ConnectionsReportsDoNotShareStateBetweenGenerations()
+        {
+            ReportTemplate firstTemplate = BuildTemplate(ReportType.Connections);
+            ReportTemplate secondTemplate = BuildTemplate(ReportType.Connections);
+
+            ReportBase? firstReport = await ReportGenerator.GenerateFromTemplate(
+                firstTemplate,
+                new ReportGeneratorApiConnection(commonServices: SharedCommonServices),
+                new SimulatedUserConfig(),
+                DisplayNothing);
+
+            ReportBase? secondReport = await ReportGenerator.GenerateFromTemplate(
+                secondTemplate,
+                new ReportGeneratorApiConnection(),
+                new SimulatedUserConfig(),
+                DisplayNothing);
+
+            Assert.That(firstReport, Is.Not.Null);
+            Assert.That(secondReport, Is.Not.Null);
+            Assert.That(secondReport, Is.Not.SameAs(firstReport));
+            // the second generation must not have inherited the first one's common services
+            Assert.That(firstReport!.ReportData.GlobalComSvc, Has.Exactly(1).Items);
+            Assert.That(secondReport!.ReportData.GlobalComSvc, Is.Empty);
+        }
+
         [Test]
         public void SetRelevantManagements_MarksUnselectedManagementsIgnored()
         {

@@ -127,7 +127,7 @@
 </PopUp>
 
 <ReportDownloadPopUp Title="@(userConfig.GetText("export_report_download"))" ReportFile="reportExportFile"
-    Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportDownloadDialog = false" />
+    Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="CloseExportDownloadDialog" />
 
 @code
 {
@@ -147,6 +147,16 @@
 
     private bool ShowExportDialog = false;
     private bool ShowExportDownloadDialog = false;
+
+    /// <summary>
+    /// Closes the download dialog and drops the html the export left cached on the report. The next
+    /// export rebuilds it; keeping it would hold the rendered report for the rest of the session.
+    /// </summary>
+    private void CloseExportDownloadDialog()
+    {
+        ShowExportDownloadDialog = false;
+        ReportToExport?.ReleaseExportCache();
+    }
 
     private bool Exporting = false;
 

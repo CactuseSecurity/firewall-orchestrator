@@ -87,6 +87,13 @@
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private GraphQlApiSubscription<List<ReportFile>>? archivedReportsSubscription;
+
+    // the subscription re-sends the whole list to every circuit on this page whenever any report is
+    // added, so it has to be bounded - otherwise it grows for as long as the installation keeps
+    // archiving reports. newest first, which is the order the table shows them in anyway.
+    private const int kMaxArchivedReportsShown = 1000;
+    private static readonly object ArchiveLimit = new { limit = kMaxArchivedReportsShown };
+
     private List<ReportFile> archivedReports = [];
     private List<ReportFile> visibleReports = [];
     private ReportType selectedReportType = ReportType.Undefined;
@@ -108,8 +115,8 @@
         try
         {
             // Initial fetch to speed up loading before subscription is established
-            archivedReports = await apiConnection.SendQueryAsync<List<ReportFile>>(ReportQueries.getGeneratedReports);
-            archivedReportsSubscription = apiConnection.GetSubscription<List<ReportFile>>(HandleSubscriptionError, OnReportArchiveUpdate, ReportQueries.subscribeGeneratedReportsChanges);
+            archivedReports = await apiConnection.SendQueryAsync<List<ReportFile>>(ReportQueries.getGeneratedReports, ArchiveLimit);
+            archivedReportsSubscription = apiConnection.GetSubscription<List<ReportFile>>(HandleSubscriptionError, OnReportArchiveUpdate, ReportQueries.subscribeGeneratedReportsChanges, ArchiveLimit);
             availableOwnersList = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners);
             FwoOwner? superOwner = availableOwnersList.FirstOrDefault(o => o.Id == 0);
             if(superOwner != null)

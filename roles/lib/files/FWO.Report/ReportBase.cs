@@ -53,7 +53,9 @@ namespace FWO.Report
 
     public abstract class ReportBase
     {
-        protected StringBuilder HtmlTemplate = new($@"
+        // kept as the pristine source so that the rendered report can be discarded again: the builder
+        // below is substituted in place, so after an export it holds a full copy of the report body
+        private static readonly string HtmlTemplateSource = $@"
 <!DOCTYPE html>
 <html>
 <head>
@@ -73,7 +75,9 @@ namespace FWO.Report
         <hr>
         ##Body##
     </body>
-</html>");
+</html>";
+
+        protected StringBuilder HtmlTemplate = new(HtmlTemplateSource);
 
         public readonly DynGraphqlQuery Query;
         public UserConfig userConfig;
@@ -91,12 +95,32 @@ namespace FWO.Report
 
         public bool GotObjectsInReport { get; protected set; } = false;
 
+        // every pdf export starts its own headless browser, which costs a few hundred megabytes while it
+        // runs. nothing else limits how many exports happen at once, so without this gate a handful of
+        // simultaneous exports is enough to drive the whole service into the out of memory killer.
+        private const int kMaxConcurrentPdfRenders = 2;
+        private static readonly SemaphoreSlim PdfRenderGate = new(kMaxConcurrentPdfRenders, kMaxConcurrentPdfRenders);
+
 
         protected ReportBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType)
         {
             Query = query;
             userConfig = UserConfig;
             ReportType = reportType;
+        }
+
+        /// <summary>
+        /// Drops the cached html rendering of this report. It is only needed while an export is being
+        /// prepared - keeping it afterwards pins a multi megabyte string to the report for as long as
+        /// the page holds it, on top of the report data itself. The template is reset as well, because
+        /// the substitutions happen in place and leave a second copy of the body inside the builder.
+        /// </summary>
+        public void ReleaseExportCache()
+        {
+            htmlExport = "";
+            htmlBodyExport = "";
+            htmlBodyExportValid = false;
+            HtmlTemplate = new(HtmlTemplateSource);
         }
 
         public abstract Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct);
@@ -410,6 +434,25 @@ namespace FWO.Report
                 executablePath = latestInstalledBrowser.GetExecutablePath();
             }
 
+            // hold the gate for the whole browser lifetime, not just the launch, so that at most
+            // kMaxConcurrentPdfRenders headless browsers are resident at any one time
+            await PdfRenderGate.WaitAsync();
+            try
+            {
+                return await RenderPdfInBrowser(html, format, executablePath, wantedBrowser);
+            }
+            finally
+            {
+                PdfRenderGate.Release();
+            }
+        }
+
+        /// <summary>
+        /// Renders the given html to a base64 encoded pdf in a dedicated headless browser instance.
+        /// Callers must hold <see cref="PdfRenderGate"/> for the duration of this call.
+        /// </summary>
+        private async Task<string?> RenderPdfInBrowser(string html, PaperFormat format, string executablePath, SupportedBrowser wantedBrowser)
+        {
             IBrowser? browser;
 
             try

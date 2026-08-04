@@ -136,16 +136,35 @@
   register: templated_unit_files
   become: true
 
-- name: every templated unit must restart and must not run into the systemd start rate limit
+- name: every templated unit must restart and must survive a slow dependency startup
   assert:
     that:
       - "'After=network-online.target' in unit_content"
-      - "'StartLimitIntervalSec=0' in unit_content"
+      - "'StartLimitIntervalSec=' ~ fworch_systemd_start_limit_interval_sec in unit_content"
+      - "'StartLimitBurst=' ~ fworch_systemd_start_limit_burst in unit_content"
       - "'Restart=' in unit_content"
       - "'RestartSec=' ~ fworch_systemd_restart_sec in unit_content"
     fail_msg: "{{ item.item }} is missing startup ordering or restart hardening"
   vars:
     unit_content: "{{ item.content | b64decode }}"
+  loop: "{{ templated_unit_files.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+# the start limit above only turns an endless crash loop into a failed state; the memory ceiling
+# decides which service dies in the first place, instead of leaving the choice to the kernel
+- name: every templated unit must cap its memory unless it was deliberately left uncapped
+  assert:
+    that:
+      - "'MemoryMax=' ~ expected_memory_max in unit_content"
+      - "'OOMPolicy=' in unit_content"
+    fail_msg: "{{ item.item }} does not carry the expected MemoryMax={{ expected_memory_max }}"
+  vars:
+    unit_content: "{{ item.content | b64decode }}"
+    expected_memory_max: >-
+      {{ {product_name ~ '-ui': fworch_ui_memory_max,
+          middleware_service_name: fworch_middleware_memory_max,
+          product_name ~ '-importer-api': fworch_importer_memory_max}[item.item] | trim }}
   loop: "{{ templated_unit_files.results }}"
   loop_control:
     label: "{{ item.item }}"
@@ -162,7 +181,8 @@
   assert:
     that:
       - "'After=network-online.target' in dropin_content"
-      - "'StartLimitIntervalSec=0' in dropin_content"
+      - "'StartLimitIntervalSec=' ~ fworch_systemd_start_limit_interval_sec in dropin_content"
+      - "'StartLimitBurst=' ~ fworch_systemd_start_limit_burst in dropin_content"
       - "'RestartSec=' ~ fworch_systemd_restart_sec in dropin_content"
       - "'databaseserver' not in group_names or 'postgresql.service' in dropin_content"
     fail_msg: "the Hasura drop-in does not order the api service after its dependencies"

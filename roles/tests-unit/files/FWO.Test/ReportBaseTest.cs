@@ -55,9 +55,11 @@ namespace FWO.Test
 
         private sealed class FrameReportBase() : ReportBase(new DynGraphqlQuery(""), new SimulatedUserConfig(), ReportType.TicketReport)
         {
+            public string Body { get; set; } = "<p>frame body</p>";
+
             public string BuildHtmlFrame()
             {
-                return GenerateHtmlFrameBase("Frame Title", "", DateTime.Parse("2026-01-01T00:00:00Z"), new StringBuilder("<p>frame body</p>"));
+                return GenerateHtmlFrameBase("Frame Title", "", DateTime.Parse("2026-01-01T00:00:00Z"), new StringBuilder(Body));
             }
 
             public override Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
@@ -317,6 +319,69 @@ namespace FWO.Test
             Assert.That(ReportBase.GetIconClass(ObjCategory.nobj, ObjectType.Host), Is.EqualTo(Icons.Host));
             Assert.That(ReportBase.GetIconClass(ObjCategory.nsrv, ObjectType.AccessRole), Is.EqualTo(Icons.User));
             Assert.That(ReportBase.GetIconClass(null, null), Is.EqualTo(""));
+        }
+
+        [Test]
+        public void ExportToHtmlKeepsTheRenderedHtmlCachedUntilItIsReleased()
+        {
+            FrameReportBase report = new();
+
+            string firstExport = report.ExportToHtml();
+
+            Assert.That(firstExport, Does.Contain("frame body"));
+            // the cache is what makes a repeated export cheap, and also what keeps the string alive
+            Assert.That(report.ExportToHtml(), Is.SameAs(firstExport));
+        }
+
+        [Test]
+        public void ReleaseExportCacheDropsTheCachedHtmlSoTheNextExportRebuildsIt()
+        {
+            FrameReportBase report = new();
+            string firstExport = report.ExportToHtml();
+
+            report.ReleaseExportCache();
+            string secondExport = report.ExportToHtml();
+
+            Assert.That(secondExport, Does.Contain("frame body"));
+            Assert.That(secondExport, Is.Not.SameAs(firstExport));
+        }
+
+        [Test]
+        public void ReleaseExportCacheAlsoDropsTheCachedHtmlBody()
+        {
+            FrameReportBase report = new();
+            string firstBody = report.ExportToHtmlBody();
+            Assert.That(firstBody, Does.Contain("frame body"));
+
+            report.ReleaseExportCache();
+
+            Assert.That(report.ExportToHtmlBody(), Is.Not.SameAs(firstBody));
+        }
+
+        [Test]
+        public void ReleaseExportCacheIsSafeToCallWithoutAPreviousExport()
+        {
+            FrameReportBase report = new();
+
+            Assert.DoesNotThrow(report.ReleaseExportCache);
+            Assert.That(report.ExportToHtml(), Does.Contain("frame body"));
+        }
+
+        [Test]
+        public void ReleaseExportCacheResetsTheTemplateSoNoCopyOfTheBodyIsLeftBehind()
+        {
+            // the template is substituted in place, so a release that only cleared the export string
+            // would still leave a full copy of the rendered body inside the builder. rendering a
+            // different body after the release is what proves the template really went back to blank.
+            FrameReportBase report = new();
+            report.ExportToHtml();
+
+            report.ReleaseExportCache();
+            report.Body = "<p>second body</p>";
+            string rebuilt = report.ExportToHtml();
+
+            Assert.That(rebuilt, Does.Contain("second body"));
+            Assert.That(rebuilt, Does.Not.Contain("frame body"));
         }
     }
 }

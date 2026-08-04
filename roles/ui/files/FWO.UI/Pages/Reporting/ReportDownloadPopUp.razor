@@ -16,7 +16,7 @@
                 @if (ReportFile?.Csv != null)
                 {
                     <btn class="btn btn-sm btn-info m-1"
-                    @onclick="@(async _ => { await DownloadFile(ReportFile.Name + ".csv", "text/csv", Encoding.UTF8.GetBytes(ReportFile.Csv)); })">
+                    @onclick="@(async _ => { await DownloadText(ReportFile.Name + ".csv", "text/csv", ReportFile.Csv); })">
                         @(userConfig.GetText("download_csv"))
                     </btn>
                 }
@@ -24,24 +24,24 @@
                 {
                     @*TODO: application/pdf would be correct but Firefox ignores the new tab request in this case*@
                     <btn class="btn btn-sm btn-info m-1"
-                    @onclick="@(async _ => { await DownloadFile(ReportFile.Name + ".pdf", "application/octet-stream", Convert.FromBase64String(ReportFile.Pdf)); })">
+                    @onclick="@(async _ => { await DownloadBase64(ReportFile.Name + ".pdf", "application/octet-stream", ReportFile.Pdf); })">
                         @(userConfig.GetText("download_pdf"))
                     </btn>
                 }
                 @if (ReportFile?.Html != null)
                 {
                     <btn class="btn btn-sm btn-info m-1"
-                    @onclick="@(async _ => { await DownloadFile(ReportFile.Name + ".html", "text/html", Encoding.UTF8.GetBytes(ReportFile.Html)); })">
+                    @onclick="@(async _ => { await DownloadText(ReportFile.Name + ".html", "text/html", ReportFile.Html); })">
                         @(userConfig.GetText("download_html"))
                     </btn>
                 }
                 @if (ReportFile?.Json != null && ShowJson)
                 {
                     <btn class="btn btn-sm btn-info m-1"
-                    @onclick="@(async _ => { await DownloadFile(ReportFile.Name + ".json", "application/json", Encoding.UTF8.GetBytes(ReportFile.Json)); })">
+                    @onclick="@(async _ => { await DownloadText(ReportFile.Name + ".json", "application/json", ReportFile.Json); })">
                         @(userConfig.GetText("download_json"))
                     </btn>
-                }            
+                }
             }
         </div>
     </Body>
@@ -74,28 +74,55 @@
     private void Close()
     {
         Show = false;
+        // the exported formats are the largest objects this circuit holds. both callers refill them
+        // when the dialog is opened again, so release them here instead of keeping every format of
+        // every report exported during the session resident for the rest of the session.
+        ReportFile?.ReleaseContent();
         OnClose();
     }
 
-    private async Task DownloadFile(string fileName, string contentType, byte[] data)
+    private async Task DownloadText(string fileName, string contentType, string? content)
     {
-        await Task.Run(async () =>
+        if (content == null)
         {
-            try
-            {
-                if(ReportFile != null)
-                {
-                    Downloading = true;
-                    await InvokeAsync(StateHasChanged);
-                    await JSRuntime.InvokeVoidAsync("DownloadFile", fileName, contentType, data);
-                    Downloading = false;
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(ex.ToString());
-            }            
-        });
+            return;
+        }
+        await DownloadStream(fileName, contentType, Encoding.UTF8.GetBytes(content));
+    }
+
+    private async Task DownloadBase64(string fileName, string contentType, string? base64Content)
+    {
+        if (base64Content == null)
+        {
+            return;
+        }
+        await DownloadStream(fileName, contentType, Convert.FromBase64String(base64Content));
+    }
+
+    /// <summary>
+    /// Hands the payload to the browser as a stream. The encoded copy is scoped to this call instead
+    /// of being pinned as an interop argument, and streaming avoids the base64 inflation that a
+    /// byte[] argument would add to the interop message on top of it.
+    /// </summary>
+    private async Task DownloadStream(string fileName, string contentType, byte[] data)
+    {
+        try
+        {
+            Downloading = true;
+            await InvokeAsync(StateHasChanged);
+
+            using MemoryStream stream = new(data);
+            using DotNetStreamReference streamReference = new(stream);
+            await JSRuntime.InvokeVoidAsync("DownloadFileFromStream", fileName, contentType, streamReference);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex.ToString());
+        }
+        finally
+        {
+            Downloading = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 }
-

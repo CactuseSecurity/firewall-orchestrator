@@ -19,10 +19,7 @@ namespace FWO.Data.Networking
         /// </summary>
         public List<NetworkObjectRangeAnalysis> AnalyzeMany(IEnumerable<NetworkObject> objects)
         {
-            return objects
-                .Where(obj => obj.Type.Name != ObjectType.Group)
-                .Select(Analyze)
-                .ToList();
+            return AnalyzeLazy(objects).ToList();
         }
 
         /// <summary>
@@ -65,9 +62,7 @@ namespace FWO.Data.Networking
         /// </summary>
         public bool MatchesIpFilter(IPAddress ipAddress, int minPrefix, IEnumerable<NetworkObject> objects)
         {
-            return objects
-                .Where(obj => obj.Type.Name != ObjectType.Group)
-                .Select(Analyze)
+            return AnalyzeLazy(objects)
                 .Any(analysis =>
                     analysis.IsSupported
                     && analysis.PrefixLength >= minPrefix
@@ -79,8 +74,15 @@ namespace FWO.Data.Networking
         /// </summary>
         public bool ExceedsPrefixThreshold(int minPrefix, IEnumerable<NetworkObject> objects)
         {
-            return AnalyzeMany(objects)
+            return AnalyzeLazy(objects)
                 .Any(analysis => analysis.IsSupported && analysis.PrefixLength < minPrefix);
+        }
+
+        private IEnumerable<NetworkObjectRangeAnalysis> AnalyzeLazy(IEnumerable<NetworkObject> objects)
+        {
+            return objects
+                .Where(obj => obj.Type.Name != ObjectType.Group)
+                .Select(Analyze);
         }
 
         private IPAddress? ParseAndCache(string? ipString)

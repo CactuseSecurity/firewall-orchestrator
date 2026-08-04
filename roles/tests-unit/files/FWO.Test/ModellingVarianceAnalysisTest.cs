@@ -1171,8 +1171,8 @@ namespace FWO.Test
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
             Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
         }
-        [Test]
 
+        [Test]
         public async Task TestNameFieldRuleOwnerPreFilterFindsDeletedConnectionForRequestFlow()
         {
             SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
@@ -1189,7 +1189,14 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task TestNameFieldRuleOwnerPreFilterSkippedForPendingRuleOwnerMapping()
+        public void TestNameFieldRuleOwnerMappingQueriesIncludeRemovedConnections()
+        {
+            Assert.That(ModellingQueries.getOwnersForRuleOwnerNameField, Does.Not.Contain("removed:"));
+            Assert.That(ModellingQueries.getOwnersForRuleOwnerNameFieldFilteredByOwner, Does.Not.Contain("removed:"));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterSkippedForPendingRuleOwnerMappingWithoutManagementScope()
         {
             SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
             RuleOwnerPreFilterRoutingApiConn apiConnection = new() { HasPendingRuleOwnerMappingImport = true };
@@ -1200,6 +1207,42 @@ namespace FWO.Test
             Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
             Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterSkippedForPendingRuleOwnerMappingOnSameManagement()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                HasPendingRuleOwnerMappingImport = true,
+                PendingRuleOwnerMappingMgmId = 1
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterUsedForPendingRuleOwnerMappingOnForeignManagement()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                HasPendingRuleOwnerMappingImport = true,
+                PendingRuleOwnerMappingMgmId = 2
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
         }
 
         [Test]
@@ -1228,6 +1271,24 @@ namespace FWO.Test
             Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
         }
 
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterStrictCompletenessFallsBackForMissingMapping()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                HasMissingRuleOwnerPreFilterCompletenessMapping = true
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            await analysis.AnalyseRulesVsModelledConnections([], new() { RulesForDeletedConns = true, VerifyRuleOwnerPreFilterCompleteness = true }, false);
+
+            Assert.That(apiConnection.Queries, Does.Contain(ModellingQueries.getOwnersForRuleOwnerNameFieldFilteredByOwner));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getNameFieldRuleOwnerPreFilterCompletenessRules));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
         private static SimulatedUserConfig CreateNameFieldPreFilterUserConfig()
         {
             return new()
@@ -1246,6 +1307,8 @@ namespace FWO.Test
             public bool ReturnRuleOwnerRules { get; init; } = true;
             public bool HasPendingRuleOwnerMappingImport { get; init; } = false;
             public bool ThrowOnRuleOwnerPreFilter { get; init; } = false;
+            public int? PendingRuleOwnerMappingMgmId { get; init; }
+            public bool HasMissingRuleOwnerPreFilterCompletenessMapping { get; init; } = false;
 
             public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(
                 string query,
@@ -1274,13 +1337,24 @@ namespace FWO.Test
 
                 if (responseType == typeof(List<ModellingConnection>))
                 {
+                    if (query == ModellingQueries.getOwnersForRuleOwnerNameFieldFilteredByOwner)
+                    {
+                        List<ModellingConnection> connections = HasMissingRuleOwnerPreFilterCompletenessMapping
+                            ? [new() { Id = 1, AppId = Application.Id }]
+                            : [];
+
+                        return (QueryResponseType)(object)connections;
+                    }
+
                     return (QueryResponseType)(object)new List<ModellingConnection>();
                 }
                 if (responseType == typeof(List<ImportControl>))
                 {
-                    List<ImportControl> imports = HasPendingRuleOwnerMappingImport
-                        ? [new() { ControlId = 1 }]
-                        : [];
+                    List<ImportControl> imports = [];
+                    if (HasPendingRuleOwnerMappingImport)
+                    {
+                        imports.Add(new() { ControlId = 1, MgmId = PendingRuleOwnerMappingMgmId });
+                    }
                     return (QueryResponseType)(object)imports;
                 }
 
@@ -1300,11 +1374,20 @@ namespace FWO.Test
                         throw new InvalidOperationException("Simulated rule_owner prefilter failure.");
                     }
 
-                    List<Rule> rules = query == RuleQueries.getModelledRulesByRuleOwnerNameField && !ReturnRuleOwnerRules
+                    if (query == RuleQueries.getNameFieldRuleOwnerPreFilterCompletenessRules)
+                    {
+                        List<Rule> completenessRules = HasMissingRuleOwnerPreFilterCompletenessMapping
+                            ? [new() { Id = 1, Name = "FWOC1", MgmtId = 1 }]
+                            : [];
+
+                        return (QueryResponseType)(object)completenessRules;
+                    }
+
+                    List<Rule> modelledRules = query == RuleQueries.getModelledRulesByRuleOwnerNameField && !ReturnRuleOwnerRules
                         ? []
                         : [new() { Id = 1, Name = "FWOC1", MgmtId = 1 }];
 
-                    return (QueryResponseType)(object)rules;
+                    return (QueryResponseType)(object)modelledRules;
                 }
 
                 throw new NotImplementedException(query);
@@ -1353,6 +1436,7 @@ namespace FWO.Test
                 return await base.SendQueryAsync<QueryResponseType>(query, variables, operationName, chunkingOptions);
             }
         }
+
         [Test]
         public async Task TestNATHeuristic()
         {

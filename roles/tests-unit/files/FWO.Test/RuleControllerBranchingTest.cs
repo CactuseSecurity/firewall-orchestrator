@@ -18,6 +18,8 @@ namespace FWO.Test
     [Parallelizable]
     internal class RuleControllerBranchingTest
     {
+        private static readonly string[] kExpectedSourceRuleNames = ["Source", "MatchingGroup"];
+
         [Test]
         public async Task GetRulesByFilter_ShouldWorkWithOwnerId()
         {
@@ -106,7 +108,7 @@ namespace FWO.Test
             RulesByFilterResponse response = ExtractResponse(actionResult);
             ClassicAssert.AreEqual("req-group", response.RequestId);
             ClassicAssert.AreEqual(2, response.Result.Count);
-            CollectionAssert.AreEquivalent(new[] { "Source", "MatchingGroup" }, response.Result.Rules.Select(rule => rule.Name));
+            CollectionAssert.AreEquivalent(kExpectedSourceRuleNames, response.Result.Rules.Select(rule => rule.Name));
         }
 
         [Test]

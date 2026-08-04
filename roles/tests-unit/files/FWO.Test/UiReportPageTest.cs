@@ -30,7 +30,7 @@ namespace FWO.Test
                 if (typeof(QueryResponseType).IsGenericType
                     && typeof(QueryResponseType).GetGenericTypeDefinition() == typeof(List<>))
                 {
-                    return Task.FromResult((QueryResponseType)Activator.CreateInstance(typeof(QueryResponseType))!);
+                    return Task.FromResult(Activator.CreateInstance<QueryResponseType>());
                 }
                 if (typeof(QueryResponseType).IsArray)
                 {

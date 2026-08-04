@@ -111,7 +111,7 @@ namespace FWO.Test
                     // the variance analysis pulls in managements, areas and more on its way through.
                     // those are covered by their own tests - here an empty result is enough to let the
                     // generator walk the whole variance branch.
-                    return Task.FromResult((QueryResponseType)Activator.CreateInstance(typeof(QueryResponseType))!);
+                    return Task.FromResult(Activator.CreateInstance<QueryResponseType>());
                 }
                 throw new NotImplementedException($"Unexpected query type {typeof(QueryResponseType).Name}.");
             }

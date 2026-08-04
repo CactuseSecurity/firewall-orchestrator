@@ -38,14 +38,22 @@ namespace FWO.Test
     internal sealed class TestableLdap : FWO.Middleware.Server.Ldap
     {
         private readonly ILdapClient connection;
+        private int connectCount;
 
         public TestableLdap(ILdapClient connection)
         {
             this.connection = connection;
         }
 
+        /// <summary>
+        /// Number of times a connection to this ldap was opened. Lets tests assert that an ldap was skipped
+        /// entirely, independently of whether the subsequent bind or search succeeds.
+        /// </summary>
+        public int ConnectCount => Volatile.Read(ref connectCount);
+
         protected override Task<ILdapClient> Connect()
         {
+            Interlocked.Increment(ref connectCount);
             return Task.FromResult(connection);
         }
     }

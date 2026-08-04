@@ -75,6 +75,8 @@ INSERT INTO txt VALUES ('AnyActivity',          'German',   'Beliebige Aktivit&a
 INSERT INTO txt VALUES ('AnyActivity',          'English',  'Any Activity');
 INSERT INTO txt VALUES ('None',			        'German', 	'Keine(r/s)');
 INSERT INTO txt VALUES ('None',			        'English', 	'None');
+INSERT INTO txt VALUES ('note_prefix',           'German',   'Hinweis');
+INSERT INTO txt VALUES ('note_prefix',           'English',  'Note');
 INSERT INTO txt VALUES ('FromFlowDb',            'German',   'aus Flow DB');
 INSERT INTO txt VALUES ('FromFlowDb',            'English',  'from Flow DB');
 INSERT INTO txt VALUES ('Manually',              'German',   'manuell');
@@ -766,6 +768,8 @@ INSERT INTO txt VALUES ('ip_addresses',		    'German', 	'IP-Adressen');
 INSERT INTO txt VALUES ('ip_addresses',		    'English', 	'IP Addresses');
 INSERT INTO txt VALUES ('members',		        'German', 	'Mitglieder');
 INSERT INTO txt VALUES ('members',		        'English', 	'Members');
+INSERT INTO txt VALUES ('duplicate_objects_more',	'German', 	'... und @@COUNT@@ weitere');
+INSERT INTO txt VALUES ('duplicate_objects_more',	'English', 	'... and @@COUNT@@ more');
 INSERT INTO txt VALUES ('templates',			'German', 	'Vorlagen');
 INSERT INTO txt VALUES ('templates',			'English', 	'Templates');
 INSERT INTO txt VALUES ('creation_date',		'German', 	'Erstelldatum');
@@ -792,10 +796,12 @@ INSERT INTO txt VALUES ('network_object',		'German', 	'Netzwerkobjekt');
 INSERT INTO txt VALUES ('network_object',		'English', 	'Network Object');
 INSERT INTO txt VALUES ('network_objects',		'German', 	'Netzwerkobjekte');
 INSERT INTO txt VALUES ('network_objects',		'English', 	'Network Objects');
+INSERT INTO txt VALUES ('network_groups',		'German', 	'Netzwerkgruppen');
+INSERT INTO txt VALUES ('network_groups',		'English', 	'Network Groups');
 INSERT INTO txt VALUES ('network_services',		'German', 	'Netzwerkdienste');
 INSERT INTO txt VALUES ('network_services',		'English', 	'Network Services');
 INSERT INTO txt VALUES ('service_objects',		'German', 	'Serviceobjekte');
-INSERT INTO txt VALUES ('service_objects',		'English', 	'Service objects');
+INSERT INTO txt VALUES ('service_objects',		'English', 	'Service Objects');
 INSERT INTO txt VALUES ('user_objects',		    'German', 	'Nutzerobjekte');
 INSERT INTO txt VALUES ('user_objects',		    'English', 	'User objects');
 INSERT INTO txt VALUES ('rules',		        'German', 	'Regeln');
@@ -1956,6 +1962,12 @@ INSERT INTO txt VALUES ('update_app_role',      'German',   'Ge&auml;nderte AppR
 INSERT INTO txt VALUES ('update_app_role',      'English',  'Update AppRole: ');
 INSERT INTO txt VALUES ('new_svc_grp',          'German',   'Neue Servicegruppe: ');
 INSERT INTO txt VALUES ('new_svc_grp',          'English',  'New Servicegroup: ');
+INSERT INTO txt VALUES ('current_members',      'German',   'Aktuelle Mitglieder');
+INSERT INTO txt VALUES ('current_members',      'English',  'Current Members');
+INSERT INTO txt VALUES ('members_to_add',       'German',   'Hinzuzuf&uuml;gende Mitglieder');
+INSERT INTO txt VALUES ('members_to_add',       'English',  'Members to add');
+INSERT INTO txt VALUES ('members_to_remove',    'German',   'Zu entfernende Mitglieder');
+INSERT INTO txt VALUES ('members_to_remove',    'English',  'Members to remove');
 INSERT INTO txt VALUES ('add_members',          'German',   ': Mitglieder hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_members',          'English',  ': Add Members');
 INSERT INTO txt VALUES ('remove_members',       'German',   ': Mitglieder entfernen');
@@ -2162,8 +2174,20 @@ INSERT INTO txt VALUES ('managements',			'German', 	'Managements');
 INSERT INTO txt VALUES ('managements',			'English', 	'Managements');
 INSERT INTO txt VALUES ('flow_objects',			'German', 	'Flow-Objekte');
 INSERT INTO txt VALUES ('flow_objects',			'English', 	'Flow Objects');
+INSERT INTO txt VALUES ('flow_network_objects',	'German', 	'Flow-Netzwerkobjekte');
+INSERT INTO txt VALUES ('flow_network_objects',	'English', 	'Flow Network Objects');
+INSERT INTO txt VALUES ('flow_service_objects',	'German', 	'Flow-Serviceobjekte');
+INSERT INTO txt VALUES ('flow_service_objects',	'English', 	'Flow Service Objects');
+INSERT INTO txt VALUES ('flow_network_groups',	'German', 	'Flow-Netzwerkgruppen');
+INSERT INTO txt VALUES ('flow_network_groups',	'English', 	'Flow Network Groups');
+INSERT INTO txt VALUES ('flow_service_groups',	'German', 	'Flow-Servicegruppen');
+INSERT INTO txt VALUES ('flow_service_groups',	'English', 	'Flow Service Groups');
+INSERT INTO txt VALUES ('flow_time_objects',	'German', 	'Flow-Zeitobjekte');
+INSERT INTO txt VALUES ('flow_time_objects',	'English', 	'Flow Time Objects');
 INSERT INTO txt VALUES ('flow',					'German', 	'Flow');
 INSERT INTO txt VALUES ('flow',					'English', 	'Flow');
+INSERT INTO txt VALUES ('flow_general_settings',	'German', 	'Allgemeine Flow-Einstellungen');
+INSERT INTO txt VALUES ('flow_general_settings',	'English', 	'General Settings');
 INSERT INTO txt VALUES ('flow_naming',			'German', 	'Flow-Namensquellen-Rangfolge');
 INSERT INTO txt VALUES ('flow_naming',			'English', 	'Flow naming source ranking');
 INSERT INTO txt VALUES ('current',			'German', 	'Aktuell');
@@ -2178,6 +2202,14 @@ INSERT INTO txt VALUES ('no_duplicate_conflicts',	'German', 	'Keine doppelten Zu
 INSERT INTO txt VALUES ('no_duplicate_conflicts',	'English', 	'No duplicate conflicts found');
 INSERT INTO txt VALUES ('custom_objects',		'German', 	'Benutzerdefinierte Netzwerkobjekte');
 INSERT INTO txt VALUES ('custom_objects',		'English', 	'Custom Network Objects');
+INSERT INTO txt VALUES ('custom_network_objects','German', 	'Benutzerdefinierte Netzwerkobjekte');
+INSERT INTO txt VALUES ('custom_network_objects','English', 	'Custom Network Objects');
+INSERT INTO txt VALUES ('custom_service_objects','German', 	'Benutzerdefinierte Serviceobjekte');
+INSERT INTO txt VALUES ('custom_service_objects','English', 	'Custom Service Objects');
+INSERT INTO txt VALUES ('create_custom_network_object','German', 'Benutzerdefiniertes Netzwerkobjekt anlegen');
+INSERT INTO txt VALUES ('create_custom_network_object','English', 'Create Custom Network Object');
+INSERT INTO txt VALUES ('create_custom_service_object','German', 'Benutzerdefiniertes Serviceobjekt anlegen');
+INSERT INTO txt VALUES ('create_custom_service_object','English', 'Create Custom Service Object');
 INSERT INTO txt VALUES ('create_custom_flow_object',	'German', 	'Benutzerdefiniertes Flow-Objekt anlegen');
 INSERT INTO txt VALUES ('create_custom_flow_object',	'English', 	'Create custom flow object');
 INSERT INTO txt VALUES ('recalculate_flow_names',	'German', 	'Flow-Namen neu berechnen');
@@ -2200,12 +2232,24 @@ INSERT INTO txt VALUES ('move_down',			'German', 	'Nach unten');
 INSERT INTO txt VALUES ('move_down',			'English', 	'Move down');
 INSERT INTO txt VALUES ('H5016',				'German', 	'Diese Seite zeigt den Flow-Netzwerkobjekt-Katalog und die dazu passenden Werkzeuge zur Bereinigung und Pflege.');
 INSERT INTO txt VALUES ('H5016',				'English', 	'This page shows the flow network object catalog and the matching tools for cleanup and maintenance.');
-INSERT INTO txt VALUES ('H5017',				'German', 	'Im Katalog werden Flow-Objekte, doppelte Zuordnungen und benutzerdefinierte Netzwerkobjekte zusammengefasst.');
-INSERT INTO txt VALUES ('H5017',				'English', 	'The catalog brings flow objects, duplicate mappings, and custom network objects together in one place.');
+INSERT INTO txt VALUES ('H5017',				'German', 	'Im Katalog werden Flow-Netzwerkobjekte, doppelte Zuordnungen und benutzerdefinierte Netzwerkobjekte zusammengefasst.');
+INSERT INTO txt VALUES ('H5017',				'English', 	'The catalog brings flow network objects, duplicate mappings, and custom network objects together in one place.');
 INSERT INTO txt VALUES ('H5018',				'German', 	'Verwenden Sie die Seite, um Namensquellen zu setzen, Konflikte zu lösen und bei Bedarf einzelne Zuordnungen manuell anzulegen.');
 INSERT INTO txt VALUES ('H5018',				'English', 	'Use the page to set naming sources, resolve conflicts, and create individual mappings manually when needed.');
+INSERT INTO txt VALUES ('H5020',				'German', 	'Die Neuberechnung der Flow-Namen ber&uuml;cksichtigt Netzwerkobjekte, Netzwerkgruppen, Serviceobjekte, Servicegruppen und Zeitobjekte anhand der gew&auml;hlten Management-Reihenfolge.');
+INSERT INTO txt VALUES ('H5020',				'English', 	'Flow name recalculation applies the selected management ranking to network objects, network groups, service objects, service groups, and time objects.');
 INSERT INTO txt VALUES ('H5019',				'German', 	'Die Seite enth&auml;lt au&szlig;erdem einen gef&auml;hrlichen Reset f&uuml;r die komplette Flow-Datenbank, der nur vor einer vollst&auml;ndigen Neu-Synchronisation verwendet werden sollte.');
 INSERT INTO txt VALUES ('H5019',				'English', 	'The page also includes a dangerous reset for the complete flow database, which should only be used before a full re-synchronization.');
+INSERT INTO txt VALUES ('H5025',				'German', 	'Bei doppelten Zuordnungen werden im Katalog und im Auswahldialog die technischen Details des Flow-Objekts angezeigt. In der Katalogansicht wird die Liste bei vielen Eintr&auml;gen gek&uuml;rzt und mit einem Hinweis auf weitere Objekte erg&auml;nzt.');
+INSERT INTO txt VALUES ('H5025',				'English', 	'For duplicate mappings, the catalog and resolver dialog also show the technical details of the flow object. In the catalog view, long lists are shortened and finished with a note about additional objects.');
+INSERT INTO txt VALUES ('H5021',				'German', 	'Diese Seite verwaltet Flow-Netzwerkgruppen und zeigt die doppelten Zuordnungen der zugrunde liegenden Netzwerkobjekte.');
+INSERT INTO txt VALUES ('H5021',				'English', 	'This page manages flow network groups and shows duplicate mappings for the underlying network objects.');
+INSERT INTO txt VALUES ('H5022',				'German', 	'Diese Seite verwaltet Flow-Serviceobjekte, zeigt doppelte Zuordnungen der zugrunde liegenden Services und erlaubt das Anlegen eigener Serviceobjekte. Beim Anlegen eines eigenen Objekts können Management-Zuordnungen wieder abgewählt werden; angezeigt werden nur noch nicht zugeordnete protokollbasierte Services ohne Port.');
+INSERT INTO txt VALUES ('H5022',				'English', 	'This page manages flow service objects, shows duplicate mappings for the underlying services, and allows creating custom service objects. Management selections can be cleared again; the dialog now only offers unmapped protocol-based services without a port.');
+INSERT INTO txt VALUES ('H5023',				'German', 	'Diese Seite verwaltet Flow-Dienstgruppen und zeigt die doppelten Zuordnungen der zugrunde liegenden Services.');
+INSERT INTO txt VALUES ('H5023',				'English', 	'This page manages flow service groups and shows duplicate mappings for the underlying services.');
+INSERT INTO txt VALUES ('H5024',				'German', 	'Diese Seite verwaltet Flow-Zeitobjekte und zeigt die doppelten Zuordnungen der zugrunde liegenden Zeitobjekte.');
+INSERT INTO txt VALUES ('H5024',				'English', 	'This page manages flow time objects and shows duplicate mappings for the underlying time objects.');
 INSERT INTO txt VALUES ('gateways',		    	'German', 	'Gateways');
 INSERT INTO txt VALUES ('gateways',		    	'English', 	'Gateways');
 INSERT INTO txt VALUES ('authorization',		'German', 	'Berechtigungen');
@@ -2231,7 +2275,7 @@ INSERT INTO txt VALUES ('source_groups',		'English', 	'Source groups');
 INSERT INTO txt VALUES ('destination_groups',	'German', 	'Zielgruppen');
 INSERT INTO txt VALUES ('destination_groups',	'English', 	'Destination groups');
 INSERT INTO txt VALUES ('service_groups',		'German', 	'Dienstgruppen');
-INSERT INTO txt VALUES ('service_groups',		'English', 	'Service groups');
+INSERT INTO txt VALUES ('service_groups',		'English', 	'Service Groups');
 INSERT INTO txt VALUES ('defaults',		        'German', 	'Weitere Einstellungen');
 INSERT INTO txt VALUES ('defaults',		        'English', 	'Further settings');
 INSERT INTO txt VALUES ('standards',		    'German', 	'Standardeinstellungen');
@@ -2654,6 +2698,8 @@ INSERT INTO txt VALUES ('select_services',      'German',   'Dienste ausw&auml;h
 INSERT INTO txt VALUES ('select_services',      'English',  'Select services');
 INSERT INTO txt VALUES ('select_time_objects',  'German',   'Zeitobjekte ausw&auml;hlen');
 INSERT INTO txt VALUES ('select_time_objects',  'English',  'Select time objects');
+INSERT INTO txt VALUES ('time_objects',			'German', 	'Zeitobjekte');
+INSERT INTO txt VALUES ('time_objects',			'English', 	'Time Objects');
 INSERT INTO txt VALUES ('time_object_precision','German',   'Zeitobjekt-Genauigkeit');
 INSERT INTO txt VALUES ('time_object_precision','English',  'Time object precision');
 INSERT INTO txt VALUES ('reqAllowManualOwnerAdmin','German', 'Manuelle Eigent&uuml;merverwaltung erlauben');
@@ -4015,6 +4061,8 @@ INSERT INTO txt VALUES ('U9040', 'German',  'Sind sie sicher, dass sie @@COUNT@@
 INSERT INTO txt VALUES ('U9040', 'English', 'Are you sure you want to close @@COUNT@@ ticket(s) as rejected?');
 INSERT INTO txt VALUES ('U9041', 'German',  'Sind sie sicher, dass sie @@COUNT@@ Ticket(s) als erledigt schliessen wollen?');
 INSERT INTO txt VALUES ('U9041', 'English', 'Are you sure you want to close @@COUNT@@ ticket(s) as done?');
+INSERT INTO txt VALUES ('U9042', 'German',  'Bitte beschreiben Sie Ihre Anforderung m&ouml;glichst vollst&auml;ndig und verst&auml;ndlich, damit die Verantwortlichen der Anwendung den Bedarf nachvollziehen und die passende Schnittstelle bereitstellen k&ouml;nnen. Falls bekannt, erg&auml;nzen Sie bitte relevante technische Angaben wie IP-Adressen, Ports oder Protokolle.');
+INSERT INTO txt VALUES ('U9042', 'English', 'Please describe your requirement as completely and clearly as possible so that the application owners can understand the need and provide the appropriate interface. If known, please include relevant technical details such as IP addresses, ports, or protocols.');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -4109,6 +4157,12 @@ INSERT INTO txt VALUES ('E5111', 'German',  'Es gibt bereits ein Gateway mit der
 INSERT INTO txt VALUES ('E5111', 'English', 'There is already a gateway in the same configuration with import enabled');
 INSERT INTO txt VALUES ('E5112', 'German',  'Gateway konnte nicht angelegt werden');
 INSERT INTO txt VALUES ('E5112', 'English', 'Gateway could not be created');
+INSERT INTO txt VALUES ('E5121', 'German',  'Bitte einen Namen für das benutzerdefinierte Flow-Objekt eingeben');
+INSERT INTO txt VALUES ('E5121', 'English', 'Please enter a name for the custom flow object');
+INSERT INTO txt VALUES ('E5122', 'German',  'Bitte mindestens einen Dienst auswählen');
+INSERT INTO txt VALUES ('E5122', 'English', 'Please select at least one service');
+INSERT INTO txt VALUES ('E5123', 'German',  'Die ausgewählten Dienste müssen dasselbe Protokoll und denselben Portbereich haben');
+INSERT INTO txt VALUES ('E5123', 'English', 'Selected services must share the same protocol and port range');
 INSERT INTO txt VALUES ('E5117', 'German',  'L&ouml;schen der Login-Daten nicht m&ouml;glich, da diese von einem Management verwendet werden. Dort zuerst andere Login-Daten ausw&auml;hlen');
 INSERT INTO txt VALUES ('E5117', 'English', 'Deletion of credentials not allowed as they are in use by one or more management devices. Change the management credentials before deleting them.');
 INSERT INTO txt VALUES ('E5118', 'German',  'Die obere Grenze muss gr&ouml;sser als die untere Grenze des Portbereichs sein.');
@@ -5749,6 +5803,15 @@ Ein L&ouml;schen ist erst m&ouml;glich, wenn die Zugangsdaten nirgends mehr verw
         <li>Im FortiGate Web Interface: Erstelle einen "REST API Admin" e.g. "fworch" mit "ro_admin" Profil und kopiere den API Schl&uuml;ssel</li>
         <li>In der Firewall Orchestrator WebUI: erstelle neue Import Login-Daten mit username "fworch" und Passwort = API Schl&uuml;ssel</li>
     </ol>
+    <br>
+    F&uuml;r den OPNsense Import via REST API:
+    <ol>
+        <li>Im OPNsense Web Interface: Erzeuge einen API Schl&uuml;ssel unter System - Zugang - Benutzer - Hinzuf&uuml;gen</li>
+        <li>Lade die erzeugte Datei herunter, sie enth&auml;lt je eine Zeile mit Schl&uuml;ssel und Geheimnis, Beispielinhalt:<br>
+            <code>key=xxx</code><br>
+            <code>secret=yyy</code></li>
+        <li>In der Firewall Orchestrator WebUI: erstelle neue Import Login-Daten mit Import Nutzer = Wert von "key" und Passwort = Wert von "secret"</li>
+    </ol>
 ');
 INSERT INTO txt VALUES ('H5130', 'English', 'Manage credentials for importing firewall configuration data.
 Credentials can be used for logging in to one or multiple firewall managements.
@@ -5759,6 +5822,15 @@ Credentials can only be deleted when they are not used for importing any managem
         <li>In FortiGate Web UI: Create Read Only Admin Profile e.g. "ro_admin"</li>
         <li>In FortiGate Web UI: Create new "REST API Admin" e.g. "fworch" with "ro_admin" profile and copy API key</li>
         <li>In Firewall Orchestrator UI create new credentials with username "fworch" and password = API key</li>
+    </ol>
+    <br>
+    For OPNsense import via REST API:
+    <ol>
+        <li>In OPNsense Web UI: Generate an API key under System - Access - Users - Add</li>
+        <li>Download the generated file, it contains one key and one secret line, example content:<br>
+            <code>key=1gFfvKPQvG9O4tuHtJFwREjrkdvw9SM9XereOvemGFNU7iF8s4dPeL2B88bkeagNBfSy37/QuiyElOdU</code><br>
+            <code>secret=4N4yTQZATPa/Tj+IUiyXNFsB2r0Kpjt8lQ6UDjsaNZgo0vd/l+ByD3dBR61T/b/8Jz5rleZytIuzpO6R</code></li>
+        <li>In Firewall Orchestrator UI create new credentials with username = value of "key" and password = value of "secret"</li>
     </ol>
 ');
 INSERT INTO txt VALUES ('H5131', 'German',  'Name*: Ein beliebiger Name, der diese Zugangsdaten eindeutig beschreibt.
@@ -7225,7 +7297,7 @@ INSERT INTO txt VALUES ('H6940', 'German',  'Die Flow-REST-API wird unter dem ge
     <ul>
         <li><b>FlowCatalogController</b>: Lesezugriffe auf Adress-, Dienst- und Zeitobjekte f&uuml;r Flow- und Request-bezogene Auswahllisten sowie Id-Aufl&ouml;sungen.</li>
         <li><b>FlowComplianceController</b>: Policy-Auswahl und Compliance-Pr&uuml;fung f&uuml;r synthetische Flows.</li>
-        <li><b>FlowRequestController</b>: Endpunkte rund um Namensvorschl&auml;ge, Validierung und Request-Erzeugung; ein gro&szlig;er Teil ist noch nicht implementiert.</li>
+        <li><b>FlowRequestController</b>: Endpunkte f&uuml;r Flow-bezogene Request-Erzeugung und Statusabfrage.</li>
     </ul>
     Die folgenden Seiten dokumentieren die drei Controller getrennt, damit die einzelnen Endpunkte schneller auffindbar bleiben.
     <ul>
@@ -7239,7 +7311,7 @@ INSERT INTO txt VALUES ('H6940', 'English', 'The Flow REST API is exposed below 
     <ul>
         <li><b>FlowCatalogController</b>: Read-only lookups for address, service, and time objects that support flow and request selection workflows as well as id resolution.</li>
         <li><b>FlowComplianceController</b>: Policy selection and compliance checks for synthetic flows.</li>
-        <li><b>FlowRequestController</b>: Endpoints for naming suggestions, validation helpers, and request creation; a large part of this controller is not implemented yet.</li>
+        <li><b>FlowRequestController</b>: Endpoints for flow-related request creation and status lookups.</li>
     </ul>
     The following pages document the three controllers separately so the individual endpoints stay easy to find.
     <ul>
@@ -7306,35 +7378,23 @@ INSERT INTO txt VALUES ('H6942', 'English', 'The <b>FlowComplianceController</b>
     The response returns one block per requested policy with <code>policy</code> and <code>violations</code>.
     When a flow is compliant, the <code>violations</code> list is empty.
 ');
-INSERT INTO txt VALUES ('H6943', 'German',  'Der <b>FlowRequestController</b> reserviert Endpunkte f&uuml;r Flow-bezogene Request-Funktionen unter <code>/api/flow</code>.
-    Der Controller ist bereits strukturiert, die meisten Endpunkte liefern derzeit jedoch <code>501 Not Implemented</code>.
+INSERT INTO txt VALUES ('H6943', 'German',  'Der <b>FlowRequestController</b> stellt die Flow-bezogenen Request-Funktionen unter <code>/api/flow</code> bereit.
     <table class="table table-sm">
         <thead><tr><th>Endpunkt</th><th>Zweck</th><th>Aktueller Stand</th></tr></thead>
         <tbody>
-            <tr><td><code>generateAddressObjectName</code></td><td>Namensvorschlag f&uuml;r ein Adressobjekt.</td><td>Noch nicht implementiert.</td></tr>
-            <tr><td><code>generateServiceObjectName</code></td><td>Namensvorschlag f&uuml;r ein Dienstobjekt.</td><td>Noch nicht implementiert.</td></tr>
-            <tr><td><code>getNetObjectValidity</code></td><td>Validiert eine Netzwerkobjekt-Definition.</td><td>Noch nicht implementiert.</td></tr>
-            <tr><td><code>getNetGroupValidity</code></td><td>Validiert eine Netzwerkgruppen-Definition.</td><td>Noch nicht implementiert.</td></tr>
-            <tr><td><code>createRequest</code></td><td>Erzeugt einen neuen Flow-bezogenen Request.</td><td>Noch nicht implementiert.</td></tr>
+            <tr><td><code>createRequest</code></td><td>Erzeugt einen neuen Flow-bezogenen Request.</td><td>Implementiert. Request: <code>{"requestorName": "Alice Example", "requestorId": "alice", "title": "Allow HTTPS to application server", "rules": [{...}]}</code><br />Response: <code>{"status": "created", "requestId": 12345}</code></td></tr>
             <tr><td><code>getRequestStatus</code></td><td>Liefert den Status eines vorhandenen Requests.</td><td>Implementiert. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
         </tbody>
     </table>
-    Die &uuml;brigen aufgef&uuml;hrten Endpunkte dokumentieren die vorgesehene API-Oberfl&auml;che und sind noch nicht implementiert.
 ');
-INSERT INTO txt VALUES ('H6943', 'English', 'The <b>FlowRequestController</b> reserves endpoints for flow-related request functions below <code>/api/flow</code>.
-    The controller structure already exists, but most endpoints currently return <code>501 Not Implemented</code>.
+INSERT INTO txt VALUES ('H6943', 'English', 'The <b>FlowRequestController</b> provides flow-related request functions below <code>/api/flow</code>.
     <table class="table table-sm">
         <thead><tr><th>Endpoint</th><th>Purpose</th><th>Current state</th></tr></thead>
         <tbody>
-            <tr><td><code>generateAddressObjectName</code></td><td>Naming suggestion for an address object.</td><td>Not implemented yet.</td></tr>
-            <tr><td><code>generateServiceObjectName</code></td><td>Naming suggestion for a service object.</td><td>Not implemented yet.</td></tr>
-            <tr><td><code>getNetObjectValidity</code></td><td>Validates a network object definition.</td><td>Not implemented yet.</td></tr>
-            <tr><td><code>getNetGroupValidity</code></td><td>Validates a network group definition.</td><td>Not implemented yet.</td></tr>
-            <tr><td><code>createRequest</code></td><td>Creates a new flow-related request.</td><td>Not implemented yet.</td></tr>
+            <tr><td><code>createRequest</code></td><td>Creates a new flow-related request.</td><td>Implemented. Request: <code>{"requestorName": "Alice Example", "requestorId": "alice", "title": "Allow HTTPS to application server", "rules": [{...}]}</code><br />Response: <code>{"status": "created", "requestId": 12345}</code></td></tr>
             <tr><td><code>getRequestStatus</code></td><td>Returns the status of an existing request.</td><td>Implemented. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
         </tbody>
     </table>
-    The other listed endpoints document the intended API surface and are not implemented yet.
 ');
 INSERT INTO txt VALUES ('H6921', 'German',  'Der Import von Applikationsdaten wird aus einer oder mehreren .json-Dateien mit den in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> definierten Pfaden und Namen gespeist.
     Dort kann auch jeweils ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Dateien hinterlegt werden. Die .json-Datei hat die folgende Struktur:

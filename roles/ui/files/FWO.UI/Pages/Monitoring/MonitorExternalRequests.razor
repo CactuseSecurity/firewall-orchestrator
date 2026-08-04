@@ -280,28 +280,38 @@ else
     private async Task PatchState()
     {
         workInProgress = true;
-        actRequest.ExtRequestState = actState.ToString();
-        ExternalRequestPatchStateParameters patchParams = new()
+        try
         {
-            ExtRequestId = actRequest.Id,
-            TicketId = actRequest.TicketId,
-            TaskNumber = actRequest.TaskNumber,
-            ExtQueryVariables = actRequest.ExtQueryVariables,
-            ExtRequestState = actRequest.ExtRequestState
-        };
-        RestResponse<bool> middlewareServerResponse = await middlewareClient.PatchExternalRequestState(patchParams);
-        if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
-        {
-            DisplayMessageInUi(null, userConfig.GetText("change_state"), userConfig.GetText("E9102"), true);
-            Log.WriteError("PatchExtRequestState", $"Could not patch External Request state for Request {actRequest.Id.ToString()}.");
+            actRequest.ExtRequestState = actState.ToString();
+            ExternalRequestPatchStateParameters patchParams = new()
+            {
+                ExtRequestId = actRequest.Id,
+                TicketId = actRequest.TicketId,
+                TaskNumber = actRequest.TaskNumber,
+                ExtQueryVariables = actRequest.ExtQueryVariables,
+                ExtRequestState = actRequest.ExtRequestState
+            };
+            RestResponse<bool> middlewareServerResponse = await middlewareClient.PatchExternalRequestState(patchParams);
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("change_state"), userConfig.GetText("E9102"), true);
+                Log.WriteError("PatchExtRequestState", $"Could not patch External Request state for Request {actRequest.Id.ToString()}.");
+            }
+            else
+            {
+                Log.WriteDebug("PatchExtRequestState", $"External Request state for Request {actRequest.Id.ToString()} changed.");
+            }
+            await FetchData();
         }
-        else
+        catch (Exception exception)
         {
-            Log.WriteDebug("PatchExtRequestState", $"External Request state for Request {actRequest.Id.ToString()} changed.");
+            DisplayMessageInUi(exception, userConfig.GetText("change_state"), "", true);
         }
-        await FetchData();
-        workInProgress = false;
-        ChangeStateMode = false;
+        finally
+        {
+            workInProgress = false;
+            ChangeStateMode = false;
+        }
     }
 
     private async Task Unlock(ExternalRequest request)

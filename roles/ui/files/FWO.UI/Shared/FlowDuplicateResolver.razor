@@ -1,0 +1,154 @@
+@typeparam TItem
+@inject UserConfig UserConfig
+
+<PopUp Title="@Title" Show="@Show" Size="@Size" OnClose="@OnClose">
+    <Body>
+        @if (Show)
+        {
+            if (SummaryContent != null)
+            {
+                <div class="mb-2">
+                    @SummaryContent
+                </div>
+            }
+            <Table TableClass="@TableClass"
+                   TableItem="TItem"
+                   Items="Items"
+                   PageSize="PageSize"
+                   ColumnReorder="true"
+                   TableRowClass="@(GetTableRowClass)">
+                @if (ChildContent != null)
+                {
+                    @ChildContent(new DuplicateResolverState<TItem>(selectedItem, IsSelected))
+                }
+                <Column TableItem="TItem"
+                        Title="@UserConfig.GetText("actions")"
+                        Sortable="false"
+                        Filterable="false"
+                        Context="item">
+                    <Template>
+                        <button type="button" class="btn btn-sm @(IsSelected(item) ? "btn-success" : "btn-outline-primary")" @onclick:stopPropagation="true" @onclick="() => SelectItem(item)">
+                            @(DisplayService.DisplayButton(UserConfig, "select", Icons.Select))
+                        </button>
+                    </Template>
+                </Column>
+            </Table>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-warning" disabled="@(!CanResolve || selectedItem is null || Resolving)" @onclick="ResolveAsync">
+                @if (Resolving)
+                {
+                    <Loading CssClass="me-1" />
+                }
+                @(DisplayService.DisplayButton(UserConfig, "save", Icons.Save))
+            </button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="OnClose">
+                @(DisplayService.DisplayButton(UserConfig, "cancel", Icons.Cancel))
+            </button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public bool Show { get; set; }
+
+    [Parameter]
+    public PopupSize Size { get; set; } = PopupSize.Auto;
+
+    [Parameter]
+    public Action OnClose { get; set; } = new Action(() => { });
+
+    [Parameter]
+    public Func<TItem, Task> OnResolve { get; set; } = _ => Task.CompletedTask;
+
+    [Parameter]
+    public bool CanResolve { get; set; } = true;
+
+    [Parameter, EditorRequired]
+    public IEnumerable<TItem> Items { get; set; } = [];
+
+    [Parameter]
+    public int PageSize { get; set; } = 10;
+
+    [Parameter]
+    public string TableClass { get; set; } = "table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header";
+
+    [Parameter]
+    public RenderFragment? SummaryContent { get; set; }
+
+    [Parameter]
+    public RenderFragment<DuplicateResolverState<TItem>>? ChildContent { get; set; }
+
+    private TItem? selectedItem;
+    private bool Resolving = false;
+
+    protected override void OnParametersSet()
+    {
+        List<TItem> items = [.. (Items ?? [])];
+        if (items.Count == 0)
+        {
+            selectedItem = default;
+            return;
+        }
+
+        if (selectedItem is null || !items.Contains(selectedItem))
+        {
+            selectedItem = items.First();
+        }
+    }
+
+    private string GetTableRowClass(TItem item)
+    {
+        return EqualityComparer<TItem>.Default.Equals(item, selectedItem)
+            ? "table-warning"
+            : "";
+    }
+
+    private void SelectItem(TItem item)
+    {
+        selectedItem = item;
+    }
+
+    private bool IsSelected(TItem item)
+    {
+        return EqualityComparer<TItem>.Default.Equals(item, selectedItem);
+    }
+
+    private Task ResolveAsync()
+    {
+        if (selectedItem is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        return ResolveSelectedItemAsync();
+    }
+
+    private async Task ResolveSelectedItemAsync()
+    {
+        if (selectedItem is null || Resolving)
+        {
+            return;
+        }
+
+        Resolving = true;
+        StateHasChanged();
+        try
+        {
+            await OnResolve.Invoke(selectedItem);
+        }
+        finally
+        {
+            Resolving = false;
+        }
+    }
+
+    public sealed record DuplicateResolverState<TContextItem>(TContextItem? SelectedItem, Func<TContextItem, bool> IsSelected);
+}

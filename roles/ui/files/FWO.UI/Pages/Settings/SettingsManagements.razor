@@ -10,6 +10,7 @@
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject TokenService tokenService
 
 <div class="input-group">
     <h3>@(userConfig.GetText("managements"))</h3>
@@ -284,9 +285,7 @@
     private List<ActionItem> actActions = [];
     private List<Management> managements = [];
     private List<Management> sampleManagements = [];
-    private List<Management> discoveredManagements = [];
     private List<DeviceType> deviceTypes = [];
-    private List<Device> devices = [];
     private List<ImportCredential> credentials = [];
 
     private ITable<Management>? table;
@@ -313,18 +312,27 @@
     protected override async Task OnInitializedAsync()
     {
         await Refresh();
+
+        await base.OnInitializedAsync();
     }
 
     protected async Task Refresh()
     {
         try
         {
-            JwtReader jwt = new (userConfig.User.Jwt);
+            string? accessToken = await tokenService.GetAccessToken();
+
+            if (string.IsNullOrWhiteSpace(accessToken))
+            {
+                throw new AuthenticationException("not_authorized");
+            }
+
+            JwtReader jwt = new(accessToken);
             JwtValidationResult validationResult = await jwt.ValidateToken();
 
             if (!validationResult.IsSuccess)
             {
-                throw new AuthenticationException(validationResult.Status == JwtValidationStatus.Expired ? "JWTExpired" : "not_authorized");
+                throw new AuthenticationException("not_authorized");
             }
 
             if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))

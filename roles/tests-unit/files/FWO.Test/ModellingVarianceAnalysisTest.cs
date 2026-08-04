@@ -667,13 +667,13 @@ namespace FWO.Test
             ClassicAssert.AreEqual("Service2", result.RuleDifferences[0].ImplementedRules[0].DisregardedServices[0].Name);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Froms.Length);
             ClassicAssert.AreEqual("AppServerOld", result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.Name);
-            ClassicAssert.AreEqual(true, result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
+            ClassicAssert.IsTrue(result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Tos.Length);
             ClassicAssert.AreEqual("AR504711-001", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Services.Length);
             ClassicAssert.AreEqual("Service1", result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.IsSurplus);
             ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules[1].DisregardedServices.Length);
             ClassicAssert.AreEqual(1999, result.RuleDifferences[0].ImplementedRules[1].DisregardedServices[0].DestinationPort);
             ClassicAssert.AreEqual(2000, result.RuleDifferences[0].ImplementedRules[1].DisregardedServices[0].DestinationPortEnd);
@@ -681,10 +681,10 @@ namespace FWO.Test
             ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules[1].Services.Length);
             ClassicAssert.AreEqual(990, result.RuleDifferences[0].ImplementedRules[1].Services[0].Content.DestinationPort);
             ClassicAssert.AreEqual(999, result.RuleDifferences[0].ImplementedRules[1].Services[0].Content.DestinationPortEnd);
-            ClassicAssert.AreEqual(true, result.RuleDifferences[0].ImplementedRules[1].Services[0].Content.IsSurplus);
+            ClassicAssert.IsTrue(result.RuleDifferences[0].ImplementedRules[1].Services[0].Content.IsSurplus);
             ClassicAssert.AreEqual(1000, result.RuleDifferences[0].ImplementedRules[1].Services[1].Content.DestinationPort);
             ClassicAssert.AreEqual(1998, result.RuleDifferences[0].ImplementedRules[1].Services[1].Content.DestinationPortEnd);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[1].Services[1].Content.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[1].Services[1].Content.IsSurplus);
 
             ClassicAssert.AreEqual(1, result.DifferingAppRoles.Count);
             ClassicAssert.AreEqual(1, result.DifferingAppRoles[1].Count);
@@ -695,9 +695,9 @@ namespace FWO.Test
             ClassicAssert.AreEqual(2, result.DifferingAppRoles[1][0].AppServers.Count);
             ClassicAssert.AreEqual("AppServerUnchanged", result.DifferingAppRoles[1][0].AppServers[0].Content.Name);
             ClassicAssert.AreEqual("1.2.3.4", result.DifferingAppRoles[1][0].AppServers[0].Content.Ip);
-            ClassicAssert.AreEqual(false, result.DifferingAppRoles[1][0].AppServers[0].Content.NotImplemented);
+            ClassicAssert.IsFalse(result.DifferingAppRoles[1][0].AppServers[0].Content.NotImplemented);
             ClassicAssert.AreEqual("AppServerNew1/32", result.DifferingAppRoles[1][0].AppServers[1].Content.Name);
-            ClassicAssert.AreEqual(true, result.DifferingAppRoles[1][0].AppServers[1].Content.NotImplemented);
+            ClassicAssert.IsTrue(result.DifferingAppRoles[1][0].AppServers[1].Content.NotImplemented);
         }
 
         [Test]
@@ -716,12 +716,12 @@ namespace FWO.Test
             ClassicAssert.AreEqual(0, result.RuleDifferences[0].ImplementedRules[0].DisregardedTos.Length);
             ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules[0].Froms.Length);
             ClassicAssert.AreEqual("SpecObj1", result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
             ClassicAssert.AreEqual("AppServerUnchanged", result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Tos.Length);
             ClassicAssert.AreEqual("SpecObj2", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects.Count);
             ClassicAssert.AreEqual("specobj3", result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects[0]);
 
@@ -737,12 +737,12 @@ namespace FWO.Test
             ClassicAssert.AreEqual(0, result.RuleDifferences[0].ImplementedRules[0].DisregardedTos.Length);
             ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules[0].Froms.Length);
             ClassicAssert.AreEqual("SpecObj1", result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
             ClassicAssert.AreEqual("AppServerUnchanged", result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Tos.Length);
             ClassicAssert.AreEqual("SpecObj2", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects.Count);
             ClassicAssert.AreEqual("specobj3", result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects[0]);
 
@@ -778,13 +778,13 @@ namespace FWO.Test
             ClassicAssert.AreEqual("SvcGrp1", result.RuleDifferences[0].ImplementedRules[0].DisregardedServices[0].Name);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Froms.Length);
             ClassicAssert.AreEqual("AppServerOld", result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.Name);
-            ClassicAssert.AreEqual(true, result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
+            ClassicAssert.IsTrue(result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Tos.Length);
             ClassicAssert.AreEqual("AR504711-001", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Services.Length);
             ClassicAssert.AreEqual("Service1", result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[1].DisregardedServices.Length);
             ClassicAssert.AreEqual("SvcGrp1", result.RuleDifferences[0].ImplementedRules[1].DisregardedServices[0].Name);
 
@@ -1097,12 +1097,12 @@ namespace FWO.Test
             ClassicAssert.AreEqual(0, result.RuleDifferences[0].ImplementedRules[0].DisregardedTos.Length);
             ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules[0].Froms.Length);
             ClassicAssert.AreEqual("SpecObj1", result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
             ClassicAssert.AreEqual("AppServerUnchanged", result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Tos.Length);
             ClassicAssert.AreEqual("SpecObj2", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects.Count);
             ClassicAssert.AreEqual("specobj3", result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects[0]);
 
@@ -1116,25 +1116,25 @@ namespace FWO.Test
             ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
             await varianceAnalysis.AnalyseConnsForStatusAsync(Connections);
 
-            ClassicAssert.AreEqual(true, Connections[0].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
-            ClassicAssert.AreEqual(true, Connections[0].Props?.ContainsKey(ConState.VarianceFound.ToString()));
-            ClassicAssert.AreEqual(false, Connections[0].Props?.ContainsKey(ConState.NotImplemented.ToString()));
+            ClassicAssert.IsTrue(Connections[0].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
+            ClassicAssert.IsTrue(Connections[0].Props?.ContainsKey(ConState.VarianceFound.ToString()));
+            ClassicAssert.IsFalse(Connections[0].Props?.ContainsKey(ConState.NotImplemented.ToString()));
 
-            ClassicAssert.AreEqual(true, Connections[1].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
-            ClassicAssert.AreEqual(false, Connections[1].Props?.ContainsKey(ConState.VarianceFound.ToString()));
-            ClassicAssert.AreEqual(false, Connections[1].Props?.ContainsKey(ConState.NotImplemented.ToString()));
+            ClassicAssert.IsTrue(Connections[1].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
+            ClassicAssert.IsFalse(Connections[1].Props?.ContainsKey(ConState.VarianceFound.ToString()));
+            ClassicAssert.IsFalse(Connections[1].Props?.ContainsKey(ConState.NotImplemented.ToString()));
 
-            ClassicAssert.AreEqual(true, Connections[2].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
-            ClassicAssert.AreEqual(false, Connections[2].Props?.ContainsKey(ConState.VarianceFound.ToString()));
-            ClassicAssert.AreEqual(true, Connections[2].Props?.ContainsKey(ConState.NotImplemented.ToString()));
+            ClassicAssert.IsTrue(Connections[2].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
+            ClassicAssert.IsFalse(Connections[2].Props?.ContainsKey(ConState.VarianceFound.ToString()));
+            ClassicAssert.IsTrue(Connections[2].Props?.ContainsKey(ConState.NotImplemented.ToString()));
 
-            ClassicAssert.AreEqual(true, Connections[3].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
-            ClassicAssert.AreEqual(true, Connections[3].Props?.ContainsKey(ConState.VarianceFound.ToString()));
-            ClassicAssert.AreEqual(false, Connections[3].Props?.ContainsKey(ConState.NotImplemented.ToString()));
+            ClassicAssert.IsTrue(Connections[3].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
+            ClassicAssert.IsTrue(Connections[3].Props?.ContainsKey(ConState.VarianceFound.ToString()));
+            ClassicAssert.IsFalse(Connections[3].Props?.ContainsKey(ConState.NotImplemented.ToString()));
 
-            ClassicAssert.AreEqual(true, Connections[4].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
-            ClassicAssert.AreEqual(false, Connections[4].Props?.ContainsKey(ConState.VarianceFound.ToString()));
-            ClassicAssert.AreEqual(false, Connections[4].Props?.ContainsKey(ConState.NotImplemented.ToString()));
+            ClassicAssert.IsTrue(Connections[4].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
+            ClassicAssert.IsFalse(Connections[4].Props?.ContainsKey(ConState.VarianceFound.ToString()));
+            ClassicAssert.IsFalse(Connections[4].Props?.ContainsKey(ConState.NotImplemented.ToString()));
         }
 
         [Test]
@@ -1160,7 +1160,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task TestNameFieldRuleOwnerPreFilterSkippedForRequestFlow()
+        public async Task TestNameFieldRuleOwnerPreFilterUsedForRequestFlow()
         {
             SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
             RuleOwnerPreFilterRoutingApiConn apiConnection = new();
@@ -1168,8 +1168,8 @@ namespace FWO.Test
 
             await analysis.AnalyseModelledConnectionsForRequest([]);
 
-            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
-            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
         }
 
         [Test]

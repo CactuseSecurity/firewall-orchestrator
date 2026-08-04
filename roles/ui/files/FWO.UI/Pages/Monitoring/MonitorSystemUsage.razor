@@ -267,7 +267,7 @@
             monitoringActive = CanViewUsage;
             if (monitoringActive)
             {
-                Refresh();
+                await RefreshAsync();
                 StartRefreshRunner();
             }
             else

@@ -90,6 +90,33 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ConvertRuleList_ShouldDeduplicateSourceAndDestinationShortNetworkLocations()
+        {
+            NetworkObject sourceGroup = CreateNetworkObjectGroup(100, "Source Group");
+            NetworkObject destinationGroup = CreateNetworkObjectGroup(200, "Destination Group");
+
+            List<RuleDetail> rules = InvokeConvertRuleList(
+                [
+                    new Rule
+                    {
+                        Froms =
+                        [
+                            CreateNetworkLocation("", sourceGroup),
+                            CreateNetworkLocation("", sourceGroup)
+                        ],
+                        Tos =
+                        [
+                            CreateNetworkLocation("", destinationGroup),
+                            CreateNetworkLocation("", destinationGroup)
+                        ]
+                    }
+                ]);
+
+            ClassicAssert.AreEqual("Source Group", rules[0].SourceShort);
+            ClassicAssert.AreEqual("Destination Group", rules[0].DestinationShort);
+        }
+
+        [Test]
         public void ConvertRuleList_ShouldFlattenNestedServiceGroups()
         {
             List<RuleDetail> rules = InvokeConvertRuleList(
@@ -207,6 +234,16 @@ namespace FWO.Test
                 Name = name,
                 Type = new NetworkObjectType { Name = ObjectType.Group },
                 ObjectGroupFlats = [new GroupFlat<NetworkObject> { Id = member.Id, Object = member }]
+            };
+        }
+
+        private static NetworkObject CreateNetworkObjectGroup(long id, string name)
+        {
+            return new NetworkObject
+            {
+                Id = id,
+                Name = name,
+                Type = new NetworkObjectType { Name = ObjectType.Group }
             };
         }
 

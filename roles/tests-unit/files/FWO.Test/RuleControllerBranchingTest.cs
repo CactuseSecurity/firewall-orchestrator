@@ -172,6 +172,16 @@ namespace FWO.Test
             StringAssert.Contains("removed: { _is_null: true }", RuleQueries.getRuleIdsByRuleOwner);
         }
 
+        [Test]
+        public void GetRulesByFilter_RuleDetailsQuery_ShouldFilterRemovedRuleRelations()
+        {
+            StringAssert.Contains("rule_froms(", RuleQueries.getRuleDetailsById);
+            StringAssert.Contains("rule_tos(", RuleQueries.getRuleDetailsById);
+            StringAssert.Contains("rule_services(", RuleQueries.getRuleDetailsById);
+            StringAssert.Contains("active: { _eq: true }", RuleQueries.getRuleDetailsById);
+            StringAssert.Contains("removed: { _is_null: true }", RuleQueries.getRuleDetailsById);
+        }
+
         private static RuleController CreateController(ApiConnection apiConnection, string requestId)
         {
             RuleController controller = new(apiConnection);

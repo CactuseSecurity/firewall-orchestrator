@@ -574,3 +574,47 @@ div.modal-body > * > div.table-responsive > table.sticky-header thead {
 .report-table td.minw-200 {
     min-width: 200px;
 }
+
+/* system usage monitoring */
+.usage-sparkline {
+    width: 100%;
+    min-height: 60px;
+}
+
+.usage-sparkline-svg {
+    width: 100%;
+    height: 60px;
+}
+
+.usage-sparkline-line {
+    fill: none;
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+}
+
+.usage-sparkline-area {
+    stroke: none;
+    opacity: 0.15;
+}
+
+.usage-sparkline-primary {
+    stroke: hsl(211, 100%, 43%);
+    fill: hsl(211, 100%, 43%);
+}
+
+.usage-sparkline-secondary {
+    stroke: hsl(145, 63%, 33%);
+    fill: hsl(145, 63%, 33%);
+}
+
+.usage-sparkline-empty {
+    color: hsl(0, 0%, 45%);
+    font-size: small;
+    padding-top: 20px;
+}
+
+.usage-tile-value {
+    font-size: 1.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+}

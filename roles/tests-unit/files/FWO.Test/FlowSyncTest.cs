@@ -336,7 +336,7 @@ namespace FWO.Test
             bool result = await flowSync.Run();
 
             List<int> expectedManagementDataRequests = new() { 1, 2, 3 };
-            List<(long ControlId, int MgmId)> expectedCompletedImportControlUpdates = new() { (9, 1), (9, 2), (9, 3) };
+            List<(long ControlId, int MgmId)> expectedCompletedImportControlUpdates = new() { (9, 1) };
             Assert.That(result, Is.True);
             Assert.That(apiConn.ManagementDataRequests, Is.EqualTo(expectedManagementDataRequests));
             Assert.That(apiConn.CompletedImportControlUpdates, Is.EqualTo(expectedCompletedImportControlUpdates));
@@ -364,7 +364,7 @@ namespace FWO.Test
             List<int> expectedManagementDataRequests = new() { 1, 2, 3 };
             Assert.That(result, Is.True);
             Assert.That(apiConn.ManagementDataRequests, Is.EqualTo(expectedManagementDataRequests));
-            List<(long ControlId, int MgmId)> expectedCompletedImportControlUpdates = new() { (9, 2) };
+            List<(long ControlId, int MgmId)> expectedCompletedImportControlUpdates = [];
             Assert.That(apiConn.CompletedImportControlUpdates, Is.EqualTo(expectedCompletedImportControlUpdates));
         }
 

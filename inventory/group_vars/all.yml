@@ -62,6 +62,23 @@ fworch_systemd_unit_names: >-
 # restart delay for all fworch services - long enough to keep a service that waits for a
 # dependency from running into the default systemd start rate limit
 fworch_systemd_restart_sec: 10
+# start rate limit for all fworch services. the window is wide and the burst is high on purpose:
+# a service that only waits for a dependency has to survive the whole startup phase, while a
+# service that keeps crashing - out of memory, bad configuration - has to end up in a visible
+# failed state instead of restarting forever. set the burst to 0 to retry indefinitely.
+fworch_systemd_start_limit_interval_sec: 1800
+fworch_systemd_start_limit_burst: 30
+# memory ceiling per service, as a percentage of the host's total RAM. without a ceiling the
+# service that leaks is not necessarily the one that dies - the global OOM killer picks its victim
+# by badness score, which on a single host installation is just as likely to be postgres. these
+# are ceilings, not reservations, so they may add up to more than 100 percent. a ceiling is only
+# meant to bound a runaway, not to size a service: set a percentage to 0 to leave one uncapped.
+fworch_ui_memory_max_percent: 50
+fworch_middleware_memory_max_percent: 30
+fworch_importer_memory_max_percent: 40
+fworch_ui_memory_max: "{{ 'infinity' if fworch_ui_memory_max_percent | int <= 0 else ((ansible_memtotal_mb | int * fworch_ui_memory_max_percent | int / 100) | round | int) ~ 'M' }}"
+fworch_middleware_memory_max: "{{ 'infinity' if fworch_middleware_memory_max_percent | int <= 0 else ((ansible_memtotal_mb | int * fworch_middleware_memory_max_percent | int / 100) | round | int) ~ 'M' }}"
+fworch_importer_memory_max: "{{ 'infinity' if fworch_importer_memory_max_percent | int <= 0 else ((ansible_memtotal_mb | int * fworch_importer_memory_max_percent | int / 100) | round | int) ~ 'M' }}"
 
 # setting default proxy (may be overwritten via --extra-vars)
 # Lowercase proxy variables take precedence over uppercase when both are set.

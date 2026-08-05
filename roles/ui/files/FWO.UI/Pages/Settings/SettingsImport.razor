@@ -83,26 +83,6 @@
             </div>
         </div>
 
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5678"))">
-            <label class="col-form-label col-sm-4">@userConfig.GetText("custom_field_ChangeID_key"):</label>
-            <div class="col-sm-5">
-                <EditList ElementType="string" Elements="ChangeIdKeys.ToArray()" ElementsToAdd="ChangeIdsToAdd"
-                          ElementsToDelete="ChangeIdsToDelete" StdLayout="false">
-                    <Display>
-                        <div class="row">
-                            <div class="col-sm-12 border bg-transparent">@context</div>
-                        </div>
-                    </Display>
-                </EditList>
-                <div class="row col-sm-12 mt-1">
-                    <input type="text" class="col-sm-10" @bind="actChangeIdKey" />
-                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddChangeIdKey"
-                            @onclick:preventDefault>
-                        @(DisplayService.DisplayButton(userConfig, "add", Icons.Add))
-                    </button>
-                </div>
-            </div>
-        </div>
     }
     @if (SelectedOwnerMappingSource == OwnerMappingSourceStm.NameField)
     {
@@ -113,6 +93,27 @@
             </div>
         </div>
     }
+    @* shown for every owner mapping source: the change-ID keys are read by rule reports, notification mails and the rule REST API *@
+    <div class="form-group row mb-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5678"))">
+        <label class="col-form-label col-sm-4">@userConfig.GetText("custom_field_ChangeID_key"):</label>
+        <div class="col-sm-5">
+            <EditList ElementType="string" Elements="ChangeIdKeys.ToArray()" ElementsToAdd="ChangeIdKeysToAdd"
+                      ElementsToDelete="ChangeIdKeysToDelete" StdLayout="false">
+                <Display>
+                    <div class="row">
+                        <div class="col-sm-12 border bg-transparent">@context</div>
+                    </div>
+                </Display>
+            </EditList>
+            <div class="row col-sm-12 mt-1">
+                <input type="text" class="col-sm-10" @bind="ActiveChangeIdKey" />
+                <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddChangeIdKey"
+                        @onclick:preventDefault>
+                    @(DisplayService.DisplayButton(userConfig, "add", Icons.Add))
+                </button>
+            </div>
+        </div>
+    </div>
     <ExecutionModeAuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
@@ -144,10 +145,11 @@ else
     private List<string> OwnerKeysToAdd = [];
     private List<string> OwnerKeysToDelete = [];
 
-    private string actChangeIdKey = "";
+    private string ActiveChangeIdKey = "";
     private List<string> ChangeIdKeys = [];
-    private List<string> ChangeIdsToAdd = [];
-    private List<string> ChangeIdsToDelete = [];
+    private List<string> ChangeIdKeysToAdd = [];
+    private List<string> ChangeIdKeysToDelete = [];
+
     private string actModelledMarker = "";
 
     protected override async Task OnInitializedAsync()
@@ -182,20 +184,7 @@ else
                 }
             }
 
-            if (!string.IsNullOrWhiteSpace(userConfig.CustomFieldChangeIdKey))
-            {
-                var json = userConfig.CustomFieldChangeIdKey.Trim();
-
-                if (json.StartsWith("[") && json.EndsWith("]"))
-                {
-                    ChangeIdKeys = JsonSerializer.Deserialize<string[]>(json)?.ToList() ?? new List<string>();
-                }
-                else
-                {
-                    ChangeIdKeys = new List<string> { json };
-                }
-            }
-
+            ChangeIdKeys = DeserializeChangeIdKeys(configData.CustomFieldChangeIdKey);
             actModelledMarker = configData.ModModelledMarker ?? "";
         }
         catch (Exception exception)
@@ -223,7 +212,6 @@ else
             {
                 int oldSource = configData.OwnerSoruceMappingID;
                 string oldOwnerKey = configData.CustomFieldOwnerKey ?? "";
-                string oldChangeIdKey = configData.CustomFieldChangeIdKey ?? "";
                 string oldModelledMarker = configData.ModModelledMarker ?? "";
 
                 if (SelectedOwnerMappingSource == null)
@@ -232,21 +220,23 @@ else
                     return;
                 }
                 PrepareOwnerKeys();
-                PrepareChangeIdKeys();
                 if (SelectedOwnerMappingSource == OwnerMappingSourceStm.CustomField && !OwnerKeys.Any())
                 {
                     DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("E5505"), true);
                     return;
                 }
 
+                List<string> mergedChangeIdKeys = MergeChangeIdKeys();
+
                 configData.OwnerSoruceMappingID = (int)SelectedOwnerMappingSource.Value;
                 configData.CustomFieldOwnerKey = JsonSerializer.Serialize(OwnerKeys);
-                configData.CustomFieldChangeIdKey = JsonSerializer.Serialize(ChangeIdKeys);
+                configData.CustomFieldChangeIdKey = JsonSerializer.Serialize(mergedChangeIdKeys);
                 configData.ModModelledMarker = actModelledMarker;
 
                 await globalConfig.WriteToDatabase(configData, apiConnection);
+                CommitChangeIdKeys(mergedChangeIdKeys);
 
-                if (ShouldTriggerRuleOwnerReinitialize(oldSource, oldOwnerKey, oldChangeIdKey, oldModelledMarker, configData))
+                if (ShouldTriggerRuleOwnerReinitialize(oldSource, oldOwnerKey, oldModelledMarker, configData))
                 {
                     bool rebuildSuccess = await TriggerFullRuleOwnerReinitialize();
                     if (!rebuildSuccess)
@@ -269,10 +259,10 @@ else
         }
     }
 
-    private static bool ShouldTriggerRuleOwnerReinitialize(int oldSource, string oldOwnerKey, string oldChangeIdKey, string oldModelledMarker, ConfigData configData)
+    private static bool ShouldTriggerRuleOwnerReinitialize(int oldSource, string oldOwnerKey, string oldModelledMarker, ConfigData configData)
     {
         bool sourceChanged = oldSource != configData.OwnerSoruceMappingID;
-        bool customFieldConfigChanged = oldOwnerKey != configData.CustomFieldOwnerKey || oldChangeIdKey != configData.CustomFieldChangeIdKey;
+        bool customFieldConfigChanged = oldOwnerKey != configData.CustomFieldOwnerKey;
         bool nameFieldConfigChanged = oldModelledMarker != configData.ModModelledMarker;
 
         if (sourceChanged)
@@ -311,27 +301,70 @@ else
         OwnerKeysToAdd = [];
     }
 
+    /// <summary>
+    /// Adds the pending change-ID custom field key to the editor list.
+    /// </summary>
     private void AddChangeIdKey()
     {
-        if (actChangeIdKey != "")
+        string key = ActiveChangeIdKey.Trim();
+        if (key.Length > 0 && !ChangeIdKeys.Contains(key) && !ChangeIdKeysToAdd.Contains(key))
         {
-            ChangeIdsToAdd.Add(actChangeIdKey);
-            actChangeIdKey = "";
+            ChangeIdKeysToAdd.Add(key);
+            ActiveChangeIdKey = "";
         }
     }
 
-    private void PrepareChangeIdKeys()
+    /// <summary>
+    /// Builds the key list resulting from the additions and removals collected by the change-ID key editor,
+    /// leaving the editor state untouched so a failed save keeps the pending changes.
+    /// </summary>
+    /// <returns>The merged keys.</returns>
+    private List<string> MergeChangeIdKeys()
     {
-        foreach (var key in ChangeIdsToDelete)
+        List<string> mergedKeys = [.. ChangeIdKeys.Where(key => !ChangeIdKeysToDelete.Contains(key))];
+        mergedKeys.AddRange(ChangeIdKeysToAdd);
+        return mergedKeys;
+    }
+
+    /// <summary>
+    /// Applies the successfully persisted change-ID keys to the editor and clears the pending queues.
+    /// </summary>
+    /// <param name="persistedKeys">Keys written to the database.</param>
+    private void CommitChangeIdKeys(List<string> persistedKeys)
+    {
+        ChangeIdKeys = persistedKeys;
+        ChangeIdKeysToDelete = [];
+        ChangeIdKeysToAdd = [];
+    }
+
+    /// <summary>
+    /// Reads a JSON key list while retaining compatibility with legacy single-key values.
+    /// </summary>
+    /// <param name="keysJson">JSON list or legacy plain-text key.</param>
+    /// <returns>The configured keys, or an empty list if the stored value cannot be parsed.</returns>
+    private static List<string> DeserializeChangeIdKeys(string keysJson)
+    {
+        if (string.IsNullOrWhiteSpace(keysJson))
         {
-            ChangeIdKeys.Remove(key);
+            return [];
         }
-        foreach (var key in ChangeIdsToAdd)
+
+        string trimmedKeys = keysJson.Trim();
+        if (!trimmedKeys.StartsWith('[') || !trimmedKeys.EndsWith(']'))
         {
-            ChangeIdKeys.Add(key);
+            return [trimmedKeys];
         }
-        ChangeIdsToDelete = [];
-        ChangeIdsToAdd = [];
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(trimmedKeys) ?? [];
+        }
+        catch (JsonException exception)
+        {
+            // keep the settings page usable so the invalid value can be corrected here
+            Log.WriteWarning("Read Config", $"Config item \"CustomFieldChangeIdKey\" contains unsupported value \"{keysJson}\". Using empty key list. {exception.Message}");
+            return [];
+        }
     }
 
     private string GetOwnerMappingSourceText(OwnerMappingSourceStm? source)

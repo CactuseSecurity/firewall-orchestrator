@@ -11,6 +11,20 @@ namespace FWO.Ui.Display
     {
         protected UserConfig userConfig = userConfig;
 
+        private readonly CustomFieldKeyCache changeIdKeyCache = new();
+
+        /// <summary>
+        /// Resolves the change identifier from the first configured matching rule custom field.
+        /// </summary>
+        /// <param name="rule">Rule containing the serialized custom fields.</param>
+        /// <returns>The configured custom field value, an error description, or an empty string.</returns>
+        public string DisplayChangeId(Rule rule)
+        {
+            string keysJson = userConfig.GlobalConfig?.CustomFieldChangeIdKey ?? GlobalConst.kDefaultChangeIdKeys;
+            string? value = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, changeIdKeyCache.GetKeys(keysJson), out string? errorMessage);
+            return value ?? errorMessage ?? "";
+        }
+
         public static string DisplayHierarchicalNumber(Rule rule)
         {
             return rule.DisplayOrderNumberString;

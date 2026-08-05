@@ -179,11 +179,13 @@ def test_read_secret_reads_secret_file(tmp_path: Path) -> None:
     assert module.read_secret(None) is None
 
 
-def test_login_posts_credentials(monkeypatch: MonkeyPatch) -> None:
+@pytest.mark.parametrize("access_token_key", ["accessToken", "AccessToken"])
+def test_login_posts_credentials(monkeypatch: MonkeyPatch, access_token_key: str) -> None:
     module = load_module()
 
     class Response:
-        text = "jwt"
+        def json(self) -> dict[str, str]:
+            return {access_token_key: "jwt"}
 
         def raise_for_status(self) -> None:
             return None

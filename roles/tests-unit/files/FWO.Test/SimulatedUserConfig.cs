@@ -487,6 +487,7 @@ namespace FWO.Test
             {"workflow_filters","Workflow Filters"},
             {"other_filters","Other filters"},
             {"variance_filters","Variance Filters"},
+            {"add_info","Add. Info"},
             {"rules_for_deleted_conns","Rules from deleted connections"},
             {"analyse_remaining_rules","Analyse remaining rules"},
             {"task_type","Task type"},

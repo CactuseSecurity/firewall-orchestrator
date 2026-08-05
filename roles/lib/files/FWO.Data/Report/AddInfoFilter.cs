@@ -3,6 +3,10 @@ using System.Text.Json.Serialization;
 
 namespace FWO.Data.Report
 {
+    /// <summary>
+    /// The user-facing mode names are shared across reporting contexts, but the concrete
+    /// filtering semantics are defined by the report that interprets the filter.
+    /// </summary>
     public enum AddInfoFilterMode
     {
         not_existing,

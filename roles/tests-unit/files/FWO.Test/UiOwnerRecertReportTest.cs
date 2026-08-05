@@ -69,7 +69,7 @@ namespace FWO.Test
                 .Add(p => p.OwnerAddInfoFilter, new AddInfoFilter { Name = "recert_required", Mode = AddInfoFilterMode.display_only })
                 .Add(p => p.RecertificationDisplayPeriod, 7));
 
-            Assert.That(cut.Markup, Does.Contain("add_info: recert_required"));
+            Assert.That(cut.Markup, Does.Contain("Add. Info: recert_required"));
             Assert.That(cut.Markup, Does.Contain("bi bi-check-lg"));
             Assert.That(cut.Markup, Does.Not.Contain(">true<"));
             Assert.That(ownerData[0].Owner.AdditionalInfoValue, Is.EqualTo("true"));
@@ -116,7 +116,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(cut.Markup, Does.Contain("add_info: business_unit"));
+                Assert.That(cut.Markup, Does.Contain("Add. Info: business_unit"));
                 Assert.That(cut.Markup, Does.Contain("Payments"));
                 Assert.That(ownerData[0].Owner.AdditionalInfoValue, Is.EqualTo("Payments"));
             });

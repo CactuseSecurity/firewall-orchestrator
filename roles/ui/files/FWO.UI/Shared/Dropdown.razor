@@ -12,9 +12,18 @@
            style="width: 40px;" for="@($"dropdown-input-{Id}")">
         <span id="@($"dropdown-input-prepend-icon-{Id}")" class="@Icons.CollapseDown"></span>
     </label>
-    <input type="text" id="@($"dropdown-input-{Id}")" class="@InputClass form-control"
-           style="@($"width: calc(100% - {40 + AppendWidth}px);")" @onfocus="ShowMenu" @oninput="Filter" @onblur="HandleBlur"
-           @bind="searchValue" />
+    @if (AllowFreeText)
+    {
+        <input type="text" id="@($"dropdown-input-{Id}")" class="@InputClass form-control"
+               style="@($"width: calc(100% - {40 + AppendWidth}px);")" @onfocus="ShowMenu" @oninput="Filter" @onblur="HandleBlur"
+               @bind="searchValue" />
+    }
+    else
+    {
+        <input type="text" id="@($"dropdown-input-{Id}")" class="@InputClass form-control"
+               style="@($"width: calc(100% - {40 + AppendWidth}px);")" @onfocus="ShowMenu" @oninput="Filter"
+               @bind="searchValue" />
+    }
     @if (Append != null)
     {
         @Append

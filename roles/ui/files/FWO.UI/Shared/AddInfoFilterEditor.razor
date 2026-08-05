@@ -23,17 +23,17 @@ else
     <Body>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@TooltipText">
             <label for="@NameDropdownId" class="@PopupLabelClass">@(userConfig.GetText("name")):</label>
-            <div class="col-sm-9">
-                <Dropdown Id="@NameDropdownId" ElementType="string" SelectedElement="addInfoFilterDraft.Name" SelectedElementChanged="HandleLabelNameChanged" ElementToString="labelName => labelName" Elements="availableAddInfoNames" AllowFreeText="AllowFreeText">
-                    <ElementTemplate Context="labelName">
-                        @labelName
+            <div class="@PopupContentClass">
+                <Dropdown Id="@NameDropdownId" ElementType="string" SelectedElement="addInfoFilterDraft.Name" SelectedElementChanged="HandleAddInfoNameChanged" ElementToString="addInfoName => addInfoName" Elements="availableAddInfoNames" AllowFreeText="AllowFreeText">
+                    <ElementTemplate Context="addInfoName">
+                        @addInfoName
                     </ElementTemplate>
                 </Dropdown>
             </div>
         </div>
         <div class="form-group row mt-2">
             <label for="@ModeDropdownId" class="@PopupLabelClass">@(userConfig.GetText("select")):</label>
-            <div class="col-sm-9">
+            <div class="@PopupContentClass">
                 <Dropdown Id="@ModeDropdownId" ElementType="AddInfoFilterMode" @bind-SelectedElement="addInfoFilterDraft.Mode" ElementToString="AddInfoFilterModeToString" Elements="availableAddInfoFilterModes">
                     <ElementTemplate Context="mode">
                         @(AddInfoFilterModeToString(mode))
@@ -45,7 +45,7 @@ else
         {
             <div class="form-group row mt-2">
                 <label for="@ValueInputId" class="@PopupLabelClass">@(userConfig.GetText("value")):</label>
-                <div class="col-sm-9">
+                <div class="@PopupContentClass">
                     <input id="@ValueInputId" type="text" class="form-control form-control-sm" @bind="addInfoFilterDraft.Value" />
                 </div>
             </div>
@@ -106,19 +106,10 @@ else
     private string TooltipText => string.IsNullOrWhiteSpace(TooltipTextKey) ? string.Empty : userConfig.PureLine(TooltipTextKey);
     private string SummaryLabelClass
     {
-        get
-        {
-            string labelClass = UseFormLayout
-                ? "col-sm-3 col-form-label col-form-label-sm"
-                : "form-label";
-            if (UseLightText)
-            {
-                labelClass += " text-white";
-            }
-            return labelClass;
-        }
+        get => $"{(UseFormLayout ? "col-sm-3 col-form-label col-form-label-sm" : "form-label")}{(UseLightText ? " text-white" : "")}";
     }
-    private string PopupLabelClass => "col-sm-3 col-form-label col-form-label-sm";
+    private string PopupLabelClass => $"{(UseFormLayout ? "col-sm-3 col-form-label col-form-label-sm" : "col-sm-3 col-form-label col-form-label-sm")}{(UseLightText ? " text-white" : "")}";
+    private string PopupContentClass => UseFormLayout ? "col-sm-8" : "col-sm-9";
 
     private RenderFragment SummaryContent => @<div class="input-group">
         <input id="@SummaryId" type="text" class="form-control form-control-sm" value="@GetAddInfoFilterSummary()" readonly />
@@ -164,16 +155,9 @@ else
         showAddInfoFilterDialog = true;
     }
 
-    private Task HandleLabelNameChanged(string? labelName)
+    private Task HandleAddInfoNameChanged(string? addInfoName)
     {
-        addInfoFilterDraft.Name = labelName ?? string.Empty;
-        if (AllowFreeText
-            && !string.IsNullOrWhiteSpace(addInfoFilterDraft.Name)
-            && !availableAddInfoNames.Any(addInfo => string.Equals(addInfo, addInfoFilterDraft.Name, StringComparison.OrdinalIgnoreCase)))
-        {
-            addInfoFilterDraft.Mode = DefaultMode;
-        }
-
+        addInfoFilterDraft.Name = addInfoName ?? string.Empty;
         return Task.CompletedTask;
     }
 

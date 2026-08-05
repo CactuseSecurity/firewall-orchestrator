@@ -50,11 +50,13 @@ namespace FWO.Ui.Display
                 return true;
             }
 
+            bool hasAdditionalInfoKey = owner.AdditionalInfo?.ContainsKey(filter.Name) == true;
             string value = FormatAdditionalInfoValue(owner, filter.Name);
             return filter.Mode switch
             {
-                AddInfoFilterMode.existing => !string.IsNullOrWhiteSpace(value),
-                AddInfoFilterMode.not_existing => string.IsNullOrWhiteSpace(value),
+                // Keep the workflow semantics here: key presence is enough for "existing".
+                AddInfoFilterMode.existing => hasAdditionalInfoKey,
+                AddInfoFilterMode.not_existing => !hasAdditionalInfoKey,
                 AddInfoFilterMode.value => string.Equals(value, filter.Value, StringComparison.Ordinal),
                 _ => true
             };

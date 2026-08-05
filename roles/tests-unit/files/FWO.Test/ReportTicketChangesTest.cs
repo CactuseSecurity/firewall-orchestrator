@@ -844,7 +844,7 @@ namespace FWO.Test
             Assert.That(html, Does.Contain("Task type: access"));
             Assert.That(html, Does.Contain("Phase: Implementation"));
             Assert.That(html, Does.Contain("State: done"));
-            Assert.That(html, Does.Contain("add_info: policy_check (existing)"));
+            Assert.That(html, Does.Contain("Add. Info: policy_check (existing)"));
         }
 
         [Test]

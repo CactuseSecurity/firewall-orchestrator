@@ -169,6 +169,38 @@ namespace FWO.Test
             Assert.That(cut.Find("#testLabel-summary").GetAttribute("value"), Is.EqualTo("custom_label: Display only").IgnoreCase);
         }
 
+        [Test]
+        public async Task AddInfoFilterEditor_DoesNotResetExistingValueModeWhenFreeTextNameChanges()
+        {
+            await using BunitContext context = CreateContext();
+            AddInfoFilter filter = new()
+            {
+                Name = "policy_check",
+                Mode = AddInfoFilterMode.value,
+                Value = "passed"
+            };
+            IRenderedComponent<AddInfoFilterEditor> cut = context.Render<AddInfoFilterEditor>(parameters => parameters
+                .Add(p => p.AddInfoFilter, filter)
+                .Add(p => p.AvailableAddInfoNames, kPolicyCheckLabelNames)
+                .Add(p => p.AllowFreeText, true)
+                .Add(p => p.IdPrefix, "testLabel"));
+
+            cut.Find("#testLabel-editButton").Click();
+
+            IRenderedComponent<Dropdown<string>> dropdown = cut.FindComponent<Dropdown<string>>();
+            SetPrivateField(dropdown.Instance, "searchValue", "custom_label");
+            await InvokePrivateTask(dropdown, dropdown.Instance, "CommitFreeTextSelection");
+
+            AddInfoFilter draft = GetPrivateMember<AddInfoFilter>(cut.Instance, "addInfoFilterDraft");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(draft.Name, Is.EqualTo("custom_label"));
+                Assert.That(draft.Mode, Is.EqualTo(AddInfoFilterMode.value));
+                Assert.That(draft.Value, Is.EqualTo("passed"));
+            });
+        }
+
         private static BunitContext CreateContext()
         {
             BunitContext context = new();

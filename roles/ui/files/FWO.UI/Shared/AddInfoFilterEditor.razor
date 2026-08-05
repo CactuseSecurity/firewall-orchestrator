@@ -108,7 +108,7 @@ else
     {
         get => $"{(UseFormLayout ? "col-sm-3 col-form-label col-form-label-sm" : "form-label")}{(UseLightText ? " text-white" : "")}";
     }
-    private string PopupLabelClass => $"{(UseFormLayout ? "col-sm-3 col-form-label col-form-label-sm" : "col-sm-3 col-form-label col-form-label-sm")}{(UseLightText ? " text-white" : "")}";
+    private string PopupLabelClass => $"col-sm-3 col-form-label col-form-label-sm{(UseLightText ? " text-white" : "")}";
     private string PopupContentClass => UseFormLayout ? "col-sm-8" : "col-sm-9";
 
     private RenderFragment SummaryContent => @<div class="input-group">

@@ -119,7 +119,7 @@ header {
 
 .bg-blue {
     z-index: 10;
-    background-image: linear-gradient(#054b8c, #03335e);
+    background-image: linear-gradient(var(--bg-color, #054B8C), var(--bg-color-2, #03335E));
 }
 
 .bg-gray {

@@ -186,17 +186,45 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task TheArchiveSaysSoWhenOlderReportsExistBeyondTheLimit()
+        public async Task TheArchiveSaysSoWhenOneReportMoreThanFitsExists()
         {
             // silently dropping them looks like the older reports had been deleted
-            int limit = await GetArchiveLimit();
-            ArchiveApiConnection apiConnection = new() { ArchivedReports = BuildArchivedReports(limit, kUserDbId) };
+            int shown = await GetArchiveDisplayLimit();
+            ArchiveApiConnection apiConnection = new() { ArchivedReports = BuildArchivedReports(shown + 1, kUserDbId) };
             await using BunitContext context = CreateContext(apiConnection, BuildUserConfig(kUserDbId, Roles.Reporter));
 
             IRenderedComponent<Archive> archive = context.Render<Archive>();
 
-            Assert.That(archive.Markup, Does.Contain("Older reports exist but are not listed"));
-            Assert.That(archive.Markup, Does.Contain(limit.ToString()));
+            Assert.That(archive.Find("div.alert").TextContent, Does.Contain("Older reports exist but are not listed"));
+            Assert.That(archive.Find("div.alert").TextContent, Does.Contain(shown.ToString()));
+        }
+
+        [Test]
+        public async Task TheArchiveDoesNotListTheSentinelRowItOnlyFetchedToDetectTruncation()
+        {
+            int shown = await GetArchiveDisplayLimit();
+            ArchiveApiConnection apiConnection = new() { ArchivedReports = BuildArchivedReports(shown + 1, kUserDbId) };
+            await using BunitContext context = CreateContext(apiConnection, BuildUserConfig(kUserDbId, Roles.Reporter));
+
+            IRenderedComponent<Archive> archive = context.Render<Archive>();
+
+            Assert.That(archive.Markup, Does.Contain($"report {shown - 1}"));
+            Assert.That(archive.Markup, Does.Not.Contain($"report {shown}"));
+        }
+
+        [Test]
+        public async Task TheArchiveStaysQuietWhenExactlyAsManyReportsAsFitExist()
+        {
+            // the query asks for one row beyond the shown count, so a full page of shown rows is not
+            // truncated - warning here would be a false alarm for an installation of exactly that size
+            int shown = await GetArchiveDisplayLimit();
+            ArchiveApiConnection apiConnection = new() { ArchivedReports = BuildArchivedReports(shown, kUserDbId) };
+            await using BunitContext context = CreateContext(apiConnection, BuildUserConfig(kUserDbId, Roles.Reporter));
+
+            IRenderedComponent<Archive> archive = context.Render<Archive>();
+
+            Assert.That(archive.Markup, Does.Not.Contain("Older reports exist but are not listed"));
+            Assert.That(archive.Markup, Does.Contain($"report {shown - 1}"));
         }
 
         [Test]
@@ -222,6 +250,14 @@ namespace FWO.Test
 
             return ReadLimit(apiConnection.ReportQueryVariables)
                 ?? throw new InvalidOperationException("the archive query is not bounded at all");
+        }
+
+        /// <summary>
+        /// Number of reports the archive actually lists: the query fetches one sentinel row on top of it.
+        /// </summary>
+        private static async Task<int> GetArchiveDisplayLimit()
+        {
+            return await GetArchiveLimit() - 1;
         }
     }
 }

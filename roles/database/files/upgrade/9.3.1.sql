@@ -6,7 +6,7 @@ INSERT INTO
     )
 VALUES (
         'CustomFieldChangeIdKey',
-        '["field-2","ChangeId"]',
+        '["field-2","ChangeID"]',
         0
     )
 ON CONFLICT (config_key, config_user) DO UPDATE

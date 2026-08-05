@@ -1,12 +1,17 @@
-/* !! ATTENTION: When changing the margin-top values of the custom-modal-x classes you 
-    HAVE to change the --bs-custom-modal-margin-top respectively
-    or the sticky header for tables in the modals will look weird !!
+/* !! ATTENTION: The .modal-content box is the scroll container of a popup. Do not add an
+    offset to its content classes without checking the sticky headers of the tables inside
+    the popups (see .sticky-header in site.css) !!
+*/
+
+/* !! ATTENTION: Never center the modal with a CSS transform. A transformed element becomes
+    the containing block of all its position: fixed descendants, so the dropdown menus
+    (Dropdown.razor) inside a popup would be shifted by the offset of the modal.
+    Center the modal with automatic margins instead !!
 */
 
 .custom-modal-fs {
     --bs-modal-width: 100vw;
     height: 100dvh;
-    --bs-custom-modal-margin-top: -3em;
 }
 
 .custom-modal-content-fs {
@@ -14,9 +19,7 @@
 }
 
 .custom-modal-xl {
-    width: 80vw;    
-    margin-left: auto;
-    margin-right: auto;
+    width: 80vw;
 }
 
 .custom-modal-content-xl {
@@ -24,9 +27,7 @@
 }
 
 .custom-modal-lg {
-    width: 60vw;    
-    margin-left: auto;
-    margin-right: auto;
+    width: 60vw;
 }
 
 .custom-modal-content-lg {
@@ -34,9 +35,7 @@
 }
 
 .custom-modal-md {
-    width: 40vw;    
-    margin-left: auto;
-    margin-right: auto;
+    width: 40vw;
 }
 
 .custom-modal-content-md {
@@ -44,24 +43,29 @@
 }
 
 .custom-modal-auto {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    /* fit-content keeps the modal as wide as its content while staying centerable */
+    width: fit-content;
     min-width: 60vw;
+    max-width: 100vw;
 }
 
+/* Centers the modal in the viewport without a transform (see attention note above):
+    a fixed box that spans the whole viewport and has automatic margins on all sides
+    is centered on both axes as long as its width and height are definite.
+*/
 .custom-modal-center {
     position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: fit-content;
+    max-height: 100dvh;
+    margin: auto;
 }
 
 .custom-modal-sm {
     width: 30vw;
-    margin-left: auto;
-    margin-right: auto;
 }
 
 .custom-modal-content-sm {
@@ -70,8 +74,6 @@
 
 .custom-modal-xs {
     width: 30vw;
-    margin-left: auto;
-    margin-right: auto;
 }
 
 .custom-modal-content-xs {

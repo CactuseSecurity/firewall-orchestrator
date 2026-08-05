@@ -1,5 +1,4 @@
 using System.Linq;
-using System.Text.Json;
 using FWO.Basics;
 using FWO.Data;
 
@@ -18,12 +17,23 @@ public static class RuleFieldSourceResolver
     /// <summary>
     /// Resolves the owner information payload for a rule.
     /// </summary>
+    /// <param name="rule">Rule to resolve.</param>
+    /// <param name="customFieldKey">Configured owner key setting.</param>
+    /// <returns>The owner information payload.</returns>
     public static OwnerInformation ResolveOwnerInformation(Rule rule, string customFieldKey)
     {
-        string? normalizedCustomFieldKey = NormalizeCustomFieldKeys(customFieldKey);
-        string? extAppId = normalizedCustomFieldKey is null
-            ? null
-            : CustomFieldResolver.ExtractCustomFieldValue<string>(rule, normalizedCustomFieldKey, out _);
+        return ResolveOwnerInformation(rule, CustomFieldResolver.NormalizeCustomFieldKeys(customFieldKey));
+    }
+
+    /// <summary>
+    /// Resolves the owner information payload for a rule from already normalized keys.
+    /// </summary>
+    /// <param name="rule">Rule to resolve.</param>
+    /// <param name="ownerKeys">Normalized owner custom field keys.</param>
+    /// <returns>The owner information payload.</returns>
+    public static OwnerInformation ResolveOwnerInformation(Rule rule, IReadOnlyList<string> ownerKeys)
+    {
+        string? extAppId = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, ownerKeys, out _);
         OwnerMappingSourceStm? mappingSource = GetRuleOwnerMappingSource(rule);
 
         return mappingSource switch
@@ -36,17 +46,25 @@ public static class RuleFieldSourceResolver
     /// <summary>
     /// Resolves the additional information payload for a rule.
     /// </summary>
+    /// <param name="rule">Rule to resolve.</param>
+    /// <param name="customFieldKey">Configured change-ID key setting.</param>
+    /// <returns>The additional information payload.</returns>
     public static AdditionalInformation ResolveAdditionalInformation(Rule rule, string customFieldKey)
     {
-        string? normalizedCustomFieldKey = NormalizeCustomFieldKeys(customFieldKey);
-        if (normalizedCustomFieldKey is null)
-        {
-            return new AdditionalInformation();
-        }
+        return ResolveAdditionalInformation(rule, CustomFieldResolver.NormalizeCustomFieldKeys(customFieldKey));
+    }
 
+    /// <summary>
+    /// Resolves the additional information payload for a rule from already normalized keys.
+    /// </summary>
+    /// <param name="rule">Rule to resolve.</param>
+    /// <param name="changeIdKeys">Normalized change-ID custom field keys.</param>
+    /// <returns>The additional information payload.</returns>
+    public static AdditionalInformation ResolveAdditionalInformation(Rule rule, IReadOnlyList<string> changeIdKeys)
+    {
         return new AdditionalInformation
         {
-            ChangeId = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, normalizedCustomFieldKey, out _)
+            ChangeId = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, changeIdKeys, out _)
         };
     }
 
@@ -110,51 +128,4 @@ public static class RuleFieldSourceResolver
         return (OwnerMappingSourceStm)mappingSourceIds[0];
     }
 
-    private static string? NormalizeCustomFieldKeys(string customFieldKey)
-    {
-        if (string.IsNullOrWhiteSpace(customFieldKey))
-        {
-            return null;
-        }
-
-        string trimmed = customFieldKey.Trim();
-
-        try
-        {
-            string[]? keyArray = JsonSerializer.Deserialize<string[]>(trimmed);
-            if (keyArray is not null)
-            {
-                List<string> cleanedKeys = keyArray
-                    .Where(key => !string.IsNullOrWhiteSpace(key))
-                    .Select(key => key.Trim())
-                    .ToList();
-
-                if (cleanedKeys.Count > 0)
-                {
-                    return JsonSerializer.Serialize(cleanedKeys);
-                }
-
-                return null;
-            }
-        }
-        catch (JsonException)
-        {
-            // Fall back to treating the value as a single raw key.
-        }
-
-        try
-        {
-            string? singleKey = JsonSerializer.Deserialize<string>(trimmed);
-            if (!string.IsNullOrWhiteSpace(singleKey))
-            {
-                return JsonSerializer.Serialize(new[] { singleKey.Trim() });
-            }
-        }
-        catch (JsonException)
-        {
-            // Fall back to treating the value as a single raw key.
-        }
-
-        return JsonSerializer.Serialize(new[] { trimmed });
-    }
 }

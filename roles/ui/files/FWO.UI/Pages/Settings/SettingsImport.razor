@@ -215,19 +215,21 @@ else
                 string oldModelledMarker = configData.ModModelledMarker ?? "";
 
                 List<string> mergedChangeIdKeys = MergeChangeIdKeys();
-                // the change-ID keys are read by rule reports, notification mails and the rule REST API,
-                // so an incomplete owner mapping must not block them
-                configData.CustomFieldChangeIdKey = JsonSerializer.Serialize(mergedChangeIdKeys);
+                string serializedChangeIdKeys = JsonSerializer.Serialize(mergedChangeIdKeys);
 
                 string? ownerMappingError = PrepareOwnerMapping();
                 if (ownerMappingError != null)
                 {
-                    await globalConfig.WriteToDatabase(configData, apiConnection);
+                    // the change-ID keys are read by rule reports, notification mails and the rule REST API,
+                    // so an incomplete owner mapping must not block them
+                    await SaveChangeIdKeysOnly(serializedChangeIdKeys);
+                    configData.CustomFieldChangeIdKey = serializedChangeIdKeys;
                     CommitChangeIdKeys(mergedChangeIdKeys);
                     DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), $"{ownerMappingError} {userConfig.GetText("E5506")}", true);
                     return;
                 }
 
+                configData.CustomFieldChangeIdKey = serializedChangeIdKeys;
                 configData.OwnerSoruceMappingID = (int)SelectedOwnerMappingSource!.Value;
                 configData.CustomFieldOwnerKey = JsonSerializer.Serialize(OwnerKeys);
                 configData.ModModelledMarker = actModelledMarker;
@@ -256,6 +258,19 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
         }
+    }
+
+    /// <summary>
+    /// Persists the change-ID keys on their own, leaving every other importer setting on this page untouched.
+    /// A fresh config copy is used because <see cref="configData"/> is two-way bound to the other settings of
+    /// the form, which must not reach the database while the form is rejected.
+    /// </summary>
+    /// <param name="serializedChangeIdKeys">Serialized change-ID key list.</param>
+    private async Task SaveChangeIdKeysOnly(string serializedChangeIdKeys)
+    {
+        ConfigData changeIdKeyConfig = await globalConfig.GetEditableConfig();
+        changeIdKeyConfig.CustomFieldChangeIdKey = serializedChangeIdKeys;
+        await globalConfig.WriteToDatabase(changeIdKeyConfig, apiConnection);
     }
 
     /// <summary>

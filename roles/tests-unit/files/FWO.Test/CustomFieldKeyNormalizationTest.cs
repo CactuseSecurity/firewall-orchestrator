@@ -88,35 +88,47 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ExtractCustomFieldValue_MatchesConfiguredKeyRegardlessOfCasing()
+        public void ExtractCustomFieldValue_IgnoreCase_MatchesConfiguredKeyRegardlessOfCasing()
         {
             Rule camelCaseRule = new() { CustomFields = "{'ChangeId':'CHG-7'}" };
             Rule lowerCaseRule = new() { CustomFields = "{'changeid':'CHG-8'}" };
 
-            Assert.That(CustomFieldResolver.ExtractCustomFieldValue<string>(camelCaseRule, GlobalConst.kDefaultChangeIdKeys, out _),
-                Is.EqualTo("CHG-7"));
-            Assert.That(CustomFieldResolver.ExtractCustomFieldValue<string>(lowerCaseRule, GlobalConst.kDefaultChangeIdKeys, out _),
-                Is.EqualTo("CHG-8"));
+            Assert.That(CustomFieldResolver.ExtractCustomFieldValue<string>(camelCaseRule, GlobalConst.kDefaultChangeIdKeys, out _,
+                CustomFieldKeyMatching.IgnoreCase), Is.EqualTo("CHG-7"));
+            Assert.That(CustomFieldResolver.ExtractCustomFieldValue<string>(lowerCaseRule, GlobalConst.kDefaultChangeIdKeys, out _,
+                CustomFieldKeyMatching.IgnoreCase), Is.EqualTo("CHG-8"));
         }
 
         [Test]
-        public void ExtractCustomFieldValue_KeysDifferingOnlyInCasing_KeepFirstWithoutThrowing()
+        public void ExtractCustomFieldValue_DefaultsToCaseSensitiveMatching()
         {
-            Rule rule = new() { CustomFields = "{'ChangeID':'first','changeid':'second'}" };
+            Rule rule = new() { CustomFields = "{'ChangeId':'CHG-7'}" };
 
-            string? result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, GlobalConst.kDefaultChangeIdKeys, out string? errorMessage);
+            // the owner mapping relies on exact matching, so casing must only be ignored where asked for
+            Assert.That(CustomFieldResolver.ExtractCustomFieldValue<string>(rule, GlobalConst.kDefaultChangeIdKeys, out _), Is.Null);
+            Assert.That(CustomFieldResolver.ExtractCustomFieldValue<string>(rule, GlobalConst.kDefaultChangeIdKeys, out _,
+                CustomFieldKeyMatching.CaseSensitive), Is.Null);
+        }
 
-            Assert.That(result, Is.EqualTo("first"));
+        [Test]
+        public void ExtractCustomFieldValue_IgnoreCase_PrefersExactMatchOverCasingVariant()
+        {
+            Rule rule = new() { CustomFields = "{'changeid':'variant','ChangeID':'exact'}" };
+
+            string? result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, GlobalConst.kDefaultChangeIdKeys, out string? errorMessage,
+                CustomFieldKeyMatching.IgnoreCase);
+
+            Assert.That(result, Is.EqualTo("exact"));
             Assert.That(errorMessage, Is.Null);
         }
 
         [Test]
-        public void ExtractCustomFieldValue_ConfiguredKeyOrderWinsOverPayloadOrder()
+        public void ExtractCustomFieldValue_IgnoreCase_ConfiguredKeyOrderWinsOverPayloadOrder()
         {
             Rule rule = new() { CustomFields = "{'changeid':'fallback','FIELD-2':'preferred'}" };
 
-            Assert.That(CustomFieldResolver.ExtractCustomFieldValue<string>(rule, GlobalConst.kDefaultChangeIdKeys, out _),
-                Is.EqualTo("preferred"));
+            Assert.That(CustomFieldResolver.ExtractCustomFieldValue<string>(rule, GlobalConst.kDefaultChangeIdKeys, out _,
+                CustomFieldKeyMatching.IgnoreCase), Is.EqualTo("preferred"));
         }
 
         [Test]

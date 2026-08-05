@@ -18,6 +18,9 @@ namespace FWO.Test
     [Parallelizable]
     internal class RuleControllerBranchingTest
     {
+        private static readonly string[] kExpectedSourceRuleNames = ["Source", "MatchingGroup"];
+        private static readonly string[] kExpectedBothRuleNames = ["Source", "MatchingGroup", "Destination"];
+
         [Test]
         public async Task GetRulesByFilter_ShouldWorkWithOwnerId()
         {
@@ -55,7 +58,7 @@ namespace FWO.Test
         [Test]
         public async Task GetRulesByFilter_ShouldWorkWithIpAddress()
         {
-            RuleController controller = CreateController(new BranchingApiConnection(), "req-ip");
+            RuleController controller = CreateController(new BranchingApiConnection(includeGroupRule: false), "req-ip");
 
             ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
                 new RulesByFilterRequest
@@ -80,6 +83,87 @@ namespace FWO.Test
             ClassicAssert.AreEqual(42, response.Result.Rules[0].OwnerInformation.OwnerIds[0]);
             ClassicAssert.AreEqual("owner-from-custom", response.Result.Rules[0].OwnerInformation.ExtAppId);
             ClassicAssert.AreEqual("chg-4711", response.Result.Rules[0].AdditionalInformation.ChangeId);
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldIncludeRuleWhenAnyFlattenedSourceObjectMatches()
+        {
+            RuleController controller = CreateController(new BranchingApiConnection(), "req-group");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                    Query = new RulesByFilterQuery
+                    {
+                        IpAddress = "10.1.2.3",
+                        Filter = new RuleFilter
+                        {
+                            Action = "any",
+                            MinPrefixLength = 24,
+                            InField = "source"
+                        }
+                    }
+                }, "req-group");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            ClassicAssert.AreEqual("req-group", response.RequestId);
+            ClassicAssert.AreEqual(2, response.Result.Count);
+            CollectionAssert.AreEquivalent(kExpectedSourceRuleNames, response.Result.Rules.Select(rule => rule.Name));
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldIncludeRuleWhenDestinationObjectMatches()
+        {
+            RuleController controller = CreateController(new BranchingApiConnection(includeDestinationRule: true), "req-destination");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                    Query = new RulesByFilterQuery
+                    {
+                        IpAddress = "10.1.2.3",
+                        Filter = new RuleFilter
+                        {
+                            Action = "any",
+                            MinPrefixLength = 24,
+                            InField = "destination"
+                        }
+                    }
+                }, "req-destination");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            ClassicAssert.AreEqual("req-destination", response.RequestId);
+            ClassicAssert.AreEqual(1, response.Result.Count);
+            ClassicAssert.AreEqual("Destination", response.Result.Rules[0].Name);
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldIncludeRuleWhenOnlyDestinationMatchesAndInFieldIsBoth()
+        {
+            RuleController controller = CreateController(new BranchingApiConnection(includeDestinationRule: true), "req-both");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                    Query = new RulesByFilterQuery
+                    {
+                        IpAddress = "10.1.2.3",
+                        Filter = new RuleFilter
+                        {
+                            Action = "any",
+                            MinPrefixLength = 24,
+                            InField = "both"
+                        }
+                    }
+                }, "req-both");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            ClassicAssert.AreEqual("req-both", response.RequestId);
+            ClassicAssert.AreEqual(3, response.Result.Count);
+            CollectionAssert.AreEquivalent(kExpectedBothRuleNames, response.Result.Rules.Select(rule => rule.Name));
         }
 
         [Test]
@@ -109,6 +193,15 @@ namespace FWO.Test
 
         private sealed class BranchingApiConnection : ApiConnection
         {
+            private readonly bool _includeDestinationRule;
+            private readonly bool _includeGroupRule;
+
+            public BranchingApiConnection(bool includeGroupRule = true, bool includeDestinationRule = false)
+            {
+                _includeGroupRule = includeGroupRule;
+                _includeDestinationRule = includeDestinationRule;
+            }
+
             public override void SetAuthHeader(string jwt)
             {
                 throw new NotImplementedException();
@@ -176,11 +269,23 @@ namespace FWO.Test
                         });
                     }
 
-                    return Task.FromResult((QueryResponseType)(object)new List<Rule>
-                    {
+                    List<Rule> rules =
+                    [
                         BuildMatchingRule(101),
                         BuildNonMatchingRule(202)
-                    });
+                    ];
+
+                    if (_includeGroupRule)
+                    {
+                        rules.Add(BuildGroupRule(303));
+                    }
+
+                    if (_includeDestinationRule)
+                    {
+                        rules.Add(BuildDestinationRule(404));
+                    }
+
+                    return Task.FromResult((QueryResponseType)(object)rules);
                 }
 
                 throw new NotImplementedException($"Unexpected query: {query}");
@@ -234,6 +339,7 @@ namespace FWO.Test
                 return new Rule
                 {
                     Id = ruleId,
+                    Name = "Source",
                     RuleOwner = [new RuleOwner { OwnerId = 42, OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField }],
                     Froms =
                     [
@@ -285,6 +391,101 @@ namespace FWO.Test
                             })
                     ],
                     Tos = [],
+                    CustomFields = "{'owner_key':'owner-from-custom','change_key':'chg-4711'}"
+                };
+            }
+
+            private static Rule BuildGroupRule(long ruleId)
+            {
+                NetworkObject matchingMember = new()
+                {
+                    Id = 31,
+                    Name = "MatchingMember",
+                    IP = "10.1.2.0",
+                    IpEnd = "10.1.2.255",
+                    Type = new NetworkObjectType { Name = ObjectType.Network }
+                };
+
+                NetworkObject broadMember = new()
+                {
+                    Id = 32,
+                    Name = "BroadMember",
+                    IP = "10.0.0.0",
+                    IpEnd = "10.255.255.255",
+                    Type = new NetworkObjectType { Name = ObjectType.Network }
+                };
+
+                NetworkObject unsupportedMember = new()
+                {
+                    Id = 33,
+                    Name = "Ipv6Member",
+                    IP = "2001:db8::",
+                    IpEnd = "2001:db8::ffff",
+                    Type = new NetworkObjectType { Name = ObjectType.Network }
+                };
+
+                NetworkObject group = new()
+                {
+                    Id = 30,
+                    Name = "MatchingGroup",
+                    Type = new NetworkObjectType { Name = ObjectType.Group },
+                    ObjectGroupFlats =
+                    [
+                        new GroupFlat<NetworkObject> { Object = matchingMember },
+                        new GroupFlat<NetworkObject> { Object = broadMember },
+                        new GroupFlat<NetworkObject> { Object = unsupportedMember }
+                    ]
+                };
+
+                return new Rule
+                {
+                    Id = ruleId,
+                    Name = "MatchingGroup",
+                    RuleOwner = [new RuleOwner { OwnerId = 42, OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField }],
+                    Froms =
+                    [
+                        new NetworkLocation(
+                            new NetworkUser { Name = "source" },
+                            group)
+                    ],
+                    Tos = [],
+                    CustomFields = "{'owner_key':'owner-from-custom','change_key':'chg-4711'}"
+                };
+            }
+
+            private static Rule BuildDestinationRule(long ruleId)
+            {
+                return new Rule
+                {
+                    Id = ruleId,
+                    Name = "Destination",
+                    RuleOwner = [new RuleOwner { OwnerId = 42, OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField }],
+                    Froms =
+                    [
+                        new NetworkLocation(
+                            new NetworkUser { Name = "source" },
+                            new NetworkObject
+                            {
+                                Id = 40,
+                                Name = "OtherSource",
+                                IP = "192.168.1.1",
+                                IpEnd = "192.168.1.1",
+                                Type = new NetworkObjectType { Name = ObjectType.Network }
+                            })
+                    ],
+                    Tos =
+                    [
+                        new NetworkLocation(
+                            new NetworkUser { Name = "destination" },
+                            new NetworkObject
+                            {
+                                Id = 41,
+                                Name = "MatchingDestination",
+                                IP = "10.1.2.0",
+                                IpEnd = "10.1.2.255",
+                                Type = new NetworkObjectType { Name = ObjectType.Network }
+                            })
+                    ],
                     CustomFields = "{'owner_key':'owner-from-custom','change_key':'chg-4711'}"
                 };
             }

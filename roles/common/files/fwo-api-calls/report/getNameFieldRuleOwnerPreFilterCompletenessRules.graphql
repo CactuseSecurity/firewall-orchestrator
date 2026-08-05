@@ -20,21 +20,16 @@ query getNameFieldRuleOwnerPreFilterCompletenessRules(
         { removed: { _gt: $import_id_start } }
       ]
       rule_name: { _ilike: $marker }
+      _not: {
+        rule_owners: {
+          owner_id: { _eq: $ownerId }
+          owner_mapping_source_id: { _eq: $ownerMappingSourceId }
+          removed: { _is_null: true }
+        }
+      }
     }
   ) {
     rule_id
     rule_name
-    rule_owners(
-      where: {
-        owner_id: { _eq: $ownerId }
-        owner_mapping_source_id: { _eq: $ownerMappingSourceId }
-        removed: { _is_null: true }
-      }
-    ) {
-      rule_id
-      owner_id
-      owner_mapping_source_id
-      removed
-    }
   }
 }

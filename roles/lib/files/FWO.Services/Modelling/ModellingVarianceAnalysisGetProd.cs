@@ -264,7 +264,7 @@ namespace FWO.Services.Modelling
 
                 List<Rule> markerRules = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getNameFieldRuleOwnerPreFilterCompletenessRules, ruleVariables) ?? [];
 
-                int missingMappingCount = markerRules.Count(rule => long.TryParse(FindModelledMarker(rule), out long connectionId) && ownerConnectionIds.Contains(connectionId) && !rule.RuleOwner.Any(ruleOwner => ruleOwner != null));
+                int missingMappingCount = markerRules.Count(rule => long.TryParse(FindModelledMarker(rule), out long connectionId) && ownerConnectionIds.Contains(connectionId));
 
                 if (missingMappingCount > 0)
                 {

@@ -596,3 +596,4 @@ Not supported any longer are:
 
 ## 9.3.1 - 03.08.2026
 - changed workflow email CSV/JSON output and firewall request popup to separate current, added and removed group members
+- various memory leakage fixes in UI

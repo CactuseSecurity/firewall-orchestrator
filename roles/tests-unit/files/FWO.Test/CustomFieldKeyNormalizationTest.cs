@@ -11,14 +11,14 @@ namespace FWO.Test
         public void NormalizeCustomFieldKeys_ReadsJsonArray()
         {
             Assert.That(CustomFieldResolver.NormalizeCustomFieldKeys(GlobalConst.kDefaultChangeIdKeys),
-                Is.EqualTo(new List<string> { "field-2", "ChangeId" }));
+                Is.EqualTo(new List<string> { "field-2", "ChangeID" }));
         }
 
         [Test]
         public void NormalizeCustomFieldKeys_DropsBlankEntriesAndTrims()
         {
-            Assert.That(CustomFieldResolver.NormalizeCustomFieldKeys("[\" field-2 \",\"\",\"  \",\"ChangeId\"]"),
-                Is.EqualTo(new List<string> { "field-2", "ChangeId" }));
+            Assert.That(CustomFieldResolver.NormalizeCustomFieldKeys("[\" field-2 \",\"\",\"  \",\"ChangeID\"]"),
+                Is.EqualTo(new List<string> { "field-2", "ChangeID" }));
         }
 
         [Test]
@@ -96,7 +96,7 @@ namespace FWO.Test
             IReadOnlyList<string> second = cache.GetKeys(GlobalConst.kDefaultChangeIdKeys);
 
             Assert.That(second, Is.SameAs(first));
-            Assert.That(first, Is.EqualTo(new List<string> { "field-2", "ChangeId" }));
+            Assert.That(first, Is.EqualTo(new List<string> { "field-2", "ChangeID" }));
         }
 
         [Test]

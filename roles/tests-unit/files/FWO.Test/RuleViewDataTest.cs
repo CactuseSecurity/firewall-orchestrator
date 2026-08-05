@@ -63,10 +63,10 @@ namespace FWO.Test
             RuleViewData rvd = new RuleViewData();
             Rule rule = new Rule
             {
-                CustomFields = "{'ChangeId':'Change123','AdoIT':'Ado456'}"
+                CustomFields = "{'ChangeID':'Change123','AdoIT':'Ado456'}"
             };
 
-            string result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"ChangeId\"]", out _) ?? "";
+            string result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"ChangeID\"]", out _) ?? "";
 
             Assert.That("Change123".Equals(result));
         }
@@ -132,7 +132,7 @@ namespace FWO.Test
             NatRuleDisplayHtml ruleDisplay = new(userConfig);
             Rule rule = new()
             {
-                CustomFields = "{'ChangeId':'CHG-99'}"
+                CustomFields = "{'ChangeID':'CHG-99'}"
             };
 
             RuleViewData viewData = new(rule, ruleDisplay, OutputLocation.report, true);

@@ -80,7 +80,7 @@ namespace FWO.Basics
         public const string kDatumRegelpr = "Datum-Regelpruefung";
 
         // fallback used whenever the CustomFieldChangeIdKey setting is unavailable
-        public const string kDefaultChangeIdKeys = "[\"field-2\",\"ChangeId\"]";
+        public const string kDefaultChangeIdKeys = "[\"field-2\",\"ChangeID\"]";
 
         public const string BrowserResourceSaving = "This may occur when a browser goes into resource saving mode";
     }

@@ -89,7 +89,7 @@ namespace FWO.Test
         [Test]
         public void ExtractChangeId_ReturnsField2_ForValidJson()
         {
-            string changeId = InvokeExtractChangeId("{\"field-2\":\"CHG-123\",\"ChangeId\":\"fallback\"}");
+            string changeId = InvokeExtractChangeId("{\"field-2\":\"CHG-123\",\"ChangeID\":\"fallback\"}");
 
             Assert.That(changeId, Is.EqualTo("CHG-123"));
         }
@@ -97,7 +97,7 @@ namespace FWO.Test
         [Test]
         public void ExtractChangeId_ReturnsDefaultChangeIdFallback()
         {
-            string changeId = InvokeExtractChangeId("{\"ChangeId\":\"CHG-456\"}");
+            string changeId = InvokeExtractChangeId("{\"ChangeID\":\"CHG-456\"}");
 
             Assert.That(changeId, Is.EqualTo("CHG-456"));
         }

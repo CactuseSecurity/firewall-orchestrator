@@ -427,7 +427,7 @@ namespace FWO.Test
         {
             ConfigData configData = new();
 
-            Assert.That(configData.CustomFieldChangeIdKey, Is.EqualTo("[\"field-2\",\"ChangeId\"]"));
+            Assert.That(configData.CustomFieldChangeIdKey, Is.EqualTo("[\"field-2\",\"ChangeID\"]"));
         }
 
         [Test]

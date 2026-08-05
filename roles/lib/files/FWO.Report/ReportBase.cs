@@ -498,6 +498,21 @@ namespace FWO.Report
                 throw new EnvironmentException($"Couldn't start {wantedBrowser} instance!");
             }
 
+            return await RenderPdfInLaunchedBrowser(browser, html, format, wantedBrowser);
+        }
+
+        /// <summary>
+        /// Renders the given html in an already launched browser and shuts that browser down again
+        /// afterwards, whatever the render did. Kept separate from the launch so that the render and
+        /// its cleanup can be exercised without a real headless browser.
+        /// Callers must hold <see cref="PdfRenderGate"/> for the duration of this call.
+        /// </summary>
+        /// <param name="browser">The browser to render in. It is closed before this method returns.</param>
+        /// <param name="html">The report html to render.</param>
+        /// <param name="format">The wanted paper format.</param>
+        /// <param name="wantedBrowser">The browser kind, used for logging only.</param>
+        protected async Task<string?> RenderPdfInLaunchedBrowser(IBrowser browser, string html, PaperFormat format, SupportedBrowser wantedBrowser)
+        {
             try
             {
                 using IPage page = await browser.NewPageAsync();
@@ -532,11 +547,14 @@ namespace FWO.Report
         /// A graceful close can hang on a wedged renderer, so it is given a deadline after which the
         /// browser is disposed - which kills the process - and the slot is released either way.
         /// </summary>
-        private static async Task CloseBrowserSafely(IBrowser browser, SupportedBrowser wantedBrowser)
+        /// <param name="browser">The browser to shut down.</param>
+        /// <param name="wantedBrowser">The browser kind, used for logging only.</param>
+        /// <param name="closeTimeout">How long to wait for the graceful close. Defaults to <see cref="kBrowserCloseTimeoutMs"/>.</param>
+        protected static async Task CloseBrowserSafely(IBrowser browser, SupportedBrowser wantedBrowser, TimeSpan? closeTimeout = null)
         {
             try
             {
-                await browser.CloseAsync().WaitAsync(TimeSpan.FromMilliseconds(kBrowserCloseTimeoutMs));
+                await browser.CloseAsync().WaitAsync(closeTimeout ?? TimeSpan.FromMilliseconds(kBrowserCloseTimeoutMs));
             }
             catch (Exception exception)
             {

@@ -81,7 +81,7 @@ namespace FWO.Test
             return context;
         }
 
-        private static UserConfig BuildUserConfig(int userDbId, params string[] roles)
+        private static SimulatedUserConfig BuildUserConfig(int userDbId, params string[] roles)
         {
             SimulatedUserConfig userConfig = new();
             userConfig.User.DbId = userDbId;

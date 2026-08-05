@@ -78,13 +78,14 @@ namespace FWO.Services
             var ownerNameToIdMap = ownersToMap.Where(o => !string.IsNullOrWhiteSpace(o.ExtAppId))
                                               .ToDictionary(o => o.ExtAppId!, o => o.Id);
             var newRuleOwners = new List<RuleOwner>();
+            List<string> ownerKeys = CustomFieldResolver.NormalizeCustomFieldKeys(globalConfig.CustomFieldOwnerKey);
 
             // iterate through rules and create new mappings based on CustomFields
             foreach (Rule rule in rulesToMap)
             {
                 try
                 {
-                    var customFieldValue = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, globalConfig.CustomFieldOwnerKey, out _);
+                    var customFieldValue = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, ownerKeys, out _);
 
                     if (!string.IsNullOrWhiteSpace(customFieldValue) && ownerNameToIdMap.TryGetValue(customFieldValue, out var ownerId))
                     {

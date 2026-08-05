@@ -172,7 +172,16 @@
         UpdateAmbientModuleRole(NavigationManager.Uri);
     }
 
-    private async void OnAuthenticationStateChanged(Task<AuthenticationState> authStateTask)
+    private void OnAuthenticationStateChanged(Task<AuthenticationState> authStateTask)
+    {
+        // the provider's handler delegate returns void, so this work can only be started, never awaited.
+        // starting a task and discarding it is safe because the handler below swallows and logs every
+        // failure, so nothing is left unobserved. an "async void" handler instead rethrows on the
+        // synchronization context, where an escaping exception takes the whole circuit down with it.
+        _ = HandleAuthenticationStateChangedAsync(authStateTask);
+    }
+
+    private async Task HandleAuthenticationStateChangedAsync(Task<AuthenticationState> authStateTask)
     {
         try
         {

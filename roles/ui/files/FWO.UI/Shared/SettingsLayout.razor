@@ -148,8 +148,33 @@
                         <h5>@(userConfig.GetText("flow"))</h5>
                     </li>
                     <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="settings/flows/general">
+                            <span class="@Icons.Settings"></span> @(userConfig.GetText("flow_general_settings"))
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
                         <NavLink class="nav-link" href="settings/flows/networkobjects">
                             <span class="@Icons.Settings"></span> @(userConfig.GetText("network_objects"))
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="settings/flows/networkgroups">
+                            <span class="@Icons.Settings"></span> @(userConfig.GetText("network_groups"))
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="settings/flows/serviceobjects">
+                            <span class="@Icons.Settings"></span> @(userConfig.GetText("service_objects"))
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="settings/flows/servicegroups">
+                            <span class="@Icons.Settings"></span> @(userConfig.GetText("service_groups"))
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="settings/flows/timeobjects">
+                            <span class="@Icons.Settings"></span> @(userConfig.GetText("time_objects"))
                         </NavLink>
                     </li>
                 </ExecutionModeAuthorizeView>

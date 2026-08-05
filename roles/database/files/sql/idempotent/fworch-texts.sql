@@ -1056,6 +1056,10 @@ INSERT INTO txt VALUES ('archive_tile',			'German',	'Report Archivierung');
 INSERT INTO txt VALUES ('archive_tile',			'English',	'Report archiving');
 INSERT INTO txt VALUES ('archive_upd_err_msg',	'German',	'Das Laden der archivierten Reports f&uuml;hrte zu einem Fehler.');
 INSERT INTO txt VALUES ('archive_upd_err_msg',	'English',	'Loading the archived reports resulted in an error.');
+INSERT INTO txt VALUES ('archive_truncated',	'German',	'&Auml;ltere Reports sind vorhanden, aber nicht aufgelistet. Angezeigt werden nur die neuesten');
+INSERT INTO txt VALUES ('archive_truncated',	'English',	'Older reports exist but are not listed. Showing only the most recent');
+INSERT INTO txt VALUES ('download_failed',		'German',	'Das Herunterladen der Datei ist fehlgeschlagen. Bei gro&szlig;en Reports kann die &Uuml;bertragung zu lange dauern.');
+INSERT INTO txt VALUES ('download_failed',		'English',	'Downloading the file failed. For large reports the transfer may have taken too long.');
 
 -- workflow
 INSERT INTO txt VALUES ('request',              'German', 	'Antrag');

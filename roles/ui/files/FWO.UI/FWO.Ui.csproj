@@ -5,6 +5,14 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<NoWarn>$(NoWarn);CS8669</NoWarn>
+		<!-- The Web SDK turns server GC on by default, which keeps one heap per logical core and gives
+		     memory back to the OS only reluctantly. The UI serves a handful of concurrent users but
+		     allocates very large short lived strings when exporting reports, and it shares its host with
+		     postgres, so its constraint is memory rather than throughput. Workstation GC with concurrent
+		     collection keeps a single heap and a far lower resident floor. Override on the publish command
+		     line with -p:ServerGarbageCollection=true if a deployment ever turns out to be throughput bound. -->
+		<ServerGarbageCollection>false</ServerGarbageCollection>
+		<ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="IPAddressRange" Version="6.3.0" />

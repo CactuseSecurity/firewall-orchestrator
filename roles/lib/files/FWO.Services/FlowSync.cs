@@ -65,22 +65,29 @@ namespace FWO.Services
                 return false;
             }
 
-            var pendingByManagement = pendingImports
+            List<(int MgmId, long MaxImportId)> pendingImportsByManagement = [.. pendingImports
                 .Where(import => import.MgmId.HasValue)
                 .GroupBy(import => import.MgmId!.Value)
-                .OrderBy(group => group.Max(import => import.ControlId))
-                .ToList();
+                .Select(group => (group.Key, group.Max(import => import.ControlId)))];
 
-            if (pendingByManagement.Count == 0)
+            if (pendingImportsByManagement.Count == 0)
             {
                 Log.WriteWarning(LogMessageTitle, "Pending imports do not contain a management id.");
                 return false;
             }
 
+            var mgmIdsBySuperMgmId = await apiConnection.SendQueryAsync<List<SuperMgmToMgmsMapping>>(DeviceQueries.getMgmIdsBySuperMgmId) ?? [];
+            var superMgmToSubMgmIds = mgmIdsBySuperMgmId.ToDictionary(mgm => mgm.SuperMgmId, mgm => mgm.SubMgmIds.Select(sub => sub.MgmId).ToList());
+            HashSet<int> allSubManagementIds = [.. superMgmToSubMgmIds.Values.SelectMany(subMgmIds => subMgmIds)];
+            List<int> managementIdsToSync = [.. pendingImportsByManagement
+                .Select(import => import.MgmId)
+                .Concat(pendingImportsByManagement.SelectMany(import => superMgmToSubMgmIds.GetValueOrDefault(import.MgmId, [])))
+                .Distinct()];
+
             List<int> configuredManagementRanking = FlowNamingHelper.ParseManagementRanking(globalConfig.FlowNamingSourceManagementRanking);
             List<int> preferredManagementRanking = FlowNamingHelper.NormalizeManagementRanking(
                 configuredManagementRanking,
-                pendingByManagement.Select(group => group.Key));
+                managementIdsToSync);
             bool useManagementNamesForFlow = configuredManagementRanking.Count > 0;
             if (useManagementNamesForFlow)
             {
@@ -88,22 +95,21 @@ namespace FWO.Services
                     .Select((managementId, index) => new { managementId, index })
                     .ToDictionary(item => item.managementId, item => item.index);
 
-                pendingByManagement = [.. pendingByManagement
-                    .OrderBy(group => rankingPositions.GetValueOrDefault(group.Key, int.MaxValue))
-                    .ThenBy(group => group.Max(import => import.ControlId))];
+                managementIdsToSync = [.. managementIdsToSync
+                    .OrderBy(mgmId => rankingPositions.GetValueOrDefault(mgmId, int.MaxValue))];
             }
+            managementIdsToSync = [.. managementIdsToSync.OrderBy(allSubManagementIds.Contains)];
 
-            bool syncedAny = false;
+            HashSet<int> successfullySyncedManagementIds = [];
 
-            foreach (var managementGroup in pendingByManagement)
+            foreach (int mgmId in managementIdsToSync)
             {
-                int mgmId = managementGroup.Key;
-                var importsForManagement = managementGroup.OrderBy(import => import.ControlId).ToList();
-
                 try
                 {
-                    await SyncManagementAsync(mgmId, importsForManagement, useManagementNamesForFlow);
-                    syncedAny = true;
+                    if (await SyncManagementAsync(mgmId, useManagementNamesForFlow))
+                    {
+                        successfullySyncedManagementIds.Add(mgmId);
+                    }
                 }
                 catch (Exception exception)
                 {
@@ -111,21 +117,29 @@ namespace FWO.Services
                 }
             }
 
-            return syncedAny;
+            await CompletePendingImportsAsync(pendingImportsByManagement, superMgmToSubMgmIds, successfullySyncedManagementIds);
+            bool hasSuccessfulSync = successfullySyncedManagementIds.Count > 0;
+
+            if (hasSuccessfulSync)
+            {
+                Log.WriteInfo(LogMessageTitle, "Flow sync completed.");
+            }
+
+            return hasSuccessfulSync;
         }
 
         /// <summary>
         /// Synchronizes a single management: fetches normalized objects, calculates hashes,
-        /// inserts missing flows, updates mappings, and marks imports as complete.
+        /// inserts missing flows, and updates mappings.
         /// </summary>
-        private async Task SyncManagementAsync(int mgmId, List<ImportControl> importsForManagement, bool useManagementNamesForFlow)
+        private async Task<bool> SyncManagementAsync(int mgmId, bool useManagementNamesForFlow)
         {
             var managementData = (await apiConnection.SendQueryAsync<List<FlowSyncManagementData>>(FlowQueries.getFlowSyncManagementData, new { mgmId }))?.FirstOrDefault();
 
             if (managementData == null)
             {
                 Log.WriteWarning(LogMessageTitle, $"No management data returned for mgm_id {mgmId}.");
-                return;
+                return false;
             }
 
             var flowData = await GetFlowSyncDataAsync(mgmId);
@@ -133,7 +147,7 @@ namespace FWO.Services
             if (flowData.HasHashInconsistencies())
             {
                 Log.WriteError(LogMessageTitle, $"Hash inconsistencies found for management {mgmId}.");
-                return;
+                return false;
             }
 
             // Process simple objects first, as they are used in groups and accesses
@@ -153,9 +167,38 @@ namespace FWO.Services
             // remove flow mappings from all normalized entries that are set to removed
             await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.updateFlowMappingsForRemoved, new { mgmId });
 
-            // Mark imports as completed
-            var maxImportId = importsForManagement.Max(i => i.ControlId);
-            var updateCount = await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.updateImportControlForFlowSync, new { controlId = maxImportId, mgmId, flowSyncDone = true });
+            return true;
+        }
+
+        /// <summary>
+        /// Marks original pending imports as complete when their managements and required sub-managements synchronized successfully.
+        /// </summary>
+        private async Task CompletePendingImportsAsync(List<(int MgmId, long MaxImportId)> pendingImportsByManagement, Dictionary<int, List<int>> superMgmToSubMgmIds, HashSet<int> successfullySyncedManagementIds)
+        {
+            foreach ((int mgmId, long maxImportId) in pendingImportsByManagement)
+            {
+                List<int> requiredSubManagementIds = superMgmToSubMgmIds.GetValueOrDefault(mgmId, []);
+                bool allRequiredManagementsSynced = successfullySyncedManagementIds.Contains(mgmId)
+                    && requiredSubManagementIds.All(successfullySyncedManagementIds.Contains);
+
+                if (!allRequiredManagementsSynced)
+                {
+                    List<int> unsynchronizedManagementIds = [.. requiredSubManagementIds
+                        .Prepend(mgmId)
+                        .Where(requiredMgmId => !successfullySyncedManagementIds.Contains(requiredMgmId))];
+                    Log.WriteError(LogMessageTitle, $"Not marking flow sync for management {mgmId} as complete because management IDs {string.Join(", ", unsynchronizedManagementIds)} did not synchronize.");
+                    continue;
+                }
+
+                try
+                {
+                    await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.updateImportControlForFlowSync, new { controlId = maxImportId, mgmId, flowSyncDone = true });
+                }
+                catch (Exception exception)
+                {
+                    Log.WriteError(LogMessageTitle, $"Failed to mark flow sync for management {mgmId} as complete.", exception);
+                }
+            }
         }
 
         /// <summary>

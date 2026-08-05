@@ -18,6 +18,7 @@ namespace FWO.Services
                 return false;
             }
 
+            // Imported identity objects have no reliable IP identity, so recognition options do not apply here.
             if (nwObject1.IsSpecialConfigObjectType() || nwObject2.IsSpecialConfigObjectType())
             {
                 return string.Equals(nwObject1.Type.Name, nwObject2.Type.Name, StringComparison.Ordinal)

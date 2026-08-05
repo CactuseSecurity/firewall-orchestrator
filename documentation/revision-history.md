@@ -596,3 +596,4 @@ Not supported any longer are:
 
 ## 9.3.1 - 03.08.2026
 - changed workflow email CSV/JSON output and firewall request popup to separate current, added and removed group members
+- Fixed variance-analysis comparison for imported identity network objects such as Check Point updatable objects and access roles. These objects are now compared by object type and name instead of placeholder IP fields.

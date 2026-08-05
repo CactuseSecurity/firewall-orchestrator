@@ -110,12 +110,14 @@ namespace FWO.Data
 
         /// <summary>
         /// True for imported object types whose IP fields do not carry stable identity for rule comparison.
+        /// NetworkObjectComparer compares these objects by type and name regardless of NwRegardIp and NwRegardName.
         /// Modelled network objects keep the default empty type name, so they are not treated as special identity objects.
         /// </summary>
         public bool IsSpecialConfigObjectType()
         {
             return string.Equals(Type.Name, ObjectType.DynamicNetObj, StringComparison.Ordinal)
-                || string.Equals(Type.Name, ObjectType.AccessRole, StringComparison.Ordinal);
+                || string.Equals(Type.Name, ObjectType.AccessRole, StringComparison.Ordinal)
+                || string.Equals(Type.Name, ObjectType.Domain, StringComparison.Ordinal);
         }
 
         public static List<NetworkObject> FlattenRuleNetworkObjects(IEnumerable<NetworkObject> objects)

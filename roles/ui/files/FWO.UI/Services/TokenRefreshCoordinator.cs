@@ -170,7 +170,16 @@ namespace FWO.Ui.Services
                 {
                     Log.WriteDebug(LogCategory, "Access token expired, attempting refresh...");
 
-                    await ((AuthStateProvider)authenticationProvider).RestoreAuthenticationState(apiConnection, middlewareClient, userConfig);
+                    bool refreshSuccess = await ((AuthStateProvider)authenticationProvider).RestoreAuthenticationState(apiConnection, middlewareClient, userConfig);
+
+                    if (refreshSuccess)
+                    {
+                        Log.WriteAudit(LogCategory, $"Successfully restored session for User \"{userConfig.User.Name}\" with DN: \"{userConfig.User.Dn}\".");
+                    }
+                    else
+                    {
+                        Log.WriteAudit(LogCategory, $"Failed to restore session for User \"{userConfig.User.Name}\" with DN: \"{userConfig.User.Dn}\".");
+                    }
                 }
             }
             catch (Exception ex)

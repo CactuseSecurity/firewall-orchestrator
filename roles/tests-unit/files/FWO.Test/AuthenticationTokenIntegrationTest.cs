@@ -17,6 +17,7 @@ namespace FWO.Test
     /// Tests the complete authentication flow including token generation, refresh, and revocation.
     /// </summary>
     [TestFixture]
+    [NonParallelizable]
     [RequiresIntegrationEnvironment]
     internal class AuthenticationTokenIntegrationTest
     {

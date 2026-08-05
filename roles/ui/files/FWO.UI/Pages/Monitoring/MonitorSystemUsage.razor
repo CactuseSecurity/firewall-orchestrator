@@ -1,0 +1,385 @@
+@using FWO.Services.SystemUsage
+
+@page "/monitoring"
+@page "/monitoring/system_usage"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}")]
+
+@inject UserConfig userConfig
+@inject ISystemUsageCollector systemUsageCollector
+@inject UiSessionTracker sessionTracker
+@inject IPeriodicTaskRunnerFactory periodicTaskRunnerFactory
+
+@implements IAsyncDisposable
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("monitoring"))</h3>
+    <HelpLink Page="monitoring" />
+</div>
+@(userConfig.GetText("U7001"))
+<hr />
+
+<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")">
+    <div class="input-group">
+        <h5>@(userConfig.GetText("system_usage"))</h5>
+        <HelpLink Page="monitoring/system_usage" />
+    </div>
+    <p>@(userConfig.GetText("U7004"))</p>
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <button type="button" class="btn btn-sm btn-primary" @onclick="Refresh">@(DisplayService.DisplayButton(userConfig, "refresh", Icons.Refresh))</button>
+        <span class="text-muted">@(userConfig.GetText("last_updated")): @LastUpdatedDisplay</span>
+    </div>
+
+    <div class="row">
+        <div class="col-sm-6 col-lg-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="usage-tile-value">@Sessions.LoggedInUsers</div>
+                    <div>@(userConfig.GetText("logged_in_users"))</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="usage-tile-value">@Sessions.OpenSessions</div>
+                    <div>@(userConfig.GetText("open_sessions"))</div>
+                    <div class="text-muted">@(userConfig.GetText("connected_sessions")): @Sessions.ConnectedSessions</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="usage-tile-value">@Usage.ProcessorCount</div>
+                    <div>@(userConfig.GetText("cpu_cores"))</div>
+                    <div class="text-muted">@(userConfig.GetText("load_average")): @LoadAverageDisplay</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="usage-tile-value">@SystemUsageDisplay.FormatBytes(Usage.MemoryAvailableBytes)</div>
+                    <div>@(userConfig.GetText("memory_available"))</div>
+                    <div class="text-muted">@(userConfig.GetText("memory_total")): @SystemUsageDisplay.FormatBytes(Usage.MemoryTotalBytes)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!Usage.SourceAvailable)
+    {
+        <div class="alert alert-warning">@(userConfig.GetText("usage_data_unavailable"))</div>
+    }
+
+    <div class="row">
+        <div class="col-lg-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6>@(userConfig.GetText("memory_usage"))</h6>
+                    <UsageGauge Caption="@(userConfig.GetText("memory_used"))" Percent="@Usage.MemoryUsedPercent"
+                                Detail="@($"{SystemUsageDisplay.FormatBytes(Usage.MemoryUsedBytes)} / {SystemUsageDisplay.FormatBytes(Usage.MemoryTotalBytes)}")" />
+                    <UsageGauge Caption="@(userConfig.GetText("swap_usage"))" Percent="@Usage.SwapUsedPercent"
+                                Detail="@($"{SystemUsageDisplay.FormatBytes(Usage.SwapUsedBytes)} / {SystemUsageDisplay.FormatBytes(Usage.SwapTotalBytes)}")" />
+                    <UsageSparkline Values="@MemoryHistory" Caption="@(userConfig.GetText("memory_usage"))"
+                                    EmptyText="@(userConfig.GetText("collecting_data"))" StartTime="@HistoryStartTime" EndTime="@HistoryEndTime"
+                                    LineClass="usage-sparkline-secondary" AreaClass="usage-sparkline-secondary" />
+                    <div class="text-muted">@(userConfig.GetText("memory_available")): @SystemUsageDisplay.FormatBytes(Usage.MemoryAvailableBytes)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6>@(userConfig.GetText("cpu_usage"))</h6>
+                    <UsageGauge Caption="@(userConfig.GetText("system"))" Percent="@Usage.CpuUsedPercent"
+                                Detail="@SystemUsageDisplay.FormatPercent(Usage.CpuUsedPercent)" />
+                    <UsageGauge Caption="@(userConfig.GetText("ui_process"))" Percent="@Usage.ProcessCpuPercent"
+                                Detail="@SystemUsageDisplay.FormatPercent(Usage.ProcessCpuPercent)" />
+                    <UsageSparkline Values="@CpuHistory" Caption="@(userConfig.GetText("cpu_usage"))"
+                                    EmptyText="@(userConfig.GetText("collecting_data"))" StartTime="@HistoryStartTime" EndTime="@HistoryEndTime" />
+                    <div class="text-muted">@(userConfig.GetText("load_average")): @LoadAverageDisplay</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6>@(userConfig.GetText("ui_process"))</h6>
+                    <div class="row">
+                        <div class="col-sm-6 col-lg-3">
+                            <div>@(userConfig.GetText("working_set"))</div>
+                            <div class="usage-tile-value">@SystemUsageDisplay.FormatBytes(Usage.ProcessWorkingSetBytes)</div>
+                        </div>
+                        <div class="col-sm-6 col-lg-3">
+                            <div>@(userConfig.GetText("managed_heap"))</div>
+                            <div class="usage-tile-value">@SystemUsageDisplay.FormatBytes(Usage.ProcessManagedHeapBytes)</div>
+                        </div>
+                        <div class="col-sm-6 col-lg-3">
+                            <div>@(userConfig.GetText("threads"))</div>
+                            <div class="usage-tile-value">@Usage.ProcessThreadCount</div>
+                        </div>
+                        <div class="col-sm-6 col-lg-3">
+                            <div>@(userConfig.GetText("uptime"))</div>
+                            <div class="usage-tile-value">@SystemUsageDisplay.FormatDuration(Usage.ProcessUpTime)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6>@(userConfig.GetText("system_services"))</h6>
+                    <p>@(userConfig.GetText("U7005"))</p>
+                    @if (!Usage.ServicesVisible)
+                    {
+                        <div class="alert alert-warning">@(userConfig.GetText("services_not_visible"))</div>
+                    }
+                    else if (Usage.Services.Count == 0)
+                    {
+                        <div class="text-muted">@(userConfig.GetText("no_services_found"))</div>
+                    }
+                    @if (Usage.Services.Count > 0)
+                    {
+                        <table class="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto">
+                            <thead>
+                                <tr>
+                                    <th scope="col">@(userConfig.GetText("service"))</th>
+                                    <th scope="col">@(userConfig.GetText("cpu_usage"))</th>
+                                    <th scope="col">@(userConfig.GetText("working_set"))</th>
+                                    <th scope="col">@(userConfig.GetText("memory_usage"))</th>
+                                    <th scope="col">@(userConfig.GetText("threads"))</th>
+                                    <th scope="col">@(userConfig.GetText("processes"))</th>
+                                    <th scope="col">@(userConfig.GetText("uptime"))</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (ServiceUsage service in Usage.Services)
+                                {
+                                    <tr>
+                                        <td>@(userConfig.GetText(service.NameKey))</td>
+                                        <td>@SystemUsageDisplay.FormatPercent(service.CpuPercent)</td>
+                                        <td>@SystemUsageDisplay.FormatBytes(service.MemoryBytes)</td>
+                                        <td>@SystemUsageDisplay.FormatPercent(service.MemoryPercent)</td>
+                                        <td>@service.ThreadCount</td>
+                                        <td>@service.ProcessCount</td>
+                                        <td>@SystemUsageDisplay.FormatDuration(service.UpTime)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</ExecutionModeAuthorizeView>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private const int kRefreshIntervalSeconds = 5;
+    private const int kMaxHistoryPoints = 60;
+
+    private SystemUsageSnapshot Usage { get; set; } = new();
+    private UiSessionOverview Sessions { get; set; } = new();
+    private List<double> CpuHistory { get; set; } = [];
+    private List<double> MemoryHistory { get; set; } = [];
+    private List<DateTime> HistoryTimes { get; set; } = [];
+    private readonly SemaphoreSlim monitoringStateSemaphore = new(1, 1);
+    private IPeriodicTaskRunner? refreshRunner;
+    private bool refreshFailureReported;
+    private bool interactiveRenderCompleted;
+    private bool monitoringActive;
+    private bool disposed;
+
+    private string LastUpdatedDisplay => Usage.CollectedAt == DateTime.MinValue
+        ? "-" : Usage.CollectedAt.ToLocalTime().ToString("G");
+
+    private string LoadAverageDisplay => SystemUsageDisplay.FormatLoadAverage(Usage);
+
+    private string HistoryStartTime => HistoryTimes.Count > 0 ? HistoryTimes[0].ToLocalTime().ToString("T") : "";
+
+    private string HistoryEndTime => HistoryTimes.Count > 0 ? HistoryTimes[^1].ToLocalTime().ToString("T") : "";
+
+    private bool CanViewUsage => userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor);
+
+    protected override void OnInitialized()
+    {
+        userConfig.OnChange += OnUserConfigChanged;
+        monitoringActive = CanViewUsage;
+        if (monitoringActive)
+        {
+            Refresh();
+        }
+    }
+
+    /// <summary>
+    /// Starts the refresh timer. This deliberately does not happen in OnInitialized: that method also runs
+    /// while the page is prerendered, and disposing the prerendered component would then block the render
+    /// dispatcher the timer loop needs to finish, which deadlocks the whole request.
+    /// </summary>
+    /// <param name="firstRender">True on the first render of the interactive component.</param>
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            interactiveRenderCompleted = true;
+            StartRefreshRunner();
+        }
+    }
+
+    /// <summary>
+    /// Schedules monitoring-state reconciliation after user configuration changes.
+    /// </summary>
+    private void OnUserConfigChanged(Config __, ConfigItem[] ___)
+    {
+        if (!disposed)
+        {
+            _ = InvokeAsync(UpdateMonitoringStateAsync);
+        }
+    }
+
+    /// <summary>
+    /// Starts or stops sampling after an execution-mode change and takes an immediate sample when access is gained.
+    /// </summary>
+    private async Task UpdateMonitoringStateAsync()
+    {
+        await monitoringStateSemaphore.WaitAsync();
+        try
+        {
+            if (disposed || monitoringActive == CanViewUsage)
+            {
+                return;
+            }
+
+            monitoringActive = CanViewUsage;
+            if (monitoringActive)
+            {
+                await RefreshAsync();
+                StartRefreshRunner();
+            }
+            else
+            {
+                await StopRefreshRunnerAsync();
+            }
+            StateHasChanged();
+        }
+        finally
+        {
+            monitoringStateSemaphore.Release();
+        }
+    }
+
+    /// <summary>
+    /// Starts periodic sampling once the interactive component is rendered and monitoring is active.
+    /// </summary>
+    private void StartRefreshRunner()
+    {
+        if (disposed || !interactiveRenderCompleted || !monitoringActive || refreshRunner != null)
+        {
+            return;
+        }
+
+        refreshRunner = periodicTaskRunnerFactory.Create(RefreshAsync,
+            TimeSpan.FromSeconds(kRefreshIntervalSeconds), nameof(MonitorSystemUsage));
+        refreshRunner.Start();
+    }
+
+    /// <summary>
+    /// Detaches and asynchronously stops the current refresh runner.
+    /// </summary>
+    private async Task StopRefreshRunnerAsync()
+    {
+        IPeriodicTaskRunner? runner = refreshRunner;
+        refreshRunner = null;
+        if (runner != null)
+        {
+            await runner.DisposeAsync();
+        }
+    }
+
+    /// <summary>
+    /// Samples the current usage values and appends them to the displayed history. A failure is only
+    /// reported once per failure streak: the timer samples every few seconds, so reporting every attempt
+    /// would bury the user under the same message.
+    /// </summary>
+    private void Refresh()
+    {
+        try
+        {
+            Usage = systemUsageCollector.Collect();
+            Sessions = sessionTracker.GetOverview();
+            AppendHistory(CpuHistory, Usage.CpuUsedPercent);
+            AppendHistory(MemoryHistory, Usage.MemoryUsedPercent);
+            AppendHistory(HistoryTimes, Usage.CollectedAt);
+            refreshFailureReported = false;
+        }
+        catch (Exception exception)
+        {
+            if (!refreshFailureReported)
+            {
+                refreshFailureReported = true;
+                DisplayMessageInUi(exception, userConfig.GetText("system_usage"), "", true);
+            }
+        }
+    }
+
+    private async Task RefreshAsync()
+    {
+        await InvokeAsync(() =>
+        {
+            Refresh();
+            StateHasChanged();
+        });
+    }
+
+    /// <summary>
+    /// Appends a value and keeps the history within the displayed sample limit.
+    /// </summary>
+    /// <typeparam name="T">Type of the history value.</typeparam>
+    /// <param name="history">History receiving the value.</param>
+    /// <param name="value">Value to append.</param>
+    private static void AppendHistory<T>(List<T> history, T value)
+    {
+        history.Add(value);
+        while (history.Count > kMaxHistoryPoints)
+        {
+            history.RemoveAt(0);
+        }
+    }
+
+    /// <summary>
+    /// Stops the refresh timer when the page is left. The asynchronous shutdown is the one the runner asks
+    /// for on a synchronization context: a refresh still in flight needs the render dispatcher of this
+    /// component, which the synchronous Dispose would block while waiting for exactly that refresh.
+    /// </summary>
+    public async ValueTask DisposeAsync()
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        disposed = true;
+        userConfig.OnChange -= OnUserConfigChanged;
+        await monitoringStateSemaphore.WaitAsync();
+        try
+        {
+            await StopRefreshRunnerAsync();
+        }
+        finally
+        {
+            monitoringStateSemaphore.Release();
+        }
+    }
+}

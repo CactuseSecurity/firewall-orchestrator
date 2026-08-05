@@ -2298,8 +2298,8 @@ INSERT INTO txt VALUES ('owner_mapping',        'German',   'Eigent&uuml;merzuor
 INSERT INTO txt VALUES ('owner_mapping',        'English',  'Owner Mapping');
 INSERT INTO txt VALUES ('custom_field_Owner_key',     'German',   'Custom-Feld-Eigent&uuml;mer-Schl&uuml;ssel');
 INSERT INTO txt VALUES ('custom_field_Owner_key',     'English',  'Custom Field Owner key');
-INSERT INTO txt VALUES ('custom_field_ChangeID_key',     'German',   'Custom-Feld-&Äuml;nderungsID-Schl&uuml;ssel');
-INSERT INTO txt VALUES ('custom_field_ChangeID_key',     'English',  'Custom Field ChangeID key');
+INSERT INTO txt VALUES ('custom_field_ChangeID_key',     'German',   'Custom-Feld-&Auml;nderungs-ID-Schl&uuml;ssel');
+INSERT INTO txt VALUES ('custom_field_ChangeID_key',     'English',  'Custom field change-ID keys');
 INSERT INTO txt VALUES ('custom_field_import_Settings',    'German', 	'Custom-Feld-Einstellungen');
 INSERT INTO txt VALUES ('custom_field_import_Settings',    'English', 	'Custom Field Settings');
 INSERT INTO txt VALUES ('edit_email',           'German', 	'Email-Einstellungen editieren');

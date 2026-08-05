@@ -33,6 +33,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getMgmtNumberUsingCred;
         public static readonly string getUsedMgmDeviceTypes;
         public static readonly string getManagementById;
+        public static readonly string getMgmIdsBySuperMgmId;
 
 
         static DeviceQueries()
@@ -85,6 +86,7 @@ namespace FWO.Api.Client.Queries
                     + GetQueryText("device/fragments/managementDetails.graphql")
                     + GetQueryText("device/fragments/deviceTypeDetails.graphql")
                     + GetQueryText("device/fragments/importCredentials.graphql");
+                getMgmIdsBySuperMgmId = GetQueryText("device/getMgmIdsBySuperMgmId.graphql");
             }
             catch (Exception exception)
             {

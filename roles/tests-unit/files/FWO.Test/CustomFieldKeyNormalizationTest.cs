@@ -88,6 +88,38 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ExtractCustomFieldValue_MatchesConfiguredKeyRegardlessOfCasing()
+        {
+            Rule camelCaseRule = new() { CustomFields = "{'ChangeId':'CHG-7'}" };
+            Rule lowerCaseRule = new() { CustomFields = "{'changeid':'CHG-8'}" };
+
+            Assert.That(CustomFieldResolver.ExtractCustomFieldValue<string>(camelCaseRule, GlobalConst.kDefaultChangeIdKeys, out _),
+                Is.EqualTo("CHG-7"));
+            Assert.That(CustomFieldResolver.ExtractCustomFieldValue<string>(lowerCaseRule, GlobalConst.kDefaultChangeIdKeys, out _),
+                Is.EqualTo("CHG-8"));
+        }
+
+        [Test]
+        public void ExtractCustomFieldValue_KeysDifferingOnlyInCasing_KeepFirstWithoutThrowing()
+        {
+            Rule rule = new() { CustomFields = "{'ChangeID':'first','changeid':'second'}" };
+
+            string? result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, GlobalConst.kDefaultChangeIdKeys, out string? errorMessage);
+
+            Assert.That(result, Is.EqualTo("first"));
+            Assert.That(errorMessage, Is.Null);
+        }
+
+        [Test]
+        public void ExtractCustomFieldValue_ConfiguredKeyOrderWinsOverPayloadOrder()
+        {
+            Rule rule = new() { CustomFields = "{'changeid':'fallback','FIELD-2':'preferred'}" };
+
+            Assert.That(CustomFieldResolver.ExtractCustomFieldValue<string>(rule, GlobalConst.kDefaultChangeIdKeys, out _),
+                Is.EqualTo("preferred"));
+        }
+
+        [Test]
         public void KeyCache_ReturnsSameInstanceForUnchangedSetting()
         {
             CustomFieldKeyCache cache = new();

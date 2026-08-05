@@ -76,7 +76,8 @@ namespace FWO.Data
 
             try
             {
-                customFields = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(nonNullableRule.CustomFields.Replace("'", "\"")) ?? [];
+                customFields = ToCaseInsensitiveFields(
+                    JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(nonNullableRule.CustomFields.Replace("'", "\"")));
             }
             catch (JsonException e)
             {
@@ -116,6 +117,23 @@ namespace FWO.Data
                 }
             }
             return default;
+        }
+
+        /// <summary>
+        /// Rebuilds the deserialized custom fields with a case-insensitive lookup, because the field names
+        /// exported by the firewall vendors do not reliably match the casing of the configured keys.
+        /// </summary>
+        /// <param name="customFields">Custom fields as deserialized from the rule.</param>
+        /// <returns>The custom fields, keyed case-insensitively.</returns>
+        private static Dictionary<string, JsonElement> ToCaseInsensitiveFields(Dictionary<string, JsonElement>? customFields)
+        {
+            Dictionary<string, JsonElement> caseInsensitiveFields = new(StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, JsonElement> customField in customFields ?? [])
+            {
+                // a payload holding keys that differ only in casing keeps the first one instead of throwing
+                caseInsensitiveFields.TryAdd(customField.Key, customField.Value);
+            }
+            return caseInsensitiveFields;
         }
 
         /// <summary>

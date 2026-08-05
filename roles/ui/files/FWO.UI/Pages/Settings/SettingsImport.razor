@@ -214,23 +214,22 @@ else
                 string oldOwnerKey = configData.CustomFieldOwnerKey ?? "";
                 string oldModelledMarker = configData.ModModelledMarker ?? "";
 
-                if (SelectedOwnerMappingSource == null)
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("E5504"), true);
-                    return;
-                }
-                PrepareOwnerKeys();
-                if (SelectedOwnerMappingSource == OwnerMappingSourceStm.CustomField && !OwnerKeys.Any())
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("E5505"), true);
-                    return;
-                }
-
                 List<string> mergedChangeIdKeys = MergeChangeIdKeys();
-
-                configData.OwnerSoruceMappingID = (int)SelectedOwnerMappingSource.Value;
-                configData.CustomFieldOwnerKey = JsonSerializer.Serialize(OwnerKeys);
+                // the change-ID keys are read by rule reports, notification mails and the rule REST API,
+                // so an incomplete owner mapping must not block them
                 configData.CustomFieldChangeIdKey = JsonSerializer.Serialize(mergedChangeIdKeys);
+
+                string? ownerMappingError = PrepareOwnerMapping();
+                if (ownerMappingError != null)
+                {
+                    await globalConfig.WriteToDatabase(configData, apiConnection);
+                    CommitChangeIdKeys(mergedChangeIdKeys);
+                    DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), $"{ownerMappingError} {userConfig.GetText("E5506")}", true);
+                    return;
+                }
+
+                configData.OwnerSoruceMappingID = (int)SelectedOwnerMappingSource!.Value;
+                configData.CustomFieldOwnerKey = JsonSerializer.Serialize(OwnerKeys);
                 configData.ModModelledMarker = actModelledMarker;
 
                 await globalConfig.WriteToDatabase(configData, apiConnection);
@@ -257,6 +256,24 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
         }
+    }
+
+    /// <summary>
+    /// Applies the pending owner key edits and checks that the owner mapping part of the form can be persisted.
+    /// </summary>
+    /// <returns>The error text to display, or <see langword="null"/> when the owner mapping is valid.</returns>
+    private string? PrepareOwnerMapping()
+    {
+        if (SelectedOwnerMappingSource == null)
+        {
+            return userConfig.GetText("E5504");
+        }
+        PrepareOwnerKeys();
+        if (SelectedOwnerMappingSource == OwnerMappingSourceStm.CustomField && !OwnerKeys.Any())
+        {
+            return userConfig.GetText("E5505");
+        }
+        return null;
     }
 
     private static bool ShouldTriggerRuleOwnerReinitialize(int oldSource, string oldOwnerKey, string oldModelledMarker, ConfigData configData)

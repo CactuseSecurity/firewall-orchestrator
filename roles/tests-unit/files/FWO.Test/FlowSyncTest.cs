@@ -299,7 +299,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Run_SkipsManagementWhenNoManagementDataIsReturned()
+        public async Task Run_ReturnsFalseWhenNoManagementDataIsReturned()
         {
             FlowSyncTestApiConn apiConn = new()
             {
@@ -310,7 +310,7 @@ namespace FWO.Test
 
             bool result = await flowSync.Run();
 
-            Assert.That(result, Is.True);
+            Assert.That(result, Is.False);
             Assert.That(apiConn.InsertedNetworkObjects, Is.Empty);
             Assert.That(apiConn.RemovedMappingsCleared, Is.False);
             Assert.That(apiConn.CompletedImportControlId, Is.Null);

@@ -100,7 +100,6 @@ namespace FWO.Services
             }
             managementIdsToSync = [.. managementIdsToSync.OrderBy(allSubManagementIds.Contains)];
 
-            bool syncedAny = false;
             HashSet<int> successfullySyncedManagementIds = [];
 
             foreach (int mgmId in managementIdsToSync)
@@ -111,7 +110,6 @@ namespace FWO.Services
                     {
                         successfullySyncedManagementIds.Add(mgmId);
                     }
-                    syncedAny = true;
                 }
                 catch (Exception exception)
                 {
@@ -120,13 +118,14 @@ namespace FWO.Services
             }
 
             await CompletePendingImportsAsync(pendingImportsByManagement, superMgmToSubMgmIds, successfullySyncedManagementIds);
+            bool hasSuccessfulSync = successfullySyncedManagementIds.Count > 0;
 
-            if (syncedAny)
+            if (hasSuccessfulSync)
             {
                 Log.WriteInfo(LogMessageTitle, "Flow sync completed.");
             }
 
-            return syncedAny;
+            return hasSuccessfulSync;
         }
 
         /// <summary>
@@ -184,7 +183,10 @@ namespace FWO.Services
 
                 if (!allRequiredManagementsSynced)
                 {
-                    Log.WriteWarning(LogMessageTitle, $"Not marking flow sync for management {mgmId} as complete because a sub-management did not synchronize.");
+                    List<int> unsynchronizedManagementIds = [.. requiredSubManagementIds
+                        .Prepend(mgmId)
+                        .Where(requiredMgmId => !successfullySyncedManagementIds.Contains(requiredMgmId))];
+                    Log.WriteError(LogMessageTitle, $"Not marking flow sync for management {mgmId} as complete because management IDs {string.Join(", ", unsynchronizedManagementIds)} did not synchronize.");
                     continue;
                 }
 

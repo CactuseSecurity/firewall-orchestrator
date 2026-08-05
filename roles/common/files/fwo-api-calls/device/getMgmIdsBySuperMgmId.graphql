@@ -1,7 +1,14 @@
 query getMgmIdsBySuperMgmId {
-  management (where: {is_super_manager: {_eq:true}}) {
+  management (where: {
+    is_super_manager: {_eq: true}
+    do_not_import: {_eq: false}
+    hide_in_gui: {_eq: false}
+  }) {
     mgm_id
-    sub_mgms: managementByMultiDeviceManagerId {
+    sub_mgms: managementByMultiDeviceManagerId (where: {
+      do_not_import: {_eq: false}
+      hide_in_gui: {_eq: false}
+    }) {
       mgm_id
     }
   }

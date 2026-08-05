@@ -590,10 +590,11 @@ Not supported any longer are:
 - update flow time object hashing to be timezone invariant
 - ! resets the flow timeobject and access tables
 
-
 ## 9.3 - 31.07.2026
 - new import module for OPNsense firewalls
 
 ## 9.3.1 - 03.08.2026
+- make rule change-ID custom field names configurable in compliance settings
+- ! breaking change: old hard-coded default value "Datum-Regelpruefung" is dropped and replaced, so existing installations using this feature be impacted!
 - changed workflow email CSV/JSON output and firewall request popup to separate current, added and removed group members
 - Fixed variance-analysis comparison for imported identity network objects such as Check Point updatable objects and access roles. These objects are now compared by object type and name instead of placeholder IP fields.

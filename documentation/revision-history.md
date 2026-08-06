@@ -598,3 +598,8 @@ Not supported any longer are:
 - ! breaking change: old hard-coded default value "Datum-Regelpruefung" is dropped and replaced, so existing installations using this feature be impacted!
 - changed workflow email CSV/JSON output and firewall request popup to separate current, added and removed group members
 - various memory leakage fixes in UI
+
+## 9.3.3 - 06.08.2026
+- add nat import for checkpoint and forti firewall managements
+- fix checkpoint import policy install detection
+- fix nat rules report

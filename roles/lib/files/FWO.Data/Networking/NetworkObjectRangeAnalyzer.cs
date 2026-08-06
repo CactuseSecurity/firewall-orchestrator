@@ -19,10 +19,7 @@ namespace FWO.Data.Networking
         /// </summary>
         public List<NetworkObjectRangeAnalysis> AnalyzeMany(IEnumerable<NetworkObject> objects)
         {
-            return objects
-                .Where(obj => obj.Type.Name != ObjectType.Group)
-                .Select(Analyze)
-                .ToList();
+            return AnalyzeLazy(objects).ToList();
         }
 
         /// <summary>
@@ -60,20 +57,16 @@ namespace FWO.Data.Networking
         }
 
         /// <summary>
-        /// Checks whether all supported IPv4 objects contain the given IPv4 address and meet the minimum prefix length.
+        /// Checks whether any supported IPv4 object contains the given IPv4 address and meets the minimum prefix length.
+        /// Unsupported objects are ignored.
         /// </summary>
         public bool MatchesIpFilter(IPAddress ipAddress, int minPrefix, IEnumerable<NetworkObject> objects)
         {
-            List<NetworkObjectRangeAnalysis> analyses = AnalyzeMany(objects);
-            if (analyses.Count == 0)
-            {
-                return false;
-            }
-
-            return analyses.All(analysis =>
-                analysis.IsSupported
-                && analysis.PrefixLength >= minPrefix
-                && IsIpInRange(ipAddress, analysis.Start, analysis.End));
+            return AnalyzeLazy(objects)
+                .Any(analysis =>
+                    analysis.IsSupported
+                    && analysis.PrefixLength >= minPrefix
+                    && IsIpInRange(ipAddress, analysis.Start, analysis.End));
         }
 
         /// <summary>
@@ -81,8 +74,15 @@ namespace FWO.Data.Networking
         /// </summary>
         public bool ExceedsPrefixThreshold(int minPrefix, IEnumerable<NetworkObject> objects)
         {
-            return AnalyzeMany(objects)
+            return AnalyzeLazy(objects)
                 .Any(analysis => analysis.IsSupported && analysis.PrefixLength < minPrefix);
+        }
+
+        private IEnumerable<NetworkObjectRangeAnalysis> AnalyzeLazy(IEnumerable<NetworkObject> objects)
+        {
+            return objects
+                .Where(obj => obj.Type.Name != ObjectType.Group)
+                .Select(Analyze);
         }
 
         private IPAddress? ParseAndCache(string? ipString)

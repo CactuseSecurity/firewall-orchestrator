@@ -352,6 +352,7 @@ def get_rulebases(
     native_config_domain: dict[str, Any] | None,
     device_config: dict[str, Any] | None,
     policy_rulebases_uid_list: list[str],
+    policy_structure: dict[str, Any],
     is_global: bool = False,
     access_type: str = "access",
     rulebase_uid: str | None = None,
@@ -411,6 +412,7 @@ def get_rulebases(
         show_params_rules,
         is_global,
         policy_rulebases_uid_list,
+        policy_structure=policy_structure,
     )
 
 
@@ -623,6 +625,7 @@ def get_inline_layers_recursively(
     show_params_rules: dict[str, Any],
     is_global: bool,
     policy_rulebases_uid_list: list[str],
+    policy_structure: dict[str, Any],
 ) -> list[str]:
     """
     Takes current_rulebase, splits sections into sub-rulebases and searches for layerguards to fetch
@@ -662,6 +665,7 @@ def get_inline_layers_recursively(
                             is_global=is_global,
                             access_type="access",
                             rulebase_uid=rule["inline-layer"],
+                            policy_structure=policy_structure,
                         )
 
     return policy_rulebases_uid_list
@@ -1071,3 +1075,36 @@ def get_object_details_from_api(uid_missing_obj: str, sid: str = "", apiurl: str
         return obj
     FWOLogger.warning(f"missing nw obj of unexpected type '{obj_type}': {uid_missing_obj}")
     return {}
+
+
+def get_gateways_and_servers(sid: str = "", apiurl: str = "") -> list[dict[str, Any]]:
+    """Fetch gateways and servers from the API."""
+    current = 0
+    total = 1
+
+    gateways_and_servers: list[dict[str, Any]] = []
+
+    while current < total:
+        try:
+            result = cp_api_call(apiurl, "show-gateways-and-servers", {"details-level": "full", "offset": current}, sid)
+        except Exception as e:
+            raise FwoImporterError(f"error while trying to get gateways and servers: {e}") from e
+
+        if result is None or "objects" not in result:
+            raise FwoImporterError("no objects received while trying to get gateways and servers")
+
+        gateways_and_servers.extend(result["objects"])
+
+        if "total" not in result or "to" not in result:
+            raise FwoImporterError("result does not contain total or to field while trying to get gateways and servers")
+
+        total = result["total"]
+        new_current = result["to"]
+        if new_current <= current:
+            raise FwoImporterError(
+                f"pagination did not advance while trying to get gateways and servers: "
+                f"'to'={new_current} did not exceed previous offset={current}"
+            )
+        current = new_current
+
+    return gateways_and_servers

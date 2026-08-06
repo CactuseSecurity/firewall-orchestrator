@@ -601,3 +601,8 @@ Not supported any longer are:
 
 ## 9.3.2 - 06.08.2026
 - fix upgrade failure when migrating workflow state matrices with non-JSON configuration values
+
+## 9.3.3 - 06.08.2026
+- add nat import for checkpoint and forti firewall managements
+- fix checkpoint import policy install detection
+- fix nat rules report

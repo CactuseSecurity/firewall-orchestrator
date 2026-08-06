@@ -3,6 +3,7 @@ query getRulesForOwnerMappingNameField {
     where: {
       removed: { _is_null: true }
       rule_name: { _is_null: false }
+      access_rule: { _eq: true }
     }
   ) {
     rule_id

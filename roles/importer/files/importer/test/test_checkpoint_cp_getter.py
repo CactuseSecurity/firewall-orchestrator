@@ -308,6 +308,7 @@ class TestGetRulebases:
             native_config_domain,
             {"rulebase_links": []},
             policy_rulebases_uid_list,
+            {},
             rulebase_uid="rb-1",
         )
 
@@ -319,7 +320,7 @@ class TestGetRulebases:
             cp_getter, "get_rulebases_in_chunks", return_value={"uid": "rb-nat", "chunks": []}
         ) as chunk_getter:
             result = cp_getter.get_rulebases(
-                "https://mgm.invalid/", "sid-1", {}, None, None, [], access_type="nat", rulebase_uid="rb-nat"
+                "https://mgm.invalid/", "sid-1", {}, None, None, [], {}, access_type="nat", rulebase_uid="rb-nat"
             )
 
         assert result == ["rb-nat"]
@@ -331,7 +332,7 @@ class TestGetRulebases:
             patch.object(cp_getter, "get_rulebases_in_chunks", return_value={"uid": "rb-2", "chunks": []}),
         ):
             result = cp_getter.get_rulebases(
-                "https://mgm.invalid/", "sid-1", {}, None, None, [], access_type="bogus", rulebase_name="Layer 1"
+                "https://mgm.invalid/", "sid-1", {}, None, None, [], {}, access_type="bogus", rulebase_name="Layer 1"
             )
 
         assert result == ["rb-2"]
@@ -339,7 +340,7 @@ class TestGetRulebases:
 
     def test_without_uid_and_name_logs_error_and_continues(self):
         with patch.object(cp_getter, "get_rulebases_in_chunks", return_value={"uid": None, "chunks": []}):
-            assert cp_getter.get_rulebases("https://mgm.invalid/", "sid-1", {}, None, None, []) == [None]
+            assert cp_getter.get_rulebases("https://mgm.invalid/", "sid-1", {}, None, None, [], {}) == [None]
 
     def test_get_uid_of_rulebase_returns_uid(self):
         with patch.object(cp_getter, "cp_api_call", return_value={"uid": "rb-1"}):
@@ -429,6 +430,7 @@ class TestInlineLayers:
                 {},
                 is_global=False,
                 policy_rulebases_uid_list=["rb-1"],
+                policy_structure={},
             )
 
         assert result == ["rb-1", "il-1"]

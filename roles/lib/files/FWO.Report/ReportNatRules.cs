@@ -2,6 +2,7 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Report.Filter;
+using FWO.Services.RuleTreeBuilder;
 using FWO.Ui.Display;
 using System.Text;
 
@@ -9,9 +10,13 @@ namespace FWO.Report
 {
     public class ReportNatRules : ReportRules
     {
-        public ReportNatRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
+        public ReportNatRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, IRuleTreeBuilder? ruleTreeBuilder = null) : base(query, userConfig, reportType, ruleTreeBuilder) { }
 
-        private const int ColumnCount = 12;
+        private static readonly string[] HeaderKeys =
+        [
+            "number", "name", "source_zone", "source", "destination_zone", "destination",
+            "services", "trans_source", "trans_destination", "trans_services", "enabled", "uid", "comment"
+        ];
 
         public override string ExportToHtml()
         {
@@ -27,21 +32,15 @@ namespace FWO.Report
 
                 foreach (var device in managementReport.Devices)
                 {
-                    if (device.RulebaseLinks != null)
+                    Rule[] deviceNatRules = GetCachedRulesForExport(device.Id, managementReport.Id);
+                    if (deviceNatRules.Length > 0)
                     {
-                        RulebaseLink? initialRulebaseLink = device.RulebaseLinks.FirstOrDefault(_ => _.IsInitial);
-                        if (initialRulebaseLink != null)
-                        {
-                            foreach (var rule in managementReport.Rulebases.FirstOrDefault(rb => rb.Id == initialRulebaseLink.NextRulebaseId)?.Rules ?? [])
-                            {
-                                AppendNatRuleHeadlineHtml(ref report, device.Name);
+                        AppendNatRuleHeadlineHtml(ref report, device.Name);
 
-                                report.AppendLine(ExportSingleRulebaseToHtml(GetRulesByRulebaseId(initialRulebaseLink.NextRulebaseId, managementReport), ruleDisplay, chapterNumber));
+                        report.AppendLine(ExportSingleRulebaseToHtml(deviceNatRules, ruleDisplay, chapterNumber));
 
-                                report.AppendLine("</table>");
-                                report.AppendLine("<hr>");
-                            }
-                        }
+                        report.AppendLine("</table>");
+                        report.AppendLine("<hr>");
                     }
                 }
                 // show all objects used in this management's rules
@@ -69,19 +68,10 @@ namespace FWO.Report
             report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{deviceName}</h4>");
             report.AppendLine("<table>");
             report.AppendLine("<tr>");
-            report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("destination_zone")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("trans_source")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("trans_destination")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("trans_services")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("enabled")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
+            foreach (string headerKey in HeaderKeys)
+            {
+                report.AppendLine($"<th>{userConfig.GetText(headerKey)}</th>");
+            }
             report.AppendLine("</tr>");
 
         }
@@ -109,7 +99,7 @@ namespace FWO.Report
             else
             {
                 report.AppendLine("<tr>");
-                report.AppendLine($"<td style=\"background-color: #f0f0f0;\" colspan=\"{ColumnCount}\">{rule.SectionHeader}</td>");
+                report.AppendLine($"<td style=\"background-color: #f0f0f0;\" colspan=\"{HeaderKeys.Length}\">{rule.SectionHeader}</td>");
                 report.AppendLine("</tr>");
             }
         }

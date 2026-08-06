@@ -1,0 +1,5 @@
+mutation updateRuleXlateFks($updates: [firewall_rule_updates!]!) {
+  update_firewall_rule_many(updates: $updates) {
+    affected_rows
+  }
+}

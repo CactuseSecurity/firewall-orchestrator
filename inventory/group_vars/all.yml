@@ -3,7 +3,11 @@ product_version: "9.3.1"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
-importer_python_interpreter: "{{ '/usr/bin/python3.11' if ansible_facts['os_family'] == 'RedHat' else ansible_python_interpreter }}"
+# RHEL 8 ships Python 3.6 and RHEL 9 Python 3.9 as python3, both too old for the importer,
+# so the parallel installable python3.11 is used there. RHEL 10 ships Python 3.12 as python3
+# and has no python3.11 package.
+redhat_python_package: "{{ 'python3' if redhat_major_version | int >= 10 else 'python3.11' }}"
+importer_python_interpreter: "{{ ('/usr/bin/' ~ redhat_python_package) if ansible_facts['os_family'] == 'RedHat' else ansible_python_interpreter }}"
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
 installer_controller_tmp_dir: "{{ lookup('env', 'HOME') }}/.fworch/tmp"
@@ -172,6 +176,25 @@ dotnet_deb_name: "packages-microsoft-prod.deb"
 dotnet_rpm_name: "packages-microsoft-prod.rpm"
 dotnet_version: "10.0"
 dotnet_mode: "Release"
+# fallbacks used when the configured OS repos cannot deliver the dotnet packages
+dotnet_ms_repo_file: "/etc/yum.repos.d/microsoft-prod.repo"
+dotnet_ms_repo_id: "packages-microsoft-com-prod"
+dotnet_ms_repo_preferences:
+  - { option: "priority", value: "1" }
+  - { option: "includepkgs", value: "dotnet-* aspnetcore-* netstandard-*" }
+# the dotnet-install script installs outside package management, so it gets a directory of its
+# own instead of the /usr/share/dotnet shared with the distribution and microsoft packages.
+# that keeps the uninstall from removing an sdk it does not own.
+dotnet_script_install_dir: "{{ fworch_home }}/dotnet"
+dotnet_binary_link: "/usr/bin/dotnet"
+# point this at an own copy of the script to avoid downloading it from the internet
+dotnet_install_script_url: "https://dot.net/v1/dotnet-install.sh"
+# upstream publishes no checksum for the script, so set this to pin a reviewed revision,
+# for example "sha256:0123abc...". an empty value skips the verification.
+dotnet_install_script_checksum: ""
+# the dotnet-install script is executed as root. on RedHat it is only the third fallback
+# after the configured repos and the microsoft repo, so it must be requested explicitly.
+allowDotnetScriptInstallForRedhat: false
 # dotnet_mode: "Debug"
 debug_level: "1"
 lib_dir: "{{ fworch_home }}/lib/files"
@@ -203,7 +226,7 @@ apache_ssl_dir: "/etc/{{ webserver_package_name }}/ssl"
 apache_selinux_ports:
   - "{{ api_web_port }}"
   - "{{ middleware_web_listener_port }}"
-python_venv_package_name: "{{ ['python3-venv'] if ansible_facts['os_family'] == 'Debian' else ['python3.11', 'python3.11-pip'] }}"
+python_venv_package_name: "{{ ['python3-venv'] if ansible_facts['os_family'] == 'Debian' else [redhat_python_package, redhat_python_package ~ '-pip'] }}"
 middleware_ldap_packages: >-
   {{
     [

@@ -30,9 +30,34 @@
           - xdg-utils
 
     - name: Install all combined dependencies on RedHat
-      package:
-        name: "{{ platform_packages }}"
-        state: present
+      block:
+        - name: install chromium dependencies from the configured repos on RedHat
+          package:
+            name: "{{ platform_packages }}"
+            state: present
+      rescue:
+        # a partially downloaded rpm, or metadata still advertising builds the mirrors have
+        # already replaced, makes every mirror fail; dropping the cache forces both to be
+        # refetched and the retries cover transient mirror or proxy hiccups
+        - name: report failed chromium dependency installation on RedHat
+          debug:
+            msg:
+              - "The chromium dependencies could not be installed: {{ ansible_failed_result.msg | default('unknown error') }}"
+              - "Dropping the dnf cache and retrying."
+
+        - name: drop the dnf cache on RedHat
+          command: dnf clean all
+          changed_when: false
+
+        - name: install chromium dependencies after dropping the dnf cache on RedHat
+          ansible.builtin.dnf:
+            name: "{{ platform_packages }}"
+            state: present
+            update_cache: true
+          register: chromium_dependency_install_redhat
+          until: chromium_dependency_install_redhat is succeeded
+          retries: 3
+          delay: 5
 
     # headless chromium from EPEL can replace the chrome download (hardened / proxy-restricted systems)
     - name: Define RedHat headless chromium package

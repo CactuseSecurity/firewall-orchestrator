@@ -281,8 +281,8 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
     private static List<RuleDetail> ConvertRuleList(List<Rule> inputList, UserConfig userConfig)
     {
         string notFound = RuleFieldSourceResolver.NotFoundValue;
-        string ownerCustomFieldKey = userConfig.GlobalConfig?.CustomFieldOwnerKey ?? "";
-        string changeIdCustomFieldKey = userConfig.GlobalConfig?.CustomFieldChangeIdKey ?? "";
+        List<string> ownerCustomFieldKeys = CustomFieldResolver.NormalizeCustomFieldKeys(userConfig.GlobalConfig?.CustomFieldOwnerKey);
+        List<string> changeIdCustomFieldKeys = CustomFieldResolver.NormalizeCustomFieldKeys(userConfig.GlobalConfig?.CustomFieldChangeIdKey);
 
         return inputList.Select(item =>
         {
@@ -323,8 +323,8 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                 CreationDate = item.CreatedImport?.StartTime?.ToString() ?? notFound,
                 LastHitDate = item.Metadata.LastHit?.ToString() ?? notFound,
                 Action = item.Action,
-                OwnerInformation = RuleFieldSourceResolver.ResolveOwnerInformation(item, ownerCustomFieldKey),
-                AdditionalInformation = RuleFieldSourceResolver.ResolveAdditionalInformation(item, changeIdCustomFieldKey),
+                OwnerInformation = RuleFieldSourceResolver.ResolveOwnerInformation(item, ownerCustomFieldKeys),
+                AdditionalInformation = RuleFieldSourceResolver.ResolveAdditionalInformation(item, changeIdCustomFieldKeys),
                 Comment = item.Comment ?? notFound,
                 Time = item.RuleTimes.Where(ruleTimeObject => ruleTimeObject.TimeObj is not null).Select(ruleTimeObject => ruleTimeObject.TimeObj!.Name).ToList()
             };

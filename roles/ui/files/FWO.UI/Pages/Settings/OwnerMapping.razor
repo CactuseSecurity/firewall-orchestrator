@@ -237,7 +237,7 @@
             ConfigData.ModModelledMarker = actModelledMarker;
             await globalConfig.WriteToDatabase(ConfigData, apiConnection);
 
-            if (ShouldTriggerRuleOwnerReinitialize(oldSource, oldOwnerKey, "", oldModelledMarker, ConfigData))
+            if (ShouldTriggerRuleOwnerReinitialize(oldSource, oldOwnerKey, oldModelledMarker, ConfigData))
             {
                 bool rebuildSuccess = await TriggerFullRuleOwnerReinitialize();
                 if (!rebuildSuccess)
@@ -255,10 +255,10 @@
         }
     }
 
-    private static bool ShouldTriggerRuleOwnerReinitialize(int oldSource, string oldOwnerKey, string oldChangeIdKey, string oldModelledMarker, ConfigData configData)
+    private static bool ShouldTriggerRuleOwnerReinitialize(int oldSource, string oldOwnerKey, string oldModelledMarker, ConfigData configData)
     {
         bool sourceChanged = oldSource != configData.OwnerSoruceMappingID;
-        bool customFieldConfigChanged = oldOwnerKey != configData.CustomFieldOwnerKey || oldChangeIdKey != configData.CustomFieldChangeIdKey;
+        bool customFieldConfigChanged = oldOwnerKey != configData.CustomFieldOwnerKey;
         bool nameFieldConfigChanged = oldModelledMarker != configData.ModModelledMarker;
 
         if (sourceChanged)

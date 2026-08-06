@@ -32,26 +32,6 @@
   when: wipe_packages is defined and wipe_packages|bool
   become: true
 
-- name: check for a script based dotnet installation on RedHat
-  stat:
-    path: "{{ dotnet_script_install_marker }}"
-  register: dotnet_script_install_marker_check
-  become: true
-
-# a dotnet installed from an rpm uses the same directory and is owned by the package manager,
-# so only an installation carrying the marker written by the dotnet-install script is removed
-- name: remove script based dotnet installation on RedHat
-  file:
-    path: "{{ item }}"
-    state: absent
-  loop:
-    - "{{ dotnet_script_install_dir }}"
-    - "{{ dotnet_binary_link }}"
-  when:
-    - wipe_packages is defined and wipe_packages|bool
-    - dotnet_script_install_marker_check.stat.exists
-  become: true
-
 - name: uninstall openldap on RedHat
   package:
     state: absent

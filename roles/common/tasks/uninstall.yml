@@ -122,6 +122,25 @@
   include_tasks: "os/uninstall-packages.{{ ansible_facts['os_family'] }}.yml"
 
 - block:
+    # the sdk itself lives in {{ dotnet_script_install_dir }} below {{ fworch_home }} and is
+    # removed with it, but the link into it has to be cleaned up separately. a link pointing
+    # anywhere else belongs to a package or to a manual installation and is left alone.
+    - name: check where {{ dotnet_binary_link }} points
+      stat:
+        path: "{{ dotnet_binary_link }}"
+        follow: false
+      register: dotnet_binary_link_check
+      ignore_errors: true
+
+    - name: remove the {{ product_name }} dotnet symlink
+      file:
+        path: "{{ dotnet_binary_link }}"
+        state: absent
+      when:
+        - dotnet_binary_link_check.stat.islnk | default(false)
+        - (dotnet_binary_link_check.stat.lnk_target | default('')) == (dotnet_script_install_dir ~ '/dotnet')
+      ignore_errors: true
+
     - name: remove {{ product_name }} dirs and files
       file:
         name: "{{ item }}"

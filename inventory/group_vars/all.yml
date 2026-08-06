@@ -182,11 +182,11 @@ dotnet_ms_repo_id: "packages-microsoft-com-prod"
 dotnet_ms_repo_preferences:
   - { option: "priority", value: "1" }
   - { option: "includepkgs", value: "dotnet-* aspnetcore-* netstandard-*" }
-dotnet_script_install_dir: "/usr/share/dotnet"
+# the dotnet-install script installs outside package management, so it gets a directory of its
+# own instead of the /usr/share/dotnet shared with the distribution and microsoft packages.
+# that keeps the uninstall from removing an sdk it does not own.
+dotnet_script_install_dir: "{{ fworch_home }}/dotnet"
 dotnet_binary_link: "/usr/bin/dotnet"
-# the dotnet-install script installs outside package management, so it leaves a marker behind
-# that tells the uninstall which installation it may remove
-dotnet_script_install_marker: "{{ dotnet_script_install_dir }}/.installed-by-{{ product_name }}"
 # point this at an own copy of the script to avoid downloading it from the internet
 dotnet_install_script_url: "https://dot.net/v1/dotnet-install.sh"
 # upstream publishes no checksum for the script, so set this to pin a reviewed revision,

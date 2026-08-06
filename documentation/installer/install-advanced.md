@@ -162,7 +162,7 @@ The installer needs the dotnet SDK for the UI and the middleware server. On RedH
 
 1. the already configured repositories (normally RHEL AppStream)
 2. the Microsoft package repository (`packages.microsoft.com`), which is added and given priority over the configured repositories for `dotnet-*`, `aspnetcore-*` and `netstandard-*` packages
-3. the Microsoft `dotnet-install.sh` script, which installs into `dotnet_script_install_dir` (`/usr/share/dotnet`) and links `dotnet_binary_link` (`/usr/bin/dotnet`) - **opt-in only**, see below
+3. the Microsoft `dotnet-install.sh` script, which installs into `dotnet_script_install_dir` (`/usr/local/fworch/dotnet`) and links `dotnet_binary_link` (`/usr/bin/dotnet`) - **opt-in only**, see below
 
 Step 2 is also used when the configured repositories list the package but cannot deliver it, for example with an expired subscription, a Satellite/Capsule mirror that only synced metadata, or a proxy that blocks the package download. The typical symptom is:
 
@@ -183,7 +183,7 @@ Two further parameters harden the script fallback wherever it is used, on RedHat
 - `dotnet_install_script_url` points at the script. Set it to an own reviewed copy to avoid downloading it from `dot.net` at install time.
 - `dotnet_install_script_checksum` verifies the downloaded script, for example `sha256:0123abc...`. Upstream publishes no checksum, so the value has to be taken from a reviewed revision. Empty by default, which skips the verification.
 
-An SDK installed by the script writes a marker file into its installation directory. Only an installation carrying that marker is removed again by `wipe_packages=yes` during the uninstall - an SDK owned by the package manager in the same directory is left alone.
+An SDK installed by the script does not go into the `/usr/share/dotnet` used by the distribution and Microsoft packages, but into a directory of its own below the installation directory. The uninstall therefore removes it together with the other FWORCH directories and never touches an SDK it does not own. `/usr/bin/dotnet` is only removed if it still points into that directory.
 
 ### Parameter "docker_network" after the Podman migration
 

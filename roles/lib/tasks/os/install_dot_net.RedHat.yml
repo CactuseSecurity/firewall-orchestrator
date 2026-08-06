@@ -121,15 +121,6 @@
             - name: install dotnet sdk {{ dotnet_version }} with dotnet-install script on RedHat
               command: "{{ lib_tmp_dir }}/dotnet-install.sh --channel {{ dotnet_version }} --quality ga --install-dir {{ dotnet_script_install_dir }}"
 
-            - name: mark the dotnet installation as script based on RedHat
-              copy:
-                dest: "{{ dotnet_script_install_marker }}"
-                content: |
-                  Installed by the {{ product_name }} installer with {{ dotnet_install_script_url }},
-                  outside of package management. {{ dotnet_script_install_dir }} and
-                  {{ dotnet_binary_link }} are removed by the {{ product_name }} uninstall.
-                mode: "0644"
-
             - name: ensure dotnet symlink exists on RedHat
               file:
                 src: "{{ dotnet_script_install_dir }}/dotnet"

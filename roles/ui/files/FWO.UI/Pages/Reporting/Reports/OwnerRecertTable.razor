@@ -3,7 +3,7 @@
 @using FWO.Basics
 @inject UserConfig userConfig
 
-<Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="FwoOwner" Items="Owners" PageSize="0">
+<Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="FwoOwner" Items="displayOwners" PageSize="0">
     @if (ShowRecertData)
     {
         <Column TableItem="FwoOwner" Title="@(userConfig.GetText("next_recert_date"))" Field="@(x => x.Id)" >
@@ -34,7 +34,7 @@
     }
     @if (HasAdditionalInfoColumn())
     {
-        <Column TableItem="FwoOwner" Title="@AdditionalInfoColumnTitle" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+        <Column TableItem="FwoOwner" Title="@AdditionalInfoColumnTitle" Field="@(x => x.AdditionalInfoValue)" Sortable="true" Filterable="false">
            <Template>
                 @((MarkupString)GetAdditionalInfoValueHtml(context))
             </Template>
@@ -54,7 +54,26 @@
     [Parameter]
     public string AdditionalInfoKey { get; set; } = "";
 
-    private string AdditionalInfoColumnTitle => $"{userConfig.GetText("label")}: {AdditionalInfoKey}";
+    private List<FwoOwner> displayOwners = [];
+    private string AdditionalInfoColumnTitle => $"{userConfig.GetText("add_info")}: {AdditionalInfoKey}";
+
+    protected override void OnParametersSet()
+    {
+        if (!HasAdditionalInfoColumn())
+        {
+            displayOwners = Owners;
+            return;
+        }
+
+        displayOwners = Owners.Select(owner =>
+        {
+            FwoOwner displayOwner = new(owner)
+            {
+                AdditionalInfoValue = GetAdditionalInfoValue(owner)
+            };
+            return displayOwner;
+        }).ToList();
+    }
 
     private string GetRecertifierName(FwoOwner owner)
     {
@@ -70,6 +89,11 @@
     private string GetAdditionalInfoValueHtml(FwoOwner owner)
     {
         return OwnerRecertDisplay.FormatAdditionalInfoValueHtml(owner, AdditionalInfoKey);
+    }
+
+    private string GetAdditionalInfoValue(FwoOwner owner)
+    {
+        return OwnerRecertDisplay.FormatAdditionalInfoValue(owner, AdditionalInfoKey);
     }
 
 }

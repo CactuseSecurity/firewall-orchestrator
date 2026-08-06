@@ -1,0 +1,198 @@
+@using FWO.Data.Report
+
+@inject UserConfig userConfig
+
+@if (UseFormLayout)
+{
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@TooltipText">
+        <label class="@SummaryLabelClass" for="@SummaryId">@(userConfig.GetText("add_info")):</label>
+        <div class="col-sm-9">
+            @SummaryContent
+        </div>
+    </div>
+}
+else
+{
+    <div class="mt-2" data-toggle="tooltip" title="@TooltipText">
+        <label class="@SummaryLabelClass" for="@SummaryId">@(userConfig.GetText("add_info")):</label>
+        @SummaryContent
+    </div>
+}
+
+<PopUp Size=PopupSize.Small Title="@(userConfig.GetText("add_info"))" Show="@showAddInfoFilterDialog" OnClose="CloseAddInfoFilterDialog">
+    <Body>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@TooltipText">
+            <label for="@NameDropdownId" class="@PopupLabelClass">@(userConfig.GetText("name")):</label>
+            <div class="@PopupContentClass">
+                <Dropdown Id="@NameDropdownId" ElementType="string" SelectedElement="addInfoFilterDraft.Name" SelectedElementChanged="HandleAddInfoNameChanged" ElementToString="addInfoName => addInfoName" Elements="availableAddInfoNames" AllowFreeText="AllowFreeText">
+                    <ElementTemplate Context="addInfoName">
+                        @addInfoName
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+        <div class="form-group row mt-2">
+            <label for="@ModeDropdownId" class="@PopupLabelClass">@(userConfig.GetText("select")):</label>
+            <div class="@PopupContentClass">
+                <Dropdown Id="@ModeDropdownId" ElementType="AddInfoFilterMode" @bind-SelectedElement="addInfoFilterDraft.Mode" ElementToString="AddInfoFilterModeToString" Elements="availableAddInfoFilterModes">
+                    <ElementTemplate Context="mode">
+                        @(AddInfoFilterModeToString(mode))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+        @if (addInfoFilterDraft.Mode == AddInfoFilterMode.value)
+        {
+            <div class="form-group row mt-2">
+                <label for="@ValueInputId" class="@PopupLabelClass">@(userConfig.GetText("value")):</label>
+                <div class="@PopupContentClass">
+                    <input id="@ValueInputId" type="text" class="form-control form-control-sm" @bind="addInfoFilterDraft.Value" />
+                </div>
+            </div>
+        }
+        <div class="mt-3 d-flex justify-content-end">
+            <div class="btn-group">
+                <button id="@SaveButtonId" type="button" class="btn btn-sm btn-primary" @onclick="ApplyAddInfoFilterDialog">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                <button id="@DeleteButtonId" type="button" class="btn btn-sm btn-danger" @onclick="DeleteAddInfoFilterDialog">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                <button id="@CancelButtonId" type="button" class="btn btn-sm btn-secondary" @onclick="CloseAddInfoFilterDialog">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+            </div>
+        </div>
+    </Body>
+</PopUp>
+
+@code
+{
+    [Parameter]
+    public AddInfoFilter AddInfoFilter { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<AddInfoFilter> AddInfoFilterChanged { get; set; }
+
+    [Parameter]
+    public IEnumerable<string> AvailableAddInfoNames { get; set; } = [];
+
+    [Parameter]
+    public bool UseFormLayout { get; set; }
+
+    [Parameter]
+    public bool UseLightText { get; set; } = true;
+
+    [Parameter]
+    public bool AllowFreeText { get; set; }
+
+    [Parameter]
+    public AddInfoFilterMode DefaultMode { get; set; } = AddInfoFilterMode.display_only;
+
+    [Parameter]
+    public string TooltipTextKey { get; set; } = "";
+
+    [Parameter]
+    public string IdPrefix { get; set; } = "addInfoFilter";
+
+    private readonly List<AddInfoFilterMode> availableAddInfoFilterModes = [.. Enum.GetValues<AddInfoFilterMode>()];
+    private List<string> availableAddInfoNames = [];
+    private bool showAddInfoFilterDialog;
+    private AddInfoFilter addInfoFilterDraft = new();
+
+    private string Prefix => string.IsNullOrWhiteSpace(IdPrefix) ? "addInfoFilter" : IdPrefix;
+    private string SummaryId => $"{Prefix}-summary";
+    private string EditButtonId => $"{Prefix}-editButton";
+    private string NameDropdownId => $"{Prefix}-nameDropdown";
+    private string ModeDropdownId => $"{Prefix}-modeDropdown";
+    private string ValueInputId => $"{Prefix}-value";
+    private string SaveButtonId => $"{Prefix}-saveButton";
+    private string DeleteButtonId => $"{Prefix}-deleteButton";
+    private string CancelButtonId => $"{Prefix}-cancelButton";
+    private string TooltipText => string.IsNullOrWhiteSpace(TooltipTextKey) ? string.Empty : userConfig.PureLine(TooltipTextKey);
+    private string SummaryLabelClass
+    {
+        get => $"{(UseFormLayout ? "col-sm-3 col-form-label col-form-label-sm" : "form-label")}{(UseLightText ? " text-white" : "")}";
+    }
+    private string PopupLabelClass => $"col-sm-3 col-form-label col-form-label-sm{(UseLightText ? " text-white" : "")}";
+    private string PopupContentClass => UseFormLayout ? "col-sm-8" : "col-sm-9";
+
+    private RenderFragment SummaryContent => @<div class="input-group">
+        <input id="@SummaryId" type="text" class="form-control form-control-sm" value="@GetAddInfoFilterSummary()" readonly />
+        <button id="@EditButtonId" type="button" class="btn btn-sm btn-secondary" @onclick="OpenAddInfoFilterDialog">@(DisplayService.DisplayButton(userConfig, "change", Icons.Edit))</button>
+    </div>;
+
+    protected override void OnParametersSet()
+    {
+        availableAddInfoNames = [.. (AvailableAddInfoNames ?? [])];
+        EnsureSelectedAddInfoNameIsAvailable();
+    }
+
+    private string GetAddInfoFilterSummary()
+    {
+        if (string.IsNullOrWhiteSpace(AddInfoFilter.Name))
+        {
+            return "-";
+        }
+
+        if (AddInfoFilter.Mode == AddInfoFilterMode.value)
+        {
+            return $"{AddInfoFilter.Name}: {AddInfoFilter.Value}";
+        }
+
+        return $"{AddInfoFilter.Name}: {AddInfoFilterModeToString(AddInfoFilter.Mode)}";
+    }
+
+    private string AddInfoFilterModeToString(AddInfoFilterMode mode)
+    {
+        return userConfig.GetText(mode.ToString());
+    }
+
+    private void OpenAddInfoFilterDialog()
+    {
+        EnsureSelectedAddInfoNameIsAvailable();
+        addInfoFilterDraft = new(AddInfoFilter);
+        if (string.IsNullOrWhiteSpace(addInfoFilterDraft.Name)
+            && string.IsNullOrWhiteSpace(addInfoFilterDraft.Value)
+            && addInfoFilterDraft.Mode == AddInfoFilterMode.existing)
+        {
+            addInfoFilterDraft.Mode = DefaultMode;
+        }
+        showAddInfoFilterDialog = true;
+    }
+
+    private Task HandleAddInfoNameChanged(string? addInfoName)
+    {
+        addInfoFilterDraft.Name = addInfoName ?? string.Empty;
+        return Task.CompletedTask;
+    }
+
+    private void CloseAddInfoFilterDialog()
+    {
+        showAddInfoFilterDialog = false;
+    }
+
+    private async Task ApplyAddInfoFilterDialog()
+    {
+        AddInfoFilter = new(addInfoFilterDraft);
+        showAddInfoFilterDialog = false;
+        await AddInfoFilterChanged.InvokeAsync(AddInfoFilter);
+    }
+
+    private async Task DeleteAddInfoFilterDialog()
+    {
+        AddInfoFilter = new();
+        showAddInfoFilterDialog = false;
+        await AddInfoFilterChanged.InvokeAsync(AddInfoFilter);
+    }
+
+    private void EnsureSelectedAddInfoNameIsAvailable()
+    {
+        if (string.IsNullOrWhiteSpace(AddInfoFilter.Name))
+        {
+            return;
+        }
+
+        if (availableAddInfoNames.Any(addInfo => string.Equals(addInfo, AddInfoFilter.Name, StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+
+        availableAddInfoNames.Add(AddInfoFilter.Name);
+        availableAddInfoNames = [.. availableAddInfoNames.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(addInfo => addInfo, StringComparer.OrdinalIgnoreCase)];
+    }
+}

@@ -193,7 +193,11 @@
                                 break;
 
                             case ReportType.OwnerRecertification:
-                                <OwnerRecertReport OwnerData="currentReport.ReportData.OwnerData" RecertificationDisplayPeriod="currentReport.ReportData.RecertificationDisplayPeriod" MergeOwnerRecertTables="currentReport.ReportData.MergeOwnerRecertTables" OwnerAdditionalInfoKey="@currentReport.ReportData.OwnerAdditionalInfoKey" />
+                                <OwnerRecertReport OwnerData="currentReport.ReportData.OwnerData"
+                                                   RecertificationDisplayPeriod="currentReport.ReportData.RecertificationDisplayPeriod"
+                                                   MergeOwnerRecertTables="currentReport.ReportData.MergeOwnerRecertTables"
+                                                   OwnerAdditionalInfoKey="@currentReport.ReportData.OwnerAdditionalInfoKey"
+                                                   OwnerAddInfoFilter="currentReport.ReportData.OwnerAddInfoFilter" />
                                 break;
 
                             case ReportType.Owners:
@@ -213,7 +217,7 @@
                                                  TicketReferenceDates="currentReport.ReportData.TicketReferenceDates"
                                                  SelectedReportType="currentReport.ReportType"
                                                  ReferenceDate="currentReport.ReportData.WorkflowFilter.ReferenceDate"
-                                                 LabelName="@currentReport.ReportData.WorkflowFilter.LabelFilter.Name"
+                                                 AddInfoName="@currentReport.ReportData.WorkflowFilter.AddInfoFilter.Name"
                                                  DetailedView="currentReport.ReportData.WorkflowFilter.DetailedView"
                                                  ShowFullTicket="currentReport.ReportData.WorkflowFilter.ShowFullTicket"
                                                  TaskTypes="currentReport.ReportData.WorkflowFilter.TaskTypes"

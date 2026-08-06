@@ -730,6 +730,8 @@ INSERT INTO txt VALUES ('name', 				'German', 	'Name');
 INSERT INTO txt VALUES ('name', 				'English', 	'Name');
 INSERT INTO txt VALUES ('label',                'German',   'Label');
 INSERT INTO txt VALUES ('label',                'English',  'Label');
+INSERT INTO txt VALUES ('add_info',             'German',   'Zus. Info');
+INSERT INTO txt VALUES ('add_info',             'English',  'Add. Info');
 INSERT INTO txt VALUES ('user_deleted',		    'German', 	'Nutzer gel&ouml;scht');
 INSERT INTO txt VALUES ('user_deleted',		    'English', 	'User deleted');
 INSERT INTO txt VALUES ('user_added',		    'German', 	'Nutzer hinzugef&uuml;gt');
@@ -1910,6 +1912,8 @@ INSERT INTO txt VALUES ('copy_to_clipboard', 	'German',	'in Zwischenablage kopie
 INSERT INTO txt VALUES ('copy_to_clipboard', 	'English',	'Copy to clipboard');
 INSERT INTO txt VALUES ('workflow_filters',		'German', 	'Workflow-Filter');
 INSERT INTO txt VALUES ('workflow_filters',	    'English', 	'Workflow Filters');
+INSERT INTO txt VALUES ('other_filters',		'German', 	'Weitere Filter');
+INSERT INTO txt VALUES ('other_filters',	    'English', 	'Other filters');
 INSERT INTO txt VALUES ('rule_filters',		    'German', 	'Regel-Filter');
 INSERT INTO txt VALUES ('rule_filters',			'English', 	'Rule Filters');
 INSERT INTO txt VALUES ('variance_filters',		'German', 	'Soll-Ist-Filter');
@@ -4643,8 +4647,8 @@ INSERT INTO txt VALUES ('C1002', 'German',  'Zeige Eigent&uuml;mer, f&uuml;r die
 INSERT INTO txt VALUES ('C1002', 'English', 'Show owners without active recertification in a separate chapter.');
 INSERT INTO txt VALUES ('C1003', 'German',  'F&uuml;hre alle im Bericht angezeigten Rezertifizierungstabellen zu einer Tabelle zusammen.');
 INSERT INTO txt VALUES ('C1003', 'English', 'Merge all recertification tables displayed in the report into one table.');
-INSERT INTO txt VALUES ('C1004', 'German',  'Zeige den Wert dieses Schl&uuml;ssels aus den Zusatzinformationen des Eigent&uuml;mers als zus&auml;tzliche Spalte.');
-INSERT INTO txt VALUES ('C1004', 'English', 'Show the value of this key from the owner additional information as an extra column.');
+INSERT INTO txt VALUES ('C1004', 'German',  'Filtere die Eigent&uuml;mer nach diesem Schl&uuml;ssel aus den Zusatzinformationen und zeige ihn optional als zus&auml;tzliche Spalte an.');
+INSERT INTO txt VALUES ('C1004', 'English', 'Filter owners by this key from the owner additional information and optionally show it as an extra column.');
 INSERT INTO txt VALUES ('C9000', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der App Rolle entfernt werden.');
 INSERT INTO txt VALUES ('C9000', 'English', 'This object was deactivated and should be removed from App Role.');
 INSERT INTO txt VALUES ('C9001', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der Verbindung entfernt werden.');
@@ -4986,6 +4990,8 @@ INSERT INTO txt VALUES ('H1303', 'English', 'After clicking the "Export Report" 
     Also the possibility to name and save the report in the <a href="/help/reporting/archive">archive</a> is given.
     Another Popup allows then to download the selected output files separately.
 ');
+INSERT INTO txt VALUES ('H1304', 'German',  'Eigent&uuml;mer-Recertification-Exporte verwenden denselben Auswahldialog f&uuml;r Zus. Infos wie die Report-Seitenleiste, und der ausgew&auml;hlte Zus.-Info-Filter wird auf die exportierten Daten angewendet.');
+INSERT INTO txt VALUES ('H1304', 'English', 'Owner recertification exports use the same additional-info selection popup as the report sidebar, and the selected additional-info filter is applied to the exported data.');
 INSERT INTO txt VALUES ('H1401', 'German',  'Im unteren Teil der Hauptseite werden die Ausgabedaten des generierten Reports dargestellt.
     Unerw&uuml;nschte Spalten k&ouml;nnen mit der jeweiligen "-" Schaltfl&auml;che ausgeblendet werden.
     Wenn dargestellt, k&ouml;nnen die Spalten auch zum Sortieren oder Filtern genutzt werden.<br>
@@ -5145,10 +5151,10 @@ INSERT INTO txt VALUES ('H1520', 'German',  'Vollst&auml;ndiges Ticket anzeigen:
 INSERT INTO txt VALUES ('H1520', 'English', 'Show full ticket: If this option is enabled, every matching ticket shows all contained request tasks, implementation tasks and approvals. If it is disabled, the details only show objects whose reference date lies within the selected time range.');
 INSERT INTO txt VALUES ('H1521', 'German',  'Phase: Beschr&auml;nkt die Ticketauswahl auf den Statusbereich der gew&auml;hlten aktiven Workflow-Phase. In der Statusauswahl werden dann nur Status angeboten, die in dieser Phase verwendet werden. Derselbe Filter kann auch in der Filterleiste mit phase=... gesetzt werden.');
 INSERT INTO txt VALUES ('H1521', 'English', 'Phase: Restricts the ticket selection to the status range of the selected active workflow phase. The state dropdown then only offers states that are used in this phase. The same filter can also be set in the filter line with phase=....');
-INSERT INTO txt VALUES ('H1522', 'German',  'Label: Filtert Workflow-Tickets &uuml;ber ein zus&auml;tzliches Info-Feld in den Request Tasks oder zeigt das gew&auml;hlte Label als zus&auml;tzliche Berichtsspalte an. Der Dialog erlaubt Name und erwarteten Zustand oder Wert des Labels zu definieren. Mit "Nur anzeigen" wird die Spalte angezeigt, ohne Tickets nach Existenz oder Wert des Labels zu filtern.');
-INSERT INTO txt VALUES ('H1522', 'English', 'Label: Filters workflow tickets by an additional info field on the request tasks or displays the selected label as an extra report column. The dialog allows defining the label name and the expected label state or value. Select "Display only" to show the column without filtering tickets by the label existence or value.');
-INSERT INTO txt VALUES ('H1523', 'German',  'Name: Referenziert einen Schl&uuml;ssel im AdditionalInfo-Feld des Request Tasks, z.B. ein Label, das zuvor durch eine Action gesetzt wurde.');
-INSERT INTO txt VALUES ('H1523', 'English', 'Name: References a key in the request task additional info field, for example a label that was set earlier by an action.');
+INSERT INTO txt VALUES ('H1522', 'German',  'Zus. Info: Filtert Workflow-Tickets &uuml;ber ein zus&auml;tzliches Info-Feld in den Request Tasks oder zeigt die gew&auml;hlte Zus. Info als zus&auml;tzliche Berichtsspalte an. Der Dialog erlaubt Name und erwarteten Zustand oder Wert der Zus. Info zu definieren. Mit "Nur anzeigen" wird die Spalte angezeigt, ohne Tickets nach Existenz oder Wert der Zus. Info zu filtern.');
+INSERT INTO txt VALUES ('H1522', 'English', 'Add. Info: Filters workflow tickets by an additional info field on the request tasks or displays the selected additional info as an extra report column. The dialog allows defining the additional-info name and the expected state or value. Select "Display only" to show the column without filtering tickets by the additional-info existence or value.');
+INSERT INTO txt VALUES ('H1523', 'German',  'Name: Referenziert einen Schl&uuml;ssel im AdditionalInfo-Feld des Request Tasks, z.B. eine Zus. Info, die zuvor durch eine Action gesetzt wurde.');
+INSERT INTO txt VALUES ('H1523', 'English', 'Name: References a key in the request task additional info field, for example an additional info value that was set earlier by an action.');
 INSERT INTO txt VALUES ('H1524', 'German',  'Detaillierte Ansicht: Ist diese Option aktiviert, werden Request Tasks und deren Details im Bericht angezeigt. Der CSV-Export steht nur zur Verf&uuml;gung, wenn diese Option deaktiviert ist.');
 INSERT INTO txt VALUES ('H1524', 'English', 'Detailed view: If this option is enabled, request tasks and their details are shown in the report. CSV export is only available when this option is disabled.');
 INSERT INTO txt VALUES ('H1525', 'German',  'Nur beim Report Eigent&uuml;mer: Status und Kritikalit&auml;t: Diese Felder schränken die angezeigten Eigentümer auf den ausgewählten Lifecycle-Status bzw. die ausgewählte Kritikalität ein. Die Voreinstellung "alle" lässt den jeweiligen Filter inaktiv.');

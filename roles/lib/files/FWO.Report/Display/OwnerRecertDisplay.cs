@@ -1,6 +1,7 @@
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Report;
 using System.Net;
 
 namespace FWO.Ui.Display
@@ -29,8 +30,8 @@ namespace FWO.Ui.Display
 
         public static string FormatAdditionalInfoValue(FwoOwner owner, string key)
         {
-            return owner.AdditionalInfo != null && owner.AdditionalInfo.TryGetValue(key, out string? value)
-                ? value
+            return TryGetAdditionalInfoValue(owner, key, out string? value)
+                ? value ?? ""
                 : "";
         }
 
@@ -42,9 +43,55 @@ namespace FWO.Ui.Display
                 : WebUtility.HtmlEncode(value);
         }
 
+        /// <summary>
+        /// Checks whether the owner matches the selected additional-info filter semantics.
+        /// </summary>
+        public static bool MatchesAdditionalInfoFilter(FwoOwner owner, AddInfoFilter filter)
+        {
+            if (string.IsNullOrWhiteSpace(filter.Name) || filter.Mode == AddInfoFilterMode.display_only)
+            {
+                return true;
+            }
+
+            bool hasAdditionalInfoKey = TryGetAdditionalInfoValue(owner, filter.Name, out string? value);
+            return filter.Mode switch
+            {
+                // Keep the workflow semantics here: key presence is enough for "existing".
+                AddInfoFilterMode.existing => hasAdditionalInfoKey,
+                AddInfoFilterMode.not_existing => !hasAdditionalInfoKey,
+                AddInfoFilterMode.value => hasAdditionalInfoKey && string.Equals(value, filter.Value, StringComparison.Ordinal),
+                _ => true
+            };
+        }
+
         public static bool TryParseBooleanValue(string value, out bool boolValue)
         {
             return bool.TryParse(value.Trim(), out boolValue);
+        }
+
+        private static bool TryGetAdditionalInfoValue(FwoOwner owner, string key, out string? value)
+        {
+            value = null;
+            if (owner.AdditionalInfo == null || string.IsNullOrWhiteSpace(key))
+            {
+                return false;
+            }
+
+            if (owner.AdditionalInfo.TryGetValue(key, out value))
+            {
+                return true;
+            }
+
+            foreach (KeyValuePair<string, string> entry in owner.AdditionalInfo)
+            {
+                if (string.Equals(entry.Key, key, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = entry.Value;
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public static string FormatResponsibles(FwoOwner owner, int responsibleTypeId, string separator)

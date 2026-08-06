@@ -283,7 +283,12 @@ namespace FWO.Report
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport, TimeFilter? timefilter = null)
         {
             string deviceFilter = string.Join("; ", Array.ConvertAll(ReportData.ManagementData.Where(mgt => !mgt.Ignore).ToArray(), m => ReportType.IsRulebaseReport() ? m.Name : m.NameAndDeviceNames()));
-            return GenerateHtmlFrameBase(title, filter, date, htmlReport, deviceFilter, Query.SelectedOwner?.Name, timefilter);
+            return GenerateHtmlFrameBase(title, filter, date, htmlReport, new HtmlFrameOptions
+            {
+                OtherFilter = deviceFilter,
+                OwnerFilter = Query.SelectedOwner?.Name,
+                TimeFilter = timefilter
+            });
         }
     }
 }

@@ -77,7 +77,21 @@ namespace FWO.Report
                 }, token);
             report.ReportData.RecertificationDisplayPeriod = reportTemplate.ReportParams.RecertFilter.RecertificationDisplayPeriod;
             report.ReportData.MergeOwnerRecertTables = reportTemplate.ReportParams.ModellingFilter.MergeOwnerRecertTables;
-            report.ReportData.OwnerAdditionalInfoKey = reportTemplate.ReportParams.ModellingFilter.OwnerAdditionalInfoKey;
+            report.ReportData.OwnerAddInfoFilter = new(reportTemplate.ReportParams.ModellingFilter.OwnerAddInfoFilter);
+            if (string.IsNullOrWhiteSpace(report.ReportData.OwnerAddInfoFilter.Name)
+                && !string.IsNullOrWhiteSpace(reportTemplate.ReportParams.ModellingFilter.OwnerAdditionalInfoKey))
+            {
+                report.ReportData.OwnerAddInfoFilter = new AddInfoFilter
+                {
+                    Name = reportTemplate.ReportParams.ModellingFilter.OwnerAdditionalInfoKey,
+                    Mode = AddInfoFilterMode.display_only
+                };
+            }
+
+            if (!string.IsNullOrWhiteSpace(report.ReportData.OwnerAddInfoFilter.Name))
+            {
+                report.ReportData.OwnerAdditionalInfoKey = report.ReportData.OwnerAddInfoFilter.Name;
+            }
             foreach (var owner in report.ReportData.OwnerData.Select(o => o.Owner))
             {
                 if (!owner.RecertActive)

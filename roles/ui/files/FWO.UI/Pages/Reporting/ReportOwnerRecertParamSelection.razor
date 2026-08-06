@@ -1,5 +1,11 @@
+@using FWO.Api.Client
+@using FWO.Api.Client.Queries
+@using FWO.Data
 @using FWO.Data.Report
+@using FWO.Data.Workflow
+@using FWO.Logging
 
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 @if (UseFormLayout)
@@ -27,6 +33,9 @@ else
     public EventCallback<ModellingFilter> ModellingFilterChanged { get; set; }
 
     [Parameter]
+    public IEnumerable<string>? AvailableAddInfoNames { get; set; }
+
+    [Parameter]
     public bool UseFormLayout { get; set; }
 
     [Parameter]
@@ -50,14 +59,37 @@ else
                    checked="@ModellingFilter.MergeOwnerRecertTables" @onchange="ToggleMergeOwnerRecertTables" />
             <label class="@CheckboxLabelClass" for="mergeOwnerRecertTables">@(userConfig.GetText("merge_owner_recert_tables"))</label>
         </div>
-        <div class="mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("C1004"))">
-            <label class="@FieldLabelClass" for="ownerAdditionalInfoKey">@(userConfig.GetText("label")):</label>
-            <input id="ownerAdditionalInfoKey" type="text" class="form-control form-control-sm"
-                   value="@ModellingFilter.OwnerAdditionalInfoKey" @onchange="ChangeOwnerAdditionalInfoKey" />
-        </div>
+        <AddInfoFilterEditor AddInfoFilter="ModellingFilter.OwnerAddInfoFilter"
+                           AddInfoFilterChanged="HandleAddInfoFilterChanged"
+                           AvailableAddInfoNames="availableAddInfoNames"
+                           IdPrefix="ownerLabel"
+                           UseFormLayout="UseFormLayout"
+                           UseLightText="UseLightText"
+                           AllowFreeText="true"
+                           DefaultMode="AddInfoFilterMode.display_only"
+                           TooltipTextKey="C1004" />
     </text>;
 
-    private string FieldLabelClass => UseLightText ? "text-white" : string.Empty;
+    private List<string> availableAddInfoNames = new();
+    private bool availableAddInfoNamesLoaded;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        SyncLegacyAddInfoFilter();
+
+        if (AvailableAddInfoNames != null)
+        {
+            availableAddInfoNames = NormalizeAvailableAddInfoNames(AvailableAddInfoNames);
+            availableAddInfoNamesLoaded = true;
+            return;
+        }
+
+        if (!availableAddInfoNamesLoaded)
+        {
+            availableAddInfoNames = await LoadAvailableAddInfoNames();
+            availableAddInfoNamesLoaded = true;
+        }
+    }
 
     private async Task ToggleShowAllOwners(ChangeEventArgs args)
     {
@@ -77,9 +109,47 @@ else
         await ModellingFilterChanged.InvokeAsync(ModellingFilter);
     }
 
-    private async Task ChangeOwnerAdditionalInfoKey(ChangeEventArgs args)
+    private void SyncLegacyAddInfoFilter()
     {
-        ModellingFilter.OwnerAdditionalInfoKey = args.Value?.ToString()?.Trim() ?? "";
+        if (!string.IsNullOrWhiteSpace(ModellingFilter.OwnerAdditionalInfoKey) && string.IsNullOrWhiteSpace(ModellingFilter.OwnerAddInfoFilter.Name))
+        {
+            ModellingFilter.OwnerAddInfoFilter.Name = ModellingFilter.OwnerAdditionalInfoKey;
+            ModellingFilter.OwnerAddInfoFilter.Mode = AddInfoFilterMode.display_only;
+        }
+
+        if (!string.IsNullOrWhiteSpace(ModellingFilter.OwnerAddInfoFilter.Name))
+        {
+            ModellingFilter.OwnerAdditionalInfoKey = ModellingFilter.OwnerAddInfoFilter.Name;
+        }
+    }
+
+    private async Task HandleAddInfoFilterChanged(AddInfoFilter addInfoFilter)
+    {
+        ModellingFilter.OwnerAddInfoFilter = new(addInfoFilter);
+        ModellingFilter.OwnerAdditionalInfoKey = ModellingFilter.OwnerAddInfoFilter.Name;
         await ModellingFilterChanged.InvokeAsync(ModellingFilter);
+    }
+
+    private List<string> NormalizeAvailableAddInfoNames(IEnumerable<string> addInfoNames)
+    {
+        return addInfoNames
+            .Where(addInfoName => !string.IsNullOrWhiteSpace(addInfoName))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(addInfoName => addInfoName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private async Task<List<string>> LoadAvailableAddInfoNames()
+    {
+        try
+        {
+            List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            return NormalizeAvailableAddInfoNames(owners.SelectMany(owner => owner.AdditionalInfo?.Keys ?? Enumerable.Empty<string>()));
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError(nameof(ReportOwnerRecertParamSelection), "Loading available owner additional info names failed.", exception);
+            return [];
+        }
     }
 }

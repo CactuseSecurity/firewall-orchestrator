@@ -128,24 +128,24 @@ namespace FWO.Test
         [Test]
         public void GetLabelValue_ReturnsDistinctNonEmptyTaskLabels()
         {
-            const string labelName = "externalId";
+            const string addInfoName = "externalId";
             WfReqTask firstTask = new() { Id = 1 };
             WfReqTask duplicateTask = new() { Id = 2 };
             WfReqTask emptyTask = new() { Id = 3 };
-            firstTask.SetAddInfo(labelName, "CR-7");
-            duplicateTask.SetAddInfo(labelName, "CR-7");
-            emptyTask.SetAddInfo(labelName, "");
+            firstTask.SetAddInfo(addInfoName, "CR-7");
+            duplicateTask.SetAddInfo(addInfoName, "CR-7");
+            emptyTask.SetAddInfo(addInfoName, "");
             WfTicket ticket = new()
             {
                 Tasks = [firstTask, duplicateTask, emptyTask]
             };
             ReportedTickets component = new();
-            SetComponentProperty(component, nameof(ReportedTickets.LabelName), labelName);
+            SetComponentProperty(component, nameof(ReportedTickets.AddInfoName), addInfoName);
 
-            string labelValue = (string)(InvokePrivateMethod(component, "GetLabelValue", ticket)
-                ?? throw new InvalidOperationException("Expected label value."));
+            string addInfoValue = (string)(InvokePrivateMethod(component, "GetAddInfoValue", ticket)
+                ?? throw new InvalidOperationException("Expected additional info value."));
 
-            Assert.That(labelValue, Is.EqualTo("CR-7"));
+            Assert.That(addInfoValue, Is.EqualTo("CR-7"));
         }
 
         [Test]
@@ -159,10 +159,10 @@ namespace FWO.Test
             };
             ReportedTickets component = new();
 
-            string labelValue = (string)(InvokePrivateMethod(component, "GetLabelValue", ticket)
+            string addInfoValue = (string)(InvokePrivateMethod(component, "GetAddInfoValue", ticket)
                 ?? throw new InvalidOperationException("Expected empty label value."));
 
-            Assert.That(labelValue, Is.EqualTo(string.Empty));
+            Assert.That(addInfoValue, Is.EqualTo(string.Empty));
         }
 
         [Test]

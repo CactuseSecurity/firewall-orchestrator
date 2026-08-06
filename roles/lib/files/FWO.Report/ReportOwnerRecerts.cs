@@ -11,6 +11,8 @@ namespace FWO.Report
 {
     public class ReportOwnerRecerts(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : ReportOwnersBase(query, userConfig, reportType)
     {
+        private AddInfoFilter activeOwnerAddInfoFilter = new();
+
         public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
             List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(Query.FullQuery, Query.QueryVariables);
@@ -23,17 +25,20 @@ namespace FWO.Report
 
         public override string ExportToCsv()
         {
-            List<FwoOwner> overdueOwners = [.. ReportData.OwnerData.Select(o => o.Owner).Where(ow => ow.RecertOverdue)];
-            List<FwoOwner> upcomingOwners = [.. ReportData.OwnerData.Select(o => o.Owner).Where(ow => ow.RecertUpcoming)];
-            List<FwoOwner> furtherOwners = [.. ReportData.OwnerData.Select(o => o.Owner).Where(ow => ow.RecertActive && !ow.RecertOverdue && !ow.RecertUpcoming)];
-            List<FwoOwner> inactiveOwners = [.. ReportData.OwnerData.Select(o => o.Owner).Where(ow => !ow.RecertActive).OrderBy(ow => ow.Id)];
+            (AddInfoFilter ownerAddInfoFilter, List<FwoOwner> overdueOwners, List<FwoOwner> upcomingOwners,
+                List<FwoOwner> furtherOwners, List<FwoOwner> inactiveOwners) = PrepareOwnerRecertCollections();
 
             StringBuilder report = new();
             report.AppendLine($"# report type: {userConfig.GetText(ReportType.ToString())}");
             report.AppendLine($"# report generation date: {DateTime.Now.ToUniversalTime():yyyy-MM-ddTHH:mm:ssK} (UTC)");
+            string addInfoFilterSummary = BuildOwnerAddInfoFilterSummary(ownerAddInfoFilter);
+            if (!string.IsNullOrWhiteSpace(addInfoFilterSummary))
+            {
+                report.AppendLine($"# {userConfig.GetText("add_info")}: {addInfoFilterSummary}");
+            }
             if (!string.IsNullOrWhiteSpace(Query.RawFilter))
             {
-                report.AppendLine($"# other filters: {Query.RawFilter}");
+                report.AppendLine($"# {userConfig.GetText("other_filters")}: {Query.RawFilter}");
             }
             report.AppendLine($"# {userConfig.GetText("statistics")}");
             report.AppendLine($"# {GetOverdueHeadline()}: {overdueOwners.Count}");
@@ -77,17 +82,32 @@ namespace FWO.Report
 
         public override string ExportToHtml()
         {
-            List<FwoOwner> overdueOwners = [.. ReportData.OwnerData.Select(o => o.Owner).Where(ow => ow.RecertOverdue)];
-            List<FwoOwner> upcomingOwners = [.. ReportData.OwnerData.Select(o => o.Owner).Where(ow => ow.RecertUpcoming)];
-            List<FwoOwner> furtherOwners = [.. ReportData.OwnerData.Select(o => o.Owner).Where(ow => ow.RecertActive && !ow.RecertOverdue && !ow.RecertUpcoming)];
-            List<FwoOwner> inactiveOwners = [.. ReportData.OwnerData.Select(o => o.Owner).Where(ow => !ow.RecertActive).OrderBy(ow => ow.Id)];
+            (AddInfoFilter ownerAddInfoFilter, List<FwoOwner> overdueOwners, List<FwoOwner> upcomingOwners,
+                List<FwoOwner> furtherOwners, List<FwoOwner> inactiveOwners) = PrepareOwnerRecertCollections();
 
             StringBuilder report = new();
             AppendOwnerRecertStatisticsHtml(ref report, overdueOwners, upcomingOwners, furtherOwners, inactiveOwners);
             report.AppendLine("<hr>");
             AppendOwnerRecertTablesHtml(ref report, overdueOwners, upcomingOwners, furtherOwners, inactiveOwners);
 
-            return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
+            string addInfoFilterSummary = BuildOwnerAddInfoFilterSummary(ownerAddInfoFilter);
+            return GenerateHtmlFrameBase(userConfig.GetText(ReportType.ToString()), addInfoFilterSummary, DateTime.Now, report, new HtmlFrameOptions
+            {
+                OtherFilter = Query.RawFilter,
+                FilterTextKey = "add_info"
+            });
+        }
+
+        private (AddInfoFilter OwnerAddInfoFilter, List<FwoOwner> OverdueOwners, List<FwoOwner> UpcomingOwners,
+            List<FwoOwner> FurtherOwners, List<FwoOwner> InactiveOwners) PrepareOwnerRecertCollections()
+        {
+            activeOwnerAddInfoFilter = GetEffectiveOwnerAddInfoFilter();
+            List<OwnerConnectionReport> displayedOwnerData = GetDisplayedOwnerData(activeOwnerAddInfoFilter);
+            List<FwoOwner> overdueOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => ow.RecertOverdue)];
+            List<FwoOwner> upcomingOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => ow.RecertUpcoming)];
+            List<FwoOwner> furtherOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => ow.RecertActive && !ow.RecertOverdue && !ow.RecertUpcoming)];
+            List<FwoOwner> inactiveOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => !ow.RecertActive).OrderBy(ow => ow.Id)];
+            return (activeOwnerAddInfoFilter, overdueOwners, upcomingOwners, furtherOwners, inactiveOwners);
         }
 
         private void AppendOwnerRecertStatisticsHtml(ref StringBuilder report, List<FwoOwner> overdueOwners, List<FwoOwner> upcomingOwners,
@@ -280,17 +300,61 @@ namespace FWO.Report
 
         private bool HasOwnerAdditionalInfoColumn()
         {
-            return !string.IsNullOrWhiteSpace(ReportData.OwnerAdditionalInfoKey);
+            return !string.IsNullOrWhiteSpace(activeOwnerAddInfoFilter.Name);
+        }
+
+        private List<OwnerConnectionReport> GetDisplayedOwnerData(AddInfoFilter ownerAddInfoFilter)
+        {
+            return [.. ReportData.OwnerData.Where(owner => OwnerRecertDisplay.MatchesAdditionalInfoFilter(owner.Owner, ownerAddInfoFilter))];
+        }
+
+        private string BuildOwnerAddInfoFilterSummary(AddInfoFilter ownerAddInfoFilter)
+        {
+            if (string.IsNullOrWhiteSpace(ownerAddInfoFilter.Name))
+            {
+                return "";
+            }
+
+            if (ownerAddInfoFilter.Mode == AddInfoFilterMode.display_only)
+            {
+                return "";
+            }
+
+            if (ownerAddInfoFilter.Mode == AddInfoFilterMode.value)
+            {
+                return $"{ownerAddInfoFilter.Name}={ownerAddInfoFilter.Value}";
+            }
+
+            return $"{ownerAddInfoFilter.Name} ({userConfig.GetText(ownerAddInfoFilter.Mode.ToString())})";
+        }
+
+        private AddInfoFilter GetEffectiveOwnerAddInfoFilter()
+        {
+            if (!string.IsNullOrWhiteSpace(ReportData.OwnerAddInfoFilter.Name))
+            {
+                return ReportData.OwnerAddInfoFilter;
+            }
+
+            if (!string.IsNullOrWhiteSpace(ReportData.OwnerAdditionalInfoKey))
+            {
+                return new AddInfoFilter
+                {
+                    Name = ReportData.OwnerAdditionalInfoKey,
+                    Mode = AddInfoFilterMode.display_only
+                };
+            }
+
+            return new AddInfoFilter();
         }
 
         private string GetOwnerAdditionalInfoHeadline()
         {
-            return $"{userConfig.GetText("label")}: {ReportData.OwnerAdditionalInfoKey}";
+            return $"{userConfig.GetText("add_info")}: {activeOwnerAddInfoFilter.Name}";
         }
 
         private string GetOwnerAdditionalInfoValue(FwoOwner owner)
         {
-            return OwnerRecertDisplay.FormatAdditionalInfoValue(owner, ReportData.OwnerAdditionalInfoKey);
+            return OwnerRecertDisplay.FormatAdditionalInfoValue(owner, activeOwnerAddInfoFilter.Name);
         }
 
         private string FormatOwnerAdditionalInfoValueHtml(FwoOwner owner)

@@ -2,6 +2,7 @@ using Bunit;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Report;
+using FWO.Data.Workflow;
 using FWO.Ui.Pages.Reporting.Reports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
@@ -20,6 +21,16 @@ namespace FWO.Test
             Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
             Services.AddScoped(_ => JSInterop.JSRuntime);
             Services.AddLocalization();
+
+            SimulatedUserConfig.DummyTranslate["statistics"] = "Statistics";
+            SimulatedUserConfig.DummyTranslate["owner_recert_overview"] = "Owner recertification overview";
+            SimulatedUserConfig.DummyTranslate["U4003"] = "Overdue owners";
+            SimulatedUserConfig.DummyTranslate["U4004"] = "No overdue owners";
+            SimulatedUserConfig.DummyTranslate["U4005"] = "Upcoming owners @@DAYS@@ days";
+            SimulatedUserConfig.DummyTranslate["U4006"] = "No upcoming owners @@DAYS@@ days";
+            SimulatedUserConfig.DummyTranslate["U4007"] = "Further owners";
+            SimulatedUserConfig.DummyTranslate["U4008"] = "Further owners not yet recertified";
+            SimulatedUserConfig.DummyTranslate["U4009"] = "Inactive owners";
         }
 
         [Test]
@@ -47,7 +58,7 @@ namespace FWO.Test
         {
             List<OwnerConnectionReport> ownerData =
             [
-                BuildOwnerReport("EXT-BOOL", "Bool Owner", DateTime.Today.AddDays(-1), new()
+                BuildOwnerReport("EXT-BOOL", "Bool Owner", DateTime.Today.AddDays(-1), new Dictionary<string, string>
                 {
                     ["recert_required"] = "true"
                 })
@@ -55,15 +66,88 @@ namespace FWO.Test
 
             IRenderedComponent<OwnerRecertReport> cut = Render<OwnerRecertReport>(parameters => parameters
                 .Add(p => p.OwnerData, ownerData)
-                .Add(p => p.OwnerAdditionalInfoKey, "recert_required")
+                .Add(p => p.OwnerAddInfoFilter, new AddInfoFilter { Name = "recert_required", Mode = AddInfoFilterMode.display_only })
                 .Add(p => p.RecertificationDisplayPeriod, 7));
 
-            Assert.That(cut.Markup, Does.Contain("Label: recert_required"));
+            Assert.That(cut.Markup, Does.Contain("Add. Info: recert_required"));
             Assert.That(cut.Markup, Does.Contain("bi bi-check-lg"));
             Assert.That(cut.Markup, Does.Not.Contain(">true<"));
         }
 
-        private static OwnerConnectionReport BuildOwnerReport(string extAppId, string name, DateTime nextRecertDate,
+        [Test]
+        public void OwnerRecertReport_AddInfoFilterHidesNonMatchingOwners()
+        {
+            List<OwnerConnectionReport> ownerData =
+            [
+                BuildOwnerReport("EXT-A", "A Owner", DateTime.Today.AddDays(-1), new Dictionary<string, string> { ["department"] = "A" }),
+                BuildOwnerReport("EXT-B", "B Owner", DateTime.Today.AddDays(-1), new Dictionary<string, string> { ["department"] = "B" })
+            ];
+
+            IRenderedComponent<OwnerRecertReport> cut = Render<OwnerRecertReport>(parameters => parameters
+                .Add(p => p.OwnerData, ownerData)
+                .Add(p => p.OwnerAddInfoFilter, new AddInfoFilter
+                {
+                    Name = "department",
+                    Mode = AddInfoFilterMode.value,
+                    Value = "A"
+                })
+                .Add(p => p.RecertificationDisplayPeriod, 7));
+
+            Assert.That(cut.Markup, Does.Contain("EXT-A"));
+            Assert.That(cut.Markup, Does.Not.Contain("EXT-B"));
+        }
+
+        [Test]
+        public void OwnerRecertReport_UsesOwnerAdditionalInfoKeyWhenAddInfoFilterIsMissing()
+        {
+            List<OwnerConnectionReport> ownerData =
+            [
+                BuildOwnerReport("EXT-KEY", "Key Owner", DateTime.Today.AddDays(-1), new Dictionary<string, string>
+                {
+                    ["business_unit"] = "Payments"
+                })
+            ];
+
+            IRenderedComponent<OwnerRecertReport> cut = Render<OwnerRecertReport>(parameters => parameters
+                .Add(p => p.OwnerData, ownerData)
+                .Add(p => p.OwnerAdditionalInfoKey, "business_unit")
+                .Add(p => p.RecertificationDisplayPeriod, 7));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(cut.Markup, Does.Contain("Add. Info: business_unit"));
+                Assert.That(cut.Markup, Does.Contain("Payments"));
+            });
+        }
+
+        [Test]
+        public void OwnerRecertReport_ShowsSplitSectionsForAllOwnerGroups()
+        {
+            List<OwnerConnectionReport> ownerData =
+            [
+                BuildOwnerReport("EXT-OVERDUE", "Overdue Owner", DateTime.Today.AddDays(-1)),
+                BuildOwnerReport("EXT-UPCOMING", "Upcoming Owner", DateTime.Today.AddDays(3)),
+                BuildOwnerReport("EXT-FURTHER", "Further Owner", null),
+                BuildOwnerReport("EXT-INACTIVE", "Inactive Owner", null)
+            ];
+            ownerData[3].Owner.RecertActive = false;
+
+            IRenderedComponent<OwnerRecertReport> cut = Render<OwnerRecertReport>(parameters => parameters
+                .Add(p => p.OwnerData, ownerData)
+                .Add(p => p.MergeOwnerRecertTables, false)
+                .Add(p => p.RecertificationDisplayPeriod, 7));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(cut.Markup, Does.Contain("Overdue owners"));
+                Assert.That(cut.Markup, Does.Contain("Upcoming owners 7 days"));
+                Assert.That(cut.Markup, Does.Contain("Further owners not yet recertified"));
+                Assert.That(cut.Markup, Does.Contain("Inactive owners"));
+                Assert.That(cut.Markup, Does.Contain("EXT-INACTIVE"));
+            });
+        }
+
+        private static OwnerConnectionReport BuildOwnerReport(string extAppId, string name, DateTime? nextRecertDate,
             Dictionary<string, string>? additionalInfo = null)
         {
             return new()

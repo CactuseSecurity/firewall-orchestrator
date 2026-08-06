@@ -4,7 +4,9 @@ using System.Reflection;
 using Bunit;
 using FWO.Ui.Services;
 using FWO.Ui.Shared;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.JSInterop;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -13,6 +15,20 @@ namespace FWO.Test
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public class DropdownTest : BunitContext
     {
+        private static readonly string[] kAlphaBetaGamma = ["Alpha", "beta", "Gamma"];
+        private static readonly string[] kFirstSecondThird = ["first", "second", "third"];
+        private static readonly string[] kAlphaBeta = ["Alpha", "Beta"];
+        private static readonly string[] kOne = ["one"];
+        private static readonly string[] kOneTwo = ["one", "two"];
+        private static readonly string[] kAlphaOnly = ["Alpha"];
+        private static readonly string[] kTwo = ["two"];
+        private static readonly string[] kCustomLabel = ["custom label"];
+        private static readonly object?[] kTestElementArgs = ["test-element"];
+        private static readonly object?[] kFilterAlphaArgs = ["AL"];
+        private static readonly object?[] kEmptyEnumerableArgs = [Enumerable.Empty<string>()];
+        private static readonly object?[] kFirstSecondThirdArgs = [kFirstSecondThird];
+        private static readonly object?[] kFocusArgs = [new FocusEventArgs()];
+
         private static MethodInfo GetInstanceMethod(string methodName, params Type[] parameterTypes)
         {
             MethodInfo? method = typeof(Dropdown<string>).GetMethod(
@@ -50,7 +66,7 @@ namespace FWO.Test
             MethodInfo? method = typeof(Dropdown<string>).GetMethod("OnFocusChanged", BindingFlags.NonPublic | BindingFlags.Instance);
 
             Assert.That(method, Is.Not.Null);
-            Assert.DoesNotThrow(() => method!.Invoke(dropdown, ["test-element"]));
+            Assert.DoesNotThrow(() => method!.Invoke(dropdown, kTestElementArgs));
         }
 
         /// <summary>
@@ -60,12 +76,12 @@ namespace FWO.Test
         public void Filter_IsCaseInsensitive()
         {
             Dropdown<string> dropdown = new();
-            SetComponentParameter(dropdown, nameof(Dropdown<string>.Elements), new[] { "Alpha", "beta", "Gamma" });
+            SetComponentParameter(dropdown, nameof(Dropdown<string>.Elements), kAlphaBetaGamma);
             MethodInfo filterMethod = GetInstanceMethod("Filter", typeof(string));
 
-            filterMethod.Invoke(dropdown, ["AL"]);
+            filterMethod.Invoke(dropdown, kFilterAlphaArgs);
 
-            Assert.That(dropdown.FilteredElements, Is.EqualTo(["Alpha"]));
+            Assert.That(dropdown.FilteredElements, Is.EqualTo(kAlphaOnly));
         }
 
         /// <summary>
@@ -78,7 +94,7 @@ namespace FWO.Test
             SetComponentParameter(dropdown, nameof(Dropdown<string>.NoneSelectedText), "none");
             MethodInfo displaySelectionMethod = GetInstanceMethod("DisplaySelection", typeof(IEnumerable<string>));
 
-            displaySelectionMethod.Invoke(dropdown, [Enumerable.Empty<string>()]);
+            displaySelectionMethod.Invoke(dropdown, kEmptyEnumerableArgs);
 
             Assert.That(GetSearchValue(dropdown), Is.EqualTo("none"));
         }
@@ -92,7 +108,7 @@ namespace FWO.Test
             Dropdown<string> dropdown = new();
             MethodInfo displaySelectionMethod = GetInstanceMethod("DisplaySelection", typeof(IEnumerable<string>));
 
-            displaySelectionMethod.Invoke(dropdown, [new[] { "first", "second", "third" }]);
+            displaySelectionMethod.Invoke(dropdown, kFirstSecondThirdArgs);
 
             Assert.That(GetSearchValue(dropdown), Is.EqualTo("first, ... (+ 2)"));
         }
@@ -106,16 +122,16 @@ namespace FWO.Test
             Services.AddScoped<DomEventService>();
             IRenderedComponent<Dropdown<string>> renderedDropdown = Render<Dropdown<string>>(parameters => parameters
                 .Add(p => p.Multiselect, true)
-                .Add(p => p.SelectedElements, []));
+                .Add(p => p.SelectedElements, Array.Empty<string>()));
             Dropdown<string> dropdown = renderedDropdown.Instance;
             MethodInfo selectMethod = GetInstanceMethod("SelectElement", typeof(string));
 
-            Task firstSelection = (Task)selectMethod.Invoke(dropdown, ["one"])!;
+            Task firstSelection = (Task)selectMethod.Invoke(dropdown, kOne)!;
             await firstSelection;
-            Task secondSelection = (Task)selectMethod.Invoke(dropdown, ["one"])!;
+            Task secondSelection = (Task)selectMethod.Invoke(dropdown, kOne)!;
             await secondSelection;
 
-            Assert.That(dropdown.SelectedElements, Is.EqualTo(["one"]));
+            Assert.That(dropdown.SelectedElements, Is.EqualTo(kOne));
             Assert.That(dropdown.Toggled, Is.False);
         }
 
@@ -128,15 +144,99 @@ namespace FWO.Test
             Services.AddScoped<DomEventService>();
             IRenderedComponent<Dropdown<string>> renderedDropdown = Render<Dropdown<string>>(parameters => parameters
                 .Add(p => p.Multiselect, true)
-                .Add(p => p.SelectedElements, ["one", "two"]));
+                .Add(p => p.SelectedElements, kOneTwo));
             Dropdown<string> dropdown = renderedDropdown.Instance;
             MethodInfo unselectMethod = GetInstanceMethod("UnselectElement", typeof(string));
 
-            Task unselection = (Task)unselectMethod.Invoke(dropdown, ["one"])!;
+            Task unselection = (Task)unselectMethod.Invoke(dropdown, kOne)!;
             await unselection;
 
-            Assert.That(dropdown.SelectedElements, Is.EqualTo(["two"]));
+            Assert.That(dropdown.SelectedElements, Is.EqualTo(kTwo));
             Assert.That(dropdown.Toggled, Is.False);
+        }
+
+        /// <summary>
+        /// Verifies that free text is committed on blur for string dropdowns when the feature is enabled.
+        /// </summary>
+        [Test]
+        public async Task HandleBlur_WithFreeTextEnabled_CommitsTrimmedStringSelection()
+        {
+            Services.AddScoped<DomEventService>();
+            JSInterop.Mode = JSRuntimeMode.Loose;
+            string? selectedValue = null;
+            IRenderedComponent<Dropdown<string>> renderedDropdown = Render<Dropdown<string>>(parameters => parameters
+                .Add(p => p.AllowFreeText, true)
+                .Add(p => p.Elements, kAlphaBeta)
+                .Add(p => p.NoneSelectedText, "none")
+                .Add(p => p.SelectedElements, Array.Empty<string>())
+                .Add(p => p.SelectedElementChanged, value => selectedValue = value));
+            Dropdown<string> dropdown = renderedDropdown.Instance;
+            MethodInfo handleBlurMethod = GetInstanceMethod("HandleBlur", typeof(FocusEventArgs));
+            FieldInfo searchValueField = typeof(Dropdown<string>).GetField("searchValue", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingFieldException(typeof(Dropdown<string>).FullName, "searchValue");
+            searchValueField.SetValue(dropdown, "  custom label  ");
+
+            await renderedDropdown.InvokeAsync(() => (Task)handleBlurMethod.Invoke(dropdown, kFocusArgs)!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(dropdown.SelectedElements, Is.EqualTo(kCustomLabel));
+                Assert.That(selectedValue, Is.EqualTo("custom label"));
+                Assert.That(GetSearchValue(dropdown), Is.EqualTo("custom label"));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that opening the dropdown keeps typed free text when the feature is enabled for strings.
+        /// </summary>
+        [Test]
+        public async Task ShowMenu_WithFreeTextEnabled_PreservesTypedString()
+        {
+            Services.AddScoped<DomEventService>();
+            JSInterop.Mode = JSRuntimeMode.Loose;
+            IRenderedComponent<Dropdown<string>> renderedDropdown = Render<Dropdown<string>>(parameters => parameters
+                .Add(p => p.AllowFreeText, true)
+                .Add(p => p.Elements, kAlphaBeta)
+                .Add(p => p.NoneSelectedText, "none")
+                .Add(p => p.SelectedElements, Array.Empty<string>()));
+            Dropdown<string> dropdown = renderedDropdown.Instance;
+            MethodInfo showMenuMethod = GetInstanceMethod("ShowMenu", typeof(FocusEventArgs));
+            FieldInfo searchValueField = typeof(Dropdown<string>).GetField("searchValue", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingFieldException(typeof(Dropdown<string>).FullName, "searchValue");
+            searchValueField.SetValue(dropdown, "typed value");
+
+            await renderedDropdown.InvokeAsync(() => (Task)showMenuMethod.Invoke(dropdown, kFocusArgs)!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetSearchValue(dropdown), Is.EqualTo("typed value"));
+                Assert.That(dropdown.Toggled, Is.False);
+            });
+        }
+
+        /// <summary>
+        /// Verifies that opening a free-text string dropdown still shows the available values immediately.
+        /// </summary>
+        [Test]
+        public async Task ShowMenu_WithFreeTextEnabled_InitializesVisibleOptions()
+        {
+            Services.AddScoped<DomEventService>();
+            JSInterop.Mode = JSRuntimeMode.Loose;
+            IRenderedComponent<Dropdown<string>> renderedDropdown = Render<Dropdown<string>>(parameters => parameters
+                .Add(p => p.AllowFreeText, true)
+                .Add(p => p.Elements, kAlphaBeta)
+                .Add(p => p.NoneSelectedText, "none")
+                .Add(p => p.SelectedElements, Array.Empty<string>()));
+            Dropdown<string> dropdown = renderedDropdown.Instance;
+            MethodInfo showMenuMethod = GetInstanceMethod("ShowMenu", typeof(FocusEventArgs));
+
+            await renderedDropdown.InvokeAsync(() => (Task)showMenuMethod.Invoke(dropdown, kFocusArgs)!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(dropdown.FilteredElements, Is.EqualTo(kAlphaBeta));
+                Assert.That(dropdown.Toggled, Is.False);
+            });
         }
     }
 }

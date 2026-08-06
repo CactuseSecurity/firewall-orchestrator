@@ -40,36 +40,6 @@ namespace FWO.Data.Report
         }
     }
 
-    public enum WorkflowLabelFilterMode
-    {
-        not_existing,
-        existing,
-        value,
-        display_only
-    }
-
-    public class WorkflowLabelFilter
-    {
-        [JsonProperty("name"), JsonPropertyName("name")]
-        public string Name { get; set; } = "";
-
-        [JsonProperty("mode"), JsonPropertyName("mode")]
-        public WorkflowLabelFilterMode Mode { get; set; } = WorkflowLabelFilterMode.existing;
-
-        [JsonProperty("value"), JsonPropertyName("value")]
-        public string Value { get; set; } = "";
-
-        public WorkflowLabelFilter()
-        { }
-
-        public WorkflowLabelFilter(WorkflowLabelFilter workflowLabelFilter)
-        {
-            Name = workflowLabelFilter.Name;
-            Mode = workflowLabelFilter.Mode;
-            Value = workflowLabelFilter.Value;
-        }
-    }
-
     public class WorkflowFilter
     {
         [JsonProperty("reference_date"), JsonPropertyName("reference_date")]
@@ -91,8 +61,12 @@ namespace FWO.Data.Report
         [JsonProperty("phase"), JsonPropertyName("phase")]
         public string Phase { get; set; } = "";
 
+        /// <summary>
+        /// Backward-compatible JSON field name used by saved templates and exports.
+        /// The public model now uses <see cref="AddInfoFilter"/> terminology.
+        /// </summary>
         [JsonProperty("label_filter"), JsonPropertyName("label_filter")]
-        public WorkflowLabelFilter LabelFilter { get; set; } = new();
+        public AddInfoFilter AddInfoFilter { get; set; } = new();
 
         [JsonProperty("detailed_view"), JsonPropertyName("detailed_view")]
         public bool DetailedView { get; set; } = false;
@@ -109,7 +83,7 @@ namespace FWO.Data.Report
             TaskTypes = workflowFilter.TaskTypes.Count > 0 ? [.. workflowFilter.TaskTypes] : DefaultTaskTypes();
             StateIds = [.. workflowFilter.StateIds];
             Phase = workflowFilter.Phase;
-            LabelFilter = new(workflowFilter.LabelFilter);
+            AddInfoFilter = new(workflowFilter.AddInfoFilter);
             DetailedView = workflowFilter.DetailedView;
             ShowFullTicket = workflowFilter.ShowFullTicket;
         }

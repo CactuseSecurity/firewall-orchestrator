@@ -12,9 +12,18 @@
            style="width: 40px;" for="@($"dropdown-input-{Id}")">
         <span id="@($"dropdown-input-prepend-icon-{Id}")" class="@Icons.CollapseDown"></span>
     </label>
-    <input type="text" id="@($"dropdown-input-{Id}")" class="@InputClass form-control"
-           style="@($"width: calc(100% - {40 + AppendWidth}px);")" @onfocus="ShowMenu" @oninput="Filter"
-           @bind="searchValue" />
+    @if (AllowFreeText)
+    {
+        <input type="text" id="@($"dropdown-input-{Id}")" class="@InputClass form-control"
+               style="@($"width: calc(100% - {40 + AppendWidth}px);")" @onfocus="ShowMenu" @oninput="Filter" @onblur="HandleBlur"
+               @bind="searchValue" />
+    }
+    else
+    {
+        <input type="text" id="@($"dropdown-input-{Id}")" class="@InputClass form-control"
+               style="@($"width: calc(100% - {40 + AppendWidth}px);")" @onfocus="ShowMenu" @oninput="Filter"
+               @bind="searchValue" />
+    }
     @if (Append != null)
     {
         @Append
@@ -31,6 +40,7 @@
             {
                 <li id="@($"dropdown-menu-li-selected-{Id + i++}")">
                     <button id="@($"dropdown-menu-selected-{Id + i++}")" type="button"
+                            @onmousedown="PrepareFreeTextSelectionCommit"
                             @onclick="async () => await UnselectElement(element)" class="dropdown-item @(Small ? "small" : "")">
                         <div id="@($"dropdown-menu-selected-content-{Id + i++}")"
                              class="d-flex align-items-baseline justify-content-between">
@@ -51,7 +61,8 @@
         {
             <li id="@($"dropdown-menu-li-element-{Id + i++}")">
                 <button id="@($"dropdown-menu-element-{Id + i++}")" type="button"
-                        @onclick="async () => await SelectElement(element)"                        class="dropdown-item @(Small ? "small" : "")">
+                        @onmousedown="PrepareFreeTextSelectionCommit"
+                        @onclick="async () => await SelectElement(element)" class="dropdown-item @(Small ? "small" : "")">
                     @ElementTemplate(element)
                 </button>
             </li>
@@ -89,6 +100,9 @@
 
     [Parameter]
     public bool Multiselect { get; set; } = false;
+
+    [Parameter]
+    public bool AllowFreeText { get; set; } = false;
 
     [Parameter]
     public RenderFragment<ElementType> ElementTemplate { get; set; } = element => __builder =>
@@ -155,6 +169,7 @@
     public bool Toggled { get; private set; } = true;
 
     private string searchValue = "";
+    private bool suppressFreeTextBlurCommit;
 
     public Dropdown()
     {
@@ -215,7 +230,16 @@
 
     private async Task ShowMenu(FocusEventArgs _)
     {
-        ClearFilter();
+        if (!AllowFreeText || Multiselect || typeof(ElementType) != typeof(string))
+        {
+            ClearFilter();
+        }
+        else
+        {
+            Filter(string.IsNullOrWhiteSpace(searchValue) || string.Equals(searchValue, NoneSelectedText, StringComparison.Ordinal)
+                ? ""
+                : searchValue);
+        }
         try
         {
             IJSRuntime? localJsRuntime = jsRuntime;
@@ -252,6 +276,61 @@
     {
         searchValue = "";
         Filter(""); // No filter
+    }
+
+    private Task HandleBlur(FocusEventArgs _)
+    {
+        if (suppressFreeTextBlurCommit)
+        {
+            suppressFreeTextBlurCommit = false;
+            return Task.CompletedTask;
+        }
+
+        return CommitFreeTextSelection();
+    }
+
+    private void PrepareFreeTextSelectionCommit()
+    {
+        if (AllowFreeText && !Multiselect && typeof(ElementType) == typeof(string))
+        {
+            suppressFreeTextBlurCommit = true;
+        }
+    }
+
+    private async Task CommitFreeTextSelection()
+    {
+        if (!await TryCommitFreeTextSelection())
+        {
+            return;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task<bool> TryCommitFreeTextSelection()
+    {
+        if (!AllowFreeText || Multiselect || typeof(ElementType) != typeof(string))
+        {
+            return false;
+        }
+
+        string typedValue = searchValue?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(typedValue) || string.Equals(typedValue, NoneSelectedText, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        string? currentValue = SelectedElements.FirstOrDefault() as string;
+        if (string.Equals(currentValue, typedValue, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        ElementType selectedValue = (ElementType)(object)typedValue;
+        SelectedElements = [selectedValue];
+        await SelectedElementChanged.InvokeAsync(selectedValue);
+        DisplaySelection(SelectedElements);
+        return true;
     }
 
     private void DisplaySelection(IEnumerable<ElementType> valuesToDisplay)

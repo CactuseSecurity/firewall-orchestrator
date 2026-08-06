@@ -25,13 +25,8 @@ namespace FWO.Report
 
         public override string ExportToCsv()
         {
-            activeOwnerAddInfoFilter = GetEffectiveOwnerAddInfoFilter();
-            AddInfoFilter ownerAddInfoFilter = activeOwnerAddInfoFilter;
-            List<OwnerConnectionReport> displayedOwnerData = GetDisplayedOwnerData(ownerAddInfoFilter);
-            List<FwoOwner> overdueOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => ow.RecertOverdue)];
-            List<FwoOwner> upcomingOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => ow.RecertUpcoming)];
-            List<FwoOwner> furtherOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => ow.RecertActive && !ow.RecertOverdue && !ow.RecertUpcoming)];
-            List<FwoOwner> inactiveOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => !ow.RecertActive).OrderBy(ow => ow.Id)];
+            (AddInfoFilter ownerAddInfoFilter, List<FwoOwner> overdueOwners, List<FwoOwner> upcomingOwners,
+                List<FwoOwner> furtherOwners, List<FwoOwner> inactiveOwners) = PrepareOwnerRecertCollections();
 
             StringBuilder report = new();
             report.AppendLine($"# report type: {userConfig.GetText(ReportType.ToString())}");
@@ -87,13 +82,8 @@ namespace FWO.Report
 
         public override string ExportToHtml()
         {
-            activeOwnerAddInfoFilter = GetEffectiveOwnerAddInfoFilter();
-            AddInfoFilter ownerAddInfoFilter = activeOwnerAddInfoFilter;
-            List<OwnerConnectionReport> displayedOwnerData = GetDisplayedOwnerData(ownerAddInfoFilter);
-            List<FwoOwner> overdueOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => ow.RecertOverdue)];
-            List<FwoOwner> upcomingOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => ow.RecertUpcoming)];
-            List<FwoOwner> furtherOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => ow.RecertActive && !ow.RecertOverdue && !ow.RecertUpcoming)];
-            List<FwoOwner> inactiveOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => !ow.RecertActive).OrderBy(ow => ow.Id)];
+            (AddInfoFilter ownerAddInfoFilter, List<FwoOwner> overdueOwners, List<FwoOwner> upcomingOwners,
+                List<FwoOwner> furtherOwners, List<FwoOwner> inactiveOwners) = PrepareOwnerRecertCollections();
 
             StringBuilder report = new();
             AppendOwnerRecertStatisticsHtml(ref report, overdueOwners, upcomingOwners, furtherOwners, inactiveOwners);
@@ -106,6 +96,18 @@ namespace FWO.Report
                 OtherFilter = Query.RawFilter,
                 FilterTextKey = "add_info"
             });
+        }
+
+        private (AddInfoFilter OwnerAddInfoFilter, List<FwoOwner> OverdueOwners, List<FwoOwner> UpcomingOwners,
+            List<FwoOwner> FurtherOwners, List<FwoOwner> InactiveOwners) PrepareOwnerRecertCollections()
+        {
+            activeOwnerAddInfoFilter = GetEffectiveOwnerAddInfoFilter();
+            List<OwnerConnectionReport> displayedOwnerData = GetDisplayedOwnerData(activeOwnerAddInfoFilter);
+            List<FwoOwner> overdueOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => ow.RecertOverdue)];
+            List<FwoOwner> upcomingOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => ow.RecertUpcoming)];
+            List<FwoOwner> furtherOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => ow.RecertActive && !ow.RecertOverdue && !ow.RecertUpcoming)];
+            List<FwoOwner> inactiveOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => !ow.RecertActive).OrderBy(ow => ow.Id)];
+            return (activeOwnerAddInfoFilter, overdueOwners, upcomingOwners, furtherOwners, inactiveOwners);
         }
 
         private void AppendOwnerRecertStatisticsHtml(ref StringBuilder report, List<FwoOwner> overdueOwners, List<FwoOwner> upcomingOwners,

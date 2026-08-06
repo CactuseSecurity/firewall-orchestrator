@@ -26,8 +26,8 @@ else
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
-    private readonly List<WfTaskType> availableRealTaskTypes = [.. Enum.GetValues(typeof(WfTaskType)).Cast<WfTaskType>().Where(taskType => taskType != WfTaskType.master)];
-    private readonly List<WorkflowReferenceDate> availableReferenceDates = [.. Enum.GetValues(typeof(WorkflowReferenceDate)).Cast<WorkflowReferenceDate>()];
+    private readonly List<WfTaskType> availableRealTaskTypes = [.. Enum.GetValues<WfTaskType>().Where(taskType => taskType != WfTaskType.master)];
+    private readonly List<WorkflowReferenceDate> availableReferenceDates = [.. Enum.GetValues<WorkflowReferenceDate>()];
     private GlobalStateMatrix masterStateMatrix = new();
     private StateMatrix masterRequestStateMatrix = new();
     private List<string> availablePhases = [];
@@ -71,7 +71,7 @@ else
             });
             availablePhases =
             [
-                .. Enum.GetValues(typeof(WorkflowPhases)).Cast<WorkflowPhases>()
+                .. Enum.GetValues<WorkflowPhases>()
                     .Where(phase => masterStateMatrix.GlobalMatrix.TryGetValue(phase, out StateMatrix? stateMatrix) && stateMatrix.Active)
                     .Select(phase => phase.ToString())
             ];

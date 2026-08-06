@@ -72,7 +72,6 @@ namespace FWO.Test
             Assert.That(cut.Markup, Does.Contain("Add. Info: recert_required"));
             Assert.That(cut.Markup, Does.Contain("bi bi-check-lg"));
             Assert.That(cut.Markup, Does.Not.Contain(">true<"));
-            Assert.That(ownerData[0].Owner.AdditionalInfoValue, Is.EqualTo("true"));
         }
 
         [Test]
@@ -118,7 +117,6 @@ namespace FWO.Test
             {
                 Assert.That(cut.Markup, Does.Contain("Add. Info: business_unit"));
                 Assert.That(cut.Markup, Does.Contain("Payments"));
-                Assert.That(ownerData[0].Owner.AdditionalInfoValue, Is.EqualTo("Payments"));
             });
         }
 

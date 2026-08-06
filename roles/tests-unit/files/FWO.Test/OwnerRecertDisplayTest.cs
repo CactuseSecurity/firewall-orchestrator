@@ -173,6 +173,44 @@ namespace FWO.Test
         }
 
         [Test]
+        public void MatchesAdditionalInfoFilter_TreatsEmptyValueAsNoMatchWhenKeyIsMissing()
+        {
+            FwoOwner owner = new()
+            {
+                AdditionalInfo = new Dictionary<string, string>()
+            };
+
+            Assert.That(OwnerRecertDisplay.MatchesAdditionalInfoFilter(owner, new AddInfoFilter
+            {
+                Name = "business_unit",
+                Mode = AddInfoFilterMode.value,
+                Value = ""
+            }), Is.False);
+        }
+
+        [Test]
+        public void FormatAdditionalInfoValue_IsCaseInsensitiveForAdditionalInfoKeys()
+        {
+            FwoOwner owner = new()
+            {
+                AdditionalInfo = new Dictionary<string, string>
+                {
+                    ["Business_Unit"] = "Finance"
+                }
+            };
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(OwnerRecertDisplay.FormatAdditionalInfoValue(owner, "business_unit"), Is.EqualTo("Finance"));
+                Assert.That(OwnerRecertDisplay.MatchesAdditionalInfoFilter(owner, new AddInfoFilter
+                {
+                    Name = "business_unit",
+                    Mode = AddInfoFilterMode.existing
+                }), Is.True);
+            });
+        }
+
+        [Test]
         public void FormatResponsibles_UsesRequestedTypeAndSeparator()
         {
             FwoOwner owner = new()

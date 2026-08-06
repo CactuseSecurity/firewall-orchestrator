@@ -146,9 +146,9 @@ else
             List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             return NormalizeAvailableAddInfoNames(owners.SelectMany(owner => owner.AdditionalInfo?.Keys ?? Enumerable.Empty<string>()));
         }
-        catch
+        catch (Exception exception)
         {
-            Log.WriteError(nameof(ReportOwnerRecertParamSelection), "Loading available owner additional info names failed.");
+            Log.WriteError(nameof(ReportOwnerRecertParamSelection), "Loading available owner additional info names failed.", exception);
             return [];
         }
     }

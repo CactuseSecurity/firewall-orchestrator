@@ -61,6 +61,10 @@ namespace FWO.Data.Report
         [JsonProperty("phase"), JsonPropertyName("phase")]
         public string Phase { get; set; } = "";
 
+        /// <summary>
+        /// Backward-compatible JSON field name used by saved templates and exports.
+        /// The public model now uses <see cref="AddInfoFilter"/> terminology.
+        /// </summary>
         [JsonProperty("label_filter"), JsonPropertyName("label_filter")]
         public AddInfoFilter AddInfoFilter { get; set; } = new();
 

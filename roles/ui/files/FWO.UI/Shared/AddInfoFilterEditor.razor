@@ -119,7 +119,7 @@ else
     protected override void OnParametersSet()
     {
         availableAddInfoNames = [.. (AvailableAddInfoNames ?? [])];
-        EnsureSelectedLabelNameIsAvailable();
+        EnsureSelectedAddInfoNameIsAvailable();
     }
 
     private string GetAddInfoFilterSummary()
@@ -144,7 +144,7 @@ else
 
     private void OpenAddInfoFilterDialog()
     {
-        EnsureSelectedLabelNameIsAvailable();
+        EnsureSelectedAddInfoNameIsAvailable();
         addInfoFilterDraft = new(AddInfoFilter);
         if (string.IsNullOrWhiteSpace(addInfoFilterDraft.Name)
             && string.IsNullOrWhiteSpace(addInfoFilterDraft.Value)
@@ -180,7 +180,7 @@ else
         await AddInfoFilterChanged.InvokeAsync(AddInfoFilter);
     }
 
-    private void EnsureSelectedLabelNameIsAvailable()
+    private void EnsureSelectedAddInfoNameIsAvailable()
     {
         if (string.IsNullOrWhiteSpace(AddInfoFilter.Name))
         {

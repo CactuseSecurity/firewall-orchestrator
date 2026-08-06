@@ -40,6 +40,7 @@
             {
                 <li id="@($"dropdown-menu-li-selected-{Id + i++}")">
                     <button id="@($"dropdown-menu-selected-{Id + i++}")" type="button"
+                            @onmousedown="PrepareFreeTextSelectionCommit"
                             @onclick="async () => await UnselectElement(element)" class="dropdown-item @(Small ? "small" : "")">
                         <div id="@($"dropdown-menu-selected-content-{Id + i++}")"
                              class="d-flex align-items-baseline justify-content-between">
@@ -60,7 +61,8 @@
         {
             <li id="@($"dropdown-menu-li-element-{Id + i++}")">
                 <button id="@($"dropdown-menu-element-{Id + i++}")" type="button"
-                        @onclick="async () => await SelectElement(element)"                        class="dropdown-item @(Small ? "small" : "")">
+                        @onmousedown="PrepareFreeTextSelectionCommit"
+                        @onclick="async () => await SelectElement(element)" class="dropdown-item @(Small ? "small" : "")">
                     @ElementTemplate(element)
                 </button>
             </li>
@@ -167,6 +169,7 @@
     public bool Toggled { get; private set; } = true;
 
     private string searchValue = "";
+    private bool suppressFreeTextBlurCommit;
 
     public Dropdown()
     {
@@ -277,7 +280,21 @@
 
     private Task HandleBlur(FocusEventArgs _)
     {
+        if (suppressFreeTextBlurCommit)
+        {
+            suppressFreeTextBlurCommit = false;
+            return Task.CompletedTask;
+        }
+
         return CommitFreeTextSelection();
+    }
+
+    private void PrepareFreeTextSelectionCommit()
+    {
+        if (AllowFreeText && !Multiselect && typeof(ElementType) == typeof(string))
+        {
+            suppressFreeTextBlurCommit = true;
+        }
     }
 
     private async Task CommitFreeTextSelection()
@@ -310,7 +327,7 @@
         }
 
         ElementType selectedValue = (ElementType)(object)typedValue;
-        SelectedElements = new List<ElementType> { selectedValue };
+        SelectedElements = [selectedValue];
         await SelectedElementChanged.InvokeAsync(selectedValue);
         DisplaySelection(SelectedElements);
         return true;

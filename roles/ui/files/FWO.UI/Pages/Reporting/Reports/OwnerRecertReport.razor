@@ -100,7 +100,6 @@
     {
         effectiveOwnerAddInfoFilter = GetEffectiveOwnerAddInfoFilter();
         displayedOwnerData = [.. OwnerData.Where(owner => OwnerRecertDisplay.MatchesAdditionalInfoFilter(owner.Owner, effectiveOwnerAddInfoFilter))];
-        UpdateAdditionalInfoValues();
         overdueOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(o => o.RecertOverdue)];
         upcomingOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(o => o.RecertUpcoming)];
         furtherOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(o => o.RecertActive && !o.RecertOverdue && !o.RecertUpcoming)];
@@ -114,14 +113,6 @@
             .ThenBy(owner => owner.Name)
             .ToList();
         allRecertified = !furtherOwners.Any(o => o.NextRecertDate == null);
-    }
-
-    private void UpdateAdditionalInfoValues()
-    {
-        foreach (FwoOwner owner in displayedOwnerData.Select(o => o.Owner))
-        {
-            owner.AdditionalInfoValue = OwnerRecertDisplay.FormatAdditionalInfoValue(owner, GetEffectiveOwnerAdditionalInfoKey());
-        }
     }
 
     private string GetEffectiveOwnerAdditionalInfoKey()

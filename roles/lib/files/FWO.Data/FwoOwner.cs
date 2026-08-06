@@ -18,6 +18,9 @@ namespace FWO.Data
         [JsonProperty("additional_info"), JsonPropertyName("additional_info")]
         public Dictionary<string, string>? AdditionalInfo { get; set; }
 
+        /// <summary>
+        /// Transient display value used by the owner recertification table for the selected additional-info column.
+        /// </summary>
         [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
         public string AdditionalInfoValue { get; set; } = "";
 

@@ -21,7 +21,8 @@ namespace FWO.Ui.Display
         public string DisplayChangeId(Rule rule)
         {
             string keysJson = userConfig.GlobalConfig?.CustomFieldChangeIdKey ?? GlobalConst.kDefaultChangeIdKeys;
-            string? value = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, changeIdKeyCache.GetKeys(keysJson), out string? errorMessage);
+            string? value = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, changeIdKeyCache.GetKeys(keysJson),
+                out string? errorMessage, CustomFieldKeyMatching.IgnoreCase);
             return value ?? errorMessage ?? "";
         }
 

@@ -127,7 +127,8 @@
         apiConnection.OnExecutionModeChanged += OnExecutionModeChanged;
         authenticationProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
 
-        DisplayMessageInUiFunction = DisplayMessageInUi;
+        DisplayMessageInUiFunction = (exception, title, message, errorFlag) =>
+            _ = DisplayMessageInUiAsync(exception, title, message, errorFlag);
 
         locationChangingRegistration = NavigationManager.RegisterLocationChangingHandler(OnLocationChanging);
 
@@ -483,7 +484,16 @@
         InvokeAsync(StateHasChanged);
     }
 
-    private async void DisplayMessageInUi(Exception? exception = null, string title = "", string message = "", bool errorFlag = false)
+    /// <summary>
+    /// Displays a user or exception message in the UI and writes the corresponding log entry.
+    /// Invoked in a fire-and-forget manner via <see cref="DisplayMessageInUiFunction"/>, therefore
+    /// all exceptions are handled internally.
+    /// </summary>
+    /// <param name="exception">Exception to report, or null for a plain user message.</param>
+    /// <param name="title">Title of the message.</param>
+    /// <param name="message">Message text.</param>
+    /// <param name="errorFlag">Marks the message as an error.</param>
+    private async Task DisplayMessageInUiAsync(Exception? exception = null, string title = "", string message = "", bool errorFlag = false)
     {
         try
         {

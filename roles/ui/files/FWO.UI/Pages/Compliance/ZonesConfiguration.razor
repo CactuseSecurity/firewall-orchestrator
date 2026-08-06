@@ -2,6 +2,8 @@
 @using System.Diagnostics;
 @using FWO.Services
 
+@implements IDisposable
+
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject NetworkZoneService networkZoneService
@@ -192,6 +194,17 @@
 		await base.OnInitializedAsync();
 		networkZoneService.OnEditZone += OnEditZone;
 		networkZoneService.OnDeleteZone += OnDeleteZone;
+	}
+
+	/// <summary>
+	/// Detaches the zone event handlers. The service is scoped to the circuit and therefore outlives
+	/// this component, so without this every visit to the page would leave another handler behind -
+	/// keeping the disposed component alive and firing the action once per stale subscription.
+	/// </summary>
+	public void Dispose()
+	{
+		networkZoneService.OnEditZone -= OnEditZone;
+		networkZoneService.OnDeleteZone -= OnDeleteZone;
 	}
 
 	private async void OnAddZone()

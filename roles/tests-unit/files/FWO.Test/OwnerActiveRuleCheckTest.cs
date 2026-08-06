@@ -1,9 +1,9 @@
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Middleware.Server;
 using NUnit.Framework;
-using System.Reflection;
 
 namespace FWO.Test
 {
@@ -89,15 +89,25 @@ namespace FWO.Test
         [Test]
         public void ExtractChangeId_ReturnsField2_ForValidJson()
         {
-            string changeId = InvokeExtractChangeId("{\"field-2\":\"CHG-123\",\"Datum-Regelpruefung\":\"fallback\"}");
+            string changeId = InvokeExtractChangeId("{\"field-2\":\"CHG-123\",\"ChangeID\":\"fallback\"}");
 
             Assert.That(changeId, Is.EqualTo("CHG-123"));
         }
 
         [Test]
-        public void ExtractChangeId_ReturnsFallback_ForSingleQuotedLegacyPayload()
+        public void ExtractChangeId_ReturnsDefaultChangeIdFallback()
         {
-            string changeId = InvokeExtractChangeId("{'Datum-Regelpruefung':'2026-03-19'}");
+            string changeId = InvokeExtractChangeId("{\"ChangeID\":\"CHG-456\"}");
+
+            Assert.That(changeId, Is.EqualTo("CHG-456"));
+        }
+
+        [Test]
+        public void ExtractChangeId_ReturnsConfiguredFallback_ForSingleQuotedPayload()
+        {
+            string changeId = InvokeExtractChangeId(
+                "{'Datum-Regelpruefung':'2026-03-19'}",
+                "[\"field-2\",\"Datum-Regelpruefung\"]");
 
             Assert.That(changeId, Is.EqualTo("2026-03-19"));
         }
@@ -110,13 +120,21 @@ namespace FWO.Test
             Assert.That(changeId, Is.Empty);
         }
 
-        private static string InvokeExtractChangeId(string customFields)
+        private static string InvokeExtractChangeId(
+            string customFields,
+            string changeIdKeys = GlobalConst.kDefaultChangeIdKeys)
         {
-            MethodInfo extractChangeId = typeof(RuleNotificationBodyBase).GetMethod("ExtractChangeId", BindingFlags.Static | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException("ExtractChangeId method not found.");
+            GlobalConfig globalConfig = new() { CustomFieldChangeIdKey = changeIdKeys };
+            RuleNotificationBodyHarness harness = new(globalConfig);
+            return harness.ExtractChangeIdForTest(new Rule { CustomFields = customFields });
+        }
 
-            return (string)(extractChangeId.Invoke(null, [customFields])
-                ?? throw new InvalidOperationException("ExtractChangeId returned null."));
+        private sealed class RuleNotificationBodyHarness(GlobalConfig globalConfig) : RuleNotificationBodyBase(globalConfig)
+        {
+            public string ExtractChangeIdForTest(Rule rule)
+            {
+                return ExtractChangeId(rule);
+            }
         }
 
         private sealed class OwnerActiveRuleCheckApiConn : SimulatedApiConnection

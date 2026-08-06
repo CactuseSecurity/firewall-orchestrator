@@ -155,6 +155,13 @@ dotnet_deb_name: "packages-microsoft-prod.deb"
 dotnet_rpm_name: "packages-microsoft-prod.rpm"
 dotnet_version: "10.0"
 dotnet_mode: "Release"
+# fallbacks used when the configured OS repos cannot deliver the dotnet packages
+dotnet_ms_repo_file: "/etc/yum.repos.d/microsoft-prod.repo"
+dotnet_ms_repo_id: "packages-microsoft-com-prod"
+dotnet_ms_repo_preferences:
+  - { option: "priority", value: "1" }
+  - { option: "includepkgs", value: "dotnet-* aspnetcore-* netstandard-*" }
+dotnet_script_install_dir: "/usr/share/dotnet"
 # dotnet_mode: "Debug"
 debug_level: "1"
 lib_dir: "{{ fworch_home }}/lib/files"

@@ -150,6 +150,22 @@ Set this parameter only if the installer is allowed to install EPEL and enable C
 ./scripts/run-playbook-with-sudo.sh site.yml -e "allowRepoChangesForRedhat=true"
 ```
 
+### Dotnet SDK installation on RedHat
+
+The installer needs the dotnet SDK for the UI and the middleware server. On RedHat-like systems it tries three sources in this order and stops at the first one that works:
+
+1. the already configured repositories (normally RHEL AppStream)
+2. the Microsoft package repository (`packages.microsoft.com`), which is added and given priority over the configured repositories for `dotnet-*`, `aspnetcore-*` and `netstandard-*` packages
+3. the Microsoft `dotnet-install.sh` script, which installs into `/usr/share/dotnet` and links `/usr/bin/dotnet`
+
+Step 2 is also used when the configured repositories list the package but cannot deliver it, for example with an expired subscription, a Satellite/Capsule mirror that only synced metadata, or a proxy that blocks the package download. The typical symptom is:
+
+```console
+Failed to download packages: dotnet-sdk-10.0-...: Cannot download, all mirrors were already tried without success
+```
+
+If the installation host may not reach `packages.microsoft.com` or `dot.net` either, install the dotnet SDK matching `dotnet_version` from `inventory/group_vars/all.yml` manually before running the installer. An already installed SDK of the required version is detected and left untouched.
+
 ### Parameter "docker_network" after the Podman migration
 
 This legacy parameter is ignored by the current installer because Hasura now runs with Podman host networking instead of a Docker bridge.

@@ -7,15 +7,40 @@
       set_fact:
         dotnet_package_name: "dotnet-sdk-{{ dotnet_version }}"
 
-    - name: check whether {{ dotnet_package_name }} is available from configured repos
-      command: "dnf list {{ dotnet_package_name }}"
-      register: dotnet_local_repo_check
+    - name: check for an already installed dotnet sdk {{ dotnet_version }} on RedHat
+      command: dotnet --list-sdks
+      register: dotnet_sdks_installed_redhat
       changed_when: false
       failed_when: false
 
-    - name: add microsoft package repo only when {{ dotnet_package_name }} is not available locally
-      when: dotnet_local_repo_check.rc != 0
+    - name: set dotnet sdk installation state fact for RedHat
+      set_fact:
+        dotnet_sdk_already_installed: "{{ (dotnet_sdks_installed_redhat.stdout | default('')) is search('(?m)^' ~ (dotnet_version | regex_escape) ~ '\\.') }}"
+
+    - name: skip dotnet installation because dotnet sdk {{ dotnet_version }} is already present
+      debug:
+        msg: "dotnet sdk {{ dotnet_version }} is already installed, skipping installation."
+      when: dotnet_sdk_already_installed | bool
+
+    - name: install dotnet sdk {{ dotnet_version }} on RedHat
+      when:
+        - ansible_architecture == "x86_64"
+        - not dotnet_sdk_already_installed | bool
       block:
+        - name: install {{ dotnet_package_name }} from the configured repos on RedHat
+          package:
+            name: "{{ dotnet_package_name }}"
+            state: present
+      rescue:
+        # the configured repos may know the package from their metadata but still be unable to
+        # deliver it (expired entitlement, lazily synced satellite/capsule mirror, blocking proxy),
+        # so falling back to the microsoft repo is needed even when the package was listed as available
+        - name: report failed dotnet installation from the configured repos on RedHat
+          debug:
+            msg:
+              - "{{ dotnet_package_name }} could not be installed from the configured repos: {{ ansible_failed_result.msg | default('unknown error') }}"
+              - "Falling back to the microsoft package repo."
+
         - name: get package list from microsoft for RedHat
           get_url:
             url: "https://packages.microsoft.com/config/rhel/{{ distribution_version }}/{{ dotnet_rpm_name }}"
@@ -41,10 +66,61 @@
             dest: "{{ lib_tmp_dir }}/{{ dotnet_rpm_name }}"
             state: absent
 
-    - name: Install dotnet-sdk-{{ dotnet_version }} on RedHat
-      package:
-        name: "{{ dotnet_package_name }}"
-        state: present
+        - name: check for the microsoft repo definition on RedHat
+          stat:
+            path: "{{ dotnet_ms_repo_file }}"
+          register: dotnet_ms_repo_file_check
+
+        # without this the dotnet packages of the configured repos usually win the version
+        # comparison against the microsoft ones and the transaction fails again
+        - name: prefer microsoft packages for dotnet on RedHat
+          ini_file:
+            path: "{{ dotnet_ms_repo_file }}"
+            section: "{{ dotnet_ms_repo_id }}"
+            option: "{{ item.option }}"
+            value: "{{ item.value }}"
+            mode: "0644"
+          loop: "{{ dotnet_ms_repo_preferences }}"
+          when: dotnet_ms_repo_file_check.stat.exists
+
+        - name: install dotnet sdk {{ dotnet_version }} from the microsoft repo on RedHat
+          block:
+            - name: install {{ dotnet_package_name }} from the microsoft repo on RedHat
+              package:
+                name: "{{ dotnet_package_name }}"
+                state: present
+          rescue:
+            - name: report failed dotnet installation from the microsoft repo on RedHat
+              debug:
+                msg:
+                  - "{{ dotnet_package_name }} could not be installed from the microsoft repo: {{ ansible_failed_result.msg | default('unknown error') }}"
+                  - "Falling back to the dotnet install script."
+
+            - name: download dotnet-install script for RedHat
+              get_url:
+                url: https://dot.net/v1/dotnet-install.sh
+                dest: "{{ lib_tmp_dir }}/dotnet-install.sh"
+                mode: "0755"
+              register: dotnet_install_script_download_redhat
+              until: dotnet_install_script_download_redhat is succeeded
+              retries: 3
+              delay: 5
+
+            - name: install dotnet sdk {{ dotnet_version }} with dotnet-install script on RedHat
+              command: "{{ lib_tmp_dir }}/dotnet-install.sh --channel {{ dotnet_version }} --quality ga --install-dir {{ dotnet_script_install_dir }}"
+
+            - name: ensure dotnet symlink exists on RedHat
+              file:
+                src: "{{ dotnet_script_install_dir }}/dotnet"
+                dest: /usr/bin/dotnet
+                state: link
+                force: true
+
+    - name: verify dotnet sdk {{ dotnet_version }} is installed on RedHat
+      command: dotnet --list-sdks
+      register: dotnet_sdks_after_install_redhat
+      changed_when: false
+      failed_when: (dotnet_sdks_after_install_redhat.stdout | default('')) is not search('(?m)^' ~ (dotnet_version | regex_escape) ~ '\\.')
       when: ansible_architecture == "x86_64"
 
     - debug:

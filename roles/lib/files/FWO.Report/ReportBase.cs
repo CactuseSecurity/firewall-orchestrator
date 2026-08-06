@@ -53,7 +53,9 @@ namespace FWO.Report
 
     public abstract class ReportBase
     {
-        protected StringBuilder HtmlTemplate = new($@"
+        // kept as the pristine source so that the rendered report can be discarded again: the builder
+        // below is substituted in place, so after an export it holds a full copy of the report body
+        private static readonly string HtmlTemplateSource = $@"
 <!DOCTYPE html>
 <html>
 <head>
@@ -73,7 +75,9 @@ namespace FWO.Report
         <hr>
         ##Body##
     </body>
-</html>");
+</html>";
+
+        protected StringBuilder HtmlTemplate = new(HtmlTemplateSource);
 
         public readonly DynGraphqlQuery Query;
         public UserConfig userConfig;
@@ -91,12 +95,42 @@ namespace FWO.Report
 
         public bool GotObjectsInReport { get; protected set; } = false;
 
+        // every pdf export starts its own headless browser, which costs a few hundred megabytes while it
+        // runs. nothing else limits how many exports happen at once, so without this gate a handful of
+        // simultaneous exports is enough to drive the whole service into the out of memory killer.
+        protected const int kMaxConcurrentPdfRenders = 2;
+        private static readonly SemaphoreSlim PdfRenderGate = new(kMaxConcurrentPdfRenders, kMaxConcurrentPdfRenders);
+
+        // the gate is process wide, so every timeout below has to be finite: a render that hangs while
+        // holding a slot would otherwise block every later export in this process for good. the browser
+        // gets its own deadlines so that a stuck render gives its slot back instead of keeping it, and
+        // waiting for a slot is bounded as well so that a queued export fails visibly rather than hanging.
+        protected const int kPdfRenderGateWaitSeconds = 120;
+        private const int kBrowserLaunchTimeoutMs = 60_000;
+        private const int kBrowserProtocolTimeoutMs = 180_000;
+        private const int kPageOperationTimeoutMs = 120_000;
+        private const int kBrowserCloseTimeoutMs = 30_000;
+
 
         protected ReportBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType)
         {
             Query = query;
             userConfig = UserConfig;
             ReportType = reportType;
+        }
+
+        /// <summary>
+        /// Drops the cached html rendering of this report. It is only needed while an export is being
+        /// prepared - keeping it afterwards pins a multi megabyte string to the report for as long as
+        /// the page holds it, on top of the report data itself. The template is reset as well, because
+        /// the substitutions happen in place and leave a second copy of the body inside the builder.
+        /// </summary>
+        public void ReleaseExportCache()
+        {
+            htmlExport = "";
+            htmlBodyExport = "";
+            htmlBodyExportValid = false;
+            HtmlTemplate = new(HtmlTemplateSource);
         }
 
         public abstract Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct);
@@ -410,6 +444,42 @@ namespace FWO.Report
                 executablePath = latestInstalledBrowser.GetExecutablePath();
             }
 
+            return await RunGatedPdfRender(() => RenderPdfInBrowser(html, format, executablePath, wantedBrowser));
+        }
+
+        /// <summary>
+        /// Runs a pdf render behind the concurrency gate. The gate is held for the whole render rather
+        /// than just the browser launch, so that at most <see cref="kMaxConcurrentPdfRenders"/> headless
+        /// browsers are resident at any one time. The slot is returned even if the render throws.
+        /// Waiting for a slot is bounded: the gate is shared by the whole process, so an export that
+        /// cannot get one has to fail with a message rather than block the user's circuit forever.
+        /// </summary>
+        /// <param name="render">The render to run while holding a slot.</param>
+        /// <param name="gateWaitTimeout">How long to wait for a slot. Defaults to <see cref="kPdfRenderGateWaitSeconds"/>.</param>
+        protected static async Task<string?> RunGatedPdfRender(Func<Task<string?>> render, TimeSpan? gateWaitTimeout = null)
+        {
+            TimeSpan slotWaitTimeout = gateWaitTimeout ?? TimeSpan.FromSeconds(kPdfRenderGateWaitSeconds);
+            if (!await PdfRenderGate.WaitAsync(slotWaitTimeout))
+            {
+                Log.WriteAlert("Report Export", $"No pdf render slot became available within {slotWaitTimeout.TotalSeconds} seconds.");
+                throw new TimeoutException("Too many report exports are running at the moment. Please try again in a few minutes.");
+            }
+            try
+            {
+                return await render();
+            }
+            finally
+            {
+                PdfRenderGate.Release();
+            }
+        }
+
+        /// <summary>
+        /// Renders the given html to a base64 encoded pdf in a dedicated headless browser instance.
+        /// Callers must hold <see cref="PdfRenderGate"/> for the duration of this call.
+        /// </summary>
+        private async Task<string?> RenderPdfInBrowser(string html, PaperFormat format, string executablePath, SupportedBrowser wantedBrowser)
+        {
             IBrowser? browser;
 
             try
@@ -418,6 +488,8 @@ namespace FWO.Report
                 {
                     ExecutablePath = executablePath,
                     Headless = true,
+                    Timeout = kBrowserLaunchTimeoutMs,
+                    ProtocolTimeout = kBrowserProtocolTimeoutMs,
                 });
             }
             catch (Exception)
@@ -426,25 +498,70 @@ namespace FWO.Report
                 throw new EnvironmentException($"Couldn't start {wantedBrowser} instance!");
             }
 
+            return await RenderPdfInLaunchedBrowser(browser, html, format, wantedBrowser);
+        }
+
+        /// <summary>
+        /// Renders the given html in an already launched browser and shuts that browser down again
+        /// afterwards, whatever the render did. Kept separate from the launch so that the render and
+        /// its cleanup can be exercised without a real headless browser.
+        /// Callers must hold <see cref="PdfRenderGate"/> for the duration of this call.
+        /// </summary>
+        /// <param name="browser">The browser to render in. It is closed before this method returns.</param>
+        /// <param name="html">The report html to render.</param>
+        /// <param name="format">The wanted paper format.</param>
+        /// <param name="wantedBrowser">The browser kind, used for logging only.</param>
+        protected async Task<string?> RenderPdfInLaunchedBrowser(IBrowser browser, string html, PaperFormat format, SupportedBrowser wantedBrowser)
+        {
             try
             {
                 using IPage page = await browser.NewPageAsync();
-                await page.SetContentAsync(html);
+                await page.SetContentAsync(html, new SetContentOptions { Timeout = kPageOperationTimeoutMs });
 
                 PuppeteerSharp.Media.PaperFormat? pupformat = GetPuppeteerPaperFormat(format) ?? throw new KeyNotFoundException();
 
-                PdfOptions pdfOptions = new() { Outline = true, DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
+                PdfOptions pdfOptions = new() { Outline = true, DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = pupformat, Timeout = kPageOperationTimeoutMs, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
                 byte[]? pdfData = await page.PdfDataAsync(pdfOptions);
 
                 return Convert.ToBase64String(pdfData);
             }
-            catch (Exception)
+            catch (KeyNotFoundException)
             {
                 throw new NotSupportedException("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
             }
+            catch (Exception exception)
+            {
+                // reporting a timed out or crashed render as an unsupported paper format sends whoever
+                // has to diagnose it looking in the wrong place - the render holds a process wide slot
+                Log.WriteError("Report Export", "Rendering the report to pdf failed.", exception);
+                throw;
+            }
             finally
             {
-                await browser.CloseAsync();
+                await CloseBrowserSafely(browser, wantedBrowser);
+            }
+        }
+
+        /// <summary>
+        /// Shuts the headless browser down without letting a stuck shutdown hold on to the render slot.
+        /// A graceful close can hang on a wedged renderer, so it is given a deadline after which the
+        /// browser is disposed - which kills the process - and the slot is released either way.
+        /// </summary>
+        /// <param name="browser">The browser to shut down.</param>
+        /// <param name="wantedBrowser">The browser kind, used for logging only.</param>
+        /// <param name="closeTimeout">How long to wait for the graceful close. Defaults to <see cref="kBrowserCloseTimeoutMs"/>.</param>
+        protected static async Task CloseBrowserSafely(IBrowser browser, SupportedBrowser wantedBrowser, TimeSpan? closeTimeout = null)
+        {
+            try
+            {
+                await browser.CloseAsync().WaitAsync(closeTimeout ?? TimeSpan.FromMilliseconds(kBrowserCloseTimeoutMs));
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Report Export", $"Closing the {wantedBrowser} instance failed, killing it instead.", exception);
+            }
+            finally
+            {
                 browser.Dispose();
             }
         }

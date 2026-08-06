@@ -1,0 +1,10 @@
+query getFlowSvcGroupNamingCandidates {
+  flow_svcgroup {
+    id: svcgrp_id
+    name
+    mappings: services(where: {removed: {_is_null: true}}, order_by: [{mgm_id: asc}, {svc_name: asc}, {svc_id: asc}]) {
+      mgm_id
+      name: svc_name
+    }
+  }
+}

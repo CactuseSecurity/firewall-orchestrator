@@ -4,7 +4,7 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Flow;
-using FWO.Services;
+using FWO.Services.FlowSync;
 using NUnit.Framework;
 using System.Reflection;
 
@@ -30,6 +30,13 @@ namespace FWO.Test
             public List<FlowSvcGroup> FlowServiceGroups { get; } = [];
             public List<FlowTimeObject> FlowTimeObjects { get; } = [];
             public List<FlowAccess> FlowAccesses { get; } = [];
+            public List<FlowNamingCandidate> NetworkNamingCandidates { get; } = [];
+            public List<FlowNamingCandidate> NetworkGroupNamingCandidates { get; } = [];
+            public List<FlowNamingCandidate> ServiceNamingCandidates { get; } = [];
+            public List<FlowNamingCandidate> ServiceGroupNamingCandidates { get; } = [];
+            public List<FlowNamingCandidate> TimeNamingCandidates { get; } = [];
+            public List<(long Id, string Name)> UpdatedFlowObjectNames { get; } = [];
+            public List<(string Mutation, string Name)> UpdatedFlowNames { get; } = [];
             public List<FlowNwObjectInsert> InsertedNetworkObjects { get; } = [];
             public List<FlowNwGroupInsert> InsertedNetworkGroups { get; } = [];
             public List<FlowSvcObjectInsert> InsertedServiceObjects { get; } = [];
@@ -105,6 +112,26 @@ namespace FWO.Test
                 if (query == FlowQueries.getFlowSyncAccesses)
                 {
                     return Task.FromResult((T)(object)FlowAccesses);
+                }
+                if (query == FlowQueries.getFlowNwObjectNamingCandidates)
+                {
+                    return Task.FromResult((T)(object)NetworkNamingCandidates);
+                }
+                if (query == FlowQueries.getFlowNwGroupNamingCandidates)
+                {
+                    return Task.FromResult((T)(object)NetworkGroupNamingCandidates);
+                }
+                if (query == FlowQueries.getFlowSvcObjectNamingCandidates)
+                {
+                    return Task.FromResult((T)(object)ServiceNamingCandidates);
+                }
+                if (query == FlowQueries.getFlowSvcGroupNamingCandidates)
+                {
+                    return Task.FromResult((T)(object)ServiceGroupNamingCandidates);
+                }
+                if (query == FlowQueries.getFlowTimeObjectNamingCandidates)
+                {
+                    return Task.FromResult((T)(object)TimeNamingCandidates);
                 }
                 if (query == FlowQueries.insertFlowNwObjects)
                 {
@@ -249,6 +276,35 @@ namespace FWO.Test
                     CompletedImportControlId = GetVariable<long>(variables, "controlId");
                     CompletedImportControlUpdates.Add((CompletedImportControlId.Value, GetVariable<int>(variables, "mgmId")));
                     return Task.FromResult((T)(object)new MutationResult { AffectedRows = 1 });
+                }
+                if (query == FlowMutations.updateFlowNwObjects)
+                {
+                    foreach (object update in GetUpdates(variables))
+                    {
+                        object where = update.GetType().GetProperty("where")?.GetValue(update) ?? throw new AssertionException("Missing where payload.");
+                        object nwObjectId = where.GetType().GetProperty("nwobj_id")?.GetValue(where) ?? throw new AssertionException("Missing nwobj_id payload.");
+                        object equals = nwObjectId.GetType().GetProperty("_eq")?.GetValue(nwObjectId) ?? throw new AssertionException("Missing _eq payload.");
+                        object set = update.GetType().GetProperty("_set")?.GetValue(update) ?? throw new AssertionException("Missing _set payload.");
+                        string name = (string)(set.GetType().GetProperty("name")?.GetValue(set) ?? throw new AssertionException("Missing name payload."));
+                        UpdatedFlowObjectNames.Add(((long)equals, name));
+                        UpdatedFlowNames.Add((query, name));
+                    }
+
+                    return Task.FromResult((T)(object)new List<MutationResult>());
+                }
+                if (query == FlowMutations.updateFlowNwGroups ||
+                    query == FlowMutations.updateFlowSvcObjects ||
+                    query == FlowMutations.updateFlowSvcGroups ||
+                    query == FlowMutations.updateFlowTimeObjects)
+                {
+                    foreach (object update in GetUpdates(variables))
+                    {
+                        object set = update.GetType().GetProperty("_set")?.GetValue(update) ?? throw new AssertionException("Missing _set payload.");
+                        string name = (string)(set.GetType().GetProperty("name")?.GetValue(set) ?? throw new AssertionException("Missing name payload."));
+                        UpdatedFlowNames.Add((query, name));
+                    }
+
+                    return Task.FromResult((T)(object)new List<MutationResult>());
                 }
 
                 throw new AssertionException($"Unexpected query: {query}");
@@ -437,7 +493,7 @@ namespace FWO.Test
 
             await flowSync.Run();
 
-            List<int> expectedManagementDataRequests = new() { 3, 1, 2 };
+            List<int> expectedManagementDataRequests = new() { 1, 3, 2 };
             Assert.That(apiConn.ManagementDataRequests, Is.EqualTo(expectedManagementDataRequests));
         }
 
@@ -616,9 +672,9 @@ namespace FWO.Test
             Assert.That(apiConn.InsertedNetworkObjects, Has.Count.EqualTo(2));
             Assert.That(apiConn.InsertedServiceObjects, Has.Count.EqualTo(1));
             Assert.That(apiConn.InsertedNetworkGroups, Has.Count.EqualTo(1));
-            Assert.That(apiConn.InsertedNetworkGroups[0].Name, Is.EqualTo("source-group"));
+            Assert.That(apiConn.InsertedNetworkGroups[0].Name, Is.Null);
             Assert.That(apiConn.InsertedServiceGroups, Has.Count.EqualTo(1));
-            Assert.That(apiConn.InsertedServiceGroups[0].Name, Is.EqualTo("service-group"));
+            Assert.That(apiConn.InsertedServiceGroups[0].Name, Is.Null);
             Assert.That(apiConn.InsertedAccesses, Has.Count.EqualTo(1));
             Assert.That(apiConn.InsertedAccesses[0].AccessSourceGroups!.Data.OfType<NwGroupRef>().Single().NwGroupId, Is.EqualTo(apiConn.FlowNetworkGroups.Single().Id));
             Assert.That(apiConn.InsertedAccesses[0].AccessServiceGroups!.Data.OfType<SvcGroupRef>().Single().SvcGroupId, Is.EqualTo(apiConn.FlowServiceGroups.Single().Id));
@@ -790,7 +846,7 @@ namespace FWO.Test
             string hash = FlowHashGenerator.GenerateTimeObjectHash(startTime, endTime);
             Assert.That(result, Is.True);
             Assert.That(pendingInserts, Has.Count.EqualTo(1));
-            Assert.That(pendingInserts[hash].Name, Is.EqualTo("maintenance-window"));
+            Assert.That(pendingInserts[hash].Name, Is.Null);
             Assert.That(pendingInserts[hash].StartTime, Is.EqualTo(startTime));
             Assert.That(pendingInserts[hash].EndTime, Is.EqualTo(endTime));
             Assert.That(pendingInserts[hash].State, Is.EqualTo(FlowState.Implemented));
@@ -898,7 +954,7 @@ namespace FWO.Test
             string hash = FlowHashGenerator.GenerateGroupHash([firstFlowObject.Hash, secondFlowObject.Hash]);
             Assert.That(result, Is.True);
             Assert.That(pendingInserts, Has.Count.EqualTo(1));
-            Assert.That(pendingInserts[hash].Name, Is.EqualTo("source-group"));
+            Assert.That(pendingInserts[hash].Name, Is.Null);
             Assert.That(pendingInserts[hash].NwGroupMembers!.Data.Select(member => member.NwObjId), Is.EquivalentTo(new long[] { 101, 102 }));
             Assert.That(mappings[hash].Single().Id, Is.EqualTo(10));
             Assert.That(mappings[hash].Single().FlowActive, Is.True);
@@ -943,7 +999,7 @@ namespace FWO.Test
             string hash = FlowHashGenerator.GenerateGroupHash([firstFlowObject.Hash, secondFlowObject.Hash]);
             Assert.That(result, Is.True);
             Assert.That(pendingInserts, Has.Count.EqualTo(1));
-            Assert.That(pendingInserts[hash].Name, Is.EqualTo("web-services"));
+            Assert.That(pendingInserts[hash].Name, Is.Null);
             Assert.That(pendingInserts[hash].SvcGroupMembers!.Data.Select(member => member.SvcObjId), Is.EquivalentTo(new long[] { 201, 202 }));
             Assert.That(mappings[hash].Single().Id, Is.EqualTo(10));
             Assert.That(mappings[hash].Single().FlowActive, Is.True);
@@ -1067,7 +1123,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Run_UsesSavedRankingToChooseNamingSourceManagement()
+        public async Task Run_NamesImportedObjectsAfterAllManagementsHaveSynced()
         {
             string sharedHash = FlowHashGenerator.GenerateNwObjectHash("10.0.0.1", "10.0.0.1");
             NetworkObject firstManagementObject = CreateNetworkObject(1, "first-name", "10.0.0.1", "10.0.0.1");
@@ -1085,6 +1141,20 @@ namespace FWO.Test
                     [2] = new FlowSyncManagementData { Id = 2, NetworkObjects = [secondManagementObject] }
                 }
             };
+            apiConn.NetworkNamingCandidates.Add(new FlowNamingCandidate
+            {
+                Id = 101,
+                Name = null,
+                Mappings = new List<FlowNamingMapping>
+                {
+                    new FlowNamingMapping { ManagementId = 1, Name = "first-name" },
+                    new FlowNamingMapping { ManagementId = 2, Name = "second-name" }
+                }
+            });
+            apiConn.NetworkGroupNamingCandidates.Add(CreateNamingCandidate(151, "network-group"));
+            apiConn.ServiceNamingCandidates.Add(CreateNamingCandidate(201, "service-object"));
+            apiConn.ServiceGroupNamingCandidates.Add(CreateNamingCandidate(241, "service-group"));
+            apiConn.TimeNamingCandidates.Add(CreateNamingCandidate(251, "time-object"));
             FlowSync flowSync = new(apiConn, new GlobalConfig { FlowNamingSourceManagementRanking = "[2,1]" });
 
             bool result = await flowSync.Run();
@@ -1092,7 +1162,16 @@ namespace FWO.Test
             Assert.That(result, Is.True);
             Assert.That(apiConn.InsertedNetworkObjects, Has.Count.EqualTo(1));
             Assert.That(apiConn.InsertedNetworkObjects[0].NwObjHash, Is.EqualTo(sharedHash));
-            Assert.That(apiConn.InsertedNetworkObjects[0].Name, Is.EqualTo("second-name"));
+            Assert.That(apiConn.InsertedNetworkObjects[0].Name, Is.Null);
+            Assert.That(apiConn.UpdatedFlowObjectNames, Is.EqualTo(new List<(long Id, string Name)> { (101, "second-name") }));
+            Assert.That(apiConn.UpdatedFlowNames, Is.EqualTo(new List<(string Mutation, string Name)>
+            {
+                (FlowMutations.updateFlowNwObjects, "second-name"),
+                (FlowMutations.updateFlowNwGroups, "network-group"),
+                (FlowMutations.updateFlowSvcObjects, "service-object"),
+                (FlowMutations.updateFlowSvcGroups, "service-group"),
+                (FlowMutations.updateFlowTimeObjects, "time-object")
+            }));
         }
 
         [Test]
@@ -1126,7 +1205,21 @@ namespace FWO.Test
         {
             MethodInfo method = typeof(FlowSync).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static)
                 ?? throw new MissingMethodException(typeof(FlowSync).FullName, methodName);
-            return (T)method.Invoke(null, parameters)!;
+            object[] requiredParameters = parameters.Take(method.GetParameters().Length).ToArray();
+            return (T)method.Invoke(null, requiredParameters)!;
+        }
+
+        private static FlowNamingCandidate CreateNamingCandidate(long id, string name)
+        {
+            return new FlowNamingCandidate
+            {
+                Id = id,
+                Name = null,
+                Mappings = new List<FlowNamingMapping>
+                {
+                    new() { ManagementId = 1, Name = name }
+                }
+            };
         }
 
         private static FlowSyncFlowData CreateFlowData(List<FlowNwObject>? nwObjects = null, List<FlowNwGroup>? nwGroups = null,

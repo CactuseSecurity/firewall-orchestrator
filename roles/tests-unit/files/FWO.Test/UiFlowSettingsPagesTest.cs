@@ -512,28 +512,22 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task FlowGeneralPage_RecalculateNames_UsesNamingManagementCandidates()
+        public async Task FlowGeneralPage_SaveNamingSource_UsesSharedFlowNaming()
         {
             await using BunitContext context = CreateNetworkObjectsContext(out FlowNetworkObjectsNamingApiConn apiConnection);
 
             IRenderedComponent<SettingsFlowGeneral> component = RenderPage<SettingsFlowGeneral>(context);
-            FieldInfo? namingManagementField = typeof(SettingsFlowGeneral).GetField("namingNetworkObjectManagements", BindingFlags.Instance | BindingFlags.NonPublic);
-            Assert.That(namingManagementField, Is.Not.Null);
-            component.WaitForAssertion(() =>
-            {
-                List<Management> namingManagements = (List<Management>)namingManagementField!.GetValue(component.Instance)!;
-                Assert.That(namingManagements, Has.Count.EqualTo(2));
-            });
-
             MethodInfo? saveNamingSource = typeof(SettingsFlowGeneral).GetMethod("SaveNamingSource", BindingFlags.Instance | BindingFlags.NonPublic);
             Assert.That(saveNamingSource, Is.Not.Null);
             await component.InvokeAsync(async () => await (Task)saveNamingSource!.Invoke(component.Instance, null)!);
 
             component.WaitForAssertion(() =>
             {
-                Assert.That(apiConnection.Queries, Does.Contain(FlowQueries.getFlowCustomObjectNamingCandidates));
-                Assert.That(apiConnection.Queries, Does.Contain(FlowQueries.getFlowCustomServiceNamingCandidates));
-                Assert.That(apiConnection.Queries, Does.Contain(FlowQueries.getFlowCustomTimeObjectNamingCandidates));
+                Assert.That(apiConnection.Queries, Does.Contain(FlowQueries.getFlowNwObjectNamingCandidates));
+                Assert.That(apiConnection.Queries, Does.Contain(FlowQueries.getFlowNwGroupNamingCandidates));
+                Assert.That(apiConnection.Queries, Does.Contain(FlowQueries.getFlowSvcObjectNamingCandidates));
+                Assert.That(apiConnection.Queries, Does.Contain(FlowQueries.getFlowSvcGroupNamingCandidates));
+                Assert.That(apiConnection.Queries, Does.Contain(FlowQueries.getFlowTimeObjectNamingCandidates));
                 Assert.That(apiConnection.UpdatedFlowObjectNames, Has.Count.EqualTo(1).And.Contains("Global Object Name"));
             });
         }
@@ -930,6 +924,19 @@ namespace FWO.Test
             Objects = []
         };
 
+        private readonly List<FlowNamingCandidate> networkObjectNamingCandidates = new()
+        {
+            new FlowNamingCandidate
+            {
+                Id = 100,
+                Name = null,
+                Mappings = new List<FlowNamingMapping>
+                {
+                    new() { ManagementId = 20, Name = "Global Object Name" }
+                }
+            }
+        };
+
         private readonly Management localManagement = new()
         {
             Id = 10,
@@ -1014,6 +1021,17 @@ namespace FWO.Test
             if (query == FlowQueries.getFlowTimeObjects)
             {
                 return Task.FromResult((QueryResponseType)(object)new List<FlowTimeObject>());
+            }
+            if (query == FlowQueries.getFlowNwObjectNamingCandidates)
+            {
+                return Task.FromResult((QueryResponseType)(object)networkObjectNamingCandidates);
+            }
+            if (query == FlowQueries.getFlowNwGroupNamingCandidates ||
+                query == FlowQueries.getFlowSvcObjectNamingCandidates ||
+                query == FlowQueries.getFlowSvcGroupNamingCandidates ||
+                query == FlowQueries.getFlowTimeObjectNamingCandidates)
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<FlowNamingCandidate>());
             }
             if (query == FlowQueries.getFlowCustomObjectCandidates)
             {

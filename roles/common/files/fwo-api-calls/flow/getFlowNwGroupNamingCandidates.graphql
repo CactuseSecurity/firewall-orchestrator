@@ -1,0 +1,10 @@
+query getFlowNwGroupNamingCandidates {
+  flow_nwgroup {
+    id: nwgrp_id
+    name
+    mappings: objects(where: {removed: {_is_null: true}}, order_by: [{mgm_id: asc}, {obj_name: asc}, {obj_id: asc}]) {
+      mgm_id
+      name: obj_name
+    }
+  }
+}

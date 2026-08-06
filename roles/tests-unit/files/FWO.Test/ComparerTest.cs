@@ -50,6 +50,19 @@ namespace FWO.Test
             IpEnd = "255.255.255.255/32",
             Type = new() { Name = ObjectType.Host }
         };
+        static readonly NetworkObject ModelledAccessRoleSameName = new()
+        {
+            Name = "AccessRoleObj1",
+            IP = "1.2.3.4",
+            IpEnd = "1.2.3.4"
+        };
+
+        static readonly NetworkObject ModelledAccessRoleDifferentName = new()
+        {
+            Name = "AccessRoleObj2",
+            IP = "1.2.3.4",
+            IpEnd = "1.2.3.4"
+        };
 
         static readonly NetworkObject NwGrp1 = new() { Name = "NwGrp1", ObjectGroupFlats = [new GroupFlat<NetworkObject>() { Object = NwObj1 }] };
         static readonly NetworkObject NwGrp2 = new() { Name = "NwGrp2", ObjectGroupFlats = [new GroupFlat<NetworkObject>() { Object = NwObj1 }] };
@@ -245,6 +258,10 @@ namespace FWO.Test
             ClassicAssert.IsFalse(networkObjectComparer.Equals(NwObj1, NwObj3));
             ClassicAssert.IsFalse(networkObjectComparer.Equals(NwObj1, NwObj4));
             ClassicAssert.IsTrue(networkObjectComparer.Equals(NwObj1, NwObj5));
+            ClassicAssert.IsTrue(networkObjectComparer.Equals(AccessRoleObj1, ModelledAccessRoleSameName));
+            ClassicAssert.IsFalse(networkObjectComparer.Equals(AccessRoleObj1, ModelledAccessRoleDifferentName));
+            ClassicAssert.IsTrue(networkObjectComparer.GetHashCode(AccessRoleObj1) == networkObjectComparer.GetHashCode(ModelledAccessRoleSameName));
+            ClassicAssert.IsFalse(networkObjectComparer.GetHashCode(AccessRoleObj1) == networkObjectComparer.GetHashCode(ModelledAccessRoleDifferentName));
             ClassicAssert.IsTrue(networkObjectComparer.GetHashCode(NwObj1) == networkObjectComparer.GetHashCode(NwObj1));
             ClassicAssert.IsFalse(networkObjectComparer.GetHashCode(NwObj1) == networkObjectComparer.GetHashCode(NwObj2));
             ClassicAssert.IsFalse(networkObjectComparer.GetHashCode(NwObj1) == networkObjectComparer.GetHashCode(NwObj3));

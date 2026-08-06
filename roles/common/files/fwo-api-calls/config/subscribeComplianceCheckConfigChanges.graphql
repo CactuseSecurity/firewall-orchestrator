@@ -38,10 +38,11 @@
         { config_key: { _eq: "showShortColumnsInComplianceReports" } }
         { config_key: { _eq: "complianceCheckElementsPerFetch" } }
         { config_key: { _eq: "complianceCheckAvailableProcessors" } }
+        { config_key: { _eq: "CustomFieldChangeIdKey" } }
 
       ]
     }
-    limit: 36
+    limit: 37
   ) {
     config_key
     config_value

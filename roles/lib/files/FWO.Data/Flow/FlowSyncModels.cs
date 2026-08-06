@@ -4,6 +4,21 @@ using System.Text.Json.Serialization;
 
 namespace FWO.Data.Flow
 {
+    public class SuperMgmToMgmsMapping
+    {
+        [JsonProperty("mgm_id"), JsonPropertyName("mgm_id")]
+        public int SuperMgmId { get; set; }
+
+        [JsonProperty("sub_mgms"), JsonPropertyName("sub_mgms")]
+        public List<SubMgmId> SubMgmIds { get; set; } = new();
+    }
+
+    public class SubMgmId
+    {
+        [JsonProperty("mgm_id"), JsonPropertyName("mgm_id")]
+        public int MgmId { get; set; }
+    }
+
     public class FlowSyncManagementData
     {
         [JsonProperty("mgm_id"), JsonPropertyName("mgm_id")]

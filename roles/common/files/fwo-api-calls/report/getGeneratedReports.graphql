@@ -1,5 +1,5 @@
-﻿query getGeneratedReports {
-  report(order_by:{report_id:desc}) {
+﻿query getGeneratedReports($limit: Int, $where: report_bool_exp = {}) {
+  report(order_by:{report_id:desc}, limit: $limit, where: $where) {
     report_id
     report_name
     report_start_time

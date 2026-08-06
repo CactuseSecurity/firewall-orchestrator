@@ -1,17 +1,12 @@
-@using FWO.Data.Middleware
 @using FWO.Data.Report
 @using FWO.Data.Workflow
-@using FWO.ExternalSystems.Tufin.SecureChange
 @using FWO.Middleware.Client
 @using FWO.Recert
 @using FWO.Report
 @using FWO.Services.RuleTreeBuilder
 @using FWO.Services.Workflow
 @using FWO.Ui.Pages.Reporting
-@using Newtonsoft.Json
 @using RestSharp
-@using System.Net
-@using System.Text.Json.Serialization
 
 
 @inject ApiConnection apiConnection
@@ -244,7 +239,8 @@
         {
             SelectedOwner = AppHandler!.Application,
             AnalyseRemainingRules = userConfig.ModRecertExpectAllModelled,
-            RulesForDeletedConns = true
+            RulesForDeletedConns = true,
+            VerifyRuleOwnerPreFilterCompleteness = true
         };
         ModellingVarianceResult varianceResult = await varianceAnalysis.AnalyseRulesVsModelledConnections(ModelledConnections, modellingFilter, true, true);
         (bool appZoneModelled, List<ModellingAppZone?> mgmIdsWithDifferingAZ) = await varianceAnalysis.CheckExistingAppZone();

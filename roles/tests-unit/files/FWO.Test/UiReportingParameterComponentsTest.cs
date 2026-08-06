@@ -257,7 +257,7 @@ namespace FWO.Test
         public async Task ReportDownloadPopUp_RendersDownloads_InvokesJsAndClose()
         {
             using BunitContext context = CreateContext();
-            JSRuntimeInvocationHandler downloadInvocation = context.JSInterop.SetupVoid("DownloadFile", _ => true).SetVoidResult();
+            JSRuntimeInvocationHandler downloadInvocation = context.JSInterop.SetupVoid("DownloadFileFromStream", _ => true).SetVoidResult();
             bool closed = false;
             ReportFile reportFile = new()
             {

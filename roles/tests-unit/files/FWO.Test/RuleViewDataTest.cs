@@ -63,10 +63,10 @@ namespace FWO.Test
             RuleViewData rvd = new RuleViewData();
             Rule rule = new Rule
             {
-                CustomFields = "{'Datum-Regelpruefung':'Change123','AdoIT':'Ado456'}"
+                CustomFields = "{'ChangeID':'Change123','AdoIT':'Ado456'}"
             };
 
-            string result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]", out _) ?? "";
+            string result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"ChangeID\"]", out _) ?? "";
 
             Assert.That("Change123".Equals(result));
         }
@@ -88,6 +88,78 @@ namespace FWO.Test
         }
 
         [Test]
+        public void RuleViewData_UsesConfiguredChangeIdCustomFieldKeys()
+        {
+            GlobalConfig globalConfig = new SimulatedGlobalConfig
+            {
+                CustomFieldChangeIdKey = "[\"ticket-id\",\"legacy-id\"]"
+            };
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig, registerOnChangeHandler: false);
+            NatRuleDisplayHtml ruleDisplay = new(userConfig);
+            Rule rule = new()
+            {
+                CustomFields = "{'legacy-id':'CHG-42','field-2':'ignored'}"
+            };
+
+            RuleViewData viewData = new(rule, ruleDisplay, OutputLocation.report, true);
+
+            Assert.That(viewData.ChangeID, Is.EqualTo("CHG-42"));
+        }
+
+        [Test]
+        public void RuleViewData_UsesLegacyChangeIdKeyWithoutExposingOtherCustomFields()
+        {
+            GlobalConfig globalConfig = new SimulatedGlobalConfig
+            {
+                CustomFieldChangeIdKey = "Datum-Regelpruefung"
+            };
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig, registerOnChangeHandler: false);
+            NatRuleDisplayHtml ruleDisplay = new(userConfig);
+            Rule rule = new()
+            {
+                CustomFields = "{'Datum-Regelpruefung':'CHG-7','secret-field':'internal-data'}"
+            };
+
+            RuleViewData viewData = new(rule, ruleDisplay, OutputLocation.report, true);
+
+            Assert.That(viewData.ChangeID, Is.EqualTo("CHG-7"));
+        }
+
+        [Test]
+        public void RuleViewData_ResolvesChangeIdRegardlessOfCustomFieldCasing()
+        {
+            GlobalConfig globalConfig = new SimulatedGlobalConfig
+            {
+                CustomFieldChangeIdKey = "[\"ChangeID\"]"
+            };
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig, registerOnChangeHandler: false);
+            NatRuleDisplayHtml ruleDisplay = new(userConfig);
+            Rule rule = new()
+            {
+                CustomFields = "{'changeid':'CHG-77'}"
+            };
+
+            RuleViewData viewData = new(rule, ruleDisplay, OutputLocation.report, true);
+
+            Assert.That(viewData.ChangeID, Is.EqualTo("CHG-77"));
+        }
+
+        [Test]
+        public void RuleViewData_UsesDefaultChangeIdCustomFieldKeys()
+        {
+            UserConfig userConfig = new();
+            NatRuleDisplayHtml ruleDisplay = new(userConfig);
+            Rule rule = new()
+            {
+                CustomFields = "{'ChangeID':'CHG-99'}"
+            };
+
+            RuleViewData viewData = new(rule, ruleDisplay, OutputLocation.report, true);
+
+            Assert.That(viewData.ChangeID, Is.EqualTo("CHG-99"));
+        }
+
+        [Test]
         public void ExtractCustomFieldValue_InvalidJson_ReturnsDefaultAndErrorMessage()
         {
             var rule = new Rule
@@ -103,17 +175,18 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ExtractCustomFieldValue_InvalidKeysJson_ReturnsDefaultAndError()
+        public void ExtractCustomFieldValue_InvalidKeysJson_ReturnsDefaultWithoutExposingRuleData()
         {
             var rule = new Rule
             {
-                CustomFields = "{'field-2':'abc'}"
+                CustomFields = "{'field-2':'abc','secret-field':'internal-data'}"
             };
 
-            var result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "invalid json", out var errorMessage);
+            var result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",]", out var errorMessage);
 
+            // an unreadable key setting is a config problem and must never surface rule data
             Assert.That(result, Is.Null);
-            Assert.That(errorMessage, Is.Not.Null);
+            Assert.That(errorMessage, Is.Null);
         }
 
         [Test]

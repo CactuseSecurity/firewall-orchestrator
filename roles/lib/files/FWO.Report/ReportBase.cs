@@ -61,6 +61,28 @@ namespace FWO.Report
             public string FilterTextKey { get; set; } = "filter";
         }
 
+        private static readonly string HtmlTemplateSource = $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset=""utf-8""/>
+      <title>##Title##</title>
+         {NotificationTableBodyBuilder.HtmlTableStyleBlock}
+    </head>
+    <body>
+        <h2>##Title##</h2>
+        <p>##Date-of-Config##: ##GeneratedFor## (UTC)</p>
+        <p>##GeneratedOn##: ##Date## (UTC)</p>
+        <p>##OwnerFilters##</p>
+        <p>##OtherFilters##</p>
+        <p>##Filter##</p>
+        <hr>
+        ##ToC##
+        <hr>
+        ##Body##
+    </body>
+</html>";
+
         protected StringBuilder HtmlTemplate = new($@"
 <!DOCTYPE html>
 <html>
@@ -99,12 +121,34 @@ namespace FWO.Report
 
         public bool GotObjectsInReport { get; protected set; } = false;
 
+        protected const int kMaxConcurrentPdfRenders = 2;
+        private static readonly SemaphoreSlim PdfRenderGate = new(kMaxConcurrentPdfRenders, kMaxConcurrentPdfRenders);
+        protected const int kPdfRenderGateWaitSeconds = 120;
+        protected const int kBrowserLaunchTimeoutMs = 60_000;
+        protected const int kBrowserProtocolTimeoutMs = 180_000;
+        protected const int kPageOperationTimeoutMs = 120_000;
+        protected const int kBrowserCloseTimeoutMs = 30_000;
+
 
         protected ReportBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType)
         {
             Query = query;
             userConfig = UserConfig;
             ReportType = reportType;
+        }
+
+        /// <summary>
+        /// Drops the cached html rendering of this report. It is only needed while an export is being
+        /// prepared - keeping it afterwards pins a multi megabyte string to the report for as long as
+        /// the page holds it, on top of the report data itself. The template is reset as well, because
+        /// the substitutions happen in place and leave a second copy of the body inside the builder.
+        /// </summary>
+        public void ReleaseExportCache()
+        {
+            htmlExport = "";
+            htmlBodyExport = "";
+            htmlBodyExportValid = false;
+            HtmlTemplate = new(HtmlTemplateSource);
         }
 
         public abstract Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct);
@@ -360,6 +404,80 @@ namespace FWO.Report
             catch (Exception)
             {
                 return timestring ?? "";
+            }
+        }
+
+        /// <summary>
+        /// Runs a pdf render behind the concurrency gate.
+        /// </summary>
+        /// <param name="render">The render to run while holding a slot.</param>
+        /// <param name="gateWaitTimeout">How long to wait for a slot. Defaults to <see cref="kPdfRenderGateWaitSeconds"/>.</param>
+        protected static async Task<string?> RunGatedPdfRender(Func<Task<string?>> render, TimeSpan? gateWaitTimeout = null)
+        {
+            TimeSpan slotWaitTimeout = gateWaitTimeout ?? TimeSpan.FromSeconds(kPdfRenderGateWaitSeconds);
+            if (!await PdfRenderGate.WaitAsync(slotWaitTimeout))
+            {
+                Log.WriteAlert("Report Export", $"No pdf render slot became available within {slotWaitTimeout.TotalSeconds} seconds.");
+                throw new TimeoutException("Too many report exports are running at the moment. Please try again in a few minutes.");
+            }
+            try
+            {
+                return await render();
+            }
+            finally
+            {
+                PdfRenderGate.Release();
+            }
+        }
+
+        /// <summary>
+        /// Renders the given html in an already launched browser and shuts that browser down again afterwards.
+        /// </summary>
+        protected async Task<string?> RenderPdfInLaunchedBrowser(IBrowser browser, string html, PaperFormat format, SupportedBrowser wantedBrowser)
+        {
+            try
+            {
+                using IPage page = await browser.NewPageAsync();
+                await page.SetContentAsync(html, new SetContentOptions { Timeout = kPageOperationTimeoutMs });
+
+                PuppeteerSharp.Media.PaperFormat? pupformat = GetPuppeteerPaperFormat(format) ?? throw new KeyNotFoundException();
+
+                PdfOptions pdfOptions = new() { Outline = true, DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = pupformat, Timeout = kPageOperationTimeoutMs, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
+                byte[]? pdfData = await page.PdfDataAsync(pdfOptions);
+
+                return Convert.ToBase64String(pdfData);
+            }
+            catch (KeyNotFoundException)
+            {
+                throw new NotSupportedException("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Report Export", "Rendering the report to pdf failed.", exception);
+                throw;
+            }
+            finally
+            {
+                await CloseBrowserSafely(browser, wantedBrowser);
+            }
+        }
+
+        /// <summary>
+        /// Shuts the headless browser down without letting a stuck shutdown hold on to the render slot.
+        /// </summary>
+        protected static async Task CloseBrowserSafely(IBrowser browser, SupportedBrowser wantedBrowser, TimeSpan? closeTimeout = null)
+        {
+            try
+            {
+                await browser.CloseAsync().WaitAsync(closeTimeout ?? TimeSpan.FromMilliseconds(kBrowserCloseTimeoutMs));
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Report Export", $"Closing the {wantedBrowser} instance failed, killing it instead.", exception);
+            }
+            finally
+            {
+                browser.Dispose();
             }
         }
 

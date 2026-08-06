@@ -154,16 +154,38 @@ VALUES
     ('reqGrpDelStateMatrixDefault', 'installation-default', 'group_delete'),
     ('reqNewIntStateMatrixDefault', 'installation-default', 'new_interface');
 
+-- The state matrix config values are staged in two separate statements on purpose.
+-- Casting config_value to jsonb inside a query that also joins the config table would let the
+-- planner evaluate the cast before the config_key join filter, which fails on the many
+-- non-json config values (for example language = 'German').
+DROP TABLE IF EXISTS pg_temp.tmp_state_matrix_value;
+CREATE TEMP TABLE tmp_state_matrix_value AS
+SELECT
+    matrix_key.configuration_name,
+    matrix_key.task_type,
+    config.config_value
+FROM tmp_state_matrix_key matrix_key
+JOIN config ON config.config_key = matrix_key.config_key AND config.config_user = 0
+WHERE config.config_value IS NOT NULL AND left(btrim(config.config_value), 1) = '{';
+
+DROP TABLE IF EXISTS pg_temp.tmp_state_matrix_phase;
+CREATE TEMP TABLE tmp_state_matrix_phase AS
+SELECT
+    matrix_value.configuration_name,
+    matrix_value.task_type,
+    phase.key AS phase,
+    phase.value AS phase_config
+FROM tmp_state_matrix_value matrix_value
+CROSS JOIN LATERAL jsonb_each((matrix_value.config_value::jsonb)->'config_value') AS phase;
+
 WITH phase_data AS (
     SELECT
-        matrix_key.configuration_name,
-        matrix_key.task_type,
-        phase.key AS phase,
-        phase.value AS phase_config,
-        matrix_key.configuration_name || '_' || matrix_key.task_type || '_' || phase.key AS phase_name
-    FROM tmp_state_matrix_key matrix_key
-    JOIN config ON config.config_key = matrix_key.config_key AND config.config_user = 0
-    CROSS JOIN LATERAL jsonb_each((config.config_value::jsonb)->'config_value') AS phase
+        matrix_phase_config.configuration_name,
+        matrix_phase_config.task_type,
+        matrix_phase_config.phase,
+        matrix_phase_config.phase_config,
+        matrix_phase_config.configuration_name || '_' || matrix_phase_config.task_type || '_' || matrix_phase_config.phase AS phase_name
+    FROM tmp_state_matrix_phase matrix_phase_config
 )
 INSERT INTO request.state_matrix_phase (name, phase, active, lowest_input_state, lowest_start_state, lowest_end_state)
 SELECT
@@ -178,13 +200,11 @@ ON CONFLICT (name) DO NOTHING;
 
 WITH phase_data AS (
     SELECT
-        matrix_key.configuration_name,
-        matrix_key.task_type,
-        phase.key AS phase,
-        matrix_key.configuration_name || '_' || matrix_key.task_type || '_' || phase.key AS phase_name
-    FROM tmp_state_matrix_key matrix_key
-    JOIN config ON config.config_key = matrix_key.config_key AND config.config_user = 0
-    CROSS JOIN LATERAL jsonb_each((config.config_value::jsonb)->'config_value') AS phase
+        matrix_phase_config.configuration_name,
+        matrix_phase_config.task_type,
+        matrix_phase_config.phase,
+        matrix_phase_config.configuration_name || '_' || matrix_phase_config.task_type || '_' || matrix_phase_config.phase AS phase_name
+    FROM tmp_state_matrix_phase matrix_phase_config
 )
 INSERT INTO request.workflow_configuration_phase (configuration_id, task_type, phase, phase_matrix_id)
 SELECT configuration.id, phase_data.task_type, phase_data.phase, matrix_phase.id
@@ -195,15 +215,13 @@ ON CONFLICT (configuration_id, task_type, phase) DO NOTHING;
 
 WITH phase_data AS (
     SELECT
-        matrix_key.configuration_name,
-        matrix_key.task_type,
-        phase.key AS phase,
+        matrix_phase_config.configuration_name,
+        matrix_phase_config.task_type,
+        matrix_phase_config.phase,
         matrix_phase.id AS phase_matrix_id,
-        matrix_key.configuration_name || '_' || matrix_key.task_type || '_' || phase.key || '_transitions' AS group_name
-    FROM tmp_state_matrix_key matrix_key
-    JOIN config ON config.config_key = matrix_key.config_key AND config.config_user = 0
-    CROSS JOIN LATERAL jsonb_each((config.config_value::jsonb)->'config_value') AS phase
-    JOIN request.state_matrix_phase matrix_phase ON matrix_phase.name = matrix_key.configuration_name || '_' || matrix_key.task_type || '_' || phase.key
+        matrix_phase_config.configuration_name || '_' || matrix_phase_config.task_type || '_' || matrix_phase_config.phase || '_transitions' AS group_name
+    FROM tmp_state_matrix_phase matrix_phase_config
+    JOIN request.state_matrix_phase matrix_phase ON matrix_phase.name = matrix_phase_config.configuration_name || '_' || matrix_phase_config.task_type || '_' || matrix_phase_config.phase
 )
 INSERT INTO request.state_matrix_transition_group (name, description, phase, visibility_group_id)
 SELECT group_name, 'Migrated transitions for ' || group_name, phase, NULL
@@ -212,15 +230,13 @@ ON CONFLICT (name) DO NOTHING;
 
 WITH phase_data AS (
     SELECT
-        matrix_key.configuration_name,
-        matrix_key.task_type,
-        phase.key AS phase,
+        matrix_phase_config.configuration_name,
+        matrix_phase_config.task_type,
+        matrix_phase_config.phase,
         matrix_phase.id AS phase_matrix_id,
-        matrix_key.configuration_name || '_' || matrix_key.task_type || '_' || phase.key || '_transitions' AS group_name
-    FROM tmp_state_matrix_key matrix_key
-    JOIN config ON config.config_key = matrix_key.config_key AND config.config_user = 0
-    CROSS JOIN LATERAL jsonb_each((config.config_value::jsonb)->'config_value') AS phase
-    JOIN request.state_matrix_phase matrix_phase ON matrix_phase.name = matrix_key.configuration_name || '_' || matrix_key.task_type || '_' || phase.key
+        matrix_phase_config.configuration_name || '_' || matrix_phase_config.task_type || '_' || matrix_phase_config.phase || '_transitions' AS group_name
+    FROM tmp_state_matrix_phase matrix_phase_config
+    JOIN request.state_matrix_phase matrix_phase ON matrix_phase.name = matrix_phase_config.configuration_name || '_' || matrix_phase_config.task_type || '_' || matrix_phase_config.phase
 )
 INSERT INTO request.state_matrix_phase_transition_group (phase_matrix_id, transition_group_id, sort_order)
 SELECT phase_data.phase_matrix_id, transition_group.id, 0
@@ -230,12 +246,10 @@ ON CONFLICT (phase_matrix_id, transition_group_id) DO NOTHING;
 
 WITH phase_data AS (
     SELECT
-        phase.value AS phase_config,
+        matrix_phase_config.phase_config,
         transition_group.id AS transition_group_id
-    FROM tmp_state_matrix_key matrix_key
-    JOIN config ON config.config_key = matrix_key.config_key AND config.config_user = 0
-    CROSS JOIN LATERAL jsonb_each((config.config_value::jsonb)->'config_value') AS phase
-    JOIN request.state_matrix_transition_group transition_group ON transition_group.name = matrix_key.configuration_name || '_' || matrix_key.task_type || '_' || phase.key || '_transitions'
+    FROM tmp_state_matrix_phase matrix_phase_config
+    JOIN request.state_matrix_transition_group transition_group ON transition_group.name = matrix_phase_config.configuration_name || '_' || matrix_phase_config.task_type || '_' || matrix_phase_config.phase || '_transitions'
 ),
 transition_data AS (
     SELECT
@@ -256,12 +270,10 @@ ON CONFLICT (transition_group_id, from_state_id, to_state_id) DO NOTHING;
 
 WITH phase_data AS (
     SELECT
-        phase.value AS phase_config,
+        matrix_phase_config.phase_config,
         matrix_phase.id AS phase_matrix_id
-    FROM tmp_state_matrix_key matrix_key
-    JOIN config ON config.config_key = matrix_key.config_key AND config.config_user = 0
-    CROSS JOIN LATERAL jsonb_each((config.config_value::jsonb)->'config_value') AS phase
-    JOIN request.state_matrix_phase matrix_phase ON matrix_phase.name = matrix_key.configuration_name || '_' || matrix_key.task_type || '_' || phase.key
+    FROM tmp_state_matrix_phase matrix_phase_config
+    JOIN request.state_matrix_phase matrix_phase ON matrix_phase.name = matrix_phase_config.configuration_name || '_' || matrix_phase_config.task_type || '_' || matrix_phase_config.phase
 ),
 derived_state_data AS (
     SELECT
@@ -279,6 +291,8 @@ JOIN request.state from_state ON from_state.id = derived_state_data.from_state_i
 JOIN request.state derived_state ON derived_state.id = derived_state_data.derived_state_id
 ON CONFLICT (phase_matrix_id, from_state_id) DO NOTHING;
 
+DROP TABLE IF EXISTS pg_temp.tmp_state_matrix_phase;
+DROP TABLE IF EXISTS pg_temp.tmp_state_matrix_value;
 DROP TABLE IF EXISTS pg_temp.tmp_state_matrix_key;
 END;
 $state_matrix_migration$;

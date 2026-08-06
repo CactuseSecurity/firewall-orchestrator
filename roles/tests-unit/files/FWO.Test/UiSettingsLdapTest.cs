@@ -23,18 +23,31 @@ namespace FWO.Test
     internal class UiSettingsLdapTest
     {
         private string? mainKeyFilePath;
+        private bool mainKeyFileAvailable;
 
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
             mainKeyFilePath = GlobalConst.kMainKeyFile;
-            string? keyDirectory = Path.GetDirectoryName(mainKeyFilePath);
-            if (!string.IsNullOrWhiteSpace(keyDirectory))
+            try
             {
-                Directory.CreateDirectory(keyDirectory);
-            }
+                string? keyDirectory = Path.GetDirectoryName(mainKeyFilePath);
+                if (!string.IsNullOrWhiteSpace(keyDirectory))
+                {
+                    Directory.CreateDirectory(keyDirectory);
+                }
 
-            File.WriteAllText(mainKeyFilePath, "0123456789ABCDEF0123456789ABCDEF");
+                File.WriteAllText(mainKeyFilePath, "0123456789ABCDEF0123456789ABCDEF");
+                mainKeyFileAvailable = true;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                mainKeyFileAvailable = false;
+            }
+            catch (IOException)
+            {
+                mainKeyFileAvailable = false;
+            }
         }
 
         [OneTimeTearDown]
@@ -353,6 +366,7 @@ namespace FWO.Test
         [Test]
         public async Task Save_AddModePersistsNewLdap()
         {
+            Assume.That(mainKeyFileAvailable, "Requires a writable main key file path for password encryption.");
             RecordingLdapApiConnection apiConnection = new();
             TestMiddlewareClient middlewareClient = new("https://middleware.example/");
             middlewareClient.UseHandler(new SingleResponseHandler(HttpStatusCode.OK, "11"));
@@ -381,6 +395,7 @@ namespace FWO.Test
         [Test]
         public async Task Save_AddModeShowsSanitizeWarningWhenInputIsTrimmed()
         {
+            Assume.That(mainKeyFileAvailable, "Requires a writable main key file path for password encryption.");
             RecordingLdapApiConnection apiConnection = new();
             TestMiddlewareClient middlewareClient = new("https://middleware.example/");
             middlewareClient.UseHandler(new SingleResponseHandler(HttpStatusCode.OK, "12"));
@@ -406,6 +421,7 @@ namespace FWO.Test
         [Test]
         public async Task Save_UpdateModePersistsEditedLdap()
         {
+            Assume.That(mainKeyFileAvailable, "Requires a writable main key file path for password encryption.");
             RecordingLdapApiConnection apiConnection = new();
             TestMiddlewareClient middlewareClient = new("https://middleware.example/");
             middlewareClient.UseHandler(new RoutingMiddlewareHandler
@@ -434,6 +450,7 @@ namespace FWO.Test
         [Test]
         public async Task Save_UpdateModeShowsMessageWhenUpdateFails()
         {
+            Assume.That(mainKeyFileAvailable, "Requires a writable main key file path for password encryption.");
             RecordingLdapApiConnection apiConnection = new();
             TestMiddlewareClient middlewareClient = new("https://middleware.example/");
             middlewareClient.UseHandler(new RoutingMiddlewareHandler
@@ -462,6 +479,7 @@ namespace FWO.Test
         [Test]
         public async Task Save_ShowsMessageWhenAddFails()
         {
+            Assume.That(mainKeyFileAvailable, "Requires a writable main key file path for password encryption.");
             RecordingLdapApiConnection apiConnection = new();
             TestMiddlewareClient middlewareClient = new("https://middleware.example/");
             middlewareClient.UseHandler(new SingleResponseHandler(HttpStatusCode.InternalServerError, "0"));

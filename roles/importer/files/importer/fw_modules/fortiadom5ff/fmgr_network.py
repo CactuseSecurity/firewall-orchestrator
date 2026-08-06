@@ -115,12 +115,12 @@ def normalize_network_object(
         normalize_vip_object(obj_orig, obj, nw_objects)
     elif "wildcard-fqdn" in obj_orig or "fqdn" in obj_orig:  # domain or wildcard-domain
         obj.update({"obj_typ": "domain"})
-        obj.update({"obj_ip": ANY_IP_START})
-        obj.update({"obj_ip_end": ANY_IP_END})
+        obj.update({"obj_ip": None})
+        obj.update({"obj_ip_end": None})
     elif "q_origin_key" in obj_orig:
         obj.update({"obj_typ": "dynamic_net_obj"})
-        obj.update({"obj_ip": ANY_IP_START})
-        obj.update({"obj_ip_end": ANY_IP_END})
+        obj.update({"obj_ip": None})
+        obj.update({"obj_ip_end": None})
     else:  # unknown types
         obj.update({"obj_typ": "network"})
         obj.update({"obj_ip": ANY_IP_START})

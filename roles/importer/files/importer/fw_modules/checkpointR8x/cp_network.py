@@ -14,6 +14,8 @@ from fwo_log import FWOLogger
 from models.time_object import TimeObject
 from services.service_provider import ServiceProvider
 
+OBJECT_TYPES_WITHOUT_STATIC_IP = ["group", "dynamic_net_obj", "domain"]
+
 
 def normalize_network_objects(
     full_config: dict[str, Any], config2import: dict[str, Any], import_id: int, mgm_id: int = 0
@@ -43,7 +45,7 @@ def normalize_network_objects(
 
 
 def set_dummy_ip_for_object_without_ip(nw_obj: dict[str, Any]) -> None:
-    if nw_obj["obj_typ"] != "group" and (nw_obj["obj_ip"] is None or nw_obj["obj_ip"] == ""):
+    if nw_obj["obj_typ"] not in OBJECT_TYPES_WITHOUT_STATIC_IP and (nw_obj["obj_ip"] is None or nw_obj["obj_ip"] == ""):
         FWOLogger.warning(
             "found object without IP :" + nw_obj["obj_name"] + " (type=" + nw_obj["obj_typ"] + ") - setting dummy IP"
         )
@@ -162,8 +164,8 @@ def handle_object_type_and_ip(obj: dict[str, Any], ip_addr: str | None) -> tuple
         obj_type = obj["type"]
 
     if obj_type == "updatable-object":
-        first_ip = ANY_IP_START
-        last_ip = ANY_IP_END
+        first_ip = None
+        last_ip = None
         obj_type = "dynamic_net_obj"
 
     if obj_type in ["group-with-exclusion", "security-zone", "dynamic-object"]:
@@ -172,8 +174,8 @@ def handle_object_type_and_ip(obj: dict[str, Any], ip_addr: str | None) -> tuple
 
     if obj_type == "dns-domain":
         obj_type = "domain"
-        first_ip = ANY_IP_START
-        last_ip = ANY_IP_END
+        first_ip = None
+        last_ip = None
 
     if obj_type == "security-zone":
         first_ip = ANY_IP_START

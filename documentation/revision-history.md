@@ -598,3 +598,6 @@ Not supported any longer are:
 - ! breaking change: old hard-coded default value "Datum-Regelpruefung" is dropped and replaced, so existing installations using this feature be impacted!
 - changed workflow email CSV/JSON output and firewall request popup to separate current, added and removed group members
 - various memory leakage fixes in UI
+
+## 9.3.2 - 06.08.2026
+- normalize and import fqdn and dynamic ip network objects with ip=null instead of 0.0.0.0/0

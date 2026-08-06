@@ -2517,6 +2517,22 @@
                   "comment": ""
                 }
               ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "log_count",
+                      "allowed",
+                      "log_time",
+                      "logging_rule_name"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ],
               "delete_permissions": [
                 {
                   "role": "middleware-server",

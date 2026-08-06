@@ -1,5 +1,11 @@
 mutation insertLogEntries($entries: [logging_log_entry_insert_input!]!) {
-  insert_logging_log_entry(objects: $entries) {
+  insert_logging_log_entry(
+    objects: $entries
+    on_conflict: {
+      constraint: log_entry_unique_flow
+      update_columns: [log_count, allowed, log_time, logging_rule_name]
+    }
+  ) {
     affected_rows
   }
 }

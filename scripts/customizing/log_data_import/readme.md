@@ -12,6 +12,8 @@ Set `importLogDataPath` to the extensionless full path of this script. The sched
 
 The mandatory CSV headers are `App ID`, `Log count`, `Src IP`, `Dst IP`, and `Port`. Optional headers are `Protocol`, `Action`, `Log timestamp`, and `Rule name`. `Protocol` uses IP protocol numbers. A nonempty port is permitted only with TCP (`6`) or UDP (`17`).
 
+The database keeps one row per application, source, destination and service. Repeated entries for the same flow are not stored a second time: entries which are repeated inside one import file are merged into a single entry with the summed log count, and an entry which is already stored is updated with the imported log count, action, log time and rule name instead of being inserted again. An entry without a protocol or without a port counts as one distinct flow, not as a wildcard.
+
 The generated JSON interface is:
 
 ```json

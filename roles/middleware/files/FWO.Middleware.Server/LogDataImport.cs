@@ -83,12 +83,39 @@ namespace FWO.Middleware.Server
             }
         }
 
+        /// <summary>
+        /// Merges entries describing the same flow of the same owner into a single entry.
+        /// The database keeps one row per owner, source, destination and service, so one batch
+        /// must not contain the same flow twice.
+        /// </summary>
+        /// <returns>The entries without duplicated flows.</returns>
+        public static List<LogEntryInput> MergeDuplicateEntries(List<LogEntryInput> entries)
+        {
+            Dictionary<string, LogEntryInput> mergedEntries = new();
+            foreach (LogEntryInput entry in entries)
+            {
+                string flowKey = BuildFlowKey(entry);
+                if (mergedEntries.TryGetValue(flowKey, out LogEntryInput? mergedEntry))
+                {
+                    MergeIntoEntry(mergedEntry, entry);
+                }
+                else
+                {
+                    mergedEntries.Add(flowKey, entry);
+                }
+            }
+            return mergedEntries.Values.ToList();
+        }
+
         private async Task SaveEntries(List<LogDataImportEntry> sourceEntries, string sourcePath)
         {
             DateTimeOffset importTime = DateTimeOffset.UtcNow;
             List<LogEntryInput> entries = NormalizeEntries(sourceEntries, globalConfig.ImportLogDataMaxEntries, importTime);
             int discardedEntries = Math.Max(0, sourceEntries.Count - entries.Count);
             await ResolveOwners(entries, sourceEntries);
+            int entriesBeforeMerge = entries.Count;
+            entries = MergeDuplicateEntries(entries);
+            int mergedEntries = entriesBeforeMerge - entries.Count;
             if (entries.Count == 0)
             {
                 await AddLogEntry(GlobalConst.kImportLogData, 1, LevelFile, $"No valid log entries found in {sourcePath}.json.");
@@ -111,6 +138,10 @@ namespace FWO.Middleware.Server
             if (discardedEntries > 0)
             {
                 message += $"; discarded {discardedEntries} entries below the configured limit.";
+            }
+            if (mergedEntries > 0)
+            {
+                message += $"; merged {mergedEntries} repeated entries of the same flow.";
             }
             Log.WriteInfo(LogMessageTitle, message);
             await AddLogEntry(GlobalConst.kImportLogData, 0, LevelFile, message);
@@ -210,6 +241,22 @@ namespace FWO.Middleware.Server
                 LogTime = entry.LogTime ?? importTime,
                 LoggingRuleName = NormalizeRuleName(entry.RuleName)
             };
+        }
+
+        private static string BuildFlowKey(LogEntryInput entry)
+        {
+            return string.Join('|', entry.OwnerId, entry.Source, entry.Destination, entry.ServiceProtocol, entry.ServicePort);
+        }
+
+        private static void MergeIntoEntry(LogEntryInput mergedEntry, LogEntryInput entry)
+        {
+            mergedEntry.LogCount = (int)Math.Min(int.MaxValue, (long)mergedEntry.LogCount + entry.LogCount);
+            if (entry.LogTime >= mergedEntry.LogTime)
+            {
+                mergedEntry.LogTime = entry.LogTime;
+                mergedEntry.Allowed = entry.Allowed;
+                mergedEntry.LoggingRuleName = entry.LoggingRuleName;
+            }
         }
 
         private static string ToSingleIpCidr(string value)

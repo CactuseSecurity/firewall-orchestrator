@@ -10,6 +10,11 @@ CREATE TABLE IF NOT EXISTS logging.log_entry
     destination CIDR NOT NULL,
     service_protocol INTEGER,
     service_port INTEGER,
+    -- a null value is distinct from every other value in a unique constraint, so the nullable
+    -- service columns are mapped to a value that can never be a real protocol or port to keep
+    -- one row per logged flow even when the service is only partly known
+    service_protocol_key INTEGER GENERATED ALWAYS AS (COALESCE(service_protocol, -1)) STORED,
+    service_port_key INTEGER GENERATED ALWAYS AS (COALESCE(service_port, -1)) STORED,
     allowed BOOLEAN NOT NULL DEFAULT TRUE,
     modelled BOOLEAN NOT NULL DEFAULT FALSE,
     log_time TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
@@ -24,7 +29,10 @@ CREATE TABLE IF NOT EXISTS logging.log_entry
     (
         (family(destination) = 4 AND masklen(destination) = 32)
         OR (family(destination) = 6 AND masklen(destination) = 128)
-    )
+    ),
+    -- one row per owner and logged flow, repeated imports of the same flow update that row
+    CONSTRAINT log_entry_unique_flow UNIQUE
+        (owner_id, source, destination, service_protocol_key, service_port_key)
 );
 
 ALTER TABLE logging.log_entry DROP CONSTRAINT IF EXISTS log_entry_service_protocol_foreign_key;

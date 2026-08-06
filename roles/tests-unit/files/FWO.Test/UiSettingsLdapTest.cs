@@ -9,6 +9,7 @@ using FWO.Test.Mocks;
 using FWO.Ui.Pages.Settings;
 using NUnit.Framework;
 using RestSharp;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -21,6 +22,30 @@ namespace FWO.Test
     [TestFixture]
     internal class UiSettingsLdapTest
     {
+        private string? mainKeyFilePath;
+
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
+        {
+            mainKeyFilePath = GlobalConst.kMainKeyFile;
+            string? keyDirectory = Path.GetDirectoryName(mainKeyFilePath);
+            if (!string.IsNullOrWhiteSpace(keyDirectory))
+            {
+                Directory.CreateDirectory(keyDirectory);
+            }
+
+            File.WriteAllText(mainKeyFilePath, "0123456789ABCDEF0123456789ABCDEF");
+        }
+
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
+        {
+            if (!string.IsNullOrWhiteSpace(mainKeyFilePath) && File.Exists(mainKeyFilePath))
+            {
+                File.Delete(mainKeyFilePath);
+            }
+        }
+
         [SetUp]
         public void SetUp()
         {

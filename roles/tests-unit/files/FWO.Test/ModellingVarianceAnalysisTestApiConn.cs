@@ -15,10 +15,48 @@ namespace FWO.Test
         static readonly NetworkObject NwObj2 = new() { Id = 11, Name = "AppServerOld", IP = "1.0.0.0", Type = new() { Name = ObjectType.Host } };
         static readonly NetworkObject Nwgroup1 = new() { Id = 1, Name = "AR504711-001", Type = new() { Name = ObjectType.Group }, ObjectGroupFlats = [new() { Object = NwObj1 }, new() { Object = NwObj2 }] };
         static readonly NetworkObject Nwgroup3 = new() { Id = 3, Name = "AR504711-003", Type = new() { Name = ObjectType.Group }, ObjectGroupFlats = [new() { Object = NwObj1 }] };
-        static readonly NetworkObject SpecObj1 = new() { Id = 21, Name = "SpecObj1", Type = new() { Name = "Something else" } };
-        static readonly NetworkObject SpecObj2 = new() { Id = 21, Name = "SpecObj2", Type = new() { Name = "Something else" } };
-        static readonly NetworkObject UpdObj1 = new() { Id = 31, Name = "UpdObj1", Type = new() { Name = "Something else" } };
-        static readonly NetworkObject UpdObj2 = new() { Id = 32, Name = "UpdObj2", Type = new() { Name = "Something else" } };
+        static readonly NetworkObject SpecObj1 = new()
+        {
+            Id = 21,
+            Name = "SpecObj1",
+            IP = "0.0.0.0/32",
+            IpEnd = "0.0.0.0/32",
+            Type = new() { Name = ObjectType.AccessRole }
+        };
+
+        static readonly NetworkObject SpecObj2 = new()
+        {
+            Id = 22,
+            Name = "SpecObj2",
+            IP = "0.0.0.0/32",
+            IpEnd = "0.0.0.0/32",
+            Type = new() { Name = ObjectType.AccessRole }
+        };
+
+        static readonly NetworkObject SpecObjWithoutIp = new()
+        {
+            Id = 23,
+            Name = "SpecObjWithoutIp",
+            Type = new() { Name = ObjectType.AccessRole }
+        };
+
+        static readonly NetworkObject UpdObj1 = new()
+        {
+            Id = 31,
+            Name = "UpdObj1",
+            IP = "0.0.0.0/32",
+            IpEnd = "255.255.255.255/32",
+            Type = new() { Name = ObjectType.DynamicNetObj }
+        };
+
+        static readonly NetworkObject UpdObj2 = new()
+        {
+            Id = 32,
+            Name = "UpdObj2",
+            IP = "0.0.0.0/32",
+            IpEnd = "255.255.255.255/32",
+            Type = new() { Name = ObjectType.DynamicNetObj }
+        };
 
         static readonly ModellingAppServer AppServer1 = new() { Id = 13, Name = "AppServerUnchanged", Ip = "1.2.3.4/32", IpEnd = "1.2.3.4/32" };
         static readonly ModellingAppServer AppServer2 = new() { Id = 14, Name = "AppServerNew1_32", Ip = "1.1.1.1/32", IpEnd = "1.1.1.1/32" };
@@ -133,6 +171,14 @@ namespace FWO.Test
             Tos = [new(new(), Nwgroup3)],
             Services = [new() { Content = Svc1 }]
         };
+        static readonly Rule Rule14 = new()
+        {
+            Name = "FWOC12",
+            MgmtId = 1,
+            Froms = [new(new(), SpecObjWithoutIp), new(new(), NwObj1)],
+            Tos = [new(new(), Nwgroup3)],
+            Services = [new() { Content = Svc1 }]
+        };
         static readonly DeviceReport DevRep1 = new()
         {
             Id = 1,
@@ -203,7 +249,7 @@ namespace FWO.Test
             }
             else if (responseType == typeof(List<Rule>))
             {
-                GraphQLResponse<dynamic> response = new() { Data = new List<Rule>() { new(Rule1), new(Rule2), new(Rule3), new(Rule4), new(Rule5), new(Rule6), new(Rule7), new(Rule8), new(Rule9), new(Rule10), new(Rule11), new(Rule12), new(Rule13) } };
+                GraphQLResponse<dynamic> response = new() { Data = new List<Rule>() { new(Rule1), new(Rule2), new(Rule3), new(Rule4), new(Rule5), new(Rule6), new(Rule7), new(Rule8), new(Rule9), new(Rule10), new(Rule11), new(Rule12), new(Rule13), new(Rule14) } };
                 return response.Data;
             }
             else if (responseType == typeof(List<ModellingConnection>))

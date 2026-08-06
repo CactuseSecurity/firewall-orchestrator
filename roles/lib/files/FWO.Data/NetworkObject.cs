@@ -1,7 +1,8 @@
+using FWO.Basics;
+using FWO.Data.Flow;
 using NetTools;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
-using FWO.Data.Flow;
 
 namespace FWO.Data
 {
@@ -105,6 +106,18 @@ namespace FWO.Data
         {
             return IP == "0.0.0.0/32" && IpEnd == "255.255.255.255/32" ||
                 IP == "::/128" && IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128";
+        }
+
+        /// <summary>
+        /// True for imported object types whose IP fields do not carry stable identity for rule comparison.
+        /// NetworkObjectComparer compares these objects by type and name regardless of NwRegardIp and NwRegardName.
+        /// Modelled network objects keep the default empty type name, so they are not treated as special identity objects.
+        /// </summary>
+        public bool IsSpecialConfigObjectType()
+        {
+            return string.Equals(Type.Name, ObjectType.DynamicNetObj, StringComparison.Ordinal)
+                || string.Equals(Type.Name, ObjectType.AccessRole, StringComparison.Ordinal)
+                || string.Equals(Type.Name, ObjectType.Domain, StringComparison.Ordinal);
         }
 
         public static List<NetworkObject> FlattenRuleNetworkObjects(IEnumerable<NetworkObject> objects)

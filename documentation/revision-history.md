@@ -601,3 +601,4 @@ Not supported any longer are:
 
 ## 9.3.2 - 06.08.2026
 - fix upgrade failure when migrating workflow state matrices with non-JSON configuration values
+- Fixed variance-analysis comparison for imported identity network objects such as Check Point updatable objects and access roles. These objects are now compared by object type and name instead of placeholder IP fields.

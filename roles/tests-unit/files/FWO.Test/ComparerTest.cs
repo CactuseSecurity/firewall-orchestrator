@@ -40,6 +40,8 @@ namespace FWO.Test
         static readonly NetworkObject DynamicObj1OtherIp = new() { Name = "DynamicObj1", IP = "1.1.1.1", IpEnd = "1.1.1.1", Type = new() { Name = ObjectType.DynamicNetObj } };
         static readonly NetworkObject AccessRoleObj1 = new() { Name = "AccessRoleObj1", IP = "0.0.0.0/32", IpEnd = "0.0.0.0/32", Type = new() { Name = ObjectType.AccessRole } };
         static readonly NetworkObject AccessRoleObj2 = new() { Name = "AccessRoleObj2", IP = "0.0.0.0/32", IpEnd = "0.0.0.0/32", Type = new() { Name = ObjectType.AccessRole } };
+        static readonly NetworkObject DomainObj1 = new() { Name = "DomainObj1", IP = "0.0.0.0/32", IpEnd = "255.255.255.255/32", Type = new() { Name = ObjectType.Domain } };
+        static readonly NetworkObject DomainObj2 = new() { Name = "DomainObj2", IP = "0.0.0.0/32", IpEnd = "255.255.255.255/32", Type = new() { Name = ObjectType.Domain } };
 
         static readonly NetworkObject NonSpecialObjSameNameAndIp = new()
         {
@@ -256,10 +258,13 @@ namespace FWO.Test
             ClassicAssert.IsFalse(networkObjectComparer.Equals(DynamicObj1, DynamicObj2));
             ClassicAssert.IsTrue(networkObjectComparer.Equals(DynamicObj1, DynamicObj1OtherIp));
             ClassicAssert.IsFalse(networkObjectComparer.Equals(AccessRoleObj1, AccessRoleObj2));
+            ClassicAssert.IsFalse(networkObjectComparer.Equals(DomainObj1, DomainObj2));
             ClassicAssert.IsFalse(networkObjectComparer.Equals(DynamicObj1, NonSpecialObjSameNameAndIp));
+
             ClassicAssert.IsFalse(networkObjectComparer.GetHashCode(DynamicObj1) == networkObjectComparer.GetHashCode(DynamicObj2));
             ClassicAssert.IsTrue(networkObjectComparer.GetHashCode(DynamicObj1) == networkObjectComparer.GetHashCode(DynamicObj1OtherIp));
             ClassicAssert.IsFalse(networkObjectComparer.GetHashCode(AccessRoleObj1) == networkObjectComparer.GetHashCode(AccessRoleObj2));
+            ClassicAssert.IsFalse(networkObjectComparer.GetHashCode(DomainObj1) == networkObjectComparer.GetHashCode(DomainObj2));
             ClassicAssert.IsFalse(networkObjectComparer.GetHashCode(DynamicObj1) == networkObjectComparer.GetHashCode(NonSpecialObjSameNameAndIp));
         }
 

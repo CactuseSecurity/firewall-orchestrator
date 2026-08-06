@@ -590,7 +590,7 @@ namespace FWO.Test
 
                 if (query == ConfigQueries.getConfigItemsByUser && typeof(QueryResponseType) == typeof(ConfigItem[]))
                 {
-                    return Task.FromResult((QueryResponseType)(object)new ConfigItem[0]);
+                    return Task.FromResult((QueryResponseType)(object)Array.Empty<ConfigItem>());
                 }
 
                 if (query == DeviceQueries.getDevicesByManagement && typeof(QueryResponseType) == typeof(List<ManagementSelect>))

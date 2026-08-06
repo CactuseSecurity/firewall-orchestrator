@@ -96,7 +96,7 @@ namespace FWO.Test
 
                 if (query == RecertQueries.clearOpenRecerts && typeof(QueryResponseType) == typeof(ReturnIdWrapper))
                 {
-                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper { ReturnIds = new ReturnId[0] });
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper { ReturnIds = Array.Empty<ReturnId>() });
                 }
 
                 if (query == RecertQueries.refreshViewRuleWithOwner && typeof(QueryResponseType) == typeof(List<OwnerRefresh>))
@@ -117,7 +117,7 @@ namespace FWO.Test
 
                 if (query == RecertQueries.addRecertEntries && typeof(QueryResponseType) == typeof(ReturnIdWrapper))
                 {
-                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper { ReturnIds = new ReturnId[0] });
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper { ReturnIds = Array.Empty<ReturnId>() });
                 }
 
                 throw new InvalidOperationException($"Unexpected query: {query}");

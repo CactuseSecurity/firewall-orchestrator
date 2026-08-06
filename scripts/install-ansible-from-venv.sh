@@ -23,7 +23,8 @@ main() {
     case "${ID_LIKE:-$ID}" in
         *debian*)
             sudo apt update || return $?
-            sudo apt install python3-venv build-essential libldap2-dev libsasl2-dev -y || return $?
+            # python3-dev supplies Python.h, which python-ldap needs to build its C extension.
+            sudo apt install python3-venv python3-dev build-essential libldap2-dev libsasl2-dev -y || return $?
             ;;
         *rhel*|*fedora*)
             sudo dnf install python3.11 python3.11-pip python3.11-devel gcc openldap-devel cyrus-sasl-devel -y || return $?

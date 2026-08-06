@@ -597,4 +597,5 @@ Not supported any longer are:
 - make rule change-ID custom field names configurable in compliance settings
 - ! breaking change: old hard-coded default value "Datum-Regelpruefung" is dropped and replaced, so existing installations using this feature be impacted!
 - changed workflow email CSV/JSON output and firewall request popup to separate current, added and removed group members
+- various memory leakage fixes in UI
 - Fixed variance-analysis comparison for imported identity network objects such as Check Point updatable objects and access roles. These objects are now compared by object type and name instead of placeholder IP fields.

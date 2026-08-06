@@ -5,6 +5,7 @@ INSERT INTO language ("name", "culture_info") VALUES('English', 'en-US');
 insert into uiuser (uiuser_id, uiuser_username, uuid) VALUES (0,'default', 'default');
 
 insert into config (config_key, config_value, config_user) VALUES ('DefaultLanguage', 'English', 0);
+insert into config (config_key, config_value, config_user) VALUES ('colorScheme', 'color_scheme_blue', 0);
 insert into config (config_key, config_value, config_user) VALUES ('uiHostName', 'http://localhost:5000', 0);
 -- insert into config (config_key, config_value, config_user) VALUES ('maxMessages', '3', 0);
 insert into config (config_key, config_value, config_user) VALUES ('elementsPerFetch', '100', 0);

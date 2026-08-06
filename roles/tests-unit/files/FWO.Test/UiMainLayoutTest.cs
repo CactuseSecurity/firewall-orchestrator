@@ -56,6 +56,11 @@ namespace FWO.Test
             GetPrivateField(name).SetValue(layout, value);
         }
 
+        private static void InvokeAuthenticationStateChanged(MainLayout layout, Task<AuthenticationState> authStateTask)
+        {
+            GetPrivateMethod("OnAuthenticationStateChanged").Invoke(layout, [authStateTask]);
+        }
+
         private static List<string> GetAmbientRolesForRoute(MainLayout layout, string route)
         {
             return (List<string>)GetPrivateMethod("GetAmbientRolesForLocation").Invoke(layout, [route])!;
@@ -318,6 +323,30 @@ namespace FWO.Test
 
             authProvider.PublishAuthenticatedState();
 
+            fixture.Layout.WaitForAssertion(() =>
+            {
+                Assert.That(fixture.ApiConnection.AmbientRoleSelections, Is.Not.Empty);
+                Assert.That(fixture.ApiConnection.AmbientRoleSelections[0], Is.EqualTo(Roles.Modeller));
+            });
+        }
+
+        [Test]
+        public async Task AuthenticationStateChanged_WhenTheNewStateFails_KeepsTheLayoutUsable()
+        {
+            // the handler is started rather than awaited, so a failing state must be swallowed inside it:
+            // an exception escaping the handler would reach the synchronization context and kill the circuit
+            await using MainLayoutFixture fixture = new(roles: [Roles.Modeller, Roles.Auditor], initialUri: "http://localhost/networkmodelling");
+            MainLayout layout = fixture.Layout.Instance;
+            fixture.ApiConnection.AmbientRoleSelections.Clear();
+
+            Assert.DoesNotThrow(() => InvokeAuthenticationStateChanged(layout,
+                Task.FromException<AuthenticationState>(new InvalidOperationException("no state"))));
+
+            List<Claim> claims = [new(ClaimTypes.Name, "tester"), new(ClaimTypes.Role, Roles.Modeller)];
+            ClaimsPrincipal user = new(new ClaimsIdentity(claims, "Test"));
+            InvokeAuthenticationStateChanged(layout, Task.FromResult(new AuthenticationState(user)));
+
+            // the failed state must not have left the layout deaf to the next one
             fixture.Layout.WaitForAssertion(() =>
             {
                 Assert.That(fixture.ApiConnection.AmbientRoleSelections, Is.Not.Empty);

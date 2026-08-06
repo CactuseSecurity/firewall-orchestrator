@@ -599,6 +599,9 @@ Not supported any longer are:
 - changed workflow email CSV/JSON output and firewall request popup to separate current, added and removed group members
 - various memory leakage fixes in UI
 
+## 9.3.2 - 06.08.2026
+- fix upgrade failure when migrating workflow state matrices with non-JSON configuration values
+
 ## 9.3.3 - 06.08.2026
 - add nat import for checkpoint and forti firewall managements
 - fix checkpoint import policy install detection

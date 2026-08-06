@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Any, cast
+from typing import Annotated, Any, cast
 
+import netaddr
 from fw_modules.opnsense25ff.opnsense_constants import OPNSENSE_UUID_ALIAS
-from pydantic import AliasPath, BaseModel, ConfigDict, Field, field_validator
+from pydantic import AliasPath, BaseModel, ConfigDict, Field, PlainSerializer, PlainValidator, field_validator
 
-if TYPE_CHECKING:
-    from netaddr import IPAddress, IPNetwork
-else:
-    from netaddr_pydantic import IPAddress, IPNetwork  # noqa: TC002
+# netaddr_pydantic only supports Python >= 3.11, but this importer still supports 3.10, so we
+# inline its (trivial) IPAddress/IPNetwork wrappers here instead of depending on it: validate
+# from str/int via the netaddr constructors, serialize back to str.
+IPAddress = Annotated[netaddr.IPAddress, PlainValidator(netaddr.IPAddress), PlainSerializer(str)]
+IPNetwork = Annotated[netaddr.IPNetwork, PlainValidator(netaddr.IPNetwork), PlainSerializer(str)]
 
 
 def _normalize_to_str_list(value: Any, separator: str = ",") -> list[str]:

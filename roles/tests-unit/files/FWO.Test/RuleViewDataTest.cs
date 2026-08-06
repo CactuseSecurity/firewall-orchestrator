@@ -126,6 +126,25 @@ namespace FWO.Test
         }
 
         [Test]
+        public void RuleViewData_ResolvesChangeIdRegardlessOfCustomFieldCasing()
+        {
+            GlobalConfig globalConfig = new SimulatedGlobalConfig
+            {
+                CustomFieldChangeIdKey = "[\"ChangeID\"]"
+            };
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig, registerOnChangeHandler: false);
+            NatRuleDisplayHtml ruleDisplay = new(userConfig);
+            Rule rule = new()
+            {
+                CustomFields = "{'changeid':'CHG-77'}"
+            };
+
+            RuleViewData viewData = new(rule, ruleDisplay, OutputLocation.report, true);
+
+            Assert.That(viewData.ChangeID, Is.EqualTo("CHG-77"));
+        }
+
+        [Test]
         public void RuleViewData_UsesDefaultChangeIdCustomFieldKeys()
         {
             UserConfig userConfig = new();

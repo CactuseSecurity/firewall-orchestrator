@@ -48,7 +48,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getRuleIdsByRuleOwner;
         public static readonly string getActiveRulesByOwner;
         public static readonly string getModelledRulesByRuleOwnerNameField;
-
+        public static readonly string getNameFieldRuleOwnerPreFilterCompletenessRules;
 
         static RuleQueries()
         {
@@ -137,6 +137,7 @@ namespace FWO.Api.Client.Queries
                 getRuleIdsByRuleOwner = GetQueryText("rule/getRuleIdsByRuleOwner.graphql");
                 getActiveRulesByOwner = GetQueryText("rule/getActiveRulesByOwner.graphql");
                 getModelledRulesByRuleOwnerNameField = ruleDetailsForReportFragments + GetQueryText("report/getModelledRulesByRuleOwnerNameField.graphql");
+                getNameFieldRuleOwnerPreFilterCompletenessRules = GetQueryText("report/getNameFieldRuleOwnerPreFilterCompletenessRules.graphql");
             }
             catch (Exception exception)
             {

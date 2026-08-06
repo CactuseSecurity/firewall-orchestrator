@@ -140,6 +140,10 @@ class FwConfigImportRule:
         num_inserted_rules += num_inserted_nat_rules
         self.uid2id_mapper.add_rule_mappings(inserted_nat_rule_ids)
 
+        # repoint xlate_rule FKs left stale on NAT "original" rows whose translated
+        # counterpart changed (and got a new rule_id) without the original row itself changing
+        self.fixup_stale_xlate_rule_fks(curr_rules, changed_rule_uids, added_rule_uids)
+
         refs_added = self.add_new_refs(prev_config)
 
         num_set_removed_rules, _removed_rule_ids = self.mark_rules_removed(list(removed_rule_uids | changed_rule_uids))
@@ -975,6 +979,55 @@ class FwConfigImportRule:
         removed_rule_ids = [item["rule_id"] for item in remove_result["data"]["update_firewall_rule"]["returning"]]
 
         return changes, removed_rule_ids
+
+    def fixup_stale_xlate_rule_fks(
+        self,
+        curr_rules: dict[str, RuleNormalized],
+        changed_rule_uids: set[str],
+        added_rule_uids: set[str],
+    ) -> int:
+        """
+        Repoint the xlate_rule FK on NAT "original" rule rows whose own row was not
+        (re)inserted this import, but whose translated counterpart (xlate_rule_uid target)
+        was changed and therefore got a new rule_id.
+
+        Rule change detection (get_all_rule_diffs) compares xlate_rule_uid as a stable,
+        content-independent string (derived uid, e.g. uid + "_translated" for Check Point NAT
+        rules), so editing only the translated side of a NAT rule pair does not mark the
+        original side as changed. The original row is then left untouched in the database
+        while its old translated counterpart is re-inserted with a new rule_id and the old
+        translated row is marked removed - leaving xlate_rule on the original row pointing at
+        a removed row. This pass finds and fixes those stale references.
+        """
+        touched_uids = changed_rule_uids | added_rule_uids
+        updates: list[dict[str, Any]] = []
+        for rule_uid, rule in curr_rules.items():
+            if rule.xlate_rule_uid is None or rule_uid in touched_uids:
+                continue  # not a NAT "original" row, or its own row was already (re)inserted this import
+            if rule.xlate_rule_uid not in changed_rule_uids:
+                continue  # translated counterpart did not get a new rule_id this import
+            try:
+                rule_id = self.uid2id_mapper.get_rule_id(rule_uid)
+                new_xlate_rule_id = self.uid2id_mapper.get_rule_id(rule.xlate_rule_uid)
+            except KeyError:
+                FWOLogger.warning(f"could not resolve ids while fixing up xlate_rule FK for rule uid '{rule_uid}'")
+                continue
+            updates.append({"where": {"rule_id": {"_eq": rule_id}}, "_set": {"xlate_rule": new_xlate_rule_id}})
+
+        if not updates:
+            return 0
+
+        fixup_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "rule/updateRuleXlateFks.graphql"])
+        try:
+            fixup_result = self.import_details.api_call.call(
+                fixup_mutation, query_variables={"updates": updates}, analyze_payload=True
+            )
+        except Exception:
+            raise FwoApiWriteError(f"failed to fix up stale xlate_rule FKs: {traceback.format_exc()!s}")
+        if "errors" in fixup_result:
+            raise FwoApiWriteError(f"failed to fix up stale xlate_rule FKs: {fixup_result['errors']!s}")
+
+        return sum(res["affected_rows"] for res in fixup_result["data"]["update_firewall_rule_many"])
 
     # TODO: find a better place for these kind of functions that simply return from config data
     @staticmethod

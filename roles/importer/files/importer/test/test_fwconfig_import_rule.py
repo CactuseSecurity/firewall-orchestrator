@@ -5,7 +5,13 @@ from pytest_mock import MockerFixture
 from test.utils.test_utils import mock_get_graphql_code
 
 
-def build_normalized_rule(rule_uid: str, *, rule_src_zone: str | None, rule_dst_zone: str | None) -> RuleNormalized:
+def build_normalized_rule(
+    rule_uid: str,
+    *,
+    rule_src_zone: str | None,
+    rule_dst_zone: str | None,
+    xlate_rule_uid: str | None = None,
+) -> RuleNormalized:
     return RuleNormalized(
         rule_num_numeric=1.0,
         rule_disabled=False,
@@ -24,8 +30,10 @@ def build_normalized_rule(rule_uid: str, *, rule_src_zone: str | None, rule_dst_
         rule_action=RuleAction.ACCEPT,
         rule_track=RuleTrack.NONE,
         rule_implied=False,
-        rule_type=RuleType.ACCESS,
+        rule_type=RuleType.NAT if xlate_rule_uid else RuleType.ACCESS,
         rule_uid=rule_uid,
+        xlate_rule_uid=xlate_rule_uid,
+        nat_rule=xlate_rule_uid is not None,
     )
 
 
@@ -215,3 +223,80 @@ class TestFwConfigImportRule:
 
         assert changes == 1
         assert removed_rule_ids == [101]
+
+    def test_fixup_stale_xlate_rule_fks_repoints_unchanged_original_rule(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ):
+        # Original rule "orig-uid" is unchanged, but its translated counterpart
+        # "orig-uid_translated" was changed and re-inserted with a new rule_id (202).
+        # The original rule's own DB row (rule_id 101) must be repointed to it.
+        original_rule = build_normalized_rule(
+            "orig-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="orig-uid_translated"
+        )
+        translated_rule = build_normalized_rule("orig-uid_translated", rule_src_zone=None, rule_dst_zone=None)
+        curr_rules = {"orig-uid": original_rule, "orig-uid_translated": translated_rule}
+
+        def get_rule_id_side_effect(uid: str, before_update: bool = False) -> int:  # noqa: ARG001
+            return {"orig-uid": 101, "orig-uid_translated": 202}[uid]
+
+        fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(side_effect=get_rule_id_side_effect)
+        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(
+            return_value={"data": {"update_firewall_rule_many": [{"affected_rows": 1}]}}
+        )
+
+        changes = fwconfig_import_rule.fixup_stale_xlate_rule_fks(
+            curr_rules, changed_rule_uids={"orig-uid_translated"}, added_rule_uids=set()
+        )
+
+        assert changes == 1
+        fwconfig_import_rule.import_details.api_call.call.assert_called_once()
+        query_variables = fwconfig_import_rule.import_details.api_call.call.call_args.kwargs["query_variables"]
+        assert query_variables["updates"] == [{"where": {"rule_id": {"_eq": 101}}, "_set": {"xlate_rule": 202}}]
+
+    def test_fixup_stale_xlate_rule_fks_skips_when_original_rule_already_reinserted(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ):
+        # If the original rule's own row was already (re)inserted this import, its xlate_rule
+        # FK was already set correctly by prepare_rule_for_import, so no fixup is needed.
+        original_rule = build_normalized_rule(
+            "orig-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="orig-uid_translated"
+        )
+        translated_rule = build_normalized_rule("orig-uid_translated", rule_src_zone=None, rule_dst_zone=None)
+        curr_rules = {"orig-uid": original_rule, "orig-uid_translated": translated_rule}
+
+        fwconfig_import_rule.import_details.api_call.call = mocker.Mock()
+
+        changes = fwconfig_import_rule.fixup_stale_xlate_rule_fks(
+            curr_rules,
+            changed_rule_uids={"orig-uid_translated", "orig-uid"},
+            added_rule_uids=set(),
+        )
+
+        assert changes == 0
+        fwconfig_import_rule.import_details.api_call.call.assert_not_called()
+
+    def test_fixup_stale_xlate_rule_fks_skips_when_translated_rule_unchanged(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ):
+        # If the translated counterpart didn't change (and thus wasn't re-inserted), the
+        # original rule's existing xlate_rule FK is still correct.
+        original_rule = build_normalized_rule(
+            "orig-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="orig-uid_translated"
+        )
+        translated_rule = build_normalized_rule("orig-uid_translated", rule_src_zone=None, rule_dst_zone=None)
+        curr_rules = {"orig-uid": original_rule, "orig-uid_translated": translated_rule}
+
+        fwconfig_import_rule.import_details.api_call.call = mocker.Mock()
+
+        changes = fwconfig_import_rule.fixup_stale_xlate_rule_fks(
+            curr_rules, changed_rule_uids=set(), added_rule_uids=set()
+        )
+
+        assert changes == 0
+        fwconfig_import_rule.import_details.api_call.call.assert_not_called()

@@ -150,13 +150,19 @@ Set this parameter only if the installer is allowed to install EPEL and enable C
 ./scripts/run-playbook-with-sudo.sh site.yml -e "allowRepoChangesForRedhat=true"
 ```
 
+Before installing anything, the installer checks that the packages the current host needs are available from the enabled repositories and aborts with the list of missing packages if they are not. On a middleware server these are `openldap-servers`, `python3-pyOpenSSL`, `python3-cryptography` and the build dependencies of `python-ldap` (`python3-devel`, `python3-ldap`, `openldap-devel`, `cyrus-sasl-devel`, `openssl-devel`); on an importer they are the Python interpreter packages listed below. Several of them are not part of BaseOS/AppStream: `openldap-devel` and `cyrus-sasl-devel` come from CodeReady Builder/CRB and `python3-ldap` from EPEL.
+
+### Python version for the importer on RedHat
+
+The importer runs in its own virtual environment and needs Python 3.9 or newer. RHEL 8 (Python 3.6) and RHEL 9 (Python 3.9) therefore use the parallel installable `python3.11`, while RHEL 10 uses its platform `python3` (Python 3.12), which has no `python3.11` package. The same rule applies to the installer virtual environment created by `scripts/install-ansible-from-venv.sh`.
+
 ### Dotnet SDK installation on RedHat
 
 The installer needs the dotnet SDK for the UI and the middleware server. On RedHat-like systems it tries three sources in this order and stops at the first one that works:
 
 1. the already configured repositories (normally RHEL AppStream)
 2. the Microsoft package repository (`packages.microsoft.com`), which is added and given priority over the configured repositories for `dotnet-*`, `aspnetcore-*` and `netstandard-*` packages
-3. the Microsoft `dotnet-install.sh` script, which installs into `/usr/share/dotnet` and links `/usr/bin/dotnet`
+3. the Microsoft `dotnet-install.sh` script, which installs into `dotnet_script_install_dir` (`/usr/share/dotnet`) and links `dotnet_binary_link` (`/usr/bin/dotnet`) - **opt-in only**, see below
 
 Step 2 is also used when the configured repositories list the package but cannot deliver it, for example with an expired subscription, a Satellite/Capsule mirror that only synced metadata, or a proxy that blocks the package download. The typical symptom is:
 
@@ -164,7 +170,20 @@ Step 2 is also used when the configured repositories list the package but cannot
 Failed to download packages: dotnet-sdk-10.0-...: Cannot download, all mirrors were already tried without success
 ```
 
-If the installation host may not reach `packages.microsoft.com` or `dot.net` either, install the dotnet SDK matching `dotnet_version` from `inventory/group_vars/all.yml` manually before running the installer. An already installed SDK of the required version is detected and left untouched.
+Step 3 downloads a script from the internet and executes it as root, and it installs the SDK outside package management. It is therefore not used unless it is requested explicitly:
+
+```console
+./scripts/run-playbook-with-sudo.sh site.yml -e "allowDotnetScriptInstallForRedhat=true"
+```
+
+Without that parameter the installer stops after step 2 and asks for the dotnet SDK matching `dotnet_version` from `inventory/group_vars/all.yml` to be installed manually. An already installed SDK of the required version is detected and left untouched.
+
+Two further parameters harden the script fallback wherever it is used, on RedHat and on Debian testing/Debian 13 and newer, where it is the only available source:
+
+- `dotnet_install_script_url` points at the script. Set it to an own reviewed copy to avoid downloading it from `dot.net` at install time.
+- `dotnet_install_script_checksum` verifies the downloaded script, for example `sha256:0123abc...`. Upstream publishes no checksum, so the value has to be taken from a reviewed revision. Empty by default, which skips the verification.
+
+An SDK installed by the script writes a marker file into its installation directory. Only an installation carrying that marker is removed again by `wipe_packages=yes` during the uninstall - an SDK owned by the package manager in the same directory is left alone.
 
 ### Parameter "docker_network" after the Podman migration
 

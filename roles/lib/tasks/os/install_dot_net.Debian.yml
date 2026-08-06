@@ -137,26 +137,36 @@
           rescue:
             - name: download dotnet-install script (ubuntu fallback)
               get_url:
-                url: https://dot.net/v1/dotnet-install.sh
+                url: "{{ dotnet_install_script_url }}"
                 dest: "{{ lib_tmp_dir }}/dotnet-install.sh"
                 mode: "0755"
+                checksum: "{{ dotnet_install_script_checksum | default(omit, true) }}"
               register: dotnet_install_script_download
               until: dotnet_install_script_download is succeeded
               retries: 3
               delay: 5
 
             - name: install dotnet sdk {{ dotnet_version }} with dotnet-install script (ubuntu fallback)
-              command: "{{ lib_tmp_dir }}/dotnet-install.sh --channel {{ dotnet_version }} --quality ga --install-dir /usr/share/dotnet"
+              command: "{{ lib_tmp_dir }}/dotnet-install.sh --channel {{ dotnet_version }} --quality ga --install-dir {{ dotnet_script_install_dir }}"
+
+            - name: mark the dotnet installation as script based (ubuntu fallback)
+              copy:
+                dest: "{{ dotnet_script_install_marker }}"
+                content: |
+                  Installed by the {{ product_name }} installer with {{ dotnet_install_script_url }},
+                  outside of package management. {{ dotnet_script_install_dir }} and
+                  {{ dotnet_binary_link }} are removed by the {{ product_name }} uninstall.
+                mode: "0644"
 
             - name: ensure dotnet symlink exists (ubuntu fallback)
               file:
-                src: /usr/share/dotnet/dotnet
-                dest: /usr/bin/dotnet
+                src: "{{ dotnet_script_install_dir }}/dotnet"
+                dest: "{{ dotnet_binary_link }}"
                 state: link
                 force: true
 
             - name: verify dotnet sdk {{ dotnet_version }} is installed (ubuntu fallback)
-              command: /usr/share/dotnet/dotnet --list-sdks
+              command: "{{ dotnet_script_install_dir }}/dotnet --list-sdks"
               register: dotnet_sdks_after_script_install
               changed_when: false
               failed_when: dotnet_version not in dotnet_sdks_after_script_install.stdout
@@ -180,26 +190,36 @@
       block:
         - name: download dotnet-install script for Debian testing
           get_url:
-            url: https://dot.net/v1/dotnet-install.sh
+            url: "{{ dotnet_install_script_url }}"
             dest: "{{ lib_tmp_dir }}/dotnet-install.sh"
             mode: "0755"
+            checksum: "{{ dotnet_install_script_checksum | default(omit, true) }}"
           register: dotnet_install_script_download_debian
           until: dotnet_install_script_download_debian is succeeded
           retries: 3
           delay: 5
 
         - name: install dotnet sdk {{ dotnet_version }} with dotnet-install script on Debian testing
-          command: "{{ lib_tmp_dir }}/dotnet-install.sh --channel {{ dotnet_version }} --quality ga --install-dir /usr/share/dotnet"
+          command: "{{ lib_tmp_dir }}/dotnet-install.sh --channel {{ dotnet_version }} --quality ga --install-dir {{ dotnet_script_install_dir }}"
+
+        - name: mark the dotnet installation as script based on Debian testing
+          copy:
+            dest: "{{ dotnet_script_install_marker }}"
+            content: |
+              Installed by the {{ product_name }} installer with {{ dotnet_install_script_url }},
+              outside of package management. {{ dotnet_script_install_dir }} and
+              {{ dotnet_binary_link }} are removed by the {{ product_name }} uninstall.
+            mode: "0644"
 
         - name: ensure dotnet symlink exists on Debian testing
           file:
-            src: /usr/share/dotnet/dotnet
-            dest: /usr/bin/dotnet
+            src: "{{ dotnet_script_install_dir }}/dotnet"
+            dest: "{{ dotnet_binary_link }}"
             state: link
             force: true
 
         - name: verify dotnet sdk {{ dotnet_version }} is installed on Debian testing
-          command: /usr/share/dotnet/dotnet --list-sdks
+          command: "{{ dotnet_script_install_dir }}/dotnet --list-sdks"
           register: dotnet_sdks_after_script_install_debian
           changed_when: false
           failed_when: dotnet_version not in dotnet_sdks_after_script_install_debian.stdout

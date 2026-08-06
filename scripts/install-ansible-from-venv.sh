@@ -27,8 +27,16 @@ main() {
             sudo apt install python3-venv python3-dev build-essential libldap2-dev libsasl2-dev -y || return $?
             ;;
         *rhel*|*fedora*)
-            sudo dnf install python3.11 python3.11-pip python3.11-devel gcc openldap-devel cyrus-sasl-devel -y || return $?
-            python_bin="python3.11"
+            # RHEL 10 and current Fedora ship Python 3.12 or newer as python3 and have no
+            # python3.11 package, so only the older releases need the parallel installation.
+            local os_major="${VERSION_ID%%.*}"
+            local python_pkg="python3.11"
+            if [[ "$os_major" =~ ^[0-9]+$ ]] && ((os_major >= 10)); then
+                python_pkg="python3"
+            fi
+            # python3*-devel supplies Python.h, which python-ldap needs to build its C extension.
+            sudo dnf install "$python_pkg" "$python_pkg-pip" "$python_pkg-devel" gcc openldap-devel cyrus-sasl-devel -y || return $?
+            python_bin="$python_pkg"
             ;;
         *)
             echo "Unsupported operating system family: ${ID_LIKE:-$ID}"

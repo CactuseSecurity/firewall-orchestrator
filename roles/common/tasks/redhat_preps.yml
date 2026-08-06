@@ -143,11 +143,43 @@
         - redhat_dnf_repos.stdout is not search('(?m)^crb\\s')
   when: allowRepoChangesForRedhat | default(false) | bool
 
+# a metadata cache left over from an earlier point release keeps advertising rpms the mirrors
+# no longer serve, so refresh it before anything is looked up or downloaded. this also picks up
+# the metadata of the repositories that were just enabled above.
+- name: update operating system package cache rpm based
+  ansible.builtin.dnf:
+    update_cache: true
+  environment: "{{ proxy_env }}"
+  become: true
+
+# the packages below are installed by later roles, but several of them live in CodeReady
+# Builder/CRB or EPEL rather than in BaseOS/AppStream. probing them here turns a missing
+# repository into an actionable message instead of a failed package task halfway through
+# the installation. only the packages the current host actually needs are probed.
+- name: define RedHat packages that may require external repository enablement
+  set_fact:
+    redhat_repo_policy_packages: >-
+      {{
+        (
+          (
+            ['openldap-servers', 'python3-pyOpenSSL']
+            + middleware_ldap_packages
+            + middleware_crypto_packages
+            if inventory_hostname in (groups['middlewareserver'] | default([]))
+            else []
+          )
+          +
+          (
+            python_venv_package_name
+            if inventory_hostname in (groups['importers'] | default([]))
+            else []
+          )
+        ) | unique
+      }}
+
 - name: check RedHat packages that may require external repository enablement
   command: "dnf list {{ item }}"
-  loop:
-    - openldap-servers
-    - python3-pyOpenSSL
+  loop: "{{ redhat_repo_policy_packages }}"
   register: redhat_repo_policy_package_checks
   changed_when: false
   failed_when: false
@@ -157,10 +189,10 @@
 - name: fail when required RedHat packages are unavailable
   fail:
     msg:
-      - "Required RedHat packages are not installed or available from the currently enabled repositories: {{ redhat_repo_policy_package_checks.results | selectattr('rc', 'ne', 0) | map(attribute='item') | join(', ') }}."
+      - "Required RedHat packages are not installed or available from the currently enabled repositories: {{ redhat_repo_policy_package_checks.results | default([]) | selectattr('rc', 'ne', 0) | map(attribute='item') | join(', ') }}."
       - "Enable the required RedHat repositories outside the FWORCH installer according to your OS repository policy, then rerun the installer."
       - "Alternatively set -e allowRepoChangesForRedhat=true to allow the FWORCH installer to install/enable required RedHat repositories."
-  when: redhat_repo_policy_package_checks.results | selectattr('rc', 'ne', 0) | list | length > 0
+  when: redhat_repo_policy_package_checks.results | default([]) | selectattr('rc', 'ne', 0) | list | length > 0
 
 - name: setting default locale in /etc/profile
   blockinfile:

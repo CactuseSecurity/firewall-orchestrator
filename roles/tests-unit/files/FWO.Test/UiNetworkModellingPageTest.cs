@@ -181,7 +181,7 @@ namespace FWO.Test
                 Assert.That(page.Markup, Does.Contain("Beta App"));
                 Assert.That(apiConn.UnexpectedQueries, Is.Empty);
             });
-            FindButton(page, "generate_report").Click();
+            FindButton(page, "Generate report").Click();
 
             NavigationManager navigation = context.Services.GetRequiredService<NavigationManager>();
             Assert.That(navigation.Uri, Does.EndWith("/report/generation/20"));
@@ -333,8 +333,9 @@ namespace FWO.Test
 
         private static IElement FindButton(IRenderedComponent<NetworkModelling> page, string text)
         {
+            string normalizedText = NormalizeButtonText(text);
             List<IElement> matches = [.. page.FindAll("button")
-                .Where(button => button.TextContent.Contains(text, StringComparison.OrdinalIgnoreCase))];
+                .Where(button => NormalizeButtonText(button.TextContent).Contains(normalizedText, StringComparison.OrdinalIgnoreCase))];
             if (matches.Count == 1)
             {
                 return matches[0];
@@ -343,6 +344,11 @@ namespace FWO.Test
             string visibleButtons = string.Join(", ", page.FindAll("button").Select(button => $"'{button.TextContent.Trim()}'"));
             Assert.Fail($"Expected exactly one button containing '{text}', found {matches.Count}. Buttons: {visibleButtons}");
             throw new InvalidOperationException("Unreachable after Assert.Fail.");
+        }
+
+        private static string NormalizeButtonText(string text)
+        {
+            return text.Replace("_", " ").Trim();
         }
 
         private sealed class NetworkModellingAuthStateProvider(IEnumerable<string> roles) : AuthenticationStateProvider

@@ -258,8 +258,8 @@ namespace FWO.Middleware.Server
 
                 if (actInternalWork)
                 {
-                    await PromoteInternalWorkTaskToPlanning(ticket, nextTask);
-                    Log.WriteInfo("CreateNextRequest", $"Promoted internal work task {nextTask.TaskNumber} for ticket {ticket.Id} to planning.");
+                    await PromoteInternalWorkTaskToApproval(ticket, nextTask);
+                    Log.WriteInfo("CreateNextRequest", $"Promoted internal work task {nextTask.TaskNumber} for ticket {ticket.Id} to approval.");
 
                     handledTask = true;
                     handledInternalWork = true;
@@ -538,35 +538,35 @@ namespace FWO.Middleware.Server
                 contentString.Contains("\"object_updated_status\":\"NEW\"") || contentString.Contains("object_updated_status\\u0022:\\u0022NEW\\u0022");
         }
 
-        private async Task PromoteInternalWorkTaskToPlanning(WfTicket ticket, WfReqTask task)
+        private async Task PromoteInternalWorkTaskToApproval(WfTicket ticket, WfReqTask task)
         {
-            WfHandler planningHandler = new(UserConfig, ApiConnection, WorkflowPhases.planning, ownerGroups, new ComplianceRequestedRulePolicyChecker(UserConfig, ApiConnection));
+            WfHandler approvalHandler = new(UserConfig, ApiConnection, WorkflowPhases.approval, ownerGroups, new ComplianceRequestedRulePolicyChecker(UserConfig, ApiConnection));
 
-            if (!await planningHandler.Init())
+            if (!await approvalHandler.Init())
             {
-                throw new InvalidOperationException("Could not initialize planning workflow handler.");
+                throw new InvalidOperationException("Could not initialize approval workflow handler.");
             }
 
-            WfTicket planningTicket = await planningHandler.ResolveTicket(ticket.Id) ?? throw new InvalidOperationException($"Ticket {ticket.Id} not found.");
+            WfTicket approvalTicket = await approvalHandler.ResolveTicket(ticket.Id) ?? throw new InvalidOperationException($"Ticket {ticket.Id} not found.");
 
-            WfReqTask planningTask = planningTicket.Tasks.FirstOrDefault(ta => ta.TaskNumber == task.TaskNumber) ?? throw new InvalidOperationException($"Task {task.TaskNumber} not found in ticket {ticket.Id}.");
+            WfReqTask approvalTask = approvalTicket.Tasks.FirstOrDefault(ta => ta.TaskNumber == task.TaskNumber) ?? throw new InvalidOperationException($"Task {task.TaskNumber} not found in ticket {ticket.Id}.");
 
-            StateMatrix planningMatrix = planningHandler.StateMatrix(planningTask.TaskType);
-            planningTask.StateId = planningMatrix.LowestInputState;
+            StateMatrix approvalMatrix = approvalHandler.StateMatrix(approvalTask.TaskType);
+            approvalTask.StateId = approvalMatrix.LowestStartedState;
 
-            planningHandler.SetTicketEnv(planningTicket);
-            planningHandler.SetReqTaskEnv(planningTask);
+            approvalHandler.SetTicketEnv(approvalTicket);
+            approvalHandler.SetReqTaskEnv(approvalTask);
 
-            await planningHandler.SetAddInfoInReqTask(planningTask, AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
+            await approvalHandler.SetAddInfoInReqTask(approvalTask, AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
 
-            if (!IsInternalWorkTask(planningTask))
+            if (!IsInternalWorkTask(approvalTask))
             {
                 throw new InvalidOperationException($"Internal work marker could not be set for task {task.TaskNumber} in ticket {ticket.Id}.");
             }
 
-            await planningHandler.PromoteReqTask(planningTask);
+            await approvalHandler.PromoteReqTask(approvalTask);
 
-            await LogRequestTasks([planningTask], ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
+            await LogRequestTasks([approvalTask], ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
         }
 
         private async Task CreateExtRequest(WfTicket ticket, List<WfReqTask> tasks, List<WfReqTask> handledTasks, int waitCycles)

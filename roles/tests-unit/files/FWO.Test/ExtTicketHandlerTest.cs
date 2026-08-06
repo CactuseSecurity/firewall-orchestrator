@@ -522,7 +522,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task HandleStateChangeDonePromotesAllConsecutiveInternalWorkRuleTasksToPlanning()
+        public async Task HandleStateChangeDonePromotesAllConsecutiveInternalWorkRuleTasksToApproval()
         {
             SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
             ExtTicketHandlerTestApiConn.ResetTicketTasks();
@@ -547,7 +547,8 @@ namespace FWO.Test
             {
                 WfReqTask? task = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(taskNumber);
                 ClassicAssert.IsNotNull(task, $"Task {taskNumber} should exist.");
-                ClassicAssert.AreEqual(99, task!.StateId, $"Task {taskNumber} should be promoted to planning input state.");
+                ClassicAssert.AreEqual(60, task!.StateId, $"Task {taskNumber} should be promoted to approval started state.");
+                ClassicAssert.AreEqual(ManagementFwConfigChangeTargets.InternalWork, task.GetAddInfoValue(AdditionalInfoKeys.FwConfigChangeTarget));
             }
 
             WfReqTask? task9 = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(9);
@@ -632,7 +633,7 @@ namespace FWO.Test
             for (int taskId = 2; taskId <= 8; ++taskId)
             {
                 ExtTicketHandlerTestApiConn.MarkReqTaskAsInternalWork(taskId);
-                ExtTicketHandlerTestApiConn.SetReqTaskState(taskId, 99);
+                ExtTicketHandlerTestApiConn.SetReqTaskState(taskId, 60);
             }
 
             bool result = await handler.SendFirstRequest(123);

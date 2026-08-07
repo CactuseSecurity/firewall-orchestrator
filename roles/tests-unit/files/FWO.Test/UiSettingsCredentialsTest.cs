@@ -327,9 +327,10 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(messages, Has.Count.EqualTo(1));
-                Assert.That(messages[0].Title, Is.EqualTo("Save credential"));
-                Assert.That(messages[0].Message, Is.EqualTo("Missing required credential fields"));
+                Assert.That(messages.Any(message =>
+                    message.Title == "Save credential" &&
+                    message.Message == "Missing required credential fields" &&
+                    message.IsError), Is.True);
                 Assert.That(apiConnection.Queries.Any(query => query == DeviceQueries.newCredential || query == DeviceQueries.updateCredential), Is.False);
             });
         }

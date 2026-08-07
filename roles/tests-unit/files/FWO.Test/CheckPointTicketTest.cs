@@ -98,6 +98,46 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CreateRequestStringForGroupCreateUsesIpEndForNetworkMaskLength()
+        {
+            CheckPointTicket ticket = new(checkPointSystem);
+            List<WfReqTask> tasks = new();
+            tasks.Add(CreateGroupCreateTaskWithNewNetworkMemberHavingRangeEndpoints());
+            List<IpProtocol> ipProtos = new();
+
+            await ticket.CreateRequestString(tasks, ipProtos, new ModellingNamingConvention());
+
+            using JsonDocument document = JsonDocument.Parse(ticket.TicketText);
+            List<JsonElement> planSteps = document.RootElement.GetProperty("Steps").EnumerateArray().ToList();
+
+            JsonElement networkBody = planSteps[1].GetProperty("Body");
+
+            ClassicAssert.AreEqual(CheckPointTaskTypes.NetworkCreate, planSteps[1].GetProperty("TaskType").GetString());
+            ClassicAssert.AreEqual("10.10.0.0", networkBody.GetProperty("subnet").GetString());
+            ClassicAssert.AreEqual(17, networkBody.GetProperty("mask-length").GetInt32());
+        }
+
+        [Test]
+        public async Task CreateRequestStringForGroupCreateKeepsNetworkCidrWhenIpEndIsRedundant()
+        {
+            CheckPointTicket ticket = new(checkPointSystem);
+            List<WfReqTask> tasks = new();
+            tasks.Add(CreateGroupCreateTaskWithNetworkCidrAndRedundantIpEnd());
+            List<IpProtocol> ipProtos = new();
+
+            await ticket.CreateRequestString(tasks, ipProtos, new ModellingNamingConvention());
+
+            using JsonDocument document = JsonDocument.Parse(ticket.TicketText);
+            List<JsonElement> planSteps = document.RootElement.GetProperty("Steps").EnumerateArray().ToList();
+
+            JsonElement networkBody = planSteps[1].GetProperty("Body");
+
+            ClassicAssert.AreEqual(CheckPointTaskTypes.NetworkCreate, planSteps[1].GetProperty("TaskType").GetString());
+            ClassicAssert.AreEqual("10.20.0.0", networkBody.GetProperty("subnet").GetString());
+            ClassicAssert.AreEqual(17, networkBody.GetProperty("mask-length").GetInt32());
+        }
+
+        [Test]
         public async Task CreateExternalTicketRetriesGroupMemberObjectCreationWithIgnoreWarnings()
         {
 
@@ -557,6 +597,50 @@ namespace FWO.Test
                         Name = "netz_1.2.3.4/25",
                         Field = ElemFieldType.source.ToString(),
                         IpString = "1.2.3.4/25",
+                        RequestAction = RequestAction.create.ToString()
+                    }
+                }
+            };
+        }
+
+        private static WfReqTask CreateGroupCreateTaskWithNewNetworkMemberHavingRangeEndpoints()
+        {
+            return new()
+            {
+                Id = 5,
+                TaskNumber = 5,
+                TaskType = WfTaskType.group_create.ToString(),
+                AdditionalInfo = "{\"GrpName\":\"cp-group\"}",
+                Elements = new List<WfReqElement>
+                {
+                    new()
+                    {
+                        Name = "NET_10.10.0.0_17",
+                        Field = ElemFieldType.source.ToString(),
+                        IpString = "10.10.0.0/32",
+                        IpEnd = "10.10.127.255/32",
+                        RequestAction = RequestAction.create.ToString()
+                    }
+                }
+            };
+        }
+
+        private static WfReqTask CreateGroupCreateTaskWithNetworkCidrAndRedundantIpEnd()
+        {
+            return new()
+            {
+                Id = 6,
+                TaskNumber = 6,
+                TaskType = WfTaskType.group_create.ToString(),
+                AdditionalInfo = "{\"GrpName\":\"cp-group\"}",
+                Elements = new List<WfReqElement>
+                {
+                    new()
+                    {
+                        Name = "NET_10.20.0.0_17",
+                        Field = ElemFieldType.source.ToString(),
+                        IpString = "10.20.0.0/17",
+                        IpEnd = "10.20.0.0/17",
                         RequestAction = RequestAction.create.ToString()
                     }
                 }

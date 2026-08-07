@@ -77,6 +77,7 @@ namespace FWO.Test
             SimulatedUserConfig.DummyTranslate["E5103"] = "Invalid management port";
             SimulatedUserConfig.DummyTranslate["E5104"] = "Invalid debug level";
             SimulatedUserConfig.DummyTranslate["E5105"] = "Duplicate management";
+            SimulatedUserConfig.DummyTranslate["E5109"] = "Invalid legacy management name";
             SimulatedUserConfig.DummyTranslate["U0001"] = "Sanitized input";
         }
 
@@ -129,12 +130,10 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConnection.Queries, Is.EqualTo(new[]
-                {
-                    DeviceQueries.getManagementsDetails,
-                    DeviceQueries.getDeviceTypeDetails,
-                    DeviceQueries.getCredentials
-                }));
+                Assert.That(apiConnection.Queries, Has.Count.EqualTo(3));
+                Assert.That(apiConnection.Queries[0], Is.EqualTo(DeviceQueries.getManagementsDetails));
+                Assert.That(apiConnection.Queries[1], Is.EqualTo(DeviceQueries.getDeviceTypeDetails));
+                Assert.That(apiConnection.Queries[2], Is.EqualTo(DeviceQueries.getCredentials));
                 Assert.That(GetMember<List<Management>>(component, "managements"), Has.Count.EqualTo(2));
                 Assert.That(GetMember<List<DeviceType>>(component, "deviceTypes"), Has.Count.EqualTo(2));
                 Assert.That(GetMember<List<ImportCredential>>(component, "credentials"), Has.Count.EqualTo(1));
@@ -164,6 +163,41 @@ namespace FWO.Test
                 Assert.That(messages[0].Exception, Is.TypeOf<InvalidOperationException>());
                 Assert.That(messages[0].IsError, Is.True);
                 Assert.That(apiConnection.Queries, Has.Count.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task Refresh_LoadsWithoutSecretsForNonAdminRole()
+        {
+            RecordingManagementsApiConnection apiConnection = new()
+            {
+                Managements =
+                [
+                    BuildManagement(1, $"mgmt{GlobalConst.k_demo}"),
+                    BuildManagement(2, "regular-mgmt")
+                ],
+                DeviceTypes =
+                [
+                    new DeviceType { Id = 10, Name = "FortiGate", Version = "7", Manufacturer = "Fortinet", IsManagement = true }
+                ],
+                Credentials =
+                [
+                    new ImportCredential { Id = 5, Name = "Read cred" }
+                ]
+            };
+
+            SettingsManagements component = CreateDirectComponent(apiConnection, await CreateAuthorizedTokenService(Roles.Auditor));
+
+            await InvokePrivateTask(component, "Refresh");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.Queries, Has.Count.EqualTo(3));
+                Assert.That(apiConnection.Queries[0], Is.EqualTo(DeviceQueries.getManagementDetailsWithoutSecrets));
+                Assert.That(apiConnection.Queries[1], Is.EqualTo(DeviceQueries.getDeviceTypeDetails));
+                Assert.That(apiConnection.Queries[2], Is.EqualTo(DeviceQueries.getCredentialsWithoutSecrets));
+                Assert.That(GetMember<List<Management>>(component, "managements"), Has.Count.EqualTo(2));
+                Assert.That(GetMember<List<ImportCredential>>(component, "credentials"), Has.Count.EqualTo(1));
             });
         }
 
@@ -199,6 +233,254 @@ namespace FWO.Test
             {
                 Assert.That(GetMember<bool>(component, "DeleteMode"), Is.True);
                 Assert.That(GetMember<string>(component, "deleteMessage"), Does.Contain("mgmt-empty"));
+            });
+        }
+
+        [Test]
+        public async Task Save_ShowsValidationWhenRequiredFieldsMissing()
+        {
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+            RecordingManagementsApiConnection apiConnection = new()
+            {
+                Managements =
+                [
+                    BuildManagement(1, $"mgmt{GlobalConst.k_demo}")
+                ],
+                DeviceTypes =
+                [
+                    new DeviceType { Id = 10, Name = "FortiGate", Version = "7", Manufacturer = "Fortinet", IsManagement = true }
+                ],
+                Credentials =
+                [
+                    new ImportCredential { Id = 5, Name = "Read cred" }
+                ]
+            };
+
+            await using BunitContext context = CreateContext();
+            TokenService tokenService = await CreateAuthorizedTokenService();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new AllowAllAuthStateProvider(Roles.Admin));
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            context.Services.AddSingleton<GlobalConfig>(new SimulatedGlobalConfig());
+            context.Services.AddSingleton(tokenService);
+            context.Services.AddSingleton<DomEventService>();
+            context.Services.AddSingleton(typeof(IStringLocalizer<>), typeof(EmptyStringLocalizer<>));
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context, (exception, title, message, isError) =>
+            {
+                messages.Add((exception, title, message, isError));
+            });
+            SettingsManagements component = wrapper.FindComponent<SettingsManagements>().Instance;
+
+            wrapper.WaitForAssertion(() => Assert.That(GetMember<List<Management>>(component, "managements"), Has.Count.EqualTo(1)));
+
+            SetMember(component, "AddMode", true);
+            SetMember(component, "EditMode", true);
+            SetMember(component, "actManagement", new Management
+            {
+                Name = "",
+                Hostname = "",
+                Port = 443,
+                DeviceType = GetMember<List<DeviceType>>(component, "deviceTypes")[0],
+                ImportCredential = GetMember<List<ImportCredential>>(component, "credentials")[0]
+            });
+
+            await wrapper.InvokeAsync(async () => await InvokePrivateTask(component, "Save"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Title, Is.EqualTo("Save management"));
+                Assert.That(messages[0].Message, Is.EqualTo("Missing required management fields"));
+                Assert.That(apiConnection.Queries.Count(query => query == DeviceQueries.newManagement), Is.EqualTo(0));
+                Assert.That(GetMember<bool>(component, "AddMode"), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task Save_ShowsValidationWhenPortIsInvalid()
+        {
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+            RecordingManagementsApiConnection apiConnection = new()
+            {
+                Managements =
+                [
+                    BuildManagement(1, $"mgmt{GlobalConst.k_demo}")
+                ],
+                DeviceTypes =
+                [
+                    new DeviceType { Id = 10, Name = "FortiGate", Version = "7", Manufacturer = "Fortinet", IsManagement = true }
+                ],
+                Credentials =
+                [
+                    new ImportCredential { Id = 5, Name = "Read cred" }
+                ]
+            };
+
+            await using BunitContext context = CreateContext();
+            TokenService tokenService = await CreateAuthorizedTokenService();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new AllowAllAuthStateProvider(Roles.Admin));
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            context.Services.AddSingleton<GlobalConfig>(new SimulatedGlobalConfig());
+            context.Services.AddSingleton(tokenService);
+            context.Services.AddSingleton<DomEventService>();
+            context.Services.AddSingleton(typeof(IStringLocalizer<>), typeof(EmptyStringLocalizer<>));
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context, (exception, title, message, isError) =>
+            {
+                messages.Add((exception, title, message, isError));
+            });
+            SettingsManagements component = wrapper.FindComponent<SettingsManagements>().Instance;
+
+            wrapper.WaitForAssertion(() => Assert.That(GetMember<List<Management>>(component, "managements"), Has.Count.EqualTo(1)));
+
+            SetMember(component, "AddMode", true);
+            SetMember(component, "EditMode", true);
+            SetMember(component, "actManagement", new Management
+            {
+                Name = "valid-name",
+                Hostname = "valid.example.org",
+                Port = 0,
+                DeviceType = GetMember<List<DeviceType>>(component, "deviceTypes")[0],
+                ImportCredential = GetMember<List<ImportCredential>>(component, "credentials")[0]
+            });
+
+            await wrapper.InvokeAsync(async () => await InvokePrivateTask(component, "Save"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Message, Is.EqualTo("Invalid management port"));
+                Assert.That(apiConnection.Queries.Count(query => query == DeviceQueries.newManagement), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Save_ShowsValidationWhenDuplicateManagementExists()
+        {
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+            RecordingManagementsApiConnection apiConnection = new()
+            {
+                Managements =
+                [
+                    BuildManagement(1, "existing-mgmt"),
+                    BuildManagement(2, "second-mgmt")
+                ],
+                DeviceTypes =
+                [
+                    new DeviceType { Id = 10, Name = "FortiGate", Version = "7", Manufacturer = "Fortinet", IsManagement = true }
+                ],
+                Credentials =
+                [
+                    new ImportCredential { Id = 5, Name = "Read cred" }
+                ]
+            };
+
+            await using BunitContext context = CreateContext();
+            TokenService tokenService = await CreateAuthorizedTokenService();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new AllowAllAuthStateProvider(Roles.Admin));
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            context.Services.AddSingleton<GlobalConfig>(new SimulatedGlobalConfig());
+            context.Services.AddSingleton(tokenService);
+            context.Services.AddSingleton<DomEventService>();
+            context.Services.AddSingleton(typeof(IStringLocalizer<>), typeof(EmptyStringLocalizer<>));
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context, (exception, title, message, isError) =>
+            {
+                messages.Add((exception, title, message, isError));
+            });
+            SettingsManagements component = wrapper.FindComponent<SettingsManagements>().Instance;
+
+            wrapper.WaitForAssertion(() => Assert.That(GetMember<List<Management>>(component, "managements"), Has.Count.EqualTo(2)));
+
+            SetMember(component, "AddMode", true);
+            SetMember(component, "EditMode", true);
+            SetMember(component, "managements", new List<Management>
+            {
+                BuildManagement(1, "existing-mgmt"),
+                BuildManagement(2, "second-mgmt")
+            });
+            SetMember(component, "actManagement", new Management
+            {
+                Name = "existing-mgmt",
+                Hostname = "existing-mgmt.example.org",
+                Port = 443,
+                ConfigPath = "",
+                DeviceType = GetMember<List<DeviceType>>(component, "deviceTypes")[0],
+                ImportCredential = GetMember<List<ImportCredential>>(component, "credentials")[0]
+            });
+
+            await wrapper.InvokeAsync(async () => await InvokePrivateTask(component, "Save"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Message, Is.EqualTo("Duplicate management"));
+                Assert.That(apiConnection.Queries.Count(query => query == DeviceQueries.newManagement), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Save_UpdatesExistingManagementSuccessfully()
+        {
+            RecordingManagementsApiConnection apiConnection = new()
+            {
+                Managements =
+                [
+                    BuildManagement(1, "existing-mgmt"),
+                    BuildManagement(2, "second-mgmt")
+                ],
+                DeviceTypes =
+                [
+                    new DeviceType { Id = 10, Name = "FortiGate", Version = "7", Manufacturer = "Fortinet", IsManagement = true }
+                ],
+                Credentials =
+                [
+                    new ImportCredential { Id = 5, Name = "Read cred" }
+                ],
+                UpdateManagementResult = new ReturnId { UpdatedId = 1 }
+            };
+
+            await using BunitContext context = CreateContext();
+            TokenService tokenService = await CreateAuthorizedTokenService();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new AllowAllAuthStateProvider(Roles.Admin));
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            context.Services.AddSingleton<GlobalConfig>(new SimulatedGlobalConfig());
+            context.Services.AddSingleton(tokenService);
+            context.Services.AddSingleton<DomEventService>();
+            context.Services.AddSingleton(typeof(IStringLocalizer<>), typeof(EmptyStringLocalizer<>));
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+            SettingsManagements component = wrapper.FindComponent<SettingsManagements>().Instance;
+
+            wrapper.WaitForAssertion(() => Assert.That(GetMember<List<Management>>(component, "managements"), Has.Count.EqualTo(2)));
+
+            SetMember(component, "AddMode", false);
+            SetMember(component, "EditMode", true);
+            SetMember(component, "actManagement", new Management
+            {
+                Id = 1,
+                Name = "existing-mgmt-updated",
+                Hostname = "existing-mgmt-updated.example.org",
+                Port = 8443,
+                DeviceType = GetMember<List<DeviceType>>(component, "deviceTypes")[0],
+                ImportCredential = GetMember<List<ImportCredential>>(component, "credentials")[0]
+            });
+
+            await wrapper.InvokeAsync(async () => await InvokePrivateTask(component, "Save"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.Queries.Count(query => query == DeviceQueries.updateManagement), Is.EqualTo(1));
+                Assert.That(GetMember<bool>(component, "EditMode"), Is.False);
+                Assert.That(GetMember<List<Management>>(component, "managements")[0].Name, Is.EqualTo("existing-mgmt-updated"));
             });
         }
 
@@ -281,7 +563,7 @@ namespace FWO.Test
             return context;
         }
 
-        private static async Task<TokenService> CreateAuthorizedTokenService()
+        private static async Task<TokenService> CreateAuthorizedTokenService(string role = Roles.Admin)
         {
             using RSA rsa = RSA.Create(2048);
             RsaSecurityKey privateKey = new(rsa.ExportParameters(true));
@@ -295,7 +577,7 @@ namespace FWO.Test
                 Name = "settings-admin",
                 DbId = 7,
                 Dn = "uid=settings-admin,ou=people,dc=fworch,dc=internal",
-                Roles = [Roles.Admin]
+                Roles = [role]
             }, TimeSpan.FromHours(1));
 
             await tokenService.SetTokenPair(new TokenPair

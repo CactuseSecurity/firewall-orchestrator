@@ -137,6 +137,31 @@ namespace FWO.Test
             ClassicAssert.AreEqual(17, networkBody.GetProperty("mask-length").GetInt32());
         }
 
+        [TestCase("10.30.0.0", "10.30.127.255", "10.30.0.0", 17)]
+        [TestCase("2001:db8:1234:5678::/128", "2001:db8:1234:5678:ffff:ffff:ffff:ffff/128", "2001:db8:1234:5678::", 64)]
+        public async Task CreateRequestStringForGroupCreateUsesIpEndForAdditionalNetworkFormats(
+            string ipString,
+            string ipEnd,
+            string expectedSubnet,
+            int expectedMaskLength)
+        {
+            CheckPointTicket ticket = new(checkPointSystem);
+            List<WfReqTask> tasks = new();
+            tasks.Add(CreateGroupCreateTaskWithNetworkMember("NET_extra", ipString, ipEnd));
+            List<IpProtocol> ipProtos = new();
+
+            await ticket.CreateRequestString(tasks, ipProtos, new ModellingNamingConvention());
+
+            using JsonDocument document = JsonDocument.Parse(ticket.TicketText);
+            List<JsonElement> planSteps = document.RootElement.GetProperty("Steps").EnumerateArray().ToList();
+
+            JsonElement networkBody = planSteps[1].GetProperty("Body");
+
+            ClassicAssert.AreEqual(CheckPointTaskTypes.NetworkCreate, planSteps[1].GetProperty("TaskType").GetString());
+            ClassicAssert.AreEqual(expectedSubnet, networkBody.GetProperty("subnet").GetString());
+            ClassicAssert.AreEqual(expectedMaskLength, networkBody.GetProperty("mask-length").GetInt32());
+        }
+
         [Test]
         public async Task CreateExternalTicketRetriesGroupMemberObjectCreationWithIgnoreWarnings()
         {
@@ -605,42 +630,30 @@ namespace FWO.Test
 
         private static WfReqTask CreateGroupCreateTaskWithNewNetworkMemberHavingRangeEndpoints()
         {
-            return new()
-            {
-                Id = 5,
-                TaskNumber = 5,
-                TaskType = WfTaskType.group_create.ToString(),
-                AdditionalInfo = "{\"GrpName\":\"cp-group\"}",
-                Elements = new List<WfReqElement>
-                {
-                    new()
-                    {
-                        Name = "NET_10.10.0.0_17",
-                        Field = ElemFieldType.source.ToString(),
-                        IpString = "10.10.0.0/32",
-                        IpEnd = "10.10.127.255/32",
-                        RequestAction = RequestAction.create.ToString()
-                    }
-                }
-            };
+            return CreateGroupCreateTaskWithNetworkMember("NET_10.10.0.0_17", "10.10.0.0/32", "10.10.127.255/32", 5);
         }
 
         private static WfReqTask CreateGroupCreateTaskWithNetworkCidrAndRedundantIpEnd()
         {
+            return CreateGroupCreateTaskWithNetworkMember("NET_10.20.0.0_17", "10.20.0.0/17", "10.20.0.0/17", 6);
+        }
+
+        private static WfReqTask CreateGroupCreateTaskWithNetworkMember(string name, string ipString, string ipEnd, int id = 7)
+        {
             return new()
             {
-                Id = 6,
-                TaskNumber = 6,
+                Id = id,
+                TaskNumber = id,
                 TaskType = WfTaskType.group_create.ToString(),
                 AdditionalInfo = "{\"GrpName\":\"cp-group\"}",
                 Elements = new List<WfReqElement>
                 {
                     new()
                     {
-                        Name = "NET_10.20.0.0_17",
+                        Name = name,
                         Field = ElemFieldType.source.ToString(),
-                        IpString = "10.20.0.0/17",
-                        IpEnd = "10.20.0.0/17",
+                        IpString = ipString,
+                        IpEnd = ipEnd,
                         RequestAction = RequestAction.create.ToString()
                     }
                 }

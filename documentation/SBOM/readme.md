@@ -1,5 +1,77 @@
 # creating SBOM
-we are using cycloneDx
+we are using CycloneDX JSON as the internal SBOM format.
+
+## automated generation
+
+The primary reference platform for exact installed SBOMs is Debian testing/Trixie.
+
+### source SBOMs in the repository
+
+Run this from the repository root:
+
+```bash
+python3 scripts/sbom/generate_sbom.py \
+  --mode source \
+  --output-dir documentation/SBOM/generated \
+  --reference-platform debian-testing \
+  --merge
+```
+
+This creates layered source SBOMs for:
+
+- .NET package references from `roles/**/*.csproj`
+- Python requirements from importer and script requirements files
+- Ansible collections from `collections/requirements.yml`
+- a merged `fwo-combined.cdx.json`
+
+The GitHub workflow `.github/workflows/sbom.yml` runs the same source generation for release tags and manual dispatches and uploads the generated SBOM files as workflow artifacts.
+
+### exact installed SBOMs through the installer
+
+Installed SBOM generation is opt-in:
+
+```bash
+ansible-playbook site.yml -e generate_sbom=true
+```
+
+The installer role writes host-local SBOM files to:
+
+```text
+{{ fworch_home }}/sbom
+```
+
+The installer generates source SBOMs on the controller, copies them to the target SBOM directory, generates installed SBOMs on the target, and writes a combined SBOM from both layers. The generated files include:
+
+- `fwo-combined.cdx.json` in the SBOM root directory
+- `fwo-sbom-details/fwo-dotnet.cdx.json`
+- `fwo-sbom-details/fwo-python-importer.cdx.json`
+- `fwo-sbom-details/fwo-python-scripts.cdx.json`
+- `fwo-sbom-details/fwo-ansible.cdx.json`
+- `fwo-sbom-details/fwo-os-debian-testing.cdx.json`
+- `fwo-sbom-details/fwo-containers.cdx.json`, when container metadata can be inspected
+
+To fetch generated SBOM files back to the controller, set:
+
+```yaml
+generate_sbom: true
+sbom_fetch_to_controller: true
+```
+
+The default controller destination is:
+
+```text
+documentation/SBOM/generated/installed/<inventory-host>/
+```
+
+### generator modes
+
+```bash
+python3 scripts/sbom/generate_sbom.py --mode source --merge
+python3 scripts/sbom/generate_sbom.py --mode installed --merge
+python3 scripts/sbom/generate_sbom.py --mode all --merge
+```
+
+The installed mode is intended to run on the target host after installation or upgrade. It uses standard host tools first, so it does not require installing a separate SBOM generator package.
 
 ## standard script 
     wget https://github.com/CycloneDX/cyclonedx-cli/releases/download/v0.27.2/cyclonedx-linux-x64

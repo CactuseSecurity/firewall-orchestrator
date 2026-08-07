@@ -499,6 +499,11 @@ namespace FWO.Test
                     return Task.FromResult((QueryResponseType)(object)Credentials.Select(item => new ImportCredential(item)).ToList());
                 }
 
+                if (query == DeviceQueries.getDeviceDetails && typeof(QueryResponseType) == typeof(List<Device>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<Device>());
+                }
+
                 if (query == DeviceQueries.newManagement && typeof(QueryResponseType) == typeof(ReturnIdWrapper))
                 {
                     return Task.FromResult((QueryResponseType)(object)NewManagementResult);

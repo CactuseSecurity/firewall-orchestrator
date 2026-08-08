@@ -415,7 +415,7 @@ namespace FWO.Test
             return new RenderSetup(context, rendered, rendered.FindComponent<SettingsCredentials>().Instance, apiConnection);
         }
 
-        private static UserConfig CreateUserConfig(string role)
+        private static SimulatedUserConfig CreateUserConfig(string role)
         {
             SimulatedUserConfig userConfig = new();
             userConfig.User.Roles = [role];
@@ -592,7 +592,7 @@ namespace FWO.Test
             public LocalizedString this[string name] => new(name, name, resourceNotFound: true);
             public LocalizedString this[string name, params object[] arguments] => new(name, string.Format(name, arguments), resourceNotFound: true);
             public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => [];
-            public IStringLocalizer WithCulture(System.Globalization.CultureInfo culture) => this;
+            public EmptyStringLocalizer<T> WithCulture(System.Globalization.CultureInfo culture) => this;
         }
     }
 }

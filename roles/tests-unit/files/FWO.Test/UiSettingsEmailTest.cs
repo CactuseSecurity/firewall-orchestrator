@@ -103,8 +103,8 @@ namespace FWO.Test
             {
                 var buttons = wrapper.FindAll("button");
                 Assert.That(buttons, Has.Count.EqualTo(2));
-                Assert.That(buttons.First().HasAttribute("disabled"), Is.False);
-                Assert.That(buttons.Last().HasAttribute("disabled"), Is.False);
+                Assert.That(buttons[0].HasAttribute("disabled"), Is.False);
+                Assert.That(buttons[1].HasAttribute("disabled"), Is.False);
             });
         }
 
@@ -122,8 +122,8 @@ namespace FWO.Test
             {
                 var buttons = wrapper.FindAll("button");
                 Assert.That(buttons, Has.Count.EqualTo(2));
-                Assert.That(buttons.First().HasAttribute("disabled"), Is.True);
-                Assert.That(buttons.Last().HasAttribute("disabled"), Is.True);
+                Assert.That(buttons[0].HasAttribute("disabled"), Is.True);
+                Assert.That(buttons[1].HasAttribute("disabled"), Is.True);
             });
         }
 

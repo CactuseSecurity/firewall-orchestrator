@@ -270,7 +270,7 @@ namespace FWO.Test
 
             public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => new List<LocalizedString>();
 
-            public IStringLocalizer WithCulture(System.Globalization.CultureInfo culture) => this;
+            public EmptyStringLocalizer<T> WithCulture(System.Globalization.CultureInfo culture) => this;
         }
     }
 }

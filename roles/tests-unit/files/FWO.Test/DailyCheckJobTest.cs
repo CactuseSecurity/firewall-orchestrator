@@ -1,8 +1,11 @@
 using System.Reflection;
+using System.Text.Json;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Config.Api.Data;
 using FWO.Data;
+using FWO.Data.Report;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server.Jobs;
 using NUnit.Framework;
@@ -137,6 +140,82 @@ namespace FWO.Test
             await dailyCheckJob.Execute(null!);
 
             Assert.That(apiConnection.QueryCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task CheckRecerts_DoesNothingWhenDisabled()
+        {
+            CountingApiConnection apiConnection = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                RecCheckActive = false
+            };
+            DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
+            MethodInfo checkRecerts = typeof(DailyCheckJob).GetMethod("CheckRecerts", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("CheckRecerts method not found.");
+
+            Task task = (Task)(checkRecerts.Invoke(dailyCheckJob, null)
+                ?? throw new InvalidOperationException("CheckRecerts returned null task."));
+            await task;
+
+            Assert.That(apiConnection.QueryCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task CheckRecerts_RunsRecertCheckAndWritesLogWhenEnabled()
+        {
+            RecordingRecertCheckApiConnection apiConnection = new()
+            {
+                Ldaps =
+                [
+                    new FWO.Middleware.Server.Ldap
+                    {
+                        UserSearchPath = "ou=users,dc=fworch,dc=internal",
+                        GroupSearchPath = "ou=groups,dc=fworch,dc=internal"
+                    }
+                ],
+                Users =
+                [
+                    new UiUser { Dn = "cn=user,dc=test", Email = "user@example.test" }
+                ],
+                Owners =
+                [
+                    new FwoOwner { Id = 1, Name = "Owner A", RecertActive = false }
+                ]
+            };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                RecCheckActive = true,
+                RecertificationMode = RecertificationMode.OwnersAndRules,
+                RecCheckParams = JsonSerializer.Serialize(new RecertCheckParams
+                {
+                    RecertCheckInterval = SchedulerInterval.Days,
+                    RecertCheckOffset = 7
+                }),
+                RecCheckEmailSubject = "Recertification check",
+                RecCheckEmailUpcomingText = "upcoming",
+                RecCheckEmailOverdueText = "overdue",
+                DefaultLanguage = GlobalConst.kEnglish,
+                UseDummyEmailAddress = true,
+                DummyEmailAddress = "dummy@example.test"
+            };
+            DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
+            MethodInfo checkRecerts = typeof(DailyCheckJob).GetMethod("CheckRecerts", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("CheckRecerts method not found.");
+
+            Task task = (Task)(checkRecerts.Invoke(dailyCheckJob, null)
+                ?? throw new InvalidOperationException("CheckRecerts returned null task."));
+            await task;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.CountQuery(AuthQueries.getLdapConnections), Is.EqualTo(2));
+                Assert.That(apiConnection.CountQuery(AuthQueries.getUsers), Is.EqualTo(1));
+                Assert.That(apiConnection.CountQuery(OwnerQueries.getOwners), Is.EqualTo(1));
+                Assert.That(apiConnection.CountQuery(NotificationQueries.getNotifications), Is.EqualTo(1));
+                Assert.That(apiConnection.CountQuery(NotificationQueries.updateNotificationsLastSent), Is.EqualTo(1));
+                Assert.That(apiConnection.CountQuery(MonitorQueries.addLogEntry), Is.EqualTo(1));
+            });
         }
 
         [Test]
@@ -447,6 +526,79 @@ namespace FWO.Test
             {
                 QueryCount++;
                 throw new InvalidOperationException("No query should be executed in this test.");
+            }
+        }
+
+        private sealed class RecordingRecertCheckApiConnection : SimulatedApiConnection
+        {
+            public List<(string Query, object? Variables)> Queries { get; } = [];
+            public List<FWO.Middleware.Server.Ldap> Ldaps { get; set; } = [];
+            public List<UiUser> Users { get; set; } = [];
+            public List<FwoOwner> Owners { get; set; } = [];
+
+            public int CountQuery(string query)
+            {
+                return Queries.Count(item => item.Query == query);
+            }
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                Queries.Add((query, variables));
+
+                if (query == ConfigQueries.getCustomTextsPerLanguage && typeof(QueryResponseType) == typeof(List<UiText>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<UiText>());
+                }
+
+                if (query == AuthQueries.getLdapConnections && typeof(QueryResponseType) == typeof(List<FWO.Middleware.Server.Ldap>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)Ldaps);
+                }
+
+                if (query == AuthQueries.getUsers && typeof(QueryResponseType) == typeof(List<UiUser>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)Users);
+                }
+
+                if (query == OwnerQueries.getOwners && typeof(QueryResponseType) == typeof(List<FwoOwner>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)Owners);
+                }
+
+                if (query == MonitorQueries.getOpenAlerts && typeof(QueryResponseType) == typeof(List<Alert>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<Alert>());
+                }
+
+                if (query == MonitorQueries.addLogEntry && typeof(QueryResponseType) == typeof(ReturnIdWrapper))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = new ReturnId[] { new ReturnId { NewIdLong = 1 } }
+                    });
+                }
+
+                if (query == NotificationQueries.getNotifications && typeof(QueryResponseType) == typeof(List<FwoNotification>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<FwoNotification>());
+                }
+
+                if (query == NotificationQueries.updateNotificationsLastSent && typeof(QueryResponseType) == typeof(ReturnId))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = 0 });
+                }
+
+                if (query == ConfigQueries.getConfigItemsByUser && typeof(QueryResponseType) == typeof(ConfigItem[]))
+                {
+                    return Task.FromResult((QueryResponseType)(object)Array.Empty<ConfigItem>());
+                }
+
+                if (query == DeviceQueries.getDevicesByManagement && typeof(QueryResponseType) == typeof(List<ManagementSelect>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<ManagementSelect>());
+                }
+
+                throw new InvalidOperationException($"Unexpected query: {query}");
             }
         }
 

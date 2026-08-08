@@ -25,21 +25,33 @@ namespace FWO.Test
     internal class UiSettingsEmailTest
     {
         private string? mainKeyFilePath;
+        private string? originalMainKeyFileContent;
+        private bool originalMainKeyFileExists;
         private bool mainKeyFileAvailable;
 
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
             mainKeyFilePath = GlobalConst.kMainKeyFile;
+            originalMainKeyFileExists = !string.IsNullOrWhiteSpace(mainKeyFilePath) && File.Exists(mainKeyFilePath);
+            if (originalMainKeyFileExists && !string.IsNullOrWhiteSpace(mainKeyFilePath))
+            {
+                originalMainKeyFileContent = File.ReadAllText(mainKeyFilePath);
+            }
+
             try
             {
-                string? keyDirectory = Path.GetDirectoryName(mainKeyFilePath);
-                if (!string.IsNullOrWhiteSpace(keyDirectory))
+                if (!originalMainKeyFileExists)
                 {
-                    Directory.CreateDirectory(keyDirectory);
+                    string? keyDirectory = Path.GetDirectoryName(mainKeyFilePath);
+                    if (!string.IsNullOrWhiteSpace(keyDirectory))
+                    {
+                        Directory.CreateDirectory(keyDirectory);
+                    }
+
+                    File.WriteAllText(mainKeyFilePath, "0123456789ABCDEF0123456789ABCDEF");
                 }
 
-                File.WriteAllText(mainKeyFilePath, "0123456789ABCDEF0123456789ABCDEF");
                 mainKeyFileAvailable = true;
             }
             catch (UnauthorizedAccessException)
@@ -55,9 +67,16 @@ namespace FWO.Test
         [OneTimeTearDown]
         public void OneTimeTearDown()
         {
-            if (!string.IsNullOrWhiteSpace(mainKeyFilePath) && File.Exists(mainKeyFilePath))
+            if (!string.IsNullOrWhiteSpace(mainKeyFilePath))
             {
-                File.Delete(mainKeyFilePath);
+                if (originalMainKeyFileExists)
+                {
+                    File.WriteAllText(mainKeyFilePath, originalMainKeyFileContent ?? string.Empty);
+                }
+                else if (File.Exists(mainKeyFilePath))
+                {
+                    File.Delete(mainKeyFilePath);
+                }
             }
         }
 

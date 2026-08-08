@@ -280,6 +280,7 @@ namespace FWO.Test
         [Test]
         public async Task Save_UpdatesExistingCredentialSuccessfully()
         {
+            Assume.That(mainKeyFileAvailable, "Requires a writable main key file path for password encryption.");
             await using RenderSetup setup = await CreateRenderedSetup(CreateApiConnection(), Roles.Admin);
             RecordingCredentialsApiConnection apiConnection = setup.ApiConnection;
             apiConnection.UpdateCredentialResult = new ReturnId { UpdatedId = 1 };

@@ -1,11 +1,20 @@
 name: FWO Test Install
+# NOTE: this workflow's behavior (trigger/matrix logic) is documented in
+# documentation/developer-docs/github/test-install-workflow.md - please
+# keep that doc in sync when changing triggers, matrix, or job logic here.
 
 on:
+  workflow_dispatch:
+    inputs:
+      full:
+        description: Run Full Test Matrix
+        type: boolean
+        default: false
+        required: true
   push:
     branches:
       - main
       - develop
-
   pull_request:
 
 concurrency:
@@ -13,8 +22,71 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  setup:
+    name: Determine test matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Select matrix based on event
+        id: set-matrix
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          HEAD_REF: ${{ github.head_ref }}
+          INPUT_FULL: ${{ inputs.full }}
+        run: |
+          set -euo pipefail
+
+          full=false
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            full="$INPUT_FULL"
+          elif [ "$EVENT_NAME" = "push" ] && [[ "$REF" =~ ^refs/heads/(main|develop)$ ]]; then
+            full=true
+          elif [ "$EVENT_NAME" = "pull_request" ] && [[ "$HEAD_REF" == dependabot/pip/* ]]; then
+            full=true
+          fi
+
+          if [ "$full" = "true" ]; then
+            matrix='{"include":[
+              {"os":"ubuntu-26.04","python":"3.10","integration":false,"label":"Test install on ubuntu-26.04 with Python 3.10"},
+              {"os":"ubuntu-26.04","python":"3.11","integration":false,"label":"Test install on ubuntu-26.04 with Python 3.11"},
+              {"os":"ubuntu-26.04","python":"3.12","integration":false,"label":"Test install on ubuntu-26.04 with Python 3.12"},
+              {"os":"ubuntu-26.04","python":"3.13","integration":false,"label":"Test install on ubuntu-26.04 with Python 3.13"},
+              {"os":"ubuntu-26.04","python":"3.14","integration":false,"label":"Test install on ubuntu-26.04 with Python 3.14"},
+              {"os":"ubuntu-24.04","python":"3.10","integration":false,"label":"Test install on ubuntu-24.04 with Python 3.10"},
+              {"os":"ubuntu-24.04","python":"3.11","integration":true,"label":"Test install on ubuntu-latest"},
+              {"os":"ubuntu-24.04","python":"3.12","integration":false,"label":"Test install on ubuntu-24.04 with Python 3.12"},
+              {"os":"ubuntu-24.04","python":"3.13","integration":false,"label":"Test install on ubuntu-24.04 with Python 3.13"},
+              {"os":"ubuntu-24.04","python":"3.14","integration":false,"label":"Test install on ubuntu-24.04 with Python 3.14"},
+              {"os":"ubuntu-22.04","python":"3.10","integration":false,"label":"Test install on ubuntu-22.04 with Python 3.10"},
+              {"os":"ubuntu-22.04","python":"3.11","integration":false,"label":"Test install on ubuntu-22.04 with Python 3.11"},
+              {"os":"ubuntu-22.04","python":"3.12","integration":false,"label":"Test install on ubuntu-22.04 with Python 3.12"},
+              {"os":"ubuntu-22.04","python":"3.13","integration":false,"label":"Test install on ubuntu-22.04 with Python 3.13"},
+              {"os":"ubuntu-22.04","python":"3.14","integration":false,"label":"Test install on ubuntu-22.04 with Python 3.14"}
+            ]}'
+          else
+            matrix='{"include":[
+              {"os":"ubuntu-24.04","python":"3.11","integration":true,"label":"Test install on ubuntu-latest"}
+            ]}'
+          fi
+
+          # Collapse to a single line for the step output.
+          matrix="$(echo "$matrix" | tr -d '\n' | tr -s ' ')"
+
+          if ! echo "$matrix" | jq empty; then
+            echo "::error::Generated matrix is not valid JSON: $matrix"
+            exit 1
+          fi
+
+          combos=$(echo "$matrix" | jq '.include | length')
+          echo "::notice::full=$full, selected $combos matrix combo(s)"
+
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
   test-install:
-    name: Test install on ${{ matrix.os }}
+    needs: setup
+    name: ${{ matrix.label }}
     runs-on: ${{ matrix.os }}
     env:
       RUNNING_ON_GITHUB_ACTIONS: true
@@ -22,8 +94,8 @@ jobs:
       FWO_TEST_USERNAME: "integration_user_jwt_refresh_test"
       FWO_TEST_PASSWORD: "testpassword"
     strategy:
-      matrix:
-        os: [ubuntu-latest]
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v7
 
@@ -33,12 +105,12 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python }}
 
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo DEBIAN_FRONTEND=noninteractive apt install build-essential libldap2-dev libsasl2-dev -y
+          sudo DEBIAN_FRONTEND=noninteractive apt install build-essential ldap-utils libldap2-dev libsasl2-dev -y
           python -m pip install -r requirements.txt
 
       - name: Install Ansible collections
@@ -47,20 +119,27 @@ jobs:
           ansible-galaxy collection install -r collections/requirements.yml -p collections --force
 
       - name: Run Ansible test install without integration cleanup
+        if: ${{ matrix.integration }}
         run: |
           cd ${{ github.workspace }}
           ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true --skip-tags integrationtests
 
+      - name: Run Ansible test install
+        if: ${{ !matrix.integration }}
+        run: |
+          cd ${{ github.workspace }}
+          ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true -e "ansible_python_interpreter=$(which python)"
+
       - name: Running in GitHub actions requires testing puppeteer pdf creation separately
         if: ${{ env.RUNNING_ON_GITHUB_ACTIONS == 'true' }}
         run: |
-          cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test
+          cd ${{ github.workspace }}/roles/tests-unit/files/FWO.Test
           dotnet restore
           dotnet build
           dotnet test --filter "Name=HtmlToPdfTest"
 
       - name: Run JWT refresh integration tests
-        if: ${{ env.FWO_RUN_INTEGRATION_TESTS == 'true' }}
+        if: ${{ matrix.integration }}
         run: |
           sudo -u fworch env \
             RUNNING_ON_GITHUB_ACTIONS=true \
@@ -70,7 +149,7 @@ jobs:
             dotnet test /usr/local/fworch/test/csharp/FWO.Test/FWO.Test.csproj --filter "FullyQualifiedName~AuthenticationTokenIntegrationTest"
 
       - name: Run Ansible integration tests with cleanup
-        if: ${{ success() }}
+        if: ${{ matrix.integration && success() }}
         run: |
           cd ${{ github.workspace }}
           ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true --tags integrationtests
@@ -84,7 +163,7 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.11' 
+          python-version: '3.11'
 
       - run: python -m venv .venv
 
@@ -102,5 +181,5 @@ jobs:
           .venv/bin/pyright
 
       - run: ruff check
-      
+
       - run: ruff format --exit-non-zero-on-format

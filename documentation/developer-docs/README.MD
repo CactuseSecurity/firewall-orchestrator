@@ -7,6 +7,7 @@
 - open pull request from your fork branch "develop" to the same branch in the Cactus eSecurity firewall orchestrator repo
 - follow the [versioning policy](versioning.md) when preparing and publishing a new version
 - do you for example want to know how to add an [import module for a new firewall type](importer/readme.md)?
+- see the [GitHub-specific developer docs](github/) for CI/workflow details
 
 
 ## Misc

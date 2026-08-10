@@ -3242,6 +3242,8 @@ INSERT INTO txt VALUES ('complianceCheckRelevantManagements','German', 'Relevant
 INSERT INTO txt VALUES ('complianceCheckRelevantManagements','English','Relevant managements');
 INSERT INTO txt VALUES ('complianceCheckAutoCalcInternetZone','German', 'Internetzone automatisch berechnen');
 INSERT INTO txt VALUES ('complianceCheckAutoCalcInternetZone','English','Auto-calculate internet zone');
+INSERT INTO txt VALUES ('add_auto_calculated_internet_zone', 'German', 'Auto-berechnete Internetzone hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_auto_calculated_internet_zone', 'English', 'Add auto-calculated internet zone');
 INSERT INTO txt VALUES ('complianceCheckAutoCalcUndefinedInternalZone','German', 'Undefiniert-intern Zone automatisch berechnen');
 INSERT INTO txt VALUES ('complianceCheckAutoCalcUndefinedInternalZone','English','Auto-calculate undefined-internal zone');
 INSERT INTO txt VALUES ('complianceCheckExcludeFromInternetZone','German', 'Von Internetzonenberechnung ausschlie&szlig;en');
@@ -7205,6 +7207,8 @@ INSERT INTO txt VALUES ('H5816', 'German',  'Durch Komma getrennte Liste von rel
 INSERT INTO txt VALUES ('H5816', 'English', 'Comma-separated list of relevant management IDs.');
 INSERT INTO txt VALUES ('H5817', 'German',  'Wenn aktiviert, wird bei &Auml;nderungen in Compliance-Matrizen automatisch eine "Internetzone" hinzugef&uuml;gt, die alle Adressbereiche beinhaltet, die nicht in anderen Zonen definiert sind.');
 INSERT INTO txt VALUES ('H5817', 'English', 'If enabled, changes to compliance matrices will automatically add an "Internetzone" that includes all address ranges not defined in other zones.');
+INSERT INTO txt VALUES ('H5853', 'German', 'F&uuml;gt die automatisch berechnete Internetzone zur aktuellen, manuell angelegten Matrix hinzu. Die Zone enth&auml;lt alle IPv4-Adressbereiche, die nicht durch eine konfigurierte Zone oder einen ausgeschlossenen Bereich abgedeckt sind.');
+INSERT INTO txt VALUES ('H5853', 'English', 'Adds the auto-calculated Internet zone to the current manually created matrix. The zone contains all IPv4 address ranges not covered by a configured zone or an excluded range.');
 INSERT INTO txt VALUES ('H5818', 'German',  'Adressbereiche, die aus der Berechnung der Internetzone ausgeschlossen werden sollen.');
 INSERT INTO txt VALUES ('H5818', 'English', 'Address ranges that should be excluded from the Internet zone calculation.');
 INSERT INTO txt VALUES ('H5819', 'German',  'Wenn aktiviert, wird bei &Auml;nderungen in Compliance-Matrizen automatisch eine "Undefiniert-Intern-Zone" hinzugef&uuml;gt, die alle Adressbereiche beinhaltet, die nicht in anderen Zonen definiert sind und von der Internetzone ausgeschlossen wurden.');

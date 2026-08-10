@@ -1435,9 +1435,9 @@ namespace FWO.Compliance
 
                 if (_autoCalculatedInternetZoneActive && _treatDomainAndDynamicObjectsAsInternet && (dataItem.networkObject.Type.Name == "dynamic_net_obj" || dataItem.networkObject.Type.Name == "domain"))
                 {
-                    List<ComplianceNetworkZone> complianceNetworkZones = networkZonesForCriterion.Where(zone => zone.IsAutoCalculatedInternetZone).ToList();
+                    List<ComplianceNetworkZone> autoCalculatedInternetZones = [.. networkZonesForCriterion.Where(zone => zone.IsAutoCalculatedInternetZone)];
 
-                    foreach (ComplianceNetworkZone zone in complianceNetworkZones)
+                    foreach (ComplianceNetworkZone zone in autoCalculatedInternetZones)
                     {
                         networkZones.Add(zone);
                     }

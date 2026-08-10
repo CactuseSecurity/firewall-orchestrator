@@ -10,7 +10,24 @@
 
 @if(!ReadonlyMode)
 {
-	<button type="button" class="btn btn-sm btn-success mb-1" @onclick="OnAddZone">@(userConfig.GetText("add"))</button>
+	<div class="btn-group mb-1">
+		<button type="button" class="btn btn-sm btn-success" @onclick="OnAddZone">@(userConfig.GetText("add"))</button>
+		@if(AutoCalculatedInternetZoneMissing)
+		{
+			<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+				<Authorized>
+					<button id="add-auto-calculated-internet-zone" type="button" class="btn btn-sm btn-warning" @onclick="AddAutoCalculatedInternetZone">
+						@(DisplayService.DisplayButtonWithTooltip(userConfig, "add_auto_calculated_internet_zone", Icons.Add, userConfig.GetText("H5853")))
+					</button>
+				</Authorized>
+				<NotAuthorized>
+					<button id="add-auto-calculated-internet-zone" type="button" class="btn btn-sm btn-warning" disabled>
+						@(DisplayService.DisplayButtonWithTooltip(userConfig, "add_auto_calculated_internet_zone", Icons.Add, userConfig.GetText("H5853")))
+					</button>
+				</NotAuthorized>
+			</ExecutionModeAuthorizeView>
+		}
+	</div>
 }
 
 @*Show Top-Level Zones*@
@@ -189,6 +206,11 @@
 	string subzoneInputClass = "";
 	IPAddressRange? ipRangeToAdd;
 
+	private bool AutoCalculatedInternetZoneMissing =>
+		SelectedMatrix.Id > 0
+		&& userConfig.GlobalConfig?.AutoCalculateInternetZone == true
+		&& !networkZoneService.NetworkZones.Any(zone => zone.IsAutoCalculatedInternetZone);
+
 	protected override async Task OnInitializedAsync()
 	{
 		await base.OnInitializedAsync();
@@ -211,6 +233,27 @@
 	{
 		networkZoneInEdit = new(){ CriterionId = SelectedMatrix.Id };
 		await OpenClearEditForm();
+	}
+
+	private async Task AddAutoCalculatedInternetZone()
+	{
+		GlobalConfig? globalConfig = userConfig.GlobalConfig;
+
+		if(!AutoCalculatedInternetZoneMissing || globalConfig == null)
+		{
+			return;
+		}
+
+		try
+		{
+			await NetworkZoneService.UpdateSpecialZones(SelectedMatrix.Id, apiConnection, globalConfig);
+			await ConfigChanged();
+			DisplayMessageInUi(null, userConfig.GetText("add_auto_calculated_internet_zone"), userConfig.GetText("U0011"), false);
+		}
+		catch(Exception exception)
+		{
+			DisplayMessageInUi(exception, userConfig.GetText("add_auto_calculated_internet_zone"), "", true);
+		}
 	}
 
 	private async void OnEditZone(ComplianceNetworkZone networkZone)

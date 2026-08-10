@@ -180,6 +180,53 @@ namespace FWO.Test
         }
 
         [Test]
+        public void CreateQueryVariables_DiffReportExcludesPreviouslyNonCompliantRules()
+        {
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ComplianceDiffFilterExistingViolations = true
+            };
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
+            MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
+            {
+                DiffReferenceInDays = 7
+            };
+
+            Dictionary<string, object> queryVariables = report.CreateQueryVariablesPublic(0, 100, RuleQueries.getRulesWithViolationsInTimespanByChunk);
+
+            Dictionary<string, object> ruleWhere = (Dictionary<string, object>)queryVariables["rule_where"];
+            Dictionary<string, object> noPreviousViolationsWhere = (Dictionary<string, object>)ruleWhere["_not"];
+            Dictionary<string, object> previousViolationsWhere = (Dictionary<string, object>)noPreviousViolationsWhere["compliance_violations_version_agnostic"];
+            Dictionary<string, object?> previousViolationFoundDate = (Dictionary<string, object?>)previousViolationsWhere["found_date"];
+            List<Dictionary<string, object>> previousViolationRemovalStates = (List<Dictionary<string, object>>)previousViolationsWhere["_or"];
+            Dictionary<string, object?> activePreviousViolation = (Dictionary<string, object?>)previousViolationRemovalStates[0]["removed_date"];
+            Dictionary<string, object?> removedAfterStartPreviousViolation = (Dictionary<string, object?>)previousViolationRemovalStates[1]["removed_date"];
+
+            Assert.That(previousViolationFoundDate["_lt"], Is.TypeOf<DateTime>());
+            Assert.That(previousViolationRemovalStates, Has.Count.EqualTo(2));
+            Assert.That(activePreviousViolation["_is_null"], Is.EqualTo(true));
+            Assert.That(removedAfterStartPreviousViolation["_gte"], Is.TypeOf<DateTime>());
+        }
+
+        [Test]
+        public void CreateQueryVariables_DiffReportKeepsPreviouslyNonCompliantRulesWhenFilterIsDisabled()
+        {
+            Dictionary<string, object> queryVariables = _testDiffReport.CreateQueryVariablesPublic(0, 100, RuleQueries.getRulesWithViolationsInTimespanByChunk);
+            Dictionary<string, object> ruleWhere = (Dictionary<string, object>)queryVariables["rule_where"];
+
+            Assert.That(ruleWhere, Is.Empty);
+        }
+
+        [Test]
+        public void CreateQueryVariables_DiffReportIncludesResolvedViolations()
+        {
+            Dictionary<string, object> queryVariables = _testDiffReport.CreateQueryVariablesPublic(0, 100, RuleQueries.getRulesWithViolationsInTimespanByChunk);
+            Dictionary<string, object> violationsWhere = (Dictionary<string, object>)queryVariables["violations_where"];
+
+            Assert.That(violationsWhere, Does.Not.ContainKey("removed_date"));
+        }
+
+        [Test]
         public void ExportToCsv_IncludesExpirationTimeColumnAndValue()
         {
             MockReportCompliance report = new(new(""), new(), Basics.ReportType.ComplianceReport);

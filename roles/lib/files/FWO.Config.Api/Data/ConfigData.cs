@@ -629,6 +629,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceFilterOutInitialViolations"), JsonPropertyName("complianceFilterOutInitialViolations")]
         public bool ComplianceFilterOutInitialViolations { get; set; } = false;
 
+        [JsonProperty("complianceDiffFilterExistingViolations"), JsonPropertyName("complianceDiffFilterExistingViolations")]
+        public bool ComplianceDiffFilterExistingViolations { get; set; } = false;
+
         [JsonProperty("reportingPersonalPreferredCollapseState"), JsonPropertyName("reportingPersonalPreferredCollapseState")]
         public PreferredCollapseState ReportingPersonalPreferredCollapseState { get; set; } = PreferredCollapseState.Collapsed;
 

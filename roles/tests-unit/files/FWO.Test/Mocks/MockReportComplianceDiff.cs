@@ -20,6 +20,14 @@ namespace FWO.Test.Mocks
         {
         }
 
+        /// <summary>
+        /// Creates the query variables for testing the diff report filters.
+        /// </summary>
+        public Dictionary<string, object> CreateQueryVariablesPublic(int offset, int limit, string query)
+        {
+            return CreateQueryVariables(offset, limit, query);
+        }
+
         protected override async Task PostProcessDiffReportsRule(Rule rule, ApiConnection apiConnection)
         {
             if (MockPostProcessDiffReportsRule)

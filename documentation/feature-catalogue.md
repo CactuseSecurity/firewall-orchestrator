@@ -127,6 +127,7 @@ For a chronological, version-by-version listing (8.0 onwards) see
 | Feature | Introduced in |
 | --- | --- |
 | Compliance matrix module | 7.0 (6.5.0) |
+| Optional filter for newly non-compliant rules in compliance diff reports | 9.3.4 |
 
 ## Tenant management
 

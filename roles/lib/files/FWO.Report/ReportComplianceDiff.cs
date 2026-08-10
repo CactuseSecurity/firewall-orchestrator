@@ -73,12 +73,14 @@ namespace FWO.Report
 
             if (query.Contains("violations_where"))
             {
+                DateTime reportEnd = DateTime.Now;
+                DateTime reportStart = reportEnd.AddDays(-DiffReferenceInDays);
                 var violationsWhere = new Dictionary<string, object>
                 {
                     ["found_date"] = new Dictionary<string, object?>
                     {
-                        ["_gte"] = DateTime.Now.AddDays(-DiffReferenceInDays),
-                        ["_lt"] = DateTime.Now
+                        ["_gte"] = reportStart,
+                        ["_lt"] = reportEnd
                     }
                 };
                 if (GlobalConfig.ComplianceFilterOutInitialViolations)
@@ -89,8 +91,49 @@ namespace FWO.Report
                     };
                 }
                 queryVariables["violations_where"] = violationsWhere;
+                // Fetch only rules that were compliant at the start of the report interval, if requested.
+                queryVariables["rule_where"] = GlobalConfig.ComplianceDiffFilterExistingViolations
+                    ? CreateNoPreviousViolationsWhere(reportStart)
+                    : [];
             }
             return queryVariables;
+        }
+
+        /// <summary>
+        /// Creates a rule filter that excludes violations which made a rule non-compliant at the start of the report interval.
+        /// </summary>
+        private static Dictionary<string, object> CreateNoPreviousViolationsWhere(DateTime reportStart)
+        {
+            return new Dictionary<string, object>
+            {
+                ["_not"] = new Dictionary<string, object>
+                {
+                    ["compliance_violations_version_agnostic"] = new Dictionary<string, object>
+                    {
+                        ["found_date"] = new Dictionary<string, object?>
+                        {
+                            ["_lt"] = reportStart
+                        },
+                        ["_or"] = new List<Dictionary<string, object>>
+                        {
+                            new()
+                            {
+                                ["removed_date"] = new Dictionary<string, object?>
+                                {
+                                    ["_is_null"] = true
+                                }
+                            },
+                            new()
+                            {
+                                ["removed_date"] = new Dictionary<string, object?>
+                                {
+                                    ["_gte"] = reportStart
+                                }
+                            }
+                        }
+                    }
+                }
+            };
         }
     }
 }

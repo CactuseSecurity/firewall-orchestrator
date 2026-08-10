@@ -6,12 +6,19 @@ query getRulesWithViolationsInTimespanByChunk(
   $import_id_end: bigint
   $mgm_ids: [Int!]
   $violations_where: compliance_violation_bool_exp!
+  $rule_where: firewall_rule_bool_exp!
 ) {
   firewall_rule(
     limit: $limit
     offset: $offset
     order_by: { rule_uid: asc }
-    where: { mgm_id: { _in: $mgm_ids } removed: { _is_null: true } }
+    where: {
+      _and: [
+        { mgm_id: { _in: $mgm_ids } }
+        { removed: { _is_null: true } }
+        $rule_where
+      ]
+    }
   ) {
     rule_src
     rule_dst

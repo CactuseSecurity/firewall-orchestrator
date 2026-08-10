@@ -228,3 +228,6 @@ For a feature-centric, thematically grouped view see
 
 ### 9.3 — 30.07.2026 (MAIN)
 - New OPNsense standalone (25ff) import module: imports OPNsense firewall configs via the full config.xml core backup API.
+
+### 9.3.4 — 10.08.2026
+- Compliance diff reports can optionally show only rules that newly became non-compliant.

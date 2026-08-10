@@ -4425,6 +4425,8 @@ INSERT INTO txt VALUES ('E5504', 'German',  'Bitte eine Eigent&uuml;merzuordnung
 INSERT INTO txt VALUES ('E5504', 'English', 'Please select an owner mapping source.');
 INSERT INTO txt VALUES ('E5505', 'German',  'Bitte den benutzerdefinierten Feldschl&uuml;ssel ausf&uuml;llen.');
 INSERT INTO txt VALUES ('E5505', 'English', 'Please fill the custom field key.');
+INSERT INTO txt VALUES ('E5506', 'German',  'Nur die &Auml;nderungs-ID-Schl&uuml;ssel wurden gespeichert, die Eigent&uuml;merzuordnung blieb unver&auml;ndert.');
+INSERT INTO txt VALUES ('E5506', 'English', 'Only the change-ID keys were saved, the owner mapping was left unchanged.');
 
 INSERT INTO txt VALUES ('E6001', 'German', 	'Der Re-Login war nicht erfolgreich. Haben Sie ein falsches Passwort eingegeben? Schauen Sie f&uuml;r Details bitte in die Logs.');
 INSERT INTO txt VALUES ('E6001', 'English', 'Re-login failed. Did you enter a wrong password? See log for details.');

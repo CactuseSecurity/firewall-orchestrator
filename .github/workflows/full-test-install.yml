@@ -37,7 +37,7 @@ jobs:
         run: |
           sudo apt update
           sudo DEBIAN_FRONTEND=noninteractive apt install build-essential ldap-utils libldap2-dev libsasl2-dev -y
-          python -m pip install -r requirements.txt psycopg2-binary==2.9.11 python-ldap==3.4.5 requests==2.34.2
+          python -m pip install -r requirements.txt
 
       - name: Install Ansible collections
         run: |

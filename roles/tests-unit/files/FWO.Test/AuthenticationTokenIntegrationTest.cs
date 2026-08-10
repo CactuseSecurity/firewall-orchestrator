@@ -377,10 +377,8 @@ namespace FWO.Test
             AuthenticationTokenGetParameters parameters = defaultCredentialsBuilder.BuildGetParameters();
             HttpResponseMessage response = await client!.PostAsJsonAsync("/api/AuthenticationToken/GetTokenPair", parameters);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                Assert.Ignore($"JWT integration test credentials are not valid in this environment. Status: {response.StatusCode}");
-            }
+            Assert.That(response.IsSuccessStatusCode, Is.True,
+                $"Expected /api/AuthenticationToken/GetTokenPair to succeed for the configured integration credentials, but got {(int)response.StatusCode} {response.StatusCode}. Content: {await response.Content.ReadAsStringAsync()}");
 
             return (await response.Content.ReadFromJsonAsync<TokenPair>())!;
         }

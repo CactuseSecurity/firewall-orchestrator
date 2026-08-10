@@ -87,6 +87,32 @@ internal class ComplianceZoneValidationTest
     }
 
     [Test]
+    public void ResolveZonesForObjects_AllowsCidrMaskedIpBoundsAndNormalizesLeaf()
+    {
+        ResolveZonesForObjectsRequest.LeafObjectRequest leaf = new()
+        {
+            Name = "Network",
+            Type = "network",
+            IpStart = "10.0.0.1/24",
+            IpEnd = "10.0.0.2/24"
+        };
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects = [leaf]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.True);
+            Assert.That(errorResult, Is.Null);
+            Assert.That(leaf.IpStart, Is.EqualTo("10.0.0.1"));
+            Assert.That(leaf.IpEnd, Is.EqualTo("10.0.0.2"));
+        });
+    }
+
+    [Test]
     public void ResolveZonesForObjects_RoundTripsNestedObjects()
     {
         ResolveZonesForObjectsRequest request = new()

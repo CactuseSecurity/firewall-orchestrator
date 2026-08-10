@@ -87,7 +87,7 @@ public static class FlowComplianceRequestValidator
     /// </summary>
     public static bool TryValidateIpRange(string ipStart, string ipEnd, string collectionName, int itemIndex, out string? errorMessage)
     {
-        (bool isValid, string? validationError) = ValidateIpRange(ipStart, ipEnd, detail => $"'{collectionName}' entry at index {itemIndex} {detail}");
+        bool isValid = TryValidateAndNormalizeIpRange(ipStart, ipEnd, collectionName, itemIndex, out _, out _, out string? validationError);
         errorMessage = validationError;
         return isValid;
     }
@@ -97,7 +97,50 @@ public static class FlowComplianceRequestValidator
     /// </summary>
     public static bool TryValidateIpRange(string ipStart, string ipEnd, string context, out string? errorMessage)
     {
-        (bool isValid, string? validationError) = ValidateIpRange(ipStart, ipEnd, detail => $"'{context}' {detail}");
+        bool isValid = TryValidateAndNormalizeIpRange(ipStart, ipEnd, context, out _, out _, out string? validationError);
+        errorMessage = validationError;
+        return isValid;
+    }
+
+    /// <summary>
+    /// Validates a single IP range and returns bounds with optional CIDR/netmask suffixes removed.
+    /// </summary>
+    public static bool TryValidateAndNormalizeIpRange(
+        string ipStart,
+        string ipEnd,
+        string collectionName,
+        int itemIndex,
+        out string normalizedIpStart,
+        out string normalizedIpEnd,
+        out string? errorMessage)
+    {
+        (bool isValid, string? validationError) = ValidateIpRange(
+            ipStart,
+            ipEnd,
+            detail => $"'{collectionName}' entry at index {itemIndex} {detail}",
+            out normalizedIpStart,
+            out normalizedIpEnd);
+        errorMessage = validationError;
+        return isValid;
+    }
+
+    /// <summary>
+    /// Validates a single IP range and returns bounds with optional CIDR/netmask suffixes removed.
+    /// </summary>
+    public static bool TryValidateAndNormalizeIpRange(
+        string ipStart,
+        string ipEnd,
+        string context,
+        out string normalizedIpStart,
+        out string normalizedIpEnd,
+        out string? errorMessage)
+    {
+        (bool isValid, string? validationError) = ValidateIpRange(
+            ipStart,
+            ipEnd,
+            detail => $"'{context}' {detail}",
+            out normalizedIpStart,
+            out normalizedIpEnd);
         errorMessage = validationError;
         return isValid;
     }
@@ -110,6 +153,17 @@ public static class FlowComplianceRequestValidator
         (bool isValid, string? validationError) = ValidateServiceRange(portStart, portEnd, collectionName, itemIndex);
         errorMessage = validationError;
         return isValid;
+    }
+
+    /// <summary>
+    /// Removes an optional CIDR/netmask suffix from an IP address value.
+    /// </summary>
+    public static string RemoveCidrMask(string ipAddress)
+    {
+        ArgumentNullException.ThrowIfNull(ipAddress);
+
+        int maskSeparatorIndex = ipAddress.IndexOf('/');
+        return maskSeparatorIndex < 0 ? ipAddress : ipAddress[..maskSeparatorIndex];
     }
 
     private static bool TryValidateItemList<TItem>(
@@ -181,7 +235,19 @@ public static class FlowComplianceRequestValidator
 
     private static (bool IsValid, string? ErrorMessage) TryValidateIpRange(GetFlowComplianceStateRequest.IpRangeRequest ipRange, string collectionName, int itemIndex)
     {
-        return ValidateIpRange(ipRange.IpStart, ipRange.IpEnd, detail => $"'{collectionName}' entry at index {itemIndex} {detail}");
+        (bool isValid, string? errorMessage) = ValidateIpRange(
+            ipRange.IpStart,
+            ipRange.IpEnd,
+            detail => $"'{collectionName}' entry at index {itemIndex} {detail}",
+            out string normalizedIpStart,
+            out string normalizedIpEnd);
+        if (isValid)
+        {
+            ipRange.IpStart = normalizedIpStart;
+            ipRange.IpEnd = normalizedIpEnd;
+        }
+
+        return (isValid, errorMessage);
     }
 
     private static (bool IsValid, string? ErrorMessage) TryValidateServiceRange(GetFlowComplianceStateRequest.ServiceRangeRequest serviceRange, string collectionName, int itemIndex)
@@ -189,14 +255,22 @@ public static class FlowComplianceRequestValidator
         return ValidateServiceRange(serviceRange.PortStart, serviceRange.PortEnd, collectionName, itemIndex);
     }
 
-    private static (bool IsValid, string? ErrorMessage) ValidateIpRange(string ipStartValue, string ipEndValue, Func<string, string> errorFactory)
+    private static (bool IsValid, string? ErrorMessage) ValidateIpRange(
+        string ipStartValue,
+        string ipEndValue,
+        Func<string, string> errorFactory,
+        out string normalizedIpStart,
+        out string normalizedIpEnd)
     {
-        if (!IPAddress.TryParse(ipStartValue, out IPAddress? ipStart))
+        normalizedIpStart = RemoveCidrMask(ipStartValue);
+        normalizedIpEnd = RemoveCidrMask(ipEndValue);
+
+        if (!IPAddress.TryParse(normalizedIpStart, out IPAddress? ipStart))
         {
             return (false, errorFactory("has an invalid 'ipStart' value."));
         }
 
-        if (!IPAddress.TryParse(ipEndValue, out IPAddress? ipEnd))
+        if (!IPAddress.TryParse(normalizedIpEnd, out IPAddress? ipEnd))
         {
             return (false, errorFactory("has an invalid 'ipEnd' value."));
         }

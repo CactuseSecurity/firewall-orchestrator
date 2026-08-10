@@ -66,6 +66,54 @@ internal class FlowComplianceValidationTest
     }
 
     [Test]
+    public void GetFlowComplianceState_AllowsCidrMaskedIpBoundsAndNormalizesRequest()
+    {
+        GetFlowComplianceStateRequest request = new()
+        {
+            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.0.1/32", IpEnd = "10.0.0.2/32" }],
+            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.1.1/24", IpEnd = "10.0.1.2/24" }],
+            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
+            Policies = [1]
+        };
+
+        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.True);
+            Assert.That(errorResult, Is.Null);
+            Assert.That(request.Source[0].IpStart, Is.EqualTo("10.0.0.1"));
+            Assert.That(request.Source[0].IpEnd, Is.EqualTo("10.0.0.2"));
+            Assert.That(request.Destination[0].IpStart, Is.EqualTo("10.0.1.1"));
+            Assert.That(request.Destination[0].IpEnd, Is.EqualTo("10.0.1.2"));
+        });
+    }
+
+    [TestCase("10.0.0.1/24", "10.0.0.1")]
+    [TestCase("10.0.0.1/255.255.255.0", "10.0.0.1")]
+    [TestCase("2001:db8::1/64", "2001:db8::1")]
+    [TestCase("10.0.0.1", "10.0.0.1")]
+    [TestCase("", "")]
+    public void RemoveCidrMask_StripsOptionalMaskSuffix(string input, string expected)
+    {
+        string result = FlowComplianceRequestValidator.RemoveCidrMask(input);
+
+        Assert.That(result, Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void TryValidateIpRange_AllowsCidrMaskedBounds()
+    {
+        bool valid = FlowComplianceRequestValidator.TryValidateIpRange("10.0.0.1/32", "10.0.0.2/32", "address", 0, out string? errorMessage);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.True);
+            Assert.That(errorMessage, Is.Null);
+        });
+    }
+
+    [Test]
     public void GetFlowComplianceState_RejectsUnknownRootKey()
     {
         string json = """

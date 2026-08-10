@@ -187,12 +187,20 @@ public static class ResolveZonesForObjectsRequestValidator
             return false;
         }
 
-        if (!FlowComplianceRequestValidator.TryValidateIpRange(leaf.IpStart, leaf.IpEnd, context, out string? ipRangeError))
+        if (!FlowComplianceRequestValidator.TryValidateAndNormalizeIpRange(
+            leaf.IpStart,
+            leaf.IpEnd,
+            context,
+            out string normalizedIpStart,
+            out string normalizedIpEnd,
+            out string? ipRangeError))
         {
             errorResult = new BadRequestObjectResult(ipRangeError);
             return false;
         }
 
+        leaf.IpStart = normalizedIpStart;
+        leaf.IpEnd = normalizedIpEnd;
         if (string.Equals(leaf.Type, ObjectType.Host, StringComparison.OrdinalIgnoreCase)
             && !IPAddress.Parse(leaf.IpStart).Equals(IPAddress.Parse(leaf.IpEnd)))
         {

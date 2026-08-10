@@ -41,9 +41,9 @@ namespace FWO.Test
                 ?? throw new MissingFieldException(typeof(MainLayout).FullName, name);
         }
 
-        private static void InvokeDisplayMessage(MainLayout layout, Exception? exception, string title, string message, bool errorFlag)
+        private static Task InvokeDisplayMessage(MainLayout layout, Exception? exception, string title, string message, bool errorFlag)
         {
-            GetPrivateMethod("DisplayMessageInUi").Invoke(layout, [exception, title, message, errorFlag]);
+            return (Task)GetPrivateMethod("DisplayMessageInUiAsync").Invoke(layout, [exception, title, message, errorFlag])!;
         }
 
         private static T GetPrivateFieldValue<T>(MainLayout layout, string name)
@@ -54,6 +54,11 @@ namespace FWO.Test
         private static void SetPrivateFieldValue<T>(MainLayout layout, string name, T value)
         {
             GetPrivateField(name).SetValue(layout, value);
+        }
+
+        private static void InvokeAuthenticationStateChanged(MainLayout layout, Task<AuthenticationState> authStateTask)
+        {
+            GetPrivateMethod("OnAuthenticationStateChanged").Invoke(layout, [authStateTask]);
         }
 
         private static List<string> GetAmbientRolesForRoute(MainLayout layout, string route)
@@ -67,7 +72,7 @@ namespace FWO.Test
             await using MainLayoutFixture fixture = new();
             MainLayout layout = fixture.Layout.Instance;
 
-            InvokeDisplayMessage(layout, null, "Save", "Done", false);
+            await InvokeDisplayMessage(layout, null, "Save", "Done", false);
 
             fixture.Layout.WaitForAssertion(() =>
             {
@@ -84,7 +89,7 @@ namespace FWO.Test
             await using MainLayoutFixture fixture = new();
             MainLayout layout = fixture.Layout.Instance;
 
-            InvokeDisplayMessage(layout, null, "Careful", "Check this", true);
+            await InvokeDisplayMessage(layout, null, "Careful", "Check this", true);
 
             fixture.Layout.WaitForAssertion(() =>
             {
@@ -101,7 +106,7 @@ namespace FWO.Test
             await using MainLayoutFixture fixture = new();
             MainLayout layout = fixture.Layout.Instance;
 
-            InvokeDisplayMessage(layout, new Exception("no such type exists in the schema: 'cidr'"), "", "", false);
+            await InvokeDisplayMessage(layout, new Exception("no such type exists in the schema: 'cidr'"), "", "", false);
 
             fixture.Layout.WaitForAssertion(() => Assert.That(fixture.Layout.Markup, Does.Contain("api_access - E0004")));
             fixture.ApiConnection.WaitForLogCount(1);
@@ -114,7 +119,7 @@ namespace FWO.Test
             await using MainLayoutFixture fixture = new();
             MainLayout layout = fixture.Layout.Instance;
 
-            InvokeDisplayMessage(layout, new InvalidOperationException("exploded"), "Load", "Could not load", true);
+            await InvokeDisplayMessage(layout, new InvalidOperationException("exploded"), "Load", "Could not load", true);
 
             fixture.Layout.WaitForAssertion(() => Assert.That(fixture.Layout.Markup, Does.Contain("Load - Could not load: exploded . E0002")));
 
@@ -326,14 +331,53 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AuthenticationStateChanged_WhenTheNewStateFails_KeepsTheLayoutUsable()
+        {
+            // the handler is started rather than awaited, so a failing state must be swallowed inside it:
+            // an exception escaping the handler would reach the synchronization context and kill the circuit
+            await using MainLayoutFixture fixture = new(roles: [Roles.Modeller, Roles.Auditor], initialUri: "http://localhost/networkmodelling");
+            MainLayout layout = fixture.Layout.Instance;
+            fixture.ApiConnection.AmbientRoleSelections.Clear();
+
+            Assert.DoesNotThrow(() => InvokeAuthenticationStateChanged(layout,
+                Task.FromException<AuthenticationState>(new InvalidOperationException("no state"))));
+
+            List<Claim> claims = [new(ClaimTypes.Name, "tester"), new(ClaimTypes.Role, Roles.Modeller)];
+            ClaimsPrincipal user = new(new ClaimsIdentity(claims, "Test"));
+            InvokeAuthenticationStateChanged(layout, Task.FromResult(new AuthenticationState(user)));
+
+            // the failed state must not have left the layout deaf to the next one
+            fixture.Layout.WaitForAssertion(() =>
+            {
+                Assert.That(fixture.ApiConnection.AmbientRoleSelections, Is.Not.Empty);
+                Assert.That(fixture.ApiConnection.AmbientRoleSelections[0], Is.EqualTo(Roles.Modeller));
+            });
+        }
+
+        [Test]
         public async Task DisplayMessageInUi_WhenDisplayPathThrows_DoesNotPropagateException()
         {
             await using MainLayoutFixture fixture = new();
             MainLayout layout = fixture.Layout.Instance;
             SetPrivateFieldValue<List<FWO.Ui.Data.UIMessage>?>(layout, "UIMessages", null);
 
-            Assert.DoesNotThrow(() => InvokeDisplayMessage(layout, null, "Save", "Done", false));
+            Assert.DoesNotThrowAsync(async () => await InvokeDisplayMessage(layout, null, "Save", "Done", false));
             Assert.That(fixture.ApiConnection.UiLogs, Is.Empty);
+        }
+
+        [Test]
+        public async Task DisplayMessageInUiFunction_IsWiredToDisplayMessageInUiAsync()
+        {
+            await using MainLayoutFixture fixture = new();
+            MainLayout layout = fixture.Layout.Instance;
+
+            Action<Exception?, string, string, bool> displayMessage =
+                GetPrivateFieldValue<Action<Exception?, string, string, bool>>(layout, "DisplayMessageInUiFunction");
+            displayMessage(null, "Save", "Done", false);
+
+            fixture.Layout.WaitForAssertion(() => Assert.That(fixture.Layout.Markup, Does.Contain("Save - Done")));
+            fixture.ApiConnection.WaitForLogCount(1);
+            Assert.That(fixture.ApiConnection.UiLogs[0], Is.EqualTo(new UiLogEntry(0, "Save", "Done")));
         }
 
         private sealed class MainLayoutFixture : IAsyncDisposable

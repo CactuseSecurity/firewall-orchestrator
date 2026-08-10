@@ -143,22 +143,26 @@ namespace FWO.Test
         {
             await DefaultInit.DoNothing(); // qad avoid compiler warning
             Type responseType = typeof(QueryResponseType);
+            if (responseType == typeof(List<ManagementReport>) && query == ReportQueries.getRelevantImportIdsAtTime)
+            {
+                GraphQLResponse<dynamic> response = new()
+                {
+                    Data = new List<ManagementReport>
+                    {
+                        new() { Import = new() { ImportAggregate = new() { ImportAggregateMax = new() { RelevantImportId = 1 } } } }
+                    }
+                };
+                return response.Data;
+            }
+
             if (responseType == typeof(List<Management>))
             {
-                if (query == ReportQueries.getRelevantImportIdsAtTime)
-                {
-                    GraphQLResponse<dynamic> response = new() { Data = new List<Management>() { new() { Import = new() { ImportAggregate = new() { ImportAggregateMax = new() { RelevantImportId = 1 } } } } } };
-                    return response.Data;
-                }
-                else
-                {
-                    List<Management>? managements =
-                    [
-                        new(){ Id = 1, Name = "Checkpoint1", ExtMgtData = "{\"id\":\"1\",\"name\":\"CheckpointExt\"}", Devices = [ new(){ Id = 1 }] }
-                    ];
-                    GraphQLResponse<dynamic> response = new() { Data = managements };
-                    return response.Data;
-                }
+                List<Management>? managements =
+                [
+                    new(){ Id = 1, Name = "Checkpoint1", ExtMgtData = "{\"id\":\"1\",\"name\":\"CheckpointExt\"}", Devices = [ new(){ Id = 1 }] }
+                ];
+                GraphQLResponse<dynamic> response = new() { Data = managements };
+                return response.Data;
             }
             else if (responseType == typeof(List<NetworkObject>))
             {

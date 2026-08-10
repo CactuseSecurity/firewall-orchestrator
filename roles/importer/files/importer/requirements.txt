@@ -6,7 +6,7 @@ python-dateutil==2.9.0.post0
 netaddr==1.3.0
 
 # Crypto (AES/CBC via cryptography.hazmat)
-cryptography==49.0.0
+cryptography==50.0.0
 
 # HTTP / GraphQL stack
 requests==2.34.2

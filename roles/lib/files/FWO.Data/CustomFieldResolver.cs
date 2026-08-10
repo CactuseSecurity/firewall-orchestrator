@@ -42,13 +42,15 @@ namespace FWO.Data
         /// <param name="rule">The rule containing the serialized custom fields.</param>
         /// <param name="keysJson">A JSON array of candidate custom field keys, or a legacy plain-text key.</param>
         /// <param name="errorMessage">Description of an unreadable custom field value, otherwise <see langword="null"/>.</param>
+        /// <param name="keyMatching">Whether the field names have to match the configured key exactly.</param>
         /// <returns>
         /// The deserialized custom field value when a matching key is found and can be converted to <typeparamref name="T"/>;
         /// otherwise, <see langword="default"/>.
         /// </returns>
-        public static T? ExtractCustomFieldValue<T>(Rule? rule, string keysJson, out string? errorMessage)
+        public static T? ExtractCustomFieldValue<T>(Rule? rule, string keysJson, out string? errorMessage,
+            CustomFieldKeyMatching keyMatching = CustomFieldKeyMatching.CaseSensitive)
         {
-            return ExtractCustomFieldValue<T>(rule, NormalizeCustomFieldKeys(keysJson), out errorMessage);
+            return ExtractCustomFieldValue<T>(rule, NormalizeCustomFieldKeys(keysJson), out errorMessage, keyMatching);
         }
 
         /// <summary>
@@ -59,11 +61,13 @@ namespace FWO.Data
         /// <param name="rule">The rule containing the serialized custom fields.</param>
         /// <param name="keys">Candidate custom field keys, checked in order.</param>
         /// <param name="errorMessage">Description of an unreadable custom field value, otherwise <see langword="null"/>.</param>
+        /// <param name="keyMatching">Whether the field names have to match the configured key exactly.</param>
         /// <returns>
         /// The deserialized custom field value when a matching key is found and can be converted to <typeparamref name="T"/>;
         /// otherwise, <see langword="default"/>.
         /// </returns>
-        public static T? ExtractCustomFieldValue<T>(Rule? rule, IReadOnlyList<string> keys, out string? errorMessage)
+        public static T? ExtractCustomFieldValue<T>(Rule? rule, IReadOnlyList<string> keys, out string? errorMessage,
+            CustomFieldKeyMatching keyMatching = CustomFieldKeyMatching.CaseSensitive)
         {
             errorMessage = null;
 
@@ -76,7 +80,8 @@ namespace FWO.Data
 
             try
             {
-                customFields = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(nonNullableRule.CustomFields.Replace("'", "\"")) ?? [];
+                customFields = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
+                    nonNullableRule.CustomFields.Replace("'", "\"")) ?? [];
             }
             catch (JsonException e)
             {
@@ -92,7 +97,7 @@ namespace FWO.Data
 
             foreach (var key in keys)
             {
-                if (!customFields.TryGetValue(key, out var value))
+                if (!TryGetFieldValue(customFields, key, keyMatching, out JsonElement value))
                 {
                     continue;
                 }
@@ -116,6 +121,42 @@ namespace FWO.Data
                 }
             }
             return default;
+        }
+
+        /// <summary>
+        /// Looks up a single configured key in the custom fields of a rule.
+        /// An exact match always wins; only <see cref="CustomFieldKeyMatching.IgnoreCase"/> falls back to a
+        /// casing-insensitive scan, because the field names exported by the firewall vendors do not reliably
+        /// match the casing of the configured key.
+        /// </summary>
+        /// <param name="customFields">Custom fields as deserialized from the rule.</param>
+        /// <param name="key">Configured custom field key.</param>
+        /// <param name="keyMatching">Whether the field names have to match the configured key exactly.</param>
+        /// <param name="value">The value found for the key.</param>
+        /// <returns>True if the rule holds a field for the key.</returns>
+        private static bool TryGetFieldValue(Dictionary<string, JsonElement> customFields, string key,
+            CustomFieldKeyMatching keyMatching, out JsonElement value)
+        {
+            if (customFields.TryGetValue(key, out value))
+            {
+                return true;
+            }
+            if (keyMatching == CustomFieldKeyMatching.CaseSensitive)
+            {
+                return false;
+            }
+
+            // scanned instead of rebuilt into a case-insensitive dictionary, because this runs per rule
+            // and a rule holds only a handful of custom fields
+            foreach (KeyValuePair<string, JsonElement> customField in customFields)
+            {
+                if (string.Equals(customField.Key, key, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = customField.Value;
+                    return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>

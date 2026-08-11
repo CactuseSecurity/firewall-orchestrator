@@ -13,6 +13,8 @@ namespace FWO.Test
     [TestFixture]
     internal class FlowSyncTest
     {
+        private const int kCentralEuropeanOffsetHours = 1;
+
         private sealed class FlowSyncTestApiConn : SimulatedApiConnection
         {
             private long nextFlowNetworkObjectId = 100;
@@ -45,6 +47,10 @@ namespace FWO.Test
             public Dictionary<int, FlowSyncManagementData> ManagementDataById { get; set; } = [];
             public HashSet<int> ManagementIdsWithoutData { get; } = [];
             public List<ImportControl> PendingImports { get; set; } = [];
+            public List<SuperMgmToMgmsMapping> SuperMgmToMgmsMappings { get; set; } = new();
+            public bool ReturnsNullSuperManagementMappings { get; set; }
+            public List<int> ManagementDataRequests { get; } = new();
+            public List<(long ControlId, int MgmId)> CompletedImportControlUpdates { get; } = new();
 
             public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
@@ -52,9 +58,19 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)PendingImports);
                 }
+                if (query == DeviceQueries.getMgmIdsBySuperMgmId)
+                {
+                    if (ReturnsNullSuperManagementMappings)
+                    {
+                        return Task.FromResult<T>(default!);
+                    }
+
+                    return Task.FromResult((T)(object)SuperMgmToMgmsMappings);
+                }
                 if (query == FlowQueries.getFlowSyncManagementData)
                 {
                     int mgmId = GetVariable<int>(variables, "mgmId");
+                    ManagementDataRequests.Add(mgmId);
                     if (ManagementIdsWithoutData.Contains(mgmId))
                     {
                         return Task.FromResult((T)(object)new List<FlowSyncManagementData>());
@@ -231,6 +247,7 @@ namespace FWO.Test
                 if (query == FlowQueries.updateImportControlForFlowSync)
                 {
                     CompletedImportControlId = GetVariable<long>(variables, "controlId");
+                    CompletedImportControlUpdates.Add((CompletedImportControlId.Value, GetVariable<int>(variables, "mgmId")));
                     return Task.FromResult((T)(object)new MutationResult { AffectedRows = 1 });
                 }
 
@@ -288,7 +305,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Run_SkipsManagementWhenNoManagementDataIsReturned()
+        public async Task Run_ReturnsFalseWhenNoManagementDataIsReturned()
         {
             FlowSyncTestApiConn apiConn = new()
             {
@@ -299,10 +316,149 @@ namespace FWO.Test
 
             bool result = await flowSync.Run();
 
-            Assert.That(result, Is.True);
+            Assert.That(result, Is.False);
             Assert.That(apiConn.InsertedNetworkObjects, Is.Empty);
             Assert.That(apiConn.RemovedMappingsCleared, Is.False);
             Assert.That(apiConn.CompletedImportControlId, Is.Null);
+        }
+
+        [Test]
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task Run_SynchronizesManagementWithoutSuperManagementMappings(bool returnsNullMappings)
+        {
+            FlowSyncTestApiConn apiConn = new()
+            {
+                PendingImports = [new ImportControl { ControlId = 9, MgmId = 7 }],
+                ReturnsNullSuperManagementMappings = returnsNullMappings
+            };
+            FlowSync flowSync = new(apiConn, new GlobalConfig());
+
+            bool result = await flowSync.Run();
+
+            List<int> expectedManagementDataRequests = new() { 7 };
+            List<(long ControlId, int MgmId)> expectedCompletedImportControlUpdates = new() { (9, 7) };
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.ManagementDataRequests, Is.EqualTo(expectedManagementDataRequests));
+            Assert.That(apiConn.CompletedImportControlUpdates, Is.EqualTo(expectedCompletedImportControlUpdates));
+        }
+
+        [Test]
+        public async Task Run_SynchronizesSubManagementsWithoutCompletingArtificialImports()
+        {
+            FlowSyncTestApiConn apiConn = new();
+            apiConn.PendingImports.Add(new ImportControl { ControlId = 9, MgmId = 1 });
+            SuperMgmToMgmsMapping superMgmToMgmsMapping = new()
+            {
+                SuperMgmId = 1
+            };
+            superMgmToMgmsMapping.SubMgmIds.Add(new SubMgmId { MgmId = 2 });
+            superMgmToMgmsMapping.SubMgmIds.Add(new SubMgmId { MgmId = 3 });
+            apiConn.SuperMgmToMgmsMappings.Add(superMgmToMgmsMapping);
+            apiConn.ManagementDataById.Add(1, new FlowSyncManagementData { Id = 1 });
+            apiConn.ManagementDataById.Add(2, new FlowSyncManagementData { Id = 2 });
+            apiConn.ManagementDataById.Add(3, new FlowSyncManagementData { Id = 3 });
+            FlowSync flowSync = new(apiConn, new GlobalConfig());
+
+            bool result = await flowSync.Run();
+
+            List<int> expectedManagementDataRequests = new() { 1, 2, 3 };
+            List<(long ControlId, int MgmId)> expectedCompletedImportControlUpdates = new() { (9, 1) };
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.ManagementDataRequests, Is.EqualTo(expectedManagementDataRequests));
+            Assert.That(apiConn.CompletedImportControlUpdates, Is.EqualTo(expectedCompletedImportControlUpdates));
+        }
+
+        [Test]
+        public async Task Run_CompletesPendingSubManagementImportsWhenSuperManagementSyncFails()
+        {
+            FlowSyncTestApiConn apiConn = new();
+            apiConn.PendingImports.Add(new ImportControl { ControlId = 9, MgmId = 1 });
+            apiConn.PendingImports.Add(new ImportControl { ControlId = 10, MgmId = 2 });
+            apiConn.PendingImports.Add(new ImportControl { ControlId = 11, MgmId = 3 });
+            SuperMgmToMgmsMapping superMgmToMgmsMapping = new()
+            {
+                SuperMgmId = 1
+            };
+            superMgmToMgmsMapping.SubMgmIds.Add(new SubMgmId { MgmId = 2 });
+            superMgmToMgmsMapping.SubMgmIds.Add(new SubMgmId { MgmId = 3 });
+            apiConn.SuperMgmToMgmsMappings.Add(superMgmToMgmsMapping);
+            apiConn.ManagementIdsWithoutData.Add(1);
+            FlowSync flowSync = new(apiConn, new GlobalConfig());
+
+            bool result = await flowSync.Run();
+
+            List<int> expectedManagementDataRequests = new() { 1, 2, 3 };
+            List<(long ControlId, int MgmId)> expectedCompletedImportControlUpdates = new() { (10, 2), (11, 3) };
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.ManagementDataRequests, Is.EqualTo(expectedManagementDataRequests));
+            Assert.That(apiConn.CompletedImportControlUpdates, Is.EqualTo(expectedCompletedImportControlUpdates));
+        }
+
+        [Test]
+        public async Task Run_DoesNotCompleteSuperManagementImportWhenSubManagementSyncFails()
+        {
+            FlowSyncTestApiConn apiConn = new();
+            apiConn.PendingImports.Add(new ImportControl { ControlId = 9, MgmId = 1 });
+            SuperMgmToMgmsMapping superMgmToMgmsMapping = new()
+            {
+                SuperMgmId = 1
+            };
+            superMgmToMgmsMapping.SubMgmIds.Add(new SubMgmId { MgmId = 2 });
+            superMgmToMgmsMapping.SubMgmIds.Add(new SubMgmId { MgmId = 3 });
+            apiConn.SuperMgmToMgmsMappings.Add(superMgmToMgmsMapping);
+            apiConn.ManagementDataById.Add(1, new FlowSyncManagementData { Id = 1 });
+            apiConn.ManagementDataById.Add(2, new FlowSyncManagementData { Id = 2 });
+            apiConn.ManagementIdsWithoutData.Add(3);
+            FlowSync flowSync = new(apiConn, new GlobalConfig());
+
+            bool result = await flowSync.Run();
+
+            List<int> expectedManagementDataRequests = new() { 1, 2, 3 };
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.ManagementDataRequests, Is.EqualTo(expectedManagementDataRequests));
+            List<(long ControlId, int MgmId)> expectedCompletedImportControlUpdates = [];
+            Assert.That(apiConn.CompletedImportControlUpdates, Is.EqualTo(expectedCompletedImportControlUpdates));
+        }
+
+        [Test]
+        public async Task Run_SynchronizesSuperManagementBeforeHigherRankedSubManagement()
+        {
+            FlowSyncTestApiConn apiConn = new();
+            apiConn.PendingImports.Add(new ImportControl { ControlId = 1, MgmId = 1 });
+            apiConn.PendingImports.Add(new ImportControl { ControlId = 3, MgmId = 3 });
+            SuperMgmToMgmsMapping superMgmToMgmsMapping = new()
+            {
+                SuperMgmId = 1
+            };
+            superMgmToMgmsMapping.SubMgmIds.Add(new SubMgmId { MgmId = 2 });
+            apiConn.SuperMgmToMgmsMappings.Add(superMgmToMgmsMapping);
+            FlowSync flowSync = new(apiConn, new GlobalConfig { FlowNamingSourceManagementRanking = "[2,3,1]" });
+
+            await flowSync.Run();
+
+            List<int> expectedManagementDataRequests = new() { 3, 1, 2 };
+            Assert.That(apiConn.ManagementDataRequests, Is.EqualTo(expectedManagementDataRequests));
+        }
+
+        [Test]
+        public async Task Run_SynchronizesSuperManagementBeforeOlderSubManagementImport()
+        {
+            FlowSyncTestApiConn apiConn = new();
+            apiConn.PendingImports.Add(new ImportControl { ControlId = 1, MgmId = 2 });
+            apiConn.PendingImports.Add(new ImportControl { ControlId = 2, MgmId = 1 });
+            SuperMgmToMgmsMapping superMgmToMgmsMapping = new()
+            {
+                SuperMgmId = 1
+            };
+            superMgmToMgmsMapping.SubMgmIds.Add(new SubMgmId { MgmId = 2 });
+            apiConn.SuperMgmToMgmsMappings.Add(superMgmToMgmsMapping);
+            FlowSync flowSync = new(apiConn, new GlobalConfig());
+
+            await flowSync.Run();
+
+            List<int> expectedManagementDataRequests = new() { 1, 2 };
+            Assert.That(apiConn.ManagementDataRequests, Is.EqualTo(expectedManagementDataRequests));
         }
 
         [Test]
@@ -642,6 +798,28 @@ namespace FWO.Test
             Assert.That(mappings[hash].Single().Id, Is.EqualTo(7));
             Assert.That(mappings[hash].Single().FlowId, Is.Null);
             Assert.That(mappings[hash].Single().FlowActive, Is.True);
+        }
+
+        [Test]
+        public void TryBuildFlowTimeObj_WritesTimeBoundsAsUtc()
+        {
+            DateTime expectedStartTime = new(2026, 1, 15, 14, 0, 0, DateTimeKind.Utc);
+            DateTime expectedEndTime = new(2026, 1, 15, 15, 0, 0, DateTimeKind.Utc);
+            DateTime localStartTime = new DateTimeOffset(2026, 1, 15, 15, 0, 0, TimeSpan.FromHours(kCentralEuropeanOffsetHours)).LocalDateTime;
+            DateTime localEndTime = new DateTimeOffset(2026, 1, 15, 16, 0, 0, TimeSpan.FromHours(kCentralEuropeanOffsetHours)).LocalDateTime;
+            TimeObject timeObj = new() { Id = 7, Name = "maintenance-window", StartTime = localStartTime, EndTime = localEndTime };
+            FlowSyncFlowData flowData = CreateFlowData();
+            Dictionary<string, FlowTimeObjectInsert> pendingInserts = [];
+            Dictionary<string, List<FlowMappingUpdate>> mappings = [];
+
+            bool result = InvokePrivateStatic<bool>("TryBuildFlowTimeObj", timeObj, flowData, pendingInserts, mappings, true);
+
+            FlowTimeObjectInsert insertedTimeObject = pendingInserts.Values.Single();
+            Assert.That(result, Is.True);
+            Assert.That(insertedTimeObject.StartTime, Is.EqualTo(expectedStartTime));
+            Assert.That(insertedTimeObject.EndTime, Is.EqualTo(expectedEndTime));
+            Assert.That(insertedTimeObject.StartTime!.Value.Kind, Is.EqualTo(DateTimeKind.Utc));
+            Assert.That(insertedTimeObject.EndTime!.Value.Kind, Is.EqualTo(DateTimeKind.Utc));
         }
 
         [Test]

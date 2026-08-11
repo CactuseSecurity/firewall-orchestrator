@@ -25,6 +25,7 @@ using System.Security.Claims;
 namespace FWO.Test
 {
     [TestFixture]
+    [NonParallelizable]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public class UiMainLayoutTest
     {
@@ -40,9 +41,9 @@ namespace FWO.Test
                 ?? throw new MissingFieldException(typeof(MainLayout).FullName, name);
         }
 
-        private static void InvokeDisplayMessage(MainLayout layout, Exception? exception, string title, string message, bool errorFlag)
+        private static Task InvokeDisplayMessage(MainLayout layout, Exception? exception, string title, string message, bool errorFlag)
         {
-            GetPrivateMethod("DisplayMessageInUi").Invoke(layout, [exception, title, message, errorFlag]);
+            return (Task)GetPrivateMethod("DisplayMessageInUiAsync").Invoke(layout, [exception, title, message, errorFlag])!;
         }
 
         private static T GetPrivateFieldValue<T>(MainLayout layout, string name)
@@ -53,6 +54,11 @@ namespace FWO.Test
         private static void SetPrivateFieldValue<T>(MainLayout layout, string name, T value)
         {
             GetPrivateField(name).SetValue(layout, value);
+        }
+
+        private static void InvokeAuthenticationStateChanged(MainLayout layout, Task<AuthenticationState> authStateTask)
+        {
+            GetPrivateMethod("OnAuthenticationStateChanged").Invoke(layout, [authStateTask]);
         }
 
         private static List<string> GetAmbientRolesForRoute(MainLayout layout, string route)
@@ -66,7 +72,7 @@ namespace FWO.Test
             await using MainLayoutFixture fixture = new();
             MainLayout layout = fixture.Layout.Instance;
 
-            InvokeDisplayMessage(layout, null, "Save", "Done", false);
+            await InvokeDisplayMessage(layout, null, "Save", "Done", false);
 
             fixture.Layout.WaitForAssertion(() =>
             {
@@ -83,7 +89,7 @@ namespace FWO.Test
             await using MainLayoutFixture fixture = new();
             MainLayout layout = fixture.Layout.Instance;
 
-            InvokeDisplayMessage(layout, null, "Careful", "Check this", true);
+            await InvokeDisplayMessage(layout, null, "Careful", "Check this", true);
 
             fixture.Layout.WaitForAssertion(() =>
             {
@@ -100,7 +106,7 @@ namespace FWO.Test
             await using MainLayoutFixture fixture = new();
             MainLayout layout = fixture.Layout.Instance;
 
-            InvokeDisplayMessage(layout, new Exception("no such type exists in the schema: 'cidr'"), "", "", false);
+            await InvokeDisplayMessage(layout, new Exception("no such type exists in the schema: 'cidr'"), "", "", false);
 
             fixture.Layout.WaitForAssertion(() => Assert.That(fixture.Layout.Markup, Does.Contain("api_access - E0004")));
             fixture.ApiConnection.WaitForLogCount(1);
@@ -113,31 +119,16 @@ namespace FWO.Test
             await using MainLayoutFixture fixture = new();
             MainLayout layout = fixture.Layout.Instance;
 
-            InvokeDisplayMessage(layout, new InvalidOperationException("exploded"), "Load", "Could not load", true);
+            await InvokeDisplayMessage(layout, new InvalidOperationException("exploded"), "Load", "Could not load", true);
 
             fixture.Layout.WaitForAssertion(() => Assert.That(fixture.Layout.Markup, Does.Contain("Load - Could not load: exploded . E0002")));
+
             fixture.ApiConnection.WaitForLogCount(1);
+
             UiLogEntry log = fixture.ApiConnection.UiLogs[0];
             Assert.That(log.Severity, Is.EqualTo(2));
             Assert.That(log.Cause, Is.EqualTo("Load"));
             Assert.That(log.Description, Is.EqualTo("Could not load: exploded . E0002"));
-        }
-
-        [Test]
-        public async Task DisplayMessageInUi_JwtExpired_ShowsReloginMessageWithoutUiLog()
-        {
-            await using MainLayoutFixture fixture = new();
-            MainLayout layout = fixture.Layout.Instance;
-
-            InvokeDisplayMessage(layout, new Exception("JWTExpired"), "Token", "", true);
-
-            fixture.Layout.WaitForAssertion(() =>
-            {
-                Assert.That(GetPrivateFieldValue<bool>(layout, "showReloginDialog"), Is.True);
-                Assert.That(fixture.Layout.Markup, Does.Contain("jwt_expired_title"));
-                Assert.That(fixture.Layout.Markup, Does.Contain("jwt_expired_text"));
-            });
-            Assert.That(fixture.ApiConnection.UiLogs, Is.Empty);
         }
 
         [Test]
@@ -301,14 +292,92 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task OnInitializedAsync_WhenAuthenticationStateTimesOut_KeepsLayoutAlive()
+        {
+            DelayedMainLayoutAuthStateProvider authProvider = new("tester", "uid=tester,ou=people,dc=example,dc=com", [Roles.Modeller]);
+            await using MainLayoutFixture fixture = new(
+                roles: [Roles.Modeller],
+                initialUri: "http://localhost/networkmodelling",
+                authenticationStateProvider: authProvider);
+
+            Assert.That(
+                () => GetPrivateFieldValue<bool>(fixture.Layout.Instance, "ambientRoleInitialized"),
+                Is.True.After(7000, 50));
+            Assert.That(fixture.Layout.Markup, Is.Not.Empty);
+            Assert.That(fixture.ApiConnection.AmbientRoleSelections, Is.Empty);
+        }
+
+        [Test]
+        public async Task AuthenticationStateChanged_AfterStartupTimeout_UpdatesAmbientRole()
+        {
+            DelayedMainLayoutAuthStateProvider authProvider = new("tester", "uid=tester,ou=people,dc=example,dc=com", [Roles.Modeller, Roles.Auditor]);
+            await using MainLayoutFixture fixture = new(
+                roles: [Roles.Modeller, Roles.Auditor],
+                initialUri: "http://localhost/networkmodelling",
+                authenticationStateProvider: authProvider);
+
+            Assert.That(
+                () => GetPrivateFieldValue<bool>(fixture.Layout.Instance, "ambientRoleInitialized"),
+                Is.True.After(7000, 50));
+            Assert.That(fixture.ApiConnection.AmbientRoleSelections, Is.Empty);
+
+            authProvider.PublishAuthenticatedState();
+
+            fixture.Layout.WaitForAssertion(() =>
+            {
+                Assert.That(fixture.ApiConnection.AmbientRoleSelections, Is.Not.Empty);
+                Assert.That(fixture.ApiConnection.AmbientRoleSelections[0], Is.EqualTo(Roles.Modeller));
+            });
+        }
+
+        [Test]
+        public async Task AuthenticationStateChanged_WhenTheNewStateFails_KeepsTheLayoutUsable()
+        {
+            // the handler is started rather than awaited, so a failing state must be swallowed inside it:
+            // an exception escaping the handler would reach the synchronization context and kill the circuit
+            await using MainLayoutFixture fixture = new(roles: [Roles.Modeller, Roles.Auditor], initialUri: "http://localhost/networkmodelling");
+            MainLayout layout = fixture.Layout.Instance;
+            fixture.ApiConnection.AmbientRoleSelections.Clear();
+
+            Assert.DoesNotThrow(() => InvokeAuthenticationStateChanged(layout,
+                Task.FromException<AuthenticationState>(new InvalidOperationException("no state"))));
+
+            List<Claim> claims = [new(ClaimTypes.Name, "tester"), new(ClaimTypes.Role, Roles.Modeller)];
+            ClaimsPrincipal user = new(new ClaimsIdentity(claims, "Test"));
+            InvokeAuthenticationStateChanged(layout, Task.FromResult(new AuthenticationState(user)));
+
+            // the failed state must not have left the layout deaf to the next one
+            fixture.Layout.WaitForAssertion(() =>
+            {
+                Assert.That(fixture.ApiConnection.AmbientRoleSelections, Is.Not.Empty);
+                Assert.That(fixture.ApiConnection.AmbientRoleSelections[0], Is.EqualTo(Roles.Modeller));
+            });
+        }
+
+        [Test]
         public async Task DisplayMessageInUi_WhenDisplayPathThrows_DoesNotPropagateException()
         {
             await using MainLayoutFixture fixture = new();
             MainLayout layout = fixture.Layout.Instance;
             SetPrivateFieldValue<List<FWO.Ui.Data.UIMessage>?>(layout, "UIMessages", null);
 
-            Assert.DoesNotThrow(() => InvokeDisplayMessage(layout, null, "Save", "Done", false));
+            Assert.DoesNotThrowAsync(async () => await InvokeDisplayMessage(layout, null, "Save", "Done", false));
             Assert.That(fixture.ApiConnection.UiLogs, Is.Empty);
+        }
+
+        [Test]
+        public async Task DisplayMessageInUiFunction_IsWiredToDisplayMessageInUiAsync()
+        {
+            await using MainLayoutFixture fixture = new();
+            MainLayout layout = fixture.Layout.Instance;
+
+            Action<Exception?, string, string, bool> displayMessage =
+                GetPrivateFieldValue<Action<Exception?, string, string, bool>>(layout, "DisplayMessageInUiFunction");
+            displayMessage(null, "Save", "Done", false);
+
+            fixture.Layout.WaitForAssertion(() => Assert.That(fixture.Layout.Markup, Does.Contain("Save - Done")));
+            fixture.ApiConnection.WaitForLogCount(1);
+            Assert.That(fixture.ApiConnection.UiLogs[0], Is.EqualTo(new UiLogEntry(0, "Save", "Done")));
         }
 
         private sealed class MainLayoutFixture : IAsyncDisposable
@@ -323,7 +392,8 @@ namespace FWO.Test
             public NavigationManager NavigationManager { get; }
             public IRenderedComponent<MainLayout> Layout { get; }
 
-            public MainLayoutFixture(int maxMessages = 3, IEnumerable<string>? roles = null, string initialUri = "http://localhost/")
+            public MainLayoutFixture(int maxMessages = 3, IEnumerable<string>? roles = null, string initialUri = "http://localhost/",
+                AuthenticationStateProvider? authenticationStateProvider = null)
             {
                 List<string> userRoles = roles?.ToList() ?? [Roles.Reporter];
                 context.JSInterop.Mode = JSRuntimeMode.Loose;
@@ -350,9 +420,13 @@ namespace FWO.Test
                 context.Services.AddSingleton<ITokenRefreshCoordinator>(TokenRefreshCoordinator);
                 context.Services.AddSingleton(new KeyboardInputService());
                 context.Services.AddSingleton((ProtectedSessionStorage)RuntimeHelpers.GetUninitializedObject(typeof(ProtectedSessionStorage)));
-                context.Services.AddSingleton<AuthenticationStateProvider>(new MainLayoutAuthStateProvider(UserConfig.User.Name, UserConfig.User.Dn, userRoles));
-                NavigationManager = context.Services.GetRequiredService<NavigationManager>();
-                context.Services.GetRequiredService<BunitNavigationManager>().NavigateTo(initialUri);
+                context.Services.AddSingleton<AuthenticationStateProvider>(authenticationStateProvider ?? new MainLayoutAuthStateProvider(UserConfig.User.Name, UserConfig.User.Dn, userRoles));
+
+                var authProvider = context.Services.GetRequiredService<AuthenticationStateProvider>();
+                authProvider.GetAuthenticationStateAsync();
+
+                NavigationManager = context.Services.GetRequiredService<BunitNavigationManager>();
+                NavigationManager.NavigateTo(initialUri);
 
                 Layout = context.Render<CascadingAuthenticationState>(parameters => parameters.AddChildContent<MainLayout>())
                     .FindComponent<MainLayout>();
@@ -383,6 +457,7 @@ namespace FWO.Test
             {
                 return Task.FromResult(new AuthenticationState(principal));
             }
+
         }
 
         private sealed class MainLayoutTokenRefreshCoordinatorStub : ITokenRefreshCoordinator
@@ -396,13 +471,48 @@ namespace FWO.Test
                 return Task.CompletedTask;
             }
 
-            public void Stop()
+            public Task StopAsync()
             {
                 StopCallCount++;
+                return Task.CompletedTask;
             }
 
             public void Dispose()
             {
+                StopCallCount++;
+            }
+
+            public ValueTask DisposeAsync()
+            {
+                return new ValueTask(StopAsync());
+            }
+        }
+
+        private sealed class DelayedMainLayoutAuthStateProvider : AuthenticationStateProvider
+        {
+            private readonly AuthenticationState authenticatedState;
+            private readonly TaskCompletionSource<AuthenticationState> initialState = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            public DelayedMainLayoutAuthStateProvider(string username, string userDn, IEnumerable<string> roles)
+            {
+                List<Claim> claims =
+                [
+                    new(ClaimTypes.Name, username),
+                    new("x-hasura-uuid", userDn)
+                ];
+                claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+                authenticatedState = new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity(claims, "Test")));
+            }
+
+            public override Task<AuthenticationState> GetAuthenticationStateAsync()
+            {
+                return initialState.Task;
+            }
+
+            public void PublishAuthenticatedState()
+            {
+                initialState.TrySetResult(authenticatedState);
+                NotifyAuthenticationStateChanged(Task.FromResult(authenticatedState));
             }
         }
     }

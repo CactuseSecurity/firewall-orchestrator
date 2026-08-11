@@ -141,6 +141,26 @@ namespace FWO.Test
             Assert.That(throwingSessionStorage.ContainsKey("token_pair"), Is.False);
         }
 
+        [Test]
+        public async Task GetAccessTokenAsync_WhenFirstStorageReadFailsTransiently_ShouldRetryOnNextCall()
+        {
+            // Arrange
+            FlakyProtectedSessionStorage flakySessionStorage = new();
+            TokenService retryingTokenService = new(mockMiddlewareClient!, flakySessionStorage);
+
+            // Act
+            string? firstAttempt = await retryingTokenService.GetAccessToken();
+            string? secondAttempt = await retryingTokenService.GetAccessToken();
+
+            // Assert
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstAttempt, Is.Null);
+                Assert.That(secondAttempt, Is.EqualTo(TEST_ACCESS_TOKEN));
+                Assert.That(flakySessionStorage.GetCallCount, Is.EqualTo(2));
+            });
+        }
+
         #endregion
 
         #region GetTokenExpirations Tests
@@ -700,27 +720,71 @@ namespace FWO.Test
                 };
             }
 
-            public ValueTask<ProtectedBrowserStorageResult<TValue>> GetAsync<TValue>(string key)
+            public Task<ProtectedBrowserStorageResult<TValue>> GetAsync<TValue>(string key)
             {
                 throw exceptionToThrow;
             }
 
-            public ValueTask SetAsync(string key, object value)
+            public Task SetAsync(string key, object value)
             {
                 storage[key] = value;
-                return ValueTask.CompletedTask;
+                return Task.CompletedTask;
             }
 
-            public ValueTask DeleteAsync(string key)
+            public Task DeleteAsync(string key)
             {
                 DeleteCallCount++;
                 storage.Remove(key);
-                return ValueTask.CompletedTask;
+                return Task.CompletedTask;
             }
 
             public bool ContainsKey(string key)
             {
                 return storage.ContainsKey(key);
+            }
+        }
+
+        private sealed class FlakyProtectedSessionStorage : ISessionStorage
+        {
+            private readonly TokenPair storedTokenPair = new()
+            {
+                AccessToken = TEST_ACCESS_TOKEN,
+                RefreshToken = TEST_REFRESH_TOKEN,
+                AccessTokenExpires = DateTime.UtcNow.AddHours(1),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(7)
+            };
+
+            public int GetCallCount { get; private set; }
+
+            public Task<ProtectedBrowserStorageResult<TValue>> GetAsync<TValue>(string key)
+            {
+                GetCallCount++;
+
+                if (GetCallCount == 1)
+                {
+                    throw new TimeoutException("temporary failure");
+                }
+
+                object result = CreateProtectedBrowserStorageResult((TValue)(object)storedTokenPair);
+                return Task.FromResult((ProtectedBrowserStorageResult<TValue>)result);
+            }
+
+            public Task SetAsync(string key, object value)
+            {
+                return Task.CompletedTask;
+            }
+
+            public Task DeleteAsync(string key)
+            {
+                return Task.CompletedTask;
+            }
+
+            private static ProtectedBrowserStorageResult<TValue> CreateProtectedBrowserStorageResult<TValue>(TValue value)
+            {
+                var constructor = typeof(ProtectedBrowserStorageResult<TValue>).GetConstructors(
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public)[0];
+
+                return (ProtectedBrowserStorageResult<TValue>)constructor.Invoke([true, value]);
             }
         }
 

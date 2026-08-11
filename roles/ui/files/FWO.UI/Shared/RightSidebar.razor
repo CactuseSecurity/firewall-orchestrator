@@ -490,12 +490,13 @@
         }
 
         bool gotAllObjects;
-        if (authenticationStateTask == null)
+        if (authenticationStateTask == null || CurrentReport is not ReportAppRules)
         {
             gotAllObjects = await FetchReportObjects();
         }
         else
         {
+            // for ReportAppRules we need to make sure we use the correct role (esp. modeller instead of reporter)
             AuthenticationState authenticationState = await authenticationStateTask;
             gotAllObjects = await apiConnection.RunWithBestRoleForReport(authenticationState.User,
                 CurrentReport!.ReportType, FetchReportObjects);

@@ -1,5 +1,6 @@
 @using FWO.Services.SystemUsage
 @using FWO.Middleware.Client
+@using FWO.Data.Middleware
 
 @page "/monitoring"
 @page "/monitoring/system_usage"
@@ -112,9 +113,9 @@
                 </div>
             </div>
 
-            <div class="row">
-                <div class="col-12 mb-3">
-                    <div class="card">
+        <div class="row">
+            <div class="col-12 mb-3">
+                <div class="card">
                         <div class="card-body">
                             <h6>@(userConfig.GetText("ui_process"))</h6>
                             <div class="row">
@@ -268,10 +269,60 @@
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                </div>
-                                            </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h6>@(userConfig.GetText("scheduler_jobs_title"))</h6>
+                        @if (SchedulerJobs.Count == 0)
+                        {
+                            <div class="text-muted">@(userConfig.GetText("scheduler_no_jobs"))</div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered th-bg-secondary align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">@(userConfig.GetText("scheduler_job"))</th>
+                                            <th scope="col">@(userConfig.GetText("scheduler_interval"))</th>
+                                            <th scope="col">@(userConfig.GetText("scheduler_last_run"))</th>
+                                            <th scope="col">@(userConfig.GetText("scheduler_next_run"))</th>
+                                            <th scope="col" class="text-center">@(userConfig.GetText("scheduler_status"))</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (SchedulerJobInfo job in SchedulerJobs)
+                                        {
+                                            <tr>
+                                                <td>@job.JobName</td>
+                                                <td class="@(string.IsNullOrWhiteSpace(job.IntervalDescription) ? "text-center" : "")">@FormatSchedulerInterval(job.IntervalDescription)</td>
+                                                <td class="@(job.LastFireTimeUtc is null ? "text-center" : "")">@FormatSchedulerRunTime(job.LastFireTimeUtc, false)</td>
+                                                <td class="@(job.NextFireTimeUtc is null ? "text-center" : "")">@FormatSchedulerRunTime(job.NextFireTimeUtc, true)</td>
+                                                <td class="text-center">@FormatSchedulerExecutionStatus(job)</td>
+                                            </tr>
+                                            @if (job.LastExecutionStatus == SchedulerJobExecutionStatus.Failed && !string.IsNullOrWhiteSpace(job.LastExecutionError))
+                                            {
+                                                <tr>
+                                                    <td colspan="5" style="background-color: #ffd400d6">
+                                                        @((MarkupString)$"<p><span class=\"text-danger {Icons.Warning} px-1\"></span><b>{System.Net.WebUtility.HtmlEncode(job.LastExecutionError)}</b></p>")
+                                                    </td>
+                                                </tr>
+                                            }
                                         }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 
                                         <div class="row">
                                             <div class="col-12 mb-3">
@@ -334,6 +385,7 @@
     private SystemUsageSnapshot Usage { get; set; } = new();
     private SystemUsageSnapshot MiddlewareUsage { get; set; } = new();
     private UiSessionOverview Sessions { get; set; } = new();
+    private List<SchedulerJobInfo> SchedulerJobs { get; set; } = [];
     private List<double> CpuHistory { get; set; } = [];
     private List<double> MemoryHistory { get; set; } = [];
     private List<DateTime> HistoryTimes { get; set; } = [];
@@ -523,6 +575,7 @@ MiddlewareHistoryTimes[^1].ToLocalTime().ToString("T") : "";
             }
 
             MiddlewareUsage = snapshot;
+            await RefreshSchedulerJobsAsync();
             MiddlewareUsageReachable = true;
             AppendHistory(MiddlewareCpuHistory, MiddlewareUsage.CpuUsedPercent);
             AppendHistory(MiddlewareMemoryHistory, MiddlewareUsage.MemoryUsedPercent);
@@ -541,6 +594,17 @@ MiddlewareHistoryTimes[^1].ToLocalTime().ToString("T") : "";
 
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private async Task RefreshSchedulerJobsAsync()
+    {
+        RestSharp.RestResponse<List<SchedulerJobInfo>> response = await middlewareClient.GetSchedulerJobs();
+        if (!response.IsSuccessful || response.Data == null)
+        {
+            throw new InvalidOperationException(response.ErrorMessage ?? response.StatusDescription ?? userConfig.GetText("scheduler_job_fetch_failed"));
+        }
+
+        SchedulerJobs = [.. response.Data.OrderBy(job => job.JobName)];
     }
 
     private async Task RefreshAsync()
@@ -565,6 +629,45 @@ MiddlewareHistoryTimes[^1].ToLocalTime().ToString("T") : "";
         {
             history.RemoveAt(0);
         }
+    }
+
+    private MarkupString FormatSchedulerInterval(string intervalDescription)
+    {
+        return string.IsNullOrWhiteSpace(intervalDescription)
+            ? (MarkupString)"<span class=\"text-muted text-center\">—</span>"
+            : (MarkupString)$"{userConfig.GetText("scheduler_interval_description")} {intervalDescription}";
+    }
+
+    private MarkupString FormatSchedulerRunTime(DateTimeOffset? fireTimeUtc, bool isNextRun)
+    {
+        if (fireTimeUtc == null)
+        {
+            return (MarkupString)"<span class=\"text-muted\">—</span>";
+        }
+
+        if (isNextRun)
+        {
+            TimeSpan timeUntil = fireTimeUtc.Value - DateTimeOffset.Now;
+            if (timeUntil.TotalSeconds <= 5 && timeUntil.TotalSeconds >= 0)
+            {
+                return (MarkupString)userConfig.GetText("scheduler_now");
+            }
+        }
+
+        DateTime localTime = fireTimeUtc.Value.LocalDateTime;
+        return localTime.Second != 0
+            ? (MarkupString)localTime.ToString("G")
+            : (MarkupString)localTime.ToString("g");
+    }
+
+    private MarkupString FormatSchedulerExecutionStatus(SchedulerJobInfo job)
+    {
+        return job.LastExecutionStatus switch
+        {
+            SchedulerJobExecutionStatus.Success => (MarkupString)$"<span class=\"text-success {Icons.Check}\"></span>",
+            SchedulerJobExecutionStatus.Failed => (MarkupString)$"<span class=\"text-danger {Icons.Close}\"></span>",
+            _ => (MarkupString)"<span class=\"text-muted\">—</span>"
+        };
     }
 
     /// <summary>

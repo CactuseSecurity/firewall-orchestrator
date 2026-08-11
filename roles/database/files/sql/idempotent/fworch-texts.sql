@@ -3577,6 +3577,34 @@ INSERT INTO txt VALUES ('scheduler_action', 	          'German',   'Aktion');
 INSERT INTO txt VALUES ('scheduler_action', 	          'English',  'Action');
 INSERT INTO txt VALUES ('scheduler_no_jobs', 	          'German',   'Keine Scheduler-Jobs verf&uuml;gbar.');
 INSERT INTO txt VALUES ('scheduler_no_jobs', 	          'English',  'No scheduler jobs available.');
+INSERT INTO txt VALUES ('monitoring_service_status',      'German',   'Dienststatus');
+INSERT INTO txt VALUES ('monitoring_service_status',      'English',  'Service status');
+INSERT INTO txt VALUES ('monitoring_ui_service',          'German',   'UI-Systemdaten');
+INSERT INTO txt VALUES ('monitoring_ui_service',          'English',  'UI system usage');
+INSERT INTO txt VALUES ('monitoring_middleware_usage',    'German',   'Middleware-Systemdaten');
+INSERT INTO txt VALUES ('monitoring_middleware_usage',    'English',  'Middleware system usage');
+INSERT INTO txt VALUES ('monitoring_scheduler_api',       'German',   'Scheduler-API');
+INSERT INTO txt VALUES ('monitoring_scheduler_api',       'English',  'Scheduler API');
+INSERT INTO txt VALUES ('monitoring_checked_at',          'German',   'Zuletzt gepr&uuml;ft');
+INSERT INTO txt VALUES ('monitoring_checked_at',          'English',  'Last checked');
+INSERT INTO txt VALUES ('monitoring_reachable',           'German',   'Erreichbar');
+INSERT INTO txt VALUES ('monitoring_reachable',           'English',  'Reachable');
+INSERT INTO txt VALUES ('monitoring_unreachable',         'German',   'Nicht erreichbar');
+INSERT INTO txt VALUES ('monitoring_unreachable',         'English',  'Unreachable');
+INSERT INTO txt VALUES ('scheduler_health',               'German',   'Scheduler-Gesundheit');
+INSERT INTO txt VALUES ('scheduler_health',               'English',  'Scheduler health');
+INSERT INTO txt VALUES ('scheduler_ok_count',             'German',   'Erfolgreich');
+INSERT INTO txt VALUES ('scheduler_ok_count',             'English',  'Successful');
+INSERT INTO txt VALUES ('scheduler_failed_count',         'German',   'Fehlgeschlagen');
+INSERT INTO txt VALUES ('scheduler_failed_count',         'English',  'Failed');
+INSERT INTO txt VALUES ('scheduler_overdue_count',        'German',   '&Uuml;berf&auml;llig');
+INSERT INTO txt VALUES ('scheduler_overdue_count',        'English',  'Overdue');
+INSERT INTO txt VALUES ('scheduler_never_run_count',      'German',   'Nie gelaufen');
+INSERT INTO txt VALUES ('scheduler_never_run_count',      'English',  'Never run');
+INSERT INTO txt VALUES ('scheduler_recent_runs',          'German',   'Letzte L&auml;ufe');
+INSERT INTO txt VALUES ('scheduler_recent_runs',          'English',  'Recent runs');
+INSERT INTO txt VALUES ('scheduler_last_error',           'German',   'Letzter Fehler');
+INSERT INTO txt VALUES ('scheduler_last_error',           'English',  'Last error');
 INSERT INTO txt VALUES ('scheduler_starting', 	          'German',   'Startet bald…');
 INSERT INTO txt VALUES ('scheduler_starting', 	          'English',  'Starting soon…');
 INSERT INTO txt VALUES ('scheduler_start_now', 	          'German',   'Jetzt starten');
@@ -7645,6 +7673,10 @@ INSERT INTO txt VALUES ('H7111', 'German', 'Der Abschnitt "Middleware" ruft dies
     Dadurch bleiben CPU-, Speicher- und Laufzeitwerte auch dann sichtbar, wenn UI und Middleware auf unterschiedlichen Hosts laufen.');
 INSERT INTO txt VALUES ('H7111', 'English', 'The "Middleware" section fetches the same metrics directly from the middleware server through its REST API.
     This keeps CPU, memory, and uptime values visible even when the UI and middleware run on different hosts.');
+INSERT INTO txt VALUES ('H7112', 'German', 'Zus&auml;tzlich zeigt die Seite einen kompakten Dienststatus f&uuml;r UI, Middleware-Systemdaten und Scheduler-API.
+    Die Scheduler-&Uuml;bersicht fasst erfolgreiche, fehlgeschlagene, &uuml;berf&auml;llige und noch nie gelaufene Jobs zusammen und zeigt die letzten Ausf&uuml;hrungen direkt auf derselben Seite.');
+INSERT INTO txt VALUES ('H7112', 'English', 'The page also shows a compact service status for UI, middleware system usage, and the scheduler API.
+    The scheduler overview summarizes successful, failed, overdue, and never-run jobs and shows the most recent executions on the same page.');
 INSERT INTO txt VALUES ('H7030', 'German', 'Die Workflow-Ticket-&Uuml;berwachung zeigt Tickets mit ihren Antrags- und Umsetzungsaufgaben.
     Die Filter f&uuml;r Aufgabentyp und Status greifen auf allen Ebenen: Ein Ticket wird angezeigt, wenn es mindestens eine Aufgabe eines gew&auml;hlten Typs enth&auml;lt und wenn das Ticket selbst, eine Antragsaufgabe, eine Umsetzungsaufgabe oder eine Genehmigung einen der gew&auml;hlten Status besitzt.
 ');

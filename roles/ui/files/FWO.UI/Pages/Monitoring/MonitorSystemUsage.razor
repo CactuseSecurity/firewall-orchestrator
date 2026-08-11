@@ -277,6 +277,148 @@
             <div class="col-12 mb-3">
                 <div class="card">
                     <div class="card-body">
+                        <h6>@(userConfig.GetText("monitoring_service_status"))</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <tbody>
+                                    <tr>
+                                        <td class="fw-bold">@(userConfig.GetText("monitoring_ui_service"))</td>
+                                        <td class="text-center">
+                                            <span class="@(LocalUsageHealthy ? $"text-success {Icons.Check}" : $"text-danger {Icons.Close}")"></span>
+                                        </td>
+                                        <td>@GetReachabilityText(LocalUsageHealthy)</td>
+                                        <td class="text-muted">@(userConfig.GetText("monitoring_checked_at")): @LastUpdatedDisplay</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">@(userConfig.GetText("monitoring_middleware_usage"))</td>
+                                        <td class="text-center">
+                                            <span class="@(MiddlewareSystemHealthy ? $"text-success {Icons.Check}" : $"text-danger {Icons.Close}")"></span>
+                                        </td>
+                                        <td>@GetReachabilityText(MiddlewareSystemHealthy)</td>
+                                        <td class="text-muted">
+                                            @(userConfig.GetText("monitoring_checked_at")): @MiddlewareUsageCheckedAtDisplay
+                                            @if (!MiddlewareSystemHealthy && !string.IsNullOrWhiteSpace(MiddlewareUsageError))
+                                            {
+                                                <span> | @MiddlewareUsageError</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">@(userConfig.GetText("monitoring_scheduler_api"))</td>
+                                        <td class="text-center">
+                                            <span class="@(SchedulerReachable ? $"text-success {Icons.Check}" : $"text-danger {Icons.Close}")"></span>
+                                        </td>
+                                        <td>@GetReachabilityText(SchedulerReachable)</td>
+                                        <td class="text-muted">
+                                            @(userConfig.GetText("monitoring_checked_at")): @SchedulerCheckedAtDisplay
+                                            @if (!SchedulerReachable && !string.IsNullOrWhiteSpace(SchedulerError))
+                                            {
+                                                <span> | @SchedulerError</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                            <h6 class="mb-0">@(userConfig.GetText("scheduler_health"))</h6>
+                            <span class="text-muted">@(userConfig.GetText("monitoring_checked_at")): @SchedulerCheckedAtDisplay</span>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-6 col-lg-3 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <div class="usage-tile-value text-success">@SchedulerSuccessfulCount</div>
+                                        <div>@(userConfig.GetText("scheduler_ok_count"))</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-lg-3 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <div class="usage-tile-value text-danger">@SchedulerFailedCount</div>
+                                        <div>@(userConfig.GetText("scheduler_failed_count"))</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-lg-3 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <div class="usage-tile-value text-warning">@SchedulerOverdueCount</div>
+                                        <div>@(userConfig.GetText("scheduler_overdue_count"))</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-lg-3 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <div class="usage-tile-value text-muted">@SchedulerNeverRunCount</div>
+                                        <div>@(userConfig.GetText("scheduler_never_run_count"))</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(LastSchedulerError))
+                        {
+                            <div class="alert alert-warning mb-0">
+                                <span class="@Icons.Warning pe-2"></span>
+                                <strong>@(userConfig.GetText("scheduler_last_error")):</strong>
+                                @System.Net.WebUtility.HtmlEncode(LastSchedulerError)
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h6>@(userConfig.GetText("scheduler_recent_runs"))</h6>
+                        @if (RecentSchedulerJobs.Count == 0)
+                        {
+                            <div class="text-muted">@(userConfig.GetText("scheduler_no_jobs"))</div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">@(userConfig.GetText("scheduler_job"))</th>
+                                            <th scope="col">@(userConfig.GetText("scheduler_last_run"))</th>
+                                            <th scope="col">@(userConfig.GetText("scheduler_next_run"))</th>
+                                            <th scope="col" class="text-center">@(userConfig.GetText("scheduler_status"))</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (SchedulerJobInfo job in RecentSchedulerJobs)
+                                        {
+                                            <tr>
+                                                <td>@job.JobName</td>
+                                                <td>@FormatSchedulerRunTime(job.LastFireTimeUtc, false)</td>
+                                                <td>@FormatSchedulerRunTime(job.NextFireTimeUtc, true)</td>
+                                                <td class="text-center">@FormatSchedulerExecutionStatus(job)</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 mb-3">
+                <div class="card">
+                    <div class="card-body">
                         <h6>@(userConfig.GetText("scheduler_jobs_title"))</h6>
                         @if (SchedulerJobs.Count == 0)
                         {
@@ -381,6 +523,7 @@
 
     private const int kRefreshIntervalSeconds = 5;
     private const int kMaxHistoryPoints = 60;
+    private static readonly TimeSpan kSchedulerOverdueGracePeriod = TimeSpan.FromMinutes(1);
 
     private SystemUsageSnapshot Usage { get; set; } = new();
     private SystemUsageSnapshot MiddlewareUsage { get; set; } = new();
@@ -399,6 +542,11 @@
     private bool interactiveRenderCompleted;
     private bool monitoringActive;
     private bool MiddlewareUsageReachable { get; set; } = true;
+    private bool SchedulerReachable { get; set; } = true;
+    private DateTime? MiddlewareUsageCheckedAtUtc { get; set; }
+    private DateTime? SchedulerCheckedAtUtc { get; set; }
+    private string MiddlewareUsageError { get; set; } = "";
+    private string SchedulerError { get; set; } = "";
     private bool disposed;
 
     private string LastUpdatedDisplay => Usage.CollectedAt == DateTime.MinValue
@@ -406,6 +554,10 @@
 
     private string MiddlewareLastUpdatedDisplay => MiddlewareUsage.CollectedAt == DateTime.MinValue
         ? "-" : MiddlewareUsage.CollectedAt.ToLocalTime().ToString("G");
+
+    private string MiddlewareUsageCheckedAtDisplay => FormatCheckedAt(MiddlewareUsageCheckedAtUtc);
+
+    private string SchedulerCheckedAtDisplay => FormatCheckedAt(SchedulerCheckedAtUtc);
 
     private string LoadAverageDisplay => SystemUsageDisplay.FormatLoadAverage(Usage);
 
@@ -422,6 +574,29 @@ MiddlewareHistoryTimes[0].ToLocalTime().ToString("T") : "";
 MiddlewareHistoryTimes[^1].ToLocalTime().ToString("T") : "";
 
     private bool CanViewUsage => userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor);
+
+    private bool LocalUsageHealthy => Usage.CollectedAt != DateTime.MinValue && Usage.SourceAvailable;
+
+    private bool MiddlewareSystemHealthy => MiddlewareUsageReachable && MiddlewareUsage.SourceAvailable;
+
+    private int SchedulerSuccessfulCount => SchedulerJobs.Count(job => job.LastExecutionStatus == SchedulerJobExecutionStatus.Success);
+
+    private int SchedulerFailedCount => SchedulerJobs.Count(job => job.LastExecutionStatus == SchedulerJobExecutionStatus.Failed);
+
+    private int SchedulerNeverRunCount => SchedulerJobs.Count(job => job.LastFireTimeUtc is null);
+
+    private int SchedulerOverdueCount => SchedulerJobs.Count(IsSchedulerOverdue);
+
+    private string LastSchedulerError => SchedulerJobs
+        .Where(job => job.LastExecutionStatus == SchedulerJobExecutionStatus.Failed && !string.IsNullOrWhiteSpace(job.LastExecutionError))
+        .OrderByDescending(job => job.LastFireTimeUtc ?? DateTimeOffset.MinValue)
+        .Select(job => job.LastExecutionError!)
+        .FirstOrDefault() ?? SchedulerError;
+
+    private List<SchedulerJobInfo> RecentSchedulerJobs => [.. SchedulerJobs
+        .Where(job => job.LastFireTimeUtc is not null)
+        .OrderByDescending(job => job.LastFireTimeUtc)
+        .Take(5)];
 
     protected override void OnInitialized()
     {
@@ -558,6 +733,7 @@ MiddlewareHistoryTimes[^1].ToLocalTime().ToString("T") : "";
     {
         try
         {
+            MiddlewareUsageCheckedAtUtc = DateTime.UtcNow;
             RestSharp.RestResponse response = await middlewareClient.GetSystemUsage();
             bool httpSuccess = (int)response.StatusCode >= 200 && (int)response.StatusCode < 300;
             if (!httpSuccess)
@@ -575,17 +751,19 @@ MiddlewareHistoryTimes[^1].ToLocalTime().ToString("T") : "";
             }
 
             MiddlewareUsage = snapshot;
-            await RefreshSchedulerJobsAsync();
             MiddlewareUsageReachable = true;
+            MiddlewareUsageError = "";
             AppendHistory(MiddlewareCpuHistory, MiddlewareUsage.CpuUsedPercent);
             AppendHistory(MiddlewareMemoryHistory, MiddlewareUsage.MemoryUsedPercent);
             AppendHistory(MiddlewareHistoryTimes, MiddlewareUsage.CollectedAt);
             middlewareRefreshFailureReported = false;
+            await RefreshSchedulerJobsAsync();
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
         {
             MiddlewareUsageReachable = false;
+            MiddlewareUsageError = exception.Message;
             if (!middlewareRefreshFailureReported)
             {
                 middlewareRefreshFailureReported = true;
@@ -598,12 +776,18 @@ MiddlewareHistoryTimes[^1].ToLocalTime().ToString("T") : "";
 
     private async Task RefreshSchedulerJobsAsync()
     {
+        SchedulerCheckedAtUtc = DateTime.UtcNow;
         RestSharp.RestResponse<List<SchedulerJobInfo>> response = await middlewareClient.GetSchedulerJobs();
         if (!response.IsSuccessful || response.Data == null)
         {
-            throw new InvalidOperationException(response.ErrorMessage ?? response.StatusDescription ?? userConfig.GetText("scheduler_job_fetch_failed"));
+            SchedulerReachable = false;
+            SchedulerError = response.ErrorMessage ?? response.StatusDescription ?? userConfig.GetText("scheduler_job_fetch_failed");
+            SchedulerJobs = [];
+            return;
         }
 
+        SchedulerReachable = true;
+        SchedulerError = "";
         SchedulerJobs = [.. response.Data.OrderBy(job => job.JobName)];
     }
 
@@ -668,6 +852,22 @@ MiddlewareHistoryTimes[^1].ToLocalTime().ToString("T") : "";
             SchedulerJobExecutionStatus.Failed => (MarkupString)$"<span class=\"text-danger {Icons.Close}\"></span>",
             _ => (MarkupString)"<span class=\"text-muted\">—</span>"
         };
+    }
+
+    private static string FormatCheckedAt(DateTime? checkedAtUtc)
+    {
+        return checkedAtUtc.HasValue ? checkedAtUtc.Value.ToLocalTime().ToString("G") : "-";
+    }
+
+    private bool IsSchedulerOverdue(SchedulerJobInfo job)
+    {
+        return job.NextFireTimeUtc.HasValue
+            && DateTimeOffset.Now > job.NextFireTimeUtc.Value.Add(kSchedulerOverdueGracePeriod);
+    }
+
+    private string GetReachabilityText(bool reachable)
+    {
+        return userConfig.GetText(reachable ? "monitoring_reachable" : "monitoring_unreachable");
     }
 
     /// <summary>

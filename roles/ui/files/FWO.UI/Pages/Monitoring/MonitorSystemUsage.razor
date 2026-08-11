@@ -506,15 +506,16 @@ MiddlewareHistoryTimes[^1].ToLocalTime().ToString("T") : "";
     {
         try
         {
-            RestSharp.RestResponse<string> response = await middlewareClient.GetSystemUsage();
-            if (!response.IsSuccessful)
+            RestSharp.RestResponse response = await middlewareClient.GetSystemUsage();
+            bool httpSuccess = (int)response.StatusCode >= 200 && (int)response.StatusCode < 300;
+            if (!httpSuccess)
             {
-                throw new InvalidOperationException($"Middleware system usage request failed with status {(int)response.StatusCode}.");
+                throw new InvalidOperationException($"Middleware system usage request failed with status {(int)response.StatusCode}: {response.ErrorMessage ?? response.Content ?? response.StatusDescription}.");
             }
 
             SystemUsageSnapshot? snapshot = !string.IsNullOrWhiteSpace(response.Content)
                 ? System.Text.Json.JsonSerializer.Deserialize<SystemUsageSnapshot>(response.Content)
-                    : new();
+                : new();
 
             if (snapshot is null)
             {

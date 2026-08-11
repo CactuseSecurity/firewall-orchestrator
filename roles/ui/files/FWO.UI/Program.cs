@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.Extensions.Diagnostics.ResourceMonitoring;
+using Prometheus;
 using RestSharp;
 
 
@@ -149,6 +150,7 @@ else
 app.UseStaticFiles();
 
 app.UseRouting();
+app.UseHttpMetrics(options => options.ReduceStatusCodeCardinality());
 
 app.UseWhen(
     ctx => !ctx.Request.Path.StartsWithSegments("/_blazor") &&
@@ -164,6 +166,7 @@ app.UseWhen(
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapMetrics();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 

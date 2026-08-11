@@ -305,10 +305,10 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<ComplianceCheckJobStatus>(request);
         }
 
-        public async Task<RestResponse<string>> GetSystemUsage()
+        public async Task<RestResponse> GetSystemUsage()
         {
             RestRequest request = new("Monitoring/SystemUsage", Method.Get);
-            return await restClient.ExecuteAsync<string>(request);
+            return await restClient.ExecuteAsync(request);
         }
 
         /// <summary>

@@ -50,13 +50,15 @@ namespace FWO.Middleware.Server.Services
             string jobKey = context.JobDetail.Key.Name;
             bool success = jobException == null;
             string? errorMessage = jobException?.Message;
+            DateTimeOffset executedAt = DateTimeOffset.Now;
 
             executionResults[jobKey] = new JobExecutionResult
             {
                 Success = success,
                 ErrorMessage = errorMessage ?? "",
-                ExecutedAt = DateTimeOffset.Now
+                ExecutedAt = executedAt
             };
+            MiddlewarePrometheusMetrics.RecordExecution(jobKey, success, executedAt);
 
             if (!success)
             {

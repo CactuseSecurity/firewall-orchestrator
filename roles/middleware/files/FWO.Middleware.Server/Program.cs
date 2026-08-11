@@ -14,7 +14,9 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Diagnostics.ResourceMonitoring;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Prometheus;
 using Quartz;
+using Quartz.Impl.Matchers;
 using Scalar.AspNetCore;
 
 object changesLock = new(); // LOCK
@@ -200,16 +202,19 @@ app.UseSwaggerRedirect(kApiDocsPageRoute);
 //app.UseHttpsRedirection();
 
 app.UseRouting();
+app.UseHttpMetrics(options => options.ReduceStatusCodeCardinality());
 
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapMetrics();
 app.MapControllers();
 
 //Register JobExecutionTracker with scheduler
 ISchedulerFactory schedulerFactory = app.Services.GetRequiredService<ISchedulerFactory>();
 JobExecutionTracker executionTracker = app.Services.GetRequiredService<JobExecutionTracker>();
 IScheduler scheduler = await schedulerFactory.GetScheduler();
+MiddlewarePrometheusMetrics.UpdateKnownJobCount((await scheduler.GetJobKeys(GroupMatcher<JobKey>.AnyGroup())).Count);
 scheduler.ListenerManager.AddJobListener(executionTracker);
 
 // Activate config listeners so they attach subscriptions after startup

@@ -18,6 +18,7 @@
 		<PackageReference Include="IPAddressRange" Version="6.3.0" />
 		<PackageReference Include="BlazorTable" Version="1.17.0" />
 		<PackageReference Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring" Version="10.8.0" />
+		<PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1" />
 		<PackageReference Include="PuppeteerSharp" Version="25.3.4" />
 	</ItemGroup>
 

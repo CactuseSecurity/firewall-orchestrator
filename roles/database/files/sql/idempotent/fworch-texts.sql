@@ -7641,6 +7641,10 @@ INSERT INTO txt VALUES ('H7110', 'English', 'The "Other Services on this Host" s
     the memory can then look higher than it really is, because the processes share memory.
     The memory usage states the share of the total memory of the host.
     Like for the UI process the CPU usage relates to all cores combined: 100 % means that all cores are busy.');
+INSERT INTO txt VALUES ('H7111', 'German', 'Der Abschnitt "Middleware" ruft dieselben Kennzahlen direkt vom Middleware-Server &uuml;ber dessen REST-Schnittstelle ab.
+    Dadurch bleiben CPU-, Speicher- und Laufzeitwerte auch dann sichtbar, wenn UI und Middleware auf unterschiedlichen Hosts laufen.');
+INSERT INTO txt VALUES ('H7111', 'English', 'The "Middleware" section fetches the same metrics directly from the middleware server through its REST API.
+    This keeps CPU, memory, and uptime values visible even when the UI and middleware run on different hosts.');
 INSERT INTO txt VALUES ('H7030', 'German', 'Die Workflow-Ticket-&Uuml;berwachung zeigt Tickets mit ihren Antrags- und Umsetzungsaufgaben.
     Die Filter f&uuml;r Aufgabentyp und Status greifen auf allen Ebenen: Ein Ticket wird angezeigt, wenn es mindestens eine Aufgabe eines gew&auml;hlten Typs enth&auml;lt und wenn das Ticket selbst, eine Antragsaufgabe, eine Umsetzungsaufgabe oder eine Genehmigung einen der gew&auml;hlten Status besitzt.
 ');

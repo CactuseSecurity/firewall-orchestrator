@@ -15,6 +15,7 @@ using FWO.Ui.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Microsoft.Extensions.Diagnostics.ResourceMonitoring;
 using RestSharp;
 
 
@@ -67,8 +68,9 @@ builder.Services.AddScoped<ExecutionModeStorage>();
 // system usage monitoring: track the open circuits and sample the resource usage of this UI server
 builder.Services.AddSingleton<UiSessionTracker>();
 builder.Services.AddScoped<CircuitHandler, UiSessionCircuitHandler>();
+builder.Services.AddResourceMonitoring();
 builder.Services.AddSingleton<ISystemUsageSource, ProcSystemUsageSource>();
-builder.Services.AddSingleton<ISystemUsageCollector, SystemUsageCollector>();
+builder.Services.AddSingleton<ISystemUsageSnapshotProvider, ResourceMonitoringSystemUsageProvider>();
 
 // Create "anonymous" (empty) jwt
 MiddlewareClient middlewareClient = new(MiddlewareUri);

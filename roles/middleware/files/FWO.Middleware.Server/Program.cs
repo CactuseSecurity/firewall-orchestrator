@@ -8,8 +8,10 @@ using FWO.Middleware.Server;
 using FWO.Middleware.Server.OpenApi;
 using FWO.Middleware.Server.Services;
 using FWO.Services;
+using FWO.Services.SystemUsage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Diagnostics.ResourceMonitoring;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Quartz;
@@ -71,6 +73,9 @@ builder.Services.AddSingleton<ComplianceCheckStatusTracker>();
 builder.Services.AddSingleton(tokenLifetimeProvider);
 builder.Services.AddSingleton(internalApiTokenService);
 builder.Services.AddHostedService<InternalApiTokenRefreshService>();
+builder.Services.AddResourceMonitoring();
+builder.Services.AddSingleton<ISystemUsageSource, ProcSystemUsageSource>();
+builder.Services.AddSingleton<ISystemUsageSnapshotProvider, ResourceMonitoringSystemUsageProvider>();
 
 // Register config listeners as singletons (activated at startup)
 builder.Services.AddSingleton<ExternalRequestSchedulerService>();

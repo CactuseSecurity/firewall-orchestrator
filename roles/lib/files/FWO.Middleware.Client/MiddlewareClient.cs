@@ -305,6 +305,12 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<ComplianceCheckJobStatus>(request);
         }
 
+        public async Task<RestResponse> GetSystemUsage()
+        {
+            RestRequest request = new("Monitoring/SystemUsage", Method.Get);
+            return await restClient.ExecuteAsync(request);
+        }
+
         /// <summary>
         /// Get a new token pair
         /// </summary>

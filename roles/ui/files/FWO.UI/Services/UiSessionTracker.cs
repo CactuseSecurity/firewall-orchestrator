@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Prometheus;
 
 namespace FWO.Ui.Services
 {
@@ -8,6 +9,13 @@ namespace FWO.Ui.Services
     /// </summary>
     public class UiSessionTracker
     {
+        private static readonly Gauge kLoggedInUsersGauge = Metrics.CreateGauge("fwo_ui_logged_in_users",
+            "Number of distinct logged-in users currently tracked by the UI server.");
+        private static readonly Gauge kOpenSessionsGauge = Metrics.CreateGauge("fwo_ui_open_sessions",
+            "Number of open Blazor sessions currently tracked by the UI server.");
+        private static readonly Gauge kConnectedSessionsGauge = Metrics.CreateGauge("fwo_ui_connected_sessions",
+            "Number of currently connected Blazor sessions tracked by the UI server.");
+
         private readonly ConcurrentDictionary<string, UiSession> sessions = new();
         private readonly Func<DateTime> utcNow;
 
@@ -38,6 +46,7 @@ namespace FWO.Ui.Services
                 OpenedAt = now,
                 LastActivity = now
             };
+            UpdateMetrics();
         }
 
         /// <summary>
@@ -47,6 +56,7 @@ namespace FWO.Ui.Services
         public void Unregister(string sessionId)
         {
             sessions.TryRemove(sessionId, out _);
+            UpdateMetrics();
         }
 
         /// <summary>
@@ -102,6 +112,15 @@ namespace FWO.Ui.Services
 
             change(session);
             session.LastActivity = utcNow();
+            UpdateMetrics();
+        }
+
+        private void UpdateMetrics()
+        {
+            UiSessionOverview overview = GetOverview();
+            kOpenSessionsGauge.Set(overview.OpenSessions);
+            kConnectedSessionsGauge.Set(overview.ConnectedSessions);
+            kLoggedInUsersGauge.Set(overview.LoggedInUsers);
         }
     }
 }

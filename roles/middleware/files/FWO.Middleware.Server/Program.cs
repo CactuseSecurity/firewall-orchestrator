@@ -8,11 +8,15 @@ using FWO.Middleware.Server;
 using FWO.Middleware.Server.OpenApi;
 using FWO.Middleware.Server.Services;
 using FWO.Services;
+using FWO.Services.SystemUsage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Diagnostics.ResourceMonitoring;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Prometheus;
 using Quartz;
+using Quartz.Impl.Matchers;
 using Scalar.AspNetCore;
 
 object changesLock = new(); // LOCK
@@ -71,6 +75,9 @@ builder.Services.AddSingleton<ComplianceCheckStatusTracker>();
 builder.Services.AddSingleton(tokenLifetimeProvider);
 builder.Services.AddSingleton(internalApiTokenService);
 builder.Services.AddHostedService<InternalApiTokenRefreshService>();
+builder.Services.AddResourceMonitoring();
+builder.Services.AddSingleton<ISystemUsageSource, ProcSystemUsageSource>();
+builder.Services.AddSingleton<ISystemUsageSnapshotProvider, ResourceMonitoringSystemUsageProvider>();
 
 // Register config listeners as singletons (activated at startup)
 builder.Services.AddSingleton<ExternalRequestSchedulerService>();
@@ -195,16 +202,19 @@ app.UseSwaggerRedirect(kApiDocsPageRoute);
 //app.UseHttpsRedirection();
 
 app.UseRouting();
+app.UseHttpMetrics(options => options.ReduceStatusCodeCardinality());
 
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapMetrics();
 app.MapControllers();
 
 //Register JobExecutionTracker with scheduler
 ISchedulerFactory schedulerFactory = app.Services.GetRequiredService<ISchedulerFactory>();
 JobExecutionTracker executionTracker = app.Services.GetRequiredService<JobExecutionTracker>();
 IScheduler scheduler = await schedulerFactory.GetScheduler();
+MiddlewarePrometheusMetrics.UpdateKnownJobCount((await scheduler.GetJobKeys(GroupMatcher<JobKey>.AnyGroup())).Count);
 scheduler.ListenerManager.AddJobListener(executionTracker);
 
 // Activate config listeners so they attach subscriptions after startup

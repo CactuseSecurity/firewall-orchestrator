@@ -5,7 +5,7 @@ namespace FWO.Services.SystemUsage
 {
     /// <summary>
     /// Builds <see cref="SystemUsageSnapshot"/>s from <c>Microsoft.Extensions.Diagnostics.ResourceMonitoring</c>
-    /// metrics and supplements them with Linux host data that the package does not expose directly.
+    /// metrics and supplements them only with Linux host data that the package does not expose directly.
     /// </summary>
     /// <param name="source">Source of the operating system counters.</param>
     public sealed class ResourceMonitoringSystemUsageProvider : ISystemUsageSnapshotProvider, IDisposable
@@ -39,7 +39,6 @@ namespace FWO.Services.SystemUsage
 
         private readonly ISystemUsageSource source;
         private readonly object sampleLock = new();
-        private readonly ServiceUsageScanner serviceScanner;
         private readonly MeterListener meterListener = new();
 
         private SystemUsageSnapshot? lastSnapshot;
@@ -59,7 +58,6 @@ namespace FWO.Services.SystemUsage
         public ResourceMonitoringSystemUsageProvider(ISystemUsageSource source)
         {
             this.source = source;
-            serviceScanner = new(source);
             meterListener.InstrumentPublished = (instrument, listener) =>
             {
                 if (instrument.Meter.Name == kResourceMonitoringMeterName
@@ -156,8 +154,8 @@ namespace FWO.Services.SystemUsage
             ApplyResourceMonitoringMemory(snapshot);
             bool cpuRead = ApplyCpu(snapshot);
             ApplyLoadAverage(snapshot);
-            snapshot.Services = serviceScanner.Scan(now, snapshot.ProcessorCount, snapshot.MemoryTotalBytes);
-            snapshot.ServicesVisible = serviceScanner.ForeignProcessesVisible();
+            snapshot.Services = [];
+            snapshot.ServicesVisible = true;
             snapshot.SourceAvailable = memoryRead && cpuRead;
             return snapshot;
         }

@@ -7657,18 +7657,12 @@ INSERT INTO txt VALUES ('H7109', 'German', 'Der Abschnitt "UI-Prozess" zeigt die
     Heaps, Anzahl der Threads und die Laufzeit seit dem letzten Start.');
 INSERT INTO txt VALUES ('H7109', 'English', 'The "UI Process" section shows the values of the UI server itself: used working set, size of the managed heap,
     number of threads and the uptime since its last start.');
-INSERT INTO txt VALUES ('H7110', 'German', 'Der Abschnitt "Weitere Dienste auf diesem Server" zeigt dieselben Werte f&uuml;r Middleware, Importer, Hasura API, Datenbank und LDAP-Server,
-    sofern diese auf demselben Server wie die UI laufen. Dienste auf anderen Servern der Installation werden nicht aufgef&uuml;hrt.
-    Besteht ein Dienst aus mehreren Prozessen (z. B. die Datenbank), sind deren Werte aufsummiert und die Spalte "Prozesse" zeigt ihre Anzahl;
-    der Arbeitsspeicher kann dabei h&ouml;her wirken als tats&auml;chlich belegt, da sich die Prozesse Speicher teilen.
-    Die Speicherauslastung gibt den Anteil am gesamten Arbeitsspeicher des Servers an.
-    Die CPU-Auslastung bezieht sich wie beim UI-Prozess auf alle Kerne zusammen: 100 % bedeutet, dass alle Kerne ausgelastet sind.');
-INSERT INTO txt VALUES ('H7110', 'English', 'The "Other Services on this Host" section shows the same values for middleware, importer, Hasura API, database and LDAP server,
-    as far as they run on the same host as the UI. Services on other hosts of the installation are not listed.
-    If a service consists of several processes (the database for example), their values are summed up and the "Processes" column shows their number;
-    the memory can then look higher than it really is, because the processes share memory.
-    The memory usage states the share of the total memory of the host.
-    Like for the UI process the CPU usage relates to all cores combined: 100 % means that all cores are busy.');
+INSERT INTO txt VALUES ('H7110', 'German', 'Die UI liest keine anderen FWO-Dienste mehr lokal &uuml;ber eine hostweite Prozesssuche aus.
+    Dadurch wird die Abh&auml;ngigkeit von Linux-/proc-Daten reduziert.
+    Zus&auml;tzliche Komponenten werden stattdessen &uuml;ber ihre eigenen Bereiche wie "Middleware" und die Scheduler-&Uuml;bersicht angezeigt.');
+INSERT INTO txt VALUES ('H7110', 'English', 'The UI no longer reads other FWO services locally through a host-wide process scan.
+    This reduces the dependency on Linux /proc data.
+    Additional components are instead shown through their own sections such as "Middleware" and the scheduler overview.');
 INSERT INTO txt VALUES ('H7111', 'German', 'Der Abschnitt "Middleware" ruft dieselben Kennzahlen direkt vom Middleware-Server &uuml;ber dessen REST-Schnittstelle ab.
     Dadurch bleiben CPU-, Speicher- und Laufzeitwerte auch dann sichtbar, wenn UI und Middleware auf unterschiedlichen Hosts laufen.');
 INSERT INTO txt VALUES ('H7111', 'English', 'The "Middleware" section fetches the same metrics directly from the middleware server through its REST API.

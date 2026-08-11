@@ -82,7 +82,7 @@
     {
         switch (Size)
         {
-            case PopupSize.Auto: return ""; // Auto size doesn't have a specific class for content and should just take the size of its content
+            case PopupSize.Auto: return "custom-modal-content-auto"; //custom-modal-content-auto sets a max-height so content can't escape view
             case PopupSize.FullScreen: return "custom-modal-content-fs";
             case PopupSize.XLarge: return "custom-modal-content-xl";
             case PopupSize.Large: return "custom-modal-content-lg ";

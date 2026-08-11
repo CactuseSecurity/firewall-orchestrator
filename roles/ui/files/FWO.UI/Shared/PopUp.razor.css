@@ -42,6 +42,10 @@
     height: 40dvh;
 }
 
+.custom-modal-content-auto {
+    max-height: calc(100dvh - 95px);
+}
+
 .custom-modal-auto {
     /* fit-content keeps the modal as wide as its content while staying centerable */
     width: fit-content;

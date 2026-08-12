@@ -2,7 +2,7 @@
 # production-compatible 12.x line for Python >=3.11, including Ubuntu 24.04.
 ansible==10.7.0; python_version < '3.11'
 ansible==12.3.0; python_version >= '3.11'
-cryptography==49.0.0
+cryptography==50.0.0
 psycopg2-binary==2.9.12
 python-ldap==3.4.7
 requests==2.34.2

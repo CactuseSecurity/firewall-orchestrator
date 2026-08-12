@@ -88,7 +88,8 @@ namespace FWO.Middleware.Server
             string? changeId = CustomFieldResolver.ExtractCustomFieldValue<string>(
                 rule,
                 changeIdKeyCache.GetKeys(GlobalConfig.CustomFieldChangeIdKey),
-                out _);
+                out _,
+                CustomFieldKeyMatching.IgnoreCase);
             return changeId ?? "";
         }
 

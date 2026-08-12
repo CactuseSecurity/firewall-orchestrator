@@ -41,9 +41,9 @@ namespace FWO.Test
                 ?? throw new MissingFieldException(typeof(MainLayout).FullName, name);
         }
 
-        private static void InvokeDisplayMessage(MainLayout layout, Exception? exception, string title, string message, bool errorFlag)
+        private static Task InvokeDisplayMessage(MainLayout layout, Exception? exception, string title, string message, bool errorFlag)
         {
-            GetPrivateMethod("DisplayMessageInUi").Invoke(layout, [exception, title, message, errorFlag]);
+            return (Task)GetPrivateMethod("DisplayMessageInUiAsync").Invoke(layout, [exception, title, message, errorFlag])!;
         }
 
         private static T GetPrivateFieldValue<T>(MainLayout layout, string name)
@@ -72,7 +72,7 @@ namespace FWO.Test
             await using MainLayoutFixture fixture = new();
             MainLayout layout = fixture.Layout.Instance;
 
-            InvokeDisplayMessage(layout, null, "Save", "Done", false);
+            await InvokeDisplayMessage(layout, null, "Save", "Done", false);
 
             fixture.Layout.WaitForAssertion(() =>
             {
@@ -89,7 +89,7 @@ namespace FWO.Test
             await using MainLayoutFixture fixture = new();
             MainLayout layout = fixture.Layout.Instance;
 
-            InvokeDisplayMessage(layout, null, "Careful", "Check this", true);
+            await InvokeDisplayMessage(layout, null, "Careful", "Check this", true);
 
             fixture.Layout.WaitForAssertion(() =>
             {
@@ -106,7 +106,7 @@ namespace FWO.Test
             await using MainLayoutFixture fixture = new();
             MainLayout layout = fixture.Layout.Instance;
 
-            InvokeDisplayMessage(layout, new Exception("no such type exists in the schema: 'cidr'"), "", "", false);
+            await InvokeDisplayMessage(layout, new Exception("no such type exists in the schema: 'cidr'"), "", "", false);
 
             fixture.Layout.WaitForAssertion(() => Assert.That(fixture.Layout.Markup, Does.Contain("api_access - E0004")));
             fixture.ApiConnection.WaitForLogCount(1);
@@ -119,7 +119,7 @@ namespace FWO.Test
             await using MainLayoutFixture fixture = new();
             MainLayout layout = fixture.Layout.Instance;
 
-            InvokeDisplayMessage(layout, new InvalidOperationException("exploded"), "Load", "Could not load", true);
+            await InvokeDisplayMessage(layout, new InvalidOperationException("exploded"), "Load", "Could not load", true);
 
             fixture.Layout.WaitForAssertion(() => Assert.That(fixture.Layout.Markup, Does.Contain("Load - Could not load: exploded . E0002")));
 
@@ -361,8 +361,23 @@ namespace FWO.Test
             MainLayout layout = fixture.Layout.Instance;
             SetPrivateFieldValue<List<FWO.Ui.Data.UIMessage>?>(layout, "UIMessages", null);
 
-            Assert.DoesNotThrow(() => InvokeDisplayMessage(layout, null, "Save", "Done", false));
+            Assert.DoesNotThrowAsync(async () => await InvokeDisplayMessage(layout, null, "Save", "Done", false));
             Assert.That(fixture.ApiConnection.UiLogs, Is.Empty);
+        }
+
+        [Test]
+        public async Task DisplayMessageInUiFunction_IsWiredToDisplayMessageInUiAsync()
+        {
+            await using MainLayoutFixture fixture = new();
+            MainLayout layout = fixture.Layout.Instance;
+
+            Action<Exception?, string, string, bool> displayMessage =
+                GetPrivateFieldValue<Action<Exception?, string, string, bool>>(layout, "DisplayMessageInUiFunction");
+            displayMessage(null, "Save", "Done", false);
+
+            fixture.Layout.WaitForAssertion(() => Assert.That(fixture.Layout.Markup, Does.Contain("Save - Done")));
+            fixture.ApiConnection.WaitForLogCount(1);
+            Assert.That(fixture.ApiConnection.UiLogs[0], Is.EqualTo(new UiLogEntry(0, "Save", "Done")));
         }
 
         private sealed class MainLayoutFixture : IAsyncDisposable

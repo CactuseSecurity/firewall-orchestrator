@@ -605,5 +605,8 @@ Not supported any longer are:
 ## 9.3.3 - 10.08.2026
 - fix a bug in provisioning where network objects were always created with mask 255.255.255.255
 
+## 9.3.4 - 11.08.2026
+- fix a bug in reporting ui where users with role modeller and reporter could not fetch rsb data for app rule reports
+
 ## 9.3.5 - 12.08.2026
 - add an optional compliance-diff filter for rules with existing violations

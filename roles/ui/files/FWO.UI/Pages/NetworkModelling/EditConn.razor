@@ -440,6 +440,10 @@
                     }
                 }
             </div>
+            @if(!PopupMode && userConfig.ShowLogDataInConnections)
+            {
+                <LogDataTable OwnerId="ConnHandler.Application.Id" />
+            }
         </div>
     }
     <InProgress Display="workInProgress"/>

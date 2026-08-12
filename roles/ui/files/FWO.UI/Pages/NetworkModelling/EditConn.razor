@@ -440,7 +440,7 @@
                     }
                 }
             </div>
-            @if(!PopupMode && userConfig.ShowLogDataInConnections)
+            @if(!PopupMode && userConfig.ShowLogDataInConnections && ConnHandler.Application.Id > 0)
             {
                 <LogDataTable OwnerId="ConnHandler.Application.Id" />
             }
@@ -452,7 +452,7 @@
     <EditAppRole @bind-Display="ConnHandler.DisplayAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler"/>
     <EditAppServer @bind-Display="ConnHandler.DisplayAppServerMode" AppServerHandler="ConnHandler.AppServerHandler"/>
     <EditConnPopup @bind-Display="ConnHandler.DisplaySelectedInterfaceMode" ConnHandler="ConnHandler.IntConnHandler"
-        ReplaceMode="ConnHandler.ReplaceMode" Replace="ReplaceInterface"/>
+        ReplaceMode="ConnHandler.ReplaceMode" Replace="ReplaceInterface" ShowLogData="true"/>
     <DisplayImplementationTask WfHandler="wfHandler" States="states" IncludePopups="false"/>
     <RejectInterfacePopup @bind-Display="RejectInterfaceMode" ConnHandler="ConnHandler" RefreshParent="async () => {await ConnHandler.ReInit(); Close();}"/>
 }

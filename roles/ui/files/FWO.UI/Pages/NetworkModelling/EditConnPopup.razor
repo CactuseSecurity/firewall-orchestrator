@@ -25,10 +25,10 @@
         {
             <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
         }
-        @if (Display && userConfig.ShowLogDataInConnections && ConnHandler != null)
+        @if (DisplayLogData)
         {
             <div class="w-100">
-                <LogDataTable OwnerId="ConnHandler.Application.Id" />
+                <LogDataTable OwnerId="ConnHandler!.Application.Id" />
             </div>
         }
     </Footer>
@@ -54,6 +54,14 @@
 
     [Parameter]
     public Func<Task> Replace { get; set; } = DefaultInit.DoNothing;
+
+    /// <summary>
+    /// Displays the log data of the connection owner below the buttons, if log data display is configured.
+    /// </summary>
+    [Parameter]
+    public bool ShowLogData { get; set; } = false;
+
+    private bool DisplayLogData => Display && ShowLogData && userConfig.ShowLogDataInConnections && ConnHandler?.Application.Id > 0;
 
 
     private async Task Save()

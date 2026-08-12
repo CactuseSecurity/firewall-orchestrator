@@ -24,34 +24,14 @@ namespace FWO.Test
     [NonParallelizable]
     internal class UiSettingsEmailTest
     {
-        private string? mainKeyFilePath;
-        private string? originalMainKeyFileContent;
-        private bool originalMainKeyFileExists;
         private bool mainKeyFileAvailable;
 
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            mainKeyFilePath = GlobalConst.kMainKeyFile;
-            originalMainKeyFileExists = !string.IsNullOrWhiteSpace(mainKeyFilePath) && File.Exists(mainKeyFilePath);
-            if (originalMainKeyFileExists && !string.IsNullOrWhiteSpace(mainKeyFilePath))
-            {
-                originalMainKeyFileContent = File.ReadAllText(mainKeyFilePath);
-            }
-
             try
             {
-                if (!originalMainKeyFileExists)
-                {
-                    string? keyDirectory = Path.GetDirectoryName(mainKeyFilePath);
-                    if (!string.IsNullOrWhiteSpace(keyDirectory))
-                    {
-                        Directory.CreateDirectory(keyDirectory);
-                    }
-
-                    File.WriteAllText(mainKeyFilePath, "0123456789ABCDEF0123456789ABCDEF");
-                }
-
+                _ = File.ReadAllText(GlobalConst.kMainKeyFile);
                 mainKeyFileAvailable = true;
             }
             catch (UnauthorizedAccessException)
@@ -67,17 +47,6 @@ namespace FWO.Test
         [OneTimeTearDown]
         public void OneTimeTearDown()
         {
-            if (!string.IsNullOrWhiteSpace(mainKeyFilePath))
-            {
-                if (originalMainKeyFileExists)
-                {
-                    File.WriteAllText(mainKeyFilePath, originalMainKeyFileContent ?? string.Empty);
-                }
-                else if (File.Exists(mainKeyFilePath))
-                {
-                    File.Delete(mainKeyFilePath);
-                }
-            }
         }
 
         [SetUp]

@@ -24,26 +24,56 @@ namespace FWO.Test
     [TestFixture]
     internal class UiCertificationTest
     {
+        private readonly Dictionary<string, string?> originalTranslations = new();
+
         [SetUp]
         public void SetUp()
         {
-            SimulatedUserConfig.DummyTranslate["execute_selected"] = "Execute selected";
-            SimulatedUserConfig.DummyTranslate["report_data_fetch"] = "Report data fetch";
-            SimulatedUserConfig.DummyTranslate["no_device_selected"] = "No device selected";
-            SimulatedUserConfig.DummyTranslate["E1001"] = "No device selected";
-            SimulatedUserConfig.DummyTranslate["E1003"] = "Canceled";
-            SimulatedUserConfig.DummyTranslate["generate_report"] = "Generate report";
-            SimulatedUserConfig.DummyTranslate["E4002"] = "No rules found";
-            SimulatedUserConfig.DummyTranslate["E4001"] = "Comment required";
-            SimulatedUserConfig.DummyTranslate["E9104"] = "You are not allowed to execute selected rules.";
-            SimulatedUserConfig.DummyTranslate["recerts_executed"] = "Recerts executed ";
-            SimulatedUserConfig.DummyTranslate["decerts_executed"] = "Decerts executed ";
-            SimulatedUserConfig.DummyTranslate["load_rules"] = "Load rules";
-            SimulatedUserConfig.DummyTranslate["stop_fetching"] = "Stop fetching";
-            SimulatedUserConfig.DummyTranslate["comment"] = "Comment";
-            SimulatedUserConfig.DummyTranslate["ok"] = "OK";
-            SimulatedUserConfig.DummyTranslate["cancel"] = "Cancel";
-            SimulatedUserConfig.DummyTranslate["add_comment"] = "Add comment";
+            SetTranslate("execute_selected", "Execute selected");
+            SetTranslate("report_data_fetch", "Report data fetch");
+            SetTranslate("no_device_selected", "No device selected");
+            SetTranslate("E1001", "No device selected");
+            SetTranslate("E1003", "Canceled");
+            SetTranslate("generate_report", "Generate report");
+            SetTranslate("E4002", "No rules found");
+            SetTranslate("E4001", "Comment required");
+            SetTranslate("E9104", "You are not allowed to execute selected rules.");
+            SetTranslate("recerts_executed", "Recerts executed ");
+            SetTranslate("decerts_executed", "Decerts executed ");
+            SetTranslate("load_rules", "Load rules");
+            SetTranslate("stop_fetching", "Stop fetching");
+            SetTranslate("comment", "Comment");
+            SetTranslate("ok", "OK");
+            SetTranslate("cancel", "Cancel");
+            SetTranslate("add_comment", "Add comment");
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            foreach ((string key, string? value) in originalTranslations)
+            {
+                if (value is null)
+                {
+                    SimulatedUserConfig.DummyTranslate.Remove(key);
+                }
+                else
+                {
+                    SimulatedUserConfig.DummyTranslate[key] = value;
+                }
+            }
+
+            originalTranslations.Clear();
+        }
+
+        private void SetTranslate(string key, string value)
+        {
+            if (!originalTranslations.ContainsKey(key))
+            {
+                originalTranslations[key] = SimulatedUserConfig.DummyTranslate.TryGetValue(key, out string? existingValue) ? existingValue : null;
+            }
+
+            SimulatedUserConfig.DummyTranslate[key] = value;
         }
 
         private static Certification CreateComponent(
@@ -244,7 +274,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task PostProcessReport_LeavesRulesFoundFalseForEmptyReport()
+        public void PostProcessReport_LeavesRulesFoundFalseForEmptyReport()
         {
             Certification component = CreateComponent(new SimulatedUserConfig());
 

@@ -638,6 +638,10 @@ namespace FWO.Test
                 .AddChildContent<SettingsGroups>());
             SettingsGroups component = rendered.FindComponent<SettingsGroups>().Instance;
             List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+            SetMember(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, title, message, isError) =>
+            {
+                messages.Add((exception, title, message, isError));
+            }));
 
             await InvokePrivateTask(component, "OnInitializedAsync");
             InvokePrivateVoid(component, "RequestRemoveSampleData");
@@ -977,7 +981,7 @@ namespace FWO.Test
             public string RolesJson { get; set; } = "[]";
             public HttpStatusCode GroupStatusCode { get; set; } = HttpStatusCode.OK;
             public HttpStatusCode RoleStatusCode { get; set; } = HttpStatusCode.OK;
-            public string AddGroupBody { get; set; } = "cn=NewGroup,ou=groups,dc=fworch,dc=internal";
+            public string AddGroupBody { get; set; } = "\"cn=NewGroup,ou=groups,dc=fworch,dc=internal\"";
             public HttpStatusCode AddGroupStatusCode { get; set; } = HttpStatusCode.OK;
             public string UpdateGroupBody { get; set; } = "\"cn=RenamedGroup,ou=groups,dc=fworch,dc=internal\"";
             public HttpStatusCode UpdateGroupStatusCode { get; set; } = HttpStatusCode.OK;

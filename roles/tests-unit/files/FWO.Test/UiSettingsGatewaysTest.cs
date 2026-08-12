@@ -396,7 +396,8 @@ namespace FWO.Test
             SettingsGateways component = CreateComponent(apiConnection, await CreateAuthorizedTokenService());
 
             await InvokePrivateTask(component, "OnInitializedAsync");
-            InvokePrivateVoid(component, "Edit", GetMember<List<Device>>(component, "devices")[0]);
+            List<Device> devices = GetMember<List<Device>>(component, "devices");
+            InvokePrivateVoid(component, "Edit", devices[0]);
             SetMember(component, "actDevice", new Device
             {
                 Id = 1,

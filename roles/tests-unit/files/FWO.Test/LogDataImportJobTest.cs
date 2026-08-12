@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Enums;
 using FWO.Middleware.Server.Jobs;
@@ -58,7 +59,8 @@ namespace FWO.Test
         [Test]
         public void LogDataImportIntervalUnit_RequiresAUserConfig()
         {
-            Assert.That(() => LogDataImportIntervalUnit.Hours.ToString(null!), Throws.InstanceOf<ArgumentNullException>());
+            Assert.That(() => LogDataImportIntervalUnit.Hours.ToString((UserConfig)null!),
+                Throws.InstanceOf<ArgumentNullException>());
         }
 
         private sealed class LogDataJobTestApiConn : SimulatedApiConnection

@@ -116,10 +116,10 @@ namespace FWO.Report
             await GetManagementAndDevices(apiConnection);
 
             List<int> managementIds = Managements.Select(mgmt => mgmt.Id).ToList();
-            // Get amount of rules to fetch.
+            // Get amount of rules to fetch
 
             AggregateCount? result = await apiConnection.SendQueryAsync<AggregateCount>(
-                RuleQueries.countRules,
+                RuleQueries.countActiveRules,
                 new { mgm_ids = managementIds }
             );
             int rulesCount = result?.Aggregate?.Count ?? 0;

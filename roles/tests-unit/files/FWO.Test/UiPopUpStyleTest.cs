@@ -14,6 +14,7 @@ namespace FWO.Test
         private const string kPopUpCssResource = "FWO.Test.PopUp.css";
         private const string kSiteCssResource = "FWO.Test.site.css";
         private const string kModalMarginVariable = "--bs-custom-modal-margin-top";
+        private const string kModalPaddingVariable = "--fwo-modal-content-padding-top";
         private const int knMilliseconds = 1000;
 
         /// <summary>
@@ -131,6 +132,51 @@ namespace FWO.Test
                 $"'{kModalMarginVariable}' is used without being defined, so the declaration using it has no effect.");
         }
 
+        /// <summary>
+        /// The .modal-content box is the scroll container of a popup and its top padding belongs to the
+        /// scrollport. The sticky table headers have to compensate it, so the padding has to stay
+        /// readable for them through a custom property instead of being written as a literal length.
+        /// </summary>
+        [Test]
+        public void PopUpCss_PublishesTheTopPaddingOfTheScrollContainer()
+        {
+            string popUpCss = ReadStyleSheetWithoutComments(kPopUpCssResource);
+
+            Match scrollContainerRule = ModalContentRuleRegex().Match(popUpCss);
+            Assert.That(scrollContainerRule.Success, Is.True, "The rule of the popup scroll container is missing.");
+
+            string declarations = NormalizeWhitespace(scrollContainerRule.Groups["body"].Value);
+            Assert.Multiple(() =>
+            {
+                Assert.That(declarations, Does.Contain($"{kModalPaddingVariable}:"),
+                    $"'{kModalPaddingVariable}' has to define the top padding of the popup scroll container.");
+                Assert.That(declarations, Does.Contain($"padding: var({kModalPaddingVariable})"),
+                    "The top padding of the popup scroll container has to be taken from its custom property.");
+            });
+        }
+
+        /// <summary>
+        /// A sticky offset is resolved against the content box of the scroll container: without
+        /// compensating the top padding of the popup, the rows scroll through the gap above the header.
+        /// </summary>
+        [Test]
+        public void SiteCss_CompensatesThePopUpPaddingForStickyTableHeaders()
+        {
+            string siteCss = ReadStyleSheetWithoutComments(kSiteCssResource);
+
+            Match stickyHeaderRule = ModalStickyHeaderRuleRegex().Match(siteCss);
+            Assert.That(stickyHeaderRule.Success, Is.True, "The sticky header rule of the popups is missing.");
+
+            string declarations = NormalizeWhitespace(stickyHeaderRule.Groups["body"].Value);
+            Assert.Multiple(() =>
+            {
+                Assert.That(declarations, Does.Contain($"var({kModalPaddingVariable}, "),
+                    $"The sticky headers of the popups have to compensate '{kModalPaddingVariable}' with a fallback, "
+                    + "because a custom property without one makes the whole declaration invalid if it is removed.");
+                Assert.That(declarations, Does.Contain("-1px"), "The sticky headers lost their chrome offset.");
+            });
+        }
+
         private static string ReadStyleSheetWithoutComments(string resourceName)
         {
             Assembly assembly = typeof(UiPopUpStyleTest).Assembly;
@@ -178,6 +224,12 @@ namespace FWO.Test
 
         [GeneratedRegex(@"\d+\s*px", RegexOptions.None, knMilliseconds)]
         private static partial Regex PixelConstantRegex();
+
+        [GeneratedRegex(@"\.modal-content\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
+        private static partial Regex ModalContentRuleRegex();
+
+        [GeneratedRegex(@"\.modal-content\s+\.sticky-header\s+thead\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
+        private static partial Regex ModalStickyHeaderRuleRegex();
 
         [GeneratedRegex(@"\s+", RegexOptions.None, knMilliseconds)]
         private static partial Regex WhitespaceRegex();

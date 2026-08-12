@@ -56,6 +56,10 @@
                 </select>
             </div>
         </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5697"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("importLogDataMaxEntries")):</label>
+            <input type="number" min="1" class="col-sm-6" @bind="configData.ImportLogDataMaxEntries" />
+        </div>
     </form>
     <hr />
     <ExecutionModeAuthorizeView Roles="@Roles.Admin">
@@ -78,6 +82,8 @@ else
 
 @code
 {
+    private const int kMinLogDataMaxEntries = 1;
+
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
@@ -122,9 +128,10 @@ else
             string oldScriptArgs = globalConfig.ImportLogDataScriptArgs;
             int oldInterval = globalConfig.ImportLogDataSleepTime;
             LogDataImportIntervalUnit oldIntervalUnit = globalConfig.ImportLogDataSleepTimeUnit;
+            int oldMaxEntries = globalConfig.ImportLogDataMaxEntries;
             PrepareConfigData();
             await globalConfig.WriteToDatabase(configData, apiConnection);
-            WriteSettingsAudit(oldPath, oldScriptArgs, oldInterval, oldIntervalUnit);
+            WriteSettingsAudit(oldPath, oldScriptArgs, oldInterval, oldIntervalUnit, oldMaxEntries);
             pathsToAdd = [];
             pathsToDelete = [];
             DisplayMessageInUi(null, userConfig.GetText("logging"), userConfig.GetText("U5301"), false);
@@ -150,15 +157,17 @@ else
             ImportPathPolicy.ValidateImportSourceShape(path, ConfigFile.AllowedCustomizationRoots);
         }
         configData!.ImportLogDataPath = JsonSerializer.Serialize(logDataPaths);
+        configData.ImportLogDataMaxEntries = Math.Max(kMinLogDataMaxEntries, configData.ImportLogDataMaxEntries);
     }
 
-    private void WriteSettingsAudit(string oldPath, string oldScriptArgs, int oldInterval, LogDataImportIntervalUnit oldIntervalUnit)
+    private void WriteSettingsAudit(string oldPath, string oldScriptArgs, int oldInterval, LogDataImportIntervalUnit oldIntervalUnit, int oldMaxEntries)
     {
         List<string> changes = [];
         AddSettingChange(changes, nameof(ConfigData.ImportLogDataPath), oldPath, configData!.ImportLogDataPath);
         AddSettingChange(changes, nameof(ConfigData.ImportLogDataScriptArgs), oldScriptArgs, configData.ImportLogDataScriptArgs, redactValues: true);
         AddSettingChange(changes, nameof(ConfigData.ImportLogDataSleepTime), oldInterval.ToString(), configData.ImportLogDataSleepTime.ToString());
         AddSettingChange(changes, nameof(ConfigData.ImportLogDataSleepTimeUnit), oldIntervalUnit.ToString(), configData.ImportLogDataSleepTimeUnit.ToString());
+        AddSettingChange(changes, nameof(ConfigData.ImportLogDataMaxEntries), oldMaxEntries.ToString(), configData.ImportLogDataMaxEntries.ToString());
 
         if (changes.Count > 0)
         {

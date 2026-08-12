@@ -46,6 +46,10 @@ last_commit_id_file_path: "{{ fworch_conf_dir }}/last_commit_id.txt"
 fworch_secrets_dir: "{{ fworch_conf_dir }}/secrets"
 fworch_tmp_dir: "{{ fworch_home }}/tmp"
 importer_venv_dir: "{{ fworch_home }}/importer/importer-venv"
+# venv for the customizing scripts the middleware executes; it must stay outside
+# scripts/customizing, since everything below that directory is offered as an import source
+customizing_venv_dir: "{{ fworch_home }}/scripts/customizing-venv"
+customizing_python_interpreter: "{{ importer_python_interpreter }}"
 # units are installed into the local (admin owned) unit directory; the vendor directory is
 # package manager territory and is only kept around to find and clean up pre-11.0 installations
 fworch_systemd_unit_dir: /etc/systemd/system

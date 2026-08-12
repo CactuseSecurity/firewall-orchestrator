@@ -8,6 +8,8 @@ Configure these keys in `customizingConfig.json`:
 - `logDataGitRepoTargetDir` (optional; default `/usr/local/fworch/etc/logDataRepo`)
 - `logDataGitBranch` (optional)
 
+The script uses `GitPython`, which is not part of the system python. The installer creates a virtual environment for the customizing scripts at `/usr/local/fworch/scripts/customizing-venv` from `scripts/requirements.txt` and rewrites the shebangs of the deployed scripts to that environment, so the middleware picks up the dependencies when it executes the script. Custom scripts placed below `scripts/customizing` are treated the same way; add their dependencies to `scripts/requirements.txt`.
+
 Set `importLogDataPath` to the extensionless full path of this script. The scheduler runs the script, then reads its sibling `.json` file. After a successful import it runs the script with `--acknowledge-import`; that deletes the source CSV files, commits their removal, pushes it to `origin`, and deletes the generated JSON file.
 
 The mandatory CSV headers are `App ID`, `Log count`, `Src IP`, `Dst IP`, and `Port`. Optional headers are `Protocol`, `Action`, `Log timestamp`, and `Rule name`. `Protocol` uses IP protocol numbers. A nonempty port is permitted only with TCP (`6`) or UDP (`17`).

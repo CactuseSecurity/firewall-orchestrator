@@ -357,6 +357,7 @@
         - customizing/app_data_import/get_owner_data3_from_normalized_csvs.py
         - customizing/area_ip_data_import/convertNwObjDataFromGit.py
         - customizing/iiq_request_missing_roles/iiq_request_missing_fwmgt_roles.py
+        - customizing/log_data_import/import_log_data_from_git.py
         - acquire_lock.py
         - release_lock.py
       register: fworch_script_stats

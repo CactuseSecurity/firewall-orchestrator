@@ -1,0 +1,49 @@
+---
+# The middleware starts customizing scripts as plain executables, so the shebang picks the
+# interpreter. Their dependencies therefore go into a venv of their own instead of the system
+# python, and the shebangs of the deployed scripts are pointed at that venv.
+- block:
+    - name: install venv package for customizing scripts
+      package:
+        name: "{{ python_venv_package_name }}"
+        state: present
+
+    - name: create python virtual environment for customizing scripts
+      ansible.builtin.command:
+        cmd: "{{ customizing_python_interpreter }} -m venv {{ customizing_venv_dir }}"
+        creates: "{{ customizing_venv_dir }}"
+
+    - name: install python packages for customizing scripts
+      ansible.builtin.pip:
+        requirements: "{{ fworch_home }}/scripts/requirements.txt"
+        virtualenv: "{{ customizing_venv_dir }}"
+      environment: "{{ proxy_env }}"
+
+    - name: set customizing venv ownership and readable permissions
+      file:
+        path: "{{ customizing_venv_dir }}"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "u=rwX,g=rX,o=rX"
+        follow: false
+        recurse: true
+
+    - name: find customizing scripts still using the system python
+      ansible.builtin.find:
+        paths: "{{ fworch_home }}/scripts/customizing"
+        patterns: "*.py"
+        recurse: true
+        contains: '^#!\s*/usr/bin/(env )?python3\s*$'
+      register: customizing_scripts_with_system_shebang
+
+    - name: point customizing script shebangs at the customizing venv
+      ansible.builtin.replace:
+        path: "{{ item.path }}"
+        regexp: '\A#!\s*/usr/bin/(env )?python3[^\n]*'
+        replace: "#!{{ customizing_venv_dir }}/bin/python3"
+      loop: "{{ customizing_scripts_with_system_shebang.files }}"
+      loop_control:
+        label: "{{ item.path }}"
+
+  become: true

@@ -217,6 +217,9 @@
   become_user: postgres
   when: installation_mode=="new"
 
+- name: install python venv for the customizing scripts
+  import_tasks: install_customizing_venv.yml
+
 - name: install and run mw service
   import_tasks: install_and_run_mw_service.yml
 

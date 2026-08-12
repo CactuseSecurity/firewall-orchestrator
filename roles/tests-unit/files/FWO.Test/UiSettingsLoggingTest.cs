@@ -41,6 +41,36 @@ namespace FWO.Test
             Assert.That(paths, Has.One.EqualTo("source"));
         }
 
+        [Test]
+        public void PrepareConfigData_RaisesNonPositiveMaxEntriesToOne()
+        {
+            SettingsLogging component = CreateComponentWithMaxEntries(0);
+
+            InvokePrivateMethod("PrepareConfigData", component);
+
+            Assert.That(GetPrivateField<ConfigData>(component, "configData").ImportLogDataMaxEntries, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void PrepareConfigData_KeepsConfiguredMaxEntries()
+        {
+            SettingsLogging component = CreateComponentWithMaxEntries(5000);
+
+            InvokePrivateMethod("PrepareConfigData", component);
+
+            Assert.That(GetPrivateField<ConfigData>(component, "configData").ImportLogDataMaxEntries, Is.EqualTo(5000));
+        }
+
+        private static SettingsLogging CreateComponentWithMaxEntries(int maxEntries)
+        {
+            SettingsLogging component = new();
+            SetPrivateField(component, "configData", new ConfigData { ImportLogDataMaxEntries = maxEntries });
+            SetPrivateField(component, "logDataPaths", new List<string>());
+            SetPrivateField(component, "pathsToAdd", new List<string>());
+            SetPrivateField(component, "pathsToDelete", new List<string>());
+            return component;
+        }
+
         private static void InvokePrivateMethod(string methodName, SettingsLogging component)
         {
             MethodInfo method = typeof(SettingsLogging).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance)

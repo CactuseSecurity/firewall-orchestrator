@@ -51,6 +51,70 @@ namespace FWO.Test
         }
 
         /// <summary>
+        /// An auto sized popup has to leave room for its footer. Reserving that room with a pixel constant
+        /// fails as soon as the footer wraps, so the height is distributed by a column flex box instead:
+        /// the footer keeps its intrinsic height and the content box takes whatever is left of the viewport.
+        /// </summary>
+        [Test]
+        public void PopUpCss_DistributesTheAutoSizedPopupWithAFlexBox()
+        {
+            string popUpCss = ReadStyleSheetWithoutComments(kPopUpCssResource);
+
+            Match modalRule = AutoModalRuleRegex().Match(popUpCss);
+            Match contentRule = AutoContentRuleRegex().Match(popUpCss);
+            Assert.Multiple(() =>
+            {
+                Assert.That(modalRule.Success, Is.True, "The class of the auto sized modal is missing.");
+                Assert.That(contentRule.Success, Is.True, "The content class of the auto sized modal is missing.");
+            });
+
+            string modalDeclarations = NormalizeWhitespace(modalRule.Groups["body"].Value);
+            string contentDeclarations = NormalizeWhitespace(contentRule.Groups["body"].Value);
+            Assert.Multiple(() =>
+            {
+                Assert.That(modalDeclarations, Does.Contain("display: flex"));
+                Assert.That(modalDeclarations, Does.Contain("flex-direction: column"));
+                Assert.That(contentDeclarations, Does.Contain("flex: 1 1 auto"));
+                Assert.That(contentDeclarations, Does.Contain("min-height: 0"),
+                    "Without min-height: 0 the content box keeps its automatic minimum size and overflows the modal.");
+                Assert.That(contentDeclarations, Does.Contain("scrollbar-gutter: stable"),
+                    "The modal is only as wide as its content, so the scrollbar needs a reserved gutter.");
+                Assert.That(PixelConstantRegex().IsMatch(contentDeclarations), Is.False,
+                    "The room for the footer must not be reserved with a pixel constant.");
+            });
+        }
+
+        /// <summary>
+        /// The content box of an auto sized popup scrolls, so its header has to be pinned to keep the title
+        /// and the close button reachable. It shares the scroll container with the sticky headers of the
+        /// tables inside the popup and therefore has to be stacked above them.
+        /// </summary>
+        [Test]
+        public void PopUpCss_PinsTheHeaderOfTheAutoSizedPopupAboveTheStickyTableHeaders()
+        {
+            string popUpCss = ReadStyleSheetWithoutComments(kPopUpCssResource);
+            string siteCss = ReadStyleSheetWithoutComments(kSiteCssResource);
+
+            Match headerRule = AutoModalHeaderRuleRegex().Match(popUpCss);
+            Match tableHeaderRule = StickyTableHeaderRuleRegex().Match(siteCss);
+            Assert.Multiple(() =>
+            {
+                Assert.That(headerRule.Success, Is.True, "The header of the auto sized modal is not pinned.");
+                Assert.That(tableHeaderRule.Success, Is.True, "The sticky table header rule is missing.");
+            });
+
+            string headerDeclarations = NormalizeWhitespace(headerRule.Groups["body"].Value);
+            Assert.Multiple(() =>
+            {
+                Assert.That(headerDeclarations, Does.Contain("position: sticky"));
+                Assert.That(headerDeclarations, Does.Contain("background-color"),
+                    "The scrolling content would shine through a transparent header.");
+                Assert.That(ReadZIndex(headerDeclarations), Is.GreaterThan(ReadZIndex(NormalizeWhitespace(tableHeaderRule.Groups["body"].Value))),
+                    "The pinned modal header has to stay above the sticky table headers inside the popup.");
+            });
+        }
+
+        /// <summary>
         /// A custom property that is referenced but never defined makes the whole declaration invalid,
         /// which silently disabled the sticky table headers inside the popups before.
         /// </summary>
@@ -81,6 +145,13 @@ namespace FWO.Test
             return WhitespaceRegex().Replace(declarations, " ");
         }
 
+        private static int ReadZIndex(string declarations)
+        {
+            Match zIndex = ZIndexRegex().Match(declarations);
+            Assert.That(zIndex.Success, Is.True, $"No z-index found in '{declarations}'.");
+            return int.Parse(zIndex.Groups["value"].Value);
+        }
+
         [GeneratedRegex(@"/\*.*?\*/", RegexOptions.Singleline, knMilliseconds)]
         private static partial Regex CommentRegex();
 
@@ -89,6 +160,24 @@ namespace FWO.Test
 
         [GeneratedRegex(@"\.custom-modal-center\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
         private static partial Regex CenterRuleRegex();
+
+        [GeneratedRegex(@"\.custom-modal-auto\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
+        private static partial Regex AutoModalRuleRegex();
+
+        [GeneratedRegex(@"\.custom-modal-content-auto\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
+        private static partial Regex AutoContentRuleRegex();
+
+        [GeneratedRegex(@"\.custom-modal-content-auto\s+\.modal-header\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
+        private static partial Regex AutoModalHeaderRuleRegex();
+
+        [GeneratedRegex(@"\.sticky-header\s+thead\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
+        private static partial Regex StickyTableHeaderRuleRegex();
+
+        [GeneratedRegex(@"z-index\s*:\s*(?<value>-?\d+)", RegexOptions.None, knMilliseconds)]
+        private static partial Regex ZIndexRegex();
+
+        [GeneratedRegex(@"\d+\s*px", RegexOptions.None, knMilliseconds)]
+        private static partial Regex PixelConstantRegex();
 
         [GeneratedRegex(@"\s+", RegexOptions.None, knMilliseconds)]
         private static partial Regex WhitespaceRegex();

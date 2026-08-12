@@ -540,8 +540,14 @@ div.modal-body > * > div.table-responsive {
     overflow-x: inherit;
 }
 
-/* No modal specific sticky offset needed: the scroll container of a table in a popup is
-    the .modal-content box itself, so the offset of the generic .sticky-header rule applies. */
+/* The scroll container of a table in a popup is the .modal-content box itself. A sticky offset is
+    resolved against the content box of the scroll container, so a header pinned at the generic
+    top: -1px would come to rest below the top padding of the popup and the rows would scroll
+    through the gap above it. Compensating that padding pins the header to the top edge of the popup.
+    The fallback keeps the declaration valid (and the header sticky) if the variable ever goes away. */
+div.modal-content .sticky-header thead {
+    top: calc(-1px - var(--fwo-modal-content-padding-top, 0px));
+}
 
 .small-helptext {
     color: hsl(39, 100%, 50%);

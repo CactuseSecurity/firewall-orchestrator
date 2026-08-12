@@ -30,6 +30,7 @@ namespace FWO.Services.Workflow
         private static readonly object MiddlewareDelegationLock = new();
         private static readonly Dictionary<string, DateTime> MiddlewareDelegations = [];
         private static readonly TimeSpan MiddlewareDelegationDeduplicationWindow = TimeSpan.FromSeconds(5);
+        public WorkflowEmailBundleCollector? EmailBundleCollector { get; set; }
 
 
         public ActionHandler(ApiConnection apiConnection, WfHandler wfHandler, List<UserGroup>? userGroups = null, bool useInMwServer = false,
@@ -98,6 +99,31 @@ namespace FWO.Services.Workflow
 
             await PerformStateActions(onSetActions, StateActionEvents.OnSet, statefulObject, scope, owner, ticketId, userGrpDn);
             await PerformStateActions(onLeaveActions, StateActionEvents.OnLeave, statefulObject, scope, owner, ticketId, userGrpDn);
+        }
+
+        public async Task FlushEmailBundleCollector()
+        {
+            if (EmailBundleCollector == null || EmailBundleCollector.PendingItems.Count == 0)
+            {
+                return;
+            }
+
+            WorkflowEmailBundleCollector collector = EmailBundleCollector;
+            collector.IsFlushing = true;
+            try
+            {
+                foreach (WorkflowEmailBundleItem item in collector.PendingItems
+                    .GroupBy(item => item.BundleKey)
+                    .Select(group => group.OrderBy(item => item.RequestTask.TaskNumber).First()))
+                {
+                    await SendEmail(item.Action, item.RequestTask, WfObjectScopes.RequestTask, item.Owner, item.UserGrpDn);
+                }
+            }
+            finally
+            {
+                collector.PendingItems.Clear();
+                collector.IsFlushing = false;
+            }
         }
 
         private List<WfStateAction> StateActionsForEvent(WfStatefulObject statefulObject, WfObjectScopes scope, StateActionEvents actionEvent, bool currentState)

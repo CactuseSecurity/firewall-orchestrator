@@ -16,13 +16,19 @@ namespace FWO.Services.Workflow
             try
             {
                 emailActionParams = JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
+                if (CaptureBundledEmail(action, emailActionParams, statefulObject, scope, owner, userGrpDn))
+                {
+                    Log.WriteDebug("SendEmail", "Captured workflow action email for bundled delivery.");
+                    return;
+                }
+
                 List<FwoNotification> actionNotifications = await ResolveActionNotifications(emailActionParams);
                 int sentEmailCount = 0;
                 List<int> sentNotificationIds = [];
                 foreach (FwoNotification actionNotification in actionNotifications)
                 {
                     await SetScope(statefulObject, scope, actionNotification);
-                    WorkflowEmailContent? workflowContent = await CreateWorkflowEmailContent(emailActionParams.AttachedContent, statefulObject, scope);
+                    WorkflowEmailContent? workflowContent = await CreateWorkflowEmailContent(emailActionParams, statefulObject, scope);
                     EmailHelper emailHelper = new(apiConnection, wfHandler.MiddlewareClient, wfHandler.userConfig, wfHandler.DisplayMessage, UserGroups, useInMwServer, workflowRecipientResolver);
                     await emailHelper.Init(ScopedUserTo, ScopedUserCc, ScopedUserBcc, ScopedUserEmailTo, ScopedUserEmailCc, ScopedUserEmailBcc);
                     WfStatefulObject placeholderObject = WorkflowPlaceholderObject(statefulObject);
@@ -47,6 +53,20 @@ namespace FWO.Services.Workflow
                     wfHandler.DisplayMessage(exc, wfHandler.userConfig.GetText("send_email"), "", true);
                 }
             }
+        }
+
+        private bool CaptureBundledEmail(WfStateAction action, EmailActionParams emailActionParams, WfStatefulObject statefulObject,
+            WfObjectScopes scope, FwoOwner? owner, string? userGrpDn)
+        {
+            if (EmailBundleCollector == null || EmailBundleCollector.IsFlushing
+                || emailActionParams.RequestTaskBundleMode != EmailRequestTaskBundleMode.SameTaskType
+                || scope != WfObjectScopes.RequestTask || statefulObject is not WfReqTask reqTask)
+            {
+                return false;
+            }
+
+            EmailBundleCollector.Add(action, reqTask, owner, userGrpDn);
+            return true;
         }
 
         private void DisplaySentEmailConfirmation(EmailActionParams emailActionParams, int sentEmailCount)
@@ -99,9 +119,9 @@ namespace FWO.Services.Workflow
             return [emailActionParams.ToNotification()];
         }
 
-        private async Task<WorkflowEmailContent?> CreateWorkflowEmailContent(EmailAttachedContent attachedContent, WfStatefulObject statefulObject, WfObjectScopes scope)
+        private async Task<WorkflowEmailContent?> CreateWorkflowEmailContent(EmailActionParams emailActionParams, WfStatefulObject statefulObject, WfObjectScopes scope)
         {
-            if (attachedContent != EmailAttachedContent.RequestedConnections)
+            if (emailActionParams.AttachedContent != EmailAttachedContent.RequestedConnections)
             {
                 return null;
             }
@@ -110,11 +130,35 @@ namespace FWO.Services.Workflow
             return scope switch
             {
                 WfObjectScopes.Ticket when statefulObject is WfTicket ticket => WorkflowEmailContent.FromRequestTasks((await GetTicketForEmailContent(ticket)).Tasks, wfHandler.userConfig, protocolNamesById),
-                WfObjectScopes.RequestTask when statefulObject is WfReqTask reqTask => WorkflowEmailContent.FromRequestTasks([reqTask], wfHandler.userConfig, protocolNamesById),
+                WfObjectScopes.RequestTask when statefulObject is WfReqTask reqTask =>
+                    WorkflowEmailContent.FromRequestTasks(await GetRequestTasksForEmailContent(emailActionParams, reqTask), wfHandler.userConfig, protocolNamesById),
                 WfObjectScopes.ImplementationTask when statefulObject is WfImplTask implTask => WorkflowEmailContent.FromImplementationTasks([implTask], wfHandler.userConfig, protocolNamesById),
                 WfObjectScopes.Approval when wfHandler.ActReqTask.Id > 0 => WorkflowEmailContent.FromRequestTasks([wfHandler.ActReqTask], wfHandler.userConfig, protocolNamesById),
                 _ => null
             };
+        }
+
+        private async Task<List<WfReqTask>> GetRequestTasksForEmailContent(EmailActionParams emailActionParams, WfReqTask reqTask)
+        {
+            if (emailActionParams.RequestTaskBundleMode != EmailRequestTaskBundleMode.SameTaskType || reqTask.TicketId <= 0)
+            {
+                return [reqTask];
+            }
+
+            WfTicket fullTicket = await GetTicketForEmailContent(new WfTicket { Id = reqTask.TicketId });
+            List<WfReqTask> bundledTasks = [.. fullTicket.Tasks
+                .Where(task => IsSameRequestTaskEmailBundle(task, reqTask))
+                .OrderBy(task => task.TaskNumber)];
+
+            return bundledTasks.Count > 0 ? bundledTasks : [reqTask];
+        }
+
+        private static bool IsSameRequestTaskEmailBundle(WfReqTask candidate, WfReqTask reqTask)
+        {
+            return candidate.TicketId == reqTask.TicketId
+                && candidate.TaskType == reqTask.TaskType
+                && candidate.StateId == reqTask.StateId
+                && candidate.GetAddInfoValue(AdditionalInfoKeys.FwConfigChangeTarget) == reqTask.GetAddInfoValue(AdditionalInfoKeys.FwConfigChangeTarget);
         }
 
         private async Task<Dictionary<int, string>> GetProtocolNamesByIdForEmailContent()

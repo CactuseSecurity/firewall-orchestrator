@@ -31,6 +31,17 @@
         </div>
     </div>
 </div>
+@if (ActAction.Scope == WfObjectScopes.RequestTask.ToString())
+{
+    <div class="col-sm-4">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5539"))">
+            <label class="col-sm-10 col-form-label col-form-label-sm" for="bundleRequestTasksByType">@(userConfig.GetText("bundle_request_tasks_by_type")):</label>
+            <div class="col-sm-2">
+                <input id="bundleRequestTasksByType" class="form-check-input mt-2" type="checkbox" checked="@actBundleRequestTasksByType" @onchange="OnBundleRequestTasksByTypeChanged" />
+            </div>
+        </div>
+    </div>
+}
 <div class="col-sm-12">
     <EditNotifications Client="NotificationClient.WfAction"
                        NotificationIds="@actActionNotificationIds"
@@ -51,6 +62,7 @@
     private EmailAttachedContent actAttachedContent = EmailAttachedContent.None;
     private bool actConfirmSentMail;
     private FwoNotification? legacyActionNotification;
+    private bool actBundleRequestTasksByType;
 
     protected override void OnParametersSet()
     {
@@ -64,6 +76,7 @@
         actAttachedContent = EmailAttachedContent.None;
         actConfirmSentMail = false;
         legacyActionNotification = null;
+        actBundleRequestTasksByType = false;
     }
 
     private void LoadFromExternalParams()
@@ -77,6 +90,7 @@
         actActionNotificationIds = [.. emailActionParams.NotificationIds.Where(id => id > 0).Distinct()];
         actAttachedContent = emailActionParams.AttachedContent;
         actConfirmSentMail = emailActionParams.ConfirmSentMail;
+        actBundleRequestTasksByType = emailActionParams.RequestTaskBundleMode == EmailRequestTaskBundleMode.SameTaskType;
         if (actActionNotificationIds.Count == 0)
         {
             legacyActionNotification = emailActionParams.ToNotification();
@@ -93,6 +107,13 @@
     private Task OnConfirmSentMailChanged(ChangeEventArgs changeEventArgs)
     {
         actConfirmSentMail = bool.TryParse(changeEventArgs.Value?.ToString(), out bool parsedValue) && parsedValue;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    private Task OnBundleRequestTasksByTypeChanged(ChangeEventArgs changeEventArgs)
+    {
+        actBundleRequestTasksByType = bool.TryParse(changeEventArgs.Value?.ToString(), out bool parsedValue) && parsedValue;
         UpdateExternalParams();
         return Task.CompletedTask;
     }
@@ -170,7 +191,10 @@
         {
             notification_ids = actActionNotificationIds,
             attached_content = actAttachedContent,
-            confirm_sent_mail = actConfirmSentMail
+            confirm_sent_mail = actConfirmSentMail,
+            request_task_bundle_mode = ActAction.Scope == WfObjectScopes.RequestTask.ToString() && actBundleRequestTasksByType
+                ? EmailRequestTaskBundleMode.SameTaskType
+                : EmailRequestTaskBundleMode.None
         });
     }
 

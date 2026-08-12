@@ -10,6 +10,12 @@ namespace FWO.Services
         RequestedConnections = 1
     }
 
+    public enum EmailRequestTaskBundleMode
+    {
+        None = 0,
+        SameTaskType = 1
+    }
+
     public class EmailActionParams
     {
         [JsonProperty("notification_ids"), JsonPropertyName("notification_ids")]
@@ -32,6 +38,9 @@ namespace FWO.Services
 
         [JsonProperty("body"), JsonPropertyName("body")]
         public string Body { get; set; } = "";
+
+        [JsonProperty("request_task_bundle_mode"), JsonPropertyName("request_task_bundle_mode")]
+        public EmailRequestTaskBundleMode RequestTaskBundleMode { get; set; } = EmailRequestTaskBundleMode.None;
 
         /// <summary>
         /// Converts workflow action email parameters into the shared notification model.

@@ -236,17 +236,21 @@ namespace FWO.Middleware.Server
             bool handledTask = false;
             bool handledInternalWork = false;
 
+            WorkflowEmailBundleCollector emailBundleCollector = new();
+
             while (true)
             {
                 WfReqTask? nextTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == lastTaskNumber + 1);
                 if (nextTask is null)
                 {
+                    await RunInternalWorkStateChangeActions(ticket.Id, emailBundleCollector);
                     Log.WriteDebug("CreateNextRequest", "No more task found.");
                     return handledTask;
                 }
 
                 if (handledInternalWork && !IsInternalWorkConfiguredForTask(nextTask))
                 {
+                    await RunInternalWorkStateChangeActions(ticket.Id, emailBundleCollector);
                     Log.WriteInfo("CreateNextRequest", $"Internal work batch for ticket {ticket.Id} created. Waiting for completion before task {nextTask.TaskNumber}.");
                     return true;
                 }
@@ -258,7 +262,7 @@ namespace FWO.Middleware.Server
 
                 if (actInternalWork)
                 {
-                    await PromoteInternalWorkTaskToApproval(ticket, nextTask);
+                    await PromoteInternalWorkTaskToApproval(ticket, nextTask, emailBundleCollector);
                     Log.WriteInfo("CreateNextRequest", $"Promoted internal work task {nextTask.TaskNumber} for ticket {ticket.Id} to approval.");
 
                     handledTask = true;
@@ -283,6 +287,7 @@ namespace FWO.Middleware.Server
                 }
 
                 Log.WriteInfo("CreateNextRequest", $"Created Request for ticket {ticket.Id}.");
+                await RunInternalWorkStateChangeActions(ticket.Id, emailBundleCollector);
                 return true;
             }
         }
@@ -310,7 +315,6 @@ namespace FWO.Middleware.Server
         {
             return task.GetAddInfoValue(AdditionalInfoKeys.FwConfigChangeTarget) == ManagementFwConfigChangeTargets.InternalWork;
         }
-
 
         /// <summary>
         /// Continues the external request chain after an internal work request task has completed.
@@ -420,6 +424,27 @@ namespace FWO.Middleware.Server
                     taskFound = false;
                 }
             }
+        }
+
+        private async Task RunInternalWorkStateChangeActions(long ticketId, WorkflowEmailBundleCollector emailBundleCollector)
+        {
+            if (emailBundleCollector.PendingItems.Count == 0)
+            {
+                return;
+            }
+
+            WfHandler approvalHandler = new(UserConfig, ApiConnection, WorkflowPhases.approval, ownerGroups, new ComplianceRequestedRulePolicyChecker(UserConfig, ApiConnection));
+
+            if (!await approvalHandler.InitForActionExecution())
+            {
+                throw new InvalidOperationException("Could not initialize approval workflow handler for bundled internal work emails.");
+            }
+
+            WfTicket approvalTicket = await approvalHandler.ResolveTicket(ticketId) ?? throw new InvalidOperationException($"Ticket {ticketId} not found.");
+            approvalHandler.SetTicketEnv(approvalTicket);
+            approvalHandler.ActionHandler!.EmailBundleCollector = emailBundleCollector;
+
+            await approvalHandler.ActionHandler.FlushEmailBundleCollector();
         }
 
         private static bool CanBundleWithStartTask(WfReqTask furtherTask, WfReqTask startTask, int startSystemId, List<ManagementFwConfigChangeState> managementSettings, List<ExternalTicketSystem> extTicketSystems)
@@ -538,7 +563,7 @@ namespace FWO.Middleware.Server
                 contentString.Contains("\"object_updated_status\":\"NEW\"") || contentString.Contains("object_updated_status\\u0022:\\u0022NEW\\u0022");
         }
 
-        private async Task PromoteInternalWorkTaskToApproval(WfTicket ticket, WfReqTask task)
+        private async Task PromoteInternalWorkTaskToApproval(WfTicket ticket, WfReqTask task, WorkflowEmailBundleCollector emailBundleCollector)
         {
             WfHandler approvalHandler = new(UserConfig, ApiConnection, WorkflowPhases.approval, ownerGroups, new ComplianceRequestedRulePolicyChecker(UserConfig, ApiConnection));
 
@@ -552,7 +577,7 @@ namespace FWO.Middleware.Server
             WfReqTask approvalTask = approvalTicket.Tasks.FirstOrDefault(ta => ta.TaskNumber == task.TaskNumber) ?? throw new InvalidOperationException($"Task {task.TaskNumber} not found in ticket {ticket.Id}.");
 
             StateMatrix approvalMatrix = approvalHandler.StateMatrix(approvalTask.TaskType);
-            approvalTask.StateId = approvalMatrix.LowestStartedState;
+            approvalHandler.ActionHandler!.EmailBundleCollector = emailBundleCollector;
 
             approvalHandler.SetTicketEnv(approvalTicket);
             approvalHandler.SetReqTaskEnv(approvalTask);
@@ -564,6 +589,7 @@ namespace FWO.Middleware.Server
                 throw new InvalidOperationException($"Internal work marker could not be set for task {task.TaskNumber} in ticket {ticket.Id}.");
             }
 
+            approvalTask.StateId = approvalMatrix.LowestStartedState;
             await approvalHandler.PromoteReqTask(approvalTask);
 
             await LogRequestTasks([approvalTask], ticket.Requester?.Name, ModellingTypes.ChangeType.Request);

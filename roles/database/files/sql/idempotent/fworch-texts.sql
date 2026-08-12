@@ -3188,6 +3188,8 @@ INSERT INTO txt VALUES ('attached_content',     'German',   'Angeh&auml;ngter In
 INSERT INTO txt VALUES ('attached_content',     'English',  'Attached Content');
 INSERT INTO txt VALUES ('confirm_sent_mail',    'German',   'Versand per UI-Meldung best&auml;tigen');
 INSERT INTO txt VALUES ('confirm_sent_mail',    'English',  'Confirm sent email via UI message');
+INSERT INTO txt VALUES ('bundle_request_tasks_by_type', 'German',   'Request Tasks nach Task-Typ b&uuml;ndeln');
+INSERT INTO txt VALUES ('bundle_request_tasks_by_type', 'English',  'Bundle request tasks by task type');
 INSERT INTO txt VALUES ('confirm_modelling_update', 'German',   'Aktualisierung per UI-Meldung best&auml;tigen');
 INSERT INTO txt VALUES ('confirm_modelling_update', 'English',  'Confirm modelling update via UI message');
 INSERT INTO txt VALUES ('confirm_flow_creation',    'German',   'Flow-Erzeugung per UI-Meldung best&auml;tigen');
@@ -6620,6 +6622,8 @@ INSERT INTO txt VALUES ('H5537', 'German',  'Saubere Zonen: Wenn aktiviert, werd
 INSERT INTO txt VALUES ('H5537', 'English', 'Clean zones: When enabled, tasks are bundled only if their source and destination objects can be mapped to the same network zones using the selected policy matrix. Without a selected policy or without a matrix in the policy, no clean zone match is assumed.');
 INSERT INTO txt VALUES ('H5538', 'German',  'Die Aktions&uuml;bersicht zeigt zus&auml;tzlich an, in wie vielen Status die jeweilige Aktion verwendet wird. Der Bearbeitungsdialog ist in die Bereiche "Allgemein", "Aktion spezifisch" und "Verwendende Status" gegliedert; dort werden die zugeordneten Status aufgelistet und k&ouml;nnen direkt hinzugef&uuml;gt oder entfernt werden.');
 INSERT INTO txt VALUES ('H5538', 'English', 'The action overview additionally shows how many states use each action. The edit dialog is split into "General", "Action specific", and "Using states"; the linked states are listed there and can be added or removed directly.');
+INSERT INTO txt VALUES ('H5539', 'German',  'Request Tasks nach Task-Typ b&uuml;ndeln: Wenn aktiviert, enth&auml;lt die Email alle passenden Request Tasks desselben Task-Typs. Die automatische Einmal-Ausl&ouml;sung pro Task-Typ erfolgt nur im Internal-Work-OnSet-Ablauf.');
+INSERT INTO txt VALUES ('H5539', 'English', 'Bundle request tasks by task type: If enabled, the email contains all matching request tasks of the same task type. Automatic single delivery per task type is only applied in the Internal Work OnSet flow.');
 INSERT INTO txt VALUES ('H5541', 'German',  'In der Status-Matrix werden die verarbeitbaren Status pro Phase und Tasktyp festgelegt.
     Es gibt eine Master-Matrix, welche die Eigenschaften auf Ticket-Ebene beschreibt, sowie und f&uuml;r jeden Tasktyp separate Matrizen.
     Oberhalb der Konfigurationsauswahl k&ouml;nnen Sichtbarkeitsgruppen und &Uuml;bergangsgruppen bearbeitet sowie neue leere Konfigurationen oder Kopien einer ausgew&auml;hlten Konfiguration angelegt werden. Nur inaktive Konfigurationen k&ouml;nnen gel&ouml;scht werden; nicht mehr verwendete Phasenmatrizen werden dabei ebenfalls entfernt. Mitglieder von Sichtbarkeitsgruppen k&ouml;nnen als DN eingegeben oder &uuml;ber die Benutzer- und Gruppensuche ausgew&auml;hlt werden. Beim L&ouml;schen einer Sichtbarkeitsgruppe wird ihre Zuordnung zu &Uuml;bergangsgruppen entfernt. Beim L&ouml;schen einer &Uuml;bergangsgruppe werden auch ihre &Uuml;berg&auml;nge und Phasenzuordnungen gel&ouml;scht. Genau eine Konfiguration ist aktiv und wird zur Laufzeit verwendet.

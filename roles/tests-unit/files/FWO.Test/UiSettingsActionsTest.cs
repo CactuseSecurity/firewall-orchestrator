@@ -663,6 +663,49 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task EditActionGeneral_OnScopeChanged_UpdatesActionAndInvokesCallback()
+        {
+            EditActionGeneral component = new();
+            WfStateAction action = new()
+            {
+                Scope = WfObjectScopes.None.ToString()
+            };
+            string? callbackScope = null;
+            SetMember(component, "ActAction", action);
+            SetMember(component, "ScopeChanged", EventCallback.Factory.Create<string?>(new object(), scope => callbackScope = scope));
+
+            await InvokeAsync(component, "OnScopeChanged", WfObjectScopes.RequestTask.ToString());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(action.Scope, Is.EqualTo(WfObjectScopes.RequestTask.ToString()));
+                Assert.That(callbackScope, Is.EqualTo(WfObjectScopes.RequestTask.ToString()));
+            });
+        }
+
+        [Test]
+        public async Task EditActionGeneral_OnScopeChanged_ClearsTaskTypeForNonTaskScope()
+        {
+            EditActionGeneral component = new();
+            WfStateAction action = new()
+            {
+                Scope = WfObjectScopes.RequestTask.ToString(),
+                TaskType = WfTaskType.access.ToString()
+            };
+            SetMember(component, "ActAction", action);
+            SetMember(component, "selectedTaskType", WfTaskType.access);
+
+            await InvokeAsync(component, "OnScopeChanged", WfObjectScopes.None.ToString());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(action.Scope, Is.EqualTo(WfObjectScopes.None.ToString()));
+                Assert.That(action.TaskType, Is.EqualTo(""));
+                Assert.That(GetMember<WfTaskType?>(component, "selectedTaskType"), Is.Null);
+            });
+        }
+
+        [Test]
         public async Task EditActionGeneral_OnTaskTypeChanged_UpdatesAction()
         {
             EditActionGeneral component = new();
@@ -1362,6 +1405,63 @@ namespace FWO.Test
 
             EmailActionParams parameters = JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams)!;
             Assert.That(parameters.ConfirmSentMail, Is.True);
+        }
+
+        [Test]
+        public async Task SendEmail_OnBundleRequestTasksByTypeChanged_UpdatesExternalParamsForRequestTaskScope()
+        {
+            EditActionSendEmail component = new();
+            WfStateAction action = new()
+            {
+                Scope = WfObjectScopes.RequestTask.ToString()
+            };
+            SetMember(component, "ActAction", action);
+
+            await InvokeAsync(component, "OnBundleRequestTasksByTypeChanged", new ChangeEventArgs { Value = "true" });
+
+            EmailActionParams parameters = JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams)!;
+            Assert.That(parameters.RequestTaskBundleMode, Is.EqualTo(EmailRequestTaskBundleMode.SameTaskType));
+        }
+
+        [Test]
+        public async Task SendEmail_OnBundleRequestTasksByTypeChanged_KeepsBundleModeNoneForNonRequestTaskScope()
+        {
+            EditActionSendEmail component = new();
+            WfStateAction action = new()
+            {
+                Scope = WfObjectScopes.Ticket.ToString()
+            };
+            SetMember(component, "ActAction", action);
+
+            await InvokeAsync(component, "OnBundleRequestTasksByTypeChanged", new ChangeEventArgs { Value = "true" });
+
+            EmailActionParams parameters = JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams)!;
+            Assert.That(parameters.RequestTaskBundleMode, Is.EqualTo(EmailRequestTaskBundleMode.None));
+        }
+
+        [Test]
+        public async Task SendEmail_RenderingShowsBundleOptionOnlyForRequestTaskScope()
+        {
+            await using BunitContext context = CreateSettingsActionsContext(new SettingsActionsApiConn(), "http://127.0.0.1:1/");
+
+            IRenderedComponent<EditActionSendEmail> requestTaskComponent = context.Render<EditActionSendEmail>(parameters => parameters
+                .Add(p => p.ActAction, new WfStateAction
+                {
+                    ActionType = StateActionTypes.SendEmail.ToString(),
+                    Scope = WfObjectScopes.RequestTask.ToString()
+                }));
+            IRenderedComponent<EditActionSendEmail> ticketComponent = context.Render<EditActionSendEmail>(parameters => parameters
+                .Add(p => p.ActAction, new WfStateAction
+                {
+                    ActionType = StateActionTypes.SendEmail.ToString(),
+                    Scope = WfObjectScopes.Ticket.ToString()
+                }));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(requestTaskComponent.Markup, Does.Contain("bundleRequestTasksByType"));
+                Assert.That(ticketComponent.Markup, Does.Not.Contain("bundleRequestTasksByType"));
+            });
         }
 
         [Test]

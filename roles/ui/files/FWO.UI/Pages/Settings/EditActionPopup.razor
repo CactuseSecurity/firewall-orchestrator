@@ -9,7 +9,7 @@
         @if (EditActionMode)
         {
             <h5 class="mt-1">@(userConfig.GetText("general"))</h5>
-            <EditActionGeneral ActAction="actAction" AvailableTaskTypes="AvailableTaskTypes" ActionTypeChanged="ActionTypeChanged" />
+            <EditActionGeneral ActAction="actAction" AvailableTaskTypes="AvailableTaskTypes" ActionTypeChanged="ActionTypeChanged" ScopeChanged="ScopeChanged" />
             <hr />
             <h5 class="mt-1">@(userConfig.GetText("action_specific"))</h5>
             <div class="form-group row col-sm-12 mt-2">
@@ -168,6 +168,11 @@
         actAction.ActionType = newActionType;
         actAction.ExternalParams = "";
         ResetActionSpecificEditState();
+    }
+
+    private void ScopeChanged(string? _)
+    {
+        StateHasChanged();
     }
 
     private void LoadActionExternalParams(WfStateAction action)

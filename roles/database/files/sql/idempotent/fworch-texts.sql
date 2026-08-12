@@ -3038,6 +3038,20 @@ INSERT INTO txt VALUES ('importLogDataSleepTime', 'German', 'Logdaten-Importinte
 INSERT INTO txt VALUES ('importLogDataSleepTime', 'English', 'Log data import interval');
 INSERT INTO txt VALUES ('importLogDataMaxEntries', 'German', 'Maximale Anzahl Logeintr&auml;ge pro Import');
 INSERT INTO txt VALUES ('importLogDataMaxEntries', 'English', 'Maximum number of log entries per import');
+INSERT INTO txt VALUES ('showLogDataInConnections', 'German', 'Logdaten in Verbindungen anzeigen');
+INSERT INTO txt VALUES ('showLogDataInConnections', 'English', 'Show log data in connections');
+INSERT INTO txt VALUES ('log_data', 'German', 'Logdaten');
+INSERT INTO txt VALUES ('log_data', 'English', 'Log data');
+INSERT INTO txt VALUES ('log_count', 'German', 'Anzahl');
+INSERT INTO txt VALUES ('log_count', 'English', 'Log count');
+INSERT INTO txt VALUES ('log_time', 'German', 'Zeitpunkt');
+INSERT INTO txt VALUES ('log_time', 'English', 'Log time');
+INSERT INTO txt VALUES ('rule_name', 'German', 'Regelname');
+INSERT INTO txt VALUES ('rule_name', 'English', 'Rule name');
+INSERT INTO txt VALUES ('allowed', 'German', 'Erlaubt');
+INSERT INTO txt VALUES ('allowed', 'English', 'Allowed');
+INSERT INTO txt VALUES ('denied', 'German', 'Verworfen');
+INSERT INTO txt VALUES ('denied', 'English', 'Denied');
 INSERT INTO txt VALUES ('ownerDataImportSyncUsers', 'German', 'App-Verantwortliche synchronisieren');
 INSERT INTO txt VALUES ('ownerDataImportSyncUsers', 'English', 'Sync owner responsibles');
 INSERT INTO txt VALUES ('importAppDataStartAt', 'German', 	'Import Appdaten-Start');
@@ -4155,6 +4169,8 @@ INSERT INTO txt VALUES ('U9041', 'German',  'Sind sie sicher, dass sie @@COUNT@@
 INSERT INTO txt VALUES ('U9041', 'English', 'Are you sure you want to close @@COUNT@@ ticket(s) as done?');
 INSERT INTO txt VALUES ('U9042', 'German',  'Bitte beschreiben Sie Ihre Anforderung m&ouml;glichst vollst&auml;ndig und verst&auml;ndlich, damit die Verantwortlichen der Anwendung den Bedarf nachvollziehen und die passende Schnittstelle bereitstellen k&ouml;nnen. Falls bekannt, erg&auml;nzen Sie bitte relevante technische Angaben wie IP-Adressen, Ports oder Protokolle.');
 INSERT INTO txt VALUES ('U9042', 'English', 'Please describe your requirement as completely and clearly as possible so that the application owners can understand the need and provide the appropriate interface. If known, please include relevant technical details such as IP addresses, ports, or protocols.');
+INSERT INTO txt VALUES ('U9043', 'German',  'Keine Logdaten f&uuml;r nicht modellierte Verbindungen vorhanden.');
+INSERT INTO txt VALUES ('U9043', 'English', 'no log data for unmodelled connections available');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -6907,6 +6923,8 @@ INSERT INTO txt VALUES ('H5696', 'German', 'Logdaten-Importintervall: Legt fest,
 INSERT INTO txt VALUES ('H5696', 'English', 'Log data import interval: Defines how often log data is imported.');
 INSERT INTO txt VALUES ('H5697', 'German', 'Maximale Anzahl Logeintr&auml;ge pro Import: Aus jeder Importdatei werden nur so viele Eintr&auml;ge mit den h&ouml;chsten Trefferz&auml;hlern &uuml;bernommen; die &uuml;brigen werden verworfen.');
 INSERT INTO txt VALUES ('H5697', 'English', 'Maximum number of log entries per import: Only this many entries with the highest log counts are taken from each import file; the remaining entries are discarded.');
+INSERT INTO txt VALUES ('H5698', 'German', 'Logdaten in Verbindungen anzeigen: Blendet die importierten Logdaten des Eigent&uuml;mers unterhalb der Verbindung im Bearbeiten-Dialog ein.');
+INSERT INTO txt VALUES ('H5698', 'English', 'Show log data in connections: Displays the imported log data of the owner below the connection in the edit dialog.');
 INSERT INTO txt VALUES ('H5612', 'German',  'Import Appdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Appdaten-Import-L&auml;ufen.
     Ein Wert 0 bedeutet, dass der Appdaten-Import deaktiviert ist. Default-Wert = 0.
 ');
@@ -8888,6 +8906,8 @@ INSERT INTO txt VALUES ('H9082', 'German',  'Berechtigung: Bestimmt die Sicht- u
 INSERT INTO txt VALUES ('H9082', 'English', 'Permission: Defines visability and usability for other applications: Public - usable for all without further query, Restricted - usable only with permission of the owner, Private - usable only inside the own Communication Profile.');
 INSERT INTO txt VALUES ('H9083', 'German',  'Berechtigte Applikationen: Bestimmt, welche anderen Applikationen diese Schnittstelle nutzen d&uuml;rfen.');
 INSERT INTO txt VALUES ('H9083', 'English', 'Permitted Applications: Defines which other applications are permitted to use this interface.');
+INSERT INTO txt VALUES ('H9084', 'German',  'Logdaten: Sind Logdaten aktiviert, werden die importierten Logdaten des Eigent&uuml;mers unterhalb der Verbindung angezeigt, standardm&auml;&szlig;ig nach Anzahl sortiert und &uuml;ber jede Spalte sortierbar.');
+INSERT INTO txt VALUES ('H9084', 'English', 'Log data: If log data is enabled, the imported log data of the owner is displayed below the connection, sorted by log count by default and sortable by every column.');
 INSERT INTO txt VALUES ('H5901', 'German',  'Verantwortlichkeitsstufen f&uuml;r Eigent&uuml;mer verwalten. Sie k&ouml;nnen Stufen anlegen, bearbeiten, reaktivieren und l&ouml;schen. Beim L&ouml;schen pr&uuml;ft FWOrch, ob die Stufe noch verwendet wird.');
 INSERT INTO txt VALUES ('H5901', 'English', 'Manage responsible levels for owners. You can create, edit, reactivate and delete levels. On delete, FWOrch checks whether the level is still in use.');
 INSERT INTO txt VALUES ('H5902', 'German',  'Diese Einstellungen vergeben keine Rollen. Sie steuern nur die UI-Zugriffs- und Aktionsm&ouml;glichkeiten f&uuml;r verantwortliche Benutzer/Gruppen.');

@@ -1,0 +1,20 @@
+query getUnmodelledLogEntriesByOwner($ownerId: Int!) {
+  logging_log_entry(
+    where: {owner_id: {_eq: $ownerId}, modelled: {_eq: false}}
+    order_by: {log_count: desc}
+  ) {
+    id
+    log_count
+    source
+    destination
+    service_protocol
+    service_port
+    allowed
+    log_time
+    logging_rule_name
+    protocol_name: stm_ip_proto {
+      id: ip_proto_id
+      name: ip_proto_name
+    }
+  }
+}

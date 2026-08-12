@@ -1,0 +1,89 @@
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<h5 class="mt-3">@(userConfig.GetText("log_data"))</h5>
+@if (isLoading)
+{
+    <Loading />
+}
+else if (logEntries.Count == 0)
+{
+    <p>@(userConfig.GetText("U9043"))</p>
+}
+else
+{
+    <div class="logdatatable-responsive">
+        <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header"
+               TableItem="OwnerLogEntry" Items="logEntries" PageSize="kPageSize" ColumnReorder="true">
+            <Column TableItem="OwnerLogEntry" Title="@(userConfig.GetText("source"))" Field="@(x => x.SourceDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerLogEntry" Title="@(userConfig.GetText("service"))" Field="@(x => x.ServiceSortKey)" Sortable="true" Filterable="false">
+                <Template>
+                    @context.ServiceDisplay
+                </Template>
+            </Column>
+            <Column TableItem="OwnerLogEntry" Title="@(userConfig.GetText("destination"))" Field="@(x => x.DestinationDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerLogEntry" Title="@(userConfig.GetText("action"))" Field="@(x => x.Allowed)" Sortable="true" Filterable="false">
+                <Template>
+                    @(userConfig.GetText(context.Allowed ? "allowed" : "denied"))
+                </Template>
+            </Column>
+            <Column TableItem="OwnerLogEntry" Title="@(userConfig.GetText("log_count"))" Field="@(x => x.LogCount)" Sortable="true" Filterable="true" DefaultSortColumn="true" DefaultSortDescending="true" />
+            <Column TableItem="OwnerLogEntry" Title="@(userConfig.GetText("log_time"))" Field="@(x => x.LogTime)" Sortable="true" Filterable="false">
+                <Template>
+                    @context.LogTime.ToLocalTime().ToString(kLogTimeFormat)
+                </Template>
+            </Column>
+            <Column TableItem="OwnerLogEntry" Title="@(userConfig.GetText("rule_name"))" Field="@(x => x.LoggingRuleName)" Sortable="true" Filterable="true" />
+            <Pager ShowPageNumber="true" ShowTotalCount="true" />
+        </Table>
+    </div>
+}
+
+@code
+{
+    private const string kLogTimeFormat = "yyyy-MM-dd HH:mm:ss";
+    // the visible height is limited by LogDataTable.razor.css, a page therefore only sets
+    // how many rows can be reached by scrolling inside that height
+    private const int kPageSize = 25;
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    /// <summary>
+    /// Owner whose logged flows are displayed.
+    /// </summary>
+    [Parameter]
+    public int OwnerId { get; set; }
+
+    private List<OwnerLogEntry> logEntries = [];
+    private bool isLoading = true;
+    private int? loadedOwnerId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (loadedOwnerId == OwnerId)
+        {
+            return;
+        }
+        await LoadLogEntries();
+    }
+
+    private async Task LoadLogEntries()
+    {
+        try
+        {
+            isLoading = true;
+            logEntries = await apiConnection.SendQueryAsync<List<OwnerLogEntry>>(LogDataQueries.getUnmodelledLogEntriesByOwner, new { ownerId = OwnerId });
+            loadedOwnerId = OwnerId;
+        }
+        catch (Exception exception)
+        {
+            logEntries = [];
+            DisplayMessageInUi(exception, userConfig.GetText("log_data"), "", true);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

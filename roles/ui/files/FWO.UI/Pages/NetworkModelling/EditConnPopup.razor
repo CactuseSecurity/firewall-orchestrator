@@ -25,6 +25,12 @@
         {
             <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
         }
+        @if (Display && userConfig.ShowLogDataInConnections && ConnHandler != null)
+        {
+            <div class="w-100">
+                <LogDataTable OwnerId="ConnHandler.Application.Id" />
+            </div>
+        }
     </Footer>
 </PopUp>
 

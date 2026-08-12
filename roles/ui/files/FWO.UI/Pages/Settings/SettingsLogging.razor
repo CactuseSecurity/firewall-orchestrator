@@ -60,6 +60,12 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("importLogDataMaxEntries")):</label>
             <input type="number" min="1" class="col-sm-6" @bind="configData.ImportLogDataMaxEntries" />
         </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5698"))">
+            <label for="cbx_show_log_data" class="col-form-label col-sm-4">@(userConfig.GetText("showLogDataInConnections")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_show_log_data" type="checkbox" class="w-100" @bind="configData.ShowLogDataInConnections" />
+            </div>
+        </div>
     </form>
     <hr />
     <ExecutionModeAuthorizeView Roles="@Roles.Admin">
@@ -129,9 +135,10 @@ else
             int oldInterval = globalConfig.ImportLogDataSleepTime;
             LogDataImportIntervalUnit oldIntervalUnit = globalConfig.ImportLogDataSleepTimeUnit;
             int oldMaxEntries = globalConfig.ImportLogDataMaxEntries;
+            bool oldShowLogData = globalConfig.ShowLogDataInConnections;
             PrepareConfigData();
             await globalConfig.WriteToDatabase(configData, apiConnection);
-            WriteSettingsAudit(oldPath, oldScriptArgs, oldInterval, oldIntervalUnit, oldMaxEntries);
+            WriteSettingsAudit(oldPath, oldScriptArgs, oldInterval, oldIntervalUnit, oldMaxEntries, oldShowLogData);
             pathsToAdd = [];
             pathsToDelete = [];
             DisplayMessageInUi(null, userConfig.GetText("logging"), userConfig.GetText("U5301"), false);
@@ -160,7 +167,8 @@ else
         configData.ImportLogDataMaxEntries = Math.Max(kMinLogDataMaxEntries, configData.ImportLogDataMaxEntries);
     }
 
-    private void WriteSettingsAudit(string oldPath, string oldScriptArgs, int oldInterval, LogDataImportIntervalUnit oldIntervalUnit, int oldMaxEntries)
+    private void WriteSettingsAudit(string oldPath, string oldScriptArgs, int oldInterval, LogDataImportIntervalUnit oldIntervalUnit,
+        int oldMaxEntries, bool oldShowLogData)
     {
         List<string> changes = [];
         AddSettingChange(changes, nameof(ConfigData.ImportLogDataPath), oldPath, configData!.ImportLogDataPath);
@@ -168,6 +176,7 @@ else
         AddSettingChange(changes, nameof(ConfigData.ImportLogDataSleepTime), oldInterval.ToString(), configData.ImportLogDataSleepTime.ToString());
         AddSettingChange(changes, nameof(ConfigData.ImportLogDataSleepTimeUnit), oldIntervalUnit.ToString(), configData.ImportLogDataSleepTimeUnit.ToString());
         AddSettingChange(changes, nameof(ConfigData.ImportLogDataMaxEntries), oldMaxEntries.ToString(), configData.ImportLogDataMaxEntries.ToString());
+        AddSettingChange(changes, nameof(ConfigData.ShowLogDataInConnections), oldShowLogData.ToString(), configData.ShowLogDataInConnections.ToString());
 
         if (changes.Count > 0)
         {

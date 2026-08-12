@@ -9,6 +9,7 @@ namespace FWO.Api.Client.Queries
     {
         public static readonly string insertLogEntries;
         public static readonly string deleteExpiredLogEntries;
+        public static readonly string getUnmodelledLogEntriesByOwner;
 
         static LogDataQueries()
         {
@@ -16,6 +17,7 @@ namespace FWO.Api.Client.Queries
             {
                 insertLogEntries = GetQueryText("logging/insertLogEntries.graphql");
                 deleteExpiredLogEntries = GetQueryText("logging/deleteExpiredLogEntries.graphql");
+                getUnmodelledLogEntriesByOwner = GetQueryText("logging/getUnmodelledLogEntriesByOwner.graphql");
             }
             catch (Exception exception)
             {

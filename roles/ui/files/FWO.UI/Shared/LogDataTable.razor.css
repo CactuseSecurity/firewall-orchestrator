@@ -1,0 +1,20 @@
+/* Keeps the log data below the connection inside the browser tab: the block is limited to a
+    share of the viewport height and scrolls internally instead of growing the popup further.
+    Uses dvh so the mobile browser chrome is taken into account (see PopUp.razor.css).
+*/
+.logdatatable-responsive {
+    max-height: 25dvh;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.logdatatable-responsive ::deep .table-responsive {
+    flex: 1;
+    overflow: auto;
+    min-height: 0;
+}
+
+.logdatatable-responsive ::deep .table {
+    margin-bottom: 0;
+}

@@ -54,5 +54,6 @@ VALUES
     ('importLogDataSleepTimeUnit', 'Hours', 0),
     ('importLogDataStartAt', '00:00:00', 0),
     ('importLogDataMaxEntries', '1000', 0),
-    ('logDataRetentionDays', '90', 0)
+    ('logDataRetentionDays', '90', 0),
+    ('showLogDataInConnections', 'False', 0)
 ON CONFLICT DO NOTHING;

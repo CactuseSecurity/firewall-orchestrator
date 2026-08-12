@@ -109,6 +109,9 @@
 @code
 {
     [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
@@ -462,27 +465,42 @@
             queryVars[QueryVar.ImportIdEnd] = importEnd;
         }
 
-        bool gotAllObjects = await CurrentReport!.GetObjectsForManagementInReport(
-            queryVars, objType,
-            userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar,
-            apiConnection,
-            async managementsUpdate =>
-            {
-                var mgtUpdated = managementsUpdate.ManagementData.FirstOrDefault(m => m.Id == id);
-                if (mgtUpdated != null)
+        async Task<bool> FetchReportObjects()
+        {
+            return await CurrentReport!.GetObjectsForManagementInReport(
+                queryVars, objType,
+                userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar,
+                apiConnection,
+                async managementsUpdate =>
                 {
-                    if (objType == ObjCategory.all || objType == ObjCategory.nobj)
-                        mgtReport.ReportObjects = mgtUpdated.ReportObjects;
+                    var mgtUpdated = managementsUpdate.ManagementData.FirstOrDefault(m => m.Id == id);
+                    if (mgtUpdated != null)
+                    {
+                        if (objType == ObjCategory.all || objType == ObjCategory.nobj)
+                            mgtReport.ReportObjects = mgtUpdated.ReportObjects;
 
-                    if (objType == ObjCategory.all || objType == ObjCategory.nsrv)
-                        mgtReport.ReportServices = mgtUpdated.ReportServices;
+                        if (objType == ObjCategory.all || objType == ObjCategory.nsrv)
+                            mgtReport.ReportServices = mgtUpdated.ReportServices;
 
-                    if (objType == ObjCategory.all || objType == ObjCategory.user)
-                        mgtReport.ReportUsers = mgtUpdated.ReportUsers;
-                }
-                await hasChangedCallback();
-            }
-        );
+                        if (objType == ObjCategory.all || objType == ObjCategory.user)
+                            mgtReport.ReportUsers = mgtUpdated.ReportUsers;
+                    }
+                    await hasChangedCallback();
+                });
+        }
+
+        bool gotAllObjects;
+        if (authenticationStateTask == null || CurrentReport is not ReportAppRules)
+        {
+            gotAllObjects = await FetchReportObjects();
+        }
+        else
+        {
+            // for ReportAppRules we need to make sure we use the correct role (esp. modeller instead of reporter)
+            AuthenticationState authenticationState = await authenticationStateTask;
+            gotAllObjects = await apiConnection.RunWithBestRoleForReport(authenticationState.User,
+                CurrentReport!.ReportType, FetchReportObjects);
+        }
 
         if (!gotAllObjects)
         {

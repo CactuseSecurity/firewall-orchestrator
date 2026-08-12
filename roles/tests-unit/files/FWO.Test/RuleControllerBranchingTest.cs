@@ -175,11 +175,17 @@ namespace FWO.Test
         [Test]
         public void GetRulesByFilter_RuleDetailsQuery_ShouldFilterRemovedRuleRelations()
         {
-            StringAssert.Contains("rule_froms(", RuleQueries.getRuleDetailsById);
-            StringAssert.Contains("rule_tos(", RuleQueries.getRuleDetailsById);
-            StringAssert.Contains("rule_services(", RuleQueries.getRuleDetailsById);
-            StringAssert.Contains("active: { _eq: true }", RuleQueries.getRuleDetailsById);
-            StringAssert.Contains("removed: { _is_null: true }", RuleQueries.getRuleDetailsById);
+            AssertRelationFiltersActiveAndRemoved(RuleQueries.getRuleDetailsById, "rule_froms");
+            AssertRelationFiltersActiveAndRemoved(RuleQueries.getRuleDetailsById, "rule_tos");
+            AssertRelationFiltersActiveAndRemoved(RuleQueries.getRuleDetailsById, "rule_services");
+        }
+
+        [Test]
+        public void ActiveRulesByOwnerQuery_ShouldFilterRemovedRuleRelations()
+        {
+            AssertRelationFiltersActiveAndRemoved(RuleQueries.getActiveRulesByOwner, "rule_froms");
+            AssertRelationFiltersActiveAndRemoved(RuleQueries.getActiveRulesByOwner, "rule_tos");
+            AssertRelationFiltersActiveAndRemoved(RuleQueries.getActiveRulesByOwner, "rule_services");
         }
 
         private static RuleController CreateController(ApiConnection apiConnection, string requestId)
@@ -199,6 +205,46 @@ namespace FWO.Test
                 ?? throw new AssertionException("Expected OK response.");
             return okResult.Value as RulesByFilterResponse
                 ?? throw new AssertionException("Expected rules-by-filter payload.");
+        }
+
+        private static void AssertRelationFiltersActiveAndRemoved(string query, string relationName)
+        {
+            string arguments = ExtractRelationArguments(query, relationName);
+
+            StringAssert.Contains("where:", arguments);
+            StringAssert.Contains("active: { _eq: true }", arguments);
+            StringAssert.Contains("removed: { _is_null: true }", arguments);
+        }
+
+        private static string ExtractRelationArguments(string query, string relationName)
+        {
+            string marker = relationName + "(";
+            int startIndex = query.IndexOf(marker, StringComparison.Ordinal);
+            if (startIndex < 0)
+            {
+                Assert.Fail($"Could not find '{marker}' in the query.");
+            }
+
+            int argumentStart = startIndex + marker.Length;
+            int depth = 1;
+            for (int index = argumentStart; index < query.Length; ++index)
+            {
+                if (query[index] == '(')
+                {
+                    ++depth;
+                }
+                else if (query[index] == ')')
+                {
+                    --depth;
+                    if (depth == 0)
+                    {
+                        return query.Substring(argumentStart, index - argumentStart);
+                    }
+                }
+            }
+
+            Assert.Fail($"Could not find closing ')' for '{marker}' in the query.");
+            return string.Empty;
         }
 
         private sealed class BranchingApiConnection : ApiConnection

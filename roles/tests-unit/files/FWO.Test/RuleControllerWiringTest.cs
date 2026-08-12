@@ -117,6 +117,26 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ConvertRuleList_ShouldDeduplicateTransientUsersWithSameRenderedNetworkLocation()
+        {
+            NetworkObject sourceGroup = CreateNetworkObjectGroup(100, "Source Group");
+
+            List<RuleDetail> rules = InvokeConvertRuleList(
+                [
+                    new Rule
+                    {
+                        Froms =
+                        [
+                            CreateNetworkLocation("source-user-a", sourceGroup),
+                            CreateNetworkLocation("source-user-b", sourceGroup)
+                        ]
+                    }
+                ]);
+
+            ClassicAssert.AreEqual("Source Group", rules[0].SourceShort);
+        }
+
+        [Test]
         public void ConvertRuleList_ShouldFlattenNestedServiceGroups()
         {
             List<RuleDetail> rules = InvokeConvertRuleList(

@@ -360,11 +360,8 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
             string objectKey = networkObject.Id > 0
                 ? networkObject.Id.ToString()
                 : $"{networkObject.Type?.Name}|{networkObject.Name}|{networkObject.IP}|{networkObject.IpEnd}";
-            string userKey = networkLocation.User?.Id > 0
-                ? networkLocation.User.Id.ToString()
-                : networkLocation.User?.Name ?? "";
 
-            if (seenLocations.Add($"{userKey}|{objectKey}"))
+            if (seenLocations.Add(objectKey))
             {
                 yield return networkLocation;
             }

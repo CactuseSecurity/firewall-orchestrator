@@ -19,6 +19,7 @@ namespace FWO.Test
     internal class UiMonitorSystemUsageTest
     {
         private const long kMegaByte = 1024 * 1024;
+        private static readonly TimeSpan kAsyncOperationTimeout = TimeSpan.FromSeconds(1);
 
         private static SystemUsageSnapshot CreateSnapshot(double cpuPercent = 25)
         {
@@ -491,7 +492,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void Page_ExecutionModeChangeStartsAndStopsMonitoring()
+        public async Task Page_ExecutionModeChangeStartsAndStopsMonitoring()
         {
             using BunitContext context = new();
             FakeSystemUsageCollector collector = new(CreateSnapshot());
@@ -517,10 +518,9 @@ namespace FWO.Test
             FakePeriodicTaskRunner activeRunner = factory.LastRunner!;
 
             userConfig.SetExecutionMode(GlobalConst.kUserRolesSelection);
-            page.WaitForAssertion(() =>
-            {
-                Assert.That(activeRunner.Disposed, Is.True);
-            });
+            await activeRunner.DisposedTask.WaitAsync(kAsyncOperationTimeout);
+
+            Assert.That(activeRunner.Disposed, Is.True);
         }
 
         [Test]
@@ -606,9 +606,12 @@ namespace FWO.Test
 
         internal sealed class FakePeriodicTaskRunner(Func<Task> callback) : IPeriodicTaskRunner
         {
+            private readonly TaskCompletionSource disposedCompletion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
             public Func<Task> Callback { get; } = callback;
             public bool Started { get; private set; }
             public bool Disposed { get; private set; }
+            public Task DisposedTask => disposedCompletion.Task;
 
             /// <summary>
             /// Optional gate letting a test hold up the shutdown, imitating the blocking dispose of the
@@ -625,6 +628,7 @@ namespace FWO.Test
             {
                 DisposeGate?.Wait();
                 Disposed = true;
+                disposedCompletion.TrySetResult();
             }
 
             /// <inheritdoc />

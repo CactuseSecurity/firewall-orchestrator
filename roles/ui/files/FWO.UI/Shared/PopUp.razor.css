@@ -1,6 +1,8 @@
 /* !! ATTENTION: The .modal-content box is the scroll container of a popup. Do not add an
     offset to its content classes without checking the sticky headers of the tables inside
     the popups (see .sticky-header in site.css) !!
+    Its top padding is published as --fwo-modal-content-padding-top, because the sticky
+    headers have to compensate it. Change the padding only through that variable.
 */
 
 /* !! ATTENTION: Never center the modal with a CSS transform. A transformed element becomes
@@ -96,7 +98,8 @@
     padding-right: 1em;
 }
 .modal-content {
-    padding: 2em 2em 0 2em;
+    --fwo-modal-content-padding-top: 2em;
+    padding: var(--fwo-modal-content-padding-top) 2em 0 2em;
     background-color: rgba(255, 255, 255, 1);
     overflow-y: auto;
     /*overflow-x: hidden;*/    

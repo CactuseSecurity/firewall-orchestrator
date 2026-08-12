@@ -64,7 +64,8 @@ public static class RuleFieldSourceResolver
     {
         return new AdditionalInformation
         {
-            ChangeId = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, changeIdKeys, out _)
+            ChangeId = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, changeIdKeys, out _,
+                CustomFieldKeyMatching.IgnoreCase)
         };
     }
 

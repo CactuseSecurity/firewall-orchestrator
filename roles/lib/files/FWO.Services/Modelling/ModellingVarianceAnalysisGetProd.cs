@@ -15,6 +15,8 @@ namespace FWO.Services.Modelling
     public partial class ModellingVarianceAnalysis
     {
         private List<ImportControl>? PendingRuleOwnerMappingImports { get; set; }
+        private HashSet<long>? NameFieldRuleOwnerConnectionIds { get; set; }
+        private sealed record RelevantImportContext(long? ImportId, HashSet<int> ManagementIds);
 
         private async Task InitManagements()
         {
@@ -42,7 +44,7 @@ namespace FWO.Services.Modelling
             }
         }
 
-        private async Task<bool> GetModelledRulesProductionState(ModellingFilter modellingFilter, bool useNameFieldRuleOwnerPreFilter = true)
+        private async Task<bool> GetModelledRulesProductionState(ModellingFilter modellingFilter)
         {
             try
             {
@@ -53,7 +55,7 @@ namespace FWO.Services.Modelling
                 foreach (Management mgt in RelevantManagements)
                 {
                     varianceResult.UnModelledRules.Add(mgt.Id, []);
-                    List<Rule>? rulesByMgt = await GetRules(mgt.Id, modellingFilter, useNameFieldRuleOwnerPreFilter);
+                    List<Rule>? rulesByMgt = await GetRules(mgt.Id, modellingFilter);
                     if (rulesByMgt != null)
                     {
                         IdentifyModelledRules(mgt, rulesByMgt);
@@ -139,12 +141,14 @@ namespace FWO.Services.Modelling
             }
         }
 
-        private async Task<List<Rule>?> GetRules(int mgtId, ModellingFilter modellingFilter, bool useNameFieldRuleOwnerPreFilter)
+        private async Task<List<Rule>?> GetRules(int mgtId, ModellingFilter modellingFilter)
         {
-            long? relImpId = await GetRelevantImportId(mgtId);
+            RelevantImportContext importContext = await GetRelevantImportContext(mgtId);
+            long? relImpId = importContext.ImportId;
             await GetRuleDevices(mgtId, modellingFilter);
 
-            if (relImpId != null && useNameFieldRuleOwnerPreFilter && ShouldUseNameFieldRuleOwnerPreFilter(modellingFilter) && await IsRuleOwnerMappingCurrent(mgtId, relImpId.Value))
+            if (relImpId != null && ShouldUseNameFieldRuleOwnerPreFilter(modellingFilter) && await IsRuleOwnerMappingCurrent(importContext.ManagementIds)
+                && await IsRuleOwnerPreFilterCompletenessVerified(mgtId, relImpId.Value, modellingFilter))
             {
                 List<Rule>? preFilteredRules = await TryGetNameFieldRuleOwnerPrefilteredRules(mgtId, relImpId);
                 if (preFilteredRules?.Count > 0)
@@ -191,11 +195,11 @@ namespace FWO.Services.Modelling
         }
 
         /// <summary>
-        /// Uses the NameField rule_owner mapping as a prefilter only for the normal variance rule load.
-        /// AnalyseRemainingRules must inspect rules beyond the current owner's mapped modelled rules,
-        /// and RulesForDeletedConns may need historical/deleted model references that are not guaranteed
-        /// to have an active rule_owner entry. Those expanded modes therefore keep using the existing
-        /// marker-based rule loading path.
+        /// Uses the NameField rule_owner mapping as a prefilter when marker-based modelled
+        /// rule loading is sufficient. AnalyseRemainingRules must inspect rules beyond the
+        /// current owner's mapped modelled rules and therefore keeps using the full rule load.
+        /// Deleted model references can use the prefilter because removed modelling
+        /// connections stay included in the NameField rule_owner mapping.
         /// </summary>
         private bool ShouldUseNameFieldRuleOwnerPreFilter(ModellingFilter modellingFilter)
         {
@@ -203,26 +207,26 @@ namespace FWO.Services.Modelling
                 && userConfig.ModModelledMarkerLocation == MarkerLocation.Rulename
                 && owner.Id > 0
                 && !string.IsNullOrWhiteSpace(userConfig.ModModelledMarker)
-                && !modellingFilter.AnalyseRemainingRules
-                && !modellingFilter.RulesForDeletedConns;
+                && !modellingFilter.AnalyseRemainingRules;
         }
 
         /// <summary>
-        /// Checks import_control backlog for firewall-import driven rule_owner mapping lag.
-        /// Owner/model changes are expected to update rule_owner mapping promptly; without an
-        /// import_control marker there is no cheap freshness signal here.
+        /// Checks whether successful imports with pending rule_owner mapping can affect this management.
+        /// When such backlog exists, the marker query is safer than the NameField prefilter because
+        /// the mapping table may be incomplete.
         /// </summary>
-        private async Task<bool> IsRuleOwnerMappingCurrent(int mgtId, long relImpId)
+        private async Task<bool> IsRuleOwnerMappingCurrent(HashSet<int> relevantMgmIds)
         {
             try
             {
                 PendingRuleOwnerMappingImports ??= await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getPendingRuleOwnerImports) ?? [];
 
-                bool hasRelevantPendingImport = PendingRuleOwnerMappingImports.Any(import => import.ControlId <= relImpId && (!import.MgmId.HasValue || import.MgmId.Value == mgtId));
+                bool hasRelevantPendingImport = PendingRuleOwnerMappingImports.Any(import => !import.MgmId.HasValue || relevantMgmIds.Contains(import.MgmId.Value));
+
                 if (hasRelevantPendingImport)
                 {
                     Log.WriteDebug("Variance Rule Loading",
-                        $"Skipping NameField rule_owner prefilter because pending rule_owner mapping imports exist for management {mgtId} up to import {relImpId}.");
+                        $"Skipping NameField rule_owner prefilter because pending rule_owner mapping imports exist for managements {string.Join(", ", relevantMgmIds)}.");
                 }
 
                 return !hasRelevantPendingImport;
@@ -230,8 +234,78 @@ namespace FWO.Services.Modelling
             catch (Exception exception)
             {
                 Log.WriteWarning("Variance Rule Loading",
-                        $"Could not verify rule_owner mapping freshness for management {mgtId}, import {relImpId}. Falling back to marker query. {exception.Message}");
+                    $"Could not verify rule_owner mapping freshness for managements {string.Join(", ", relevantMgmIds)}. Falling back to marker query. {exception.Message}");
+                return false;
+            }
+        }
 
+        private async Task<HashSet<long>> GetNameFieldRuleOwnerConnectionIds()
+        {
+            if (NameFieldRuleOwnerConnectionIds != null)
+            {
+                return NameFieldRuleOwnerConnectionIds;
+            }
+
+            List<int> ownerIds = new() { owner.Id };
+            List<ModellingConnection> ownerConnections =
+                await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getOwnersForRuleOwnerNameFieldFilteredByOwner, new { ownerIds }) ?? [];
+
+            NameFieldRuleOwnerConnectionIds = ownerConnections
+                .Select(connection => (long)connection.Id)
+                .ToHashSet();
+
+            return NameFieldRuleOwnerConnectionIds;
+        }
+
+        private Dictionary<string, object?> BuildNameFieldRuleOwnerRuleVariables(int mgtId, long? relImpId, bool includeActive)
+        {
+            Dictionary<string, object?> ruleVariables = new()
+            {
+                ["mgmId"] = mgtId,
+                ["ownerId"] = owner.Id,
+                ["ownerMappingSourceId"] = (short)(int)OwnerMappingSourceStm.NameField,
+                ["marker"] = $"%{userConfig.ModModelledMarker}%",
+                ["import_id_start"] = relImpId,
+                ["import_id_end"] = relImpId
+            };
+
+            if (includeActive)
+            {
+                ruleVariables["active"] = true;
+            }
+
+            return ruleVariables;
+        }
+
+        private async Task<bool> IsRuleOwnerPreFilterCompletenessVerified(int mgtId, long relImpId, ModellingFilter modellingFilter)
+        {
+            if (!modellingFilter.VerifyRuleOwnerPreFilterCompleteness)
+            {
+                return true;
+            }
+
+            try
+            {
+                HashSet<long> ownerConnectionIds = await GetNameFieldRuleOwnerConnectionIds();
+                Dictionary<string, object?> ruleVariables = BuildNameFieldRuleOwnerRuleVariables(mgtId, relImpId, includeActive: false);
+
+                List<Rule> markerRules = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getNameFieldRuleOwnerPreFilterCompletenessRules, ruleVariables) ?? [];
+
+                int missingMappingCount = markerRules.Count(rule => long.TryParse(FindModelledMarker(rule), out long connectionId) && ownerConnectionIds.Contains(connectionId));
+
+                if (missingMappingCount > 0)
+                {
+                    Log.WriteDebug("Variance Rule Loading",
+                        $"Skipping NameField rule_owner prefilter because {missingMappingCount} owner marker rules have no active rule_owner mapping " +
+                        $"for owner {owner.Id}, management {mgtId}.");
+                }
+
+                return missingMappingCount == 0;
+            }
+            catch (Exception exception)
+            {
+                Log.WriteWarning("Variance Rule Loading",
+                    $"Could not verify NameField rule_owner prefilter completeness for owner {owner.Id}, management {mgtId}. Falling back to marker query. {exception.Message}");
                 return false;
             }
         }
@@ -240,18 +314,9 @@ namespace FWO.Services.Modelling
         {
             try
             {
-                var RuleVariables = new
-                {
-                    mgmId = mgtId,
-                    ownerId = owner.Id,
-                    ownerMappingSourceId = (short)(int)OwnerMappingSourceStm.NameField,
-                    active = true,  //  Used by ruleDetailsForReport fragments
-                    marker = $"%{userConfig.ModModelledMarker}%",
-                    import_id_start = relImpId,
-                    import_id_end = relImpId
-                };
+                Dictionary<string, object?> ruleVariables = BuildNameFieldRuleOwnerRuleVariables(mgtId, relImpId, includeActive: true);
 
-                return await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getModelledRulesByRuleOwnerNameField, RuleVariables);
+                return await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getModelledRulesByRuleOwnerNameField, ruleVariables) ?? [];
             }
             catch (Exception exception)
             {
@@ -355,6 +420,11 @@ namespace FWO.Services.Modelling
 
         private async Task<long?> GetRelevantImportId(int mgtId)
         {
+            return (await GetRelevantImportContext(mgtId)).ImportId;
+        }
+
+        private async Task<RelevantImportContext> GetRelevantImportContext(int mgtId)
+        {
             try
             {
                 var Variables = new
@@ -362,20 +432,33 @@ namespace FWO.Services.Modelling
                     time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                     mgmIds = mgtId
                 };
-                List<Management> managements = (await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime, Variables))!;
+
+                List<ManagementReport> managements = (await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsAtTime, Variables))!;
                 if (managements.Count == 0)
                 {
                     Log.WriteError("GetRelevantImportId", $"No management data found for management ID {mgtId}.");
-                    return null;
+                    return new(null, new HashSet<int> { mgtId });
                 }
-                // we may get multiple results if this management is a submanagement of a multi device manager
-                return managements.Select(m => m.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1).Max();
+
+                HashSet<int> managementIds = managements.Select(management => management.Id).ToHashSet();
+                foreach (ManagementReport management in managements)
+                {
+                    foreach (Management subManagement in management.SubManagements)
+                    {
+                        managementIds.Add(subManagement.Id);
+                    }
+                }
+                managementIds.Add(mgtId);
+
+                long importId = managements.Select(management => management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1).Max();
+
+                return new(importId, managementIds);
             }
             catch (Exception exception)
             {
                 Log.WriteError(userConfig.GetText("import_id"), "Get ImportIds leads to error: ", exception);
+                return new(null, new HashSet<int> { mgtId });
             }
-            return null;
         }
     }
 }

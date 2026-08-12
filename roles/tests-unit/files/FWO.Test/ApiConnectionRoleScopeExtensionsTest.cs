@@ -9,6 +9,8 @@ namespace FWO.Test
     [TestFixture]
     internal class ApiConnectionRoleScopeExtensionsTest
     {
+        private static readonly List<string> AppRulesRoles = [Roles.Admin, Roles.Modeller, Roles.Recertifier, Roles.Auditor];
+
         [Test]
         public async Task RunWithNamedRoleScopeUsesExpectedRoles()
         {
@@ -64,6 +66,24 @@ namespace FWO.Test
                 Roles.Recertifier, Roles.Auditor]);
             AssertReportRoles(ReportType.Undefined, [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller,
                 Roles.Recertifier, Roles.Admin, Roles.Auditor, Roles.FwAdmin]);
+        }
+
+        [Test]
+        public async Task RunWithBestRoleForReportUsesAppRulesRoleAndSwitchesBack()
+        {
+            TrackingApiConnection connection = new();
+            ClaimsPrincipal user = CreateUser(Roles.Modeller);
+
+            await connection.RunWithBestRoleForReport(user, ReportType.AppRules, async () =>
+            {
+                Assert.That(connection.ActiveRole, Is.EqualTo(Roles.Modeller));
+                await Task.CompletedTask;
+                return true;
+            });
+
+            Assert.That(connection.LastTargetRoles, Is.EqualTo(AppRulesRoles));
+            Assert.That(connection.ActiveRole, Is.Empty);
+            Assert.That(connection.SwitchBackCount, Is.EqualTo(1));
         }
 
         private static async Task AssertRoleScope(ClaimsPrincipal user,

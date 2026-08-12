@@ -1,4 +1,5 @@
 query getOwnersForRuleOwnerNameField {
+  # Removed connections must stay mapped so delete tasks and deleted-model rules can still be found.
   modelling_connection(
     where: {
       app_id: { _is_null: false }

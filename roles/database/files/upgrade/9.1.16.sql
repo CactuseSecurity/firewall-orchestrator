@@ -157,7 +157,7 @@ VALUES
 -- The state matrix config values are staged in two separate statements on purpose.
 -- Casting config_value to jsonb inside a query that also joins the config table would let the
 -- planner evaluate the cast before the config_key join filter, which fails on the many
--- non-json config values (for example accessTokenLifetimeUnit = 'Hours').
+-- non-json config values (for example language = 'German').
 DROP TABLE IF EXISTS pg_temp.tmp_state_matrix_value;
 CREATE TEMP TABLE tmp_state_matrix_value AS
 SELECT

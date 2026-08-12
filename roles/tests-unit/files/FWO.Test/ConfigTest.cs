@@ -366,6 +366,7 @@ namespace FWO.Test
             Assert.That(configData.ImportLogDataSleepTimeUnit, Is.EqualTo(LogDataImportIntervalUnit.Hours));
         }
 
+        [Test]
         public void ComplianceCheckSubscription_ContainsDesignatedZoneMatrix()
         {
             Assert.That(ConfigQueries.subscribeComplianceCheckConfigChanges, Does.Contain("complianceDesignatedZoneMatrix"));

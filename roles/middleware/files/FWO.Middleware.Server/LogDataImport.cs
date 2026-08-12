@@ -41,9 +41,9 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Validates external log data and converts it into database input values.
         /// </summary>
-        public static List<LogEntryInput> NormalizeEntries(IEnumerable<LogDataImportEntry> entries, int maxEntries, DateTimeOffset importTime)
+        public static List<FirewallLogEntryInput> NormalizeEntries(IEnumerable<LogDataImportEntry> entries, int maxEntries, DateTimeOffset importTime)
         {
-            List<LogEntryInput> normalizedEntries = new();
+            List<FirewallLogEntryInput> normalizedEntries = new();
             foreach (LogDataImportEntry entry in entries)
             {
                 normalizedEntries.Add(NormalizeEntry(entry, importTime));
@@ -89,13 +89,13 @@ namespace FWO.Middleware.Server
         /// must not contain the same flow twice.
         /// </summary>
         /// <returns>The entries without duplicated flows.</returns>
-        public static List<LogEntryInput> MergeDuplicateEntries(List<LogEntryInput> entries)
+        public static List<FirewallLogEntryInput> MergeDuplicateEntries(List<FirewallLogEntryInput> entries)
         {
-            Dictionary<string, LogEntryInput> mergedEntries = new();
-            foreach (LogEntryInput entry in entries)
+            Dictionary<string, FirewallLogEntryInput> mergedEntries = new();
+            foreach (FirewallLogEntryInput entry in entries)
             {
                 string flowKey = BuildFlowKey(entry);
-                if (mergedEntries.TryGetValue(flowKey, out LogEntryInput? mergedEntry))
+                if (mergedEntries.TryGetValue(flowKey, out FirewallLogEntryInput? mergedEntry))
                 {
                     MergeIntoEntry(mergedEntry, entry);
                 }
@@ -110,7 +110,7 @@ namespace FWO.Middleware.Server
         private async Task SaveEntries(List<LogDataImportEntry> sourceEntries, string sourcePath)
         {
             DateTimeOffset importTime = DateTimeOffset.UtcNow;
-            List<LogEntryInput> entries = NormalizeEntries(sourceEntries, globalConfig.ImportLogDataMaxEntries, importTime);
+            List<FirewallLogEntryInput> entries = NormalizeEntries(sourceEntries, globalConfig.ImportLogDataMaxEntries, importTime);
             int discardedEntries = Math.Max(0, sourceEntries.Count - entries.Count);
             await ResolveOwners(entries, sourceEntries);
             int entriesBeforeMerge = entries.Count;
@@ -147,10 +147,10 @@ namespace FWO.Middleware.Server
             await AddLogEntry(GlobalConst.kImportLogData, 0, LevelFile, message);
         }
 
-        private async Task ResolveOwners(List<LogEntryInput> entries, List<LogDataImportEntry> sourceEntries)
+        private async Task ResolveOwners(List<FirewallLogEntryInput> entries, List<LogDataImportEntry> sourceEntries)
         {
             Dictionary<string, int?> ownerIds = new(StringComparer.OrdinalIgnoreCase);
-            List<LogEntryInput> unresolvedEntries = new();
+            List<FirewallLogEntryInput> unresolvedEntries = new();
             for (int index = 0; index < entries.Count; index++)
             {
                 string appId = sourceEntries
@@ -222,7 +222,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private static LogEntryInput NormalizeEntry(LogDataImportEntry entry, DateTimeOffset importTime)
+        private static FirewallLogEntryInput NormalizeEntry(LogDataImportEntry entry, DateTimeOffset importTime)
         {
             if (string.IsNullOrWhiteSpace(entry.AppId) || entry.LogCount < 1)
             {
@@ -230,7 +230,7 @@ namespace FWO.Middleware.Server
             }
 
             ValidateService(entry.Protocol, entry.Port);
-            return new LogEntryInput
+            return new FirewallLogEntryInput
             {
                 LogCount = entry.LogCount,
                 Source = ToSingleIpCidr(entry.Source),
@@ -243,12 +243,12 @@ namespace FWO.Middleware.Server
             };
         }
 
-        private static string BuildFlowKey(LogEntryInput entry)
+        private static string BuildFlowKey(FirewallLogEntryInput entry)
         {
             return string.Join('|', entry.OwnerId, entry.Source, entry.Destination, entry.ServiceProtocol, entry.ServicePort);
         }
 
-        private static void MergeIntoEntry(LogEntryInput mergedEntry, LogEntryInput entry)
+        private static void MergeIntoEntry(FirewallLogEntryInput mergedEntry, FirewallLogEntryInput entry)
         {
             mergedEntry.LogCount = (int)Math.Min(int.MaxValue, (long)mergedEntry.LogCount + entry.LogCount);
             if (entry.LogTime >= mergedEntry.LogTime)

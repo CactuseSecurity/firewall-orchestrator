@@ -25,6 +25,8 @@ OUTPUT_FILE: Path = Path(__file__).with_suffix(".json")
 MANIFEST_FILE_NAME: str = ".fwo-log-import-manifest.json"
 COMMIT_MESSAGE: str = "chore: remove imported log data"
 REQUIRED_COLUMNS: set[str] = {"App ID", "Log count", "Src IP", "Dst IP", "Port"}
+OPTIONAL_COLUMNS: dict[str, str] = {"Log timestamp": "log_time", "Rule name": "rule_name"}
+PORT_PROTOCOLS: tuple[int, int] = (6, 17)
 LogDataEntry = dict[str, str | int | None]
 
 
@@ -77,10 +79,7 @@ def convert_row(row: Mapping[str, str | None]) -> LogDataEntry:
     log_count: int = int((row.get("Log count") or "").strip())
     if not app_id or not source or not destination or log_count < 1:
         raise ValueError("App ID, Log count, Src IP and Dst IP must be present")
-    protocol: int | None = parse_optional_int(row.get("Protocol") or "")
-    port: int | None = parse_optional_int(row.get("Port") or "")
-    if port is not None and protocol not in (6, 17):
-        raise ValueError("Port is only valid with Protocol 6 or 17")
+    protocol, port = parse_service(row)
     result: LogDataEntry = {
         "app_id": app_id,
         "log_count": log_count,
@@ -90,12 +89,25 @@ def convert_row(row: Mapping[str, str | None]) -> LogDataEntry:
         "port": port,
         "action": (row.get("Action") or "accept").strip() or "accept",
     }
-    optional_columns: dict[str, str] = {"Log timestamp": "log_time", "Rule name": "rule_name"}
-    for csv_column, json_column in optional_columns.items():
+    add_optional_columns(result, row)
+    return result
+
+
+def parse_service(row: Mapping[str, str | None]) -> tuple[int | None, int | None]:
+    """Read protocol and port of the logged flow, a port is only accepted for TCP and UDP."""
+    protocol: int | None = parse_optional_int(row.get("Protocol") or "")
+    port: int | None = parse_optional_int(row.get("Port") or "")
+    if port is not None and protocol not in PORT_PROTOCOLS:
+        raise ValueError(f"Port is only valid with Protocol {' or '.join(str(p) for p in PORT_PROTOCOLS)}")
+    return protocol, port
+
+
+def add_optional_columns(result: LogDataEntry, row: Mapping[str, str | None]) -> None:
+    """Copy the columns which may be missing in the source file into the converted entry."""
+    for csv_column, json_column in OPTIONAL_COLUMNS.items():
         value: str = (row.get(csv_column) or "").strip()
         if value:
             result[json_column] = value
-    return result
 
 
 def write_import_file(entries: list[LogDataEntry], csv_files: list[Path], repository_directory: Path) -> None:

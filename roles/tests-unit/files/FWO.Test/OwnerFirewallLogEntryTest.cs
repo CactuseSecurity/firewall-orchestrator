@@ -4,12 +4,12 @@ using NUnit.Framework;
 namespace FWO.Test
 {
     [TestFixture]
-    internal class OwnerLogEntryTest
+    internal class OwnerFirewallLogEntryTest
     {
         [Test]
         public void SourceAndDestinationDisplay_RemoveSingleHostMask()
         {
-            OwnerLogEntry entry = new() { Source = "192.0.2.10/32", Destination = "2001:db8::1/128" };
+            OwnerFirewallLogEntry entry = new() { Source = "192.0.2.10/32", Destination = "2001:db8::1/128" };
 
             Assert.Multiple(() =>
             {
@@ -21,7 +21,7 @@ namespace FWO.Test
         [Test]
         public void SourceDisplay_KeepsAddressWithoutMask()
         {
-            OwnerLogEntry entry = new() { Source = "192.0.2.10" };
+            OwnerFirewallLogEntry entry = new() { Source = "192.0.2.10" };
 
             Assert.That(entry.SourceDisplay, Is.EqualTo("192.0.2.10"));
         }
@@ -29,7 +29,7 @@ namespace FWO.Test
         [Test]
         public void SourceDisplay_KeepsNetworkMask()
         {
-            OwnerLogEntry entry = new() { Source = "192.0.2.0/24" };
+            OwnerFirewallLogEntry entry = new() { Source = "192.0.2.0/24" };
 
             Assert.That(entry.SourceDisplay, Is.EqualTo("192.0.2.0/24"));
         }
@@ -37,7 +37,7 @@ namespace FWO.Test
         [Test]
         public void ServiceDisplay_UsesProtocolNameAndPort()
         {
-            OwnerLogEntry entry = new()
+            OwnerFirewallLogEntry entry = new()
             {
                 ServiceProtocol = 6,
                 ServicePort = 443,
@@ -50,7 +50,7 @@ namespace FWO.Test
         [Test]
         public void ServiceDisplay_FallsBackToProtocolNumber()
         {
-            OwnerLogEntry entry = new() { ServiceProtocol = 6, ServicePort = 443 };
+            OwnerFirewallLogEntry entry = new() { ServiceProtocol = 6, ServicePort = 443 };
 
             Assert.That(entry.ServiceDisplay, Is.EqualTo("6/443"));
         }
@@ -58,7 +58,7 @@ namespace FWO.Test
         [Test]
         public void ServiceDisplay_OmitsMissingPort()
         {
-            OwnerLogEntry entry = new()
+            OwnerFirewallLogEntry entry = new()
             {
                 ServiceProtocol = 1,
                 Protocol = new NetworkProtocol { Id = 1, Name = "icmp" }
@@ -70,7 +70,7 @@ namespace FWO.Test
         [Test]
         public void ServiceDisplay_IsEmptyWithoutProtocolAndPort()
         {
-            OwnerLogEntry entry = new();
+            OwnerFirewallLogEntry entry = new();
 
             Assert.That(entry.ServiceDisplay, Is.Empty);
         }
@@ -78,7 +78,7 @@ namespace FWO.Test
         [Test]
         public void ServiceDisplay_ShowsPortWithoutProtocol()
         {
-            OwnerLogEntry entry = new() { ServicePort = 443 };
+            OwnerFirewallLogEntry entry = new() { ServicePort = 443 };
 
             Assert.That(entry.ServiceDisplay, Is.EqualTo("443"));
         }
@@ -86,15 +86,15 @@ namespace FWO.Test
         [Test]
         public void ServiceSortKey_GroupsEntriesByProtocolThenPort()
         {
-            OwnerLogEntry unknownService = new();
-            OwnerLogEntry tcpLowPort = new() { ServiceProtocol = 6, ServicePort = 80 };
-            OwnerLogEntry tcpHighPort = new() { ServiceProtocol = 6, ServicePort = 8080 };
-            OwnerLogEntry udpPort = new() { ServiceProtocol = 17, ServicePort = 53 };
-            List<OwnerLogEntry> entries = [udpPort, tcpHighPort, unknownService, tcpLowPort];
+            OwnerFirewallLogEntry unknownService = new();
+            OwnerFirewallLogEntry tcpLowPort = new() { ServiceProtocol = 6, ServicePort = 80 };
+            OwnerFirewallLogEntry tcpHighPort = new() { ServiceProtocol = 6, ServicePort = 8080 };
+            OwnerFirewallLogEntry udpPort = new() { ServiceProtocol = 17, ServicePort = 53 };
+            List<OwnerFirewallLogEntry> entries = [udpPort, tcpHighPort, unknownService, tcpLowPort];
 
-            List<OwnerLogEntry> sorted = entries.OrderBy(entry => entry.ServiceSortKey).ToList();
+            List<OwnerFirewallLogEntry> sorted = entries.OrderBy(entry => entry.ServiceSortKey).ToList();
 
-            List<OwnerLogEntry> expected = [unknownService, tcpLowPort, tcpHighPort, udpPort];
+            List<OwnerFirewallLogEntry> expected = [unknownService, tcpLowPort, tcpHighPort, udpPort];
             Assert.That(sorted, Is.EqualTo(expected));
         }
     }

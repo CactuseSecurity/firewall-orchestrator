@@ -2,10 +2,12 @@ import logging
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import git
 import pytest
 
 from scripts.customizing.fwo_custom_lib.git_helpers import (
     cleanup_repo_target_dir,
+    commit_and_push_deletions,
     parse_git_depth_arg,
     read_file_from_git_repo,
     split_repo_url_credentials,
@@ -205,3 +207,72 @@ def test_cleanup_repo_target_dir_removes_existing_directory() -> None:
         cleanup_repo_target_dir(REPO_TARGET_DIR)
 
     rmtree_mock.assert_called_once_with(repo_path_mock)
+
+
+LOGGER: logging.Logger = logging.getLogger("test_git_helpers")
+COMMIT_MESSAGE: str = "chore: remove imported log data"
+
+
+def create_clone_with_origin(tmp_path: Path) -> tuple[Path, git.Repo, git.Repo]:
+    """Build a bare origin with one committed CSV file and a clone working on it."""
+    origin_path: Path = tmp_path / "origin.git"
+    origin: git.Repo = git.Repo.init(origin_path, bare=True, initial_branch="main")
+    seed_path: Path = tmp_path / "seed"
+    seed: git.Repo = git.Repo.clone_from(str(origin_path), str(seed_path))
+    configure_identity(seed)
+    (seed_path / "logs.csv").write_text("App ID,Log count\nAPP-1,1\n", encoding="utf-8")
+    seed.git.add("logs.csv")
+    seed.index.commit("chore: add sample log data csv files")
+    seed.git.push("origin", "HEAD:refs/heads/main")
+
+    clone_path: Path = tmp_path / "clone"
+    clone: git.Repo = git.Repo.clone_from(str(origin_path), str(clone_path), branch="main")
+    configure_identity(clone)
+    return clone_path, clone, origin
+
+
+def configure_identity(repo: git.Repo) -> None:
+    with repo.config_writer() as config:
+        config.set_value("user", "name", "FWO Test")
+        config.set_value("user", "email", "test@local")
+
+
+def test_commit_and_push_deletions_removes_the_file_from_origin(tmp_path: Path) -> None:
+    clone_path, clone, origin = create_clone_with_origin(tmp_path)
+
+    pushed: bool = commit_and_push_deletions(str(clone_path), [clone_path / "logs.csv"], COMMIT_MESSAGE, LOGGER)
+
+    assert pushed
+    assert not (clone_path / "logs.csv").exists()
+    assert clone.head.commit.message.strip() == COMMIT_MESSAGE
+    assert "logs.csv" not in origin.head.commit.tree
+
+
+def test_commit_and_push_deletions_without_changes_creates_no_commit(tmp_path: Path) -> None:
+    clone_path, clone, _ = create_clone_with_origin(tmp_path)
+    commit_before: str = clone.head.commit.hexsha
+
+    pushed: bool = commit_and_push_deletions(str(clone_path), [], COMMIT_MESSAGE, LOGGER)
+
+    assert pushed
+    assert clone.head.commit.hexsha == commit_before
+
+
+def test_commit_and_push_deletions_reports_a_file_outside_the_repository(tmp_path: Path) -> None:
+    clone_path, _, _ = create_clone_with_origin(tmp_path)
+    outside_file: Path = tmp_path / "outside.csv"
+    outside_file.write_text("App ID,Log count\n", encoding="utf-8")
+
+    pushed: bool = commit_and_push_deletions(str(clone_path), [outside_file], COMMIT_MESSAGE, LOGGER)
+
+    assert not pushed
+    assert outside_file.exists()
+
+
+def test_commit_and_push_deletions_reports_a_failing_push(tmp_path: Path) -> None:
+    clone_path, clone, _ = create_clone_with_origin(tmp_path)
+    clone.delete_remote(clone.remote("origin"))
+
+    pushed: bool = commit_and_push_deletions(str(clone_path), [clone_path / "logs.csv"], COMMIT_MESSAGE, LOGGER)
+
+    assert not pushed

@@ -19,7 +19,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(GetPrivateField<List<OwnerLogEntry>>(component, "logEntries"), Has.Count.EqualTo(1));
+                Assert.That(GetPrivateField<List<OwnerFirewallLogEntry>>(component, "logEntries"), Has.Count.EqualTo(1));
                 Assert.That(apiConnection.QueryCount, Is.EqualTo(1));
                 Assert.That(apiConnection.LastOwnerId, Is.EqualTo(7));
                 Assert.That(GetPrivateField<bool>(component, "isLoading"), Is.False);
@@ -65,7 +65,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(GetPrivateField<List<OwnerLogEntry>>(component, "logEntries"), Is.Empty);
+                Assert.That(GetPrivateField<List<OwnerFirewallLogEntry>>(component, "logEntries"), Is.Empty);
                 Assert.That(GetPrivateField<bool>(component, "isLoading"), Is.False);
             });
         }
@@ -116,7 +116,7 @@ namespace FWO.Test
                     throw new InvalidOperationException("query failed");
                 }
 
-                List<OwnerLogEntry> entries = [new() { LogCount = 42, Source = "192.0.2.1/32", Destination = "198.51.100.1/32" }];
+                List<OwnerFirewallLogEntry> entries = [new() { LogCount = 42, Source = "192.0.2.1/32", Destination = "198.51.100.1/32" }];
                 return Task.FromResult((QueryResponseType)(object)entries);
             }
         }

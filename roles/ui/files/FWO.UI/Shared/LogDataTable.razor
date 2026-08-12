@@ -14,26 +14,26 @@ else
 {
     <div class="logdatatable-responsive">
         <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header"
-               TableItem="OwnerLogEntry" Items="logEntries" PageSize="kPageSize" ColumnReorder="true">
-            <Column TableItem="OwnerLogEntry" Title="@(userConfig.GetText("source"))" Field="@(x => x.SourceDisplay)" Sortable="true" Filterable="true" />
-            <Column TableItem="OwnerLogEntry" Title="@(userConfig.GetText("service"))" Field="@(x => x.ServiceSortKey)" Sortable="true" Filterable="false">
+               TableItem="OwnerFirewallLogEntry" Items="logEntries" PageSize="kPageSize" ColumnReorder="true">
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("source"))" Field="@(x => x.SourceDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("service"))" Field="@(x => x.ServiceSortKey)" Sortable="true" Filterable="false">
                 <Template>
                     @context.ServiceDisplay
                 </Template>
             </Column>
-            <Column TableItem="OwnerLogEntry" Title="@(userConfig.GetText("destination"))" Field="@(x => x.DestinationDisplay)" Sortable="true" Filterable="true" />
-            <Column TableItem="OwnerLogEntry" Title="@(userConfig.GetText("action"))" Field="@(x => x.Allowed)" Sortable="true" Filterable="false">
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("destination"))" Field="@(x => x.DestinationDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("action"))" Field="@(x => x.Allowed)" Sortable="true" Filterable="false">
                 <Template>
                     @(userConfig.GetText(context.Allowed ? "allowed" : "denied"))
                 </Template>
             </Column>
-            <Column TableItem="OwnerLogEntry" Title="@(userConfig.GetText("log_count"))" Field="@(x => x.LogCount)" Sortable="true" Filterable="true" DefaultSortColumn="true" DefaultSortDescending="true" />
-            <Column TableItem="OwnerLogEntry" Title="@(userConfig.GetText("log_time"))" Field="@(x => x.LogTime)" Sortable="true" Filterable="false">
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("log_count"))" Field="@(x => x.LogCount)" Sortable="true" Filterable="true" DefaultSortColumn="true" DefaultSortDescending="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("log_time"))" Field="@(x => x.LogTime)" Sortable="true" Filterable="false">
                 <Template>
                     @context.LogTime.ToLocalTime().ToString(kLogTimeFormat)
                 </Template>
             </Column>
-            <Column TableItem="OwnerLogEntry" Title="@(userConfig.GetText("rule_name"))" Field="@(x => x.LoggingRuleName)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("rule_name"))" Field="@(x => x.LoggingRuleName)" Sortable="true" Filterable="true" />
             <Pager ShowPageNumber="true" ShowTotalCount="true" />
         </Table>
     </div>
@@ -55,7 +55,7 @@ else
     [Parameter]
     public int OwnerId { get; set; }
 
-    private List<OwnerLogEntry> logEntries = [];
+    private List<OwnerFirewallLogEntry> logEntries = [];
     private bool isLoading = true;
     private int? loadedOwnerId;
 
@@ -73,7 +73,7 @@ else
         try
         {
             isLoading = true;
-            logEntries = await apiConnection.SendQueryAsync<List<OwnerLogEntry>>(LogDataQueries.getUnmodelledLogEntriesByOwner, new { ownerId = OwnerId });
+            logEntries = await apiConnection.SendQueryAsync<List<OwnerFirewallLogEntry>>(LogDataQueries.getUnmodelledLogEntriesByOwner, new { ownerId = OwnerId });
             loadedOwnerId = OwnerId;
         }
         catch (Exception exception)

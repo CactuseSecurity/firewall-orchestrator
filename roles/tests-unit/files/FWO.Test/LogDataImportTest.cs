@@ -33,7 +33,7 @@ namespace FWO.Test
                 }
             };
 
-            List<LogEntryInput> normalized = LogDataImport.NormalizeEntries(entries, 1, ImportTime);
+            List<FirewallLogEntryInput> normalized = LogDataImport.NormalizeEntries(entries, 1, ImportTime);
 
             Assert.That(normalized, Has.Count.EqualTo(1));
             Assert.Multiple(() =>
@@ -48,7 +48,7 @@ namespace FWO.Test
         [Test]
         public void MergeDuplicateEntries_MergesSameFlowOfSameOwner()
         {
-            List<LogEntryInput> entries = new()
+            List<FirewallLogEntryInput> entries = new()
             {
                 BuildEntry(1, 3, 6, 443, ImportTime),
                 BuildEntry(1, 4, 6, 443, ImportTime.AddMinutes(1)),
@@ -57,9 +57,9 @@ namespace FWO.Test
             entries[1].Allowed = false;
             entries[1].LoggingRuleName = "later rule";
 
-            List<LogEntryInput> merged = LogDataImport.MergeDuplicateEntries(entries);
+            List<FirewallLogEntryInput> merged = LogDataImport.MergeDuplicateEntries(entries);
 
-            LogEntryInput mergedEntry = merged.Single(entry => entry.OwnerId == 1);
+            FirewallLogEntryInput mergedEntry = merged.Single(entry => entry.OwnerId == 1);
             Assert.That(merged, Has.Count.EqualTo(2));
             Assert.Multiple(() =>
             {
@@ -74,14 +74,14 @@ namespace FWO.Test
         [Test]
         public void MergeDuplicateEntries_MergesFlowsWithoutService()
         {
-            List<LogEntryInput> entries = new()
+            List<FirewallLogEntryInput> entries = new()
             {
                 BuildEntry(1, 1, null, null, ImportTime),
                 BuildEntry(1, 2, null, null, ImportTime),
                 BuildEntry(1, 4, 1, null, ImportTime)
             };
 
-            List<LogEntryInput> merged = LogDataImport.MergeDuplicateEntries(entries);
+            List<FirewallLogEntryInput> merged = LogDataImport.MergeDuplicateEntries(entries);
 
             Assert.That(merged, Has.Count.EqualTo(2));
             Assert.Multiple(() =>
@@ -94,7 +94,7 @@ namespace FWO.Test
         [Test]
         public void MergeDuplicateEntries_KeepsFlowsDifferingInASingleKeyField()
         {
-            List<LogEntryInput> entries = new()
+            List<FirewallLogEntryInput> entries = new()
             {
                 BuildEntry(1, 1, 6, 443, ImportTime),
                 BuildEntry(1, 1, 6, 80, ImportTime),
@@ -104,7 +104,7 @@ namespace FWO.Test
             };
             entries[4].Destination = "192.0.2.9/32";
 
-            List<LogEntryInput> merged = LogDataImport.MergeDuplicateEntries(entries);
+            List<FirewallLogEntryInput> merged = LogDataImport.MergeDuplicateEntries(entries);
 
             Assert.That(merged, Has.Count.EqualTo(5));
         }
@@ -112,13 +112,13 @@ namespace FWO.Test
         [Test]
         public void MergeDuplicateEntries_KeepsLogCountWithinIntegerRange()
         {
-            List<LogEntryInput> entries = new()
+            List<FirewallLogEntryInput> entries = new()
             {
                 BuildEntry(1, int.MaxValue, 6, 443, ImportTime),
                 BuildEntry(1, 1, 6, 443, ImportTime)
             };
 
-            List<LogEntryInput> merged = LogDataImport.MergeDuplicateEntries(entries);
+            List<FirewallLogEntryInput> merged = LogDataImport.MergeDuplicateEntries(entries);
 
             Assert.That(merged, Has.Count.EqualTo(1));
             Assert.That(merged.Single().LogCount, Is.EqualTo(int.MaxValue));
@@ -127,12 +127,12 @@ namespace FWO.Test
         [Test]
         public void MergeDuplicateEntries_ReturnsEmptyListForNoEntries()
         {
-            Assert.That(LogDataImport.MergeDuplicateEntries(new List<LogEntryInput>()), Is.Empty);
+            Assert.That(LogDataImport.MergeDuplicateEntries(new List<FirewallLogEntryInput>()), Is.Empty);
         }
 
-        private static LogEntryInput BuildEntry(int ownerId, int logCount, int? protocol, int? port, DateTimeOffset logTime)
+        private static FirewallLogEntryInput BuildEntry(int ownerId, int logCount, int? protocol, int? port, DateTimeOffset logTime)
         {
-            return new LogEntryInput
+            return new FirewallLogEntryInput
             {
                 OwnerId = ownerId,
                 LogCount = logCount,

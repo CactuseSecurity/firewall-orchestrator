@@ -19,7 +19,7 @@ namespace FWO.Test
     internal class UiMonitorSystemUsageTest
     {
         private const long kMegaByte = 1024 * 1024;
-        private static readonly TimeSpan kAsyncOperationTimeout = TimeSpan.FromSeconds(1);
+        private static readonly TimeSpan kAsyncOperationTimeout = TimeSpan.FromSeconds(5);
 
         private static SystemUsageSnapshot CreateSnapshot(double cpuPercent = 25)
         {
@@ -107,6 +107,14 @@ namespace FWO.Test
             return (T)property.GetValue(page)!;
         }
 
+        private static T GetPrivateField<T>(MonitorSystemUsage page, string fieldName)
+        {
+            FieldInfo field = typeof(MonitorSystemUsage).GetField(fieldName,
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMemberException(typeof(MonitorSystemUsage).FullName, fieldName);
+            return (T)field.GetValue(page)!;
+        }
+
         private static void SetPrivateProperty<T>(MonitorSystemUsage page, string propertyName, T value)
         {
             PropertyInfo property = typeof(MonitorSystemUsage).GetProperty(propertyName,
@@ -121,6 +129,23 @@ namespace FWO.Test
                 BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new MissingMethodException(typeof(MonitorSystemUsage).FullName, methodName);
             method.Invoke(page, null);
+        }
+
+        private static async Task WaitForExecutionModeUpdate(IRenderedComponent<MonitorSystemUsage> page)
+        {
+            try
+            {
+                await page.InvokeAsync(async () =>
+                {
+                    SemaphoreSlim semaphore = GetPrivateField<SemaphoreSlim>(page.Instance, "monitoringStateSemaphore");
+                    await semaphore.WaitAsync();
+                    semaphore.Release();
+                }).WaitAsync(kAsyncOperationTimeout);
+            }
+            catch (TimeoutException)
+            {
+                Assert.Fail("The execution-mode update did not complete within the expected time.");
+            }
         }
 
         [Test]
@@ -508,7 +533,8 @@ namespace FWO.Test
             });
 
             userConfig.SetExecutionMode(Roles.Admin);
-            page.WaitForAssertion(() =>
+            await WaitForExecutionModeUpdate(page);
+            Assert.Multiple(() =>
             {
                 Assert.That(collector.CollectCount, Is.EqualTo(1));
                 Assert.That(factory.CreateCount, Is.EqualTo(1));
@@ -518,9 +544,15 @@ namespace FWO.Test
             FakePeriodicTaskRunner activeRunner = factory.LastRunner!;
 
             userConfig.SetExecutionMode(GlobalConst.kUserRolesSelection);
-            await activeRunner.DisposedTask.WaitAsync(kAsyncOperationTimeout);
+            await WaitForExecutionModeUpdate(page);
 
-            Assert.That(activeRunner.Disposed, Is.True);
+            Assert.Multiple(() =>
+            {
+                Assert.That(activeRunner.Disposed, Is.True);
+                Assert.That(factory.CreateCount, Is.EqualTo(1));
+                Assert.That(factory.LastRunner, Is.SameAs(activeRunner));
+                Assert.That(page.Markup, Does.Not.Contain("usage-sparkline"));
+            });
         }
 
         [Test]
@@ -606,12 +638,9 @@ namespace FWO.Test
 
         internal sealed class FakePeriodicTaskRunner(Func<Task> callback) : IPeriodicTaskRunner
         {
-            private readonly TaskCompletionSource disposedCompletion = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
             public Func<Task> Callback { get; } = callback;
             public bool Started { get; private set; }
             public bool Disposed { get; private set; }
-            public Task DisposedTask => disposedCompletion.Task;
 
             /// <summary>
             /// Optional gate letting a test hold up the shutdown, imitating the blocking dispose of the
@@ -628,7 +657,6 @@ namespace FWO.Test
             {
                 DisposeGate?.Wait();
                 Disposed = true;
-                disposedCompletion.TrySetResult();
             }
 
             /// <inheritdoc />

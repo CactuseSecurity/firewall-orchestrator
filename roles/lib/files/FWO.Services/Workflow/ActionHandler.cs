@@ -31,6 +31,7 @@ namespace FWO.Services.Workflow
         private static readonly Dictionary<string, DateTime> MiddlewareDelegations = [];
         private static readonly TimeSpan MiddlewareDelegationDeduplicationWindow = TimeSpan.FromSeconds(5);
         public WorkflowEmailBundleCollector? EmailBundleCollector { get; set; }
+        private List<WfReqTask>? RequestTaskEmailBundle { get; set; }
 
 
         public ActionHandler(ApiConnection apiConnection, WfHandler wfHandler, List<UserGroup>? userGroups = null, bool useInMwServer = false,
@@ -112,15 +113,17 @@ namespace FWO.Services.Workflow
             collector.IsFlushing = true;
             try
             {
-                foreach (WorkflowEmailBundleItem item in collector.PendingItems
-                    .GroupBy(item => item.BundleKey)
-                    .Select(group => group.OrderBy(item => item.RequestTask.TaskNumber).First()))
+                foreach (IGrouping<string, WorkflowEmailBundleItem> group in collector.PendingItems.GroupBy(item => item.BundleKey))
                 {
+                    WorkflowEmailBundleItem item = group.OrderBy(item => item.RequestTask.TaskNumber).First();
+                    RequestTaskEmailBundle = group.Select(item => item.RequestTask).OrderBy(task => task.TaskNumber).ToList();
                     await SendEmail(item.Action, item.RequestTask, WfObjectScopes.RequestTask, item.Owner, item.UserGrpDn);
+                    RequestTaskEmailBundle = null;
                 }
             }
             finally
             {
+                RequestTaskEmailBundle = null;
                 collector.PendingItems.Clear();
                 collector.IsFlushing = false;
             }

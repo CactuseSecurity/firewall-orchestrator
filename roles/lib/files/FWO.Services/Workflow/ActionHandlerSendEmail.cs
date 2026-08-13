@@ -144,6 +144,10 @@ namespace FWO.Services.Workflow
             {
                 return [reqTask];
             }
+            if (RequestTaskEmailBundle != null)
+            {
+                return RequestTaskEmailBundle.ToList();
+            }
 
             WfTicket fullTicket = await GetTicketForEmailContent(new WfTicket { Id = reqTask.TicketId });
             List<WfReqTask> bundledTasks = [.. fullTicket.Tasks

@@ -229,6 +229,13 @@ namespace FWO.Test
                 ?? throw new MissingMethodException(typeof(ActionHandler).FullName, name);
         }
 
+        private static void SetPrivateProperty<TValue>(object instance, string name, TValue value)
+        {
+            PropertyInfo property = instance.GetType().GetProperty(name, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMemberException(instance.GetType().FullName, name);
+            property.SetValue(instance, value);
+        }
+
         private static MethodInfo GetPrivateStaticMethod(string name)
         {
             return typeof(ActionHandler).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Static)
@@ -484,6 +491,50 @@ namespace FWO.Test
             WorkflowEmailContent? content = await task;
 
             Assert.That(content?.PlainText, Does.Contain("5 | Request scope task |"));
+        }
+
+        [Test]
+        public async Task CreateWorkflowEmailContent_UsesCollectedRequestTaskBundle()
+        {
+            WfReqTask firstTask = CreateEligibleRequestTask(12, title: "First bundled task");
+            firstTask.Id = 11;
+            firstTask.TicketId = 7;
+            firstTask.TaskNumber = 1;
+            firstTask.StateId = 60;
+            WfReqTask secondTask = CreateEligibleRequestTask(13, title: "Second bundled task");
+            secondTask.Id = 12;
+            secondTask.TicketId = 7;
+            secondTask.TaskNumber = 2;
+            secondTask.StateId = 60;
+            ActionHandlerTestApiConn apiConn = new()
+            {
+                FullTicket = CreateTicket(firstTask)
+            };
+            apiConn.FullTicket.Id = 7;
+            ActionHandler handler = new(apiConn, new WfHandler { userConfig = new SimulatedUserConfig() });
+            List<WfReqTask> bundledTasks = new();
+            bundledTasks.Add(firstTask);
+            bundledTasks.Add(secondTask);
+            SetPrivateProperty(handler, "RequestTaskEmailBundle", bundledTasks);
+            EmailActionParams actionParams = new()
+            {
+                AttachedContent = EmailAttachedContent.RequestedConnections,
+                RequestTaskBundleMode = EmailRequestTaskBundleMode.SameTaskType
+            };
+            object?[] arguments = new object?[3];
+            arguments[0] = actionParams;
+            arguments[1] = firstTask;
+            arguments[2] = WfObjectScopes.RequestTask;
+
+            Task<WorkflowEmailContent?> task = (Task<WorkflowEmailContent?>)GetPrivateMethod("CreateWorkflowEmailContent").Invoke(handler, arguments)!;
+            WorkflowEmailContent? content = await task;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(content?.PlainText, Does.Contain("1 | First bundled task |"));
+                Assert.That(content?.PlainText, Does.Contain("2 | Second bundled task |"));
+                Assert.That(apiConn.Queries, Has.No.Member(RequestQueries.getTicketById));
+            });
         }
 
         [Test]

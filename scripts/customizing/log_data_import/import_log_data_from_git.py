@@ -58,6 +58,19 @@ def convert_csv_file(csv_file: Path, repository_directory: Path, logger: logging
     return converted
 
 
+def convert_csv_file_or_log_error(
+    csv_file: Path,
+    repository_directory: Path,
+    logger: logging.Logger,
+) -> list[LogDataEntry] | None:
+    """Convert one file, an unusable file is reported and skipped so the other files still import."""
+    try:
+        return convert_csv_file(csv_file, repository_directory, logger)
+    except (OSError, UnicodeDecodeError, ValueError) as exception:
+        logger.warning("ignoring %s: %s", csv_file.relative_to(repository_directory), exception)
+        return None
+
+
 def convert_row_or_log_error(
     row: Mapping[str, str | None],
     csv_file: Path,
@@ -130,10 +143,15 @@ def import_data(config_file: str, depth: int | None, logger: logging.Logger) -> 
         return 1
     csv_files: list[Path] = sorted(repository_directory.rglob(CSV_PATTERN))
     entries: list[LogDataEntry] = []
+    converted_files: list[Path] = []
     for csv_file in csv_files:
-        entries.extend(convert_csv_file(csv_file, repository_directory, logger))
-    write_import_file(entries, csv_files, repository_directory)
-    logger.info("converted %s CSV files into %s log entries", len(csv_files), len(entries))
+        file_entries: list[LogDataEntry] | None = convert_csv_file_or_log_error(csv_file, repository_directory, logger)
+        if file_entries is None:
+            continue
+        entries.extend(file_entries)
+        converted_files.append(csv_file)
+    write_import_file(entries, converted_files, repository_directory)
+    logger.info("converted %s CSV files into %s log entries", len(converted_files), len(entries))
     return 0
 
 

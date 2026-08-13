@@ -41,6 +41,21 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Run_KeepsDeletingExpiredEntriesAfterAnInvalidSource()
+        {
+            LogDataImportTestApiConn apiConnection = new();
+            LogDataImport import = CreateImport(apiConnection, importPath: """["/etc/passwd"]""");
+
+            List<string> failedImports = await import.Run();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(failedImports, Has.Count.EqualTo(1), "the rejected source is reported");
+                Assert.That(apiConnection.DeleteExpiredCalls, Is.EqualTo(1), "retention still runs");
+            });
+        }
+
+        [Test]
         public async Task Run_ClampsNegativeRetentionToTheCurrentTime()
         {
             LogDataImportTestApiConn apiConnection = new();
@@ -111,6 +126,48 @@ namespace FWO.Test
             {
                 Assert.That(apiConnection.InsertedEntries, Has.Count.EqualTo(1));
                 Assert.That(apiConnection.InsertedEntries.Single().OwnerId, Is.EqualTo(11));
+            });
+        }
+
+        [Test]
+        public async Task SaveEntries_ImportsTheValidEntriesBesideAnInvalidOne()
+        {
+            LogDataImportTestApiConn apiConnection = new();
+            apiConnection.OwnerIdsByAppId["APP-1"] = 11;
+            LogDataImport import = CreateImport(apiConnection);
+            LogDataImportEntry invalidEntry = NewSourceEntry("APP-1", 40, "no address", "198.51.100.2");
+            List<LogDataImportEntry> sourceEntries = [NewSourceEntry("APP-1", 30, "192.0.2.1", "198.51.100.1"), invalidEntry];
+
+            await InvokeSaveEntries(import, sourceEntries);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.InsertedEntries, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.InsertedEntries.Single().LogCount, Is.EqualTo(30));
+                Assert.That(apiConnection.CompletedImports, Is.EqualTo(new List<bool> { true }), "the source stays importable");
+            });
+        }
+
+        [Test]
+        public async Task SaveEntries_AssignsTheOwnerOfEachEntryAfterSkippingAnInvalidOne()
+        {
+            LogDataImportTestApiConn apiConnection = new();
+            apiConnection.OwnerIdsByAppId["APP-1"] = 11;
+            apiConnection.OwnerIdsByAppId["APP-2"] = 22;
+            LogDataImport import = CreateImport(apiConnection);
+            List<LogDataImportEntry> sourceEntries =
+            [
+                NewSourceEntry("APP-1", 90, "no address", "198.51.100.1"),
+                NewSourceEntry("APP-2", 50, "192.0.2.2", "198.51.100.2"),
+                NewSourceEntry("APP-1", 10, "192.0.2.3", "198.51.100.3")
+            ];
+
+            await InvokeSaveEntries(import, sourceEntries);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.InsertedEntries.Single(entry => entry.LogCount == 50).OwnerId, Is.EqualTo(22));
+                Assert.That(apiConnection.InsertedEntries.Single(entry => entry.LogCount == 10).OwnerId, Is.EqualTo(11));
             });
         }
 

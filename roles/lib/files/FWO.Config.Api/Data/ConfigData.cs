@@ -335,7 +335,7 @@ namespace FWO.Config.Api.Data
         public string ImportLogDataScriptArgs { get; set; } = "";
 
         [JsonProperty("importLogDataSleepTime"), JsonPropertyName("importLogDataSleepTime")]
-        public int ImportLogDataSleepTime { get; set; } = 24;
+        public int ImportLogDataSleepTime { get; set; } = 0;
 
         [JsonProperty("importLogDataSleepTimeUnit"), JsonPropertyName("importLogDataSleepTimeUnit")]
         public LogDataImportIntervalUnit ImportLogDataSleepTimeUnit { get; set; } = LogDataImportIntervalUnit.Hours;

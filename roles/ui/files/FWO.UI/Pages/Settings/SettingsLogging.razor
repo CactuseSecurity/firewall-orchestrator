@@ -149,20 +149,22 @@ else
         }
     }
 
+    /// <summary>
+    /// Builds the paths to be saved and validates them before the displayed list is changed,
+    /// so a rejected path leaves the page in the state the user can correct.
+    /// </summary>
     private void PrepareConfigData()
     {
-        foreach (string path in pathsToDelete)
-        {
-            logDataPaths.Remove(path);
-        }
-        foreach (string path in pathsToAdd)
-        {
-            logDataPaths.Add(ImportPathPolicy.RemoveAllowedExtension(path));
-        }
-        foreach (string path in logDataPaths)
+        List<string> preparedPaths = logDataPaths.Where(path => !pathsToDelete.Contains(path))
+            .Concat(pathsToAdd.Select(ImportPathPolicy.RemoveAllowedExtension))
+            .Distinct()
+            .ToList();
+        foreach (string path in preparedPaths)
         {
             ImportPathPolicy.ValidateImportSourceShape(path, ConfigFile.AllowedCustomizationRoots);
         }
+
+        logDataPaths = preparedPaths;
         configData!.ImportLogDataPath = JsonSerializer.Serialize(logDataPaths);
         configData.ImportLogDataMaxEntries = Math.Max(kMinLogDataMaxEntries, configData.ImportLogDataMaxEntries);
     }

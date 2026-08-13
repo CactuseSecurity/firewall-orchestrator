@@ -40,18 +40,38 @@ namespace FWO.Middleware.Server
 
         /// <summary>
         /// Validates external log data and converts it into database input values.
+        /// Entries which cannot be converted are skipped, see <see cref="NormalizeValidEntries"/>.
         /// </summary>
         public static List<FirewallLogEntryInput> NormalizeEntries(IEnumerable<LogDataImportEntry> entries, int maxEntries, DateTimeOffset importTime)
         {
-            List<FirewallLogEntryInput> normalizedEntries = new();
+            return NormalizeValidEntries(entries, maxEntries, importTime).Select(entry => entry.Entry).ToList();
+        }
+
+        /// <summary>
+        /// Converts the external log data and keeps the application id of every entry.
+        /// An entry which cannot be converted is logged and skipped instead of failing the whole
+        /// source file: the file is acknowledged and deleted afterwards, so an entry which stops
+        /// the import would otherwise block its source in every following import run.
+        /// </summary>
+        /// <returns>The convertible entries with the highest log counts, limited to maxEntries.</returns>
+        private static List<NormalizedLogEntry> NormalizeValidEntries(IEnumerable<LogDataImportEntry> entries, int maxEntries, DateTimeOffset importTime)
+        {
+            List<NormalizedLogEntry> normalizedEntries = new();
             foreach (LogDataImportEntry entry in entries)
             {
-                normalizedEntries.Add(NormalizeEntry(entry, importTime));
+                try
+                {
+                    normalizedEntries.Add(new NormalizedLogEntry(NormalizeEntry(entry, importTime), entry.AppId.Trim()));
+                }
+                catch (InvalidDataException exception)
+                {
+                    Log.WriteWarning(LogMessageTitle, $"Ignoring invalid log entry of application '{entry.AppId}': {exception.Message}");
+                }
             }
 
             int entryLimit = Math.Max(0, maxEntries);
             return normalizedEntries
-                .OrderByDescending(entry => entry.LogCount)
+                .OrderByDescending(entry => entry.Entry.LogCount)
                 .Take(entryLimit)
                 .ToList();
         }
@@ -59,15 +79,15 @@ namespace FWO.Middleware.Server
         private async Task ImportSource(string configuredSource, List<string> failedImports)
         {
             string sourcePath = ImportPathPolicy.RemoveAllowedExtension(configuredSource);
-            List<string> importFiles = ValidateConfiguredImportSource(sourcePath);
-            string scriptPath = sourcePath + ".py";
-            if (importFiles.Contains(scriptPath) && !RunImportScript(scriptPath, globalConfig.ImportLogDataScriptArgs))
-            {
-                Log.WriteInfo(LogMessageTitle, $"Script {scriptPath} failed but trying existing JSON data.");
-            }
-
             try
             {
+                List<string> importFiles = ValidateConfiguredImportSource(sourcePath);
+                string scriptPath = sourcePath + ".py";
+                if (importFiles.Contains(scriptPath) && !RunImportScript(scriptPath, globalConfig.ImportLogDataScriptArgs))
+                {
+                    Log.WriteInfo(LogMessageTitle, $"Script {scriptPath} failed but trying existing JSON data.");
+                }
+
                 ReadFile(sourcePath + ".json");
                 LogDataImportFile importFileData = JsonSerializer.Deserialize<LogDataImportFile>(importFile)
                     ?? throw new JsonException("Log data file could not be parsed.");
@@ -86,7 +106,10 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Merges entries describing the same flow of the same owner into a single entry.
         /// The database keeps one row per owner, source, destination and service, so one batch
-        /// must not contain the same flow twice.
+        /// must not contain the same flow twice. The log counts are added up within a batch, while
+        /// a later import replaces the stored count of a flow (see the on-conflict clause of
+        /// insertLogEntries): a stored count therefore describes the last imported period of a
+        /// flow, not the total since it was first seen.
         /// </summary>
         /// <returns>The entries without duplicated flows.</returns>
         public static List<FirewallLogEntryInput> MergeDuplicateEntries(List<FirewallLogEntryInput> entries)
@@ -110,9 +133,11 @@ namespace FWO.Middleware.Server
         private async Task SaveEntries(List<LogDataImportEntry> sourceEntries, string sourcePath)
         {
             DateTimeOffset importTime = DateTimeOffset.UtcNow;
-            List<FirewallLogEntryInput> entries = NormalizeEntries(sourceEntries, globalConfig.ImportLogDataMaxEntries, importTime);
-            int discardedEntries = Math.Max(0, sourceEntries.Count - entries.Count);
-            await ResolveOwners(entries, sourceEntries);
+            List<NormalizedLogEntry> normalizedEntries = NormalizeValidEntries(sourceEntries, globalConfig.ImportLogDataMaxEntries, importTime);
+            int discardedEntries = Math.Max(0, sourceEntries.Count - normalizedEntries.Count);
+            List<FirewallLogEntryInput> entries = await ResolveOwners(normalizedEntries);
+            int unresolvedEntries = normalizedEntries.Count - entries.Count;
+            WarnAboutDroppedEntries(sourcePath, discardedEntries, unresolvedEntries);
             int entriesBeforeMerge = entries.Count;
             entries = MergeDuplicateEntries(entries);
             int mergedEntries = entriesBeforeMerge - entries.Count;
@@ -147,29 +172,42 @@ namespace FWO.Middleware.Server
             await AddLogEntry(GlobalConst.kImportLogData, 0, LevelFile, message);
         }
 
-        private async Task ResolveOwners(List<FirewallLogEntryInput> entries, List<LogDataImportEntry> sourceEntries)
+        /// <summary>
+        /// Warns about the entries which are not imported although their source file is
+        /// acknowledged and therefore deleted by the import script. Dropping them is intended:
+        /// only the loudest flows up to importLogDataMaxEntries are kept, and log data of an
+        /// unknown application cannot be assigned to an owner.
+        /// </summary>
+        private static void WarnAboutDroppedEntries(string sourcePath, int discardedEntries, int unresolvedEntries)
+        {
+            if (discardedEntries + unresolvedEntries <= 0)
+            {
+                return;
+            }
+
+            Log.WriteWarning(LogMessageTitle, $"{discardedEntries + unresolvedEntries} log entries of {sourcePath}.json are not imported" +
+                $" ({discardedEntries} above the configured limit of {nameof(GlobalConfig.ImportLogDataMaxEntries)} or invalid," +
+                $" {unresolvedEntries} without a known application) and are removed with the acknowledged source file.");
+        }
+
+        private async Task<List<FirewallLogEntryInput>> ResolveOwners(List<NormalizedLogEntry> normalizedEntries)
         {
             Dictionary<string, int?> ownerIds = new(StringComparer.OrdinalIgnoreCase);
-            List<FirewallLogEntryInput> unresolvedEntries = new();
-            for (int index = 0; index < entries.Count; index++)
+            List<FirewallLogEntryInput> resolvedEntries = new();
+            foreach (NormalizedLogEntry normalizedEntry in normalizedEntries)
             {
-                string appId = sourceEntries
-                    .OrderByDescending(entry => entry.LogCount)
-                    .ElementAt(index)
-                    .AppId
-                    .Trim();
+                string appId = normalizedEntry.AppId;
                 int? ownerId = await FindOwnerId(appId, ownerIds);
                 if (ownerId is null)
                 {
                     Log.WriteWarning(LogMessageTitle, $"Ignoring log data with unknown application id '{appId}'.");
-                    unresolvedEntries.Add(entries[index]);
+                    continue;
                 }
-                else
-                {
-                    entries[index].OwnerId = ownerId.Value;
-                }
+
+                normalizedEntry.Entry.OwnerId = ownerId.Value;
+                resolvedEntries.Add(normalizedEntry.Entry);
             }
-            entries.RemoveAll(entry => unresolvedEntries.Contains(entry));
+            return resolvedEntries;
         }
 
         private async Task<int?> FindOwnerId(string appId, Dictionary<string, int?> ownerIds)
@@ -213,6 +251,14 @@ namespace FWO.Middleware.Server
             await apiConnection.SendQueryAsync<object>(LogDataQueries.deleteExpiredLogEntries, new { expiryTime });
         }
 
+        /// <summary>
+        /// Lets the import script acknowledge the processed source files, which deletes them.
+        /// The whole source is acknowledged on purpose, also when entries were dropped by the
+        /// importLogDataMaxEntries limit, by an unknown application id or because they could not
+        /// be converted: an import run is expected to consume its source completely, otherwise the
+        /// same rejected entries would be read again in every following run. WarnAboutDroppedEntries
+        /// reports how many entries are lost with the deleted file.
+        /// </summary>
         private void AcknowledgeImport(string scriptPath, List<string> importFiles)
         {
             if (importFiles.Contains(scriptPath))
@@ -299,5 +345,12 @@ namespace FWO.Middleware.Server
                 _ => throw new InvalidDataException($"Unsupported log action '{action}'.")
             };
         }
+
+        /// <summary>
+        /// A converted log entry together with the application id it was imported for.
+        /// Keeping the application id on the entry avoids matching the converted entries to their
+        /// source entries by position, which does not hold as soon as entries are skipped.
+        /// </summary>
+        private sealed record NormalizedLogEntry(FirewallLogEntryInput Entry, string AppId);
     }
 }

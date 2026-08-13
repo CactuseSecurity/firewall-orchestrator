@@ -45,6 +45,9 @@ else
     // the visible height is limited by LogDataTable.razor.css, a page therefore only sets
     // how many rows can be reached by scrolling inside that height
     private const int kPageSize = 25;
+    // the loudest flows of an owner are enough for the display, an owner with more logged flows
+    // than this would only fill the browser memory of every session which opens a connection
+    private const int kMaxLoadedEntries = 500;
 
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
@@ -73,7 +76,8 @@ else
         try
         {
             isLoading = true;
-            logEntries = await apiConnection.SendQueryAsync<List<OwnerFirewallLogEntry>>(LogDataQueries.getUnmodelledLogEntriesByOwner, new { ownerId = OwnerId });
+            logEntries = await apiConnection.SendQueryAsync<List<OwnerFirewallLogEntry>>(LogDataQueries.getUnmodelledLogEntriesByOwner,
+                new { ownerId = OwnerId, limit = kMaxLoadedEntries });
             loadedOwnerId = OwnerId;
         }
         catch (Exception exception)

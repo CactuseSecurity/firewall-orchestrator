@@ -146,7 +146,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void NormalizeEntries_RejectsPortForNonTransportProtocol()
+        public void NormalizeEntries_SkipsPortForNonTransportProtocol()
         {
             List<LogDataImportEntry> entries = new()
             {
@@ -161,7 +161,28 @@ namespace FWO.Test
                 }
             };
 
-            Assert.Throws<InvalidDataException>(() => LogDataImport.NormalizeEntries(entries, 1000, ImportTime));
+            Assert.That(LogDataImport.NormalizeEntries(entries, 1000, ImportTime), Is.Empty);
+        }
+
+        [Test]
+        public void NormalizeEntries_KeepsTheValidEntriesOfAFileWithInvalidOnes()
+        {
+            List<LogDataImportEntry> entries = new()
+            {
+                new() { AppId = "APP-1", LogCount = 7, Source = "192.0.2.1", Destination = "192.0.2.2" },
+                new() { AppId = "", LogCount = 9, Source = "192.0.2.3", Destination = "192.0.2.4" },
+                new() { AppId = "APP-1", LogCount = 3, Source = "not an ip", Destination = "192.0.2.5" },
+                new() { AppId = "APP-1", LogCount = 5, Source = "192.0.2.6", Destination = "192.0.2.7" }
+            };
+
+            List<FirewallLogEntryInput> normalizedEntries = LogDataImport.NormalizeEntries(entries, 1000, ImportTime);
+
+            List<int> expectedLogCounts = [7, 5];
+            Assert.Multiple(() =>
+            {
+                Assert.That(normalizedEntries, Has.Count.EqualTo(2));
+                Assert.That(normalizedEntries.Select(entry => entry.LogCount), Is.EqualTo(expectedLogCounts));
+            });
         }
     }
 }

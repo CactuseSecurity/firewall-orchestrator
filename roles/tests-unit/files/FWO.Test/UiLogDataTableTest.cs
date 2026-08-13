@@ -27,6 +27,17 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task OnParametersSet_LimitsTheNumberOfLoadedEntries()
+        {
+            LogDataTableTestApiConn apiConnection = new();
+            LogDataTable component = CreateComponent(apiConnection, ownerId: 7);
+
+            await InvokeOnParametersSetAsync(component);
+
+            Assert.That(apiConnection.LastLimit, Is.GreaterThan(0), "the query is bounded");
+        }
+
+        [Test]
         public async Task OnParametersSet_DoesNotReloadForTheSameOwner()
         {
             LogDataTableTestApiConn apiConnection = new();
@@ -104,6 +115,7 @@ namespace FWO.Test
         {
             public int QueryCount { get; private set; }
             public int? LastOwnerId { get; private set; }
+            public int? LastLimit { get; private set; }
             public bool FailQuery { get; init; }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null,
@@ -111,6 +123,7 @@ namespace FWO.Test
             {
                 QueryCount++;
                 LastOwnerId = (int?)variables?.GetType().GetProperty("ownerId")?.GetValue(variables);
+                LastLimit = (int?)variables?.GetType().GetProperty("limit")?.GetValue(variables);
                 if (FailQuery)
                 {
                     throw new InvalidOperationException("query failed");

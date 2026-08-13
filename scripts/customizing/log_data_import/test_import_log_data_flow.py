@@ -154,3 +154,33 @@ def test_main_acknowledges_when_requested(tmp_path: Path, monkeypatch: pytest.Mo
     importer.import_data(config_file, None, LOGGER)
 
     assert importer.main() == 0
+
+
+def test_import_data_skips_a_file_with_missing_columns(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config_file, repository_directory, output_file = prepare_repository(tmp_path, monkeypatch)
+    (repository_directory / "broken.csv").write_text("App ID,Log count\nAPP-1,42\n", encoding="utf-8")
+    monkeypatch.setattr(importer, "update_git_repo", return_true)
+
+    result: int = importer.import_data(config_file, None, LOGGER)
+
+    manifest: dict[str, Any] = json.loads(
+        (repository_directory / importer.MANIFEST_FILE_NAME).read_text(encoding="utf-8")
+    )
+    entries: dict[str, Any] = json.loads(output_file.read_text(encoding="utf-8"))
+    assert result == 0
+    assert len(entries["logs"]) == 1
+    assert manifest["csv_files"] == ["2026-08-12/fw.csv"]
+
+
+def test_import_data_writes_an_empty_file_when_every_file_is_broken(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config_file, repository_directory, output_file = prepare_repository(tmp_path, monkeypatch)
+    (repository_directory / "2026-08-12" / "fw.csv").write_text("App ID\nAPP-1\n", encoding="utf-8")
+    monkeypatch.setattr(importer, "update_git_repo", return_true)
+
+    result: int = importer.import_data(config_file, None, LOGGER)
+
+    entries: dict[str, Any] = json.loads(output_file.read_text(encoding="utf-8"))
+    assert result == 0
+    assert entries["logs"] == []

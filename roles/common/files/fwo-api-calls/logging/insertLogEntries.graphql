@@ -1,3 +1,7 @@
+# log_count is replaced and not added up on purpose: a stored flow keeps the count of the last
+# imported period, so the display shows the current traffic of a flow instead of a total which
+# would only ever grow. Repeated entries of one import batch are summed before the insert
+# (see MergeDuplicateEntries in LogDataImport.cs).
 mutation insertLogEntries($entries: [logging_log_entry_insert_input!]!) {
   insert_logging_log_entry(
     objects: $entries

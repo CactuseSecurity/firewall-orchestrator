@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS logging.log_entry
     service_protocol_key INTEGER GENERATED ALWAYS AS (COALESCE(service_protocol, -1)) STORED,
     service_port_key INTEGER GENERATED ALWAYS AS (COALESCE(service_port, -1)) STORED,
     allowed BOOLEAN NOT NULL DEFAULT TRUE,
+    -- reserved for future use: no component sets this flag yet, it is meant to mark the
+    -- flows which are already covered by a modelled connection
     modelled BOOLEAN NOT NULL DEFAULT FALSE,
     log_time TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     logging_rule_name VARCHAR(100),

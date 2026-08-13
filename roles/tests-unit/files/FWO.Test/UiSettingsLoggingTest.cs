@@ -42,6 +42,36 @@ namespace FWO.Test
         }
 
         [Test]
+        public void PrepareConfigData_KeepsTheDisplayedPathsWhenAPathIsRejected()
+        {
+            SettingsLogging component = new();
+            SetPrivateField(component, "configData", new ConfigData());
+            SetPrivateField(component, "logDataPaths", new List<string> { "log_data_import/source" });
+            SetPrivateField(component, "pathsToAdd", new List<string> { "/etc/passwd" });
+            SetPrivateField(component, "pathsToDelete", new List<string>());
+
+            Assert.Throws<TargetInvocationException>(() => InvokePrivateMethod("PrepareConfigData", component));
+
+            List<string> unchangedPaths = ["log_data_import/source"];
+            Assert.That(GetPrivateField<List<string>>(component, "logDataPaths"), Is.EqualTo(unchangedPaths));
+        }
+
+        [Test]
+        public void PrepareConfigData_DoesNotDuplicatePathsOnASecondAttempt()
+        {
+            SettingsLogging component = new();
+            SetPrivateField(component, "configData", new ConfigData());
+            SetPrivateField(component, "logDataPaths", new List<string>());
+            SetPrivateField(component, "pathsToAdd", new List<string> { "log_data_import/source.py" });
+            SetPrivateField(component, "pathsToDelete", new List<string>());
+
+            InvokePrivateMethod("PrepareConfigData", component);
+            InvokePrivateMethod("PrepareConfigData", component);
+
+            Assert.That(GetPrivateField<List<string>>(component, "logDataPaths"), Has.Count.EqualTo(1));
+        }
+
+        [Test]
         public void PrepareConfigData_RaisesNonPositiveMaxEntriesToOne()
         {
             SettingsLogging component = CreateComponentWithMaxEntries(0);

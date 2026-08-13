@@ -104,7 +104,7 @@ create unique index if not exists only_one_default_owner on owner(is_default)
 where is_default = true;
 
 -- compliance
-Create index IF NOT EXISTS idx_fkey_network_zone_id on compliance.ip_range USING HASH (network_zone_id);
+Create index IF NOT EXISTS idx_fkey_network_zone_id on network_zone.ip_range USING HASH (network_zone_id);
 Create index IF NOT EXISTS idx_fkey_network_zone_from on compliance.network_zone_communication USING HASH (from_network_zone_id);
 Create index IF NOT EXISTS idx_fkey_network_zone_to on compliance.network_zone_communication USING HASH (to_network_zone_id);
 

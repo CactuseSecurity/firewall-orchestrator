@@ -345,17 +345,17 @@ ALTER TABLE recertification ADD CONSTRAINT recertification_owner_recertification
 ALTER TABLE owner_recertification ADD CONSTRAINT owner_recertification_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE owner_recertification ADD CONSTRAINT owner_recertification_report_foreign_key FOREIGN KEY (report_id) REFERENCES report(report_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
---- compliance.ip_range ---
-ALTER TABLE compliance.ip_range ADD CONSTRAINT compliance_ip_range_network_zone_foreign_key FOREIGN KEY (network_zone_id) REFERENCES compliance.network_zone(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE compliance.ip_range ADD CONSTRAINT compliance_criterion_ip_range_foreign_key FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+--- network_zone.ip_range ---
+ALTER TABLE network_zone.ip_range ADD CONSTRAINT network_zone_ip_range_zone_foreign_key FOREIGN KEY (network_zone_id) REFERENCES network_zone.zone(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE network_zone.ip_range ADD CONSTRAINT compliance_criterion_ip_range_foreign_key FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
---- compliance.network_zone ---
-ALTER TABLE compliance.network_zone ADD CONSTRAINT compliance_super_zone_foreign_key FOREIGN KEY (super_network_zone_id) REFERENCES compliance.network_zone(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE compliance.network_zone ADD CONSTRAINT compliance_criterion_network_zone_foreign_key FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+--- network_zone.zone ---
+ALTER TABLE network_zone.zone ADD CONSTRAINT network_zone_super_zone_foreign_key FOREIGN KEY (super_network_zone_id) REFERENCES network_zone.zone(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE network_zone.zone ADD CONSTRAINT compliance_criterion_network_zone_foreign_key FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
 --- compliance.network_zone_communication ---
-ALTER TABLE compliance.network_zone_communication ADD CONSTRAINT compliance_from_network_zone_communication_foreign_key FOREIGN KEY (from_network_zone_id) REFERENCES compliance.network_zone(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE compliance.network_zone_communication ADD CONSTRAINT compliance_to_network_zone_communication_foreign_key FOREIGN KEY (to_network_zone_id) REFERENCES compliance.network_zone(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE compliance.network_zone_communication ADD CONSTRAINT network_zone_from_zone_communication_foreign_key FOREIGN KEY (from_network_zone_id) REFERENCES network_zone.zone(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE compliance.network_zone_communication ADD CONSTRAINT network_zone_to_zone_communication_foreign_key FOREIGN KEY (to_network_zone_id) REFERENCES network_zone.zone(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE compliance.network_zone_communication ADD CONSTRAINT compliance_criterion_network_zone_communication_foreign_key FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
 --- compliance.policy_criterion ---

@@ -11,6 +11,7 @@ fwo_db_ro_user: fwo_ro
 # table_space_name: fworch
 
 db_schemata:
+  - network_zone
   - compliance
   - firewall
   - modelling

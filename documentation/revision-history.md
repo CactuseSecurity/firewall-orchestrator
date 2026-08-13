@@ -601,4 +601,10 @@ Not supported any longer are:
 
 ## 9.3.2 - 06.08.2026
 - fix upgrade failure when migrating workflow state matrices with non-JSON configuration values
+
+## 9.3.3 - 10.08.2026
+- fix a bug in provisioning where network objects were always created with mask 255.255.255.255
+
+## 9.3.4 - 11.08.2026
+- fix a bug in reporting ui where users with role modeller and reporter could not fetch rsb data for app rule reports
 - Fixed variance-analysis comparison for imported identity network objects such as Check Point updatable objects and access roles. These objects are now compared by object type and name instead of placeholder IP fields.

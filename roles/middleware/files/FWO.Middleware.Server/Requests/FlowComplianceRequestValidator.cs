@@ -11,6 +11,7 @@ public static class FlowComplianceRequestValidator
 {
     private const int MinimumPort = 0;
     private const int MaximumPort = 65535;
+    private const string AllowedIpMask = "32";
     private const string GetPolicyIdsEndpointName = "getPolicyIds";
     private const string GetFlowComplianceStateEndpointName = "getFlowComplianceState";
 
@@ -103,7 +104,7 @@ public static class FlowComplianceRequestValidator
     }
 
     /// <summary>
-    /// Validates a single IP range and returns bounds with optional CIDR/netmask suffixes removed.
+    /// Validates a single IP range and returns bounds with optional /32 CIDR suffixes removed.
     /// </summary>
     public static bool TryValidateAndNormalizeIpRange(
         string ipStart,
@@ -125,7 +126,7 @@ public static class FlowComplianceRequestValidator
     }
 
     /// <summary>
-    /// Validates a single IP range and returns bounds with optional CIDR/netmask suffixes removed.
+    /// Validates a single IP range and returns bounds with optional /32 CIDR suffixes removed.
     /// </summary>
     public static bool TryValidateAndNormalizeIpRange(
         string ipStart,
@@ -156,14 +157,18 @@ public static class FlowComplianceRequestValidator
     }
 
     /// <summary>
-    /// Removes an optional CIDR/netmask suffix from an IP address value.
+    /// Removes an optional /32 CIDR suffix from an IP address value.
     /// </summary>
     public static string RemoveCidrMask(string ipAddress)
     {
         ArgumentNullException.ThrowIfNull(ipAddress);
 
-        int maskSeparatorIndex = ipAddress.IndexOf('/');
-        return maskSeparatorIndex < 0 ? ipAddress : ipAddress[..maskSeparatorIndex];
+        if (!TryRemoveAllowedHostMask(ipAddress, "ipAddress", out string normalizedIpAddress, out string? errorMessage))
+        {
+            throw new ArgumentException(errorMessage, nameof(ipAddress));
+        }
+
+        return normalizedIpAddress;
     }
 
     private static bool TryValidateItemList<TItem>(
@@ -262,8 +267,16 @@ public static class FlowComplianceRequestValidator
         out string normalizedIpStart,
         out string normalizedIpEnd)
     {
-        normalizedIpStart = RemoveCidrMask(ipStartValue);
-        normalizedIpEnd = RemoveCidrMask(ipEndValue);
+        if (!TryRemoveAllowedHostMask(ipStartValue, "ipStart", out normalizedIpStart, out string? ipStartMaskError))
+        {
+            normalizedIpEnd = string.Empty;
+            return (false, errorFactory(ipStartMaskError!));
+        }
+
+        if (!TryRemoveAllowedHostMask(ipEndValue, "ipEnd", out normalizedIpEnd, out string? ipEndMaskError))
+        {
+            return (false, errorFactory(ipEndMaskError!));
+        }
 
         if (!IPAddress.TryParse(normalizedIpStart, out IPAddress? ipStart))
         {
@@ -291,6 +304,29 @@ public static class FlowComplianceRequestValidator
         }
 
         return (true, null);
+    }
+
+    private static bool TryRemoveAllowedHostMask(string ipAddress, string fieldName, out string normalizedIpAddress, out string? errorMessage)
+    {
+        int maskSeparatorIndex = ipAddress.IndexOf('/');
+        if (maskSeparatorIndex < 0)
+        {
+            normalizedIpAddress = ipAddress;
+            errorMessage = null;
+            return true;
+        }
+
+        string mask = ipAddress[(maskSeparatorIndex + 1)..];
+        if (mask != AllowedIpMask)
+        {
+            normalizedIpAddress = string.Empty;
+            errorMessage = $"has unsupported netmask '/{mask}' in '{fieldName}'. Only '/{AllowedIpMask}' is allowed.";
+            return false;
+        }
+
+        normalizedIpAddress = ipAddress[..maskSeparatorIndex];
+        errorMessage = null;
+        return true;
     }
 
     private static (bool IsValid, string? ErrorMessage) ValidateServiceRange(int portStart, int portEnd, string collectionName, int itemIndex)

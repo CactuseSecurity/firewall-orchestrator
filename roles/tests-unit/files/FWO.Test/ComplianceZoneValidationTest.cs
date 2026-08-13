@@ -87,14 +87,14 @@ internal class ComplianceZoneValidationTest
     }
 
     [Test]
-    public void ResolveZonesForObjects_AllowsCidrMaskedIpBoundsAndNormalizesLeaf()
+    public void ResolveZonesForObjects_AllowsCidr32MaskedIpBoundsAndNormalizesLeaf()
     {
         ResolveZonesForObjectsRequest.LeafObjectRequest leaf = new()
         {
             Name = "Network",
             Type = "network",
-            IpStart = "10.0.0.1/24",
-            IpEnd = "10.0.0.2/24"
+            IpStart = "10.0.0.1/32",
+            IpEnd = "10.0.0.2/32"
         };
         ResolveZonesForObjectsRequest request = new()
         {
@@ -109,6 +109,33 @@ internal class ComplianceZoneValidationTest
             Assert.That(errorResult, Is.Null);
             Assert.That(leaf.IpStart, Is.EqualTo("10.0.0.1"));
             Assert.That(leaf.IpEnd, Is.EqualTo("10.0.0.2"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsNonCidr32MaskedIpBounds()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Network",
+                    Type = "network",
+                    IpStart = "10.0.0.1/24",
+                    IpEnd = "10.0.0.2/32"
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("Only '/32' is allowed"));
         });
     }
 

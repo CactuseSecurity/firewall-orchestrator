@@ -31,6 +31,7 @@ public class FlowComplianceController : ControllerBase
     /// Returns the compliance state for the requested flows using shared compliance data.
     /// This evaluation is not scoped to a modeller or owner.
     /// Only IPv4 source and destination ranges are supported; IPv6 addresses are rejected during validation.
+    /// Optional /32 masks on ipStart and ipEnd are ignored; all other masks are rejected.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getFlowComplianceState")]

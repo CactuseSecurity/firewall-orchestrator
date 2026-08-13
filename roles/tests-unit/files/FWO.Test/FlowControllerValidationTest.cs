@@ -186,6 +186,21 @@ internal class FlowControllerValidationTest
     }
 
     [Test]
+    public async Task FlowControllerValidation_GetAddressObjectId_RejectsNonCidr32MaskedIpRange()
+    {
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+
+        ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
+        {
+            IpStart = "10.0.0.1/24",
+            IpEnd = "10.0.0.2/32"
+        });
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("Only '/32' is allowed"));
+    }
+
+    [Test]
     public async Task FlowControllerValidation_GetTimeObjectId_RejectsInvalidTimeRange()
     {
         FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));

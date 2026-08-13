@@ -2532,7 +2532,11 @@
                       "logging_rule_name",
                       "owner_id"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "owner_id": {
+                        "_in": "x-hasura-editable-owners"
+                      }
+                    }
                   },
                   "comment": ""
                 },
@@ -2552,7 +2556,11 @@
                       "logging_rule_name",
                       "owner_id"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "owner_id": {
+                        "_in": "x-hasura-recertifiable-owners"
+                      }
+                    }
                   },
                   "comment": ""
                 }

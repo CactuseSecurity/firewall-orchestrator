@@ -452,7 +452,7 @@
     <EditAppRole @bind-Display="ConnHandler.DisplayAppRoleMode" @bind-AppRoleHandler="ConnHandler.AppRoleHandler"/>
     <EditAppServer @bind-Display="ConnHandler.DisplayAppServerMode" AppServerHandler="ConnHandler.AppServerHandler"/>
     <EditConnPopup @bind-Display="ConnHandler.DisplaySelectedInterfaceMode" ConnHandler="ConnHandler.IntConnHandler"
-        ReplaceMode="ConnHandler.ReplaceMode" Replace="ReplaceInterface" ShowLogData="true"/>
+        ReplaceMode="ConnHandler.ReplaceMode" Replace="ReplaceInterface"/>
     <DisplayImplementationTask WfHandler="wfHandler" States="states" IncludePopups="false"/>
     <RejectInterfacePopup @bind-Display="RejectInterfaceMode" ConnHandler="ConnHandler" RefreshParent="async () => {await ConnHandler.ReInit(); Close();}"/>
 }

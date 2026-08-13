@@ -8,6 +8,7 @@ import logging
 import sys
 import urllib.parse
 from collections.abc import Mapping
+from datetime import datetime
 from pathlib import Path
 from typing import TextIO, cast
 
@@ -120,7 +121,21 @@ def add_optional_columns(result: LogDataEntry, row: Mapping[str, str | None]) ->
     for csv_column, json_column in OPTIONAL_COLUMNS.items():
         value: str = (row.get(csv_column) or "").strip()
         if value:
-            result[json_column] = value
+            result[json_column] = normalize_log_time(value) if json_column == "log_time" else value
+
+
+def normalize_log_time(value: str) -> str:
+    """
+    Convert a log timestamp into the ISO 8601 form the importer can deserialize.
+
+    A value which is not a timestamp is rejected here: the importer reads the whole generated
+    file at once, so one unparsable timestamp would make it discard every entry of the file.
+    """
+    try:
+        parsed_time: datetime = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exception:
+        raise ValueError(f"'{value}' is not a valid log timestamp") from exception
+    return parsed_time.isoformat()
 
 
 def write_import_file(entries: list[LogDataEntry], csv_files: list[Path], repository_directory: Path) -> None:

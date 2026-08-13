@@ -79,15 +79,34 @@ namespace FWO.Middleware.Server
                     {
                         FileName = importScriptFile,
                         UseShellExecute = false,
-                        RedirectStandardOutput = true
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true
                     };
                     AddScriptArguments(start, scriptArguments);
                     Process? process = Process.Start(start);
-                    StreamReader? reader = process?.StandardOutput;
-                    string? result = reader?.ReadToEnd();
-                    process?.WaitForExit();
-                    process?.Close();
-                    Log.WriteInfo("Run Import Script", $"Executed Import Script {importScriptFile}. Result: {result ?? ""}");
+                    if (process is null)
+                    {
+                        Log.WriteError("Run Import Script", $"Import Script {importScriptFile} could not be started.");
+                        return false;
+                    }
+
+                    // both streams have to be read before waiting, otherwise a script writing more
+                    // than the pipe buffer holds blocks forever. Scripts log to stderr, so the
+                    // error output is the interesting part when a script fails.
+                    Task<string> outputReader = process.StandardOutput.ReadToEndAsync();
+                    Task<string> errorReader = process.StandardError.ReadToEndAsync();
+                    process.WaitForExit();
+                    string output = outputReader.GetAwaiter().GetResult();
+                    string errorOutput = errorReader.GetAwaiter().GetResult();
+                    int exitCode = process.ExitCode;
+                    process.Close();
+
+                    Log.WriteInfo("Run Import Script", $"Executed Import Script {importScriptFile}. Exit code: {exitCode}. Result: {output}");
+                    if (exitCode != 0)
+                    {
+                        Log.WriteError("Run Import Script", $"Import Script {importScriptFile} failed with exit code {exitCode}: {errorOutput}");
+                        return false;
+                    }
                     return true;
                 }
             }

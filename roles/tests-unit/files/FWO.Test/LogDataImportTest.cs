@@ -33,7 +33,7 @@ namespace FWO.Test
                 }
             };
 
-            List<FirewallLogEntryInput> normalized = LogDataImport.NormalizeEntries(entries, 1, ImportTime);
+            List<FirewallLogEntryInput> normalized = LogDataImport.LimitEntries(LogDataImport.NormalizeEntries(entries, ImportTime), 1);
 
             Assert.That(normalized, Has.Count.EqualTo(1));
             Assert.Multiple(() =>
@@ -146,6 +146,55 @@ namespace FWO.Test
         }
 
         [Test]
+        public void LimitEntries_KeepsTheFlowsWithTheHighestCounts()
+        {
+            List<FirewallLogEntryInput> entries = new()
+            {
+                BuildEntry(1, 5, 6, 443, ImportTime),
+                BuildEntry(1, 90, 6, 80, ImportTime),
+                BuildEntry(1, 40, 17, 53, ImportTime)
+            };
+
+            List<FirewallLogEntryInput> limited = LogDataImport.LimitEntries(entries, 2);
+
+            List<int> expectedLogCounts = [90, 40];
+            Assert.That(limited.Select(entry => entry.LogCount), Is.EqualTo(expectedLogCounts));
+        }
+
+        [Test]
+        public void LimitEntries_RanksAFlowByItsMergedCount()
+        {
+            List<FirewallLogEntryInput> entries = new()
+            {
+                BuildEntry(1, 30, 6, 443, ImportTime),
+                BuildEntry(1, 30, 6, 443, ImportTime),
+                BuildEntry(1, 30, 6, 443, ImportTime),
+                BuildEntry(1, 50, 6, 80, ImportTime)
+            };
+
+            List<FirewallLogEntryInput> limited = LogDataImport.LimitEntries(LogDataImport.MergeDuplicateEntries(entries), 1);
+
+            Assert.That(limited.Single().LogCount, Is.EqualTo(90), "the flow split over several rows wins");
+        }
+
+        [Test]
+        public void NormalizeEntries_RemovesTheZoneIndexOfALinkLocalAddress()
+        {
+            List<LogDataImportEntry> entries = new()
+            {
+                new() { AppId = "APP-1", LogCount = 1, Source = "fe80::1%3", Destination = "fe80::2" }
+            };
+
+            List<FirewallLogEntryInput> normalized = LogDataImport.NormalizeEntries(entries, ImportTime);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(normalized.Single().Source, Is.EqualTo("fe80::1/128"));
+                Assert.That(normalized.Single().Destination, Is.EqualTo("fe80::2/128"));
+            });
+        }
+
+        [Test]
         public void NormalizeEntries_SkipsPortForNonTransportProtocol()
         {
             List<LogDataImportEntry> entries = new()
@@ -161,7 +210,7 @@ namespace FWO.Test
                 }
             };
 
-            Assert.That(LogDataImport.NormalizeEntries(entries, 1000, ImportTime), Is.Empty);
+            Assert.That(LogDataImport.NormalizeEntries(entries, ImportTime), Is.Empty);
         }
 
         [Test]
@@ -175,7 +224,7 @@ namespace FWO.Test
                 new() { AppId = "APP-1", LogCount = 5, Source = "192.0.2.6", Destination = "192.0.2.7" }
             };
 
-            List<FirewallLogEntryInput> normalizedEntries = LogDataImport.NormalizeEntries(entries, 1000, ImportTime);
+            List<FirewallLogEntryInput> normalizedEntries = LogDataImport.NormalizeEntries(entries, ImportTime);
 
             List<int> expectedLogCounts = [7, 5];
             Assert.Multiple(() =>

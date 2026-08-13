@@ -6919,7 +6919,7 @@ INSERT INTO txt VALUES ('H5694', 'German', 'Pfad und Name des Logdaten-Imports (
 INSERT INTO txt VALUES ('H5694', 'English', 'Path and Name of Log data import (without ending): Log data import scripts and files below scripts/customizing or etc in the configured product directory are entered here.');
 INSERT INTO txt VALUES ('H5695', 'German', 'Skriptparameter (optional): Zus&auml;tzliche Parameter, die an das Logdaten-Importskript &uuml;bergeben werden.');
 INSERT INTO txt VALUES ('H5695', 'English', 'Script parameters (optional): Additional parameters passed to the log data import script.');
-INSERT INTO txt VALUES ('H5696', 'German', 'Logdaten-Importintervall: Legt fest, wie oft der Logdaten-Import ausgeführt wird.');
+INSERT INTO txt VALUES ('H5696', 'German', 'Logdaten-Importintervall: Legt fest, wie oft der Logdaten-Import ausgef&uuml;hrt wird.');
 INSERT INTO txt VALUES ('H5696', 'English', 'Log data import interval: Defines how often log data is imported.');
 INSERT INTO txt VALUES ('H5697', 'German', 'Maximale Anzahl Logeintr&auml;ge pro Import: Aus jeder Importdatei werden nur so viele Eintr&auml;ge mit den h&ouml;chsten Trefferz&auml;hlern &uuml;bernommen; die &uuml;brigen werden verworfen.');
 INSERT INTO txt VALUES ('H5697', 'English', 'Maximum number of log entries per import: Only this many entries with the highest log counts are taken from each import file; the remaining entries are discarded.');

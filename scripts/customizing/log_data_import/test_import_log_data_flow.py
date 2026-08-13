@@ -184,3 +184,50 @@ def test_import_data_writes_an_empty_file_when_every_file_is_broken(
     entries: dict[str, Any] = json.loads(output_file.read_text(encoding="utf-8"))
     assert result == 0
     assert entries["logs"] == []
+
+
+def test_convert_row_normalizes_the_log_timestamp() -> None:
+    row: dict[str, str] = {
+        "App ID": "APP-1",
+        "Log count": "42",
+        "Src IP": "192.0.2.1",
+        "Dst IP": "198.51.100.1",
+        "Port": "443",
+        "Protocol": "6",
+        "Log timestamp": "2026-08-12 08:15:00",
+    }
+
+    assert importer.convert_row(row)["log_time"] == "2026-08-12T08:15:00"
+
+
+def test_convert_row_rejects_an_unparsable_log_timestamp() -> None:
+    row: dict[str, str] = {
+        "App ID": "APP-1",
+        "Log count": "42",
+        "Src IP": "192.0.2.1",
+        "Dst IP": "198.51.100.1",
+        "Port": "443",
+        "Protocol": "6",
+        "Log timestamp": "12.08.2026 08:15",
+    }
+
+    with pytest.raises(ValueError, match="not a valid log timestamp"):
+        importer.convert_row(row)
+
+
+def test_import_data_skips_rows_with_a_broken_timestamp(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config_file, repository_directory, output_file = prepare_repository(tmp_path, monkeypatch)
+    (repository_directory / "2026-08-12" / "fw.csv").write_text(
+        "App ID,Log count,Src IP,Dst IP,Port,Protocol,Log timestamp\n"
+        "APP-1,42,192.0.2.1,198.51.100.1,443,6,12.08.2026 08:15\n"
+        "APP-1,7,192.0.2.2,198.51.100.2,443,6,2026-08-12T08:20:00Z\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(importer, "update_git_repo", return_true)
+
+    result: int = importer.import_data(config_file, None, LOGGER)
+
+    entries: dict[str, Any] = json.loads(output_file.read_text(encoding="utf-8"))
+    assert result == 0
+    assert len(entries["logs"]) == 1
+    assert entries["logs"][0]["log_time"] == "2026-08-12T08:20:00+00:00"

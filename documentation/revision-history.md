@@ -569,9 +569,9 @@ Not supported any longer are:
 ## 9.2.3 - 17.07.2026
 - speed up standard rules reports by scoping flat rule paging to selected rulebases
 - add database index for standard rules report paging
-- fix legacy sonar findings
+- increase of unit-tests
 - split + enhance Wf Action Settings
-- fix: recognize multiple updatable objects
+- fix: recognize multiple updatable objects by @tpurschke in #4980
 - fix missing enforcement of rule
 - feat new REST API endpoint: create request/ticket
 - feat new REST API endpoint: getIpDataForOwners - get application ip addresses
@@ -581,6 +581,7 @@ Not supported any longer are:
 ## 9.2.4 - 28.07.2026
 - fix startup behaviour of fworch services on redhat/rocky
 - close some test gaps in middleware server
+- fix legacy sonar findings
 - fix config change in modelling
 - feat new REST API endpoint: ResolveZonesForObjects
 - feat new REST API endpoint: time object ID lookup
@@ -607,6 +608,6 @@ Not supported any longer are:
 ## 9.3.4 - 11.08.2026
 - fix a bug in reporting ui where users with role modeller and reporter could not fetch rsb data for app rule reports
 
-## 9.4.0 - 10.08.2026
+## 9.4.0 - 13.08.2026
 - add logging schema for imported traffic log entries with their owner and count
 - increase of unit-tests

@@ -12,6 +12,9 @@ DEFAULT_IPv4 = (IPNetwork("0.0.0.0/32"), IPNetwork("255.255.255.255/32"))
 DUMMY_IPv4 = (IPNetwork(fwo_const.DUMMY_IP), IPNetwork(fwo_const.DUMMY_IP))
 
 DOMAIN_IPV4_OBJECT_TYPES = frozenset({"fqdn", "wildcard-fqdn"})
+# FortiOS wildcard masks can describe non-contiguous address patterns. The normalized data model only supports one
+# continuous start/end range, so importing a bounding range would include addresses that the wildcard does not match.
+# Treat wildcard objects as unresolved dynamic objects until the normalized model can represent their exact semantics.
 DYNAMIC_IPV4_OBJECT_TYPES = frozenset({"dynamic", "geography", "interface-subnet", "wildcard"})
 DOMAIN_IPV6_OBJECT_TYPES = frozenset({"fqdn"})
 DYNAMIC_IPV6_OBJECT_TYPES = frozenset({"dynamic", "template"})

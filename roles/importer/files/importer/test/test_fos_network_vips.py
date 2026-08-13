@@ -123,7 +123,6 @@ def test_normalize_single_ipv6_network_object_treats_equal_endpoints_as_host():
         ("dynamic", "dynamic_net_obj"),
         ("geography", "dynamic_net_obj"),
         ("interface-subnet", "dynamic_net_obj"),
-        ("wildcard", "dynamic_net_obj"),
     ],
 )
 def test_normalize_ipv4_non_static_objects_have_no_ip_range(native_type: str, normalized_type: str) -> None:
@@ -142,6 +141,27 @@ def test_normalize_ipv4_non_static_objects_have_no_ip_range(native_type: str, no
     result = next(normalize_ipv4_network_objects(config, lookup))
 
     assert result.obj_typ == normalized_type
+    assert result.obj_ip is None
+    assert result.obj_ip_end is None
+    assert lookup[native_object.name] == native_object.uuid
+
+
+def test_normalize_ipv4_wildcard_has_no_range_because_pattern_may_be_non_contiguous() -> None:
+    native_object = NwObjAddress.model_validate(
+        {
+            "name": "ipv4_wildcard",
+            "q_origin_key": "ipv4_wildcard",
+            "uuid": "uuid-ipv4-wildcard",
+            "type": "wildcard",
+        }
+    )
+    config = FortiOSConfig()
+    config.nw_obj_address = [native_object]
+    lookup: dict[str, str] = {}
+
+    result = next(normalize_ipv4_network_objects(config, lookup))
+
+    assert result.obj_typ == "dynamic_net_obj"
     assert result.obj_ip is None
     assert result.obj_ip_end is None
     assert lookup[native_object.name] == native_object.uuid

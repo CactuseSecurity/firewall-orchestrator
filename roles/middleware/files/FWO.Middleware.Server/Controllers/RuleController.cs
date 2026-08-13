@@ -340,14 +340,32 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
             result.AppendLine(userConfig.GetText("negated"));
         }
 
-        var networkLocations = isSource ? rule.Froms : rule.Tos;
+        IEnumerable<NetworkLocation> networkLocations = DeduplicateNetworkLocations(isSource ? rule.Froms : rule.Tos);
 
         string joined = string.Join(Environment.NewLine,
-            Array.ConvertAll(networkLocations, NetworkLocationToPlainText));
+            networkLocations.Select(NetworkLocationToPlainText));
 
         result.Append(joined);
 
         return result.ToString();
+    }
+
+    private static IEnumerable<NetworkLocation> DeduplicateNetworkLocations(IEnumerable<NetworkLocation> networkLocations)
+    {
+        HashSet<string> seenLocations = [];
+
+        foreach (NetworkLocation networkLocation in networkLocations)
+        {
+            NetworkObject networkObject = networkLocation.Object;
+            string objectKey = networkObject.Id > 0
+                ? networkObject.Id.ToString()
+                : $"{networkObject.Type?.Name}|{networkObject.Name}|{networkObject.IP}|{networkObject.IpEnd}";
+
+            if (seenLocations.Add(objectKey))
+            {
+                yield return networkLocation;
+            }
+        }
     }
 
     private static string NetworkLocationToPlainText(NetworkLocation networkLocation)

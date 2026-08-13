@@ -13,7 +13,7 @@ namespace FWO.Test
         {
             string fromBlock = ExtractObjectBlock(
                 RuleQueries.getRuleDetailsById,
-                "rule_froms(order_by:{ object: {obj_id: asc}}){",
+                "rule_froms(",
                 "objgrp_flats(");
 
             StringAssert.Contains("obj_id", fromBlock);
@@ -25,7 +25,7 @@ namespace FWO.Test
         {
             string toBlock = ExtractObjectBlock(
                 RuleQueries.getRuleDetailsById,
-                "rule_tos(order_by: { object: { obj_name: asc } }) {",
+                "rule_tos(",
                 "objgrp_flats(");
 
             StringAssert.Contains("obj_id", toBlock);

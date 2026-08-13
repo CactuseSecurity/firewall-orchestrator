@@ -11,7 +11,13 @@ query getActiveRulesByOwner($ownerId: Int!) {
     rule_uid
     rule_id
     mgm_id
-    rule_froms(order_by:{ object: {obj_id: asc}}){
+    rule_froms(
+      where: {
+        active: { _eq: true }
+        removed: { _is_null: true }
+      }
+      order_by:{ object: {obj_id: asc}}
+    ){
       object{
         obj_name
         obj_ip
@@ -36,7 +42,13 @@ query getActiveRulesByOwner($ownerId: Int!) {
         }
       }
     }
-    rule_tos(order_by: { object: { obj_name: asc } }) {
+    rule_tos(
+      where: {
+        active: { _eq: true }
+        removed: { _is_null: true }
+      }
+      order_by: { object: { obj_name: asc } }
+    ) {
       object {
         obj_name
         obj_ip
@@ -61,7 +73,13 @@ query getActiveRulesByOwner($ownerId: Int!) {
         }
       }
     }
-    rule_services(order_by: { service: { svc_name: asc } }) {
+    rule_services(
+      where: {
+        active: { _eq: true }
+        removed: { _is_null: true }
+      }
+      order_by: { service: { svc_name: asc } }
+    ) {
       service {
         svc_name
         ip_proto_id

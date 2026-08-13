@@ -552,6 +552,61 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CreateWorkflowEmailContent_BundlesMatchingRequestTasksFromFullTicket()
+        {
+            WfReqTask firstTask = CreateEligibleRequestTask(12, title: "First matching task");
+            firstTask.Id = 11;
+            firstTask.TicketId = 7;
+            firstTask.TaskNumber = 1;
+            firstTask.StateId = 60;
+            firstTask.TaskType = WfTaskType.access.ToString();
+            firstTask.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
+            WfReqTask secondTask = CreateEligibleRequestTask(13, title: "Second matching task");
+            secondTask.Id = 12;
+            secondTask.TicketId = 7;
+            secondTask.TaskNumber = 2;
+            secondTask.StateId = 60;
+            secondTask.TaskType = WfTaskType.access.ToString();
+            secondTask.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
+            WfReqTask wrongTypeTask = CreateEligibleRequestTask(14, title: "Wrong type task");
+            wrongTypeTask.Id = 13;
+            wrongTypeTask.TicketId = 7;
+            wrongTypeTask.TaskNumber = 3;
+            wrongTypeTask.StateId = 60;
+            wrongTypeTask.TaskType = WfTaskType.rule_delete.ToString();
+            wrongTypeTask.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
+            WfReqTask wrongTargetTask = CreateEligibleRequestTask(15, title: "Wrong target task");
+            wrongTargetTask.Id = 14;
+            wrongTargetTask.TicketId = 7;
+            wrongTargetTask.TaskNumber = 4;
+            wrongTargetTask.StateId = 60;
+            wrongTargetTask.TaskType = WfTaskType.access.ToString();
+            ActionHandlerTestApiConn apiConn = new()
+            {
+                FullTicket = CreateTicket(firstTask, secondTask, wrongTypeTask, wrongTargetTask)
+            };
+            apiConn.FullTicket.Id = 7;
+            ActionHandler handler = new(apiConn, new WfHandler { userConfig = new SimulatedUserConfig() });
+            EmailActionParams actionParams = new()
+            {
+                AttachedContent = EmailAttachedContent.RequestedConnections,
+                RequestTaskBundleMode = EmailRequestTaskBundleMode.SameTaskType
+            };
+
+            Task<WorkflowEmailContent?> task = InvokeCreateWorkflowEmailContent(handler, actionParams, firstTask, WfObjectScopes.RequestTask);
+            WorkflowEmailContent? content = await task;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries, Has.Member(RequestQueries.getTicketById));
+                Assert.That(content?.PlainText, Does.Contain("1 | First matching task |"));
+                Assert.That(content?.PlainText, Does.Contain("2 | Second matching task |"));
+                Assert.That(content?.PlainText, Does.Not.Contain("Wrong type task"));
+                Assert.That(content?.PlainText, Does.Not.Contain("Wrong target task"));
+            });
+        }
+
+        [Test]
         public async Task CreateWorkflowEmailContent_UsesProtocolNameForUnnamedRequestService()
         {
             WfReqTask reqTask = CreateEligibleRequestTask(12, title: "Request scope task");
@@ -1291,6 +1346,44 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SendEmail_WithFlushingCollector_DoesNotCaptureAgain()
+        {
+            ActionHandlerTestApiConn apiConn = new()
+            {
+                Notifications =
+                [
+                    new()
+                    {
+                        Id = 7,
+                        NotificationClient = NotificationClient.WfAction,
+                        EmailSubject = "subject",
+                        EmailBody = "body",
+                        RecipientTo = EmailRecipientOption.Requester
+                    }
+                ]
+            };
+            WorkflowEmailBundleCollector collector = new() { IsFlushing = true };
+            ActionHandler handler = new(apiConn, new WfHandler { userConfig = new SimulatedUserConfig() }) { EmailBundleCollector = collector };
+            await handler.Init();
+            WfStateAction action = new()
+            {
+                ExternalParams = JsonSerializer.Serialize(new EmailActionParams
+                {
+                    NotificationIds = [7],
+                    RequestTaskBundleMode = EmailRequestTaskBundleMode.SameTaskType
+                })
+            };
+
+            await handler.SendEmail(action, new WfReqTask { Id = 11, TicketId = 7, TaskType = WfTaskType.access.ToString() }, WfObjectScopes.RequestTask, null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(collector.PendingItems, Is.Empty);
+                Assert.That(apiConn.Queries.Count(query => query == NotificationQueries.getNotifications), Is.EqualTo(1));
+            });
+        }
+
+        [Test]
         public async Task DoStateChangeActions_WithEmailBundleCollector_SendsNonBundledEmailImmediately()
         {
             ActionHandlerTestApiConn apiConn = new()
@@ -1346,6 +1439,20 @@ namespace FWO.Test
                 Assert.That(apiConn.Queries.Count(query => query == NotificationQueries.getNotifications), Is.EqualTo(1));
                 Assert.That(collector.PendingItems, Is.Empty);
             });
+        }
+
+        [Test]
+        public async Task FlushEmailBundleCollector_ReturnsWhenCollectorIsMissingOrEmpty()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            ActionHandler handler = new(apiConn, new WfHandler { userConfig = new SimulatedUserConfig() });
+            await handler.Init();
+
+            await handler.FlushEmailBundleCollector();
+            handler.EmailBundleCollector = new WorkflowEmailBundleCollector();
+            await handler.FlushEmailBundleCollector();
+
+            Assert.That(apiConn.Queries, Has.No.Member(NotificationQueries.getNotifications));
         }
 
         [Test]
@@ -1417,6 +1524,40 @@ namespace FWO.Test
             {
                 Assert.That(apiConn.Queries.Count(query => query == NotificationQueries.getNotifications), Is.EqualTo(1));
                 Assert.That(collector.PendingItems, Is.Empty);
+            });
+        }
+
+        [Test]
+        public void WorkflowEmailBundleCollector_AddCopiesActionAndRequestTaskForStableBundleKey()
+        {
+            WorkflowEmailBundleCollector collector = new();
+            WfStateAction action = new()
+            {
+                Id = 5,
+                ExternalParams = "params"
+            };
+            WfReqTask requestTask = new()
+            {
+                Id = 11,
+                TicketId = 7,
+                TaskType = WfTaskType.access.ToString(),
+                TaskNumber = 1,
+                StateId = 60
+            };
+            requestTask.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
+
+            collector.Add(action, requestTask, new FwoOwner { Id = 3 }, "cn=group");
+            string originalBundleKey = collector.PendingItems[0].BundleKey;
+            action.ExternalParams = "changed";
+            requestTask.TaskType = WfTaskType.rule_delete.ToString();
+            requestTask.StateId = 99;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(collector.PendingItems, Has.Count.EqualTo(1));
+                Assert.That(collector.PendingItems[0].BundleKey, Is.EqualTo(originalBundleKey));
+                Assert.That(collector.PendingItems[0].RequestTask.TaskType, Is.EqualTo(WfTaskType.access.ToString()));
+                Assert.That(collector.PendingItems[0].Action.ExternalParams, Is.EqualTo("params"));
             });
         }
 

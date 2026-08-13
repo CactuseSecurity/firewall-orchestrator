@@ -100,6 +100,26 @@ def update_git_repo(
         return False
 
 
+def unshallow_repo(repo: Any, logger: logging.Logger, git_username: str, git_password: str) -> None:
+    """Complete the history of a shallow clone, since servers reject pushes from one."""
+    if repo.git.rev_parse("--is-shallow-repository").strip() != "true":
+        return
+    logger.info("completing shallow clone before pushing")
+    with tempfile.TemporaryDirectory() as askpass_dir:
+        repo.git.fetch("--unshallow", env=build_askpass_env(askpass_dir, git_username, git_password))
+
+
+def build_askpass_env(askpass_dir: str, git_username: str, git_password: str) -> dict[str, str]:
+    """Environment which lets git read the credentials without a terminal prompt."""
+    return {
+        **os.environ,
+        "GIT_ASKPASS": create_git_askpass_script(askpass_dir),
+        "GIT_ASKPASS_USERNAME": git_username,
+        "GIT_ASKPASS_PASSWORD": git_password,
+        "GIT_TERMINAL_PROMPT": "0",
+    }
+
+
 def commit_and_push_deletions(
     git_repo_target_dir: str,
     files_to_delete: list[Path],
@@ -118,19 +138,12 @@ def commit_and_push_deletions(
             relative_paths.append(str(resolved_path.relative_to(repo_path)))
             resolved_path.unlink(missing_ok=True)
         repo.git.add(update=True)
-        if not repo.is_dirty(index=True, working_tree=True, untracked_files=False):
-            return True
-        repo.index.commit(commit_message)
+        if repo.is_dirty(index=True, working_tree=True, untracked_files=False):
+            repo.index.commit(commit_message)
         if git_username is not None and git_password is not None:
+            unshallow_repo(repo, logger, git_username, git_password)
             with tempfile.TemporaryDirectory() as askpass_dir:
-                env = {
-                    **os.environ,
-                    "GIT_ASKPASS": create_git_askpass_script(askpass_dir),
-                    "GIT_ASKPASS_USERNAME": git_username,
-                    "GIT_ASKPASS_PASSWORD": git_password,
-                    "GIT_TERMINAL_PROMPT": "0",
-                }
-                repo.git.push("origin", "HEAD", env=env)
+                repo.git.push("origin", "HEAD", env=build_askpass_env(askpass_dir, git_username, git_password))
         else:
             repo.git.push("origin", "HEAD")
         logger.info("deleted and pushed log data files: %s", ", ".join(relative_paths))

@@ -8,6 +8,9 @@ namespace FWO.Data
     /// </summary>
     public class LogDataImportFile
     {
+        [JsonProperty("import_time"), JsonPropertyName("import_time")]
+        public DateTimeOffset? ImportTime { get; set; }
+
         [JsonProperty("logs"), JsonPropertyName("logs")]
         public List<LogDataImportEntry> Logs { get; set; } = new();
     }

@@ -13,6 +13,7 @@ fwo_db_ro_user: fwo_ro
 db_schemata:
   - compliance
   - firewall
+  - logging
   - modelling
   - public
   - request

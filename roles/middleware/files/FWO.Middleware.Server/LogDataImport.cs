@@ -42,9 +42,10 @@ namespace FWO.Middleware.Server
         /// Validates external log data and converts it into database input values.
         /// Entries which cannot be converted are skipped, see <see cref="NormalizeValidEntries"/>.
         /// </summary>
-        public static List<FirewallLogEntryInput> NormalizeEntries(IEnumerable<LogDataImportEntry> entries, DateTimeOffset importTime)
+        public static List<FirewallLogEntryInput> NormalizeEntries(IEnumerable<LogDataImportEntry> entries, DateTimeOffset importTime,
+            bool allowPortWithoutProtocol = false)
         {
-            return NormalizeValidEntries(entries, importTime).Select(entry => entry.Entry).ToList();
+            return NormalizeValidEntries(entries, importTime, allowPortWithoutProtocol).Select(entry => entry.Entry).ToList();
         }
 
         /// <summary>
@@ -67,14 +68,15 @@ namespace FWO.Middleware.Server
         /// the import would otherwise block its source in every following import run.
         /// </summary>
         /// <returns>The convertible entries of the source.</returns>
-        private static List<NormalizedLogEntry> NormalizeValidEntries(IEnumerable<LogDataImportEntry> entries, DateTimeOffset importTime)
+        private static List<NormalizedLogEntry> NormalizeValidEntries(IEnumerable<LogDataImportEntry> entries, DateTimeOffset importTime,
+            bool allowPortWithoutProtocol)
         {
             List<NormalizedLogEntry> normalizedEntries = new();
             foreach (LogDataImportEntry entry in entries)
             {
                 try
                 {
-                    normalizedEntries.Add(new NormalizedLogEntry(NormalizeEntry(entry, importTime), entry.AppId.Trim()));
+                    normalizedEntries.Add(new NormalizedLogEntry(NormalizeEntry(entry, importTime, allowPortWithoutProtocol), entry.AppId.Trim()));
                 }
                 catch (InvalidDataException exception)
                 {
@@ -93,13 +95,13 @@ namespace FWO.Middleware.Server
                 string scriptPath = sourcePath + ".py";
                 if (importFiles.Contains(scriptPath) && !RunImportScript(scriptPath, globalConfig.ImportLogDataScriptArgs))
                 {
-                    Log.WriteInfo(LogMessageTitle, $"Script {scriptPath} failed but trying existing JSON data.");
+                    throw new InvalidOperationException($"Log data import script {scriptPath} failed.");
                 }
 
                 ReadFile(sourcePath + ".json");
                 LogDataImportFile importFileData = JsonSerializer.Deserialize<LogDataImportFile>(importFile)
                     ?? throw new JsonException("Log data file could not be parsed.");
-                await SaveEntries(importFileData.Logs, sourcePath);
+                await SaveEntries(importFileData.Logs, sourcePath, importFileData.ImportTime ?? DateTimeOffset.UtcNow);
                 await AcknowledgeImport(scriptPath, importFiles, sourcePath);
             }
             catch (Exception exception)
@@ -138,10 +140,9 @@ namespace FWO.Middleware.Server
             return mergedEntries.Values.ToList();
         }
 
-        private async Task SaveEntries(List<LogDataImportEntry> sourceEntries, string sourcePath)
+        private async Task SaveEntries(List<LogDataImportEntry> sourceEntries, string sourcePath, DateTimeOffset importTime)
         {
-            DateTimeOffset importTime = DateTimeOffset.UtcNow;
-            List<NormalizedLogEntry> normalizedEntries = NormalizeValidEntries(sourceEntries, importTime);
+            List<NormalizedLogEntry> normalizedEntries = NormalizeValidEntries(sourceEntries, importTime, globalConfig.AllowLogDataPortWithoutProtocol);
             int invalidEntries = Math.Max(0, sourceEntries.Count - normalizedEntries.Count);
             List<FirewallLogEntryInput> resolvedEntries = await ResolveOwners(normalizedEntries);
             int unresolvedEntries = normalizedEntries.Count - resolvedEntries.Count;
@@ -256,6 +257,15 @@ namespace FWO.Middleware.Server
             });
         }
 
+        /// <summary>
+        /// Removes log entries which are older than logDataRetentionDays.
+        /// The age of an entry is the time the traffic was logged (log_time from the source data),
+        /// not the time it was imported. This is intended: retention describes how long logged
+        /// traffic is kept, independent of when someone happens to export it. An export whose
+        /// entries are already older than the retention is therefore imported and removed again
+        /// in the same run, and its source files are still acknowledged and deleted, because the
+        /// entries are outside the configured retention either way.
+        /// </summary>
         private async Task DeleteExpiredEntries()
         {
             int retentionDays = Math.Max(0, globalConfig.LogDataRetentionDays);
@@ -285,17 +295,18 @@ namespace FWO.Middleware.Server
                     " The source files are kept and their entries are imported again in the next run.";
                 Log.WriteError(LogMessageTitle, message);
                 await AddLogEntry(GlobalConst.kImportLogData, 2, LevelFile, message);
+                throw new InvalidOperationException(message);
             }
         }
 
-        private static FirewallLogEntryInput NormalizeEntry(LogDataImportEntry entry, DateTimeOffset importTime)
+        private static FirewallLogEntryInput NormalizeEntry(LogDataImportEntry entry, DateTimeOffset importTime, bool allowPortWithoutProtocol)
         {
             if (string.IsNullOrWhiteSpace(entry.AppId) || entry.LogCount < 1)
             {
                 throw new InvalidDataException("Log entries require a non-empty app_id and a positive log_count.");
             }
 
-            ValidateService(entry.Protocol, entry.Port);
+            ValidateService(entry.Protocol, entry.Port, allowPortWithoutProtocol);
             return new FirewallLogEntryInput
             {
                 LogCount = entry.LogCount,
@@ -352,25 +363,43 @@ namespace FWO.Middleware.Server
             return trimmedRuleName[..Math.Min(trimmedRuleName.Length, 100)];
         }
 
-        private static void ValidateService(int? protocol, int? port)
+        /// <summary>
+        /// Checks protocol and port of a logged flow. Log data of some sources carries ports
+        /// without naming the protocol, which is why allowLogDataPortWithoutProtocol makes the
+        /// requirement of a transport protocol configurable.
+        /// </summary>
+        private static void ValidateService(int? protocol, int? port, bool allowPortWithoutProtocol)
         {
             if (protocol is < 0 or > 255 || port is < 1 or > GlobalConst.kMaxPortNumber)
             {
                 throw new InvalidDataException("Protocol or port is outside its allowed range.");
             }
-            if (port.HasValue && protocol is not TcpProtocol and not UdpProtocol)
+            if (!port.HasValue)
+            {
+                return;
+            }
+            if (protocol is null && allowPortWithoutProtocol)
+            {
+                return;
+            }
+            if (protocol is not TcpProtocol and not UdpProtocol)
             {
                 throw new InvalidDataException("A port may only be provided for TCP or UDP.");
             }
         }
 
+        /// <summary>
+        /// Maps the action of a logged flow to allowed or denied.
+        /// Only the known wordings for a blocked flow count as denied, everything else is treated
+        /// as allowed: log data uses vendor specific and localized wordings, and dropping an entry
+        /// because of an unknown one would lose the flow with the acknowledged source file.
+        /// </summary>
         private static bool ParseAction(string? action)
         {
             return action?.Trim().ToLowerInvariant() switch
             {
-                null or "" or "accept" or "allow" or "allowed" => true,
-                "deny" or "drop" or "reject" => false,
-                _ => throw new InvalidDataException($"Unsupported log action '{action}'.")
+                "deny" or "drop" or "reject" or "block" or "blocked" or "denied" => false,
+                _ => true
             };
         }
 

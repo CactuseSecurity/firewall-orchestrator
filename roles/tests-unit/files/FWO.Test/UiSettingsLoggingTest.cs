@@ -91,6 +91,28 @@ namespace FWO.Test
             Assert.That(GetPrivateField<ConfigData>(component, "configData").ImportLogDataMaxEntries, Is.EqualTo(5000));
         }
 
+        [Test]
+        public void PrepareConfigData_RaisesNonPositiveRetentionToOneDay()
+        {
+            SettingsLogging component = CreateComponentWithMaxEntries(1000);
+            GetPrivateField<ConfigData>(component, "configData").LogDataRetentionDays = 0;
+
+            InvokePrivateMethod("PrepareConfigData", component);
+
+            Assert.That(GetPrivateField<ConfigData>(component, "configData").LogDataRetentionDays, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void PrepareConfigData_KeepsConfiguredRetention()
+        {
+            SettingsLogging component = CreateComponentWithMaxEntries(1000);
+            GetPrivateField<ConfigData>(component, "configData").LogDataRetentionDays = 90;
+
+            InvokePrivateMethod("PrepareConfigData", component);
+
+            Assert.That(GetPrivateField<ConfigData>(component, "configData").LogDataRetentionDays, Is.EqualTo(90));
+        }
+
         private static SettingsLogging CreateComponentWithMaxEntries(int maxEntries)
         {
             SettingsLogging component = new();

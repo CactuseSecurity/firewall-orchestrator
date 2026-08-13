@@ -60,6 +60,16 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("importLogDataMaxEntries")):</label>
             <input type="number" min="1" class="col-sm-6" @bind="configData.ImportLogDataMaxEntries" />
         </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5699"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("logDataRetentionDays")):</label>
+            <input type="number" min="1" class="col-sm-6" @bind="configData.LogDataRetentionDays" />
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5700"))">
+            <label for="cbx_port_without_protocol" class="col-form-label col-sm-4">@(userConfig.GetText("allowLogDataPortWithoutProtocol")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_port_without_protocol" type="checkbox" class="w-100" @bind="configData.AllowLogDataPortWithoutProtocol" />
+            </div>
+        </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5698"))">
             <label for="cbx_show_log_data" class="col-form-label col-sm-4">@(userConfig.GetText("showLogDataInConnections")):</label>
             <div class="col-sm-1">
@@ -89,6 +99,7 @@ else
 @code
 {
     private const int kMinLogDataMaxEntries = 1;
+    private const int kMinLogDataRetentionDays = 1;
 
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
@@ -136,9 +147,10 @@ else
             LogDataImportIntervalUnit oldIntervalUnit = globalConfig.ImportLogDataSleepTimeUnit;
             int oldMaxEntries = globalConfig.ImportLogDataMaxEntries;
             bool oldShowLogData = globalConfig.ShowLogDataInConnections;
+            LogDataSettings oldSettings = new(globalConfig.LogDataRetentionDays, globalConfig.AllowLogDataPortWithoutProtocol);
             PrepareConfigData();
             await globalConfig.WriteToDatabase(configData, apiConnection);
-            WriteSettingsAudit(oldPath, oldScriptArgs, oldInterval, oldIntervalUnit, oldMaxEntries, oldShowLogData);
+            WriteSettingsAudit(oldPath, oldScriptArgs, oldInterval, oldIntervalUnit, oldMaxEntries, oldShowLogData, oldSettings);
             pathsToAdd = [];
             pathsToDelete = [];
             DisplayMessageInUi(null, userConfig.GetText("logging"), userConfig.GetText("U5301"), false);
@@ -167,10 +179,17 @@ else
         logDataPaths = preparedPaths;
         configData!.ImportLogDataPath = JsonSerializer.Serialize(logDataPaths);
         configData.ImportLogDataMaxEntries = Math.Max(kMinLogDataMaxEntries, configData.ImportLogDataMaxEntries);
+        // a retention of 0 days would delete every entry right after it was imported
+        configData.LogDataRetentionDays = Math.Max(kMinLogDataRetentionDays, configData.LogDataRetentionDays);
     }
 
+    /// <summary>
+    /// Settings of the log data page which are only needed for the audit entry.
+    /// </summary>
+    private record LogDataSettings(int RetentionDays, bool AllowPortWithoutProtocol);
+
     private void WriteSettingsAudit(string oldPath, string oldScriptArgs, int oldInterval, LogDataImportIntervalUnit oldIntervalUnit,
-        int oldMaxEntries, bool oldShowLogData)
+        int oldMaxEntries, bool oldShowLogData, LogDataSettings oldSettings)
     {
         List<string> changes = [];
         AddSettingChange(changes, nameof(ConfigData.ImportLogDataPath), oldPath, configData!.ImportLogDataPath);
@@ -179,6 +198,9 @@ else
         AddSettingChange(changes, nameof(ConfigData.ImportLogDataSleepTimeUnit), oldIntervalUnit.ToString(), configData.ImportLogDataSleepTimeUnit.ToString());
         AddSettingChange(changes, nameof(ConfigData.ImportLogDataMaxEntries), oldMaxEntries.ToString(), configData.ImportLogDataMaxEntries.ToString());
         AddSettingChange(changes, nameof(ConfigData.ShowLogDataInConnections), oldShowLogData.ToString(), configData.ShowLogDataInConnections.ToString());
+        AddSettingChange(changes, nameof(ConfigData.LogDataRetentionDays), oldSettings.RetentionDays.ToString(), configData.LogDataRetentionDays.ToString());
+        AddSettingChange(changes, nameof(ConfigData.AllowLogDataPortWithoutProtocol), oldSettings.AllowPortWithoutProtocol.ToString(),
+            configData.AllowLogDataPortWithoutProtocol.ToString());
 
         if (changes.Count > 0)
         {

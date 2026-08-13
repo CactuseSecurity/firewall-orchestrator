@@ -8,7 +8,7 @@ import logging
 import sys
 import urllib.parse
 from collections.abc import Mapping
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TextIO, cast
 
@@ -23,7 +23,10 @@ DEFAULT_CONFIG_FILE: str = "/usr/local/fworch/etc/secrets/customizingConfig.json
 DEFAULT_REPOSITORY_DIRECTORY: str = "/usr/local/fworch/etc/logDataRepo"
 CSV_PATTERN: str = "*.csv"
 OUTPUT_FILE: Path = Path(__file__).with_suffix(".json")
-MANIFEST_FILE_NAME: str = ".fwo-log-import-manifest.json"
+# the manifest is deliberately kept outside the cloned repository: it decides which files the
+# acknowledgement deletes and pushes, so it must not be something the log repository can provide
+MANIFEST_FILE: Path = OUTPUT_FILE.with_name(".fwo-log-import-manifest.json")
+MAX_PENDING_REUSES: int = 3
 COMMIT_MESSAGE: str = "chore: remove imported log data"
 REQUIRED_COLUMNS: set[str] = {"App ID", "Log count", "Src IP", "Dst IP", "Port"}
 OPTIONAL_COLUMNS: dict[str, str] = {"Log timestamp": "log_time", "Rule name": "rule_name"}
@@ -108,10 +111,16 @@ def convert_row(row: Mapping[str, str | None]) -> LogDataEntry:
 
 
 def parse_service(row: Mapping[str, str | None]) -> tuple[int | None, int | None]:
-    """Read protocol and port of the logged flow, a port is only accepted for TCP and UDP."""
+    """
+    Read protocol and port of the logged flow.
+
+    A port of a named protocol other than TCP or UDP is rejected here. A port without any
+    protocol is passed on: whether it is imported is decided by the allowLogDataPortWithoutProtocol
+    setting, since some log exports carry ports without naming the protocol.
+    """
     protocol: int | None = parse_optional_int(row.get("Protocol") or "")
     port: int | None = parse_optional_int(row.get("Port") or "")
-    if port is not None and protocol not in PORT_PROTOCOLS:
+    if port is not None and protocol is not None and protocol not in PORT_PROTOCOLS:
         raise ValueError(f"Port is only valid with Protocol {' or '.join(str(p) for p in PORT_PROTOCOLS)}")
     return protocol, port
 
@@ -135,23 +144,63 @@ def normalize_log_time(value: str) -> str:
         parsed_time: datetime = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError as exception:
         raise ValueError(f"'{value}' is not a valid log timestamp") from exception
+    if parsed_time.tzinfo is None:
+        # without an offset the importer would read the value in the timezone of the middleware
+        parsed_time = parsed_time.replace(tzinfo=timezone.utc)
     return parsed_time.isoformat()
 
 
 def write_import_file(entries: list[LogDataEntry], csv_files: list[Path], repository_directory: Path) -> None:
-    OUTPUT_FILE.write_text(json.dumps({"logs": entries}, indent=2), encoding="utf-8")
-    manifest_path: Path = repository_directory / MANIFEST_FILE_NAME
+    import_time: str = datetime.now(timezone.utc).isoformat()
+    OUTPUT_FILE.write_text(json.dumps({"import_time": import_time, "logs": entries}, indent=2), encoding="utf-8")
     relative_files: list[str] = [str(csv_file.relative_to(repository_directory)) for csv_file in csv_files]
-    manifest_path.write_text(json.dumps({"csv_files": relative_files}, indent=2), encoding="utf-8")
+    MANIFEST_FILE.write_text(json.dumps({"csv_files": relative_files, "reuses": 0}, indent=2), encoding="utf-8")
+
+
+def reuse_pending_import(logger: logging.Logger) -> int:
+    """
+    Handle an import whose data was not acknowledged yet.
+
+    Fetching new CSV files while the previous ones are still in the repository would import them
+    twice, so the generated file is reused. A push which can never succeed would stall the import
+    on that file forever, therefore every reuse is counted and reported as a failure once the
+    data was kept back MAX_PENDING_REUSES times.
+    """
+    manifest: dict[str, object] = read_manifest()
+    stored_reuses: object = manifest.get("reuses")
+    reuses: int = stored_reuses + 1 if isinstance(stored_reuses, int) else 1
+    manifest["reuses"] = reuses
+    MANIFEST_FILE.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    if reuses > MAX_PENDING_REUSES:
+        logger.error(
+            "log data of %s was not acknowledged in %s runs; no new log data is imported until the "
+            "deletion of the imported CSV files can be pushed to the log data repository",
+            OUTPUT_FILE,
+            reuses,
+        )
+        return 1
+    logger.warning("previous log data import is still pending acknowledgement; reusing it (%s)", reuses)
+    return 0
+
+
+def read_manifest() -> dict[str, object]:
+    """Read the manifest written by the last import, raising when it is not usable."""
+    manifest_data: object = json.loads(MANIFEST_FILE.read_text(encoding="utf-8"))
+    if not isinstance(manifest_data, dict):
+        raise TypeError("Log data import manifest must be an object")
+    return cast("dict[str, object]", manifest_data)
 
 
 def import_data(config_file: str, depth: int | None, logger: logging.Logger) -> int:
-    git_repo: str = read_custom_config(config_file, "logDataGitRepo", logger=logger)
-    git_user: str = read_custom_config(config_file, "logDataGitUser", logger=logger)
-    git_password: str = read_custom_config(config_file, "logDataGitPassword", logger=logger)
     repository_directory: Path = Path(
         get_optional_value(config_file, "logDataGitRepoTargetDir", DEFAULT_REPOSITORY_DIRECTORY, logger)
     )
+    if MANIFEST_FILE.exists() and OUTPUT_FILE.exists():
+        return reuse_pending_import(logger)
+
+    git_repo: str = read_custom_config(config_file, "logDataGitRepo", logger=logger)
+    git_user: str = read_custom_config(config_file, "logDataGitUser", logger=logger)
+    git_password: str = read_custom_config(config_file, "logDataGitPassword", logger=logger)
     branch: str = get_optional_value(config_file, "logDataGitBranch", "", logger)
     repo_url: str = f"https://{git_user}:{urllib.parse.quote(git_password, safe='')}@{git_repo}"
     if not update_git_repo(repo_url, str(repository_directory), logger, branch=branch or None, depth=depth):
@@ -174,14 +223,10 @@ def acknowledge_import(config_file: str, logger: logging.Logger) -> int:
     repository_directory: Path = Path(
         get_optional_value(config_file, "logDataGitRepoTargetDir", DEFAULT_REPOSITORY_DIRECTORY, logger)
     )
-    manifest_path: Path = repository_directory / MANIFEST_FILE_NAME
-    if not manifest_path.exists():
+    if not MANIFEST_FILE.exists():
         logger.warning("no log data import manifest found; nothing to acknowledge")
         return 0
-    manifest_data: object = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if not isinstance(manifest_data, dict):
-        raise TypeError("Log data import manifest must be an object")
-    manifest: dict[str, object] = cast("dict[str, object]", manifest_data)
+    manifest: dict[str, object] = read_manifest()
     csv_file_names: object = manifest.get("csv_files", [])
     if not isinstance(csv_file_names, list):
         raise TypeError("Log data import manifest must contain a list of CSV file names")
@@ -196,7 +241,7 @@ def acknowledge_import(config_file: str, logger: logging.Logger) -> int:
         str(repository_directory), csv_files, COMMIT_MESSAGE, logger, git_user, git_password
     ):
         return 1
-    manifest_path.unlink(missing_ok=True)
+    MANIFEST_FILE.unlink(missing_ok=True)
     OUTPUT_FILE.unlink(missing_ok=True)
     return 0
 

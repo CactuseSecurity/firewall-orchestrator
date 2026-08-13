@@ -15,6 +15,7 @@ using FWO.Services.EventMediator.Interfaces;
 using FWO.Services.Modelling;
 using FWO.Services.Workflow;
 using FWO.Ui.Pages.NetworkModelling;
+using FWO.Ui.Shared;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
@@ -81,8 +82,49 @@ namespace FWO.Test
             await Task.CompletedTask;
         }
 
+        [Test]
+        public async Task EditConnPopup_ShowsLogDataWhenTheCallerOptsIn()
+        {
+            await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
+            userConfig.ModNamingConvention = "{}";
+            userConfig.ModAppServerTypes = "[]";
+            userConfig.ShowLogDataInConnections = true;
+            ModellingConnectionHandler handler = CreateConnectionHandler(
+                new SimulatedApiConnection(),
+                userConfig,
+                new ModellingConnection { Name = "conn", Reason = "reason" });
 
+            IRenderedComponent<EditConnPopup> component = RenderEditConnPopup(
+                context,
+                display: true,
+                replaceMode: false,
+                connHandler: handler,
+                showLogData: true);
 
+            Assert.That(component.FindComponents<LogDataTable>(), Has.Count.EqualTo(1));
+            await Task.CompletedTask;
+        }
 
+        [Test]
+        public async Task EditConnPopup_HidesLogDataWithoutCallerOptIn()
+        {
+            await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
+            userConfig.ModNamingConvention = "{}";
+            userConfig.ModAppServerTypes = "[]";
+            userConfig.ShowLogDataInConnections = true;
+            ModellingConnectionHandler handler = CreateConnectionHandler(
+                new SimulatedApiConnection(),
+                userConfig,
+                new ModellingConnection { Name = "conn", Reason = "reason" });
+
+            IRenderedComponent<EditConnPopup> component = RenderEditConnPopup(
+                context,
+                display: true,
+                replaceMode: false,
+                connHandler: handler);
+
+            Assert.That(component.FindComponents<LogDataTable>(), Is.Empty);
+            await Task.CompletedTask;
+        }
     }
 }

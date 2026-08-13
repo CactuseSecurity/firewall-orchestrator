@@ -349,6 +349,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("logDataRetentionDays"), JsonPropertyName("logDataRetentionDays")]
         public int LogDataRetentionDays { get; set; } = 90;
 
+        [JsonProperty("allowLogDataPortWithoutProtocol"), JsonPropertyName("allowLogDataPortWithoutProtocol")]
+        public bool AllowLogDataPortWithoutProtocol { get; set; } = false;
+
         [JsonProperty("showLogDataInConnections"), JsonPropertyName("showLogDataInConnections")]
         public bool ShowLogDataInConnections { get; set; } = false;
 

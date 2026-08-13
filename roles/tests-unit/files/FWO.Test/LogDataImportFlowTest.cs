@@ -1,6 +1,7 @@
 using System.Reflection;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Config.File;
 using FWO.Data;
 using FWO.Middleware.Server;
 using NUnit.Framework;
@@ -88,6 +89,73 @@ namespace FWO.Test
                 Assert.That(apiConnection.CompletedImports, Is.EqualTo(new List<bool> { true }));
                 Assert.That(apiConnection.CreateImportControlCalls, Is.EqualTo(1));
             });
+        }
+
+        [Test]
+        public async Task SaveEntries_UsesTheStableBatchTimeWhenEntryTimeIsMissing()
+        {
+            DateTimeOffset importTime = new(2026, 8, 13, 8, 15, 0, TimeSpan.Zero);
+            LogDataImportTestApiConn apiConnection = new();
+            apiConnection.OwnerIdsByAppId["APP-1"] = 11;
+            LogDataImport import = CreateImport(apiConnection);
+            List<LogDataImportEntry> sourceEntries = new()
+            {
+                NewSourceEntry("APP-1", 5, "192.0.2.1", "198.51.100.1")
+            };
+
+            await InvokeSaveEntries(import, sourceEntries, importTime);
+
+            Assert.That(apiConnection.InsertedEntries.Single().LogTime, Is.EqualTo(importTime));
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task AcknowledgeImport_ThrowsWhenTheScriptFails()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                Assert.Ignore("Script execution test requires a Unix-like environment.");
+            }
+
+            string tempRoot = Path.Combine(Path.GetTempPath(), $"fwo-log-data-{Guid.NewGuid():N}");
+            object? originalConfigData = null;
+            object? originalJwtPrivateKey = null;
+            object? originalJwtPublicKey = null;
+            bool configSnapshotTaken = false;
+            try
+            {
+                Directory.CreateDirectory(tempRoot);
+                (originalConfigData, originalJwtPrivateKey, originalJwtPublicKey) = SnapshotConfigFileState();
+                configSnapshotTaken = true;
+                ConfigureAllowedCustomizationRoots(tempRoot);
+
+                string customizationRoot = Path.Combine(tempRoot, "scripts", "customizing");
+                Directory.CreateDirectory(customizationRoot);
+                string sourcePath = Path.Combine(customizationRoot, "log-source");
+                string scriptPath = sourcePath + ".py";
+                File.WriteAllText(scriptPath, "#!/bin/sh\nexit 1\n");
+#pragma warning disable CA1416 // Test is skipped on Windows.
+                File.SetUnixFileMode(scriptPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+#pragma warning restore CA1416
+
+                LogDataImport import = CreateImport(new LogDataImportTestApiConn());
+                List<string> importFiles = new() { scriptPath };
+
+                Assert.That(async () => await InvokeAcknowledgeImport(import, scriptPath, importFiles, sourcePath),
+                    Throws.InstanceOf<InvalidOperationException>());
+                await Task.CompletedTask;
+            }
+            finally
+            {
+                if (configSnapshotTaken)
+                {
+                    RestoreConfigFileState(originalConfigData, originalJwtPrivateKey, originalJwtPublicKey);
+                }
+                if (Directory.Exists(tempRoot))
+                {
+                    Directory.Delete(tempRoot, true);
+                }
+            }
         }
 
         [Test]
@@ -282,12 +350,56 @@ namespace FWO.Test
             };
         }
 
-        private static async Task InvokeSaveEntries(LogDataImport import, List<LogDataImportEntry> sourceEntries)
+        private static async Task InvokeSaveEntries(LogDataImport import, List<LogDataImportEntry> sourceEntries,
+            DateTimeOffset? importTime = null)
         {
             MethodInfo method = typeof(LogDataImport).GetMethod("SaveEntries", BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new MissingMethodException(typeof(LogDataImport).FullName, "SaveEntries");
-            object[] arguments = [sourceEntries, "/usr/local/fworch/scripts/customizing/log_data_import/source"];
+            object[] arguments =
+            [
+                sourceEntries,
+                "/usr/local/fworch/scripts/customizing/log_data_import/source",
+                importTime ?? DateTimeOffset.UtcNow
+            ];
             await (Task)method.Invoke(import, arguments)!;
+        }
+
+        private static async Task InvokeAcknowledgeImport(LogDataImport import, string scriptPath,
+            List<string> importFiles, string sourcePath)
+        {
+            MethodInfo method = typeof(LogDataImport).GetMethod("AcknowledgeImport", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(typeof(LogDataImport).FullName, "AcknowledgeImport");
+            object[] arguments = [scriptPath, importFiles, sourcePath];
+            await (Task)method.Invoke(import, arguments)!;
+        }
+
+        private static void ConfigureAllowedCustomizationRoots(string fwoHome)
+        {
+            string configFilePath = Path.Combine(fwoHome, "config.json");
+            string privateKeyPath = Path.Combine(fwoHome, "private.pem");
+            string publicKeyPath = Path.Combine(fwoHome, "public.pem");
+            File.WriteAllText(configFilePath, $"{{\"fworch_home\":\"{fwoHome.Replace("\\", "\\\\")}\"}}");
+            File.WriteAllText(privateKeyPath, "");
+            File.WriteAllText(publicKeyPath, "");
+            object?[] configArguments = [configFilePath, privateKeyPath, publicKeyPath];
+            TestHelper.InvokeMethod<ConfigFile, object?>("Read", configArguments);
+        }
+
+        private static (object? Data, object? JwtPrivateKey, object? JwtPublicKey) SnapshotConfigFileState()
+        {
+            Type configFileType = typeof(ConfigFile);
+            object? data = configFileType.GetProperty("Data", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null);
+            object? jwtPrivateKey = configFileType.GetField("jwtPrivateKey", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null);
+            object? jwtPublicKey = configFileType.GetField("jwtPublicKey", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null);
+            return (data, jwtPrivateKey, jwtPublicKey);
+        }
+
+        private static void RestoreConfigFileState(object? data, object? jwtPrivateKey, object? jwtPublicKey)
+        {
+            Type configFileType = typeof(ConfigFile);
+            configFileType.GetProperty("Data", BindingFlags.Static | BindingFlags.NonPublic)!.SetValue(null, data);
+            configFileType.GetField("jwtPrivateKey", BindingFlags.Static | BindingFlags.NonPublic)!.SetValue(null, jwtPrivateKey);
+            configFileType.GetField("jwtPublicKey", BindingFlags.Static | BindingFlags.NonPublic)!.SetValue(null, jwtPublicKey);
         }
 
         private sealed class LogDataImportTestApiConn : SimulatedApiConnection

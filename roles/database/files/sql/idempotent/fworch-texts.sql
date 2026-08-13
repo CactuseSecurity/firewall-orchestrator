@@ -3038,6 +3038,10 @@ INSERT INTO txt VALUES ('importLogDataSleepTime', 'German', 'Logdaten-Importinte
 INSERT INTO txt VALUES ('importLogDataSleepTime', 'English', 'Log data import interval');
 INSERT INTO txt VALUES ('importLogDataMaxEntries', 'German', 'Maximale Anzahl Logeintr&auml;ge pro Import');
 INSERT INTO txt VALUES ('importLogDataMaxEntries', 'English', 'Maximum number of log entries per import');
+INSERT INTO txt VALUES ('logDataRetentionDays', 'German', 'Aufbewahrungsdauer der Logdaten (Tage)');
+INSERT INTO txt VALUES ('logDataRetentionDays', 'English', 'Log data retention (days)');
+INSERT INTO txt VALUES ('allowLogDataPortWithoutProtocol', 'German', 'Port ohne Protokoll in Logdaten zulassen');
+INSERT INTO txt VALUES ('allowLogDataPortWithoutProtocol', 'English', 'Allow port without protocol in log data');
 INSERT INTO txt VALUES ('showLogDataInConnections', 'German', 'Logdaten in Verbindungen anzeigen');
 INSERT INTO txt VALUES ('showLogDataInConnections', 'English', 'Show log data in connections');
 INSERT INTO txt VALUES ('log_data', 'German', 'Logdaten');
@@ -6925,6 +6929,10 @@ INSERT INTO txt VALUES ('H5697', 'German', 'Maximale Anzahl Logeintr&auml;ge pro
 INSERT INTO txt VALUES ('H5697', 'English', 'Maximum number of log entries per import: Only this many entries with the highest log counts are taken from each import file; the remaining entries are discarded.');
 INSERT INTO txt VALUES ('H5698', 'German', 'Logdaten in Verbindungen anzeigen: Blendet die importierten Logdaten des Eigent&uuml;mers unterhalb der Verbindung im Bearbeiten-Dialog ein.');
 INSERT INTO txt VALUES ('H5698', 'English', 'Show log data in connections: Displays the imported log data of the owner below the connection in the edit dialog.');
+INSERT INTO txt VALUES ('H5699', 'German', 'Aufbewahrungsdauer der Logdaten (Tage): Logeintr&auml;ge, deren Logzeitpunkt weiter zur&uuml;ckliegt, werden nach jedem Import gel&ouml;scht. Der Wert muss mindestens 1 betragen, sonst w&uuml;rden alle Eintr&auml;ge sofort wieder entfernt.');
+INSERT INTO txt VALUES ('H5699', 'English', 'Log data retention (days): Log entries whose log time is older are removed after every import. The value must be at least 1, otherwise every entry would be deleted right after it was imported.');
+INSERT INTO txt VALUES ('H5700', 'German', 'Port ohne Protokoll in Logdaten zulassen: Erlaubt Logeintr&auml;ge mit Port, aber ohne Protokollangabe. Ohne diese Option werden solche Eintr&auml;ge verworfen, da ein Port nur zu TCP oder UDP geh&ouml;ren kann.');
+INSERT INTO txt VALUES ('H5700', 'English', 'Allow port without protocol in log data: Accepts log entries which contain a port but no protocol. Without this option such entries are discarded, because a port belongs to TCP or UDP only.');
 INSERT INTO txt VALUES ('H5612', 'German',  'Import Appdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Appdaten-Import-L&auml;ufen.
     Ein Wert 0 bedeutet, dass der Appdaten-Import deaktiviert ist. Default-Wert = 0.
 ');

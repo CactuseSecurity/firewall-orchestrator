@@ -44,6 +44,12 @@ ALTER TABLE logging.log_entry DROP CONSTRAINT IF EXISTS log_entry_owner_foreign_
 ALTER TABLE logging.log_entry ADD CONSTRAINT log_entry_owner_foreign_key
     FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
+GRANT USAGE ON SCHEMA logging TO fwo_ro;
+GRANT SELECT ON ALL TABLES IN SCHEMA logging TO fwo_ro;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA logging TO fwo_ro;
+ALTER DEFAULT PRIVILEGES IN SCHEMA logging GRANT SELECT ON TABLES TO fwo_ro;
+ALTER DEFAULT PRIVILEGES IN SCHEMA logging GRANT USAGE, SELECT ON SEQUENCES TO fwo_ro;
+
 INSERT INTO stm_import (import_type_id, import_type_name)
 VALUES (4, 'log')
 ON CONFLICT (import_type_id) DO NOTHING;
@@ -57,5 +63,6 @@ VALUES
     ('importLogDataStartAt', '00:00:00', 0),
     ('importLogDataMaxEntries', '1000', 0),
     ('logDataRetentionDays', '90', 0),
+    ('allowLogDataPortWithoutProtocol', 'False', 0),
     ('showLogDataInConnections', 'False', 0)
 ON CONFLICT DO NOTHING;

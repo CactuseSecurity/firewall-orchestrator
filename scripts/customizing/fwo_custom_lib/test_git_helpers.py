@@ -276,3 +276,43 @@ def test_commit_and_push_deletions_reports_a_failing_push(tmp_path: Path) -> Non
     pushed: bool = commit_and_push_deletions(str(clone_path), [clone_path / "logs.csv"], COMMIT_MESSAGE, LOGGER)
 
     assert not pushed
+
+
+def test_commit_and_push_deletions_retries_an_existing_local_commit(tmp_path: Path) -> None:
+    clone_path, clone, origin = create_clone_with_origin(tmp_path)
+    origin_url: str = str(origin.working_dir)
+    clone.delete_remote(clone.remote("origin"))
+    first_push: bool = commit_and_push_deletions(str(clone_path), [clone_path / "logs.csv"], COMMIT_MESSAGE, LOGGER)
+    clone.create_remote("origin", origin_url)
+
+    second_push: bool = commit_and_push_deletions(str(clone_path), [clone_path / "logs.csv"], COMMIT_MESSAGE, LOGGER)
+
+    assert not first_push
+    assert second_push
+    assert "logs.csv" not in origin.head.commit.tree
+
+
+def test_commit_and_push_deletions_completes_a_shallow_clone_before_pushing(tmp_path: Path) -> None:
+    create_clone_with_origin(tmp_path)
+    # a second commit gives the shallow clone something to be shallow about
+    seed: git.Repo = git.Repo(tmp_path / "seed")
+    (tmp_path / "seed" / "second.csv").write_text("App ID,Log count\nAPP-2,2\n", encoding="utf-8")
+    seed.git.add("second.csv")
+    seed.index.commit("chore: add more sample log data")
+    seed.git.push("origin", "HEAD:refs/heads/main")
+
+    shallow_path: Path = tmp_path / "shallow"
+    # git ignores --depth for a plain local path, the file:// url makes it a real shallow clone
+    shallow: git.Repo = git.Repo.clone_from(
+        f"file://{tmp_path / 'origin.git'}", str(shallow_path), branch="main", depth=1
+    )
+    configure_identity(shallow)
+    assert shallow.git.rev_parse("--is-shallow-repository").strip() == "true"
+
+    pushed: bool = commit_and_push_deletions(
+        str(shallow_path), [shallow_path / "second.csv"], COMMIT_MESSAGE, LOGGER, "user", "password"
+    )
+
+    assert pushed
+    assert shallow.git.rev_parse("--is-shallow-repository").strip() == "false"
+    assert "second.csv" not in git.Repo(tmp_path / "origin.git").head.commit.tree

@@ -42,20 +42,20 @@ def prepare_repository(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple
     (repository_directory / "2026-08-12" / "fw.csv").write_text(CSV_CONTENT, encoding="utf-8")
     output_file: Path = tmp_path / "import_log_data_from_git.json"
     monkeypatch.setattr(importer, "OUTPUT_FILE", output_file)
+    monkeypatch.setattr(importer, "MANIFEST_FILE", tmp_path / ".fwo-log-import-manifest.json")
     return write_config(tmp_path, repository_directory), repository_directory, output_file
 
 
 def test_import_data_writes_entries_and_manifest(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    config_file, repository_directory, output_file = prepare_repository(tmp_path, monkeypatch)
+    config_file, _repository_directory, output_file = prepare_repository(tmp_path, monkeypatch)
     monkeypatch.setattr(importer, "update_git_repo", return_true)
 
     result: int = importer.import_data(config_file, None, LOGGER)
 
-    manifest: dict[str, Any] = json.loads(
-        (repository_directory / importer.MANIFEST_FILE_NAME).read_text(encoding="utf-8")
-    )
+    manifest: dict[str, Any] = json.loads(importer.MANIFEST_FILE.read_text(encoding="utf-8"))
     entries: dict[str, Any] = json.loads(output_file.read_text(encoding="utf-8"))
     assert result == 0
+    assert entries["import_time"].endswith("+00:00")
     assert entries["logs"][0]["app_id"] == "APP-1"
     assert entries["logs"][0]["log_count"] == 42
     assert manifest["csv_files"] == ["2026-08-12/fw.csv"]
@@ -88,6 +88,24 @@ def test_import_data_reports_a_failed_clone(tmp_path: Path, monkeypatch: pytest.
     assert not output_file.exists()
 
 
+def test_import_data_reuses_a_pending_import(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config_file, _repository_directory, output_file = prepare_repository(tmp_path, monkeypatch)
+    monkeypatch.setattr(importer, "update_git_repo", return_true)
+    importer.import_data(config_file, None, LOGGER)
+    original_output: str = output_file.read_text(encoding="utf-8")
+
+    def fail_if_called(*_args: object, **_kwargs: object) -> bool:
+        raise AssertionError("pending imports must not refresh the repository")
+
+    monkeypatch.setattr(importer, "update_git_repo", fail_if_called)
+
+    result: int = importer.import_data(config_file, None, LOGGER)
+
+    assert result == 0
+    assert importer.MANIFEST_FILE.exists()
+    assert output_file.read_text(encoding="utf-8") == original_output
+
+
 def test_acknowledge_import_deletes_manifest_and_output(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     config_file, repository_directory, output_file = prepare_repository(tmp_path, monkeypatch)
     monkeypatch.setattr(importer, "update_git_repo", return_true)
@@ -104,14 +122,14 @@ def test_acknowledge_import_deletes_manifest_and_output(tmp_path: Path, monkeypa
 
     assert result == 0
     assert deleted_files == [[repository_directory / "2026-08-12/fw.csv"]]
-    assert not (repository_directory / importer.MANIFEST_FILE_NAME).exists()
+    assert not importer.MANIFEST_FILE.exists()
     assert not output_file.exists()
 
 
 def test_acknowledge_import_keeps_the_manifest_when_the_push_fails(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    config_file, repository_directory, _ = prepare_repository(tmp_path, monkeypatch)
+    config_file, _repository_directory, _ = prepare_repository(tmp_path, monkeypatch)
     monkeypatch.setattr(importer, "update_git_repo", return_true)
     importer.import_data(config_file, None, LOGGER)
     monkeypatch.setattr(importer, "commit_and_push_deletions", return_false)
@@ -119,7 +137,7 @@ def test_acknowledge_import_keeps_the_manifest_when_the_push_fails(
     result: int = importer.acknowledge_import(config_file, LOGGER)
 
     assert result == 1
-    assert (repository_directory / importer.MANIFEST_FILE_NAME).exists()
+    assert importer.MANIFEST_FILE.exists()
 
 
 def test_acknowledge_import_without_manifest_does_nothing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -129,10 +147,8 @@ def test_acknowledge_import_without_manifest_does_nothing(tmp_path: Path, monkey
 
 
 def test_acknowledge_import_rejects_a_broken_manifest(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    config_file, repository_directory, _ = prepare_repository(tmp_path, monkeypatch)
-    (repository_directory / importer.MANIFEST_FILE_NAME).write_text(
-        json.dumps({"csv_files": "fw.csv"}), encoding="utf-8"
-    )
+    config_file, _repository_directory, _ = prepare_repository(tmp_path, monkeypatch)
+    importer.MANIFEST_FILE.write_text(json.dumps({"csv_files": "fw.csv"}), encoding="utf-8")
 
     with pytest.raises(TypeError):
         importer.acknowledge_import(config_file, LOGGER)
@@ -163,9 +179,7 @@ def test_import_data_skips_a_file_with_missing_columns(tmp_path: Path, monkeypat
 
     result: int = importer.import_data(config_file, None, LOGGER)
 
-    manifest: dict[str, Any] = json.loads(
-        (repository_directory / importer.MANIFEST_FILE_NAME).read_text(encoding="utf-8")
-    )
+    manifest: dict[str, Any] = json.loads(importer.MANIFEST_FILE.read_text(encoding="utf-8"))
     entries: dict[str, Any] = json.loads(output_file.read_text(encoding="utf-8"))
     assert result == 0
     assert len(entries["logs"]) == 1
@@ -197,7 +211,7 @@ def test_convert_row_normalizes_the_log_timestamp() -> None:
         "Log timestamp": "2026-08-12 08:15:00",
     }
 
-    assert importer.convert_row(row)["log_time"] == "2026-08-12T08:15:00"
+    assert importer.convert_row(row)["log_time"] == "2026-08-12T08:15:00+00:00"
 
 
 def test_convert_row_rejects_an_unparsable_log_timestamp() -> None:

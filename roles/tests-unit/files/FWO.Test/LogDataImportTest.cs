@@ -214,6 +214,65 @@ namespace FWO.Test
         }
 
         [Test]
+        public void NormalizeEntries_TreatsAnUnknownActionAsAllowed()
+        {
+            List<LogDataImportEntry> entries = new()
+            {
+                new() { AppId = "APP-1", LogCount = 3, Source = "192.0.2.1", Destination = "192.0.2.2", Action = "Client Encrypt" },
+                new() { AppId = "APP-1", LogCount = 2, Source = "192.0.2.3", Destination = "192.0.2.4", Action = "Block" },
+                new() { AppId = "APP-1", LogCount = 1, Source = "192.0.2.5", Destination = "192.0.2.6", Action = "" }
+            };
+
+            List<FirewallLogEntryInput> normalized = LogDataImport.NormalizeEntries(entries, ImportTime);
+
+            List<bool> expectedAllowed = [true, false, true];
+            Assert.Multiple(() =>
+            {
+                Assert.That(normalized, Has.Count.EqualTo(3), "no entry is dropped for its action");
+                Assert.That(normalized.Select(entry => entry.Allowed), Is.EqualTo(expectedAllowed));
+            });
+        }
+
+        [Test]
+        public void NormalizeEntries_SkipsPortWithoutProtocolByDefault()
+        {
+            List<LogDataImportEntry> entries = new()
+            {
+                new() { AppId = "APP-1", LogCount = 1, Source = "192.0.2.1", Destination = "192.0.2.2", Port = 443 }
+            };
+
+            Assert.That(LogDataImport.NormalizeEntries(entries, ImportTime), Is.Empty);
+        }
+
+        [Test]
+        public void NormalizeEntries_KeepsPortWithoutProtocolWhenConfigured()
+        {
+            List<LogDataImportEntry> entries = new()
+            {
+                new() { AppId = "APP-1", LogCount = 1, Source = "192.0.2.1", Destination = "192.0.2.2", Port = 443 }
+            };
+
+            List<FirewallLogEntryInput> normalized = LogDataImport.NormalizeEntries(entries, ImportTime, allowPortWithoutProtocol: true);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(normalized.Single().ServicePort, Is.EqualTo(443));
+                Assert.That(normalized.Single().ServiceProtocol, Is.Null);
+            });
+        }
+
+        [Test]
+        public void NormalizeEntries_KeepsRejectingAPortOfANonTransportProtocol()
+        {
+            List<LogDataImportEntry> entries = new()
+            {
+                new() { AppId = "APP-1", LogCount = 1, Source = "192.0.2.1", Destination = "192.0.2.2", Protocol = 1, Port = 8 }
+            };
+
+            Assert.That(LogDataImport.NormalizeEntries(entries, ImportTime, allowPortWithoutProtocol: true), Is.Empty);
+        }
+
+        [Test]
         public void NormalizeEntries_KeepsTheValidEntriesOfAFileWithInvalidOnes()
         {
             List<LogDataImportEntry> entries = new()

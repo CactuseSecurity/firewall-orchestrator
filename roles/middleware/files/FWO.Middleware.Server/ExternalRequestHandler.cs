@@ -589,6 +589,8 @@ namespace FWO.Middleware.Server
                 throw new InvalidOperationException($"Internal work marker could not be set for task {task.TaskNumber} in ticket {ticket.Id}.");
             }
 
+            approvalHandler.SetReqTaskEnv(approvalTask);
+
             approvalTask.StateId = approvalMatrix.LowestStartedState;
             await approvalHandler.PromoteReqTask(approvalTask);
 

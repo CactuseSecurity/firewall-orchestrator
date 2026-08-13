@@ -82,7 +82,7 @@
     {
         switch (Size)
         {
-            case PopupSize.Auto: return ""; // Auto size doesn't have a specific class for content and should just take the size of its content
+            case PopupSize.Auto: return "custom-modal-content-auto"; // Auto sized content grows with its content, but has to stop at the viewport so the footer stays reachable
             case PopupSize.FullScreen: return "custom-modal-content-fs";
             case PopupSize.XLarge: return "custom-modal-content-xl";
             case PopupSize.Large: return "custom-modal-content-lg ";

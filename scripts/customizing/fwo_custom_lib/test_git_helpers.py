@@ -316,3 +316,21 @@ def test_commit_and_push_deletions_completes_a_shallow_clone_before_pushing(tmp_
     assert pushed
     assert shallow.git.rev_parse("--is-shallow-repository").strip() == "false"
     assert "second.csv" not in git.Repo(tmp_path / "origin.git").head.commit.tree
+
+
+def test_commit_and_push_deletions_replays_onto_a_moved_remote(tmp_path: Path) -> None:
+    clone_path, clone, origin = create_clone_with_origin(tmp_path)
+    # the exporter adds a new file after the import cloned the repository
+    seed_path: Path = tmp_path / "seed"
+    seed: git.Repo = git.Repo(seed_path)
+    (seed_path / "new-export.csv").write_text("App ID,Log count\nAPP-3,3\n", encoding="utf-8")
+    seed.git.add("new-export.csv")
+    seed.index.commit("chore: add new log data export")
+    seed.git.push("origin", "HEAD:refs/heads/main")
+
+    pushed: bool = commit_and_push_deletions(str(clone_path), [clone_path / "logs.csv"], COMMIT_MESSAGE, LOGGER)
+
+    assert pushed
+    assert "logs.csv" not in origin.head.commit.tree
+    assert "new-export.csv" in origin.head.commit.tree, "the export added meanwhile survives"
+    assert clone.head.commit.message.strip() == COMMIT_MESSAGE

@@ -110,7 +110,7 @@ namespace FWO.Test
 
         [Test]
         [NonParallelizable]
-        public async Task AcknowledgeImport_ThrowsWhenTheScriptFails()
+        public async Task AcknowledgeImport_ReportsAFailingScriptWithoutFailingTheImport()
         {
             if (OperatingSystem.IsWindows())
             {
@@ -138,12 +138,14 @@ namespace FWO.Test
                 File.SetUnixFileMode(scriptPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
 #pragma warning restore CA1416
 
-                LogDataImport import = CreateImport(new LogDataImportTestApiConn());
+                LogDataImportTestApiConn apiConnection = new();
+                LogDataImport import = CreateImport(apiConnection);
                 List<string> importFiles = new() { scriptPath };
 
-                Assert.That(async () => await InvokeAcknowledgeImport(import, scriptPath, importFiles, sourcePath),
-                    Throws.InstanceOf<InvalidOperationException>());
-                await Task.CompletedTask;
+                await InvokeAcknowledgeImport(import, scriptPath, importFiles, sourcePath);
+
+                Assert.That(apiConnection.LogEntryDescriptions, Has.Some.Contains("Acknowledging the imported data"),
+                    "the failed acknowledgement is reported, the imported data stays imported");
             }
             finally
             {
@@ -156,6 +158,51 @@ namespace FWO.Test
                     Directory.Delete(tempRoot, true);
                 }
             }
+        }
+
+        [Test]
+        public async Task SaveEntries_KeepsApplicationIdsOfDifferentCaseApart()
+        {
+            LogDataImportTestApiConn apiConnection = new();
+            apiConnection.OwnerIdsByAppId["APP-1"] = 11;
+            LogDataImport import = CreateImport(apiConnection);
+            List<LogDataImportEntry> sourceEntries =
+            [
+                NewSourceEntry("APP-1", 30, "192.0.2.1", "198.51.100.1"),
+                NewSourceEntry("app-1", 20, "192.0.2.2", "198.51.100.2")
+            ];
+
+            await InvokeSaveEntries(import, sourceEntries);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.InsertedEntries, Has.Count.EqualTo(1), "the unknown spelling is not imported");
+                Assert.That(apiConnection.InsertedEntries.Single().LogCount, Is.EqualTo(30));
+                Assert.That(apiConnection.OwnerLookups, Is.EqualTo(2), "both spellings are looked up");
+            });
+        }
+
+        [Test]
+        public async Task SaveEntries_ReportsThatNothingCouldBeImported()
+        {
+            LogDataImportTestApiConn apiConnection = new();
+            LogDataImport import = CreateImport(apiConnection);
+            List<LogDataImportEntry> sourceEntries = [NewSourceEntry("UNKNOWN", 30, "192.0.2.1", "198.51.100.1")];
+
+            bool sourceConsumed = await InvokeSaveEntries(import, sourceEntries);
+
+            Assert.That(sourceConsumed, Is.False, "the source files are kept for a second attempt");
+        }
+
+        [Test]
+        public async Task SaveEntries_ConsumesAnEmptySource()
+        {
+            LogDataImportTestApiConn apiConnection = new();
+            LogDataImport import = CreateImport(apiConnection);
+
+            bool sourceConsumed = await InvokeSaveEntries(import, []);
+
+            Assert.That(sourceConsumed, Is.True, "a source without entries has nothing left to import");
         }
 
         [Test]
@@ -350,7 +397,7 @@ namespace FWO.Test
             };
         }
 
-        private static async Task InvokeSaveEntries(LogDataImport import, List<LogDataImportEntry> sourceEntries,
+        private static async Task<bool> InvokeSaveEntries(LogDataImport import, List<LogDataImportEntry> sourceEntries,
             DateTimeOffset? importTime = null)
         {
             MethodInfo method = typeof(LogDataImport).GetMethod("SaveEntries", BindingFlags.NonPublic | BindingFlags.Instance)
@@ -361,7 +408,7 @@ namespace FWO.Test
                 "/usr/local/fworch/scripts/customizing/log_data_import/source",
                 importTime ?? DateTimeOffset.UtcNow
             ];
-            await (Task)method.Invoke(import, arguments)!;
+            return await (Task<bool>)method.Invoke(import, arguments)!;
         }
 
         private static async Task InvokeAcknowledgeImport(LogDataImport import, string scriptPath,
@@ -404,7 +451,8 @@ namespace FWO.Test
 
         private sealed class LogDataImportTestApiConn : SimulatedApiConnection
         {
-            public Dictionary<string, int> OwnerIdsByAppId { get; } = new(StringComparer.OrdinalIgnoreCase);
+            // getOwnerId matches app_id_external case sensitively
+            public Dictionary<string, int> OwnerIdsByAppId { get; } = new(StringComparer.Ordinal);
             public List<FirewallLogEntryInput> InsertedEntries { get; } = [];
             public List<bool> CompletedImports { get; } = [];
             public List<string> LogEntryDescriptions { get; } = [];

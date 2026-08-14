@@ -34,7 +34,8 @@
         paths: "{{ fworch_home }}/scripts/customizing"
         patterns: "*.py"
         recurse: true
-        contains: '^#!\s*/usr/bin/(env )?python3\s*$'
+        # matches the same shebangs as the replace below, including ones with arguments
+        contains: '^#!\s*/usr/bin/(env )?python3([0-9.]*)?(\s.*)?$'
       register: customizing_scripts_with_system_shebang
 
     - name: point customizing script shebangs at the customizing venv

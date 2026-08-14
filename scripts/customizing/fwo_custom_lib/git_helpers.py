@@ -109,6 +109,27 @@ def unshallow_repo(repo: Any, logger: logging.Logger, git_username: str, git_pas
         repo.git.fetch("--unshallow", env=build_askpass_env(askpass_dir, git_username, git_password))
 
 
+def rebase_onto_remote(repo: Any, logger: logging.Logger, env: dict[str, str] | None) -> None:
+    """
+    Replay the local deletion on top of the remote branch.
+
+    The exporter keeps writing to the log data repository, so the remote almost always moved on
+    between cloning and acknowledging. Without this the push is rejected as non fast forward and
+    the same data would be imported again in every following run.
+    """
+    branch: str = repo.active_branch.name
+    if env is None:
+        repo.git.fetch("origin", branch)
+    else:
+        repo.git.fetch("origin", branch, env=env)
+    try:
+        repo.git.rebase("FETCH_HEAD")
+    except git.GitCommandError:
+        repo.git.rebase("--abort")
+        logger.exception("could not replay the log data deletion onto %s", branch)
+        raise
+
+
 def build_askpass_env(askpass_dir: str, git_username: str, git_password: str) -> dict[str, str]:
     """Environment which lets git read the credentials without a terminal prompt."""
     return {
@@ -143,8 +164,11 @@ def commit_and_push_deletions(
         if git_username is not None and git_password is not None:
             unshallow_repo(repo, logger, git_username, git_password)
             with tempfile.TemporaryDirectory() as askpass_dir:
-                repo.git.push("origin", "HEAD", env=build_askpass_env(askpass_dir, git_username, git_password))
+                env: dict[str, str] = build_askpass_env(askpass_dir, git_username, git_password)
+                rebase_onto_remote(repo, logger, env)
+                repo.git.push("origin", "HEAD", env=env)
         else:
+            rebase_onto_remote(repo, logger, None)
             repo.git.push("origin", "HEAD")
         logger.info("deleted and pushed log data files: %s", ", ".join(relative_paths))
         return True

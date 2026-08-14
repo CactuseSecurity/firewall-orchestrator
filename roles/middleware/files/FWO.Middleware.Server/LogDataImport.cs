@@ -101,8 +101,17 @@ namespace FWO.Middleware.Server
                 ReadFile(sourcePath + ".json");
                 LogDataImportFile importFileData = JsonSerializer.Deserialize<LogDataImportFile>(importFile)
                     ?? throw new JsonException("Log data file could not be parsed.");
-                await SaveEntries(importFileData.Logs, sourcePath, importFileData.ImportTime ?? DateTimeOffset.UtcNow);
-                await AcknowledgeImport(scriptPath, importFiles, sourcePath);
+                if (await SaveEntries(importFileData.Logs, sourcePath, importFileData.ImportTime ?? DateTimeOffset.UtcNow))
+                {
+                    await AcknowledgeImport(scriptPath, importFiles, sourcePath);
+                }
+                else
+                {
+                    string message = $"No entry of {sourcePath}.json could be imported, the source files are kept."
+                        + " Check the log data settings and the reported entries before the next run.";
+                    Log.WriteWarning(LogMessageTitle, message);
+                    await AddLogEntry(GlobalConst.kImportLogData, 1, LevelFile, message);
+                }
             }
             catch (Exception exception)
             {
@@ -140,7 +149,16 @@ namespace FWO.Middleware.Server
             return mergedEntries.Values.ToList();
         }
 
-        private async Task SaveEntries(List<LogDataImportEntry> sourceEntries, string sourcePath, DateTimeOffset importTime)
+        /// <summary>
+        /// Imports the entries of one source file.
+        /// </summary>
+        /// <returns>
+        /// False if the source contained entries but none of them could be imported. Such a source
+        /// is kept instead of being acknowledged: losing a whole export because of a configuration
+        /// which rejects all of its entries cannot be undone, while a source kept back is reported
+        /// in every run and can be imported after the configuration was corrected.
+        /// </returns>
+        private async Task<bool> SaveEntries(List<LogDataImportEntry> sourceEntries, string sourcePath, DateTimeOffset importTime)
         {
             List<NormalizedLogEntry> normalizedEntries = NormalizeValidEntries(sourceEntries, importTime, globalConfig.AllowLogDataPortWithoutProtocol);
             int invalidEntries = Math.Max(0, sourceEntries.Count - normalizedEntries.Count);
@@ -155,7 +173,7 @@ namespace FWO.Middleware.Server
             if (entries.Count == 0)
             {
                 await AddLogEntry(GlobalConst.kImportLogData, 1, LevelFile, $"No valid log entries found in {sourcePath}.json.");
-                return;
+                return sourceEntries.Count == 0;
             }
 
             long controlId = await CreateImportControl();
@@ -181,6 +199,7 @@ namespace FWO.Middleware.Server
             }
             Log.WriteInfo(LogMessageTitle, message);
             await AddLogEntry(GlobalConst.kImportLogData, 0, LevelFile, message);
+            return true;
         }
 
         /// <summary>
@@ -205,7 +224,9 @@ namespace FWO.Middleware.Server
 
         private async Task<List<FirewallLogEntryInput>> ResolveOwners(List<NormalizedLogEntry> normalizedEntries)
         {
-            Dictionary<string, int?> ownerIds = new(StringComparer.OrdinalIgnoreCase);
+            // the owner lookup matches app_id_external case sensitively, so the cache has to
+            // distinguish the same spellings, otherwise 'app-1' would inherit the owner of 'APP-1'
+            Dictionary<string, int?> ownerIds = new(StringComparer.Ordinal);
             List<FirewallLogEntryInput> resolvedEntries = new();
             foreach (NormalizedLogEntry normalizedEntry in normalizedEntries)
             {
@@ -291,11 +312,12 @@ namespace FWO.Middleware.Server
             string acknowledgement = string.Join(" ", globalConfig.ImportLogDataScriptArgs, "--acknowledge-import").Trim();
             if (!RunImportScript(scriptPath, acknowledgement))
             {
+                // the entries of this source were imported, only their removal failed, so the
+                // source is reported here instead of being handled as a failed import
                 string message = $"Acknowledging the imported data of {sourcePath}.json failed." +
                     " The source files are kept and their entries are imported again in the next run.";
                 Log.WriteError(LogMessageTitle, message);
                 await AddLogEntry(GlobalConst.kImportLogData, 2, LevelFile, message);
-                throw new InvalidOperationException(message);
             }
         }
 

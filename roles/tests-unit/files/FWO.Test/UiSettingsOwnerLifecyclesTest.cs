@@ -25,6 +25,7 @@ namespace FWO.Test
         [Test]
         public async Task SettingsOwnerLifecycles_InitializesAndShowsAdminActions()
         {
+            SimulatedUserConfig.DummyTranslate["edit"] = "Edit";
             await using BunitContext context = CreateContext();
             RecordingOwnerLifecycleApiConnection apiConnection = new()
             {

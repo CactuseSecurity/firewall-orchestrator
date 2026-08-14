@@ -24,6 +24,7 @@ namespace FWO.Test
     [NonParallelizable]
     internal class UiSettingsEmailTest
     {
+        private readonly Dictionary<string, string?> originalTranslations = new();
         private bool mainKeyFileAvailable;
 
         [OneTimeSetUp]
@@ -65,16 +66,44 @@ namespace FWO.Test
             SimulatedUserConfig.DummyTranslate["test_connection"] = "Test connection";
             SimulatedUserConfig.DummyTranslate["save"] = "Save";
             SimulatedUserConfig.DummyTranslate["read_config"] = "Read config";
-            SimulatedUserConfig.DummyTranslate["E5301"] = "Failed to load email config";
+            SetSharedTranslation("E5301", "Failed to load email config");
             SimulatedUserConfig.DummyTranslate["change_default"] = "Change default";
-            SimulatedUserConfig.DummyTranslate["U5301"] = "Email settings saved.";
+            SetSharedTranslation("U5301", "Email settings saved.");
             SimulatedUserConfig.DummyTranslate["save_email_conn"] = "Save email connection";
-            SimulatedUserConfig.DummyTranslate["E5102"] = "Missing email server";
-            SimulatedUserConfig.DummyTranslate["E5103"] = "Invalid email port";
+            SetSharedTranslation("E5102", "Missing email server");
+            SetSharedTranslation("E5103", "Invalid email port");
             SimulatedUserConfig.DummyTranslate["E5108"] = "Invalid sender address";
             SimulatedUserConfig.DummyTranslate["test_email_connection"] = "Test email connection";
             SimulatedUserConfig.DummyTranslate["E8101"] = "No user email configured";
             SimulatedUserConfig.DummyTranslate["U5402"] = "Email connection OK";
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            foreach ((string key, string? value) in originalTranslations)
+            {
+                if (value is null)
+                {
+                    SimulatedUserConfig.DummyTranslate.Remove(key);
+                }
+                else
+                {
+                    SimulatedUserConfig.DummyTranslate[key] = value;
+                }
+            }
+
+            originalTranslations.Clear();
+        }
+
+        private void SetSharedTranslation(string key, string value)
+        {
+            if (!originalTranslations.ContainsKey(key))
+            {
+                originalTranslations[key] = SimulatedUserConfig.DummyTranslate.TryGetValue(key, out string? existingValue) ? existingValue : null;
+            }
+
+            SimulatedUserConfig.DummyTranslate[key] = value;
         }
 
         [Test]

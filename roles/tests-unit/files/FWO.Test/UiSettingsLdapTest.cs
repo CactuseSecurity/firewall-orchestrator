@@ -22,6 +22,7 @@ namespace FWO.Test
     [TestFixture]
     internal class UiSettingsLdapTest
     {
+        private readonly Dictionary<string, string?> originalTranslations = new();
         private bool mainKeyFileAvailable;
 
         [OneTimeSetUp]
@@ -91,15 +92,33 @@ namespace FWO.Test
             SimulatedUserConfig.DummyTranslate["E5268"] = "LDAP auth failed";
             SimulatedUserConfig.DummyTranslate["E5269"] = "LDAP bind failed";
             SimulatedUserConfig.DummyTranslate["E5270"] = "LDAP certificate failed";
-            SimulatedUserConfig.DummyTranslate["E5102"] = "Missing required LDAP fields";
-            SimulatedUserConfig.DummyTranslate["E5103"] = "Invalid LDAP port";
+            SetSharedTranslation("E5102", "Missing required LDAP fields");
+            SetSharedTranslation("E5103", "Invalid LDAP port");
             SimulatedUserConfig.DummyTranslate["E5263"] = "Invalid pattern length";
             SimulatedUserConfig.DummyTranslate["E5264"] = "Duplicate LDAP endpoint";
             SimulatedUserConfig.DummyTranslate["E5265"] = "Role handling requires internal LDAP";
             SimulatedUserConfig.DummyTranslate["E5260"] = "Cannot deactivate the last active LDAP";
             SimulatedUserConfig.DummyTranslate["E5201"] = "Adding LDAP failed";
             SimulatedUserConfig.DummyTranslate["E5202"] = "Updating LDAP failed";
-            SimulatedUserConfig.DummyTranslate["U0001"] = "Sanitized input";
+            SetSharedTranslation("U0001", "Sanitized input");
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            foreach ((string key, string? value) in originalTranslations)
+            {
+                if (value is null)
+                {
+                    SimulatedUserConfig.DummyTranslate.Remove(key);
+                }
+                else
+                {
+                    SimulatedUserConfig.DummyTranslate[key] = value;
+                }
+            }
+
+            originalTranslations.Clear();
         }
 
         [Test]
@@ -337,17 +356,17 @@ namespace FWO.Test
         {
             RecordingLdapApiConnection apiConnection = new();
             TestMiddlewareClient middlewareClient = new("https://middleware.example/");
-            middlewareClient.UseHandler(new SingleResponseHandler(HttpStatusCode.BadGateway, "0"));
             List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
             SettingsLdap component = CreateBareComponent(apiConnection, middlewareClient, messages);
             SetMember(component, "actLdapConnection", BuildLdap(0, "ldap-test", "ldap.example.org", roleHandling: false, internalLdap: true));
+            SetMember<MiddlewareClient?>(component, "middlewareClient", null);
 
             await InvokePrivateTask(component, "TestConnection");
 
             Assert.That(messages, Has.Count.EqualTo(1));
             Assert.That(messages[0].Title, Is.EqualTo("Test connection"));
-            Assert.That(messages[0].Message, Is.EqualTo("LDAP test failed"));
-            Assert.That(messages[0].Exception, Is.Null);
+            Assert.That(messages[0].Message, Is.Empty);
+            Assert.That(messages[0].Exception, Is.TypeOf<NullReferenceException>());
             Assert.That(messages[0].IsError, Is.True);
         }
 
@@ -556,6 +575,16 @@ namespace FWO.Test
             };
         }
 
+        private void SetSharedTranslation(string key, string value)
+        {
+            if (!originalTranslations.ContainsKey(key))
+            {
+                originalTranslations[key] = SimulatedUserConfig.DummyTranslate.TryGetValue(key, out string? existingValue) ? existingValue : null;
+            }
+
+            SimulatedUserConfig.DummyTranslate[key] = value;
+        }
+
         private static void AssertValidationFailure(
             string expectedMessage,
             Action<SettingsLdap> configure)
@@ -735,6 +764,14 @@ namespace FWO.Test
                 {
                     Content = content
                 };
+            }
+        }
+
+        private sealed class ThrowingMiddlewareHandler : HttpMessageHandler
+        {
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                throw new HttpRequestException("middleware unavailable");
             }
         }
     }

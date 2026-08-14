@@ -168,11 +168,7 @@ namespace FWO.Test
             {
                 Ldaps =
                 [
-                    new FWO.Middleware.Server.Ldap
-                    {
-                        UserSearchPath = "ou=users,dc=fworch,dc=internal",
-                        GroupSearchPath = "ou=groups,dc=fworch,dc=internal"
-                    }
+                    CreateInternalTestLdap()
                 ],
                 Users =
                 [
@@ -216,6 +212,22 @@ namespace FWO.Test
                 Assert.That(apiConnection.CountQuery(NotificationQueries.updateNotificationsLastSent), Is.EqualTo(1));
                 Assert.That(apiConnection.CountQuery(MonitorQueries.addLogEntry), Is.EqualTo(1));
             });
+        }
+
+        private static TestableLdap CreateInternalTestLdap()
+        {
+            RecordingLdapClient client = new()
+            {
+                SearchResults = LdapTestSupport.CreateSearchResults()
+            };
+
+            return new TestableLdap(client)
+            {
+                TenantLevel = 1,
+                UserSearchPath = "ou=users,dc=fworch,dc=internal",
+                GroupSearchPath = "ou=groups,dc=fworch,dc=internal",
+                Active = true
+            };
         }
 
         [Test]

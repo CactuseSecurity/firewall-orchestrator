@@ -34,6 +34,7 @@ namespace FWO.Test
             ?? throw new MissingFieldException(typeof(ConfigFile).FullName, "jwtPublicKey");
 
         private RsaSecurityKey? originalJwtPublicKey;
+        private readonly Dictionary<string, string?> originalTranslations = new();
 
         [SetUp]
         public void SetUp()
@@ -73,18 +74,32 @@ namespace FWO.Test
             SimulatedUserConfig.DummyTranslate["U5101"] = "Delete management ";
             SimulatedUserConfig.DummyTranslate["U5102"] = "Delete sample managements";
             SimulatedUserConfig.DummyTranslate["E5101"] = "Management has devices";
-            SimulatedUserConfig.DummyTranslate["E5102"] = "Missing required management fields";
-            SimulatedUserConfig.DummyTranslate["E5103"] = "Invalid management port";
+            SetSharedTranslation("E5102", "Missing required management fields");
+            SetSharedTranslation("E5103", "Invalid management port");
             SimulatedUserConfig.DummyTranslate["E5104"] = "Invalid debug level";
             SimulatedUserConfig.DummyTranslate["E5105"] = "Duplicate management";
             SimulatedUserConfig.DummyTranslate["E5109"] = "Invalid legacy management name";
-            SimulatedUserConfig.DummyTranslate["U0001"] = "Sanitized input";
+            SetSharedTranslation("U0001", "Sanitized input");
         }
 
         [TearDown]
         public void TearDown()
         {
             JwtPublicKeyField.SetValue(null, originalJwtPublicKey);
+
+            foreach ((string key, string? value) in originalTranslations)
+            {
+                if (value is null)
+                {
+                    SimulatedUserConfig.DummyTranslate.Remove(key);
+                }
+                else
+                {
+                    SimulatedUserConfig.DummyTranslate[key] = value;
+                }
+            }
+
+            originalTranslations.Clear();
         }
 
         [Test]
@@ -638,6 +653,16 @@ namespace FWO.Test
                 ImportCredential = new ImportCredential { Id = 5, Name = "Read cred" },
                 Devices = devices ?? []
             };
+        }
+
+        private void SetSharedTranslation(string key, string value)
+        {
+            if (!originalTranslations.ContainsKey(key))
+            {
+                originalTranslations[key] = SimulatedUserConfig.DummyTranslate.TryGetValue(key, out string? existingValue) ? existingValue : null;
+            }
+
+            SimulatedUserConfig.DummyTranslate[key] = value;
         }
 
         private static void SetMember<T>(object instance, string memberName, T value)

@@ -36,6 +36,7 @@ namespace FWO.Test
             ?? throw new MissingFieldException(typeof(ConfigFile).FullName, "jwtPublicKey");
 
         private RsaSecurityKey? originalJwtPublicKey;
+        private readonly Dictionary<string, string?> originalTranslations = new();
         private bool mainKeyFileAvailable;
 
         [OneTimeSetUp]
@@ -91,11 +92,29 @@ namespace FWO.Test
             SimulatedUserConfig.DummyTranslate["fetch_credentials"] = "Fetch credentials";
             SimulatedUserConfig.DummyTranslate["save_credential"] = "Save credential";
             SimulatedUserConfig.DummyTranslate["delete_credential"] = "Delete credential";
-            SimulatedUserConfig.DummyTranslate["E5102"] = "Missing required credential fields";
+            SetSharedTranslation("E5102", "Missing required credential fields");
             SimulatedUserConfig.DummyTranslate["E5117"] = "Credential is used by managements";
             SimulatedUserConfig.DummyTranslate["U5117"] = "Delete credential ";
             SimulatedUserConfig.DummyTranslate["U5108"] = "Remove sample credentials";
-            SimulatedUserConfig.DummyTranslate["U0001"] = "Sanitized input";
+            SetSharedTranslation("U0001", "Sanitized input");
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            foreach ((string key, string? value) in originalTranslations)
+            {
+                if (value is null)
+                {
+                    SimulatedUserConfig.DummyTranslate.Remove(key);
+                }
+                else
+                {
+                    SimulatedUserConfig.DummyTranslate[key] = value;
+                }
+            }
+
+            originalTranslations.Clear();
         }
 
         [Test]
@@ -365,41 +384,50 @@ namespace FWO.Test
             bool withToken = true)
         {
             BunitContext context = new();
-            context.JSInterop.Mode = JSRuntimeMode.Loose;
-            context.Services.AddAuthorizationCore();
-            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
-            context.Services.AddSingleton<AuthenticationStateProvider>(new AllowAllAuthStateProvider(role));
-            context.Services.AddSingleton<DomEventService>();
-            context.Services.AddSingleton(typeof(IStringLocalizer<>), typeof(EmptyStringLocalizer<>));
-            context.Services.AddSingleton<ApiConnection>(apiConnection);
-            context.Services.AddSingleton<UserConfig>(CreateUserConfig(role));
-            context.Services.AddSingleton<MiddlewareClient>(new MockMiddlewareClient());
-
-            TokenService tokenService = new(new MockMiddlewareClient(), new MockProtectedSessionStorage());
-            if (withToken)
+            try
             {
-                await tokenService.SetTokenPair(CreateTokenPair(role));
-            }
-            context.Services.AddSingleton(tokenService);
+                context.JSInterop.Mode = JSRuntimeMode.Loose;
+                context.Services.AddAuthorizationCore();
+                context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+                context.Services.AddSingleton<AuthenticationStateProvider>(new AllowAllAuthStateProvider(role));
+                context.Services.AddSingleton<DomEventService>();
+                context.Services.AddSingleton(typeof(IStringLocalizer<>), typeof(EmptyStringLocalizer<>));
+                context.Services.AddSingleton<ApiConnection>(apiConnection);
+                context.Services.AddSingleton<UserConfig>(CreateUserConfig(role));
+                context.Services.AddSingleton<MiddlewareClient>(new MockMiddlewareClient());
 
-            IRenderedComponent<CascadingAuthenticationState> rendered = context.Render<CascadingAuthenticationState>(parameters => parameters
-                .AddChildContent<CascadingValue<Action<Exception?, string, string, bool>>>(child => child
-                    .Add(p => p.Value, (exception, title, message, isError) =>
-                    {
-                        messages?.Add((exception, title, message, isError));
-                    })
-                    .AddChildContent<SettingsCredentials>()));
-
-            await rendered.InvokeAsync(() => Task.CompletedTask);
-            if (withToken)
-            {
-                rendered.WaitForAssertion(() =>
+                TokenService tokenService = new(new MockMiddlewareClient(), new MockProtectedSessionStorage());
+                if (withToken)
                 {
-                    SettingsCredentials component = rendered.FindComponent<SettingsCredentials>().Instance;
-                    Assert.That(GetMember<List<ImportCredential>>(component, "credentials"), Has.Count.EqualTo(apiConnection.Credentials.Count));
-                });
+                    await tokenService.SetTokenPair(CreateTokenPair(role));
+                }
+                context.Services.AddSingleton(tokenService);
+
+                IRenderedComponent<CascadingAuthenticationState> rendered = context.Render<CascadingAuthenticationState>(parameters => parameters
+                    .AddChildContent<CascadingValue<Action<Exception?, string, string, bool>>>(child => child
+                        .Add(p => p.Value, (exception, title, message, isError) =>
+                        {
+                            messages?.Add((exception, title, message, isError));
+                        })
+                        .AddChildContent<SettingsCredentials>()));
+
+                await rendered.InvokeAsync(() => Task.CompletedTask);
+                if (withToken)
+                {
+                    rendered.WaitForAssertion(() =>
+                    {
+                        SettingsCredentials component = rendered.FindComponent<SettingsCredentials>().Instance;
+                        Assert.That(GetMember<List<ImportCredential>>(component, "credentials"), Has.Count.EqualTo(apiConnection.Credentials.Count));
+                    });
+                }
+
+                return new RenderSetup(context, rendered, rendered.FindComponent<SettingsCredentials>().Instance, apiConnection);
             }
-            return new RenderSetup(context, rendered, rendered.FindComponent<SettingsCredentials>().Instance, apiConnection);
+            catch
+            {
+                await context.DisposeAsync();
+                throw;
+            }
         }
 
         private static SimulatedUserConfig CreateUserConfig(string role)
@@ -407,6 +435,16 @@ namespace FWO.Test
             SimulatedUserConfig userConfig = new();
             userConfig.User.Roles = [role];
             return userConfig;
+        }
+
+        private void SetSharedTranslation(string key, string value)
+        {
+            if (!originalTranslations.ContainsKey(key))
+            {
+                originalTranslations[key] = SimulatedUserConfig.DummyTranslate.TryGetValue(key, out string? existingValue) ? existingValue : null;
+            }
+
+            SimulatedUserConfig.DummyTranslate[key] = value;
         }
 
         private static TokenPair CreateTokenPair(string role)

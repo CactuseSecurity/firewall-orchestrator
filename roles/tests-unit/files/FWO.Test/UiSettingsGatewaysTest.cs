@@ -28,6 +28,7 @@ namespace FWO.Test
             ?? throw new MissingFieldException(typeof(ConfigFile).FullName, "jwtPublicKey");
 
         private RsaSecurityKey? originalJwtPublicKey;
+        private readonly Dictionary<string, string?> originalTranslations = new();
 
         [SetUp]
         public void SetUp()
@@ -55,15 +56,29 @@ namespace FWO.Test
             SimulatedUserConfig.DummyTranslate["delete_gateway"] = "Delete gateway";
             SimulatedUserConfig.DummyTranslate["add_device_to_tenant0"] = "Add device to tenant";
             SimulatedUserConfig.DummyTranslate["U5103"] = "Delete gateway ";
-            SimulatedUserConfig.DummyTranslate["E5102"] = "Missing name or reason";
+            SetSharedTranslation("E5102", "Missing name or reason");
             SimulatedUserConfig.DummyTranslate["E5112"] = "Save gateway failed";
-            SimulatedUserConfig.DummyTranslate["U0001"] = "Sanitized input";
+            SetSharedTranslation("U0001", "Sanitized input");
         }
 
         [TearDown]
         public void TearDown()
         {
             JwtPublicKeyField.SetValue(null, originalJwtPublicKey);
+
+            foreach ((string key, string? value) in originalTranslations)
+            {
+                if (value is null)
+                {
+                    SimulatedUserConfig.DummyTranslate.Remove(key);
+                }
+                else
+                {
+                    SimulatedUserConfig.DummyTranslate[key] = value;
+                }
+            }
+
+            originalTranslations.Clear();
         }
 
         [Test]
@@ -504,6 +519,16 @@ namespace FWO.Test
             });
 
             return tokenService;
+        }
+
+        private void SetSharedTranslation(string key, string value)
+        {
+            if (!originalTranslations.ContainsKey(key))
+            {
+                originalTranslations[key] = SimulatedUserConfig.DummyTranslate.TryGetValue(key, out string? existingValue) ? existingValue : null;
+            }
+
+            SimulatedUserConfig.DummyTranslate[key] = value;
         }
 
         private static Management BuildManagement(int id, string name, int deviceTypeId, string manufacturer)

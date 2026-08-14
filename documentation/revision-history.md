@@ -590,5 +590,23 @@ Not supported any longer are:
 - update flow time object hashing to be timezone invariant
 - ! resets the flow timeobject and access tables
 
-## 9.2.6 - 31.07.2026
+## 9.3 - 31.07.2026
+- new import module for OPNsense firewalls
+
+## 9.3.1 - 03.08.2026
+- make rule change-ID custom field names configurable in compliance settings
+- ! breaking change: old hard-coded default value "Datum-Regelpruefung" is dropped and replaced, so existing installations using this feature be impacted!
+- changed workflow email CSV/JSON output and firewall request popup to separate current, added and removed group members
+- various memory leakage fixes in UI
+
+## 9.3.2 - 06.08.2026
+- fix upgrade failure when migrating workflow state matrices with non-JSON configuration values
+
+## 9.3.3 - 10.08.2026
+- fix a bug in provisioning where network objects were always created with mask 255.255.255.255
+
+## 9.3.4 - 11.08.2026
+- fix a bug in reporting ui where users with role modeller and reporter could not fetch rsb data for app rule reports
+
+## 9.3.5 - 14.08.2026
 - add upgrade seed for request task sort configuration

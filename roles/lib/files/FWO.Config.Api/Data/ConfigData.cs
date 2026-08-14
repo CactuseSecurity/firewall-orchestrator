@@ -338,7 +338,7 @@ namespace FWO.Config.Api.Data
         public string CustomFieldOwnerKey { get; set; } = "";
 
         [JsonProperty("CustomFieldChangeIdKey"), JsonPropertyName("CustomFieldChangeIdKey")]
-        public string CustomFieldChangeIdKey { get; set; } = "";
+        public string CustomFieldChangeIdKey { get; set; } = GlobalConst.kDefaultChangeIdKeys;
 
         [JsonProperty("rolesWithAppDataImport"), JsonPropertyName("rolesWithAppDataImport")]
         public string RolesWithAppDataImport { get; set; } = "[]";
@@ -456,6 +456,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("modRecertActive"), JsonPropertyName("modRecertActive")]
         public bool ModRecertActive { get; set; } = false;
+
+        [JsonProperty("colorScheme"), JsonPropertyName("colorScheme")]
+        public string ColorScheme { get; set; } = FWO.Config.Api.Data.ColorScheme.AvailableSchemes.First(s => s.IsDefault).Name;
 
         [JsonProperty("modRecertExpectAllModelled"), JsonPropertyName("modRecertExpectAllModelled")]
         public bool ModRecertExpectAllModelled { get; set; } = false;

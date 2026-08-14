@@ -25,6 +25,12 @@ The relevant variables are defined in `inventory/group_vars/all.yml`:
 | `fworch_systemd_unit_search_dirs` | both of the above, local directory first - used when looking for an already installed unit |
 | `fworch_systemd_unit_names` | all unit names owned by fworch, including legacy Hasura service names |
 | `fworch_systemd_restart_sec` | restart delay applied to all fworch services |
+| `fworch_systemd_start_limit_interval_sec` | window the start rate limit counts restarts in |
+| `fworch_systemd_start_limit_burst` | restarts tolerated within that window, `0` to retry forever |
+| `fworch_ui_memory_max_percent` | UI memory ceiling as a percentage of the host's RAM, `0` to leave uncapped |
+| `fworch_middleware_memory_max_percent` | same for the middleware server |
+| `fworch_importer_memory_max_percent` | same for the importer |
+| `fworch_ui_memory_max` / `_middleware_` / `_importer_` | the percentages resolved against `ansible_memtotal_mb`, rendered into `MemoryMax=` |
 
 ## Upgrading an existing installation
 
@@ -83,11 +89,53 @@ even when the services behind them are healthy.
 When adding a task that manages an OS service, always set `enabled` alongside `state` - a
 `state: restarted` on its own is not enough on RedHat.
 
-All services set `Restart=` together with `RestartSec` (from `fworch_systemd_restart_sec`) and
-`StartLimitIntervalSec=0`. Without disabling the start rate limit, a service that fails fast while
-a dependency is still starting burns through the systemd default of five restarts within ten
-seconds and ends up in a permanent `failed` state - which is what caused fworch services not to
-come up after a reboot on RedHat.
+All services set `Restart=` together with `RestartSec` (from `fworch_systemd_restart_sec`) and a
+widened start rate limit. With the systemd default of five restarts within ten seconds, a service
+that fails fast while a dependency is still starting burns through the limit and ends up in a
+permanent `failed` state - which is what caused fworch services not to come up after a reboot on
+RedHat.
+
+The limit is widened rather than switched off. `StartLimitIntervalSec=0` does keep a slow
+dependency from ever failing the service permanently, but it also means a service that can never
+start - out of memory, unreadable configuration, a port already taken - restarts every
+`RestartSec` seconds forever and never reaches a state that `systemctl status` or a monitoring
+check reports as broken. The defaults of 30 restarts per 1800 seconds are far above what a
+dependency coming up needs (each cycle is `RestartSec` plus the unit's `ExecStartPre` sleep, so
+30 restarts span at least six minutes) and far below an endless loop. Set
+`fworch_systemd_start_limit_burst: 0` to get the old retry-forever behaviour back.
+
+## Memory ceilings
+
+The three templated .NET and Python services carry a `MemoryMax=` derived from the host's total
+RAM, plus an explicit `OOMPolicy=`. This is not about sizing a service - the ceilings are
+deliberately generous and normal operation stays far below them. It is about *which* process dies
+when one of them runs away: without a per-service ceiling the kernel's global OOM killer picks its
+victim by badness score, and on a single-host installation the largest resident process is often
+postgres rather than the service that actually leaked. A ceiling makes the leaking service hit its
+own cgroup limit first, so it is the one that gets killed and restarted.
+
+| Service | Default share of RAM | `OOMPolicy` |
+| --- | --- | --- |
+| `fworch-ui.service` | 50 % | `stop` |
+| `fworch-middleware.service` | 30 % | `stop` |
+| `fworch-importer-api.service` | 40 % | `kill` |
+
+The percentages are ceilings, not reservations, so they add up to more than 100 % on purpose. Set
+the corresponding `*_memory_max_percent` to `0` on a host where a service legitimately needs more.
+
+The importer uses `OOMPolicy=kill` rather than `stop` because it runs a process tree. `stop` would
+take the unit down the regular stop path - `KillSignal=SIGINT` first, then up to `TimeoutStopSec`
+(300 min for the importer) before survivors are killed - which would stall the restart. `kill`
+sets `memory.oom.group` so the kernel takes the whole cgroup down at once and the restart is
+immediate.
+
+`fworch-hasura-api.service` is deliberately left uncapped: the container's resources belong to
+podman, and a `MemoryMax` on the unit would sit underneath whatever the container is configured
+with rather than replacing it.
+
+Note that a service killed for running out of memory *is* restarted - the OOM killer uses SIGKILL,
+and `Restart=on-failure` covers termination by an uncaught signal. The start limit is what stops
+that from repeating forever.
 
 ## Debugging
 
@@ -96,4 +144,15 @@ systemctl status 'fworch-*'
 systemctl cat fworch-hasura-api.service      # shows the unit plus all drop-ins
 systemctl list-unit-files 'fworch-*'         # shows the enablement state
 journalctl -u fworch-hasura-api -b -1        # log of the previous boot
+systemctl show fworch-ui -p MemoryMax -p OOMPolicy -p StartLimitBurst
+journalctl -u fworch-ui | grep -iE 'oom|memory limit|killed'
 ```
+
+A service that used up its start rate limit reports `start request repeated too quickly` and stays
+`failed`. `systemctl restart` does not clear that state - `systemctl reset-failed fworch-ui` does,
+and the installer runs the same command before every restart so that a re-run recovers a service
+that was crash looping.
+
+The unit stays failed on purpose: it means the service could not start 30 times in a row, so the
+cause is worth looking at rather than papering over with another restart. `MemoryMax` shows up in
+the journal as `A process of this unit has been killed by the OOM killer`.

@@ -16,7 +16,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System.Net.Http;
 using System.Reflection;
 using System.Security.Claims;
 using System.Text.Json;
@@ -84,10 +83,10 @@ namespace FWO.Test
             field.SetValue(instance, value);
         }
 
-        private static MethodInfo GetPrivateMethod(Type type, string name)
+        private static object? InvokePrivate(object instance, string methodName, params object?[] parameters)
         {
-            return type.GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new MissingMethodException(type.FullName, name);
+            MethodInfo? method = instance.GetType().GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance);
+            return method != null ? method.Invoke(instance, parameters) : throw new MissingMethodException(instance.GetType().FullName, methodName);
         }
 
         [Test]
@@ -329,10 +328,10 @@ namespace FWO.Test
                 ]
             };
 
-            string accessDetails = (string)GetPrivateMethod(typeof(RequestFwChangePopup), "DisplayTaskDetails").Invoke(component.Instance, [accessTask])!;
-            string ruleDetails = (string)GetPrivateMethod(typeof(RequestFwChangePopup), "DisplayTaskDetails").Invoke(component.Instance, [ruleDeleteTask])!;
-            string groupDetails = (string)GetPrivateMethod(typeof(RequestFwChangePopup), "DisplayTaskDetails").Invoke(component.Instance, [groupModifyTask])!;
-            string emptyDetails = (string)GetPrivateMethod(typeof(RequestFwChangePopup), "DisplayTaskDetails").Invoke(component.Instance, [new WfReqTask { TaskType = "unsupported" }])!;
+            string accessDetails = (string)InvokePrivate(component.Instance, "DisplayTaskDetails", accessTask)!;
+            string ruleDetails = (string)InvokePrivate(component.Instance, "DisplayTaskDetails", ruleDeleteTask)!;
+            string groupDetails = (string)InvokePrivate(component.Instance, "DisplayTaskDetails", groupModifyTask)!;
+            string emptyDetails = (string)InvokePrivate(component.Instance, "DisplayTaskDetails", new WfReqTask { TaskType = "unsupported" })!;
 
             Assert.Multiple(() =>
             {
@@ -354,6 +353,94 @@ namespace FWO.Test
                 Assert.That(groupDetails, Does.Contain("24/tcp"));
                 Assert.That(emptyDetails, Is.Empty);
             });
+        }
+
+        [Test]
+        public void DisplayTaskDetails_ForGroupMembers_DoesNotDropUnknownRequestAction()
+        {
+            RequestFwChangePopupTestApiConn apiConn = new();
+            SimulatedUserConfig userConfig = CreateUserConfig();
+
+            using BunitContext context = new();
+            IRenderedComponent<RequestFwChangePopup> component = RenderPopup(context, apiConn, userConfig, new() { Id = 7, Name = "App" }, []);
+
+            WfReqTask task = new()
+            {
+                TaskType = WfTaskType.group_create.ToString(),
+                Elements =
+                [
+                    new()
+            {
+                RequestAction = RequestAction.unchanged.ToString(),
+                Field = ElemFieldType.source.ToString(),
+                Name = "unchanged-host",
+                IpString = "192.0.2.20/32"
+            },
+            new()
+            {
+                RequestAction = "foreign-action",
+                Field = ElemFieldType.source.ToString(),
+                Name = "foreign-host",
+                IpString = "192.0.2.21/32"
+            }
+                ]
+            };
+
+            string details = (string)InvokePrivate(component.Instance, "DisplayTaskDetails", task)!;
+
+            Assert.That(details, Does.Contain("<b>Current Members:</b>"));
+            Assert.That(details, Does.Contain("unchanged-host"));
+            Assert.That(details, Does.Contain("foreign-host"));
+        }
+
+        [Test]
+        public void DisplayTaskDetails_ForGroupModify_GroupsNetworkMembersByRequestAction()
+        {
+            RequestFwChangePopupTestApiConn apiConn = new();
+            SimulatedUserConfig userConfig = CreateUserConfig();
+            FwoOwner selectedApp = new() { Id = 7, Name = "App" };
+            List<ModellingConnection> connections = new();
+
+            using BunitContext context = new();
+            IRenderedComponent<RequestFwChangePopup> component = RenderPopup(context, apiConn, userConfig, selectedApp, connections);
+
+            component.WaitForAssertion(() => Assert.That(apiConn.Queries, Does.Contain(StmQueries.getIpProtocols)));
+
+            string details = (string)InvokePrivate(component.Instance, "DisplayTaskDetails", CreateGroupModifyTask())!;
+
+            Assert.That(details, Does.Contain("<b>Current Members:</b>"));
+            Assert.That(details, Does.Contain("<b>Members to add:</b>"));
+            Assert.That(details, Does.Contain("<b>Members to remove:</b>"));
+            Assert.That(details, Does.Contain("current-host"));
+            Assert.That(details, Does.Contain("new-host"));
+            Assert.That(details, Does.Contain("requested-host"));
+            Assert.That(details, Does.Contain("removed-host"));
+            Assert.That(details, Does.Contain("class=\"text-success\""));
+            Assert.That(details, Does.Contain("class=\"text-info\""));
+            Assert.That(details, Does.Contain("class=\"text-danger\""));
+        }
+
+        [Test]
+        public void DisplayTaskDetails_ForGroupCreate_ShowsServiceMembersToAddOnly()
+        {
+            RequestFwChangePopupTestApiConn apiConn = new();
+            SimulatedUserConfig userConfig = CreateUserConfig();
+            FwoOwner selectedApp = new() { Id = 7, Name = "App" };
+            List<ModellingConnection> connections = new();
+
+            using BunitContext context = new();
+            IRenderedComponent<RequestFwChangePopup> component = RenderPopup(context, apiConn, userConfig, selectedApp, connections);
+
+            component.WaitForAssertion(() => Assert.That(apiConn.Queries, Does.Contain(StmQueries.getIpProtocols)));
+
+            string details = (string)InvokePrivate(component.Instance, "DisplayTaskDetails", CreateServiceGroupCreateTask())!;
+
+            Assert.That(details, Does.Not.Contain("<b>Current Members:</b>"));
+            Assert.That(details, Does.Contain("<b>Members to add:</b>"));
+            Assert.That(details, Does.Not.Contain("<b>Members to remove:</b>"));
+            Assert.That(details, Does.Contain("443/tcp"));
+            Assert.That(details, Does.Contain("class=\"text-success\""));
+            Assert.That(details, Does.Not.Contain("MyServiceGroup"));
         }
 
         private static SimulatedUserConfig CreateUserConfig()
@@ -384,6 +471,71 @@ namespace FWO.Test
                 [
                     new() { Content = new() { Id = 301, Name = "HTTPS", ProtoId = 6, Port = 443 } }
                 ]
+            };
+        }
+
+        private static WfReqTask CreateGroupModifyTask()
+        {
+            List<WfReqElement> elements = new()
+            {
+                new()
+                {
+                    RequestAction = RequestAction.unchanged.ToString(),
+                    Field = ElemFieldType.source.ToString(),
+                    Name = "current-host",
+                    IpString = "192.0.2.10/32"
+                },
+                new()
+                {
+                    RequestAction = RequestAction.create.ToString(),
+                    Field = ElemFieldType.source.ToString(),
+                    Name = "new-host",
+                    IpString = "192.0.2.11/32"
+                },
+                new()
+                {
+                    RequestAction = RequestAction.addAfterCreation.ToString(),
+                    Field = ElemFieldType.source.ToString(),
+                    Name = "requested-host",
+                    IpString = "192.0.2.12/32"
+                },
+                new()
+                {
+                    RequestAction = RequestAction.delete.ToString(),
+                    Field = ElemFieldType.source.ToString(),
+                    Name = "removed-host",
+                    IpString = "192.0.2.13/32"
+                }
+            };
+
+            return new()
+            {
+                TaskType = WfTaskType.group_modify.ToString(),
+                RequestAction = RequestAction.modify.ToString(),
+                Elements = elements
+            };
+        }
+
+        private static WfReqTask CreateServiceGroupCreateTask()
+        {
+            List<WfReqElement> elements = new()
+            {
+                new()
+                {
+                    RequestAction = RequestAction.create.ToString(),
+                    Field = ElemFieldType.service.ToString(),
+                    Name = "https",
+                    Port = 443,
+                    ProtoId = 6,
+                    GroupName = "MyServiceGroup"
+                }
+            };
+
+            return new()
+            {
+                TaskType = WfTaskType.group_create.ToString(),
+                RequestAction = RequestAction.create.ToString(),
+                Elements = elements
             };
         }
 

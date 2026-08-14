@@ -9,31 +9,79 @@ namespace FWO.Data
     public static class CustomFieldResolver
     {
         /// <summary>
-        /// Extracts the first matching custom field value from <paramref name="rule"/> using the ordered keys in <paramref name="keysJson"/>.
+        /// Normalizes a configured custom field key setting into an ordered key list.
+        /// Accepts a JSON array, a JSON string or a legacy plain-text key and never reports a resolver error,
+        /// so an unparsable setting can never surface rule data to the caller.
+        /// </summary>
+        /// <param name="customFieldKeys">Configured key setting.</param>
+        /// <returns>The ordered custom field keys, empty when nothing usable is configured.</returns>
+        public static List<string> NormalizeCustomFieldKeys(string? customFieldKeys)
+        {
+            if (string.IsNullOrWhiteSpace(customFieldKeys))
+            {
+                return [];
+            }
+
+            string trimmedKeys = customFieldKeys.Trim();
+            if (TryReadKeyList(trimmedKeys, out List<string> keyList))
+            {
+                return keyList;
+            }
+            if (TryReadSingleKey(trimmedKeys, out string singleKey))
+            {
+                return [singleKey];
+            }
+            // legacy plain-text key, kept usable instead of failing the whole lookup
+            return [trimmedKeys];
+        }
+
+        /// <summary>
+        /// Extracts the first matching custom field value from <paramref name="rule"/> using the keys in <paramref name="keysJson"/>.
         /// </summary>
         /// <typeparam name="T">The expected target type of the custom field value.</typeparam>
         /// <param name="rule">The rule containing the serialized custom fields.</param>
-        /// <param name="keysJson">A JSON array of candidate custom field keys to check in order.</param>
+        /// <param name="keysJson">A JSON array of candidate custom field keys, or a legacy plain-text key.</param>
+        /// <param name="errorMessage">Description of an unreadable custom field value, otherwise <see langword="null"/>.</param>
+        /// <param name="keyMatching">Whether the field names have to match the configured key exactly.</param>
         /// <returns>
         /// The deserialized custom field value when a matching key is found and can be converted to <typeparamref name="T"/>;
         /// otherwise, <see langword="default"/>.
         /// </returns>
-        public static T? ExtractCustomFieldValue<T>(Rule? rule, string keysJson, out string? errorMessage)
+        public static T? ExtractCustomFieldValue<T>(Rule? rule, string keysJson, out string? errorMessage,
+            CustomFieldKeyMatching keyMatching = CustomFieldKeyMatching.CaseSensitive)
+        {
+            return ExtractCustomFieldValue<T>(rule, NormalizeCustomFieldKeys(keysJson), out errorMessage, keyMatching);
+        }
+
+        /// <summary>
+        /// Extracts the first matching custom field value from <paramref name="rule"/> using already normalized keys,
+        /// so callers iterating many rules normalize the configured setting only once.
+        /// </summary>
+        /// <typeparam name="T">The expected target type of the custom field value.</typeparam>
+        /// <param name="rule">The rule containing the serialized custom fields.</param>
+        /// <param name="keys">Candidate custom field keys, checked in order.</param>
+        /// <param name="errorMessage">Description of an unreadable custom field value, otherwise <see langword="null"/>.</param>
+        /// <param name="keyMatching">Whether the field names have to match the configured key exactly.</param>
+        /// <returns>
+        /// The deserialized custom field value when a matching key is found and can be converted to <typeparamref name="T"/>;
+        /// otherwise, <see langword="default"/>.
+        /// </returns>
+        public static T? ExtractCustomFieldValue<T>(Rule? rule, IReadOnlyList<string> keys, out string? errorMessage,
+            CustomFieldKeyMatching keyMatching = CustomFieldKeyMatching.CaseSensitive)
         {
             errorMessage = null;
 
-            if (rule == null || string.IsNullOrWhiteSpace(rule.CustomFields) || string.IsNullOrWhiteSpace(keysJson))
+            if (rule == null || string.IsNullOrWhiteSpace(rule.CustomFields) || keys.Count == 0)
             {
                 return default;
             }
             Rule nonNullableRule = rule;
             Dictionary<string, JsonElement> customFields;
-            List<string> keysList;
 
             try
             {
-                customFields = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(nonNullableRule.CustomFields.Replace("'", "\"")) ?? new Dictionary<string, JsonElement>();
-                keysList = JsonSerializer.Deserialize<List<string>>(keysJson) ?? new List<string>();
+                customFields = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
+                    nonNullableRule.CustomFields.Replace("'", "\"")) ?? [];
             }
             catch (JsonException e)
             {
@@ -42,14 +90,14 @@ namespace FWO.Data
                 return default;
             }
 
-            if (customFields.Count == 0 || keysList.Count == 0)
+            if (customFields.Count == 0)
             {
                 return default;
             }
 
-            foreach (var key in keysList)
+            foreach (var key in keys)
             {
-                if (!customFields.TryGetValue(key, out var value))
+                if (!TryGetFieldValue(customFields, key, keyMatching, out JsonElement value))
                 {
                     continue;
                 }
@@ -73,6 +121,94 @@ namespace FWO.Data
                 }
             }
             return default;
+        }
+
+        /// <summary>
+        /// Looks up a single configured key in the custom fields of a rule.
+        /// An exact match always wins; only <see cref="CustomFieldKeyMatching.IgnoreCase"/> falls back to a
+        /// casing-insensitive scan, because the field names exported by the firewall vendors do not reliably
+        /// match the casing of the configured key.
+        /// </summary>
+        /// <param name="customFields">Custom fields as deserialized from the rule.</param>
+        /// <param name="key">Configured custom field key.</param>
+        /// <param name="keyMatching">Whether the field names have to match the configured key exactly.</param>
+        /// <param name="value">The value found for the key.</param>
+        /// <returns>True if the rule holds a field for the key.</returns>
+        private static bool TryGetFieldValue(Dictionary<string, JsonElement> customFields, string key,
+            CustomFieldKeyMatching keyMatching, out JsonElement value)
+        {
+            if (customFields.TryGetValue(key, out value))
+            {
+                return true;
+            }
+            if (keyMatching == CustomFieldKeyMatching.CaseSensitive)
+            {
+                return false;
+            }
+
+            // scanned instead of rebuilt into a case-insensitive dictionary, because this runs per rule
+            // and a rule holds only a handful of custom fields
+            foreach (KeyValuePair<string, JsonElement> customField in customFields)
+            {
+                if (string.Equals(customField.Key, key, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = customField.Value;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Reads a JSON array of keys, dropping blank entries.
+        /// </summary>
+        /// <param name="trimmedKeys">Trimmed key setting.</param>
+        /// <param name="keyList">The keys read from the array.</param>
+        /// <returns>True if the setting is a readable JSON array.</returns>
+        private static bool TryReadKeyList(string trimmedKeys, out List<string> keyList)
+        {
+            keyList = [];
+            if (!trimmedKeys.StartsWith('[') || !trimmedKeys.EndsWith(']'))
+            {
+                return false;
+            }
+
+            try
+            {
+                keyList = [.. (JsonSerializer.Deserialize<List<string>>(trimmedKeys) ?? [])
+                    .Where(key => !string.IsNullOrWhiteSpace(key))
+                    .Select(key => key.Trim())];
+                return true;
+            }
+            catch (JsonException)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Reads a setting holding a single JSON string key.
+        /// </summary>
+        /// <param name="trimmedKeys">Trimmed key setting.</param>
+        /// <param name="singleKey">The key read from the setting.</param>
+        /// <returns>True if the setting is a readable, non-blank JSON string.</returns>
+        private static bool TryReadSingleKey(string trimmedKeys, out string singleKey)
+        {
+            singleKey = "";
+            if (!trimmedKeys.StartsWith('"') || !trimmedKeys.EndsWith('"'))
+            {
+                return false;
+            }
+
+            try
+            {
+                singleKey = JsonSerializer.Deserialize<string>(trimmedKeys)?.Trim() ?? "";
+                return singleKey.Length > 0;
+            }
+            catch (JsonException)
+            {
+                return false;
+            }
         }
     }
 }

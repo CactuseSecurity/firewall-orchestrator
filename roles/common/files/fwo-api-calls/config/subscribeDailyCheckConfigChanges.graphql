@@ -26,7 +26,8 @@
     {config_key: {_eq: "modUnansweredReqEmailBody"}},
     {config_key: {_eq: "ruleExpiryEmailBody"}},
     {config_key: {_eq: "ownerActiveRuleEmailBody"}},
-    {config_key: {_eq: "ruleExpiryInitiatorKeys"}}
+    {config_key: {_eq: "ruleExpiryInitiatorKeys"}},
+    {config_key: {_eq: "CustomFieldChangeIdKey"}}
   ]}){
     config_key
     config_value

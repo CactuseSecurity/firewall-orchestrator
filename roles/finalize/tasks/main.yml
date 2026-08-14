@@ -66,6 +66,16 @@
 #   become: true
 #   when: "'middlewareserver' in group_names"
 
+# a service that exhausted its start rate limit stays failed and refuses to be restarted with
+# "start request repeated too quickly" until its state is cleared - so clear it before the
+# restarts below, otherwise an installer run cannot recover a service that was crash looping
+- name: clear any failed state before restarting the {{ product_name }} services
+  command: "systemctl reset-failed {{ item }}.service"
+  loop: "{{ fworch_systemd_unit_names }}"
+  changed_when: false
+  failed_when: false
+  become: true
+
 - name: restart UI to display new product version
   ansible.builtin.systemd:
     name: "{{ product_name }}-ui"

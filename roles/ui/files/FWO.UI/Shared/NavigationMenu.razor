@@ -12,7 +12,10 @@
 @if (InitComplete)
 {
 	<div class="position-sticky" style="z-index:15; top:0px;">
-		<nav id="navbar" class="navbar navbar-expand-xl navbar-dark bg-blue shadow w-100">
+		@{ ColorScheme currentColorScheme = ColorScheme.GetSchemeByName(globalConfig.ColorScheme); }
+		<nav id="navbar" class="navbar navbar-expand-xl navbar-dark bg-blue shadow w-100"
+		 style="--bg-color:@(currentColorScheme.Hex);
+         --bg-color-2:@(currentColorScheme.Hex2);">
 			<a class="navbar-brand pad-10" href="#">
 				@if (globalConfig.UseCustomLogo)
 				{
@@ -95,7 +98,9 @@
 				<ul class="@NavPaddingCollapseClass d-flex flex-wrap navbar-nav align-items-end ms-auto flex-row">
 					<li class="nav-item px-2">
 						@* d-flex align-items-center *@
-						<NavLink class="nav-link" href="/monitoring">
+						@* an open alert makes the alarm indicator the point of this link, so it leads to the alerts
+						   instead of the system usage start page of the monitoring section *@
+						<NavLink class="nav-link" href="@(ShowAlert ? "/monitoring/main" : "/monitoring")">
 							<span class="@Icons.Monitoring">
 								@if (ShowAlert)
 								{

@@ -200,8 +200,59 @@ This typically happens when:
 - project Python dependencies are not installed yet.
 
 In this repo, `core.hooksPath` is set to `.githooks`, so these checks run automatically on commit.
+The hook prefers the repository-local virtual environment at `.venv` when it exists.
+That means fixing a global Python installation often does nothing for the commit hook.
 
-### 3. Suggested changes
+### 3. Fast fix for Ruff version mismatch
+
+If the error looks like this:
+
+```text
+Error: Ruff version mismatch.
+Installed ruff is 0.15.21, but pyproject.toml requires 0.16.0.
+```
+
+fix the repo-local `.venv`, not the global Python installation.
+
+From the repo root:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install --upgrade ruff==0.16.0
+.\.venv\Scripts\python.exe -m ruff check --fix
+.\.venv\Scripts\python.exe -m ruff format
+```
+
+Then retry:
+
+```powershell
+git commit
+```
+
+Why this works:
+
+- the pre-commit hook checks `.venv` first,
+- `pyproject.toml` currently requires `ruff==0.16.0`,
+- `roles/importer/files/importer/requirements.txt` currently pins `ruff==0.16.0`.
+
+Quick verification:
+
+```powershell
+.\.venv\Scripts\python.exe -m ruff --version
+```
+
+### 4. If `.venv` does not exist yet
+
+Create it once from the repo root:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -U pip
+.\.venv\Scripts\python.exe -m pip install -r roles\importer\files\importer\requirements.txt -r scripts\requirements.txt
+```
+
+Then rerun the Ruff commands from the previous section.
+
+### 5. Full setup if Python tooling is missing
 
 Recommended setup (repo root):
 

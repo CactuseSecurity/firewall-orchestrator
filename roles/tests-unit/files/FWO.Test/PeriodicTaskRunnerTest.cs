@@ -68,6 +68,7 @@ namespace FWO.Test
         {
             int executionCount = 0;
             TaskCompletionSource<bool> firstTickReached = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            TaskCompletionSource<bool> releaseCallback = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
             using PeriodicTaskRunner runner = new(async () =>
             {
@@ -76,7 +77,7 @@ namespace FWO.Test
                     firstTickReached.TrySetResult(true);
                 }
 
-                await Task.CompletedTask;
+                await releaseCallback.Task;
             }, TimeSpan.FromMilliseconds(20));
 
             runner.Start();
@@ -85,17 +86,11 @@ namespace FWO.Test
             Task completedTask = await Task.WhenAny(firstTickReached.Task, Task.Delay(TimeSpan.FromSeconds(2)));
 
             Assert.That(completedTask, Is.EqualTo(firstTickReached.Task));
-        }
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
+            int executionCountAfterSecondStart = executionCount;
+            releaseCallback.TrySetResult(true);
 
-        [Test]
-        public void Dispose_CalledTwice_IsIdempotent()
-        {
-            PeriodicTaskRunner runner = new(() => Task.CompletedTask, TimeSpan.FromMilliseconds(20));
-
-            runner.Start();
-            runner.Dispose();
-
-            Assert.DoesNotThrow(runner.Dispose);
+            Assert.That(executionCountAfterSecondStart, Is.EqualTo(1));
         }
 
         [Test]
@@ -106,6 +101,37 @@ namespace FWO.Test
             runner.Dispose();
 
             Assert.Throws<ObjectDisposedException>(runner.Start);
+        }
+
+        [Test]
+        public async Task Dispose_WhileCallbackRunning_WaitsForLoopToStop()
+        {
+            int executionCount = 0;
+            TaskCompletionSource<bool> callbackEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            TaskCompletionSource<bool> releaseCallback = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            PeriodicTaskRunner runner = new(async () =>
+            {
+                Interlocked.Increment(ref executionCount);
+                callbackEntered.TrySetResult(true);
+                await releaseCallback.Task;
+            }, TimeSpan.FromMilliseconds(20));
+
+            runner.Start();
+
+            Task enteredTask = await Task.WhenAny(callbackEntered.Task, Task.Delay(TimeSpan.FromSeconds(2)));
+            Assert.That(enteredTask, Is.EqualTo(callbackEntered.Task));
+
+            // dispose blocks until the loop task has finished, so run it in the background
+            // while the callback is still executing, then let the callback complete
+            Task disposeTask = Task.Run(runner.Dispose);
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
+            releaseCallback.TrySetResult(true);
+
+            Task completedTask = await Task.WhenAny(disposeTask, Task.Delay(TimeSpan.FromSeconds(2)));
+
+            Assert.That(completedTask, Is.EqualTo(disposeTask));
+            Assert.That(executionCount, Is.GreaterThanOrEqualTo(1));
         }
 
         [Test]

@@ -65,7 +65,7 @@ namespace FWO.Test
                 Assert.That(handlerChangedCalls, Is.EqualTo(1));
                 Assert.That(displayChanged, Is.False);
                 Assert.That(group.Id, Is.EqualTo(77));
-                    Assert.That(group.Services.Select(item => item.Content.Id), Is.EquivalentTo(new List<long> { service.Id }));
+                Assert.That(group.Services.Select(item => item.Content.Id), Is.EquivalentTo(new List<long> { service.Id }));
                 Assert.That(availableSvcElems, Has.Count.EqualTo(1));
                 Assert.That(apiConn.NewServiceGroupCalls, Is.EqualTo(1));
                 Assert.That(apiConn.AddServiceToServiceGroupCalls, Is.EqualTo(1));

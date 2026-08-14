@@ -12,6 +12,7 @@ from fw_modules.ciscoasa9.fwcommon import CiscoAsa9Common
 from fw_modules.fortiadom5ff.fwcommon import FortiAdom5ffCommon
 from fw_modules.fortiosmanagementREST.fwcommon import FortiosManagementRESTCommon
 from fw_modules.generic.fwcommon import GenericFirewallCommon
+from fw_modules.opnsense25ff.fwcommon import OPNsense25common
 from fwo_const import IMPORTER_BASE_DIR
 from fwo_log import FWOLogger
 from model_controllers.fwconfig_import_rollback import FwConfigImportRollback
@@ -306,6 +307,8 @@ def get_module(import_state: ImportState) -> FwCommon:
         fw_module = CheckpointR8xCommon()
     elif pkg_name == "fortiosmanagementREST":
         fw_module = FortiosManagementRESTCommon()
+    elif pkg_name == "opnsensestandalone25ff":
+        fw_module = OPNsense25common()
     elif pkg_name == "genericfirewallmanagement1.0":
         fw_module = GenericFirewallCommon()
     elif pkg_name == "azure2022ff":

@@ -377,6 +377,13 @@ namespace FWO.Test
             Assert.That(int.Parse(limitValue), Is.GreaterThanOrEqualTo(trackedConfigKeyCount));
         }
 
+        [Test]
+        public void ChangeIdCustomFieldKeysAreIncludedInRelevantSubscriptions()
+        {
+            Assert.That(ConfigQueries.subscribeComplianceCheckConfigChanges, Does.Contain("CustomFieldChangeIdKey"));
+            Assert.That(ConfigQueries.subscribeDailyCheckConfigChanges, Does.Contain("CustomFieldChangeIdKey"));
+        }
+
         [GeneratedRegex(@"config_key\s*:\s*\{(?<body>.*?)\}", RegexOptions.Singleline)]
         private static partial Regex ConfigKeyFiltersRegex();
 
@@ -413,6 +420,14 @@ namespace FWO.Test
             ConfigData configData = new();
 
             Assert.That(configData.ComplianceDesignatedZoneMatrixId, Is.Zero);
+        }
+
+        [Test]
+        public void ConfigData_DefaultsChangeIdCustomFieldKeys()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.CustomFieldChangeIdKey, Is.EqualTo("[\"field-2\",\"ChangeID\"]"));
         }
 
         [Test]

@@ -515,9 +515,12 @@
       [Unit]
       Wants={{ api_hasura_systemd_wants | join(' ') }}
       After={{ api_hasura_systemd_after | join(' ') }}
-      # without this the default start rate limit puts the service into a permanent failed
-      # state after a few fast failures, e.g. while the database is still starting up
-      StartLimitIntervalSec=0
+      # the default start rate limit puts the service into a permanent failed state after a few
+      # fast failures, e.g. while the database is still starting up. the window below is wide
+      # enough to cover that, but still capped so a service that keeps crashing stays visible.
+      # no MemoryMax here - the container is podman's to size, not the unit's.
+      StartLimitIntervalSec={{ fworch_systemd_start_limit_interval_sec }}
+      StartLimitBurst={{ fworch_systemd_start_limit_burst }}
 
       [Service]
       Restart=on-failure

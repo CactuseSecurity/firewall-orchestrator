@@ -1,14 +1,11 @@
+@using System.Net
 @using FWO.Compliance
 @using FWO.Data.Middleware
 @using FWO.Data.Workflow
-@using FWO.Services.Workflow
-@using FWO.Middleware.Client
-@using FWO.Report
 @using FWO.ExternalSystems.Tufin.SecureChange
-@using Newtonsoft.Json
+@using FWO.Middleware.Client
+@using FWO.Services.Workflow
 @using RestSharp
-@using System.Net
-@using System.Text.Json.Serialization
 
 @implements IDisposable
 
@@ -29,7 +26,7 @@
                 <div class="col-sm-2">@(userConfig.GetText("state")): </div>
                 <div class="col-sm-10">@(UserConfig.PureLineStat(ChangeStatus))</div>
             </div>
-            @if(TaskList.Count == 0)
+            @if (TaskList.Count == 0)
             {
                 <br>
                 <b>@(userConfig.GetText("U9026"))</b>
@@ -225,7 +222,7 @@
 
     private void SetActTicketStatus(WfTicket intTicket)
     {
-        if(extStateHandler!= null)
+        if (extStateHandler != null)
         {
             intTicket.UpdateCidrsInTaskElements();
             TaskList = [.. intTicket.Tasks];
@@ -240,12 +237,12 @@
             return userConfig.GetText("source") + ": " + DisplayNwObjects(task, ElemFieldType.source.ToString()) +
                 "<br>" + userConfig.GetText("service") + ": " + DisplayServices(task) +
                 "<br>" + userConfig.GetText("destination") + ": " + DisplayNwObjects(task, ElemFieldType.destination.ToString()) +
-                (task.Comments.Count > 0 ? "<br>" + userConfig.GetText("comment") + ": " + task.Comments.First().Comment.CommentText : "");
+                DisplayComment(task);
         }
         else if (task.TaskType == WfTaskType.rule_modify.ToString() || task.TaskType == WfTaskType.rule_delete.ToString())
         {
             return userConfig.GetText("gateway") + ": " + DisplayDevices(task) +
-                "<br>" + userConfig.GetText("rule_uid") + ": " + (task.GetRuleElements().FirstOrDefault()?.RuleUid ?? "") +
+                "<br>" + userConfig.GetText("rule_uid") + ": " + HtmlEncode(task.GetRuleElements().FirstOrDefault()?.RuleUid) +
                 "<br>" + userConfig.GetText("source") + ": " + DisplayNwObjects(task, ElemFieldType.source.ToString()) +
                 (task.TaskType == WfTaskType.rule_delete.ToString() && task.Elements.Where(e => e.Field == ElemFieldType.modelled_source.ToString()).ToList().Count > 0 ?
                     "<br>" + userConfig.GetText("modelled_source") + ": " + DisplayNwObjects(task, ElemFieldType.modelled_source.ToString()) : "") +
@@ -253,7 +250,7 @@
                 "<br>" + userConfig.GetText("destination") + ": " + DisplayNwObjects(task, ElemFieldType.destination.ToString()) +
                 (task.TaskType == WfTaskType.rule_delete.ToString() && task.Elements.Where(e => e.Field == ElemFieldType.modelled_destination.ToString()).ToList().Count > 0 ?
                     "<br>" + userConfig.GetText("modelled_destination") + ": " + DisplayNwObjects(task, ElemFieldType.modelled_destination.ToString()) : "") +
-                (task.Comments.Count > 0 ? "<br>" + userConfig.GetText("comment") + ": " + task.Comments.First().Comment.CommentText : "");
+                DisplayComment(task);
         }
         else if (task.TaskType == WfTaskType.group_create.ToString() || task.TaskType == WfTaskType.group_modify.ToString())
         {
@@ -276,7 +273,7 @@
         {
             DevNames.Add(Devices.FirstOrDefault(d => d.Id == devId)?.Name ?? "");
         }
-        return string.Join(", ", DevNames);
+        return string.Join(", ", DevNames.Select(HtmlEncode));
     }
 
     private string DisplayNwObjects(WfReqTask task, string fieldType)
@@ -286,11 +283,11 @@
         {
             if (elem.GroupName != null)
             {
-                nwObjects.Add(elem.GroupName);
+                nwObjects.Add(HtmlEncode(elem.GroupName));
             }
             else
             {
-                nwObjects.Add(DisplayBase.DisplayIpWithName(WfElementBase.ToNetworkObject(elem)));
+                nwObjects.Add(HtmlEncode(DisplayBase.DisplayIpWithName(WfElementBase.ToNetworkObject(elem))));
             }
         }
         return string.Join(", ", nwObjects);
@@ -301,38 +298,78 @@
         List<string> services = [];
         foreach (var elem in task.Elements.Where(e => e.Field == ElemFieldType.service.ToString()))
         {
-            if (elem.GroupName != null)
-            {
-                services.Add(elem.GroupName);
-            }
-            else
-            {
-                IpProtocol? ipProtocol = ipProtos.Find(x => x.Id == elem.ProtoId);
-                string portRange = IpProtocol.HasPorts(ipProtocol?.Id) ? SCAccessRequestTicketTask.DisplayPortRange(elem.Port ?? 0, elem.PortEnd) + "/" : "";
-                services.Add(portRange + ipProtocol?.Name ?? "");
-            }
+            services.Add(HtmlEncode(DisplayServiceElement(elem, true)));
         }
         return string.Join(", ", services);
     }
 
+    /// <summary>
+    /// Builds grouped member rows for group create and modify request tasks.
+    /// </summary>
     private string DisplayMembers(WfReqTask task)
     {
-        List<string> members = [];
-        if (task.IsNetworkFlavor())
+        List<WfReqElement> currentMembers = [.. task.Elements.Where(element => element.IsCurrentMember())];
+        List<WfReqElement> membersToAdd = [.. task.Elements.Where(element => element.IsMemberToAdd())];
+        List<WfReqElement> membersToRemove = [.. task.Elements.Where(element => element.IsMemberToRemove())];
+
+        List<string> rows = [];
+
+        if (currentMembers.Count > 0)
         {
-            foreach (var elem in task.Elements)
-            {
-                members.Add($"<span class=\"{CssClass(elem)}\" >{DisplayBase.DisplayIpWithName(WfElementBase.ToNetworkObject(elem))}</span>");
-            }
+            rows.Add(DisplayMemberRow(userConfig.GetText("current_members"), currentMembers));
         }
-        else
+
+        if (membersToAdd.Count > 0)
         {
-            foreach (var elem in task.Elements)
-            {
-                members.Add($"<span class=\"{CssClass(elem)}\" >{elem.Port + "/" + ipProtos.Find(x => x.Id == elem.ProtoId)?.Name}</span>");
-            }
+            rows.Add(DisplayMemberRow(userConfig.GetText("members_to_add"), membersToAdd));
         }
-        return userConfig.GetText("members") + ": " + string.Join(", ", members);
+
+        if (membersToRemove.Count > 0)
+        {
+            rows.Add(DisplayMemberRow(userConfig.GetText("members_to_remove"), membersToRemove));
+        }
+
+        return string.Join("<br>", rows);
+    }
+
+    /// <summary>
+    /// Builds one labelled member row while preserving per-member styling.
+    /// </summary>
+    private string DisplayMemberRow(string label, List<WfReqElement> members)
+    {
+        return $"<b>{WebUtility.HtmlEncode(label)}:</b> " + string.Join(", ", members.ConvertAll(DisplayMember));
+    }
+
+    /// <summary>
+    /// Builds the display text for one group member.
+    /// </summary>
+    private string DisplayMember(WfReqElement elem)
+    {
+        string memberText = elem.Field == ElemFieldType.service.ToString()
+            ? DisplayServiceElement(elem, false)
+            : DisplayBase.DisplayIpWithName(WfElementBase.ToNetworkObject(elem));
+
+        return $"<span class=\"{CssClass(elem)}\" >{WebUtility.HtmlEncode(memberText)}</span>";
+    }
+
+    /// <summary>
+    /// Builds the display text for one service element, optionally resolving service-group references by name.
+    /// </summary>
+    private string DisplayServiceElement(WfReqElement elem, bool resolveGroupName)
+    {
+        if (resolveGroupName && !string.IsNullOrWhiteSpace(elem.GroupName))
+        {
+            return elem.GroupName;
+        }
+
+        IpProtocol? ipProtocol = ipProtos.Find(x => x.Id == elem.ProtoId);
+        bool showPort = elem.Port != null && (IpProtocol.HasPorts(ipProtocol?.Id) || ipProtocol == null);
+        string portRange = showPort
+            ? SCAccessRequestTicketTask.DisplayPortRange(elem.Port ?? 0, elem.PortEnd) + "/"
+            : "";
+
+        string protocolName = ipProtocol?.Name ?? elem.ProtoId?.ToString() ?? "";
+        return portRange + protocolName;
     }
 
     private string CssClass(WfReqElement elem)
@@ -430,7 +467,7 @@
         IEnumerable<ModellingConnection> connectionsToMark = userConfig.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications
             ? Connections.Where(connection => RequestedConnectionIds().Contains(connection.Id))
             : Connections;
-        foreach(var conn in connectionsToMark.Where(c => !c.RequestedOnFw))
+        foreach (var conn in connectionsToMark.Where(c => !c.RequestedOnFw))
         {
             await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.updateConnectionFwRequested, new { id = conn.Id });
             conn.RequestedOnFw = true;
@@ -571,6 +608,18 @@
         List<WfReqTask> updatedTasks = [.. TaskList];
         updatedTasks[taskIndex] = task;
         TaskList = updatedTasks;
+    }
+
+    private static string HtmlEncode(string? value)
+    {
+        return WebUtility.HtmlEncode(value ?? "");
+    }
+
+    private string DisplayComment(WfReqTask task)
+    {
+        return task.Comments.Count > 0
+            ? "<br>" + userConfig.GetText("comment") + ": " + HtmlEncode(task.Comments.First().Comment.CommentText)
+            : "";
     }
 
     private void Close()

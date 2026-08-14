@@ -61,5 +61,18 @@ namespace FWO.Data.Report
             Name = Name.SanitizeMand(ref shortened);
             return shortened;
         }
+
+        /// <summary>
+        /// Drops the generated payloads while keeping the metadata. For a large report each of these
+        /// is a multi megabyte string on the large object heap, so they are released as soon as the
+        /// dialog that produced them is closed instead of staying resident for the rest of the session.
+        /// </summary>
+        public void ReleaseContent()
+        {
+            Json = null;
+            Pdf = null;
+            Html = null;
+            Csv = null;
+        }
     }
 }

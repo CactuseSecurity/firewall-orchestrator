@@ -49,7 +49,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void MatchesIpFilter_ShouldRejectWhenAnyObjectFallsBelowPrefixThreshold()
+        public void MatchesIpFilter_ShouldAcceptWhenAnyObjectMeetsThresholdAndContainsIp()
         {
             List<NetworkObject> objects =
             [
@@ -59,11 +59,11 @@ namespace FWO.Test
 
             bool matches = _analyzer.MatchesIpFilter(IPAddress.Parse("10.1.2.3"), 24, objects);
 
-            ClassicAssert.IsFalse(matches);
+            ClassicAssert.IsTrue(matches);
         }
 
         [Test]
-        public void MatchesIpFilter_ShouldAcceptWhenAllObjectsMeetThresholdAndContainIp()
+        public void MatchesIpFilter_ShouldAcceptWhenEveryObjectMeetsThresholdAndContainsIp()
         {
             List<NetworkObject> objects =
             [
@@ -74,6 +74,51 @@ namespace FWO.Test
             bool matches = _analyzer.MatchesIpFilter(IPAddress.Parse("10.1.2.3"), 24, objects);
 
             ClassicAssert.IsTrue(matches);
+        }
+
+        [Test]
+        public void MatchesIpFilter_ShouldIgnoreUnsupportedObjectsWhenAnyIpv4ObjectMatches()
+        {
+            List<NetworkObject> objects =
+            [
+                CreateNetworkObject("Ipv6", "2001:db8::/64", "2001:db8::ffff/64"),
+                CreateNetworkObject("Host", "10.1.2.3/32", "10.1.2.3/32")
+            ];
+
+            bool matches = _analyzer.MatchesIpFilter(IPAddress.Parse("10.1.2.3"), 24, objects);
+
+            ClassicAssert.IsTrue(matches);
+        }
+
+        [Test]
+        public void MatchesIpFilter_ShouldRejectWhenNoObjectMatches()
+        {
+            List<NetworkObject> objects =
+            [
+                CreateNetworkObject("Broad", "10.0.0.0/32", "10.255.255.255/32"),
+                CreateNetworkObject("OtherHost", "192.168.1.1/32", "192.168.1.1/32")
+            ];
+
+            bool matches = _analyzer.MatchesIpFilter(IPAddress.Parse("10.1.2.3"), 24, objects);
+
+            ClassicAssert.IsFalse(matches);
+        }
+
+        [Test]
+        public void MatchesIpFilter_ShouldRejectWhenNoResolvableObjectsArePresent()
+        {
+            List<NetworkObject> objects =
+            [
+                new()
+                {
+                    Name = "EmptyGroup",
+                    Type = new NetworkObjectType { Name = ObjectType.Group }
+                }
+            ];
+
+            bool matches = _analyzer.MatchesIpFilter(IPAddress.Parse("10.1.2.3"), 24, objects);
+
+            ClassicAssert.IsFalse(matches);
         }
 
         [Test]

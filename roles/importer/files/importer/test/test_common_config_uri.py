@@ -69,6 +69,7 @@ class TestCommonModuleSelection:
             ("fortiadom5ff", "FortiAdom5ffCommon"),
             ("checkpointR8x", "CheckpointR8xCommon"),
             ("fortiosmanagementREST", "FortiosManagementRESTCommon"),
+            ("opnsensestandalone25ff", "OPNsense25common"),
             ("genericfirewallmanagement1.0", "GenericFirewallCommon"),
             ("azure2022ff", "Azure2022ffCommon"),
         ],

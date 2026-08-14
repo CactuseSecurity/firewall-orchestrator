@@ -281,8 +281,8 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
     private static List<RuleDetail> ConvertRuleList(List<Rule> inputList, UserConfig userConfig)
     {
         string notFound = RuleFieldSourceResolver.NotFoundValue;
-        string ownerCustomFieldKey = userConfig.GlobalConfig?.CustomFieldOwnerKey ?? "";
-        string changeIdCustomFieldKey = userConfig.GlobalConfig?.CustomFieldChangeIdKey ?? "";
+        List<string> ownerCustomFieldKeys = CustomFieldResolver.NormalizeCustomFieldKeys(userConfig.GlobalConfig?.CustomFieldOwnerKey);
+        List<string> changeIdCustomFieldKeys = CustomFieldResolver.NormalizeCustomFieldKeys(userConfig.GlobalConfig?.CustomFieldChangeIdKey);
 
         return inputList.Select(item =>
         {
@@ -323,8 +323,8 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                 CreationDate = item.CreatedImport?.StartTime?.ToString() ?? notFound,
                 LastHitDate = item.Metadata.LastHit?.ToString() ?? notFound,
                 Action = item.Action,
-                OwnerInformation = RuleFieldSourceResolver.ResolveOwnerInformation(item, ownerCustomFieldKey),
-                AdditionalInformation = RuleFieldSourceResolver.ResolveAdditionalInformation(item, changeIdCustomFieldKey),
+                OwnerInformation = RuleFieldSourceResolver.ResolveOwnerInformation(item, ownerCustomFieldKeys),
+                AdditionalInformation = RuleFieldSourceResolver.ResolveAdditionalInformation(item, changeIdCustomFieldKeys),
                 Comment = item.Comment ?? notFound,
                 Time = item.RuleTimes.Where(ruleTimeObject => ruleTimeObject.TimeObj is not null).Select(ruleTimeObject => ruleTimeObject.TimeObj!.Name).ToList()
             };
@@ -340,14 +340,32 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
             result.AppendLine(userConfig.GetText("negated"));
         }
 
-        var networkLocations = isSource ? rule.Froms : rule.Tos;
+        IEnumerable<NetworkLocation> networkLocations = DeduplicateNetworkLocations(isSource ? rule.Froms : rule.Tos);
 
         string joined = string.Join(Environment.NewLine,
-            Array.ConvertAll(networkLocations, NetworkLocationToPlainText));
+            networkLocations.Select(NetworkLocationToPlainText));
 
         result.Append(joined);
 
         return result.ToString();
+    }
+
+    private static IEnumerable<NetworkLocation> DeduplicateNetworkLocations(IEnumerable<NetworkLocation> networkLocations)
+    {
+        HashSet<string> seenLocations = [];
+
+        foreach (NetworkLocation networkLocation in networkLocations)
+        {
+            NetworkObject networkObject = networkLocation.Object;
+            string objectKey = networkObject.Id > 0
+                ? networkObject.Id.ToString()
+                : $"{networkObject.Type?.Name}|{networkObject.Name}|{networkObject.IP}|{networkObject.IpEnd}";
+
+            if (seenLocations.Add(objectKey))
+            {
+                yield return networkLocation;
+            }
+        }
     }
 
     private static string NetworkLocationToPlainText(NetworkLocation networkLocation)

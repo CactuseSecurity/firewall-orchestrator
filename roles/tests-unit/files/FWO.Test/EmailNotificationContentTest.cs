@@ -464,7 +464,13 @@ namespace FWO.Test
                 RequestAction = RequestAction.create.ToString(),
                 Elements =
                 {
-                    new WfReqElement { Field = ElemFieldType.source.ToString(), GroupName = "AR1", IpString = "10.0.0.2" }
+                    new WfReqElement
+                    {
+                        Field = ElemFieldType.source.ToString(),
+                        RequestAction = RequestAction.create.ToString(),
+                        GroupName = "AR1",
+                        IpString = "10.0.0.2"
+                    }
                 }
             };
             WfReqTask modifyGroupTask = new()
@@ -489,12 +495,12 @@ namespace FWO.Test
             Assert.That(content.PlainText, Does.Contain("Requested Connections"));
             Assert.That(content.PlainText, Does.Contain("101 | Open web | create | src-a | 10.0.0.1 | WebServices"));
             Assert.That(content.PlainText, Does.Contain("Group Requests"));
-            Assert.That(content.PlainText, Does.Contain("Task | Type | Title | Action | Members"));
-            Assert.That(content.PlainText, Does.Contain("102 | Create Group | New App Role | create | 10.0.0.2"));
-            Assert.That(content.PlainText, Does.Contain("103 | Modify Group | Update App Role | modify | addAfterCreation: Server2, delete: 10.0.0.3"));
-            Assert.That(content.Html, Does.Contain("<h2>Group Requests</h2>"));
-            Assert.That(content.Csv, Does.Contain("\"102\",\"Create Group\",\"New App Role\",\"create\",\"10.0.0.2\""));
-            Assert.That(content.Json, Does.Contain("\"Members\":\"10.0.0.2\""));
+            Assert.That(content.PlainText, Does.Contain("Task | Type | Title | Action | Current Members | Members to add | Members to remove"));
+            Assert.That(content.PlainText, Does.Contain("102 | Create Group | New App Role | create |  | 10.0.0.2 |"));
+            Assert.That(content.PlainText, Does.Contain("103 | Modify Group | Update App Role | modify |  | Server2 | 10.0.0.3"));
+            Assert.That(content.Csv, Does.Contain("\"102\",\"Create Group\",\"New App Role\",\"create\",\"\",\"10.0.0.2\",\"\""));
+            Assert.That(content.Json, Does.Contain("\"MembersToAdd\":\"10.0.0.2\""));
+            Assert.That(content.Json, Does.Contain("\"MembersToRemove\":\"10.0.0.3\""));
         }
 
         private static async Task<string> ReadFormFile(FormFile formFile)

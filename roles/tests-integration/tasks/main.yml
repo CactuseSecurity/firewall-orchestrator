@@ -1,4 +1,7 @@
 
+- name: importer service startup order testing
+  import_tasks: test-importer-service-start-order.yml
+
 - name: install packages necessary for testing
   package:
     name: "{{ item }}"

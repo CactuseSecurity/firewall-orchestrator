@@ -1,0 +1,23 @@
+---
+- name: read middleware and importer activation times
+  ansible.builtin.command: "systemctl show {{ item }}.service --property=ActiveEnterTimestampMonotonic --value"
+  loop:
+    - "{{ middleware_service_name }}"
+    - "{{ product_name }}-importer-api"
+  register: importer_dependency_activation_times
+  changed_when: false
+  become: true
+  when:
+    - "'middlewareserver' in group_names"
+    - "'importers' in group_names"
+
+- name: importer must be activated after the final middleware restart
+  ansible.builtin.assert:
+    that:
+      - importer_dependency_activation_times.results[1].stdout | int >= importer_dependency_activation_times.results[0].stdout | int
+    fail_msg: >-
+      {{ product_name }}-importer-api was activated before {{ middleware_service_name }} and can lose
+      an active import when the installer performs its final middleware restart
+  when:
+    - "'middlewareserver' in group_names"
+    - "'importers' in group_names"

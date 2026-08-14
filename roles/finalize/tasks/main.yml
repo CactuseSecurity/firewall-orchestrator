@@ -155,13 +155,6 @@
   become: true
   when: "'frontends' in group_names and (ui_deploy_changed | default(false))"
 
-# Keep this task after every final dependency restart in this play. An import which is already
-# running while middleware restarts loses its API connection and has to be rolled back.
-- name: restart importer service after its dependencies are ready
-  ansible.builtin.systemd:
-    name: "{{ product_name }}-importer-api"
-    state: restarted
-    daemon_reload: true
-    enabled: true
-  become: true
-  when: "'importers' in group_names"
+# the importer is deliberately not started here: it has to come up after every task which restarts
+# one of its dependencies, and the plays which follow this role still restart the middleware and
+# apache. it is started by the last play in site.yml instead.

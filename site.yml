@@ -108,6 +108,44 @@
     - test
     - integrationtests
 
+# The importer has to be the last service which is started. An import which is already running
+# while one of its dependencies restarts loses its API connection and is rolled back, and every
+# play above this one may still restart such a dependency - finalize restarts apache, the
+# middleware and the UI, and the integration tests restart the middleware (sample-auth-data) and
+# apache (test-auth). So keep this play last and do not start the importer anywhere before it.
+- hosts: importers
+  tasks:
+    # restarted rather than started: every installer run restarts apache unconditionally, so an
+    # import which was in flight is lost either way, and only a restart makes sure the importer
+    # reconnects to the api and middleware it has just been separated from
+    - name: restart importer service once all of its dependencies are up for good
+      ansible.builtin.systemd:
+        name: "{{ product_name }}-importer-api"
+        state: restarted
+        daemon_reload: true
+        enabled: true
+      become: true
+      register: importer_service_start
+      when: "not installation_mode == 'uninstall'"
+
+    # only meaningful when the task above actually ran - a run which starts no service (uninstall,
+    # or a run limited to the test tags) leaves an importer whose activation time predates the
+    # restarts the tests themselves performed
+    - name: importer service startup order testing
+      import_tasks: roles/tests-integration/tasks/test-importer-service-start-order.yml
+      when:
+        - importer_service_start is defined
+        - not importer_service_start is skipped
+      tags:
+        - test
+        - integrationtests
+  tags:
+    - finalize
+    - backend
+    - frontend
+    - importer
+    - ui
+
 - hosts: all
   tasks:
     # display status & pwds

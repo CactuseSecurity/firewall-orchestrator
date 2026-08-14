@@ -90,21 +90,23 @@
         owner: "root"
       become: true
 
-    # like the ui and middleware roles, the importer enables its own unit here. it is only started
-    # by the last play in site.yml, so this is the task which makes it survive a reboot
-    - name: make importer run at host startup
-      ansible.builtin.systemd:
-        name: "{{ product_name }}-importer-api"
-        enabled: true
-        daemon_reload: true
-      become: true
-
     - name: include fetch importer pwd script
       import_tasks: fetch-importer-pwd.yml
 
     - name: include upgrade script
       import_tasks: run-upgrades.yml
       when: "installation_mode == 'upgrade'"
+
+    # like the ui and middleware roles, the importer enables its own unit in its own role - it is
+    # only started by the last play in site.yml, so this is the task which makes it survive a
+    # reboot. it comes after the credentials and the upgrade scripts, so that a host which is
+    # rebooted before the installation finishes does not start an importer which cannot work yet
+    - name: make importer run at host startup
+      ansible.builtin.systemd:
+        name: "{{ product_name }}-importer-api"
+        enabled: true
+        daemon_reload: true
+      become: true
 
     - name: finalize handler for datarecovery
       set_fact:

@@ -63,7 +63,10 @@
       {{ importer_service_name }} was activated at {{ importer_activated_at }} and therefore
       before {{ item.item }} at {{ item.stdout | trim }} (monotonic, in microseconds since boot).
       An import which is already running while {{ item.item }} restarts loses its api connection
-      and has to be rolled back, so the importer has to be started after it.
+      and has to be rolled back, so the importer has to be started after it. If the two timestamps
+      are only seconds apart, {{ item.item }} restarted itself (all of them run with
+      Restart=always) after the installer had already restarted the importer - check
+      'journalctl -u {{ item.item }}' for the reason and repeat the run.
   vars:
     importer_activated_at: >-
       {{ service_activation_times.results

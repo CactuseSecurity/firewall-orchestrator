@@ -109,15 +109,6 @@
   become: true
   when: "demo_data_present.query_result == [] and 'sampleserver' in group_names"
 
-- name: start importer service
-  systemd:
-    name: "{{ product_name }}-importer-api"
-    state: started
-    daemon_reload: true
-    enabled: true
-  become: true
-  when: "'importers' in group_names"
-
 - name: remove maint website dir
   file:
     path: "{{ fworch_home }}/maint-website"
@@ -163,3 +154,14 @@
     state: restarted
   become: true
   when: "'frontends' in group_names and (ui_deploy_changed | default(false))"
+
+# Keep this task after every final dependency restart in this play. An import which is already
+# running while middleware restarts loses its API connection and has to be rolled back.
+- name: restart importer service after its dependencies are ready
+  ansible.builtin.systemd:
+    name: "{{ product_name }}-importer-api"
+    state: restarted
+    daemon_reload: true
+    enabled: true
+  become: true
+  when: "'importers' in group_names"

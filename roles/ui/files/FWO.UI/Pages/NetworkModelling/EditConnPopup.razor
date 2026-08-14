@@ -5,7 +5,7 @@
     <Body>
         @if (Display)
         {
-            <EditConn Display="true" ConnHandler="ConnHandler" PopupMode="true" ShowLogDataInPopup="ShowLogData"/>
+            <EditConn Display="true" ConnHandler="ConnHandler" PopupMode="true"/>
         }
     </Body>
     <Footer>
@@ -45,9 +45,6 @@
 
     [Parameter]
     public bool ReplaceMode { get; set; } = false;
-
-    [Parameter]
-    public bool ShowLogData { get; set; } = false;
 
     [Parameter]
     public Func<Task> Replace { get; set; } = DefaultInit.DoNothing;

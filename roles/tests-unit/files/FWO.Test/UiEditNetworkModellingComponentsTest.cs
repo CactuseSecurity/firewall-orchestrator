@@ -258,15 +258,13 @@ namespace FWO.Test
             bool replaceMode,
             Func<Task>? replace = null,
             Action<bool>? displayChanged = null,
-            ModellingConnectionHandler? connHandler = null,
-            bool showLogData = false)
+            ModellingConnectionHandler? connHandler = null)
         {
             return context.Render<CascadingAuthenticationState>(parameters => parameters.AddChildContent<EditConnPopup>(component => component
                 .Add(p => p.Display, display)
                 .Add(p => p.DisplayChanged, value => displayChanged?.Invoke(value))
                 .Add(p => p.ConnHandler, connHandler)
                 .Add(p => p.ReplaceMode, replaceMode)
-                .Add(p => p.ShowLogData, showLogData)
                 .Add(p => p.Replace, replace ?? (() => Task.CompletedTask))))
                 .FindComponent<EditConnPopup>();
         }

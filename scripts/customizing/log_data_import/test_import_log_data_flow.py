@@ -106,6 +106,71 @@ def test_import_data_reuses_a_pending_import(tmp_path: Path, monkeypatch: pytest
     assert output_file.read_text(encoding="utf-8") == original_output
 
 
+def exhaust_pending_reuses(config_file: str, monkeypatch: pytest.MonkeyPatch) -> list[int]:
+    """Reuse the pending import until it was kept back more often than MAX_PENDING_REUSES."""
+    monkeypatch.setattr(importer, "update_git_repo", return_true)
+    importer.import_data(config_file, None, LOGGER)
+    return [importer.import_data(config_file, None, LOGGER) for _ in range(importer.MAX_PENDING_REUSES + 1)]
+
+
+def test_import_data_keeps_reusing_after_the_reuse_limit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config_file, _repository_directory, output_file = prepare_repository(tmp_path, monkeypatch)
+
+    results: list[int] = exhaust_pending_reuses(config_file, monkeypatch)
+
+    manifest: dict[str, Any] = json.loads(importer.MANIFEST_FILE.read_text(encoding="utf-8"))
+    assert results == [0] * (importer.MAX_PENDING_REUSES + 1)
+    assert manifest["reuses"] == importer.MAX_PENDING_REUSES + 1
+    assert output_file.exists()
+
+
+def test_acknowledge_import_recovers_after_the_reuse_limit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config_file, _repository_directory, output_file = prepare_repository(tmp_path, monkeypatch)
+    exhaust_pending_reuses(config_file, monkeypatch)
+    monkeypatch.setattr(importer, "commit_and_push_deletions", return_false)
+    assert importer.acknowledge_import(config_file, LOGGER) == 1
+    monkeypatch.setattr(importer, "commit_and_push_deletions", return_true)
+
+    result: int = importer.acknowledge_import(config_file, LOGGER)
+
+    assert result == 0
+    assert not importer.MANIFEST_FILE.exists()
+    assert not output_file.exists()
+
+
+def test_acknowledge_import_reports_a_persistent_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    config_file, _repository_directory, _ = prepare_repository(tmp_path, monkeypatch)
+    exhaust_pending_reuses(config_file, monkeypatch)
+    monkeypatch.setattr(importer, "commit_and_push_deletions", return_false)
+
+    with caplog.at_level(logging.ERROR, logger=LOGGER.name):
+        assert importer.acknowledge_import(config_file, LOGGER) == 1
+
+    assert f"could not be pushed in {importer.MAX_PENDING_REUSES + 2} runs" in caplog.text
+
+
+def test_acknowledge_import_reports_a_single_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    config_file, _repository_directory, _ = prepare_repository(tmp_path, monkeypatch)
+    monkeypatch.setattr(importer, "update_git_repo", return_true)
+    importer.import_data(config_file, None, LOGGER)
+    monkeypatch.setattr(importer, "commit_and_push_deletions", return_false)
+
+    with caplog.at_level(logging.ERROR, logger=LOGGER.name):
+        assert importer.acknowledge_import(config_file, LOGGER) == 1
+
+    assert "the data is kept and imported again" in caplog.text
+
+
+def test_read_reuses_ignores_an_unusable_value() -> None:
+    assert importer.read_reuses({"reuses": "many"}) == 0
+    assert importer.read_reuses({"reuses": -1}) == 0
+    assert importer.read_reuses({"reuses": 2}) == 2
+
+
 def test_acknowledge_import_deletes_manifest_and_output(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     config_file, repository_directory, output_file = prepare_repository(tmp_path, monkeypatch)
     monkeypatch.setattr(importer, "update_git_repo", return_true)

@@ -359,6 +359,14 @@ namespace FWO.Test
         }
 
         [Test]
+        public void LogDataImportSubscription_ContainsSettingsUsedByRunningImports()
+        {
+            Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("importLogDataMaxEntries"));
+            Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("allowLogDataPortWithoutProtocol"));
+            Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("logDataRetentionDays"));
+        }
+
+        [Test]
         public void ConfigData_DefaultsLogDataImportIntervalUnitToHours()
         {
             ConfigData configData = new();

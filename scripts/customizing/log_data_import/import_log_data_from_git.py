@@ -162,13 +162,13 @@ def reuse_pending_import(logger: logging.Logger) -> int:
     Handle an import whose data was not acknowledged yet.
 
     Fetching new CSV files while the previous ones are still in the repository would import them
-    twice, so the generated file is reused. A push which can never succeed would stall the import
-    on that file forever, therefore every reuse is counted and reported as a failure once the
-    data was kept back MAX_PENDING_REUSES times.
+    twice, so the generated file is reused. The run stays successful however often the data was
+    kept back: the acknowledgement is only retried when the import continues, so failing here
+    would stall the pending import forever, also after the repository became writable again.
+    Reuses are counted so a persistent failure can be told apart from a temporary one.
     """
     manifest: dict[str, object] = read_manifest()
-    stored_reuses: object = manifest.get("reuses")
-    reuses: int = stored_reuses + 1 if isinstance(stored_reuses, int) else 1
+    reuses: int = read_reuses(manifest) + 1
     manifest["reuses"] = reuses
     MANIFEST_FILE.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     if reuses > MAX_PENDING_REUSES:
@@ -178,9 +178,38 @@ def reuse_pending_import(logger: logging.Logger) -> int:
             OUTPUT_FILE,
             reuses,
         )
-        return 1
-    logger.warning("previous log data import is still pending acknowledgement; reusing it (%s)", reuses)
+    else:
+        logger.warning("previous log data import is still pending acknowledgement; reusing it (%s)", reuses)
     return 0
+
+
+def read_reuses(manifest: dict[str, object]) -> int:
+    """Read how often the pending import was kept back, an unusable value counts as never."""
+    stored_reuses: object = manifest.get("reuses")
+    return stored_reuses if isinstance(stored_reuses, int) and stored_reuses > 0 else 0
+
+
+def report_failed_acknowledgement(manifest: dict[str, object], logger: logging.Logger) -> None:
+    """
+    Report that the deletion of the imported CSV files could not be pushed.
+
+    This runs while the acknowledgement fails, so the message reaches the log of the middleware,
+    which alerts on it. A repeatedly kept back import is reported as a persistent failure: the
+    acknowledgement keeps being retried, but no new log data is imported until it succeeds.
+    """
+    reuses: int = read_reuses(manifest)
+    if reuses > MAX_PENDING_REUSES:
+        logger.error(
+            "deleting the imported CSV files of %s could not be pushed in %s runs; the import is stuck "
+            "on this data until the log data repository accepts the deletion",
+            OUTPUT_FILE,
+            reuses + 1,
+        )
+    else:
+        logger.error(
+            "deleting the imported CSV files of %s could not be pushed; the data is kept and imported again",
+            OUTPUT_FILE,
+        )
 
 
 def read_manifest() -> dict[str, object]:
@@ -240,6 +269,7 @@ def acknowledge_import(config_file: str, logger: logging.Logger) -> int:
     if not commit_and_push_deletions(
         str(repository_directory), csv_files, COMMIT_MESSAGE, logger, git_user, git_password
     ):
+        report_failed_acknowledgement(manifest, logger)
         return 1
     MANIFEST_FILE.unlink(missing_ok=True)
     OUTPUT_FILE.unlink(missing_ok=True)

@@ -162,7 +162,11 @@ namespace FWO.Middleware.Server
         {
             List<NormalizedLogEntry> normalizedEntries = NormalizeValidEntries(sourceEntries, importTime, globalConfig.AllowLogDataPortWithoutProtocol);
             int invalidEntries = Math.Max(0, sourceEntries.Count - normalizedEntries.Count);
-            List<FirewallLogEntryInput> resolvedEntries = await ResolveOwners(normalizedEntries);
+            Dictionary<string, int?> ownerIdsByAppId = new(StringComparer.Ordinal);
+            List<int> sourceOwnerIds = globalConfig.ReplaceExistingLogData
+                ? await ResolveSourceOwnerIds(sourceEntries, ownerIdsByAppId)
+                : [];
+            List<FirewallLogEntryInput> resolvedEntries = await ResolveOwners(normalizedEntries, ownerIdsByAppId);
             int unresolvedEntries = normalizedEntries.Count - resolvedEntries.Count;
             // merge before limiting, so a flow reported by several source files is ranked by its total
             List<FirewallLogEntryInput> mergedFlows = MergeDuplicateEntries(resolvedEntries);
@@ -179,7 +183,7 @@ namespace FWO.Middleware.Server
             long controlId = await CreateImportControl();
             try
             {
-                await apiConnection.SendQueryAsync<object>(LogDataQueries.insertLogEntries, new { entries });
+                await WriteEntries(entries, sourceOwnerIds);
                 await CompleteImport(controlId, true);
             }
             catch
@@ -203,6 +207,21 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
+        /// Replaces all stored rows of applications named in the source when configured. The
+        /// delete and insert fields share one GraphQL mutation so Hasura executes them in one
+        /// transaction and a failed insert cannot leave the applications without their old rows.
+        /// </summary>
+        private async Task WriteEntries(List<FirewallLogEntryInput> entries, List<int> sourceOwnerIds)
+        {
+            if (globalConfig.ReplaceExistingLogData)
+            {
+                await apiConnection.SendQueryAsync<object>(LogDataQueries.replaceLogEntries, new { ownerIds = sourceOwnerIds, entries });
+                return;
+            }
+            await apiConnection.SendQueryAsync<object>(LogDataQueries.insertLogEntries, new { entries });
+        }
+
+        /// <summary>
         /// Warns about the entries which are not imported although their source file is
         /// acknowledged and therefore deleted by the import script. Dropping them is intended:
         /// only the loudest flows up to importLogDataMaxEntries are kept, and log data of an
@@ -222,11 +241,30 @@ namespace FWO.Middleware.Server
                 $" and are removed with the acknowledged source file.");
         }
 
-        private async Task<List<FirewallLogEntryInput>> ResolveOwners(List<NormalizedLogEntry> normalizedEntries)
+        private async Task<List<int>> ResolveSourceOwnerIds(List<LogDataImportEntry> sourceEntries, Dictionary<string, int?> ownerIds)
+        {
+            List<int> resolvedOwnerIds = [];
+            IEnumerable<string> sourceAppIds = sourceEntries
+                .Select(entry => entry.AppId?.Trim())
+                .Where(appId => !string.IsNullOrWhiteSpace(appId))
+                .Cast<string>()
+                .Distinct(StringComparer.Ordinal);
+            foreach (string appId in sourceAppIds)
+            {
+                int? ownerId = await FindOwnerId(appId, ownerIds);
+                if (ownerId.HasValue)
+                {
+                    resolvedOwnerIds.Add(ownerId.Value);
+                }
+            }
+            return resolvedOwnerIds.Distinct().ToList();
+        }
+
+        private async Task<List<FirewallLogEntryInput>> ResolveOwners(List<NormalizedLogEntry> normalizedEntries,
+            Dictionary<string, int?> ownerIds)
         {
             // the owner lookup matches app_id_external case sensitively, so the cache has to
             // distinguish the same spellings, otherwise 'app-1' would inherit the owner of 'APP-1'
-            Dictionary<string, int?> ownerIds = new(StringComparer.Ordinal);
             List<FirewallLogEntryInput> resolvedEntries = new();
             foreach (NormalizedLogEntry normalizedEntry in normalizedEntries)
             {

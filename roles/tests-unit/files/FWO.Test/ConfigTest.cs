@@ -363,6 +363,7 @@ namespace FWO.Test
         {
             Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("importLogDataMaxEntries"));
             Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("allowLogDataPortWithoutProtocol"));
+            Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("replaceExistingLogData"));
             Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("logDataRetentionDays"));
         }
 
@@ -372,6 +373,14 @@ namespace FWO.Test
             ConfigData configData = new();
 
             Assert.That(configData.ImportLogDataSleepTimeUnit, Is.EqualTo(LogDataImportIntervalUnit.Hours));
+        }
+
+        [Test]
+        public void ConfigData_DisablesLogDataReplacementByDefault()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.ReplaceExistingLogData, Is.False);
         }
 
         [Test]

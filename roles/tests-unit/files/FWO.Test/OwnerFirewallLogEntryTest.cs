@@ -84,18 +84,31 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ServiceSortKey_GroupsEntriesByProtocolThenPort()
+        public void ServiceDisplay_GroupsEntriesOfOneProtocolWhenSorted()
         {
             OwnerFirewallLogEntry unknownService = new();
-            OwnerFirewallLogEntry tcpLowPort = new() { ServiceProtocol = 6, ServicePort = 80 };
-            OwnerFirewallLogEntry tcpHighPort = new() { ServiceProtocol = 6, ServicePort = 8080 };
-            OwnerFirewallLogEntry udpPort = new() { ServiceProtocol = 17, ServicePort = 53 };
-            List<OwnerFirewallLogEntry> entries = [udpPort, tcpHighPort, unknownService, tcpLowPort];
+            OwnerFirewallLogEntry tcpPort = new() { ServiceProtocol = 6, ServicePort = 80, Protocol = new NetworkProtocol { Id = 6, Name = "tcp" } };
+            OwnerFirewallLogEntry tcpOtherPort = new() { ServiceProtocol = 6, ServicePort = 8080, Protocol = new NetworkProtocol { Id = 6, Name = "tcp" } };
+            OwnerFirewallLogEntry udpPort = new() { ServiceProtocol = 17, ServicePort = 53, Protocol = new NetworkProtocol { Id = 17, Name = "udp" } };
+            List<OwnerFirewallLogEntry> entries = [udpPort, tcpOtherPort, unknownService, tcpPort];
 
-            List<OwnerFirewallLogEntry> sorted = entries.OrderBy(entry => entry.ServiceSortKey).ToList();
+            List<string> sortedServices = entries.OrderBy(entry => entry.ServiceDisplay).Select(entry => entry.ServiceDisplay).ToList();
 
-            List<OwnerFirewallLogEntry> expected = [unknownService, tcpLowPort, tcpHighPort, udpPort];
-            Assert.That(sorted, Is.EqualTo(expected));
+            List<string> expected = ["", "TCP/80", "TCP/8080", "UDP/53"];
+            Assert.That(sortedServices, Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void LogTimeLocal_ConvertsTheStoredOffsetIntoLocalTime()
+        {
+            DateTimeOffset logTime = new(2026, 8, 12, 8, 15, 0, TimeSpan.FromHours(2));
+            OwnerFirewallLogEntry entry = new() { LogTime = logTime };
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(entry.LogTimeLocal, Is.EqualTo(logTime.ToLocalTime().DateTime));
+                Assert.That(entry.LogTimeLocal.Kind, Is.Not.EqualTo(DateTimeKind.Utc), "the table filters on local time");
+            });
         }
     }
 }

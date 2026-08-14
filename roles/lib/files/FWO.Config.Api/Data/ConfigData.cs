@@ -352,6 +352,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("allowLogDataPortWithoutProtocol"), JsonPropertyName("allowLogDataPortWithoutProtocol")]
         public bool AllowLogDataPortWithoutProtocol { get; set; } = false;
 
+        [JsonProperty("replaceExistingLogData"), JsonPropertyName("replaceExistingLogData")]
+        public bool ReplaceExistingLogData { get; set; } = false;
+
         [JsonProperty("showLogDataInConnections"), JsonPropertyName("showLogDataInConnections")]
         public bool ShowLogDataInConnections { get; set; } = false;
 

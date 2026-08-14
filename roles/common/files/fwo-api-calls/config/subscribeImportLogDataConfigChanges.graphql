@@ -7,6 +7,7 @@ subscription subscribeImportLogDataConfigChanges {
     {config_key: {_eq: "importLogDataScriptArgs"}},
     {config_key: {_eq: "importLogDataMaxEntries"}},
     {config_key: {_eq: "allowLogDataPortWithoutProtocol"}},
+    {config_key: {_eq: "replaceExistingLogData"}},
     {config_key: {_eq: "logDataRetentionDays"}}
   ]}) {
     config_key

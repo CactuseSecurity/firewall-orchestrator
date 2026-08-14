@@ -531,17 +531,15 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
-    <li>Das Modellierungsmodul enth&auml;t nun einen Soll/Ist-Abgleich mit dem Firewall-Regelwerk.</li>
-    <li>Das Modellierungsmodul enth&auml;t ein Antragsmodul zur Beauftragung von Firewall-&Auml;nderungen &uuml;ber externe Systeme.</li>
-    <li>Das FWO-Logo kann durch ein eigenes Logo ersetzt werden.</li>
+    <li>Das neue Logging-Modul importiert normalisierte Verkehrs-Logdaten und stellt sie in modellierten Verbindungen dar.</li>
+    <li>Beim Logdaten-Import k&ouml;nnen vorhandene Eintr&auml;ge f&uuml;r alle in der JSON-Datei enthaltenen Applikationen optional ersetzt werden.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
-    <li>The modelling module now includes a variance analysis (target/actual comparison) with the firewall rulebase</li>
-    <li>The modelling module now includes a request module for submitting firewall change requests via external systems</li>
-    <li>You now can insert your own logo in the UI</li>
+    <li>The new Logging module imports normalized traffic log data and displays it in modelled connections.</li>
+    <li>Log data imports can optionally replace existing entries for every application contained in the JSON file.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -3042,6 +3040,8 @@ INSERT INTO txt VALUES ('logDataRetentionDays', 'German', 'Aufbewahrungsdauer de
 INSERT INTO txt VALUES ('logDataRetentionDays', 'English', 'Log data retention (days)');
 INSERT INTO txt VALUES ('allowLogDataPortWithoutProtocol', 'German', 'Port ohne Protokoll in Logdaten zulassen');
 INSERT INTO txt VALUES ('allowLogDataPortWithoutProtocol', 'English', 'Allow port without protocol in log data');
+INSERT INTO txt VALUES ('replaceExistingLogData', 'German', 'Vorhandene Logdaten importierter Applikationen ersetzen');
+INSERT INTO txt VALUES ('replaceExistingLogData', 'English', 'Replace existing log data of imported applications');
 INSERT INTO txt VALUES ('showLogDataInConnections', 'German', 'Logdaten in Verbindungen anzeigen');
 INSERT INTO txt VALUES ('showLogDataInConnections', 'English', 'Show log data in connections');
 INSERT INTO txt VALUES ('log_data', 'German', 'Logdaten');
@@ -6933,6 +6933,8 @@ INSERT INTO txt VALUES ('H5699', 'German', 'Aufbewahrungsdauer der Logdaten (Tag
 INSERT INTO txt VALUES ('H5699', 'English', 'Log data retention (days): Log entries whose log time is older are removed after every import. The value must be at least 1, otherwise every entry would be deleted right after it was imported.');
 INSERT INTO txt VALUES ('H5700', 'German', 'Port ohne Protokoll in Logdaten zulassen: Erlaubt Logeintr&auml;ge mit Port, aber ohne Protokollangabe. Ohne diese Option werden solche Eintr&auml;ge verworfen, da ein Port nur zu TCP oder UDP geh&ouml;ren kann.');
 INSERT INTO txt VALUES ('H5700', 'English', 'Allow port without protocol in log data: Accepts log entries which contain a port but no protocol. Without this option such entries are discarded, because a port belongs to TCP or UDP only.');
+INSERT INTO txt VALUES ('H5701', 'German', 'Vorhandene Logdaten importierter Applikationen ersetzen: L&ouml;scht beim Import einer JSON-Datei alle vorhandenen Logeintr&auml;ge f&uuml;r jede darin enthaltene, bekannte externe Applikations-ID und ersetzt sie atomar durch die neuen Eintr&auml;ge. Unbekannte Applikations-IDs werden ignoriert.');
+INSERT INTO txt VALUES ('H5701', 'English', 'Replace existing log data of imported applications: When importing a JSON file, deletes all existing log entries for every known external application ID contained in it and atomically replaces them with the new entries. Unknown application IDs are ignored.');
 INSERT INTO txt VALUES ('H5612', 'German',  'Import Appdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Appdaten-Import-L&auml;ufen.
     Ein Wert 0 bedeutet, dass der Appdaten-Import deaktiviert ist. Default-Wert = 0.
 ');

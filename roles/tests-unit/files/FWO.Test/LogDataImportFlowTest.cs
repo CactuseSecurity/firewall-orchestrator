@@ -16,6 +16,17 @@ namespace FWO.Test
     internal class LogDataImportFlowTest
     {
         [Test]
+        public void ReplaceLogEntriesMutation_DeletesAndInsertsAtomically()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(LogDataQueries.replaceLogEntries, Does.Contain("delete_logging_log_entry"));
+                Assert.That(LogDataQueries.replaceLogEntries, Does.Contain("insert_logging_log_entry"));
+                Assert.That(LogDataQueries.replaceLogEntries, Does.Contain("owner_id: {_in: $ownerIds}"));
+            });
+        }
+
+        [Test]
         public async Task Run_DeletesExpiredEntriesWithoutConfiguredSources()
         {
             LogDataImportTestApiConn apiConnection = new();
@@ -88,6 +99,32 @@ namespace FWO.Test
                 Assert.That(apiConnection.InsertedEntries.First().LogCount, Is.EqualTo(90), "entries are ordered by log count");
                 Assert.That(apiConnection.CompletedImports, Is.EqualTo(new List<bool> { true }));
                 Assert.That(apiConnection.CreateImportControlCalls, Is.EqualTo(1));
+                Assert.That(apiConnection.ReplacementOwnerIds, Is.Empty, "replacement is disabled by default");
+            });
+        }
+
+        [Test]
+        public async Task SaveEntries_ReplacesRowsForEveryKnownApplicationIdInTheSource()
+        {
+            LogDataImportTestApiConn apiConnection = new();
+            apiConnection.OwnerIdsByAppId["APP-1"] = 11;
+            apiConnection.OwnerIdsByAppId["APP-2"] = 22;
+            LogDataImport import = CreateImport(apiConnection, replaceExisting: true);
+            LogDataImportEntry invalidEntry = NewSourceEntry("APP-2", 40, "not an address", "198.51.100.2");
+            List<LogDataImportEntry> sourceEntries =
+            [
+                NewSourceEntry("APP-1", 30, "192.0.2.1", "198.51.100.1"),
+                invalidEntry,
+                NewSourceEntry("UNKNOWN", 20, "192.0.2.3", "198.51.100.3")
+            ];
+
+            await InvokeSaveEntries(import, sourceEntries);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.ReplacementOwnerIds, Is.EquivalentTo(new List<int> { 11, 22 }));
+                Assert.That(apiConnection.InsertedEntries, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.CompletedImports, Is.EqualTo(new List<bool> { true }));
             });
         }
 
@@ -372,13 +409,14 @@ namespace FWO.Test
         }
 
         private static LogDataImport CreateImport(ApiConnection apiConnection, string importPath = "[]",
-            int maxEntries = 1000, int retentionDays = 90)
+            int maxEntries = 1000, int retentionDays = 90, bool replaceExisting = false)
         {
             SimulatedGlobalConfig globalConfig = new()
             {
                 ImportLogDataPath = importPath,
                 ImportLogDataMaxEntries = maxEntries,
-                LogDataRetentionDays = retentionDays
+                LogDataRetentionDays = retentionDays,
+                ReplaceExistingLogData = replaceExisting
             };
             return new LogDataImport(apiConnection, globalConfig);
         }
@@ -454,6 +492,7 @@ namespace FWO.Test
             // getOwnerId matches app_id_external case sensitively
             public Dictionary<string, int> OwnerIdsByAppId { get; } = new(StringComparer.Ordinal);
             public List<FirewallLogEntryInput> InsertedEntries { get; } = [];
+            public List<int> ReplacementOwnerIds { get; } = [];
             public List<bool> CompletedImports { get; } = [];
             public List<string> LogEntryDescriptions { get; } = [];
             public int DeleteExpiredCalls { get; private set; }
@@ -482,6 +521,11 @@ namespace FWO.Test
                 }
                 if (query == LogDataQueries.insertLogEntries)
                 {
+                    return Task.FromResult((QueryResponseType)(object)InsertEntries(variables)!);
+                }
+                if (query == LogDataQueries.replaceLogEntries)
+                {
+                    ReplacementOwnerIds.AddRange(GetVariable<List<int>>(variables, "ownerIds") ?? []);
                     return Task.FromResult((QueryResponseType)(object)InsertEntries(variables)!);
                 }
                 if (query == LogDataQueries.deleteExpiredLogEntries)

@@ -70,6 +70,12 @@
                 <input id="cbx_port_without_protocol" type="checkbox" class="w-100" @bind="configData.AllowLogDataPortWithoutProtocol" />
             </div>
         </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5701"))">
+            <label for="cbx_replace_existing_log_data" class="col-form-label col-sm-4">@(userConfig.GetText("replaceExistingLogData")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_replace_existing_log_data" type="checkbox" class="w-100" @bind="configData.ReplaceExistingLogData" />
+            </div>
+        </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5698"))">
             <label for="cbx_show_log_data" class="col-form-label col-sm-4">@(userConfig.GetText("showLogDataInConnections")):</label>
             <div class="col-sm-1">
@@ -147,7 +153,8 @@ else
             LogDataImportIntervalUnit oldIntervalUnit = globalConfig.ImportLogDataSleepTimeUnit;
             int oldMaxEntries = globalConfig.ImportLogDataMaxEntries;
             bool oldShowLogData = globalConfig.ShowLogDataInConnections;
-            LogDataSettings oldSettings = new(globalConfig.LogDataRetentionDays, globalConfig.AllowLogDataPortWithoutProtocol);
+            LogDataSettings oldSettings = new(globalConfig.LogDataRetentionDays, globalConfig.AllowLogDataPortWithoutProtocol,
+                globalConfig.ReplaceExistingLogData);
             PrepareConfigData();
             await globalConfig.WriteToDatabase(configData, apiConnection);
             WriteSettingsAudit(oldPath, oldScriptArgs, oldInterval, oldIntervalUnit, oldMaxEntries, oldShowLogData, oldSettings);
@@ -186,7 +193,7 @@ else
     /// <summary>
     /// Settings of the log data page which are only needed for the audit entry.
     /// </summary>
-    private record LogDataSettings(int RetentionDays, bool AllowPortWithoutProtocol);
+    private record LogDataSettings(int RetentionDays, bool AllowPortWithoutProtocol, bool ReplaceExisting);
 
     private void WriteSettingsAudit(string oldPath, string oldScriptArgs, int oldInterval, LogDataImportIntervalUnit oldIntervalUnit,
         int oldMaxEntries, bool oldShowLogData, LogDataSettings oldSettings)
@@ -201,6 +208,8 @@ else
         AddSettingChange(changes, nameof(ConfigData.LogDataRetentionDays), oldSettings.RetentionDays.ToString(), configData.LogDataRetentionDays.ToString());
         AddSettingChange(changes, nameof(ConfigData.AllowLogDataPortWithoutProtocol), oldSettings.AllowPortWithoutProtocol.ToString(),
             configData.AllowLogDataPortWithoutProtocol.ToString());
+        AddSettingChange(changes, nameof(ConfigData.ReplaceExistingLogData), oldSettings.ReplaceExisting.ToString(),
+            configData.ReplaceExistingLogData.ToString());
 
         if (changes.Count > 0)
         {

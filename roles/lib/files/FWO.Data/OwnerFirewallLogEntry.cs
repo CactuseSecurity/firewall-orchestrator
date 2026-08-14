@@ -44,9 +44,10 @@ namespace FWO.Data
         }
 
         /// <summary>
-        /// Sort key of the service column, keeping entries of one protocol together.
+        /// Log time in the timezone of the browser session, as the log table displays, sorts and
+        /// filters it. A DateTimeOffset cannot be filtered by the table component.
         /// </summary>
-        public long ServiceSortKey => ((long)(ServiceProtocol ?? -1) << 32) + (ServicePort ?? -1);
+        public DateTime LogTimeLocal => LogTime.ToLocalTime().DateTime;
 
         private string DisplayProtocol()
         {

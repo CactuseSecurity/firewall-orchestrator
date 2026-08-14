@@ -90,6 +90,15 @@
         owner: "root"
       become: true
 
+    # like the ui and middleware roles, the importer enables its own unit here. it is only started
+    # by the last play in site.yml, so this is the task which makes it survive a reboot
+    - name: make importer run at host startup
+      ansible.builtin.systemd:
+        name: "{{ product_name }}-importer-api"
+        enabled: true
+        daemon_reload: true
+      become: true
+
     - name: include fetch importer pwd script
       import_tasks: fetch-importer-pwd.yml
 

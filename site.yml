@@ -117,25 +117,27 @@
   tasks:
     # restarted rather than started: every installer run restarts apache unconditionally, so an
     # import which was in flight is lost either way, and only a restart makes sure the importer
-    # reconnects to the api and middleware it has just been separated from
+    # reconnects to the api and middleware it has just been separated from. the unit is enabled by
+    # the importer role, this task only decides when it runs.
+    # tagged always on purpose: every way of invoking the playbook restarts one of the importer
+    # dependencies somewhere, so the importer has to be restarted afterwards no matter which tags
+    # were selected - including "--tags integrationtests", where the tests restart apache and the
+    # middleware, and "--skip-tags integrationtests", which must not skip starting the importer
     - name: restart importer service once all of its dependencies are up for good
       ansible.builtin.systemd:
         name: "{{ product_name }}-importer-api"
         state: restarted
         daemon_reload: true
-        enabled: true
       become: true
-      register: importer_service_start
       when: "not installation_mode == 'uninstall'"
+      tags:
+        - always
 
-    # only meaningful when the task above actually ran - a run which starts no service (uninstall,
-    # or a run limited to the test tags) leaves an importer whose activation time predates the
-    # restarts the tests themselves performed
+    # this verifies the state the installation ends in - it cannot fail because of the restart
+    # above, but it does fail once anything restarts an importer dependency after that restart
     - name: importer service startup order testing
       import_tasks: roles/tests-integration/tasks/test-importer-service-start-order.yml
-      when:
-        - importer_service_start is defined
-        - not importer_service_start is skipped
+      when: "not installation_mode == 'uninstall'"
       tags:
         - test
         - integrationtests

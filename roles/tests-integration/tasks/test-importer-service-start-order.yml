@@ -1,10 +1,14 @@
 ---
-# verifies that the importer service was started after every service it depends on. an import
-# which is already running while apache, the api or the middleware restarts loses its api
-# connection and has to be rolled back, so the importer has to be the last service the installer
-# starts. this test is imported by the last play in site.yml and has to stay there - run from
-# within the integration tests it would check the ordering before the tests restart the
-# middleware (sample-auth-data) and apache (test-auth) themselves.
+# verifies the state the installation ends in: the importer and all of its dependencies are
+# running, and the importer was activated after all of them. an import which is already running
+# while apache, the api or the middleware restarts loses its api connection and has to be rolled
+# back, so the importer has to be the last service the installer starts.
+#
+# this test is imported by the last play in site.yml and has to stay there. run from within the
+# integration tests it would check the ordering before those tests restart the middleware
+# (sample-auth-data) and apache (test-auth) themselves. since the same play restarts the importer
+# a few tasks earlier, the ordering assert cannot fail because of that restart - it is a canary
+# for anything which restarts an importer dependency after it.
 
 - debug:
     msg: starting importer service start order tests
@@ -20,6 +24,14 @@
         + ([api_service_name] if 'apiserver' in group_names else [])
         + ([middleware_service_name] if 'middlewareserver' in group_names else [])
       }}
+
+# on a host which runs nothing but the importer there is no dependency left to compare it to, so
+# only the "is running" part of this test has any effect there - say so instead of reporting a
+# green ordering test which checked nothing
+- debug:
+    msg: >-
+      comparing the activation time of {{ importer_service_name }} against
+      {{ importer_dependency_service_names | default([]) | join(', ') | default('no dependency on this host', true) }}
 
 - name: read the activation times of the importer and of its dependencies
   command: "systemctl show {{ item }}.service --property=ActiveEnterTimestampMonotonic --value"

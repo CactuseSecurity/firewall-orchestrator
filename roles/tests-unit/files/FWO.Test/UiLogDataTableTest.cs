@@ -81,6 +81,44 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void WrapperCssClass_LeavesAShortTableUnconstrained()
+        {
+            LogDataTable component = new();
+            SetPrivateField(component, "logEntries", BuildEntries(3));
+
+            Assert.That(GetPrivateProperty<string>(component, "WrapperCssClass"), Is.Empty,
+                "a scrolling box would cut off the column filter of a table with few rows");
+        }
+
+        [Test]
+        public void WrapperCssClass_LimitsTheHeightOfALongTable()
+        {
+            LogDataTable component = new();
+            SetPrivateField(component, "logEntries", BuildEntries(25));
+
+            Assert.That(GetPrivateProperty<string>(component, "WrapperCssClass"), Is.EqualTo("logdatatable-responsive"));
+        }
+
+        private static List<OwnerFirewallLogEntry> BuildEntries(int count)
+        {
+            return Enumerable.Range(0, count).Select(number => new OwnerFirewallLogEntry { LogCount = number }).ToList();
+        }
+
+        private static void SetPrivateField<T>(LogDataTable component, string fieldName, T value)
+        {
+            FieldInfo field = typeof(LogDataTable).GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingFieldException(typeof(LogDataTable).FullName, fieldName);
+            field.SetValue(component, value);
+        }
+
+        private static T GetPrivateProperty<T>(LogDataTable component, string propertyName)
+        {
+            PropertyInfo property = typeof(LogDataTable).GetProperty(propertyName, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMemberException(typeof(LogDataTable).FullName, propertyName);
+            return (T)property.GetValue(component)!;
+        }
+
         private static LogDataTable CreateComponent(ApiConnection apiConnection, int ownerId)
         {
             LogDataTable component = new();

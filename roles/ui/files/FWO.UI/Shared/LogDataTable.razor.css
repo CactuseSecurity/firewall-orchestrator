@@ -1,9 +1,13 @@
 /* Keeps the log data below the connection inside the browser tab: the block is limited to a
     share of the viewport height and scrolls internally instead of growing the popup further.
     Uses dvh so the mobile browser chrome is taken into account (see PopUp.razor.css).
+    The class is only applied once the table has enough rows to need it (see LogDataTable.razor):
+    a scrolling box clips everything which sticks out of it, which would cut off the filter
+    dropdown of a column while the table itself is only a few rows high. For the same reason the
+    box is never smaller than the filter dropdown needs.
 */
 .logdatatable-responsive {
-    max-height: 25dvh;
+    max-height: max(25dvh, 20rem);
     overflow: auto;
     display: flex;
     flex-direction: column;

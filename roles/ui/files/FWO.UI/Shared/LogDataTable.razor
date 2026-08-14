@@ -12,8 +12,8 @@ else if (logEntries.Count == 0)
 }
 else
 {
-    <div class="logdatatable-responsive">
-        <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header"
+    <div class="@WrapperCssClass">
+        <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive sticky-header"
                TableItem="OwnerFirewallLogEntry" Items="logEntries" PageSize="kPageSize" ColumnReorder="true">
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("source"))" Field="@(x => x.SourceDisplay)" Sortable="true" Filterable="true" />
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("service"))" Field="@(x => x.ServiceDisplay)" Sortable="true" Filterable="true">
@@ -45,6 +45,9 @@ else
     // the visible height is limited by LogDataTable.razor.css, a page therefore only sets
     // how many rows can be reached by scrolling inside that height
     private const int kPageSize = 25;
+    // below this number of rows the table stays unconstrained, so the filter dropdown of a column
+    // is not cut off by the scrolling box (see LogDataTable.razor.css)
+    private const int kMinRowsForScrolling = 10;
     // the loudest flows of an owner are enough for the display, an owner with more logged flows
     // than this would only fill the browser memory of every session which opens a connection
     private const int kMaxLoadedEntries = 500;
@@ -57,6 +60,8 @@ else
     /// </summary>
     [Parameter]
     public int OwnerId { get; set; }
+
+    private string WrapperCssClass => logEntries.Count >= kMinRowsForScrolling ? "logdatatable-responsive" : "";
 
     private List<OwnerFirewallLogEntry> logEntries = [];
     private bool isLoading = true;

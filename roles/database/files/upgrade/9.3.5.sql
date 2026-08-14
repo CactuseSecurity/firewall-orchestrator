@@ -56,3 +56,37 @@ BEGIN
         END IF;
     END LOOP;
 END $$;
+
+-- rename primary key
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = 'network_zone.zone'::regclass
+        AND conname = 'network_zone_pkey'
+    )
+    AND NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = 'network_zone.zone'::regclass
+        AND conname = 'zone_pkey'
+    )
+    THEN ALTER TABLE network_zone.zone RENAME CONSTRAINT network_zone_pkey TO zone_pkey;
+    END IF;
+END $$;
+
+-- rename sequence
+DO $$
+BEGIN
+    IF to_regclass('network_zone.network_zone_id_seq') IS NOT NULL
+    AND to_regclass('network_zone.zone_id_seq') IS NULL
+    THEN ALTER SEQUENCE network_zone.network_zone_id_seq RENAME TO zone_id_seq;
+    END IF;
+END $$;
+
+GRANT USAGE ON SCHEMA network_zone TO fwo_ro;
+GRANT SELECT ON ALL TABLES IN SCHEMA network_zone TO fwo_ro;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA network_zone TO fwo_ro;
+ALTER DEFAULT PRIVILEGES IN SCHEMA network_zone GRANT SELECT ON TABLES TO fwo_ro;
+ALTER DEFAULT PRIVILEGES IN SCHEMA network_zone GRANT USAGE, SELECT ON SEQUENCES TO fwo_ro;

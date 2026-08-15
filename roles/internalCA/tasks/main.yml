@@ -11,6 +11,7 @@
   delegate_to: "{{ internalca_ca_host }}"
   register: internalca_ca_certificate_content
   run_once: true
+  become: true
   when: internalca_enabled | bool
 
 - name: Store internal CA certificate for all hosts

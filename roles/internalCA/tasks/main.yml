@@ -84,6 +84,18 @@
     # backslashes. Doubling them makes every IP literal fail the test and drops
     # the IP SAN entries that api_uri is built from.
     internalca_ipv4_pattern: '^[0-9]{1,3}(\.[0-9]{1,3}){3}$'
+    # The names Apache serves as ServerName/ServerAlias, minus the demo
+    # placeholders an untouched installation still carries. ServerAlias may hold
+    # several space separated names, and each needs its own SAN entry - emitting
+    # the raw value would produce one malformed entry covering nothing.
+    internalca_ui_host_names: >-
+      {{
+        ((ui_server_name | default('')) ~ ' ' ~ (ui_server_alias | default('')))
+        | split
+        | reject('in', internalca_placeholder_host_names)
+        | map('regex_replace', '^', 'DNS:')
+        | list
+      }}
     # Every FWO Apache endpoint is also reached over loopback by local admin
     # tooling, so localhost is always part of the host identity.
     internalca_apache_subject_alt_names: >-
@@ -93,7 +105,7 @@
           + (['DNS:' ~ api_hostname] if 'apiserver' in group_names else [])
           + (['IP:' ~ api_network_listening_ip_address] if 'apiserver' in group_names and api_network_listening_ip_address is match(internalca_ipv4_pattern) else [])
           + (['DNS:' ~ middleware_hostname] if 'middlewareserver' in group_names else [])
-          + (['DNS:' ~ ui_hostname, 'DNS:' ~ ui_server_name, 'DNS:' ~ ui_server_alias] if 'frontends' in group_names else [])
+          + (['DNS:' ~ ui_hostname] + internalca_ui_host_names if 'frontends' in group_names else [])
           + (['IP:' ~ ui_hostname] if 'frontends' in group_names and ui_hostname is match(internalca_ipv4_pattern) else [])
         ) | unique
       }}

@@ -17,6 +17,18 @@ internalca_certificate_validity_days: 825
 # An installer run this close to expiry re-signs the issued certificates.
 internalca_renewal_threshold_days: 30
 
+# Issued certificates cannot outlive the CA that signs them, so once the CA has
+# less time left than internalca_certificate_validity_days, every leaf issued
+# from here on is silently cut short - and the "upgrade once a year and nothing
+# expires" property quietly stops holding. Warn while there is still room to
+# plan a rotation, and refuse to keep issuing once expiry is imminent.
+# Rotating the CA is a manual operation, see documentation/certificates.md.
+internalca_ca_expiry_warning_days: 365
+internalca_ca_expiry_critical_days: 90
+# Last resort for an operator who has to complete a run inside the critical
+# window; it does not make the certificates any more valid.
+internalca_ignore_ca_expiry: false
+
 # P-256 is the default. Set internalca_key_type to RSA when legacy TLS clients
 # or TLS-inspection appliances require RSA certificates; it then uses
 # internalca_key_size instead of internalca_key_curve.
@@ -33,6 +45,16 @@ internalca_apache_csr: "{{ fworch_secrets_dir }}/apache/server.csr"
 # than one of these services uses one host identity with all local endpoint
 # names in its SAN extension.
 internalca_issue_apache_certificate: true
+
+# ui_server_name and ui_server_alias are the names Apache actually serves, so
+# they belong in the UI certificate - but their shipped values in
+# inventory/group_vars/frontends.yml are Cactus demo names. Asserting those in
+# every installation's certificate is wrong, so they are dropped unless the
+# operator replaced them. Extend this list with any other placeholder an
+# installation carries that should never be certified.
+internalca_placeholder_host_names:
+  - fworch-test-server
+  - fwodemo.cactus.de
 internalca_legacy_apache_certificate: "{{ apache_ssl_dir }}/server.crt"
 internalca_legacy_apache_private_key: "{{ apache_ssl_dir }}/server.key"
 

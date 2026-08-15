@@ -531,17 +531,17 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
-    <li>Das Modellierungsmodul enth&auml;t nun einen Soll/Ist-Abgleich mit dem Firewall-Regelwerk.</li>
-    <li>Das Modellierungsmodul enth&auml;t ein Antragsmodul zur Beauftragung von Firewall-&Auml;nderungen &uuml;ber externe Systeme.</li>
-    <li>Das FWO-Logo kann durch ein eigenes Logo ersetzt werden.</li>
+    <li>Firewall Orchestrator betreibt nun eine eigene interne Zertifizierungsstelle. Alle internen Verbindungen werden gegen dieses Zertifikat gepr&uuml;ft, statt beliebige Zertifikate zu akzeptieren.</li>
+    <li>Der Zugriff auf die GraphQL-API erfordert nun ein Client-Zertifikat. Eigene Skripte m&uuml;ssen ihre lokale Client-Identit&auml;t mitsenden, siehe <a href="/help/API/certificates">Hilfe zu Zertifikaten</a>.</li>
+    <li>App-Rollen d&uuml;rfen nur noch von Verantwortlichen der Applikation mit der Rolle Modellierer ge&auml;ndert werden.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
-    <li>The modelling module now includes a variance analysis (target/actual comparison) with the firewall rulebase</li>
-    <li>The modelling module now includes a request module for submitting firewall change requests via external systems</li>
-    <li>You now can insert your own logo in the UI</li>
+    <li>Firewall Orchestrator now operates its own internal certificate authority. All internal connections are verified against it instead of accepting any certificate.</li>
+    <li>Access to the GraphQL API now requires a client certificate. Your own scripts have to present their local client identity, see <a href="/help/API/certificates">certificate help</a>.</li>
+    <li>Application roles may now only be changed by an owner of the application holding the modeller role.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -3655,6 +3655,14 @@ INSERT INTO txt VALUES ('hasura',               'German', 	'Hasura');
 INSERT INTO txt VALUES ('hasura',               'English', 	'Hasura');
 INSERT INTO txt VALUES ('security',             'German', 	'Sicherheit / JWT');
 INSERT INTO txt VALUES ('security',             'English', 	'Security / JWT');
+INSERT INTO txt VALUES ('client_certificates',  'German', 	'Client-Zertifikate');
+INSERT INTO txt VALUES ('client_certificates',  'English', 	'Client Certificates');
+INSERT INTO txt VALUES ('cert_where',           'German', 	'Wo liegen die Zertifikate?');
+INSERT INTO txt VALUES ('cert_where',           'English', 	'Where are the certificates?');
+INSERT INTO txt VALUES ('cert_own_scripts',     'German', 	'Eigene Skripte');
+INSERT INTO txt VALUES ('cert_own_scripts',     'English', 	'Your own scripts');
+INSERT INTO txt VALUES ('cert_troubleshooting', 'German', 	'Fehlersuche');
+INSERT INTO txt VALUES ('cert_troubleshooting', 'English', 	'Troubleshooting');
 INSERT INTO txt VALUES ('further_reading',      'German', 	'Weiterf&uuml;hrendes');
 INSERT INTO txt VALUES ('further_reading',      'English', 	'Further reading');
 INSERT INTO txt VALUES ('basic_commands',       'German', 	'Wichtige Kommandos');
@@ -7339,6 +7347,46 @@ INSERT INTO txt VALUES ('H6301', 'English', 'Login to the API is controlled by p
     The JWT can be used for a limited time (default = 2 hours) to access the API afterwards.
     After that time period (independant of activity) you need to login again, as the JWT is no longer considered valid.<br><br>
     You may use the same credentials you also use for accessing the web user interface and will have the same restrictions and views based on the role based access model.
+');
+INSERT INTO txt VALUES ('H6321', 'German',  'Der Zugriff auf die GraphQL-API erfordert zus&auml;tzlich zum JWT ein Client-Zertifikat.
+    Firewall Orchestrator betreibt dazu eine eigene interne Zertifizierungsstelle (CA), die bei der Installation angelegt wird und jedem FWO-Host eine eigene Identit&auml;t ausstellt.
+    Benutzeroberfl&auml;che, Middleware, Importer und die Integrationstests nutzen diese Identit&auml;t automatisch - hier ist nichts zu konfigurieren.<br><br>
+    Die REST-API der Middleware (Anmeldung, Benutzerverwaltung) ben&ouml;tigt bewusst <b>kein</b> Client-Zertifikat, da genau dort Nutzername und Passwort gegen einen JWT getauscht werden.
+    Sie wird dennoch &uuml;ber TLS bereitgestellt und sollte gegen dieselbe CA gepr&uuml;ft werden.
+');
+INSERT INTO txt VALUES ('H6321', 'English', 'Access to the GraphQL API requires a client certificate in addition to the JWT.
+    Firewall Orchestrator operates its own internal certificate authority (CA) for this. It is created during installation and issues an identity to every FWO host.
+    The user interface, middleware, importer and the integration tests use that identity automatically - there is nothing to configure for them.<br><br>
+    The middleware REST API (login, user management) deliberately requires <b>no</b> client certificate, because that is exactly where username and password are exchanged for a JWT.
+    It is still served over TLS and should be verified against the same CA.
+');
+INSERT INTO txt VALUES ('H6322', 'German',  'Auf jedem FWO-Host liegen drei Dateien, die eigene Skripte ben&ouml;tigen:');
+INSERT INTO txt VALUES ('H6322', 'English', 'Every FWO host holds three files that your own scripts need:');
+INSERT INTO txt VALUES ('H6323', 'German',  '<li><code>/etc/fworch/secrets/client/client.crt</code> - das Client-Zertifikat dieses Hosts</li>
+    <li><code>/etc/fworch/secrets/client/client.key</code> - der zugeh&ouml;rige private Schl&uuml;ssel</li>
+    <li><code>/etc/fworch/fworch-internal-ca.crt</code> - das CA-Zertifikat zur Pr&uuml;fung der Gegenstelle</li>
+');
+INSERT INTO txt VALUES ('H6323', 'English', '<li><code>/etc/fworch/secrets/client/client.crt</code> - this host''s client certificate</li>
+    <li><code>/etc/fworch/secrets/client/client.key</code> - its matching private key</li>
+    <li><code>/etc/fworch/fworch-internal-ca.crt</code> - the CA certificate used to verify the peer</li>
+');
+INSERT INTO txt VALUES ('H6324', 'German',  'Der private Schl&uuml;ssel ist nur f&uuml;r das FWO-Dienstkonto lesbar. Eigene Skripte m&uuml;ssen daher als dieser Benutzer oder als root laufen.
+    Das CA-Zertifikat muss explizit angegeben werden: g&auml;ngige Bibliotheken pr&uuml;fen sonst gegen den mitgelieferten &ouml;ffentlichen Zertifikatsspeicher, der die interne CA nicht kennt.
+');
+INSERT INTO txt VALUES ('H6324', 'English', 'The private key is readable only by the FWO service account, so run your own scripts as that user or as root.
+    The CA certificate has to be named explicitly: otherwise common libraries verify against their bundled public trust store, which does not know the internal CA.
+');
+INSERT INTO txt VALUES ('H6325', 'German',  'Typische Fehlerbilder:');
+INSERT INTO txt VALUES ('H6325', 'English', 'Typical failure modes:');
+INSERT INTO txt VALUES ('H6326', 'German',  '<li><b>HTTP 400 "No required SSL certificate was sent"</b> bzw. Abbruch des TLS-Handshakes: es wurde kein Client-Zertifikat mitgesendet (<code>--cert</code> / <code>--key</code> fehlen).</li>
+    <li><b>"certificate verify failed: unable to get local issuer certificate"</b>: das CA-Zertifikat wurde nicht angegeben (<code>--cacert</code> fehlt).</li>
+    <li><b>"Permission denied"</b> beim Lesen von <code>client.key</code>: das Skript l&auml;uft nicht unter dem FWO-Dienstkonto.</li>
+    <li><b>Namensabweichung</b> (hostname mismatch): die verwendete Adresse steht nicht im Zertifikat des Servers. Es sind die in der Installation hinterlegten Hostnamen zu verwenden.</li>
+');
+INSERT INTO txt VALUES ('H6326', 'English', '<li><b>HTTP 400 "No required SSL certificate was sent"</b>, or an aborted TLS handshake: no client certificate was presented (<code>--cert</code> / <code>--key</code> missing).</li>
+    <li><b>"certificate verify failed: unable to get local issuer certificate"</b>: the CA certificate was not supplied (<code>--cacert</code> missing).</li>
+    <li><b>"Permission denied"</b> reading <code>client.key</code>: the script is not running as the FWO service account.</li>
+    <li><b>Host name mismatch</b>: the address you used is not listed in the server certificate. Use the host names configured during installation.</li>
 ');
 INSERT INTO txt VALUES ('H6401', 'German',  'Mehr zur im Firewall Orchestrator eingesetzten API kann unter folgenden Seiten gefunden werden:');
 INSERT INTO txt VALUES ('H6401', 'English', 'More resources around the API deployed in Firewall Orchestrator can be found at the following sites:');

@@ -27,10 +27,18 @@ TLS-inspection appliances, or hardware that requires RSA, set
 Choose the algorithm before the first installation. Changing it later requires
 rotating the CA and all issued certificates.
 
-The Hasura API proxy requires a client certificate issued by this CA by default
-(`api_require_client_certificate: true`). UI, middleware, importer, and
-installer integration tests present their local client identity. Set it to
-`false` only while performing a staged migration. To use an administrator
+The Hasura GraphQL API proxy requires a client certificate issued by this CA by
+default (`graphql_api_requires_client_certificate: true`). UI, middleware,
+importer, and installer integration tests present their local client identity.
+Set it to `false` only while performing a staged migration.
+
+The middleware REST API deliberately does not require a client certificate. It
+is the endpoint external callers use to exchange username and password for a
+JWT, so demanding an FWO-issued client identity there would make it unusable
+for its purpose. It is still served over TLS with an internal CA certificate,
+so callers should verify it against the CA trust anchor described above.
+
+To use an administrator
 managed Apache certificate, set `internalca_issue_apache_certificate: false`
 and provide `internalca_apache_certificate` and
 `internalca_apache_private_key`; the role then leaves those files untouched.
@@ -47,6 +55,14 @@ anything FWO issued itself: the historical self-signed certificate, recognised
 by FWO's legacy organisation attribute, and any leaf whose issuer is the
 internal CA, so that FWO-issued certificates stay renewable.
 
+If an installed certificate or private key is present but cannot be parsed, the
+installer stops and names the file instead of guessing. The usual cause is a
+passphrase-protected private key, which FWO cannot read and therefore cannot
+recognise as customer-managed; without this check the endpoint would silently
+be repointed at an FWO-issued certificate. Remove the passphrase, or set
+`internalca_issue_apache_certificate: false` to keep the role away from that
+identity entirely.
+
 Apache server identities are stored at
 `/usr/local/fworch/etc/secrets/apache/server.{crt,key}`. The private
 key is `0640` and owned by root. Client identities are stored in
@@ -60,9 +76,21 @@ re-signed automatically by any installer run that happens within
 at least once a year never expires. To rotate a certificate ahead of that
 schedule, remove the affected certificate from
 `/usr/local/fworch/etc/secrets/ca/issued/<host>/` and rerun the installer.
-Rotating the CA is a deliberate maintenance operation: replace the CA on every
-FWO host before issuing replacement leaves, otherwise existing internal
-connections will stop trusting each other.
+Rotating the CA is a deliberate manual operation: replace the CA on every FWO
+host before issuing replacement leaves, otherwise existing internal connections
+will stop trusting each other. A supported, non-disruptive rotation procedure is
+tracked in issue #5130.
+
+Every installer run checks how much validity the CA itself has left, because no
+issued certificate can outlive the CA that signed it. Once the CA has less time
+remaining than `internalca_certificate_validity_days` (825), newly issued
+certificates are silently cut short to the CA's expiry date, and the "upgrade at
+least once a year and nothing expires" property no longer holds. The run then
+prints a warning. Within `internalca_ca_expiry_critical_days` (90) of expiry it
+stops instead, since anything it issued would be near-worthless; set
+`internalca_ignore_ca_expiry: true` to complete a run anyway, which does not make
+the certificates any more valid. `internalca_ca_expiry_warning_days` (365) adds a
+second, earlier warning threshold independent of the leaf validity.
 
 FWO's shared GraphQL client now uses normal platform TLS validation. Ensure
 that `api_uri`, `middleware_uri`, and `ui_hostname` resolve to a name or IP
@@ -70,6 +98,15 @@ contained in the certificates' SANs. The defaults cover the inventory host
 names, `localhost`, `127.0.0.1`, and the FWO endpoint defaults; distributed
 deployments should set these inventory values to their real DNS names before
 installation.
+
+On a UI host the certificate also covers the names Apache serves as
+`ServerName` and `ServerAlias`, taken from `ui_server_name` and
+`ui_server_alias`. `ui_server_alias` may list several space-separated names,
+and each gets its own SAN entry. The demo values these two variables ship with
+are listed in `internalca_placeholder_host_names` and are deliberately left out
+of the certificate, so an installation that never replaced them does not assert
+a name it has no claim to. Replace them with the real names before installing,
+or extend that list if your installation carries other placeholders.
 
 Scripts that talk to the API must present the client identity, for example:
 

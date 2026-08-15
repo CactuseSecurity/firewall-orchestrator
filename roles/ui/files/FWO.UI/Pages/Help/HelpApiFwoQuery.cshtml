@@ -98,6 +98,9 @@ curl --request POST \
     <pre class="code-block" data-lang="bash">
 <code>
 curl --request POST  \
+    --cert /etc/fworch/secrets/client/client.crt \
+    --key /etc/fworch/secrets/client/client.key \
+    --cacert /etc/fworch/fworch-internal-ca.crt \
     --url https://localhost:9443/api/v1/graphql \
     --header 'content-type: application/json' \
     --header 'Accept: application/json' \

@@ -73,6 +73,38 @@
     - internalca_existing_apache_configuration is defined
     - internalca_existing_apache_files.results[1].stat.exists
 
+# A file that is present but unreadable is not the same as an absent one. Without
+# this check the fingerprint comparison below simply evaluates to false and FWO
+# silently repoints Apache at its own certificate - which is what happens to a
+# passphrase protected private key, the most common way an operator manages one.
+# Collected in a fact first: a loop is templated before its when is evaluated, so
+# looping over the stat results directly would break on hosts that have no vhost.
+- name: Collect unreadable Apache identity files
+  set_fact:
+    internalca_unreadable_apache_files: >-
+      {{
+        ([internalca_existing_apache_certificate]
+          if internalca_existing_apache_files.results[0].stat.exists
+          and 'public_key_fingerprints' not in internalca_existing_apache_certificate_info
+          else [])
+        + ([internalca_existing_apache_private_key]
+          if internalca_existing_apache_files.results[1].stat.exists
+          and 'public_key_fingerprints' not in internalca_existing_apache_key_info
+          else [])
+      }}
+  when: internalca_existing_apache_configuration is defined
+
+- name: Fail when an existing Apache identity cannot be read
+  fail:
+    msg: >-
+      Cannot read {{ internalca_unreadable_apache_files | join(' and ') }} on
+      {{ inventory_hostname }}. The file exists but could not be parsed, so FWO
+      cannot tell whether this identity is customer managed, and it must not
+      decide on its own. A passphrase protected private key is the usual cause.
+      Remove the passphrase, or set internalca_issue_apache_certificate to false
+      to keep FWO away from this identity entirely.
+  when: internalca_unreadable_apache_files | default([]) | length > 0
+
 - name: Preserve customer managed Apache certificates
   set_fact:
     internalca_preserve_apache_certificate: >-
@@ -141,6 +173,34 @@
   when:
     - "'middlewareserver' in group_names"
     - internalca_existing_ldap_files.results[1].stat.exists
+
+# Same reasoning as for the Apache identity above: an unreadable file must stop
+# the run rather than quietly demote slapd to an FWO issued certificate.
+- name: Collect unreadable LDAP identity files
+  set_fact:
+    internalca_unreadable_ldap_files: >-
+      {{
+        ([internalca_ldap_certificate]
+          if internalca_existing_ldap_files.results[0].stat.exists
+          and 'public_key_fingerprints' not in internalca_existing_ldap_certificate_info
+          else [])
+        + ([internalca_ldap_private_key]
+          if internalca_existing_ldap_files.results[1].stat.exists
+          and 'public_key_fingerprints' not in internalca_existing_ldap_key_info
+          else [])
+      }}
+  when: "'middlewareserver' in group_names"
+
+- name: Fail when an existing LDAP identity cannot be read
+  fail:
+    msg: >-
+      Cannot read {{ internalca_unreadable_ldap_files | join(' and ') }} on
+      {{ inventory_hostname }}. The file exists but could not be parsed, so FWO
+      cannot tell whether this identity is customer managed, and it must not
+      decide on its own. A passphrase protected private key is the usual cause.
+      Remove the passphrase, or move the identity out of
+      {{ internalca_ldap_cert_dir }} if slapd should not use it.
+  when: internalca_unreadable_ldap_files | default([]) | length > 0
 
 - name: Preserve customer managed LDAP certificates
   set_fact:

@@ -91,7 +91,10 @@ fworch_importer_memory_max: "{{ 'infinity' if fworch_importer_memory_max_percent
 
 # user facing switches, see documentation/certificates.md
 internalca_enabled: true
-api_require_client_certificate: true
+# Applies to the GraphQL API vhost only. The middleware REST API is deliberately
+# reachable without a client certificate, because external callers authenticate
+# to it with username/password to obtain their JWT.
+graphql_api_requires_client_certificate: true
 
 # read by roles/api, roles/middleware and roles/ui apache templates
 internalca_apache_certificate: "{{ fworch_secrets_dir }}/apache/server.crt"

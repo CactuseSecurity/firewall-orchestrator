@@ -41,13 +41,28 @@
     register: existing_config_json
     when: installation_mode == "upgrade"
 
+  # The whole file is rewritten below, so an unparsable original has to be caught
+  # with a message naming it. Only the parse is wrapped, so a genuine write
+  # failure further down is not mislabelled as a broken config file.
+  - name: Parse the existing configuration during upgrade
+    block:
+      - name: Read the existing configuration into a fact
+        set_fact:
+          existing_config: "{{ existing_config_json.content | b64decode | from_json }}"
+    rescue:
+      - name: Report an unreadable existing configuration
+        fail:
+          msg: >-
+            {{ fworch_conf_file }} on {{ inventory_hostname }} is not valid JSON,
+            so the TLS identity paths cannot be added to it. Repair or restore the
+            file before upgrading; the installer will not overwrite it in this state.
+    when: installation_mode == "upgrade"
+
   - name: Add TLS identity paths during upgrade
     copy:
       content: >-
         {{
-          (
-            existing_config_json.content | b64decode | from_json
-          ) | combine(
+          existing_config | combine(
             {
               'tls_client_certificate': internalca_client_certificate,
               'tls_client_private_key': internalca_client_private_key,
@@ -59,6 +74,13 @@
       owner: "{{ fworch_user }}"
       group: "{{ fworch_group }}"
       mode: "0640"
+      # The previous configuration is the only record of any hand edit an operator
+      # made, and this task replaces the file wholesale.
+      backup: true
+    # Suppresses the content diff only. Failures stay visible, unlike with no_log:
+    # the file holds no secrets today, but dumping an entire config into a --diff
+    # or CI log is noise that also invites one to be added unnoticed later.
+    diff: false
     when: installation_mode == "upgrade"
 
   become: true

@@ -330,7 +330,8 @@ def test_commit_and_push_deletions_retries_an_existing_local_commit(tmp_path: Pa
     assert "logs.csv" not in origin.head.commit.tree
 
 
-def test_commit_and_push_deletions_completes_a_shallow_clone_before_pushing(tmp_path: Path) -> None:
+def create_shallow_clone(tmp_path: Path) -> tuple[Path, git.Repo]:
+    """Clone the sample repository with a truncated history, as the --depth argument does."""
     create_clone_with_origin(tmp_path)
     # a second commit gives the shallow clone something to be shallow about
     seed: git.Repo = git.Repo(tmp_path / "seed")
@@ -346,10 +347,26 @@ def test_commit_and_push_deletions_completes_a_shallow_clone_before_pushing(tmp_
     )
     configure_identity(shallow)
     assert shallow.git.rev_parse("--is-shallow-repository").strip() == "true"
+    return shallow_path, shallow
+
+
+def test_commit_and_push_deletions_completes_a_shallow_clone_before_pushing(tmp_path: Path) -> None:
+    shallow_path, shallow = create_shallow_clone(tmp_path)
 
     pushed: bool = commit_and_push_deletions(
         str(shallow_path), [shallow_path / "second.csv"], COMMIT_MESSAGE, LOGGER, "user", "password"
     )
+
+    assert pushed
+    assert shallow.git.rev_parse("--is-shallow-repository").strip() == "false"
+    assert "second.csv" not in git.Repo(tmp_path / "origin.git").head.commit.tree
+
+
+def test_commit_and_push_deletions_completes_a_shallow_clone_without_credentials(tmp_path: Path) -> None:
+    # a repository which needs no credentials is pushed through the same preparation
+    shallow_path, shallow = create_shallow_clone(tmp_path)
+
+    pushed: bool = commit_and_push_deletions(str(shallow_path), [shallow_path / "second.csv"], COMMIT_MESSAGE, LOGGER)
 
     assert pushed
     assert shallow.git.rev_parse("--is-shallow-repository").strip() == "false"

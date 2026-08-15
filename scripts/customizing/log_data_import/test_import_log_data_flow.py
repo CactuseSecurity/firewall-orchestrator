@@ -165,6 +165,35 @@ def test_acknowledge_import_reports_a_single_failure(
     assert "the data is kept and imported again" in caplog.text
 
 
+def test_reuse_reports_a_source_the_middleware_kept_back(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    config_file, _repository_directory, _ = prepare_repository(tmp_path, monkeypatch)
+
+    with caplog.at_level(logging.ERROR, logger=LOGGER.name):
+        exhaust_pending_reuses(config_file, monkeypatch)
+
+    assert "check the log data settings" in caplog.text
+    assert "pushed to the log data repository" not in caplog.text, "no deletion push was attempted"
+
+
+def test_reuse_reports_a_deletion_which_cannot_be_pushed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    config_file, _repository_directory, _ = prepare_repository(tmp_path, monkeypatch)
+    monkeypatch.setattr(importer, "update_git_repo", return_true)
+    importer.import_data(config_file, None, LOGGER)
+    monkeypatch.setattr(importer, "commit_and_push_deletions", return_false)
+    assert importer.acknowledge_import(config_file, LOGGER) == 1
+
+    with caplog.at_level(logging.ERROR, logger=LOGGER.name):
+        for _ in range(importer.MAX_PENDING_REUSES + 1):
+            importer.import_data(config_file, None, LOGGER)
+
+    assert "can be pushed to the log data repository" in caplog.text
+    assert "check the log data settings" not in caplog.text
+
+
 def test_read_reuses_ignores_an_unusable_value() -> None:
     assert importer.read_reuses({"reuses": "many"}) == 0
     assert importer.read_reuses({"reuses": -1}) == 0

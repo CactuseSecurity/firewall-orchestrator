@@ -16,11 +16,9 @@ else
         <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive sticky-header"
                TableItem="OwnerFirewallLogEntry" Items="logEntries" PageSize="kPageSize" ColumnReorder="true">
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("source"))" Field="@(x => x.SourceDisplay)" Sortable="true" Filterable="true" />
-            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("service"))" Field="@(x => x.ServiceDisplay)" Sortable="true" Filterable="true">
-                <Template>
-                    @context.ServiceDisplay
-                </Template>
-            </Column>
+            @* protocol and port are separate columns, so the port sorts and filters as a number *@
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("protocol"))" Field="@(x => x.ProtocolDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("port"))" Field="@(x => x.ServicePort)" Sortable="true" Filterable="true" />
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("destination"))" Field="@(x => x.DestinationDisplay)" Sortable="true" Filterable="true" />
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("action"))" Field="@(x => x.Allowed)" Sortable="true" Filterable="true">
                 <Template>
@@ -78,12 +76,14 @@ else
 
     private async Task LoadLogEntries()
     {
+        // the owner is remembered before the query, so a failed load is not repeated - with it its
+        // error message - on every re-render of the page the table is embedded in
+        loadedOwnerId = OwnerId;
         try
         {
             isLoading = true;
             logEntries = await apiConnection.SendQueryAsync<List<OwnerFirewallLogEntry>>(LogDataQueries.getUnmodelledLogEntriesByOwner,
                 new { ownerId = OwnerId, limit = kMaxLoadedEntries });
-            loadedOwnerId = OwnerId;
         }
         catch (Exception exception)
         {

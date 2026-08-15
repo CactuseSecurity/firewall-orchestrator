@@ -176,21 +176,11 @@ namespace FWO.Middleware.Server
             WarnAboutDroppedEntries(sourcePath, invalidEntries, unresolvedEntries, discardedEntries);
             if (entries.Count == 0)
             {
-                await AddLogEntry(GlobalConst.kImportLogData, 1, LevelFile, $"No valid log entries found in {sourcePath}.json.");
+                await RemoveReplacedEntries(sourceOwnerIds, sourcePath);
                 return sourceEntries.Count == 0;
             }
 
-            long controlId = await CreateImportControl();
-            try
-            {
-                await WriteEntries(entries, sourceOwnerIds);
-                await CompleteImport(controlId, true);
-            }
-            catch
-            {
-                await CompleteImport(controlId, false);
-                throw;
-            }
+            await RunAsImport(() => WriteEntries(entries, sourceOwnerIds));
 
             string message = $"Imported {entries.Count} log entries from {sourcePath}.json";
             if (discardedEntries > 0)
@@ -204,6 +194,44 @@ namespace FWO.Middleware.Server
             Log.WriteInfo(LogMessageTitle, message);
             await AddLogEntry(GlobalConst.kImportLogData, 0, LevelFile, message);
             return true;
+        }
+
+        /// <summary>
+        /// Removes the stored rows of the applications of a source which delivered nothing
+        /// importable, keeping the promise of <see cref="ResolveSourceOwnerIds"/> that a source is
+        /// the current truth about the applications it reports. Without this the rows of an earlier
+        /// period would stay on display as if they were current. Outside replaceExistingLogData
+        /// mode there are no owners to replace and nothing is removed.
+        /// </summary>
+        private async Task RemoveReplacedEntries(List<int> sourceOwnerIds, string sourcePath)
+        {
+            string message = $"No valid log entries found in {sourcePath}.json.";
+            if (sourceOwnerIds.Count > 0)
+            {
+                await RunAsImport(() => apiConnection.SendQueryAsync<object>(LogDataQueries.deleteLogEntriesOfOwners,
+                    new { ownerIds = sourceOwnerIds }));
+                message += " The stored log data of the applications it reports was removed.";
+            }
+            await AddLogEntry(GlobalConst.kImportLogData, 1, LevelFile, message);
+        }
+
+        /// <summary>
+        /// Runs a change of the stored log data inside an import control record, so a failed change
+        /// is visible as a failed import instead of leaving an import which never ended.
+        /// </summary>
+        private async Task RunAsImport(Func<Task> changeLogData)
+        {
+            long controlId = await CreateImportControl();
+            try
+            {
+                await changeLogData();
+                await CompleteImport(controlId, true);
+            }
+            catch
+            {
+                await CompleteImport(controlId, false);
+                throw;
+            }
         }
 
         /// <summary>
@@ -251,9 +279,9 @@ namespace FWO.Middleware.Server
         /// The raw source entries are used deliberately, not the entries which survive validation,
         /// the owner lookup and the importLogDataMaxEntries limit: a source reporting an
         /// application is the current truth about that application, so its stored rows are dropped
-        /// even when none of its new entries can be imported. The application then shows no log
-        /// data instead of data from an earlier period, and the dropped entries are reported by
-        /// WarnAboutDroppedEntries.
+        /// even when none of its new entries can be imported (see <see cref="RemoveReplacedEntries"/>).
+        /// The application then shows no log data instead of data from an earlier period, and the
+        /// dropped entries are reported by WarnAboutDroppedEntries.
         /// </summary>
         private async Task<List<int>> ResolveSourceOwnerIds(List<LogDataImportEntry> sourceEntries, Dictionary<string, int?> ownerIds)
         {

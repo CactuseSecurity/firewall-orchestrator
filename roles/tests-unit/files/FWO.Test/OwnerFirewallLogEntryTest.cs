@@ -35,7 +35,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ServiceDisplay_UsesProtocolNameAndPort()
+        public void ProtocolDisplay_UsesTheProtocolName()
         {
             OwnerFirewallLogEntry entry = new()
             {
@@ -44,58 +44,39 @@ namespace FWO.Test
                 Protocol = new NetworkProtocol { Id = 6, Name = "tcp" }
             };
 
-            Assert.That(entry.ServiceDisplay, Is.EqualTo("TCP/443"));
+            Assert.That(entry.ProtocolDisplay, Is.EqualTo("TCP"));
         }
 
         [Test]
-        public void ServiceDisplay_FallsBackToProtocolNumber()
+        public void ProtocolDisplay_FallsBackToProtocolNumber()
         {
-            OwnerFirewallLogEntry entry = new() { ServiceProtocol = 6, ServicePort = 443 };
+            OwnerFirewallLogEntry entry = new() { ServiceProtocol = 47 };
 
-            Assert.That(entry.ServiceDisplay, Is.EqualTo("6/443"));
+            Assert.That(entry.ProtocolDisplay, Is.EqualTo("47"));
         }
 
         [Test]
-        public void ServiceDisplay_OmitsMissingPort()
-        {
-            OwnerFirewallLogEntry entry = new()
-            {
-                ServiceProtocol = 1,
-                Protocol = new NetworkProtocol { Id = 1, Name = "icmp" }
-            };
-
-            Assert.That(entry.ServiceDisplay, Is.EqualTo("ICMP"));
-        }
-
-        [Test]
-        public void ServiceDisplay_IsEmptyWithoutProtocolAndPort()
-        {
-            OwnerFirewallLogEntry entry = new();
-
-            Assert.That(entry.ServiceDisplay, Is.Empty);
-        }
-
-        [Test]
-        public void ServiceDisplay_ShowsPortWithoutProtocol()
+        public void ProtocolDisplay_IsEmptyWithoutProtocol()
         {
             OwnerFirewallLogEntry entry = new() { ServicePort = 443 };
 
-            Assert.That(entry.ServiceDisplay, Is.EqualTo("443"));
+            Assert.That(entry.ProtocolDisplay, Is.Empty);
         }
 
         [Test]
-        public void ServiceDisplay_GroupsEntriesOfOneProtocolWhenSorted()
+        public void ServicePort_SortsNumericallyWithinAProtocol()
         {
-            OwnerFirewallLogEntry unknownService = new();
-            OwnerFirewallLogEntry tcpPort = new() { ServiceProtocol = 6, ServicePort = 80, Protocol = new NetworkProtocol { Id = 6, Name = "tcp" } };
-            OwnerFirewallLogEntry tcpOtherPort = new() { ServiceProtocol = 6, ServicePort = 8080, Protocol = new NetworkProtocol { Id = 6, Name = "tcp" } };
-            OwnerFirewallLogEntry udpPort = new() { ServiceProtocol = 17, ServicePort = 53, Protocol = new NetworkProtocol { Id = 17, Name = "udp" } };
-            List<OwnerFirewallLogEntry> entries = [udpPort, tcpOtherPort, unknownService, tcpPort];
+            OwnerFirewallLogEntry httpPort = new() { ServiceProtocol = 6, ServicePort = 80, Protocol = new NetworkProtocol { Id = 6, Name = "tcp" } };
+            OwnerFirewallLogEntry httpsPort = new() { ServiceProtocol = 6, ServicePort = 443, Protocol = new NetworkProtocol { Id = 6, Name = "tcp" } };
+            OwnerFirewallLogEntry highPort = new() { ServiceProtocol = 6, ServicePort = 1024, Protocol = new NetworkProtocol { Id = 6, Name = "tcp" } };
+            List<OwnerFirewallLogEntry> entries = [highPort, httpsPort, httpPort];
 
-            List<string> sortedServices = entries.OrderBy(entry => entry.ServiceDisplay).Select(entry => entry.ServiceDisplay).ToList();
+            List<int?> sortedPorts = entries.OrderBy(entry => entry.ProtocolDisplay).ThenBy(entry => entry.ServicePort)
+                .Select(entry => entry.ServicePort).ToList();
 
-            List<string> expected = ["", "TCP/80", "TCP/8080", "UDP/53"];
-            Assert.That(sortedServices, Is.EqualTo(expected));
+            // the table sorts on the port itself, a formatted "TCP/1024" would come before "TCP/443"
+            List<int?> expected = [80, 443, 1024];
+            Assert.That(sortedPorts, Is.EqualTo(expected));
         }
 
         [Test]

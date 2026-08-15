@@ -28,35 +28,30 @@ namespace FWO.Data
         public string DestinationDisplay => RemoveHostMask(Destination);
 
         /// <summary>
-        /// Service of the logged flow, e.g. "TCP/443", "ICMP" or "47".
+        /// Protocol of the logged flow, e.g. "TCP" or the protocol number when the log data names
+        /// a protocol the database does not know. Empty when the source reported none.
+        /// Protocol and port are displayed as two columns on purpose: a combined "TCP/443" would
+        /// sort its ports as text, which puts TCP/1024 before TCP/443.
         /// </summary>
-        public string ServiceDisplay
+        public string ProtocolDisplay
         {
             get
             {
-                string protocol = DisplayProtocol();
-                if (ServicePort is null)
+                if (!string.IsNullOrWhiteSpace(Protocol?.Name))
                 {
-                    return protocol;
+                    return Protocol.Name.ToUpperInvariant();
                 }
-                return protocol.Length > 0 ? $"{protocol}/{ServicePort}" : ServicePort.Value.ToString();
+                return ServiceProtocol is null ? "" : ServiceProtocol.Value.ToString();
             }
         }
 
         /// <summary>
-        /// Log time in the timezone of the browser session, as the log table displays, sorts and
-        /// filters it. A DateTimeOffset cannot be filtered by the table component.
+        /// Log time in the timezone of the server the UI runs on, as the log table displays, sorts
+        /// and filters it, and as every other timestamp of the application is displayed. The
+        /// browser timezone is not available here: the table renders on the server.
+        /// A DateTimeOffset cannot be filtered by the table component.
         /// </summary>
         public DateTime LogTimeLocal => LogTime.ToLocalTime().DateTime;
-
-        private string DisplayProtocol()
-        {
-            if (!string.IsNullOrWhiteSpace(Protocol?.Name))
-            {
-                return Protocol.Name.ToUpperInvariant();
-            }
-            return ServiceProtocol is null ? "" : ServiceProtocol.Value.ToString();
-        }
 
         private static string RemoveHostMask(string address)
         {

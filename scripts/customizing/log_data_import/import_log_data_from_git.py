@@ -27,6 +27,8 @@ OUTPUT_FILE: Path = Path(__file__).with_suffix(".json")
 # acknowledgement deletes and pushes, so it must not be something the log repository can provide
 MANIFEST_FILE: Path = OUTPUT_FILE.with_name(".fwo-log-import-manifest.json")
 MAX_PENDING_REUSES: int = 3
+REUSES_KEY: str = "reuses"
+ACKNOWLEDGE_FAILURES_KEY: str = "acknowledge_failures"
 COMMIT_MESSAGE: str = "chore: remove imported log data"
 REQUIRED_COLUMNS: set[str] = {"App ID", "Log count", "Src IP", "Dst IP", "Port"}
 OPTIONAL_COLUMNS: dict[str, str] = {"Log timestamp": "log_time", "Rule name": "rule_name"}
@@ -154,7 +156,8 @@ def write_import_file(entries: list[LogDataEntry], csv_files: list[Path], reposi
     import_time: str = datetime.now(timezone.utc).isoformat()
     OUTPUT_FILE.write_text(json.dumps({"import_time": import_time, "logs": entries}, indent=2), encoding="utf-8")
     relative_files: list[str] = [str(csv_file.relative_to(repository_directory)) for csv_file in csv_files]
-    MANIFEST_FILE.write_text(json.dumps({"csv_files": relative_files, "reuses": 0}, indent=2), encoding="utf-8")
+    manifest: dict[str, object] = {"csv_files": relative_files, REUSES_KEY: 0, ACKNOWLEDGE_FAILURES_KEY: 0}
+    MANIFEST_FILE.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
 
 def reuse_pending_import(logger: logging.Logger) -> int:
@@ -169,24 +172,56 @@ def reuse_pending_import(logger: logging.Logger) -> int:
     """
     manifest: dict[str, object] = read_manifest()
     reuses: int = read_reuses(manifest) + 1
-    manifest["reuses"] = reuses
+    manifest[REUSES_KEY] = reuses
     MANIFEST_FILE.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     if reuses > MAX_PENDING_REUSES:
         logger.error(
-            "log data of %s was not acknowledged in %s runs; no new log data is imported until the "
-            "deletion of the imported CSV files can be pushed to the log data repository",
+            "log data of %s was not acknowledged in %s runs; no new log data is imported until %s",
             OUTPUT_FILE,
             reuses,
+            describe_pending_cause(manifest),
         )
     else:
         logger.warning("previous log data import is still pending acknowledgement; reusing it (%s)", reuses)
     return 0
 
 
+def describe_pending_cause(manifest: dict[str, object]) -> str:
+    """
+    Name what has to happen before new log data is imported again.
+
+    A pending import has two causes which need completely different attention: the deletion of the
+    imported CSV files could not be pushed, or the middleware never asked for it because it kept
+    the source back - it does that while none of the reported entries can be imported.
+    """
+    if read_counter(manifest, ACKNOWLEDGE_FAILURES_KEY) > 0:
+        return "the deletion of the imported CSV files can be pushed to the log data repository"
+    return (
+        "the reported entries can be imported; the middleware keeps the source files until then,"
+        " check the log data settings and the entries it reported as not importable"
+    )
+
+
 def read_reuses(manifest: dict[str, object]) -> int:
     """Read how often the pending import was kept back, an unusable value counts as never."""
-    stored_reuses: object = manifest.get("reuses")
-    return stored_reuses if isinstance(stored_reuses, int) and stored_reuses > 0 else 0
+    return read_counter(manifest, REUSES_KEY)
+
+
+def read_counter(manifest: dict[str, object], key: str) -> int:
+    """Read one of the manifest counters, an unusable value counts as never."""
+    stored_value: object = manifest.get(key)
+    return stored_value if isinstance(stored_value, int) and stored_value > 0 else 0
+
+
+def record_failed_acknowledgement(manifest: dict[str, object]) -> None:
+    """
+    Count a failed acknowledgement in the manifest.
+
+    A reuse cannot tell by itself whether the deletion push failed or was never attempted, so the
+    acknowledgement leaves its trace here for describe_pending_cause.
+    """
+    manifest[ACKNOWLEDGE_FAILURES_KEY] = read_counter(manifest, ACKNOWLEDGE_FAILURES_KEY) + 1
+    MANIFEST_FILE.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
 
 def report_failed_acknowledgement(manifest: dict[str, object], logger: logging.Logger) -> None:
@@ -269,6 +304,7 @@ def acknowledge_import(config_file: str, logger: logging.Logger) -> int:
     if not commit_and_push_deletions(
         str(repository_directory), csv_files, COMMIT_MESSAGE, logger, git_user, git_password
     ):
+        record_failed_acknowledgement(manifest)
         report_failed_acknowledgement(manifest, logger)
         return 1
     MANIFEST_FILE.unlink(missing_ok=True)

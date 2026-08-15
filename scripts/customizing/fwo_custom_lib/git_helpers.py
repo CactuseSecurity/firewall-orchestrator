@@ -119,13 +119,12 @@ def update_git_repo(
         return False
 
 
-def unshallow_repo(repo: Any, logger: logging.Logger, git_username: str, git_password: str) -> None:
+def unshallow_repo(repo: Any, logger: logging.Logger, env: dict[str, str]) -> None:
     """Complete the history of a shallow clone, since servers reject pushes from one."""
     if repo.git.rev_parse("--is-shallow-repository").strip() != "true":
         return
     logger.info("completing shallow clone before pushing")
-    with tempfile.TemporaryDirectory() as askpass_dir:
-        repo.git.fetch("--unshallow", env=build_askpass_env(askpass_dir, git_username, git_password))
+    repo.git.fetch("--unshallow", env=env)
 
 
 def rebase_onto_remote(repo: Any, logger: logging.Logger, env: dict[str, str]) -> None:
@@ -180,6 +179,18 @@ def build_askpass_env(askpass_dir: str, git_username: str, git_password: str) ->
     }
 
 
+def push_deletion_commit(repo: Any, logger: logging.Logger, env: dict[str, str]) -> None:
+    """
+    Bring the clone into a pushable state and push the deletion commit.
+
+    Every push runs through here, with or without credentials: a shallow clone and a remote which
+    moved on since cloning make git reject the push either way.
+    """
+    unshallow_repo(repo, logger, env)
+    rebase_onto_remote(repo, logger, env)
+    repo.git.push("origin", "HEAD", env=env)
+
+
 def commit_and_push_deletions(
     git_repo_target_dir: str,
     files_to_delete: list[Path],
@@ -202,16 +213,11 @@ def commit_and_push_deletions(
         if repo.is_dirty(index=True, working_tree=True, untracked_files=False):
             repo.index.commit(commit_message)
         if git_username is not None and git_password is not None:
-            unshallow_repo(repo, logger, git_username, git_password)
             with tempfile.TemporaryDirectory() as askpass_dir:
-                env: dict[str, str] = build_askpass_env(askpass_dir, git_username, git_password)
-                rebase_onto_remote(repo, logger, env)
-                repo.git.push("origin", "HEAD", env=env)
+                push_deletion_commit(repo, logger, build_askpass_env(askpass_dir, git_username, git_password))
         else:
             # without credentials git could still ask for them, which never terminates unattended
-            unauthenticated_env: dict[str, str] = build_non_interactive_git_env()
-            rebase_onto_remote(repo, logger, unauthenticated_env)
-            repo.git.push("origin", "HEAD", env=unauthenticated_env)
+            push_deletion_commit(repo, logger, build_non_interactive_git_env())
         logger.info("deleted and pushed log data files: %s", ", ".join(relative_paths))
         return True
     except Exception:

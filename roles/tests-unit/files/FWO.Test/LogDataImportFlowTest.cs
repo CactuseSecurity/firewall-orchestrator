@@ -27,6 +27,71 @@ namespace FWO.Test
         }
 
         [Test]
+        public void DeleteLogEntriesOfOwnersMutation_OnlyRemovesTheRowsOfTheGivenOwners()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(LogDataQueries.deleteLogEntriesOfOwners, Does.Contain("delete_logging_log_entry"));
+                Assert.That(LogDataQueries.deleteLogEntriesOfOwners, Does.Contain("owner_id: {_in: $ownerIds}"));
+                Assert.That(LogDataQueries.deleteLogEntriesOfOwners, Does.Not.Contain("insert_logging_log_entry"));
+            });
+        }
+
+        [Test]
+        public async Task SaveEntries_RemovesTheStoredRowsWhenNothingOfTheSourceCanBeImported()
+        {
+            LogDataImportTestApiConn apiConnection = new();
+            apiConnection.OwnerIdsByAppId["APP-1"] = 11;
+            LogDataImport import = CreateImport(apiConnection, replaceExisting: true);
+            List<LogDataImportEntry> sourceEntries = [NewSourceEntry("APP-1", 30, "not an address", "198.51.100.1")];
+
+            bool sourceConsumed = await InvokeSaveEntries(import, sourceEntries);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.RemovedOwnerIds, Is.EqualTo(new List<int> { 11 }),
+                    "the source is the current truth about its applications, also without importable entries");
+                Assert.That(apiConnection.InsertedEntries, Is.Empty);
+                Assert.That(apiConnection.CompletedImports, Is.EqualTo(new List<bool> { true }));
+                Assert.That(sourceConsumed, Is.False, "the source files are still kept for a second attempt");
+                Assert.That(apiConnection.LogEntryDescriptions, Has.Some.Contains("was removed"));
+            });
+        }
+
+        [Test]
+        public async Task SaveEntries_RemovesNothingWithoutReplacement()
+        {
+            LogDataImportTestApiConn apiConnection = new();
+            apiConnection.OwnerIdsByAppId["APP-1"] = 11;
+            LogDataImport import = CreateImport(apiConnection);
+            List<LogDataImportEntry> sourceEntries = [NewSourceEntry("APP-1", 30, "not an address", "198.51.100.1")];
+
+            await InvokeSaveEntries(import, sourceEntries);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.RemovedOwnerIds, Is.Empty, "added log data is only removed by the retention");
+                Assert.That(apiConnection.CreateImportControlCalls, Is.Zero);
+            });
+        }
+
+        [Test]
+        public async Task SaveEntries_RemovesNothingForAnUnknownApplication()
+        {
+            LogDataImportTestApiConn apiConnection = new();
+            LogDataImport import = CreateImport(apiConnection, replaceExisting: true);
+            List<LogDataImportEntry> sourceEntries = [NewSourceEntry("UNKNOWN", 30, "192.0.2.1", "198.51.100.1")];
+
+            await InvokeSaveEntries(import, sourceEntries);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.RemovedOwnerIds, Is.Empty);
+                Assert.That(apiConnection.CreateImportControlCalls, Is.Zero, "nothing was changed");
+            });
+        }
+
+        [Test]
         public async Task Run_DeletesExpiredEntriesWithoutConfiguredSources()
         {
             LogDataImportTestApiConn apiConnection = new();
@@ -493,6 +558,7 @@ namespace FWO.Test
             public Dictionary<string, int> OwnerIdsByAppId { get; } = new(StringComparer.Ordinal);
             public List<FirewallLogEntryInput> InsertedEntries { get; } = [];
             public List<int> ReplacementOwnerIds { get; } = [];
+            public List<int> RemovedOwnerIds { get; } = [];
             public List<bool> CompletedImports { get; } = [];
             public List<string> LogEntryDescriptions { get; } = [];
             public int DeleteExpiredCalls { get; private set; }
@@ -527,6 +593,11 @@ namespace FWO.Test
                 {
                     ReplacementOwnerIds.AddRange(GetVariable<List<int>>(variables, "ownerIds") ?? []);
                     return Task.FromResult((QueryResponseType)(object)InsertEntries(variables)!);
+                }
+                if (query == LogDataQueries.deleteLogEntriesOfOwners)
+                {
+                    RemovedOwnerIds.AddRange(GetVariable<List<int>>(variables, "ownerIds") ?? []);
+                    return Task.FromResult(default(QueryResponseType)!);
                 }
                 if (query == LogDataQueries.deleteExpiredLogEntries)
                 {

@@ -82,6 +82,19 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task OnParametersSet_DoesNotRepeatAFailedLoad()
+        {
+            LogDataTableTestApiConn apiConnection = new() { FailQuery = true };
+            LogDataTable component = CreateComponent(apiConnection, ownerId: 7);
+
+            await InvokeOnParametersSetAsync(component);
+            await InvokeOnParametersSetAsync(component);
+
+            Assert.That(apiConnection.QueryCount, Is.EqualTo(1),
+                "a re-render of the surrounding page must not query and report the error again");
+        }
+
+        [Test]
         public void WrapperCssClass_LeavesAShortTableUnconstrained()
         {
             LogDataTable component = new();

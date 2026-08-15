@@ -15,6 +15,13 @@ namespace FWO.Middleware.Server
     /// </summary>
     public class DataImportBase
     {
+        private static readonly TimeSpan kDefaultImportScriptTimeout = TimeSpan.FromMinutes(30);
+
+        // Severity markers of the log format the customizing scripts use (see get_logger in
+        // basic_helpers.py). Python truncates the level name to five characters.
+        private static readonly List<string> kScriptErrorMarkers = ["[ERROR]", "[CRITI]"];
+        private static readonly List<string> kScriptWarningMarkers = ["[WARNI]"];
+
         /// <summary>
         /// Api Connection
         /// </summary>
@@ -29,6 +36,13 @@ namespace FWO.Middleware.Server
         /// Import File
         /// </summary>
         protected string importFile { get; set; } = "";
+
+        /// <summary>
+        /// Time an import script may run before it is stopped. A script which waits for input it
+        /// can never get - a git credential prompt for instance - would otherwise keep the calling
+        /// scheduler job blocked until the middleware is restarted.
+        /// </summary>
+        protected virtual TimeSpan ImportScriptTimeout => kDefaultImportScriptTimeout;
 
 
         /// <summary>
@@ -79,6 +93,7 @@ namespace FWO.Middleware.Server
                     {
                         FileName = importScriptFile,
                         UseShellExecute = false,
+                        RedirectStandardInput = true,
                         RedirectStandardOutput = true,
                         RedirectStandardError = true
                     };
@@ -90,24 +105,27 @@ namespace FWO.Middleware.Server
                         return false;
                     }
 
+                    // a script must not be able to wait for input: with the standard input of the
+                    // middleware a tool asking for credentials would block the import instead of failing
+                    process.StandardInput.Close();
                     // both streams have to be read before waiting, otherwise a script writing more
                     // than the pipe buffer holds blocks forever. Scripts log to stderr, so the
                     // error output is the interesting part when a script fails.
                     Task<string> outputReader = process.StandardOutput.ReadToEndAsync();
                     Task<string> errorReader = process.StandardError.ReadToEndAsync();
-                    process.WaitForExit();
+                    if (!process.WaitForExit((int)ImportScriptTimeout.TotalMilliseconds))
+                    {
+                        return StopTimedOutScript(process, importScriptFile);
+                    }
+
                     string output = outputReader.GetAwaiter().GetResult();
                     string errorOutput = errorReader.GetAwaiter().GetResult();
                     int exitCode = process.ExitCode;
                     process.Close();
 
                     Log.WriteInfo("Run Import Script", $"Executed Import Script {importScriptFile}. Exit code: {exitCode}. Result: {output}");
-                    if (exitCode != 0)
-                    {
-                        Log.WriteError("Run Import Script", $"Import Script {importScriptFile} failed with exit code {exitCode}: {errorOutput}");
-                        return false;
-                    }
-                    return true;
+                    LogScriptOutput(importScriptFile, errorOutput, exitCode);
+                    return exitCode == 0;
                 }
             }
             catch (Exception Exception)
@@ -115,6 +133,74 @@ namespace FWO.Middleware.Server
                 Log.WriteError("Run Import Script", $"File {importScriptFile} could not be executed.", Exception);
             }
             return false;
+        }
+
+        /// <summary>
+        /// Stop a script which did not finish in time and report it as a failed run.
+        /// The whole process tree is stopped, otherwise a git command left behind by the script
+        /// would keep waiting for an answer nobody can give it.
+        /// </summary>
+        private bool StopTimedOutScript(Process process, string importScriptFile)
+        {
+            try
+            {
+                process.Kill(entireProcessTree: true);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Run Import Script", $"Import Script {importScriptFile} could not be stopped after its timeout.", exception);
+            }
+            Log.WriteError("Run Import Script", $"Import Script {importScriptFile} did not finish within" +
+                $" {ImportScriptTimeout.TotalMinutes} minutes and was stopped.");
+            return false;
+        }
+
+        /// <summary>
+        /// Report what a script wrote to its error output. The customizing scripts log everything
+        /// there, so a run ending with exit code 0 can still report that it could not do its work -
+        /// a failed git login while pushing for instance. Such a run must not stay silent, so the
+        /// severity the script itself reported decides how the output is logged.
+        /// </summary>
+        private static void LogScriptOutput(string importScriptFile, string errorOutput, int exitCode)
+        {
+            if (exitCode != 0)
+            {
+                Log.WriteError("Run Import Script", $"Import Script {importScriptFile} failed with exit code {exitCode}: {errorOutput}");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(errorOutput))
+            {
+                return;
+            }
+
+            string message = $"Import Script {importScriptFile} reported: {errorOutput}";
+            switch (GetScriptOutputLogType(errorOutput))
+            {
+                case LogType.Error:
+                    Log.WriteError("Run Import Script", message);
+                    break;
+                case LogType.Warning:
+                    Log.WriteWarning("Run Import Script", message);
+                    break;
+                default:
+                    Log.WriteInfo("Run Import Script", message);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Determine how severe a script reported its own output to be.
+        /// </summary>
+        protected static LogType GetScriptOutputLogType(string errorOutput)
+        {
+            if (kScriptErrorMarkers.Exists(marker => errorOutput.Contains(marker, StringComparison.Ordinal)))
+            {
+                return LogType.Error;
+            }
+            return kScriptWarningMarkers.Exists(marker => errorOutput.Contains(marker, StringComparison.Ordinal))
+                ? LogType.Warning
+                : LogType.Info;
         }
 
         /// <summary>

@@ -1,11 +1,13 @@
 import logging
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 import git
 import pytest
 
 from scripts.customizing.fwo_custom_lib.git_helpers import (
+    build_askpass_env,
+    build_non_interactive_git_env,
     cleanup_repo_target_dir,
     commit_and_push_deletions,
     parse_git_depth_arg,
@@ -67,7 +69,7 @@ def test_update_git_repo_replaces_existing_repo_with_clean_clone_when_depth_not_
 
     rmtree_mock.assert_called_once_with(repo_path_mock)
     parent_path_mock.mkdir.assert_called_once_with(parents=True, exist_ok=True)
-    clone_from_mock.assert_called_once_with("https://example.invalid/repo.git", REPO_TARGET_DIR)
+    clone_from_mock.assert_called_once_with("https://example.invalid/repo.git", REPO_TARGET_DIR, env=ANY)
 
 
 def test_update_git_repo_replaces_existing_repo_file_before_clone() -> None:
@@ -88,7 +90,9 @@ def test_update_git_repo_replaces_existing_repo_file_before_clone() -> None:
     repo_path_mock.unlink.assert_called_once_with()
     rmtree_mock.assert_not_called()
     parent_path_mock.mkdir.assert_called_once_with(parents=True, exist_ok=True)
-    clone_from_mock.assert_called_once_with("https://example.invalid/repo.git", REPO_TARGET_DIR, depth=UPDATED_DEPTH)
+    clone_from_mock.assert_called_once_with(
+        "https://example.invalid/repo.git", REPO_TARGET_DIR, env=ANY, depth=UPDATED_DEPTH
+    )
 
 
 def test_update_git_repo_omits_depth_for_clone_when_not_set() -> None:
@@ -105,7 +109,7 @@ def test_update_git_repo_omits_depth_for_clone_when_not_set() -> None:
         update_git_repo("https://example.invalid/repo.git", REPO_TARGET_DIR, logger, branch="main")
 
     parent_path_mock.mkdir.assert_called_once_with(parents=True, exist_ok=True)
-    clone_from_mock.assert_called_once_with("https://example.invalid/repo.git", REPO_TARGET_DIR, branch="main")
+    clone_from_mock.assert_called_once_with("https://example.invalid/repo.git", REPO_TARGET_DIR, env=ANY, branch="main")
 
 
 def test_update_git_repo_passes_depth_for_clone_when_set() -> None:
@@ -125,6 +129,7 @@ def test_update_git_repo_passes_depth_for_clone_when_set() -> None:
     clone_from_mock.assert_called_once_with(
         "https://example.invalid/repo.git",
         REPO_TARGET_DIR,
+        env=ANY,
         branch="main",
         depth=CLONE_DEPTH,
     )
@@ -144,7 +149,36 @@ def test_update_git_repo_does_not_use_askpass_for_partial_credentials() -> None:
         update_git_repo("https://git-user@example.invalid/repo.git", REPO_TARGET_DIR, logger)
 
     parent_path_mock.mkdir.assert_called_once_with(parents=True, exist_ok=True)
-    clone_from_mock.assert_called_once_with("https://example.invalid/repo.git", REPO_TARGET_DIR)
+    clone_environment: dict[str, str] = clone_from_mock.call_args.kwargs["env"]
+    assert "GIT_ASKPASS" not in clone_environment
+    # incomplete credentials must not turn the clone into an interactive one: git asking for the
+    # missing half would block the calling import until the middleware is restarted
+    assert clone_environment["GIT_TERMINAL_PROMPT"] == "0"
+    assert clone_environment["GIT_CONFIG_PARAMETERS"] == "'credential.helper='"
+    assert clone_environment["SSH_ASKPASS_REQUIRE"] == "never"
+
+
+def test_build_askpass_env_keeps_the_clone_non_interactive(tmp_path: Path) -> None:
+    askpass_environment: dict[str, str] = build_askpass_env(str(tmp_path), "git-user", "git-secret")
+
+    assert askpass_environment["GIT_ASKPASS_USERNAME"] == "git-user"
+    assert askpass_environment["GIT_ASKPASS_PASSWORD"] == "git-secret"
+    assert askpass_environment["GIT_TERMINAL_PROMPT"] == "0"
+    assert askpass_environment["GIT_CONFIG_PARAMETERS"] == "'credential.helper='"
+
+
+def test_build_non_interactive_git_env_keeps_a_configured_ssh_command(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GIT_SSH_COMMAND", "ssh -i /etc/fworch/secrets/git_key")
+
+    assert build_non_interactive_git_env()["GIT_SSH_COMMAND"] == "ssh -i /etc/fworch/secrets/git_key"
+
+
+def test_build_non_interactive_git_env_disables_ssh_prompts_without_a_configured_command(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("GIT_SSH_COMMAND", raising=False)
+
+    assert build_non_interactive_git_env()["GIT_SSH_COMMAND"] == "ssh -o BatchMode=yes"
 
 
 def test_update_git_repo_removes_partial_repo_after_clone_failure() -> None:

@@ -9,6 +9,17 @@ from urllib.parse import unquote, urlsplit, urlunsplit
 
 import git
 
+# git must fail instead of waiting for an answer nobody can give it: the scripts run unattended,
+# so a credential prompt would block the calling import until the middleware is restarted.
+# Configured credential helpers are switched off for the same reason, one of them could wait for
+# an unlock which never comes, and ssh is told not to ask for a password or a host key either.
+NON_INTERACTIVE_GIT_SETTINGS: dict[str, str] = {
+    "GIT_TERMINAL_PROMPT": "0",
+    "GIT_CONFIG_PARAMETERS": "'credential.helper='",
+    "SSH_ASKPASS_REQUIRE": "never",
+}
+DEFAULT_GIT_SSH_COMMAND: str = "ssh -o BatchMode=yes"
+
 
 def parse_git_depth_arg(value: str) -> int:
     try:
@@ -62,6 +73,13 @@ def create_git_askpass_script(directory: str) -> str:
     return str(script_path)
 
 
+def build_non_interactive_git_env() -> dict[str, str]:
+    """Environment which makes git fail instead of waiting for input it cannot get."""
+    env: dict[str, str] = {**os.environ, **NON_INTERACTIVE_GIT_SETTINGS}
+    env["GIT_SSH_COMMAND"] = os.environ.get("GIT_SSH_COMMAND") or DEFAULT_GIT_SSH_COMMAND
+    return env
+
+
 def update_git_repo(
     repo_url: str,
     git_repo_target_dir: str,
@@ -83,16 +101,11 @@ def update_git_repo(
             clone_args["depth"] = depth
         if git_username is not None and git_password is not None:
             with tempfile.TemporaryDirectory() as askpass_dir:
-                env = {
-                    **os.environ,
-                    "GIT_ASKPASS": create_git_askpass_script(askpass_dir),
-                    "GIT_ASKPASS_USERNAME": git_username,
-                    "GIT_ASKPASS_PASSWORD": git_password,
-                    "GIT_TERMINAL_PROMPT": "0",
-                }
+                env: dict[str, str] = build_askpass_env(askpass_dir, git_username, git_password)
                 git_any.Repo.clone_from(clone_url, git_repo_target_dir, env=env, **clone_args)
         else:
-            git_any.Repo.clone_from(clone_url, git_repo_target_dir, **clone_args)
+            # without credentials git would ask for them, which never terminates unattended
+            git_any.Repo.clone_from(clone_url, git_repo_target_dir, env=build_non_interactive_git_env(), **clone_args)
         return True
     except Exception:
         _remove_repo_target_path(repo_target_path)
@@ -109,7 +122,7 @@ def unshallow_repo(repo: Any, logger: logging.Logger, git_username: str, git_pas
         repo.git.fetch("--unshallow", env=build_askpass_env(askpass_dir, git_username, git_password))
 
 
-def rebase_onto_remote(repo: Any, logger: logging.Logger, env: dict[str, str] | None) -> None:
+def rebase_onto_remote(repo: Any, logger: logging.Logger, env: dict[str, str]) -> None:
     """
     Replay the local deletion on top of the remote branch.
 
@@ -118,10 +131,7 @@ def rebase_onto_remote(repo: Any, logger: logging.Logger, env: dict[str, str] | 
     the same data would be imported again in every following run.
     """
     branch: str = repo.active_branch.name
-    if env is None:
-        repo.git.fetch("origin", branch)
-    else:
-        repo.git.fetch("origin", branch, env=env)
+    repo.git.fetch("origin", branch, env=env)
     try:
         repo.git.rebase("FETCH_HEAD")
     except git.GitCommandError:
@@ -133,11 +143,10 @@ def rebase_onto_remote(repo: Any, logger: logging.Logger, env: dict[str, str] | 
 def build_askpass_env(askpass_dir: str, git_username: str, git_password: str) -> dict[str, str]:
     """Environment which lets git read the credentials without a terminal prompt."""
     return {
-        **os.environ,
+        **build_non_interactive_git_env(),
         "GIT_ASKPASS": create_git_askpass_script(askpass_dir),
         "GIT_ASKPASS_USERNAME": git_username,
         "GIT_ASKPASS_PASSWORD": git_password,
-        "GIT_TERMINAL_PROMPT": "0",
     }
 
 
@@ -168,8 +177,10 @@ def commit_and_push_deletions(
                 rebase_onto_remote(repo, logger, env)
                 repo.git.push("origin", "HEAD", env=env)
         else:
-            rebase_onto_remote(repo, logger, None)
-            repo.git.push("origin", "HEAD")
+            # without credentials git could still ask for them, which never terminates unattended
+            unauthenticated_env: dict[str, str] = build_non_interactive_git_env()
+            rebase_onto_remote(repo, logger, unauthenticated_env)
+            repo.git.push("origin", "HEAD", env=unauthenticated_env)
         logger.info("deleted and pushed log data files: %s", ", ".join(relative_paths))
         return True
     except Exception:

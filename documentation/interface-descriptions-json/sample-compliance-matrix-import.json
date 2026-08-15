@@ -1,0 +1,37 @@
+{
+  "name": "Corporate network zones",
+  "comment": "Imported from the network source of truth",
+  "areas": [
+    {
+      "name": "Office",
+      "id_string": "office",
+      "subnets": [
+        {
+          "name": "Office network",
+          "ip": "10.10.0.0/16"
+        }
+      ],
+      "communication_to": [
+        {
+          "id_string": "datacenter"
+        }
+      ]
+    },
+    {
+      "name": "Datacenter",
+      "id_string": "datacenter",
+      "subnets": [
+        {
+          "name": "Server network",
+          "ip": "10.20.0.0/16"
+        },
+        {
+          "name": "Management range",
+          "ip": "10.30.0.10",
+          "ip_end": "10.30.0.50"
+        }
+      ],
+      "communication_to": []
+    }
+  ]
+}

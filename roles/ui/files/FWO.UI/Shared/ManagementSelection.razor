@@ -60,10 +60,10 @@
     public bool UseLightText { get; set; } = true;
 
 
-    private string cssClass = "btn-group w-100 sticky-marker";
+    private readonly string cssClass = "btn-group w-100 sticky-marker";
     private string selectAllText = "";
     private string clearAllText = "";
-    private CollapseState collapseDevices = new CollapseState();
+    private readonly CollapseState collapseDevices = new CollapseState();
     private string CheckboxLabelClass => UseLightText ? "form-check-label text-white" : "form-check-label";
 
     protected override void OnInitialized()

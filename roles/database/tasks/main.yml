@@ -76,6 +76,15 @@
         state: restarted
       when: postgres_config_updates.changed or postgres_hba_update.changed
 
+    # RedHat neither starts nor enables postgresql when the package is installed, so without this
+    # the database does not come back after a reboot and every following task fails on a dead
+    # socket. On Debian the package already does both, which makes this a no-op there.
+    - name: make sure postgres is running and starts at host startup
+      service:
+        name: "{{ postgresql_package }}"
+        state: started
+        enabled: true
+
     - name: copy database files to backend target
       ansible.posix.synchronize:
         src: "./"

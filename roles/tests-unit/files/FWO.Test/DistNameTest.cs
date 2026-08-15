@@ -31,7 +31,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(0, dn1.Root.Count);
             ClassicAssert.AreEqual(0, dn1.Path.Count);
             ClassicAssert.AreEqual("", dn1.GetTenantNameViaLdapTenantLevel());
-            ClassicAssert.AreEqual(false, dn1.IsInternal());
+            ClassicAssert.IsFalse(dn1.IsInternal());
 
             ClassicAssert.AreEqual("intuser2", dn2.UserName);
             ClassicAssert.AreEqual("", dn2.Role);
@@ -39,7 +39,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(2, dn2.Root.Count);
             ClassicAssert.AreEqual(4, dn2.Path.Count);
             ClassicAssert.AreEqual("tenant2", dn2.GetTenantNameViaLdapTenantLevel(3));
-            ClassicAssert.AreEqual(true, dn2.IsInternal());
+            ClassicAssert.IsTrue(dn2.IsInternal());
 
             ClassicAssert.AreEqual("usergroup3", dn3.UserName);
             ClassicAssert.AreEqual("usergroup3", dn3.Role);
@@ -49,7 +49,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(3, dn3.Path.Count);
             ClassicAssert.AreEqual("groups", dn3.Path[0]);
             ClassicAssert.AreEqual("", dn3.GetTenantNameViaLdapTenantLevel(0));
-            ClassicAssert.AreEqual(false, dn3.IsInternal());
+            ClassicAssert.IsFalse(dn3.IsInternal());
 
             ClassicAssert.AreEqual("Mustermann, Max", dn4.UserName);
             ClassicAssert.AreEqual("Mustermann, Max", dn4.Role);

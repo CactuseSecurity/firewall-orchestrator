@@ -75,11 +75,11 @@
             bool recertPage = uri.AbsolutePath == $"/{PageName.Certification}";
 
             if (elementId.StartsWith("all"))
-                TabSet?.SetActiveTab(TabSet.Tabs.Where(t => t.Title == userConfig.GetText("all")).FirstOrDefault());
+                TabSet?.SetActiveTab(TabSet.Tabs.FirstOrDefault(t => t.Title == userConfig.GetText("all")));
             else if (elementId.StartsWith("report"))
-                TabSet?.SetActiveTab(TabSet.Tabs.Where(t => t.Title == userConfig.GetText("report")).FirstOrDefault());
+                TabSet?.SetActiveTab(TabSet.Tabs.FirstOrDefault(t => t.Title == userConfig.GetText("report")));
             else if (elementId.StartsWith("rule"))
-                TabSet?.SetActiveTab(TabSet.Tabs.Where(t => t.Title == userConfig.GetText("rule")).FirstOrDefault());
+                TabSet?.SetActiveTab(TabSet.Tabs.FirstOrDefault(t => t.Title == userConfig.GetText("rule")));
             else
                 return;
 

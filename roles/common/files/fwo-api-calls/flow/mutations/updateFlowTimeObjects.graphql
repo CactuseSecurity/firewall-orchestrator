@@ -1,0 +1,5 @@
+mutation updateFlowTimeObjects($updates: [flow_timeobject_updates!]!) {
+  update_flow_timeobject_many(updates: $updates) {
+    affected_rows
+  }
+}

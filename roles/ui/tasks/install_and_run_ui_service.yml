@@ -3,8 +3,7 @@
     - name: copy blazor ui systemd service script
       template:
         src: fworch-blazor-ui.service.j2
-        dest: "/lib/systemd/system/{{ ui_service_name }}.service"
-        backup: true
+        dest: "{{ fworch_systemd_unit_dir }}/{{ ui_service_name }}.service"
         mode: "0644"
         owner: "root"
       register: ui_service_template
@@ -35,7 +34,17 @@
   systemd:
     name: "{{ ui_service_name }}"
     enabled: true
+    daemon_reload: true
   become: true
+
+# a ui that exhausted its start rate limit stays failed and refuses to be restarted with
+# "start request repeated too quickly" until its state is cleared
+- name: clear any failed state of the blazor ui
+  command: "systemctl reset-failed {{ ui_service_name }}.service"
+  changed_when: false
+  failed_when: false
+  become: true
+  when: ui_deploy_changed | default(false)
 
 - name: start blazor ui
   systemd:

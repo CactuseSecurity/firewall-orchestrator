@@ -1,8 +1,7 @@
 - name: copy middleware server systemd service script
   template:
     src: fworch-middleware.service.j2
-    dest: "/lib/systemd/system/{{ middleware_service_name }}.service"
-    backup: true
+    dest: "{{ fworch_systemd_unit_dir }}/{{ middleware_service_name }}.service"
     mode: "0644"
     owner: "root"
   register: mw_service_template

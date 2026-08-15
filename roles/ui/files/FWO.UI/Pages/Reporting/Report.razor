@@ -13,6 +13,8 @@
 @page "/report/generation/{appId?}"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}, {Roles.Recertifier}")]
 
+@implements IDisposable
+
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject NavigationManager NavigationManager
@@ -269,6 +271,7 @@
     public double reportGenerationDuration;
     private bool processing = false;
     private CancellationTokenSource tokenSource = new();
+    private bool disposed = false;
 
     private List<Rule> selectedItemsRuleReportTable = [];
     private List<RuleChange> selectedItemsChangeReportTable = [];
@@ -558,7 +561,11 @@
         }
         Stopwatch watch = new System.Diagnostics.Stopwatch();
         watch.Start();
+        // the previous generation has finished by the time this runs (the generate button is hidden
+        // while processing), so its token source can be released instead of being left to the GC
+        CancellationTokenSource previousTokenSource = tokenSource;
         tokenSource = new CancellationTokenSource();
+        previousTokenSource.Dispose();
         var token = tokenSource.Token;
 
         await ProcessReportGeneration(token);
@@ -574,26 +581,25 @@
 
     private async Task ProcessReportGeneration(CancellationToken token)
     {
-        // save original report for exception case
-        ReportData reportOrig = currentReport?.ReportData ?? new();
-
+        // no rollback copy of the previous report data is kept here on purpose. PrepareReportGeneration
+        // clears it anyway, so holding it only for the failure path would keep two complete report data
+        // sets resident while the new one is being built - on a large report that is the peak that does
+        // not fit. it also avoided showing the previous report's rows underneath the new filters.
         try
         {
             processing = true;
             apiConnection.SetBestRoleForReport(authenticationStateTask!.Result.User, actReportFilters.ReportType);
             await PrepareReportGeneration();
             ReportTemplate temp = ConstructReportTemplate();
-            
+
             currentReport = await ReportGenerator.GenerateFromTemplate(temp, apiConnection, userConfig, DisplayMessageInUi, token, ruleTreeBuilder);
             processing = false;
             PostProcess();
         }
         catch(Exception exception)
         {
-            if(currentReport != null)
-            {
-                currentReport.ReportData = reportOrig;
-            }
+            // release whatever was built before the failure rather than leaving a half filled report on screen
+            currentReport = null;
             reportTemplateControl.Uncollapse();
 
             DisplayMessageInUi(exception, userConfig.GetText("generate_report"), "", true);
@@ -655,6 +661,32 @@
     {
         tokenSource.Cancel();
         DisplayMessageInUi(null, userConfig.GetText("report_data_fetch"), userConfig.GetText("E1003"), true);
+    }
+
+    /// <summary>
+    /// Stops a generation that is still running and releases the report held by this page.
+    /// Without the cancel, navigating away or losing the circuit leaves the generation building a
+    /// complete report into memory for a page that nobody is looking at any more.
+    /// Safe to call more than once: a second Cancel on the disposed source would otherwise throw,
+    /// and Cancel rethrows whatever a cancellation callback threw, which must not escape teardown.
+    /// </summary>
+    public void Dispose()
+    {
+        if(disposed)
+        {
+            return;
+        }
+        disposed = true;
+        try
+        {
+            tokenSource.Cancel();
+        }
+        catch(Exception exception)
+        {
+            Log.WriteError("Report Generation", "Cancelling the running report generation failed.", exception);
+        }
+        tokenSource.Dispose();
+        currentReport = null;
     }
 
     private ReportTemplate ConstructReportTemplate(string? tempFilter = null)

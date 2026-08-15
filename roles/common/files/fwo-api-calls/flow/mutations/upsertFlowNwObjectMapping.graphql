@@ -7,6 +7,7 @@ mutation upsertFlowNwObjectMapping(
     pk_columns: { obj_id: $objId }
     _set: {
       flow_nwobj_id: $flowNwobjId
+      flow_nwgrp_id: null
       flow_active: $activeOnMgm
     }
   ) {

@@ -16,22 +16,16 @@ public static class ApiExampleServiceCollectionExtensions
     {
         services.AddSingleton<ApiExampleObjectFactory>();
         services.AddSingleton<ApiExampleCatalog>();
-        services.AddSingleton<IApiExampleProvider, GenerateAddressObjectNameRequestExample>();
-        services.AddSingleton<IApiExampleProvider, GenerateServiceObjectNameRequestExample>();
-        services.AddSingleton<IApiExampleProvider, GetNetObjectValidityRequestExample>();
-        services.AddSingleton<IApiExampleProvider, GetNetGroupValidityRequestItemExample>();
         services.AddSingleton<IApiExampleProvider, CreateRequestRequestExample>();
         services.AddSingleton<IApiExampleProvider, GetRequestStatusRequestExample>();
         services.AddSingleton<IApiExampleProvider, VisibleInRequestFilterExample>();
         services.AddSingleton<IApiExampleProvider, GetFlowComplianceStateRequestExample>();
+        services.AddSingleton<IApiExampleProvider, ResolveZonesForObjectsRequestExample>();
         services.AddSingleton<IApiExampleProvider, GetOwnersRequestExample>();
-        services.AddSingleton<IApiExampleProvider, GenerateAddressObjectNameResponseExample>();
-        services.AddSingleton<IApiExampleProvider, GenerateServiceObjectNameResponseExample>();
-        services.AddSingleton<IApiExampleProvider, NetObjectValidityResponseExample>();
-        services.AddSingleton<IApiExampleProvider, NetGroupValidityResponseExample>();
         services.AddSingleton<IApiExampleProvider, CreateRequestResponseExample>();
         services.AddSingleton<IApiExampleProvider, GetRequestStatusResponseExample>();
         services.AddSingleton<IApiExampleProvider, FlowComplianceStateResponseExample>();
+        services.AddSingleton<IApiExampleProvider, ComplianceDesignatedZoneResponseExample>();
         services.AddSingleton<IApiExampleProvider, GetPolicyIdsResponseExample>();
         services.AddSingleton<IApiExampleProvider, AddressObjectResponseExample>();
         services.AddSingleton<IApiExampleProvider, AddressGroupResponseExample>();
@@ -59,62 +53,6 @@ public static class ApiExampleServiceCollectionExtensions
 
         return services;
     }
-}
-
-/// <summary>
-/// Provides a typed example for <see cref="GenerateAddressObjectNameRequest"/>.
-/// </summary>
-public sealed class GenerateAddressObjectNameRequestExample : ApiExampleProvider<GenerateAddressObjectNameRequest>
-{
-    /// <inheritdoc />
-    public override GenerateAddressObjectNameRequest GetExample() => new()
-    {
-        IpStart = "192.0.2.10",
-        IpEnd = "192.0.2.10",
-        NetMask = 32
-    };
-}
-
-/// <summary>
-/// Provides a typed example for <see cref="GenerateServiceObjectNameRequest"/>.
-/// </summary>
-public sealed class GenerateServiceObjectNameRequestExample : ApiExampleProvider<GenerateServiceObjectNameRequest>
-{
-    /// <inheritdoc />
-    public override GenerateServiceObjectNameRequest GetExample() => new()
-    {
-        PortStart = 443,
-        PortEnd = 443,
-        Protocol = "tcp",
-        Typ = "service"
-    };
-}
-
-/// <summary>
-/// Provides a typed example for <see cref="GetNetObjectValidityRequest"/>.
-/// </summary>
-public sealed class GetNetObjectValidityRequestExample : ApiExampleProvider<GetNetObjectValidityRequest>
-{
-    /// <inheritdoc />
-    public override GetNetObjectValidityRequest GetExample() => new()
-    {
-        IpAddress = "192.0.2.10",
-        NetMask = 32,
-        MinPrefixLength = 24
-    };
-}
-
-/// <summary>
-/// Provides a typed example for <see cref="GetNetGroupValidityRequestItem"/>.
-/// </summary>
-public sealed class GetNetGroupValidityRequestItemExample : ApiExampleProvider<GetNetGroupValidityRequestItem>
-{
-    /// <inheritdoc />
-    public override GetNetGroupValidityRequestItem GetExample() => new()
-    {
-        IpStart = "192.0.2.10",
-        IpEnd = "192.0.2.20"
-    };
 }
 
 /// <summary>
@@ -258,6 +196,48 @@ public sealed class GetFlowComplianceStateRequestExample : ApiExampleProvider<Ge
 }
 
 /// <summary>
+/// Provides a typed example for <see cref="ResolveZonesForObjectsRequest"/>.
+/// </summary>
+public sealed class ResolveZonesForObjectsRequestExample : ApiExampleProvider<ResolveZonesForObjectsRequest>
+{
+    /// <inheritdoc />
+    public override ResolveZonesForObjectsRequest GetExample() => new()
+    {
+        Objects =
+        [
+            new ResolveZonesForObjectsRequest.GroupObjectRequest
+            {
+                Name = "preview-group",
+                Members =
+                [
+                    new ResolveZonesForObjectsRequest.LeafObjectRequest
+                    {
+                        Name = "branch-a",
+                        Type = "network",
+                        IpStart = "10.0.0.1",
+                        IpEnd = "10.0.0.1"
+                    },
+                    new ResolveZonesForObjectsRequest.GroupObjectRequest
+                    {
+                        Name = "branch-b",
+                        Members =
+                        [
+                            new ResolveZonesForObjectsRequest.LeafObjectRequest
+                            {
+                                Name = "leaf",
+                                Type = "ip_range",
+                                IpStart = "10.0.1.1",
+                                IpEnd = "10.0.1.10"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    };
+}
+
+/// <summary>
 /// Provides a typed example for <see cref="GetOwnersRequest"/>.
 /// </summary>
 public sealed class GetOwnersRequestExample : ApiExampleProvider<GetOwnersRequest>
@@ -273,42 +253,6 @@ public sealed class GetOwnersRequestExample : ApiExampleProvider<GetOwnersReques
         ShowDetails = true,
         ShowOnlyActiveState = true
     };
-}
-
-/// <summary>
-/// Provides a typed example for <see cref="GenerateAddressObjectNameResponse"/>.
-/// </summary>
-public sealed class GenerateAddressObjectNameResponseExample : ApiExampleProvider<GenerateAddressObjectNameResponse>
-{
-    /// <inheritdoc />
-    public override GenerateAddressObjectNameResponse GetExample() => new() { Name = "host-192-0-2-10" };
-}
-
-/// <summary>
-/// Provides a typed example for <see cref="GenerateServiceObjectNameResponse"/>.
-/// </summary>
-public sealed class GenerateServiceObjectNameResponseExample : ApiExampleProvider<GenerateServiceObjectNameResponse>
-{
-    /// <inheritdoc />
-    public override GenerateServiceObjectNameResponse GetExample() => new() { Name = "tcp-443" };
-}
-
-/// <summary>
-/// Provides a typed example for <see cref="NetObjectValidityResponse"/>.
-/// </summary>
-public sealed class NetObjectValidityResponseExample : ApiExampleProvider<NetObjectValidityResponse>
-{
-    /// <inheritdoc />
-    public override NetObjectValidityResponse GetExample() => new() { IsValid = true };
-}
-
-/// <summary>
-/// Provides a typed example for <see cref="NetGroupValidityResponse"/>.
-/// </summary>
-public sealed class NetGroupValidityResponseExample : ApiExampleProvider<NetGroupValidityResponse>
-{
-    /// <inheritdoc />
-    public override NetGroupValidityResponse GetExample() => new() { IsValid = true };
 }
 
 /// <summary>
@@ -354,6 +298,28 @@ public sealed class FlowComplianceStateResponseExample : ApiExampleProvider<Flow
                 Type = "missing-approval"
             }
         ]
+    };
+}
+
+/// <summary>
+/// Provides a typed example for <see cref="ComplianceDesignatedZoneResponse"/>.
+/// </summary>
+public sealed class ComplianceDesignatedZoneResponseExample : ApiExampleProvider<ComplianceDesignatedZoneResponse>
+{
+    /// <inheritdoc />
+    public override ComplianceDesignatedZoneResponse GetExample() => new()
+    {
+        Id = 7,
+        Name = "DMZ",
+        Description = "Demilitarized zone",
+        IpRanges =
+            [
+                new ComplianceDesignatedZoneIpRangeResponse
+                {
+                    IpStart = "10.0.0.0",
+                    IpEnd = "10.0.0.255"
+                }
+            ]
     };
 }
 

@@ -127,7 +127,11 @@ namespace FWO.Middleware.Server
             // even when tenant resolution fails, to avoid runtime "missing session variable" errors.
             claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", ToHasuraIdSet(visibleManagementIds)));
             claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", ToHasuraIdSet(visibleGatewayIds)));
-            claimsIdentity.AddClaim(new Claim("x-hasura-groups", JsonSerializer.Serialize(user.Groups ?? [])));
+            // NB: the user's ldap group dns are deliberately NOT added as a claim. The list grows with the
+            // number of group memberships and pushed the "Authorization: Bearer ..." header past the web
+            // server's per-header limit (apache LimitRequestFieldSize, 8190 bytes by default), which made
+            // login fail with "400 Bad Request" for users with many groups. Group memberships are resolved
+            // on demand instead, see WorkflowController.ResolveCallerGroups.
             claimsIdentity.AddClaim(new Claim("x-hasura-editable-owners", $"{{ {string.Join(",", user.Ownerships)} }}"));
             claimsIdentity.AddClaim(new Claim("x-hasura-recertifiable-owners", $"{{ {string.Join(",", user.RecertOwnerships)} }}"));
             claimsIdentity.AddClaim(new Claim("x-hasura-workflow-visibility-groups", ToHasuraIdSet(user.WorkflowVisibilityGroupIds)));

@@ -5,6 +5,7 @@ INSERT INTO language ("name", "culture_info") VALUES('English', 'en-US');
 insert into uiuser (uiuser_id, uiuser_username, uuid) VALUES (0,'default', 'default');
 
 insert into config (config_key, config_value, config_user) VALUES ('DefaultLanguage', 'English', 0);
+insert into config (config_key, config_value, config_user) VALUES ('colorScheme', 'color_scheme_blue', 0);
 insert into config (config_key, config_value, config_user) VALUES ('uiHostName', 'http://localhost:5000', 0);
 -- insert into config (config_key, config_value, config_user) VALUES ('maxMessages', '3', 0);
 insert into config (config_key, config_value, config_user) VALUES ('elementsPerFetch', '100', 0);
@@ -159,6 +160,7 @@ insert into config (config_key, config_value, config_user) VALUES ('complianceCh
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckPolicy', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMaxPrintedViolations', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckSortMatrixByID', 'false', 0);
+insert into config (config_key, config_value, config_user) VALUES ('CustomFieldChangeIdKey', '["field-2","ChangeID"]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('availableModules', '[1,2,3,4,5,6]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('debugConfig', '{"debugLevel":8, "extendedLogComplianceCheck":true, "extendedLogReportGeneration":true, "extendedLogScheduler":true}', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reportSchedulerConfig', '', 0);
@@ -519,6 +521,8 @@ insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufac
     VALUES (30, 'Generic Firewall Management', '1.0', null, '', false, true, false);
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
     VALUES (31, 'Generic Firewall Gateway', '1.0', null, '', false, false, false);
+insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
+    VALUES (32,'OPNsense standalone','25ff','Deciso','',false,true,false) ON CONFLICT DO NOTHING;
 
 -- SET statement_timeout = 0;
 -- SET client_encoding = 'UTF8';

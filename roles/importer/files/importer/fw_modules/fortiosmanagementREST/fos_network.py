@@ -1,5 +1,6 @@
 from collections.abc import Generator
 from ipaddress import IPv6Address
+from typing import Literal
 
 import fwo_const
 from fw_modules.fortiosmanagementREST.fos_models import FortiOSConfig, NwObjAddress6
@@ -69,14 +70,15 @@ def normalize_single_ipv6_network_object(ip6_obj: NwObjAddress6, nw_obj_lookup_d
         NetworkObject: The normalized network object.
 
     """
-    obj_typ = "host"
+    obj_typ: Literal["host", "ip_range", "network"] = "host"
     if ip6_obj.ip6:
         network = IPNetwork(ip6_obj.ip6, version=6)
-        ip_start = IPNetwork(f"{IPv6Address(network.first)}/128", version=6)
+        ip_start_address = IPv6Address(network.first)
+        ip_start = IPNetwork(f"{ip_start_address}/128", version=6)
         if ip6_obj.end_ip and ip6_obj.end_ip != "::":
-            ip_end = IPNetwork(f"{ip6_obj.end_ip}/128", version=6)
-            if ip_start != ip_end:
-                obj_typ = "ip_range"
+            ip_end_address = IPv6Address(ip6_obj.end_ip)
+            ip_end = IPNetwork(f"{ip_end_address}/128", version=6)
+            obj_typ = "ip_range" if int(ip_start_address) != int(ip_end_address) else "host"
         else:
             ip_end = IPNetwork(f"{IPv6Address(network.last)}/128", version=6)
             if network.size > 1:
@@ -220,7 +222,8 @@ def parse_fortios_ip_range(ip_value: str | None, obj_name: str, context: str) ->
         start_raw, end_raw = ip_value.split("-", 1)
         ip_start = IPNetwork(f"{start_raw.strip()}/32")
         ip_end = IPNetwork(f"{end_raw.strip()}/32")
-        return ip_start, ip_end, "host" if ip_start == ip_end else "ip_range"
+        obj_typ = "host" if ip_start.first == ip_end.first else "ip_range"
+        return ip_start, ip_end, obj_typ
 
     ip_start = IPNetwork(f"{ip_value.strip()}/32")
     return ip_start, ip_start, "host"

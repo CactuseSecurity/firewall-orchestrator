@@ -66,12 +66,6 @@ namespace FWO.Test
             return (TException)exception.InnerException!;
         }
 
-        [SetUp]
-        public void Initialize()
-        {
-
-        }
-
         [Test]
         [Parallelizable]
         public void EmptySearch()
@@ -141,8 +135,8 @@ namespace FWO.Test
 
             object range = CreateDateTimeRange(TokenKind.EEQ, "this year");
 
-            Assert.That(GetDateTimeRangeBound(range, "Start"), Is.EqualTo(new DateTime(currentYear, 1, 1, 0, 0, 0)));
-            Assert.That(GetDateTimeRangeBound(range, "End"), Is.EqualTo(new DateTime(currentYear + 1, 1, 1, 0, 0, 0)));
+            Assert.That(GetDateTimeRangeBound(range, "Start"), Is.EqualTo(new DateTime(currentYear, 1, 1, 0, 0, 0, DateTimeKind.Unspecified)));
+            Assert.That(GetDateTimeRangeBound(range, "End"), Is.EqualTo(new DateTime(currentYear + 1, 1, 1, 0, 0, 0, DateTimeKind.Unspecified)));
         }
 
         [Test]
@@ -153,15 +147,15 @@ namespace FWO.Test
 
             object range = CreateDateTimeRange(TokenKind.EEQ, "last year");
 
-            Assert.That(GetDateTimeRangeBound(range, "Start"), Is.EqualTo(new DateTime(currentYear - 1, 1, 1, 0, 0, 0)));
-            Assert.That(GetDateTimeRangeBound(range, "End"), Is.EqualTo(new DateTime(currentYear, 1, 1, 0, 0, 0)));
+            Assert.That(GetDateTimeRangeBound(range, "Start"), Is.EqualTo(new DateTime(currentYear - 1, 1, 1, 0, 0, 0, DateTimeKind.Unspecified)));
+            Assert.That(GetDateTimeRangeBound(range, "End"), Is.EqualTo(new DateTime(currentYear, 1, 1, 0, 0, 0, DateTimeKind.Unspecified)));
         }
 
         [Test]
         [Parallelizable]
         public void DateTimeRange_LessThanCreatesOpenStartRange()
         {
-            DateTime expectedEnd = new(2025, 1, 1, 0, 0, 0);
+            DateTime expectedEnd = new(2025, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
 
             object range = CreateDateTimeRange(TokenKind.LSS, "2025-01-01");
 
@@ -173,7 +167,7 @@ namespace FWO.Test
         [Parallelizable]
         public void DateTimeRange_GreaterThanCreatesOpenEndRange()
         {
-            DateTime expectedStart = new(2025, 1, 1, 0, 0, 0);
+            DateTime expectedStart = new(2025, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
 
             object range = CreateDateTimeRange(TokenKind.GRT, "2025-01-01");
 
@@ -334,7 +328,7 @@ namespace FWO.Test
             DynGraphqlQuery query = Compiler.Compile(t);
 
             ClassicAssert.AreEqual(3, query.QueryVariables.Count);
-            ClassicAssert.AreEqual(true, query.QueryVariables.ContainsKey("refdate1"));
+            ClassicAssert.IsTrue(query.QueryVariables.ContainsKey("refdate1"));
             ClassicAssert.IsTrue(query.QueryVariables.ContainsKey("ownerWhere"));
             ClassicAssert.AreEqual("1000", query.QueryVariables["dport0"]);
             ClassicAssert.AreEqual("_and: [{rule_head_text: {_is_null: true}}, { rule_metadatum: { recertifications: { next_recert_date: { _lte: $refdate1 } } } }, {_not: {rule_services: { service: { svcgrp_flats: { serviceBySvcgrpFlatMemberId: { svc_port: {_lte: $dport0}, svc_port_end: {_gte: $dport0 } } } } }}}] ", query.RuleWhereStatement);
@@ -1063,7 +1057,7 @@ namespace FWO.Test
 
             DynGraphqlQuery query = Compiler.Compile(template);
 
-            string expected = new DateTime(DateTime.Now.Year, 1, 1, 0, 0, 0).ToString(DynGraphqlQuery.fullTimeFormat);
+            string expected = new DateTime(DateTime.Now.Year, 1, 1, 0, 0, 0, DateTimeKind.Unspecified).ToString(DynGraphqlQuery.fullTimeFormat);
             Assert.That(query.QueryVariables["lastHitLimit0"], Is.EqualTo(expected));
         }
 

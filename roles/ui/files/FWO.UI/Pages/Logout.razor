@@ -1,4 +1,4 @@
-﻿
+
 @using FWO.Ui.Auth
 
 @inject AuthenticationStateProvider AuthService
@@ -27,7 +27,6 @@
         finally
         {
             Log.WriteAudit("Logout", $"User \"{user.Name}\" with DN: \"{user.Dn}\" logged out.");
-            NavigationManager.NavigateTo("", forceLoad: true);
         }
     }
 }

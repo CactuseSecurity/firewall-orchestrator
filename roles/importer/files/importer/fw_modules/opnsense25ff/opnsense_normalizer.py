@@ -1,0 +1,782 @@
+# mapping the opnsense model into normalized import model
+
+import json
+from collections.abc import Callable
+from typing import Any
+
+import fw_modules.opnsense25ff.opnsense_helper as os_helper
+from fw_modules.opnsense25ff.opnsense_constants import (
+    FLOATING_RULEBASE_NAME,
+    MAX_DEPTH,
+    UNASSIGNED_RULEBASE_NAME,
+)
+from fw_modules.opnsense25ff.opnsense_model import (
+    AliasTypeEnum,
+    FilterRuleActionEnum,
+    OPNsenseAccessRule,
+    OPNsenseAlias,
+    OPNsenseConfig,
+    OPNsenseHost,
+    OPNsenseHostAlias,
+    OPNsenseIfGroup,
+    OPNsenseInterface,
+    OPNsenseNetwork,
+    OPNsenseNetworkAlias,
+)
+from fw_modules.opnsense25ff.opnsense_normalize_services import normalize_services, rule_service_names
+from fw_modules.opnsense25ff.opnsense_parser import parse_opnsense_config
+from fwo_base import ConfigAction, sort_and_join
+from fwo_base import generate_hash_from_dict as fwo_base_generate_hash_from_dict
+from fwo_exceptions import FwoImporterError
+from fwo_log import FWOLogger
+from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+from model_controllers.import_state_controller import ImportStateController
+from models.fwconfig_normalized import FwConfigNormalized
+from models.gateway import Gateway
+from models.networkobject import NetworkObject
+from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
+from models.rulebase import Rulebase
+from models.rulebase_link import RulebaseLinkUidBased
+from models.serviceobject import ServiceObject
+from netaddr import IPAddress, IPNetwork
+
+# ───────────────────────── helper ────────────────────────
+
+
+def _create_network_object_from_host_definition(host: OPNsenseHost) -> NetworkObject:
+    return NetworkObject(
+        obj_uid=fwo_base_generate_hash_from_dict({"net_obj": host.name}),
+        obj_name=host.name,
+        obj_ip=IPNetwork(str(host.host)),
+        obj_ip_end=IPNetwork(str(host.host_end if host.is_range else host.host)),
+        obj_color="",
+        obj_typ="ip_range" if host.is_range else "host",
+        obj_member_refs=None,
+        obj_member_names=None,
+        obj_comment=host.name,
+    )
+
+
+def _create_network_object_from_net_definition(net: OPNsenseNetwork) -> NetworkObject:
+    return NetworkObject(
+        obj_uid=fwo_base_generate_hash_from_dict({"net_obj": net.name}),
+        obj_name=net.name,
+        obj_ip=IPNetwork(f"{IPAddress(net.net.first)}"),
+        obj_ip_end=IPNetwork(f"{IPAddress(net.net.last)}"),
+        obj_color="",
+        obj_typ="network",
+        obj_member_refs=None,
+        obj_member_names=None,
+        obj_comment=net.name,
+    )
+
+
+def _create_network_object_from_string(s: str) -> NetworkObject:
+    return NetworkObject(
+        obj_uid=fwo_base_generate_hash_from_dict({"net_obj": s}),
+        obj_name=s,
+        obj_ip=None,
+        obj_ip_end=None,
+        obj_color="",
+        obj_typ="group",
+        obj_member_refs=None,
+        obj_member_names=None,
+        obj_comment=s,
+    )
+
+
+def _create_special_network_objects() -> list[NetworkObject]:
+
+    self_obj = NetworkObject(
+        obj_uid="(self)",
+        obj_name="(self)",
+        obj_ip=None,
+        obj_ip_end=None,
+        obj_color="",
+        obj_typ="group",
+        obj_member_refs=None,
+        obj_member_names=None,
+        obj_comment="special network object references firewall itself",
+    )
+    any_v4 = NetworkObject(
+        obj_uid="Any-v4",
+        obj_name="Any-v4",
+        obj_ip=IPNetwork("0.0.0.0/32", version=4),
+        obj_ip_end=IPNetwork("255.255.255.255/32", version=4),
+        obj_color="",
+        obj_typ="ip_range",
+        obj_member_refs=None,
+        obj_member_names=None,
+        obj_comment="special network object references any IPv4 address",
+    )
+    any_v6 = NetworkObject(
+        obj_uid="Any-v6",
+        obj_name="Any-v6",
+        obj_ip=IPNetwork("::/128", version=6),
+        obj_ip_end=IPNetwork("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128", version=6),
+        obj_color="",
+        obj_typ="ip_range",
+        obj_member_refs=None,
+        obj_member_names=None,
+        obj_comment="special network object references any IPv6 address",
+    )
+    any_grp = NetworkObject(
+        obj_uid="Any",
+        obj_name="Any",
+        obj_ip=None,
+        obj_ip_end=None,
+        obj_color="",
+        obj_typ="group",
+        obj_member_refs=sort_and_join([any_v4.obj_name, any_v6.obj_name]),
+        obj_member_names=sort_and_join([any_v4.obj_name, any_v6.obj_name]),
+        obj_comment="special network object references any IPv4 and IPv6 address",
+    )
+    return [any_grp, any_v4, any_v6, self_obj]
+
+
+def _network_ref_name(ref: str | OPNsenseHostAlias | OPNsenseNetworkAlias) -> str:
+    if isinstance(ref, str):
+        return ref
+    return ref.name
+
+
+def _member_name_for_string_child(child: str, normalized: dict[str, NetworkObject]) -> str:
+    if child not in normalized:
+        child_obj = _create_network_object_from_string(child)
+        normalized[child_obj.obj_name] = child_obj
+    return child
+
+
+def _create_network_object_from_alias_child(
+    child: OPNsenseHost | OPNsenseNetwork | OPNsenseHostAlias | OPNsenseNetworkAlias,
+    normalized: dict[str, NetworkObject],
+    depth: int,
+) -> NetworkObject | None:
+    if isinstance(child, OPNsenseHost):
+        return _create_network_object_from_host_definition(child)
+    if isinstance(child, OPNsenseNetwork):
+        return _create_network_object_from_net_definition(child)
+    if depth >= MAX_DEPTH:
+        os_helper.warn_max_depth_reached(depth)
+        return None
+    return _create_network_object_from_alias(child, normalized, depth + 1)
+
+
+def _member_name_for_alias_child(
+    child: OPNsenseHost | OPNsenseNetwork | OPNsenseHostAlias | OPNsenseNetworkAlias,
+    normalized: dict[str, NetworkObject],
+    depth: int,
+) -> str | None:
+    if child.name in normalized:
+        return child.name
+    child_obj = _create_network_object_from_alias_child(child, normalized, depth)
+    if child_obj is None:
+        return None
+    normalized[child_obj.obj_name] = child_obj
+    return child_obj.obj_name
+
+
+def _create_network_object_from_alias(
+    alias: OPNsenseHostAlias | OPNsenseNetworkAlias, normalized: dict[str, NetworkObject], depth: int
+) -> NetworkObject:
+    member: list[str] = []
+
+    for child in alias.childs:
+        if isinstance(child, str):
+            member.append(_member_name_for_string_child(child, normalized))
+            continue
+        child_name = _member_name_for_alias_child(child, normalized, depth)
+        if child_name is not None:
+            member.append(child_name)
+
+    return NetworkObject(
+        obj_uid=alias.uuid,
+        obj_name=alias.name,
+        obj_ip=None,
+        obj_ip_end=None,
+        obj_color="",
+        obj_typ="group",
+        obj_member_refs=sort_and_join(member) if len(member) > 0 else None,
+        obj_member_names=sort_and_join(member) if len(member) > 0 else None,
+        obj_comment=alias.description,
+    )
+
+
+def _create_normalized_rule_from_access_rule(rule: OPNsenseAccessRule) -> RuleNormalized:
+    rule_action: RuleAction = RuleAction.ACCEPT
+    if rule.action == FilterRuleActionEnum.PASS:
+        rule_action = RuleAction.ACCEPT
+    elif rule.action == FilterRuleActionEnum.BLOCK:
+        rule_action = RuleAction.DROP
+    elif rule.action == FilterRuleActionEnum.REJECT:
+        rule_action = RuleAction.REJECT
+
+    os_rule_custom = {
+        "os_rule_l2proto": rule.ipprotocol,
+        "os_rule_l3proto": rule.protocol,
+        "os_rule_direction": rule.direction,
+        "os_rule_interface": rule.interface or None,
+    }
+
+    rule_source_objects = [_network_ref_name(ref) for ref in rule.source_address + rule.source_network]
+    rule_dest_objects = [_network_ref_name(ref) for ref in rule.dest_address + rule.dest_network]
+    rule_service_objects = rule_service_names(rule)
+    rule_name = rule.description or ""
+
+    return RuleNormalized(
+        rule_num_numeric=0,
+        rule_disabled=rule.disabled,
+        rule_src_neg=rule.source_neg,
+        rule_src=sort_and_join(rule_source_objects),
+        rule_src_refs=sort_and_join(rule_source_objects),
+        rule_dst_neg=rule.dest_neg,
+        rule_dst=sort_and_join(rule_dest_objects),
+        rule_dst_refs=sort_and_join(rule_dest_objects),
+        rule_svc_neg=False,
+        rule_svc=sort_and_join(rule_service_objects),
+        rule_svc_refs=sort_and_join(rule_service_objects),
+        rule_action=rule_action,
+        rule_track=RuleTrack.LOG if rule.logging else RuleTrack.NONE,
+        rule_installon=None,
+        rule_time=None,
+        rule_name=rule_name.split(":", 1)[0],
+        rule_uid=rule.uuid,
+        rule_custom_fields=json.dumps(os_rule_custom),
+        rule_implied=False,
+        rule_type=RuleType.ACCESS,
+        last_change_admin=None,
+        parent_rule_uid=None,
+        last_hit=None,
+        rule_comment=rule.description,
+        rule_src_zone=None,
+        rule_dst_zone=None,
+        rule_head_text=None,
+    )
+
+
+# ──────────────────────────────────────────────────────────
+
+
+def _create_network_objects_from_geoip_alias(alias: OPNsenseAlias, nw_objs: dict[str, NetworkObject]) -> NetworkObject:
+
+    # parse and add country codes as network objects
+    members: list[str] = []
+    for cc in alias.value:
+        if cc not in nw_objs:
+            cc_obj = NetworkObject(
+                obj_uid=fwo_base_generate_hash_from_dict({"geo_obj": cc}),
+                obj_name=cc,
+                obj_ip=None,
+                obj_ip_end=None,
+                obj_color="",
+                obj_typ="group",
+                obj_member_refs=None,
+                obj_member_names=None,
+                obj_comment=f"{cc} country code: special network object created during normalization",
+            )
+            nw_objs[cc_obj.obj_name] = cc_obj
+        members.append(cc)
+
+    return NetworkObject(
+        obj_uid=alias.uuid,
+        obj_name=alias.name,
+        obj_ip=None,
+        obj_ip_end=None,
+        obj_color="",
+        obj_typ="group",
+        obj_member_refs=sort_and_join(members),
+        obj_member_names=sort_and_join(members),
+        obj_comment=alias.description,
+    )
+
+
+def _create_network_objects_from_urltable_alias(alias: OPNsenseAlias) -> NetworkObject:
+    return NetworkObject(
+        obj_uid=alias.uuid,
+        obj_name=alias.name,
+        obj_ip=None,
+        obj_ip_end=None,
+        obj_color="",
+        obj_typ="group",
+        obj_member_refs=None,
+        obj_member_names=None,
+        obj_comment=f"{alias.description}: {alias.value}",
+    )
+
+
+def _interface_comment(interface: OPNsenseInterface) -> str:
+    return (
+        f"{interface.hw_interface}: {interface.ip4_address}{interface.ip4_subnet}|"
+        f"{interface.ip6_address}|{interface.ip6_subnet} :{interface.description}"
+    )
+
+
+def _interface_networks(interface: OPNsenseInterface) -> list[tuple[str, IPNetwork]]:
+    # one entry per configured address family, dynamic addresses (dhcp, slaac, ...) are parsed as None
+    networks: list[tuple[str, IPNetwork]] = []
+    if interface.ip4_address is not None and interface.ip4_subnet is not None:
+        networks.append(("v4", IPNetwork(f"{interface.ip4_address}/{interface.ip4_subnet}")))
+    if interface.ip6_address is not None and interface.ip6_subnet is not None:
+        networks.append(("v6", IPNetwork(f"{interface.ip6_address}/{interface.ip6_subnet}")))
+    return networks
+
+
+def _create_iface_group_object(name: str, members: list[str], comment: str | None) -> NetworkObject:
+    return NetworkObject(
+        obj_uid=fwo_base_generate_hash_from_dict({"iface_obj": name}),
+        obj_name=name,
+        obj_ip=None,
+        obj_ip_end=None,
+        obj_color="",
+        obj_typ="group",
+        obj_member_refs=sort_and_join(members) if len(members) > 0 else None,
+        obj_member_names=sort_and_join(members) if len(members) > 0 else None,
+        obj_comment=comment,
+    )
+
+
+def _create_iface_net_object(name: str, network: IPNetwork, comment: str) -> NetworkObject:
+    # "$interface net" selector: the subnet configured on the interface
+    return NetworkObject(
+        obj_uid=fwo_base_generate_hash_from_dict({"iface_obj": name}),
+        obj_name=name,
+        obj_ip=IPNetwork(f"{IPAddress(network.cidr.first, version=network.version)}"),
+        obj_ip_end=IPNetwork(f"{IPAddress(network.cidr.last, version=network.version)}"),
+        obj_color="",
+        obj_typ="network",
+        obj_member_refs=None,
+        obj_member_names=None,
+        obj_comment=comment,
+    )
+
+
+def _create_iface_address_object(name: str, network: IPNetwork, comment: str) -> NetworkObject:
+    # "$interface address" selector: the address configured on the interface itself
+    return NetworkObject(
+        obj_uid=fwo_base_generate_hash_from_dict({"iface_obj": name}),
+        obj_name=name,
+        obj_ip=IPNetwork(f"{network.ip}"),
+        obj_ip_end=IPNetwork(f"{network.ip}"),
+        obj_color="",
+        obj_typ="host",
+        obj_member_refs=None,
+        obj_member_names=None,
+        obj_comment=comment,
+    )
+
+
+def _create_interface_selector_object(
+    name: str,
+    interface: OPNsenseInterface,
+    nw_objs: dict[str, NetworkObject],
+    create_member: Callable[[str, IPNetwork, str], NetworkObject],
+) -> NetworkObject:
+    comment = _interface_comment(interface)
+    networks = _interface_networks(interface)
+
+    # interfaces without a static address (dhcp, slaac, unconfigured) stay an empty group
+    if len(networks) == 0:
+        return _create_iface_group_object(name, [], comment)
+    if len(networks) == 1:
+        return create_member(name, networks[0][1], comment)
+
+    # dual-stack interfaces become a group of their IPv4 and IPv6 member object
+    members: list[str] = []
+    for suffix, network in networks:
+        member_name = f"{name}_{suffix}"
+        if member_name not in nw_objs:
+            nw_objs[member_name] = create_member(member_name, network, comment)
+        members.append(member_name)
+    return _create_iface_group_object(name, members, comment)
+
+
+def _create_network_objects_from_ifgroup(
+    ifgroup: OPNsenseIfGroup, os_config: OPNsenseConfig, nw_objs: dict[str, NetworkObject]
+) -> NetworkObject:
+    members: list[str] = []
+
+    for member_name in ifgroup.members:
+        if not member_name:
+            continue
+        if member_name not in nw_objs:
+            member_interface = os_config.interfaces.get(member_name)
+            if member_interface is None:
+                FWOLogger.warning(
+                    f"[-] interface group {ifgroup.name} references unknown interface {member_name} - skipping member"
+                )
+                continue
+            nw_objs[member_name] = _create_network_objects_from_interface(member_interface, nw_objs)
+        members.append(member_name)
+
+    return NetworkObject(
+        obj_uid=ifgroup.uuid,
+        obj_name=ifgroup.name,
+        obj_ip=None,
+        obj_ip_end=None,
+        obj_color="",
+        obj_typ="group",
+        obj_member_refs=sort_and_join(members) if len(members) > 0 else None,
+        obj_member_names=sort_and_join(members) if len(members) > 0 else None,
+        obj_comment=ifgroup.description,
+    )
+
+
+def _create_network_objects_from_interface(
+    interface: OPNsenseInterface, nw_objs: dict[str, NetworkObject]
+) -> NetworkObject:
+    return _create_interface_selector_object(interface.name, interface, nw_objs, _create_iface_net_object)
+
+
+def _create_network_objects_from_iface_ip(
+    interface: OPNsenseInterface, nw_objs: dict[str, NetworkObject]
+) -> NetworkObject:
+    return _create_interface_selector_object(f"{interface.name}ip", interface, nw_objs, _create_iface_address_object)
+
+
+def _access_rule_network_targets(rule: OPNsenseAccessRule) -> set[str]:
+    return (
+        {_network_ref_name(ref) for ref in rule.source_address}
+        | {_network_ref_name(ref) for ref in rule.dest_address}
+        | set(rule.source_network)
+        | set(rule.dest_network)
+    )
+
+
+def _create_network_object_from_ip_range(target: str) -> NetworkObject:
+    range_start, range_end = target.split("-", 1)
+    return _create_network_object_from_host_definition(
+        OPNsenseHost(
+            name=target,
+            is_range=True,
+            host=IPAddress(range_start),
+            host_end=IPAddress(range_end),
+        )
+    )
+
+
+def _create_plain_network_object_from_target(target: str) -> NetworkObject | None:
+    if os_helper.is_ip(target):
+        return _create_network_object_from_host_definition(
+            OPNsenseHost(name=target, is_range=False, host=IPAddress(target), host_end=None)
+        )
+    if os_helper.is_ip_subnet(target):
+        return _create_network_object_from_net_definition(OPNsenseNetwork(name=target, net=IPNetwork(target)))
+    if os_helper.is_ip_range(target):
+        return _create_network_object_from_ip_range(target)
+    return None
+
+
+def _create_interface_network_object_from_target(
+    target: str, os_config: OPNsenseConfig, nw_objs: dict[str, NetworkObject]
+) -> NetworkObject | None:
+    if target in os_config.interface_groups:
+        return _create_network_objects_from_ifgroup(os_config.interface_groups[target], os_config, nw_objs)
+    if target in os_config.interfaces and target not in os_config.interface_groups:
+        return _create_network_objects_from_interface(os_config.interfaces[target], nw_objs)
+
+    interface_name = target.removesuffix("ip")
+    if interface_name in os_config.interfaces:
+        return _create_network_objects_from_iface_ip(os_config.interfaces[interface_name], nw_objs)
+    return None
+
+
+def _create_network_object_from_rule_target(
+    target: str, os_config: OPNsenseConfig, nw_objs: dict[str, NetworkObject]
+) -> NetworkObject | None:
+    obj = _create_plain_network_object_from_target(target)
+    if obj is not None:
+        return obj
+    return _create_interface_network_object_from_target(target, os_config, nw_objs)
+
+
+def _update_network_objects_from_access_rules(os_config: OPNsenseConfig, nw_objs: dict[str, NetworkObject]) -> None:
+    for rule in os_config.access_rules:
+        for target in _access_rule_network_targets(rule):
+            if target in nw_objs:
+                continue
+            obj = _create_network_object_from_rule_target(target, os_config, nw_objs)
+            if obj is None:
+                FWOLogger.warning(
+                    f"[*] detected unknown network object {target} in rule {rule.uuid} - creating placeholder group"
+                )
+                obj = _create_network_object_from_string(target)
+            nw_objs[target] = obj
+
+
+def _normalize_network_objects(os_config: OPNsenseConfig) -> dict[str, NetworkObject]:
+    normalized: dict[str, NetworkObject] = {}
+
+    # normalize host_aliases and net_aliases
+    for alias_list in [os_config.host_aliases, os_config.net_aliases]:
+        for a, alias in alias_list.items():
+            if a not in normalized:
+                net_obj = _create_network_object_from_alias(alias, normalized, 0)
+                normalized[net_obj.obj_name] = net_obj
+
+    # normalize necessary misc aliases
+    for a, alias in os_config.aliases.items():
+        if a in normalized:
+            continue
+        if alias.type == AliasTypeEnum.GEOIP:
+            nw_obj = _create_network_objects_from_geoip_alias(alias, normalized)
+            normalized[nw_obj.obj_name] = nw_obj
+        elif alias.type == AliasTypeEnum.URLTABLE:
+            nw_obj = _create_network_objects_from_urltable_alias(alias)
+            normalized[nw_obj.obj_name] = nw_obj
+
+    # add special "Any" and "(self)" network object
+    nwobj_any = _create_special_network_objects()
+    for nany in nwobj_any:
+        normalized[nany.obj_name] = nany
+
+    _update_network_objects_from_access_rules(os_config, normalized)
+
+    return normalized
+
+
+def _create_rulebase(name: str, mgm_uid: str, rule_uid: str, rule: RuleNormalized) -> Rulebase:
+    return Rulebase(
+        uid=fwo_base_generate_hash_from_dict({"rulebase": name}),
+        name=name,
+        mgm_uid=mgm_uid,
+        is_global=False,
+        rules={rule_uid: rule},
+    )
+
+
+def _access_rule_rulebase_name(rule: OPNsenseAccessRule, os_config: OPNsenseConfig) -> str | None:
+    if rule.is_floating:
+        return FLOATING_RULEBASE_NAME
+    has_single_positive_interface = len(rule.interface) == 1 and not rule.any_interface and not rule.interface_neg
+    if has_single_positive_interface and (
+        rule.interface[0] in os_config.interfaces or rule.interface[0] in os_config.interface_groups
+    ):
+        return rule.interface[0]
+    return None
+
+
+def _upsert_rulebase_rule(
+    rbs_dict: dict[str, Rulebase], rulebase_name: str, mgm_uid: str, rule_uid: str, rule: RuleNormalized
+) -> None:
+    if rulebase_name not in rbs_dict:
+        rbs_dict[rulebase_name] = _create_rulebase(rulebase_name, mgm_uid, rule_uid, rule)
+        return
+    rbs_dict[rulebase_name].rules[rule_uid] = rule
+
+
+def _rulebase_order_keys(os_config: OPNsenseConfig) -> dict[str, tuple[int, int]]:
+    # OPNsense evaluates floating rules first, then interface group rules, then interface rules,
+    # so the rulebases must be chained in that order regardless of the order the rules appear in
+    order_keys: dict[str, tuple[int, int]] = {FLOATING_RULEBASE_NAME: (0, 0)}
+    for position, group_name in enumerate(os_config.interface_groups):
+        order_keys[group_name] = (1, position)
+    for position, interface_name in enumerate(os_config.interfaces):
+        order_keys.setdefault(interface_name, (2, position))
+    return order_keys
+
+
+def _sort_rulebases(rbs_dict: dict[str, Rulebase], os_config: OPNsenseConfig) -> list[Rulebase]:
+    order_keys = _rulebase_order_keys(os_config)
+    # everything not known from the config (e.g. the unassigned rulebase) is chained last,
+    # keeping the order in which it was encountered
+    fallback_key = (3, 0)
+    sorted_names = sorted(rbs_dict, key=lambda name: order_keys.get(name, fallback_key))
+    return [rbs_dict[name] for name in sorted_names]
+
+
+def _create_rulebases_from_access_rules(os_config: OPNsenseConfig, mgm_uid: str) -> list[Rulebase]:
+    rbs_dict: dict[str, Rulebase] = {}
+
+    for rule in os_config.access_rules:
+        r_normalized = _create_normalized_rule_from_access_rule(rule)
+        rule_uid = r_normalized.rule_uid
+        if rule_uid is None:
+            FWOLogger.warning(f"[*] skipping OPNsense rule without uid:\n    {rule}")
+            continue
+        rulebase_name = _access_rule_rulebase_name(rule, os_config)
+        if rulebase_name is None:
+            FWOLogger.warning(
+                f"[*] rule {rule_uid} matches no single-interface rulebase "
+                f"(interfaces {rule.interface}, negated: {rule.interface_neg}) - "
+                f"assigning to rulebase '{UNASSIGNED_RULEBASE_NAME}'"
+            )
+            rulebase_name = UNASSIGNED_RULEBASE_NAME
+        _upsert_rulebase_rule(rbs_dict, rulebase_name, mgm_uid, rule_uid, r_normalized)
+    return _sort_rulebases(rbs_dict, os_config)
+
+
+def _get_rulebase_links_from_rulebases(rbs: list[Rulebase]) -> list[RulebaseLinkUidBased]:
+
+    rb_links: list[RulebaseLinkUidBased] = []
+
+    for i in range(len(rbs)):
+        link = RulebaseLinkUidBased(
+            from_rulebase_uid=rbs[i - 1].uid if i > 0 else None,
+            from_rule_uid=None,
+            to_rulebase_uid=rbs[i].uid,
+            link_type="ordered",
+            is_initial=(i == 0),
+            # a standalone firewall has no global policy, all rulebases belong to this gateway
+            is_global=False,
+            is_section=False,
+        )
+        rb_links.append(link)
+
+    return rb_links
+
+
+def _get_gateway_name(native_config: OPNsenseConfig, import_state: ImportStateController) -> str:
+    mgm_details = import_state.state.mgm_details
+    if mgm_details.devices and "name" in mgm_details.devices[0] and mgm_details.devices[0]["name"]:
+        return str(mgm_details.devices[0]["name"])
+    if mgm_details.name:
+        return mgm_details.name
+    if native_config.hostname:
+        return native_config.hostname
+    if mgm_details.hostname:
+        return mgm_details.hostname
+    raise FwoImporterError("Management details must contain a device name, management name, or hostname.")
+
+
+def _resolved_ref_uid(name: str, uids_by_name: dict[str, str], kind: str) -> str:
+    uid = uids_by_name.get(name)
+    if uid is None:
+        FWOLogger.warning(
+            f"[-] _resolve_named_refs_in_rules: unresolved {kind} reference {name} - keeping name as reference"
+        )
+        return name
+    return uid
+
+
+def _resolve_named_refs_in_rules(
+    rbs: list[Rulebase], nw_objs: dict[str, NetworkObject], svc_obj: dict[str, ServiceObject]
+) -> None:
+    nw_uids = {name: obj.obj_uid for name, obj in nw_objs.items()}
+    svc_uids = {name: svc.svc_uid for name, svc in svc_obj.items()}
+
+    for rb in rbs:
+        for rule in rb.rules.values():
+            rule.rule_src_refs = sort_and_join(
+                [_resolved_ref_uid(src, nw_uids, "network") for src in rule.rule_src_refs.split("|")]
+            )
+            rule.rule_dst_refs = sort_and_join(
+                [_resolved_ref_uid(dest, nw_uids, "network") for dest in rule.rule_dst_refs.split("|")]
+            )
+            rule.rule_svc_refs = sort_and_join(
+                [_resolved_ref_uid(svc, svc_uids, "service") for svc in rule.rule_svc_refs.split("|")]
+            )
+
+
+def _normalize_interfaces(os_config: OPNsenseConfig) -> list[dict[str, Any]]:
+    interfaces: list[dict[str, Any]] = []
+    dev_id = 0
+
+    for os_if in os_config.interfaces.values():
+        # ignore OPNsense interface groups here
+        if os_if.type == "group":
+            continue
+
+        if os_if.ip4_address is not None and os_if.ip4_subnet is not None:
+            iface4 = {
+                "device_id": dev_id,  # int
+                "name": os_if.name + "_v4",  # str
+                "ip": str(os_if.ip4_address),  # IPAddress
+                "netmask_bits": os_if.ip4_subnet,  # int
+                "state_up": True,  # bool
+                "ip_version": 4,  # int
+            }
+
+            dev_id += 1
+            interfaces.append(iface4)
+
+        if os_if.ip6_address is not None and os_if.ip6_subnet is not None:
+            iface6 = {
+                "device_id": dev_id,  # int
+                "name": os_if.name + "_v6",  # str
+                "ip": str(os_if.ip6_address),  # IPAddress
+                "netmask_bits": os_if.ip6_subnet,  # int
+                "state_up": True,  # bool
+                "ip_version": 6,  # int
+            }
+
+            dev_id += 1
+            interfaces.append(iface6)
+
+    return interfaces
+
+
+def normalize_opnsense_config(
+    config_in: FwConfigManagerListController, import_state: ImportStateController
+) -> FwConfigManagerListController:
+
+    # Parse the native configuration into structured objects
+    FWOLogger.debug("[*] parsing native config...")
+    native_config: OPNsenseConfig = parse_opnsense_config(config_in.native_config or {})
+    FWOLogger.debug("[*] normalizing service objects...")
+    svc_objects = normalize_services(native_config)
+    FWOLogger.debug(f"[*] normalized {len(svc_objects)} service objects...")
+    FWOLogger.debug("[*] normalizing network objects...")
+    network_objects = _normalize_network_objects(native_config)
+    FWOLogger.debug(f"[*] normalized {len(network_objects)} network objects...")
+    FWOLogger.debug("[*] normalizing access rules...")
+    rulebases = _create_rulebases_from_access_rules(native_config, import_state.state.mgm_details.uid)
+    [FWOLogger.debug(f"[*] normalized {len(rb.rules)} access rules in Rulebase {rb.name}...") for rb in rulebases]
+    FWOLogger.debug("[*] normalizing interfaces for gateway definition...")
+    interfaces = _normalize_interfaces(native_config)
+    FWOLogger.debug(f"[*] normalized {len(interfaces)} interfaces for gateway definition...")
+
+    rulebase_links = _get_rulebase_links_from_rulebases(rulebases)
+
+    _resolve_named_refs_in_rules(rulebases, network_objects, svc_objects)
+    new_nw_objects: dict[str, NetworkObject] = {}
+    for name in network_objects:
+        new_nw_objects[network_objects[name].obj_uid] = network_objects[name]
+        obj_member_refs = new_nw_objects[network_objects[name].obj_uid].obj_member_refs
+        if obj_member_refs is None:
+            continue
+        member = [network_objects[m].obj_uid for m in obj_member_refs.split("|")]
+        new_nw_objects[network_objects[name].obj_uid].obj_member_refs = sort_and_join(member)
+    network_objects = new_nw_objects
+    new_svc_objects: dict[str, ServiceObject] = {}
+    for name in svc_objects:
+        new_svc_objects[svc_objects[name].svc_uid] = svc_objects[name]
+        svc_member_refs = new_svc_objects[svc_objects[name].svc_uid].svc_member_refs
+        if svc_member_refs is None or len(svc_member_refs) == 0:
+            continue
+        member: list[str] = []
+        for m in svc_member_refs.split("|"):
+            member.append(svc_objects[m].svc_uid)
+        new_svc_objects[svc_objects[name].svc_uid].svc_member_refs = sort_and_join(member)
+    svc_objects = new_svc_objects
+
+    FWOLogger.debug("[*] creating this gateway...")
+    gateway_name = _get_gateway_name(native_config, import_state)
+    os_gateway = Gateway(
+        Uid=gateway_name,
+        Name=gateway_name,
+        Routing=[],
+        Interfaces=interfaces,
+        RulebaseLinks=rulebase_links,
+        GlobalPolicyUid=None,
+        EnforcedPolicyUids=[],
+        EnforcedNatPolicyUids=[],
+        ImportDisabled=False,
+        ShowInUI=True,
+    )
+
+    normalized_config = FwConfigNormalized(
+        action=ConfigAction.INSERT,
+        network_objects=network_objects,
+        service_objects=svc_objects,
+        # currently firewall users != fwo users
+        users={},
+        zone_objects={},
+        time_objects={},
+        rulebases=rulebases,
+        gateways=[os_gateway],
+    )
+
+    config_in.ManagerSet[0].manager_uid = import_state.state.mgm_details.uid
+    config_in.ManagerSet[0].configs = [normalized_config]
+
+    return config_in

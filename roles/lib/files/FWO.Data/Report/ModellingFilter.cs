@@ -18,6 +18,7 @@ namespace FWO.Data.Report
 
         public bool AnalyseRemainingRules { get; set; } = false;
         public bool RulesForDeletedConns { get; set; } = false;
+        public bool VerifyRuleOwnerPreFilterCompleteness { get; set; } = false;
 
         public bool ShowAllOwners { get; set; } = false;
         public bool ShowInactiveRecertOwners { get; set; } = false;
@@ -41,6 +42,7 @@ namespace FWO.Data.Report
             ShowDropRules = modellingFilter.ShowDropRules;
             AnalyseRemainingRules = modellingFilter.AnalyseRemainingRules;
             RulesForDeletedConns = modellingFilter.RulesForDeletedConns;
+            VerifyRuleOwnerPreFilterCompleteness = modellingFilter.VerifyRuleOwnerPreFilterCompleteness;
             ShowAllOwners = modellingFilter.ShowAllOwners;
             ShowInactiveRecertOwners = modellingFilter.ShowInactiveRecertOwners;
             MergeOwnerRecertTables = modellingFilter.MergeOwnerRecertTables;

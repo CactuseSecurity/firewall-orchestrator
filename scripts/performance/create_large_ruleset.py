@@ -109,7 +109,8 @@ def login(middleware_url: str, user: str, password: str, timeout: int, verify: b
         verify=verify,
     )
     response.raise_for_status()
-    return response.text
+    token_pair = response.json()
+    return token_pair.get("accessToken") or token_pair["AccessToken"]
 
 
 def build_headers(args: argparse.Namespace) -> dict[str, str]:

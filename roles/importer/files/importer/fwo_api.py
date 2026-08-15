@@ -21,6 +21,8 @@ if TYPE_CHECKING:
 
 JSON_CONTENT_TYPE = "application/json"
 REDACTED_VALUE = "<redacted>"
+HTTP_STATUS_OK = 200
+MAX_LOGIN_ERROR_RESPONSE_LEN = 200  # keep the login failure reason readable without dumping a full error page
 SENSITIVE_HEADER_NAMES = {"authorization", "x-hasura-admin-secret"}
 
 
@@ -145,11 +147,17 @@ class FwoApi:
                     "fwo_api: error during login to url: " + str(user_management_api_base_url) + " with user " + user
                 ) from None
 
-            if response.status_code == 200:  # noqa: PLR2004
+            if response.status_code == HTTP_STATUS_OK:
                 return response.text
+            # the status and the response body carry the actual reason (e.g. invalid credentials),
+            # without them a login failure is indistinguishable from a misconfigured url
             error_txt = (
                 "fwo_api: ERROR: did not receive a JWT during login"
-                ", api_url: " + str(user_management_api_base_url) + ", ssl_verification: " + str(session.verify)
+                f", api_url: {user_management_api_base_url}{method}"
+                f", user: {user}"
+                f", http_status: {response.status_code}"
+                f", response: {response.text[:MAX_LOGIN_ERROR_RESPONSE_LEN]}"
+                f", ssl_verification: {session.verify}"
             )
             raise FwoApiLoginFailedError(error_txt)
 

@@ -44,6 +44,24 @@ namespace FWO.Test
         }
 
         [Test]
+        public void RulesByFilterRequest_ShouldRequireMinPrefixLength()
+        {
+            const string json = """
+            {
+              "Query": {
+                "IpAddress": "10.1.2.3",
+                "Filter": {
+                  "InField": "source",
+                  "Action": "any"
+                }
+              }
+            }
+            """;
+
+            ClassicAssert.Throws<JsonException>(() => JsonSerializer.Deserialize<RulesByFilterRequest>(json));
+        }
+
+        [Test]
         public async Task GetRulesByFilter_ShouldRejectOwnerAndIpAddressTogether()
         {
             RuleController controller = new(new DummyApiConnection());

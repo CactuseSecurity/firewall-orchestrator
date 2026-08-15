@@ -147,7 +147,7 @@ namespace FWO.Test
             return typeof(object);
         }
 
-        private sealed class LocalMiddlewareServer : IAsyncDisposable
+        internal sealed class LocalMiddlewareServer : IAsyncDisposable
         {
             private readonly HttpListener listener = new();
             private readonly ConcurrentQueue<string> responses = new();

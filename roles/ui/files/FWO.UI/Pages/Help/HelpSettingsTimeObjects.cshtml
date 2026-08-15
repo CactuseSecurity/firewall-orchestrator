@@ -1,0 +1,17 @@
+@page "/help/settings/flows/timeobjects"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml");
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("time_objects")</h3>
+    <p>@userConfig.GetText("H5024")</p>
+</div>

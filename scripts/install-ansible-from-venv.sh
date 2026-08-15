@@ -18,15 +18,16 @@ main() {
 
     . /etc/os-release
 
-    # ansible==12.3.0 (see requirements.txt) requires Python >=3.11. On RHEL/Rocky 9
-    # the platform python3 is 3.9, so the venv must be built with python3.11 there.
+    # requirements.txt pins the production Ansible version for Python 3.11.
+    # On RHEL/Rocky 9 the platform python3 is 3.9, so the venv must use python3.11 there.
     case "${ID_LIKE:-$ID}" in
         *debian*)
             sudo apt update || return $?
-            sudo apt install python3-venv -y || return $?
+            # python3-dev supplies Python.h, which python-ldap needs to build its C extension.
+            sudo apt install python3-venv python3-dev build-essential libldap2-dev libsasl2-dev -y || return $?
             ;;
         *rhel*|*fedora*)
-            sudo dnf install python3.11 python3.11-pip -y || return $?
+            sudo dnf install python3.11 python3.11-pip python3.11-devel gcc openldap-devel cyrus-sasl-devel -y || return $?
             python_bin="python3.11"
             ;;
         *)

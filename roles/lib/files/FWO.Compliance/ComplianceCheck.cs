@@ -1495,45 +1495,11 @@ namespace FWO.Compliance
         private List<ComplianceNetworkZone> DetermineZones(List<IPAddressRange> ranges, List<ComplianceNetworkZone>? networkZonesOverride = null)
         {
             List<ComplianceNetworkZone> activeNetworkZones = networkZonesOverride ?? NetworkZones;
-            List<ComplianceNetworkZone> result = [];
-            List<List<IPAddressRange>> unseenIpAddressRanges = [];
-
-            for (int i = 0; i < ranges.Count; i++)
-            {
-                unseenIpAddressRanges.Add(
-                [
-                    new(ranges[i].Begin, ranges[i].End)
-                ]);
-            }
-
-            foreach (ComplianceNetworkZone zone in activeNetworkZones.Where(z => z.OverlapExists(ranges, unseenIpAddressRanges)))
-            {
-                result.Add(zone);
-            }
-
-            // No need to proceed if auto calculated internet zone is activated.
-
-            if (_autoCalculatedInternetZoneActive)
-            {
-                return result;
-            }
-
-            // Get ip ranges that are not in any zone
-
-            List<IPAddressRange> undefinedIpRanges = [.. unseenIpAddressRanges.SelectMany(x => x)];
-
-            if (undefinedIpRanges.Count > 0)
-            {
-                result.Add
-                (
-                    new ComplianceNetworkZone()
-                    {
-                        Name = _userConfig.GetText("internet_local_zone"),
-                    }
-                );
-            }
-
-            return result;
+            return ComplianceZoneResolver.ResolveZones(
+                ranges,
+                activeNetworkZones,
+                _autoCalculatedInternetZoneActive,
+                _userConfig.GetText("internet_local_zone"));
         }
 
         /// <summary>

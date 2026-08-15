@@ -1,5 +1,7 @@
+import pytest
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
+from fwo_exceptions import FwoImporterError
 from model_controllers.fwconfig_import import FwConfigImport
 from model_controllers.import_state_controller import ImportStateController
 from models.fwconfig_normalized import FwConfigNormalized
@@ -75,3 +77,21 @@ def test_fix_rulebase_links_in_db_refreshes_previous_config_after_removal(
     assert refreshed_link.to_rulebase_uid == "child-rb"
     assert refreshed_link.link_type == "section"
     assert refreshed_link.is_global is True
+
+
+@pytest.mark.usefixtures("import_state_controller")
+def test_fix_rulebase_links_in_db_raises_when_link_refresh_returns_errors(
+    api_call: FwoApiCall,
+    mocker: MockerFixture,
+):
+    importer = FwConfigImport()
+    mocker.patch.object(FwoApi, "get_graphql_code", side_effect=["mutation", "query"])
+    api_call.call = mocker.Mock(
+        side_effect=[
+            {"data": {"update_firewall_rulebase_link": {"affected_rows": 1}}},
+            {"errors": [{"message": "permission denied"}]},
+        ],
+    )
+
+    with pytest.raises(FwoImporterError, match="error while trying to fetch rulebase links"):
+        importer.fix_rulebase_links_in_db(FwConfigNormalized(gateways=[Gateway(Uid="gw-uid")]))

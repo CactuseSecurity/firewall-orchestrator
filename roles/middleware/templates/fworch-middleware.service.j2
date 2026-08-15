@@ -1,15 +1,24 @@
 [Unit]
 Description=FWOrch Middleware Server
+Wants=network-online.target
+# wide enough to keep retrying while api or ldap are still coming up, but capped so that a
+# service which keeps crashing ends up in a visible failed state instead of restarting forever
+StartLimitIntervalSec={{ fworch_systemd_start_limit_interval_sec }}
+StartLimitBurst={{ fworch_systemd_start_limit_burst }}
 {% if 'apiserver' in group_names -%}
-After=network.target remote-fs.target nss-lookup.target {{ api_service_name }}.service slapd.service
+After=network-online.target remote-fs.target nss-lookup.target {{ webserver_package_name }}.service {{ api_service_name }}.service slapd.service
 {% else -%}
-After=network.target remote-fs.target nss-lookup.target slapd.service
+After=network-online.target remote-fs.target nss-lookup.target {{ webserver_package_name }}.service slapd.service
 {%- endif %}
 [Service]
 WorkingDirectory={{ middleware_server_start_dir }}
 ExecStartPre=/bin/sleep 10
 ExecStart={{ middleware_server_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}/FWO.Middleware.Server
 Restart=on-failure
+RestartSec={{ fworch_systemd_restart_sec }}
+# bound a runaway inside this service's own cgroup, so the kernel does not get to pick the victim
+MemoryMax={{ fworch_middleware_memory_max }}
+OOMPolicy=stop
 SyslogIdentifier={{ middleware_server_syslog_id }}
 User={{ fworch_user }}
 Environment="PYTHONPATH={{ fworch_home }}"

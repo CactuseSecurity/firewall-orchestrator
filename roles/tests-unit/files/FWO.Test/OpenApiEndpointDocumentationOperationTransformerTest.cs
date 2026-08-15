@@ -336,6 +336,28 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
         Assert.That(operation.Responses, Is.Null);
     }
 
+    [Test]
+    public void ComplianceZoneController_ActionsDeclareProducedStatusCodes()
+    {
+        MethodInfo getZonesMethod = typeof(ComplianceZoneController).GetMethod(nameof(ComplianceZoneController.GetDesignatedZoneMatrixZones))!;
+        MethodInfo resolveMethod = typeof(ComplianceZoneController).GetMethod(nameof(ComplianceZoneController.ResolveZonesForObjects))!;
+
+        int[] getZoneStatusCodes = getZonesMethod.GetCustomAttributes<ProducesResponseTypeAttribute>()
+            .Select(attribute => attribute.StatusCode)
+            .OrderBy(statusCode => statusCode)
+            .ToArray();
+        int[] resolveStatusCodes = resolveMethod.GetCustomAttributes<ProducesResponseTypeAttribute>()
+            .Select(attribute => attribute.StatusCode)
+            .OrderBy(statusCode => statusCode)
+            .ToArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(getZoneStatusCodes, Is.EqualTo([200, 401, 403, 500]));
+            Assert.That(resolveStatusCodes, Is.EqualTo([200, 400, 401, 403, 500]));
+        });
+    }
+
     private static OpenApiApiExampleOperationTransformer CreateTransformerWithExamples()
     {
         ServiceCollection services = new();

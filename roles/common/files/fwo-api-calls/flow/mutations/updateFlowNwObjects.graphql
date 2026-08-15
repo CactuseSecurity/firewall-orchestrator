@@ -1,0 +1,5 @@
+mutation updateFlowNwObjects($updates: [flow_nwobject_updates!]!) {
+  update_flow_nwobject_many(updates: $updates) {
+    affected_rows
+  }
+}

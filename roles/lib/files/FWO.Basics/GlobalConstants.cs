@@ -78,6 +78,11 @@ namespace FWO.Basics
         // qad: these two strings should be replaced by customer specific setting values asap
         public const string kField2 = "field-2";
         public const string kDatumRegelpr = "Datum-Regelpruefung";
+
+        // fallback used whenever the CustomFieldChangeIdKey setting is unavailable
+        public const string kDefaultChangeIdKeys = "[\"field-2\",\"ChangeID\"]";
+
+        public const string BrowserResourceSaving = "This may occur when a browser goes into resource saving mode";
     }
 
     public struct PageName

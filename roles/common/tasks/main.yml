@@ -406,10 +406,19 @@
       register: importer_pwd_stat
       when: "installation_mode == 'new' and inventory_hostname in groups['middlewareserver']"
 
+    # the group membership check has to stay ahead of the stat check - importer_pwd_stat is only
+    # registered on the middleware server
+    - name: set static importer password for test purposes only
+      set_fact:
+        importer_password: "{{ importer_testonly_password }}"
+      when: "installation_mode == 'new' and inventory_hostname in groups['middlewareserver'] and not importer_pwd_stat.stat.exists and testkeys | default(false) | bool"
+      no_log: true
+
     - name: set importer password for secrets file
       set_fact:
         importer_password: "{{ randomly_generated_pwd }}"
-      when: "installation_mode == 'new' and inventory_hostname in groups['middlewareserver'] and not importer_pwd_stat.stat.exists"
+      when: "installation_mode == 'new' and inventory_hostname in groups['middlewareserver'] and not importer_pwd_stat.stat.exists and not (testkeys | default(false) | bool)"
+      no_log: true
 
     - name: write importer password to secrets directory
       copy:

@@ -243,7 +243,9 @@ namespace FWO.ExternalSystems.CheckPoint
 
             if (objectType == ObjectType.Network)
             {
-                (string networkStart, string networkEnd) = IpOperations.SplitIpToRange(ipString);
+                (string networkStart, string networkEnd) = ShouldUseIpEndForNetworkRange(ipString, ipEndString)
+                    ? (ipString, ipEndString)
+                    : IpOperations.SplitIpToRange(ipString);
 
                 return new IPAddressRange(
                     IPAddress.Parse(networkStart.StripOffNetmask()),
@@ -253,6 +255,30 @@ namespace FWO.ExternalSystems.CheckPoint
             string hostIp = ipString.StripOffNetmask();
             IPAddress hostAddress = IPAddress.Parse(hostIp);
             return new IPAddressRange(hostAddress, hostAddress);
+        }
+
+        private static bool ShouldUseIpEndForNetworkRange(string ipString, string ipEndString)
+        {
+            if (string.IsNullOrWhiteSpace(ipEndString))
+            {
+                return false;
+            }
+
+            if (!ipString.TryGetNetmask(out _))
+            {
+                return true;
+            }
+
+            if (!int.TryParse(ipString.GetNetmask(), out int prefixLength) ||
+                !IPAddress.TryParse(ipString.StripOffNetmask(), out IPAddress? address))
+            {
+                return false;
+            }
+
+            int hostPrefixLength = address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6
+                ? 128
+                : 32;
+            return prefixLength == hostPrefixLength;
         }
     }
 }

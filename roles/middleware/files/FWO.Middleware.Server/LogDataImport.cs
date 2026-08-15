@@ -210,6 +210,10 @@ namespace FWO.Middleware.Server
         /// Replaces all stored rows of applications named in the source when configured. The
         /// delete and insert fields share one GraphQL mutation so Hasura executes them in one
         /// transaction and a failed insert cannot leave the applications without their old rows.
+        /// The replacement is scoped to one source on purpose: replaceExistingLogData means that
+        /// every source owns the applications it reports, so configuring two sources for the same
+        /// application is a misconfiguration - the source imported later replaces the rows of the
+        /// one imported before instead of adding to them, also within the same run.
         /// </summary>
         private async Task WriteEntries(List<FirewallLogEntryInput> entries, List<int> sourceOwnerIds)
         {
@@ -241,6 +245,16 @@ namespace FWO.Middleware.Server
                 $" and are removed with the acknowledged source file.");
         }
 
+        /// <summary>
+        /// Collects the owners of all applications named in the source, used to replace their
+        /// stored rows in <see cref="WriteEntries"/>.
+        /// The raw source entries are used deliberately, not the entries which survive validation,
+        /// the owner lookup and the importLogDataMaxEntries limit: a source reporting an
+        /// application is the current truth about that application, so its stored rows are dropped
+        /// even when none of its new entries can be imported. The application then shows no log
+        /// data instead of data from an earlier period, and the dropped entries are reported by
+        /// WarnAboutDroppedEntries.
+        /// </summary>
         private async Task<List<int>> ResolveSourceOwnerIds(List<LogDataImportEntry> sourceEntries, Dictionary<string, int?> ownerIds)
         {
             List<int> resolvedOwnerIds = [];
@@ -380,9 +394,15 @@ namespace FWO.Middleware.Server
             };
         }
 
+        /// <summary>
+        /// Builds the key identifying one logged flow. It contains the same fields as the
+        /// log_entry_unique_flow constraint of the database, including whether the flow was
+        /// allowed: an accepted and a blocked flow between the same peers are two different
+        /// results, so merging them would hide one of them behind the count of the other.
+        /// </summary>
         private static string BuildFlowKey(FirewallLogEntryInput entry)
         {
-            return string.Join('|', entry.OwnerId, entry.Source, entry.Destination, entry.ServiceProtocol, entry.ServicePort);
+            return string.Join('|', entry.OwnerId, entry.Source, entry.Destination, entry.ServiceProtocol, entry.ServicePort, entry.Allowed);
         }
 
         private static void MergeIntoEntry(FirewallLogEntryInput mergedEntry, FirewallLogEntryInput entry)
@@ -390,8 +410,8 @@ namespace FWO.Middleware.Server
             mergedEntry.LogCount = (int)Math.Min(int.MaxValue, (long)mergedEntry.LogCount + entry.LogCount);
             if (entry.LogTime >= mergedEntry.LogTime)
             {
+                // merged entries share the flow key, so only the fields outside it can differ
                 mergedEntry.LogTime = entry.LogTime;
-                mergedEntry.Allowed = entry.Allowed;
                 mergedEntry.LoggingRuleName = entry.LoggingRuleName;
             }
         }

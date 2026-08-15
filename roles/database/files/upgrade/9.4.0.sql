@@ -32,10 +32,18 @@ CREATE TABLE IF NOT EXISTS logging.log_entry
         (family(destination) = 4 AND masklen(destination) = 32)
         OR (family(destination) = 6 AND masklen(destination) = 128)
     ),
-    -- one row per owner and logged flow, repeated imports of the same flow update that row
+    -- one row per owner and logged flow, repeated imports of the same flow update that row.
+    -- allowed is part of the flow: an accepted and a blocked flow between the same peers are two
+    -- different results and must not be merged into one row
     CONSTRAINT log_entry_unique_flow UNIQUE
-        (owner_id, source, destination, service_protocol_key, service_port_key)
+        (owner_id, source, destination, service_protocol_key, service_port_key, allowed)
 );
+
+-- rebuilt instead of relying on the table definition above: a database which already created the
+-- table still carries the flow key without allowed, which merged blocked and accepted flows
+ALTER TABLE logging.log_entry DROP CONSTRAINT IF EXISTS log_entry_unique_flow;
+ALTER TABLE logging.log_entry ADD CONSTRAINT log_entry_unique_flow UNIQUE
+    (owner_id, source, destination, service_protocol_key, service_port_key, allowed);
 
 ALTER TABLE logging.log_entry DROP CONSTRAINT IF EXISTS log_entry_service_protocol_foreign_key;
 ALTER TABLE logging.log_entry ADD CONSTRAINT log_entry_service_protocol_foreign_key

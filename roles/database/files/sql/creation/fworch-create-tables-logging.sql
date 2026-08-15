@@ -32,7 +32,9 @@ CREATE TABLE logging.log_entry
         (family(destination) = 4 AND masklen(destination) = 32)
         OR (family(destination) = 6 AND masklen(destination) = 128)
     ),
-    -- one row per owner and logged flow, repeated imports of the same flow update that row
+    -- one row per owner and logged flow, repeated imports of the same flow update that row.
+    -- allowed is part of the flow: an accepted and a blocked flow between the same peers are two
+    -- different results and must not be merged into one row
     CONSTRAINT log_entry_unique_flow UNIQUE
-        (owner_id, source, destination, service_protocol_key, service_port_key)
+        (owner_id, source, destination, service_protocol_key, service_port_key, allowed)
 );

@@ -168,6 +168,41 @@ namespace FWO.Test
         }
 
         [Test]
+        public void RunImportScriptReportsWhatATimedOutScriptWroteBeforeItGotStuck()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                Assert.Ignore("Script execution test requires a Unix-like environment.");
+            }
+
+            string tempDir = CreateScriptDirectory();
+            TextWriter originalConsoleOut = Console.Out;
+            using StringWriter logOutput = new();
+            try
+            {
+                // the scripts log to their error output, so the reason a script hangs - a git
+                // command waiting for credentials for instance - is written before it stops
+                string scriptContent = "#!/usr/bin/env python3\n"
+                    + "import sys, time\n"
+                    + "print('[ERROR] waiting for git credentials', file=sys.stderr, flush=True)\n"
+                    + "time.sleep(60)\n";
+                string scriptPath = WriteScript(tempDir, "stuck.py", scriptContent);
+                Console.SetOut(logOutput);
+
+                bool executed = CreateImporter(TimeSpan.FromSeconds(2)).ExecuteScript(scriptPath, null, validateImportFile: false);
+
+                Console.SetOut(originalConsoleOut);
+                Assert.That(executed, Is.False);
+                Assert.That(logOutput.ToString(), Does.Contain("waiting for git credentials"));
+            }
+            finally
+            {
+                Console.SetOut(originalConsoleOut);
+                Directory.Delete(tempDir, true);
+            }
+        }
+
+        [Test]
         public void GetScriptOutputLogTypeReportsTheSeverityTheScriptUsed()
         {
             // the scripts log to the error output, so a run ending successfully can still report

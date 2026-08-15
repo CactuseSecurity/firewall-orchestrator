@@ -6,12 +6,16 @@ import git
 import pytest
 
 from scripts.customizing.fwo_custom_lib.git_helpers import (
+    FALLBACK_COMMITTER_EMAIL,
+    FALLBACK_COMMITTER_NAME,
     build_askpass_env,
     build_non_interactive_git_env,
     cleanup_repo_target_dir,
     commit_and_push_deletions,
+    ensure_committer_identity,
     parse_git_depth_arg,
     read_file_from_git_repo,
+    rebase_onto_remote,
     split_repo_url_credentials,
     update_git_repo,
 )
@@ -350,6 +354,74 @@ def test_commit_and_push_deletions_completes_a_shallow_clone_before_pushing(tmp_
     assert pushed
     assert shallow.git.rev_parse("--is-shallow-repository").strip() == "false"
     assert "second.csv" not in git.Repo(tmp_path / "origin.git").head.commit.tree
+
+
+def remove_configured_identity(repo: git.Repo) -> None:
+    with repo.config_writer() as config:
+        config.remove_option("user", "name")
+        config.remove_option("user", "email")
+
+
+def isolate_from_host_git_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make the test see the unattended host the middleware runs on: git without an identity."""
+    home_path: Path = tmp_path / "home"
+    home_path.mkdir()
+    monkeypatch.setenv("HOME", str(home_path))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(home_path / ".config"))
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    for identity_variable in ("GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL"):
+        monkeypatch.delenv(identity_variable, raising=False)
+
+
+def test_commit_and_push_deletions_commits_without_a_configured_identity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # the deletion is rebased onto the moved remote, which git refuses to do without a committer
+    clone_path, clone, origin = create_clone_with_origin(tmp_path)
+    seed_path: Path = tmp_path / "seed"
+    seed: git.Repo = git.Repo(seed_path)
+    (seed_path / "new-export.csv").write_text("App ID,Log count\nAPP-3,3\n", encoding="utf-8")
+    seed.git.add("new-export.csv")
+    seed.index.commit("chore: add new log data export")
+    seed.git.push("origin", "HEAD:refs/heads/main")
+    remove_configured_identity(clone)
+    isolate_from_host_git_config(tmp_path, monkeypatch)
+
+    pushed: bool = commit_and_push_deletions(str(clone_path), [clone_path / "logs.csv"], COMMIT_MESSAGE, LOGGER)
+
+    assert pushed
+    assert clone.head.commit.committer.email == FALLBACK_COMMITTER_EMAIL
+    assert clone.head.commit.committer.name == FALLBACK_COMMITTER_NAME
+    assert "logs.csv" not in origin.head.commit.tree
+
+
+def test_ensure_committer_identity_keeps_a_configured_one(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _, clone, _ = create_clone_with_origin(tmp_path)
+    isolate_from_host_git_config(tmp_path, monkeypatch)
+
+    ensure_committer_identity(clone, LOGGER)
+
+    with clone.config_reader() as config:
+        assert config.get_value("user", "email") == "test@local"
+        assert config.get_value("user", "name") == "FWO Test"
+
+
+def test_rebase_onto_remote_reports_the_rebase_error_when_there_is_nothing_to_abort() -> None:
+    repo_mock: Mock = Mock()
+    repo_mock.active_branch.name = "main"
+    rebase_error = git.GitCommandError("git rebase FETCH_HEAD", 1, b"could not apply the deletion")
+    abort_error = git.GitCommandError("git rebase --abort", 128, b"fatal: No rebase in progress?")
+
+    def fail_rebase(*args: str) -> None:
+        raise abort_error if "--abort" in args else rebase_error
+
+    repo_mock.git.rebase.side_effect = fail_rebase
+
+    with pytest.raises(git.GitCommandError) as raised_error:
+        rebase_onto_remote(repo_mock, LOGGER, {})
+
+    # the reason the rebase failed must survive, the failing abort would otherwise replace it
+    assert raised_error.value is rebase_error
 
 
 def test_commit_and_push_deletions_replays_onto_a_moved_remote(tmp_path: Path) -> None:

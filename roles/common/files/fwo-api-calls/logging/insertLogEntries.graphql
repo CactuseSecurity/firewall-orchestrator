@@ -7,7 +7,9 @@ mutation insertLogEntries($entries: [logging_log_entry_insert_input!]!) {
     objects: $entries
     on_conflict: {
       constraint: log_entry_unique_flow
-      update_columns: [log_count, allowed, log_time, logging_rule_name]
+      # allowed is part of the constraint, a conflicting row therefore already carries the same
+      # value and an accepted flow never overwrites the counts of a blocked one
+      update_columns: [log_count, log_time, logging_rule_name]
     }
   ) {
     affected_rows

@@ -20,6 +20,12 @@ NON_INTERACTIVE_GIT_SETTINGS: dict[str, str] = {
 }
 DEFAULT_GIT_SSH_COMMAND: str = "ssh -o BatchMode=yes"
 
+# committing and rebasing need a committer identity. The repository is cloned fresh in every run
+# and an unattended host often has no identity configured at all, which would make git refuse to
+# create the deletion commit and let every acknowledgement fail.
+FALLBACK_COMMITTER_NAME: str = "FWO Log Data Import"
+FALLBACK_COMMITTER_EMAIL: str = "log-data-import@fworch.local"
+
 
 def parse_git_depth_arg(value: str) -> int:
     try:
@@ -135,9 +141,33 @@ def rebase_onto_remote(repo: Any, logger: logging.Logger, env: dict[str, str]) -
     try:
         repo.git.rebase("FETCH_HEAD")
     except git.GitCommandError:
-        repo.git.rebase("--abort")
+        abort_rebase(repo, logger)
         logger.exception("could not replay the log data deletion onto %s", branch)
         raise
+
+
+def abort_rebase(repo: Any, logger: logging.Logger) -> None:
+    """Return the clone to the state before the rebase, without hiding why the rebase failed."""
+    try:
+        repo.git.rebase("--abort")
+    except git.GitCommandError:
+        # a rebase which never started cannot be aborted, and that error must not replace the
+        # reason the rebase failed - a rejected fetch or an unreachable remote for instance
+        logger.debug("no rebase to abort", exc_info=True)
+
+
+def ensure_committer_identity(repo: Any, logger: logging.Logger) -> None:
+    """Give the clone a committer identity unless the host provides one itself."""
+    with repo.config_reader() as config:
+        name: str = str(config.get_value("user", "name", "") or "")
+        email: str = str(config.get_value("user", "email", "") or "")
+    if name and email:
+        return
+
+    with repo.config_writer() as config:
+        config.set_value("user", "name", name or FALLBACK_COMMITTER_NAME)
+        config.set_value("user", "email", email or FALLBACK_COMMITTER_EMAIL)
+    logger.info("no git committer identity configured, committing as %s", FALLBACK_COMMITTER_EMAIL)
 
 
 def build_askpass_env(askpass_dir: str, git_username: str, git_password: str) -> dict[str, str]:
@@ -168,6 +198,7 @@ def commit_and_push_deletions(
             relative_paths.append(str(resolved_path.relative_to(repo_path)))
             resolved_path.unlink(missing_ok=True)
         repo.git.add(update=True)
+        ensure_committer_identity(repo, logger)
         if repo.is_dirty(index=True, working_tree=True, untracked_files=False):
             repo.index.commit(commit_message)
         if git_username is not None and git_password is not None:

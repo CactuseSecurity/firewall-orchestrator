@@ -16,6 +16,7 @@ namespace FWO.Middleware.Server
     public class DataImportBase
     {
         private static readonly TimeSpan kDefaultImportScriptTimeout = TimeSpan.FromMinutes(30);
+        private static readonly TimeSpan kStoppedScriptOutputTimeout = TimeSpan.FromSeconds(10);
 
         // Severity markers of the log format the customizing scripts use (see get_logger in
         // basic_helpers.py). Python truncates the level name to five characters.
@@ -115,7 +116,7 @@ namespace FWO.Middleware.Server
                     Task<string> errorReader = process.StandardError.ReadToEndAsync();
                     if (!process.WaitForExit((int)ImportScriptTimeout.TotalMilliseconds))
                     {
-                        return StopTimedOutScript(process, importScriptFile);
+                        return StopTimedOutScript(process, importScriptFile, outputReader, errorReader);
                     }
 
                     string output = outputReader.GetAwaiter().GetResult();
@@ -138,9 +139,10 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Stop a script which did not finish in time and report it as a failed run.
         /// The whole process tree is stopped, otherwise a git command left behind by the script
-        /// would keep waiting for an answer nobody can give it.
+        /// would keep waiting for an answer nobody can give it. What the script reported before it
+        /// got stuck is logged as well: that output usually names the reason it never finished.
         /// </summary>
-        private bool StopTimedOutScript(Process process, string importScriptFile)
+        private bool StopTimedOutScript(Process process, string importScriptFile, Task<string> outputReader, Task<string> errorReader)
         {
             try
             {
@@ -150,9 +152,34 @@ namespace FWO.Middleware.Server
             {
                 Log.WriteError("Run Import Script", $"Import Script {importScriptFile} could not be stopped after its timeout.", exception);
             }
+
+            // the readers finish as soon as the stopped process closes its pipes; the wait is
+            // bounded anyway, a pipe kept open by something the kill did not reach must not
+            // block the calling import a second time
+            string output = ReadRemainingOutput(outputReader, importScriptFile);
+            string errorOutput = ReadRemainingOutput(errorReader, importScriptFile);
+            process.Close();
+
             Log.WriteError("Run Import Script", $"Import Script {importScriptFile} did not finish within" +
-                $" {ImportScriptTimeout.TotalMinutes} minutes and was stopped.");
+                $" {ImportScriptTimeout.TotalMinutes} minutes and was stopped. Result: {output}. Reported: {errorOutput}");
             return false;
+        }
+
+        /// <summary>
+        /// Collect what a stopped script had written so far.
+        /// </summary>
+        private static string ReadRemainingOutput(Task<string> reader, string importScriptFile)
+        {
+            try
+            {
+                return reader.Wait(kStoppedScriptOutputTimeout) ? reader.GetAwaiter().GetResult() : "";
+            }
+            catch (Exception exception)
+            {
+                Log.WriteWarning("Run Import Script", $"Output of the stopped Import Script {importScriptFile}" +
+                    $" could not be read: {exception.Message}");
+                return "";
+            }
         }
 
         /// <summary>

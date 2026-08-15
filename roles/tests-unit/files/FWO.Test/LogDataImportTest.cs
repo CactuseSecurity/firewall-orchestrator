@@ -54,7 +54,6 @@ namespace FWO.Test
                 BuildEntry(1, 4, 6, 443, ImportTime.AddMinutes(1)),
                 BuildEntry(2, 5, 6, 443, ImportTime)
             };
-            entries[1].Allowed = false;
             entries[1].LoggingRuleName = "later rule";
 
             List<FirewallLogEntryInput> merged = LogDataImport.MergeDuplicateEntries(entries);
@@ -65,9 +64,32 @@ namespace FWO.Test
             {
                 Assert.That(mergedEntry.LogCount, Is.EqualTo(7));
                 Assert.That(mergedEntry.LogTime, Is.EqualTo(ImportTime.AddMinutes(1)));
-                Assert.That(mergedEntry.Allowed, Is.False);
                 Assert.That(mergedEntry.LoggingRuleName, Is.EqualTo("later rule"));
                 Assert.That(merged.Single(entry => entry.OwnerId == 2).LogCount, Is.EqualTo(5));
+            });
+        }
+
+        [Test]
+        public void MergeDuplicateEntries_KeepsAllowedAndDeniedFlowsApart()
+        {
+            // a blocked flow reported thousands of times must not disappear behind the few times
+            // the same flow was accepted: both results are displayed with their own count
+            List<FirewallLogEntryInput> entries = new()
+            {
+                BuildEntry(1, 9000, 6, 443, ImportTime),
+                BuildEntry(1, 2, 6, 443, ImportTime.AddMinutes(1)),
+                BuildEntry(1, 1, 6, 443, ImportTime.AddMinutes(2))
+            };
+            entries[0].Allowed = false;
+
+            List<FirewallLogEntryInput> merged = LogDataImport.MergeDuplicateEntries(entries);
+
+            Assert.That(merged, Has.Count.EqualTo(2));
+            Assert.Multiple(() =>
+            {
+                Assert.That(merged.Single(entry => !entry.Allowed).LogCount, Is.EqualTo(9000));
+                Assert.That(merged.Single(entry => entry.Allowed).LogCount, Is.EqualTo(3));
+                Assert.That(merged.Single(entry => entry.Allowed).LogTime, Is.EqualTo(ImportTime.AddMinutes(2)));
             });
         }
 

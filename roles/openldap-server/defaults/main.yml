@@ -12,8 +12,14 @@ openldap_server_cert: "{{ openldap_server_cert_path }}/openldap_cert.crt"
 
 openldap_server_enable_ssl: true
 openldap_server_services: >-
-  {{ "ldap://" ~ openldap_server ~ "/ ldaps:///" if openldap_server_enable_ssl
-     else "ldap://" ~ openldap_server ~ "/" }}
+  {{
+    ("ldap://" ~ openldap_server ~ "/ ldaps:///"
+      if openldap_server_enable_ssl else "ldap://" ~ openldap_server ~ "/")
+    if distributed_install | default(false) | bool
+    else
+    ("ldap://127.0.0.1/ ldap://[::1]/ ldaps://127.0.0.1/ ldaps://[::1]/"
+      if openldap_server_enable_ssl else "ldap://127.0.0.1/ ldap://[::1]/")
+  }}
 
 #The path to the pw dir
 fworch_secrets_dir: "{{ fworch_home | default('/usr/local/fworch') }}/etc/secrets"

@@ -26,6 +26,15 @@
   include_tasks: install-trust.yml
   when: internalca_enabled | bool
 
+# Deliberately every host, not just the issuer. Leaves are signed with
+# delegate_to, which runs on the CA host regardless of whether that host failed
+# its own tasks earlier in the play - so a guard that only ran on the issuer
+# would not actually stop anyone from issuing. Each host checks the anchor it
+# has just installed and stops itself.
+- name: Guard against an expiring internal CA
+  include_tasks: check-ca-expiry.yml
+  when: internalca_enabled | bool
+
 - name: Detect customer managed certificates during upgrade
   include_tasks: detect-existing-certificates.yml
   when:
@@ -73,7 +82,7 @@
               'owner': 'root',
               'group': 'root',
               'common_name': openldap_server,
-              'subject_alt_name': ['DNS:' ~ openldap_server, 'IP:127.0.0.1'],
+              'subject_alt_name': internalca_ldap_subject_alt_names,
               'extended_key_usage': ['serverAuth']
             }
           ] if 'middlewareserver' in group_names and not (internalca_preserve_ldap_certificate | default(false) | bool) else []
@@ -84,6 +93,17 @@
     # backslashes. Doubling them makes every IP literal fail the test and drops
     # the IP SAN entries that api_uri is built from.
     internalca_ipv4_pattern: '^[0-9]{1,3}(\.[0-9]{1,3}){3}$'
+    # LDAP clients now verify the host name (TLS_REQCERT demand), and openldap_server
+    # is usually an IP literal, which only matches an iPAddress SAN - a dNSName
+    # holding the same digits does not. Loopback stays in regardless, because slapd
+    # is always also reachable there.
+    internalca_ldap_subject_alt_names: >-
+      {{
+        (
+          ['DNS:' ~ openldap_server, 'IP:127.0.0.1']
+          + (['IP:' ~ openldap_server] if openldap_server is match(internalca_ipv4_pattern) else [])
+        ) | unique
+      }}
     # The names Apache serves as ServerName/ServerAlias, minus the demo
     # placeholders an untouched installation still carries. ServerAlias may hold
     # several space separated names, and each needs its own SAN entry - emitting
@@ -105,6 +125,7 @@
           + (['DNS:' ~ api_hostname] if 'apiserver' in group_names else [])
           + (['IP:' ~ api_network_listening_ip_address] if 'apiserver' in group_names and api_network_listening_ip_address is match(internalca_ipv4_pattern) else [])
           + (['DNS:' ~ middleware_hostname] if 'middlewareserver' in group_names else [])
+          + (['IP:' ~ middleware_hostname] if 'middlewareserver' in group_names and middleware_hostname is match(internalca_ipv4_pattern) else [])
           + (['DNS:' ~ ui_hostname] + internalca_ui_host_names if 'frontends' in group_names else [])
           + (['IP:' ~ ui_hostname] if 'frontends' in group_names and ui_hostname is match(internalca_ipv4_pattern) else [])
         ) | unique

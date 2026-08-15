@@ -24,6 +24,9 @@ sample_hostname: "{{ groups['sampleserver'].0 }}"
 #   uninstall     - runs uninstall-fworch.yml
 #   upgrade       - installs on top of an existing system preserving any existing data in ldap, database, api
 installation_mode: new
+# Keep internal data services on the IPv4 and IPv6 loopback interfaces by default.
+# Set this to true only when FWO components are installed on separate hosts.
+distributed_install: false
 install_syslog: true
 add_demo_data: true
 api_docu: false
@@ -160,6 +163,10 @@ dbadmin_password_file: "{{ fworch_secrets_dir }}/dbadmin_pwd"
 fworch_db_password_file: "{{ fworch_secrets_dir }}/fworch_db_pwd"
 api_user: fwo_api
 api_user_password_file: "{{ fworch_secrets_dir }}/api_db_pwd"
+postgresql_listening_addresses: >-
+  {{ api_network_listening_ip_address ~ ',' ~ api_local_listening_ip_address
+     if distributed_install | default(false) | bool
+     else api_local_listening_ip_address ~ ',::1' }}
 
 ###############################################################
 ### api
@@ -189,6 +196,26 @@ middleware_hostname: "127.0.0.1"
 ldif_changetype: add
 middleware_service_name: "{{ product_name }}-middleware"
 openldap_server_enable_ssl: true
+
+# TLS options for the ldapsearch/ldapmodify command line calls made by the
+# middleware, sample-data, sample-auth-data, openldap-server and tests-integration
+# roles. These options override /etc/ldap/ldap.conf, so leaving them at
+# TLS_REQCERT=never - as they were - meant FWO's own tooling never verified an LDAP
+# connection no matter what that file said.
+#
+# Global rather than per role: five different roles build this, and a role default
+# would be out of scope in four of them. That is also why openldap_server_cert stays
+# behind an is-defined guard - it is an openldap-server role default and is simply
+# absent everywhere else, which is what made the old TLS_CACERT a no-op there too.
+ldap_tls_opts: >-
+  {% if openldap_server_enable_ssl | default(false) -%}
+  {%- if internalca_enabled | default(true) | bool
+         and not (internalca_preserve_ldap_certificate | default(false) | bool) -%}
+  -o TLS_REQCERT=demand -o TLS_CACERT={{ internalca_ca_certificate_local }}
+  {%- else -%}
+  -o TLS_REQCERT=never{% if openldap_server_cert is defined %} -o TLS_CACERT={{ openldap_server_cert }}{% endif %}
+  {%- endif -%}
+  {%- endif %}
 
 # middleware web server
 middleware_web_listener_port: 8888

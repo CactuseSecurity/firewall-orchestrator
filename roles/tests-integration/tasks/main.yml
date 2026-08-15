@@ -77,6 +77,9 @@
 - name: systemd unit testing
   import_tasks: test-systemd-units.yml
 
+- name: internal service listener testing
+  import_tasks: test-internal-service-listeners.yml
+
 - name: finalize handler for deleting test data
   set_fact:
     test_importer_handler_guard: stop

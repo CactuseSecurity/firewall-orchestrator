@@ -267,7 +267,19 @@ Example to set fwodemo.cactus.de and fwo2.cactus.de as websrver names:
 
 ## Distributed setup with multiple servers
 
-You have to edit inventory/hosts.yml according to your needs
+Single-host installations are the default. They set `distributed_install: false`
+in `inventory/group_vars/all.yml`, which restricts PostgreSQL and internal LDAP
+to the IPv4 and IPv6 localhost interfaces. Hasura retains its existing IPv4
+localhost listener.
+
+Before placing FWO components on separate servers, enable their existing network
+listener behavior in `inventory/group_vars/all.yml`:
+
+```yaml
+distributed_install: true
+```
+
+You then have to edit inventory/hosts.yml according to your needs.
 
 install-srv is the local machine the installation is started from. By default FWO is installed on this server
 

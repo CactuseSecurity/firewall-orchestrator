@@ -28,7 +28,11 @@ add all hosts involved, e.g.
     fworch-side
 
 
-## inventory/all
+## inventory/group_vars/all.yml
+
+Enable the existing network listener behavior for services split across hosts:
+
+    distributed_install: true
 
 set specific IP or hostname for database host, e.g.
 
@@ -43,7 +47,8 @@ with
 ## roles/database/tasks/main.yml
 
 - change pg_hba.conf entries to allow acces via network
-- change postgresql.conf entries to make server listen on ip other than localhost
+- `distributed_install: true` makes PostgreSQL listen on the configured API
+  network address; no manual postgresql.conf listener change is needed
 
 ## roles/auth/tasks/main.yml - needs some work
 

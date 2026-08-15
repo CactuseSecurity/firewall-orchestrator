@@ -20,6 +20,17 @@ receives a world-readable copy at `/etc/fworch/fworch-internal-ca.crt`
 verification, `ldap.conf`, the importer, and the customizing scripts use;
 never reference the issuer copy from another host.
 
+The installer writes the system-wide LDAP client configuration (`/etc/ldap/ldap.conf`
+on Debian, `/etc/openldap/ldap.conf` on RedHat) on the middleware host, pointing
+`TLS_CACERT` at that anchor and setting `TLS_REQCERT demand`, so an administrator
+running `ldapsearch` by hand verifies the connection. The installer's own
+`ldapsearch`/`ldapmodify` calls pass the same settings explicitly through
+`ldap_tls_opts`, defined once in `inventory/group_vars/all.yml`. Verification is
+relaxed to `never` only where it cannot work: when `internalca_enabled` is false,
+or when an upgrade retained a customer-managed OpenLDAP certificate whose issuer
+this installation does not know. The middleware service itself does not use
+libldap and validates separately.
+
 The default key algorithm is P-256 EC (`internalca_key_type: ECC`,
 `internalca_key_curve: secp256r1`). For environments with legacy TLS clients,
 TLS-inspection appliances, or hardware that requires RSA, set

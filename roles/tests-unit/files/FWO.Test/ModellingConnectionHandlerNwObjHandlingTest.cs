@@ -22,6 +22,10 @@ namespace FWO.Test
         // SimulatedUserConfig.GetText echoes unknown keys, so this is "<title key>:<message key>".
         // E9015 would be the network-object placement error, which does not apply to role checks.
         private const string kExpectedForbiddenMessage = "change_app_role_forbidden:E9030";
+        // NetworkAreaUseAllowed only reads the list it is handed, so these are safe to
+        // share across the parallelizable tests below.
+        private static readonly List<ModellingNetworkArea> kAreaIdOne = [new ModellingNetworkArea { Id = 1 }];
+        private static readonly List<ModellingNetworkArea> kAreaIdTwo = [new ModellingNetworkArea { Id = 2 }];
 
         [Test]
         public void RefreshSelectableNwObjects_IncludesCommonSelectedRolesAndServers()
@@ -236,7 +240,7 @@ namespace FWO.Test
             };
             ModellingConnectionHandler handler = CreateHandler(connection);
 
-            bool result = handler.NetworkAreaUseAllowed([new ModellingNetworkArea { Id = 1 }], Direction.Source, out var reason);
+            bool result = handler.NetworkAreaUseAllowed(kAreaIdOne, Direction.Source, out var reason);
 
             ClassicAssert.IsFalse(result);
             ClassicAssert.AreEqual("Edit Connection", reason.Title);
@@ -253,7 +257,7 @@ namespace FWO.Test
             };
             ModellingConnectionHandler handler = CreateHandler(connection);
 
-            bool result = handler.NetworkAreaUseAllowed([new ModellingNetworkArea { Id = 1 }], Direction.Source, out var reason);
+            bool result = handler.NetworkAreaUseAllowed(kAreaIdOne, Direction.Source, out var reason);
 
             ClassicAssert.IsFalse(result);
             ClassicAssert.AreEqual("Edit Interface", reason.Title);
@@ -271,7 +275,7 @@ namespace FWO.Test
             ModellingConnectionHandler handler = CreateHandler(connection);
             handler.CommonAreaConfigItems = [new CommonAreaConfig { AreaId = 100 }];
 
-            bool result = handler.NetworkAreaUseAllowed([new ModellingNetworkArea { Id = 1 }], Direction.Source, out var reason);
+            bool result = handler.NetworkAreaUseAllowed(kAreaIdOne, Direction.Source, out var reason);
 
             ClassicAssert.IsTrue(result);
             ClassicAssert.AreEqual("Edit Common Service", reason.Title);
@@ -285,7 +289,7 @@ namespace FWO.Test
             ModellingConnectionHandler handler = CreateHandler(connection);
             handler.CommonAreaConfigItems = [new CommonAreaConfig { AreaId = 1 }];
 
-            bool result = handler.NetworkAreaUseAllowed([new ModellingNetworkArea { Id = 1 }], Direction.Source, out var reason);
+            bool result = handler.NetworkAreaUseAllowed(kAreaIdOne, Direction.Source, out var reason);
 
             ClassicAssert.IsTrue(result);
             ClassicAssert.AreEqual("Edit Connection", reason.Title);
@@ -298,7 +302,7 @@ namespace FWO.Test
             ModellingConnectionHandler handler = CreateHandler(connection);
             handler.CommonAreaConfigItems = [new CommonAreaConfig { AreaId = 1 }];
 
-            bool result = handler.NetworkAreaUseAllowed([new ModellingNetworkArea { Id = 2 }], Direction.Source, out var reason);
+            bool result = handler.NetworkAreaUseAllowed(kAreaIdTwo, Direction.Source, out var reason);
 
             ClassicAssert.IsFalse(result);
             ClassicAssert.AreEqual("Common areas not allowed", reason.Text);

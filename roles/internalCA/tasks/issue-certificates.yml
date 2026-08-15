@@ -107,12 +107,26 @@
   register: internalca_installed_certificates
   become: true
 
+# Services that hold their identity for the process lifetime have to be restarted
+# when it is reissued. The consumers are in other roles, so these are facts rather
+# than handlers: handlers do not survive across plays.
 - name: Record renewal of the client identity
   set_fact:
     internalca_client_identity_changed: >-
       {{
         internalca_installed_certificates.results
         | selectattr('item.item.name', 'equalto', 'client')
+        | selectattr('changed')
+        | list
+        | length > 0
+      }}
+
+- name: Record renewal of the LDAP server identity
+  set_fact:
+    internalca_ldap_identity_changed: >-
+      {{
+        internalca_installed_certificates.results
+        | selectattr('item.item.name', 'equalto', 'ldap-server')
         | selectattr('changed')
         | list
         | length > 0

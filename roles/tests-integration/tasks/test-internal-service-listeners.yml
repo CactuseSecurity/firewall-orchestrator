@@ -1,0 +1,91 @@
+---
+- name: Read the active PostgreSQL listener addresses
+  community.postgresql.postgresql_query:
+    db: postgres
+    query: SHOW listen_addresses
+  register: postgresql_listener_configuration
+  become: true
+  become_user: postgres
+  when: "'databaseserver' in group_names"
+
+- name: PostgreSQL must use the configured listener addresses
+  assert:
+    that:
+      - postgresql_listener_configuration.query_result[0].listen_addresses == postgresql_listening_addresses
+    fail_msg: >-
+      PostgreSQL listens on '{{ postgresql_listener_configuration.query_result[0].listen_addresses }}'
+      instead of '{{ postgresql_listening_addresses }}'.
+  when: "'databaseserver' in group_names"
+
+- name: PostgreSQL must accept both loopback address families on single-host installations
+  wait_for:
+    host: "{{ item }}"
+    port: "{{ fworch_db_port }}"
+    timeout: 5
+  loop:
+    - "{{ api_local_listening_ip_address }}"
+    - "::1"
+  when:
+    - "'databaseserver' in group_names"
+    - not (distributed_install | default(false) | bool)
+
+- name: Determine the expected LDAP listener configuration
+  set_fact:
+    expected_openldap_server_services: >-
+      {{
+        ("ldap://" ~ openldap_server ~ "/ ldaps:///"
+          if openldap_server_enable_ssl else "ldap://" ~ openldap_server ~ "/")
+        if distributed_install | default(false) | bool
+        else
+        ("ldap://127.0.0.1/ ldap://[::1]/ ldaps://127.0.0.1/ ldaps://[::1]/"
+          if openldap_server_enable_ssl else "ldap://127.0.0.1/ ldap://[::1]/")
+      }}
+  when: "'middlewareserver' in group_names"
+
+- name: Verify the active LDAP listener configuration
+  command:
+    argv:
+      - grep
+      - --fixed-strings
+      - --line-regexp
+      - 'SLAPD_SERVICES="{{ expected_openldap_server_services }}"'
+      - "{{ openldap_service_defaults_file }}"
+  register: openldap_listener_configuration
+  changed_when: false
+  become: true
+  when: "'middlewareserver' in group_names"
+
+- name: Internal LDAP must accept both loopback address families on single-host installations
+  wait_for:
+    host: "{{ item.0 }}"
+    port: "{{ item.1 }}"
+    timeout: 5
+  loop: >-
+    {{
+      [api_local_listening_ip_address, '::1']
+      | product([389] + ([636] if openldap_server_enable_ssl else []))
+      | list
+    }}
+  when:
+    - "'middlewareserver' in group_names"
+    - not (distributed_install | default(false) | bool)
+
+- name: Verify the Hasura listener configuration
+  command:
+    argv:
+      - grep
+      - --fixed-strings
+      - --line-regexp
+      - "HASURA_GRAPHQL_SERVER_HOST={{ api_local_listening_ip_address }}"
+      - "{{ api_env_file }}"
+  register: hasura_listener_configuration
+  changed_when: false
+  become: true
+  when: "'apiserver' in group_names"
+
+- name: Hasura must accept IPv4 loopback connections
+  wait_for:
+    host: "{{ api_local_listening_ip_address }}"
+    port: "{{ api_port }}"
+    timeout: 5
+  when: "'apiserver' in group_names"

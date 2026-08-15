@@ -47,14 +47,17 @@ namespace FWO.Config.File
             [JsonPropertyName("api_uri")]
             public string? ApiServerUri { get; set; }
 
+            // Suffixed with Path so they do not shadow the outer class' properties of
+            // the same name (S3218). The wire format is pinned by the attributes, so
+            // renaming these does not change what is read from fworch.json.
             [JsonPropertyName("tls_client_certificate")]
-            public string? TlsClientCertificate { get; set; }
+            public string? TlsClientCertificatePath { get; set; }
 
             [JsonPropertyName("tls_client_private_key")]
-            public string? TlsClientPrivateKey { get; set; }
+            public string? TlsClientPrivateKeyPath { get; set; }
 
             [JsonPropertyName("tls_ca_certificate")]
-            public string? TlsCaCertificate { get; set; }
+            public string? TlsCaCertificatePath { get; set; }
 
             [JsonPropertyName("remote_addresses")]
             public string[]? RemoteAddresses { get; set; }
@@ -101,7 +104,7 @@ namespace FWO.Config.File
         {
             get
             {
-                return CriticalConfigValueLoaded(Data.TlsClientCertificate);
+                return CriticalConfigValueLoaded(Data.TlsClientCertificatePath);
             }
         }
 
@@ -109,7 +112,7 @@ namespace FWO.Config.File
         {
             get
             {
-                return CriticalConfigValueLoaded(Data.TlsClientPrivateKey);
+                return CriticalConfigValueLoaded(Data.TlsClientPrivateKeyPath);
             }
         }
 
@@ -117,7 +120,7 @@ namespace FWO.Config.File
         {
             get
             {
-                return CriticalConfigValueLoaded(Data.TlsCaCertificate);
+                return CriticalConfigValueLoaded(Data.TlsCaCertificatePath);
             }
         }
 

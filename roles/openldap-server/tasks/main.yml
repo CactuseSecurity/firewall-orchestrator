@@ -24,31 +24,78 @@
   environment: "{{ proxy_env }}"
   tags: ["test", "integrationtests"]
 
+# System defaults for every libldap client on this host, so an administrator
+# running ldapsearch by hand verifies the connection instead of trusting anything.
+# The template existed but was never rendered by any task, which left the whole
+# file - and the trust anchor documentation/certificates.md says it carries -
+# without effect. Written in both installation modes: an upgrade changes the
+# anchor from the old self-signed leaf to the internal CA.
+- name: Configure system wide ldap client defaults
+  template:
+      src: ldap.conf.j2
+      dest: "{{ openldap_server_app_path }}/ldap.conf"
+      owner: root
+      group: root
+      mode: "0644"
+  become: true
+  tags: ["test", "integrationtests"]
+
+# Hoisted out of the installation block below: the internalCA role reissues the
+# slapd identity as root:root in a 0750 directory on every run, so slapd has to be
+# granted access on every run too. Leaving these inside the "new" block meant an
+# upgrade handed slapd a private key it cannot read, and because slapd is only
+# restarted there as well, the breakage stayed invisible until the next restart or
+# reboot - at which point all LDAP authentication is down.
+- name: Install the openldap and required Packages
+  package:
+      name: "{{ item }}"
+      state: present
+  loop: "{{ openldap_server_pkgs }}"
+  become: true
+
+- name: Configure LDAP protocol, URI and port
+  lineinfile:
+      path: "{{ openldap_service_defaults_file }}"
+      create: true
+      regexp: "^SLAPD_SERVICES="
+      line: 'SLAPD_SERVICES="{{ openldap_server_services }}"'
+  register: openldap_service_configuration
+  become: true
+
+- name: Grant slapd access to its internal CA identity
+  file:
+      path: "{{ openldap_server_cert_path }}"
+      state: directory
+      recurse: true
+      owner: "{{ openldap_server_user }}"
+      group: "{{ openldap_server_user }}"
+  become: true
+  when: not (internalca_preserve_ldap_certificate | default(false) | bool)
+
+- name: Allow slapd to traverse the certificate parent directory
+  file:
+      path: "{{ openldap_server_cert_path | dirname }}"
+      state: directory
+      owner: root
+      group: root
+      mode: "0755"
+  become: true
+  when: not (internalca_preserve_ldap_certificate | default(false) | bool)
+
+# A reissued certificate or changed listener configuration is only picked up when
+# slapd reloads. On a new installation the block below starts slapd anyway.
+- name: Restart slapd after an upgrade changed its runtime configuration
+  systemd:
+      name: slapd
+      state: restarted
+  become: true
+  when:
+      - installation_mode == "upgrade"
+      - >-
+        internalca_ldap_identity_changed | default(false) | bool
+        or openldap_service_configuration.changed
+
 - block:
-      - name: Install the openldap and required Packages
-        package:
-            name: "{{ item }}"
-            state: present
-        loop: "{{ openldap_server_pkgs }}"
-
-      - name: Grant slapd access to its internal CA identity
-        file:
-            path: "{{ openldap_server_cert_path }}"
-            state: directory
-            recurse: true
-            owner: "{{ openldap_server_user }}"
-            group: "{{ openldap_server_user }}"
-        when: not (internalca_preserve_ldap_certificate | default(false) | bool)
-
-      - name: Allow slapd to traverse the certificate parent directory
-        file:
-            path: "{{ openldap_server_cert_path | dirname }}"
-            state: directory
-            owner: root
-            group: root
-            mode: "0755"
-        when: not (internalca_preserve_ldap_certificate | default(false) | bool)
-
       ### Clean up slapd.d
 
       - name: Create the empty configuration directory
@@ -113,13 +160,6 @@
             dest: "{{ openldap_server_app_path }}/slapd.d/config.ldif"
             force: false
             mode: 0640
-
-      - name: Configure LDAP protocol, URI and port
-        lineinfile:
-            path: "{{ openldap_service_defaults_file }}"
-            create: true
-            regexp: "^SLAPD_SERVICES="
-            line: 'SLAPD_SERVICES="{{ openldap_server_services }}"'
 
       - name: Initialize ldap config
         command: slapadd -F {{ openldap_server_app_path }}/slapd.d -n 0 -l {{ openldap_server_app_path }}/slapd.d/config.ldif

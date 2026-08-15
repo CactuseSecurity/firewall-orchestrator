@@ -20,7 +20,8 @@ them are as follows:
 openldap_server_domain_name: fworch.internal   # The domain prefix for ldap
 openldap_server_rootpw:                        # The password for admin user (Manager) for openldap is now randomly generated
 openldap_server_enable_ssl: true               # To enable/disable ssl for the ldap
-openldap_server_services: ldap://127.0.0.1/ ldaps:///   # Derived from SSL setting
+distributed_install: false                     # Restrict listeners to IPv4 and IPv6 loopback addresses
+openldap_server_services: ldap://127.0.0.1/ ldap://[::1]/ ldaps://127.0.0.1/ ldaps://[::1]/
 ```
 
 The TLS certificate and key are issued by the `internalCA` role, not by this
@@ -45,6 +46,9 @@ None
 ## Notes
 
 - The role writes `SLAPD_SERVICES` to the OS-specific service defaults file.
+- With `distributed_install: false`, LDAP and LDAPS listen only on `127.0.0.1`
+  and `::1`. Setting it to `true` preserves the distributed-install listener
+  behavior.
 - The systemd drop-in consumes that value so the listener configuration is
   defined in one place.
 - The systemd drop-in starts `slapd` with `-d0` only for systemd `Type=notify`

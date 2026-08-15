@@ -255,8 +255,9 @@ namespace FWO.Test
             peerChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
             peerChain.Build(leaf);
 
+            List<object?> chainParameters = [leaf, peerChain, SslPolicyErrors.RemoteCertificateChainErrors];
             bool accepted = TestHelper.InvokeMethod<GraphQlApiConnection, bool>(
-                "ValidateApiServerCertificate", [leaf, peerChain, SslPolicyErrors.RemoteCertificateChainErrors]);
+                "ValidateApiServerCertificate", chainParameters.ToArray());
 
             Assert.That(accepted, Is.True,
                 "a server certificate issued by an intermediate of the configured root must be accepted");
@@ -300,7 +301,8 @@ namespace FWO.Test
 
         private static HttpClientHandler CreateHttpClientHandler(bool useTls)
         {
-            return TestHelper.InvokeMethod<GraphQlApiConnection, HttpClientHandler>("CreateHttpClientHandler", [useTls]);
+            List<object?> handlerParameters = [useTls];
+            return TestHelper.InvokeMethod<GraphQlApiConnection, HttpClientHandler>("CreateHttpClientHandler", handlerParameters.ToArray());
         }
 
         private static bool ValidateApiServerCertificate(X509Certificate2 certificate, SslPolicyErrors errors)
@@ -335,10 +337,19 @@ namespace FWO.Test
                 ?? throw new InvalidOperationException("ConfigFile.Data could not be found.");
             object data = dataProperty.GetValue(null) ?? throw new InvalidOperationException("ConfigFile.Data is null.");
 
-            data.GetType().GetProperty("TlsClientCertificate")!.SetValue(data, certificatePath);
-            data.GetType().GetProperty("TlsClientPrivateKey")!.SetValue(data, privateKeyPath);
-            data.GetType().GetProperty("TlsCaCertificate")!.SetValue(data, kApiCaCertificatePath);
+            // Names resolved reflectively, so a rename here fails at run time rather than
+            // at compile time - hence the explicit throw instead of a null-forgiving "!".
+            SetDataProperty(data, "TlsClientCertificatePath", certificatePath);
+            SetDataProperty(data, "TlsClientPrivateKeyPath", privateKeyPath);
+            SetDataProperty(data, "TlsCaCertificatePath", kApiCaCertificatePath);
             dataProperty.SetValue(null, data);
+        }
+
+        private static void SetDataProperty(object data, string propertyName, string? value)
+        {
+            PropertyInfo property = data.GetType().GetProperty(propertyName)
+                ?? throw new InvalidOperationException($"ConfigFileData.{propertyName} could not be found.");
+            property.SetValue(data, value);
         }
     }
 }

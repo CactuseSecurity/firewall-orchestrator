@@ -4,26 +4,31 @@
 
 # See ldap.conf(5) for details
 # This file should be world readable but not world writable.
+# Managed by the {{ product_name }} installer - local changes are overwritten.
 
 BASE    {{ openldap_path }}
 {% if openldap_server_enable_ssl %}
 URI     ldaps://{{ openldap_server }}:{{ openldap_port }}
-TLS_REQCERT {{ 'never' if internalca_preserve_ldap_certificate | default(false) | bool else 'demand' }}
-TLS_CACERT {{ openldap_server_cert if internalca_preserve_ldap_certificate | default(false) | bool else internalca_ca_certificate_local }}
+
+{% if internalca_preserve_ldap_certificate | default(false) | bool %}
+# A customer managed certificate is in place. Its issuer is unknown to this
+# installation, so the certificate itself is the only anchor available and
+# verification stays off; set internalca_peer_ca_certificate and pin the real
+# issuing CA here to turn it on.
+TLS_REQCERT never
+TLS_CACERT {{ openldap_server_cert }}
+{% else %}
+# slapd presents a certificate issued by the internal CA, so a client can verify
+# the chain and the host name like any other TLS connection.
+TLS_REQCERT demand
+TLS_CACERT {{ internalca_ca_certificate_local }}
 {% endif %}
-{% if not openldap_server_enable_ssl %}
-URI     ldap://{{ openldap_server }}:{{ openldap_port }}
+{% else %}
+{# openldap_port defaults to the TLS port, so fall back to 389 when TLS is off,
+   matching the ldap_cmd_url built by the middleware and sample-auth-data roles. #}
+URI     ldap://{{ openldap_server }}:{{ 389 if openldap_port | int == 636 else openldap_port }}
 {% endif %}
 
 #SIZELIMIT      12
 #TIMELIMIT      15
 #DEREF          never
-{% if ansible_facts['os_family'] == 'RedHat' %}
-# This if block is outdated
-TLS_CACERTDIR /etc/openldap/cacerts
-TLS_CACERT {{ openldap_server_cert if internalca_preserve_ldap_certificate | default(false) | bool else internalca_ca_certificate_local }}
-{% endif %}
-{% if ansible_facts['os_family'] == 'Debian' %}
-TLS_CACERTDIR {{ openldap_server_cert_path }}
-TLS_CACERT {{ openldap_server_cert if internalca_preserve_ldap_certificate | default(false) | bool else internalca_ca_certificate_local }}
-{% endif %}

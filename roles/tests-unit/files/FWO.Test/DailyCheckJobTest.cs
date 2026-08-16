@@ -16,6 +16,17 @@ namespace FWO.Test
     [Parallelizable]
     internal class DailyCheckJobTest
     {
+        private static readonly string[] ExpectedModUnansweredReqEmailBodyPlaceholders =
+        [
+            Placeholder.REQUESTER,
+            Placeholder.REQUESTDATE,
+            Placeholder.REQUESTING_APPNAME,
+            Placeholder.REQUESTING_APPID,
+            Placeholder.APPNAME,
+            Placeholder.APPID,
+            Placeholder.INTERFACE_LINK
+        ];
+
         private static readonly DailyCheckModule[] ExpectedImportsModules =
         [
             DailyCheckModule.Imports,
@@ -281,7 +292,9 @@ namespace FWO.Test
             await dailyCheckJob.Execute(null!);
 
             Assert.That(apiConnection.AlertCodes, Is.EquivalentTo(ExpectedEnabledCheckAlertCodes));
-            Assert.That(apiConnection.LogSeverities, Is.EqualTo([1, 1]));
+            Assert.That(apiConnection.LogSeverities, Has.Count.EqualTo(2));
+            Assert.That(apiConnection.LogSeverities[0], Is.EqualTo(1));
+            Assert.That(apiConnection.LogSeverities[1], Is.EqualTo(1));
         }
 
         [Test]
@@ -427,16 +440,7 @@ namespace FWO.Test
             SimulatedGlobalConfig globalConfig = new()
             {
                 UiHostName = "https://fwo.example",
-                ModUnansweredReqEmailBody = string.Join("|", new[]
-                {
-                    Placeholder.REQUESTER,
-                    Placeholder.REQUESTDATE,
-                    Placeholder.REQUESTING_APPNAME,
-                    Placeholder.REQUESTING_APPID,
-                    Placeholder.APPNAME,
-                    Placeholder.APPID,
-                    Placeholder.INTERFACE_LINK
-                })
+                ModUnansweredReqEmailBody = string.Join("|", ExpectedModUnansweredReqEmailBodyPlaceholders)
             };
             DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
             MethodInfo prepareBody = typeof(DailyCheckJob).GetMethod("PrepareBody", BindingFlags.Instance | BindingFlags.NonPublic)

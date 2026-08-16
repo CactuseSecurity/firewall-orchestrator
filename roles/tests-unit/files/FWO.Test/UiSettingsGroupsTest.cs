@@ -28,48 +28,68 @@ namespace FWO.Test
     [TestFixture]
     internal class UiSettingsGroupsTest
     {
+        private readonly Dictionary<string, string?> originalTranslations = new();
+
         [SetUp]
         public void SetUp()
         {
-            SimulatedUserConfig.DummyTranslate["groups"] = "Groups";
-            SimulatedUserConfig.DummyTranslate["U5214"] = "Group settings";
-            SimulatedUserConfig.DummyTranslate["group_action"] = "Group action";
-            SimulatedUserConfig.DummyTranslate["user_action"] = "User action";
-            SimulatedUserConfig.DummyTranslate["add_new_group"] = "Add group";
-            SimulatedUserConfig.DummyTranslate["edit_group"] = "Edit group";
-            SimulatedUserConfig.DummyTranslate["delete_group"] = "Delete group";
-            SimulatedUserConfig.DummyTranslate["assign_user"] = "Assign user";
-            SimulatedUserConfig.DummyTranslate["remove_user"] = "Remove user";
-            SimulatedUserConfig.DummyTranslate["name"] = "Name";
-            SimulatedUserConfig.DummyTranslate["owner_group"] = "Owner group";
-            SimulatedUserConfig.DummyTranslate["users"] = "Users";
-            SimulatedUserConfig.DummyTranslate["roles"] = "Roles";
-            SimulatedUserConfig.DummyTranslate["save_group"] = "Save group";
-            SimulatedUserConfig.DummyTranslate["assign_user_to_group"] = "Assign user to group";
-            SimulatedUserConfig.DummyTranslate["remove_user_from_group"] = "Remove user from group";
-            SimulatedUserConfig.DummyTranslate["fetch_groups"] = "Fetch groups";
-            SimulatedUserConfig.DummyTranslate["fetch_roles"] = "Fetch roles";
-            SimulatedUserConfig.DummyTranslate["fetch_data"] = "Fetch data";
-            SimulatedUserConfig.DummyTranslate["E5231"] = "Failed to fetch groups";
-            SimulatedUserConfig.DummyTranslate["E5234"] = "Missing group name";
-            SimulatedUserConfig.DummyTranslate["E5235"] = "Duplicate group name";
-            SimulatedUserConfig.DummyTranslate["E5236"] = "Add group failed";
-            SimulatedUserConfig.DummyTranslate["E5237"] = "Edit group failed";
-            SimulatedUserConfig.DummyTranslate["E5238"] = "Group has users";
-            SimulatedUserConfig.DummyTranslate["E5239"] = "Delete group failed";
-            SimulatedUserConfig.DummyTranslate["E5240"] = "Missing user or group";
-            SimulatedUserConfig.DummyTranslate["E5241"] = "Duplicate user";
-            SimulatedUserConfig.DummyTranslate["E5242"] = "Add user failed";
-            SimulatedUserConfig.DummyTranslate["E5243"] = "Remove user failed";
-            SimulatedUserConfig.DummyTranslate["E5244"] = "Missing DN";
-            SimulatedUserConfig.DummyTranslate["E5245"] = "Sample data still in use";
-            SimulatedUserConfig.DummyTranslate["U5204"] = "Delete group ";
-            SimulatedUserConfig.DummyTranslate["U5205"] = "Delete sample data";
-            SimulatedUserConfig.DummyTranslate["E5251"] = "No roles found";
-            SimulatedUserConfig.DummyTranslate["assign_user_group_to_role"] = "Assign user/group to role";
-            SimulatedUserConfig.DummyTranslate["E5246"] = "Add group to role failed";
-            SimulatedUserConfig.DummyTranslate["save"] = "Save";
-            SimulatedUserConfig.DummyTranslate["cancel"] = "Cancel";
+            SetSharedTranslation("groups", "Groups");
+            SetSharedTranslation("U5214", "Group settings");
+            SetSharedTranslation("group_action", "Group action");
+            SetSharedTranslation("user_action", "User action");
+            SetSharedTranslation("add_new_group", "Add group");
+            SetSharedTranslation("edit_group", "Edit group");
+            SetSharedTranslation("delete_group", "Delete group");
+            SetSharedTranslation("assign_user", "Assign user");
+            SetSharedTranslation("remove_user", "Remove user");
+            SetSharedTranslation("name", "Name");
+            SetSharedTranslation("owner_group", "Owner group");
+            SetSharedTranslation("users", "Users");
+            SetSharedTranslation("roles", "Roles");
+            SetSharedTranslation("save_group", "Save group");
+            SetSharedTranslation("assign_user_to_group", "Assign user to group");
+            SetSharedTranslation("remove_user_from_group", "Remove user from group");
+            SetSharedTranslation("fetch_groups", "Fetch groups");
+            SetSharedTranslation("fetch_roles", "Fetch roles");
+            SetSharedTranslation("fetch_data", "Fetch data");
+            SetSharedTranslation("E5231", "Failed to fetch groups");
+            SetSharedTranslation("E5234", "Missing group name");
+            SetSharedTranslation("E5235", "Duplicate group name");
+            SetSharedTranslation("E5236", "Add group failed");
+            SetSharedTranslation("E5237", "Edit group failed");
+            SetSharedTranslation("E5238", "Group has users");
+            SetSharedTranslation("E5239", "Delete group failed");
+            SetSharedTranslation("E5240", "Missing user or group");
+            SetSharedTranslation("E5241", "Duplicate user");
+            SetSharedTranslation("E5242", "Add user failed");
+            SetSharedTranslation("E5243", "Remove user failed");
+            SetSharedTranslation("E5244", "Missing DN");
+            SetSharedTranslation("E5245", "Sample data still in use");
+            SetSharedTranslation("U5204", "Delete group ");
+            SetSharedTranslation("U5205", "Delete sample data");
+            SetSharedTranslation("E5251", "No roles found");
+            SetSharedTranslation("assign_user_group_to_role", "Assign user/group to role");
+            SetSharedTranslation("E5246", "Add group to role failed");
+            SetSharedTranslation("save", "Save");
+            SetSharedTranslation("cancel", "Cancel");
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            foreach ((string key, string? value) in originalTranslations)
+            {
+                if (value is null)
+                {
+                    SimulatedUserConfig.DummyTranslate.Remove(key);
+                }
+                else
+                {
+                    SimulatedUserConfig.DummyTranslate[key] = value;
+                }
+            }
+
+            originalTranslations.Clear();
         }
 
         [Test]
@@ -531,6 +551,7 @@ namespace FWO.Test
             {
                 messages.Add((exception, title, message, isError));
             }));
+            rendered.WaitForAssertion(() => Assert.That(GetMember<List<UserGroup>>(component, "groups"), Has.Count.EqualTo(1)));
             SetMember(component, "actGroup", GetMember<List<UserGroup>>(component, "groups")[0]);
 
             await rendered.InvokeAsync(async () => await InvokePrivateTask(component, "DeleteGroup"));
@@ -973,6 +994,16 @@ namespace FWO.Test
             public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => [];
 
             public EmptyStringLocalizer<T> WithCulture(System.Globalization.CultureInfo culture) => this;
+        }
+
+        private void SetSharedTranslation(string key, string value)
+        {
+            if (!originalTranslations.ContainsKey(key))
+            {
+                originalTranslations[key] = SimulatedUserConfig.DummyTranslate.TryGetValue(key, out string? existingValue) ? existingValue : null;
+            }
+
+            SimulatedUserConfig.DummyTranslate[key] = value;
         }
 
         private sealed class SettingsGroupsMiddlewareHandler : HttpMessageHandler

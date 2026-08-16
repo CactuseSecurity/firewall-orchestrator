@@ -45,39 +45,6 @@ namespace FWO.Test
             }
         }
 
-        [OneTimeTearDown]
-        public void OneTimeTearDown()
-        {
-        }
-
-        [SetUp]
-        public void SetUp()
-        {
-            SimulatedUserConfig.DummyTranslate["email_settings"] = "Email settings";
-            SimulatedUserConfig.DummyTranslate["U5319"] = "Email settings intro";
-            SimulatedUserConfig.DummyTranslate["address"] = "Address";
-            SimulatedUserConfig.DummyTranslate["port"] = "Port";
-            SimulatedUserConfig.DummyTranslate["email_enc_method"] = "Encryption";
-            SimulatedUserConfig.DummyTranslate["email_auth_user"] = "Auth user";
-            SimulatedUserConfig.DummyTranslate["email_auth_pwd"] = "Auth password";
-            SimulatedUserConfig.DummyTranslate["email_sender"] = "Sender";
-            SimulatedUserConfig.DummyTranslate["use_dummy_email_address"] = "Use dummy email";
-            SimulatedUserConfig.DummyTranslate["dummy_email_address"] = "Dummy email";
-            SimulatedUserConfig.DummyTranslate["test_connection"] = "Test connection";
-            SimulatedUserConfig.DummyTranslate["save"] = "Save";
-            SimulatedUserConfig.DummyTranslate["read_config"] = "Read config";
-            SetSharedTranslation("E5301", "Failed to load email config");
-            SimulatedUserConfig.DummyTranslate["change_default"] = "Change default";
-            SetSharedTranslation("U5301", "Email settings saved.");
-            SimulatedUserConfig.DummyTranslate["save_email_conn"] = "Save email connection";
-            SetSharedTranslation("E5102", "Missing email server");
-            SetSharedTranslation("E5103", "Invalid email port");
-            SimulatedUserConfig.DummyTranslate["E5108"] = "Invalid sender address";
-            SimulatedUserConfig.DummyTranslate["test_email_connection"] = "Test email connection";
-            SimulatedUserConfig.DummyTranslate["E8101"] = "No user email configured";
-            SimulatedUserConfig.DummyTranslate["U5402"] = "Email connection OK";
-        }
-
         [TearDown]
         public void TearDown()
         {
@@ -94,6 +61,34 @@ namespace FWO.Test
             }
 
             originalTranslations.Clear();
+        }
+
+        [SetUp]
+        public void SetUp()
+        {
+            SetSharedTranslation("email_settings", "Email settings");
+            SetSharedTranslation("U5319", "Email settings intro");
+            SetSharedTranslation("address", "Address");
+            SetSharedTranslation("port", "Port");
+            SetSharedTranslation("email_enc_method", "Encryption");
+            SetSharedTranslation("email_auth_user", "Auth user");
+            SetSharedTranslation("email_auth_pwd", "Auth password");
+            SetSharedTranslation("email_sender", "Sender");
+            SetSharedTranslation("use_dummy_email_address", "Use dummy email");
+            SetSharedTranslation("dummy_email_address", "Dummy email");
+            SetSharedTranslation("test_connection", "Test connection");
+            SetSharedTranslation("save", "Save");
+            SetSharedTranslation("read_config", "Read config");
+            SetSharedTranslation("E5301", "Failed to load email config");
+            SetSharedTranslation("change_default", "Change default");
+            SetSharedTranslation("U5301", "Email settings saved.");
+            SetSharedTranslation("save_email_conn", "Save email connection");
+            SetSharedTranslation("E5102", "Missing email server");
+            SetSharedTranslation("E5103", "Invalid email port");
+            SetSharedTranslation("E5108", "Invalid sender address");
+            SetSharedTranslation("test_email_connection", "Test email connection");
+            SetSharedTranslation("E8101", "No user email configured");
+            SetSharedTranslation("U5402", "Email connection OK");
         }
 
         private void SetSharedTranslation(string key, string value)
@@ -198,7 +193,7 @@ namespace FWO.Test
         public async Task Save_ShowsValidationWhenServerAddressIsMissing()
         {
             List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
-            (SettingsEmail component, RecordingSettingsApiConn apiConnection) = CreateInitializedComponent(messages);
+            (SettingsEmail component, RecordingSettingsApiConn apiConnection) = await CreateInitializedComponent(messages);
 
             SetMember(component, "actEmailConnection", new EmailConnection
             {
@@ -224,7 +219,7 @@ namespace FWO.Test
         public async Task Save_ShowsValidationWhenPortIsInvalid()
         {
             List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
-            (SettingsEmail component, RecordingSettingsApiConn apiConnection) = CreateInitializedComponent(messages);
+            (SettingsEmail component, RecordingSettingsApiConn apiConnection) = await CreateInitializedComponent(messages);
 
             SetMember(component, "actEmailConnection", new EmailConnection
             {
@@ -250,7 +245,7 @@ namespace FWO.Test
         public async Task Save_ShowsValidationWhenSenderAddressIsInvalid()
         {
             List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
-            (SettingsEmail component, RecordingSettingsApiConn apiConnection) = CreateInitializedComponent(messages);
+            (SettingsEmail component, RecordingSettingsApiConn apiConnection) = await CreateInitializedComponent(messages);
 
             SetMember(component, "actEmailConnection", new EmailConnection
             {
@@ -408,14 +403,14 @@ namespace FWO.Test
                     .AddChildContent<SettingsEmail>()));
         }
 
-        private static (SettingsEmail Component, RecordingSettingsApiConn ApiConnection) CreateInitializedComponent(
+        private static async Task<(SettingsEmail Component, RecordingSettingsApiConn ApiConnection)> CreateInitializedComponent(
             List<(Exception? Exception, string Title, string Message, bool IsError)>? messages = null)
         {
             RecordingSettingsApiConn apiConnection = new();
             SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
             SimulatedUserConfig userConfig = CreateUserConfig();
             SettingsEmail component = CreateComponent(apiConnection, globalConfig, userConfig, messages);
-            InvokePrivateTask(component, "OnInitializedAsync").GetAwaiter().GetResult();
+            await InvokePrivateTask(component, "OnInitializedAsync");
             return (component, apiConnection);
         }
 

@@ -21,14 +21,34 @@ namespace FWO.Test
     [TestFixture]
     internal class UiSettingsLanguageTest
     {
+        private readonly Dictionary<string, string?> originalTranslations = new();
+
         [SetUp]
         public void SetUp()
         {
-            SimulatedUserConfig.DummyTranslate["language_settings"] = "Language settings";
-            SimulatedUserConfig.DummyTranslate["U5412"] = "Select the UI language";
-            SimulatedUserConfig.DummyTranslate["language"] = "Language";
-            SimulatedUserConfig.DummyTranslate["apply_changes"] = "Apply changes";
-            SimulatedUserConfig.DummyTranslate["change_language"] = "Change language";
+            SetSharedTranslation("language_settings", "Language settings");
+            SetSharedTranslation("U5412", "Select the UI language");
+            SetSharedTranslation("language", "Language");
+            SetSharedTranslation("apply_changes", "Apply changes");
+            SetSharedTranslation("change_language", "Change language");
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            foreach ((string key, string? value) in originalTranslations)
+            {
+                if (value is null)
+                {
+                    SimulatedUserConfig.DummyTranslate.Remove(key);
+                }
+                else
+                {
+                    SimulatedUserConfig.DummyTranslate[key] = value;
+                }
+            }
+
+            originalTranslations.Clear();
         }
 
         [Test]
@@ -153,6 +173,16 @@ namespace FWO.Test
             UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, language);
             userConfig.User.DbId = 77;
             return userConfig;
+        }
+
+        private void SetSharedTranslation(string key, string value)
+        {
+            if (!originalTranslations.ContainsKey(key))
+            {
+                originalTranslations[key] = SimulatedUserConfig.DummyTranslate.TryGetValue(key, out string? existingValue) ? existingValue : null;
+            }
+
+            SimulatedUserConfig.DummyTranslate[key] = value;
         }
 
         private static void SetMember<T>(object instance, string memberName, T value)

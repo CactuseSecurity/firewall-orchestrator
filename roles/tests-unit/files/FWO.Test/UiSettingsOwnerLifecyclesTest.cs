@@ -22,10 +22,12 @@ namespace FWO.Test
     [NonParallelizable]
     internal class UiSettingsOwnerLifecyclesTest
     {
+        private readonly Dictionary<string, string?> originalTranslations = new();
+
         [Test]
         public async Task SettingsOwnerLifecycles_InitializesAndShowsAdminActions()
         {
-            SimulatedUserConfig.DummyTranslate["edit"] = "Edit";
+            SetSharedTranslation("edit", "Edit");
             await using BunitContext context = CreateContext();
             RecordingOwnerLifecycleApiConnection apiConnection = new()
             {
@@ -44,11 +46,8 @@ namespace FWO.Test
             wrapper.WaitForAssertion(() =>
             {
                 SettingsOwnerLifecycles component = wrapper.FindComponent<SettingsOwnerLifecycles>().Instance;
-                Assert.Multiple(() =>
-                {
-                    Assert.That(apiConnection.Queries, Does.Contain(OwnerQueries.getOwnerLifeCycleStates));
-                    Assert.That(GetMember<List<OwnerLifeCycleState>>(component, "OwnerLifeCycleStates"), Has.Count.EqualTo(2));
-                });
+                Assert.That(apiConnection.Queries, Does.Contain(OwnerQueries.getOwnerLifeCycleStates));
+                Assert.That(GetMember<List<OwnerLifeCycleState>>(component, "OwnerLifeCycleStates"), Has.Count.EqualTo(2));
             });
 
             Assert.Multiple(() =>
@@ -58,6 +57,24 @@ namespace FWO.Test
                 Assert.That(wrapper.Markup, Does.Contain("Edit"));
                 Assert.That(wrapper.Markup, Does.Contain("Delete"));
             });
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            foreach ((string key, string? value) in originalTranslations)
+            {
+                if (value is null)
+                {
+                    SimulatedUserConfig.DummyTranslate.Remove(key);
+                }
+                else
+                {
+                    SimulatedUserConfig.DummyTranslate[key] = value;
+                }
+            }
+
+            originalTranslations.Clear();
         }
 
         [Test]
@@ -168,10 +185,20 @@ namespace FWO.Test
         private static SimulatedUserConfig CreateUserConfig()
         {
             SimulatedUserConfig userConfig = new();
-            userConfig.User.Roles = new List<string> { Roles.Admin };
+            userConfig.User.Roles = [Roles.Admin];
             userConfig.AllowManualOwnerAdmin = true;
             userConfig.ModIconify = false;
             return userConfig;
+        }
+
+        private void SetSharedTranslation(string key, string value)
+        {
+            if (!originalTranslations.ContainsKey(key))
+            {
+                originalTranslations[key] = SimulatedUserConfig.DummyTranslate.TryGetValue(key, out string? existingValue) ? existingValue : null;
+            }
+
+            SimulatedUserConfig.DummyTranslate[key] = value;
         }
 
         private static void SetMember<T>(object instance, string memberName, T value)

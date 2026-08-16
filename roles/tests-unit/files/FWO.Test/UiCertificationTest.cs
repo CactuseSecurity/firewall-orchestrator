@@ -343,15 +343,12 @@ namespace FWO.Test
 
             wrapper.WaitForAssertion(() =>
             {
-                Assert.Multiple(() =>
-                {
-                    Assert.That(apiConnection.CountQuery(OwnerQueries.getOwners), Is.EqualTo(2));
-                    Assert.That(apiConnection.CountQuery(DeviceQueries.getDevicesByManagement), Is.EqualTo(1));
-                    Assert.That(GetMember<List<FwoOwner>>(component, "ownerList"), Has.Count.EqualTo(1));
-                    Assert.That(GetMember<List<FwoOwner>>(component, "collectedOwnerships"), Has.Count.EqualTo(1));
-                    Assert.That(GetMember<DeviceFilter>(component, "deviceFilter").Managements, Has.Count.EqualTo(1));
-                    Assert.That(GetMember<int>(component, "recertLookAheadDays"), Is.EqualTo(17));
-                });
+                Assert.That(apiConnection.CountQuery(OwnerQueries.getOwners), Is.EqualTo(2));
+                Assert.That(apiConnection.CountQuery(DeviceQueries.getDevicesByManagement), Is.EqualTo(1));
+                Assert.That(GetMember<List<FwoOwner>>(component, "ownerList"), Has.Count.EqualTo(1));
+                Assert.That(GetMember<List<FwoOwner>>(component, "collectedOwnerships"), Has.Count.EqualTo(1));
+                Assert.That(GetMember<DeviceFilter>(component, "deviceFilter").Managements, Has.Count.EqualTo(1));
+                Assert.That(GetMember<int>(component, "recertLookAheadDays"), Is.EqualTo(17));
             });
         }
 

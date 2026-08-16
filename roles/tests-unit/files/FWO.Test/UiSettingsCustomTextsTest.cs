@@ -17,6 +17,8 @@ namespace FWO.Test
     [NonParallelizable]
     internal class UiSettingsCustomTextsTest
     {
+        private readonly Dictionary<string, string?> originalTranslations = new();
+
         private static readonly Language[] kUiLanguages = new Language[2]
         {
             new() { Name = "English", CultureInfo = "en-US" },
@@ -43,23 +45,41 @@ namespace FWO.Test
         [SetUp]
         public void SetUp()
         {
-            SimulatedUserConfig.DummyTranslate["customize_texts"] = "Customize texts";
-            SimulatedUserConfig.DummyTranslate["U5321"] = "Customize the UI texts";
-            SimulatedUserConfig.DummyTranslate["language"] = "Language";
-            SimulatedUserConfig.DummyTranslate["select"] = "Select";
-            SimulatedUserConfig.DummyTranslate["search"] = "Search";
-            SimulatedUserConfig.DummyTranslate["case_sensitive"] = "Case sensitive";
-            SimulatedUserConfig.DummyTranslate["ignore_helptexts"] = "Ignore help texts";
-            SimulatedUserConfig.DummyTranslate["key"] = "Key";
-            SimulatedUserConfig.DummyTranslate["text"] = "Text";
-            SimulatedUserConfig.DummyTranslate["custom_text"] = "Custom text";
-            SimulatedUserConfig.DummyTranslate["delete"] = "Delete";
-            SimulatedUserConfig.DummyTranslate["save"] = "Save";
-            SimulatedUserConfig.DummyTranslate["change_default"] = "Change default";
-            SimulatedUserConfig.DummyTranslate["U5301"] = "Custom texts saved";
-            SimulatedUserConfig.DummyTranslate["H5702"] = "Select language";
-            SimulatedUserConfig.DummyTranslate["H5703"] = "Search texts";
-            SimulatedUserConfig.DummyTranslate["H5704"] = "Results";
+            SetSharedTranslation("customize_texts", "Customize texts");
+            SetSharedTranslation("U5321", "Customize the UI texts");
+            SetSharedTranslation("language", "Language");
+            SetSharedTranslation("select", "Select");
+            SetSharedTranslation("search", "Search");
+            SetSharedTranslation("case_sensitive", "Case sensitive");
+            SetSharedTranslation("ignore_helptexts", "Ignore help texts");
+            SetSharedTranslation("key", "Key");
+            SetSharedTranslation("text", "Text");
+            SetSharedTranslation("custom_text", "Custom text");
+            SetSharedTranslation("delete", "Delete");
+            SetSharedTranslation("save", "Save");
+            SetSharedTranslation("change_default", "Change default");
+            SetSharedTranslation("U5301", "Custom texts saved");
+            SetSharedTranslation("H5702", "Select language");
+            SetSharedTranslation("H5703", "Search texts");
+            SetSharedTranslation("H5704", "Results");
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            foreach ((string key, string? value) in originalTranslations)
+            {
+                if (value is null)
+                {
+                    SimulatedUserConfig.DummyTranslate.Remove(key);
+                }
+                else
+                {
+                    SimulatedUserConfig.DummyTranslate[key] = value;
+                }
+            }
+
+            originalTranslations.Clear();
         }
 
         [Test]
@@ -261,6 +281,16 @@ namespace FWO.Test
                 Assert.That(GetMember<Dictionary<string, string>>(component, "actDict"), Is.Empty);
                 Assert.That(apiConnection.Queries.Count(query => query == ConfigQueries.getTextsPerLanguage), Is.EqualTo(1));
             });
+        }
+
+        private void SetSharedTranslation(string key, string value)
+        {
+            if (!originalTranslations.ContainsKey(key))
+            {
+                originalTranslations[key] = SimulatedUserConfig.DummyTranslate.TryGetValue(key, out string? existingValue) ? existingValue : null;
+            }
+
+            SimulatedUserConfig.DummyTranslate[key] = value;
         }
 
         private static SettingsCustomTexts CreateComponent(RecordingCustomTextsApiConnection apiConnection, out GlobalConfig globalConfig, out UserConfig userConfig, List<(Exception? Exception, string Title, string Message, bool IsError)>? messages = null)

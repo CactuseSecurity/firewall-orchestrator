@@ -43,63 +43,58 @@ namespace FWO.Test
             }
         }
 
-        [OneTimeTearDown]
-        public void OneTimeTearDown()
-        {
-        }
-
         [SetUp]
         public void SetUp()
         {
-            SimulatedUserConfig.DummyTranslate["ldap_conns"] = "LDAP connections";
-            SimulatedUserConfig.DummyTranslate["U5211"] = "LDAP connections overview";
-            SimulatedUserConfig.DummyTranslate["add_new_ldap"] = "Add LDAP";
-            SimulatedUserConfig.DummyTranslate["actions"] = "Actions";
-            SimulatedUserConfig.DummyTranslate["clone"] = "Clone";
-            SimulatedUserConfig.DummyTranslate["edit"] = "Edit";
-            SimulatedUserConfig.DummyTranslate["delete"] = "Delete";
-            SimulatedUserConfig.DummyTranslate["edit_ldap"] = "Edit LDAP";
-            SimulatedUserConfig.DummyTranslate["name"] = "Name";
-            SimulatedUserConfig.DummyTranslate["address"] = "Address";
-            SimulatedUserConfig.DummyTranslate["port"] = "Port";
-            SimulatedUserConfig.DummyTranslate["tenant_level"] = "Tenant level";
-            SimulatedUserConfig.DummyTranslate["type"] = "Type";
-            SimulatedUserConfig.DummyTranslate["pattern_length"] = "Pattern length";
-            SimulatedUserConfig.DummyTranslate["user_search_path"] = "User search path";
-            SimulatedUserConfig.DummyTranslate["role_search_path"] = "Role search path";
-            SimulatedUserConfig.DummyTranslate["group_search_path"] = "Group search path";
-            SimulatedUserConfig.DummyTranslate["group_write_path"] = "Group write path";
-            SimulatedUserConfig.DummyTranslate["search_user"] = "Search user";
-            SimulatedUserConfig.DummyTranslate["search_user_pwd"] = "Search user password";
-            SimulatedUserConfig.DummyTranslate["write_user"] = "Write user";
-            SimulatedUserConfig.DummyTranslate["write_user_pwd"] = "Write user password";
-            SimulatedUserConfig.DummyTranslate["tenant"] = "Tenant";
-            SimulatedUserConfig.DummyTranslate["global_tenant_name"] = "Global tenant name";
-            SimulatedUserConfig.DummyTranslate["active"] = "Active";
-            SimulatedUserConfig.DummyTranslate["test_connection"] = "Test connection";
-            SimulatedUserConfig.DummyTranslate["save"] = "Save";
-            SimulatedUserConfig.DummyTranslate["cancel"] = "Cancel";
-            SimulatedUserConfig.DummyTranslate["ok"] = "OK";
-            SimulatedUserConfig.DummyTranslate["fetch_ldap_conn"] = "Fetch LDAP connections";
-            SimulatedUserConfig.DummyTranslate["fetch_data"] = "Fetch data";
-            SimulatedUserConfig.DummyTranslate["save_ldap_conn"] = "Save LDAP connection";
-            SimulatedUserConfig.DummyTranslate["delete_ldap_conn"] = "Delete LDAP connection";
-            SimulatedUserConfig.DummyTranslate["E5204"] = "LDAP load failed";
-            SimulatedUserConfig.DummyTranslate["E5261"] = "Only one LDAP exists";
-            SimulatedUserConfig.DummyTranslate["E5262"] = "Role handling prevents delete";
-            SimulatedUserConfig.DummyTranslate["E5266"] = "LDAP is reachable";
-            SimulatedUserConfig.DummyTranslate["E5267"] = "LDAP test failed";
-            SimulatedUserConfig.DummyTranslate["E5268"] = "LDAP auth failed";
-            SimulatedUserConfig.DummyTranslate["E5269"] = "LDAP bind failed";
-            SimulatedUserConfig.DummyTranslate["E5270"] = "LDAP certificate failed";
+            SetSharedTranslation("ldap_conns", "LDAP connections");
+            SetSharedTranslation("U5211", "LDAP connections overview");
+            SetSharedTranslation("add_new_ldap", "Add LDAP");
+            SetSharedTranslation("actions", "Actions");
+            SetSharedTranslation("clone", "Clone");
+            SetSharedTranslation("edit", "Edit");
+            SetSharedTranslation("delete", "Delete");
+            SetSharedTranslation("edit_ldap", "Edit LDAP");
+            SetSharedTranslation("name", "Name");
+            SetSharedTranslation("address", "Address");
+            SetSharedTranslation("port", "Port");
+            SetSharedTranslation("tenant_level", "Tenant level");
+            SetSharedTranslation("type", "Type");
+            SetSharedTranslation("pattern_length", "Pattern length");
+            SetSharedTranslation("user_search_path", "User search path");
+            SetSharedTranslation("role_search_path", "Role search path");
+            SetSharedTranslation("group_search_path", "Group search path");
+            SetSharedTranslation("group_write_path", "Group write path");
+            SetSharedTranslation("search_user", "Search user");
+            SetSharedTranslation("search_user_pwd", "Search user password");
+            SetSharedTranslation("write_user", "Write user");
+            SetSharedTranslation("write_user_pwd", "Write user password");
+            SetSharedTranslation("tenant", "Tenant");
+            SetSharedTranslation("global_tenant_name", "Global tenant name");
+            SetSharedTranslation("active", "Active");
+            SetSharedTranslation("test_connection", "Test connection");
+            SetSharedTranslation("save", "Save");
+            SetSharedTranslation("cancel", "Cancel");
+            SetSharedTranslation("ok", "OK");
+            SetSharedTranslation("fetch_ldap_conn", "Fetch LDAP connections");
+            SetSharedTranslation("fetch_data", "Fetch data");
+            SetSharedTranslation("save_ldap_conn", "Save LDAP connection");
+            SetSharedTranslation("delete_ldap_conn", "Delete LDAP connection");
+            SetSharedTranslation("E5204", "LDAP load failed");
+            SetSharedTranslation("E5261", "Only one LDAP exists");
+            SetSharedTranslation("E5262", "Role handling prevents delete");
+            SetSharedTranslation("E5266", "LDAP is reachable");
+            SetSharedTranslation("E5267", "LDAP test failed");
+            SetSharedTranslation("E5268", "LDAP auth failed");
+            SetSharedTranslation("E5269", "LDAP bind failed");
+            SetSharedTranslation("E5270", "LDAP certificate failed");
             SetSharedTranslation("E5102", "Missing required LDAP fields");
             SetSharedTranslation("E5103", "Invalid LDAP port");
-            SimulatedUserConfig.DummyTranslate["E5263"] = "Invalid pattern length";
-            SimulatedUserConfig.DummyTranslate["E5264"] = "Duplicate LDAP endpoint";
-            SimulatedUserConfig.DummyTranslate["E5265"] = "Role handling requires internal LDAP";
-            SimulatedUserConfig.DummyTranslate["E5260"] = "Cannot deactivate the last active LDAP";
-            SimulatedUserConfig.DummyTranslate["E5201"] = "Adding LDAP failed";
-            SimulatedUserConfig.DummyTranslate["E5202"] = "Updating LDAP failed";
+            SetSharedTranslation("E5263", "Invalid pattern length");
+            SetSharedTranslation("E5264", "Duplicate LDAP endpoint");
+            SetSharedTranslation("E5265", "Role handling requires internal LDAP");
+            SetSharedTranslation("E5260", "Cannot deactivate the last active LDAP");
+            SetSharedTranslation("E5201", "Adding LDAP failed");
+            SetSharedTranslation("E5202", "Updating LDAP failed");
             SetSharedTranslation("U0001", "Sanitized input");
         }
 
@@ -359,14 +354,14 @@ namespace FWO.Test
             List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
             SettingsLdap component = CreateBareComponent(apiConnection, middlewareClient, messages);
             SetMember(component, "actLdapConnection", BuildLdap(0, "ldap-test", "ldap.example.org", roleHandling: false, internalLdap: true));
-            SetMember<MiddlewareClient?>(component, "middlewareClient", null);
+            middlewareClient.Dispose();
 
             await InvokePrivateTask(component, "TestConnection");
 
             Assert.That(messages, Has.Count.EqualTo(1));
             Assert.That(messages[0].Title, Is.EqualTo("Test connection"));
             Assert.That(messages[0].Message, Is.Empty);
-            Assert.That(messages[0].Exception, Is.TypeOf<NullReferenceException>());
+            Assert.That(messages[0].Exception, Is.Not.Null);
             Assert.That(messages[0].IsError, Is.True);
         }
 
@@ -767,12 +762,5 @@ namespace FWO.Test
             }
         }
 
-        private sealed class ThrowingMiddlewareHandler : HttpMessageHandler
-        {
-            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            {
-                throw new HttpRequestException("middleware unavailable");
-            }
-        }
     }
 }

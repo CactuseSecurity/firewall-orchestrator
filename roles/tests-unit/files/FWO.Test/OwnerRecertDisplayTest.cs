@@ -140,6 +140,13 @@ namespace FWO.Test
                 {
                     Name = "business_unit",
                     Mode = AddInfoFilterMode.value,
+                    Value = "finance"
+                }), Is.True);
+
+                Assert.That(OwnerRecertDisplay.MatchesAdditionalInfoFilter(owner, new AddInfoFilter
+                {
+                    Name = "business_unit",
+                    Mode = AddInfoFilterMode.value,
                     Value = "Other"
                 }), Is.False);
             });

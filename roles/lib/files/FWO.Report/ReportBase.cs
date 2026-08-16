@@ -541,43 +541,27 @@ namespace FWO.Report
                 executablePath = latestInstalledBrowser.GetExecutablePath();
             }
 
-            IBrowser? browser;
-
-            try
+            return await RunGatedPdfRender(async () =>
             {
-                browser = await Puppeteer.LaunchAsync(new LaunchOptions
+                IBrowser browser;
+                try
                 {
-                    ExecutablePath = executablePath,
-                    Headless = true,
-                });
-            }
-            catch (Exception)
-            {
-                Log.WriteAlert("Test Log", $"Couldn't start {wantedBrowser} instance!");
-                throw new EnvironmentException($"Couldn't start {wantedBrowser} instance!");
-            }
+                    browser = await Puppeteer.LaunchAsync(new LaunchOptions
+                    {
+                        ExecutablePath = executablePath,
+                        Headless = true,
+                        Timeout = kBrowserLaunchTimeoutMs,
+                        ProtocolTimeout = kBrowserProtocolTimeoutMs
+                    });
+                }
+                catch (Exception)
+                {
+                    Log.WriteAlert("Test Log", $"Couldn't start {wantedBrowser} instance!");
+                    throw new EnvironmentException($"Couldn't start {wantedBrowser} instance!");
+                }
 
-            try
-            {
-                using IPage page = await browser.NewPageAsync();
-                await page.SetContentAsync(html);
-
-                PuppeteerSharp.Media.PaperFormat? pupformat = GetPuppeteerPaperFormat(format) ?? throw new KeyNotFoundException();
-
-                PdfOptions pdfOptions = new() { Outline = true, DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
-                byte[]? pdfData = await page.PdfDataAsync(pdfOptions);
-
-                return Convert.ToBase64String(pdfData);
-            }
-            catch (Exception)
-            {
-                throw new NotSupportedException("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
-            }
-            finally
-            {
-                await browser.CloseAsync();
-                browser.Dispose();
-            }
+                return await RenderPdfInLaunchedBrowser(browser, html, format, wantedBrowser);
+            });
         }
 
         public static List<ToCHeader> CreateTOCContent(string html)

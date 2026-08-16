@@ -35,7 +35,11 @@
         </div>
         @if(actReportFilters.ReportType.IsModellingReport())
         {
-            <ReportModellingParamSelection @bind-ModellingFilter="actReportFilters.ModellingFilter" @bind-TimeFilter="actReportFilters.TimeFilter" InjectedAppId="injectedAppId" ReportType="actReportFilters.ReportType" />
+            <ReportModellingParamSelection @bind-ModellingFilter="actReportFilters.ModellingFilter"
+                                           @bind-TimeFilter="actReportFilters.TimeFilter"
+                                           InjectedAppId="injectedAppId"
+                                           ReportType="actReportFilters.ReportType"
+                                           AvailableAddInfoNames="GetAvailableOwnerAddInfoNames()" />
         }
         @if(actReportFilters.ReportType == ReportType.Owners)
         {
@@ -359,6 +363,26 @@
     private string GetReportElementCountText()
     {
         return $"{userConfig.GetText("report_elements")}: {currentReport!.ReportData.ElementsCount}.";
+    }
+
+    private IEnumerable<string>? GetAvailableOwnerAddInfoNames()
+    {
+        List<string> addInfoNames = [];
+
+        addInfoNames.AddRange(owners.SelectMany(owner => owner.AdditionalInfo?.Keys ?? Enumerable.Empty<string>()));
+
+        if (currentReport?.ReportType == ReportType.OwnerRecertification)
+        {
+            addInfoNames.AddRange(currentReport.ReportData.OwnerData.SelectMany(owner => owner.Owner.AdditionalInfo?.Keys ?? Enumerable.Empty<string>()));
+        }
+
+        List<string> distinctAddInfoNames = addInfoNames
+            .Where(addInfoName => !string.IsNullOrWhiteSpace(addInfoName))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(addInfoName => addInfoName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return distinctAddInfoNames.Count > 0 ? distinctAddInfoNames : null;
     }
 
 

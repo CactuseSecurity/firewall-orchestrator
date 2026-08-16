@@ -31,6 +31,7 @@ namespace FWO.Test
             SimulatedUserConfig.DummyTranslate["U4007"] = "Further owners";
             SimulatedUserConfig.DummyTranslate["U4008"] = "Further owners not yet recertified";
             SimulatedUserConfig.DummyTranslate["U4009"] = "Inactive owners";
+            SimulatedUserConfig.DummyTranslate["no_recertifiable_owners_assigned"] = "No recertifiable owners assigned";
         }
 
         [Test]
@@ -72,6 +73,27 @@ namespace FWO.Test
             Assert.That(cut.Markup, Does.Contain("Add. Info: recert_required"));
             Assert.That(cut.Markup, Does.Contain("bi bi-check-lg"));
             Assert.That(cut.Markup, Does.Not.Contain(">true<"));
+        }
+
+        [Test]
+        public void OwnerRecertReport_ShowsEmptyStateWhenNothingMatches()
+        {
+            List<OwnerConnectionReport> ownerData =
+            [
+                BuildOwnerReport("EXT-A", "A Owner", DateTime.Today.AddDays(-1), new Dictionary<string, string> { ["department"] = "A" })
+            ];
+
+            IRenderedComponent<OwnerRecertReport> cut = Render<OwnerRecertReport>(parameters => parameters
+                .Add(p => p.OwnerData, ownerData)
+                .Add(p => p.OwnerAddInfoFilter, new AddInfoFilter
+                {
+                    Name = "department",
+                    Mode = AddInfoFilterMode.value,
+                    Value = "missing"
+                })
+                .Add(p => p.RecertificationDisplayPeriod, 7));
+
+            Assert.That(cut.Markup, Does.Contain("No recertifiable owners assigned"));
         }
 
         [Test]

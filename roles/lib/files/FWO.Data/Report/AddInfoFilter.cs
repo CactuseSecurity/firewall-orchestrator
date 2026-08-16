@@ -4,8 +4,10 @@ using System.Text.Json.Serialization;
 namespace FWO.Data.Report
 {
     /// <summary>
-    /// The user-facing mode names are shared across reporting contexts, but the concrete
-    /// filtering semantics are defined by the report that interprets the filter.
+    /// The mode labels are shared across reporting contexts, but the concrete meaning differs
+    /// by report: owner recertification applies the filter to owner metadata directly, while
+    /// workflow/ticket reports use the same modes for ticket/task add-info presentation and
+    /// workflow-specific filtering.
     /// </summary>
     public enum AddInfoFilterMode
     {

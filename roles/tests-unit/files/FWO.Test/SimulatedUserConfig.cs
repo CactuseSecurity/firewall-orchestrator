@@ -328,6 +328,7 @@ namespace FWO.Test
             {"U4007","Further active owners" },
             {"U4008","Further owners" },
             {"U4009","Owners with inactive recertification" },
+            {"no_recertifiable_owners_assigned","No recertifiable owners assigned." },
             {"C1003","Merge all recertification tables displayed in the report into one table." },
             {"C1004","Show the value of this key from the owner additional information as an extra column." },
             {"created","Created" },

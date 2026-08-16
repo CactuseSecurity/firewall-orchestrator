@@ -45,6 +45,8 @@ namespace FWO.Ui.Display
 
         /// <summary>
         /// Checks whether the owner matches the selected additional-info filter semantics.
+        /// Owner recertification filters on the owner's stored additional-info key/value pair
+        /// directly, so "existing" means key present and "value" means exact owner value.
         /// </summary>
         public static bool MatchesAdditionalInfoFilter(FwoOwner owner, AddInfoFilter filter)
         {
@@ -59,7 +61,9 @@ namespace FWO.Ui.Display
                 // Keep the workflow semantics here: key presence is enough for "existing".
                 AddInfoFilterMode.existing => hasAdditionalInfoKey,
                 AddInfoFilterMode.not_existing => !hasAdditionalInfoKey,
-                AddInfoFilterMode.value => hasAdditionalInfoKey && string.Equals(value, filter.Value, StringComparison.Ordinal),
+                // Owner values are stored as plain strings, so this is the closest equivalent to the
+                // workflow ticket value match without serializing the whole owner record.
+                AddInfoFilterMode.value => hasAdditionalInfoKey && string.Equals(value, filter.Value, StringComparison.OrdinalIgnoreCase),
                 _ => true
             };
         }

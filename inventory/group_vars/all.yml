@@ -32,7 +32,20 @@ install_syslog: true
 add_demo_data: true
 api_docu: false
 force_install: false
+# covers every package source the installer would add to a RedHat host: the CRB/EPEL repos and
+# the microsoft package repo used as a dotnet fallback. hardened setups keep the package sources
+# under the control of their OS team, so all of them stay opt-in
 allowRepoChangesForRedhat: false
+# shown when dnf resolved a package from its metadata but could not download it. the causes below
+# are all outside the installer, so the message has to point at them instead of repeating the
+# bare dnf error ("Cannot download, all mirrors were already tried without success").
+redhat_repo_download_failure_hints:
+  - "dnf found the packages in the repository metadata but could not download them. On a hardened RedHat host this usually means one of:"
+  - "- the repository is a Satellite/Capsule synced on demand (lazy) that cannot reach its upstream content"
+  - "- a proxy that allows the repodata but blocks the package download path or large downloads"
+  - "- a detached or expired subscription entitlement, which answers the content urls with 403"
+  - "- a metadata cache left over from an earlier point release (already retried after dropping the cache)"
+  - "Run 'dnf -v install <package>' on this host to see the failing url and its status, restore the repository access according to your OS repository policy, then rerun the installer."
 docker_network: ""
 
 ### operating system settings

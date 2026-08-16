@@ -158,25 +158,28 @@ The importer runs in its own virtual environment and needs Python 3.9 or newer. 
 
 ### Dotnet SDK installation on RedHat
 
-The installer needs the dotnet SDK for the UI and the middleware server. On RedHat-like systems it tries three sources in this order and stops at the first one that works:
+The installer needs the dotnet SDK for the UI and the middleware server. On RedHat-like systems it tries four sources in this order and stops at the first one that works:
 
 1. the already configured repositories (normally RHEL AppStream)
-2. the Microsoft package repository (`packages.microsoft.com`), which is added and given priority over the configured repositories for `dotnet-*`, `aspnetcore-*` and `netstandard-*` packages
-3. the Microsoft `dotnet-install.sh` script, which installs into `dotnet_script_install_dir` (`/usr/local/fworch/dotnet`) and links `dotnet_binary_link` (`/usr/bin/dotnet`) - **opt-in only**, see below
+2. the same repositories again after `dnf clean all`, with the metadata refreshed and up to three retries
+3. the Microsoft package repository (`packages.microsoft.com`), which is added and given priority over the configured repositories for `dotnet-*`, `aspnetcore-*` and `netstandard-*` packages - **opt-in only**, see below
+4. the Microsoft `dotnet-install.sh` script, which installs into `dotnet_script_install_dir` (`/usr/local/fworch/dotnet`) and links `dotnet_binary_link` (`/usr/bin/dotnet`) - **opt-in only**, see below
 
-Step 2 is also used when the configured repositories list the package but cannot deliver it, for example with an expired subscription, a Satellite/Capsule mirror that only synced metadata, or a proxy that blocks the package download. The typical symptom is:
+Steps 1 and 2 are the only ones that run on a default installation. They install the SDK from the package sources the host already has, which is what a hardened setup wants: the OS team provides `dotnet-sdk-<dotnet_version>` in the local repo before the FWORCH installation and the installer neither adds a repository nor downloads anything.
+
+Step 3 writes `/etc/yum.repos.d/microsoft-prod.repo` and imports the Microsoft RPM GPG key, so it changes the package sources of the host. It is covered by the same parameter as the CRB/EPEL repositories above and is not used unless it is requested explicitly:
 
 ```console
-Failed to download packages: dotnet-sdk-10.0-...: Cannot download, all mirrors were already tried without success
+./scripts/run-playbook-with-sudo.sh site.yml -e "allowRepoChangesForRedhat=true"
 ```
 
-Step 3 downloads a script from the internet and executes it as root, and it installs the SDK outside package management. It is therefore not used unless it is requested explicitly:
+Step 4 downloads a script from the internet and executes it as root, and it installs the SDK outside package management. It is therefore not used unless it is requested explicitly either:
 
 ```console
 ./scripts/run-playbook-with-sudo.sh site.yml -e "allowDotnetScriptInstallForRedhat=true"
 ```
 
-Without that parameter the installer stops after step 2 and asks for the dotnet SDK matching `dotnet_version` from `inventory/group_vars/all.yml` to be installed manually. An already installed SDK of the required version is detected and left untouched.
+Without either parameter the installer stops after step 2 and asks for the dotnet SDK matching `dotnet_version` from `inventory/group_vars/all.yml` to be installed manually. An already installed SDK of the required version is detected and left untouched, whether it came from a package or from an earlier script installation.
 
 Two further parameters harden the script fallback wherever it is used, on RedHat and on Debian testing/Debian 13 and newer, where it is the only available source:
 
@@ -184,6 +187,28 @@ Two further parameters harden the script fallback wherever it is used, on RedHat
 - `dotnet_install_script_checksum` verifies the downloaded script, for example `sha256:0123abc...`. Upstream publishes no checksum, so the value has to be taken from a reviewed revision. Empty by default, which skips the verification.
 
 An SDK installed by the script does not go into the `/usr/share/dotnet` used by the distribution and Microsoft packages, but into a directory of its own below the installation directory. The uninstall therefore removes it together with the other FWORCH directories and never touches an SDK it does not own. `/usr/bin/dotnet` is only removed if it still points into that directory.
+
+### Package download failures on hardened RedHat hosts
+
+Both the dotnet SDK and the Chromium libraries needed for PDF generation can fail with a download error although `dnf` clearly found the package:
+
+```console
+Failed to download packages: libXfixes-5.0.3-16.el9.x86_64: Cannot download, all mirrors were already tried without success
+```
+
+The package was resolved from the repository metadata but its rpm could not be fetched, which is a repository access problem on the host rather than a missing package. The installer drops the dnf cache and retries once, because a metadata cache left over from an earlier point release still advertises builds the mirrors have already replaced. If the retry fails too, the remaining causes are outside the installer:
+
+- the repository is a Satellite/Capsule synced on demand (lazy) that cannot reach its upstream content
+- a proxy that allows the repodata but blocks the package download path or large downloads
+- a detached or expired subscription entitlement, which answers the content urls with 403
+
+Running the install of the reported package manually shows the failing url and its status:
+
+```console
+dnf -v install libXfixes
+```
+
+Restore the repository access according to your OS repository policy, then rerun the installer.
 
 ### Parameter "docker_network" after the Podman migration
 

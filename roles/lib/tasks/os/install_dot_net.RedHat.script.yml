@@ -1,0 +1,48 @@
+# last dotnet fallback for install_dot_net.RedHat.yml, entered when neither the configured repos
+# nor the microsoft package repo delivered the sdk. the script is fetched from the internet and
+# executed as root, and it installs outside package management, so it stays opt-in on RedHat
+- block:
+    - name: collect the dotnet installation failure message on RedHat
+      set_fact:
+        dotnet_install_failure_msg: >-
+          {{
+            [dotnet_package_name ~ ' could not be installed from the configured repos'
+             ~ (' or from the microsoft repo.' if (allowRepoChangesForRedhat | default(false) | bool) else '.')]
+            + redhat_repo_download_failure_hints
+            + ([] if (allowRepoChangesForRedhat | default(false) | bool) else
+               ['The microsoft package repo was not tried because allowRepoChangesForRedhat is false. Set -e allowRepoChangesForRedhat=true to allow the '
+                ~ product_name ~ ' installer to add it, if your OS repository policy permits third party repos.'])
+            + ['The remaining fallback downloads ' ~ dotnet_install_script_url ~ ' and executes it as root, which is not done unless it is requested.',
+               'Either install the dotnet SDK ' ~ dotnet_version ~ ' from your own repo before running the installer, or set -e '
+               ~ 'allowDotnetScriptInstallForRedhat=true to allow the ' ~ product_name ~ ' installer to use the dotnet install script.']
+          }}
+      when: not (allowDotnetScriptInstallForRedhat | default(false) | bool)
+
+    - name: fail when the dotnet install script is not allowed on RedHat
+      fail:
+        msg: "{{ dotnet_install_failure_msg }}"
+      when: not (allowDotnetScriptInstallForRedhat | default(false) | bool)
+
+    - name: download dotnet-install script for RedHat
+      get_url:
+        url: "{{ dotnet_install_script_url }}"
+        dest: "{{ lib_tmp_dir }}/dotnet-install.sh"
+        mode: "0755"
+        checksum: "{{ dotnet_install_script_checksum | default(omit, true) }}"
+      register: dotnet_install_script_download_redhat
+      until: dotnet_install_script_download_redhat is succeeded
+      retries: 3
+      delay: 5
+
+    - name: install dotnet sdk {{ dotnet_version }} with dotnet-install script on RedHat
+      command: "{{ lib_tmp_dir }}/dotnet-install.sh --channel {{ dotnet_version }} --quality ga --install-dir {{ dotnet_script_install_dir }}"
+
+    - name: ensure dotnet symlink exists on RedHat
+      file:
+        src: "{{ dotnet_script_install_dir }}/dotnet"
+        dest: "{{ dotnet_binary_link }}"
+        state: link
+        force: true
+
+  become: true
+  environment: "{{ proxy_env }}"

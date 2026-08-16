@@ -92,8 +92,6 @@ fworch_importer_memory_max: "{{ 'infinity' if fworch_importer_memory_max_percent
 # in scope while their own role runs, so the api, middleware, ui, openldap-server,
 # common and tests-integration roles cannot see internalCA's defaults.
 
-# user facing switches, see documentation/certificates.md
-internalca_enabled: true
 # Applies to the GraphQL API vhost only. The middleware REST API is deliberately
 # reachable without a client certificate, because external callers authenticate
 # to it with username/password to obtain their JWT.
@@ -171,7 +169,11 @@ ipv6_loopback_address: "::1"
 # for slapd and logged as an error by PostgreSQL on hosts booted with ipv6.disable=1,
 # and the wildcard listener forms these settings replaced used to hide that by
 # silently degrading to IPv4.
-ipv6_loopback_available: "{{ ipv6_loopback_address in (ansible_facts['all_ipv6_addresses'] | default([])) }}"
+ipv6_loopback_available: >-
+  {{ ansible_facts['lo']['ipv6'] | default([])
+     | selectattr('address', 'equalto', ipv6_loopback_address)
+     | list
+     | length > 0 }}
 
 postgresql_listening_addresses: >-
   {{ api_network_listening_ip_address ~ ',' ~ api_local_listening_ip_address
@@ -248,8 +250,7 @@ openldap_tls_listener_port: 636
 # absent everywhere else, which is what made the old TLS_CACERT a no-op there too.
 ldap_tls_opts: >-
   {% if openldap_server_enable_ssl | default(false) -%}
-  {%- if internalca_enabled | default(true) | bool
-         and not (internalca_preserve_ldap_certificate | default(false) | bool) -%}
+  {%- if not (internalca_preserve_ldap_certificate | default(false) | bool) -%}
   -o TLS_REQCERT=demand -o TLS_CACERT={{ internalca_ca_certificate_local }}
   {%- else -%}
   -o TLS_REQCERT=never{% if openldap_server_cert is defined %} -o TLS_CACERT={{ openldap_server_cert }}{% endif %}
@@ -259,11 +260,10 @@ ldap_tls_opts: >-
 # The same decision for the Ansible ldap_* modules, which take it as parameters
 # rather than command line options. These carry the Manager bind password, so an
 # unverified channel here hands it to anything that can answer on the LDAP port.
-# ldap_verify_certs is false only where verification cannot work: TLS off,
-# internalca disabled, or an upgrade that retained a customer-managed certificate.
+# ldap_verify_certs is false only where verification cannot work: TLS is off or
+# an upgrade retained a customer-managed certificate whose issuer is not known.
 ldap_verify_certs: >-
   {{ openldap_server_enable_ssl | default(false) | bool
-     and internalca_enabled | default(true) | bool
      and not (internalca_preserve_ldap_certificate | default(false) | bool) }}
 ldap_module_ca_path: "{{ internalca_ca_certificate_local if ldap_verify_certs | bool else omit }}"
 

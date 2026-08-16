@@ -26,11 +26,10 @@ on Debian, `/etc/openldap/ldap.conf` on RedHat) on the middleware host, pointing
 running `ldapsearch` by hand verifies the connection. The installer's own
 `ldapsearch`/`ldapmodify` calls pass the same settings explicitly through
 `ldap_tls_opts`, defined once in `inventory/group_vars/all.yml`. Verification is
-relaxed to `never` only where it cannot work: when `internalca_enabled` is false,
-or when an upgrade retained a customer-managed OpenLDAP certificate whose issuer
-this installation does not know. The Ansible `ldap_*` modules take the same decision
-through `ldap_verify_certs` and `ldap_module_ca_path`, since those tasks carry the
-Manager bind password.
+relaxed to `never` only when an upgrade retained a customer-managed OpenLDAP
+certificate whose issuer this installation does not know. The Ansible `ldap_*`
+modules take the same decision through `ldap_verify_certs` and
+`ldap_module_ca_path`, since those tasks carry the Manager bind password.
 
 The middleware service does not use libldap, so it validates separately, and from
 9.5.0 it does validate: an LDAP server certificate is accepted when the host already
@@ -114,12 +113,12 @@ stops instead, since anything it issued would be near-worthless; set
 the certificates any more valid. `internalca_ca_expiry_warning_days` (365) adds a
 second, earlier warning threshold independent of the leaf validity.
 
-FWO's shared GraphQL client now uses normal platform TLS validation. Ensure
-that `api_uri`, `middleware_uri`, and `ui_hostname` resolve to a name or IP
-contained in the certificates' SANs. The defaults cover the inventory host
-names, `localhost`, `127.0.0.1`, and the FWO endpoint defaults; distributed
-deployments should set these inventory values to their real DNS names before
-installation.
+FWO's shared GraphQL and middleware clients validate servers against the CA
+configured as `tls_ca_certificate`. Ensure that `api_uri`, `middleware_uri`,
+and `ui_hostname` resolve to a name or IP contained in the certificates' SANs.
+The defaults cover the inventory host names, `localhost`, `127.0.0.1`, and the
+FWO endpoint defaults; distributed deployments should set these inventory
+values to their real DNS names before installation.
 
 On a UI host the certificate also covers the names Apache serves as
 `ServerName` and `ServerAlias`, taken from `ui_server_name` and
@@ -144,3 +143,8 @@ curl --request POST \
 
 The client private key is readable only by the FWO service account, so run such
 commands as that user or as root.
+
+The Guardicore provisioning scripts load these three TLS paths from the local
+`fworch.json`. When they run on another host, pass `--fwo-ca-cert`,
+`--fwo-client-cert`, and `--fwo-client-key` explicitly. The certificate and key
+options must always be supplied together.

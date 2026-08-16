@@ -6,6 +6,7 @@ import functools
 import json
 from dataclasses import dataclass
 from typing import Any, TypeAlias, cast
+from urllib.parse import urlparse
 
 import requests
 import urllib3
@@ -33,6 +34,7 @@ class FwoConfig:
     verify_ssl: bool | str
     timeout_seconds: int
     role: str
+    client_identity: tuple[str, str] | None = None
 
 
 def apply_ssl_settings(session: requests.Session, verify_setting: bool | str) -> None:
@@ -78,12 +80,33 @@ def load_fwo_ca_certificate(fwo_config_filename: str | None = None) -> str | Non
     return ca_certificate if isinstance(ca_certificate, str) else None
 
 
-def apply_fwo_ssl_settings(session: requests.Session, verify_setting: bool | str) -> None:
-    """Apply verification and present the FWO client identity when one is installed."""
+def apply_fwo_ssl_settings(
+    session: requests.Session,
+    verify_setting: bool | str,
+    client_identity: tuple[str, str] | None = None,
+) -> None:
+    """Apply verification and present the configured FWO client identity."""
     apply_ssl_settings(session, verify_setting)
-    client_identity = load_fwo_client_identity()
-    if client_identity is not None:
-        session.cert = client_identity
+    effective_identity = client_identity or load_fwo_client_identity()
+    if effective_identity is not None:
+        session.cert = effective_identity
+
+
+def resolve_fwo_client_identity(args: Any, error_cls: type[Exception]) -> tuple[str, str] | None:
+    """Resolve a paired CLI or local client identity for an FWO GraphQL call."""
+    certificate = getattr(args, "fwo_client_cert", None)
+    private_key = getattr(args, "fwo_client_key", None)
+    if bool(certificate) != bool(private_key):
+        raise error_cls("--fwo-client-cert and --fwo-client-key must be provided together")
+
+    client_identity = (certificate, private_key) if certificate and private_key else load_fwo_client_identity()
+    graphql_url = getattr(args, "fwo_graphql_url", "")
+    if urlparse(graphql_url).scheme.lower() == "https" and client_identity is None:
+        raise error_cls(
+            "The HTTPS FWO GraphQL endpoint requires a client identity. "
+            "Provide --fwo-client-cert and --fwo-client-key when no local fworch.json is available."
+        )
+    return client_identity
 
 
 def resolve_ssl_verification_settings(args: Any) -> tuple[bool | str, bool | str]:
@@ -114,13 +137,14 @@ def login_fwo(
     verify_ssl: bool | str,
     timeout: int,
     error_cls: type[Exception],
+    client_identity: tuple[str, str] | None = None,
 ) -> str:
     payload: dict[str, Any] = {"Username": user, "Password": password}
     headers: dict[str, str] = {"Content-Type": HTTP_CONTENT_TYPE_JSON}
     endpoint = middleware_url.rstrip("/") + "/api/AuthenticationToken/Get"
 
     with requests.Session() as session:
-        apply_fwo_ssl_settings(session, verify_ssl)
+        apply_fwo_ssl_settings(session, verify_ssl, client_identity)
         try:
             response = session.post(endpoint, json=payload, headers=headers, timeout=timeout)
         except requests.exceptions.RequestException as exc:
@@ -179,7 +203,7 @@ def run_graphql_query(
     payload: JsonDict = {"query": payload_query, "variables": variables}
 
     with requests.Session() as session:
-        apply_fwo_ssl_settings(session, config.verify_ssl)
+        apply_fwo_ssl_settings(session, config.verify_ssl, config.client_identity)
         session.headers.update(headers)
         try:
             response = session.post(config.graphql_url, json=payload, timeout=config.timeout_seconds)

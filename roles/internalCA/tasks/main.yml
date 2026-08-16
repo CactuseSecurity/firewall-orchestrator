@@ -10,13 +10,10 @@
     state: present
   become: true
   environment: "{{ proxy_env }}"
-  when: internalca_enabled | bool
 
 - name: Create internal CA on the designated issuer host
   include_tasks: create-ca.yml
-  when:
-    - internalca_enabled | bool
-    - inventory_hostname == internalca_ca_host
+  when: inventory_hostname == internalca_ca_host
 
 - name: Read internal CA certificate from issuer
   slurp:
@@ -25,7 +22,6 @@
   register: internalca_ca_certificate_content
   run_once: true
   become: true
-  when: internalca_enabled | bool
 
 - name: Store internal CA certificate for all hosts
   set_fact:
@@ -33,11 +29,9 @@
   delegate_to: "{{ internalca_ca_host }}"
   delegate_facts: true
   run_once: true
-  when: internalca_enabled | bool
 
 - name: Install internal CA trust anchor
   include_tasks: install-trust.yml
-  when: internalca_enabled | bool
 
 # Deliberately every host, not just the issuer. Leaves are signed with
 # delegate_to, which runs on the CA host regardless of whether that host failed
@@ -46,13 +40,10 @@
 # has just installed and stops itself.
 - name: Guard against an expiring internal CA
   include_tasks: check-ca-expiry.yml
-  when: internalca_enabled | bool
 
 - name: Detect customer managed certificates during upgrade
   include_tasks: detect-existing-certificates.yml
-  when:
-    - internalca_enabled | bool
-    - installation_mode == 'upgrade'
+  when: installation_mode == 'upgrade'
 
 - name: Build internal CA certificate profiles for this host
   set_fact:
@@ -143,8 +134,6 @@
           + (['IP:' ~ ui_hostname] if 'frontends' in group_names and ui_hostname is match(internalca_ipv4_pattern) else [])
         ) | unique
       }}
-  when: internalca_enabled | bool
 
 - name: Issue internal CA certificates for this host
   include_tasks: issue-certificates.yml
-  when: internalca_enabled | bool

@@ -21,6 +21,7 @@
     - frontend
     - importer
     - ui
+    - api
     - certificates
 
 - hosts: databaseserver

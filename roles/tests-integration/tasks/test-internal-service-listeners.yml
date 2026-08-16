@@ -1,4 +1,21 @@
 ---
+- name: Read the kernel IPv6 interface table
+  slurp:
+    src: /proc/net/if_inet6
+  register: kernel_ipv6_interfaces
+  failed_when: false
+
+- name: IPv6 loopback detection must match the kernel state
+  assert:
+    that:
+      - >-
+        ipv6_loopback_available | bool ==
+        ((kernel_ipv6_interfaces.content | default('') | b64decode
+          | regex_search('(?m)^00000000000000000000000000000001\\s')) is not none)
+    fail_msg: >-
+      ipv6_loopback_available={{ ipv6_loopback_available }} does not match
+      the IPv6 loopback state reported in /proc/net/if_inet6.
+
 - name: Read the active PostgreSQL listener addresses
   community.postgresql.postgresql_query:
     db: postgres

@@ -70,14 +70,19 @@
 
     private async Task RollbackSingleImport(int mgm, long importId)
     {
+        await RollbackImports(new List<long> { importId });
+    }
+
+    private async Task RollbackImports(List<long> importIds)
+    {
         try
         {
             RollbackMode = true;
             workInProgress = true;
-            var variablesRollback = new { importId = importId };
+            var variablesRollback = new { importIds = importIds };
             var ReturnId = await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.rollbackImport, variablesRollback);
 
-            Log.WriteDebug("Delete Import", $"rolled back last import (id={importId}) of mangement with ID {ManagementId}");
+            Log.WriteDebug("Delete Import", $"rolled back {importIds.Count} import(s) of mangement with ID {ManagementId}");
             workInProgress = false;
         }
         catch (System.Exception exception)
@@ -144,23 +149,15 @@
                         RollbackMode = false;
                         workInProgress = false;
 
-                        bool managementImportsStillExists = true;
-                        while (managementImportsStillExists)
+                        var variablesGetManagement = new { mgmId = ManagementId };
+                        List<ImportControl> managementImports = await apiConnection.SendQueryAsync<List<ImportControl>>(FWO.Api.Client.Queries.ImportQueries.getImportIdsByManagement, variablesGetManagement);
+                        List<long> importIds = managementImports.Select(import => import.ControlId).ToList();
+                        if (importIds.Count > 0)
                         {
-                            var variablesGetManagement = new { mgmId = ManagementId };
-                            List<ImportControl>? getLastImportResponse = await apiConnection.SendQueryAsync<List<ImportControl>>(FWO.Api.Client.Queries.ImportQueries.getLastImport, variablesGetManagement);
-                            lastImportId = getLastImportResponse.FirstOrDefault()?.ControlId;
-                            if (lastImportId == null)
-                            {
-                                managementImportsStillExists = false;
-                            }
-                            else
-                            {
-                                await RollbackSingleImport(ManagementId, (long)lastImportId);
-                            }
+                            await RollbackImports(importIds);
                         }
 
-                        Log.WriteDebug("Delete Import", $"rolled back last import (id={lastImportId}) of mangement with ID {ManagementId}");
+                        Log.WriteDebug("Delete Import", $"rolled back all imports of mangement with ID {ManagementId}");
                         workInProgress = false;
                         DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);
                     }

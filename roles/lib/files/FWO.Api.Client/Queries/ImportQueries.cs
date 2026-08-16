@@ -9,6 +9,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string rollbackImport;
         public static readonly string deleteLatestConfigOfManagement;
         public static readonly string getLastImport;
+        public static readonly string getImportIdsByManagement;
         public static readonly string getMaxImportId;
         public static readonly string addImportForOwner;
         public static readonly string addImportForRuleOwner;
@@ -24,6 +25,7 @@ namespace FWO.Api.Client.Queries
                 rollbackImport = GetQueryText("import/rollbackImport.graphql");
                 deleteLatestConfigOfManagement = GetQueryText("import/deleteLatestConfigOfManagement.graphql");
                 getLastImport = GetQueryText("import/getLastImport.graphql");
+                getImportIdsByManagement = GetQueryText("import/getImportIdsByManagement.graphql");
                 getMaxImportId = GetQueryText("import/getMaxImportId.graphql");
                 addImportForOwner = GetQueryText("import/addImportForOwner.graphql");
                 addImportForRuleOwner = GetQueryText("import/addImportForRuleOwner.graphql");

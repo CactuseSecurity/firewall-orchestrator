@@ -1,4 +1,4 @@
-mutation rollbackImport($importIds: [bigint!]!) {
+mutation rollbackImportData($importIds: [bigint!]!) {
     delete_firewall_nw_object_group(where: {import_created: {_in: $importIds}}) { affected_rows }
     delete_firewall_nw_service_group(where: {import_created: {_in: $importIds}}) { affected_rows }
     delete_firewall_nw_user_group(where: {import_created: {_in: $importIds}}) { affected_rows }
@@ -48,5 +48,4 @@ mutation rollbackImport($importIds: [bigint!]!) {
     update_firewall_rule_to_zone(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
     update_firewall_rule_time(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
     update_firewall_rule_enforced_on_gateway(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
-    delete_import_control(where: {control_id: {_in: $importIds}}) { affected_rows }            
 }

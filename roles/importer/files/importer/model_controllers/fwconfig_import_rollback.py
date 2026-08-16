@@ -15,9 +15,12 @@ class FwConfigImportRollback:
     # TODO: also take super management id into account as second option
 
     def rollback_current_import(self, import_state: ImportState, fwo_api_call: FwoApiCall):
-        rollback_mutation = FwoApi.get_graphql_code([f"{fwo_const.GRAPHQL_QUERY_PATH}import/rollbackImport.graphql"])
+        # data-only rollback: keeps the import_control row (stamped as failed by unlock_import)
+        rollback_mutation = FwoApi.get_graphql_code(
+            [f"{fwo_const.GRAPHQL_QUERY_PATH}import/rollbackImportData.graphql"]
+        )
         try:
-            query_variables = {"importId": import_state.import_id}
+            query_variables = {"importIds": [import_state.import_id]}
             rollback_result = fwo_api_call.call(rollback_mutation, query_variables=query_variables)
             if "errors" in rollback_result:
                 FWOLogger.exception(

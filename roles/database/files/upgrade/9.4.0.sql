@@ -75,3 +75,10 @@ VALUES
     ('replaceExistingLogData', 'False', 0),
     ('showLogDataInConnections', 'False', 0)
 ON CONFLICT DO NOTHING;
+
+-- time an import script may run before it is stopped, in minutes. Applies to all customizing
+-- import scripts (application data, area/ip data, log data), which used to be stopped after a
+-- hard coded timeout.
+INSERT INTO config (config_key, config_value, config_user)
+VALUES ('importScriptTimeout', '60', 0)
+ON CONFLICT DO NOTHING;

@@ -368,6 +368,25 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ImportSubscriptions_ContainTheScriptTimeoutOfEveryScriptedImport()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("importScriptTimeout"));
+                Assert.That(ConfigQueries.subscribeImportAppDataConfigChanges, Does.Contain("importScriptTimeout"));
+                Assert.That(ConfigQueries.subscribeImportIpDataConfigChanges, Does.Contain("importScriptTimeout"));
+            });
+        }
+
+        [Test]
+        public void ConfigData_DefaultsTheImportScriptTimeoutToAnHour()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.ImportScriptTimeout, Is.EqualTo(60));
+        }
+
+        [Test]
         public void ConfigData_DefaultsLogDataImportIntervalUnitToHours()
         {
             ConfigData configData = new();

@@ -18,6 +18,7 @@ namespace FWO.Middleware.Server
         private const string LevelFile = "Import File";
         private const int TcpProtocol = 6;
         private const int UdpProtocol = 17;
+        private const int LoggedEntriesPerMessage = 50;
 
         /// <summary>
         /// Runs configured log data imports and removes expired entries.
@@ -101,17 +102,8 @@ namespace FWO.Middleware.Server
                 ReadFile(sourcePath + ".json");
                 LogDataImportFile importFileData = JsonSerializer.Deserialize<LogDataImportFile>(importFile)
                     ?? throw new JsonException("Log data file could not be parsed.");
-                if (await SaveEntries(importFileData.Logs, sourcePath, importFileData.ImportTime ?? DateTimeOffset.UtcNow))
-                {
-                    await AcknowledgeImport(scriptPath, importFiles, sourcePath);
-                }
-                else
-                {
-                    string message = $"No entry of {sourcePath}.json could be imported, the source files are kept."
-                        + " Check the log data settings and the reported entries before the next run.";
-                    Log.WriteWarning(LogMessageTitle, message);
-                    await AddLogEntry(GlobalConst.kImportLogData, 1, LevelFile, message);
-                }
+                await SaveEntries(importFileData.Logs, sourcePath, importFileData.ImportTime ?? DateTimeOffset.UtcNow);
+                await AcknowledgeImport(scriptPath, importFiles, sourcePath);
             }
             catch (Exception exception)
             {
@@ -150,15 +142,14 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// Imports the entries of one source file.
+        /// Imports the entries of one source file. A source is always consumed, also when none of
+        /// its entries could be imported: keeping it back would repeat the same rejected import in
+        /// every run and, with replaceExistingLogData, would delete the rows of its applications
+        /// again and again - including rows another source imported for the same application in
+        /// the meantime. What could not be imported is written to the log by
+        /// <see cref="LogUnimportedEntries"/> before the source is removed.
         /// </summary>
-        /// <returns>
-        /// False if the source contained entries but none of them could be imported. Such a source
-        /// is kept instead of being acknowledged: losing a whole export because of a configuration
-        /// which rejects all of its entries cannot be undone, while a source kept back is reported
-        /// in every run and can be imported after the configuration was corrected.
-        /// </returns>
-        private async Task<bool> SaveEntries(List<LogDataImportEntry> sourceEntries, string sourcePath, DateTimeOffset importTime)
+        private async Task SaveEntries(List<LogDataImportEntry> sourceEntries, string sourcePath, DateTimeOffset importTime)
         {
             List<NormalizedLogEntry> normalizedEntries = NormalizeValidEntries(sourceEntries, importTime, globalConfig.AllowLogDataPortWithoutProtocol);
             int invalidEntries = Math.Max(0, sourceEntries.Count - normalizedEntries.Count);
@@ -176,8 +167,9 @@ namespace FWO.Middleware.Server
             WarnAboutDroppedEntries(sourcePath, invalidEntries, unresolvedEntries, discardedEntries);
             if (entries.Count == 0)
             {
-                await RemoveReplacedEntries(sourceOwnerIds, sourcePath);
-                return sourceEntries.Count == 0;
+                LogUnimportedEntries(sourceEntries, sourcePath);
+                await RemoveReplacedEntries(sourceOwnerIds, sourcePath, sourceEntries.Count);
+                return;
             }
 
             await RunAsImport(() => WriteEntries(entries, sourceOwnerIds));
@@ -193,7 +185,32 @@ namespace FWO.Middleware.Server
             }
             Log.WriteInfo(LogMessageTitle, message);
             await AddLogEntry(GlobalConst.kImportLogData, 0, LevelFile, message);
-            return true;
+        }
+
+        /// <summary>
+        /// Writes the entries of a source which delivered nothing importable to the log, so the
+        /// data survives the removal of the source file and can be looked up after the setting
+        /// which rejected it was corrected. Why every single entry was rejected is logged before
+        /// by NormalizeValidEntries or ResolveOwners; this is the data itself.
+        /// The entries are written in batches, one message per batch, so a large export does not
+        /// end up as a single unreadable log line.
+        /// </summary>
+        private static void LogUnimportedEntries(List<LogDataImportEntry> sourceEntries, string sourcePath)
+        {
+            if (sourceEntries.Count == 0)
+            {
+                return;
+            }
+
+            Log.WriteWarning(LogMessageTitle, $"None of the {sourceEntries.Count} entries of {sourcePath}.json could be" +
+                " imported. The source is removed anyway, its entries are written to the log below for future reference.");
+            for (int firstEntry = 0; firstEntry < sourceEntries.Count; firstEntry += LoggedEntriesPerMessage)
+            {
+                List<LogDataImportEntry> batch = sourceEntries.GetRange(firstEntry,
+                    Math.Min(LoggedEntriesPerMessage, sourceEntries.Count - firstEntry));
+                Log.WriteWarning(LogMessageTitle, $"Not imported entries of {sourcePath}.json" +
+                    $" ({firstEntry + 1} - {firstEntry + batch.Count}): {JsonSerializer.Serialize(batch)}");
+            }
         }
 
         /// <summary>
@@ -203,9 +220,11 @@ namespace FWO.Middleware.Server
         /// period would stay on display as if they were current. Outside replaceExistingLogData
         /// mode there are no owners to replace and nothing is removed.
         /// </summary>
-        private async Task RemoveReplacedEntries(List<int> sourceOwnerIds, string sourcePath)
+        private async Task RemoveReplacedEntries(List<int> sourceOwnerIds, string sourcePath, int sourceEntryCount)
         {
-            string message = $"No valid log entries found in {sourcePath}.json.";
+            string message = sourceEntryCount == 0
+                ? $"No log entries found in {sourcePath}.json."
+                : $"No valid log entries found in {sourcePath}.json, its {sourceEntryCount} entries are written to the log.";
             if (sourceOwnerIds.Count > 0)
             {
                 await RunAsImport(() => apiConnection.SendQueryAsync<object>(LogDataQueries.deleteLogEntriesOfOwners,
@@ -378,9 +397,11 @@ namespace FWO.Middleware.Server
         /// Lets the import script acknowledge the processed source files, which deletes them.
         /// The whole source is acknowledged on purpose, also when entries were dropped by the
         /// importLogDataMaxEntries limit, by an unknown application id or because they could not
-        /// be converted: an import run is expected to consume its source completely, otherwise the
-        /// same rejected entries would be read again in every following run. WarnAboutDroppedEntries
-        /// reports how many entries are lost with the deleted file.
+        /// be converted, and also when nothing of it could be imported at all: an import run is
+        /// expected to consume its source completely, otherwise the same rejected entries would be
+        /// read again in every following run. WarnAboutDroppedEntries reports how many entries are
+        /// lost with the deleted file, LogUnimportedEntries writes the entries of a source which
+        /// delivered nothing importable to the log before it is removed.
         /// </summary>
         private async Task AcknowledgeImport(string scriptPath, List<string> importFiles, string sourcePath)
         {

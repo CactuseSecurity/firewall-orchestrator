@@ -77,22 +77,40 @@ else
     private async Task LoadLogEntries()
     {
         // the owner is remembered before the query, so a failed load is not repeated - with it its
-        // error message - on every re-render of the page the table is embedded in
-        loadedOwnerId = OwnerId;
+        // error message - on every re-render of the page the table is embedded in. It also marks
+        // this load as the current one: a load started earlier which answers later must not put
+        // the rows of the previous owner on screen.
+        int requestedOwnerId = OwnerId;
+        loadedOwnerId = requestedOwnerId;
         try
         {
             isLoading = true;
-            logEntries = await apiConnection.SendQueryAsync<List<OwnerFirewallLogEntry>>(LogDataQueries.getUnmodelledLogEntriesByOwner,
-                new { ownerId = OwnerId, limit = kMaxLoadedEntries });
+            List<OwnerFirewallLogEntry> loadedEntries = await apiConnection.SendQueryAsync<List<OwnerFirewallLogEntry>>(
+                LogDataQueries.getUnmodelledLogEntriesByOwner, new { ownerId = requestedOwnerId, limit = kMaxLoadedEntries });
+            if (IsCurrentLoad(requestedOwnerId))
+            {
+                logEntries = loadedEntries;
+            }
         }
         catch (Exception exception)
         {
-            logEntries = [];
-            DisplayMessageInUi(exception, userConfig.GetText("log_data"), "", true);
+            if (IsCurrentLoad(requestedOwnerId))
+            {
+                logEntries = [];
+                DisplayMessageInUi(exception, userConfig.GetText("log_data"), "", true);
+            }
         }
         finally
         {
-            isLoading = false;
+            if (IsCurrentLoad(requestedOwnerId))
+            {
+                isLoading = false;
+            }
         }
+    }
+
+    private bool IsCurrentLoad(int requestedOwnerId)
+    {
+        return loadedOwnerId == requestedOwnerId;
     }
 }

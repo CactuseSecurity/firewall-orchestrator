@@ -244,6 +244,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("maxImportInterval"), JsonPropertyName("maxImportInterval")]
         public int MaxImportInterval { get; set; } = 12;
 
+        [JsonProperty("importScriptTimeout"), JsonPropertyName("importScriptTimeout")]
+        public int ImportScriptTimeout { get; set; } = 60;
+
         [JsonProperty("reqAvailableTaskTypes"), JsonPropertyName("reqAvailableTaskTypes")]
         public string ReqAvailableTaskTypes { get; set; } = "";
 

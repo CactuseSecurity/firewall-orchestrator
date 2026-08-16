@@ -203,6 +203,24 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ImportScriptTimeoutIsTakenFromTheConfiguration()
+        {
+            Assert.That(CreateConfiguredImporter(90).ScriptTimeout, Is.EqualTo(TimeSpan.FromMinutes(90)),
+                "an installation with a long running import script raises the setting instead of patching the code");
+        }
+
+        [Test]
+        public void ImportScriptTimeoutFallsBackToTheDefaultForAnUnusableValue()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(CreateConfiguredImporter(0).ScriptTimeout, Is.EqualTo(TimeSpan.FromMinutes(60)));
+                Assert.That(CreateConfiguredImporter(-5).ScriptTimeout, Is.EqualTo(TimeSpan.FromMinutes(60)),
+                    "a misconfiguration must not stop every script right after it was started");
+            });
+        }
+
+        [Test]
         public void GetScriptOutputLogTypeReportsTheSeverityTheScriptUsed()
         {
             // the scripts log to the error output, so a run ending successfully can still report
@@ -470,6 +488,12 @@ namespace FWO.Test
             return new TestDataImportBase(new SimulatedApiConnection(), new SimulatedGlobalConfig(), scriptTimeout);
         }
 
+        private static TestDataImportBase CreateConfiguredImporter(int importScriptTimeout)
+        {
+            SimulatedGlobalConfig globalConfig = new() { ImportScriptTimeout = importScriptTimeout };
+            return new TestDataImportBase(new SimulatedApiConnection(), globalConfig);
+        }
+
         private static string CreateScriptDirectory()
         {
             string tempDir = Path.Combine(TestContext.CurrentContext.WorkDirectory, $"fwo-import-test-{Guid.NewGuid():N}");
@@ -498,6 +522,8 @@ namespace FWO.Test
             }
 
             protected override TimeSpan ImportScriptTimeout => scriptTimeout ?? base.ImportScriptTimeout;
+
+            public TimeSpan ScriptTimeout => ImportScriptTimeout;
 
             public static LogType GetOutputLogType(string errorOutput)
             {

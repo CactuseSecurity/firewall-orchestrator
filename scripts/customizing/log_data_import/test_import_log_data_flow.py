@@ -240,12 +240,59 @@ def test_acknowledge_import_without_manifest_does_nothing(tmp_path: Path, monkey
     assert importer.acknowledge_import(config_file, LOGGER) == 0
 
 
-def test_acknowledge_import_rejects_a_broken_manifest(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    config_file, _repository_directory, _ = prepare_repository(tmp_path, monkeypatch)
+def test_acknowledge_import_drops_a_broken_manifest(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config_file, _repository_directory, output_file = prepare_repository(tmp_path, monkeypatch)
     importer.MANIFEST_FILE.write_text(json.dumps({"csv_files": "fw.csv"}), encoding="utf-8")
+    output_file.write_text("{}", encoding="utf-8")
 
-    with pytest.raises(TypeError):
-        importer.acknowledge_import(config_file, LOGGER)
+    result: int = importer.acknowledge_import(config_file, LOGGER)
+
+    assert result == 1, "the middleware is told that the acknowledgement failed"
+    assert not importer.MANIFEST_FILE.exists()
+    assert not output_file.exists(), "the next run starts a fresh import instead of failing again"
+
+
+def test_acknowledge_import_drops_a_corrupt_manifest(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config_file, _repository_directory, output_file = prepare_repository(tmp_path, monkeypatch)
+    # a manifest truncated by a stopped script, the exact file a crashing run would leave behind
+    importer.MANIFEST_FILE.write_text('{"csv_files": ["2026-08-12/fw.csv"', encoding="utf-8")
+    output_file.write_text("{}", encoding="utf-8")
+
+    result: int = importer.acknowledge_import(config_file, LOGGER)
+
+    assert result == 1
+    assert not importer.MANIFEST_FILE.exists()
+
+
+def test_import_data_recovers_from_a_corrupt_manifest(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config_file, _repository_directory, output_file = prepare_repository(tmp_path, monkeypatch)
+    monkeypatch.setattr(importer, "update_git_repo", return_true)
+    importer.import_data(config_file, None, LOGGER)
+    importer.MANIFEST_FILE.write_text('{"csv_files": ["2026-08-12/fw.csv"', encoding="utf-8")
+
+    result: int = importer.import_data(config_file, None, LOGGER)
+
+    manifest: dict[str, Any] = json.loads(importer.MANIFEST_FILE.read_text(encoding="utf-8"))
+    assert result == 0, "an unreadable manifest must not stall the import in every following run"
+    assert manifest["csv_files"] == ["2026-08-12/fw.csv"], "the repository was read again"
+    assert output_file.exists()
+
+
+def test_write_json_file_keeps_the_previous_content_on_a_failed_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target_file: Path = tmp_path / "manifest.json"
+    target_file.write_text(json.dumps({"csv_files": ["fw.csv"]}), encoding="utf-8")
+
+    def fail_to_serialize(*_args: object, **_kwargs: object) -> str:
+        raise ValueError("no space left on device")
+
+    monkeypatch.setattr(importer.json, "dumps", fail_to_serialize)
+
+    with pytest.raises(ValueError, match="no space left on device"):
+        importer.write_json_file(target_file, {"csv_files": []})
+
+    assert json.loads(target_file.read_text(encoding="utf-8"))["csv_files"] == ["fw.csv"]
 
 
 def test_main_imports_by_default(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

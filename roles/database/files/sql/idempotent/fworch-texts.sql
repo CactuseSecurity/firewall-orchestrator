@@ -533,6 +533,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
     <li>Das neue Logging-Modul importiert normalisierte Verkehrs-Logdaten und stellt sie in modellierten Verbindungen dar.</li>
     <li>Beim Logdaten-Import k&ouml;nnen vorhandene Eintr&auml;ge f&uuml;r alle in der JSON-Datei enthaltenen Applikationen optional ersetzt werden.</li>
+    <li>Die maximale Laufzeit von Importskripten ist als Standardeinstellung konfigurierbar.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -540,6 +541,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
     <li>The new Logging module imports normalized traffic log data and displays it in modelled connections.</li>
     <li>Log data imports can optionally replace existing entries for every application contained in the JSON file.</li>
+    <li>The maximum runtime of import scripts is configurable in the default settings.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -2588,6 +2590,8 @@ INSERT INTO txt VALUES ('maxImportDuration',    'German', 	'Max erlaubte Importd
 INSERT INTO txt VALUES ('maxImportDuration',    'English', 	'Max allowed import duration (in hours)');
 INSERT INTO txt VALUES ('maxImportInterval',    'German', 	'Max erlaubtes Importintervall (in Stunden)');
 INSERT INTO txt VALUES ('maxImportInterval',    'English', 	'Max import interval (in hours)');
+INSERT INTO txt VALUES ('importScriptTimeout',  'German', 	'Max Laufzeit von Importskripten (in Minuten)');
+INSERT INTO txt VALUES ('importScriptTimeout',  'English', 	'Max runtime of import scripts (in minutes)');
 INSERT INTO txt VALUES ('importSleepTime',      'German', 	'Importintervall (in Sekunden)');
 INSERT INTO txt VALUES ('importSleepTime',      'English', 	'Import sleep time (in seconds)');
 INSERT INTO txt VALUES ('importCheckCertificates',      'German', 	'Zertifikate beim Import pr&uuml;fen');
@@ -6419,6 +6423,8 @@ INSERT INTO txt VALUES ('H5452', 'German',  'Max erlaubte Importdauer (in Stunde
 INSERT INTO txt VALUES ('H5452', 'English', 'Max allowed import duration (in hours): Upper limit for the accepted import duration in the daily check.');
 INSERT INTO txt VALUES ('H5453', 'German',  'Max erlaubtes Importintervall (in Stunden): Obergrenze, welcher Abstand zwischen zwei Imports im t&auml;glichen Check noch akzeptiert wird.');
 INSERT INTO txt VALUES ('H5453', 'English', 'Max import interval (in hours): Upper limit for the accepted interval between two imports in the daily check.');
+INSERT INTO txt VALUES ('H5453a', 'German',  'Max Laufzeit von Importskripten (in Minuten): Zeit, die ein Importskript (Applikationsdaten, Bereichs-/IP-Daten, Logdaten) laufen darf, bevor es abgebrochen wird. Verhindert, dass ein h&auml;ngendes Skript den Import dauerhaft blockiert.');
+INSERT INTO txt VALUES ('H5453a', 'English', 'Max runtime of import scripts (in minutes): Time an import script (application data, area/ip data, log data) may run before it is stopped. Prevents a stuck script from blocking its import permanently.');
 INSERT INTO txt VALUES ('H5454', 'German',  'Regel-Eigent&uuml;merschaftsmodus: (Gemischt/Exklusiv) Wird z. Zt. nicht genutzt.');
 INSERT INTO txt VALUES ('H5454', 'English', 'Rule Ownership Mode: (Mixed/Exclusive) Currently not in use.');
 INSERT INTO txt VALUES ('H5455', 'German',  'Verf&uuml;gbare Reporttypen: Es kann ausgew&auml;hlt werden, welche der technisch vorhandenen Reporttypen zur Verwendung in der Oberfl&auml;che angeboten werden sollen. Die Liste der angebotenen Reporttypen beim Nutzer kann je nach Rolle weiter verk&uuml;rzt sein.');

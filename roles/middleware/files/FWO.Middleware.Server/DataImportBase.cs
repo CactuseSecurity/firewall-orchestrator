@@ -15,7 +15,7 @@ namespace FWO.Middleware.Server
     /// </summary>
     public class DataImportBase
     {
-        private static readonly TimeSpan kDefaultImportScriptTimeout = TimeSpan.FromMinutes(30);
+        private static readonly TimeSpan kDefaultImportScriptTimeout = TimeSpan.FromMinutes(60);
         private static readonly TimeSpan kStoppedScriptOutputTimeout = TimeSpan.FromSeconds(10);
 
         // Severity markers of the log format the customizing scripts use (see get_logger in
@@ -39,11 +39,16 @@ namespace FWO.Middleware.Server
         protected string importFile { get; set; } = "";
 
         /// <summary>
-        /// Time an import script may run before it is stopped. A script which waits for input it
-        /// can never get - a git credential prompt for instance - would otherwise keep the calling
-        /// scheduler job blocked until the middleware is restarted.
+        /// Time an import script may run before it is stopped, configurable as importScriptTimeout
+        /// (in minutes). A script which waits for input it can never get - a git credential prompt
+        /// for instance - would otherwise keep the calling scheduler job blocked until the
+        /// middleware is restarted. An installation with a legitimately long running script raises
+        /// the setting; a value below one minute falls back to the default, so a misconfiguration
+        /// cannot stop every script right after it was started.
         /// </summary>
-        protected virtual TimeSpan ImportScriptTimeout => kDefaultImportScriptTimeout;
+        protected virtual TimeSpan ImportScriptTimeout => globalConfig.ImportScriptTimeout >= 1
+            ? TimeSpan.FromMinutes(globalConfig.ImportScriptTimeout)
+            : kDefaultImportScriptTimeout;
 
 
         /// <summary>

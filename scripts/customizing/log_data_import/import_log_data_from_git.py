@@ -154,13 +154,26 @@ def normalize_log_time(value: str) -> str:
 
 def write_import_file(entries: list[LogDataEntry], csv_files: list[Path], repository_directory: Path) -> None:
     import_time: str = datetime.now(timezone.utc).isoformat()
-    OUTPUT_FILE.write_text(json.dumps({"import_time": import_time, "logs": entries}, indent=2), encoding="utf-8")
+    write_json_file(OUTPUT_FILE, {"import_time": import_time, "logs": entries})
     relative_files: list[str] = [str(csv_file.relative_to(repository_directory)) for csv_file in csv_files]
     manifest: dict[str, object] = {"csv_files": relative_files, REUSES_KEY: 0, ACKNOWLEDGE_FAILURES_KEY: 0}
-    MANIFEST_FILE.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    write_json_file(MANIFEST_FILE, manifest)
 
 
-def reuse_pending_import(logger: logging.Logger) -> int:
+def write_json_file(target_file: Path, content: dict[str, object]) -> None:
+    """
+    Write a JSON file so it is either complete or unchanged.
+
+    The generated import and its manifest are read by the following run and by the middleware. A
+    run stopped in the middle of a write - by the import script timeout or a full disk - would
+    otherwise leave a truncated file behind which no later run can read.
+    """
+    temporary_file: Path = target_file.with_name(f"{target_file.name}.tmp")
+    temporary_file.write_text(json.dumps(content, indent=2), encoding="utf-8")
+    temporary_file.replace(target_file)
+
+
+def reuse_pending_import(manifest: dict[str, object], logger: logging.Logger) -> int:
     """
     Handle an import whose data was not acknowledged yet.
 
@@ -170,10 +183,9 @@ def reuse_pending_import(logger: logging.Logger) -> int:
     would stall the pending import forever, also after the repository became writable again.
     Reuses are counted so a persistent failure can be told apart from a temporary one.
     """
-    manifest: dict[str, object] = read_manifest()
     reuses: int = read_reuses(manifest) + 1
     manifest[REUSES_KEY] = reuses
-    MANIFEST_FILE.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    write_json_file(MANIFEST_FILE, manifest)
     if reuses > MAX_PENDING_REUSES:
         logger.error(
             "log data of %s was not acknowledged in %s runs; no new log data is imported until %s",
@@ -221,7 +233,7 @@ def record_failed_acknowledgement(manifest: dict[str, object]) -> None:
     acknowledgement leaves its trace here for describe_pending_cause.
     """
     manifest[ACKNOWLEDGE_FAILURES_KEY] = read_counter(manifest, ACKNOWLEDGE_FAILURES_KEY) + 1
-    MANIFEST_FILE.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    write_json_file(MANIFEST_FILE, manifest)
 
 
 def report_failed_acknowledgement(manifest: dict[str, object], logger: logging.Logger) -> None:
@@ -255,12 +267,55 @@ def read_manifest() -> dict[str, object]:
     return cast("dict[str, object]", manifest_data)
 
 
+def read_usable_manifest(logger: logging.Logger) -> dict[str, object] | None:
+    """
+    Read the manifest, reporting an unusable one instead of raising.
+
+    A manifest which cannot be read decides nothing any more, and raising on it would repeat the
+    same traceback in every run - exactly the permanent stall the reuse handling exists to prevent.
+    It is therefore reported and dropped, so the next run starts a fresh import.
+    """
+    try:
+        return read_manifest()
+    except (OSError, ValueError, TypeError):
+        logger.exception("log data import manifest %s cannot be read", MANIFEST_FILE)
+        return None
+
+
+def read_csv_file_names(manifest: dict[str, object], logger: logging.Logger) -> list[str] | None:
+    """Read the CSV files whose deletion has to be pushed, None when the manifest cannot name them."""
+    csv_file_names: object = manifest.get("csv_files", [])
+    if not isinstance(csv_file_names, list) or not all(
+        isinstance(file_name, str) for file_name in cast("list[object]", csv_file_names)
+    ):
+        logger.error("log data import manifest %s does not contain a list of CSV file names", MANIFEST_FILE)
+        return None
+    return cast("list[str]", csv_file_names)
+
+
+def discard_unusable_import(logger: logging.Logger) -> None:
+    """
+    Drop a pending import which cannot be processed any more.
+
+    Both files are written together, so an unreadable manifest makes the generated import file
+    worthless as well. Dropping them costs at most one repeated import of the CSV files still in
+    the repository - repeated flows are merged with the stored ones - while keeping them would
+    block every following run.
+    """
+    MANIFEST_FILE.unlink(missing_ok=True)
+    OUTPUT_FILE.unlink(missing_ok=True)
+    logger.warning("dropped the pending log data import; the log data repository is read again in the next run")
+
+
 def import_data(config_file: str, depth: int | None, logger: logging.Logger) -> int:
     repository_directory: Path = Path(
         get_optional_value(config_file, "logDataGitRepoTargetDir", DEFAULT_REPOSITORY_DIRECTORY, logger)
     )
     if MANIFEST_FILE.exists() and OUTPUT_FILE.exists():
-        return reuse_pending_import(logger)
+        pending_manifest: dict[str, object] | None = read_usable_manifest(logger)
+        if pending_manifest is not None:
+            return reuse_pending_import(pending_manifest, logger)
+        discard_unusable_import(logger)
 
     git_repo: str = read_custom_config(config_file, "logDataGitRepo", logger=logger)
     git_user: str = read_custom_config(config_file, "logDataGitUser", logger=logger)
@@ -290,14 +345,13 @@ def acknowledge_import(config_file: str, logger: logging.Logger) -> int:
     if not MANIFEST_FILE.exists():
         logger.warning("no log data import manifest found; nothing to acknowledge")
         return 0
-    manifest: dict[str, object] = read_manifest()
-    csv_file_names: object = manifest.get("csv_files", [])
-    if not isinstance(csv_file_names, list):
-        raise TypeError("Log data import manifest must contain a list of CSV file names")
-    untyped_csv_file_names: list[object] = cast("list[object]", csv_file_names)
-    if not all(isinstance(file_name, str) for file_name in untyped_csv_file_names):
-        raise ValueError("Log data import manifest must contain a list of CSV file names")
-    valid_csv_file_names: list[str] = [cast("str", file_name) for file_name in untyped_csv_file_names]
+    manifest: dict[str, object] | None = read_usable_manifest(logger)
+    valid_csv_file_names: list[str] | None = None if manifest is None else read_csv_file_names(manifest, logger)
+    if manifest is None or valid_csv_file_names is None:
+        # without the manifest the acknowledgement does not know what to delete. The data was
+        # imported already, so the pending import is dropped and reported instead of retried
+        discard_unusable_import(logger)
+        return 1
     csv_files: list[Path] = [repository_directory / file_name for file_name in valid_csv_file_names]
     git_user: str = read_custom_config(config_file, "logDataGitUser", logger=logger)
     git_password: str = read_custom_config(config_file, "logDataGitPassword", logger=logger)

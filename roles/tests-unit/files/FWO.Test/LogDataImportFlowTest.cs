@@ -45,7 +45,7 @@ namespace FWO.Test
             LogDataImport import = CreateImport(apiConnection, replaceExisting: true);
             List<LogDataImportEntry> sourceEntries = [NewSourceEntry("APP-1", 30, "not an address", "198.51.100.1")];
 
-            bool sourceConsumed = await InvokeSaveEntries(import, sourceEntries);
+            await InvokeSaveEntries(import, sourceEntries);
 
             Assert.Multiple(() =>
             {
@@ -53,7 +53,6 @@ namespace FWO.Test
                     "the source is the current truth about its applications, also without importable entries");
                 Assert.That(apiConnection.InsertedEntries, Is.Empty);
                 Assert.That(apiConnection.CompletedImports, Is.EqualTo(new List<bool> { true }));
-                Assert.That(sourceConsumed, Is.False, "the source files are still kept for a second attempt");
                 Assert.That(apiConnection.LogEntryDescriptions, Has.Some.Contains("was removed"));
             });
         }
@@ -285,26 +284,56 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task SaveEntries_ReportsThatNothingCouldBeImported()
+        public async Task SaveEntries_WritesTheEntriesOfAnUnimportableSourceToTheLog()
         {
             LogDataImportTestApiConn apiConnection = new();
             LogDataImport import = CreateImport(apiConnection);
             List<LogDataImportEntry> sourceEntries = [NewSourceEntry("UNKNOWN", 30, "192.0.2.1", "198.51.100.1")];
+            TextWriter originalConsoleOut = Console.Out;
+            using StringWriter logOutput = new();
+            Console.SetOut(logOutput);
+            try
+            {
+                await InvokeSaveEntries(import, sourceEntries);
+            }
+            finally
+            {
+                Console.SetOut(originalConsoleOut);
+            }
 
-            bool sourceConsumed = await InvokeSaveEntries(import, sourceEntries);
-
-            Assert.That(sourceConsumed, Is.False, "the source files are kept for a second attempt");
+            string writtenLog = logOutput.ToString();
+            Assert.Multiple(() =>
+            {
+                Assert.That(writtenLog, Does.Contain("None of the 1 entries"),
+                    "the source is removed, so its entries have to be readable in the log afterwards");
+                Assert.That(writtenLog, Does.Contain("\"app_id\":\"UNKNOWN\""));
+                Assert.That(writtenLog, Does.Contain("\"source\":\"192.0.2.1\""));
+                Assert.That(apiConnection.LogEntryDescriptions, Has.Some.Contains("are written to the log"));
+            });
         }
 
         [Test]
-        public async Task SaveEntries_ConsumesAnEmptySource()
+        public async Task SaveEntries_LogsNoEntriesOfAnEmptySource()
         {
             LogDataImportTestApiConn apiConnection = new();
             LogDataImport import = CreateImport(apiConnection);
+            TextWriter originalConsoleOut = Console.Out;
+            using StringWriter logOutput = new();
+            Console.SetOut(logOutput);
+            try
+            {
+                await InvokeSaveEntries(import, []);
+            }
+            finally
+            {
+                Console.SetOut(originalConsoleOut);
+            }
 
-            bool sourceConsumed = await InvokeSaveEntries(import, []);
-
-            Assert.That(sourceConsumed, Is.True, "a source without entries has nothing left to import");
+            Assert.Multiple(() =>
+            {
+                Assert.That(logOutput.ToString(), Does.Not.Contain("could be imported"));
+                Assert.That(apiConnection.LogEntryDescriptions, Has.Some.Contains("No log entries found"));
+            });
         }
 
         [Test]
@@ -500,7 +529,7 @@ namespace FWO.Test
             };
         }
 
-        private static async Task<bool> InvokeSaveEntries(LogDataImport import, List<LogDataImportEntry> sourceEntries,
+        private static async Task InvokeSaveEntries(LogDataImport import, List<LogDataImportEntry> sourceEntries,
             DateTimeOffset? importTime = null)
         {
             MethodInfo method = typeof(LogDataImport).GetMethod("SaveEntries", BindingFlags.NonPublic | BindingFlags.Instance)
@@ -511,7 +540,7 @@ namespace FWO.Test
                 "/usr/local/fworch/scripts/customizing/log_data_import/source",
                 importTime ?? DateTimeOffset.UtcNow
             ];
-            return await (Task<bool>)method.Invoke(import, arguments)!;
+            await (Task)method.Invoke(import, arguments)!;
         }
 
         private static async Task InvokeAcknowledgeImport(LogDataImport import, string scriptPath,

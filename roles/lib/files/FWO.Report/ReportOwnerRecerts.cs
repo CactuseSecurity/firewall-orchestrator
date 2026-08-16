@@ -296,7 +296,7 @@ namespace FWO.Report
             report.AppendLine("</tr>");
         }
 
-        private bool HasOwnerAdditionalInfoColumn(AddInfoFilter ownerAddInfoFilter)
+        private static bool HasOwnerAdditionalInfoColumn(AddInfoFilter ownerAddInfoFilter)
         {
             return !string.IsNullOrWhiteSpace(ownerAddInfoFilter.Name);
         }
@@ -331,7 +331,7 @@ namespace FWO.Report
             return $"{userConfig.GetText("add_info")}: {ownerAddInfoFilter.Name}";
         }
 
-        private string GetOwnerAdditionalInfoValue(FwoOwner owner, AddInfoFilter ownerAddInfoFilter)
+        private static string GetOwnerAdditionalInfoValue(FwoOwner owner, AddInfoFilter ownerAddInfoFilter)
         {
             return OwnerRecertDisplay.FormatAdditionalInfoValue(owner, ownerAddInfoFilter.Name);
         }

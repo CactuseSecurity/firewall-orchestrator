@@ -10,12 +10,17 @@ namespace FWO.Report
 {
     public abstract class ReportOwnersBase : ReportBase
     {
+        private static readonly JsonSerializerOptions kIndentedJsonSerializerOptions = new()
+        {
+            WriteIndented = true
+        };
+
         protected ReportOwnersBase(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType)
         { }
 
         public override string ExportToJson()
         {
-            return JsonSerializer.Serialize(GetDisplayedOwnerData(), new JsonSerializerOptions { WriteIndented = true });
+            return JsonSerializer.Serialize(GetDisplayedOwnerData(), kIndentedJsonSerializerOptions);
         }
 
         public override string ExportToCsv()

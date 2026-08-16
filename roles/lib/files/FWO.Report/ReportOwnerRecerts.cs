@@ -336,7 +336,7 @@ namespace FWO.Report
             return OwnerRecertDisplay.FormatAdditionalInfoValue(owner, ownerAddInfoFilter.Name);
         }
 
-        private string FormatOwnerAdditionalInfoValueHtml(FwoOwner owner, AddInfoFilter ownerAddInfoFilter)
+        private static string FormatOwnerAdditionalInfoValueHtml(FwoOwner owner, AddInfoFilter ownerAddInfoFilter)
         {
             string value = GetOwnerAdditionalInfoValue(owner, ownerAddInfoFilter);
             return OwnerRecertDisplay.TryParseBooleanValue(value, out bool boolValue)

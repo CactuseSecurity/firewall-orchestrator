@@ -68,7 +68,7 @@
     }
 
 
-    private async Task RollbackSingleImport(int mgm, long importId)
+    private async Task RollbackSingleImport(long importId)
     {
         await RollbackImports(new List<long> { importId });
     }
@@ -82,7 +82,7 @@
             var variablesRollback = new { importIds = importIds };
             var ReturnId = await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.rollbackImport, variablesRollback);
 
-            Log.WriteDebug("Delete Import", $"rolled back {importIds.Count} import(s) of mangement with ID {ManagementId}");
+            Log.WriteDebug("Delete Import", $"rolled back {importIds.Count} import(s) of management with ID {ManagementId}");
             workInProgress = false;
         }
         catch (System.Exception exception)
@@ -112,7 +112,7 @@
                 long? lastImportId = importList[0].ControlId;
                 if (lastImportId != null)
                 {
-                    await RollbackSingleImport(ManagementId, (long)lastImportId);
+                    await RollbackSingleImport((long)lastImportId);
                     DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);            
                 }
             }
@@ -157,7 +157,7 @@
                             await RollbackImports(importIds);
                         }
 
-                        Log.WriteDebug("Delete Import", $"rolled back all imports of mangement with ID {ManagementId}");
+                        Log.WriteDebug("Delete Import", $"rolled back all imports of management with ID {ManagementId}");
                         workInProgress = false;
                         DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);
                     }

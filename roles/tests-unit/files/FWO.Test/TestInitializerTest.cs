@@ -5,6 +5,12 @@ namespace FWO.Test
     [TestFixture]
     internal class TestInitializerTest
     {
+        /// <summary>
+        /// Verifies that only ordinary unit-test runs receive the synthetic config file.
+        /// </summary>
+        /// <param name="configuredConfigPath">The explicitly configured FWO config path.</param>
+        /// <param name="runIntegrationTests">The integration-test opt-in value.</param>
+        /// <param name="expected">Whether the synthetic config should be created.</param>
         [TestCase(null, null, true)]
         [TestCase("", "false", true)]
         [TestCase("/tmp/fworch.json", null, false)]

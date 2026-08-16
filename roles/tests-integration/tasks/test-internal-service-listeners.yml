@@ -17,55 +17,40 @@
       instead of '{{ postgresql_listening_addresses }}'.
   when: "'databaseserver' in group_names"
 
-- name: PostgreSQL must accept both loopback address families on single-host installations
+- name: PostgreSQL must accept every configured loopback address family
   wait_for:
     host: "{{ item }}"
     port: "{{ fworch_db_port }}"
     timeout: 5
-  loop:
-    - "{{ api_local_listening_ip_address }}"
-    - "::1"
+  loop: "{{ postgresql_listening_addresses | split(',') }}"
   when:
     - "'databaseserver' in group_names"
     - not (distributed_install | default(false) | bool)
 
-- name: Determine the expected LDAP listener configuration
-  set_fact:
-    expected_openldap_server_services: >-
-      {{
-        ("ldap://" ~ openldap_server ~ "/ ldaps:///"
-          if openldap_server_enable_ssl else "ldap://" ~ openldap_server ~ "/")
-        if distributed_install | default(false) | bool
-        else
-        ("ldap://127.0.0.1/ ldap://[::1]/ ldaps://127.0.0.1/ ldaps://[::1]/"
-          if openldap_server_enable_ssl else "ldap://127.0.0.1/ ldap://[::1]/")
-      }}
-  when: "'middlewareserver' in group_names"
-
+# Asserted against openldap_server_services itself, which is why that variable lives
+# in group_vars rather than the openldap-server role defaults. Re-deriving the string
+# here would only prove that two copies of the same expression agree with each other.
 - name: Verify the active LDAP listener configuration
   command:
     argv:
       - grep
       - --fixed-strings
       - --line-regexp
-      - 'SLAPD_SERVICES="{{ expected_openldap_server_services }}"'
+      - 'SLAPD_SERVICES="{{ openldap_server_services }}"'
       - "{{ openldap_service_defaults_file }}"
   register: openldap_listener_configuration
   changed_when: false
   become: true
   when: "'middlewareserver' in group_names"
 
-- name: Internal LDAP must accept both loopback address families on single-host installations
+# Derived from the listener URLs themselves rather than a restated host/port matrix,
+# so a host without an IPv6 loopback is not asked to answer on [::1].
+- name: Internal LDAP must accept every configured loopback listener
   wait_for:
-    host: "{{ item.0 }}"
-    port: "{{ item.1 }}"
+    host: "{{ item | regex_replace('^ldaps?://\\[?([^]/]+)\\]?/$', '\\1') }}"
+    port: "{{ openldap_tls_listener_port if item.startswith('ldaps://') else openldap_plain_listener_port }}"
     timeout: 5
-  loop: >-
-    {{
-      [api_local_listening_ip_address, '::1']
-      | product([389] + ([636] if openldap_server_enable_ssl else []))
-      | list
-    }}
+  loop: "{{ openldap_server_services | split }}"
   when:
     - "'middlewareserver' in group_names"
     - not (distributed_install | default(false) | bool)

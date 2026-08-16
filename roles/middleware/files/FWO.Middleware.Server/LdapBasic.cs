@@ -1,4 +1,5 @@
 using FWO.Basics.Exceptions;
+using FWO.Config.File;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Encryption;
@@ -18,6 +19,7 @@ namespace FWO.Middleware.Server
         // The following properties are retrieved from the database api:
         // ldap_server ldap_port ldap_search_user ldap_tls ldap_tenant_level ldap_connection_id ldap_search_user_pwd ldap_searchpath_for_users ldap_searchpath_for_roles    
         private const int timeOutInMs = 3000;
+        private const string LdapTlsLogCategory = "LdapTls";
 
         // some ldap keywords
         private readonly string UniqueMember = "uniqueMember";
@@ -49,7 +51,11 @@ namespace FWO.Middleware.Server
             try
             {
                 LdapConnectionOptions ldapOptions = new();
-                if (Tls) ldapOptions.ConfigureRemoteCertificateValidationCallback((object sen, X509Certificate? cer, X509Chain? cha, SslPolicyErrors err) => true); // todo: allow real cert validation     
+                if (Tls)
+                {
+                    ldapOptions.ConfigureRemoteCertificateValidationCallback(
+                        (object sen, X509Certificate? cer, X509Chain? cha, SslPolicyErrors err) => ValidateLdapServerCertificate(cer, cha, err));
+                }
                 LdapConnection connection = new(ldapOptions) { SecureSocketLayer = Tls, ConnectionTimeout = timeOutInMs };
                 await connection.ConnectAsync(Address, Port);
 
@@ -60,6 +66,77 @@ namespace FWO.Middleware.Server
             {
                 Log.WriteDebug($"Could not connect to LDAP server {Address}:{Port}: ", exception.Message);
                 throw new LdapConnectionException($"Error while trying to reach LDAP server {Address}:{Port}", exception);
+            }
+        }
+
+        /// <summary>
+        /// Validates the certificate presented by an LDAP server over TLS.
+        /// </summary>
+        /// <remarks>
+        /// Accepts a certificate the platform already trusts, which covers an external
+        /// directory using a public or enterprise CA, and additionally accepts one issued
+        /// by FWO's own internal CA. Everything else is rejected: this connection carries
+        /// the search user's password and the credentials of every user who logs in.
+        /// Previously every certificate was accepted unconditionally.
+        /// </remarks>
+        /// <param name="certificate">The certificate presented by the LDAP server.</param>
+        /// <param name="chain">The chain supplied by the TLS stack.</param>
+        /// <param name="sslPolicyErrors">Platform TLS validation errors.</param>
+        /// <returns>True when the certificate is trusted for this connection.</returns>
+        private bool ValidateLdapServerCertificate(X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)
+        {
+            if (sslPolicyErrors == SslPolicyErrors.None)
+            {
+                return true;
+            }
+            if (certificate == null || sslPolicyErrors.HasFlag(SslPolicyErrors.RemoteCertificateNameMismatch))
+            {
+                Log.WriteWarning(LdapTlsLogCategory,
+                    $"Rejected the certificate of LDAP server {Address}:{Port}: {sslPolicyErrors}.");
+                return false;
+            }
+            if (ChainsToInternalCertificateAuthority(certificate, chain))
+            {
+                return true;
+            }
+            Log.WriteWarning(LdapTlsLogCategory,
+                $"Rejected the certificate of LDAP server {Address}:{Port}: {sslPolicyErrors}. " +
+                "It is neither trusted by this host nor issued by the FWO internal CA. " +
+                "Add the issuing CA to the host trust store to use this server over TLS.");
+            return false;
+        }
+
+        /// <summary>
+        /// Builds the presented chain against FWO's internal CA alone.
+        /// </summary>
+        /// <param name="certificate">The certificate presented by the LDAP server.</param>
+        /// <param name="chain">The chain supplied by the TLS stack, used for intermediates.</param>
+        /// <returns>True when the internal CA issued the certificate.</returns>
+        private static bool ChainsToInternalCertificateAuthority(X509Certificate certificate, X509Chain? chain)
+        {
+            try
+            {
+                using X509Certificate2 trustAnchor = X509CertificateLoader.LoadCertificateFromFile(ConfigFile.TlsCaCertificate);
+                using X509Certificate2 serverCertificate = new(certificate);
+                using X509Chain pinnedChain = new();
+                pinnedChain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+                pinnedChain.ChainPolicy.CustomTrustStore.Add(trustAnchor);
+                if (chain != null)
+                {
+                    foreach (X509ChainElement element in chain.ChainElements)
+                    {
+                        pinnedChain.ChainPolicy.ExtraStore.Add(element.Certificate);
+                    }
+                }
+                pinnedChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+                return pinnedChain.Build(serverCertificate);
+            }
+            catch (Exception exception)
+            {
+                // An unreadable or unconfigured trust anchor only means this particular
+                // route to acceptance is unavailable; the platform result already stands.
+                Log.WriteDebug(LdapTlsLogCategory, $"Could not check the LDAP certificate against the internal CA: {exception.Message}");
+                return false;
             }
         }
 

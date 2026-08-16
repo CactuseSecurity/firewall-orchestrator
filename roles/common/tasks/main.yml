@@ -51,6 +51,40 @@
           development or test environments.
       when: testkeys | default(false) | bool
 
+    # PostgreSQL and slapd are bound to loopback unless distributed_install is set,
+    # and those listener settings are rewritten on every run, upgrades included. On an
+    # inventory that spreads FWO over several hosts that would silently cut the
+    # components off from each other - and for an upgrade, take a working
+    # installation down - so treat the combination as the misconfiguration it is
+    # rather than narrowing the listeners and finding out afterwards.
+    - name: collect the hosts this installation is spread over
+      set_fact:
+        fworch_inventory_hosts: >-
+          {{
+            ['databaseserver', 'apiserver', 'middlewareserver', 'frontends', 'importers']
+            | map('extract', groups)
+            | select('defined')
+            | flatten
+            | unique
+          }}
+
+    - name: fail when a multi host inventory would be narrowed to loopback
+      fail:
+        msg: >-
+          This inventory spreads {{ product_name }} over
+          {{ fworch_inventory_hosts | length }} hosts
+          ({{ fworch_inventory_hosts | join(', ') }}), but distributed_install is
+          false. The database and LDAP listeners would be bound to loopback only and
+          the components could not reach each other.
+          {{
+            'This is an upgrade, so that would take a working installation down.'
+            if installation_mode == 'upgrade' else ''
+          }}
+          Set distributed_install=true for a multi host installation.
+      when:
+        - fworch_inventory_hosts | length > 1
+        - not (distributed_install | default(false) | bool)
+
     - name: fail if already installed and installation_mode is new
       fail:
         msg: "Found existing installation but running with installation_mode set to {{ installation_mode }}. If you want to upgrade, use 'installation_mode=upgrade'."

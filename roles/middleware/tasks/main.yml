@@ -105,8 +105,8 @@
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
-    validate_certs: "{{ openldap_server_enable_ssl | ternary(false, omit) }}"
-    ca_path: "{{ openldap_server_enable_ssl | ternary(openldap_server_cert, omit) }}"
+    validate_certs: "{{ ldap_verify_certs }}"
+    ca_path: "{{ ldap_module_ca_path }}"
   become: true
   when: installation_mode == 'new'
   no_log: true
@@ -132,8 +132,8 @@
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
-    validate_certs: "{{ openldap_server_enable_ssl | ternary(false, omit) }}"
-    ca_path: "{{ openldap_server_enable_ssl | ternary(openldap_server_cert, omit) }}"
+    validate_certs: "{{ ldap_verify_certs }}"
+    ca_path: "{{ ldap_module_ca_path }}"
   become: true
   when: installation_mode == 'new'
   no_log: true
@@ -145,8 +145,8 @@
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
-    validate_certs: "{{ openldap_server_enable_ssl | ternary(false, omit) }}"
-    ca_path: "{{ openldap_server_enable_ssl | ternary(openldap_server_cert, omit) }}"
+    validate_certs: "{{ ldap_verify_certs }}"
+    ca_path: "{{ ldap_module_ca_path }}"
   become: true
   when: installation_mode == "new"
   no_log: true
@@ -158,8 +158,8 @@
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
-    validate_certs: "{{ openldap_server_enable_ssl | ternary(false, omit) }}"
-    ca_path: "{{ openldap_server_enable_ssl | ternary(openldap_server_cert, omit) }}"
+    validate_certs: "{{ ldap_verify_certs }}"
+    ca_path: "{{ ldap_module_ca_path }}"
   become: true
   when: installation_mode == "new"
   no_log: true
@@ -171,8 +171,8 @@
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
-    validate_certs: "{{ openldap_server_enable_ssl | ternary(false, omit) }}"
-    ca_path: "{{ openldap_server_enable_ssl | ternary(openldap_server_cert, omit) }}"
+    validate_certs: "{{ ldap_verify_certs }}"
+    ca_path: "{{ ldap_module_ca_path }}"
   become: true
   when: audit_user is defined and auditor_initial_pwd is defined and installation_mode=='new'
   no_log: true

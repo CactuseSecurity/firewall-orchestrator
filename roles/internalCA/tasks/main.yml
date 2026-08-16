@@ -1,4 +1,17 @@
 ---
+# community.crypto needs the cryptography python library on the target, and this
+# role runs on every host - including importer- and database-only nodes, which no
+# other role installs it for. It also has to be present before the first
+# community.crypto task rather than in a later play, because certificates are
+# issued here.
+- name: Install the python library community.crypto needs
+  package:
+    name: "{{ internalca_crypto_packages }}"
+    state: present
+  become: true
+  environment: "{{ proxy_env }}"
+  when: internalca_enabled | bool
+
 - name: Create internal CA on the designated issuer host
   include_tasks: create-ca.yml
   when:

@@ -163,10 +163,21 @@ dbadmin_password_file: "{{ fworch_secrets_dir }}/dbadmin_pwd"
 fworch_db_password_file: "{{ fworch_secrets_dir }}/fworch_db_pwd"
 api_user: fwo_api
 api_user_password_file: "{{ fworch_secrets_dir }}/api_db_pwd"
+# Loopback literals, so the listener settings below and the integration test that
+# checks them do not each hardcode their own copy.
+ipv4_loopback_address: "127.0.0.1"
+ipv6_loopback_address: "::1"
+# Whether this host actually has an IPv6 loopback. Binding [::1] explicitly is fatal
+# for slapd and logged as an error by PostgreSQL on hosts booted with ipv6.disable=1,
+# and the wildcard listener forms these settings replaced used to hide that by
+# silently degrading to IPv4.
+ipv6_loopback_available: "{{ ipv6_loopback_address in (ansible_facts['all_ipv6_addresses'] | default([])) }}"
+
 postgresql_listening_addresses: >-
   {{ api_network_listening_ip_address ~ ',' ~ api_local_listening_ip_address
      if distributed_install | default(false) | bool
-     else api_local_listening_ip_address ~ ',::1' }}
+     else ([api_local_listening_ip_address]
+           + ([ipv6_loopback_address] if ipv6_loopback_available | bool else [])) | join(',') }}
 
 ###############################################################
 ### api
@@ -197,6 +208,34 @@ ldif_changetype: add
 middleware_service_name: "{{ product_name }}-middleware"
 openldap_server_enable_ssl: true
 
+# slapd listener URLs. Global rather than an openldap-server role default because the
+# integration test asserts the deployed value against it - re-deriving the string
+# there would only test that two copies of the same expression agree.
+#
+# slapd treats a failed bind as fatal (-h takes the whole list), so [::1] is listed
+# only where it can actually be bound. A single-host installation stays on loopback;
+# a distributed one keeps the wildcard ldaps:/// form.
+openldap_loopback_listeners: >-
+  {{
+    (['ldap://' ~ ipv4_loopback_address ~ '/']
+     + (['ldap://[' ~ ipv6_loopback_address ~ ']/'] if ipv6_loopback_available | bool else [])
+     + ((['ldaps://' ~ ipv4_loopback_address ~ '/']
+         + (['ldaps://[' ~ ipv6_loopback_address ~ ']/'] if ipv6_loopback_available | bool else []))
+        if openldap_server_enable_ssl else [])
+    ) | join(' ')
+  }}
+openldap_server_services: >-
+  {{
+    ("ldap://" ~ openldap_server ~ "/ ldaps:///"
+      if openldap_server_enable_ssl else "ldap://" ~ openldap_server ~ "/")
+    if distributed_install | default(false) | bool
+    else openldap_loopback_listeners
+  }}
+# The listener URLs above carry no port, so slapd uses the protocol defaults. Named
+# here so the integration test does not have to restate the numbers.
+openldap_plain_listener_port: 389
+openldap_tls_listener_port: 636
+
 # TLS options for the ldapsearch/ldapmodify command line calls made by the
 # middleware, sample-data, sample-auth-data, openldap-server and tests-integration
 # roles. These options override /etc/ldap/ldap.conf, so leaving them at
@@ -216,6 +255,17 @@ ldap_tls_opts: >-
   -o TLS_REQCERT=never{% if openldap_server_cert is defined %} -o TLS_CACERT={{ openldap_server_cert }}{% endif %}
   {%- endif -%}
   {%- endif %}
+
+# The same decision for the Ansible ldap_* modules, which take it as parameters
+# rather than command line options. These carry the Manager bind password, so an
+# unverified channel here hands it to anything that can answer on the LDAP port.
+# ldap_verify_certs is false only where verification cannot work: TLS off,
+# internalca disabled, or an upgrade that retained a customer-managed certificate.
+ldap_verify_certs: >-
+  {{ openldap_server_enable_ssl | default(false) | bool
+     and internalca_enabled | default(true) | bool
+     and not (internalca_preserve_ldap_certificate | default(false) | bool) }}
+ldap_module_ca_path: "{{ internalca_ca_certificate_local if ldap_verify_certs | bool else omit }}"
 
 # middleware web server
 middleware_web_listener_port: 8888

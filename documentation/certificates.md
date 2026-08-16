@@ -28,8 +28,19 @@ running `ldapsearch` by hand verifies the connection. The installer's own
 `ldap_tls_opts`, defined once in `inventory/group_vars/all.yml`. Verification is
 relaxed to `never` only where it cannot work: when `internalca_enabled` is false,
 or when an upgrade retained a customer-managed OpenLDAP certificate whose issuer
-this installation does not know. The middleware service itself does not use
-libldap and validates separately.
+this installation does not know. The Ansible `ldap_*` modules take the same decision
+through `ldap_verify_certs` and `ldap_module_ca_path`, since those tasks carry the
+Manager bind password.
+
+The middleware service does not use libldap, so it validates separately, and from
+9.5.0 it does validate: an LDAP server certificate is accepted when the host already
+trusts it, or when it was issued by the FWO internal CA, and is rejected otherwise.
+Earlier versions accepted every certificate. **This can affect an existing external
+directory**: if your AD or LDAP server presents a self-signed certificate, or one
+from a CA the middleware host does not trust, authentication against it will now
+fail with a rejection logged under `LdapTls`. Install the issuing CA into the
+middleware host's trust store before upgrading. FWO's own internal OpenLDAP is
+unaffected, since its certificate comes from the internal CA.
 
 The default key algorithm is P-256 EC (`internalca_key_type: ECC`,
 `internalca_key_curve: secp256r1`). For environments with legacy TLS clients,

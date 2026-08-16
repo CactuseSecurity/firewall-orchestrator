@@ -3,6 +3,12 @@
 # inventory/group_vars/all.yml instead, because role defaults are out of scope
 # once a different role runs. No variable belongs in both files.
 
+# Backend for every community.crypto module this role uses. The package name is the
+# same on Debian and RedHat, so this needs no os_family split. pyOpenSSL is not
+# listed: community.crypto 2.0 and later use the cryptography backend only.
+internalca_crypto_packages:
+  - python3-cryptography
+
 # A single CA is retained on the middleware server. Its private key never
 # leaves that host; only the public CA certificate is installed elsewhere.
 internalca_ca_host: "{{ groups['middlewareserver'] | first }}"

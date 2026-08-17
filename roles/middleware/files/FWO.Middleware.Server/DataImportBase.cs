@@ -44,11 +44,23 @@ namespace FWO.Middleware.Server
         /// for instance - would otherwise keep the calling scheduler job blocked until the
         /// middleware is restarted. An installation with a legitimately long running script raises
         /// the setting; a value below one minute falls back to the default, so a misconfiguration
-        /// cannot stop every script right after it was started.
+        /// cannot stop every script right after it was started. A value above
+        /// GlobalConst.kMaxImportScriptTimeoutMinutes is capped there, since the wait is expressed
+        /// in milliseconds as an int and a larger value would make every script run fail.
         /// </summary>
-        protected virtual TimeSpan ImportScriptTimeout => globalConfig.ImportScriptTimeout >= 1
-            ? TimeSpan.FromMinutes(globalConfig.ImportScriptTimeout)
-            : kDefaultImportScriptTimeout;
+        protected virtual TimeSpan ImportScriptTimeout => GetImportScriptTimeout(globalConfig.ImportScriptTimeout);
+
+        /// <summary>
+        /// Turn the configured timeout in minutes into a waitable time span.
+        /// </summary>
+        private static TimeSpan GetImportScriptTimeout(int configuredMinutes)
+        {
+            if (configuredMinutes < 1)
+            {
+                return kDefaultImportScriptTimeout;
+            }
+            return TimeSpan.FromMinutes(Math.Min(configuredMinutes, GlobalConst.kMaxImportScriptTimeoutMinutes));
+        }
 
 
         /// <summary>

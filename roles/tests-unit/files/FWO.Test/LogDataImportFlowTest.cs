@@ -1,6 +1,7 @@
 using System.Reflection;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Config.File;
 using FWO.Data;
 using FWO.Middleware.Server;
@@ -34,6 +35,22 @@ namespace FWO.Test
                 Assert.That(LogDataQueries.deleteLogEntriesOfOwners, Does.Contain("delete_logging_log_entry"));
                 Assert.That(LogDataQueries.deleteLogEntriesOfOwners, Does.Contain("owner_id: {_in: $ownerIds}"));
                 Assert.That(LogDataQueries.deleteLogEntriesOfOwners, Does.Not.Contain("insert_logging_log_entry"));
+            });
+        }
+
+        [Test]
+        public void PendingImportBacklogs_IgnoreTheImportControlRowsOfALogImport()
+        {
+            // a log data import writes an import control row without a management which nothing
+            // ever maps or synchronizes: picked up by these backlogs it would stay in them forever,
+            // fail the incremental rule_owner mapping on an unsupported import type, force a full
+            // reinitialize in every run and disable the NameField rule_owner prefilter
+            Assert.Multiple(() =>
+            {
+                Assert.That(ImportQueries.getPendingRuleOwnerImports, Does.Contain($"import_type_id: {{_in: [{ImportType.RULE}, {ImportType.OWNER}]}}"));
+                Assert.That(FlowQueries.getPendingFlowSyncImports, Does.Contain($"import_type_id: {{ _eq: {ImportType.RULE} }}"));
+                Assert.That(ImportQueries.addImportForLog, Does.Contain("import_type_id: $importTypeId"),
+                    "the log import row is typed, so the backlogs can tell it apart");
             });
         }
 
@@ -309,6 +326,35 @@ namespace FWO.Test
                 Assert.That(writtenLog, Does.Contain("\"app_id\":\"UNKNOWN\""));
                 Assert.That(writtenLog, Does.Contain("\"source\":\"192.0.2.1\""));
                 Assert.That(apiConnection.LogEntryDescriptions, Has.Some.Contains("are written to the log"));
+            });
+        }
+
+        [Test]
+        public async Task SaveEntries_LogsNoMoreUnimportedEntriesThanAnImportWouldHaveKept()
+        {
+            LogDataImportTestApiConn apiConnection = new();
+            LogDataImport import = CreateImport(apiConnection, maxEntries: 2);
+            List<LogDataImportEntry> sourceEntries = [.. Enumerable.Range(1, 120)
+                .Select(entryNumber => NewSourceEntry("UNKNOWN", entryNumber, $"192.0.2.{entryNumber % 250}", "198.51.100.1"))];
+            TextWriter originalConsoleOut = Console.Out;
+            using StringWriter logOutput = new();
+            Console.SetOut(logOutput);
+            try
+            {
+                await InvokeSaveEntries(import, sourceEntries);
+            }
+            finally
+            {
+                Console.SetOut(originalConsoleOut);
+            }
+
+            string writtenLog = logOutput.ToString();
+            Assert.Multiple(() =>
+            {
+                Assert.That(writtenLog, Does.Contain("None of the 120 entries"), "how much was lost is still reported");
+                Assert.That(writtenLog, Does.Contain("its first 2 entries"));
+                Assert.That(writtenLog.Split("\"app_id\"").Length - 1, Is.EqualTo(2),
+                    "a huge export of an unknown application must not flood the log in every run");
             });
         }
 

@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import cast
 from unittest.mock import ANY, Mock, patch
 
 import git
@@ -426,10 +427,11 @@ def test_ensure_committer_identity_keeps_a_configured_one(tmp_path: Path, monkey
 def test_rebase_onto_remote_reports_the_rebase_error_when_there_is_nothing_to_abort() -> None:
     repo_mock: Mock = Mock()
     repo_mock.active_branch.name = "main"
+    repo_mock.git.diff.return_value = ""
     rebase_error = git.GitCommandError("git rebase FETCH_HEAD", 1, b"could not apply the deletion")
     abort_error = git.GitCommandError("git rebase --abort", 128, b"fatal: No rebase in progress?")
 
-    def fail_rebase(*args: str) -> None:
+    def fail_rebase(*args: str, **_: object) -> None:
         raise abort_error if "--abort" in args else rebase_error
 
     repo_mock.git.rebase.side_effect = fail_rebase
@@ -457,3 +459,61 @@ def test_commit_and_push_deletions_replays_onto_a_moved_remote(tmp_path: Path) -
     assert "logs.csv" not in origin.head.commit.tree
     assert "new-export.csv" in origin.head.commit.tree, "the export added meanwhile survives"
     assert clone.head.commit.message.strip() == COMMIT_MESSAGE
+
+
+def append_to_exported_file(tmp_path: Path, file_name: str, line: str) -> None:
+    """Let the exporter write more rows into a file which was already imported."""
+    seed_path: Path = tmp_path / "seed"
+    seed: git.Repo = git.Repo(seed_path)
+    with (seed_path / file_name).open("a", encoding="utf-8") as exported_file:
+        exported_file.write(line)
+    seed.git.add(file_name)
+    seed.index.commit("chore: append more log data")
+    seed.git.push("origin", "HEAD:refs/heads/main")
+
+
+def test_commit_and_push_deletions_keeps_a_file_written_to_after_the_import(tmp_path: Path) -> None:
+    clone_path, _, origin = create_clone_with_origin(tmp_path)
+    append_to_exported_file(tmp_path, "logs.csv", "APP-2,2\n")
+
+    pushed: bool = commit_and_push_deletions(str(clone_path), [clone_path / "logs.csv"], COMMIT_MESSAGE, LOGGER)
+
+    assert pushed, "a deterministic conflict must not stall the acknowledgement forever"
+    assert "logs.csv" in origin.head.commit.tree, "the rows appended after the import are not deleted"
+    log_data: bytes = cast("bytes", origin.head.commit.tree["logs.csv"].data_stream.read())
+    assert "APP-2,2" in log_data.decode("utf-8")
+
+
+def test_commit_and_push_deletions_deletes_the_untouched_files_beside_a_kept_one(tmp_path: Path) -> None:
+    clone_path, _, origin = create_clone_with_origin(tmp_path)
+    seed_path: Path = tmp_path / "seed"
+    seed: git.Repo = git.Repo(seed_path)
+    (seed_path / "second.csv").write_text("App ID,Log count\nAPP-9,9\n", encoding="utf-8")
+    seed.git.add("second.csv")
+    seed.index.commit("chore: add a second export")
+    seed.git.push("origin", "HEAD:refs/heads/main")
+    clone_path_repo: git.Repo = git.Repo(clone_path)
+    clone_path_repo.git.pull("origin", "main")
+    append_to_exported_file(tmp_path, "logs.csv", "APP-2,2\n")
+
+    pushed: bool = commit_and_push_deletions(
+        str(clone_path), [clone_path / "logs.csv", clone_path / "second.csv"], COMMIT_MESSAGE, LOGGER
+    )
+
+    assert pushed
+    assert "logs.csv" in origin.head.commit.tree
+    assert "second.csv" not in origin.head.commit.tree, "a file nobody wrote to is still acknowledged"
+
+
+def test_commit_and_push_deletions_reports_only_the_files_it_removed(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    clone_path, _, _ = create_clone_with_origin(tmp_path)
+    append_to_exported_file(tmp_path, "logs.csv", "APP-2,2\n")
+
+    with caplog.at_level(logging.INFO, logger=LOGGER.name):
+        pushed: bool = commit_and_push_deletions(str(clone_path), [clone_path / "logs.csv"], COMMIT_MESSAGE, LOGGER)
+
+    assert pushed
+    assert "deleted and pushed log data files: none" in caplog.text, "a kept file must not be reported as deleted"
+    assert "keeping logs.csv" in caplog.text

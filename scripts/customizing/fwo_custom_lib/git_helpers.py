@@ -17,6 +17,8 @@ NON_INTERACTIVE_GIT_SETTINGS: dict[str, str] = {
     "GIT_TERMINAL_PROMPT": "0",
     "GIT_CONFIG_PARAMETERS": "'credential.helper='",
     "SSH_ASKPASS_REQUIRE": "never",
+    # continuing a rebase would open an editor for the commit message and wait for it forever
+    "GIT_EDITOR": "true",
 }
 DEFAULT_GIT_SSH_COMMAND: str = "ssh -o BatchMode=yes"
 
@@ -138,11 +140,54 @@ def rebase_onto_remote(repo: Any, logger: logging.Logger, env: dict[str, str]) -
     branch: str = repo.active_branch.name
     repo.git.fetch("origin", branch, env=env)
     try:
-        repo.git.rebase("FETCH_HEAD")
+        repo.git.rebase("FETCH_HEAD", env=env)
     except git.GitCommandError:
+        if keep_files_changed_after_import(repo, logger, env):
+            return
         abort_rebase(repo, logger)
         logger.exception("could not replay the log data deletion onto %s", branch)
         raise
+
+
+def keep_files_changed_after_import(repo: Any, logger: logging.Logger, env: dict[str, str]) -> bool:
+    """
+    Resolve a conflicting deletion by keeping the file the exporter wrote to after it was imported.
+
+    A CSV file which was appended to between cloning and acknowledging conflicts with its own
+    deletion, and that conflict is reproduced by every following run: the pending import is reused
+    instead of cloning again, so nothing about the situation ever changes and no new log data is
+    imported. Deleting the file anyway would lose the rows appended after the import, so the file
+    survives the acknowledgement and is imported again in the next run - a flow reported twice is
+    merged with the stored one. Everything else is still deleted.
+    """
+    try:
+        conflicting_files: list[str] = [
+            file_name for file_name in repo.git.diff("--name-only", "--diff-filter=U").splitlines() if file_name
+        ]
+        if not conflicting_files:
+            return False
+
+        for file_name in conflicting_files:
+            # inside a rebase 'ours' is the fetched state of the log data repository
+            repo.git.checkout("--ours", "--", file_name)
+            repo.git.add("--", file_name)
+        logger.warning(
+            "keeping %s: changed in the log data repository after it was imported, it is imported again next run",
+            ", ".join(conflicting_files),
+        )
+        continue_rebase(repo, env)
+        return True
+    except git.GitCommandError:
+        logger.exception("could not keep the log data files which changed after they were imported")
+        return False
+
+
+def continue_rebase(repo: Any, env: dict[str, str]) -> None:
+    """Finish a rebase whose conflicts were resolved, skipping a deletion nothing is left of."""
+    if repo.git.diff("--cached", "--name-only", "HEAD").strip():
+        repo.git.rebase("--continue", env=env)
+        return
+    repo.git.rebase("--skip", env=env)
 
 
 def abort_rebase(repo: Any, logger: logging.Logger) -> None:
@@ -191,6 +236,12 @@ def push_deletion_commit(repo: Any, logger: logging.Logger, env: dict[str, str])
     repo.git.push("origin", "HEAD", env=env)
 
 
+def report_pushed_deletions(repo_path: Path, relative_paths: list[str], logger: logging.Logger) -> None:
+    """Report which files the acknowledgement removed, a file kept by a conflict is still there."""
+    deleted_paths: list[str] = [file_name for file_name in relative_paths if not (repo_path / file_name).exists()]
+    logger.info("deleted and pushed log data files: %s", ", ".join(deleted_paths) or "none")
+
+
 def commit_and_push_deletions(
     git_repo_target_dir: str,
     files_to_delete: list[Path],
@@ -218,7 +269,7 @@ def commit_and_push_deletions(
         else:
             # without credentials git could still ask for them, which never terminates unattended
             push_deletion_commit(repo, logger, build_non_interactive_git_env())
-        logger.info("deleted and pushed log data files: %s", ", ".join(relative_paths))
+        report_pushed_deletions(repo_path, relative_paths, logger)
         return True
     except Exception:
         logger.exception("could not commit and push log data file deletions")

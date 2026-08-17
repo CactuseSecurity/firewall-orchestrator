@@ -167,7 +167,7 @@ namespace FWO.Middleware.Server
             WarnAboutDroppedEntries(sourcePath, invalidEntries, unresolvedEntries, discardedEntries);
             if (entries.Count == 0)
             {
-                LogUnimportedEntries(sourceEntries, sourcePath);
+                LogUnimportedEntries(sourceEntries, sourcePath, globalConfig.ImportLogDataMaxEntries);
                 await RemoveReplacedEntries(sourceOwnerIds, sourcePath, sourceEntries.Count);
                 return;
             }
@@ -193,21 +193,27 @@ namespace FWO.Middleware.Server
         /// which rejected it was corrected. Why every single entry was rejected is logged before
         /// by NormalizeValidEntries or ResolveOwners; this is the data itself.
         /// The entries are written in batches, one message per batch, so a large export does not
-        /// end up as a single unreadable log line.
+        /// end up as a single unreadable log line, and at most importLogDataMaxEntries of them:
+        /// a successful import would not have kept more either, so a huge export of an application
+        /// nobody knows cannot flood the middleware log in every import run.
         /// </summary>
-        private static void LogUnimportedEntries(List<LogDataImportEntry> sourceEntries, string sourcePath)
+        private static void LogUnimportedEntries(List<LogDataImportEntry> sourceEntries, string sourcePath, int maxLoggedEntries)
         {
             if (sourceEntries.Count == 0)
             {
                 return;
             }
 
-            Log.WriteWarning(LogMessageTitle, $"None of the {sourceEntries.Count} entries of {sourcePath}.json could be" +
-                " imported. The source is removed anyway, its entries are written to the log below for future reference.");
-            for (int firstEntry = 0; firstEntry < sourceEntries.Count; firstEntry += LoggedEntriesPerMessage)
+            int loggedEntries = Math.Clamp(maxLoggedEntries, 0, sourceEntries.Count);
+            string reference = loggedEntries < sourceEntries.Count
+                ? $" The source is removed anyway, its first {loggedEntries} entries are written to the log below for" +
+                  $" future reference ({nameof(GlobalConfig.ImportLogDataMaxEntries)})."
+                : " The source is removed anyway, its entries are written to the log below for future reference.";
+            Log.WriteWarning(LogMessageTitle, $"None of the {sourceEntries.Count} entries of {sourcePath}.json could be imported." + reference);
+            for (int firstEntry = 0; firstEntry < loggedEntries; firstEntry += LoggedEntriesPerMessage)
             {
                 List<LogDataImportEntry> batch = sourceEntries.GetRange(firstEntry,
-                    Math.Min(LoggedEntriesPerMessage, sourceEntries.Count - firstEntry));
+                    Math.Min(LoggedEntriesPerMessage, loggedEntries - firstEntry));
                 Log.WriteWarning(LogMessageTitle, $"Not imported entries of {sourcePath}.json" +
                     $" ({firstEntry + 1} - {firstEntry + batch.Count}): {JsonSerializer.Serialize(batch)}");
             }

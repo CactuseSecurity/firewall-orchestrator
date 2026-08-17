@@ -221,6 +221,22 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ImportScriptTimeoutStaysWaitable()
+        {
+            // the wait is expressed in milliseconds as an int, a larger value would make every
+            // scripted import fail instead of running longer
+            TimeSpan cappedTimeout = CreateConfiguredImporter(int.MaxValue).ScriptTimeout;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(cappedTimeout, Is.EqualTo(TimeSpan.FromMinutes(GlobalConst.kMaxImportScriptTimeoutMinutes)));
+                Assert.That(cappedTimeout.TotalMilliseconds, Is.LessThanOrEqualTo(int.MaxValue));
+                Assert.That(CreateConfiguredImporter(GlobalConst.kMaxImportScriptTimeoutMinutes).ScriptTimeout.TotalMilliseconds,
+                    Is.LessThanOrEqualTo(int.MaxValue), "the configurable maximum is still waitable");
+            });
+        }
+
+        [Test]
         public void GetScriptOutputLogTypeReportsTheSeverityTheScriptUsed()
         {
             // the scripts log to the error output, so a run ending successfully can still report

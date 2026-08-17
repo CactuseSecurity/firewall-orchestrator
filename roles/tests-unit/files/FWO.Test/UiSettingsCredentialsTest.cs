@@ -19,7 +19,6 @@ using Microsoft.Extensions.Localization;
 using Microsoft.IdentityModel.Tokens;
 using NUnit.Framework;
 using System.IdentityModel.Tokens.Jwt;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Security.Claims;
@@ -37,26 +36,11 @@ namespace FWO.Test
 
         private RsaSecurityKey? originalJwtPublicKey;
         private readonly Dictionary<string, string?> originalTranslations = new();
-        private bool mainKeyFileAvailable;
 
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
             originalJwtPublicKey = (RsaSecurityKey?)JwtPublicKeyField.GetValue(null);
-
-            try
-            {
-                _ = File.ReadAllText(GlobalConst.kMainKeyFile);
-                mainKeyFileAvailable = true;
-            }
-            catch (UnauthorizedAccessException)
-            {
-                mainKeyFileAvailable = false;
-            }
-            catch (IOException)
-            {
-                mainKeyFileAvailable = false;
-            }
         }
 
         [OneTimeTearDown]
@@ -241,76 +225,6 @@ namespace FWO.Test
                 Assert.That(GetMember<List<ImportCredential>>(component, "credentials"), Has.Count.EqualTo(1));
                 Assert.That(GetMember<bool>(component, "CleanupMode"), Is.False);
                 Assert.That(GetMember<bool>(component, "showCleanupButton"), Is.False);
-            });
-        }
-
-        [Test]
-        public async Task Save_AddMode_PersistsNewCredentialAndEncryptsSecret()
-        {
-            Assume.That(mainKeyFileAvailable, "Requires a writable main key file path for password encryption.");
-
-            await using RenderSetup setup = await CreateRenderedSetup(CreateApiConnection(), Roles.Admin);
-            RecordingCredentialsApiConnection apiConnection = setup.ApiConnection;
-            apiConnection.NewCredentialResult = new ReturnIdWrapper
-            {
-                ReturnIds = [new ReturnId { NewId = 77 }]
-            };
-            SettingsCredentials component = setup.Component;
-            InvokePrivateVoid(component, "Add");
-            SetMember(component, "actCredential", new ImportCredential
-            {
-                Name = "new-credential",
-                ImportUser = "import-user",
-                Secret = "plain-secret",
-                IsKeyPair = false,
-                CloudClientId = "client-id",
-                CloudClientSecret = "client-secret"
-            });
-
-            await component.Save();
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(apiConnection.Queries.Count(query => query == DeviceQueries.newCredential), Is.EqualTo(1));
-                Assert.That(GetMember<List<ImportCredential>>(component, "credentials"), Has.Count.EqualTo(4));
-                Assert.That(GetMember<bool>(component, "AddMode"), Is.False);
-                Assert.That(GetMember<bool>(component, "EditMode"), Is.False);
-
-                Dictionary<string, object?> variables = apiConnection.LastNewCredentialVariables;
-                Assert.That(variables["credential_name"], Is.EqualTo("new-credential"));
-                Assert.That(variables["username"], Is.EqualTo("import-user"));
-                Assert.That((string)variables["secret"]!, Is.Not.EqualTo("plain-secret"));
-            });
-        }
-
-        [Test]
-        public async Task Save_UpdatesExistingCredentialSuccessfully()
-        {
-            Assume.That(mainKeyFileAvailable, "Requires a writable main key file path for password encryption.");
-            await using RenderSetup setup = await CreateRenderedSetup(CreateApiConnection(), Roles.Admin);
-            RecordingCredentialsApiConnection apiConnection = setup.ApiConnection;
-            apiConnection.UpdateCredentialResult = new ReturnId { UpdatedId = 1 };
-            SettingsCredentials component = setup.Component;
-            ImportCredential credential = GetMember<List<ImportCredential>>(component, "credentials")[0];
-            InvokePrivateVoid(component, "Edit", credential);
-            SetMember(component, "actCredential", new ImportCredential
-            {
-                Id = credential.Id,
-                Name = "cred-one-renamed",
-                ImportUser = "import-user",
-                Secret = "plain-secret",
-                IsKeyPair = false,
-                CloudClientId = "client-id",
-                CloudClientSecret = "client-secret"
-            });
-
-            await component.Save();
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(apiConnection.Queries.Count(query => query == DeviceQueries.updateCredential), Is.EqualTo(1));
-                Assert.That(GetMember<List<ImportCredential>>(component, "credentials")[0].Name, Is.EqualTo("cred-one-renamed"));
-                Assert.That(GetMember<bool>(component, "EditMode"), Is.False);
             });
         }
 

@@ -664,7 +664,7 @@ namespace FWO.Test
                 messages.Add((exception, title, message, isError));
             }));
 
-            await InvokePrivateTask(component, "OnInitializedAsync");
+            rendered.WaitForAssertion(() => Assert.That(GetMember<List<UserGroup>>(component, "groups"), Has.Count.EqualTo(2)));
             InvokePrivateVoid(component, "RequestRemoveSampleData");
             await rendered.InvokeAsync(async () => await InvokePrivateTask(component, "RemoveSampleData"));
 

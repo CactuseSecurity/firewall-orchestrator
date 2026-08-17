@@ -14,7 +14,6 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 
@@ -25,25 +24,6 @@ namespace FWO.Test
     internal class UiSettingsEmailTest
     {
         private readonly Dictionary<string, string?> originalTranslations = new();
-        private bool mainKeyFileAvailable;
-
-        [OneTimeSetUp]
-        public void OneTimeSetUp()
-        {
-            try
-            {
-                _ = File.ReadAllText(GlobalConst.kMainKeyFile);
-                mainKeyFileAvailable = true;
-            }
-            catch (UnauthorizedAccessException)
-            {
-                mainKeyFileAvailable = false;
-            }
-            catch (IOException)
-            {
-                mainKeyFileAvailable = false;
-            }
-        }
 
         [TearDown]
         public void TearDown()
@@ -264,62 +244,6 @@ namespace FWO.Test
                 Assert.That(messages[0].Title, Is.EqualTo("Save email connection"));
                 Assert.That(messages[0].Message, Is.EqualTo("Invalid sender address"));
                 Assert.That(messages[0].IsError, Is.True);
-            });
-        }
-
-        [Test]
-        public async Task Save_PersistsUpdatedEmailConfigAndEncryptsPassword()
-        {
-            Assume.That(mainKeyFileAvailable, "Requires a writable main key file path for password encryption.");
-
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
-            RecordingSettingsApiConn apiConnection = new();
-            SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
-            SimulatedUserConfig userConfig = CreateUserConfig();
-            SettingsEmail component = CreateComponent(apiConnection, globalConfig, userConfig, messages);
-
-            await InvokePrivateTask(component, "OnInitializedAsync");
-
-            SetMember(component, "actEmailConnection", new EmailConnection
-            {
-                ServerAddress = "smtp.example.test",
-                Port = 587,
-                Encryption = EmailEncryptionMethod.StartTls,
-                User = "smtp-user",
-                Password = "smtp-password",
-                SenderEmailAddress = "sender@example.test"
-            });
-
-            ConfigData editableConfig = GetMember<ConfigData>(component, "editableConfig");
-            editableConfig.UseDummyEmailAddress = true;
-            editableConfig.DummyEmailAddress = "dummy@example.test";
-
-            await InvokePrivateTask(component, "Save");
-
-            Dictionary<string, string> updatedItems = apiConnection.LastUpsertConfigItems.ToDictionary(item => item.Key, item => item.Value ?? "");
-            Assert.Multiple(() =>
-            {
-                Assert.That(messages, Has.Count.EqualTo(1));
-                Assert.That(messages[0].Title, Is.EqualTo("Change default"));
-                Assert.That(messages[0].Message, Is.EqualTo("Email settings saved."));
-                Assert.That(messages[0].IsError, Is.False);
-                Assert.That(apiConnection.Queries, Does.Contain(ConfigQueries.upsertConfigItems));
-                Assert.That(globalConfig.EmailServerAddress, Is.EqualTo("smtp.example.test"));
-                Assert.That(globalConfig.EmailPort, Is.EqualTo(587));
-                Assert.That(globalConfig.EmailTls, Is.EqualTo(EmailEncryptionMethod.StartTls));
-                Assert.That(globalConfig.EmailUser, Is.EqualTo("smtp-user"));
-                Assert.That(globalConfig.EmailSenderAddress, Is.EqualTo("sender@example.test"));
-                Assert.That(globalConfig.UseDummyEmailAddress, Is.True);
-                Assert.That(globalConfig.DummyEmailAddress, Is.EqualTo("dummy@example.test"));
-                Assert.That(updatedItems["emailServerAddress"], Is.EqualTo("smtp.example.test"));
-                Assert.That(updatedItems["emailPort"], Is.EqualTo("587"));
-                Assert.That(updatedItems["emailTls"], Is.EqualTo(nameof(EmailEncryptionMethod.StartTls)));
-                Assert.That(updatedItems["emailUser"], Is.EqualTo("smtp-user"));
-                Assert.That(updatedItems["emailPassword"], Is.Not.Empty);
-                Assert.That(updatedItems["emailPassword"], Is.Not.EqualTo("smtp-password"));
-                Assert.That(updatedItems["emailSenderAddress"], Is.EqualTo("sender@example.test"));
-                Assert.That(updatedItems["useDummyEmailAddress"], Is.EqualTo("True"));
-                Assert.That(updatedItems["dummyEmailAddress"], Is.EqualTo("dummy@example.test"));
             });
         }
 

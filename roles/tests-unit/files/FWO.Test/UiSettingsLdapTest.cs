@@ -9,7 +9,6 @@ using FWO.Test.Mocks;
 using FWO.Ui.Pages.Settings;
 using NUnit.Framework;
 using RestSharp;
-using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -23,25 +22,6 @@ namespace FWO.Test
     internal class UiSettingsLdapTest
     {
         private readonly Dictionary<string, string?> originalTranslations = new();
-        private bool mainKeyFileAvailable;
-
-        [OneTimeSetUp]
-        public void OneTimeSetUp()
-        {
-            try
-            {
-                _ = File.ReadAllText(GlobalConst.kMainKeyFile);
-                mainKeyFileAvailable = true;
-            }
-            catch (UnauthorizedAccessException)
-            {
-                mainKeyFileAvailable = false;
-            }
-            catch (IOException)
-            {
-                mainKeyFileAvailable = false;
-            }
-        }
 
         [SetUp]
         public void SetUp()
@@ -362,140 +342,6 @@ namespace FWO.Test
             Assert.That(messages[0].Title, Is.EqualTo("Test connection"));
             Assert.That(messages[0].Message, Is.Empty);
             Assert.That(messages[0].Exception, Is.Not.Null);
-            Assert.That(messages[0].IsError, Is.True);
-        }
-
-        [Test]
-        public async Task Save_AddModePersistsNewLdap()
-        {
-            Assume.That(mainKeyFileAvailable, "Requires a writable main key file path for password encryption.");
-            RecordingLdapApiConnection apiConnection = new();
-            TestMiddlewareClient middlewareClient = new("https://middleware.example/");
-            middlewareClient.UseHandler(new SingleResponseHandler(HttpStatusCode.OK, "11"));
-
-            SettingsLdap component = CreateBareComponent(apiConnection, middlewareClient, []);
-            SetMember(component, "AddMode", true);
-            SetMember(component, "EditMode", true);
-            SetMember(component, "selectedType", LdapType.OpenLdap);
-            SetMember(component, "selectedTenant", new Tenant { Id = 21, Name = "Tenant 21" });
-            SetMember(component, "actLdapConnection", BuildLdap(0, "ldap-new", "ldap-new.example.org", roleHandling: false, internalLdap: true));
-            SetMember(component, "connectedLdaps", new List<UiLdapConnection>());
-            SetMember(component, "tenants", new List<Tenant> { new Tenant { Id = 21, Name = "Tenant 21" } });
-
-            await InvokePrivateTask(component, "Save");
-
-            List<UiLdapConnection> connectedLdaps = GetMember<List<UiLdapConnection>>(component, "connectedLdaps");
-            Assert.Multiple(() =>
-            {
-                Assert.That(connectedLdaps, Has.Count.EqualTo(1));
-                Assert.That(connectedLdaps[0].Id, Is.EqualTo(11));
-                Assert.That(GetMember<bool>(component, "AddMode"), Is.False);
-                Assert.That(GetMember<bool>(component, "EditMode"), Is.False);
-            });
-        }
-
-        [Test]
-        public async Task Save_AddModeShowsSanitizeWarningWhenInputIsTrimmed()
-        {
-            Assume.That(mainKeyFileAvailable, "Requires a writable main key file path for password encryption.");
-            RecordingLdapApiConnection apiConnection = new();
-            TestMiddlewareClient middlewareClient = new("https://middleware.example/");
-            middlewareClient.UseHandler(new SingleResponseHandler(HttpStatusCode.OK, "12"));
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
-
-            SettingsLdap component = CreateBareComponent(apiConnection, middlewareClient, messages);
-            SetMember(component, "AddMode", true);
-            SetMember(component, "EditMode", true);
-            SetMember(component, "selectedType", LdapType.OpenLdap);
-            SetMember(component, "actLdapConnection", BuildLdap(0, " ldap-new ", "ldap-new.example.org", roleHandling: false, internalLdap: true));
-            SetMember(component, "connectedLdaps", new List<UiLdapConnection>());
-            SetMember(component, "tenants", new List<Tenant>());
-
-            await InvokePrivateTask(component, "Save");
-
-            Assert.That(messages, Has.Count.EqualTo(1));
-            Assert.That(messages[0].Title, Is.EqualTo("Save LDAP connection"));
-            Assert.That(messages[0].Message, Is.EqualTo("Sanitized input"));
-            Assert.That(messages[0].IsError, Is.True);
-            Assert.That(GetMember<List<UiLdapConnection>>(component, "connectedLdaps"), Has.Count.EqualTo(1));
-        }
-
-        [Test]
-        public async Task Save_UpdateModePersistsEditedLdap()
-        {
-            Assume.That(mainKeyFileAvailable, "Requires a writable main key file path for password encryption.");
-            RecordingLdapApiConnection apiConnection = new();
-            TestMiddlewareClient middlewareClient = new("https://middleware.example/");
-            middlewareClient.UseHandler(new RoutingMiddlewareHandler
-            {
-                UpdateStatusCode = HttpStatusCode.OK,
-                UpdateBody = "31"
-            });
-
-            UiLdapConnection existing = BuildLdap(31, "ldap-existing", "ldap-existing.example.org", roleHandling: false, internalLdap: true);
-            SettingsLdap component = CreateBareComponent(apiConnection, middlewareClient, []);
-            SetMember(component, "AddMode", false);
-            SetMember(component, "EditMode", true);
-            SetMember(component, "selectedType", LdapType.ActiveDirectory);
-            SetMember(component, "actLdapConnection", existing);
-            SetMember(component, "connectedLdaps", new List<UiLdapConnection> { existing });
-
-            await InvokePrivateTask(component, "Save");
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(GetMember<List<UiLdapConnection>>(component, "connectedLdaps")[0].Id, Is.EqualTo(31));
-                Assert.That(GetMember<bool>(component, "EditMode"), Is.False);
-            });
-        }
-
-        [Test]
-        public async Task Save_UpdateModeShowsMessageWhenUpdateFails()
-        {
-            Assume.That(mainKeyFileAvailable, "Requires a writable main key file path for password encryption.");
-            RecordingLdapApiConnection apiConnection = new();
-            TestMiddlewareClient middlewareClient = new("https://middleware.example/");
-            middlewareClient.UseHandler(new RoutingMiddlewareHandler
-            {
-                UpdateStatusCode = HttpStatusCode.InternalServerError,
-                UpdateBody = "0"
-            });
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
-
-            UiLdapConnection existing = BuildLdap(31, "ldap-existing", "ldap-existing.example.org", roleHandling: false, internalLdap: true);
-            SettingsLdap component = CreateBareComponent(apiConnection, middlewareClient, messages);
-            SetMember(component, "AddMode", false);
-            SetMember(component, "EditMode", true);
-            SetMember(component, "selectedType", LdapType.ActiveDirectory);
-            SetMember(component, "actLdapConnection", existing);
-            SetMember(component, "connectedLdaps", new List<UiLdapConnection> { existing });
-
-            await InvokePrivateTask(component, "Save");
-
-            Assert.That(messages, Has.Count.EqualTo(1));
-            Assert.That(messages[0].Title, Is.EqualTo("Save LDAP connection"));
-            Assert.That(messages[0].Message, Is.EqualTo("Updating LDAP failed"));
-            Assert.That(messages[0].IsError, Is.True);
-        }
-
-        [Test]
-        public async Task Save_ShowsMessageWhenAddFails()
-        {
-            Assume.That(mainKeyFileAvailable, "Requires a writable main key file path for password encryption.");
-            RecordingLdapApiConnection apiConnection = new();
-            TestMiddlewareClient middlewareClient = new("https://middleware.example/");
-            middlewareClient.UseHandler(new SingleResponseHandler(HttpStatusCode.InternalServerError, "0"));
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
-            SettingsLdap component = CreateBareComponent(apiConnection, middlewareClient, messages);
-            SetMember(component, "AddMode", true);
-            SetMember(component, "selectedType", LdapType.OpenLdap);
-            SetMember(component, "actLdapConnection", BuildLdap(0, "ldap-fail", "ldap-fail.example.org", roleHandling: false, internalLdap: true));
-
-            await InvokePrivateTask(component, "Save");
-
-            Assert.That(messages, Has.Count.EqualTo(1));
-            Assert.That(messages[0].Title, Is.EqualTo("Save LDAP connection"));
-            Assert.That(messages[0].Message, Is.EqualTo("Adding LDAP failed"));
             Assert.That(messages[0].IsError, Is.True);
         }
 

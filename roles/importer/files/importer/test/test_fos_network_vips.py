@@ -115,6 +115,27 @@ def test_normalize_single_ipv6_network_object_treats_equal_endpoints_as_host():
     assert lookup["ipv6_host"] == "uuid-ipv6-host"
 
 
+def test_normalize_single_ipv6_iprange_object_uses_configured_range():
+    native_object = NwObjAddress6.model_validate(
+        {
+            "name": "ipv6_range",
+            "q_origin_key": "ipv6_range",
+            "uuid": "uuid-ipv6-range",
+            "type": "iprange",
+            "start-ip": "2001:db8::10",
+            "end-ip": "2001:db8::20",
+        }
+    )
+    lookup: dict[str, str] = {}
+
+    result = normalize_single_ipv6_network_object(native_object, lookup)
+
+    assert result.obj_typ == "ip_range"
+    assert str(result.obj_ip) == "2001:db8::10/128"
+    assert str(result.obj_ip_end) == "2001:db8::20/128"
+    assert lookup["ipv6_range"] == "uuid-ipv6-range"
+
+
 @pytest.mark.parametrize(
     ("native_type", "normalized_type"),
     [

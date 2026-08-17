@@ -96,6 +96,12 @@ def normalize_single_ipv6_network_object(ip6_obj: NwObjAddress6, nw_obj_lookup_d
         obj_typ = "dynamic_net_obj"
         ip_start = None
         ip_end = None
+    elif ip6_obj.start_ip and ip6_obj.end_ip:
+        ip_start_address = IPv6Address(ip6_obj.start_ip)
+        ip_end_address = IPv6Address(ip6_obj.end_ip)
+        ip_start = IPNetwork(f"{ip_start_address}/128", version=6)
+        ip_end = IPNetwork(f"{ip_end_address}/128", version=6)
+        obj_typ = "ip_range" if int(ip_start_address) != int(ip_end_address) else "host"
     elif ip6_obj.ip6:
         network = IPNetwork(ip6_obj.ip6, version=6)
         ip_start_address = IPv6Address(network.first)

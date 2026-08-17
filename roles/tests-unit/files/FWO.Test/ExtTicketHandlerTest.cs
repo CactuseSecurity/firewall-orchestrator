@@ -7,6 +7,8 @@ using FWO.Data.Modelling;
 using FWO.ExternalSystems.CheckPoint;
 using FWO.ExternalSystems.Tufin.SecureChange;
 using FWO.Middleware.Server;
+using FWO.Services.Workflow;
+using System.Reflection;
 
 namespace FWO.Test
 {
@@ -664,6 +666,49 @@ namespace FWO.Test
             ClassicAssert.IsTrue(result);
             ClassicAssert.IsNotNull(localApiConnection.AddExtRequestVars);
             StringAssert.Contains("taskNumber = 9", localApiConnection.AddExtRequestVars ?? "");
+        }
+
+        [Test]
+        public async Task RunInternalWorkStateChangeActionsSafe_ReturnsForEmptyCollector()
+        {
+            using ExternalRequestHandler handler = new(userConfig, apiConnection, null);
+            WorkflowEmailBundleCollector collector = new();
+
+            await InvokeRunInternalWorkStateChangeActionsSafe(handler, 123, collector);
+
+            ClassicAssert.IsEmpty(collector.PendingItems);
+        }
+
+        [Test]
+        public async Task RunInternalWorkStateChangeActionsSafe_SwallowsFlushInitializationFailure()
+        {
+            WorkflowEmailBundleCollector collector = new();
+            collector.Add(new WfStateAction { Id = 7, ExternalParams = "params" }, new WfReqTask { Id = 11, TicketId = 123, TaskType = WfTaskType.access.ToString() }, null, null);
+            using ExternalRequestHandler handler = new(userConfig, new FailingWorkflowInitApiConn(), null);
+
+            await InvokeRunInternalWorkStateChangeActionsSafe(handler, 123, collector);
+
+            ClassicAssert.AreEqual(1, collector.PendingItems.Count);
+        }
+
+        private static async Task InvokeRunInternalWorkStateChangeActionsSafe(ExternalRequestHandler handler, long ticketId, WorkflowEmailBundleCollector collector)
+        {
+            MethodInfo method = typeof(ExternalRequestHandler).GetMethod("RunInternalWorkStateChangeActionsSafe", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(typeof(ExternalRequestHandler).FullName, "RunInternalWorkStateChangeActionsSafe");
+            object?[] arguments = new List<object?> { ticketId, collector }.ToArray();
+            await (Task)(method.Invoke(handler, arguments) ?? throw new InvalidOperationException("RunInternalWorkStateChangeActionsSafe returned null."));
+        }
+
+        private sealed class FailingWorkflowInitApiConn : ExtTicketHandlerTestApiConn
+        {
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (typeof(QueryResponseType) == typeof(List<WfState>))
+                {
+                    throw new InvalidOperationException("state initialization failed");
+                }
+                return base.SendQueryAsync<QueryResponseType>(query, variables, operationName, chunkingOptions);
+            }
         }
     }
 }

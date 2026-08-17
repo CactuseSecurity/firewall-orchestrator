@@ -1528,6 +1528,32 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildRequestTaskEmailBundle_RemovesDuplicateRequestTasks()
+        {
+            WorkflowEmailBundleCollector collector = new();
+            WfStateAction action = new()
+            {
+                Id = 7,
+                ExternalParams = "params"
+            };
+            WfReqTask firstTask = new() { Id = 11, TaskNumber = 1 };
+            WfReqTask duplicateTask = new() { Id = 11, TaskNumber = 1 };
+            WfReqTask secondTask = new() { Id = 12, TaskNumber = 2 };
+            collector.Add(action, firstTask, null, null);
+            collector.Add(action, duplicateTask, null, null);
+            collector.Add(action, secondTask, null, null);
+
+            object?[] arguments = new List<object?> { collector.PendingItems }.ToArray();
+            List<WfReqTask> bundledTasks = (List<WfReqTask>)GetPrivateStaticMethod("BuildRequestTaskEmailBundle").Invoke(null, arguments)!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(bundledTasks, Has.Count.EqualTo(2));
+                Assert.That(bundledTasks.Select(task => task.Id), Is.EqualTo(new List<long> { 11, 12 }));
+            });
+        }
+
+        [Test]
         public void WorkflowEmailBundleCollector_AddCopiesActionAndRequestTaskForStableBundleKey()
         {
             WorkflowEmailBundleCollector collector = new();

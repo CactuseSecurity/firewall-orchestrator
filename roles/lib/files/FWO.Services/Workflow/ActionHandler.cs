@@ -116,11 +116,7 @@ namespace FWO.Services.Workflow
                 foreach (IGrouping<string, WorkflowEmailBundleItem> group in collector.PendingItems.GroupBy(item => item.BundleKey))
                 {
                     WorkflowEmailBundleItem item = group.OrderBy(item => item.RequestTask.TaskNumber).First();
-                    RequestTaskEmailBundle = group
-                        .Select(item => item.RequestTask)
-                        .DistinctBy(task => task.Id)
-                        .OrderBy(task => task.TaskNumber)
-                        .ToList();
+                    RequestTaskEmailBundle = BuildRequestTaskEmailBundle(group);
                     await SendEmail(item.Action, item.RequestTask, WfObjectScopes.RequestTask, item.Owner, item.UserGrpDn);
                     RequestTaskEmailBundle = null;
                 }
@@ -131,6 +127,15 @@ namespace FWO.Services.Workflow
                 collector.PendingItems.Clear();
                 collector.IsFlushing = false;
             }
+        }
+
+        private static List<WfReqTask> BuildRequestTaskEmailBundle(IEnumerable<WorkflowEmailBundleItem> bundleItems)
+        {
+            return bundleItems
+                .Select(item => item.RequestTask)
+                .DistinctBy(task => task.Id)
+                .OrderBy(task => task.TaskNumber)
+                .ToList();
         }
 
         private List<WfStateAction> StateActionsForEvent(WfStatefulObject statefulObject, WfObjectScopes scope, StateActionEvents actionEvent, bool currentState)

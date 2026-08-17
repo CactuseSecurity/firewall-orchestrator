@@ -99,6 +99,16 @@ namespace FWO.Basics
         public const string Network = "network";
         public const string IPRange = "ip_range";
         public const string AccessRole = "access-role";
+        public const string Domain = "domain";
+        public const string DynamicNetworkObject = "dynamic_net_obj";
+
+        /// <summary>
+        /// Determines whether a network object has an address range that is resolved only at policy evaluation time.
+        /// </summary>
+        public static bool IsDynamicallyResolvedObject(string objectTypeName)
+        {
+            return objectTypeName == DynamicNetworkObject || objectTypeName == Domain || objectTypeName == AccessRole;
+        }
     }
 
     public struct ServiceType

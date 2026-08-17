@@ -660,6 +660,33 @@ namespace FWO.Test
             Assert.That(ComplianceCheck.CurrentViolationsInCheck.Any(violation => violation.Details == ExpectedViolationDetailsAutoCalcFalse));
         }
 
+        [Test]
+        public async Task AreRulesCompliant_AccessRoleIsMappedToAutoCalculatedInternetZone()
+        {
+            Rule rule = CreateSimpleRule(1, destinationHigh: true);
+            NetworkObject accessRole = CreateNetworkObject(1, "access-role", ObjectType.AccessRole);
+            accessRole.IP = null!;
+            accessRole.IpEnd = null!;
+            rule.Froms[0] = new NetworkLocation(new NetworkUser(), accessRole);
+            ComplianceCriterion matrixCriterion = new()
+            {
+                Id = 1,
+                CriterionType = nameof(CriterionType.Matrix)
+            };
+            CompliancePolicy policy = new() { Id = 1 };
+            policy.Criteria.Add(new ComplianceCriterionWrapper { Content = matrixCriterion });
+            List<Rule> rulesToCheck = new();
+            rulesToCheck.Add(rule);
+            List<Management> managements = new();
+            managements.Add(new Management { Id = 1, Name = "Management" });
+            Dictionary<int, List<ComplianceNetworkZone>> networkZonesByCriterion = new();
+            networkZonesByCriterion.Add(matrixCriterion.Id, ComplianceCheck.NetworkZones);
+
+            bool isCompliant = await ComplianceCheck.AreRulesCompliant(policy, rulesToCheck, managements, networkZonesByCriterion);
+
+            Assert.That(isCompliant, Is.False);
+        }
+
         private static bool HasCriterionId(object variables, int expectedCriterionId)
         {
             object? criterionId = variables.GetType().GetProperty("criterionId")?.GetValue(variables);

@@ -45,3 +45,11 @@ def test_fqdn_object_has_no_static_ip_range():
     assert fqdn_object["obj_typ"] == "domain"
     assert fqdn_object["obj_ip"] is None
     assert fqdn_object["obj_ip_end"] is None
+
+
+def test_access_role_has_no_static_ip_range():
+    access_role = normalize_checkpoint_object("access-roles", "access-role")
+
+    assert access_role["obj_typ"] == "access-role"
+    assert access_role["obj_ip"] is None
+    assert access_role["obj_ip_end"] is None

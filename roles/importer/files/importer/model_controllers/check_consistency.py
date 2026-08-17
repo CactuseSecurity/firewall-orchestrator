@@ -7,6 +7,7 @@ from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from models.fwconfig_normalized import FwConfigNormalized
 from models.import_state import ImportState
+from models.networkobject import NETWORK_OBJECT_TYPES_WITHOUT_STATIC_IP
 from models.rulebase import Rulebase
 
 if TYPE_CHECKING:
@@ -190,11 +191,11 @@ class FwConfigImportCheckConsistency:
     def _check_objects_with_missing_ips(self, config: FwConfigNormalized):
         """
         Check for network objects for which IP addresses are expected but missing.
-        Types without IP addresses are ignored (group, dynamic_net_obj, domain).
+        Types without IP addresses are ignored (group, dynamic_net_obj, domain, access-role).
         """
         non_group_nw_obj_with_missing_ips: list[NetworkObject] = []
         for obj_id in config.network_objects:
-            if config.network_objects[obj_id].obj_typ not in ["group", "dynamic_net_obj", "domain"]:
+            if config.network_objects[obj_id].obj_typ not in NETWORK_OBJECT_TYPES_WITHOUT_STATIC_IP:
                 ip1 = config.network_objects[obj_id].obj_ip
                 ip2 = config.network_objects[obj_id].obj_ip_end
                 if ip1 is None or ip2 is None:

@@ -1433,7 +1433,7 @@ namespace FWO.Compliance
             {
                 List<ComplianceNetworkZone> networkZones = [];
 
-                if (_autoCalculatedInternetZoneActive && _treatDomainAndDynamicObjectsAsInternet && (dataItem.networkObject.Type.Name == "dynamic_net_obj" || dataItem.networkObject.Type.Name == "domain"))
+                if (_autoCalculatedInternetZoneActive && _treatDomainAndDynamicObjectsAsInternet && ObjectType.IsDynamicallyResolvedObject(dataItem.networkObject.Type.Name))
                 {
                     List<ComplianceNetworkZone> autoCalculatedInternetZones = [.. networkZonesForCriterion.Where(zone => zone.IsAutoCalculatedInternetZone)];
 
@@ -1543,7 +1543,7 @@ namespace FWO.Compliance
             if (_userConfig.GlobalConfig is GlobalConfig globalConfig && globalConfig.AutoCalculateInternetZone && globalConfig.TreatDynamicAndDomainObjectsAsInternet)
             {
                 networkObjects = networkObjects
-                    .Where(n => !new List<string> { "domain", "dynamic_net_obj" }.Contains(n.Type.Name))
+                    .Where(n => !ObjectType.IsDynamicallyResolvedObject(n.Type.Name))
                     .ToList();
             }
 

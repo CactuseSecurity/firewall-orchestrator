@@ -36,6 +36,7 @@ else
     private List<WfState> allStates = [];
     private IEnumerable<int?> selectedStateIdsForUi = [];
     private List<string> availableAddInfoNames = [];
+    private static readonly List<WfStateAction> EmptyStateActions = [];
 
     private List<WfTaskType?> availableTaskTypes => [null, .. availableRealTaskTypes.Cast<WfTaskType?>()];
     private List<WfState> availableStates => GetAvailableStates();
@@ -87,7 +88,7 @@ else
             masterStateMatrix = new();
             masterRequestStateMatrix = new();
             availablePhases = [];
-            availableAddInfoNames = BuildAvailableAddInfoNames([]);
+            availableAddInfoNames = BuildAvailableAddInfoNames(EmptyStateActions);
         }
     }
 

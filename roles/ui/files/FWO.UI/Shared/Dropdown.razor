@@ -1,5 +1,6 @@
 @using System.Reflection
 @using System.Diagnostics;
+@using Microsoft.AspNetCore.Components.Web;
 
 @typeparam ElementType
 
@@ -40,7 +41,7 @@
             {
                 <li id="@($"dropdown-menu-li-selected-{Id + i++}")">
                     <button id="@($"dropdown-menu-selected-{Id + i++}")" type="button"
-                            @onmousedown="PrepareFreeTextSelectionCommit"
+                            @attributes="FreeTextSelectionAttributes"
                             @onclick="async () => await UnselectElement(element)" class="dropdown-item @(Small ? "small" : "")">
                         <div id="@($"dropdown-menu-selected-content-{Id + i++}")"
                              class="d-flex align-items-baseline justify-content-between">
@@ -61,7 +62,7 @@
         {
             <li id="@($"dropdown-menu-li-element-{Id + i++}")">
                 <button id="@($"dropdown-menu-element-{Id + i++}")" type="button"
-                        @onmousedown="PrepareFreeTextSelectionCommit"
+                        @attributes="FreeTextSelectionAttributes"
                         @onclick="async () => await SelectElement(element)" class="dropdown-item @(Small ? "small" : "")">
                     @ElementTemplate(element)
                 </button>
@@ -170,6 +171,12 @@
 
     private string searchValue = "";
     private bool suppressFreeTextBlurCommit;
+    private IReadOnlyDictionary<string, object>? FreeTextSelectionAttributes => AllowFreeText && !Multiselect && typeof(ElementType) == typeof(string)
+        ? new Dictionary<string, object>
+        {
+            ["onmousedown"] = EventCallback.Factory.Create<MouseEventArgs>(this, _ => PrepareFreeTextSelectionCommit())
+        }
+        : null;
 
     public Dropdown()
     {

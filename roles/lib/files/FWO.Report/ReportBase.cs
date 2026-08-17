@@ -325,7 +325,7 @@ namespace FWO.Report
         {
             if (filter != "")
             {
-                HtmlTemplate = HtmlTemplate.Replace("##Filter##", userConfig.GetText(filterTextKey) + ": " + filter);
+                HtmlTemplate = HtmlTemplate.Replace("##Filter##", $"{EncodeHtml(userConfig.GetText(filterTextKey))}: {EncodeHtml(filter)}");
             }
             else
             {
@@ -360,7 +360,7 @@ namespace FWO.Report
         {
             if (!string.IsNullOrWhiteSpace(ownerFilter))
             {
-                HtmlTemplate = HtmlTemplate.Replace("##OwnerFilters##", userConfig.GetText("owners") + ": " + ownerFilter);
+                HtmlTemplate = HtmlTemplate.Replace("##OwnerFilters##", $"{EncodeHtml(userConfig.GetText("owners"))}: {EncodeHtml(ownerFilter)}");
             }
             else
             {
@@ -374,19 +374,19 @@ namespace FWO.Report
             {
                 if (ReportType.IsWorkflowReport())
                 {
-                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("workflow_filters") + ": " + otherFilter);
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", $"{EncodeHtml(userConfig.GetText("workflow_filters"))}: {EncodeHtml(otherFilter)}");
                 }
                 else if (ReportType.IsRulebaseReport())
                 {
-                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("managements") + ": " + otherFilter);
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", $"{EncodeHtml(userConfig.GetText("managements"))}: {EncodeHtml(otherFilter)}");
                 }
                 else if (ReportType == ReportType.OwnerRecertification)
                 {
-                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("other_filters") + ": " + otherFilter);
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", $"{EncodeHtml(userConfig.GetText("other_filters"))}: {EncodeHtml(otherFilter)}");
                 }
                 else
                 {
-                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("devices") + ": " + otherFilter);
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", $"{EncodeHtml(userConfig.GetText("devices"))}: {EncodeHtml(otherFilter)}");
                 }
             }
             else

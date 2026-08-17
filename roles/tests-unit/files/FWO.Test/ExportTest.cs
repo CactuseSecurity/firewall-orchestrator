@@ -610,6 +610,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public void OwnerRecertificationGenerateHtmlEncodesUserDerivedFilterText()
+        {
+            ReportOwnerRecerts report = new(new DynGraphqlQuery(""), userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerAddInfoFilter = new AddInfoFilter
+            {
+                Name = "<script>alert(\"x\") & more</script>",
+                Mode = AddInfoFilterMode.value,
+                Value = "\"quoted\" & <value>"
+            };
+            report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner.AdditionalInfo =
+                new() { ["<script>alert(\"x\") & more</script>"] = "\"quoted\" & <value>" };
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            StringAssert.DoesNotContain("<script>alert(\"x\")", html);
+            StringAssert.Contains("<p>Add. Info: &lt;script&gt;alert(&quot;x&quot;) &amp; more&lt;/script&gt;=&quot;quoted&quot; &amp; &lt;value&gt;</p>", html);
+            StringAssert.Contains("<th>Add. Info: &lt;script&gt;alert(&quot;x&quot;) &amp; more&lt;/script&gt;</th>", html);
+        }
+
+        [Test]
         public void OwnerRecertificationGenerateHtmlSkipsEmptyDeviceFilterLine()
         {
             ReportOwnerRecerts report = new(new DynGraphqlQuery(""), userConfig, ReportType.OwnerRecertification)

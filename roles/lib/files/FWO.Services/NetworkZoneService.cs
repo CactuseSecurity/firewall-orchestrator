@@ -221,6 +221,37 @@ namespace FWO.Services
             await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.removeNetworkZone, variables);
         }
 
+        /// <summary>
+        /// Adds the auto-calculated Internet zone without replacing other existing special zones.
+        /// </summary>
+        /// <param name="matrixId">Compliance matrix identifier.</param>
+        /// <param name="apiConnection">API connection used to persist the zone.</param>
+        public static async Task AddAutoCalculatedInternetZone(int matrixId, ApiConnection apiConnection)
+        {
+            List<ComplianceNetworkZone> existingZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
+                ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
+            if (existingZones.Any(zone => zone.IsAutoCalculatedInternetZone))
+            {
+                return;
+            }
+
+            bool dummyInternetZoneExists = TryUpdateInternetZoneObject(existingZones, matrixId, out ComplianceNetworkZone internetZone);
+            CalculateInternetZone(internetZone, existingZones);
+            AdditionsDeletions internetZoneAddDel = new()
+            {
+                IpRangesToAdd = internetZone.IPRanges.ToList()
+            };
+
+            if (dummyInternetZoneExists)
+            {
+                await UpdateZone(internetZone, internetZoneAddDel, apiConnection);
+            }
+            else
+            {
+                await AddZone(internetZone, internetZoneAddDel, apiConnection);
+            }
+        }
+
         public static async Task UpdateSpecialZones(int matrixId, ApiConnection apiConnection, GlobalConfig globalConfig)
         {
             // Get all zones of the matrix.

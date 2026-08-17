@@ -99,6 +99,41 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void AddAutoCalculatedInternetZone_PreservesUndefinedInternalZone()
+        {
+            MatrixApiConnection apiConnection = new();
+            apiConnection.AddUndefinedInternalZoneWithCommunication();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                AutoCalculateInternetZone = true,
+                AutoCalculateUndefinedInternalZone = true
+            };
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
+            userConfig.User.Roles = new List<string> { Roles.Admin };
+            userConfig.SetExecutionMode(Roles.Admin);
+
+            using BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddAuthorizationCore();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+            context.Services.AddSingleton(userConfig);
+            context.Services.AddSingleton(new NetworkZoneService());
+            context.Services.AddSingleton<AuthenticationStateProvider>(new AllowAllAuthStateProvider(Roles.Admin));
+            context.Services.AddLocalization();
+
+            IRenderedComponent<CascadingAuthenticationState> root = context.Render<CascadingAuthenticationState>(parameters => parameters.AddChildContent<ComplianceMatrix>());
+
+            root.Find("#add-auto-calculated-internet-zone").Click();
+
+            root.WaitForAssertion(() =>
+            {
+                Assert.That(apiConnection.AutoCalculatedInternetZoneAdditions, Is.EqualTo(1));
+                Assert.That(apiConnection.AutoCalculatedUndefinedInternalZoneRemovals, Is.Zero);
+            });
+        }
+
         private sealed class MatrixApiConnection : SimulatedApiConnection
         {
             private readonly List<ComplianceNetworkZone> networkZones = new()
@@ -107,6 +142,7 @@ namespace FWO.Test
             };
 
             public int AutoCalculatedInternetZoneAdditions { get; private set; }
+            public int AutoCalculatedUndefinedInternalZoneRemovals { get; private set; }
             public bool DelayAutoCalculatedInternetZoneAddition { get; init; }
             public TaskCompletionSource<object?> AutoCalculatedInternetZoneAdditionStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
             public TaskCompletionSource<object?> ReleaseAutoCalculatedInternetZoneAddition { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -145,6 +181,12 @@ namespace FWO.Test
                     return Task.FromResult(default(QueryResponseType)!);
                 }
 
+                if (query == ComplianceQueries.removeNetworkZone)
+                {
+                    AutoCalculatedUndefinedInternalZoneRemovals++;
+                    return Task.FromResult(default(QueryResponseType)!);
+                }
+
                 throw new NotImplementedException($"Unhandled query {query} for {typeof(QueryResponseType).Name}");
             }
 
@@ -169,6 +211,20 @@ namespace FWO.Test
                     IdString = "AUTO_CALCULATED_ZONE_INTERNET",
                     Name = "Auto-calculated Internet Zone",
                     IsAutoCalculatedInternetZone = true
+                });
+            }
+
+            public void AddUndefinedInternalZoneWithCommunication()
+            {
+                List<ComplianceNetworkZone> allowedDestinations = new();
+                allowedDestinations.Add(networkZones[0]);
+                networkZones.Add(new ComplianceNetworkZone
+                {
+                    Id = 3,
+                    IdString = "AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL",
+                    Name = "Auto-calculated Undefined-internal Zone",
+                    IsAutoCalculatedUndefinedInternalZone = true,
+                    AllowedCommunicationDestinations = allowedDestinations.ToArray()
                 });
             }
         }

@@ -140,5 +140,18 @@ namespace FWO.Test
             NamingConvention3.AppRolePattern = "AR91123";
             ClassicAssert.AreEqual("XYZ", ModellingManagedIdString.ConvertAppRoleToArea("AR9112345-001", NamingConvention3));
         }
+
+        [Test]
+        public void TestConvertAreaToAppRoleWithPatternLongerThanFixedPart()
+        {
+            ModellingNamingConvention namingConvention = new()
+            {
+                FixedPartLength = 0,
+                NetworkAreaPattern = "NA",
+                AppRolePattern = "AR"
+            };
+
+            ClassicAssert.AreEqual("AR", ModellingManagedIdString.ConvertAreaToAppRole("NA", namingConvention));
+        }
     }
 }

@@ -168,9 +168,10 @@ namespace FWO.Data.Modelling
 
         public static string ConvertAreaToAppRole(string areaIdString, ModellingNamingConvention namingConvention)
         {
+            int convLength = namingConvention.NetworkAreaPattern.Length > namingConvention.FixedPartLength ? namingConvention.FixedPartLength : namingConvention.NetworkAreaPattern.Length;
             if (areaIdString.Length >= namingConvention.FixedPartLength)
             {
-                return areaIdString.Substring(0, namingConvention.FixedPartLength).Remove(0, namingConvention.NetworkAreaPattern.Length).Insert(0, namingConvention.AppRolePattern);
+                return areaIdString.Substring(0, namingConvention.FixedPartLength).Remove(0, convLength).Insert(0, namingConvention.AppRolePattern);
             }
             return areaIdString;
         }

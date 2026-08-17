@@ -658,15 +658,23 @@ namespace FWO.Report.Filter
 
         private static string BuildTicketLabelExistsFilter(DynGraphqlQuery query, string labelName, bool negate)
         {
-            string keyPatternVar = AddQueryVariable(query, "labelKeyPattern", "String", $"%\"{labelName}\":%");
+            string keyPatternVar = AddQueryVariable(query, "addInfoKeyPattern", "String", $"%\"{EscapeLikePattern(labelName)}\":%");
             string filter = $"{{ reqtasks: {{ additional_info: {{ _ilike: ${keyPatternVar} }} }} }}";
             return negate ? $"{{ _not: {filter} }}" : filter;
         }
 
         private static string BuildTicketLabelValueFilter(DynGraphqlQuery query, string labelName, string value)
         {
-            string valuePatternVar = AddQueryVariable(query, "labelValuePattern", "String", $"%\"{labelName}\":\"{value}\"%");
+            string valuePatternVar = AddQueryVariable(query, "addInfoValuePattern", "String", $"%\"{EscapeLikePattern(labelName)}\":\"{EscapeLikePattern(value)}\"%");
             return $"{{ reqtasks: {{ additional_info: {{ _ilike: ${valuePatternVar} }} }} }}";
+        }
+
+        private static string EscapeLikePattern(string value)
+        {
+            return value
+                .Replace("\\", "\\\\")
+                .Replace("%", "\\%")
+                .Replace("_", "\\_");
         }
 
         private static string AddQueryVariable(DynGraphqlQuery query, string name, string type, object value)

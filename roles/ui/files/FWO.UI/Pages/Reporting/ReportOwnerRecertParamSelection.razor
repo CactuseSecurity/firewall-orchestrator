@@ -62,7 +62,7 @@ else
         <AddInfoFilterEditor AddInfoFilter="ModellingFilter.OwnerAddInfoFilter"
                            AddInfoFilterChanged="HandleAddInfoFilterChanged"
                            AvailableAddInfoNames="availableAddInfoNames"
-                           IdPrefix="ownerLabel"
+                           IdPrefix="@IdPrefix"
                            UseFormLayout="UseFormLayout"
                            UseLightText="UseLightText"
                            AllowFreeText="true"
@@ -70,12 +70,19 @@ else
                            TooltipTextKey="C1004" />
     </text>;
 
-    private List<string> availableAddInfoNames = new();
+    [Parameter]
+    public string IdPrefix { get; set; } = "ownerAddInfo";
+
+    private List<string> availableAddInfoNames = [];
     private bool availableAddInfoNamesLoaded;
 
     protected override async Task OnParametersSetAsync()
     {
-        SyncLegacyAddInfoFilter();
+        bool legacyFilterChanged = SyncLegacyAddInfoFilter();
+        if (legacyFilterChanged)
+        {
+            await ModellingFilterChanged.InvokeAsync(ModellingFilter);
+        }
 
         if (AvailableAddInfoNames != null)
         {
@@ -109,18 +116,24 @@ else
         await ModellingFilterChanged.InvokeAsync(ModellingFilter);
     }
 
-    private void SyncLegacyAddInfoFilter()
+    private bool SyncLegacyAddInfoFilter()
     {
+        bool changed = false;
         if (!string.IsNullOrWhiteSpace(ModellingFilter.OwnerAdditionalInfoKey) && string.IsNullOrWhiteSpace(ModellingFilter.OwnerAddInfoFilter.Name))
         {
             ModellingFilter.OwnerAddInfoFilter.Name = ModellingFilter.OwnerAdditionalInfoKey;
             ModellingFilter.OwnerAddInfoFilter.Mode = AddInfoFilterMode.display_only;
+            changed = true;
         }
 
-        if (!string.IsNullOrWhiteSpace(ModellingFilter.OwnerAddInfoFilter.Name))
+        if (!string.IsNullOrWhiteSpace(ModellingFilter.OwnerAddInfoFilter.Name)
+            && !string.Equals(ModellingFilter.OwnerAdditionalInfoKey, ModellingFilter.OwnerAddInfoFilter.Name, StringComparison.Ordinal))
         {
             ModellingFilter.OwnerAdditionalInfoKey = ModellingFilter.OwnerAddInfoFilter.Name;
+            changed = true;
         }
+
+        return changed;
     }
 
     private async Task HandleAddInfoFilterChanged(AddInfoFilter addInfoFilter)

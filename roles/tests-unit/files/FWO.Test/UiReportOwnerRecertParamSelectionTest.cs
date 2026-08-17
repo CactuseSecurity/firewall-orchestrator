@@ -48,8 +48,8 @@ namespace FWO.Test
                 .Add(p => p.UseLightText, false));
 
             Assert.That(cut.Find("#mergeOwnerRecertTables"), Is.Not.Null);
-            Assert.That(cut.Find("#ownerLabel-summary"), Is.Not.Null);
-            Assert.That(cut.Find("#ownerLabel-editButton"), Is.Not.Null);
+            Assert.That(cut.Find("#ownerAddInfo-summary"), Is.Not.Null);
+            Assert.That(cut.Find("#ownerAddInfo-editButton"), Is.Not.Null);
             Assert.That(cut.Markup, Does.Contain("ConnId"));
         }
 
@@ -201,6 +201,21 @@ namespace FWO.Test
             {
                 Assert.That(availableAddInfoNames, Does.Contain("team_label"));
                 Assert.That(availableAddInfoNames, Does.Contain("custom_owner_label"));
+            });
+        }
+
+        [Test]
+        public async Task ReportOwnerRecertParamSelection_UsesCustomIdPrefix()
+        {
+            await using BunitContext context = CreateContext(new ReportOwnerRecertParamSelectionTestApiConnection());
+            IRenderedComponent<ReportOwnerRecertParamSelection> cut = context.Render<ReportOwnerRecertParamSelection>(parameters => parameters
+                .Add(p => p.ModellingFilter, new ModellingFilter())
+                .Add(p => p.IdPrefix, "templateOwnerAddInfo"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(cut.Find("#templateOwnerAddInfo-summary"), Is.Not.Null);
+                Assert.That(cut.Find("#templateOwnerAddInfo-editButton"), Is.Not.Null);
             });
         }
 

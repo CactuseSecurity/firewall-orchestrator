@@ -1499,8 +1499,24 @@ namespace FWO.Test
 
             DynGraphqlQuery query = Compiler.Compile(template);
 
-            StringAssert.Contains("reqtasks: { additional_info: { _ilike: $labelValuePattern0 } }", query.FullQuery);
-            Assert.That(query.QueryVariables["labelValuePattern0"], Is.EqualTo("%\"policy_check\":\"true\"%"));
+            StringAssert.Contains("reqtasks: { additional_info: { _ilike: $addInfoValuePattern0 } }", query.FullQuery);
+            Assert.That(query.QueryVariables["addInfoValuePattern0"], Is.EqualTo("%\"policy\\_check\":\"true\"%"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void TicketReport_FiltersByWorkflowLabelValueEscapesLikeWildcards()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = ""
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+            template.ReportParams.WorkflowFilter.AddInfoFilter = new() { Name = "policy_check_%", Mode = AddInfoFilterMode.value, Value = "tr%ue_" };
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            Assert.That(query.QueryVariables["addInfoValuePattern0"], Is.EqualTo("%\"policy\\_check\\_\\%\":\"tr\\%ue\\_\"%"));
         }
 
         [Test]
@@ -1516,8 +1532,8 @@ namespace FWO.Test
 
             DynGraphqlQuery query = Compiler.Compile(template);
 
-            StringAssert.Contains("_not: { reqtasks: { additional_info: { _ilike: $labelKeyPattern0 } } }", query.FullQuery);
-            Assert.That(query.QueryVariables["labelKeyPattern0"], Is.EqualTo("%\"policy_check\":%"));
+            StringAssert.Contains("_not: { reqtasks: { additional_info: { _ilike: $addInfoKeyPattern0 } } }", query.FullQuery);
+            Assert.That(query.QueryVariables["addInfoKeyPattern0"], Is.EqualTo("%\"policy\\_check\":%"));
         }
 
         [Test]
@@ -1535,11 +1551,11 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(query.FullQuery, Does.Not.Contain("labelKeyPattern"));
-                Assert.That(query.FullQuery, Does.Not.Contain("labelValuePattern"));
+                Assert.That(query.FullQuery, Does.Not.Contain("addInfoKeyPattern"));
+                Assert.That(query.FullQuery, Does.Not.Contain("addInfoValuePattern"));
                 Assert.That(query.FullQuery, Does.Not.Contain("additional_info: { _ilike"));
-                Assert.That(query.QueryVariables.Keys, Does.Not.Contain("labelKeyPattern0"));
-                Assert.That(query.QueryVariables.Keys, Does.Not.Contain("labelValuePattern0"));
+                Assert.That(query.QueryVariables.Keys, Does.Not.Contain("addInfoKeyPattern0"));
+                Assert.That(query.QueryVariables.Keys, Does.Not.Contain("addInfoValuePattern0"));
             });
         }
 

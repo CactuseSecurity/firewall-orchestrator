@@ -46,7 +46,8 @@ namespace FWO.Report
 
         protected List<OwnerConnectionReport> GetDisplayedOwnerData()
         {
-            return [.. ReportData.OwnerData.Where(owner => OwnerRecertDisplay.MatchesAdditionalInfoFilter(owner.Owner, GetEffectiveOwnerAddInfoFilter()))];
+            AddInfoFilter effectiveOwnerAddInfoFilter = GetEffectiveOwnerAddInfoFilter();
+            return [.. ReportData.OwnerData.Where(owner => OwnerRecertDisplay.MatchesAdditionalInfoFilter(owner.Owner, effectiveOwnerAddInfoFilter))];
         }
 
         protected AddInfoFilter GetEffectiveOwnerAddInfoFilter()

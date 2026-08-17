@@ -2,6 +2,7 @@ using NetTools;
 using System.Net;
 using FWO.Logging;
 using FWO.Basics;
+using FWO.Report.Filter.Exceptions;
 
 
 namespace FWO.Report.Filter.Ast
@@ -24,6 +25,12 @@ namespace FWO.Report.Filter.Ast
                     break;
                 case TokenKind.Source:
                     ExtractSourceFilter(query);
+                    break;
+                case TokenKind.DestinationType:
+                    ExtractObjectTypeFilter(query, reportType, "dst", "rule_tos");
+                    break;
+                case TokenKind.SourceType:
+                    ExtractObjectTypeFilter(query, reportType, "src", "rule_froms");
                     break;
                 default:
                     break;
@@ -57,6 +64,49 @@ namespace FWO.Report.Filter.Ast
                 query.RuleWhereStatement += $"rule_froms: {{ object: {{ {DirectOrFlatObjectFilter($"obj_name: {{ {ExtractOperator()}: ${QueryVarName} }}")} }} }}";
                 query.ConnectionWhereStatement += ConnWhere(QueryVarName, 1);
             }
+        }
+
+        private void ExtractObjectTypeFilter(DynGraphqlQuery query, ReportType? reportType, string location, string locationTable)
+        {
+            if (reportType is not null && reportType.Value.IsConnectionRelatedReport())
+            {
+                throw new SemanticException("Network object type filters are only supported for firewall rule reports.", Name.Position);
+            }
+
+            List<string> objectTypes = ExtractObjectTypes();
+            string queryVarName = AddObjectTypeVariable(query, location, objectTypes);
+            string typeFilter = $"stm_obj_typ: {{ obj_typ_name: {{ {ExtractObjectTypeOperator()}: ${queryVarName} }} }}";
+            string directOrFlatTypeFilter = DirectOrFlatObjectFilter(typeFilter);
+
+            query.RuleWhereStatement += $"{locationTable}: {{ object: {{ {directOrFlatTypeFilter} }} }}";
+        }
+
+        private List<string> ExtractObjectTypes()
+        {
+            List<string> objectTypes = Value.Text.Split(',', StringSplitOptions.TrimEntries).ToList();
+            if (objectTypes.Count == 0 || objectTypes.Any(string.IsNullOrWhiteSpace))
+            {
+                throw new SemanticException("Network object type filter requires a comma-separated list of object types.", Value.Position);
+            }
+            return objectTypes.Select(objectType => objectType.ToLowerInvariant()).ToList();
+        }
+
+        private string ExtractObjectTypeOperator()
+        {
+            return Operator.Kind switch
+            {
+                TokenKind.EQ or TokenKind.EEQ => "_in",
+                TokenKind.NEQ => "_nin",
+                _ => throw new SemanticException("Invalid network object type filter operator.", Operator.Position),
+            };
+        }
+
+        private static string AddObjectTypeVariable(DynGraphqlQuery query, string location, List<string> objectTypes)
+        {
+            string queryVarName = $"{location}Type" + query.parameterCounter++;
+            query.QueryParameters.Add($"${queryVarName}: [String!]! ");
+            query.QueryVariables[queryVarName] = objectTypes;
+            return queryVarName;
         }
 
         private string ConnWhere(string QueryVarName, int field)

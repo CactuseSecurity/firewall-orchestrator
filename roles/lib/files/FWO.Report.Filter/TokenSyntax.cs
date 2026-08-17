@@ -75,6 +75,18 @@ namespace FWO.Report.Filter
                     NoWhiteSpaceRequiered: []
                 ),
 
+                TokenKind.SourceType => new TokenSyntax
+                (
+                    WhiteSpaceRequiered: ["source_type", "source-type", "src_type", "src-type"],
+                    NoWhiteSpaceRequiered: []
+                ),
+
+                TokenKind.DestinationType => new TokenSyntax
+                (
+                    WhiteSpaceRequiered: ["destination_type", "destination-type", "dst_type", "dst-type", "dest_type", "dest-type"],
+                    NoWhiteSpaceRequiered: []
+                ),
+
                 TokenKind.Action => new TokenSyntax
                 (
                     WhiteSpaceRequiered: ["action", "act", "enforce"],

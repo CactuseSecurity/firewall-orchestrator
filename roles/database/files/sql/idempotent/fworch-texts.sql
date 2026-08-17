@@ -531,17 +531,13 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
-    <li>Das Modellierungsmodul enth&auml;t nun einen Soll/Ist-Abgleich mit dem Firewall-Regelwerk.</li>
-    <li>Das Modellierungsmodul enth&auml;t ein Antragsmodul zur Beauftragung von Firewall-&Auml;nderungen &uuml;ber externe Systeme.</li>
-    <li>Das FWO-Logo kann durch ein eigenes Logo ersetzt werden.</li>
+    <li>Die Reporting-Filterleiste kann Regeln nach Netzwerkobjekttypen in Quelle und Ziel filtern.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
-    <li>The modelling module now includes a variance analysis (target/actual comparison) with the firewall rulebase</li>
-    <li>The modelling module now includes a request module for submitting firewall change requests via external systems</li>
-    <li>You now can insert your own logo in the UI</li>
+    <li>The reporting filter line can filter rules by network object types in source and destination.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -4798,6 +4794,8 @@ INSERT INTO txt VALUES ('H1111', 'German',  '<li>gateway (gw, firewall, fw, devi
     <li>disabled</li>
     <li>source (src)</li>
     <li>destination (dst, dest)</li>
+    <li>source_type (src_type): Quelle nach einem oder mehreren Netzwerkobjekttypen filtern, z.B. src_type=dynamic_net_obj,domain</li>
+    <li>destination_type (dst_type, dest_type): Ziel nach einem oder mehreren Netzwerkobjekttypen filtern, z.B. dst_type=dynamic_net_obj,domain</li>
     <li>service (svc, srv)</li>
     <li>protocol (proto)</li>
     <li>destinationport (port, dport, dst_port, dst-port, dest-port, destination-port, dest_port, destination_port)</li>
@@ -4820,6 +4818,8 @@ INSERT INTO txt VALUES ('H1111', 'English', '<li>gateway (gw, firewall, fw, devi
     <li>disabled</li>
     <li>source (src)</li>
     <li>destination (dst, dest)</li>
+    <li>source_type (src_type): filter the source by one or more network object types, e.g. src_type=dynamic_net_obj,domain</li>
+    <li>destination_type (dst_type, dest_type): filter the destination by one or more network object types, e.g. dst_type=dynamic_net_obj,domain</li>
     <li>service (svc, srv)</li>
     <li>protocol (proto)</li>
     <li>destinationport (port, dport, dst_port, dst-port, dest-port, destination-port, dest_port, destination_port)</li>
@@ -4847,10 +4847,10 @@ INSERT INTO txt VALUES ('H1141', 'English', '<li> full text searches</li><ul>
     <li>fulltext=cactus - same as above</li></ul>
 ');
 INSERT INTO txt VALUES ('H1143', 'German',  '<li> Suche nach spezifischem Regelinhalt</li><ul>
-    <li>src=cactus</li><li>src=subnet</li><li>dst=daba</li><li>svc=valve_udp</li><li>action=accept</li><li>not action=drop</li><li>disabled=true</li><li>dst=10.222.0.10/31</li></ul>
+    <li>src=cactus</li><li>src=subnet</li><li>dst=daba</li><li>src_type=dynamic_net_obj,domain</li><li>svc=valve_udp</li><li>action=accept</li><li>not action=drop</li><li>disabled=true</li><li>dst=10.222.0.10/31</li></ul>
 ');
 INSERT INTO txt VALUES ('H1143', 'English', '<li> Specific rule content searches</li><ul>
-    <li>src=cactus</li><li>src=subnet</li><li>dst=daba</li><li>svc=valve_udp</li><li>action=accept</li><li>not action=drop</li><li>disabled=true</li><li>dst=10.222.0.10/31</li></ul>
+    <li>src=cactus</li><li>src=subnet</li><li>dst=daba</li><li>src_type=dynamic_net_obj,domain</li><li>svc=valve_udp</li><li>action=accept</li><li>not action=drop</li><li>disabled=true</li><li>dst=10.222.0.10/31</li></ul>
 ');
 INSERT INTO txt VALUES ('H1144', 'German',  '<li> Filtern nach Gateways oder Managements</li><ul>
     <li>gateway=forti and src=cactus</li><li>gateway=forti or gateway=check</li><li>not gateway=check</li></ul>

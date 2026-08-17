@@ -16,6 +16,7 @@ namespace FWO.Test
     public partial class FilterTest
     {
         private const int kRegexTimeoutMilliseconds = 1000;
+        private static readonly List<string> kDynamicObjectTypes = ["dynamic_net_obj", "domain"];
 
         private delegate void StubExtractDelegate(ref DynGraphqlQuery query, ReportType? reportType);
 
@@ -1433,6 +1434,40 @@ namespace FWO.Test
             StringAssert.Contains("obj_name: { _nilike: $dst0 }", query.RuleWhereStatement);
             StringAssert.Contains("owner_network: {name: { _nilike: $dst0 } }", query.ConnectionWhereStatement);
             StringAssert.Contains("id_string: { _nilike: $dst0 }", query.ConnectionWhereStatement);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void NetworkFilter_ObjectTypesBuildDirectAndFlattenedSourceAndDestinationFilters()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "src_type=dynamic_net_obj,domain or dst_type=dynamic_net_obj,domain"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            CollectionAssert.AreEqual(kDynamicObjectTypes, (List<string>)query.QueryVariables["srcType0"]);
+            CollectionAssert.AreEqual(kDynamicObjectTypes, (List<string>)query.QueryVariables["dstType1"]);
+            string normalizedRuleWhere = NormalizeGraphQl(query.RuleWhereStatement);
+            StringAssert.Contains("rule_froms: { object: { _or: [{ stm_obj_typ: { obj_typ_name: { _in: $srcType0 } } }, { objgrp_flats: { objectByObjgrpFlatMemberId: { stm_obj_typ: { obj_typ_name: { _in: $srcType0 } } } } }] } }", normalizedRuleWhere);
+            StringAssert.Contains("rule_tos: { object: { _or: [{ stm_obj_typ: { obj_typ_name: { _in: $dstType1 } } }, { objgrp_flats: { objectByObjgrpFlatMemberId: { stm_obj_typ: { obj_typ_name: { _in: $dstType1 } } } } }] } }", normalizedRuleWhere);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void NetworkFilter_ObjectTypesRejectModelledConnectionReports()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "src_type=dynamic_net_obj,domain"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Connections;
+
+            SemanticException exception = Assert.Throws<SemanticException>(() => Compiler.Compile(template))!;
+
+            Assert.That(exception.Message, Does.Contain("only supported for firewall rule reports"));
         }
 
         [Test]

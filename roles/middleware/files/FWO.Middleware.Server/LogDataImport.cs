@@ -50,15 +50,20 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// Keeps the entries with the highest log counts. Applied after the flows of the import
-        /// were merged, so a flow reported by several source files is ranked by its total count
-        /// and not by its largest single row.
+        /// Keeps the entries with the highest log counts for every owner. Applied after the flows
+        /// of the import were merged, so a flow reported several times is ranked by its total
+        /// count and not by its largest single row. Limiting each owner independently prevents a
+        /// loud application from displacing all current flows of a quieter application in the
+        /// same source.
         /// </summary>
         public static List<FirewallLogEntryInput> LimitEntries(List<FirewallLogEntryInput> entries, int maxEntries)
         {
             return entries
+                .GroupBy(entry => entry.OwnerId)
+                .SelectMany(ownerEntries => ownerEntries
+                    .OrderByDescending(entry => entry.LogCount)
+                    .Take(Math.Max(0, maxEntries)))
                 .OrderByDescending(entry => entry.LogCount)
-                .Take(Math.Max(0, maxEntries))
                 .ToList();
         }
 
@@ -159,7 +164,7 @@ namespace FWO.Middleware.Server
                 : [];
             List<FirewallLogEntryInput> resolvedEntries = await ResolveOwners(normalizedEntries, ownerIdsByAppId);
             int unresolvedEntries = normalizedEntries.Count - resolvedEntries.Count;
-            // merge before limiting, so a flow reported by several source files is ranked by its total
+            // merge before limiting, so a flow reported several times is ranked by its total
             List<FirewallLogEntryInput> mergedFlows = MergeDuplicateEntries(resolvedEntries);
             int mergedEntries = resolvedEntries.Count - mergedFlows.Count;
             List<FirewallLogEntryInput> entries = LimitEntries(mergedFlows, globalConfig.ImportLogDataMaxEntries);

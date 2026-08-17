@@ -184,6 +184,27 @@ namespace FWO.Test
         }
 
         [Test]
+        public void LimitEntries_AppliesTheMaximumToEveryOwner()
+        {
+            List<FirewallLogEntryInput> entries = new()
+            {
+                BuildEntry(1, 1000, 6, 443, ImportTime),
+                BuildEntry(1, 900, 6, 80, ImportTime),
+                BuildEntry(2, 10, 17, 53, ImportTime),
+                BuildEntry(2, 5, 6, 22, ImportTime)
+            };
+
+            List<FirewallLogEntryInput> limited = LogDataImport.LimitEntries(entries, 1);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(limited, Has.Count.EqualTo(2));
+                Assert.That(limited.Single(entry => entry.OwnerId == 1).LogCount, Is.EqualTo(1000));
+                Assert.That(limited.Single(entry => entry.OwnerId == 2).LogCount, Is.EqualTo(10));
+            });
+        }
+
+        [Test]
         public void LimitEntries_RanksAFlowByItsMergedCount()
         {
             List<FirewallLogEntryInput> entries = new()

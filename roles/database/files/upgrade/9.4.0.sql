@@ -72,7 +72,7 @@ VALUES
     ('importLogDataMaxEntries', '1000', 0),
     ('logDataRetentionDays', '90', 0),
     ('allowLogDataPortWithoutProtocol', 'False', 0),
-    ('replaceExistingLogData', 'False', 0),
+    ('replaceExistingLogData', 'True', 0),
     ('showLogDataInConnections', 'False', 0)
 ON CONFLICT DO NOTHING;
 

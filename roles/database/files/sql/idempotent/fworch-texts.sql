@@ -3038,8 +3038,8 @@ INSERT INTO txt VALUES ('importLogDataScriptArgs', 'German', 'Skriptparameter (o
 INSERT INTO txt VALUES ('importLogDataScriptArgs', 'English', 'Script parameters (optional)');
 INSERT INTO txt VALUES ('importLogDataSleepTime', 'German', 'Logdaten-Importintervall');
 INSERT INTO txt VALUES ('importLogDataSleepTime', 'English', 'Log data import interval');
-INSERT INTO txt VALUES ('importLogDataMaxEntries', 'German', 'Maximale Anzahl Logeintr&auml;ge pro Import');
-INSERT INTO txt VALUES ('importLogDataMaxEntries', 'English', 'Maximum number of log entries per import');
+INSERT INTO txt VALUES ('importLogDataMaxEntries', 'German', 'Maximale Anzahl Logeintr&auml;ge pro Applikation');
+INSERT INTO txt VALUES ('importLogDataMaxEntries', 'English', 'Maximum number of log entries per application');
 INSERT INTO txt VALUES ('logDataRetentionDays', 'German', 'Aufbewahrungsdauer der Logdaten (Tage)');
 INSERT INTO txt VALUES ('logDataRetentionDays', 'English', 'Log data retention (days)');
 INSERT INTO txt VALUES ('allowLogDataPortWithoutProtocol', 'German', 'Port ohne Protokoll in Logdaten zulassen');
@@ -6931,8 +6931,8 @@ INSERT INTO txt VALUES ('H5695', 'German', 'Skriptparameter (optional): Zus&auml
 INSERT INTO txt VALUES ('H5695', 'English', 'Script parameters (optional): Additional parameters passed to the log data import script.');
 INSERT INTO txt VALUES ('H5696', 'German', 'Logdaten-Importintervall: Legt fest, wie oft der Logdaten-Import ausgef&uuml;hrt wird.');
 INSERT INTO txt VALUES ('H5696', 'English', 'Log data import interval: Defines how often log data is imported.');
-INSERT INTO txt VALUES ('H5697', 'German', 'Maximale Anzahl Logeintr&auml;ge pro Import: Aus jeder Importdatei werden nur so viele Eintr&auml;ge mit den h&ouml;chsten Trefferz&auml;hlern &uuml;bernommen; die &uuml;brigen werden verworfen.');
-INSERT INTO txt VALUES ('H5697', 'English', 'Maximum number of log entries per import: Only this many entries with the highest log counts are taken from each import file; the remaining entries are discarded.');
+INSERT INTO txt VALUES ('H5697', 'German', 'Maximale Anzahl Logeintr&auml;ge pro Applikation: Aus jeder Importdatei werden f&uuml;r jede bekannte Applikation nur so viele Eintr&auml;ge mit den h&ouml;chsten Trefferz&auml;hlern &uuml;bernommen; die &uuml;brigen werden verworfen.');
+INSERT INTO txt VALUES ('H5697', 'English', 'Maximum number of log entries per application: From each import file, only this many entries with the highest log counts are taken for each known application; the remaining entries are discarded.');
 INSERT INTO txt VALUES ('H5698', 'German', 'Logdaten in Verbindungen anzeigen: Blendet die importierten Logdaten des Eigent&uuml;mers unterhalb der Verbindung im Bearbeiten-Dialog ein.');
 INSERT INTO txt VALUES ('H5698', 'English', 'Show log data in connections: Displays the imported log data of the owner below the connection in the edit dialog.');
 INSERT INTO txt VALUES ('H5699', 'German', 'Aufbewahrungsdauer der Logdaten (Tage): Logeintr&auml;ge, deren Logzeitpunkt weiter zur&uuml;ckliegt, werden nach jedem Import gel&ouml;scht. Der Wert muss mindestens 1 betragen, sonst w&uuml;rden alle Eintr&auml;ge sofort wieder entfernt.');

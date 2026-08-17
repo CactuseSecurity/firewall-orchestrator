@@ -79,7 +79,7 @@ namespace FWO.Test
         {
             LogDataImportTestApiConn apiConnection = new();
             apiConnection.OwnerIdsByAppId["APP-1"] = 11;
-            LogDataImport import = CreateImport(apiConnection);
+            LogDataImport import = CreateImport(apiConnection, replaceExisting: false);
             List<LogDataImportEntry> sourceEntries = [NewSourceEntry("APP-1", 30, "not an address", "198.51.100.1")];
 
             await InvokeSaveEntries(import, sourceEntries);
@@ -180,7 +180,33 @@ namespace FWO.Test
                 Assert.That(apiConnection.InsertedEntries.First().LogCount, Is.EqualTo(90), "entries are ordered by log count");
                 Assert.That(apiConnection.CompletedImports, Is.EqualTo(new List<bool> { true }));
                 Assert.That(apiConnection.CreateImportControlCalls, Is.EqualTo(1));
-                Assert.That(apiConnection.ReplacementOwnerIds, Is.Empty, "replacement is disabled by default");
+                Assert.That(apiConnection.ReplacementOwnerIds, Is.EqualTo(new List<int> { 11 }),
+                    "replacement is enabled by default so absent flows do not remain current");
+            });
+        }
+
+        [Test]
+        public async Task SaveEntries_KeepsCurrentFlowsForEveryOwnerWhenTheSourceIsLimited()
+        {
+            LogDataImportTestApiConn apiConnection = new();
+            apiConnection.OwnerIdsByAppId["APP-1"] = 11;
+            apiConnection.OwnerIdsByAppId["APP-2"] = 22;
+            LogDataImport import = CreateImport(apiConnection, maxEntries: 1);
+            List<LogDataImportEntry> sourceEntries = new()
+            {
+                NewSourceEntry("APP-1", 1000, "192.0.2.1", "198.51.100.1"),
+                NewSourceEntry("APP-1", 900, "192.0.2.2", "198.51.100.2"),
+                NewSourceEntry("APP-2", 10, "192.0.2.3", "198.51.100.3")
+            };
+
+            await InvokeSaveEntries(import, sourceEntries);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.ReplacementOwnerIds, Is.EquivalentTo(new List<int> { 11, 22 }));
+                Assert.That(apiConnection.InsertedEntries, Has.Count.EqualTo(2));
+                Assert.That(apiConnection.InsertedEntries.Select(entry => entry.OwnerId), Is.EquivalentTo(new List<int> { 11, 22 }),
+                    "a noisy owner must not displace every current flow of a quieter owner");
             });
         }
 
@@ -549,7 +575,7 @@ namespace FWO.Test
         }
 
         private static LogDataImport CreateImport(ApiConnection apiConnection, string importPath = "[]",
-            int maxEntries = 1000, int retentionDays = 90, bool replaceExisting = false)
+            int maxEntries = 1000, int retentionDays = 90, bool replaceExisting = true)
         {
             SimulatedGlobalConfig globalConfig = new()
             {

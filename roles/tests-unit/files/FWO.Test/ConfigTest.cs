@@ -395,11 +395,11 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ConfigData_DisablesLogDataReplacementByDefault()
+        public void ConfigData_EnablesLogDataReplacementByDefault()
         {
             ConfigData configData = new();
 
-            Assert.That(configData.ReplaceExistingLogData, Is.False);
+            Assert.That(configData.ReplaceExistingLogData, Is.True);
         }
 
         [Test]

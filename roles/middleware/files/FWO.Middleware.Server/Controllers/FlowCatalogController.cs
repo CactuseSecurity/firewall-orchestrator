@@ -16,41 +16,21 @@ namespace FWO.Middleware.Server.Controllers;
 [Route("api/flow")]
 public class FlowCatalogController : ControllerBase
 {
-    private static readonly RequestRootValidationSchema AddressObjectsRootSchema = RequestRootValidationSchema.ForVisibleInRequest(nameof(GetAddressObjects));
-    private static readonly RequestFilterValidationSchema AddressObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressObjects));
-    private static readonly RequestRootValidationSchema AddressGroupsRootSchema = RequestRootValidationSchema.ForVisibleInRequest(nameof(GetAddressGroups));
-    private static readonly RequestFilterValidationSchema AddressGroupsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressGroups));
-    private static readonly RequestRootValidationSchema ServiceObjectsRootSchema = RequestRootValidationSchema.ForVisibleInRequest(nameof(GetServiceObjects));
-    private static readonly RequestFilterValidationSchema ServiceObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceObjects));
-    private static readonly RequestRootValidationSchema ServiceGroupsRootSchema = RequestRootValidationSchema.ForVisibleInRequest(nameof(GetServiceGroups));
-    private static readonly RequestFilterValidationSchema ServiceGroupsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceGroups));
-    private static readonly RequestRootValidationSchema TimeObjectsRootSchema = RequestRootValidationSchema.ForVisibleInRequest(nameof(GetTimeObjects));
-    private static readonly RequestFilterValidationSchema TimeObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetTimeObjects));
-    private static readonly RequestRootValidationSchema ServiceObjectIdRootSchema = new(
-        nameof(GetServiceObjectId),
-        [
-            new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
-            new RequestKeyDefinition("portStart", "Start port for the service object lookup."),
-            new RequestKeyDefinition("portEnd", "End port for the service object lookup."),
-            new RequestKeyDefinition("protocol", "Protocol name or protocol id for the service object lookup.")
-        ]);
-    private static readonly RequestRootValidationSchema TimeObjectIdRootSchema = new(
-        nameof(GetTimeObjectId),
-        [
-            new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
-            new RequestKeyDefinition("startTime", "Start time for the time object lookup."),
-            new RequestKeyDefinition("endTime", "End time for the time object lookup.")
-        ]);
-    private static readonly RequestRootValidationSchema AddressObjectIdRootSchema = new(
-        nameof(GetAddressObjectId),
-        [
-            new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
-            new RequestKeyDefinition("ipStart", "Start IP address for the address object lookup."),
-            new RequestKeyDefinition("ipEnd", "End IP address for the address object lookup.")
-        ]);
-    private static readonly RequestFilterValidationSchema ServiceObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceObjectId));
-    private static readonly RequestFilterValidationSchema TimeObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetTimeObjectId));
-    private static readonly RequestFilterValidationSchema AddressObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressObjectId));
+    private static readonly RequestValidationSchema AddressObjectsSchema = CreateVisibleInRequestSchema(nameof(GetAddressObjects));
+    private static readonly RequestValidationSchema AddressGroupsSchema = CreateVisibleInRequestSchema(nameof(GetAddressGroups));
+    private static readonly RequestValidationSchema ServiceObjectsSchema = CreateVisibleInRequestSchema(nameof(GetServiceObjects));
+    private static readonly RequestValidationSchema ServiceGroupsSchema = CreateVisibleInRequestSchema(nameof(GetServiceGroups));
+    private static readonly RequestValidationSchema TimeObjectsSchema = CreateVisibleInRequestSchema(nameof(GetTimeObjects));
+    private static readonly RequestValidationSchema ServiceObjectIdSchema = CreateVisibleInRequestSchema(nameof(GetServiceObjectId))
+        .RequiredInt("portStart")
+        .RequiredInt("portEnd")
+        .RequiredString("protocol");
+    private static readonly RequestValidationSchema TimeObjectIdSchema = CreateVisibleInRequestSchema(nameof(GetTimeObjectId))
+        .OptionalString("startTime")
+        .OptionalString("endTime");
+    private static readonly RequestValidationSchema AddressObjectIdSchema = CreateVisibleInRequestSchema(nameof(GetAddressObjectId))
+        .RequiredString("ipStart")
+        .RequiredString("ipEnd");
 
     private readonly FlowCatalogService flowCatalogService;
 
@@ -71,7 +51,7 @@ public class FlowCatalogController : ControllerBase
     [HttpPost("getAddressObjects")]
     public async Task<ActionResult<List<AddressObjectResponse>>> GetAddressObjects([FromBody] GetAddressObjectsRequest request)
     {
-        if (!TryValidateVisibleInRequestRequest(request, AddressObjectsRootSchema, AddressObjectsFilterSchema, out ActionResult? errorResult))
+        if (!RequestValidator.TryValidate(request, AddressObjectsSchema, out ActionResult? errorResult))
         {
             return errorResult!;
         }
@@ -87,7 +67,7 @@ public class FlowCatalogController : ControllerBase
     [HttpPost("getAddressGroups")]
     public async Task<ActionResult<List<AddressGroupResponse>>> GetAddressGroups([FromBody] GetAddressGroupsRequest request)
     {
-        if (!TryValidateVisibleInRequestRequest(request, AddressGroupsRootSchema, AddressGroupsFilterSchema, out ActionResult? errorResult))
+        if (!RequestValidator.TryValidate(request, AddressGroupsSchema, out ActionResult? errorResult))
         {
             return errorResult!;
         }
@@ -103,7 +83,7 @@ public class FlowCatalogController : ControllerBase
     [HttpPost("getServiceObjects")]
     public async Task<ActionResult<List<ServiceObjectResponse>>> GetServiceObjects([FromBody] GetServiceObjectsRequest request)
     {
-        if (!TryValidateVisibleInRequestRequest(request, ServiceObjectsRootSchema, ServiceObjectsFilterSchema, out ActionResult? errorResult))
+        if (!RequestValidator.TryValidate(request, ServiceObjectsSchema, out ActionResult? errorResult))
         {
             return errorResult!;
         }
@@ -119,7 +99,7 @@ public class FlowCatalogController : ControllerBase
     [HttpPost("getServiceGroups")]
     public async Task<ActionResult<List<ServiceGroupResponse>>> GetServiceGroups([FromBody] GetServiceGroupsRequest request)
     {
-        if (!TryValidateVisibleInRequestRequest(request, ServiceGroupsRootSchema, ServiceGroupsFilterSchema, out ActionResult? errorResult))
+        if (!RequestValidator.TryValidate(request, ServiceGroupsSchema, out ActionResult? errorResult))
         {
             return errorResult!;
         }
@@ -135,7 +115,7 @@ public class FlowCatalogController : ControllerBase
     [HttpPost("getTimeObjects")]
     public async Task<ActionResult<List<TimeObjectResponse>>> GetTimeObjects([FromBody] GetTimeObjectsRequest request)
     {
-        if (!TryValidateVisibleInRequestRequest(request, TimeObjectsRootSchema, TimeObjectsFilterSchema, out ActionResult? errorResult))
+        if (!RequestValidator.TryValidate(request, TimeObjectsSchema, out ActionResult? errorResult))
         {
             return errorResult!;
         }
@@ -151,22 +131,22 @@ public class FlowCatalogController : ControllerBase
     [HttpPost("getServiceObjectId")]
     public async Task<ActionResult<ServiceObjectIdResponse>> GetServiceObjectId([FromBody] GetServiceObjectIdRequest request)
     {
-        if (!TryValidateVisibleInRequestRequest(request, ServiceObjectIdRootSchema, ServiceObjectIdFilterSchema, out ActionResult? errorResult))
+        if (!RequestValidator.TryValidate(request, ServiceObjectIdSchema, out ActionResult? errorResult))
         {
             return errorResult!;
         }
 
         if (string.IsNullOrWhiteSpace(request.Protocol))
         {
-            return BadRequest("'protocol' is required.");
+            return BuildValidationError("protocol", "'protocol' is required.");
         }
 
-        if (!FlowComplianceRequestValidator.TryValidateServiceRange(request.PortStart, request.PortEnd, "service", 0, out string? serviceErrorMessage))
+        if (!FlowComplianceRequestValidator.TryValidateServiceRange(request.PortStart!.Value, request.PortEnd!.Value, "service", 0, out string? serviceErrorMessage))
         {
-            return BadRequest(serviceErrorMessage);
+            return BuildValidationError("service[0]", serviceErrorMessage!);
         }
 
-        return Ok(await flowCatalogService.GetServiceObjectIdAsync(request.Protocol, request.PortStart, request.PortEnd, request.Filter?.VisibleInRequest));
+        return Ok(await flowCatalogService.GetServiceObjectIdAsync(request.Protocol, request.PortStart.Value, request.PortEnd.Value, request.Filter?.VisibleInRequest));
     }
 
     /// <summary>
@@ -177,19 +157,19 @@ public class FlowCatalogController : ControllerBase
     [HttpPost("getTimeObjectId")]
     public async Task<ActionResult<TimeObjectIdResponse>> GetTimeObjectId([FromBody] GetTimeObjectIdRequest request)
     {
-        if (!TryValidateVisibleInRequestRequest(request, TimeObjectIdRootSchema, TimeObjectIdFilterSchema, out ActionResult? errorResult))
+        if (!RequestValidator.TryValidate(request, TimeObjectIdSchema, out ActionResult? errorResult))
         {
             return errorResult!;
         }
 
         if (!request.StartTime.HasValue && !request.EndTime.HasValue)
         {
-            return BadRequest("At least one of 'startTime' or 'endTime' is required.");
+            return BuildValidationError(RequestFieldPath.Root, "At least one of 'startTime' or 'endTime' is required.");
         }
 
         if (request.StartTime.HasValue && request.EndTime.HasValue && request.StartTime > request.EndTime)
         {
-            return BadRequest("'startTime' must be <= 'endTime'.");
+            return BuildValidationError("startTime", "'startTime' must be <= 'endTime'.");
         }
 
         return Ok(await flowCatalogService.GetTimeObjectIdAsync(request.StartTime, request.EndTime, request.Filter?.VisibleInRequest));
@@ -204,14 +184,14 @@ public class FlowCatalogController : ControllerBase
     [HttpPost("getAddressObjectId")]
     public async Task<ActionResult<AddressObjectIdResponse>> GetAddressObjectId([FromBody] GetAddressObjectIdRequest request)
     {
-        if (!TryValidateVisibleInRequestRequest(request, AddressObjectIdRootSchema, AddressObjectIdFilterSchema, out ActionResult? errorResult))
+        if (!RequestValidator.TryValidate(request, AddressObjectIdSchema, out ActionResult? errorResult))
         {
             return errorResult!;
         }
 
         if (string.IsNullOrWhiteSpace(request.IpStart) || string.IsNullOrWhiteSpace(request.IpEnd))
         {
-            return BadRequest("'ipStart' and 'ipEnd' are required.");
+            return BuildValidationError("ipStart", "'ipStart' and 'ipEnd' are required.");
         }
 
         if (!FlowComplianceRequestValidator.TryValidateAndNormalizeIpRange(
@@ -223,7 +203,7 @@ public class FlowCatalogController : ControllerBase
             out string normalizedIpEnd,
             out string? addressErrorMessage))
         {
-            return BadRequest(addressErrorMessage);
+            return BuildValidationError("address[0]", addressErrorMessage!);
         }
 
         request.IpStart = normalizedIpStart;
@@ -231,18 +211,18 @@ public class FlowCatalogController : ControllerBase
         return Ok(await flowCatalogService.GetAddressObjectIdAsync(request.IpStart, request.IpEnd, request.Filter?.VisibleInRequest));
     }
 
-    private static bool TryValidateVisibleInRequestRequest<TRequest>(
-        TRequest request,
-        RequestRootValidationSchema rootSchema,
-        RequestFilterValidationSchema filterSchema,
-        out ActionResult? errorResult)
-        where TRequest : IVisibleInRequestFilterRequest
+    private static RequestValidationSchema CreateVisibleInRequestSchema(string endpointName)
     {
-        if (!RequestRootValidator.TryValidate(request, rootSchema, out errorResult))
-        {
-            return false;
-        }
+        return RequestValidationSchema.Endpoint(endpointName)
+            .ObjectRoot()
+            .OptionalObject("filter", filter => filter
+                .OptionalBool("visibleInRequest"));
+    }
 
-        return VisibleInRequestFilterValidator.TryValidate(request, filterSchema, out errorResult);
+    private static BadRequestObjectResult BuildValidationError(string fieldPath, string message)
+    {
+        RequestValidationErrors errors = new();
+        errors.Add(fieldPath, message);
+        return RequestValidationProblemDetailsFactory.BadRequest(errors);
     }
 }

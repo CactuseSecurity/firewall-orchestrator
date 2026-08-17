@@ -17,23 +17,20 @@ public sealed class GetServiceObjectIdRequest : IVisibleInRequestFilterRequest
     /// <summary>
     /// Gets the PortStart value.
     /// </summary>
-    [JsonRequired]
     [JsonPropertyName("portStart")]
-    public int PortStart { get; set; }
+    public int? PortStart { get; set; }
 
     /// <summary>
     /// Gets the PortEnd value.
     /// </summary>
-    [JsonRequired]
     [JsonPropertyName("portEnd")]
-    public int PortEnd { get; set; }
+    public int? PortEnd { get; set; }
 
     /// <summary>
     /// Gets the Protocol value.
     /// </summary>
-    [JsonRequired]
     [JsonPropertyName("protocol")]
-    public string Protocol { get; set; } = string.Empty;
+    public string? Protocol { get; set; }
 
     /// <summary>
     /// Gets the AdditionalData value.

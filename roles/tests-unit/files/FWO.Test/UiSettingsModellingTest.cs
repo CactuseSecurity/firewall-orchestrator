@@ -1,3 +1,5 @@
+using FWO.Basics;
+using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Modelling;
@@ -42,6 +44,16 @@ namespace FWO.Test
             return (T)field.GetValue(component)!;
         }
 
+        /// <summary>
+        /// Sets a non-public component property for isolated component tests.
+        /// </summary>
+        private static void SetPrivateProperty(object component, string propertyName, object value)
+        {
+            PropertyInfo property = component.GetType().GetProperty(propertyName, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMemberException(component.GetType().FullName, propertyName);
+            property.SetValue(component, value);
+        }
+
         private static void InvokePrivate(string name, object component, params object?[]? args)
         {
             MethodInfo method = GetPrivateMethod(name);
@@ -76,6 +88,59 @@ namespace FWO.Test
             InvokePrivate("ModIntegrationStates", component);
 
             Assert.That(GetPrivateField<bool>(component, "modIntegrationStatesMode"), Is.True);
+        }
+
+        /// <summary>
+        /// Verifies that the fixed part cannot be shorter than the network area pattern.
+        /// </summary>
+        [TestCase(1, "NA", false)]
+        [TestCase(2, "NA", true)]
+        [TestCase(4, "NA", true)]
+        [TestCase(0, null, true)]
+        public void IsNamingConventionValid_ChecksFixedPartLength(int fixedPartLength, string? networkAreaPattern, bool expectedResult)
+        {
+            SettingsModelling component = CreateComponent();
+            SetPrivateField(component, "namingConvention", new ModellingNamingConvention
+            {
+                FixedPartLength = fixedPartLength,
+                NetworkAreaPattern = networkAreaPattern!
+            });
+
+            bool result = (bool)GetPrivateMethod("IsNamingConventionValid").Invoke(component, null)!;
+
+            Assert.That(result, Is.EqualTo(expectedResult));
+        }
+
+        /// <summary>
+        /// Verifies that saving rejects a naming convention that would discard the area-specific identifier.
+        /// </summary>
+        [Test]
+        public async Task Save_WithFixedPartShorterThanNetworkPattern_ReportsValidationError()
+        {
+            SimulatedGlobalConfig globalConfig = new();
+            globalConfig.LangDict[GlobalConst.kEnglish]["modelling_settings"] = "Modelling Settings";
+            globalConfig.LangDict[GlobalConst.kEnglish]["E5601"] = "Invalid fixed part length";
+            SettingsModelling component = CreateComponent();
+            SetPrivateProperty(component, "userConfig", UserConfig.ForTextOnly(globalConfig, registerOnChangeHandler: false));
+            SetPrivateField(component, "namingConvention", new ModellingNamingConvention
+            {
+                FixedPartLength = 1,
+                NetworkAreaPattern = "NA"
+            });
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
+            SetPrivateProperty(component, "DisplayMessageInUi",
+                new Action<Exception?, string, string, bool>((exception, title, message, isError) => messages.Add((exception, title, message, isError))));
+
+            await (Task)GetPrivateMethod("Save").Invoke(component, null)!;
+
+            Assert.That(messages, Has.Count.EqualTo(1));
+            Assert.Multiple(() =>
+            {
+                Assert.That(messages[0].Exception, Is.Null);
+                Assert.That(messages[0].Title, Is.EqualTo("Modelling Settings"));
+                Assert.That(messages[0].Message, Is.EqualTo("Invalid fixed part length"));
+                Assert.That(messages[0].IsError, Is.True);
+            });
         }
 
         [Test]

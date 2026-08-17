@@ -141,17 +141,37 @@ namespace FWO.Test
             ClassicAssert.AreEqual("XYZ", ModellingManagedIdString.ConvertAppRoleToArea("AR9112345-001", NamingConvention3));
         }
 
+        /// <summary>
+        /// Verifies that converting a short area does not inspect an unused null pattern.
+        /// </summary>
         [Test]
-        public void TestConvertAreaToAppRoleWithPatternLongerThanFixedPart()
+        public void TestConvertShortAreaToAppRoleWithNullPattern()
         {
             ModellingNamingConvention namingConvention = new()
             {
-                FixedPartLength = 0,
-                NetworkAreaPattern = "NA",
+                FixedPartLength = 4,
+                NetworkAreaPattern = null!,
                 AppRolePattern = "AR"
             };
 
-            ClassicAssert.AreEqual("AR", ModellingManagedIdString.ConvertAreaToAppRole("NA", namingConvention));
+            ClassicAssert.AreEqual("NA", ModellingManagedIdString.ConvertAreaToAppRole("NA", namingConvention));
+        }
+
+        /// <summary>
+        /// Verifies conversion for both clamped and regular network area patterns.
+        /// </summary>
+        [TestCase(1, "NA", "NA", "AR")]
+        [TestCase(4, "NA", "NA12", "AR12")]
+        public void TestConvertAreaToAppRole(int fixedPartLength, string networkAreaPattern, string areaIdString, string expectedAppRole)
+        {
+            ModellingNamingConvention namingConvention = new()
+            {
+                FixedPartLength = fixedPartLength,
+                NetworkAreaPattern = networkAreaPattern,
+                AppRolePattern = "AR"
+            };
+
+            ClassicAssert.AreEqual(expectedAppRole, ModellingManagedIdString.ConvertAreaToAppRole(areaIdString, namingConvention));
         }
     }
 }

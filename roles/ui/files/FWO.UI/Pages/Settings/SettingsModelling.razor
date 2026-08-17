@@ -143,7 +143,7 @@
         <div class="form-group row mt-2">
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5607"))">
                 <label class="col-form-label col-sm-5">@userConfig.GetText("fixedPartLength"):</label>
-                <input type="number" min="0" class="col-sm-4" @bind="namingConvention.FixedPartLength" />
+                <input type="number" min="@(namingConvention.NetworkAreaPattern?.Length ?? 0)" class="col-sm-4" @bind="namingConvention.FixedPartLength" />
             </div>
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5619"))">
                 <label for="cbx_use_app_part" class="col-form-label col-sm-8">@(userConfig.GetText("useAppPart")):</label>
@@ -595,6 +595,11 @@ else
     {
         try
         {
+            if (!IsNamingConventionValid())
+            {
+                DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("E5601"), true);
+                return;
+            }
             if (configData != null)
             {
                 PrepareConfigData();
@@ -619,6 +624,14 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("modelling_settings"), "", true);
         }
+    }
+
+    /// <summary>
+    /// Checks that converting a network area preserves the area-specific part of its fixed identifier.
+    /// </summary>
+    private bool IsNamingConventionValid()
+    {
+        return namingConvention.FixedPartLength >= (namingConvention.NetworkAreaPattern?.Length ?? 0);
     }
 
     private void PrepareConfigData()

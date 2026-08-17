@@ -17,8 +17,11 @@ namespace FWO.ExternalSystems.CheckPoint
         private string? SessionId;
         public string? CurrentSessionId => SessionId;
 
+        // checkCertificates: false keeps the behaviour this client has always had - a
+        // CheckPoint management server typically presents its own self-signed certificate,
+        // which no FWO host trusts. Only the FWO internal REST leg validates by default.
         public CheckPointClient(ExternalTicketSystem ticketSystem, Management management)
-            : base(BuildBaseUrl(ticketSystem, management), ticketSystem.ResponseTimeout)
+            : base(BuildBaseUrl(ticketSystem, management), ticketSystem.ResponseTimeout, checkCertificates: false)
         {
             Management = management;
         }

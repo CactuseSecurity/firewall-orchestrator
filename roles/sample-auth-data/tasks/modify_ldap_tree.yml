@@ -17,7 +17,7 @@
       {%- endif %}
 
 - name: ensure integration test user parent tree exists
-  command: "ldapmodify {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"
+  command: "ldapmodify {{ fwo_ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"
   loop:
     - integration_testuser_jwt_parent_level_0
     - integration_testuser_jwt_parent_user
@@ -32,7 +32,7 @@
   become: true
 
 - name: add or modify tree entries
-  command: "ldapmodify {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"
+  command: "ldapmodify {{ fwo_ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"
   loop:
     - integration_testuser_jwt
   register: ldap_result
@@ -43,7 +43,7 @@
   become: true
 
 - name: add tree
-  command: "ldapmodify {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"
+  command: "ldapmodify {{ fwo_ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"
   loop:
     - sample_tenants
     - sample_operators
@@ -51,7 +51,7 @@
   become: true
 
 - name: add ui ambient smoke roles for test user
-  command: "ldapmodify {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x"
+  command: "ldapmodify {{ fwo_ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x"
   args:
     stdin: |
       dn: cn={{ item }},ou=role,{{ openldap_path }}
@@ -71,7 +71,7 @@
 
 #only add roles and groups when not testing to avoid resudue from tests
 - name: add tree
-  command: "ldapmodify {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"
+  command: "ldapmodify {{ fwo_ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"
   loop:
     - roles_for_sample_operators
     - groups_for_sample_operators

@@ -248,7 +248,14 @@ openldap_tls_listener_port: 636
 # would be out of scope in four of them. That is also why openldap_server_cert stays
 # behind an is-defined guard - it is an openldap-server role default and is simply
 # absent everywhere else, which is what made the old TLS_CACERT a no-op there too.
-ldap_tls_opts: >-
+#
+# The fwo_ prefix is deliberate and must not be dropped: the openldap-server upgrade
+# files 5.4.1.yml and 6.4.9.yml set a fact named ldap_tls_opts pinned to
+# TLS_REQCERT=never. A set_fact outranks group_vars and lives for the rest of the
+# play, so under that name every later LDAP call of an upgrade from <= 6.4.9 would
+# silently fall back to no verification. The distinct name keeps the two apart
+# without editing a released upgrade file.
+fwo_ldap_tls_opts: >-
   {% if openldap_server_enable_ssl | default(false) -%}
   {%- if not (internalca_preserve_ldap_certificate | default(false) | bool) -%}
   -o TLS_REQCERT=demand -o TLS_CACERT={{ internalca_ca_certificate_local }}

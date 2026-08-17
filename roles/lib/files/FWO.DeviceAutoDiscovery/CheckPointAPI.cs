@@ -17,7 +17,10 @@ namespace FWO.DeviceAutoDiscovery
         private readonly string ContentType = "Content-Type";
         private readonly string ApplicationJson = "application/json";
 
-        public CheckPointClient(Management manager) : base("https://" + manager.Hostname + ":" + manager.Port + "/web_api/")
+        // checkCertificates: false keeps the behaviour this client has always had - a
+        // CheckPoint management server typically presents its own self-signed certificate,
+        // which no FWO host trusts. Only the FWO internal REST leg validates by default.
+        public CheckPointClient(Management manager) : base("https://" + manager.Hostname + ":" + manager.Port + "/web_api/", checkCertificates: false)
         { }
 
         public async Task<RestResponse<CpSessionAuthInfo>> AuthenticateUser(string? user, string? pwd, string? domain)

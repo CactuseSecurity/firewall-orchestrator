@@ -25,7 +25,9 @@ on Debian, `/etc/openldap/ldap.conf` on RedHat) on the middleware host, pointing
 `TLS_CACERT` at that anchor and setting `TLS_REQCERT demand`, so an administrator
 running `ldapsearch` by hand verifies the connection. The installer's own
 `ldapsearch`/`ldapmodify` calls pass the same settings explicitly through
-`ldap_tls_opts`, defined once in `inventory/group_vars/all.yml`. Verification is
+`fwo_ldap_tls_opts`, defined once in `inventory/group_vars/all.yml` (the `fwo_`
+prefix keeps it clear of the same-named fact that the released 5.4.1 and 6.4.9
+OpenLDAP upgrade files still set to `TLS_REQCERT=never`). Verification is
 relaxed to `never` only when an upgrade retained a customer-managed OpenLDAP
 certificate whose issuer this installation does not know. The Ansible `ldap_*`
 modules take the same decision through `ldap_verify_certs` and

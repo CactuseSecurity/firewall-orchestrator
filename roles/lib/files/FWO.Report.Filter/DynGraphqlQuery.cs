@@ -4,6 +4,7 @@ using FWO.Data;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
 using System.Text.RegularExpressions;
+using System.Text.Json;
 using FWO.Logging;
 using FWO.Basics;
 
@@ -648,25 +649,30 @@ namespace FWO.Report.Filter
 
             return addInfoFilter.Mode switch
             {
-                AddInfoFilterMode.not_existing => BuildTicketLabelExistsFilter(query, addInfoFilter.Name, negate: true),
-                AddInfoFilterMode.existing => BuildTicketLabelExistsFilter(query, addInfoFilter.Name, negate: false),
-                AddInfoFilterMode.value => BuildTicketLabelValueFilter(query, addInfoFilter.Name, addInfoFilter.Value),
+                AddInfoFilterMode.not_existing => BuildTicketAddInfoExistsFilter(query, addInfoFilter.Name, negate: true),
+                AddInfoFilterMode.existing => BuildTicketAddInfoExistsFilter(query, addInfoFilter.Name, negate: false),
+                AddInfoFilterMode.value => BuildTicketAddInfoValueFilter(query, addInfoFilter.Name, addInfoFilter.Value),
                 AddInfoFilterMode.display_only => null,
                 _ => null
             };
         }
 
-        private static string BuildTicketLabelExistsFilter(DynGraphqlQuery query, string labelName, bool negate)
+        private static string BuildTicketAddInfoExistsFilter(DynGraphqlQuery query, string addInfoName, bool negate)
         {
-            string keyPatternVar = AddQueryVariable(query, "addInfoKeyPattern", "String", $"%\"{EscapeLikePattern(labelName)}\":%");
+            string keyPatternVar = AddQueryVariable(query, "addInfoKeyPattern", "String", $"%\"{EscapeLikePattern(EscapeJsonString(addInfoName))}\":%");
             string filter = $"{{ reqtasks: {{ additional_info: {{ _ilike: ${keyPatternVar} }} }} }}";
             return negate ? $"{{ _not: {filter} }}" : filter;
         }
 
-        private static string BuildTicketLabelValueFilter(DynGraphqlQuery query, string labelName, string value)
+        private static string BuildTicketAddInfoValueFilter(DynGraphqlQuery query, string addInfoName, string value)
         {
-            string valuePatternVar = AddQueryVariable(query, "addInfoValuePattern", "String", $"%\"{EscapeLikePattern(labelName)}\":\"{EscapeLikePattern(value)}\"%");
+            string valuePatternVar = AddQueryVariable(query, "addInfoValuePattern", "String", $"%\"{EscapeLikePattern(EscapeJsonString(addInfoName))}\":\"{EscapeLikePattern(EscapeJsonString(value))}\"%");
             return $"{{ reqtasks: {{ additional_info: {{ _ilike: ${valuePatternVar} }} }} }}";
+        }
+
+        private static string EscapeJsonString(string value)
+        {
+            return JsonSerializer.Serialize(value)[1..^1];
         }
 
         private static string EscapeLikePattern(string value)

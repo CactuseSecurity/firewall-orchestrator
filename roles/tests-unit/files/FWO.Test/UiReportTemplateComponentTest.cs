@@ -27,6 +27,9 @@ namespace FWO.Test
         private static readonly List<ReportTemplate> kEmptyTemplates = [];
         private static readonly List<FwoOwner> kEmptyOwners = [];
         private static readonly List<FwoOwner> kOwnedAppOwners = [new FwoOwner { Id = 11, Name = "Owned App" }];
+        private static readonly List<ReportTemplate> kSingleExistingRulesTemplate = [CreateTemplate(1, "Existing template", ReportType.Rules, ownerId: 50)];
+        private static readonly List<ReportTemplate> kSingleOriginalRulesTemplate = [CreateTemplate(1, "Original template", ReportType.Rules, ownerId: 50)];
+        private static readonly List<ReportTemplate> kSingleDeleteRulesTemplate = [CreateTemplate(1, "Delete me", ReportType.Rules, ownerId: 50)];
 
         private sealed class ReportTemplateComponentTestApiConn(IEnumerable<ReportTemplate> templates, IEnumerable<FwoOwner> owners) : SimulatedApiConnection
         {
@@ -386,10 +389,7 @@ namespace FWO.Test
         [Test]
         public async Task ReportTemplateComponent_Save_AddTemplate_RefreshesAndClosesDialog()
         {
-            ReportTemplateComponentTrackingApiConn apiConnection = new(
-                [
-                    CreateTemplate(1, "Existing template", ReportType.Rules, ownerId: 50)
-                ]);
+            ReportTemplateComponentTrackingApiConn apiConnection = new(kSingleExistingRulesTemplate);
 
             await using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),
@@ -419,10 +419,7 @@ namespace FWO.Test
         [Test]
         public async Task ReportTemplateComponent_Save_UpdateTemplate_ReplacesEntryAndClosesDialog()
         {
-            ReportTemplateComponentTrackingApiConn apiConnection = new(
-                [
-                    CreateTemplate(1, "Original template", ReportType.Rules, ownerId: 50)
-                ]);
+            ReportTemplateComponentTrackingApiConn apiConnection = new(kSingleOriginalRulesTemplate);
 
             await using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),
@@ -455,10 +452,7 @@ namespace FWO.Test
         [Test]
         public async Task ReportTemplateComponent_DeleteTemplate_RemovesEntry()
         {
-            ReportTemplateComponentTrackingApiConn apiConnection = new(
-                [
-                    CreateTemplate(1, "Delete me", ReportType.Rules, ownerId: 50)
-                ]);
+            ReportTemplateComponentTrackingApiConn apiConnection = new(kSingleDeleteRulesTemplate);
 
             await using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),

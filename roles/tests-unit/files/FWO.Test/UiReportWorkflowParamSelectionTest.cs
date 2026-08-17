@@ -275,7 +275,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void BuildAvailableAddInfoNames_IncludesAdditionalInfoAndDeduplicatedConditionalAutoPromoteLabels()
+        public void BuildAvailableAddInfoNames_IncludesAdditionalInfoAndDeduplicatedConditionalAutoPromoteAddInfos()
         {
             ConditionalAutoPromoteParams conditionalParams = new()
             {
@@ -379,7 +379,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task OnInitializedAsync_WhenInitialQueriesFail_UsesKnownLabelNamesOnly()
+        public async Task OnInitializedAsync_WhenInitialQueriesFail_UsesKnownAddInfoNamesOnly()
         {
             ReportWorkflowParamSelection component = CreateComponent();
             SetMember(component, "apiConnection", new ThrowingWorkflowApiConnection());
@@ -405,7 +405,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ReportWorkflowParamSelection_LabelDropdown_ShowsAvailableValues()
+        public async Task ReportWorkflowParamSelection_AddInfoDropdown_ShowsAvailableValues()
         {
             List<WfStateAction> actions =
             [
@@ -425,8 +425,8 @@ namespace FWO.Test
                 .Add(p => p.WorkflowFilter, new WorkflowFilter())
                 .Add(p => p.SelectedReportType, ReportType.TicketReport));
 
-            cut.Find("#workflowLabel-editButton").Click();
-            cut.Find("#dropdown-input-workflowLabel-nameDropdown").Focus();
+            cut.Find("#workflowAddInfo-editButton").Click();
+            cut.Find("#dropdown-input-workflowAddInfo-nameDropdown").Focus();
 
             cut.WaitForAssertion(() =>
             {

@@ -107,6 +107,15 @@ namespace FWO.Api.Client
             apiConnection.SetBestRole(user, GetReportRoles(reportType));
         }
 
+        /// <summary>
+        /// Runs an API operation with the best available role for the given report type.
+        /// </summary>
+        public static Task<TResult> RunWithBestRoleForReport<TResult>(this ApiConnection apiConnection,
+            ClaimsPrincipal user, ReportType reportType, Func<Task<TResult>> action)
+        {
+            return apiConnection.RunWithBestRole(user, GetReportRoles(reportType), action);
+        }
+
         private static List<string> GetReportRoles(ReportType reportType)
         {
             if (reportType == ReportType.Owners || reportType.IsComplianceReport())

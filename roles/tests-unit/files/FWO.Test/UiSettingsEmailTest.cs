@@ -23,64 +23,6 @@ namespace FWO.Test
     [NonParallelizable]
     internal class UiSettingsEmailTest
     {
-        private readonly Dictionary<string, string?> originalTranslations = new();
-
-        [TearDown]
-        public void TearDown()
-        {
-            foreach ((string key, string? value) in originalTranslations)
-            {
-                if (value is null)
-                {
-                    SimulatedUserConfig.DummyTranslate.Remove(key);
-                }
-                else
-                {
-                    SimulatedUserConfig.DummyTranslate[key] = value;
-                }
-            }
-
-            originalTranslations.Clear();
-        }
-
-        [SetUp]
-        public void SetUp()
-        {
-            SetSharedTranslation("email_settings", "Email settings");
-            SetSharedTranslation("U5319", "Email settings intro");
-            SetSharedTranslation("address", "Address");
-            SetSharedTranslation("port", "Port");
-            SetSharedTranslation("email_enc_method", "Encryption");
-            SetSharedTranslation("email_auth_user", "Auth user");
-            SetSharedTranslation("email_auth_pwd", "Auth password");
-            SetSharedTranslation("email_sender", "Sender");
-            SetSharedTranslation("use_dummy_email_address", "Use dummy email");
-            SetSharedTranslation("dummy_email_address", "Dummy email");
-            SetSharedTranslation("test_connection", "Test connection");
-            SetSharedTranslation("save", "Save");
-            SetSharedTranslation("read_config", "Read config");
-            SetSharedTranslation("E5301", "Failed to load email config");
-            SetSharedTranslation("change_default", "Change default");
-            SetSharedTranslation("U5301", "Email settings saved.");
-            SetSharedTranslation("save_email_conn", "Save email connection");
-            SetSharedTranslation("E5102", "Missing email server");
-            SetSharedTranslation("E5103", "Invalid email port");
-            SetSharedTranslation("E5108", "Invalid sender address");
-            SetSharedTranslation("test_email_connection", "Test email connection");
-            SetSharedTranslation("E8101", "No user email configured");
-            SetSharedTranslation("U5402", "Email connection OK");
-        }
-
-        private void SetSharedTranslation(string key, string value)
-        {
-            if (!originalTranslations.ContainsKey(key))
-            {
-                originalTranslations[key] = SimulatedUserConfig.DummyTranslate.TryGetValue(key, out string? existingValue) ? existingValue : null;
-            }
-
-            SimulatedUserConfig.DummyTranslate[key] = value;
-        }
-
         [Test]
         public async Task SettingsEmail_RendersEnabledButtonsForAdmin()
         {
@@ -162,8 +104,8 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(messages, Has.Count.EqualTo(1));
-                Assert.That(messages[0].Title, Is.EqualTo("Read config"));
-                Assert.That(messages[0].Message, Is.EqualTo("Failed to load email config"));
+                Assert.That(messages[0].Title, Is.EqualTo(GetMember<UserConfig>(component, "userConfig").GetText("read_config")));
+                Assert.That(messages[0].Message, Is.EqualTo(GetMember<UserConfig>(component, "userConfig").GetText("E5301")));
                 Assert.That(messages[0].Exception, Is.TypeOf<ObjectDisposedException>());
                 Assert.That(messages[0].IsError, Is.False);
             });
@@ -190,7 +132,7 @@ namespace FWO.Test
                 Assert.That(apiConnection.Queries, Is.Empty);
                 Assert.That(messages, Has.Count.EqualTo(1));
                 Assert.That(messages[0].Title, Is.EqualTo("Save email connection"));
-                Assert.That(messages[0].Message, Is.EqualTo("Missing email server"));
+                Assert.That(messages[0].Message, Is.EqualTo(GetMember<UserConfig>(component, "userConfig").GetText("E5102")));
                 Assert.That(messages[0].IsError, Is.True);
             });
         }
@@ -216,7 +158,7 @@ namespace FWO.Test
                 Assert.That(apiConnection.Queries, Is.Empty);
                 Assert.That(messages, Has.Count.EqualTo(1));
                 Assert.That(messages[0].Title, Is.EqualTo("Save email connection"));
-                Assert.That(messages[0].Message, Is.EqualTo("Invalid email port"));
+                Assert.That(messages[0].Message, Is.EqualTo(GetMember<UserConfig>(component, "userConfig").GetText("E5103")));
                 Assert.That(messages[0].IsError, Is.True);
             });
         }

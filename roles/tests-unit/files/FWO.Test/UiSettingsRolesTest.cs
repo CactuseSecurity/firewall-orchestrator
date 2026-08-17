@@ -23,61 +23,6 @@ namespace FWO.Test
     [TestFixture]
     internal class UiSettingsRolesTest
     {
-        private readonly Dictionary<string, string?> originalTranslations = new();
-
-        [SetUp]
-        public void SetUp()
-        {
-            SetSharedTranslation("roles", "Roles");
-            SetSharedTranslation("U5215", "Role assignments");
-            SetSharedTranslation("actions", "Actions");
-            SetSharedTranslation("assign_user_group", "Assign user/group");
-            SetSharedTranslation("remove_user_group", "Remove user/group");
-            SetSharedTranslation("name", "Name");
-            SetSharedTranslation("description", "Description");
-            SetSharedTranslation("users_groups", "Users/groups");
-            SetSharedTranslation("assign_user_group_to_role", "Assign user/group to role");
-            SetSharedTranslation("remove_user_group_from_role", "Remove user/group from role");
-            SetSharedTranslation("user_group", "User/group");
-            SetSharedTranslation("fetch_roles", "Fetch roles");
-            SetSharedTranslation("fetch_data", "Fetch data");
-            SetSharedTranslation("E5251", "No roles found");
-            SetSharedTranslation("E5240", "Missing user or group");
-            SetSharedTranslation("E5254", "Duplicate assignment");
-            SetSharedTranslation("E5255", "Assignment failed");
-            SetSharedTranslation("E5256", "Admin role must keep one user");
-            SetSharedTranslation("E5257", "Removal failed");
-            SetSharedTranslation("E5258", "Missing DN");
-        }
-
-        [TearDown]
-        public void TearDown()
-        {
-            foreach ((string key, string? value) in originalTranslations)
-            {
-                if (value is null)
-                {
-                    SimulatedUserConfig.DummyTranslate.Remove(key);
-                }
-                else
-                {
-                    SimulatedUserConfig.DummyTranslate[key] = value;
-                }
-            }
-
-            originalTranslations.Clear();
-        }
-
-        private void SetSharedTranslation(string key, string value)
-        {
-            if (!originalTranslations.ContainsKey(key))
-            {
-                originalTranslations[key] = SimulatedUserConfig.DummyTranslate.TryGetValue(key, out string? existingValue) ? existingValue : null;
-            }
-
-            SimulatedUserConfig.DummyTranslate[key] = value;
-        }
-
         [Test]
         public async Task OnInitializedAsync_LoadsRolesFromMiddleware()
         {

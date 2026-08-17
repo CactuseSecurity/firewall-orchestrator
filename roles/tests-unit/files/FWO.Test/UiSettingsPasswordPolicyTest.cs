@@ -20,22 +20,6 @@ namespace FWO.Test
     [TestFixture]
     internal class UiSettingsPasswordPolicyTest
     {
-        [SetUp]
-        public void SetUp()
-        {
-            SimulatedUserConfig.DummyTranslate["password_policy"] = "Password Policy";
-            SimulatedUserConfig.DummyTranslate["U5312"] = "Set the policy for all user passwords";
-            SimulatedUserConfig.DummyTranslate["pwMinLength"] = "Min Length";
-            SimulatedUserConfig.DummyTranslate["pwUpperCaseRequired"] = "Upper Case Required";
-            SimulatedUserConfig.DummyTranslate["pwLowerCaseRequired"] = "Lower Case Required";
-            SimulatedUserConfig.DummyTranslate["pwNumberRequired"] = "Number Required";
-            SimulatedUserConfig.DummyTranslate["pwSpecialCharactersRequired"] = "Special Characters Required";
-            SimulatedUserConfig.DummyTranslate["save"] = "Save";
-            SimulatedUserConfig.DummyTranslate["read_config"] = "Read Config";
-            SimulatedUserConfig.DummyTranslate["change_policy"] = "Change Password Policy";
-            SimulatedUserConfig.DummyTranslate["U5302"] = "Policy changed.";
-        }
-
         [Test]
         public async Task SettingsPasswordPolicy_RendersInputsAndEnabledSaveButtonForAdmin()
         {
@@ -114,7 +98,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(messages, Has.Count.EqualTo(1));
-                Assert.That(messages[0].Title, Is.EqualTo("Read Config"));
+                Assert.That(messages[0].Title, Is.EqualTo(GetMember<UserConfig>(component, "userConfig").GetText("read_config")));
                 Assert.That(messages[0].IsError, Is.True);
                 Assert.That(GetMember<ConfigData?>(component, "configData"), Is.Null);
             });

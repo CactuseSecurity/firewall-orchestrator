@@ -35,7 +35,6 @@ namespace FWO.Test
             ?? throw new MissingFieldException(typeof(ConfigFile).FullName, "jwtPublicKey");
 
         private RsaSecurityKey? originalJwtPublicKey;
-        private readonly Dictionary<string, string?> originalTranslations = new();
 
         [OneTimeSetUp]
         public void OneTimeSetUp()
@@ -47,58 +46,6 @@ namespace FWO.Test
         public void OneTimeTearDown()
         {
             JwtPublicKeyField.SetValue(null, originalJwtPublicKey);
-        }
-
-        [SetUp]
-        public void SetUp()
-        {
-            SimulatedUserConfig.DummyTranslate["readonly_credential"] = "Credentials";
-            SimulatedUserConfig.DummyTranslate["U5116"] = "Credential settings";
-            SimulatedUserConfig.DummyTranslate["add_new_credential"] = "Add credential";
-            SimulatedUserConfig.DummyTranslate["remove_sample_data"] = "Remove sample data";
-            SimulatedUserConfig.DummyTranslate["actions"] = "Actions";
-            SimulatedUserConfig.DummyTranslate["clone"] = "Clone";
-            SimulatedUserConfig.DummyTranslate["edit"] = "Edit";
-            SimulatedUserConfig.DummyTranslate["delete"] = "Delete";
-            SimulatedUserConfig.DummyTranslate["action"] = "Action";
-            SimulatedUserConfig.DummyTranslate["id"] = "Id";
-            SimulatedUserConfig.DummyTranslate["name"] = "Name";
-            SimulatedUserConfig.DummyTranslate["username"] = "Username";
-            SimulatedUserConfig.DummyTranslate["is_key_pair"] = "Key pair";
-            SimulatedUserConfig.DummyTranslate["edit_credential"] = "Edit credential";
-            SimulatedUserConfig.DummyTranslate["private_key"] = "Private key";
-            SimulatedUserConfig.DummyTranslate["public_key"] = "Public key";
-            SimulatedUserConfig.DummyTranslate["login_secret"] = "Login secret";
-            SimulatedUserConfig.DummyTranslate["cloud_client_id"] = "Cloud client id";
-            SimulatedUserConfig.DummyTranslate["cloud_client_secret"] = "Cloud client secret";
-            SimulatedUserConfig.DummyTranslate["save"] = "Save";
-            SimulatedUserConfig.DummyTranslate["cancel"] = "Cancel";
-            SimulatedUserConfig.DummyTranslate["fetch_credentials"] = "Fetch credentials";
-            SimulatedUserConfig.DummyTranslate["save_credential"] = "Save credential";
-            SimulatedUserConfig.DummyTranslate["delete_credential"] = "Delete credential";
-            SetSharedTranslation("E5102", "Missing required credential fields");
-            SimulatedUserConfig.DummyTranslate["E5117"] = "Credential is used by managements";
-            SimulatedUserConfig.DummyTranslate["U5117"] = "Delete credential ";
-            SimulatedUserConfig.DummyTranslate["U5108"] = "Remove sample credentials";
-            SetSharedTranslation("U0001", "Sanitized input");
-        }
-
-        [TearDown]
-        public void TearDown()
-        {
-            foreach ((string key, string? value) in originalTranslations)
-            {
-                if (value is null)
-                {
-                    SimulatedUserConfig.DummyTranslate.Remove(key);
-                }
-                else
-                {
-                    SimulatedUserConfig.DummyTranslate[key] = value;
-                }
-            }
-
-            originalTranslations.Clear();
         }
 
         [Test]
@@ -250,7 +197,7 @@ namespace FWO.Test
             {
                 Assert.That(messages.Any(message =>
                     message.Title == "Save credential" &&
-                    message.Message == "Missing required credential fields" &&
+                    message.Message == GetMember<UserConfig>(component, "userConfig").GetText("E5102") &&
                     message.IsError), Is.True);
                 Assert.That(apiConnection.Queries.Any(query => query == DeviceQueries.newCredential || query == DeviceQueries.updateCredential), Is.False);
             });
@@ -349,16 +296,6 @@ namespace FWO.Test
             SimulatedUserConfig userConfig = new();
             userConfig.User.Roles = [role];
             return userConfig;
-        }
-
-        private void SetSharedTranslation(string key, string value)
-        {
-            if (!originalTranslations.ContainsKey(key))
-            {
-                originalTranslations[key] = SimulatedUserConfig.DummyTranslate.TryGetValue(key, out string? existingValue) ? existingValue : null;
-            }
-
-            SimulatedUserConfig.DummyTranslate[key] = value;
         }
 
         private static TokenPair CreateTokenPair(string role)

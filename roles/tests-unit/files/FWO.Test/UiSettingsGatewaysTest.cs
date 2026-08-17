@@ -28,57 +28,17 @@ namespace FWO.Test
             ?? throw new MissingFieldException(typeof(ConfigFile).FullName, "jwtPublicKey");
 
         private RsaSecurityKey? originalJwtPublicKey;
-        private readonly Dictionary<string, string?> originalTranslations = new();
 
         [SetUp]
         public void SetUp()
         {
             originalJwtPublicKey = (RsaSecurityKey?)JwtPublicKeyField.GetValue(null);
-
-            SimulatedUserConfig.DummyTranslate["gateways"] = "Gateways";
-            SimulatedUserConfig.DummyTranslate["U5112"] = "Gateway settings";
-            SimulatedUserConfig.DummyTranslate["add_new_gateway"] = "Add gateway";
-            SimulatedUserConfig.DummyTranslate["actions"] = "Actions";
-            SimulatedUserConfig.DummyTranslate["clone"] = "Clone";
-            SimulatedUserConfig.DummyTranslate["edit"] = "Edit";
-            SimulatedUserConfig.DummyTranslate["delete"] = "Delete";
-            SimulatedUserConfig.DummyTranslate["id"] = "Id";
-            SimulatedUserConfig.DummyTranslate["name"] = "Name";
-            SimulatedUserConfig.DummyTranslate["uid"] = "Uid";
-            SimulatedUserConfig.DummyTranslate["type"] = "Type";
-            SimulatedUserConfig.DummyTranslate["management"] = "Management";
-            SimulatedUserConfig.DummyTranslate["import_enabled"] = "Import enabled";
-            SimulatedUserConfig.DummyTranslate["edit_gateway"] = "Edit gateway";
-            SimulatedUserConfig.DummyTranslate["save"] = "Save";
-            SimulatedUserConfig.DummyTranslate["cancel"] = "Cancel";
-            SimulatedUserConfig.DummyTranslate["fetch_gateways"] = "Fetch gateways";
-            SimulatedUserConfig.DummyTranslate["save_gateway"] = "Save gateway";
-            SimulatedUserConfig.DummyTranslate["delete_gateway"] = "Delete gateway";
-            SimulatedUserConfig.DummyTranslate["add_device_to_tenant0"] = "Add device to tenant";
-            SimulatedUserConfig.DummyTranslate["U5103"] = "Delete gateway ";
-            SetSharedTranslation("E5102", "Missing name or reason");
-            SimulatedUserConfig.DummyTranslate["E5112"] = "Save gateway failed";
-            SetSharedTranslation("U0001", "Sanitized input");
         }
 
         [TearDown]
         public void TearDown()
         {
             JwtPublicKeyField.SetValue(null, originalJwtPublicKey);
-
-            foreach ((string key, string? value) in originalTranslations)
-            {
-                if (value is null)
-                {
-                    SimulatedUserConfig.DummyTranslate.Remove(key);
-                }
-                else
-                {
-                    SimulatedUserConfig.DummyTranslate[key] = value;
-                }
-            }
-
-            originalTranslations.Clear();
         }
 
         [Test]
@@ -265,7 +225,7 @@ namespace FWO.Test
             {
                 Assert.That(messages, Has.Count.EqualTo(1));
                 Assert.That(messages[0].Title, Is.EqualTo("Save gateway"));
-                Assert.That(messages[0].Message, Is.EqualTo("Missing name or reason"));
+                Assert.That(messages[0].Message, Is.EqualTo(GetMember<UserConfig>(component, "userConfig").GetText("E5102")));
                 Assert.That(apiConnection.Queries.Count(query => query == DeviceQueries.newDevice), Is.EqualTo(0));
                 Assert.That(apiConnection.Queries.Count(query => query == DeviceQueries.updateDevice), Is.EqualTo(0));
             });
@@ -525,16 +485,6 @@ namespace FWO.Test
             });
 
             return tokenService;
-        }
-
-        private void SetSharedTranslation(string key, string value)
-        {
-            if (!originalTranslations.ContainsKey(key))
-            {
-                originalTranslations[key] = SimulatedUserConfig.DummyTranslate.TryGetValue(key, out string? existingValue) ? existingValue : null;
-            }
-
-            SimulatedUserConfig.DummyTranslate[key] = value;
         }
 
         private static Management BuildManagement(int id, string name, int deviceTypeId, string manufacturer)

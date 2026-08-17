@@ -24,56 +24,9 @@ namespace FWO.Test
     [TestFixture]
     internal class UiCertificationTest
     {
-        private readonly Dictionary<string, string?> originalTranslations = new();
-
         [SetUp]
         public void SetUp()
         {
-            SetTranslate("execute_selected", "Execute selected");
-            SetTranslate("report_data_fetch", "Report data fetch");
-            SetTranslate("no_device_selected", "No device selected");
-            SetTranslate("E1001", "No device selected");
-            SetTranslate("E1003", "Canceled");
-            SetTranslate("generate_report", "Generate report");
-            SetTranslate("E4002", "No rules found");
-            SetTranslate("E4001", "Comment required");
-            SetTranslate("E9104", "You are not allowed to execute selected rules.");
-            SetTranslate("recerts_executed", "Recerts executed ");
-            SetTranslate("decerts_executed", "Decerts executed ");
-            SetTranslate("load_rules", "Load rules");
-            SetTranslate("stop_fetching", "Stop fetching");
-            SetTranslate("comment", "Comment");
-            SetTranslate("ok", "OK");
-            SetTranslate("cancel", "Cancel");
-            SetTranslate("add_comment", "Add comment");
-        }
-
-        [TearDown]
-        public void TearDown()
-        {
-            foreach ((string key, string? value) in originalTranslations)
-            {
-                if (value is null)
-                {
-                    SimulatedUserConfig.DummyTranslate.Remove(key);
-                }
-                else
-                {
-                    SimulatedUserConfig.DummyTranslate[key] = value;
-                }
-            }
-
-            originalTranslations.Clear();
-        }
-
-        private void SetTranslate(string key, string value)
-        {
-            if (!originalTranslations.ContainsKey(key))
-            {
-                originalTranslations[key] = SimulatedUserConfig.DummyTranslate.TryGetValue(key, out string? existingValue) ? existingValue : null;
-            }
-
-            SimulatedUserConfig.DummyTranslate[key] = value;
         }
 
         private static Certification CreateComponent(

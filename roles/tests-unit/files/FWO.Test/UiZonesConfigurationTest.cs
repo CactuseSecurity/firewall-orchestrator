@@ -29,14 +29,6 @@ namespace FWO.Test
             }
         }
 
-        [SetUp]
-        public void SetUpTranslations()
-        {
-            SimulatedUserConfig.DummyTranslate.TryAdd("add", "Add");
-            SimulatedUserConfig.DummyTranslate.TryAdd("edit_zone", "Edit zone");
-            SimulatedUserConfig.DummyTranslate.TryAdd("delete_zone", "Delete zone");
-        }
-
         private static BunitContext CreateContext(NetworkZoneService networkZoneService)
         {
             BunitContext context = new();

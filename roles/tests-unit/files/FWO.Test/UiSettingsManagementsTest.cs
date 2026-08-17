@@ -34,72 +34,17 @@ namespace FWO.Test
             ?? throw new MissingFieldException(typeof(ConfigFile).FullName, "jwtPublicKey");
 
         private RsaSecurityKey? originalJwtPublicKey;
-        private readonly Dictionary<string, string?> originalTranslations = new();
 
         [SetUp]
         public void SetUp()
         {
             originalJwtPublicKey = (RsaSecurityKey?)JwtPublicKeyField.GetValue(null);
-
-            SimulatedUserConfig.DummyTranslate["managements"] = "Managements";
-            SimulatedUserConfig.DummyTranslate["U5111"] = "Managements overview";
-            SimulatedUserConfig.DummyTranslate["add_new_management"] = "Add management";
-            SimulatedUserConfig.DummyTranslate["remove_sample_data"] = "Remove sample data";
-            SimulatedUserConfig.DummyTranslate["actions"] = "Actions";
-            SimulatedUserConfig.DummyTranslate["clone"] = "Clone";
-            SimulatedUserConfig.DummyTranslate["edit"] = "Edit";
-            SimulatedUserConfig.DummyTranslate["delete"] = "Delete";
-            SimulatedUserConfig.DummyTranslate["autodiscover"] = "Autodiscover";
-            SimulatedUserConfig.DummyTranslate["id"] = "Id";
-            SimulatedUserConfig.DummyTranslate["name"] = "Name";
-            SimulatedUserConfig.DummyTranslate["uid"] = "Uid";
-            SimulatedUserConfig.DummyTranslate["type"] = "Type";
-            SimulatedUserConfig.DummyTranslate["host"] = "Host";
-            SimulatedUserConfig.DummyTranslate["readonly_credential_mgm"] = "Readonly credential";
-            SimulatedUserConfig.DummyTranslate["config_path"] = "Config path";
-            SimulatedUserConfig.DummyTranslate["super_manager"] = "Super manager";
-            SimulatedUserConfig.DummyTranslate["importer_host"] = "Importer host";
-            SimulatedUserConfig.DummyTranslate["import_enabled"] = "Import enabled";
-            SimulatedUserConfig.DummyTranslate["debug_level"] = "Debug level";
-            SimulatedUserConfig.DummyTranslate["edit_management"] = "Edit management";
-            SimulatedUserConfig.DummyTranslate["save"] = "Save";
-            SimulatedUserConfig.DummyTranslate["cancel"] = "Cancel";
-            SimulatedUserConfig.DummyTranslate["fetch_managements"] = "Fetch managements";
-            SimulatedUserConfig.DummyTranslate["save_management"] = "Save management";
-            SimulatedUserConfig.DummyTranslate["delete_management"] = "Delete management";
-            SimulatedUserConfig.DummyTranslate["manual_autodiscovery"] = "Manual autodiscovery";
-            SimulatedUserConfig.DummyTranslate["changes_found"] = " changes found";
-            SimulatedUserConfig.DummyTranslate["found_no_changes"] = "No changes found";
-            SimulatedUserConfig.DummyTranslate["ran_into_exception"] = "Ran into exception: ";
-            SimulatedUserConfig.DummyTranslate["U5101"] = "Delete management ";
-            SimulatedUserConfig.DummyTranslate["U5102"] = "Delete sample managements";
-            SimulatedUserConfig.DummyTranslate["E5101"] = "Management has devices";
-            SetSharedTranslation("E5102", "Missing required management fields");
-            SetSharedTranslation("E5103", "Invalid management port");
-            SimulatedUserConfig.DummyTranslate["E5104"] = "Invalid debug level";
-            SimulatedUserConfig.DummyTranslate["E5105"] = "Duplicate management";
-            SimulatedUserConfig.DummyTranslate["E5109"] = "Invalid legacy management name";
-            SetSharedTranslation("U0001", "Sanitized input");
         }
 
         [TearDown]
         public void TearDown()
         {
             JwtPublicKeyField.SetValue(null, originalJwtPublicKey);
-
-            foreach ((string key, string? value) in originalTranslations)
-            {
-                if (value is null)
-                {
-                    SimulatedUserConfig.DummyTranslate.Remove(key);
-                }
-                else
-                {
-                    SimulatedUserConfig.DummyTranslate[key] = value;
-                }
-            }
-
-            originalTranslations.Clear();
         }
 
         [Test]
@@ -307,7 +252,7 @@ namespace FWO.Test
             {
                 Assert.That(messages, Has.Count.EqualTo(1));
                 Assert.That(messages[0].Title, Is.EqualTo("Save management"));
-                Assert.That(messages[0].Message, Is.EqualTo("Missing required management fields"));
+                Assert.That(messages[0].Message, Is.EqualTo(GetMember<UserConfig>(component, "userConfig").GetText("E5102")));
                 Assert.That(apiConnection.Queries.Count(query => query == DeviceQueries.newManagement), Is.EqualTo(0));
                 Assert.That(GetMember<bool>(component, "AddMode"), Is.True);
             });
@@ -368,7 +313,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(messages, Has.Count.EqualTo(1));
-                Assert.That(messages[0].Message, Is.EqualTo("Invalid management port"));
+                Assert.That(messages[0].Message, Is.EqualTo(GetMember<UserConfig>(component, "userConfig").GetText("E5103")));
                 Assert.That(apiConnection.Queries.Count(query => query == DeviceQueries.newManagement), Is.EqualTo(0));
             });
         }
@@ -653,16 +598,6 @@ namespace FWO.Test
                 ImportCredential = new ImportCredential { Id = 5, Name = "Read cred" },
                 Devices = devices ?? []
             };
-        }
-
-        private void SetSharedTranslation(string key, string value)
-        {
-            if (!originalTranslations.ContainsKey(key))
-            {
-                originalTranslations[key] = SimulatedUserConfig.DummyTranslate.TryGetValue(key, out string? existingValue) ? existingValue : null;
-            }
-
-            SimulatedUserConfig.DummyTranslate[key] = value;
         }
 
         private static void SetMember<T>(object instance, string memberName, T value)

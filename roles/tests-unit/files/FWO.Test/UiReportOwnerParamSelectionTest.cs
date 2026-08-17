@@ -22,15 +22,6 @@ namespace FWO.Test
             }
         }
 
-        [SetUp]
-        public void SetUpTranslations()
-        {
-            SimulatedUserConfig.DummyTranslate.TryAdd("state", "State");
-            SimulatedUserConfig.DummyTranslate.TryAdd("criticality", "Criticality");
-            SimulatedUserConfig.DummyTranslate.TryAdd("all", "All");
-            SimulatedUserConfig.DummyTranslate.TryAdd("inactive", "inactive");
-        }
-
         [Test]
         public async Task ReportOwnerParamSelection_QueryFailure_IsCaughtAndReported()
         {

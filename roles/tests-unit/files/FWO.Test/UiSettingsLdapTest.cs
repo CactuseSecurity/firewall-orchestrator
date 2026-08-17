@@ -21,81 +21,6 @@ namespace FWO.Test
     [TestFixture]
     internal class UiSettingsLdapTest
     {
-        private readonly Dictionary<string, string?> originalTranslations = new();
-
-        [SetUp]
-        public void SetUp()
-        {
-            SetSharedTranslation("ldap_conns", "LDAP connections");
-            SetSharedTranslation("U5211", "LDAP connections overview");
-            SetSharedTranslation("add_new_ldap", "Add LDAP");
-            SetSharedTranslation("actions", "Actions");
-            SetSharedTranslation("clone", "Clone");
-            SetSharedTranslation("edit", "Edit");
-            SetSharedTranslation("delete", "Delete");
-            SetSharedTranslation("edit_ldap", "Edit LDAP");
-            SetSharedTranslation("name", "Name");
-            SetSharedTranslation("address", "Address");
-            SetSharedTranslation("port", "Port");
-            SetSharedTranslation("tenant_level", "Tenant level");
-            SetSharedTranslation("type", "Type");
-            SetSharedTranslation("pattern_length", "Pattern length");
-            SetSharedTranslation("user_search_path", "User search path");
-            SetSharedTranslation("role_search_path", "Role search path");
-            SetSharedTranslation("group_search_path", "Group search path");
-            SetSharedTranslation("group_write_path", "Group write path");
-            SetSharedTranslation("search_user", "Search user");
-            SetSharedTranslation("search_user_pwd", "Search user password");
-            SetSharedTranslation("write_user", "Write user");
-            SetSharedTranslation("write_user_pwd", "Write user password");
-            SetSharedTranslation("tenant", "Tenant");
-            SetSharedTranslation("global_tenant_name", "Global tenant name");
-            SetSharedTranslation("active", "Active");
-            SetSharedTranslation("test_connection", "Test connection");
-            SetSharedTranslation("save", "Save");
-            SetSharedTranslation("cancel", "Cancel");
-            SetSharedTranslation("ok", "OK");
-            SetSharedTranslation("fetch_ldap_conn", "Fetch LDAP connections");
-            SetSharedTranslation("fetch_data", "Fetch data");
-            SetSharedTranslation("save_ldap_conn", "Save LDAP connection");
-            SetSharedTranslation("delete_ldap_conn", "Delete LDAP connection");
-            SetSharedTranslation("E5204", "LDAP load failed");
-            SetSharedTranslation("E5261", "Only one LDAP exists");
-            SetSharedTranslation("E5262", "Role handling prevents delete");
-            SetSharedTranslation("E5266", "LDAP is reachable");
-            SetSharedTranslation("E5267", "LDAP test failed");
-            SetSharedTranslation("E5268", "LDAP auth failed");
-            SetSharedTranslation("E5269", "LDAP bind failed");
-            SetSharedTranslation("E5270", "LDAP certificate failed");
-            SetSharedTranslation("E5102", "Missing required LDAP fields");
-            SetSharedTranslation("E5103", "Invalid LDAP port");
-            SetSharedTranslation("E5263", "Invalid pattern length");
-            SetSharedTranslation("E5264", "Duplicate LDAP endpoint");
-            SetSharedTranslation("E5265", "Role handling requires internal LDAP");
-            SetSharedTranslation("E5260", "Cannot deactivate the last active LDAP");
-            SetSharedTranslation("E5201", "Adding LDAP failed");
-            SetSharedTranslation("E5202", "Updating LDAP failed");
-            SetSharedTranslation("U0001", "Sanitized input");
-        }
-
-        [TearDown]
-        public void TearDown()
-        {
-            foreach ((string key, string? value) in originalTranslations)
-            {
-                if (value is null)
-                {
-                    SimulatedUserConfig.DummyTranslate.Remove(key);
-                }
-                else
-                {
-                    SimulatedUserConfig.DummyTranslate[key] = value;
-                }
-            }
-
-            originalTranslations.Clear();
-        }
-
         [Test]
         public async Task OnInitializedAsync_LoadsLdapsAndTenants()
         {
@@ -245,28 +170,28 @@ namespace FWO.Test
         public void CheckValues_ReportsValidationErrors()
         {
             AssertValidationFailure(
-                expectedMessage: "Missing required LDAP fields",
+                expectedMessageKey: "E5102",
                 configure: component =>
                 {
                     SetMember(component, "actLdapConnection", BuildLdap(0, "ldap-missing-fields", "", roleHandling: false, internalLdap: true));
                 });
 
             AssertValidationFailure(
-                expectedMessage: "Invalid LDAP port",
+                expectedMessageKey: "E5103",
                 configure: component =>
                 {
                     SetMember(component, "actLdapConnection", BuildLdap(0, "ldap-invalid-port", "ldap.example.org", roleHandling: false, internalLdap: true, port: 0));
                 });
 
             AssertValidationFailure(
-                expectedMessage: "Invalid pattern length",
+                expectedMessageKey: "E5263",
                 configure: component =>
                 {
                     SetMember(component, "actLdapConnection", BuildLdap(0, "ldap-negative-pattern", "ldap.example.org", roleHandling: false, internalLdap: true, patternLength: -1));
                 });
 
             AssertValidationFailure(
-                expectedMessage: "Duplicate LDAP endpoint",
+                expectedMessageKey: "E5264",
                 configure: component =>
                 {
                     SetMember(component, "connectedLdaps", new List<UiLdapConnection>
@@ -277,14 +202,14 @@ namespace FWO.Test
                 });
 
             AssertValidationFailure(
-                expectedMessage: "Role handling requires internal LDAP",
+                expectedMessageKey: "E5265",
                 configure: component =>
                 {
                     SetMember(component, "actLdapConnection", BuildLdap(0, "ldap-external", "ldap.example.org", roleHandling: true, internalLdap: false));
                 });
 
             AssertValidationFailure(
-                expectedMessage: "Cannot deactivate the last active LDAP",
+                expectedMessageKey: "E5260",
                 configure: component =>
                 {
                     SetMember(component, "connectedLdaps", new List<UiLdapConnection>
@@ -319,10 +244,10 @@ namespace FWO.Test
 
                 await InvokePrivateTask(component, "TestConnection");
 
-                Assert.That(messages, Has.Count.EqualTo(1));
-                Assert.That(messages[0].Title, Is.EqualTo("Test connection"));
-                Assert.That(messages[0].Message, Is.EqualTo(testCase.ExpectedMessage));
-                messages.Clear();
+            Assert.That(messages, Has.Count.EqualTo(1));
+            Assert.That(messages[0].Title, Is.EqualTo(GetMember<UserConfig>(component, "userConfig").GetText("test_connection")));
+            Assert.That(messages[0].Message, Is.EqualTo(testCase.ExpectedMessage));
+            messages.Clear();
             }
         }
 
@@ -339,7 +264,7 @@ namespace FWO.Test
             await InvokePrivateTask(component, "TestConnection");
 
             Assert.That(messages, Has.Count.EqualTo(1));
-            Assert.That(messages[0].Title, Is.EqualTo("Test connection"));
+            Assert.That(messages[0].Title, Is.EqualTo(GetMember<UserConfig>(component, "userConfig").GetText("test_connection")));
             Assert.That(messages[0].Message, Is.Empty);
             Assert.That(messages[0].Exception, Is.Not.Null);
             Assert.That(messages[0].IsError, Is.True);
@@ -416,18 +341,8 @@ namespace FWO.Test
             };
         }
 
-        private void SetSharedTranslation(string key, string value)
-        {
-            if (!originalTranslations.ContainsKey(key))
-            {
-                originalTranslations[key] = SimulatedUserConfig.DummyTranslate.TryGetValue(key, out string? existingValue) ? existingValue : null;
-            }
-
-            SimulatedUserConfig.DummyTranslate[key] = value;
-        }
-
         private static void AssertValidationFailure(
-            string expectedMessage,
+            string expectedMessageKey,
             Action<SettingsLdap> configure)
         {
             List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
@@ -443,7 +358,7 @@ namespace FWO.Test
                 Assert.That(result, Is.False);
                 Assert.That(messages, Has.Count.EqualTo(1));
                 Assert.That(messages[0].Title, Is.EqualTo("Save LDAP connection"));
-                Assert.That(messages[0].Message, Is.EqualTo(expectedMessage));
+                Assert.That(messages[0].Message, Is.EqualTo(GetMember<UserConfig>(component, "userConfig").GetText(expectedMessageKey)));
                 Assert.That(messages[0].IsError, Is.True);
             });
         }

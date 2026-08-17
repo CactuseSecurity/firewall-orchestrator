@@ -19,16 +19,6 @@ namespace FWO.Test
     [TestFixture]
     internal class UiSettingsPasswordTest
     {
-        [SetUp]
-        public void SetUp()
-        {
-            SimulatedUserConfig.DummyTranslate["change_password"] = "Change Password";
-            SimulatedUserConfig.DummyTranslate["old_password"] = "Old Password";
-            SimulatedUserConfig.DummyTranslate["new_password"] = "New Password";
-            SimulatedUserConfig.DummyTranslate["U5401"] = "Password changed.";
-            SimulatedUserConfig.DummyTranslate["U5411"] = "Change the password for the current user";
-        }
-
         [Test]
         public async Task SettingsPassword_RendersEnabledButtonForAdmin()
         {

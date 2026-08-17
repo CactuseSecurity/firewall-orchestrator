@@ -22,7 +22,7 @@
                       "column": "criterion_id",
                       "table": {
                         "name": "ip_range",
-                        "schema": "compliance"
+                        "schema": "network_zone"
                       }
                     }
                   }
@@ -45,8 +45,8 @@
                     "foreign_key_constraint_on": {
                       "column": "criterion_id",
                       "table": {
-                        "name": "network_zone",
-                        "schema": "compliance"
+                        "name": "zone",
+                        "schema": "network_zone"
                       }
                     }
                   }
@@ -235,7 +235,7 @@
             {
               "table": {
                 "name": "ip_range",
-                "schema": "compliance"
+                "schema": "network_zone"
               },
               "object_relationships": [
                 {
@@ -403,8 +403,8 @@
             },
             {
               "table": {
-                "name": "network_zone",
-                "schema": "compliance"
+                "name": "zone",
+                "schema": "network_zone"
               },
               "object_relationships": [
                 {
@@ -428,7 +428,7 @@
                       "column": "network_zone_id",
                       "table": {
                         "name": "ip_range",
-                        "schema": "compliance"
+                        "schema": "network_zone"
                       }
                     }
                   }
@@ -463,8 +463,8 @@
                     "foreign_key_constraint_on": {
                       "column": "super_network_zone_id",
                       "table": {
-                        "name": "network_zone",
-                        "schema": "compliance"
+                        "name": "zone",
+                        "schema": "network_zone"
                       }
                     }
                   }

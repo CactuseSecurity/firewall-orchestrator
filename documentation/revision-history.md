@@ -607,3 +607,6 @@ Not supported any longer are:
 
 ## 9.3.4 - 11.08.2026
 - fix a bug in reporting ui where users with role modeller and reporter could not fetch rsb data for app rule reports
+
+## 9.3.5 - 17.08.2026
+- move compliance.ip_range to new schema network_zone.ip_range and compliance.network_zone to network_zone.zone

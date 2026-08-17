@@ -10,6 +10,7 @@ from netaddr import IPAddress, IPNetwork
 
 DEFAULT_IPv4 = (IPNetwork("0.0.0.0/32"), IPNetwork("255.255.255.255/32"))
 DUMMY_IPv4 = (IPNetwork(fwo_const.DUMMY_IP), IPNetwork(fwo_const.DUMMY_IP))
+DUMMY_IPv6 = (IPNetwork("::/128", version=6), IPNetwork("::/128", version=6))
 
 DOMAIN_IPV4_OBJECT_TYPES = frozenset({"fqdn", "wildcard-fqdn"})
 # FortiOS wildcard masks can describe non-contiguous address patterns. The normalized data model only supports one
@@ -18,6 +19,39 @@ DOMAIN_IPV4_OBJECT_TYPES = frozenset({"fqdn", "wildcard-fqdn"})
 DYNAMIC_IPV4_OBJECT_TYPES = frozenset({"dynamic", "geography", "interface-subnet", "wildcard"})
 DOMAIN_IPV6_OBJECT_TYPES = frozenset({"fqdn"})
 DYNAMIC_IPV6_OBJECT_TYPES = frozenset({"dynamic", "template"})
+
+
+def _normalize_ipv6_address_range(
+    start_address: IPv6Address, end_address: IPv6Address
+) -> tuple[IPNetwork, IPNetwork, Literal["host", "ip_range"]]:
+    """Normalize explicit IPv6 range bounds to /128 networks."""
+    ip_start = IPNetwork(f"{start_address}/128", version=6)
+    ip_end = IPNetwork(f"{end_address}/128", version=6)
+    obj_typ: Literal["host", "ip_range"] = "ip_range" if int(start_address) != int(end_address) else "host"
+    return ip_start, ip_end, obj_typ
+
+
+def _normalize_static_ipv6_network_object(
+    ip6_obj: NwObjAddress6,
+) -> tuple[IPNetwork, IPNetwork, Literal["host", "ip_range", "network"]]:
+    """Normalize FortiOS IPv6 range or prefix fields, falling back to a dummy host."""
+    if ip6_obj.start_ip and ip6_obj.end_ip:
+        return _normalize_ipv6_address_range(IPv6Address(ip6_obj.start_ip), IPv6Address(ip6_obj.end_ip))
+
+    if ip6_obj.ip6:
+        network = IPNetwork(ip6_obj.ip6, version=6)
+        ip_start_address = IPv6Address(network.first)
+        if ip6_obj.end_ip and ip6_obj.end_ip != "::":
+            return _normalize_ipv6_address_range(ip_start_address, IPv6Address(ip6_obj.end_ip))
+
+        ip_end = IPNetwork(f"{IPv6Address(network.last)}/128", version=6)
+        obj_typ: Literal["host", "network"] = "network" if network.size > 1 else "host"
+        return IPNetwork(f"{ip_start_address}/128", version=6), ip_end, obj_typ
+
+    FWOLogger.warning(
+        f"normalize_ipv6_network_objects: Unable to determine IP range for network object {ip6_obj.name}, setting to dummy IP."
+    )
+    return DUMMY_IPv6[0], DUMMY_IPv6[1], "host"
 
 
 def normalize_ipv4_network_objects(
@@ -87,7 +121,6 @@ def normalize_single_ipv6_network_object(ip6_obj: NwObjAddress6, nw_obj_lookup_d
         NetworkObject: The normalized network object.
 
     """
-    obj_typ: Literal["host", "ip_range", "network", "domain", "dynamic_net_obj"] = "host"
     if ip6_obj.type in DOMAIN_IPV6_OBJECT_TYPES:
         obj_typ = "domain"
         ip_start = None
@@ -96,30 +129,8 @@ def normalize_single_ipv6_network_object(ip6_obj: NwObjAddress6, nw_obj_lookup_d
         obj_typ = "dynamic_net_obj"
         ip_start = None
         ip_end = None
-    elif ip6_obj.start_ip and ip6_obj.end_ip:
-        ip_start_address = IPv6Address(ip6_obj.start_ip)
-        ip_end_address = IPv6Address(ip6_obj.end_ip)
-        ip_start = IPNetwork(f"{ip_start_address}/128", version=6)
-        ip_end = IPNetwork(f"{ip_end_address}/128", version=6)
-        obj_typ = "ip_range" if int(ip_start_address) != int(ip_end_address) else "host"
-    elif ip6_obj.ip6:
-        network = IPNetwork(ip6_obj.ip6, version=6)
-        ip_start_address = IPv6Address(network.first)
-        ip_start = IPNetwork(f"{ip_start_address}/128", version=6)
-        if ip6_obj.end_ip and ip6_obj.end_ip != "::":
-            ip_end_address = IPv6Address(ip6_obj.end_ip)
-            ip_end = IPNetwork(f"{ip_end_address}/128", version=6)
-            obj_typ = "ip_range" if int(ip_start_address) != int(ip_end_address) else "host"
-        else:
-            ip_end = IPNetwork(f"{IPv6Address(network.last)}/128", version=6)
-            if network.size > 1:
-                obj_typ = "network"
     else:
-        FWOLogger.warning(
-            f"normalize_ipv6_network_objects: Unable to determine IP range for network object {ip6_obj.name}, setting to dummy IP."
-        )
-        ip_start = IPNetwork("::/128", version=6)
-        ip_end = ip_start
+        ip_start, ip_end, obj_typ = _normalize_static_ipv6_network_object(ip6_obj)
 
     nw_obj_lookup_dict[ip6_obj.name] = ip6_obj.uuid
 

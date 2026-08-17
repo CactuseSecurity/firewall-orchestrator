@@ -327,18 +327,46 @@ def test_import_data_skips_a_file_with_missing_columns(tmp_path: Path, monkeypat
     assert manifest["csv_files"] == ["2026-08-12/fw.csv"]
 
 
-def test_import_data_writes_an_empty_file_when_every_file_is_broken(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_import_data_keeps_a_file_with_rejected_rows_for_retry(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     config_file, repository_directory, output_file = prepare_repository(tmp_path, monkeypatch)
-    (repository_directory / "2026-08-12" / "fw.csv").write_text("App ID\nAPP-1\n", encoding="utf-8")
+    rejected_file: Path = repository_directory / "2026-08-12" / "fw.csv"
+    rejected_file.write_text(
+        CSV_CONTENT + "APP-2,1,192.0.2.2,198.51.100.2,443,1\n",
+        encoding="utf-8",
+    )
+    accepted_file: Path = repository_directory / "accepted.csv"
+    accepted_file.write_text(
+        "App ID,Log count,Src IP,Dst IP,Port,Protocol\nAPP-3,7,192.0.2.3,198.51.100.3,53,17\n",
+        encoding="utf-8",
+    )
     monkeypatch.setattr(importer, "update_git_repo", return_true)
 
     result: int = importer.import_data(config_file, None, LOGGER)
 
+    manifest: dict[str, Any] = json.loads(importer.MANIFEST_FILE.read_text(encoding="utf-8"))
+    entries: dict[str, Any] = json.loads(output_file.read_text(encoding="utf-8"))
+    assert result == 0
+    assert [entry["app_id"] for entry in entries["logs"]] == ["APP-3"]
+    assert manifest["csv_files"] == ["accepted.csv"]
+
+
+def test_import_data_writes_an_empty_file_when_every_file_is_broken(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config_file, repository_directory, output_file = prepare_repository(tmp_path, monkeypatch)
+    (repository_directory / "2026-08-12" / "fw.csv").write_text(
+        "App ID,Log count,Src IP,Dst IP,Port,Protocol\nAPP-1,42,192.0.2.1,198.51.100.1,443,1\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(importer, "update_git_repo", return_true)
+
+    result: int = importer.import_data(config_file, None, LOGGER)
+
+    manifest: dict[str, Any] = json.loads(importer.MANIFEST_FILE.read_text(encoding="utf-8"))
     entries: dict[str, Any] = json.loads(output_file.read_text(encoding="utf-8"))
     assert result == 0
     assert entries["logs"] == []
+    assert manifest["csv_files"] == []
 
 
 def test_convert_row_normalizes_the_log_timestamp() -> None:
@@ -370,7 +398,9 @@ def test_convert_row_rejects_an_unparsable_log_timestamp() -> None:
         importer.convert_row(row)
 
 
-def test_import_data_skips_rows_with_a_broken_timestamp(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_import_data_keeps_a_file_with_a_broken_timestamp_for_retry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     config_file, repository_directory, output_file = prepare_repository(tmp_path, monkeypatch)
     (repository_directory / "2026-08-12" / "fw.csv").write_text(
         "App ID,Log count,Src IP,Dst IP,Port,Protocol,Log timestamp\n"
@@ -382,7 +412,8 @@ def test_import_data_skips_rows_with_a_broken_timestamp(tmp_path: Path, monkeypa
 
     result: int = importer.import_data(config_file, None, LOGGER)
 
+    manifest: dict[str, Any] = json.loads(importer.MANIFEST_FILE.read_text(encoding="utf-8"))
     entries: dict[str, Any] = json.loads(output_file.read_text(encoding="utf-8"))
     assert result == 0
-    assert len(entries["logs"]) == 1
-    assert entries["logs"][0]["log_time"] == "2026-08-12T08:20:00+00:00"
+    assert entries["logs"] == []
+    assert manifest["csv_files"] == []

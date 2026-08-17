@@ -49,7 +49,9 @@ def parse_optional_int(value: str) -> int | None:
 
 
 def convert_csv_file(csv_file: Path, repository_directory: Path, logger: logging.Logger) -> list[LogDataEntry]:
+    """Convert every row of one CSV file, rejecting the complete file if any row is invalid."""
     converted: list[LogDataEntry] = []
+    rejected_row_count: int = 0
     with csv_file.open(newline="", encoding="utf-8-sig") as file_handle:
         typed_file_handle: TextIO = file_handle
         reader: csv.DictReader[str] = csv.DictReader(typed_file_handle)
@@ -59,8 +61,12 @@ def convert_csv_file(csv_file: Path, repository_directory: Path, logger: logging
             converted_row: LogDataEntry | None = convert_row_or_log_error(
                 row, csv_file, repository_directory, line_number, logger
             )
-            if converted_row is not None:
+            if converted_row is None:
+                rejected_row_count += 1
+            else:
                 converted.append(converted_row)
+    if rejected_row_count > 0:
+        raise ValueError(f"{rejected_row_count} row(s) could not be converted")
     return converted
 
 

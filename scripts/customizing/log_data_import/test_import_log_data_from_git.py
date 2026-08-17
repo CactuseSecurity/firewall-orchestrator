@@ -1,6 +1,8 @@
 import logging
 from pathlib import Path
 
+import pytest
+
 from scripts.customizing.log_data_import.import_log_data_from_git import LogDataEntry, convert_csv_file, convert_row
 
 VALID_ROW: dict[str, str] = {
@@ -32,7 +34,7 @@ def test_convert_row_rejects_port_without_tcp_or_udp() -> None:
         raise AssertionError("Expected ValueError for a port without TCP or UDP")
 
 
-def test_convert_csv_file_logs_and_skips_invalid_rows(tmp_path: Path) -> None:
+def test_convert_csv_file_logs_invalid_rows_and_rejects_the_file(tmp_path: Path) -> None:
     csv_file: Path = tmp_path / "logs.csv"
     csv_file.write_text(
         "App ID,Log count,Src IP,Dst IP,Port,Protocol\n"
@@ -47,23 +49,12 @@ def test_convert_csv_file_logs_and_skips_invalid_rows(tmp_path: Path) -> None:
     logger.setLevel(logging.WARNING)
 
     try:
-        converted: list[LogDataEntry] = convert_csv_file(csv_file, tmp_path, logger)
+        with pytest.raises(ValueError, match=r"1 row\(s\) could not be converted"):
+            convert_csv_file(csv_file, tmp_path, logger)
     finally:
         logger.removeHandler(collector)
         logger.setLevel(original_level)
 
-    expected_entries: list[LogDataEntry] = [
-        {
-            "app_id": "APP-1",
-            "log_count": 42,
-            "source": "192.0.2.1",
-            "destination": "198.51.100.1",
-            "protocol": 6,
-            "port": 443,
-            "action": "accept",
-        }
-    ]
-    assert converted == expected_entries
     assert any("ignoring logs.csv line 3" in message for message in collector.messages)
 
 

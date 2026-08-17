@@ -17,7 +17,7 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("Request body is required"));
+            AssertValidationContains(errorResult!, "Request body is required");
         });
     }
 
@@ -39,7 +39,7 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("resolveZonesForObjects only accepts"));
+            AssertValidationContains(errorResult!, "typo");
         });
     }
 
@@ -135,7 +135,7 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("Only '/32' is allowed"));
+            AssertValidationContains(errorResult!, "Only '/32' is allowed");
         });
     }
 
@@ -167,9 +167,9 @@ internal class ComplianceZoneValidationTest
         ResolveZonesForObjectsRequest roundTrip = JsonSerializer.Deserialize<ResolveZonesForObjectsRequest>(json)!;
 
         Assert.That(roundTrip.Objects, Has.Count.EqualTo(1));
-        Assert.That(roundTrip.Objects[0], Is.TypeOf<ResolveZonesForObjectsRequest.GroupObjectRequest>());
+        Assert.That(roundTrip.Objects![0], Is.TypeOf<ResolveZonesForObjectsRequest.GroupObjectRequest>());
         ResolveZonesForObjectsRequest.GroupObjectRequest group = (ResolveZonesForObjectsRequest.GroupObjectRequest)roundTrip.Objects[0];
-        Assert.That(group.Members[0], Is.TypeOf<ResolveZonesForObjectsRequest.LeafObjectRequest>());
+        Assert.That(group.Members![0], Is.TypeOf<ResolveZonesForObjectsRequest.LeafObjectRequest>());
         ResolveZonesForObjectsRequest.LeafObjectRequest leaf = (ResolveZonesForObjectsRequest.LeafObjectRequest)group.Members[0];
         Assert.Multiple(() =>
         {
@@ -193,7 +193,7 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("must contain at least one entry"));
+            AssertValidationContains(errorResult!, "must contain at least one entry");
         });
     }
 
@@ -218,7 +218,7 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("must contain at least one member"));
+            AssertValidationContains(errorResult!, "must contain at least one member");
         });
     }
 
@@ -236,7 +236,7 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("cannot contain null entries"));
+            AssertValidationContains(errorResult!, "cannot contain null entries");
         });
     }
 
@@ -260,7 +260,7 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("unsupported object node type"));
+            AssertValidationContains(errorResult!, "unsupported object node type");
         });
     }
 
@@ -286,7 +286,7 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("requires a non-empty 'type'"));
+            AssertValidationContains(errorResult!, "requires a non-empty 'type'");
         });
     }
 
@@ -311,7 +311,7 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("must define either non-empty 'members'"));
+            AssertValidationContains(errorResult!, "must define either non-empty 'members'");
         });
     }
 
@@ -338,7 +338,7 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("unsupported 'type' value"));
+            AssertValidationContains(errorResult!, "unsupported 'type' value");
         });
     }
 
@@ -365,7 +365,7 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("requires non-empty 'ipStart' and 'ipEnd'"));
+            AssertValidationContains(errorResult!, "requires non-empty 'ipStart' and 'ipEnd'");
         });
     }
 
@@ -392,7 +392,7 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("invalid 'ipStart' value"));
+            AssertValidationContains(errorResult!, "invalid 'ipStart' value");
         });
     }
 
@@ -419,7 +419,7 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("invalid 'ipEnd' value"));
+            AssertValidationContains(errorResult!, "invalid 'ipEnd' value");
         });
     }
 
@@ -446,7 +446,7 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("same address family"));
+            AssertValidationContains(errorResult!, "same address family");
         });
     }
 
@@ -473,7 +473,7 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("must satisfy 'ipStart' <= 'ipEnd'"));
+            AssertValidationContains(errorResult!, "must satisfy 'ipStart' <= 'ipEnd'");
         });
     }
 
@@ -507,8 +507,7 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("members entry at index 0"));
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("only accepts"));
+            AssertValidationContains(errorResult!, "objects[0].members[0].typo");
         });
     }
 
@@ -543,7 +542,7 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("only accepts"));
+            AssertValidationContains(errorResult!, "objects[0].ipStart");
         });
     }
 
@@ -570,7 +569,7 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("must use the same 'ipStart' and 'ipEnd'"));
+            AssertValidationContains(errorResult!, "must use the same 'ipStart' and 'ipEnd'");
         });
     }
 
@@ -597,9 +596,9 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("does not support IPv6 addresses"));
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'ipStart'"));
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'ipEnd'"));
+            AssertValidationContains(errorResult!, "does not support IPv6 addresses");
+            AssertValidationContains(errorResult!, "'ipStart'");
+            AssertValidationContains(errorResult!, "'ipEnd'");
         });
     }
 
@@ -639,7 +638,7 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("at most 4096 objects"));
+            AssertValidationContains(errorResult!, "at most 4096 objects");
         });
     }
 
@@ -665,11 +664,20 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("at most 2048 IP ranges"));
+            AssertValidationContains(errorResult!, "at most 2048 IP ranges");
         });
     }
 
     private sealed class UnsupportedObjectRequest : ResolveZonesForObjectsRequest.ObjectRequest
     {
+    }
+
+    private static void AssertValidationContains(ActionResult errorResult, string expectedText)
+    {
+        ValidationProblemDetails problemDetails = (ValidationProblemDetails)((BadRequestObjectResult)errorResult).Value!;
+        string validationText = string.Join(
+            " ",
+            problemDetails.Errors.SelectMany(error => new[] { error.Key }.Concat(error.Value)));
+        Assert.That(validationText, Does.Contain(expectedText));
     }
 }

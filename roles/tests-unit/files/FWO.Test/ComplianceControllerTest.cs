@@ -373,15 +373,21 @@ namespace FWO.Test
         [Test]
         public async Task ResolveZonesForObjects_ReturnsBadRequestWhenValidationFails()
         {
-            ComplianceZoneController controller = new(CreateZoneService(new DummyApiConnection(), 12));
+            DummyApiConnection apiConnection = new();
+            ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12));
 
             ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.ResolveZonesForObjects(new ResolveZonesForObjectsRequest
             {
                 Objects = []
             });
 
-            Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("must contain at least one entry"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+                AssertValidationContains(result.Result!, "must contain at least one entry");
+                Assert.That(apiConnection.MatrixQueryCount, Is.EqualTo(0));
+                Assert.That(apiConnection.NetworkZoneQueryCount, Is.EqualTo(0));
+            });
         }
 
         private sealed class DummyApiConnection : ApiConnection
@@ -510,6 +516,15 @@ namespace FWO.Test
             object? value = obj!.GetType().GetProperty(propertyName)?.GetValue(obj);
             Assert.That(value, Is.Not.Null, $"Expected property '{propertyName}' to exist and have a value.");
             return (T)value!;
+        }
+
+        private static void AssertValidationContains(ActionResult errorResult, string expectedText)
+        {
+            ValidationProblemDetails problemDetails = (ValidationProblemDetails)((BadRequestObjectResult)errorResult).Value!;
+            string validationText = string.Join(
+                " ",
+                problemDetails.Errors.SelectMany(error => new[] { error.Key }.Concat(error.Value)));
+            Assert.That(validationText, Does.Contain(expectedText));
         }
 
         private static ComplianceZoneService CreateZoneService(ApiConnection apiConnection, int matrixId = 0)

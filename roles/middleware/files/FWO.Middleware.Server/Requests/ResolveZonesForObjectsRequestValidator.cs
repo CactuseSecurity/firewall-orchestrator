@@ -14,11 +14,10 @@ public static class ResolveZonesForObjectsRequestValidator
     private const int MaximumObjectCount = 4096;
     private const int MaximumIpRangeCount = 2048;
 
-    private static readonly RequestRootValidationSchema RootSchema = new(
-        EndpointName,
-        [
-            new RequestKeyDefinition("objects", "Objects to resolve.")
-        ]);
+    private static readonly RequestValidationSchema RootSchema = RequestValidationSchema
+        .Endpoint(EndpointName)
+        .ObjectRoot()
+        .RequiredList("objects");
 
     private static readonly RequestKeyDefinition[] LeafKeys =
     [
@@ -39,20 +38,14 @@ public static class ResolveZonesForObjectsRequestValidator
     /// </summary>
     public static bool TryValidate(ResolveZonesForObjectsRequest request, out ActionResult? errorResult)
     {
-        if (request is null)
-        {
-            errorResult = new BadRequestObjectResult("Request body is required.");
-            return false;
-        }
-
-        if (!RequestRootValidator.TryValidate(request, RootSchema, out errorResult))
+        if (!RequestValidator.TryValidate(request, RootSchema, out errorResult))
         {
             return false;
         }
 
         if (request.Objects is null || request.Objects.Count == 0)
         {
-            errorResult = new BadRequestObjectResult("'objects' must contain at least one entry.");
+            errorResult = BuildValidationError("objects", "'objects' must contain at least one entry.");
             return false;
         }
 
@@ -78,18 +71,20 @@ public static class ResolveZonesForObjectsRequestValidator
         {
             if (node is null)
             {
-                errorResult = new BadRequestObjectResult($"'{collectionName}' cannot contain null entries.");
+                errorResult = BuildValidationError(
+                    RequestFieldPath.Indexed(collectionName, index),
+                    $"'{collectionName}' cannot contain null entries.");
                 return false;
             }
 
             validationStatistics.ObjectCount++;
             if (validationStatistics.ObjectCount > MaximumObjectCount)
             {
-                errorResult = new BadRequestObjectResult($"'{EndpointName}' accepts at most {MaximumObjectCount} objects per request.");
+                errorResult = BuildValidationError(collectionName, $"'{EndpointName}' accepts at most {MaximumObjectCount} objects per request.");
                 return false;
             }
 
-            if (!TryValidateObject(node, $"{collectionName} entry at index {index}", depth, validationStatistics, out errorResult))
+            if (!TryValidateObject(node, RequestFieldPath.Indexed(collectionName, index), depth, validationStatistics, out errorResult))
             {
                 return false;
             }
@@ -115,7 +110,7 @@ public static class ResolveZonesForObjectsRequestValidator
             case ResolveZonesForObjectsRequest.LeafObjectRequest leaf:
                 return TryValidateLeaf(leaf, context, validationStatistics, out errorResult);
             default:
-                errorResult = new BadRequestObjectResult($"'{context}' has an unsupported object node type.");
+                errorResult = BuildValidationError(context, $"'{context}' has an unsupported object node type.");
                 return false;
         }
     }
@@ -129,19 +124,19 @@ public static class ResolveZonesForObjectsRequestValidator
     {
         if (group.AdditionalData is { Count: > 0 })
         {
-            errorResult = RequestValidationMessageBuilder.BuildAllowedKeysError(context, GroupKeys);
+            errorResult = BuildUnknownKeyError(context, group.AdditionalData.Keys);
             return false;
         }
 
         if (depth >= MaximumObjectDepth)
         {
-            errorResult = new BadRequestObjectResult($"'{EndpointName}' supports at most {MaximumObjectDepth} nested object levels.");
+            errorResult = BuildValidationError(context, $"'{EndpointName}' supports at most {MaximumObjectDepth} nested object levels.");
             return false;
         }
 
         if (group.Members is null || group.Members.Count == 0)
         {
-            errorResult = new BadRequestObjectResult($"'{context}' must contain at least one member.");
+            errorResult = BuildValidationError(RequestFieldPath.Child(context, "members"), $"'{context}' must contain at least one member.");
             return false;
         }
 
@@ -156,7 +151,7 @@ public static class ResolveZonesForObjectsRequestValidator
     {
         if (leaf.AdditionalData is { Count: > 0 })
         {
-            errorResult = RequestValidationMessageBuilder.BuildAllowedKeysError(context, LeafKeys);
+            errorResult = BuildUnknownKeyError(context, leaf.AdditionalData.Keys);
             return false;
         }
 
@@ -164,26 +159,27 @@ public static class ResolveZonesForObjectsRequestValidator
             && string.IsNullOrWhiteSpace(leaf.IpStart)
             && string.IsNullOrWhiteSpace(leaf.IpEnd))
         {
-            errorResult = new BadRequestObjectResult($"'{context}' must define either non-empty 'members' or the leaf fields 'type', 'ipStart', and 'ipEnd'.");
+            errorResult = BuildValidationError(context, $"'{context}' must define either non-empty 'members' or the leaf fields 'type', 'ipStart', and 'ipEnd'.");
             return false;
         }
 
         if (string.IsNullOrWhiteSpace(leaf.Type))
         {
-            errorResult = new BadRequestObjectResult($"'{context}' requires a non-empty 'type'.");
+            errorResult = BuildValidationError(RequestFieldPath.Child(context, "type"), $"'{context}' requires a non-empty 'type'.");
             return false;
         }
 
         if (!IsLeafType(leaf.Type))
         {
-            errorResult = new BadRequestObjectResult(
+            errorResult = BuildValidationError(
+                RequestFieldPath.Child(context, "type"),
                 $"'{context}' has an unsupported 'type' value. Allowed values are '{ObjectType.Host}', '{ObjectType.Network}', and '{ObjectType.IPRange}'.");
             return false;
         }
 
         if (string.IsNullOrWhiteSpace(leaf.IpStart) || string.IsNullOrWhiteSpace(leaf.IpEnd))
         {
-            errorResult = new BadRequestObjectResult($"'{context}' requires non-empty 'ipStart' and 'ipEnd'.");
+            errorResult = BuildValidationError(context, $"'{context}' requires non-empty 'ipStart' and 'ipEnd'.");
             return false;
         }
 
@@ -195,7 +191,7 @@ public static class ResolveZonesForObjectsRequestValidator
             out string normalizedIpEnd,
             out string? ipRangeError))
         {
-            errorResult = new BadRequestObjectResult(ipRangeError);
+            errorResult = BuildValidationError(context, ipRangeError!);
             return false;
         }
 
@@ -204,14 +200,14 @@ public static class ResolveZonesForObjectsRequestValidator
         if (string.Equals(leaf.Type, ObjectType.Host, StringComparison.OrdinalIgnoreCase)
             && !IPAddress.Parse(leaf.IpStart).Equals(IPAddress.Parse(leaf.IpEnd)))
         {
-            errorResult = new BadRequestObjectResult($"'{context}' entries of type '{ObjectType.Host}' must use the same 'ipStart' and 'ipEnd'.");
+            errorResult = BuildValidationError(context, $"'{context}' entries of type '{ObjectType.Host}' must use the same 'ipStart' and 'ipEnd'.");
             return false;
         }
 
         validationStatistics.RangeCount++;
         if (validationStatistics.RangeCount > MaximumIpRangeCount)
         {
-            errorResult = new BadRequestObjectResult($"'{EndpointName}' accepts at most {MaximumIpRangeCount} IP ranges per request.");
+            errorResult = BuildValidationError(context, $"'{EndpointName}' accepts at most {MaximumIpRangeCount} IP ranges per request.");
             return false;
         }
 
@@ -231,5 +227,22 @@ public static class ResolveZonesForObjectsRequestValidator
         public int ObjectCount { get; set; }
 
         public int RangeCount { get; set; }
+    }
+
+    private static BadRequestObjectResult BuildUnknownKeyError(string context, IEnumerable<string> unknownKeys)
+    {
+        RequestValidationErrors errors = new();
+        foreach (string unknownKey in unknownKeys)
+        {
+            errors.AddUnknownField(RequestFieldPath.Child(context, unknownKey));
+        }
+        return RequestValidationProblemDetailsFactory.BadRequest(errors);
+    }
+
+    private static BadRequestObjectResult BuildValidationError(string fieldPath, string message)
+    {
+        RequestValidationErrors errors = new();
+        errors.Add(fieldPath, message);
+        return RequestValidationProblemDetailsFactory.BadRequest(errors);
     }
 }

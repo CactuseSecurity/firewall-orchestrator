@@ -120,8 +120,8 @@ public sealed class FlowComplianceService
         return new NetworkObject
         {
             Name = namePrefix,
-            IP = request.IpStart,
-            IpEnd = request.IpEnd,
+            IP = request.IpStart!,
+            IpEnd = request.IpEnd!,
             Type = new NetworkObjectType { Name = ObjectType.IPRange }
         };
     }
@@ -133,13 +133,13 @@ public sealed class FlowComplianceService
         return new NetworkService
         {
             Name = namePrefix,
-            DestinationPort = request.PortStart,
-            DestinationPortEnd = request.PortEnd,
+            DestinationPort = request.PortStart!.Value,
+            DestinationPortEnd = request.PortEnd!.Value,
             ProtoId = protocolIsNumeric ? protocolId : null,
             Protocol = new NetworkProtocol
             {
                 Id = protocolIsNumeric ? protocolId : 0,
-                Name = request.Protocol
+                Name = request.Protocol!
             },
             Type = new NetworkServiceType { Name = ServiceType.SimpleService }
         };

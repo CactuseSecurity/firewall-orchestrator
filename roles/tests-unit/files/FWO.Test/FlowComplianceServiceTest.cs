@@ -70,6 +70,53 @@ internal class FlowComplianceServiceTest
     }
 
     [Test]
+    public async Task GetPolicyIds_ReturnsValidationProblemBeforeQueryForUnknownKeys()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        FlowComplianceController controller = new(new FlowComplianceService(apiConnection, new SimulatedGlobalConfig()));
+
+        ActionResult<GetPolicyIdsResponse> result = await controller.GetPolicyIds(new GetPolicyIdsRequest
+        {
+            AdditionalData = new()
+            {
+                ["typo"] = System.Text.Json.JsonDocument.Parse("true").RootElement.Clone()
+            }
+        });
+
+        ValidationProblemDetails problemDetails = ExtractValidationProblemDetails(result.Result!);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(problemDetails.Errors["typo"], Is.EqualTo(new[] { "Unknown field 'typo'." }));
+            Assert.That(apiConnection.SentQueries, Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task GetFlowComplianceState_ReturnsValidationProblemBeforeQueryForShapeErrors()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        FlowComplianceController controller = new(new FlowComplianceService(apiConnection, new SimulatedGlobalConfig()));
+        GetFlowComplianceStateRequest request = new()
+        {
+            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.0.1" }],
+            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.1.1", IpEnd = "10.0.1.2" }],
+            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
+            Policies = [1]
+        };
+
+        ActionResult<List<FlowComplianceStateResponse>> result = await controller.GetFlowComplianceState(request);
+
+        ValidationProblemDetails problemDetails = ExtractValidationProblemDetails(result.Result!);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(problemDetails.Errors["source[0].ipEnd"], Is.EqualTo(new[] { "Required field 'source[0].ipEnd' is missing." }));
+            Assert.That(apiConnection.SentQueries, Is.Empty);
+        });
+    }
+
+    [Test]
     public async Task GetFlowComplianceStateAsync_ReturnsViolationsPerPolicy()
     {
         FlowComplianceServiceApiConn apiConnection = new();
@@ -334,6 +381,12 @@ internal class FlowComplianceServiceTest
             new UiText { Id = "bidirectional_duplicate_violation", Txt = "Bidirectional duplicate violation", Language = "English" },
             new UiText { Id = "criterion_ipv6_not_supported", Txt = "IPv6 not supported", Language = "English" }
         ];
+    }
+
+    private static ValidationProblemDetails ExtractValidationProblemDetails(ActionResult errorResult)
+    {
+        Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+        return (ValidationProblemDetails)((BadRequestObjectResult)errorResult).Value!;
     }
 
     private sealed class FlowComplianceServiceApiConn : SimulatedApiConnection

@@ -50,7 +50,7 @@ public class ComplianceZoneController(ComplianceZoneService complianceZoneServic
     [HttpPost("resolveZonesForObjects")]
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [ProducesResponseType(typeof(List<ComplianceDesignatedZoneResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]

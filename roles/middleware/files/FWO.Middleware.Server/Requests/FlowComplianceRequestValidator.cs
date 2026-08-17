@@ -15,38 +15,31 @@ public static class FlowComplianceRequestValidator
     private const string GetPolicyIdsEndpointName = "getPolicyIds";
     private const string GetFlowComplianceStateEndpointName = "getFlowComplianceState";
 
-    private static readonly RequestRootValidationSchema PolicyIdsRootSchema = new(
-        GetPolicyIdsEndpointName,
-        []);
+    private static readonly RequestValidationSchema PolicyIdsSchema = RequestValidationSchema
+        .Endpoint(GetPolicyIdsEndpointName)
+        .ObjectRoot();
 
-    private static readonly RequestRootValidationSchema FlowComplianceRootSchema = new(
-        GetFlowComplianceStateEndpointName,
-        [
-            new RequestKeyDefinition("source", "Source IP ranges to evaluate."),
-            new RequestKeyDefinition("destination", "Destination IP ranges to evaluate."),
-            new RequestKeyDefinition("service", "Service ports and protocols to evaluate."),
-            new RequestKeyDefinition("policies", "Policy ids to evaluate.")
-        ]);
-
-    private static readonly RequestKeyDefinition[] IpRangeKeys =
-    [
-        new("ipStart", "Start IP address of the range."),
-        new("ipEnd", "End IP address of the range.")
-    ];
-
-    private static readonly RequestKeyDefinition[] ServiceRangeKeys =
-    [
-        new("portStart", "Start port of the service range."),
-        new("portEnd", "End port of the service range."),
-        new("protocol", "Protocol name or id of the service range.")
-    ];
+    private static readonly RequestValidationSchema FlowComplianceSchema = RequestValidationSchema
+        .Endpoint(GetFlowComplianceStateEndpointName)
+        .ObjectRoot()
+        .OptionalList("source", item => item
+            .RequiredString("ipStart")
+            .RequiredString("ipEnd"))
+        .OptionalList("destination", item => item
+            .RequiredString("ipStart")
+            .RequiredString("ipEnd"))
+        .OptionalList("service", item => item
+            .RequiredInt("portStart")
+            .RequiredInt("portEnd")
+            .RequiredString("protocol"))
+        .OptionalList("policies");
 
     /// <summary>
     /// Performs the TryValidatePolicyIds operation.
     /// </summary>
     public static bool TryValidatePolicyIds(GetPolicyIdsRequest request, out ActionResult? errorResult)
     {
-        return RequestRootValidator.TryValidate(request, PolicyIdsRootSchema, out errorResult);
+        return RequestValidator.TryValidate(request, PolicyIdsSchema, out errorResult);
     }
 
     /// <summary>
@@ -54,22 +47,22 @@ public static class FlowComplianceRequestValidator
     /// </summary>
     public static bool TryValidateFlowComplianceState(GetFlowComplianceStateRequest request, out ActionResult? errorResult)
     {
-        if (!RequestRootValidator.TryValidate(request, FlowComplianceRootSchema, out errorResult))
+        if (!RequestValidator.TryValidate(request, FlowComplianceSchema, out errorResult))
         {
             return false;
         }
 
-        if (!TryValidateItemList(request.Source, "source", IpRangeKeys, TryValidateIpRange, out errorResult))
+        if (!TryValidateItemList(request.Source, "source", TryValidateIpRange, out errorResult))
         {
             return false;
         }
 
-        if (!TryValidateItemList(request.Destination, "destination", IpRangeKeys, TryValidateIpRange, out errorResult))
+        if (!TryValidateItemList(request.Destination, "destination", TryValidateIpRange, out errorResult))
         {
             return false;
         }
 
-        if (!TryValidateItemList(request.Service, "service", ServiceRangeKeys, TryValidateServiceRange, out errorResult))
+        if (!TryValidateItemList(request.Service, "service", TryValidateServiceRange, out errorResult))
         {
             return false;
         }
@@ -174,7 +167,6 @@ public static class FlowComplianceRequestValidator
     private static bool TryValidateItemList<TItem>(
         IEnumerable<TItem> items,
         string collectionName,
-        IReadOnlyList<RequestKeyDefinition> allowedKeys,
         Func<TItem, string, int, (bool IsValid, string? ErrorMessage)> semanticValidator,
         out ActionResult? errorResult)
         where TItem : IRequestWithAdditionalData
@@ -184,11 +176,13 @@ public static class FlowComplianceRequestValidator
         {
             if (item is null)
             {
-                errorResult = new BadRequestObjectResult($"'{collectionName}' cannot contain null entries.");
+                errorResult = BuildValidationError(
+                    RequestFieldPath.Indexed(collectionName, index),
+                    $"'{collectionName}' cannot contain null entries.");
                 return false;
             }
 
-            if (!TryValidateNestedItem(item, collectionName, allowedKeys, semanticValidator, index, out errorResult))
+            if (!TryValidateNestedItem(item, collectionName, semanticValidator, index, out errorResult))
             {
                 return false;
             }
@@ -203,34 +197,15 @@ public static class FlowComplianceRequestValidator
     private static bool TryValidateNestedItem<TItem>(
         TItem item,
         string collectionName,
-        IReadOnlyList<RequestKeyDefinition> allowedKeys,
         Func<TItem, string, int, (bool IsValid, string? ErrorMessage)> semanticValidator,
         int itemIndex,
         out ActionResult? errorResult)
         where TItem : IRequestWithAdditionalData
     {
-        if (item.AdditionalData is { Count: > 0 })
-        {
-            errorResult = RequestValidationMessageBuilder.BuildAllowedKeysError($"{collectionName} entry at index {itemIndex}", allowedKeys);
-            return false;
-        }
-
-        switch (item)
-        {
-            case GetFlowComplianceStateRequest.IpRangeRequest ipRange
-                when string.IsNullOrWhiteSpace(ipRange.IpStart) || string.IsNullOrWhiteSpace(ipRange.IpEnd):
-                errorResult = new BadRequestObjectResult($"'{collectionName}' entries require non-empty 'ipStart' and 'ipEnd'.");
-                return false;
-            case GetFlowComplianceStateRequest.ServiceRangeRequest serviceRange
-                when string.IsNullOrWhiteSpace(serviceRange.Protocol):
-                errorResult = new BadRequestObjectResult($"'{collectionName}' entries require non-empty 'protocol'.");
-                return false;
-        }
-
         (bool isValid, string? errorMessage) = semanticValidator(item, collectionName, itemIndex);
         if (!isValid)
         {
-            errorResult = new BadRequestObjectResult(errorMessage);
+            errorResult = BuildValidationError(RequestFieldPath.Indexed(collectionName, itemIndex), errorMessage!);
             return false;
         }
 
@@ -241,8 +216,8 @@ public static class FlowComplianceRequestValidator
     private static (bool IsValid, string? ErrorMessage) TryValidateIpRange(GetFlowComplianceStateRequest.IpRangeRequest ipRange, string collectionName, int itemIndex)
     {
         (bool isValid, string? errorMessage) = ValidateIpRange(
-            ipRange.IpStart,
-            ipRange.IpEnd,
+            ipRange.IpStart!,
+            ipRange.IpEnd!,
             detail => $"'{collectionName}' entry at index {itemIndex} {detail}",
             out string normalizedIpStart,
             out string normalizedIpEnd);
@@ -257,7 +232,7 @@ public static class FlowComplianceRequestValidator
 
     private static (bool IsValid, string? ErrorMessage) TryValidateServiceRange(GetFlowComplianceStateRequest.ServiceRangeRequest serviceRange, string collectionName, int itemIndex)
     {
-        return ValidateServiceRange(serviceRange.PortStart, serviceRange.PortEnd, collectionName, itemIndex);
+        return ValidateServiceRange(serviceRange.PortStart!.Value, serviceRange.PortEnd!.Value, collectionName, itemIndex);
     }
 
     private static (bool IsValid, string? ErrorMessage) ValidateIpRange(
@@ -373,7 +348,9 @@ public static class FlowComplianceRequestValidator
         {
             if (policyId <= 0)
             {
-                errorResult = new BadRequestObjectResult($"'policies' entries must be positive integers. Invalid value at index {index}.");
+                errorResult = BuildValidationError(
+                    RequestFieldPath.Indexed("policies", index),
+                    $"'policies' entries must be positive integers. Invalid value at index {index}.");
                 return false;
             }
 
@@ -382,5 +359,12 @@ public static class FlowComplianceRequestValidator
 
         errorResult = null;
         return true;
+    }
+
+    private static BadRequestObjectResult BuildValidationError(string fieldPath, string message)
+    {
+        RequestValidationErrors errors = new();
+        errors.Add(fieldPath, message);
+        return RequestValidationProblemDetailsFactory.BadRequest(errors);
     }
 }

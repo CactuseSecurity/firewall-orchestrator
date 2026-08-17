@@ -43,15 +43,14 @@ namespace FWO.Test
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters => parameters
                 .AddChildContent<SettingsOwnerLifecycles>());
 
-            wrapper.WaitForAssertion(() =>
-            {
-                SettingsOwnerLifecycles component = wrapper.FindComponent<SettingsOwnerLifecycles>().Instance;
-                Assert.That(apiConnection.Queries, Does.Contain(OwnerQueries.getOwnerLifeCycleStates));
-                Assert.That(GetMember<List<OwnerLifeCycleState>>(component, "OwnerLifeCycleStates"), Has.Count.EqualTo(2));
-            });
+            wrapper.WaitForAssertion(() => Assert.That(apiConnection.Queries, Does.Contain(OwnerQueries.getOwnerLifeCycleStates)));
+
+            SettingsOwnerLifecycles component = wrapper.FindComponent<SettingsOwnerLifecycles>().Instance;
 
             Assert.Multiple(() =>
             {
+                Assert.That(apiConnection.Queries, Does.Contain(OwnerQueries.getOwnerLifeCycleStates));
+                Assert.That(GetMember<List<OwnerLifeCycleState>>(component, "OwnerLifeCycleStates"), Has.Count.EqualTo(2));
                 Assert.That(wrapper.Markup, Does.Contain("owner_lifecycle_states"));
                 Assert.That(wrapper.Markup, Does.Contain("add_owner_lc_state"));
                 Assert.That(wrapper.Markup, Does.Contain("Edit"));

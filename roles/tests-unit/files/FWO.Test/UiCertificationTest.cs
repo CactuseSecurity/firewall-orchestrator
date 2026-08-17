@@ -341,9 +341,10 @@ namespace FWO.Test
                     .AddChildContent<Certification>()));
             Certification component = wrapper.FindComponent<Certification>().Instance;
 
-            wrapper.WaitForAssertion(() =>
+            wrapper.WaitForAssertion(() => Assert.That(apiConnection.CountQuery(OwnerQueries.getOwners), Is.EqualTo(2)));
+
+            Assert.Multiple(() =>
             {
-                Assert.That(apiConnection.CountQuery(OwnerQueries.getOwners), Is.EqualTo(2));
                 Assert.That(apiConnection.CountQuery(DeviceQueries.getDevicesByManagement), Is.EqualTo(1));
                 Assert.That(GetMember<List<FwoOwner>>(component, "ownerList"), Has.Count.EqualTo(1));
                 Assert.That(GetMember<List<FwoOwner>>(component, "collectedOwnerships"), Has.Count.EqualTo(1));

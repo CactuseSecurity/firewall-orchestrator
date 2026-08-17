@@ -13,6 +13,7 @@ namespace FWO.Test
     {
         private const string kConfigFilePathEnvVar = "FWO_CONFIG_FILE_PATH";
         private const string kLogLockDirEnvVar = "FWO_LOG_LOCK_DIR";
+        private const string kTestMainKey = "0123456789ABCDEF0123456789ABCDEF";
 
         private const string kTestConfigFileContent = @"{
           ""api_uri"": ""https://127.0.0.1:9443/api/v1/graphql/"",
@@ -25,6 +26,7 @@ namespace FWO.Test
 
         private FakeLocalTimeZone? fakeLocalTimeZone;
         private string? testConfigFilePath;
+        private string? testMainKeyFilePath;
         private bool logLockDirSet;
 
         [OneTimeSetUp]
@@ -32,6 +34,7 @@ namespace FWO.Test
         {
             SetLogLockDirectory();
             SetConfigFilePath();
+            SetMainKeyFilePath();
             SetGermanCultureOnAllUnitTest();
             SetGermanTimeZoneOnAllUnitTest();
             SetQueryBasePath();
@@ -48,6 +51,14 @@ namespace FWO.Test
                 if (File.Exists(testConfigFilePath))
                 {
                     File.Delete(testConfigFilePath);
+                }
+            }
+
+            if (testMainKeyFilePath != null)
+            {
+                if (File.Exists(testMainKeyFilePath))
+                {
+                    File.Delete(testMainKeyFilePath);
                 }
             }
 
@@ -88,6 +99,34 @@ namespace FWO.Test
             testConfigFilePath = Path.Combine(TestContext.CurrentContext.WorkDirectory, "fworch.test.json");
             File.WriteAllText(testConfigFilePath, kTestConfigFileContent);
             Environment.SetEnvironmentVariable(kConfigFilePathEnvVar, testConfigFilePath);
+        }
+
+        private void SetMainKeyFilePath()
+        {
+            if (File.Exists(GlobalConst.kMainKeyFile))
+            {
+                return;
+            }
+
+            try
+            {
+                string? mainKeyDirectory = Path.GetDirectoryName(GlobalConst.kMainKeyFile);
+                if (!string.IsNullOrEmpty(mainKeyDirectory))
+                {
+                    Directory.CreateDirectory(mainKeyDirectory);
+                }
+
+                testMainKeyFilePath = GlobalConst.kMainKeyFile;
+                File.WriteAllText(testMainKeyFilePath, kTestMainKey);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                testMainKeyFilePath = null;
+            }
+            catch (IOException)
+            {
+                testMainKeyFilePath = null;
+            }
         }
 
         public static void SetGermanCultureOnAllUnitTest()

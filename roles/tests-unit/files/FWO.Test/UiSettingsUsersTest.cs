@@ -58,21 +58,17 @@ namespace FWO.Test
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters => parameters
                 .AddChildContent<SettingsUsers>());
 
-            wrapper.WaitForAssertion(() =>
-            {
-                SettingsUsers component = wrapper.FindComponent<SettingsUsers>().Instance;
-                SettingsUsersHandler handler = GetMember<SettingsUsersHandler>(component, "Handler");
-                Assert.Multiple(() =>
-                {
-                    Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.getLdapConnections));
-                    Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.getTenants));
-                    Assert.That(GetMember<List<UiUser>>(handler, "UiUsers"), Has.Count.EqualTo(1));
-                    Assert.That(GetMember<bool>(handler, "ShowSampleRemoveButton"), Is.False);
-                });
-            });
+            wrapper.WaitForAssertion(() => Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.getTenants)));
+
+            SettingsUsers component = wrapper.FindComponent<SettingsUsers>().Instance;
+            SettingsUsersHandler handler = GetMember<SettingsUsersHandler>(component, "Handler");
 
             Assert.Multiple(() =>
             {
+                Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.getLdapConnections));
+                Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.getTenants));
+                Assert.That(GetMember<List<UiUser>>(handler, "UiUsers"), Has.Count.EqualTo(1));
+                Assert.That(GetMember<bool>(handler, "ShowSampleRemoveButton"), Is.False);
                 Assert.That(wrapper.Markup, Does.Contain("Users"));
                 Assert.That(wrapper.Markup, Does.Contain("add_new_user"));
                 Assert.That(wrapper.Markup, Does.Contain("synchronize"));

@@ -407,11 +407,13 @@ namespace FWO.Test
         {
             RecordingGatewaysApiConnection apiConnection = CreateApiConnection();
             apiConnection.UpdateDeviceResult = new ReturnId { UpdatedId = 999 };
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
 
-            SettingsGateways component = CreateComponent(apiConnection, await CreateAuthorizedTokenService());
+            SettingsGateways component = CreateComponent(apiConnection, await CreateAuthorizedTokenService(), messages);
 
             await InvokePrivateTask(component, "OnInitializedAsync");
             List<Device> devices = GetMember<List<Device>>(component, "devices");
+            Device original = new(devices[0]);
             InvokePrivateVoid(component, "Edit", devices[0]);
             SetMember(component, "actDevice", new Device
             {
@@ -428,7 +430,11 @@ namespace FWO.Test
             {
                 Assert.That(apiConnection.Queries.Count(query => query == DeviceQueries.updateDevice), Is.EqualTo(1));
                 Assert.That(GetMember<bool>(component, "EditMode"), Is.True);
-                Assert.That(GetMember<List<Device>>(component, "devices")[0].Name, Is.EqualTo("gateway1-renamed"));
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Title, Is.EqualTo("Save gateway"));
+                Assert.That(messages[0].Message, Is.EqualTo("Save gateway failed"));
+                Assert.That(GetMember<List<Device>>(component, "devices")[0].Name, Is.EqualTo(original.Name));
+                Assert.That(GetMember<List<Device>>(component, "devices")[0].Uid, Is.EqualTo(original.Uid));
             });
         }
 

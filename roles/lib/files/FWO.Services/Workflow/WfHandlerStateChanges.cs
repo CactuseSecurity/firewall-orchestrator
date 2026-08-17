@@ -62,12 +62,12 @@ namespace FWO.Services.Workflow
             return false;
         }
 
-        public async Task PromoteReqTask(WfStatefulObject reqTask)
+        public async Task PromoteReqTask(WfStatefulObject reqTask, bool setStartedHandler = true)
         {
             try
             {
                 ActReqTask.StateId = reqTask.StateId;
-                if (ActReqTask.Start == null && ActReqTask.StateId >= ActStateMatrix.LowestStartedState)
+                if (setStartedHandler && ActReqTask.Start == null && ActReqTask.StateId >= ActStateMatrix.LowestStartedState)
                 {
                     ActReqTask.Start = DateTime.Now;
                     ActReqTask.CurrentHandler = userConfig.User;

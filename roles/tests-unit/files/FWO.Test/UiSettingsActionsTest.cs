@@ -2023,17 +2023,21 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task SendEmail_SetActionNotificationIds_DoesNotPersistForNewAction()
+        public async Task SendEmail_SetActionNotificationIds_UpdatesExternalParamsForNewAction()
         {
             EditActionSendEmail component = new();
             SettingsActionsApiConn apiConn = new();
+            WfStateAction action = new() { ActionType = StateActionTypes.SendEmail.ToString() };
             SetMember(component, "apiConnection", apiConn);
-            SetMember(component, "ActAction", new WfStateAction { ActionType = StateActionTypes.SendEmail.ToString() });
+            SetMember(component, "ActAction", action);
+            List<int> notificationIds = new() { 3 };
 
-            await InvokeAsync(component, "SetActionNotificationIds", new List<int> { 3 });
+            await InvokeAsync(component, "SetActionNotificationIds", notificationIds);
 
             Assert.That(apiConn.Queries, Is.Empty);
             Assert.That(GetMember<List<int>>(component, "actActionNotificationIds"), Is.EqualTo(new List<int> { 3 }));
+            EmailActionParams parameters = JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams)!;
+            Assert.That(parameters.NotificationIds, Is.EqualTo(new List<int> { 3 }));
         }
 
         [Test]

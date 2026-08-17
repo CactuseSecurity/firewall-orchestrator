@@ -164,7 +164,13 @@
 
     private async Task PersistActionNotificationIds()
     {
-        if (PersistedAction.Id <= 0 || PersistedAction.ActionType != nameof(StateActionTypes.SendEmail))
+        if (PersistedAction.Id <= 0)
+        {
+            UpdateExternalParams();
+            return;
+        }
+
+        if (PersistedAction.ActionType != nameof(StateActionTypes.SendEmail))
         {
             return;
         }

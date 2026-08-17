@@ -238,57 +238,65 @@ namespace FWO.Middleware.Server
 
             WorkflowEmailBundleCollector emailBundleCollector = new();
 
-            while (true)
+            try
             {
-                WfReqTask? nextTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == lastTaskNumber + 1);
-                if (nextTask is null)
+                while (true)
                 {
-                    await RunInternalWorkStateChangeActions(ticket.Id, emailBundleCollector);
-                    Log.WriteDebug("CreateNextRequest", "No more task found.");
-                    return handledTask;
-                }
+                    WfReqTask? nextTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == lastTaskNumber + 1);
+                    if (nextTask is null)
+                    {
+                        await RunInternalWorkStateChangeActionsSafe(ticket.Id, emailBundleCollector);
+                        Log.WriteDebug("CreateNextRequest", "No more task found.");
+                        return handledTask;
+                    }
 
-                if (handledInternalWork && !IsInternalWorkConfiguredForTask(nextTask))
-                {
-                    await RunInternalWorkStateChangeActions(ticket.Id, emailBundleCollector);
-                    Log.WriteInfo("CreateNextRequest", $"Internal work batch for ticket {ticket.Id} created. Waiting for completion before task {nextTask.TaskNumber}.");
+                    if (handledInternalWork && !IsInternalWorkConfiguredForTask(nextTask))
+                    {
+                        await RunInternalWorkStateChangeActionsSafe(ticket.Id, emailBundleCollector);
+                        Log.WriteInfo("CreateNextRequest", $"Internal work batch for ticket {ticket.Id} created. Waiting for completion before task {nextTask.TaskNumber}.");
+                        return true;
+                    }
+
+                    List<ManagementFwConfigChangeState> managementSettings = JsonSerializer.Deserialize<List<ManagementFwConfigChangeState>>(UserConfig.FwConfigChangeMgmSettings) ?? new();
+
+                    List<ExternalTicketSystem> extTicketSystems = JsonSerializer.Deserialize<List<ExternalTicketSystem>>(UserConfig.ExtTicketSystems) ?? new();
+                    GetExtSystemFromTask(nextTask, managementSettings, extTicketSystems);
+
+                    if (actInternalWork)
+                    {
+                        await PromoteInternalWorkTaskToApproval(ticket, nextTask, emailBundleCollector);
+                        Log.WriteInfo("CreateNextRequest", $"Promoted internal work task {nextTask.TaskNumber} for ticket {ticket.Id} to approval.");
+
+                        handledTask = true;
+                        handledInternalWork = true;
+                        lastTaskNumber = nextTask.TaskNumber;
+                        oldRequest = null;
+                        ticket = await wfHandler.ResolveTicket(ticket.Id) ?? ticket;
+                        continue;
+                    }
+
+                    int waitCycles = GetWaitCycles(nextTask.TaskType, oldRequest);
+                    if (nextTask.TaskType == WfTaskType.access.ToString() || nextTask.TaskType == WfTaskType.rule_modify.ToString() || nextTask.TaskType == WfTaskType.rule_delete.ToString())
+                    {
+                        List<WfReqTask> bundledTasks = [];
+                        List<WfReqTask> handledTasks = [nextTask];
+                        BundleTasks(ticket, lastTaskNumber, nextTask, bundledTasks, handledTasks, managementSettings, extTicketSystems);
+                        await CreateExtRequest(ticket, bundledTasks, handledTasks, waitCycles);
+                    }
+                    else
+                    {
+                        await CreateExtRequest(ticket, [nextTask], [nextTask], waitCycles);
+                    }
+
+                    Log.WriteInfo("CreateNextRequest", $"Created Request for ticket {ticket.Id}.");
+                    await RunInternalWorkStateChangeActionsSafe(ticket.Id, emailBundleCollector);
                     return true;
                 }
-
-                List<ManagementFwConfigChangeState> managementSettings = JsonSerializer.Deserialize<List<ManagementFwConfigChangeState>>(UserConfig.FwConfigChangeMgmSettings) ?? new();
-
-                List<ExternalTicketSystem> extTicketSystems = JsonSerializer.Deserialize<List<ExternalTicketSystem>>(UserConfig.ExtTicketSystems) ?? new();
-                GetExtSystemFromTask(nextTask, managementSettings, extTicketSystems);
-
-                if (actInternalWork)
-                {
-                    await PromoteInternalWorkTaskToApproval(ticket, nextTask, emailBundleCollector);
-                    Log.WriteInfo("CreateNextRequest", $"Promoted internal work task {nextTask.TaskNumber} for ticket {ticket.Id} to approval.");
-
-                    handledTask = true;
-                    handledInternalWork = true;
-                    lastTaskNumber = nextTask.TaskNumber;
-                    oldRequest = null;
-                    ticket = await wfHandler.ResolveTicket(ticket.Id) ?? ticket;
-                    continue;
-                }
-
-                int waitCycles = GetWaitCycles(nextTask.TaskType, oldRequest);
-                if (nextTask.TaskType == WfTaskType.access.ToString() || nextTask.TaskType == WfTaskType.rule_modify.ToString() || nextTask.TaskType == WfTaskType.rule_delete.ToString())
-                {
-                    List<WfReqTask> bundledTasks = [];
-                    List<WfReqTask> handledTasks = [nextTask];
-                    BundleTasks(ticket, lastTaskNumber, nextTask, bundledTasks, handledTasks, managementSettings, extTicketSystems);
-                    await CreateExtRequest(ticket, bundledTasks, handledTasks, waitCycles);
-                }
-                else
-                {
-                    await CreateExtRequest(ticket, [nextTask], [nextTask], waitCycles);
-                }
-
-                Log.WriteInfo("CreateNextRequest", $"Created Request for ticket {ticket.Id}.");
-                await RunInternalWorkStateChangeActions(ticket.Id, emailBundleCollector);
-                return true;
+            }
+            catch
+            {
+                await RunInternalWorkStateChangeActionsSafe(ticket.Id, emailBundleCollector);
+                throw;
             }
         }
 
@@ -447,6 +455,23 @@ namespace FWO.Middleware.Server
             await approvalHandler.ActionHandler.FlushEmailBundleCollector();
         }
 
+        private async Task RunInternalWorkStateChangeActionsSafe(long ticketId, WorkflowEmailBundleCollector emailBundleCollector)
+        {
+            if (emailBundleCollector.PendingItems.Count == 0)
+            {
+                return;
+            }
+
+            try
+            {
+                await RunInternalWorkStateChangeActions(ticketId, emailBundleCollector);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("RunInternalWorkStateChangeActions", $"Could not send bundled internal work emails for ticket {ticketId}.", exception);
+            }
+        }
+
         private static bool CanBundleWithStartTask(WfReqTask furtherTask, WfReqTask startTask, int startSystemId, List<ManagementFwConfigChangeState> managementSettings, List<ExternalTicketSystem> extTicketSystems)
         {
             if (GetChangeCategory(furtherTask) != GetChangeCategory(startTask))
@@ -592,7 +617,7 @@ namespace FWO.Middleware.Server
             approvalHandler.SetReqTaskEnv(approvalTask);
 
             approvalTask.StateId = approvalMatrix.LowestStartedState;
-            await approvalHandler.PromoteReqTask(approvalTask);
+            await approvalHandler.PromoteReqTask(approvalTask, setStartedHandler: false);
 
             await LogRequestTasks([approvalTask], ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
         }

@@ -116,7 +116,11 @@ namespace FWO.Services.Workflow
                 foreach (IGrouping<string, WorkflowEmailBundleItem> group in collector.PendingItems.GroupBy(item => item.BundleKey))
                 {
                     WorkflowEmailBundleItem item = group.OrderBy(item => item.RequestTask.TaskNumber).First();
-                    RequestTaskEmailBundle = group.Select(item => item.RequestTask).OrderBy(task => task.TaskNumber).ToList();
+                    RequestTaskEmailBundle = group
+                        .Select(item => item.RequestTask)
+                        .DistinctBy(task => task.Id)
+                        .OrderBy(task => task.TaskNumber)
+                        .ToList();
                     await SendEmail(item.Action, item.RequestTask, WfObjectScopes.RequestTask, item.Owner, item.UserGrpDn);
                     RequestTaskEmailBundle = null;
                 }

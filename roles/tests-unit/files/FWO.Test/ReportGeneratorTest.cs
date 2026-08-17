@@ -131,10 +131,11 @@ namespace FWO.Test
         {
             ReportTemplate template = BuildTemplate(ReportType.Connections);
             ModellingConnection commonService = new() { Id = 77, Name = "common-service" };
+            List<ModellingConnection> commonServices = [commonService];
 
             ReportBase? report = await ReportGenerator.GenerateFromTemplate(
                 template,
-                new ReportGeneratorApiConnection(commonServices: [commonService]),
+                new ReportGeneratorApiConnection(commonServices: commonServices),
                 new SimulatedUserConfig(),
                 DisplayNothing);
 
@@ -195,10 +196,11 @@ namespace FWO.Test
             FwoOwner upcoming = BuildOwner(2, now.AddDays(5));
             FwoOwner future = BuildOwner(3, now.AddDays(30));
             FwoOwner inactive = BuildOwner(4, now.AddDays(-10), recertActive: false);
+            List<FwoOwner> recertOwners = [overdue, upcoming, future, inactive];
             ReportTemplate template = BuildTemplate(ReportType.OwnerRecertification);
             template.ReportParams.RecertFilter.RecertificationDisplayPeriod = 10;
 
-            ReportBase? report = await ReportGenerator.GenerateFromTemplate(template, new ReportGeneratorApiConnection([overdue, upcoming, future, inactive]), new SimulatedUserConfig(), DisplayNothing);
+            ReportBase? report = await ReportGenerator.GenerateFromTemplate(template, new ReportGeneratorApiConnection(recertOwners), new SimulatedUserConfig(), DisplayNothing);
 
             Assert.That(report, Is.Not.Null);
             Assert.Multiple(() =>
@@ -227,8 +229,9 @@ namespace FWO.Test
             ];
             ReportTemplate template = BuildTemplate(ReportType.OwnerRecertification);
             template.ReportParams.RecertFilter.RecertificationDisplayPeriod = 3;
+            List<FwoOwner> owners = [owner];
 
-            await ReportGenerator.GenerateFromTemplate(template, new ReportGeneratorApiConnection([owner]), new SimulatedUserConfig(), DisplayNothing);
+            await ReportGenerator.GenerateFromTemplate(template, new ReportGeneratorApiConnection(owners), new SimulatedUserConfig(), DisplayNothing);
 
             Assert.That(owner.RecertOverdue, Is.True);
         }
@@ -243,10 +246,11 @@ namespace FWO.Test
             };
             ReportTemplate template = BuildTemplate(ReportType.OwnerRecertification);
             template.ReportParams.ModellingFilter.OwnerAdditionalInfoKey = "business_unit";
+            List<FwoOwner> owners = [owner];
 
             ReportBase? report = await ReportGenerator.GenerateFromTemplate(
                 template,
-                new ReportGeneratorApiConnection([owner]),
+                new ReportGeneratorApiConnection(owners),
                 new SimulatedUserConfig(),
                 DisplayNothing);
 
@@ -267,12 +271,13 @@ namespace FWO.Test
             [
                 new ManagementSelect { Id = 1, Devices = [new() { Id = 11, Selected = true }] }
             ]);
+            List<ManagementReport> relevantImports =
+            [
+                BuildRelevantImport(1, 101),
+                BuildRelevantImport(2, 202)
+            ];
             ReportGeneratorApiConnection apiConnection = new(
-                relevantImports:
-                [
-                    BuildRelevantImport(1, 101),
-                    BuildRelevantImport(2, 202)
-                ],
+                relevantImports: relevantImports,
                 statisticsByManagementId: new()
                 {
                     [1] = BuildStatisticsManagement(1, ruleCount: 11, objectCount: 12, serviceCount: 13, userCount: 14, unusedRuleCount: 1),
@@ -300,10 +305,11 @@ namespace FWO.Test
             ReportTemplate template = BuildTemplate(ReportType.Statistics);
             using CancellationTokenSource cancellation = new();
             cancellation.Cancel();
+            List<ManagementReport> relevantImports = [BuildRelevantImport(1, 101)];
 
             ReportBase? report = await ReportGenerator.GenerateFromTemplate(
                 template,
-                new ReportGeneratorApiConnection(relevantImports: [BuildRelevantImport(1, 101)]),
+                new ReportGeneratorApiConnection(relevantImports: relevantImports),
                 new SimulatedUserConfig(),
                 DisplayNothing,
                 cancellation.Token);
@@ -468,10 +474,12 @@ namespace FWO.Test
         public void SetRelevantManagements_MarksUnselectedManagementsIgnored()
         {
             List<ManagementReport> managements = [new() { Id = 1 }, new() { Id = 2 }];
-            DeviceFilter deviceFilter = new(
+            List<ManagementSelect> selectedManagements =
             [
                 new ManagementSelect { Id = 2, Devices = [new() { Id = 22, Selected = true }] }
-            ]);
+            ];
+            DeviceFilter deviceFilter = new(
+                selectedManagements);
             MethodInfo method = GetSetRelevantManagementsMethod();
 
             method.Invoke(null, new object?[] { managements, deviceFilter });

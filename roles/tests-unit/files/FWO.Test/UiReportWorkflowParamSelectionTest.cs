@@ -295,10 +295,12 @@ namespace FWO.Test
                 ActionType = StateActionTypes.AutoPromote.ToString(),
                 ExternalParams = JsonSerializer.Serialize(duplicateConditionalParams)
             };
+            List<WfStateAction> actions = [action, duplicateAction];
 
+            object?[] invokeArgs = [actions];
             List<string> addInfoNames = (List<string>)(typeof(ReportWorkflowParamSelection)
                 .GetMethod("BuildAvailableAddInfoNames", BindingFlags.NonPublic | BindingFlags.Static)
-                ?.Invoke(null, [new List<WfStateAction> { action, duplicateAction }])
+                ?.Invoke(null, invokeArgs)
                 ?? throw new MissingMethodException(nameof(ReportWorkflowParamSelection), "BuildAvailableAddInfoNames"));
 
             Assert.Multiple(() =>
@@ -405,17 +407,18 @@ namespace FWO.Test
         [Test]
         public async Task ReportWorkflowParamSelection_LabelDropdown_ShowsAvailableValues()
         {
-            await using BunitContext context = CreateContext(
-                [
-                    new WfStateAction
+            List<WfStateAction> actions =
+            [
+                new WfStateAction
+                {
+                    ActionType = StateActionTypes.AutoPromote.ToString(),
+                    ExternalParams = JsonSerializer.Serialize(new ConditionalAutoPromoteParams
                     {
-                        ActionType = StateActionTypes.AutoPromote.ToString(),
-                        ExternalParams = JsonSerializer.Serialize(new ConditionalAutoPromoteParams
-                        {
-                            CheckResultLabel = "policy_check_result"
-                        })
-                    }
-                ]);
+                        CheckResultLabel = "policy_check_result"
+                    })
+                }
+            ];
+            await using BunitContext context = CreateContext(actions);
             context.JSInterop.Mode = JSRuntimeMode.Loose;
 
             IRenderedComponent<ReportWorkflowParamSelection> cut = context.Render<ReportWorkflowParamSelection>(parameters => parameters

@@ -86,17 +86,17 @@ namespace FWO.Test
         [Test]
         public void ReportTemplateComponent_ModellerOnly_ShowsOnlyAllowedTemplates()
         {
+            List<ReportTemplate> templates =
+            [
+                CreateTemplate(1, "Connections template", ReportType.Connections, ownerId: 11),
+                CreateTemplate(2, "Compliance template", ReportType.ComplianceReport),
+                CreateTemplate(3, "Workflow template", ReportType.TicketReport),
+                CreateTemplate(4, "Certificate template", ReportType.RecertificationEvent)
+            ];
             using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Modeller),
                 CreateUserConfig(kModellerRoles, kOwnership11),
-                new ReportTemplateComponentTestApiConn(
-                [
-                    CreateTemplate(1, "Connections template", ReportType.Connections, ownerId: 11),
-                    CreateTemplate(2, "Compliance template", ReportType.ComplianceReport),
-                    CreateTemplate(3, "Workflow template", ReportType.TicketReport),
-                    CreateTemplate(4, "Certificate template", ReportType.RecertificationEvent)
-                ],
-                kOwnedAppOwners));
+                new ReportTemplateComponentTestApiConn(templates, kOwnedAppOwners));
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<ReportTemplateComponent>());
@@ -114,16 +114,16 @@ namespace FWO.Test
         [Test]
         public void ReportTemplateComponent_Auditor_ShowsComplianceAndWorkflowButNotArchiveOnly()
         {
+            List<ReportTemplate> templates =
+            [
+                CreateTemplate(1, "Compliance template", ReportType.ComplianceReport),
+                CreateTemplate(2, "Workflow template", ReportType.TicketReport),
+                CreateTemplate(3, "Certificate template", ReportType.RecertificationEvent)
+            ];
             using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Auditor),
                 CreateUserConfig(kAuditorRoles, kOwnership11),
-                new ReportTemplateComponentTestApiConn(
-                [
-                    CreateTemplate(1, "Compliance template", ReportType.ComplianceReport),
-                    CreateTemplate(2, "Workflow template", ReportType.TicketReport),
-                    CreateTemplate(3, "Certificate template", ReportType.RecertificationEvent)
-                ],
-                kOwnedAppOwners));
+                new ReportTemplateComponentTestApiConn(templates, kOwnedAppOwners));
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<ReportTemplateComponent>());
@@ -140,15 +140,15 @@ namespace FWO.Test
         [Test]
         public void ReportTemplateComponent_Modeller_HidesTemplateForInaccessibleOwner()
         {
+            List<ReportTemplate> templates =
+            [
+                CreateTemplate(1, "Owned connections template", ReportType.Connections, ownerId: 11),
+                CreateTemplate(2, "Foreign connections template", ReportType.Connections, ownerId: 12)
+            ];
             using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Modeller),
                 CreateUserConfig(kModellerRoles, kOwnership11),
-                new ReportTemplateComponentTestApiConn(
-                [
-                    CreateTemplate(1, "Owned connections template", ReportType.Connections, ownerId: 11),
-                    CreateTemplate(2, "Foreign connections template", ReportType.Connections, ownerId: 12)
-                ],
-                kOwnedAppOwners));
+                new ReportTemplateComponentTestApiConn(templates, kOwnedAppOwners));
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<ReportTemplateComponent>());
@@ -164,17 +164,17 @@ namespace FWO.Test
         [Test]
         public void ReportTemplateComponent_Reporter_ShowsRuleTemplateButNotWorkflowTemplate()
         {
+            List<ReportTemplate> templates =
+            [
+                CreateTemplate(1, "Rules template", ReportType.Rules),
+                CreateTemplate(2, "Workflow template", ReportType.TicketReport),
+                CreateTemplate(3, "App rules template", ReportType.AppRules),
+                CreateTemplate(4, "Owners template", ReportType.Owners)
+            ];
             using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),
                 CreateUserConfig(kReporterRoles, kEmptyOwnerships),
-                new ReportTemplateComponentTestApiConn(
-                [
-                    CreateTemplate(1, "Rules template", ReportType.Rules),
-                    CreateTemplate(2, "Workflow template", ReportType.TicketReport),
-                    CreateTemplate(3, "App rules template", ReportType.AppRules),
-                    CreateTemplate(4, "Owners template", ReportType.Owners)
-                ],
-                kEmptyOwners));
+                new ReportTemplateComponentTestApiConn(templates, kEmptyOwners));
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<ReportTemplateComponent>());
@@ -333,7 +333,8 @@ namespace FWO.Test
                 }
             ];
 
-            List<string> keys = (List<string>)method!.Invoke(null, [owners])!;
+            object?[] invokeArgs = [owners];
+            List<string> keys = (List<string>)method!.Invoke(null, invokeArgs)!;
 
             Assert.That(keys, Is.EqualTo(new List<string> { "business_unit", "region", "service_tier" }));
         }
@@ -344,7 +345,7 @@ namespace FWO.Test
             await using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),
                 CreateUserConfig(kReporterRoles, kEmptyOwnerships),
-                new ReportTemplateComponentTrackingApiConn([]));
+                new ReportTemplateComponentTrackingApiConn(kEmptyTemplates));
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<ReportTemplateComponent>());
@@ -366,7 +367,7 @@ namespace FWO.Test
             await using BunitContext context = CreateContext(
                 new MonitoringTestAuthStateProvider(Roles.Reporter),
                 CreateUserConfig(kReporterRoles, kEmptyOwnerships),
-                new ReportTemplateComponentTrackingApiConn([]));
+                new ReportTemplateComponentTrackingApiConn(kEmptyTemplates));
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<ReportTemplateComponent>());

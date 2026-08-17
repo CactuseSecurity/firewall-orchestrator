@@ -40,12 +40,13 @@
   become: true
   tags: ["test", "integrationtests"]
 
-# Hoisted out of the installation block below: the internalCA role reissues the
-# slapd identity as root:root in a 0750 directory on every run, so slapd has to be
-# granted access on every run too. Leaving these inside the "new" block meant an
-# upgrade handed slapd a private key it cannot read, and because slapd is only
-# restarted there as well, the breakage stayed invisible until the next restart or
-# reboot - at which point all LDAP authentication is down.
+# Hoisted out of the installation block below. internalCA issues the slapd identity
+# to the slapd account directly, but it cannot do that before this role has
+# installed the package that creates the account - so on a fresh installation the
+# identity arrives owned by root and is handed over here. Leaving these inside the
+# "new" block meant an upgrade handed slapd a private key it cannot read, and
+# because slapd is only restarted there as well, the breakage stayed invisible
+# until the next restart or reboot - at which point all LDAP authentication is down.
 - name: Install the openldap and required Packages
   package:
       name: "{{ item }}"

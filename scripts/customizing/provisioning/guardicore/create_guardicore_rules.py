@@ -1356,7 +1356,10 @@ def main() -> int:  # pragma: no cover
         require_login_fields(args)
         require_guardicore_fields(args)
         client_identity = resolve_fwo_client_identity(args, GuardicoreRuleProvisioningError)
-    except GuardicoreRuleProvisioningError:
+    # resolve_fwo_client_identity reads the local fworch.json, which raises
+    # JSONDecodeError when that file is corrupt rather than pretending no client
+    # identity is configured.
+    except (GuardicoreRuleProvisioningError, json.JSONDecodeError):
         logger.exception("Argument validation failed.")
         return 2
 

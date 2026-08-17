@@ -45,6 +45,24 @@
   include_tasks: detect-existing-certificates.yml
   when: installation_mode == 'upgrade'
 
+# slapd reads its key as its own service account, so the identity has to be issued
+# to that account rather than to root and chowned afterwards by the openldap-server
+# role: the chown made every later internalCA run change the ownership back, which
+# reported the identity as renewed on every run and restarted slapd for nothing, and
+# it does not run at all for "--tags certificates", which would leave slapd a key it
+# cannot read. On a fresh installation slapd is not installed yet and the account
+# does not exist, so root is used and the openldap-server role does the first chown.
+- name: Look up the slapd service account
+  getent:
+    database: passwd
+    key: "{{ openldap_server_user }}"
+  register: internalca_ldap_user_lookup
+  failed_when: false
+  changed_when: false
+  when:
+    - "'middlewareserver' in group_names"
+    - not (internalca_preserve_ldap_certificate | default(false) | bool)
+
 - name: Build internal CA certificate profiles for this host
   set_fact:
     internalca_certificate_profiles: >-
@@ -83,8 +101,8 @@
               'certificate': internalca_ldap_certificate,
               'private_key': internalca_ldap_private_key,
               'csr': internalca_ldap_csr,
-              'owner': 'root',
-              'group': 'root',
+              'owner': internalca_ldap_identity_owner,
+              'group': internalca_ldap_identity_owner,
               'common_name': openldap_server,
               'subject_alt_name': internalca_ldap_subject_alt_names,
               'extended_key_usage': ['serverAuth']
@@ -93,6 +111,17 @@
         )
       }}
   vars:
+    # The slapd account when it already exists on this host, root otherwise (the fresh
+    # installation case, where the package creating it is installed later). Keyed on the
+    # returned passwd entry, not on the task result: failed_when overrides the module's
+    # own failure, so a missing account still reports failed = false.
+    internalca_ldap_identity_owner: >-
+      {{
+        openldap_server_user
+        if openldap_server_user in
+           (internalca_ldap_user_lookup.ansible_facts.getent_passwd | default({}, true))
+        else 'root'
+      }}
     # Block scalars keep backslashes verbatim, so this pattern uses single
     # backslashes. Doubling them makes every IP literal fail the test and drops
     # the IP SAN entries that api_uri is built from.

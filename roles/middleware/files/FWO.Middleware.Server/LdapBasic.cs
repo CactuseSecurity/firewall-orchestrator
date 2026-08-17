@@ -116,7 +116,10 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                using X509Certificate2 trustAnchor = X509CertificateLoader.LoadCertificateFromFile(ConfigFile.TlsCaCertificate);
+                // Shared and cached rather than re-read here: this runs on every TLS
+                // handshake, and the cache reloads when the configured file changes.
+                // Not disposed - the instance belongs to the cache, not to this call.
+                X509Certificate2 trustAnchor = InternalCaCertificate.Get();
                 using X509Certificate2 serverCertificate = new(certificate);
                 using X509Chain pinnedChain = new();
                 pinnedChain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;

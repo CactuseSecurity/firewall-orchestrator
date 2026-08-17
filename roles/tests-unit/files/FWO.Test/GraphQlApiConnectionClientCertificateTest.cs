@@ -277,11 +277,10 @@ namespace FWO.Test
         private static void ClearCachedCertificate()
         {
             SetStaticField("clientCertificate", null);
-            SetStaticField("apiCaCertificate", null);
-            SetStaticField("apiCaCertificateFailure", null);
-            SetStaticField("apiCaCertificateFailedAt", DateTime.MinValue);
             SetStaticField("clientCertificateFailure", null);
             SetStaticField("clientCertificateFailedAt", DateTime.MinValue);
+            // The trust anchor moved to the shared cache, which the LDAP client uses too.
+            InternalCaCertificateTest.ClearCache();
         }
 
         /// <summary>

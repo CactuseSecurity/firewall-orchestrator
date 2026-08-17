@@ -43,11 +43,6 @@ namespace FWO.Api.Client
         private static ConfigException? clientCertificateFailure;
         private static DateTime clientCertificateFailedAt = DateTime.MinValue;
 
-        private static readonly object apiCaCertificateLock = new();
-        private static X509Certificate2? apiCaCertificate;
-        private static ConfigException? apiCaCertificateFailure;
-        private static DateTime apiCaCertificateFailedAt = DateTime.MinValue;
-
         /// <summary>
         /// Returns the local FWO client identity, loading it on first use and reusing it after.
         /// </summary>
@@ -131,45 +126,6 @@ namespace FWO.Api.Client
         }
 
         /// <summary>
-        /// Returns the configured API trust anchor for explicit server certificate validation.
-        /// </summary>
-        /// <returns>The CA certificate allowed to issue API server certificates.</returns>
-        /// <exception cref="ConfigException">The configured CA certificate cannot be read.</exception>
-        private static X509Certificate2 GetApiCaCertificate()
-        {
-            lock (apiCaCertificateLock)
-            {
-                if (apiCaCertificate != null)
-                {
-                    return apiCaCertificate;
-                }
-                // This runs on every TLS handshake, so a misconfigured path must not be
-                // re-read and re-logged per connection.
-                if (apiCaCertificateFailure != null
-                    && DateTime.UtcNow - apiCaCertificateFailedAt < clientCertificateRetryInterval)
-                {
-                    ExceptionDispatchInfo.Capture(apiCaCertificateFailure).Throw();
-                }
-                try
-                {
-                    string caCertificatePath = ConfigFile.TlsCaCertificate;
-                    apiCaCertificate = X509CertificateLoader.LoadCertificateFromFile(caCertificatePath);
-                    apiCaCertificateFailure = null;
-                    return apiCaCertificate;
-                }
-                catch (Exception exception)
-                {
-                    apiCaCertificateFailure = new ConfigException(
-                        "Could not load the FWO API CA certificate configured as tls_ca_certificate. " +
-                        "API server certificates cannot be validated until this is fixed.", exception);
-                    apiCaCertificateFailedAt = DateTime.UtcNow;
-                    Log.WriteError(LogCategory, apiCaCertificateFailure.Message);
-                    throw apiCaCertificateFailure;
-                }
-            }
-        }
-
-        /// <summary>
         /// Validates an API server certificate against the configured CA and requested host name.
         /// </summary>
         /// <param name="certificate">The API server certificate.</param>
@@ -186,7 +142,9 @@ namespace FWO.Api.Client
             X509Certificate2 trustAnchor;
             try
             {
-                trustAnchor = GetApiCaCertificate();
+                // Shared and cached: it is reloaded only when the configured file changes,
+                // so a rotated anchor takes effect without restarting this service.
+                trustAnchor = InternalCaCertificate.Get();
             }
             catch (ConfigException)
             {

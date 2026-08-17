@@ -84,6 +84,10 @@
       when:
         - fworch_inventory_hosts | length > 1
         - not (distributed_install | default(false) | bool)
+        # An uninstall writes no listener configuration, so the misconfiguration
+        # cannot bite there - and refusing to run would leave the operator unable
+        # to remove the very installation the guard is complaining about.
+        - installation_mode != 'uninstall'
 
     - name: fail if already installed and installation_mode is new
       fail:

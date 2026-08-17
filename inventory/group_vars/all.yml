@@ -238,6 +238,13 @@ openldap_server_services: >-
 openldap_plain_listener_port: 389
 openldap_tls_listener_port: 636
 
+# The service account slapd runs as, named by the distribution package. Global
+# rather than an openldap-server role var: internalCA issues the slapd identity to
+# this account and the sample-data role writes files for it, and neither can see
+# that role's vars. The openldap-server role still loads the same value from its
+# OS specific vars, which resolves to the identical name.
+openldap_server_user: "{{ 'ldap' if ansible_facts['os_family'] == 'RedHat' else 'openldap' }}"
+
 # TLS options for the ldapsearch/ldapmodify command line calls made by the
 # middleware, sample-data, sample-auth-data, openldap-server and tests-integration
 # roles. These options override /etc/ldap/ldap.conf, so leaving them at

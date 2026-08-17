@@ -71,6 +71,11 @@ the importer, customizing scripts, and .NET GraphQL clients. When an upgrade
 retains a customer-managed API certificate without this setting, FWO stops
 before deploying clients that would trust the unrelated internal CA.
 
+The middleware and UI read the trust anchor once and reuse it, but reload it
+when the file changes, so replacing the anchor alone - a rotated CA, or a peer
+CA added after the fact - takes effect without restarting those services. A
+renewed *client identity* still requires the restart the installer performs.
+
 During an upgrade, the role preserves a customer-managed Apache or OpenLDAP
 certificate/key pair, identified by the certificate and key belonging together
 (matching public-key fingerprints, checked for any key algorithm). It replaces

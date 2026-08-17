@@ -8142,28 +8142,6 @@
                     ]
                   },
                   "comment": ""
-                },
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "check": {},
-                    "columns": [
-                      "create_date",
-                      "ext_query_variables",
-                      "ext_request_content",
-                      "ext_request_state",
-                      "ext_request_type",
-                      "ext_ticket_system",
-                      "finish_date",
-                      "id",
-                      "locked",
-                      "owner_id",
-                      "task_number",
-                      "ticket_id",
-                      "wait_cycles"
-                    ]
-                  },
-                  "comment": ""
                 }
               ],
               "select_permissions": [
@@ -8268,19 +8246,6 @@
                       "task_number",
                       "ticket_id",
                       "wait_cycles"
-                    ],
-                    "filter": {},
-                    "check": null
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "columns": [
-                      "ext_request_state",
-                      "finish_date",
-                      "locked"
                     ],
                     "filter": {},
                     "check": null

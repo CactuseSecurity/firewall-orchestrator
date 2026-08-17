@@ -104,12 +104,8 @@ else
     private string DeleteButtonId => $"{Prefix}-deleteButton";
     private string CancelButtonId => $"{Prefix}-cancelButton";
     private string TooltipText => string.IsNullOrWhiteSpace(TooltipTextKey) ? string.Empty : userConfig.PureLine(TooltipTextKey);
-    private string SummaryLabelClass => UseFormLayout
-        ? $"col-sm-3 col-form-label col-form-label-sm{(UseLightText ? " text-white" : "")}"
-        : $"text-left{(UseLightText ? " text-white" : "")}";
-    private string PopupLabelClass => UseFormLayout
-        ? $"col-sm-3 col-form-label col-form-label-sm{(UseLightText ? " text-white" : "")}"
-        : $"text-left{(UseLightText ? " text-white" : "")}";
+    private string SummaryLabelClass => BuildLabelClass(UseFormLayout);
+    private string PopupLabelClass => BuildLabelClass(UseFormLayout);
     private string PopupContentClass => "col-sm-8";
 
     private RenderFragment SummaryContent => @<div class="input-group">
@@ -141,6 +137,12 @@ else
     private string AddInfoFilterModeToString(AddInfoFilterMode mode)
     {
         return userConfig.GetText(mode.ToString());
+    }
+
+    private string BuildLabelClass(bool useFormLayout)
+    {
+        string labelClass = useFormLayout ? "col-sm-3 col-form-label col-form-label-sm" : "text-left";
+        return UseLightText ? $"{labelClass} text-white" : labelClass;
     }
 
     private void OpenAddInfoFilterDialog()

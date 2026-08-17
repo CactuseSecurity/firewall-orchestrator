@@ -198,6 +198,7 @@ public class FlowCatalogController : ControllerBase
     /// <summary>
     /// Resolves an address object identifier from the supplied lookup request against the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
+    /// Optional /32 masks on ipStart and ipEnd are ignored; all other masks are rejected.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getAddressObjectId")]
@@ -213,11 +214,20 @@ public class FlowCatalogController : ControllerBase
             return BadRequest("'ipStart' and 'ipEnd' are required.");
         }
 
-        if (!FlowComplianceRequestValidator.TryValidateIpRange(request.IpStart, request.IpEnd, "address", 0, out string? addressErrorMessage))
+        if (!FlowComplianceRequestValidator.TryValidateAndNormalizeIpRange(
+            request.IpStart,
+            request.IpEnd,
+            "address",
+            0,
+            out string normalizedIpStart,
+            out string normalizedIpEnd,
+            out string? addressErrorMessage))
         {
             return BadRequest(addressErrorMessage);
         }
 
+        request.IpStart = normalizedIpStart;
+        request.IpEnd = normalizedIpEnd;
         return Ok(await flowCatalogService.GetAddressObjectIdAsync(request.IpStart, request.IpEnd, request.Filter?.VisibleInRequest));
     }
 

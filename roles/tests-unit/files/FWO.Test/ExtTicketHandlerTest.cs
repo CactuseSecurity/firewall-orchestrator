@@ -7,6 +7,7 @@ using FWO.Data.Modelling;
 using FWO.ExternalSystems.CheckPoint;
 using FWO.ExternalSystems.Tufin.SecureChange;
 using FWO.Middleware.Server;
+using FWO.Services;
 using FWO.Services.Workflow;
 using System.Reflection;
 
@@ -558,6 +559,43 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task HandleStateChangeDonePromotesAllConsecutiveInternalWorkRuleTasksToApprovalWhenApprovalIsActive()
+        {
+            SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
+            ExtTicketHandlerTestApiConn.ResetTicketTasks();
+            ExtTicketHandlerTestApiConn localApiConnection = new()
+            {
+                ApprovalPhaseActive = true
+            };
+
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+
+            await handler.HandleStateChange(new ExternalRequest
+            {
+                Id = 1,
+                TicketId = 123,
+                TaskNumber = 1,
+                ExtRequestState = ExtStates.ExtReqDone.ToString(),
+                ExtTicketId = "4711"
+            });
+
+            ClassicAssert.IsNull(localApiConnection.AddExtRequestVars);
+
+            for (int taskNumber = 2; taskNumber <= 8; ++taskNumber)
+            {
+                WfReqTask? task = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(taskNumber);
+                ClassicAssert.IsNotNull(task, $"Task {taskNumber} should exist.");
+                ClassicAssert.AreEqual(60, task!.StateId, $"Task {taskNumber} should be promoted to approval started state.");
+                ClassicAssert.AreEqual(ManagementFwConfigChangeTargets.InternalWork,
+                    task.GetAddInfoValue(AdditionalInfoKeys.FwConfigChangeTarget));
+            }
+
+            WfReqTask? task9 = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(9);
+            ClassicAssert.IsNotNull(task9);
+            ClassicAssert.AreEqual(0, task9!.StateId);
+        }
+
+        [Test]
         public async Task ContinueAfterInternalWorkCompletionDoesNothingWhileBatchIsIncomplete()
         {
             SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
@@ -688,6 +726,38 @@ namespace FWO.Test
             await InvokeRunInternalWorkStateChangeActionsSafe(handler, 123, collector);
 
             ClassicAssert.AreEqual(1, collector.PendingItems.Count);
+        }
+
+        [Test]
+        public async Task RunInternalWorkStateChangeActionsSafe_ClearsCollectorWhenIndividualFallbackSucceeds()
+        {
+            WorkflowEmailBundleCollector collector = new();
+            WfStateAction action = new()
+            {
+                Id = 7,
+                ExternalParams = System.Text.Json.JsonSerializer.Serialize(new EmailActionParams
+                {
+                    Subject = "Internal work",
+                    Body = "done"
+                })
+            };
+            collector.Add(action, new WfReqTask
+            {
+                Id = 2,
+                TicketId = 123,
+                TaskNumber = 2,
+                TaskType = WfTaskType.access.ToString()
+            }, null, null);
+            ExtTicketHandlerTestApiConn localApiConnection = new()
+            {
+                ReturnNullOnFirstTicketQuery = true
+            };
+            using ExternalRequestHandler handler = new(userConfig, localApiConnection, null);
+
+            await InvokeRunInternalWorkStateChangeActionsSafe(handler, 123, collector);
+
+            ClassicAssert.IsEmpty(collector.PendingItems);
+            ClassicAssert.IsTrue(localApiConnection.TicketQueryCount >= 2);
         }
 
         private static async Task InvokeRunInternalWorkStateChangeActionsSafe(ExternalRequestHandler handler, long ticketId, WorkflowEmailBundleCollector collector)

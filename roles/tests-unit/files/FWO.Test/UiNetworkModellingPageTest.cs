@@ -173,7 +173,7 @@ namespace FWO.Test
         [Test]
         public async Task ReportButtonNavigatesToReportGenerationForSelectedApp()
         {
-            await using BunitContext context = CreateContext([Roles.Admin], out NetworkModellingPageTestApiConn apiConn, out _);
+            await using BunitContext context = CreateContext([Roles.Admin], out NetworkModellingPageTestApiConn apiConn, out SimulatedUserConfig userConfig);
             IRenderedComponent<NetworkModelling> page = RenderPage(context, appId: "APP-B");
 
             page.WaitForAssertion(() =>
@@ -181,7 +181,7 @@ namespace FWO.Test
                 Assert.That(page.Markup, Does.Contain("Beta App"));
                 Assert.That(apiConn.UnexpectedQueries, Is.Empty);
             });
-            FindButton(page, "generate_report").Click();
+            FindButton(page, userConfig.GetText("generate_report")).Click();
 
             NavigationManager navigation = context.Services.GetRequiredService<NavigationManager>();
             Assert.That(navigation.Uri, Does.EndWith("/report/generation/20"));
@@ -334,7 +334,7 @@ namespace FWO.Test
         private static IElement FindButton(IRenderedComponent<NetworkModelling> page, string text)
         {
             List<IElement> matches = [.. page.FindAll("button")
-                .Where(button => button.TextContent.Contains(text, StringComparison.OrdinalIgnoreCase))];
+                .Where(button => string.Equals(button.TextContent.Trim(), text, StringComparison.OrdinalIgnoreCase))];
             if (matches.Count == 1)
             {
                 return matches[0];

@@ -1,0 +1,10 @@
+# Hasura executes the top-level fields of one mutation transactionally. Existing rows are
+# therefore only removed when inserting the replacement rows succeeds as well.
+mutation replaceLogEntries($ownerIds: [Int!]!, $entries: [logging_log_entry_insert_input!]!) {
+  delete_logging_log_entry(where: {owner_id: {_in: $ownerIds}}) {
+    affected_rows
+  }
+  insert_logging_log_entry(objects: $entries) {
+    affected_rows
+  }
+}

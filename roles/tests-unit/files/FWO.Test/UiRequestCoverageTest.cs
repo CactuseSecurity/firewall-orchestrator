@@ -1182,7 +1182,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(valid, Is.False);
-                Assert.That(messages, Does.Contain("Port invalid"));
+                Assert.That(messages, Does.Contain("Invalid port"));
             });
         }
 
@@ -1555,10 +1555,6 @@ namespace FWO.Test
         {
             public RequestCoverageUserConfig()
             {
-                DummyTranslate["all_readonly"] = "all_readonly";
-                DummyTranslate["path_analysis"] = "path_analysis";
-                DummyTranslate["rule_uid"] = "rule_uid";
-                DummyTranslate["no_gws_found"] = "no_gws_found";
             }
 
             public override string GetText(string key)

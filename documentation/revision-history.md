@@ -608,5 +608,10 @@ Not supported any longer are:
 ## 9.3.4 - 11.08.2026
 - fix a bug in reporting ui where users with role modeller and reporter could not fetch rsb data for app rule reports
 
-## 9.3.5 - 17.08.2026
+## 9.4.0 - 13.08.2026
+- add logging schema for imported traffic log entries with their owner and count
+- make replacement of existing log entries for applications contained in an import file configurable
+- increase of unit-tests
+
+## 9.4.1 - 17.08.2026
 - move compliance.ip_range to new schema network_zone.ip_range and compliance.network_zone to network_zone.zone

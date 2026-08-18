@@ -14,6 +14,7 @@ db_schemata:
   - network_zone
   - compliance
   - firewall
+  - logging
   - modelling
   - public
   - request

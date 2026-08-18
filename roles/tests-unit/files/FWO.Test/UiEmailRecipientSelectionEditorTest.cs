@@ -17,11 +17,6 @@ namespace FWO.Test
         [Test]
         public void Render_OrdersResponsiblesOtherAddressesAndEnsureFlag()
         {
-            SimulatedUserConfig.DummyTranslate.TryAdd(nameof(EmailRecipientOption.OtherAddresses), "Other addresses");
-            SimulatedUserConfig.DummyTranslate.TryAdd("modEnsureAtLeastOneEmailNotification", "Ensure at least one notification");
-            SimulatedUserConfig.DummyTranslate.TryAdd("Main responsible", "Main responsible");
-            SimulatedUserConfig.DummyTranslate.TryAdd("Supporting responsible", "Supporting responsible");
-            SimulatedUserConfig.DummyTranslate.TryAdd("Optional escalation responsible", "Optional escalation responsible");
             Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
 
             IRenderedComponent<EmailRecipientSelectionEditor> component = Render<EmailRecipientSelectionEditor>(parameters => parameters
@@ -56,8 +51,6 @@ namespace FWO.Test
         [Test]
         public void OtherEmailAddressesEditor_AddsSanitizedAddressToList()
         {
-            SimulatedUserConfig.DummyTranslate.TryAdd("email_address", "Email address");
-            SimulatedUserConfig.DummyTranslate.TryAdd("U0001", "Address shortened");
             Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
             List<string> addresses = [];
 
@@ -90,14 +83,6 @@ namespace FWO.Test
         [Test]
         public void WorkflowEmailRecipientEditor_ShowsAddressEditorOnlyForOtherAddresses()
         {
-            SimulatedUserConfig.DummyTranslate.TryAdd(nameof(EmailRecipientOption.None), "None");
-            SimulatedUserConfig.DummyTranslate.TryAdd(nameof(EmailRecipientOption.OtherAddresses), "Other addresses");
-            SimulatedUserConfig.DummyTranslate.TryAdd(nameof(EmailRecipientOption.CurrentHandler), "Current handler");
-            SimulatedUserConfig.DummyTranslate.TryAdd(nameof(EmailRecipientOption.RecentHandler), "Recent handler");
-            SimulatedUserConfig.DummyTranslate.TryAdd(nameof(EmailRecipientOption.AssignedGroup), "Assigned group");
-            SimulatedUserConfig.DummyTranslate.TryAdd(nameof(EmailRecipientOption.Requester), "Requester");
-            SimulatedUserConfig.DummyTranslate.TryAdd(nameof(EmailRecipientOption.Approver), "Approver");
-            SimulatedUserConfig.DummyTranslate.TryAdd(nameof(EmailRecipientOption.LastCommenter), "Last commenter");
             Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
             Services.AddSingleton(new DomEventService());
 

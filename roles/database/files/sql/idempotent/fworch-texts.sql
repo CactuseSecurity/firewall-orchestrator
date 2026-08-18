@@ -531,17 +531,17 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
-    <li>Das Modellierungsmodul enth&auml;t nun einen Soll/Ist-Abgleich mit dem Firewall-Regelwerk.</li>
-    <li>Das Modellierungsmodul enth&auml;t ein Antragsmodul zur Beauftragung von Firewall-&Auml;nderungen &uuml;ber externe Systeme.</li>
-    <li>Das FWO-Logo kann durch ein eigenes Logo ersetzt werden.</li>
+    <li>Das neue Logging-Modul importiert normalisierte Verkehrs-Logdaten und stellt sie in modellierten Verbindungen dar.</li>
+    <li>Beim Logdaten-Import k&ouml;nnen vorhandene Eintr&auml;ge f&uuml;r alle in der JSON-Datei enthaltenen Applikationen optional ersetzt werden.</li>
+    <li>Die maximale Laufzeit von Importskripten ist als Standardeinstellung konfigurierbar.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
-    <li>The modelling module now includes a variance analysis (target/actual comparison) with the firewall rulebase</li>
-    <li>The modelling module now includes a request module for submitting firewall change requests via external systems</li>
-    <li>You now can insert your own logo in the UI</li>
+    <li>The new Logging module imports normalized traffic log data and displays it in modelled connections.</li>
+    <li>Log data imports can optionally replace existing entries for every application contained in the JSON file.</li>
+    <li>The maximum runtime of import scripts is configurable in the default settings.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -1030,6 +1030,8 @@ INSERT INTO txt VALUES ('Hours', 		        'German',	'Stunde(n)');
 INSERT INTO txt VALUES ('Hours', 		        'English',	'Hour(s)');
 INSERT INTO txt VALUES ('Minutes2', 		    'German',	'Minute(n)');
 INSERT INTO txt VALUES ('Minutes2', 		    'English',	'Minute(s)');
+INSERT INTO txt VALUES ('Seconds', 		    'German',	'Sekunde(n)');
+INSERT INTO txt VALUES ('Seconds', 		    'English',	'Second(s)');
 
 -- archive
 INSERT INTO txt VALUES ('download',				'German', 	'Herunterladen');
@@ -2588,6 +2590,8 @@ INSERT INTO txt VALUES ('maxImportDuration',    'German', 	'Max erlaubte Importd
 INSERT INTO txt VALUES ('maxImportDuration',    'English', 	'Max allowed import duration (in hours)');
 INSERT INTO txt VALUES ('maxImportInterval',    'German', 	'Max erlaubtes Importintervall (in Stunden)');
 INSERT INTO txt VALUES ('maxImportInterval',    'English', 	'Max import interval (in hours)');
+INSERT INTO txt VALUES ('importScriptTimeout',  'German', 	'Max Laufzeit von Importskripten (in Minuten)');
+INSERT INTO txt VALUES ('importScriptTimeout',  'English', 	'Max runtime of import scripts (in minutes)');
 INSERT INTO txt VALUES ('importSleepTime',      'German', 	'Importintervall (in Sekunden)');
 INSERT INTO txt VALUES ('importSleepTime',      'English', 	'Import sleep time (in seconds)');
 INSERT INTO txt VALUES ('importCheckCertificates',      'German', 	'Zertifikate beim Import pr&uuml;fen');
@@ -3026,6 +3030,36 @@ INSERT INTO txt VALUES ('importAppDataScriptArgs', 'German', 'Skriptparameter (o
 INSERT INTO txt VALUES ('importAppDataScriptArgs', 'English', 'Script parameters (optional)');
 INSERT INTO txt VALUES ('importAppDataSleepTime','German', 	'Import Appdaten-Intervall (in Stunden)');
 INSERT INTO txt VALUES ('importAppDataSleepTime','English', 'Import App data sleep time (in hours)');
+INSERT INTO txt VALUES ('logging', 'German', 'Protokollierung');
+INSERT INTO txt VALUES ('logging', 'English', 'Logging');
+INSERT INTO txt VALUES ('importLogDataPath', 'German', 'Pfad und Name des Logdaten-Imports (ohne Endung)');
+INSERT INTO txt VALUES ('importLogDataPath', 'English', 'Path and Name of Log data import (without ending)');
+INSERT INTO txt VALUES ('importLogDataScriptArgs', 'German', 'Skriptparameter (optional)');
+INSERT INTO txt VALUES ('importLogDataScriptArgs', 'English', 'Script parameters (optional)');
+INSERT INTO txt VALUES ('importLogDataSleepTime', 'German', 'Logdaten-Importintervall');
+INSERT INTO txt VALUES ('importLogDataSleepTime', 'English', 'Log data import interval');
+INSERT INTO txt VALUES ('importLogDataMaxEntries', 'German', 'Maximale Anzahl Logeintr&auml;ge pro Applikation');
+INSERT INTO txt VALUES ('importLogDataMaxEntries', 'English', 'Maximum number of log entries per application');
+INSERT INTO txt VALUES ('logDataRetentionDays', 'German', 'Aufbewahrungsdauer der Logdaten (Tage)');
+INSERT INTO txt VALUES ('logDataRetentionDays', 'English', 'Log data retention (days)');
+INSERT INTO txt VALUES ('allowLogDataPortWithoutProtocol', 'German', 'Port ohne Protokoll in Logdaten zulassen');
+INSERT INTO txt VALUES ('allowLogDataPortWithoutProtocol', 'English', 'Allow port without protocol in log data');
+INSERT INTO txt VALUES ('replaceExistingLogData', 'German', 'Vorhandene Logdaten importierter Applikationen ersetzen');
+INSERT INTO txt VALUES ('replaceExistingLogData', 'English', 'Replace existing log data of imported applications');
+INSERT INTO txt VALUES ('showLogDataInConnections', 'German', 'Logdaten in Verbindungen anzeigen');
+INSERT INTO txt VALUES ('showLogDataInConnections', 'English', 'Show log data in connections');
+INSERT INTO txt VALUES ('log_data', 'German', 'Logdaten');
+INSERT INTO txt VALUES ('log_data', 'English', 'Log data');
+INSERT INTO txt VALUES ('log_count', 'German', 'Anzahl');
+INSERT INTO txt VALUES ('log_count', 'English', 'Log count');
+INSERT INTO txt VALUES ('log_time', 'German', 'Zeitpunkt');
+INSERT INTO txt VALUES ('log_time', 'English', 'Log time');
+INSERT INTO txt VALUES ('rule_name', 'German', 'Regelname');
+INSERT INTO txt VALUES ('rule_name', 'English', 'Rule name');
+INSERT INTO txt VALUES ('allowed', 'German', 'Erlaubt');
+INSERT INTO txt VALUES ('allowed', 'English', 'Allowed');
+INSERT INTO txt VALUES ('denied', 'German', 'Verworfen');
+INSERT INTO txt VALUES ('denied', 'English', 'Denied');
 INSERT INTO txt VALUES ('ownerDataImportSyncUsers', 'German', 'App-Verantwortliche synchronisieren');
 INSERT INTO txt VALUES ('ownerDataImportSyncUsers', 'English', 'Sync owner responsibles');
 INSERT INTO txt VALUES ('importAppDataStartAt', 'German', 	'Import Appdaten-Start');
@@ -4145,6 +4179,8 @@ INSERT INTO txt VALUES ('U9041', 'German',  'Sind sie sicher, dass sie @@COUNT@@
 INSERT INTO txt VALUES ('U9041', 'English', 'Are you sure you want to close @@COUNT@@ ticket(s) as done?');
 INSERT INTO txt VALUES ('U9042', 'German',  'Bitte beschreiben Sie Ihre Anforderung m&ouml;glichst vollst&auml;ndig und verst&auml;ndlich, damit die Verantwortlichen der Anwendung den Bedarf nachvollziehen und die passende Schnittstelle bereitstellen k&ouml;nnen. Falls bekannt, erg&auml;nzen Sie bitte relevante technische Angaben wie IP-Adressen, Ports oder Protokolle.');
 INSERT INTO txt VALUES ('U9042', 'English', 'Please describe your requirement as completely and clearly as possible so that the application owners can understand the need and provide the appropriate interface. If known, please include relevant technical details such as IP addresses, ports, or protocols.');
+INSERT INTO txt VALUES ('U9043', 'German',  'Keine Logdaten f&uuml;r nicht modellierte Verbindungen vorhanden.');
+INSERT INTO txt VALUES ('U9043', 'English', 'no log data for unmodelled connections available');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -6389,6 +6425,8 @@ INSERT INTO txt VALUES ('H5452', 'German',  'Max erlaubte Importdauer (in Stunde
 INSERT INTO txt VALUES ('H5452', 'English', 'Max allowed import duration (in hours): Upper limit for the accepted import duration in the daily check.');
 INSERT INTO txt VALUES ('H5453', 'German',  'Max erlaubtes Importintervall (in Stunden): Obergrenze, welcher Abstand zwischen zwei Imports im t&auml;glichen Check noch akzeptiert wird.');
 INSERT INTO txt VALUES ('H5453', 'English', 'Max import interval (in hours): Upper limit for the accepted interval between two imports in the daily check.');
+INSERT INTO txt VALUES ('H5453a', 'German',  'Max Laufzeit von Importskripten (in Minuten): Zeit, die ein Importskript (Applikationsdaten, Bereichs-/IP-Daten, Logdaten) laufen darf, bevor es abgebrochen wird. Verhindert, dass ein h&auml;ngendes Skript den Import dauerhaft blockiert.');
+INSERT INTO txt VALUES ('H5453a', 'English', 'Max runtime of import scripts (in minutes): Time an import script (application data, area/ip data, log data) may run before it is stopped. Prevents a stuck script from blocking its import permanently.');
 INSERT INTO txt VALUES ('H5454', 'German',  'Regel-Eigent&uuml;merschaftsmodus: (Gemischt/Exklusiv) Wird z. Zt. nicht genutzt.');
 INSERT INTO txt VALUES ('H5454', 'English', 'Rule Ownership Mode: (Mixed/Exclusive) Currently not in use.');
 INSERT INTO txt VALUES ('H5455', 'German',  'Verf&uuml;gbare Reporttypen: Es kann ausgew&auml;hlt werden, welche der technisch vorhandenen Reporttypen zur Verwendung in der Oberfl&auml;che angeboten werden sollen. Die Liste der angebotenen Reporttypen beim Nutzer kann je nach Rolle weiter verk&uuml;rzt sein.');
@@ -6889,6 +6927,22 @@ INSERT INTO txt VALUES ('H5611', 'English', 'Path and Name of App data import (w
 ');
 INSERT INTO txt VALUES ('H5611a', 'German',  'Skriptparameter (optional): Zus&auml;tzliche Parameter, die an das Appdaten-Importskript &uuml;bergeben werden, z.B. "-f foldername".');
 INSERT INTO txt VALUES ('H5611a', 'English', 'Script parameters (optional): Additional parameters passed to the app data import script, e.g. "-f foldername".');
+INSERT INTO txt VALUES ('H5694', 'German', 'Pfad und Name des Logdaten-Imports (ohne Endung): Hier werden Logdaten-Importskripte und -dateien unterhalb von scripts/customizing oder etc im konfigurierten Produkt-Verzeichnis eingetragen.');
+INSERT INTO txt VALUES ('H5694', 'English', 'Path and Name of Log data import (without ending): Log data import scripts and files below scripts/customizing or etc in the configured product directory are entered here.');
+INSERT INTO txt VALUES ('H5695', 'German', 'Skriptparameter (optional): Zus&auml;tzliche Parameter, die an das Logdaten-Importskript &uuml;bergeben werden.');
+INSERT INTO txt VALUES ('H5695', 'English', 'Script parameters (optional): Additional parameters passed to the log data import script.');
+INSERT INTO txt VALUES ('H5696', 'German', 'Logdaten-Importintervall: Legt fest, wie oft der Logdaten-Import ausgef&uuml;hrt wird.');
+INSERT INTO txt VALUES ('H5696', 'English', 'Log data import interval: Defines how often log data is imported.');
+INSERT INTO txt VALUES ('H5697', 'German', 'Maximale Anzahl Logeintr&auml;ge pro Applikation: Aus jeder Importdatei werden f&uuml;r jede bekannte Applikation nur so viele Eintr&auml;ge mit den h&ouml;chsten Trefferz&auml;hlern &uuml;bernommen; die &uuml;brigen werden verworfen.');
+INSERT INTO txt VALUES ('H5697', 'English', 'Maximum number of log entries per application: From each import file, only this many entries with the highest log counts are taken for each known application; the remaining entries are discarded.');
+INSERT INTO txt VALUES ('H5698', 'German', 'Logdaten in Verbindungen anzeigen: Blendet die importierten Logdaten des Eigent&uuml;mers unterhalb der Verbindung im Bearbeiten-Dialog ein.');
+INSERT INTO txt VALUES ('H5698', 'English', 'Show log data in connections: Displays the imported log data of the owner below the connection in the edit dialog.');
+INSERT INTO txt VALUES ('H5699', 'German', 'Aufbewahrungsdauer der Logdaten (Tage): Logeintr&auml;ge, deren Logzeitpunkt weiter zur&uuml;ckliegt, werden nach jedem Import gel&ouml;scht. Der Wert muss mindestens 1 betragen, sonst w&uuml;rden alle Eintr&auml;ge sofort wieder entfernt.');
+INSERT INTO txt VALUES ('H5699', 'English', 'Log data retention (days): Log entries whose log time is older are removed after every import. The value must be at least 1, otherwise every entry would be deleted right after it was imported.');
+INSERT INTO txt VALUES ('H5700', 'German', 'Port ohne Protokoll in Logdaten zulassen: Erlaubt Logeintr&auml;ge mit Port, aber ohne Protokollangabe. Ohne diese Option werden solche Eintr&auml;ge verworfen, da ein Port nur zu TCP oder UDP geh&ouml;ren kann.');
+INSERT INTO txt VALUES ('H5700', 'English', 'Allow port without protocol in log data: Accepts log entries which contain a port but no protocol. Without this option such entries are discarded, because a port belongs to TCP or UDP only.');
+INSERT INTO txt VALUES ('H5692', 'German', 'Vorhandene Logdaten importierter Applikationen ersetzen: L&ouml;scht beim Import einer JSON-Datei alle vorhandenen Logeintr&auml;ge f&uuml;r jede darin enthaltene, bekannte externe Applikations-ID und ersetzt sie atomar durch die neuen Eintr&auml;ge. Unbekannte Applikations-IDs werden ignoriert.');
+INSERT INTO txt VALUES ('H5692', 'English', 'Replace existing log data of imported applications: When importing a JSON file, deletes all existing log entries for every known external application ID contained in it and atomically replaces them with the new entries. Unknown application IDs are ignored.');
 INSERT INTO txt VALUES ('H5612', 'German',  'Import Appdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Appdaten-Import-L&auml;ufen.
     Ein Wert 0 bedeutet, dass der Appdaten-Import deaktiviert ist. Default-Wert = 0.
 ');
@@ -7421,6 +7475,7 @@ INSERT INTO txt VALUES ('H6941', 'German',  'Der <b>FlowCatalogController</b> st
         </tbody>
     </table>
     Die Filterstruktur ist f&uuml;r diese Endpunkte bewusst klein gehalten und dient vor allem dazu, nur Objekte zur&uuml;ckzugeben, die im Request-Kontext sichtbar sein sollen.
+    F&uuml;r <code>getAddressObjectId</code> d&uuml;rfen <code>ipStart</code> und <code>ipEnd</code> als IPv4-Adresse ohne Maske oder mit <code>/32</code> &uuml;bergeben werden; jede andere Maske wird abgelehnt.
 ');
 INSERT INTO txt VALUES ('H6941', 'English', 'The <b>FlowCatalogController</b> exposes read-only catalog lookups below <code>/api/flow</code>.
     All endpoints use <code>POST</code>.
@@ -7437,6 +7492,7 @@ INSERT INTO txt VALUES ('H6941', 'English', 'The <b>FlowCatalogController</b> ex
         </tbody>
     </table>
     The filter structure is intentionally small for these endpoints and is mainly used to restrict results to objects that should be visible in the request context.
+    For <code>getAddressObjectId</code>, <code>ipStart</code> and <code>ipEnd</code> may be submitted as IPv4 addresses without a mask or with <code>/32</code>; every other mask is rejected.
 ');
 INSERT INTO txt VALUES ('H6942', 'German',  'Der <b>FlowComplianceController</b> stellt Policy- und Compliance-Funktionen unter <code>/api/flow</code> bereit.
     Alle Endpunkte verwenden <code>POST</code>.
@@ -7448,6 +7504,7 @@ INSERT INTO txt VALUES ('H6942', 'German',  'Der <b>FlowComplianceController</b>
         </tbody>
     </table>
     F&uuml;r <code>getFlowComplianceState</code> werden Quellen und Ziele als IP-Bereiche sowie Dienste als Portbereiche mit Protokoll &uuml;bergeben.
+    <code>ipStart</code> und <code>ipEnd</code> d&uuml;rfen als IPv4-Adresse ohne Maske oder mit <code>/32</code> &uuml;bergeben werden; jede andere Maske wird abgelehnt.
     Die Antwort liefert pro angefragter Policy einen Block mit <code>policy</code> und <code>violations</code>.
     Ist ein Flow konform, ist die Liste <code>violations</code> leer.
 ');
@@ -7461,6 +7518,7 @@ INSERT INTO txt VALUES ('H6942', 'English', 'The <b>FlowComplianceController</b>
         </tbody>
     </table>
     For <code>getFlowComplianceState</code>, sources and destinations are passed as IP ranges and services as port ranges with protocol.
+    <code>ipStart</code> and <code>ipEnd</code> may be submitted as IPv4 addresses without a mask or with <code>/32</code>; every other mask is rejected.
     The response returns one block per requested policy with <code>policy</code> and <code>violations</code>.
     When a flow is compliant, the <code>violations</code> list is empty.
 ');
@@ -8870,6 +8928,8 @@ INSERT INTO txt VALUES ('H9082', 'German',  'Berechtigung: Bestimmt die Sicht- u
 INSERT INTO txt VALUES ('H9082', 'English', 'Permission: Defines visability and usability for other applications: Public - usable for all without further query, Restricted - usable only with permission of the owner, Private - usable only inside the own Communication Profile.');
 INSERT INTO txt VALUES ('H9083', 'German',  'Berechtigte Applikationen: Bestimmt, welche anderen Applikationen diese Schnittstelle nutzen d&uuml;rfen.');
 INSERT INTO txt VALUES ('H9083', 'English', 'Permitted Applications: Defines which other applications are permitted to use this interface.');
+INSERT INTO txt VALUES ('H9084', 'German',  'Logdaten: Sind Logdaten aktiviert, werden die importierten Logdaten des Eigent&uuml;mers unterhalb der Verbindung angezeigt, standardm&auml;&szlig;ig nach Anzahl sortiert und &uuml;ber jede Spalte sortierbar.');
+INSERT INTO txt VALUES ('H9084', 'English', 'Log data: If log data is enabled, the imported log data of the owner is displayed below the connection, sorted by log count by default and sortable by every column.');
 INSERT INTO txt VALUES ('H5901', 'German',  'Verantwortlichkeitsstufen f&uuml;r Eigent&uuml;mer verwalten. Sie k&ouml;nnen Stufen anlegen, bearbeiten, reaktivieren und l&ouml;schen. Beim L&ouml;schen pr&uuml;ft FWOrch, ob die Stufe noch verwendet wird.');
 INSERT INTO txt VALUES ('H5901', 'English', 'Manage responsible levels for owners. You can create, edit, reactivate and delete levels. On delete, FWOrch checks whether the level is still in use.');
 INSERT INTO txt VALUES ('H5902', 'German',  'Diese Einstellungen vergeben keine Rollen. Sie steuern nur die UI-Zugriffs- und Aktionsm&ouml;glichkeiten f&uuml;r verantwortliche Benutzer/Gruppen.');

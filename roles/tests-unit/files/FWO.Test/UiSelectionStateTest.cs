@@ -17,12 +17,6 @@ namespace FWO.Test
             JSInterop.Mode = JSRuntimeMode.Loose;
             Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
             Services.AddLocalization();
-            SimulatedUserConfig.DummyTranslate.TryAdd("select_all", "Select All");
-            SimulatedUserConfig.DummyTranslate.TryAdd("clear_all", "Clear All");
-            SimulatedUserConfig.DummyTranslate.TryAdd("collapse_all", "Collapse All");
-            SimulatedUserConfig.DummyTranslate.TryAdd("expand_all", "Expand All");
-            SimulatedUserConfig.DummyTranslate.TryAdd("select_device", "Select device");
-            SimulatedUserConfig.DummyTranslate.TryAdd("select_management", "Select management");
         }
 
         [Test]

@@ -66,6 +66,32 @@ namespace FWO.Test
         }
 
         /// <summary>
+        /// Every size marks its content box with its own class. The auto size needs it as well: without
+        /// that class its content grows past the viewport and pushes the footer out of reach.
+        /// </summary>
+        [Test]
+        public async Task SizeClassContent_KeepsSizeSpecificContentClass()
+        {
+            await using BunitContext context = new();
+            Dictionary<PopupSize, string> expectedClasses = new()
+            {
+                { PopupSize.Auto, "custom-modal-content-auto" },
+                { PopupSize.FullScreen, "custom-modal-content-fs" },
+                { PopupSize.XLarge, "custom-modal-content-xl" },
+                { PopupSize.Large, "custom-modal-content-lg" },
+                { PopupSize.Medium, "custom-modal-content-md" },
+                { PopupSize.Small, "custom-modal-content-sm" },
+                { PopupSize.XSmall, "custom-modal-content-xs" }
+            };
+
+            foreach (KeyValuePair<PopupSize, string> expectedClass in expectedClasses)
+            {
+                Assert.That(RenderContentClass(context, expectedClass.Key).Split(' '), Contains.Item(expectedClass.Value),
+                    $"The content box of popup size {expectedClass.Key} lost its size specific class.");
+            }
+        }
+
+        /// <summary>
         /// The footer is rendered as a sibling of the scrollable content for all sizes but the smallest one.
         /// </summary>
         [Test]
@@ -84,6 +110,11 @@ namespace FWO.Test
         private static string RenderDialogClass(BunitContext context, PopupSize size)
         {
             return RenderPopUp(context, size).Find(".modal-open > div").GetAttribute("class") ?? "";
+        }
+
+        private static string RenderContentClass(BunitContext context, PopupSize size)
+        {
+            return RenderPopUp(context, size).Find(".modal-content").GetAttribute("class") ?? "";
         }
 
         private static IRenderedComponent<PopUp> RenderPopUp(BunitContext context, PopupSize size)

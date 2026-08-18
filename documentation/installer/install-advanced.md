@@ -144,6 +144,8 @@ e.g. if your hasura metadata file needs to be re-created from scratch, then use 
 
 By default, the installer does not add or enable RedHat repositories. If required packages are not available from the already enabled repositories, prepare the OS repositories outside the installer.
 
+Internally mirrored repositories may use arbitrary repository IDs and do not need the `epel-release` package. The installer checks whether the required packages are already available before inspecting or changing EPEL and CodeReady Builder/CRB configuration. If the configured repositories provide every required package, their names and origin do not matter and their metadata cache is not forcibly refreshed.
+
 Set this parameter only if the installer is allowed to install EPEL and enable CodeReady Builder/CRB on RedHat-like systems:
 
 ```console

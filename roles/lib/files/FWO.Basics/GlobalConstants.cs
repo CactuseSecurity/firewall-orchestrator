@@ -25,6 +25,8 @@ namespace FWO.Basics
         public const int kSecondsToMilliseconds = 1000;
         public const int kDaysPerWeek = 7;
         public const int kMaxPortNumber = 65535;
+        // an import script is waited for with a timeout in milliseconds which has to fit into an int
+        public const int kMaxImportScriptTimeoutMinutes = int.MaxValue / kMinutesToMilliseconds;
         public const int kOwnerResponsibleTypeMain = 1;
         public const int kOwnerResponsibleTypeSupporting = 2;
         public const int kOwnerResponsibleTypeOptionalEscalation = 3;
@@ -39,6 +41,7 @@ namespace FWO.Basics
         public const string kUi = "ui";
         public const string kCertification = "Certification";
         public const string kImportAppData = "importAppData";
+        public const string kImportLogData = "importLogData";
         public const string kAdjustAppServerNames = "adjustAppServerNames";
         public const string kImportAreaSubnetData = "importAreaSubnetData";
         public const string kImportZoneMatrixData = "importZoneMatrixData";
@@ -201,6 +204,7 @@ namespace FWO.Basics
         public const int RULE = 1;
         public const int OWNER = 2;
         public const int ADMIN_VIA_REINITIALIZE_BTN = 3;
+        public const int LOG = 4;
     }
 
     public struct ChangelogActionType

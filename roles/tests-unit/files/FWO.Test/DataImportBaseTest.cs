@@ -4,6 +4,7 @@ using FWO.Api.Client;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Config.File;
+using FWO.Logging;
 using FWO.Middleware.Server;
 using NUnit.Framework;
 using System.Reflection;
@@ -103,6 +104,158 @@ namespace FWO.Test
                     Directory.Delete(tempDir, true);
                 }
             }
+        }
+
+        [Test]
+        public void RunImportScriptClosesStandardInputSoAScriptCannotWaitForIt()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                Assert.Ignore("Script execution test requires a Unix-like environment.");
+            }
+
+            string tempDir = CreateScriptDirectory();
+            try
+            {
+                string outputFile = Path.Combine(tempDir, "input.txt");
+                // a script reading its standard input stands for a tool asking for credentials:
+                // it has to see the end of the stream instead of waiting for an answer
+                string scriptContent = "#!/usr/bin/env python3\n"
+                    + "import sys\n"
+                    + $"with open(r\"{outputFile}\", \"w\", encoding=\"utf-8\") as file:\n"
+                    + "    file.write(f\"{sys.stdin.isatty()}|{sys.stdin.read()}\")\n";
+                string scriptPath = WriteScript(tempDir, "read_input.py", scriptContent);
+
+                bool executed = CreateImporter(TimeSpan.FromSeconds(20)).ExecuteScript(scriptPath, null, validateImportFile: false);
+
+                Assert.That(executed, Is.True);
+                Assert.That(File.ReadAllText(outputFile), Is.EqualTo("False|"));
+            }
+            finally
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+
+        [Test]
+        public void RunImportScriptStopsAScriptWhichDoesNotFinishInTime()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                Assert.Ignore("Script execution test requires a Unix-like environment.");
+            }
+
+            string tempDir = CreateScriptDirectory();
+            try
+            {
+                string outputFile = Path.Combine(tempDir, "finished.txt");
+                string scriptContent = "#!/usr/bin/env python3\n"
+                    + "import time\n"
+                    + "time.sleep(60)\n"
+                    + $"with open(r\"{outputFile}\", \"w\", encoding=\"utf-8\") as file:\n"
+                    + "    file.write(\"finished\")\n";
+                string scriptPath = WriteScript(tempDir, "endless.py", scriptContent);
+
+                bool executed = CreateImporter(TimeSpan.FromSeconds(2)).ExecuteScript(scriptPath, null, validateImportFile: false);
+
+                Assert.That(executed, Is.False);
+                Assert.That(File.Exists(outputFile), Is.False);
+            }
+            finally
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+
+        [Test]
+        public void RunImportScriptReportsWhatATimedOutScriptWroteBeforeItGotStuck()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                Assert.Ignore("Script execution test requires a Unix-like environment.");
+            }
+
+            string tempDir = CreateScriptDirectory();
+            TextWriter originalConsoleOut = Console.Out;
+            using StringWriter logOutput = new();
+            try
+            {
+                // the scripts log to their error output, so the reason a script hangs - a git
+                // command waiting for credentials for instance - is written before it stops
+                string scriptContent = "#!/usr/bin/env python3\n"
+                    + "import sys, time\n"
+                    + "print('[ERROR] waiting for git credentials', file=sys.stderr, flush=True)\n"
+                    + "time.sleep(60)\n";
+                string scriptPath = WriteScript(tempDir, "stuck.py", scriptContent);
+                Console.SetOut(logOutput);
+
+                bool executed = CreateImporter(TimeSpan.FromSeconds(2)).ExecuteScript(scriptPath, null, validateImportFile: false);
+
+                Console.SetOut(originalConsoleOut);
+                Assert.That(executed, Is.False);
+                Assert.That(logOutput.ToString(), Does.Contain("waiting for git credentials"));
+            }
+            finally
+            {
+                Console.SetOut(originalConsoleOut);
+                Directory.Delete(tempDir, true);
+            }
+        }
+
+        [Test]
+        public void ImportScriptTimeoutIsTakenFromTheConfiguration()
+        {
+            Assert.That(CreateConfiguredImporter(90).ScriptTimeout, Is.EqualTo(TimeSpan.FromMinutes(90)),
+                "an installation with a long running import script raises the setting instead of patching the code");
+        }
+
+        [Test]
+        public void ImportScriptTimeoutFallsBackToTheDefaultForAnUnusableValue()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(CreateConfiguredImporter(0).ScriptTimeout, Is.EqualTo(TimeSpan.FromMinutes(60)));
+                Assert.That(CreateConfiguredImporter(-5).ScriptTimeout, Is.EqualTo(TimeSpan.FromMinutes(60)),
+                    "a misconfiguration must not stop every script right after it was started");
+            });
+        }
+
+        [Test]
+        public void ImportScriptTimeoutStaysWaitable()
+        {
+            // the wait is expressed in milliseconds as an int, a larger value would make every
+            // scripted import fail instead of running longer
+            TimeSpan cappedTimeout = CreateConfiguredImporter(int.MaxValue).ScriptTimeout;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(cappedTimeout, Is.EqualTo(TimeSpan.FromMinutes(GlobalConst.kMaxImportScriptTimeoutMinutes)));
+                Assert.That(cappedTimeout.TotalMilliseconds, Is.LessThanOrEqualTo(int.MaxValue));
+                Assert.That(CreateConfiguredImporter(GlobalConst.kMaxImportScriptTimeoutMinutes).ScriptTimeout.TotalMilliseconds,
+                    Is.LessThanOrEqualTo(int.MaxValue), "the configurable maximum is still waitable");
+            });
+        }
+
+        [Test]
+        public void GetScriptOutputLogTypeReportsTheSeverityTheScriptUsed()
+        {
+            // the scripts log to the error output, so a run ending successfully can still report
+            // that it could not do its work, for instance that a push was never acknowledged
+            Assert.Multiple(() =>
+            {
+                Assert.That(TestDataImportBase.GetOutputLogType(
+                    "2026-08-14T09:57:59 [ERROR] [import_log:reuse_pend: 175] no new log data is imported"),
+                    Is.EqualTo(LogType.Error));
+                Assert.That(TestDataImportBase.GetOutputLogType(
+                    "2026-08-14T09:57:59 [CRITI] [import_log:main      : 291] unusable configuration"),
+                    Is.EqualTo(LogType.Error));
+                Assert.That(TestDataImportBase.GetOutputLogType(
+                    "2026-08-14T09:57:59 [WARNI] [import_log:reuse_pend: 182] reusing it (1)"),
+                    Is.EqualTo(LogType.Warning));
+                Assert.That(TestDataImportBase.GetOutputLogType(
+                    "2026-08-14T09:57:59 [INFO ] [import_log:import_dat: 247] converted 2 CSV files"),
+                    Is.EqualTo(LogType.Info));
+            });
         }
 
         [Test]
@@ -346,11 +499,51 @@ namespace FWO.Test
                 ImportPathPolicy.ValidateImportSourceShape(Path.Combine(root, "owners.sh"), root));
         }
 
+        private static TestDataImportBase CreateImporter(TimeSpan scriptTimeout)
+        {
+            return new TestDataImportBase(new SimulatedApiConnection(), new SimulatedGlobalConfig(), scriptTimeout);
+        }
+
+        private static TestDataImportBase CreateConfiguredImporter(int importScriptTimeout)
+        {
+            SimulatedGlobalConfig globalConfig = new() { ImportScriptTimeout = importScriptTimeout };
+            return new TestDataImportBase(new SimulatedApiConnection(), globalConfig);
+        }
+
+        private static string CreateScriptDirectory()
+        {
+            string tempDir = Path.Combine(TestContext.CurrentContext.WorkDirectory, $"fwo-import-test-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(tempDir);
+            return tempDir;
+        }
+
+        private static string WriteScript(string tempDir, string scriptName, string scriptContent)
+        {
+            string scriptPath = Path.Combine(tempDir, scriptName);
+            File.WriteAllText(scriptPath, scriptContent);
+#pragma warning disable CA1416 // Validate platform compatibility
+            File.SetUnixFileMode(scriptPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+#pragma warning restore CA1416 // Validate platform compatibility
+            return scriptPath;
+        }
+
         private sealed class TestDataImportBase : DataImportBase
         {
-            public TestDataImportBase(ApiConnection apiConnection, GlobalConfig globalConfig)
+            private readonly TimeSpan? scriptTimeout;
+
+            public TestDataImportBase(ApiConnection apiConnection, GlobalConfig globalConfig, TimeSpan? scriptTimeout = null)
                 : base(apiConnection, globalConfig)
             {
+                this.scriptTimeout = scriptTimeout;
+            }
+
+            protected override TimeSpan ImportScriptTimeout => scriptTimeout ?? base.ImportScriptTimeout;
+
+            public TimeSpan ScriptTimeout => ImportScriptTimeout;
+
+            public static LogType GetOutputLogType(string errorOutput)
+            {
+                return GetScriptOutputLogType(errorOutput);
             }
 
             public bool ExecuteScript(string scriptPath, string? args, bool validateImportFile = true)

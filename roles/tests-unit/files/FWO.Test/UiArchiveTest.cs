@@ -52,21 +52,6 @@ namespace FWO.Test
             }
         }
 
-        [SetUp]
-        public void SetUpTranslations()
-        {
-            SimulatedUserConfig.DummyTranslate.TryAdd("archive", "Archive");
-            SimulatedUserConfig.DummyTranslate.TryAdd("actions", "Actions");
-            SimulatedUserConfig.DummyTranslate.TryAdd("name", "Name");
-            SimulatedUserConfig.DummyTranslate.TryAdd("report_type", "Report type");
-            SimulatedUserConfig.DummyTranslate.TryAdd("template", "Template");
-            SimulatedUserConfig.DummyTranslate.TryAdd("generation_date", "Generation date");
-            SimulatedUserConfig.DummyTranslate.TryAdd("user", "User");
-            SimulatedUserConfig.DummyTranslate.TryAdd("description", "Description");
-            SimulatedUserConfig.DummyTranslate.TryAdd("all", "All");
-            SimulatedUserConfig.DummyTranslate.TryAdd("archive_truncated", "Older reports exist but are not listed");
-        }
-
         private static BunitContext CreateContext(ArchiveApiConnection apiConnection, UserConfig? userConfig = null)
         {
             BunitContext context = new();

@@ -8,7 +8,8 @@ subscription subscribeImportAppDataConfigChanges {
     {config_key: {_eq: "modNamingConvention"}},
     {config_key: {_eq: "dnsLookup"}},
     {config_key: {_eq: "overwriteExistingNames"}},
-    {config_key: {_eq: "autoReplaceAppServer"}}
+    {config_key: {_eq: "autoReplaceAppServer"}},
+    {config_key: {_eq: "importScriptTimeout"}}
     ]}){
       config_key
       config_value

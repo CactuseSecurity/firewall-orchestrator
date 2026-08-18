@@ -6,7 +6,7 @@ namespace FWO.Middleware.Server.Requests;
 /// <summary>
 /// Represents the GetFlowComplianceStateRequest type.
 /// </summary>
-public sealed class GetFlowComplianceStateRequest : IRequestWithRootAdditionalData
+public sealed class GetFlowComplianceStateRequest : RequestDto<RequestOptionsDto>
 {
     /// <summary>
     /// Gets the Source value.
@@ -31,12 +31,6 @@ public sealed class GetFlowComplianceStateRequest : IRequestWithRootAdditionalDa
     /// </summary>
     [JsonPropertyName("policies")]
     public List<int> Policies { get; set; } = [];
-
-    /// <summary>
-    /// Gets the AdditionalData value.
-    /// </summary>
-    [JsonExtensionData]
-    public Dictionary<string, JsonElement>? AdditionalData { get; set; }
 
     /// <summary>
     /// Represents the IpRangeRequest type.

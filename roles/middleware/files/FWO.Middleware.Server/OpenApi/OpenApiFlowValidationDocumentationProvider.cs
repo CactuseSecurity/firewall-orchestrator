@@ -22,7 +22,7 @@ public sealed class OpenApiFlowValidationDocumentationProvider : IOpenApiEndpoin
     {
         if (operation.RequestBody != null)
         {
-            operation.RequestBody.Description = "Request bodies are validated after JSON binding. Unknown JSON properties and missing required fields return a uniform ValidationProblemDetails response.";
+            operation.RequestBody.Description = "Request bodies are validated after JSON binding. Migrated POST endpoints expose an optional options object; Unknown JSON properties and missing required fields return a uniform ValidationProblemDetails response.";
         }
 
         ApplyResponseDescription(operation, "400", "The request body failed request-shape or endpoint-specific validation and is returned as ValidationProblemDetails.");
@@ -89,7 +89,8 @@ public sealed class OpenApiFlowValidationDocumentationProvider : IOpenApiEndpoin
 Validation behavior:
 
 - Validation failures return `400 Bad Request` with `ValidationProblemDetails`.
-- Error keys use `$` for body-level errors and dot notation for fields, for example `filter.visibleInRequest`.
+- Migrated POST request DTOs expose an `options` object. The JSON `options` field may be omitted when no options are needed.
+- Error keys use `$` for body-level errors and dot notation for fields, for example `options.filter.visibleInRequest`.
 - List items use index notation, for example `source[0].ipStart`.
 - Unknown root properties and unknown nested properties are rejected.
 - Optional objects and optional fields may be omitted.

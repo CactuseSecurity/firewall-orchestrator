@@ -321,7 +321,7 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
         {
             Assert.That(found, Is.True);
             Assert.That(problemDetails.Status, Is.EqualTo(400));
-            Assert.That(problemDetails.Errors.Keys, Does.Contain("filter.visibleInRequestTypo"));
+            Assert.That(problemDetails.Errors.Keys, Does.Contain("options.filter.visibleInRequestTypo"));
         });
     }
 

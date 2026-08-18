@@ -33,6 +33,19 @@ public sealed class RequestValidationSchema
     }
 
     /// <summary>
+    /// Creates a validation schema for a standard middleware POST request body with an optional JSON options object.
+    /// </summary>
+    public static RequestValidationSchema EndpointWithOptions(string endpointName, Action<RequestValidationSchema>? configureOptions = null)
+    {
+        RequestValidationSchema schema = Endpoint(endpointName).ObjectRoot();
+        schema.OptionalObject("options", options =>
+        {
+            configureOptions?.Invoke(options);
+        });
+        return schema;
+    }
+
+    /// <summary>
     /// Marks this schema as describing an object root.
     /// </summary>
     public RequestValidationSchema ObjectRoot()

@@ -61,7 +61,7 @@ public class FlowCatalogController : ControllerBase
             return errorResult!;
         }
 
-        return Ok(await flowCatalogService.GetAddressObjectsAsync(request.Filter?.VisibleInRequest));
+        return Ok(await flowCatalogService.GetAddressObjectsAsync(request.Options?.Filter?.VisibleInRequest));
     }
 
     /// <summary>
@@ -82,7 +82,7 @@ public class FlowCatalogController : ControllerBase
             return errorResult!;
         }
 
-        return Ok(await flowCatalogService.GetAddressGroupsAsync(request.Filter?.VisibleInRequest));
+        return Ok(await flowCatalogService.GetAddressGroupsAsync(request.Options?.Filter?.VisibleInRequest));
     }
 
     /// <summary>
@@ -103,7 +103,7 @@ public class FlowCatalogController : ControllerBase
             return errorResult!;
         }
 
-        return Ok(await flowCatalogService.GetServiceObjectsAsync(request.Filter?.VisibleInRequest));
+        return Ok(await flowCatalogService.GetServiceObjectsAsync(request.Options?.Filter?.VisibleInRequest));
     }
 
     /// <summary>
@@ -124,7 +124,7 @@ public class FlowCatalogController : ControllerBase
             return errorResult!;
         }
 
-        return Ok(await flowCatalogService.GetServiceGroupsAsync(request.Filter?.VisibleInRequest));
+        return Ok(await flowCatalogService.GetServiceGroupsAsync(request.Options?.Filter?.VisibleInRequest));
     }
 
     /// <summary>
@@ -145,7 +145,7 @@ public class FlowCatalogController : ControllerBase
             return errorResult!;
         }
 
-        return Ok(await flowCatalogService.GetTimeObjectsAsync(request.Filter?.VisibleInRequest));
+        return Ok(await flowCatalogService.GetTimeObjectsAsync(request.Options?.Filter?.VisibleInRequest));
     }
 
     /// <summary>
@@ -176,7 +176,7 @@ public class FlowCatalogController : ControllerBase
             return BuildValidationError("service[0]", serviceErrorMessage!);
         }
 
-        return Ok(await flowCatalogService.GetServiceObjectIdAsync(request.Protocol, request.PortStart.Value, request.PortEnd.Value, request.Filter?.VisibleInRequest));
+        return Ok(await flowCatalogService.GetServiceObjectIdAsync(request.Protocol, request.PortStart.Value, request.PortEnd.Value, request.Options?.Filter?.VisibleInRequest));
     }
 
     /// <summary>
@@ -207,7 +207,7 @@ public class FlowCatalogController : ControllerBase
             return BuildValidationError("startTime", "'startTime' must be <= 'endTime'.");
         }
 
-        return Ok(await flowCatalogService.GetTimeObjectIdAsync(request.StartTime, request.EndTime, request.Filter?.VisibleInRequest));
+        return Ok(await flowCatalogService.GetTimeObjectIdAsync(request.StartTime, request.EndTime, request.Options?.Filter?.VisibleInRequest));
     }
 
     /// <summary>
@@ -248,15 +248,14 @@ public class FlowCatalogController : ControllerBase
 
         request.IpStart = normalizedIpStart;
         request.IpEnd = normalizedIpEnd;
-        return Ok(await flowCatalogService.GetAddressObjectIdAsync(request.IpStart, request.IpEnd, request.Filter?.VisibleInRequest));
+        return Ok(await flowCatalogService.GetAddressObjectIdAsync(request.IpStart, request.IpEnd, request.Options?.Filter?.VisibleInRequest));
     }
 
     private static RequestValidationSchema CreateVisibleInRequestSchema(string endpointName)
     {
-        return RequestValidationSchema.Endpoint(endpointName)
-            .ObjectRoot()
+        return RequestValidationSchema.EndpointWithOptions(endpointName, options => options
             .OptionalObject("filter", filter => filter
-                .OptionalBool("visibleInRequest"));
+                .OptionalBool("visibleInRequest")));
     }
 
     private static BadRequestObjectResult BuildValidationError(string fieldPath, string message)

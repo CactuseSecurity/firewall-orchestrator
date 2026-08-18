@@ -114,6 +114,28 @@ internal class FlowRequestContractTest
         });
     }
 
+    [Test]
+    public void StandardRequestDto_DefaultsOmittedOptionsToEmptyObject()
+    {
+        GetAddressObjectsRequest? request = JsonSerializer.Deserialize<GetAddressObjectsRequest>("{}");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(request, Is.Not.Null);
+            Assert.That(request!.Options, Is.Not.Null);
+            Assert.That(request.Options!.Filter, Is.Null);
+        });
+    }
+
+    [Test]
+    public void StandardRequestDto_BindsVisibleInRequestUnderOptionsFilter()
+    {
+        GetAddressObjectsRequest? request = JsonSerializer.Deserialize<GetAddressObjectsRequest>(
+            """{"options":{"filter":{"visibleInRequest":true}}}""");
+
+        Assert.That(request?.Options?.Filter?.VisibleInRequest, Is.True);
+    }
+
     private static RequestValidationSchema CreateServiceObjectIdSchema()
     {
         return CreateVisibleInRequestSchema("GetServiceObjectId")
@@ -131,9 +153,8 @@ internal class FlowRequestContractTest
 
     private static RequestValidationSchema CreateVisibleInRequestSchema(string endpointName)
     {
-        return RequestValidationSchema.Endpoint(endpointName)
-            .ObjectRoot()
+        return RequestValidationSchema.EndpointWithOptions(endpointName, options => options
             .OptionalObject("filter", filter => filter
-                .OptionalBool("visibleInRequest"));
+                .OptionalBool("visibleInRequest")));
     }
 }

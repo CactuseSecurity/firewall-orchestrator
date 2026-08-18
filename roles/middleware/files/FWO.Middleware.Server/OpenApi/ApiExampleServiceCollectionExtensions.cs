@@ -66,7 +66,7 @@ public sealed class ValidationProblemDetailsExample : ApiExampleProvider<Validat
     /// <inheritdoc />
     public override ValidationProblemDetails GetExample() => new(new Dictionary<string, string[]>
     {
-        ["filter.visibleInRequestTypo"] = ["Unknown field 'filter.visibleInRequestTypo'."]
+        ["options.filter.visibleInRequestTypo"] = ["Unknown field 'options.filter.visibleInRequestTypo'."]
     })
     {
         Status = StatusCodes.Status400BadRequest,

@@ -79,6 +79,25 @@ public class ApiExampleCatalogTest
     }
 
     /// <summary>
+    /// Verifies fallback examples use the standard POST options container for flow catalog filters.
+    /// </summary>
+    [Test]
+    public void CatalogCreatesFlowCatalogRequestExampleWithOptionsFilter()
+    {
+        Assert.That(catalog.TryGetExample(typeof(GetAddressObjectsRequest), out object? example), Is.True);
+
+        string json = JsonSerializer.Serialize(example, example!.GetType(), serializerOptions);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(json, Does.Contain("\"options\""));
+            Assert.That(json, Does.Contain("\"filter\""));
+            Assert.That(json, Does.Contain("\"visibleInRequest\""));
+            Assert.That(json, Does.Not.Contain("""{"filter" """));
+        });
+    }
+
+    /// <summary>
     /// Verifies production JSON options keep explicit JSON property names.
     /// </summary>
     [Test]

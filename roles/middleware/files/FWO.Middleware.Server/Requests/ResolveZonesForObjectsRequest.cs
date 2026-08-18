@@ -6,19 +6,13 @@ namespace FWO.Middleware.Server.Requests;
 /// <summary>
 /// Represents the request body for resolving zones for object trees.
 /// </summary>
-public sealed class ResolveZonesForObjectsRequest : IRequestWithRootAdditionalData
+public sealed class ResolveZonesForObjectsRequest : RequestDto<RequestOptionsDto>
 {
     /// <summary>
     /// Gets the root objects to evaluate.
     /// </summary>
     [JsonPropertyName("objects")]
     public List<ObjectRequest>? Objects { get; set; } = [];
-
-    /// <summary>
-    /// Gets the additional data payload.
-    /// </summary>
-    [JsonExtensionData]
-    public Dictionary<string, JsonElement>? AdditionalData { get; set; }
 
     /// <summary>
     /// Represents one object in the zone resolution tree.

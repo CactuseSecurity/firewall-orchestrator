@@ -15,8 +15,7 @@ public static class ResolveZonesForObjectsRequestValidator
     private const int MaximumIpRangeCount = 2048;
 
     private static readonly RequestValidationSchema RootSchema = RequestValidationSchema
-        .Endpoint(EndpointName)
-        .ObjectRoot()
+        .EndpointWithOptions(EndpointName)
         .RequiredList("objects");
 
     private static readonly RequestKeyDefinition[] LeafKeys =

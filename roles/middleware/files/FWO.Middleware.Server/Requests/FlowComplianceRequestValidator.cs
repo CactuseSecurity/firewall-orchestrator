@@ -16,12 +16,10 @@ public static class FlowComplianceRequestValidator
     private const string GetFlowComplianceStateEndpointName = "getFlowComplianceState";
 
     private static readonly RequestValidationSchema PolicyIdsSchema = RequestValidationSchema
-        .Endpoint(GetPolicyIdsEndpointName)
-        .ObjectRoot();
+        .EndpointWithOptions(GetPolicyIdsEndpointName);
 
     private static readonly RequestValidationSchema FlowComplianceSchema = RequestValidationSchema
-        .Endpoint(GetFlowComplianceStateEndpointName)
-        .ObjectRoot()
+        .EndpointWithOptions(GetFlowComplianceStateEndpointName)
         .OptionalList("source", item => item
             .RequiredString("ipStart")
             .RequiredString("ipEnd"))

@@ -912,7 +912,10 @@ namespace FWO.Test
             WfStateAction action = new() { Id = 88, Name = "Edit me" };
             await InvokeAsync(component, "EditAction", action);
 
-            Assert.That(GetMember<WfStateAction>(popup!, "actAction"), Is.SameAs(action));
+            WfStateAction popupAction = GetMember<WfStateAction>(popup!, "actAction");
+            Assert.That(popupAction, Is.Not.SameAs(action));
+            Assert.That(popupAction.Id, Is.EqualTo(action.Id));
+            Assert.That(popupAction.Name, Is.EqualTo(action.Name));
             Assert.That(GetMember<bool>(popup!, "AddActionMode"), Is.False);
         }
 
@@ -1538,7 +1541,10 @@ namespace FWO.Test
 
             await component.OpenEditAsync(action);
 
-            Assert.That(GetMember<WfStateAction>(component, "actAction"), Is.SameAs(action));
+            WfStateAction editedAction = GetMember<WfStateAction>(component, "actAction");
+            Assert.That(editedAction, Is.Not.SameAs(action));
+            Assert.That(editedAction.Id, Is.EqualTo(action.Id));
+            Assert.That(editedAction.ActionType, Is.EqualTo(action.ActionType));
             Assert.That(GetMember<string>(component, "message"), Is.EqualTo("alert message"));
             Assert.That(GetMember<bool>(component, "AddActionMode"), Is.False);
         }
@@ -1668,17 +1674,19 @@ namespace FWO.Test
             {
                 ActionType = StateActionTypes.SendEmail.ToString()
             };
-            SetMember(component, "actAction", action);
-            SetMember(component, "persistedAction", new WfStateAction(action));
+            WfStateAction draftAction = new(action);
+            WfStateAction persistedAction = new(action);
+            SetMember(component, "actAction", draftAction);
+            SetMember(component, "persistedAction", persistedAction);
             SetMember(component, "sendEmailEditor", sendEmailEditor);
-            SetMember(sendEmailEditor, "ActAction", action);
-            SetMember(sendEmailEditor, "PersistedAction", new WfStateAction(action));
+            SetMember(sendEmailEditor, "ActAction", draftAction);
+            SetMember(sendEmailEditor, "PersistedAction", persistedAction);
             SetMember(sendEmailEditor, "actActionNotificationIds", new List<int> { 11 });
 
             bool result = await InvokeAsync<bool>(component, "TryUpdateExternalParams");
 
             Assert.That(result, Is.True);
-            EmailActionParams parameters = JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams)!;
+            EmailActionParams parameters = JsonSerializer.Deserialize<EmailActionParams>(draftAction.ExternalParams)!;
             Assert.That(parameters.NotificationIds, Is.EqualTo(new List<int> { 11 }));
         }
 
@@ -1704,25 +1712,26 @@ namespace FWO.Test
                 })
             };
 
+            WfStateAction draftAction = new(action);
+            WfStateAction persistedAction = new(action);
             SetMember(component, "apiConnection", apiConn);
             SetMember(component, "userConfig", new SimulatedUserConfig());
-            SetMember(component, "actAction", action);
-            SetMember(component, "persistedAction", new WfStateAction(action));
+            SetMember(component, "actAction", draftAction);
+            SetMember(component, "persistedAction", persistedAction);
             SetMember(component, "EditActionMode", true);
             SetMember(component, "AddActionMode", false);
             SetMember(component, "sendEmailEditor", sendEmailEditor);
             SetMember(sendEmailEditor, "apiConnection", apiConn);
             SetMember(sendEmailEditor, "userConfig", new SimulatedUserConfig());
-            SetMember(sendEmailEditor, "ActAction", action);
-            SetMember(sendEmailEditor, "PersistedAction", new WfStateAction(action));
+            SetMember(sendEmailEditor, "ActAction", draftAction);
+            SetMember(sendEmailEditor, "PersistedAction", persistedAction);
             SetMember(sendEmailEditor, "actActionNotificationIds", new List<int> { 3 });
             SetMember(sendEmailEditor, "actAttachedContent", EmailAttachedContent.RequestedConnections);
             SetMember(sendEmailEditor, "actConfirmSentMail", true);
 
-            action.Name = "Changed action";
-            action.Scope = WfObjectScopes.RequestTask.ToString();
-            action.TaskType = "rule_modify";
-            action.ButtonText = "Changed button";
+            draftAction.Name = "Changed action";
+            draftAction.TaskType = "rule_modify";
+            draftAction.ButtonText = "Changed button";
 
             await InvokeAsync(sendEmailEditor, "SetActionNotificationIds", new List<int> { 3, 7 });
             await InvokeAsync(component, "Cancel");

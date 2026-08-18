@@ -1320,6 +1320,7 @@ namespace FWO.Test
                                 ExternalParams = JsonSerializer.Serialize(new EmailActionParams
                                 {
                                     NotificationIds = [7],
+                                    AttachedContent = EmailAttachedContent.RequestedConnections,
                                     RequestTaskBundleMode = EmailRequestTaskBundleMode.SameTaskType
                                 })
                             }

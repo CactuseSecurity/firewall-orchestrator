@@ -23,10 +23,14 @@
           retries: 3
           delay: 5
       rescue:
+        - name: remember the dotnet installation error after dropping the dnf cache on RedHat
+          set_fact:
+            dotnet_install_last_error: "{{ ansible_failed_result.msg | default('unknown error') }}"
+
         - name: report failed dotnet installation after dropping the dnf cache on RedHat
           debug:
             msg:
-              - "{{ dotnet_package_name }} could not be installed after dropping the dnf cache: {{ ansible_failed_result.msg | default('unknown error') }}"
+              - "{{ dotnet_package_name }} could not be installed after dropping the dnf cache: {{ dotnet_install_last_error }}"
 
         # adding the microsoft repo and its gpg key changes the package sources of the host.
         # hardened setups keep the package sources under the control of their OS team and
@@ -88,10 +92,14 @@
                 name: "{{ dotnet_package_name }}"
                 state: present
           rescue:
+            - name: remember the dotnet installation error of the microsoft repo on RedHat
+              set_fact:
+                dotnet_install_last_error: "{{ ansible_failed_result.msg | default('unknown error') }}"
+
             - name: report failed dotnet installation from the microsoft repo on RedHat
               debug:
                 msg:
-                  - "{{ dotnet_package_name }} could not be installed from the microsoft repo: {{ ansible_failed_result.msg | default('unknown error') }}"
+                  - "{{ dotnet_package_name }} could not be installed from the microsoft repo: {{ dotnet_install_last_error }}"
 
             - name: install dotnet sdk {{ dotnet_version }} with the dotnet-install script on RedHat
               include_tasks: os/install_dot_net.RedHat.script.yml

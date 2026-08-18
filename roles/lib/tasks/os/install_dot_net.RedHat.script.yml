@@ -2,13 +2,23 @@
 # nor the microsoft package repo delivered the sdk. the script is fetched from the internet and
 # executed as root, and it installs outside package management, so it stays opt-in on RedHat
 - block:
+    # the hints only help when they match what dnf actually reported: a package that the
+    # repositories do not offer at all needs a different action than one that was resolved
+    # but could not be fetched, so the reported error decides which hints are shown
+    - name: classify the dotnet installation failure on RedHat
+      set_fact:
+        dotnet_install_failure_is_download: "{{ (dotnet_install_last_error | default('')) is search(redhat_repo_download_failure_pattern) }}"
+      when: not (allowDotnetScriptInstallForRedhat | default(false) | bool)
+
     - name: collect the dotnet installation failure message on RedHat
       set_fact:
         dotnet_install_failure_msg: >-
           {{
             [dotnet_package_name ~ ' could not be installed from the configured repos'
-             ~ (' or from the microsoft repo.' if (allowRepoChangesForRedhat | default(false) | bool) else '.')]
-            + redhat_repo_download_failure_hints
+             ~ (' or from the microsoft repo.' if (allowRepoChangesForRedhat | default(false) | bool) else '.'),
+             'The last error reported by dnf was: ' ~ (dotnet_install_last_error | default('unknown error'))]
+            + (redhat_repo_download_failure_hints if dotnet_install_failure_is_download | bool
+               else redhat_repo_missing_package_hints)
             + ([] if (allowRepoChangesForRedhat | default(false) | bool) else
                ['The microsoft package repo was not tried because allowRepoChangesForRedhat is false. Set -e allowRepoChangesForRedhat=true to allow the '
                 ~ product_name ~ ' installer to add it, if your OS repository policy permits third party repos.'])

@@ -212,6 +212,23 @@ dnf -v install libXfixes
 
 Restore the repository access according to your OS repository policy, then rerun the installer.
 
+### Packages missing from the enabled RedHat repositories
+
+A download error is not the only reason a package task fails. If `dnf` does not find the package in the metadata at all it reports it differently:
+
+```console
+No match for argument: dotnet-sdk-10.0
+```
+
+Here the enabled repositories genuinely do not offer the package, usually because the host is pinned to an older point release, because the repository providing it (for the dotnet SDK normally AppStream) is not enabled, or because the Satellite/Capsule content view was published before the package entered the upstream repository. The versions the host can actually see are listed by:
+
+```console
+dnf list --showduplicates dotnet-sdk-10.0
+dnf repolist --enabled
+```
+
+The dotnet error message of the installer quotes the error `dnf` reported and shows the hints matching it, so the two cases can be told apart without rerunning the installer.
+
 ### Parameter "docker_network" after the Podman migration
 
 This legacy parameter is ignored by the current installer because Hasura now runs with Podman host networking instead of a Docker bridge.

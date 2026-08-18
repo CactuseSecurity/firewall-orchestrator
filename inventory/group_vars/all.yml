@@ -36,6 +36,9 @@ force_install: false
 # the microsoft package repo used as a dotnet fallback. hardened setups keep the package sources
 # under the control of their OS team, so all of them stay opt-in
 allowRepoChangesForRedhat: false
+# tells a package dnf resolved but could not fetch apart from one the enabled repositories do not
+# offer at all. the two need different actions, so the reported dnf error selects the hints below.
+redhat_repo_download_failure_pattern: "(?i)cannot download|failed to download|curl error|error was 40|no more mirrors|downloading error"
 # shown when dnf resolved a package from its metadata but could not download it. the causes below
 # are all outside the installer, so the message has to point at them instead of repeating the
 # bare dnf error ("Cannot download, all mirrors were already tried without success").
@@ -46,6 +49,13 @@ redhat_repo_download_failure_hints:
   - "- a detached or expired subscription entitlement, which answers the content urls with 403"
   - "- a metadata cache left over from an earlier point release (already retried after dropping the cache)"
   - "Run 'dnf -v install <package>' on this host to see the failing url and its status, restore the repository access according to your OS repository policy, then rerun the installer."
+# shown when dnf did not find the package in the metadata of the enabled repositories at all.
+redhat_repo_missing_package_hints:
+  - "dnf did not find the package in the metadata of the enabled repositories. On a hardened RedHat host this usually means one of:"
+  - "- the host is pinned to an older point release whose repositories do not carry this package version yet"
+  - "- the repository providing the package (for the dotnet SDK normally AppStream) is not enabled"
+  - "- the Satellite/Capsule content view in use was published before the package entered the upstream repository"
+  - "Run 'dnf list --showduplicates <package>' and 'dnf repolist --enabled' on this host to see which versions the enabled repositories offer, provide the package according to your OS repository policy, then rerun the installer."
 docker_network: ""
 
 ### operating system settings

@@ -35,10 +35,16 @@
         # the configured repos may know the package from their metadata but still be unable to
         # deliver it (expired entitlement, lazily synced satellite/capsule mirror, blocking proxy),
         # so the fallbacks are needed even when the package was listed as available
+        # the fallbacks and the final error message need the original dnf error, and every
+        # nested rescue overwrites ansible_failed_result, so it is kept in a fact of its own
+        - name: remember the dotnet installation error of the configured repos on RedHat
+          set_fact:
+            dotnet_install_last_error: "{{ ansible_failed_result.msg | default('unknown error') }}"
+
         - name: report failed dotnet installation from the configured repos on RedHat
           debug:
             msg:
-              - "{{ dotnet_package_name }} could not be installed from the configured repos: {{ ansible_failed_result.msg | default('unknown error') }}"
+              - "{{ dotnet_package_name }} could not be installed from the configured repos: {{ dotnet_install_last_error }}"
               - "Dropping the dnf cache and retrying, then falling back to the microsoft package repo."
 
         # the fallbacks are three attempts nested into each other, so they live in a file of

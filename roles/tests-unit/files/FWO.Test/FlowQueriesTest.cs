@@ -135,6 +135,11 @@ namespace FWO.Test
                 Assert.That(FlowQueries.getFlowSvcObjectNamingCandidates, Does.Contain("query getFlowSvcObjectNamingCandidates"));
                 Assert.That(FlowQueries.getFlowSvcGroupNamingCandidates, Does.Contain("query getFlowSvcGroupNamingCandidates"));
                 Assert.That(FlowQueries.getFlowTimeObjectNamingCandidates, Does.Contain("query getFlowTimeObjectNamingCandidates"));
+                Assert.That(FlowQueries.getFlowNwObjectNamingCandidates, Does.Contain("flow_active"));
+                Assert.That(FlowQueries.getFlowNwGroupNamingCandidates, Does.Contain("flow_active"));
+                Assert.That(FlowQueries.getFlowSvcObjectNamingCandidates, Does.Contain("flow_active"));
+                Assert.That(FlowQueries.getFlowSvcGroupNamingCandidates, Does.Contain("flow_active"));
+                Assert.That(FlowQueries.getFlowTimeObjectNamingCandidates, Does.Contain("flow_active"));
             });
         }
 

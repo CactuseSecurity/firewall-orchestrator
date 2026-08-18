@@ -1147,8 +1147,9 @@ namespace FWO.Test
                 Name = null,
                 Mappings = new List<FlowNamingMapping>
                 {
-                    new FlowNamingMapping { ManagementId = 1, Name = "first-name" },
-                    new FlowNamingMapping { ManagementId = 2, Name = "second-name" }
+                    new FlowNamingMapping { ManagementId = 1, Name = "first-name", FlowActive = true },
+                    new FlowNamingMapping { ManagementId = 2, Name = "inactive-second-name", FlowActive = false },
+                    new FlowNamingMapping { ManagementId = 2, Name = "second-name", FlowActive = true }
                 }
             });
             apiConn.NetworkGroupNamingCandidates.Add(CreateNamingCandidate(151, "network-group"));
@@ -1201,6 +1202,43 @@ namespace FWO.Test
             Assert.That(apiConn.InsertedNetworkObjects[0].Name, Is.Null);
         }
 
+        [Test]
+        public async Task Run_KeepsNamesMissingWhenHighestPrecedenceMappingsAreInactive()
+        {
+            FlowSyncTestApiConn apiConn = new()
+            {
+                PendingImports =
+                [
+                    new ImportControl { ControlId = 10, MgmId = 1 }
+                ],
+                ManagementDataById =
+                {
+                    [1] = new FlowSyncManagementData
+                    {
+                        Id = 1,
+                        NetworkObjects = [CreateNetworkObject(1, "source-name", "10.0.0.1", "10.0.0.1")]
+                    }
+                }
+            };
+            apiConn.NetworkNamingCandidates.Add(new FlowNamingCandidate
+            {
+                Id = 101,
+                Name = null,
+                Mappings =
+                [
+                    new FlowNamingMapping { ManagementId = 2, Name = "inactive-first", FlowActive = false },
+                    new FlowNamingMapping { ManagementId = 2, Name = "inactive-second", FlowActive = false },
+                    new FlowNamingMapping { ManagementId = 1, Name = "lower-active", FlowActive = true }
+                ]
+            });
+            FlowSync flowSync = new(apiConn, new GlobalConfig { FlowNamingSourceManagementRanking = "[2,1]" });
+
+            bool result = await flowSync.Run();
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.UpdatedFlowNames, Is.Empty);
+        }
+
         private static T InvokePrivateStatic<T>(string methodName, params object[] parameters)
         {
             MethodInfo method = typeof(FlowSync).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static)
@@ -1217,7 +1255,7 @@ namespace FWO.Test
                 Name = null,
                 Mappings = new List<FlowNamingMapping>
                 {
-                    new() { ManagementId = 1, Name = name }
+                    new() { ManagementId = 1, Name = name, FlowActive = true }
                 }
             };
         }

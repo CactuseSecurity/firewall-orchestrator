@@ -5,6 +5,7 @@ query getFlowTimeObjectNamingCandidates {
     mappings: time_objects(where: {removed: {_is_null: true}}, order_by: [{mgm_id: asc}, {time_obj_name: asc}, {time_obj_id: asc}]) {
       mgm_id
       name: time_obj_name
+      flow_active
     }
   }
 }

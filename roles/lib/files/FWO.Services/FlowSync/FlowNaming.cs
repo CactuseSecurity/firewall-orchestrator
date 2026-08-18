@@ -48,17 +48,22 @@ namespace FWO.Services.FlowSync
 
         private static string? ResolveName(IEnumerable<FlowNamingMapping> mappings, IReadOnlyList<int>? managementRanking)
         {
-            List<FlowNamingMapping> mappingList = mappings.Where(mapping => !string.IsNullOrWhiteSpace(mapping.Name)).ToList();
-            Dictionary<int, int> rankingPositions = FlowNamingHelper.NormalizeManagementRanking(
+            List<FlowNamingMapping> mappingList = mappings.ToList();
+            List<int> rankedManagementIds = FlowNamingHelper.NormalizeManagementRanking(
                 managementRanking,
-                mappingList.Select(mapping => mapping.ManagementId))
-                .Select((managementId, index) => new { managementId, index })
-                .ToDictionary(item => item.managementId, item => item.index);
+                mappingList.Select(mapping => mapping.ManagementId));
+            if (rankedManagementIds.Count == 0)
+            {
+                return null;
+            }
+
+            int highestPrecedenceManagementId = rankedManagementIds[0];
 
             return mappingList
-                .OrderBy(mapping => rankingPositions.GetValueOrDefault(mapping.ManagementId, int.MaxValue))
+                .Where(mapping => mapping.ManagementId == highestPrecedenceManagementId)
+                .Where(mapping => mapping.FlowActive)
                 .Select(mapping => mapping.Name)
-                .FirstOrDefault();
+                .FirstOrDefault(name => !string.IsNullOrWhiteSpace(name));
         }
     }
 }

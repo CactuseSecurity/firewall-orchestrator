@@ -400,8 +400,20 @@ else
         }
 
         FlowTimeObject? flowTimeObject = flowTimeObjects.FirstOrDefault(item => item.Id == SelectedDuplicateGroup.FlowTimeObjectId);
-        string? resolvedName = FlowNamingHelper.ResolveMissingNameFromDuplicateSelection(flowTimeObject?.Name, selectedName);
-        if (string.IsNullOrWhiteSpace(resolvedName) || flowTimeObject == null)
+        if (flowTimeObject == null)
+        {
+            return;
+        }
+
+        string? resolvedName = FlowNamingHelper.ResolveMissingNameFromDuplicateSelection(
+            flowTimeObject.Name,
+            selectedName,
+            SelectedDuplicateGroup.ManagementId,
+            customTimeManagements
+                .Where(management => management.TimeObjects.Any(timeObject => timeObject.FlowTimeObjectId == flowTimeObject.Id))
+                .Select(management => management.Id),
+            FlowNamingHelper.ParseManagementRanking(userConfig.FlowNamingSourceManagementRanking));
+        if (string.IsNullOrWhiteSpace(resolvedName))
         {
             return;
         }

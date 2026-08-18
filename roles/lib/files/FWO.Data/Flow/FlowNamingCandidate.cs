@@ -28,5 +28,8 @@ namespace FWO.Data.Flow
 
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; }
+
+        [JsonProperty("flow_active"), JsonPropertyName("flow_active")]
+        public bool FlowActive { get; set; }
     }
 }

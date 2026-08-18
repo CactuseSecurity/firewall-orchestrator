@@ -141,6 +141,51 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
     }
 
     /// <summary>
+    /// Verifies migrated flow endpoints document request validation behavior.
+    /// </summary>
+    [Test]
+    public async Task TransformAsync_WithFlowComplianceEndpoint_AddsValidationDocumentation()
+    {
+        OpenApiOperation operation = CreateOperation();
+        OpenApiOperationTransformerContext context = CreateContext(new ControllerActionDescriptor
+        {
+            ControllerTypeInfo = typeof(FlowComplianceController).GetTypeInfo(),
+            ActionName = nameof(FlowComplianceController.GetFlowComplianceState)
+        });
+        OpenApiApiExampleOperationTransformer transformer = CreateTransformerWithExamples();
+
+        await transformer.TransformAsync(operation, context, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(operation.Description, Does.Contain("Validation behavior"));
+            Assert.That(operation.Description, Does.Contain("ValidationProblemDetails"));
+            Assert.That(operation.Description, Does.Contain("source[0].ipStart"));
+            Assert.That(operation.RequestBody!.Description, Does.Contain("Unknown JSON properties"));
+            Assert.That(operation.Responses!["400"].Description, Does.Contain("request-shape"));
+        });
+    }
+
+    /// <summary>
+    /// Verifies migrated compliance zone endpoint documentation is discovered by controller action.
+    /// </summary>
+    [Test]
+    public async Task TransformAsync_WithResolveZonesEndpoint_AddsValidationDocumentation()
+    {
+        OpenApiOperation operation = CreateOperation();
+        OpenApiOperationTransformerContext context = CreateContext(new ControllerActionDescriptor
+        {
+            ControllerTypeInfo = typeof(ComplianceZoneController).GetTypeInfo(),
+            ActionName = nameof(ComplianceZoneController.ResolveZonesForObjects)
+        });
+        OpenApiApiExampleOperationTransformer transformer = CreateTransformerWithExamples();
+
+        await transformer.TransformAsync(operation, context, CancellationToken.None);
+
+        Assert.That(operation.Description, Does.Contain("Unknown root properties and unknown nested properties are rejected."));
+    }
+
+    /// <summary>
     /// Verifies documented wildcard behavior stays aligned with generated GraphQL filters.
     /// </summary>
     [Test]
@@ -255,6 +300,29 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
         IEnumerable<IOpenApiEndpointDocumentationProvider> providers = provider.GetServices<IOpenApiEndpointDocumentationProvider>();
 
         Assert.That(providers, Has.One.InstanceOf<OpenApiOwnerDocumentationProvider>());
+        Assert.That(providers, Has.One.InstanceOf<OpenApiFlowValidationDocumentationProvider>());
+    }
+
+    /// <summary>
+    /// Verifies the validation failure example is available for documented 400 responses.
+    /// </summary>
+    [Test]
+    public void AddApiExamples_RegistersValidationProblemDetailsExample()
+    {
+        ServiceCollection services = new();
+        services.AddApiExamples();
+        ServiceProvider provider = services.BuildServiceProvider();
+        ApiExampleCatalog exampleCatalog = provider.GetRequiredService<ApiExampleCatalog>();
+
+        bool found = exampleCatalog.TryGetExample(typeof(ValidationProblemDetails), out object? example);
+        ValidationProblemDetails problemDetails = (ValidationProblemDetails)example!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(found, Is.True);
+            Assert.That(problemDetails.Status, Is.EqualTo(400));
+            Assert.That(problemDetails.Errors.Keys, Does.Contain("filter.visibleInRequestTypo"));
+        });
     }
 
     /// <summary>
@@ -355,6 +423,40 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
         {
             Assert.That(getZoneStatusCodes, Is.EqualTo([200, 401, 403, 500]));
             Assert.That(resolveStatusCodes, Is.EqualTo([200, 400, 401, 403, 500]));
+        });
+    }
+
+    /// <summary>
+    /// Verifies migrated flow endpoints declare the validation response contract for OpenAPI.
+    /// </summary>
+    [Test]
+    public void FlowControllers_MigratedActionsDeclareValidationStatusCodes()
+    {
+        MethodInfo[] methods =
+        [
+            typeof(FlowComplianceController).GetMethod(nameof(FlowComplianceController.GetFlowComplianceState))!,
+            typeof(FlowComplianceController).GetMethod(nameof(FlowComplianceController.GetPolicyIds))!,
+            typeof(FlowCatalogController).GetMethod(nameof(FlowCatalogController.GetAddressObjects))!,
+            typeof(FlowCatalogController).GetMethod(nameof(FlowCatalogController.GetAddressGroups))!,
+            typeof(FlowCatalogController).GetMethod(nameof(FlowCatalogController.GetServiceObjects))!,
+            typeof(FlowCatalogController).GetMethod(nameof(FlowCatalogController.GetServiceGroups))!,
+            typeof(FlowCatalogController).GetMethod(nameof(FlowCatalogController.GetTimeObjects))!,
+            typeof(FlowCatalogController).GetMethod(nameof(FlowCatalogController.GetAddressObjectId))!,
+            typeof(FlowCatalogController).GetMethod(nameof(FlowCatalogController.GetServiceObjectId))!,
+            typeof(FlowCatalogController).GetMethod(nameof(FlowCatalogController.GetTimeObjectId))!
+        ];
+
+        Assert.Multiple(() =>
+        {
+            foreach (MethodInfo method in methods)
+            {
+                int[] statusCodes = method.GetCustomAttributes<ProducesResponseTypeAttribute>()
+                    .Select(attribute => attribute.StatusCode)
+                    .OrderBy(statusCode => statusCode)
+                    .ToArray();
+
+                Assert.That(statusCodes, Is.EqualTo([200, 400, 401, 403, 500]), method.Name);
+            }
         });
     }
 

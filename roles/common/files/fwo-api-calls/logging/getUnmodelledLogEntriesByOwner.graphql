@@ -1,0 +1,24 @@
+# The modelled flag is reserved for future use: no component sets it to true yet, so this query
+# currently returns all logged flows of the owner. Once the modelling variance analysis marks the
+# flows it covers, the same query returns only the traffic which is not modelled.
+query getUnmodelledLogEntriesByOwner($ownerId: Int!, $limit: Int!) {
+  logging_log_entry(
+    where: {owner_id: {_eq: $ownerId}, modelled: {_eq: false}}
+    order_by: {log_count: desc}
+    limit: $limit
+  ) {
+    id
+    log_count
+    source
+    destination
+    service_protocol
+    service_port
+    allowed
+    log_time
+    logging_rule_name
+    protocol_name: stm_ip_proto {
+      id: ip_proto_id
+      name: ip_proto_name
+    }
+  }
+}

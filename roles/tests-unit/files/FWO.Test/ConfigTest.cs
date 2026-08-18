@@ -4,6 +4,7 @@ using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data;
+using FWO.Data.Enums;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server;
@@ -349,6 +350,56 @@ namespace FWO.Test
         {
             Assert.That(ConfigQueries.subscribeFlowSyncConfigChanges, Does.Contain("flowSyncSleepTime"));
             Assert.That(ConfigQueries.subscribeFlowSyncConfigChanges, Does.Contain("flowNamingSourceManagementRanking"));
+        }
+
+        [Test]
+        public void LogDataImportSubscription_ContainsIntervalUnit()
+        {
+            Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("importLogDataSleepTimeUnit"));
+        }
+
+        [Test]
+        public void LogDataImportSubscription_ContainsSettingsUsedByRunningImports()
+        {
+            Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("importLogDataMaxEntries"));
+            Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("allowLogDataPortWithoutProtocol"));
+            Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("replaceExistingLogData"));
+            Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("logDataRetentionDays"));
+        }
+
+        [Test]
+        public void ImportSubscriptions_ContainTheScriptTimeoutOfEveryScriptedImport()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("importScriptTimeout"));
+                Assert.That(ConfigQueries.subscribeImportAppDataConfigChanges, Does.Contain("importScriptTimeout"));
+                Assert.That(ConfigQueries.subscribeImportIpDataConfigChanges, Does.Contain("importScriptTimeout"));
+            });
+        }
+
+        [Test]
+        public void ConfigData_DefaultsTheImportScriptTimeoutToAnHour()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.ImportScriptTimeout, Is.EqualTo(60));
+        }
+
+        [Test]
+        public void ConfigData_DefaultsLogDataImportIntervalUnitToHours()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.ImportLogDataSleepTimeUnit, Is.EqualTo(LogDataImportIntervalUnit.Hours));
+        }
+
+        [Test]
+        public void ConfigData_EnablesLogDataReplacementByDefault()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.ReplaceExistingLogData, Is.True);
         }
 
         [Test]

@@ -189,7 +189,6 @@ namespace FWO.Test
         public async Task ManualAppServer_RequestDeleteAppServer_SetsConfirmationMessage()
         {
             await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
-            SimulatedUserConfig.DummyTranslate["U9007"] = "Cannot delete used ";
             ModellingAppServer appServer = CreateServer(101, "manual", "10.0.0.101");
             appServer.InUse = true;
 
@@ -209,7 +208,6 @@ namespace FWO.Test
         public async Task ManualAppServer_RequestReactivateAppServer_SetsConfirmationMessage()
         {
             await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
-            SimulatedUserConfig.DummyTranslate["U9005"] = "Reactivate ";
             ModellingAppServer appServer = CreateServer(102, "deleted", "10.0.0.102", deleted: true);
 
             IRenderedComponent<ManualAppServer> component = RenderManualAppServer(context, new FwoOwner { Id = 9, Name = "app" }, true);

@@ -164,18 +164,13 @@
 
     private async Task PersistActionNotificationIds()
     {
-        if (PersistedAction.Id <= 0)
-        {
-            UpdateExternalParams();
-            return;
-        }
-
-        if (PersistedAction.ActionType != nameof(StateActionTypes.SendEmail))
+        UpdateExternalParams();
+        if (!CanPersistNotificationIdsImmediately())
         {
             return;
         }
 
-        string externalParams = EmailExternalParams();
+        string externalParams = ActAction.ExternalParams;
         int updatedId = await UpdateAction(PersistedAction, externalParams);
         if (updatedId != PersistedAction.Id)
         {
@@ -184,6 +179,15 @@
         }
 
         ActAction.ExternalParams = externalParams;
+        PersistedAction.ExternalParams = externalParams;
+    }
+
+    private bool CanPersistNotificationIdsImmediately()
+    {
+        return PersistedAction.Id > 0
+            && PersistedAction.ActionType == nameof(StateActionTypes.SendEmail)
+            && ActAction.ActionType == nameof(StateActionTypes.SendEmail)
+            && PersistedAction.Scope == ActAction.Scope;
     }
 
     private void UpdateExternalParams()

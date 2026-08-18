@@ -138,10 +138,10 @@
 
     private void EditAction(WfStateAction action)
     {
-        actAction = action;
+        actAction = new WfStateAction(action);
         persistedAction = new WfStateAction(action);
         ResetActionEditState();
-        LoadActionExternalParams(action);
+        LoadActionExternalParams(actAction);
         EditActionMode = true;
     }
 

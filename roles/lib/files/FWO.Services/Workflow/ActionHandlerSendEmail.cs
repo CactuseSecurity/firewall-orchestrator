@@ -59,6 +59,7 @@ namespace FWO.Services.Workflow
             WfObjectScopes scope, FwoOwner? owner, string? userGrpDn)
         {
             if (EmailBundleCollector == null || EmailBundleCollector.IsFlushing
+                || emailActionParams.AttachedContent != EmailAttachedContent.RequestedConnections
                 || emailActionParams.RequestTaskBundleMode != EmailRequestTaskBundleMode.SameTaskType
                 || scope != WfObjectScopes.RequestTask || statefulObject is not WfReqTask reqTask)
             {

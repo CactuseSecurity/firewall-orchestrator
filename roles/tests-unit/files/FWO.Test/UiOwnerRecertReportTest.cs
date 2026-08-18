@@ -169,6 +169,22 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void OwnerRecertReport_ShowsNoRecertifiableOwnersAssignedWhenNoOwnersAreOverdue()
+        {
+            List<OwnerConnectionReport> ownerData =
+            [
+                BuildOwnerReport("EXT-UPCOMING", "Upcoming Owner", DateTime.Today.AddDays(3))
+            ];
+
+            IRenderedComponent<OwnerRecertReport> cut = Render<OwnerRecertReport>(parameters => parameters
+                .Add(p => p.OwnerData, ownerData)
+                .Add(p => p.RecertificationDisplayPeriod, 7));
+
+            Assert.That(cut.Markup, Does.Contain("No recertifiable owners assigned"));
+            Assert.That(cut.Markup, Does.Not.Contain("No overdue owners"));
+        }
+
         private static OwnerConnectionReport BuildOwnerReport(string extAppId, string name, DateTime? nextRecertDate,
             Dictionary<string, string>? additionalInfo = null)
         {

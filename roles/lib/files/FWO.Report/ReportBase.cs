@@ -83,27 +83,7 @@ namespace FWO.Report
     </body>
 </html>";
 
-        protected StringBuilder HtmlTemplate = new($@"
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset=""utf-8""/>
-      <title>##Title##</title>
-         {NotificationTableBodyBuilder.HtmlTableStyleBlock}
-    </head>
-    <body>
-        <h2>##Title##</h2>
-        <p>##Date-of-Config##: ##GeneratedFor## (UTC)</p>
-        <p>##GeneratedOn##: ##Date## (UTC)</p>
-        <p>##OwnerFilters##</p>
-        <p>##OtherFilters##</p>
-        <p>##Filter##</p>
-        <hr>
-        ##ToC##
-        <hr>
-        ##Body##
-    </body>
-</html>");
+        protected StringBuilder HtmlTemplate = new(HtmlTemplateSource);
 
         public readonly DynGraphqlQuery Query;
         public UserConfig userConfig;

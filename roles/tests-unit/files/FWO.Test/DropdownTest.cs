@@ -187,6 +187,37 @@ namespace FWO.Test
         }
 
         /// <summary>
+        /// Verifies that clearing a free-text string selection removes the previous value instead of restoring it.
+        /// </summary>
+        [Test]
+        public async Task HandleBlur_WithFreeTextEnabled_ClearsSelectionWhenInputIsEmpty()
+        {
+            Services.AddScoped<DomEventService>();
+            JSInterop.Mode = JSRuntimeMode.Loose;
+            string? selectedValue = "initial";
+            IRenderedComponent<Dropdown<string>> renderedDropdown = Render<Dropdown<string>>(parameters => parameters
+                .Add(p => p.AllowFreeText, true)
+                .Add(p => p.Elements, kAlphaBeta)
+                .Add(p => p.NoneSelectedText, "none")
+                .Add(p => p.SelectedElements, kCustomLabel)
+                .Add(p => p.SelectedElementChanged, value => selectedValue = value));
+            Dropdown<string> dropdown = renderedDropdown.Instance;
+            MethodInfo handleBlurMethod = GetInstanceMethod("HandleBlur", typeof(FocusEventArgs));
+            FieldInfo searchValueField = typeof(Dropdown<string>).GetField("searchValue", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingFieldException(typeof(Dropdown<string>).FullName, "searchValue");
+            searchValueField.SetValue(dropdown, "");
+
+            await renderedDropdown.InvokeAsync(() => (Task)handleBlurMethod.Invoke(dropdown, kFocusArgs)!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(dropdown.SelectedElements, Is.Empty);
+                Assert.That(selectedValue, Is.Null);
+                Assert.That(GetSearchValue(dropdown), Is.EqualTo("none"));
+            });
+        }
+
+        /// <summary>
         /// Verifies that opening the dropdown keeps typed free text when the feature is enabled for strings.
         /// </summary>
         [Test]

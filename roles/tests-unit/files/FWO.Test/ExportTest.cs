@@ -777,6 +777,58 @@ namespace FWO.Test
             StringAssert.Contains("\"name\": \"Active\"", json);
         }
 
+        [Test]
+        public void OwnersGenerateCsvAndHtml_RespectOwnerAddInfoFilter()
+        {
+            ReportOwners report = new(query, userConfig, ReportType.Owners)
+            {
+                ReportData = new ReportData()
+                {
+                    OwnerAddInfoFilter = new AddInfoFilter
+                    {
+                        Name = "department",
+                        Mode = AddInfoFilterMode.value,
+                        Value = "IT"
+                    },
+                    OwnerData =
+                    [
+                        new OwnerConnectionReport()
+                        {
+                            Owner = new FwoOwner()
+                            {
+                                ExtAppId = "APP-1",
+                                Name = "Owner One",
+                                AdditionalInfo = new Dictionary<string, string>() { { "department", "IT" } }
+                            }
+                        },
+                        new OwnerConnectionReport()
+                        {
+                            Owner = new FwoOwner()
+                            {
+                                ExtAppId = "APP-2",
+                                Name = "Owner Two",
+                                AdditionalInfo = new Dictionary<string, string>() { { "department", "HR" } }
+                            }
+                        }
+                    ]
+                }
+            };
+
+            string csv = report.ExportToCsv();
+            string html = RemoveLinebreaks(report.ExportToHtml());
+            string json = report.ExportToJson();
+
+            Assert.Multiple(() =>
+            {
+                StringAssert.Contains("\"APP-1\",\"Owner One\"", csv);
+                StringAssert.DoesNotContain("\"APP-2\",\"Owner Two\"", csv);
+                StringAssert.Contains("<td>APP-1</td><td>Owner One</td>", html);
+                StringAssert.DoesNotContain("<td>APP-2</td><td>Owner Two</td>", html);
+                StringAssert.Contains("\"APP-1\"", json);
+                StringAssert.DoesNotContain("\"APP-2\"", json);
+            });
+        }
+
         private static void SetPrivateField<T>(object target, string fieldName, T value)
         {
             FieldInfo? field = target.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);

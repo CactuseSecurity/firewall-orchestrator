@@ -365,7 +365,7 @@
         return $"{userConfig.GetText("report_elements")}: {currentReport!.ReportData.ElementsCount}.";
     }
 
-    private IEnumerable<string> GetAvailableOwnerAddInfoNames()
+    private IEnumerable<string>? GetAvailableOwnerAddInfoNames()
     {
         List<string> addInfoNames = [];
 
@@ -382,7 +382,7 @@
             .OrderBy(addInfoName => addInfoName, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        return distinctAddInfoNames;
+        return distinctAddInfoNames.Count > 0 ? distinctAddInfoNames : null;
     }
 
 

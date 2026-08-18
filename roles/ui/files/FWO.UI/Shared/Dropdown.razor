@@ -320,12 +320,21 @@
         }
 
         string typedValue = searchValue?.Trim() ?? string.Empty;
+        string? currentValue = SelectedElements.FirstOrDefault() as string;
+
         if (string.IsNullOrWhiteSpace(typedValue) || string.Equals(typedValue, NoneSelectedText, StringComparison.Ordinal))
         {
+            if (!string.IsNullOrWhiteSpace(currentValue))
+            {
+                SelectedElements = Enumerable.Empty<ElementType>();
+                await SelectedElementChanged.InvokeAsync(default);
+                DisplaySelection(SelectedElements);
+                return true;
+            }
+
             return false;
         }
 
-        string? currentValue = SelectedElements.FirstOrDefault() as string;
         if (string.Equals(currentValue, typedValue, StringComparison.Ordinal))
         {
             return false;

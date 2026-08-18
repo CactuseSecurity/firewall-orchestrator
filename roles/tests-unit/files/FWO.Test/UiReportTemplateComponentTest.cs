@@ -49,43 +49,6 @@ namespace FWO.Test
             }
         }
 
-        [SetUp]
-        public void SetUpTranslations()
-        {
-            SimulatedUserConfig.DummyTranslate.TryAdd("templates", "Templates");
-            SimulatedUserConfig.DummyTranslate.TryAdd("actions", "Actions");
-            SimulatedUserConfig.DummyTranslate.TryAdd("comment", "Comment");
-            SimulatedUserConfig.DummyTranslate.TryAdd("creation_date", "Creation date");
-            SimulatedUserConfig.DummyTranslate.TryAdd("load", "Load");
-            SimulatedUserConfig.DummyTranslate.TryAdd("edit", "Edit");
-            SimulatedUserConfig.DummyTranslate.TryAdd("delete", "Delete");
-            SimulatedUserConfig.DummyTranslate.TryAdd("report_template", "Report template");
-            SimulatedUserConfig.DummyTranslate.TryAdd("U1002", "Delete template");
-            SimulatedUserConfig.DummyTranslate.TryAdd("report_time", "Report time");
-            SimulatedUserConfig.DummyTranslate.TryAdd("devices", "Devices");
-            SimulatedUserConfig.DummyTranslate.TryAdd("managements", "Managements");
-            SimulatedUserConfig.DummyTranslate.TryAdd("unused_days", "Unused days");
-            SimulatedUserConfig.DummyTranslate.TryAdd("diff_interval", "Diff interval");
-            SimulatedUserConfig.DummyTranslate.TryAdd("show_non_impact_rules", "Show non impact rules");
-            SimulatedUserConfig.DummyTranslate.TryAdd("tenant", "Tenant");
-            SimulatedUserConfig.DummyTranslate.TryAdd("report_type", "Report type");
-            SimulatedUserConfig.DummyTranslate.TryAdd("select_device", "Select device");
-            SimulatedUserConfig.DummyTranslate.TryAdd("select_time", "Select time");
-            SimulatedUserConfig.DummyTranslate.TryAdd("report_filters", "Report filters");
-            SimulatedUserConfig.DummyTranslate.TryAdd("rule_filters", "Rule filters");
-            SimulatedUserConfig.DummyTranslate.TryAdd("variance_filters", "Variance filters");
-            SimulatedUserConfig.DummyTranslate.TryAdd("save_template", "Save template");
-            SimulatedUserConfig.DummyTranslate.TryAdd("edit_template", "Edit template");
-            SimulatedUserConfig.DummyTranslate.TryAdd("delete_template", "Delete template");
-            SimulatedUserConfig.DummyTranslate.TryAdd("open", "Open");
-            SimulatedUserConfig.DummyTranslate.TryAdd("from", "from");
-            SimulatedUserConfig.DummyTranslate.TryAdd("until", "until");
-            SimulatedUserConfig.DummyTranslate.TryAdd("Days", "Days");
-            SimulatedUserConfig.DummyTranslate.TryAdd("Weeks", "Wochen");
-            SimulatedUserConfig.DummyTranslate.TryAdd("Months", "Months");
-            SimulatedUserConfig.DummyTranslate.TryAdd("Years", "Years");
-        }
-
         [Test]
         public void ReportTemplateComponent_ModellerOnly_ShowsOnlyAllowedTemplates()
         {
@@ -207,7 +170,6 @@ namespace FWO.Test
             {
                 Comment = "T0100"
             };
-            SimulatedUserConfig.DummyTranslate["T0100"] = "Translated template comment";
 
             ReportTemplate decodedTemplate = component.decodeComment(template);
             string recodedComment = component.recodeComment(decodedTemplate.Comment);

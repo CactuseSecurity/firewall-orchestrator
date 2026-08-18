@@ -98,8 +98,6 @@ namespace FWO.Test
             SimulatedUserConfig userConfig = (SimulatedUserConfig)context.Services.GetRequiredService<UserConfig>();
             userConfig.User.Roles = [Roles.Admin, Roles.Modeller];
             userConfig.SetExecutionMode(Roles.Admin);
-            SimulatedUserConfig.DummyTranslate["U9017"] = "Reject interface ";
-            SimulatedUserConfig.DummyTranslate["U9036"] = "Admin default reason";
             ModellingConnectionHandler handler = CreateConnectionHandler(
                 new RejectInterfacePopupTestApiConn(),
                 userConfig,
@@ -112,8 +110,9 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(component.Markup, Does.Contain("Reject interface iface21?"));
-                Assert.That(component.Markup, Does.Contain("Admin default reason"));
+                Assert.That(component.Markup, Does.Contain(userConfig.GetText("reject_interface")));
+                Assert.That(component.Markup, Does.Contain(userConfig.GetText("U9017") + "iface21?"));
+                Assert.That(component.Find("textarea").GetAttribute("value"), Is.EqualTo(userConfig.GetText("U9036")));
             });
         }
 
@@ -124,7 +123,6 @@ namespace FWO.Test
             SimulatedUserConfig userConfig = (SimulatedUserConfig)context.Services.GetRequiredService<UserConfig>();
             userConfig.User.Roles = [Roles.Admin, Roles.Modeller];
             userConfig.SetExecutionMode(Roles.Admin);
-            SimulatedUserConfig.DummyTranslate["U9017"] = "Reject interface ";
             RejectInterfacePopupTestApiConn apiConn = new();
             ModellingConnection actConn = new()
             {

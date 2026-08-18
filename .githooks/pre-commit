@@ -107,10 +107,64 @@ if [ "${#STAGED_ROLES_DOTNET_FORMAT_FILES[@]}" -gt 0 ]; then
     dotnet format roles --no-restore --include "${STAGED_ROLES_DOTNET_FORMAT_FILES[@]}"
 fi
 
-# Prevent committing submodule pointer updates (auto-unstage)
+# Prevent accidental submodule pointer updates.
+#
+# Normal commit:
+#   Any staged submodule pointer change is considered accidental and is unstaged.
+#
+# Merge commit:
+#   - staged pointer == MERGE_HEAD pointer -> allow incoming branch version
+#   - staged pointer == HEAD pointer       -> allow first-parent version
+#   - staged pointer == neither           -> fail and require explicit resolution
 for submodule in ${CHECK_SUBMODULE_POINTERS:-}; do
-    if ! git diff --cached --quiet --ignore-submodules=none -- "$submodule"; then
-        echo "Info: Unstaging '$submodule' submodule pointer change (not allowed in commits)."
-        git restore --staged -- "$submodule" >/dev/null 2>&1
+    # Nothing staged for this submodule.
+    if git diff --cached --quiet --ignore-submodules=none -- "$submodule"; then
+        continue
     fi
+
+    # Get the pointer currently staged in the index.
+    staged_pointer="$(
+        git ls-files -s -- "$submodule" |
+        awk '$1 == "160000" { print $2; exit }'
+    )"
+
+    # Not currently creating a merge commit:
+    # preserve the existing accidental-pointer protection.
+    if ! merge_head="$(git rev-parse -q --verify MERGE_HEAD 2>/dev/null)"; then
+        echo "Info: Unstaging '$submodule' submodule pointer change (not allowed in normal commits)."
+        git restore --staged -- "$submodule" >/dev/null 2>&1
+        continue
+    fi
+
+    # During a merge, HEAD is the first parent and MERGE_HEAD is the
+    # incoming branch.
+    first_parent_pointer="$(
+        git ls-tree HEAD -- "$submodule" |
+        awk '$1 == "160000" { print $3; exit }'
+    )"
+
+    incoming_pointer="$(
+        git ls-tree "$merge_head" -- "$submodule" |
+        awk '$1 == "160000" { print $3; exit }'
+    )"
+
+    if [[ -n "$staged_pointer" &&
+          "$staged_pointer" == "$incoming_pointer" ]]; then
+        echo "Info: Keeping '$submodule' pointer from incoming merge branch ($staged_pointer)."
+        continue
+    fi
+
+    if [[ -n "$staged_pointer" &&
+          "$staged_pointer" == "$first_parent_pointer" ]]; then
+        echo "Info: Keeping '$submodule' pointer from first merge parent ($staged_pointer)."
+        continue
+    fi
+
+    echo "Error: Unexpected '$submodule' submodule pointer during merge."
+    echo "  first parent (HEAD):  ${first_parent_pointer:-<none>}"
+    echo "  incoming (MERGE_HEAD): ${incoming_pointer:-<none>}"
+    echo "  staged:               ${staged_pointer:-<none>}"
+    echo
+    echo "Resolve the submodule pointer explicitly before committing."
+    exit 1
 done

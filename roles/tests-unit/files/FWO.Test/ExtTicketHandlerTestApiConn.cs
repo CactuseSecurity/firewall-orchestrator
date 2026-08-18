@@ -351,8 +351,7 @@ namespace FWO.Test
                 ++TicketQueryCount;
                 if (ReturnNullOnFirstTicketQuery && TicketQueryCount == 1)
                 {
-                    GraphQLResponse<dynamic> emptyResponse = new() { Data = null };
-                    return emptyResponse.Data;
+                    return default!;
                 }
                 GraphQLResponse<dynamic> response = new() { Data = ticket123 };
                 return response.Data;

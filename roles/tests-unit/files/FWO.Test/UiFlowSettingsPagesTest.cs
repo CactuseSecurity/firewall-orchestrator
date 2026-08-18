@@ -23,12 +23,6 @@ namespace FWO.Test
         private static readonly long[] kUnmappedNetworkCandidateIds = [13, 14];
         private static readonly string[] kUnmappedNetworkCandidateTypes = ["host", "host"];
 
-        [SetUp]
-        public void SetUp()
-        {
-            SeedTranslations();
-        }
-
         [Test]
         public async Task FlowNetworkGroupsPage_RendersWithoutErrors()
         {
@@ -821,52 +815,6 @@ namespace FWO.Test
             });
             context.Services.AddSingleton<AuthenticationStateProvider>(new FlowSettingsPagesAuthStateProvider(Roles.Admin));
             return context;
-        }
-
-        private static void SeedTranslations()
-        {
-            foreach (string key in new[]
-            {
-                "network_groups",
-                "service_objects",
-                "service_groups",
-                "time_objects",
-                "duplicate_objects",
-                "flow_object",
-                "management",
-                "objects",
-                "actions",
-                "id",
-                "name",
-                "state",
-                "show_in_request_module",
-                "details",
-                "uid",
-                "search_name",
-                "custom_objects",
-                "custom_network_objects",
-                "custom_service_objects",
-                "create_custom_flow_object",
-                "create_custom_network_object",
-                "create_custom_service_object",
-                "flow_objects",
-                "flow_network_objects",
-                "flow_service_objects",
-                "flow_network_groups",
-                "flow_service_groups",
-                "flow_time_objects",
-                "edit_flow_object",
-                "save",
-                "cancel",
-                "select",
-                "no_duplicate_conflicts",
-                "current",
-                "type",
-                "ip"
-            })
-            {
-                SimulatedUserConfig.DummyTranslate.TryAdd(key, key);
-            }
         }
 
         private static IRenderedComponent<TComponent> RenderPage<TComponent>(BunitContext context)

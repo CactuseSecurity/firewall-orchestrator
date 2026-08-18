@@ -512,7 +512,6 @@ namespace FWO.Test
             globalConfig.DefaultLanguage = "English";
             globalConfig.NotificationLanguage = "German";
             globalConfig.GermanTranslate["generated_on"] = "Erstellt am";
-            globalConfig.DummyTranslate["generated_on"] = "Generated on";
 
             ClassicAssert.AreEqual("Erstellt am", globalConfig.GetNotificationText("generated_on"));
 

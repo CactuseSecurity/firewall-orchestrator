@@ -18,6 +18,9 @@ namespace FWO.Api.Client.Queries
         public static readonly string getViolationsChunk;
         public static readonly string getViolationsByRuleID;
         public static readonly string getViolationsByRuleUid;
+        public static readonly string countComplianceDiffViolations;
+        public static readonly string getComplianceDiffViolationsByChunk;
+        public static readonly string getActiveViolationsBeforeDate;
 
         public static readonly string addPolicy;
         public static readonly string disablePolicy;
@@ -75,6 +78,9 @@ namespace FWO.Api.Client.Queries
                 getViolationsChunk = GetQueryText("compliance/getViolationsChunk.graphql");
                 getViolationsByRuleID = GetQueryText("compliance/getViolationsByRuleID.graphql");
                 getViolationsByRuleUid = GetQueryText("compliance/getViolationsByRuleUid.graphql");
+                countComplianceDiffViolations = GetQueryText("compliance/countComplianceDiffViolations.graphql");
+                getComplianceDiffViolationsByChunk = GetQueryText("compliance/getComplianceDiffViolationsByChunk.graphql");
+                getActiveViolationsBeforeDate = GetQueryText("compliance/getActiveViolationsBeforeDate.graphql");
 
                 deleteAllViolations = GetQueryText("compliance/deleteAllViolations.graphql");
                 getViolationCount = GetQueryText("compliance/getViolationCount.graphql");

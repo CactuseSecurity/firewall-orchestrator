@@ -26,7 +26,6 @@ namespace FWO.Report
         public List<ComplianceViolation> Violations { get; set; } = [];
         public bool ShowNonImpactRules { get; set; }
         public List<Management> Managements { get; set; } = [];
-        protected virtual string InternalQuery => RuleQueries.getRulesWithCurrentViolationsByChunk;
         protected DebugConfig DebugConfig;
         protected readonly GlobalConfig GlobalConfig;
 
@@ -115,22 +114,12 @@ namespace FWO.Report
 
             await GetManagementAndDevices(apiConnection);
 
-            List<int> managementIds = Managements.Select(mgmt => mgmt.Id).ToList();
-            // Get amount of rules to fetch
-
-            AggregateCount? result = await apiConnection.SendQueryAsync<AggregateCount>(
-                RuleQueries.countActiveRules,
-                new { mgm_ids = managementIds }
-            );
-            int rulesCount = result?.Aggregate?.Count ?? 0;
-
-            // Get data parallelized.
-            List<Rule>[]? chunks = await GetDataParallelized<Rule>(rulesCount, elementsPerFetch, apiConnection, ct, InternalQuery);
+            List<Rule>[]? chunks = await FetchRuleChunks(elementsPerFetch, apiConnection, ct);
 
             if (chunks != null)
             {
                 RuleViewData.Clear();
-                Rules = await ProcessChunksParallelized(chunks, ct, apiConnection);
+                Rules = await ProcessChunksParallelized(chunks, ct);
                 Log.TryWriteLog(LogType.Debug, "Compliance Report", $"Fetched {Rules.Count} rules for compliance report.", DebugConfig.ExtendedLogReportGeneration);
             }
             else
@@ -214,43 +203,45 @@ namespace FWO.Report
 
         public async Task<List<T>[]?> GetDataParallelized<T>(int rulesCount, int elementsPerFetch, ApiConnection apiConnection, CancellationToken ct, string query)
         {
-            List<Task<List<T>>> tasks = new();
-            List<Dictionary<string, object>> queryVariablesList = new();
+            return await GetDataParallelized<T>(
+                rulesCount,
+                elementsPerFetch,
+                apiConnection,
+                ct,
+                query,
+                (offset, limit) => CreateQueryVariables(offset, limit, query));
+        }
 
-            // Create query variables for fetching rules
-
-            for (int offset = 0; offset < rulesCount; offset += elementsPerFetch)
+        /// <summary>
+        /// Fetches a known number of records in parallel pages. The variable factory lets specialized reports page a
+        /// different source table without coupling their query-specific filters to <see cref="CreateQueryVariables"/>.
+        /// </summary>
+        protected async Task<List<T>[]> GetDataParallelized<T>(
+            int elementCount,
+            int elementsPerFetch,
+            ApiConnection apiConnection,
+            CancellationToken ct,
+            string query,
+            Func<int, int, Dictionary<string, object>> createVariables)
+        {
+            if (elementsPerFetch <= 0)
             {
-                queryVariablesList.Add(CreateQueryVariables(offset, elementsPerFetch, query));
+                throw new ArgumentOutOfRangeException(nameof(elementsPerFetch));
             }
 
-            // Start fetching tasks
+            List<Task<List<T>>> tasks = [];
 
-            foreach (Dictionary<string, object> queryVariables in queryVariablesList)
+            // Task.WhenAll preserves this page order, although the requests themselves run concurrently.
+            for (int offset = 0; offset < elementCount; offset += elementsPerFetch)
             {
-                await _semaphore.WaitAsync(ct);
-
-                var task = Task.Run(async () =>
-                {
-                    try
-                    {
-                        return await apiConnection.SendQueryAsync<List<T>>(query, queryVariables);
-                    }
-                    finally
-                    {
-                        _semaphore.Release();
-                    }
-                }, ct);
-
-                tasks.Add(task);
+                Dictionary<string, object> variables = createVariables(offset, elementsPerFetch);
+                tasks.Add(FetchDataChunk<T>(query, variables, apiConnection, ct));
             }
-
-            // Wait for all tasks to complete and return fetched rules in chunks
 
             return await Task.WhenAll(tasks);
         }
 
-        public async Task<List<Rule>> ProcessChunksParallelized(List<Rule>[] chunks, CancellationToken ct, ApiConnection apiConnection)
+        public async Task<List<Rule>> ProcessChunksParallelized(List<Rule>[] chunks, CancellationToken ct)
         {
             List<Task<(List<Rule> processed, List<RuleViewData> viewData)>> tasks = new();
 
@@ -264,9 +255,9 @@ namespace FWO.Report
 
                     try
                     {
-                        foreach (var rule in chunk)
+                        foreach (Rule rule in chunk)
                         {
-                            SetComplianceDataForRule(rule, apiConnection);
+                            SetComplianceDataForRule(rule);
 
                             // Resolve network locations TODO: Move resolving completely to ComplianceCheck or RuleViewData
 
@@ -366,6 +357,43 @@ namespace FWO.Report
         #endregion
 
         #region Methods - Private
+
+        /// <summary>
+        /// Fetches the rule chunks used by a standard compliance report. Specialized reports can override this data
+        /// acquisition step while sharing the same rendering and export pipeline.
+        /// </summary>
+        protected virtual async Task<List<Rule>[]?> FetchRuleChunks(int elementsPerFetch, ApiConnection apiConnection, CancellationToken ct)
+        {
+            List<int> managementIds = Managements.Select(management => management.Id).ToList();
+            AggregateCount? result = await apiConnection.SendQueryAsync<AggregateCount>(
+                RuleQueries.countActiveRules,
+                new { mgm_ids = managementIds });
+            int rulesCount = result?.Aggregate?.Count ?? 0;
+
+            // The standard report needs every active rule, including compliant rules when the display setting requests them.
+            return await GetDataParallelized<Rule>(
+                rulesCount,
+                elementsPerFetch,
+                apiConnection,
+                ct,
+                RuleQueries.getRulesWithCurrentViolationsByChunk);
+        }
+
+        /// <summary>
+        /// Executes one API page while enforcing the report-wide request concurrency limit.
+        /// </summary>
+        private async Task<List<T>> FetchDataChunk<T>(string query, Dictionary<string, object> variables, ApiConnection apiConnection, CancellationToken ct)
+        {
+            await _semaphore.WaitAsync(ct);
+            try
+            {
+                return await apiConnection.SendQueryAsync<List<T>>(query, variables);
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+        }
 
         private void SetUpCsvExport()
         {
@@ -482,7 +510,7 @@ namespace FWO.Report
             return queryVariables;
         }
 
-        protected virtual void SetComplianceDataForRule(Rule rule, ApiConnection apiConnection, Func<ComplianceViolation, string>? formatter = null)
+        protected virtual void SetComplianceDataForRule(Rule rule, Func<ComplianceViolation, string>? formatter = null)
         {
             try
             {

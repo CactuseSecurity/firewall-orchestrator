@@ -24,8 +24,6 @@ namespace FWO.Test
             UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
 
             _testDiffReport = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport);
-            ;
-            _testDiffReport.MockPostProcessDiffReportsRule = true;
         }
 
         [Test]
@@ -42,12 +40,26 @@ namespace FWO.Test
 
             // ACT
 
-            List<Rule> testResults = await _testReport.ProcessChunksParallelized(ruleChunks, ct, new SimulatedApiConnection());
+            List<Rule> testResults = await _testReport.ProcessChunksParallelized(ruleChunks, ct);
 
             // ASSERT
 
             Assert.That(testResults.Count == _testReport.RuleViewData.Count, $"Rules: {testResults.Count} - RuleViewData: {_testReport.RuleViewData.Count}");
 
+        }
+
+        [Test]
+        public async Task Generate_UsesActiveRuleCountForChunkPaging()
+        {
+            ActiveRuleCountApiConnection apiConnection = new();
+
+            await _testReport.Generate(100, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.countActiveRules));
+                Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.countRules));
+            });
         }
 
         [Test]
@@ -131,7 +143,7 @@ namespace FWO.Test
 
             // ACT
 
-            List<Rule> testResults = await _testDiffReport.ProcessChunksParallelized(ruleChunks, ct, new SimulatedApiConnection());
+            List<Rule> testResults = await _testDiffReport.ProcessChunksParallelized(ruleChunks, ct);
 
             // ASSERT
 
@@ -180,7 +192,45 @@ namespace FWO.Test
         }
 
         [Test]
-        public void CreateQueryVariables_DiffReportExcludesPreviouslyNonCompliantRules()
+        public async Task Generate_DiffReportFetchesViolationsBeforeRulesAndAttachesThem()
+        {
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ComplianceDiffFilterExistingViolations = false
+            };
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
+            MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
+            {
+                DiffReferenceInDays = 7
+            };
+            List<ComplianceViolation> intervalViolations = new()
+            {
+                CreateDiffViolation(1, 101, "rule-a"),
+                CreateDiffViolation(2, 102, "rule-a"),
+                CreateDiffViolation(3, 103, "rule-b", DateTime.Now.AddHours(-1))
+            };
+            DiffPipelineApiConnection apiConnection = new(intervalViolations);
+
+            await report.Generate(100, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
+
+            int countQueryIndex = apiConnection.Queries.IndexOf(ComplianceQueries.countComplianceDiffViolations);
+            int violationQueryIndex = apiConnection.Queries.IndexOf(ComplianceQueries.getComplianceDiffViolationsByChunk);
+            int ruleQueryIndex = apiConnection.Queries.IndexOf(RuleQueries.getActiveRulesByUids);
+            Assert.Multiple(() =>
+            {
+                Assert.That(countQueryIndex, Is.GreaterThanOrEqualTo(0));
+                Assert.That(violationQueryIndex, Is.GreaterThan(countQueryIndex));
+                Assert.That(ruleQueryIndex, Is.GreaterThan(violationQueryIndex));
+                Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.countActiveRules));
+                Assert.That(apiConnection.Queries, Does.Not.Contain(ComplianceQueries.getActiveViolationsBeforeDate));
+                Assert.That(report.Rules.Select(rule => rule.Uid), Is.EqualTo(new List<string?> { "rule-a", "rule-b" }));
+                Assert.That(report.Rules.Single(rule => rule.Uid == "rule-a").Violations, Has.Count.EqualTo(2));
+                Assert.That(apiConnection.IntervalViolationsWhere, Does.Not.ContainKey("removed_date"));
+            });
+        }
+
+        [Test]
+        public async Task Generate_DiffReportFiltersPreviouslyNonCompliantRulesBeforeFetchingRules()
         {
             SimulatedGlobalConfig globalConfig = new()
             {
@@ -191,39 +241,36 @@ namespace FWO.Test
             {
                 DiffReferenceInDays = 7
             };
+            List<ComplianceViolation> intervalViolations = new()
+            {
+                CreateDiffViolation(1, 101, "rule-a"),
+                CreateDiffViolation(2, 102, "rule-b"),
+                CreateDiffViolation(3, 103, "rule-c")
+            };
+            List<ComplianceViolation> previousViolations = new()
+            {
+                CreateDiffViolation(11, 11, "rule-a", foundDate: DateTime.Now.AddDays(-8)),
+                CreateDiffViolation(12, 12, "rule-c", foundDate: DateTime.Now.AddDays(-8))
+            };
+            DiffPipelineApiConnection apiConnection = new(intervalViolations, previousViolations);
 
-            Dictionary<string, object> queryVariables = report.CreateQueryVariablesPublic(0, 100, RuleQueries.getRulesWithViolationsInTimespanByChunk);
+            await report.Generate(100, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
 
-            Dictionary<string, object> ruleWhere = (Dictionary<string, object>)queryVariables["rule_where"];
-            Dictionary<string, object> noPreviousViolationsWhere = (Dictionary<string, object>)ruleWhere["_not"];
-            Dictionary<string, object> previousViolationsWhere = (Dictionary<string, object>)noPreviousViolationsWhere["compliance_violations_version_agnostic"];
-            Dictionary<string, object?> previousViolationFoundDate = (Dictionary<string, object?>)previousViolationsWhere["found_date"];
-            List<Dictionary<string, object>> previousViolationRemovalStates = (List<Dictionary<string, object>>)previousViolationsWhere["_or"];
-            Dictionary<string, object?> activePreviousViolation = (Dictionary<string, object?>)previousViolationRemovalStates[0]["removed_date"];
-            Dictionary<string, object?> removedAfterStartPreviousViolation = (Dictionary<string, object?>)previousViolationRemovalStates[1]["removed_date"];
-
-            Assert.That(previousViolationFoundDate["_lt"], Is.TypeOf<DateTime>());
-            Assert.That(previousViolationRemovalStates, Has.Count.EqualTo(2));
-            Assert.That(activePreviousViolation["_is_null"], Is.EqualTo(true));
-            Assert.That(removedAfterStartPreviousViolation["_gte"], Is.TypeOf<DateTime>());
-        }
-
-        [Test]
-        public void CreateQueryVariables_DiffReportKeepsPreviouslyNonCompliantRulesWhenFilterIsDisabled()
-        {
-            Dictionary<string, object> queryVariables = _testDiffReport.CreateQueryVariablesPublic(0, 100, RuleQueries.getRulesWithViolationsInTimespanByChunk);
-            Dictionary<string, object> ruleWhere = (Dictionary<string, object>)queryVariables["rule_where"];
-
-            Assert.That(ruleWhere, Is.Empty);
-        }
-
-        [Test]
-        public void CreateQueryVariables_DiffReportIncludesResolvedViolations()
-        {
-            Dictionary<string, object> queryVariables = _testDiffReport.CreateQueryVariablesPublic(0, 100, RuleQueries.getRulesWithViolationsInTimespanByChunk);
-            Dictionary<string, object> violationsWhere = (Dictionary<string, object>)queryVariables["violations_where"];
-
-            Assert.That(violationsWhere, Does.Not.ContainKey("removed_date"));
+            Dictionary<string, object> previousWhere = apiConnection.PreviousViolationsWhere!;
+            Dictionary<string, object> foundDate = (Dictionary<string, object>)previousWhere["found_date"];
+            List<Dictionary<string, object>> removalStates = (List<Dictionary<string, object>>)previousWhere["_or"];
+            Dictionary<string, object> activeRemovalDate = (Dictionary<string, object>)removalStates[0]["removed_date"];
+            Dictionary<string, object> laterRemovalDate = (Dictionary<string, object>)removalStates[1]["removed_date"];
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.Queries.Count(query => query == ComplianceQueries.getActiveViolationsBeforeDate), Is.EqualTo(1));
+                Assert.That(foundDate["_lt"], Is.TypeOf<DateTime>());
+                Assert.That(removalStates, Has.Count.EqualTo(2));
+                Assert.That(activeRemovalDate["_is_null"], Is.EqualTo(true));
+                Assert.That(laterRemovalDate["_gte"], Is.TypeOf<DateTime>());
+                Assert.That(apiConnection.RequestedRuleUids, Is.EqualTo(new List<string> { "rule-b" }));
+                Assert.That(report.Rules.Select(rule => rule.Uid), Is.EqualTo(new List<string?> { "rule-b" }));
+            });
         }
 
         [Test]
@@ -324,9 +371,140 @@ namespace FWO.Test
             return violation;
         }
 
+        private static ComplianceViolation CreateDiffViolation(
+            int id,
+            int ruleId,
+            string ruleUid,
+            DateTime? removedDate = null,
+            DateTime? foundDate = null)
+        {
+            return new ComplianceViolation
+            {
+                Id = id,
+                RuleId = ruleId,
+                RuleUid = ruleUid,
+                MgmtUid = "mgmt-1",
+                FoundDate = foundDate ?? DateTime.Now.AddHours(-2),
+                RemovedDate = removedDate,
+                Details = $"Violation {id}",
+                Criterion = new ComplianceCriterion
+                {
+                    CriterionType = "Matrix"
+                },
+                Type = ComplianceViolationType.MatrixViolation
+            };
+        }
+
         private string CreateViolationDetailsControlString(DateTime foundDate, int violationId)
         {
             return $"Found: ({foundDate:dd.MM.yyyy} - {foundDate:hh:mm}) Test violation {violationId}";
+        }
+
+        private sealed class DiffPipelineApiConnection : SimulatedApiConnection
+        {
+            private readonly List<ComplianceViolation> _intervalViolations;
+            private readonly List<ComplianceViolation> _previousViolations;
+
+            public List<string> Queries { get; } = new();
+            public List<string> RequestedRuleUids { get; } = new();
+            public Dictionary<string, object>? IntervalViolationsWhere { get; private set; }
+            public Dictionary<string, object>? PreviousViolationsWhere { get; private set; }
+
+            public DiffPipelineApiConnection(
+                List<ComplianceViolation> intervalViolations,
+                List<ComplianceViolation>? previousViolations = null)
+            {
+                _intervalViolations = intervalViolations;
+                _previousViolations = previousViolations ?? new List<ComplianceViolation>();
+            }
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                Queries.Add(query);
+
+                if (query == DeviceQueries.getManagementNames && typeof(QueryResponseType) == typeof(List<Management>))
+                {
+                    List<Management> managements = new()
+                    {
+                        new Management { Id = 1, Uid = "mgmt-1", Name = "Management 1" }
+                    };
+                    return Task.FromResult((QueryResponseType)(object)managements);
+                }
+
+                if (query == ComplianceQueries.countComplianceDiffViolations && typeof(QueryResponseType) == typeof(AggregateCount))
+                {
+                    Dictionary<string, object> queryVariables = (Dictionary<string, object>)variables!;
+                    IntervalViolationsWhere = (Dictionary<string, object>)queryVariables["where"];
+                    AggregateCount count = new()
+                    {
+                        Aggregate = new Aggregate { Count = _intervalViolations.Count }
+                    };
+                    return Task.FromResult((QueryResponseType)(object)count);
+                }
+
+                if (query == ComplianceQueries.getComplianceDiffViolationsByChunk && typeof(QueryResponseType) == typeof(List<ComplianceViolation>))
+                {
+                    Dictionary<string, object> queryVariables = (Dictionary<string, object>)variables!;
+                    int offset = (int)queryVariables["offset"];
+                    int limit = (int)queryVariables["limit"];
+                    List<ComplianceViolation> page = _intervalViolations.Skip(offset).Take(limit).ToList();
+                    return Task.FromResult((QueryResponseType)(object)page);
+                }
+
+                if (query == ComplianceQueries.getActiveViolationsBeforeDate && typeof(QueryResponseType) == typeof(List<ComplianceViolation>))
+                {
+                    Dictionary<string, object> queryVariables = (Dictionary<string, object>)variables!;
+                    PreviousViolationsWhere = (Dictionary<string, object>)queryVariables["where"];
+                    Dictionary<string, object> ruleUidFilter = (Dictionary<string, object>)PreviousViolationsWhere["rule_uid"];
+                    List<string> ruleUids = (List<string>)ruleUidFilter["_in"];
+                    List<ComplianceViolation> page = _previousViolations
+                        .Where(violation => ruleUids.Contains(violation.RuleUid))
+                        .ToList();
+                    return Task.FromResult((QueryResponseType)(object)page);
+                }
+
+                if (query == RuleQueries.getActiveRulesByUids && typeof(QueryResponseType) == typeof(List<Rule>))
+                {
+                    Dictionary<string, object> queryVariables = (Dictionary<string, object>)variables!;
+                    List<string> ruleUids = (List<string>)queryVariables["rule_uids"];
+                    RequestedRuleUids.AddRange(ruleUids);
+                    List<Rule> rules = ruleUids
+                        .Select((ruleUid, index) => new Rule
+                        {
+                            Id = 1000 + index,
+                            Uid = ruleUid,
+                            MgmtId = 1,
+                            Name = ruleUid,
+                            Action = "accept"
+                        })
+                        .ToList();
+                    return Task.FromResult((QueryResponseType)(object)rules);
+                }
+
+                throw new NotSupportedException($"Unexpected query: {query}");
+            }
+        }
+
+        private sealed class ActiveRuleCountApiConnection : SimulatedApiConnection
+        {
+            public List<string> Queries { get; } = new();
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                Queries.Add(query);
+
+                if (query == DeviceQueries.getManagementNames && typeof(QueryResponseType) == typeof(List<Management>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<Management>());
+                }
+
+                if (query == RuleQueries.countActiveRules && typeof(QueryResponseType) == typeof(AggregateCount))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new AggregateCount());
+                }
+
+                throw new NotSupportedException($"Unexpected query: {query}");
+            }
         }
 
     }

@@ -41,6 +41,16 @@ namespace FWO.Test
             return (T)field.GetValue(component)!;
         }
 
+        private static T GetPrivateProperty<T>(SettingsOwner component, string propertyName)
+        {
+            PropertyInfo? property = typeof(SettingsOwner).GetProperty(propertyName, BindingFlags.NonPublic | BindingFlags.Instance);
+            if (property == null)
+            {
+                throw new MissingMemberException(typeof(SettingsOwner).FullName, propertyName);
+            }
+            return (T)property.GetValue(component)!;
+        }
+
         private static void SetInjectedUserConfig(SettingsOwner component, EditOwnerTestUserConfig userConfig)
         {
             PropertyInfo? prop = typeof(SettingsOwner).GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
@@ -205,6 +215,80 @@ namespace FWO.Test
 
             Assert.That(result.Select(type => type.Id).ToList(), Is.EqualTo(new List<int> { 40, 20, 10 }));
             Assert.That(result.All(type => type.Active), Is.True);
+        }
+
+        [Test]
+        public void MatchesOwnerSearch_ReturnsTrue_WhenOwnerNameMatches()
+        {
+            SettingsOwner component = new();
+            SetInjectedUserConfig(component, new EditOwnerTestUserConfig());
+            SetPrivateField(component, "Tenants", new List<Tenant>());
+            SetPrivateField(component, "OwnerSearchTerm", "finance");
+            FwoOwner owner = new() { Id = 1, Name = "Finance App" };
+
+            bool result = (bool)GetPrivateMethod("MatchesOwnerSearch").Invoke(component, [owner])!;
+
+            Assert.That(result, Is.True);
+        }
+
+        [Test]
+        public void MatchesOwnerSearch_ReturnsTrue_WhenResponsibleMatches()
+        {
+            SettingsOwner component = new();
+            SetInjectedUserConfig(component, new EditOwnerTestUserConfig());
+            SetPrivateField(component, "Tenants", new List<Tenant>());
+            SetPrivateField(component, "OwnerSearchTerm", "max mustermann");
+            FwoOwner owner = new() { Id = 2, Name = "Payments" };
+            owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeMain, "CN=Max Mustermann,OU=Users,DC=example,DC=com");
+
+            bool result = (bool)GetPrivateMethod("MatchesOwnerSearch").Invoke(component, [owner])!;
+
+            Assert.That(result, Is.True);
+        }
+
+        [Test]
+        public void MatchesOwnerSearch_ReturnsTrue_WhenTenantMatches()
+        {
+            SettingsOwner component = new();
+            SetInjectedUserConfig(component, new EditOwnerTestUserConfig());
+            SetPrivateField(component, "Tenants", new List<Tenant> { new() { Id = 7, Name = "Shared Services" } });
+            SetPrivateField(component, "OwnerSearchTerm", "shared");
+            FwoOwner owner = new() { Id = 3, Name = "Payments", TenantId = 7 };
+
+            bool result = (bool)GetPrivateMethod("MatchesOwnerSearch").Invoke(component, [owner])!;
+
+            Assert.That(result, Is.True);
+        }
+
+        [Test]
+        public void FilteredOwners_ReturnsAllOwners_WhenSearchIsEmpty()
+        {
+            SettingsOwner component = new();
+            List<FwoOwner> owners =
+            [
+                new() { Id = 1, Name = "Finance" },
+                new() { Id = 2, Name = "Payments" }
+            ];
+            SetPrivateField(component, "Owners", owners);
+            SetPrivateField(component, "OwnerSearchTerm", "");
+
+            IEnumerable<FwoOwner> filteredOwners = GetPrivateProperty<IEnumerable<FwoOwner>>(component, "FilteredOwners");
+
+            Assert.That(filteredOwners.Select(owner => owner.Id).ToList(), Is.EqualTo(new List<int> { 1, 2 }));
+        }
+
+        [Test]
+        public void MatchesOwnerSearch_ReturnsFalse_WhenNoFieldMatches()
+        {
+            SettingsOwner component = new();
+            SetInjectedUserConfig(component, new EditOwnerTestUserConfig());
+            SetPrivateField(component, "Tenants", new List<Tenant>());
+            SetPrivateField(component, "OwnerSearchTerm", "security");
+            FwoOwner owner = new() { Id = 4, Name = "Payments", ExtAppId = "APP-3" };
+
+            bool result = (bool)GetPrivateMethod("MatchesOwnerSearch").Invoke(component, [owner])!;
+
+            Assert.That(result, Is.False);
         }
     }
 }

@@ -42,6 +42,17 @@ namespace FWO.Test
         static readonly NetworkObject AccessRoleObj2 = new() { Name = "AccessRoleObj2", IP = "0.0.0.0/32", IpEnd = "0.0.0.0/32", Type = new() { Name = ObjectType.AccessRole } };
         static readonly NetworkObject DomainObj1 = new() { Name = "DomainObj1", IP = "0.0.0.0/32", IpEnd = "255.255.255.255/32", Type = new() { Name = ObjectType.Domain } };
         static readonly NetworkObject DomainObj2 = new() { Name = "DomainObj2", IP = "0.0.0.0/32", IpEnd = "255.255.255.255/32", Type = new() { Name = ObjectType.Domain } };
+        static readonly NetworkObject AccessRoleSharedName = new() { Name = "SharedSpecialName", IP = "0.0.0.0/32", IpEnd = "0.0.0.0/32", Type = new() { Name = ObjectType.AccessRole } };
+        static readonly NetworkObject DomainSharedName = new() { Name = "SharedSpecialName", IP = "0.0.0.0/32", IpEnd = "255.255.255.255/32", Type = new() { Name = ObjectType.Domain } };
+        static readonly NetworkObject ModelledSharedName = new()
+        {
+            Name = "SharedSpecialName",
+            IP = "1.2.3.4",
+            IpEnd = "1.2.3.4"
+        };
+
+        static readonly List<NetworkObject> ModelledSharedNameObjects = new() { ModelledSharedName };
+        static readonly List<NetworkObject> ImportedSharedNameObjects = new() { AccessRoleSharedName, DomainSharedName };
 
         static readonly NetworkObject NonSpecialObjSameNameAndIp = new()
         {
@@ -258,10 +269,15 @@ namespace FWO.Test
             ClassicAssert.IsFalse(networkObjectComparer.Equals(NwObj1, NwObj3));
             ClassicAssert.IsFalse(networkObjectComparer.Equals(NwObj1, NwObj4));
             ClassicAssert.IsTrue(networkObjectComparer.Equals(NwObj1, NwObj5));
-            ClassicAssert.IsTrue(networkObjectComparer.Equals(AccessRoleObj1, ModelledAccessRoleSameName));
+            ClassicAssert.IsFalse(networkObjectComparer.Equals(AccessRoleObj1, ModelledAccessRoleSameName));
             ClassicAssert.IsFalse(networkObjectComparer.Equals(AccessRoleObj1, ModelledAccessRoleDifferentName));
-            ClassicAssert.IsTrue(networkObjectComparer.GetHashCode(AccessRoleObj1) == networkObjectComparer.GetHashCode(ModelledAccessRoleSameName));
+            ClassicAssert.IsFalse(networkObjectComparer.GetHashCode(AccessRoleObj1) == networkObjectComparer.GetHashCode(ModelledAccessRoleSameName));
             ClassicAssert.IsFalse(networkObjectComparer.GetHashCode(AccessRoleObj1) == networkObjectComparer.GetHashCode(ModelledAccessRoleDifferentName));
+            ClassicAssert.IsFalse(networkObjectComparer.Equals(AccessRoleSharedName, ModelledSharedName));
+            ClassicAssert.IsFalse(networkObjectComparer.Equals(DomainSharedName, ModelledSharedName));
+            ClassicAssert.IsFalse(networkObjectComparer.Equals(AccessRoleSharedName, DomainSharedName));
+            ClassicAssert.AreEqual(1, ModelledSharedNameObjects.Except(ImportedSharedNameObjects, networkObjectComparer).Count());
+            ClassicAssert.AreEqual(2, ImportedSharedNameObjects.Except(ModelledSharedNameObjects, networkObjectComparer).Count());
             ClassicAssert.IsTrue(networkObjectComparer.GetHashCode(NwObj1) == networkObjectComparer.GetHashCode(NwObj1));
             ClassicAssert.IsFalse(networkObjectComparer.GetHashCode(NwObj1) == networkObjectComparer.GetHashCode(NwObj2));
             ClassicAssert.IsFalse(networkObjectComparer.GetHashCode(NwObj1) == networkObjectComparer.GetHashCode(NwObj3));

@@ -21,10 +21,12 @@ namespace FWO.Services
             bool isSpecial1 = nwObject1.IsSpecialConfigObjectType();
             bool isSpecial2 = nwObject2.IsSpecialConfigObjectType();
 
-            // Imported identity objects have no reliable IP identity; modelled counterparts may only match them in name-only mode.
+            // Imported identity objects have no reliable IP identity and must keep a transitive equality relation.
             if (isSpecial1 || isSpecial2)
             {
-                return AreSpecialConfigObjectsEqual(nwObject1, nwObject2, isSpecial1, isSpecial2);
+                return isSpecial1 && isSpecial2
+                    && string.Equals(nwObject1.Type.Name, nwObject2.Type.Name, StringComparison.Ordinal)
+                    && string.Equals(nwObject1.Name, nwObject2.Name, StringComparison.Ordinal);
             }
 
             return (!option.NwRegardIp || (string.Equals(nwObject1.IP, nwObject2.IP, StringComparison.Ordinal)
@@ -41,34 +43,13 @@ namespace FWO.Services
 
             if (nwObject.IsSpecialConfigObjectType())
             {
-                return !option.NwRegardIp && option.NwRegardName
-                    ? HashCode.Combine(nwObject.Name)
-                    : HashCode.Combine(nwObject.Type.Name, nwObject.Name);
+                return HashCode.Combine(nwObject.Type.Name, nwObject.Name);
             }
 
             return (option.NwRegardIp ? HashCode.Combine(nwObject.IP, nwObject.IpEnd) : 0)
                 ^ (option.NwRegardName ? HashCode.Combine(nwObject.Name) : 0);
         }
 
-        private bool AreSpecialConfigObjectsEqual(NetworkObject nwObject1, NetworkObject nwObject2, bool isSpecial1, bool isSpecial2)
-        {
-            if (isSpecial1 && isSpecial2)
-            {
-                return string.Equals(nwObject1.Type.Name, nwObject2.Type.Name, StringComparison.Ordinal)
-                    && string.Equals(nwObject1.Name, nwObject2.Name, StringComparison.Ordinal);
-            }
-
-            if (option.NwRegardIp || !option.NwRegardName)
-            {
-                return false;
-            }
-
-            NetworkObject typedObject = isSpecial1 ? nwObject1 : nwObject2;
-            NetworkObject untypedObject = isSpecial1 ? nwObject2 : nwObject1;
-
-            return string.IsNullOrEmpty(untypedObject.Type.Name)
-                && string.Equals(typedObject.Name, untypedObject.Name, StringComparison.Ordinal);
-        }
     }
 
     public class NetworkObjectGroupFlatComparer(RuleRecognitionOption option) : IEqualityComparer<NetworkObject?>

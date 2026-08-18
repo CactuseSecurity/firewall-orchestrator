@@ -51,11 +51,6 @@ namespace FWO.Test
 
         private static void EnsureNotificationTranslations()
         {
-            SimulatedUserConfig.DummyTranslate.TryAdd("edit_notification", "Edit notification");
-            SimulatedUserConfig.DummyTranslate.TryAdd("E4010", "Missing email subject");
-            SimulatedUserConfig.DummyTranslate.TryAdd("E4011", "Missing recipient");
-            SimulatedUserConfig.DummyTranslate.TryAdd("E4012", "Missing offsets");
-            SimulatedUserConfig.DummyTranslate.TryAdd("E4013", "Incomplete repetition settings");
         }
 
         private static void SetClient(EditNotifications component, NotificationClient client)
@@ -365,10 +360,6 @@ namespace FWO.Test
         [Test]
         public void DisplayRecipient_ShowsOtherAddressesAfterResponsibleTypes()
         {
-            SimulatedUserConfig.DummyTranslate.TryAdd(nameof(EmailRecipientOption.ConfiguredResponsibles), "Responsible types");
-            SimulatedUserConfig.DummyTranslate.TryAdd(nameof(EmailRecipientOption.OtherAddresses), "Other addresses");
-            SimulatedUserConfig.DummyTranslate.TryAdd("Main", "Main");
-            SimulatedUserConfig.DummyTranslate.TryAdd("Supporting", "Supporting");
             EditNotifications component = new();
             SetInjectedUserConfig(component, new SimulatedUserConfig());
             SetPrivateField(component, "activeOwnerResponsibleTypes", new List<OwnerResponsibleType>

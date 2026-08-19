@@ -108,7 +108,6 @@
     public EventCallback OnChanged { get; set; }
 
     private WfStateAction actAction = new();
-    private WfStateAction persistedAction = new();
     private string message = "";
     private PathAnalysisActionParams actPathAnalysisParams = new();
     private EditActionSendEmail? sendEmailEditor;
@@ -139,7 +138,6 @@
     private void EditAction(WfStateAction action)
     {
         actAction = new WfStateAction(action);
-        persistedAction = new WfStateAction(action);
         ResetActionEditState();
         LoadActionExternalParams(actAction);
         EditActionMode = true;

@@ -1694,9 +1694,7 @@ namespace FWO.Test
                 ActionType = StateActionTypes.SendEmail.ToString()
             };
             WfStateAction draftAction = new(action);
-            WfStateAction persistedAction = new(action);
             SetMember(component, "actAction", draftAction);
-            SetMember(component, "persistedAction", persistedAction);
             SetMember(component, "sendEmailEditor", sendEmailEditor);
             SetMember(sendEmailEditor, "ActAction", draftAction);
             SetMember(sendEmailEditor, "actActionNotificationIds", new List<int> { 11 });
@@ -1731,11 +1729,9 @@ namespace FWO.Test
             };
 
             WfStateAction draftAction = new(action);
-            WfStateAction persistedAction = new(action);
             SetMember(component, "apiConnection", apiConn);
             SetMember(component, "userConfig", new SimulatedUserConfig());
             SetMember(component, "actAction", draftAction);
-            SetMember(component, "persistedAction", persistedAction);
             SetMember(component, "EditActionMode", true);
             SetMember(component, "AddActionMode", false);
             SetMember(component, "sendEmailEditor", sendEmailEditor);

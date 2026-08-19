@@ -333,7 +333,10 @@ namespace FWO.Test
                 string? taskTypeName = variables?.GetType().GetProperty("taskType")?.GetValue(variables)?.ToString();
                 if (!string.IsNullOrWhiteSpace(taskTypeName))
                 {
-                    Enum.TryParse(taskTypeName, out taskType);
+                    if (!Enum.TryParse(taskTypeName, out taskType))
+                    {
+                        taskType = WfTaskType.master;
+                    }
                 }
 
                 List<WorkflowConfiguration> configurations = StateMatrixConfigurationTestHelper.FromLegacyJson(masterStateMatrix, taskType);

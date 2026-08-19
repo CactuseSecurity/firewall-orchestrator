@@ -2951,7 +2951,6 @@ namespace FWO.Test
             {
                 ReqAvailableTaskTypes = "[\"generic\",\"access\",\"rule_modify\",\"rule_delete\",\"new_interface\",\"group_create\"]";
                 ReqAllowedChangesByApprover = "{}";
-                DummyTranslate["flow_bundle_id"] = "Bundle ID";
             }
 
             public override string GetText(string key)

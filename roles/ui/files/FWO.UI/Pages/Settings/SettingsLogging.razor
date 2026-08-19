@@ -1,0 +1,234 @@
+@page "/settings/logging"
+
+@using System.Text.Json
+@using FWO.Basics
+@using FWO.Config.File
+@using FWO.Data.Enums
+@using FWO.Logging
+@using FWO.Ui.Data.Extensions
+
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("logging"))</h3>
+    <HelpLink Page="settings/logging" />
+</div>
+<hr />
+
+@if (configData != null)
+{
+    <form onsubmit="return false">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5694"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("importLogDataPath")):</label>
+            <div class="col-sm-6">
+                <EditList ElementType="string" Elements="logDataPaths.ToArray()" ElementsToAdd="pathsToAdd"
+                          ElementsToDelete="pathsToDelete" StdLayout="false">
+                    <Display>
+                        <div class="row">
+                            <div class="col-sm-12 border bg-transparent">@context</div>
+                        </div>
+                    </Display>
+                </EditList>
+                <div class="row col-sm-12 mt-1">
+                    <input type="text" class="col-sm-10" @bind="activePath" placeholder="@AllowedImportPathPlaceholder" />
+                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" disabled="@(string.IsNullOrWhiteSpace(activePath))" @onclick="AddPath"
+                            @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+                </div>
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5695"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("importLogDataScriptArgs")):</label>
+            <input type="text" class="col-sm-6" @bind="configData.ImportLogDataScriptArgs" />
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5696"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("importLogDataSleepTime")):</label>
+            <div class="col-sm-8 d-inline-flex">
+                <input class="form-control me-3 w-auto" type="number" min="0" @bind="configData.ImportLogDataSleepTime" />
+                <select class="form-select w-auto" @bind="configData.ImportLogDataSleepTimeUnit">
+                    @foreach (LogDataImportIntervalUnit unit in Enum.GetValues(typeof(LogDataImportIntervalUnit)))
+                    {
+                        <option value="@unit">@unit.ToString(userConfig)</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5697"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("importLogDataMaxEntries")):</label>
+            <input type="number" min="1" class="col-sm-6" @bind="configData.ImportLogDataMaxEntries" />
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5699"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("logDataRetentionDays")):</label>
+            <input type="number" min="1" class="col-sm-6" @bind="configData.LogDataRetentionDays" />
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5700"))">
+            <label for="cbx_port_without_protocol" class="col-form-label col-sm-4">@(userConfig.GetText("allowLogDataPortWithoutProtocol")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_port_without_protocol" type="checkbox" class="w-100" @bind="configData.AllowLogDataPortWithoutProtocol" />
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5692"))">
+            <label for="cbx_replace_existing_log_data" class="col-form-label col-sm-4">@(userConfig.GetText("replaceExistingLogData")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_replace_existing_log_data" type="checkbox" class="w-100" @bind="configData.ReplaceExistingLogData" />
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5698"))">
+            <label for="cbx_show_log_data" class="col-form-label col-sm-4">@(userConfig.GetText("showLogDataInConnections")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_show_log_data" type="checkbox" class="w-100" @bind="configData.ShowLogDataInConnections" />
+            </div>
+        </div>
+    </form>
+    <hr />
+    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+        <Authorized>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>
+                @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+            </button>
+        </Authorized>
+        <NotAuthorized>
+            <button type="button" class="btn btn-sm btn-primary" disabled>
+                @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+            </button>
+        </NotAuthorized>
+    </ExecutionModeAuthorizeView>
+}
+else
+{
+    <Loading />
+}
+
+@code
+{
+    private const int kMinLogDataMaxEntries = 1;
+    private const int kMinLogDataRetentionDays = 1;
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private ConfigData? configData;
+    private List<string> logDataPaths = [];
+    private List<string> pathsToAdd = [];
+    private List<string> pathsToDelete = [];
+    private string activePath = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            configData = await globalConfig.GetEditableConfig();
+            logDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportLogDataPath) ?? [];
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+    }
+
+    private void AddPath()
+    {
+        if (!string.IsNullOrWhiteSpace(activePath))
+        {
+            pathsToAdd.Add(activePath);
+            activePath = "";
+        }
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if (configData is null)
+            {
+                throw new ArgumentException("Data saved before loaded. This should be impossible.");
+            }
+
+            string oldPath = globalConfig.ImportLogDataPath;
+            string oldScriptArgs = globalConfig.ImportLogDataScriptArgs;
+            int oldInterval = globalConfig.ImportLogDataSleepTime;
+            LogDataImportIntervalUnit oldIntervalUnit = globalConfig.ImportLogDataSleepTimeUnit;
+            int oldMaxEntries = globalConfig.ImportLogDataMaxEntries;
+            bool oldShowLogData = globalConfig.ShowLogDataInConnections;
+            LogDataSettings oldSettings = new(globalConfig.LogDataRetentionDays, globalConfig.AllowLogDataPortWithoutProtocol,
+                globalConfig.ReplaceExistingLogData);
+            PrepareConfigData();
+            await globalConfig.WriteToDatabase(configData, apiConnection);
+            WriteSettingsAudit(oldPath, oldScriptArgs, oldInterval, oldIntervalUnit, oldMaxEntries, oldShowLogData, oldSettings);
+            pathsToAdd = [];
+            pathsToDelete = [];
+            DisplayMessageInUi(null, userConfig.GetText("logging"), userConfig.GetText("U5301"), false);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("logging"), "", true);
+        }
+    }
+
+    /// <summary>
+    /// Builds the paths to be saved and validates them before the displayed list is changed,
+    /// so a rejected path leaves the page in the state the user can correct.
+    /// </summary>
+    private void PrepareConfigData()
+    {
+        List<string> preparedPaths = logDataPaths.Where(path => !pathsToDelete.Contains(path))
+            .Concat(pathsToAdd.Select(ImportPathPolicy.RemoveAllowedExtension))
+            .Distinct()
+            .ToList();
+        foreach (string path in preparedPaths)
+        {
+            ImportPathPolicy.ValidateImportSourceShape(path, ConfigFile.AllowedCustomizationRoots);
+        }
+
+        logDataPaths = preparedPaths;
+        configData!.ImportLogDataPath = JsonSerializer.Serialize(logDataPaths);
+        configData.ImportLogDataMaxEntries = Math.Max(kMinLogDataMaxEntries, configData.ImportLogDataMaxEntries);
+        // a retention of 0 days would delete every entry right after it was imported
+        configData.LogDataRetentionDays = Math.Max(kMinLogDataRetentionDays, configData.LogDataRetentionDays);
+    }
+
+    /// <summary>
+    /// Settings of the log data page which are only needed for the audit entry.
+    /// </summary>
+    private record LogDataSettings(int RetentionDays, bool AllowPortWithoutProtocol, bool ReplaceExisting);
+
+    private void WriteSettingsAudit(string oldPath, string oldScriptArgs, int oldInterval, LogDataImportIntervalUnit oldIntervalUnit,
+        int oldMaxEntries, bool oldShowLogData, LogDataSettings oldSettings)
+    {
+        List<string> changes = [];
+        AddSettingChange(changes, nameof(ConfigData.ImportLogDataPath), oldPath, configData!.ImportLogDataPath);
+        AddSettingChange(changes, nameof(ConfigData.ImportLogDataScriptArgs), oldScriptArgs, configData.ImportLogDataScriptArgs, redactValues: true);
+        AddSettingChange(changes, nameof(ConfigData.ImportLogDataSleepTime), oldInterval.ToString(), configData.ImportLogDataSleepTime.ToString());
+        AddSettingChange(changes, nameof(ConfigData.ImportLogDataSleepTimeUnit), oldIntervalUnit.ToString(), configData.ImportLogDataSleepTimeUnit.ToString());
+        AddSettingChange(changes, nameof(ConfigData.ImportLogDataMaxEntries), oldMaxEntries.ToString(), configData.ImportLogDataMaxEntries.ToString());
+        AddSettingChange(changes, nameof(ConfigData.ShowLogDataInConnections), oldShowLogData.ToString(), configData.ShowLogDataInConnections.ToString());
+        AddSettingChange(changes, nameof(ConfigData.LogDataRetentionDays), oldSettings.RetentionDays.ToString(), configData.LogDataRetentionDays.ToString());
+        AddSettingChange(changes, nameof(ConfigData.AllowLogDataPortWithoutProtocol), oldSettings.AllowPortWithoutProtocol.ToString(),
+            configData.AllowLogDataPortWithoutProtocol.ToString());
+        AddSettingChange(changes, nameof(ConfigData.ReplaceExistingLogData), oldSettings.ReplaceExisting.ToString(),
+            configData.ReplaceExistingLogData.ToString());
+
+        if (changes.Count > 0)
+        {
+            Log.WriteAudit(
+                Title: "Log Data Import Settings",
+                Text: $"Log data import settings changed at {DateTimeOffset.Now:O}: {string.Join("; ", changes)}",
+                UserName: userConfig.User.Name,
+                UserDN: userConfig.User.Dn);
+        }
+    }
+
+    private static void AddSettingChange(List<string> changes, string settingName, string oldValue, string newValue, bool redactValues = false)
+    {
+        if (oldValue != newValue)
+        {
+            changes.Add(redactValues ? $"{settingName}: changed" : $"{settingName}: '{oldValue}' -> '{newValue}'");
+        }
+    }
+
+    private static string AllowedImportPathPlaceholder =>
+        string.Join(" | ", ConfigFile.AllowedCustomizationRoots.Select(root => $"{root}/..."));
+}

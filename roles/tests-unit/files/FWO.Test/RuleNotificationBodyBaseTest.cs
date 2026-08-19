@@ -53,18 +53,7 @@ namespace FWO.Test
 
         private static SimulatedGlobalConfig CreateGlobalConfig()
         {
-            SimulatedGlobalConfig globalConfig = new();
-            globalConfig.DummyTranslate["uid"] = "Uid";
-            globalConfig.DummyTranslate["name"] = "Name";
-            globalConfig.DummyTranslate["source"] = "Source";
-            globalConfig.DummyTranslate["destination"] = "Destination";
-            globalConfig.DummyTranslate["service"] = "Service";
-            globalConfig.DummyTranslate["change_id"] = "Change-ID";
-            globalConfig.DummyTranslate["last_hit"] = "Last Hit";
-            globalConfig.DummyTranslate["generated_on"] = "Generated on";
-            globalConfig.DummyTranslate["owners"] = "Owners";
-            globalConfig.DummyTranslate["tableofcontent"] = "Table of content";
-            return globalConfig;
+            return new SimulatedGlobalConfig();
         }
 
         private sealed class RuleNotificationBodyHarness(GlobalConfig globalConfig) : RuleNotificationBodyBase(globalConfig)

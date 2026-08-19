@@ -19,17 +19,21 @@ namespace FWO.Test
     {
         private sealed class ZonesConfigurationApiConnection : SimulatedApiConnection
         {
+            public List<string> SentQueries { get; } = [];
+            public List<ComplianceNetworkZone> NetworkZones { get; } = [];
+
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
+                SentQueries.Add(query);
                 if (typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>))
                 {
-                    return Task.FromResult((QueryResponseType)(object)new List<ComplianceNetworkZone>());
+                    return Task.FromResult((QueryResponseType)(object)NetworkZones);
                 }
                 return Task.FromResult(default(QueryResponseType)!);
             }
         }
 
-        private static BunitContext CreateContext(NetworkZoneService networkZoneService)
+        private static BunitContext CreateContext(NetworkZoneService networkZoneService, ZonesConfigurationApiConnection? apiConnection = null, GlobalConfig? globalConfig = null)
         {
             BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
@@ -37,8 +41,8 @@ namespace FWO.Test
             context.Services.AddLocalization();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
             context.Services.AddSingleton<AuthenticationStateProvider>(new MonitoringTestAuthStateProvider(Roles.Admin));
-            context.Services.AddSingleton<ApiConnection>(new ZonesConfigurationApiConnection());
-            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            context.Services.AddSingleton<ApiConnection>(apiConnection ?? new ZonesConfigurationApiConnection());
+            context.Services.AddSingleton<UserConfig>(globalConfig == null ? new SimulatedUserConfig() : UserConfig.ForTextOnly(globalConfig));
             context.Services.AddSingleton(networkZoneService);
             context.Services.AddScoped<DomEventService>();
             return context;
@@ -49,6 +53,43 @@ namespace FWO.Test
             return context.Render<ZonesConfiguration>(parameters => parameters
                 .Add(p => p.SelectedMatrix, new ComplianceCriterion { Id = 1, Name = "matrix" })
                 .Add(p => p.ReadonlyMode, false));
+        }
+
+        [Test]
+        public async Task UpdatingZoneRefreshesAutoCalculatedInternetZone()
+        {
+            ComplianceNetworkZone normalZone = new() { Id = 1, CriterionId = 1, Name = "normal" };
+            ComplianceNetworkZone internetZone = new()
+            {
+                Id = 2,
+                CriterionId = 1,
+                IsAutoCalculatedInternetZone = true,
+                Name = "Auto-calculated Internet Zone"
+            };
+            NetworkZoneService networkZoneService = new()
+            {
+                NetworkZones = new List<ComplianceNetworkZone> { normalZone, internetZone }
+            };
+            ZonesConfigurationApiConnection apiConnection = new();
+            apiConnection.NetworkZones.Add(normalZone);
+            apiConnection.NetworkZones.Add(internetZone);
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                AutoCalculateInternetZone = true,
+                AutoCalculateUndefinedInternalZone = false
+            };
+            await using BunitContext context = CreateContext(networkZoneService, apiConnection, globalConfig);
+            IRenderedComponent<ZonesConfiguration> page = Render(context);
+
+            networkZoneService.InvokeOnEditZone(normalZone);
+            Task updateTask = (Task)typeof(ZonesConfiguration)
+                .GetMethod("ExecuteNetworkZoneModifications", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .Invoke(page.Instance, null)!;
+            await updateTask;
+
+            Assert.That(apiConnection.SentQueries.First(), Is.EqualTo(ComplianceQueries.updateNetworkZone));
+            Assert.That(apiConnection.SentQueries, Does.Contain(ComplianceQueries.removeNetworkZone));
+            Assert.That(apiConnection.SentQueries.Count(query => query == ComplianceQueries.addNetworkZone), Is.EqualTo(1));
         }
 
         [Test]

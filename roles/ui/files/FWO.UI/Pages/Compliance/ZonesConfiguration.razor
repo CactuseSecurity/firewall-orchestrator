@@ -321,6 +321,7 @@
                 await ExecuteNetworkZoneUpdate();
             }
 
+            await RefreshSpecialZones();
             editMode = false;
             await ConfigChanged();
             StateHasChanged();
@@ -365,6 +366,7 @@
             try
             {
                 await NetworkZoneService.RemoveZone(networkZoneInEdit, apiConnection);
+                await RefreshSpecialZones();
                 await ConfigChanged();
                 DisplayMessageInUi(null, userConfig.GetText("U0014"), userConfig.GetText("U0015"), false);
             }
@@ -375,6 +377,15 @@
         }
         deleteMode = false;
         StateHasChanged();
+    }
+
+    private async Task RefreshSpecialZones()
+    {
+        GlobalConfig? globalConfig = userConfig.GlobalConfig;
+        if (globalConfig?.AutoCalculateInternetZone == true)
+        {
+            await NetworkZoneService.UpdateSpecialZones(SelectedMatrix.Id, apiConnection, globalConfig);
+        }
     }
 
     private void CancelModifications()

@@ -608,6 +608,6 @@ Not supported any longer are:
 ## 9.3.4 - 11.08.2026
 - fix a bug in reporting ui where users with role modeller and reporter could not fetch rsb data for app rule reports
 
-## 9.3.5 - 12.08.2026
+## 9.4.1 - 19.08.2026
 - normalize and import fqdn and dynamic ip network objects with ip=null instead of 0.0.0.0/0
 - add 'add auto calculated internet zone' button to compliance matrix ui

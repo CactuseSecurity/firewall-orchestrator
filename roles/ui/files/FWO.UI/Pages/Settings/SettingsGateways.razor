@@ -353,8 +353,15 @@
                         comment = actDevice.Comment
                     };
                     int udId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateDevice, Variables)).UpdatedId;
-                    EditMode = (udId == actDevice.Id ? false : true);
-                    devices[devices.FindIndex(x => x.Id == actDevice.Id)] = actDevice;
+                    if (udId == actDevice.Id)
+                    {
+                        EditMode = false;
+                        devices[devices.FindIndex(x => x.Id == actDevice.Id)] = actDevice;
+                    }
+                    else
+                    {
+                        DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5112"), true);
+                    }
                 }
             }
         }

@@ -440,6 +440,11 @@
                     }
                 }
             </div>
+            @* the popup shows the interface provider's connection, whose owner is not the one the user works on *@
+            @if(!PopupMode && userConfig.ShowLogDataInConnections && ConnHandler.Application.Id > 0)
+            {
+                <LogDataTable OwnerId="ConnHandler.Application.Id" />
+            }
         </div>
     }
     <InProgress Display="workInProgress"/>

@@ -249,7 +249,7 @@
         addingAutoCalculatedInternetZone = true;
         try
         {
-            await NetworkZoneService.AddAutoCalculatedInternetZone(SelectedMatrix.Id, apiConnection);
+            await NetworkZoneService.AddAutoCalculatedInternetZone(SelectedMatrix.Id, apiConnection, globalConfig);
             await ConfigChanged();
             DisplayMessageInUi(null, userConfig.GetText("add_auto_calculated_internet_zone"), userConfig.GetText("U0011"), false);
         }

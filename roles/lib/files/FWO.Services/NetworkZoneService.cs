@@ -226,7 +226,8 @@ namespace FWO.Services
         /// </summary>
         /// <param name="matrixId">Compliance matrix identifier.</param>
         /// <param name="apiConnection">API connection used to persist the zone.</param>
-        public static async Task AddAutoCalculatedInternetZone(int matrixId, ApiConnection apiConnection)
+        /// <param name="globalConfig">Global configuration that defines the internal address ranges.</param>
+        public static async Task AddAutoCalculatedInternetZone(int matrixId, ApiConnection apiConnection, GlobalConfig globalConfig)
         {
             List<ComplianceNetworkZone> existingZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
                 ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
@@ -234,6 +235,16 @@ namespace FWO.Services
             {
                 return;
             }
+
+            ComplianceNetworkZone undefinedInternalZone = new()
+            {
+                IdString = "AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL",
+                IsAutoCalculatedUndefinedInternalZone = true,
+                CriterionId = matrixId,
+            };
+
+            CalculateUndefinedInternalZone(undefinedInternalZone, GetInternalZoneRanges(globalConfig), existingZones);
+            existingZones.Add(undefinedInternalZone);
 
             bool dummyInternetZoneExists = TryUpdateInternetZoneObject(existingZones, matrixId, out ComplianceNetworkZone internetZone);
             CalculateInternetZone(internetZone, existingZones);

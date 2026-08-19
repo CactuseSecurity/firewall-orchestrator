@@ -1,3 +1,4 @@
+using System.Collections;
 using NUnit.Framework;
 using FWO.Services;
 using FWO.Data;
@@ -295,6 +296,40 @@ namespace FWO.Test
                 That(internalZone.IPRanges,
                 Is.EqualTo(expectedinternalZone)
                 .Using<IPAddressRange>((a, b) => a.ToString() == b.ToString()));
+        }
+
+        [Test]
+        public async Task AddAutoCalculatedInternetZone_UndefinedInternalZoneNotPersisted_ExcludesInternalRanges()
+        {
+            // Arrange
+
+            MockApiConnection mock = new();
+            ApiConnection apiConnection = mock;
+            GlobalConfig globalConfig = new()
+            {
+                AutoCalculateInternetZone = true,
+                AutoCalculateUndefinedInternalZone = false
+            };
+
+            mock.Sub
+                .SendQueryAsync<List<ComplianceNetworkZone>>(
+                    ComplianceQueries.getNetworkZonesForMatrix,
+                    Arg.Any<object>())
+                .Returns(Task.FromResult(new List<ComplianceNetworkZone>()));
+
+            // Act
+
+            await NetworkZoneService.AddAutoCalculatedInternetZone(1, apiConnection, globalConfig);
+
+            // Assert
+
+            (string, object) addedInternetZone = mock.SentQueries.Single(query => query.Item1 == ComplianceQueries.addNetworkZone);
+            IEnumerable addedRanges = (IEnumerable)GetFromGeneric(addedInternetZone.Item2, "ipRanges")!;
+            List<IPAddressRange> internetRanges = addedRanges.Cast<object>().Select(range => new IPAddressRange(
+                IPAddress.Parse(GetFromGeneric(range, "ip_range_start")!.ToString()!),
+                IPAddress.Parse(GetFromGeneric(range, "ip_range_end")!.ToString()!))).ToList();
+
+            Assert.That(internetRanges.Any(range => range.Contains(IPAddress.Parse("10.0.0.1"))), Is.False);
         }
 
         [Test]

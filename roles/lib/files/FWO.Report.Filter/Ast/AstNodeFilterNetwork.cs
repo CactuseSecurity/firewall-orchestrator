@@ -75,10 +75,13 @@ namespace FWO.Report.Filter.Ast
 
             List<string> objectTypes = ExtractObjectTypes();
             string queryVarName = AddObjectTypeVariable(query, location, objectTypes);
-            string typeFilter = $"stm_obj_typ: {{ obj_typ_name: {{ {ExtractObjectTypeOperator()}: ${queryVarName} }} }}";
+            string typeFilter = $"stm_obj_typ: {{ obj_typ_name: {{ _in: ${queryVarName} }} }}";
             string directOrFlatTypeFilter = DirectOrFlatObjectFilter(typeFilter);
+            string objectRelationFilter = $"{locationTable}: {{ object: {{ {directOrFlatTypeFilter} }} }}";
 
-            query.RuleWhereStatement += $"{locationTable}: {{ object: {{ {directOrFlatTypeFilter} }} }}";
+            query.RuleWhereStatement += Operator.Kind == TokenKind.NEQ
+                ? $"_not: {{ {objectRelationFilter} }}"
+                : objectRelationFilter;
         }
 
         private List<string> ExtractObjectTypes()
@@ -89,16 +92,6 @@ namespace FWO.Report.Filter.Ast
                 throw new SemanticException("Network object type filter requires a comma-separated list of object types.", Value.Position);
             }
             return objectTypes.Select(objectType => objectType.ToLowerInvariant()).ToList();
-        }
-
-        private string ExtractObjectTypeOperator()
-        {
-            return Operator.Kind switch
-            {
-                TokenKind.EQ or TokenKind.EEQ => "_in",
-                TokenKind.NEQ => "_nin",
-                _ => throw new SemanticException("Invalid network object type filter operator.", Operator.Position),
-            };
         }
 
         private static string AddObjectTypeVariable(DynGraphqlQuery query, string location, List<string> objectTypes)

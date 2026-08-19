@@ -1457,6 +1457,24 @@ namespace FWO.Test
 
         [Test]
         [Parallelizable]
+        public void NetworkFilter_NegatedObjectTypeNegatesDirectAndFlattenedSourcePredicate()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "src_type!=domain"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            Assert.That(query.QueryVariables["srcType0"], Is.EqualTo(new List<string> { "domain" }));
+            string normalizedRuleWhere = NormalizeGraphQl(query.RuleWhereStatement);
+            StringAssert.Contains("_not: { rule_froms: { object: { _or: [{ stm_obj_typ: { obj_typ_name: { _in: $srcType0 } } }, { objgrp_flats: { objectByObjgrpFlatMemberId: { stm_obj_typ: { obj_typ_name: { _in: $srcType0 } } } } }] } } }", normalizedRuleWhere);
+            StringAssert.DoesNotContain("_nin", normalizedRuleWhere);
+        }
+
+        [Test]
+        [Parallelizable]
         public void NetworkFilter_ObjectTypesRejectModelledConnectionReports()
         {
             ReportTemplate template = new()

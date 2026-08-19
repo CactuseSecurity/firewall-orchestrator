@@ -29,7 +29,7 @@ public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalCon
     /// </summary>
     public async Task<List<ComplianceDesignatedZoneResponse>> ResolveZonesForObjectsAsync(ResolveZonesForObjectsRequest request)
     {
-        List<IPAddressRange> ranges = CollectRanges(request.Objects);
+        List<IPAddressRange> ranges = CollectRanges(request.Objects ?? []);
         if (ranges.Count == 0)
         {
             return [];
@@ -92,7 +92,7 @@ public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalCon
     {
         if (node is ResolveZonesForObjectsRequest.GroupObjectRequest group)
         {
-            return CollectRanges(group.Members);
+            return CollectRanges(group.Members ?? []);
         }
 
         if (node is not ResolveZonesForObjectsRequest.LeafObjectRequest leaf)
@@ -102,12 +102,12 @@ public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalCon
 
         NetworkObject networkObject = new()
         {
-            Name = leaf.Name,
-            IP = leaf.IpStart,
-            IpEnd = leaf.IpEnd,
+            Name = leaf.Name!,
+            IP = leaf.IpStart!,
+            IpEnd = leaf.IpEnd!,
             Type = new NetworkObjectType
             {
-                Name = NormalizeObjectType(leaf.Type)
+                Name = NormalizeObjectType(leaf.Type!)
             }
         };
 

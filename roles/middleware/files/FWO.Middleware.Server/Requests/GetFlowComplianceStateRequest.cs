@@ -6,7 +6,7 @@ namespace FWO.Middleware.Server.Requests;
 /// <summary>
 /// Represents the GetFlowComplianceStateRequest type.
 /// </summary>
-public sealed class GetFlowComplianceStateRequest : IRequestWithRootAdditionalData
+public sealed class GetFlowComplianceStateRequest : RequestDto<RequestOptionsDto>
 {
     /// <summary>
     /// Gets the Source value.
@@ -33,12 +33,6 @@ public sealed class GetFlowComplianceStateRequest : IRequestWithRootAdditionalDa
     public List<int> Policies { get; set; } = [];
 
     /// <summary>
-    /// Gets the AdditionalData value.
-    /// </summary>
-    [JsonExtensionData]
-    public Dictionary<string, JsonElement>? AdditionalData { get; set; }
-
-    /// <summary>
     /// Represents the IpRangeRequest type.
     /// </summary>
     public sealed class IpRangeRequest : IRequestWithAdditionalData
@@ -47,13 +41,13 @@ public sealed class GetFlowComplianceStateRequest : IRequestWithRootAdditionalDa
         /// Gets the IpStart value.
         /// </summary>
         [JsonPropertyName("ipStart")]
-        public string IpStart { get; set; } = string.Empty;
+        public string? IpStart { get; set; }
 
         /// <summary>
         /// Gets the IpEnd value.
         /// </summary>
         [JsonPropertyName("ipEnd")]
-        public string IpEnd { get; set; } = string.Empty;
+        public string? IpEnd { get; set; }
 
         /// <summary>
         /// Gets the AdditionalData value.
@@ -71,19 +65,19 @@ public sealed class GetFlowComplianceStateRequest : IRequestWithRootAdditionalDa
         /// Gets the PortStart value.
         /// </summary>
         [JsonPropertyName("portStart")]
-        public int PortStart { get; set; }
+        public int? PortStart { get; set; }
 
         /// <summary>
         /// Gets the PortEnd value.
         /// </summary>
         [JsonPropertyName("portEnd")]
-        public int PortEnd { get; set; }
+        public int? PortEnd { get; set; }
 
         /// <summary>
         /// Gets the Protocol value.
         /// </summary>
         [JsonPropertyName("protocol")]
-        public string Protocol { get; set; } = string.Empty;
+        public string? Protocol { get; set; }
 
         /// <summary>
         /// Gets the AdditionalData value.

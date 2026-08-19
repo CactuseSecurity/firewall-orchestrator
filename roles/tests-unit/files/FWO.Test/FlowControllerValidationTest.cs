@@ -13,83 +13,84 @@ namespace FWO.Test;
 [TestFixture]
 internal class FlowControllerValidationTest
 {
+    private static readonly string[] kMissingPortStartError = new string[] { "Required field 'portStart' is missing." };
+    private static readonly string[] kMissingPortEndError = new string[] { "Required field 'portEnd' is missing." };
+
     [TestCaseSource(nameof(RequestCases))]
     public void FlowControllerValidation_AllowsEmptyRootObject(RequestCase requestCase)
     {
         object request = requestCase.Deserialize("{}");
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(RequestRootValidator.TryValidate((IRequestWithRootAdditionalData)request, requestCase.RootSchema, out var rootError), Is.True);
-            Assert.That(rootError, Is.Null);
-            Assert.That(VisibleInRequestFilterValidator.TryValidate((IVisibleInRequestFilterRequest)request, requestCase.FilterSchema, out var filterError), Is.True);
-            Assert.That(filterError, Is.Null);
-        });
+        RequestValidationErrors errors = RequestValidator.Validate(request, requestCase.Schema);
+
+        Assert.That(errors.HasErrors, Is.False);
     }
 
     [TestCaseSource(nameof(RequestCases))]
     public void FlowControllerValidation_AllowsEmptyFilterObject(RequestCase requestCase)
     {
-        object request = requestCase.Deserialize("""{"filter":{}}""");
+        object request = requestCase.Deserialize("""{"options":{"filter":{}}}""");
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(RequestRootValidator.TryValidate((IRequestWithRootAdditionalData)request, requestCase.RootSchema, out var rootError), Is.True);
-            Assert.That(rootError, Is.Null);
-            Assert.That(VisibleInRequestFilterValidator.TryValidate((IVisibleInRequestFilterRequest)request, requestCase.FilterSchema, out var filterError), Is.True);
-            Assert.That(filterError, Is.Null);
-        });
+        RequestValidationErrors errors = RequestValidator.Validate(request, requestCase.Schema);
+
+        Assert.That(errors.HasErrors, Is.False);
     }
 
     [TestCaseSource(nameof(RequestCases))]
     public void FlowControllerValidation_AllowsVisibleInRequestTrueAndFalse(RequestCase requestCase)
     {
-        object trueRequest = requestCase.Deserialize("""{"filter":{"visibleInRequest":true}}""");
-        object falseRequest = requestCase.Deserialize("""{"filter":{"visibleInRequest":false}}""");
+        object trueRequest = requestCase.Deserialize("""{"options":{"filter":{"visibleInRequest":true}}}""");
+        object falseRequest = requestCase.Deserialize("""{"options":{"filter":{"visibleInRequest":false}}}""");
 
         Assert.Multiple(() =>
         {
-            Assert.That(RequestRootValidator.TryValidate((IRequestWithRootAdditionalData)trueRequest, requestCase.RootSchema, out var trueRootError), Is.True);
-            Assert.That(trueRootError, Is.Null);
-            Assert.That(VisibleInRequestFilterValidator.TryValidate((IVisibleInRequestFilterRequest)trueRequest, requestCase.FilterSchema, out var trueFilterError), Is.True);
-            Assert.That(trueFilterError, Is.Null);
-
-            Assert.That(RequestRootValidator.TryValidate((IRequestWithRootAdditionalData)falseRequest, requestCase.RootSchema, out var falseRootError), Is.True);
-            Assert.That(falseRootError, Is.Null);
-            Assert.That(VisibleInRequestFilterValidator.TryValidate((IVisibleInRequestFilterRequest)falseRequest, requestCase.FilterSchema, out var falseFilterError), Is.True);
-            Assert.That(falseFilterError, Is.Null);
+            Assert.That(RequestValidator.Validate(trueRequest, requestCase.Schema).HasErrors, Is.False);
+            Assert.That(RequestValidator.Validate(falseRequest, requestCase.Schema).HasErrors, Is.False);
         });
     }
 
     [TestCaseSource(nameof(RequestCases))]
     public void FlowControllerValidation_RejectsUnknownRootKeys(RequestCase requestCase)
     {
-        object request = requestCase.Deserialize("""{"filter":{"visibleInRequest":true},"typo":1}""");
+        object request = requestCase.Deserialize("""{"options":{"filter":{"visibleInRequest":true}},"typo":1}""");
 
-        bool valid = RequestRootValidator.TryValidate((IRequestWithRootAdditionalData)request, requestCase.RootSchema, out var error);
+        bool valid = RequestValidator.TryValidate(request, requestCase.Schema, out var error);
 
         Assert.Multiple(() =>
         {
             Assert.That(valid, Is.False);
             Assert.That(error, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain(requestCase.EndpointName));
-            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain("'filter'"));
+            AssertValidationError(error!, "typo", "Unknown field 'typo'.");
         });
     }
 
     [TestCaseSource(nameof(RequestCases))]
     public void FlowControllerValidation_RejectsUnknownFilterKeys(RequestCase requestCase)
     {
-        object request = requestCase.Deserialize("""{"filter":{"visibleInRequest":true,"typo":1}}""");
+        object request = requestCase.Deserialize("""{"options":{"filter":{"visibleInRequest":true,"typo":1}}}""");
 
-        bool valid = VisibleInRequestFilterValidator.TryValidate((IVisibleInRequestFilterRequest)request, requestCase.FilterSchema, out var error);
+        bool valid = RequestValidator.TryValidate(request, requestCase.Schema, out var error);
 
         Assert.Multiple(() =>
         {
             Assert.That(valid, Is.False);
             Assert.That(error, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain(requestCase.EndpointName));
-            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain("'visibleInRequest'"));
+            AssertValidationError(error!, "options.filter.typo", "Unknown field 'options.filter.typo'.");
+        });
+    }
+
+    [TestCaseSource(nameof(RequestCases))]
+    public void FlowControllerValidation_RejectsLegacyRootFilter(RequestCase requestCase)
+    {
+        object request = requestCase.Deserialize("""{"filter":{"visibleInRequest":true}}""");
+
+        bool valid = RequestValidator.TryValidate(request, requestCase.Schema, out var error);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(error, Is.TypeOf<BadRequestObjectResult>());
+            AssertValidationError(error!, "filter", "Unknown field 'filter'.");
         });
     }
 
@@ -98,13 +99,9 @@ internal class FlowControllerValidationTest
     {
         object request = requestCase.Deserialize(requestCase.ValidJson);
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(RequestRootValidator.TryValidate((IRequestWithRootAdditionalData)request, requestCase.RootSchema, out var rootError), Is.True);
-            Assert.That(rootError, Is.Null);
-            Assert.That(VisibleInRequestFilterValidator.TryValidate((IVisibleInRequestFilterRequest)request, requestCase.FilterSchema, out var filterError), Is.True);
-            Assert.That(filterError, Is.Null);
-        });
+        RequestValidationErrors errors = RequestValidator.Validate(request, requestCase.Schema);
+
+        Assert.That(errors.HasErrors, Is.False);
     }
 
     [TestCaseSource(nameof(LookupRequestCases))]
@@ -112,14 +109,13 @@ internal class FlowControllerValidationTest
     {
         object request = requestCase.Deserialize(requestCase.InvalidRootJson);
 
-        bool valid = RequestRootValidator.TryValidate((IRequestWithRootAdditionalData)request, requestCase.RootSchema, out var error);
+        bool valid = RequestValidator.TryValidate(request, requestCase.Schema, out var error);
 
         Assert.Multiple(() =>
         {
             Assert.That(valid, Is.False);
             Assert.That(error, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain(requestCase.EndpointName));
-            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain(requestCase.ExpectedRootKey));
+            AssertValidationError(error!, "typo", "Unknown field 'typo'.");
         });
     }
 
@@ -136,7 +132,28 @@ internal class FlowControllerValidationTest
         });
 
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("'protocol'"));
+        AssertValidationError(result.Result!, "protocol", "'protocol' is required.");
+    }
+
+    [Test]
+    public async Task FlowControllerValidation_GetServiceObjectId_RejectsMissingShapeFields()
+    {
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        GetServiceObjectIdRequest request = JsonSerializer.Deserialize<GetServiceObjectIdRequest>(
+            """
+            {
+              "protocol": "tcp"
+            }
+            """)!;
+
+        ActionResult<ServiceObjectIdResponse> result = await controller.GetServiceObjectId(request);
+        ValidationProblemDetails problemDetails = ExtractValidationProblemDetails(result.Result!);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(problemDetails.Errors["portStart"], Is.EqualTo(kMissingPortStartError));
+            Assert.That(problemDetails.Errors["portEnd"], Is.EqualTo(kMissingPortEndError));
+        });
     }
 
     [Test]
@@ -152,7 +169,7 @@ internal class FlowControllerValidationTest
         });
 
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("'portStart' <= 'portEnd'"));
+        AssertValidationError(result.Result!, "service[0]", "'service' entry at index 0 must satisfy 'portStart' <= 'portEnd'.");
     }
 
     [Test]
@@ -167,7 +184,7 @@ internal class FlowControllerValidationTest
         });
 
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("'ipStart'"));
+        AssertValidationError(result.Result!, "ipStart", "'ipStart' and 'ipEnd' are required.");
     }
 
     [Test]
@@ -182,7 +199,7 @@ internal class FlowControllerValidationTest
         });
 
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("invalid 'ipStart'"));
+        AssertValidationError(result.Result!, "address[0]", "'address' entry at index 0 has an invalid 'ipStart' value.");
     }
 
     [Test]
@@ -197,7 +214,7 @@ internal class FlowControllerValidationTest
         });
 
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("Only '/32' is allowed"));
+        AssertValidationError(result.Result!, "address[0]", "'address' entry at index 0 has unsupported netmask '/24' in 'ipStart'. Only '/32' is allowed.");
     }
 
     [Test]
@@ -212,7 +229,7 @@ internal class FlowControllerValidationTest
         });
 
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("'startTime' must be <= 'endTime'"));
+        AssertValidationError(result.Result!, "startTime", "'startTime' must be <= 'endTime'.");
     }
 
     [Test]
@@ -225,16 +242,19 @@ internal class FlowControllerValidationTest
         GetTimeObjectIdRequest request = new();
         if (includeFilter)
         {
-            request.Filter = new VisibleInRequestFilter
+            request.Options = new RequestOptionsDto<VisibleInRequestFilter>
             {
-                VisibleInRequest = true
+                Filter = new VisibleInRequestFilter
+                {
+                    VisibleInRequest = true
+                }
             };
         }
 
         ActionResult<TimeObjectIdResponse> result = await controller.GetTimeObjectId(request);
 
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("At least one of 'startTime' or 'endTime' is required."));
+        AssertValidationError(result.Result!, RequestFieldPath.Root, "At least one of 'startTime' or 'endTime' is required.");
     }
 
     [Test]
@@ -255,9 +275,12 @@ internal class FlowControllerValidationTest
         ActionResult<TimeObjectIdResponse> result = await controller.GetTimeObjectId(new GetTimeObjectIdRequest
         {
             StartTime = new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero),
-            Filter = new VisibleInRequestFilter
+            Options = new RequestOptionsDto<VisibleInRequestFilter>
             {
-                VisibleInRequest = true
+                Filter = new VisibleInRequestFilter
+                {
+                    VisibleInRequest = true
+                }
             }
         });
 
@@ -285,9 +308,12 @@ internal class FlowControllerValidationTest
         ActionResult<TimeObjectIdResponse> result = await controller.GetTimeObjectId(new GetTimeObjectIdRequest
         {
             EndTime = new DateTimeOffset(2026, 6, 1, 17, 30, 0, TimeSpan.Zero),
-            Filter = new VisibleInRequestFilter
+            Options = new RequestOptionsDto<VisibleInRequestFilter>
             {
-                VisibleInRequest = false
+                Filter = new VisibleInRequestFilter
+                {
+                    VisibleInRequest = false
+                }
             }
         });
 
@@ -316,9 +342,12 @@ internal class FlowControllerValidationTest
         {
             StartTime = new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero),
             EndTime = new DateTimeOffset(2026, 6, 1, 17, 30, 0, TimeSpan.Zero),
-            Filter = new VisibleInRequestFilter
+            Options = new RequestOptionsDto<VisibleInRequestFilter>
             {
-                VisibleInRequest = true
+                Filter = new VisibleInRequestFilter
+                {
+                    VisibleInRequest = true
+                }
             }
         });
 
@@ -332,19 +361,20 @@ internal class FlowControllerValidationTest
     public void FlowControllerValidation_RejectsUnknownLookupFilterKeys()
     {
         object request = JsonSerializer.Deserialize<GetTimeObjectIdRequest>(
-            """{"filter":{"visibleInRequest":true,"typo":1},"startTime":"2026-06-01T08:00:00Z","endTime":"2026-06-01T17:30:00Z"}""")!;
+            """{"options":{"filter":{"visibleInRequest":true,"typo":1}},"startTime":"2026-06-01T08:00:00Z","endTime":"2026-06-01T17:30:00Z"}""")!;
 
-        bool valid = VisibleInRequestFilterValidator.TryValidate(
-            (IVisibleInRequestFilterRequest)request,
-            RequestFilterValidationSchema.ForVisibleInRequest("GetTimeObjectId"),
+        bool valid = RequestValidator.TryValidate(
+            request,
+            CreateVisibleInRequestSchema("GetTimeObjectId")
+                .OptionalString("startTime")
+                .OptionalString("endTime"),
             out var error);
 
         Assert.Multiple(() =>
         {
             Assert.That(valid, Is.False);
             Assert.That(error, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain("GetTimeObjectId"));
-            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain("'visibleInRequest'"));
+            AssertValidationError(error!, "options.filter.typo", "Unknown field 'options.filter.typo'.");
         });
     }
 
@@ -353,32 +383,27 @@ internal class FlowControllerValidationTest
         yield return new TestCaseData(new RequestCase(
             "GetAddressObjects",
             json => JsonSerializer.Deserialize<GetAddressObjectsRequest>(json)!,
-            RequestRootValidationSchema.ForVisibleInRequest("GetAddressObjects"),
-            RequestFilterValidationSchema.ForVisibleInRequest("GetAddressObjects")));
+            CreateVisibleInRequestSchema("GetAddressObjects")));
 
         yield return new TestCaseData(new RequestCase(
             "GetAddressGroups",
             json => JsonSerializer.Deserialize<GetAddressGroupsRequest>(json)!,
-            RequestRootValidationSchema.ForVisibleInRequest("GetAddressGroups"),
-            RequestFilterValidationSchema.ForVisibleInRequest("GetAddressGroups")));
+            CreateVisibleInRequestSchema("GetAddressGroups")));
 
         yield return new TestCaseData(new RequestCase(
             "GetServiceObjects",
             json => JsonSerializer.Deserialize<GetServiceObjectsRequest>(json)!,
-            RequestRootValidationSchema.ForVisibleInRequest("GetServiceObjects"),
-            RequestFilterValidationSchema.ForVisibleInRequest("GetServiceObjects")));
+            CreateVisibleInRequestSchema("GetServiceObjects")));
 
         yield return new TestCaseData(new RequestCase(
             "GetServiceGroups",
             json => JsonSerializer.Deserialize<GetServiceGroupsRequest>(json)!,
-            RequestRootValidationSchema.ForVisibleInRequest("GetServiceGroups"),
-            RequestFilterValidationSchema.ForVisibleInRequest("GetServiceGroups")));
+            CreateVisibleInRequestSchema("GetServiceGroups")));
 
         yield return new TestCaseData(new RequestCase(
             "GetTimeObjects",
             json => JsonSerializer.Deserialize<GetTimeObjectsRequest>(json)!,
-            RequestRootValidationSchema.ForVisibleInRequest("GetTimeObjects"),
-            RequestFilterValidationSchema.ForVisibleInRequest("GetTimeObjects")));
+            CreateVisibleInRequestSchema("GetTimeObjects")));
     }
 
     private static IEnumerable<TestCaseData> LookupRequestCases()
@@ -386,64 +411,70 @@ internal class FlowControllerValidationTest
         yield return new TestCaseData(new LookupRequestCase(
             "GetServiceObjectId",
             json => JsonSerializer.Deserialize<GetServiceObjectIdRequest>(json)!,
-            new RequestRootValidationSchema(
-                "GetServiceObjectId",
-                [
-                    new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
-                    new RequestKeyDefinition("portStart", "Start port for the service object lookup."),
-                    new RequestKeyDefinition("portEnd", "End port for the service object lookup."),
-                    new RequestKeyDefinition("protocol", "Protocol name or protocol id for the service object lookup.")
-                ]),
-            RequestFilterValidationSchema.ForVisibleInRequest("GetServiceObjectId"),
-            """{"filter":{"visibleInRequest":true},"portStart":443,"portEnd":443,"protocol":"TCP"}""",
-            """{"filter":{"visibleInRequest":true},"portStart":443,"portEnd":443,"protocol":"TCP","typo":1}""",
+            CreateVisibleInRequestSchema("GetServiceObjectId")
+                .RequiredInt("portStart")
+                .RequiredInt("portEnd")
+                .RequiredString("protocol"),
+            """{"options":{"filter":{"visibleInRequest":true}},"portStart":443,"portEnd":443,"protocol":"TCP"}""",
+            """{"options":{"filter":{"visibleInRequest":true}},"portStart":443,"portEnd":443,"protocol":"TCP","typo":1}""",
             "portStart"));
 
         yield return new TestCaseData(new LookupRequestCase(
             "GetAddressObjectId",
             json => JsonSerializer.Deserialize<GetAddressObjectIdRequest>(json)!,
-            new RequestRootValidationSchema(
-                "GetAddressObjectId",
-                [
-                    new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
-                    new RequestKeyDefinition("ipStart", "Start IP address for the address object lookup."),
-                    new RequestKeyDefinition("ipEnd", "End IP address for the address object lookup.")
-                ]),
-            RequestFilterValidationSchema.ForVisibleInRequest("GetAddressObjectId"),
-            """{"filter":{"visibleInRequest":false},"ipStart":"10.0.0.1","ipEnd":"10.0.0.2"}""",
-            """{"filter":{"visibleInRequest":false},"ipStart":"10.0.0.1","ipEnd":"10.0.0.2","typo":1}""",
+            CreateVisibleInRequestSchema("GetAddressObjectId")
+                .RequiredString("ipStart")
+                .RequiredString("ipEnd"),
+            """{"options":{"filter":{"visibleInRequest":false}},"ipStart":"10.0.0.1","ipEnd":"10.0.0.2"}""",
+            """{"options":{"filter":{"visibleInRequest":false}},"ipStart":"10.0.0.1","ipEnd":"10.0.0.2","typo":1}""",
             "ipStart"));
 
         yield return new TestCaseData(new LookupRequestCase(
             "GetTimeObjectId",
             json => JsonSerializer.Deserialize<GetTimeObjectIdRequest>(json)!,
-            new RequestRootValidationSchema(
-                "GetTimeObjectId",
-                [
-                    new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
-                    new RequestKeyDefinition("startTime", "Start time for the time object lookup."),
-                    new RequestKeyDefinition("endTime", "End time for the time object lookup.")
-                ]),
-            RequestFilterValidationSchema.ForVisibleInRequest("GetTimeObjectId"),
-            """{"filter":{"visibleInRequest":true},"startTime":"2026-06-01T08:00:00Z","endTime":"2026-06-01T17:30:00Z"}""",
-            """{"filter":{"visibleInRequest":true},"startTime":"2026-06-01T08:00:00Z","endTime":"2026-06-01T17:30:00Z","typo":1}""",
+            CreateVisibleInRequestSchema("GetTimeObjectId")
+                .OptionalString("startTime")
+                .OptionalString("endTime"),
+            """{"options":{"filter":{"visibleInRequest":true}},"startTime":"2026-06-01T08:00:00Z","endTime":"2026-06-01T17:30:00Z"}""",
+            """{"options":{"filter":{"visibleInRequest":true}},"startTime":"2026-06-01T08:00:00Z","endTime":"2026-06-01T17:30:00Z","typo":1}""",
             "startTime"));
     }
 
     internal sealed record RequestCase(
         string EndpointName,
         Func<string, object> Deserialize,
-        RequestRootValidationSchema RootSchema,
-        RequestFilterValidationSchema FilterSchema);
+        RequestValidationSchema Schema);
 
     internal sealed record LookupRequestCase(
         string EndpointName,
         Func<string, object> Deserialize,
-        RequestRootValidationSchema RootSchema,
-        RequestFilterValidationSchema FilterSchema,
+        RequestValidationSchema Schema,
         string ValidJson,
         string InvalidRootJson,
         string ExpectedRootKey);
+
+    private static RequestValidationSchema CreateVisibleInRequestSchema(string endpointName)
+    {
+        return RequestValidationSchema.EndpointWithOptions(endpointName, options => options
+            .OptionalObject("filter", filter => filter
+                .OptionalBool("visibleInRequest")));
+    }
+
+    private static void AssertValidationError(ActionResult errorResult, string fieldName, string expectedError)
+    {
+        ValidationProblemDetails problemDetails = ExtractValidationProblemDetails(errorResult);
+        Assert.Multiple(() =>
+        {
+            Assert.That(problemDetails.Errors[fieldName], Has.Length.EqualTo(1));
+            Assert.That(problemDetails.Errors[fieldName][0], Is.EqualTo(expectedError));
+        });
+    }
+
+    private static ValidationProblemDetails ExtractValidationProblemDetails(ActionResult errorResult)
+    {
+        Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+        return (ValidationProblemDetails)((BadRequestObjectResult)errorResult).Value!;
+    }
 
     private sealed class ValidationApiConnection : SimulatedApiConnection
     {

@@ -6,19 +6,13 @@ namespace FWO.Middleware.Server.Requests;
 /// <summary>
 /// Represents the request body for resolving zones for object trees.
 /// </summary>
-public sealed class ResolveZonesForObjectsRequest : IRequestWithRootAdditionalData
+public sealed class ResolveZonesForObjectsRequest : RequestDto<RequestOptionsDto>
 {
     /// <summary>
     /// Gets the root objects to evaluate.
     /// </summary>
     [JsonPropertyName("objects")]
-    public List<ObjectRequest> Objects { get; set; } = [];
-
-    /// <summary>
-    /// Gets the additional data payload.
-    /// </summary>
-    [JsonExtensionData]
-    public Dictionary<string, JsonElement>? AdditionalData { get; set; }
+    public List<ObjectRequest>? Objects { get; set; } = [];
 
     /// <summary>
     /// Represents one object in the zone resolution tree.
@@ -30,7 +24,7 @@ public sealed class ResolveZonesForObjectsRequest : IRequestWithRootAdditionalDa
         /// Gets the display name of the object.
         /// </summary>
         [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
+        public string? Name { get; set; }
 
         /// <summary>
         /// Gets the additional data payload.
@@ -48,19 +42,19 @@ public sealed class ResolveZonesForObjectsRequest : IRequestWithRootAdditionalDa
         /// Gets the object type.
         /// </summary>
         [JsonPropertyName("type")]
-        public string Type { get; set; } = string.Empty;
+        public string? Type { get; set; }
 
         /// <summary>
         /// Gets the start IP or range value.
         /// </summary>
         [JsonPropertyName("ipStart")]
-        public string IpStart { get; set; } = string.Empty;
+        public string? IpStart { get; set; }
 
         /// <summary>
         /// Gets the end IP or range value.
         /// </summary>
         [JsonPropertyName("ipEnd")]
-        public string IpEnd { get; set; } = string.Empty;
+        public string? IpEnd { get; set; }
     }
 
     /// <summary>
@@ -72,7 +66,7 @@ public sealed class ResolveZonesForObjectsRequest : IRequestWithRootAdditionalDa
         /// Gets the child members.
         /// </summary>
         [JsonPropertyName("members")]
-        public List<ObjectRequest> Members { get; set; } = [];
+        public List<ObjectRequest>? Members { get; set; } = [];
     }
 }
 

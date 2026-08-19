@@ -15,6 +15,11 @@ namespace FWO.Test;
 [TestFixture]
 internal class FlowComplianceServiceTest
 {
+    private static readonly string[] kUnknownTypoError = new string[] { "Unknown field 'typo'." };
+    private static readonly string[] kMissingSourceIpEndError = new string[] { "Required field 'source[0].ipEnd' is missing." };
+    private static readonly string[] kMatrixAndForbiddenServiceViolationTypes = new string[] { "Matrix", "ForbiddenService" };
+    private static readonly string[] kMatrixViolationTypes = new string[] { "Matrix" };
+
     [Test]
     public async Task GetPolicyIdsAsync_ReturnsActivePolicies()
     {
@@ -70,6 +75,53 @@ internal class FlowComplianceServiceTest
     }
 
     [Test]
+    public async Task GetPolicyIds_ReturnsValidationProblemBeforeQueryForUnknownKeys()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        FlowComplianceController controller = new(new FlowComplianceService(apiConnection, new SimulatedGlobalConfig()));
+
+        ActionResult<GetPolicyIdsResponse> result = await controller.GetPolicyIds(new GetPolicyIdsRequest
+        {
+            AdditionalData = new()
+            {
+                ["typo"] = System.Text.Json.JsonDocument.Parse("true").RootElement.Clone()
+            }
+        });
+
+        ValidationProblemDetails problemDetails = ExtractValidationProblemDetails(result.Result!);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(problemDetails.Errors["typo"], Is.EqualTo(kUnknownTypoError));
+            Assert.That(apiConnection.SentQueries, Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task GetFlowComplianceState_ReturnsValidationProblemBeforeQueryForShapeErrors()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        FlowComplianceController controller = new(new FlowComplianceService(apiConnection, new SimulatedGlobalConfig()));
+        GetFlowComplianceStateRequest request = new()
+        {
+            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.0.1" }],
+            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.1.1", IpEnd = "10.0.1.2" }],
+            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
+            Policies = [1]
+        };
+
+        ActionResult<List<FlowComplianceStateResponse>> result = await controller.GetFlowComplianceState(request);
+
+        ValidationProblemDetails problemDetails = ExtractValidationProblemDetails(result.Result!);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(problemDetails.Errors["source[0].ipEnd"], Is.EqualTo(kMissingSourceIpEndError));
+            Assert.That(apiConnection.SentQueries, Is.Empty);
+        });
+    }
+
+    [Test]
     public async Task GetFlowComplianceStateAsync_ReturnsViolationsPerPolicy()
     {
         FlowComplianceServiceApiConn apiConnection = new();
@@ -85,7 +137,7 @@ internal class FlowComplianceServiceTest
             Assert.That(result[0].Policy.Id, Is.EqualTo(7));
             Assert.That(result[0].Policy.Name, Is.EqualTo("Matrix and Service Policy"));
             Assert.That(result[0].Violations, Has.Count.EqualTo(2));
-            Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix", "ForbiddenService" }));
+            Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(kMatrixAndForbiddenServiceViolationTypes));
             Assert.That(apiConnection.CountQueries(ConfigQueries.getLanguages), Is.EqualTo(0));
             Assert.That(apiConnection.CountQueries(ConfigQueries.getTextsPerLanguage), Is.EqualTo(0));
             Assert.That(apiConnection.SentQueries, Does.Contain(ComplianceQueries.getPolicyById));
@@ -154,9 +206,9 @@ internal class FlowComplianceServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result[0].Policy.Id, Is.EqualTo(7));
-            Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix", "ForbiddenService" }));
+            Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(kMatrixAndForbiddenServiceViolationTypes));
             Assert.That(result[1].Policy.Id, Is.EqualTo(8));
-            Assert.That(result[1].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix" }));
+            Assert.That(result[1].Violations.Select(v => v.Type), Is.EquivalentTo(kMatrixViolationTypes));
             Assert.That(apiConnection.CountQueries(DeviceQueries.getManagementNames), Is.EqualTo(1));
             Assert.That(apiConnection.CountQueries(ComplianceQueries.getNetworkZonesForMatrix), Is.EqualTo(1));
             Assert.That(apiConnection.CountQueries(ComplianceQueries.getPolicyById), Is.EqualTo(2));
@@ -334,6 +386,12 @@ internal class FlowComplianceServiceTest
             new UiText { Id = "bidirectional_duplicate_violation", Txt = "Bidirectional duplicate violation", Language = "English" },
             new UiText { Id = "criterion_ipv6_not_supported", Txt = "IPv6 not supported", Language = "English" }
         ];
+    }
+
+    private static ValidationProblemDetails ExtractValidationProblemDetails(ActionResult errorResult)
+    {
+        Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+        return (ValidationProblemDetails)((BadRequestObjectResult)errorResult).Value!;
     }
 
     private sealed class FlowComplianceServiceApiConn : SimulatedApiConnection

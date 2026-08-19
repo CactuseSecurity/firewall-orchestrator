@@ -22,7 +22,10 @@ namespace FWO.Test
 
             ActionResult<List<AddressObjectResponse>> addressObjectsResult = await controller.GetAddressObjects(new GetAddressObjectsRequest
             {
-                Filter = new VisibleInRequestFilter { VisibleInRequest = true }
+                Options = new RequestOptionsDto<VisibleInRequestFilter>
+                {
+                    Filter = new VisibleInRequestFilter { VisibleInRequest = true }
+                }
             });
             ActionResult<List<AddressGroupResponse>> addressGroupsResult = await controller.GetAddressGroups(new GetAddressGroupsRequest());
             ActionResult<List<ServiceObjectResponse>> serviceObjectsResult = await controller.GetServiceObjects(new GetServiceObjectsRequest());
@@ -33,7 +36,10 @@ namespace FWO.Test
                 PortStart = 80,
                 PortEnd = 80,
                 Protocol = "TCP",
-                Filter = new VisibleInRequestFilter { VisibleInRequest = false }
+                Options = new RequestOptionsDto<VisibleInRequestFilter>
+                {
+                    Filter = new VisibleInRequestFilter { VisibleInRequest = false }
+                }
             });
             ActionResult<ServiceObjectIdResponse> numericServiceObjectIdResult = await controller.GetServiceObjectId(new GetServiceObjectIdRequest
             {

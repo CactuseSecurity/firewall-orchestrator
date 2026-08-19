@@ -1,5 +1,7 @@
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using System.Reflection;
 
 namespace FWO.Middleware.Server.OpenApi;
@@ -22,6 +24,7 @@ public static class ApiExampleServiceCollectionExtensions
         services.AddSingleton<IApiExampleProvider, GetFlowComplianceStateRequestExample>();
         services.AddSingleton<IApiExampleProvider, ResolveZonesForObjectsRequestExample>();
         services.AddSingleton<IApiExampleProvider, GetOwnersRequestExample>();
+        services.AddSingleton<IApiExampleProvider, ValidationProblemDetailsExample>();
         services.AddSingleton<IApiExampleProvider, CreateRequestResponseExample>();
         services.AddSingleton<IApiExampleProvider, GetRequestStatusResponseExample>();
         services.AddSingleton<IApiExampleProvider, FlowComplianceStateResponseExample>();
@@ -53,6 +56,22 @@ public static class ApiExampleServiceCollectionExtensions
 
         return services;
     }
+}
+
+/// <summary>
+/// Provides a typed example for <see cref="ValidationProblemDetails"/>.
+/// </summary>
+public sealed class ValidationProblemDetailsExample : ApiExampleProvider<ValidationProblemDetails>
+{
+    /// <inheritdoc />
+    public override ValidationProblemDetails GetExample() => new(new Dictionary<string, string[]>
+    {
+        ["options.filter.visibleInRequestTypo"] = ["Unknown field 'options.filter.visibleInRequestTypo'."]
+    })
+    {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Request validation failed."
+    };
 }
 
 /// <summary>

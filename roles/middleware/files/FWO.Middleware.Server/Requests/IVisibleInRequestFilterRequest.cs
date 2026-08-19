@@ -1,14 +1,8 @@
-using System.Text.Json;
-
 namespace FWO.Middleware.Server.Requests;
 
 /// <summary>
 /// Defines the IVisibleInRequestFilterRequest contract.
 /// </summary>
-public interface IVisibleInRequestFilterRequest : IRequestWithRootAdditionalData
+public interface IVisibleInRequestFilterRequest : IRequestWithOptions<RequestOptionsDto<VisibleInRequestFilter>>
 {
-    /// <summary>
-    /// Gets or sets the visible-in-request filter.
-    /// </summary>
-    VisibleInRequestFilter? Filter { get; set; }
 }

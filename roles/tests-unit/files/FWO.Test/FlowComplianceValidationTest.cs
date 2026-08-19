@@ -155,7 +155,7 @@ internal class FlowComplianceValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("getFlowComplianceState"));
+            AssertValidationContains(errorResult!, "typo");
         });
     }
 
@@ -179,8 +179,8 @@ internal class FlowComplianceValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("service"));
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'portStart'"));
+            AssertValidationContains(errorResult!, "service");
+            AssertValidationContains(errorResult!, "service[0].typo");
         });
     }
 
@@ -204,8 +204,7 @@ internal class FlowComplianceValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'source'"));
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'ipStart'"));
+            AssertValidationContains(errorResult!, "source[0].ipEnd");
         });
     }
 
@@ -229,8 +228,7 @@ internal class FlowComplianceValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'service'"));
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'protocol'"));
+            AssertValidationContains(errorResult!, "service[0].protocol");
         });
     }
 
@@ -251,8 +249,8 @@ internal class FlowComplianceValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'ipStart'"));
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("index 0"));
+            AssertValidationContains(errorResult!, "'ipStart'");
+            AssertValidationContains(errorResult!, "index 0");
         });
     }
 
@@ -273,7 +271,7 @@ internal class FlowComplianceValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("same address family"));
+            AssertValidationContains(errorResult!, "same address family");
         });
     }
 
@@ -294,7 +292,7 @@ internal class FlowComplianceValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("does not support IPv6 addresses"));
+            AssertValidationContains(errorResult!, "does not support IPv6 addresses");
         });
     }
 
@@ -315,7 +313,7 @@ internal class FlowComplianceValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'ipStart' <= 'ipEnd'"));
+            AssertValidationContains(errorResult!, "'ipStart' <= 'ipEnd'");
         });
     }
 
@@ -337,8 +335,8 @@ internal class FlowComplianceValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain(expectedField));
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("0-65535"));
+            AssertValidationContains(errorResult!, expectedField);
+            AssertValidationContains(errorResult!, "0-65535");
         });
     }
 
@@ -359,7 +357,7 @@ internal class FlowComplianceValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'portStart' <= 'portEnd'"));
+            AssertValidationContains(errorResult!, "'portStart' <= 'portEnd'");
         });
     }
 
@@ -381,8 +379,17 @@ internal class FlowComplianceValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'policies'"));
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("positive integers"));
+            AssertValidationContains(errorResult!, "'policies'");
+            AssertValidationContains(errorResult!, "positive integers");
         });
+    }
+
+    private static void AssertValidationContains(ActionResult errorResult, string expectedText)
+    {
+        ValidationProblemDetails problemDetails = (ValidationProblemDetails)((BadRequestObjectResult)errorResult).Value!;
+        string validationText = string.Join(
+            " ",
+            problemDetails.Errors.SelectMany(error => new[] { error.Key }.Concat(error.Value)));
+        Assert.That(validationText, Does.Contain(expectedText));
     }
 }

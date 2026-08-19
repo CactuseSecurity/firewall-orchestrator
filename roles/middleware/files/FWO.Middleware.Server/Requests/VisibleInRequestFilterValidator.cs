@@ -18,13 +18,13 @@ public static class VisibleInRequestFilterValidator
             return false;
         }
 
-        if (request.Filter is null)
+        if (request.Options?.Filter is null)
         {
             errorResult = null;
             return true;
         }
 
-        if (request.Filter.AdditionalData is { Count: > 0 })
+        if (request.Options.Filter.AdditionalData is { Count: > 0 })
         {
             errorResult = BuildError(schema);
             return false;
@@ -39,8 +39,9 @@ public static class VisibleInRequestFilterValidator
         string allowedShapes = string.Join(" or ", new[]
         {
             "{}",
-            "{ \"filter\": {} }"
-        }.Concat(schema.AllowedKeys.Select(key => $"{{ \"filter\": {{ \"{key.JsonName}\": ... }} }}")));
+            "{ \"options\": {} }",
+            "{ \"options\": { \"filter\": {} } }"
+        }.Concat(schema.AllowedKeys.Select(key => $"{{ \"options\": {{ \"filter\": {{ \"{key.JsonName}\": ... }} }} }}")));
 
         string keyHelp = string.Join(" ", schema.AllowedKeys.Select(key => $"'{key.JsonName}': {key.Description}"));
 

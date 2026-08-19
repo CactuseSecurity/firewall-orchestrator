@@ -1,12 +1,16 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
+using GraphQL;
+using GraphQL.Client.Http;
+using GraphQL.Client.Serializer.SystemTextJson;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NUnit.Framework;
@@ -355,6 +359,77 @@ internal class FlowRequestServiceTest
             Assert.That(GetVariable(apiConnection.NewTicketVariables, "state"), Is.EqualTo(17));
             Assert.That(apiConnection.CreatedTicket, Is.Not.Null);
             Assert.That(apiConnection.CreatedTicket!.Requester?.DbId, Is.EqualTo(77));
+        });
+    }
+
+    [Test]
+    public async Task CreateRequest_UsesUpdatedConfiguredInitialStateFromSubscription()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            States =
+            [
+                new WfState { Id = 49, Name = "approval" },
+                new WfState { Id = 0, Name = "draft" }
+            ],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+        };
+        GlobalConfig globalConfig = new() { ReqApiTicketInitialStateId = -1 };
+        FlowRequestService service = new(apiConnection, globalConfig);
+
+        apiConnection.EmitGlobalConfigChange(new ConfigItem
+        {
+            Key = "reqApiTicketInitialStateId",
+            Value = "49",
+            User = 0
+        });
+
+        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Updated config request",
+            AddressObjects =
+            [
+                new CreateRequestRequest.CreateAddressObjectRequest
+                {
+                    Id = "-1",
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateRequestRequest.CreateServiceObjectRequest
+                {
+                    Id = "-2",
+                    Name = "https",
+                    Protocol = "tcp",
+                    PortStart = 443,
+                    PortEnd = 443
+                }
+            ],
+            Rules =
+            [
+                new CreateRequestRequest.CreateRequestRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [-1],
+                    DestinationObjects = [-1],
+                    ServiceObjects = [-2]
+                }
+            ]
+        }, 77);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Status, Is.EqualTo("approval"));
+            Assert.That(GetVariable(apiConnection.NewTicketVariables, "state"), Is.EqualTo(49));
+            Assert.That(globalConfig.ReqApiTicketInitialStateId, Is.EqualTo(49));
+            Assert.That(apiConnection.ConfigSubscriptionQuery, Is.EqualTo(ConfigQueries.subscribeFlowRequestConfigChanges));
         });
     }
 
@@ -1259,7 +1334,10 @@ internal class FlowRequestServiceTest
         public WfTicketWriter? LastTicketWriter { get; private set; }
         public object? NewTicketVariables { get; private set; }
         public WfTicket? CreatedTicket { get; private set; }
+        public string? ConfigSubscriptionQuery { get; private set; }
+        public object? ConfigSubscriptionVariables { get; private set; }
         private long nextId = 99;
+        private Action<ConfigItem[]>? configSubscriptionUpdateHandler;
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
@@ -1339,6 +1417,20 @@ internal class FlowRequestServiceTest
 
         public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
         {
+            if (typeof(SubscriptionResponseType) == typeof(ConfigItem[]))
+            {
+                ConfigSubscriptionQuery = subscription;
+                ConfigSubscriptionVariables = variables;
+                configSubscriptionUpdateHandler = configItems =>
+                    subscriptionUpdateHandler((SubscriptionResponseType)(object)configItems);
+                return new SimulatedApiSubscription<SubscriptionResponseType>(
+                    this,
+                    new GraphQLHttpClient(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient()),
+                    new GraphQLRequest(subscription, variables, operationName),
+                    exceptionHandler,
+                    subscriptionUpdateHandler);
+            }
+
             throw new NotImplementedException();
         }
 
@@ -1369,6 +1461,11 @@ internal class FlowRequestServiceTest
         public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
         {
             return Task.CompletedTask;
+        }
+
+        public void EmitGlobalConfigChange(params ConfigItem[] configItems)
+        {
+            configSubscriptionUpdateHandler?.Invoke(configItems);
         }
 
         private static WfTicket BuildCreatedTicket(object? variables, long ticketId)

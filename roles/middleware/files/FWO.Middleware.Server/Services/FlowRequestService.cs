@@ -1,7 +1,9 @@
 using FWO.Api.Client;
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Data.Workflow;
 using FWO.Data;
 using FWO.Logging;
@@ -16,10 +18,12 @@ namespace FWO.Middleware.Server.Services;
 /// <summary>
 /// Provides request workflow data for flow request REST endpoints.
 /// </summary>
-public sealed class FlowRequestService
+public sealed class FlowRequestService : IDisposable
 {
+    private const string kInitialStateConfigKey = "reqApiTicketInitialStateId";
     private readonly ApiConnection apiConnection;
     private readonly GlobalConfig globalConfig;
+    private readonly GraphQlApiSubscription<ConfigItem[]> configSubscription;
 
     /// <summary>
     /// Initializes a new instance of the type.
@@ -28,6 +32,10 @@ public sealed class FlowRequestService
     {
         this.apiConnection = apiConnection;
         this.globalConfig = globalConfig;
+        configSubscription = this.apiConnection.GetSubscription<ConfigItem[]>(
+            GraphqlExceptionHandler.Handle,
+            OnGlobalConfigChange,
+            ConfigQueries.subscribeFlowRequestConfigChanges);
     }
 
     /// <summary>
@@ -73,6 +81,25 @@ public sealed class FlowRequestService
             Status = await BuildRequestStatusAsync(ticket.StateId, tolerateExternalStateErrors: false),
             StatusComment = GetLatestTicketComment(ticket)
         };
+    }
+
+    /// <summary>
+    /// Applies refreshed request-flow config values to the shared config snapshot.
+    /// </summary>
+    private void OnGlobalConfigChange(ConfigItem[] configItems)
+    {
+        ConfigItem? initialStateConfig = configItems.FirstOrDefault(item =>
+            string.Equals(item.Key, kInitialStateConfigKey, StringComparison.OrdinalIgnoreCase));
+
+        if (initialStateConfig?.Value == null)
+        {
+            return;
+        }
+
+        if (int.TryParse(initialStateConfig.Value, out int configuredStateId))
+        {
+            globalConfig.ReqApiTicketInitialStateId = configuredStateId;
+        }
     }
 
     /// <summary>
@@ -789,5 +816,11 @@ public sealed class FlowRequestService
             .OrderByDescending(comment => comment!.Comment.CreationDate)
             .Select(comment => comment!.Comment.CommentText)
             .FirstOrDefault() ?? string.Empty;
+    }
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        configSubscription.Dispose();
     }
 }

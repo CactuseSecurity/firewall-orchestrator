@@ -1473,19 +1473,23 @@ namespace FWO.Test
             StringAssert.DoesNotContain("_nin", normalizedRuleWhere);
         }
 
-        [Test]
         [Parallelizable]
-        public void NetworkFilter_ObjectTypesRejectModelledConnectionReports()
+        [TestCase(ReportType.Connections)]
+        [TestCase(ReportType.Owners)]
+        [TestCase(ReportType.OwnerRecertification)]
+        [TestCase(ReportType.TicketReport)]
+        [TestCase(ReportType.TicketChangeReport)]
+        public void NetworkFilter_ObjectTypesRejectReportsWithoutRulePredicates(ReportType reportType)
         {
             ReportTemplate template = new()
             {
                 Filter = "src_type=dynamic_net_obj,domain"
             };
-            template.ReportParams.ReportType = (int)ReportType.Connections;
+            template.ReportParams.ReportType = (int)reportType;
 
             SemanticException exception = Assert.Throws<SemanticException>(() => Compiler.Compile(template))!;
 
-            Assert.That(exception.Message, Does.Contain("only supported for firewall rule reports"));
+            Assert.That(exception.Message, Does.Contain("report queries that use firewall rule predicates"));
         }
 
         [Test]

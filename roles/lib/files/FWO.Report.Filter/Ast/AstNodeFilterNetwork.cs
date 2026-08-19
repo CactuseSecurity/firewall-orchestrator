@@ -68,9 +68,9 @@ namespace FWO.Report.Filter.Ast
 
         private void ExtractObjectTypeFilter(DynGraphqlQuery query, ReportType? reportType, string location, string locationTable)
         {
-            if (reportType is not null && reportType.Value.IsConnectionRelatedReport())
+            if (reportType is not null && !SupportsObjectTypeFilter(reportType.Value))
             {
-                throw new SemanticException("Network object type filters are only supported for firewall rule reports.", Name.Position);
+                throw new SemanticException("Network object type filters are only supported for report queries that use firewall rule predicates.", Name.Position);
             }
 
             List<string> objectTypes = ExtractObjectTypes();
@@ -82,6 +82,14 @@ namespace FWO.Report.Filter.Ast
             query.RuleWhereStatement += Operator.Kind == TokenKind.NEQ
                 ? $"_not: {{ {objectRelationFilter} }}"
                 : objectRelationFilter;
+        }
+
+        private static bool SupportsObjectTypeFilter(ReportType reportType)
+        {
+            return reportType.IsRuleReport()
+                || reportType.IsChangeReport()
+                || reportType.IsComplianceReport()
+                || reportType == ReportType.Statistics;
         }
 
         private List<string> ExtractObjectTypes()

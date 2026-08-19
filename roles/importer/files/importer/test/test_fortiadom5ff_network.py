@@ -1,6 +1,7 @@
 from typing import Any
 
 from fw_modules.fortiadom5ff.fmgr_network import normalize_network_objects
+from fw_modules.fortiadom5ff.fmgr_rule import find_addr_ref
 
 
 def normalize_fortimanager_object(object_type: str, native_object: dict[str, Any]) -> dict[str, Any]:
@@ -48,3 +49,48 @@ def test_fqdn_object_has_no_static_ip_range():
     assert fqdn_object["obj_typ"] == "domain"
     assert fqdn_object["obj_ip"] is None
     assert fqdn_object["obj_ip_end"] is None
+
+
+def test_find_addr_ref_resolves_addressless_objects_by_address_family():
+    dynamic_object = normalize_fortimanager_object(
+        "nw_obj_global_firewall/internet-service-basic",
+        {"name": "dynamic-object", "q_origin_key": 1},
+    )
+    ipv4_fqdn = normalize_fortimanager_object(
+        "nw_obj_global_firewall/address",
+        {"name": "ipv4-fqdn", "uuid": "ipv4-fqdn-uid", "fqdn": "ipv4.example.test"},
+    )
+    ipv6_fqdn = normalize_fortimanager_object(
+        "nw_obj_global_firewall/address6",
+        {"name": "ipv6-fqdn", "uuid": "ipv6-fqdn-uid", "fqdn": "ipv6.example.test"},
+    )
+    normalized_config_adom = {"network_objects": [dynamic_object, ipv4_fqdn, ipv6_fqdn]}
+    normalized_config_global: dict[str, list[dict[str, Any]]] = {"network_objects": []}
+
+    assert (
+        find_addr_ref(
+            "dynamic-object",
+            is_v4=True,
+            normalized_config_adom=normalized_config_adom,
+            normalized_config_global=normalized_config_global,
+        )
+        == "dynamic-object"
+    )
+    assert (
+        find_addr_ref(
+            "ipv4-fqdn",
+            is_v4=True,
+            normalized_config_adom=normalized_config_adom,
+            normalized_config_global=normalized_config_global,
+        )
+        == "ipv4-fqdn-uid"
+    )
+    assert (
+        find_addr_ref(
+            "ipv6-fqdn",
+            is_v4=False,
+            normalized_config_adom=normalized_config_adom,
+            normalized_config_global=normalized_config_global,
+        )
+        == "ipv6-fqdn-uid"
+    )

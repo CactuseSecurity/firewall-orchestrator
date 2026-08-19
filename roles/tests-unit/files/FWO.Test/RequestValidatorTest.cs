@@ -9,6 +9,18 @@ namespace FWO.Test;
 [TestFixture]
 internal class RequestValidatorTest
 {
+    private static readonly string[] kUnknownTypoError = new string[] { "Unknown field 'typo'." };
+    private static readonly string[] kUnknownFilterVisibleInRequestTypoError = new string[] { "Unknown field 'filter.visibleInRequestTypo'." };
+    private static readonly string[] kMissingIpStartError = new string[] { "Required field 'ipStart' is missing." };
+    private static readonly string[] kMissingIpEndError = new string[] { "Required field 'ipEnd' is missing." };
+    private static readonly string[] kMissingOptionsError = new string[] { "Required field 'options' is missing." };
+    private static readonly string[] kMissingAdditionalDataRootError = new string[] { "Request object '$' must implement IRequestWithAdditionalData so unknown fields can be validated." };
+    private static readonly string[] kMissingAdditionalDataChildError = new string[] { "Request object 'child' must implement IRequestWithAdditionalData so unknown fields can be validated." };
+    private static readonly string[] kUnknownListItemTypoError = new string[] { "Unknown field 'items[0].typo'." };
+    private static readonly string[] kCollectedShapeErrorKeys = new string[] { "filter.typo", "unexpected", "ipStart", "ipEnd" };
+    private static readonly string[] kUnknownFilterTypoError = new string[] { "Unknown field 'filter.typo'." };
+    private static readonly string[] kUnknownUnexpectedError = new string[] { "Unknown field 'unexpected'." };
+
     [Test]
     public void Validate_AllowsEmptyObjectWhenNoFieldsAreRequired()
     {
@@ -53,7 +65,7 @@ internal class RequestValidatorTest
 
         RequestValidationErrors errors = RequestValidator.Validate(request, schema);
 
-        Assert.That(errors.ToDictionary()["typo"], Is.EqualTo(new[] { "Unknown field 'typo'." }));
+        Assert.That(errors.ToDictionary()["typo"], Is.EqualTo(kUnknownTypoError));
     }
 
     [Test]
@@ -71,7 +83,7 @@ internal class RequestValidatorTest
 
         RequestValidationErrors errors = RequestValidator.Validate(request, schema);
 
-        Assert.That(errors.ToDictionary()["filter.visibleInRequestTypo"], Is.EqualTo(new[] { "Unknown field 'filter.visibleInRequestTypo'." }));
+        Assert.That(errors.ToDictionary()["filter.visibleInRequestTypo"], Is.EqualTo(kUnknownFilterVisibleInRequestTypoError));
     }
 
     [Test]
@@ -90,7 +102,7 @@ internal class RequestValidatorTest
 
         RequestValidationErrors errors = RequestValidator.Validate(request, schema);
 
-        Assert.That(errors.ToDictionary()["ipStart"], Is.EqualTo(new[] { "Required field 'ipStart' is missing." }));
+        Assert.That(errors.ToDictionary()["ipStart"], Is.EqualTo(kMissingIpStartError));
     }
 
     [Test]
@@ -109,7 +121,7 @@ internal class RequestValidatorTest
 
         RequestValidationErrors errors = RequestValidator.Validate(request, schema);
 
-        Assert.That(errors.ToDictionary()["options"], Is.EqualTo(new[] { "Required field 'options' is missing." }));
+        Assert.That(errors.ToDictionary()["options"], Is.EqualTo(kMissingOptionsError));
     }
 
     [Test]
@@ -140,10 +152,7 @@ internal class RequestValidatorTest
 
         RequestValidationErrors errors = RequestValidator.Validate(new MissingAdditionalDataRequest(), schema);
 
-        Assert.That(errors.ToDictionary()[RequestFieldPath.Root], Is.EqualTo(new[]
-        {
-            "Request object '$' must implement IRequestWithAdditionalData so unknown fields can be validated."
-        }));
+        Assert.That(errors.ToDictionary()[RequestFieldPath.Root], Is.EqualTo(kMissingAdditionalDataRootError));
     }
 
     [Test]
@@ -160,10 +169,7 @@ internal class RequestValidatorTest
 
         RequestValidationErrors errors = RequestValidator.Validate(request, schema);
 
-        Assert.That(errors.ToDictionary()["child"], Is.EqualTo(new[]
-        {
-            "Request object 'child' must implement IRequestWithAdditionalData so unknown fields can be validated."
-        }));
+        Assert.That(errors.ToDictionary()["child"], Is.EqualTo(kMissingAdditionalDataChildError));
     }
 
     [Test]
@@ -187,7 +193,7 @@ internal class RequestValidatorTest
 
         RequestValidationErrors errors = RequestValidator.Validate(request, schema);
 
-        Assert.That(errors.ToDictionary()["items[0].typo"], Is.EqualTo(new[] { "Unknown field 'items[0].typo'." }));
+        Assert.That(errors.ToDictionary()["items[0].typo"], Is.EqualTo(kUnknownListItemTypoError));
     }
 
     [Test]
@@ -213,11 +219,11 @@ internal class RequestValidatorTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(errors.Keys, Is.EquivalentTo(new[] { "filter.typo", "unexpected", "ipStart", "ipEnd" }));
-            Assert.That(errors["filter.typo"], Is.EqualTo(new[] { "Unknown field 'filter.typo'." }));
-            Assert.That(errors["unexpected"], Is.EqualTo(new[] { "Unknown field 'unexpected'." }));
-            Assert.That(errors["ipStart"], Is.EqualTo(new[] { "Required field 'ipStart' is missing." }));
-            Assert.That(errors["ipEnd"], Is.EqualTo(new[] { "Required field 'ipEnd' is missing." }));
+            Assert.That(errors.Keys, Is.EquivalentTo(kCollectedShapeErrorKeys));
+            Assert.That(errors["filter.typo"], Is.EqualTo(kUnknownFilterTypoError));
+            Assert.That(errors["unexpected"], Is.EqualTo(kUnknownUnexpectedError));
+            Assert.That(errors["ipStart"], Is.EqualTo(kMissingIpStartError));
+            Assert.That(errors["ipEnd"], Is.EqualTo(kMissingIpEndError));
         });
     }
 
@@ -235,7 +241,7 @@ internal class RequestValidatorTest
         {
             Assert.That(valid, Is.False);
             Assert.That(problemDetails.Status, Is.EqualTo(400));
-            Assert.That(problemDetails.Errors["ipStart"], Is.EqualTo(new[] { "Required field 'ipStart' is missing." }));
+            Assert.That(problemDetails.Errors["ipStart"], Is.EqualTo(kMissingIpStartError));
         });
     }
 

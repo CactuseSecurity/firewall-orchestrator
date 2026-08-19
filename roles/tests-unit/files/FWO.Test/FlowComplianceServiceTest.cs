@@ -15,6 +15,11 @@ namespace FWO.Test;
 [TestFixture]
 internal class FlowComplianceServiceTest
 {
+    private static readonly string[] kUnknownTypoError = new string[] { "Unknown field 'typo'." };
+    private static readonly string[] kMissingSourceIpEndError = new string[] { "Required field 'source[0].ipEnd' is missing." };
+    private static readonly string[] kMatrixAndForbiddenServiceViolationTypes = new string[] { "Matrix", "ForbiddenService" };
+    private static readonly string[] kMatrixViolationTypes = new string[] { "Matrix" };
+
     [Test]
     public async Task GetPolicyIdsAsync_ReturnsActivePolicies()
     {
@@ -87,7 +92,7 @@ internal class FlowComplianceServiceTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(problemDetails.Errors["typo"], Is.EqualTo(new[] { "Unknown field 'typo'." }));
+            Assert.That(problemDetails.Errors["typo"], Is.EqualTo(kUnknownTypoError));
             Assert.That(apiConnection.SentQueries, Is.Empty);
         });
     }
@@ -111,7 +116,7 @@ internal class FlowComplianceServiceTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(problemDetails.Errors["source[0].ipEnd"], Is.EqualTo(new[] { "Required field 'source[0].ipEnd' is missing." }));
+            Assert.That(problemDetails.Errors["source[0].ipEnd"], Is.EqualTo(kMissingSourceIpEndError));
             Assert.That(apiConnection.SentQueries, Is.Empty);
         });
     }
@@ -132,7 +137,7 @@ internal class FlowComplianceServiceTest
             Assert.That(result[0].Policy.Id, Is.EqualTo(7));
             Assert.That(result[0].Policy.Name, Is.EqualTo("Matrix and Service Policy"));
             Assert.That(result[0].Violations, Has.Count.EqualTo(2));
-            Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix", "ForbiddenService" }));
+            Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(kMatrixAndForbiddenServiceViolationTypes));
             Assert.That(apiConnection.CountQueries(ConfigQueries.getLanguages), Is.EqualTo(0));
             Assert.That(apiConnection.CountQueries(ConfigQueries.getTextsPerLanguage), Is.EqualTo(0));
             Assert.That(apiConnection.SentQueries, Does.Contain(ComplianceQueries.getPolicyById));
@@ -201,9 +206,9 @@ internal class FlowComplianceServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result[0].Policy.Id, Is.EqualTo(7));
-            Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix", "ForbiddenService" }));
+            Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(kMatrixAndForbiddenServiceViolationTypes));
             Assert.That(result[1].Policy.Id, Is.EqualTo(8));
-            Assert.That(result[1].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix" }));
+            Assert.That(result[1].Violations.Select(v => v.Type), Is.EquivalentTo(kMatrixViolationTypes));
             Assert.That(apiConnection.CountQueries(DeviceQueries.getManagementNames), Is.EqualTo(1));
             Assert.That(apiConnection.CountQueries(ComplianceQueries.getNetworkZonesForMatrix), Is.EqualTo(1));
             Assert.That(apiConnection.CountQueries(ComplianceQueries.getPolicyById), Is.EqualTo(2));

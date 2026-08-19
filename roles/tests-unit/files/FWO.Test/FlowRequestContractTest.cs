@@ -8,6 +8,7 @@ namespace FWO.Test;
 [TestFixture]
 internal class FlowRequestContractTest
 {
+    private static readonly string[] kMissingProtocolError = new string[] { "Required field 'protocol' is missing." };
 
     [Test]
     public void GetRequestStatusRequest_RequiresTicketId()
@@ -61,7 +62,7 @@ internal class FlowRequestContractTest
 
         RequestValidationErrors errors = RequestValidator.Validate(request, CreateServiceObjectIdSchema());
 
-        Assert.That(errors.ToDictionary()["protocol"], Is.EqualTo(new[] { "Required field 'protocol' is missing." }));
+        Assert.That(errors.ToDictionary()["protocol"], Is.EqualTo(kMissingProtocolError));
     }
 
     [TestCase("""{"ipEnd":"10.0.0.2"}""")]

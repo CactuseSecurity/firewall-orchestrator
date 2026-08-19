@@ -8,6 +8,18 @@ namespace FWO.Test;
 [TestFixture]
 internal class RequestValidationContractTest
 {
+    private static readonly string[] kOptionsLimitKey = new string[] { "options.limit" };
+    private static readonly string[] kOptionsLimitErrors = new string[]
+    {
+        "options.limit must be positive.",
+        "options.limit must not exceed 1000."
+    };
+    private static readonly string[] kUnknownFilterTypoError = new string[] { "Unknown field 'filter.typo'." };
+    private static readonly string[] kMissingIpStartError = new string[] { "Required field 'ipStart' is missing." };
+    private static readonly string[] kRootPathKey = new string[] { RequestFieldPath.Root };
+    private static readonly string[] kRequestBodyRequiredError = new string[] { "Request body is required." };
+    private static readonly string[] kUnknownUnexpectedError = new string[] { "Unknown field 'unexpected'." };
+
     [Test]
     public void RequestFieldPath_BuildsCanonicalPaths()
     {
@@ -32,12 +44,8 @@ internal class RequestValidationContractTest
         Assert.Multiple(() =>
         {
             Assert.That(errors.HasErrors, Is.True);
-            Assert.That(errorDictionary.Keys, Is.EquivalentTo(new[] { "options.limit" }));
-            Assert.That(errorDictionary["options.limit"], Is.EqualTo(new[]
-            {
-                "options.limit must be positive.",
-                "options.limit must not exceed 1000."
-            }));
+            Assert.That(errorDictionary.Keys, Is.EquivalentTo(kOptionsLimitKey));
+            Assert.That(errorDictionary["options.limit"], Is.EqualTo(kOptionsLimitErrors));
         });
     }
 
@@ -53,8 +61,8 @@ internal class RequestValidationContractTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(errorDictionary["filter.typo"], Is.EqualTo(new[] { "Unknown field 'filter.typo'." }));
-            Assert.That(errorDictionary["ipStart"], Is.EqualTo(new[] { "Required field 'ipStart' is missing." }));
+            Assert.That(errorDictionary["filter.typo"], Is.EqualTo(kUnknownFilterTypoError));
+            Assert.That(errorDictionary["ipStart"], Is.EqualTo(kMissingIpStartError));
         });
     }
 
@@ -69,8 +77,8 @@ internal class RequestValidationContractTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(errorDictionary.Keys, Is.EquivalentTo(new[] { RequestFieldPath.Root }));
-            Assert.That(errorDictionary[RequestFieldPath.Root], Is.EqualTo(new[] { "Request body is required." }));
+            Assert.That(errorDictionary.Keys, Is.EquivalentTo(kRootPathKey));
+            Assert.That(errorDictionary[RequestFieldPath.Root], Is.EqualTo(kRequestBodyRequiredError));
         });
     }
 
@@ -88,7 +96,7 @@ internal class RequestValidationContractTest
             Assert.That(result.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
             Assert.That(problemDetails.Status, Is.EqualTo(StatusCodes.Status400BadRequest));
             Assert.That(problemDetails.Title, Is.EqualTo(RequestValidationProblemDetailsFactory.Title));
-            Assert.That(problemDetails.Errors["unexpected"], Is.EqualTo(new[] { "Unknown field 'unexpected'." }));
+            Assert.That(problemDetails.Errors["unexpected"], Is.EqualTo(kUnknownUnexpectedError));
         });
     }
 }

@@ -13,6 +13,9 @@ namespace FWO.Test;
 [TestFixture]
 internal class FlowControllerValidationTest
 {
+    private static readonly string[] kMissingPortStartError = new string[] { "Required field 'portStart' is missing." };
+    private static readonly string[] kMissingPortEndError = new string[] { "Required field 'portEnd' is missing." };
+
     [TestCaseSource(nameof(RequestCases))]
     public void FlowControllerValidation_AllowsEmptyRootObject(RequestCase requestCase)
     {
@@ -148,8 +151,8 @@ internal class FlowControllerValidationTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(problemDetails.Errors["portStart"], Is.EqualTo(new[] { "Required field 'portStart' is missing." }));
-            Assert.That(problemDetails.Errors["portEnd"], Is.EqualTo(new[] { "Required field 'portEnd' is missing." }));
+            Assert.That(problemDetails.Errors["portStart"], Is.EqualTo(kMissingPortStartError));
+            Assert.That(problemDetails.Errors["portEnd"], Is.EqualTo(kMissingPortEndError));
         });
     }
 
@@ -460,7 +463,11 @@ internal class FlowControllerValidationTest
     private static void AssertValidationError(ActionResult errorResult, string fieldName, string expectedError)
     {
         ValidationProblemDetails problemDetails = ExtractValidationProblemDetails(errorResult);
-        Assert.That(problemDetails.Errors[fieldName], Is.EqualTo(new[] { expectedError }));
+        Assert.Multiple(() =>
+        {
+            Assert.That(problemDetails.Errors[fieldName], Has.Length.EqualTo(1));
+            Assert.That(problemDetails.Errors[fieldName][0], Is.EqualTo(expectedError));
+        });
     }
 
     private static ValidationProblemDetails ExtractValidationProblemDetails(ActionResult errorResult)

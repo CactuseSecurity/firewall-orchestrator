@@ -158,6 +158,38 @@ namespace FWO.Test
         }
 
         /// <summary>
+        /// Verifies that converting an app role back to an area tolerates null patterns of an older config.
+        /// </summary>
+        [Test]
+        public void TestConvertAppRoleToAreaWithNullPatterns()
+        {
+            ModellingNamingConvention namingConvention = new()
+            {
+                FixedPartLength = 4,
+                NetworkAreaPattern = null!,
+                AppRolePattern = null!
+            };
+
+            ClassicAssert.AreEqual("AR12", ModellingManagedIdString.ConvertAppRoleToArea("AR1234-001", namingConvention));
+        }
+
+        /// <summary>
+        /// Verifies that a fixed part shorter than the app role pattern does not break the area conversion.
+        /// </summary>
+        [Test]
+        public void TestConvertAppRoleToAreaWithShortFixedPart()
+        {
+            ModellingNamingConvention namingConvention = new()
+            {
+                FixedPartLength = 1,
+                NetworkAreaPattern = "NA",
+                AppRolePattern = "AR"
+            };
+
+            ClassicAssert.AreEqual("NA", ModellingManagedIdString.ConvertAppRoleToArea("AR1234-001", namingConvention));
+        }
+
+        /// <summary>
         /// Verifies conversion for both clamped and regular network area patterns.
         /// </summary>
         [TestCase(1, "NA", "NA", "AR")]

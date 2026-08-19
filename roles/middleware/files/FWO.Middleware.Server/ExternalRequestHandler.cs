@@ -690,7 +690,7 @@ namespace FWO.Middleware.Server
             ticket.Subject = ConstructSubject(reqTasks.Count > 0 ? reqTasks[0] : throw new ArgumentException("No Task given"));
             ticket.Priority = SCTicketPriority.Low.ToString();
             ticket.Requester = requester?.Name ?? "";
-            ModellingNamingConvention? namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(UserConfig.ModNamingConvention);
+            ModellingNamingConvention namingConvention = ModellingNamingConvention.FromJson(UserConfig.ModNamingConvention);
             await ticket.CreateRequestString(reqTasks, ipProtos, namingConvention);
             actTaskType = ticket.GetTaskTypeAsString(reqTasks[0]);
             return ticket.TicketText;

@@ -469,7 +469,7 @@ else
             MergeLegacyOtherAddresses(modDecommEmailRecipients, configData.ModDecommEmailOtherAddresses);
             availableProtocols = ProtocolDisplayHelper.CustomSortProtocols(await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols), null, false);
             ExtraConfigs = JsonSerializer.Deserialize<List<string>>(configData.ModExtraConfigs) ?? [];
-            namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(configData.ModNamingConvention) ?? new();
+            namingConvention = ModellingNamingConvention.FromJson(configData.ModNamingConvention);
             if (configData.ModAppServerTypes != "")
             {
                 appServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(configData.ModAppServerTypes) ?? [];
@@ -631,13 +631,14 @@ else
     /// </summary>
     private bool IsNamingConventionValid()
     {
-        return namingConvention.FixedPartLength >= (namingConvention.NetworkAreaPattern?.Length ?? 0);
+        return namingConvention.IsFixedPartLengthValid();
     }
 
     private void PrepareConfigData()
     {
         PrepareExtraConfigs();
         PrepareModellingMailRecipients();
+        namingConvention.Normalize();
         configData!.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
         PrepareAppServerTypes();
         configData!.ModCommonAreas = PrepareAreas(CommonAreas, CommAreasToDelete);

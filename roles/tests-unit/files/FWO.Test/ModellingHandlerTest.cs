@@ -312,6 +312,45 @@ namespace FWO.Test
             ClassicAssert.AreEqual(3, area.MemberCount);
         }
 
+        /// <summary>
+        /// Verifies that a stored convention with a too short fixed part does not propose a collapsed app role id.
+        /// </summary>
+        [Test]
+        public async Task InitAppRole_WithFixedPartShorterThanAreaPattern_DoesNotProposeId()
+        {
+            List<(string Title, string Message, bool IsError)> messages = new();
+            SimulatedUserConfig localUserConfig = new()
+            {
+                ModNamingConvention = "{\"networkAreaRequired\":true,\"fixedPartLength\":1,\"freePartLength\":5,\"networkAreaPattern\":\"NA\",\"appRolePattern\":\"AR\"}",
+                Translate = new Dictionary<string, string>
+                {
+                    ["E5601"] = "E5601",
+                    ["edit_app_role"] = "edit_app_role"
+                }
+            };
+            ModellingAppRoleHandler handler = new(apiConnection, localUserConfig, Application, new List<ModellingAppRole>(), new ModellingAppRole(),
+                AvailableAppServers, new List<KeyValuePair<int, long>>(), true,
+                (exception, title, message, isError) => messages.Add((title, message, isError)), IsOwner);
+            ModellingNetworkArea area = new()
+            {
+                Name = "Area1",
+                IdString = TestArea.IdString,
+                IpData = TestArea.IpData
+            };
+
+            await handler.InitAppRole(area);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActAppRole.ManagedIdString.Whole, Is.Empty);
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Title, Is.EqualTo("edit_app_role"));
+                Assert.That(messages[0].Message, Is.EqualTo("E5601"));
+                Assert.That(messages[0].IsError, Is.True);
+                Assert.That(handler.AppServersInArea, Has.Count.EqualTo(3));
+            });
+        }
+
         [Test]
         public async Task Save_ReturnsFalse_WhenAppRoleMissingNameOrId()
         {

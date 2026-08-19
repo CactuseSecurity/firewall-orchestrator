@@ -2,11 +2,11 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Modelling;
+using FWO.Logging;
 using FWO.Basics;
 using FWO.Config.Api;
 using NetTools;
 using System.Net;
-using System.Text.Json;
 
 namespace FWO.Services.Modelling
 {
@@ -35,7 +35,7 @@ namespace FWO.Services.Modelling
 
         private void ApplyNamingConvention(string extAppId)
         {
-            NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
+            NamingConvention = ModellingNamingConvention.FromJson(userConfig.ModNamingConvention);
             foreach (ModellingAppRole aR in AppRoles)
             {
                 aR.ManagedIdString.NamingConvention = NamingConvention;
@@ -51,13 +51,26 @@ namespace FWO.Services.Modelling
             }
         }
 
+        /// <summary>
+        /// Initializes the app role for the selected network area and proposes an identifier in add mode.
+        /// </summary>
+        /// <param name="newArea">the selected network area, may be null</param>
         public async Task InitAppRole(ModellingNetworkArea? newArea)
         {
             ActAppRole.Area = newArea;
             if (newArea != null && newArea.IdString.Length >= NamingConvention.FixedPartLength && AddMode)
             {
-                ActAppRole.ManagedIdString.ConvertAreaToAppRoleFixedPart(newArea.IdString);
-                ActAppRole.ManagedIdString.FreePart = await ProposeFreeAppRoleNumber(ActAppRole.ManagedIdString);
+                if (NamingConvention.IsFixedPartLengthValid())
+                {
+                    ActAppRole.ManagedIdString.ConvertAreaToAppRoleFixedPart(newArea.IdString);
+                    ActAppRole.ManagedIdString.FreePart = await ProposeFreeAppRoleNumber(ActAppRole.ManagedIdString);
+                }
+                else
+                {
+                    // proposing an id here would map every area to the same fixed part, so let the user correct the settings first
+                    Log.WriteWarning("Init App Role", $"Fixed part length {NamingConvention.FixedPartLength} is shorter than network area pattern '{NamingConvention.NetworkAreaPattern}', no app role id proposed.");
+                    DisplayMessageInUi(null, userConfig.GetText("edit_app_role"), userConfig.GetText("E5601"), true);
+                }
             }
             OrigId = new(ActAppRole.ManagedIdString);
             await SelectAppServersFromArea(newArea);

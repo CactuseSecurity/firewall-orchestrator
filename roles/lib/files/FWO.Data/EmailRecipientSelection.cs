@@ -111,7 +111,8 @@ namespace FWO.Data
                     .ToList()
             };
 
-            if (activeOwnerResponsibleTypeIds != null)
+            // If the caller has no active-type metadata, keep the configured selections.
+            if (activeOwnerResponsibleTypeIds != null && activeOwnerResponsibleTypeIds.Any())
             {
                 HashSet<int> activeTypeIds = activeOwnerResponsibleTypeIds.ToHashSet();
                 sanitized.OwnerResponsibleTypeIds = sanitized.OwnerResponsibleTypeIds

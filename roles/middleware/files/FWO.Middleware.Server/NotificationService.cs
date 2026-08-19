@@ -380,13 +380,28 @@ namespace FWO.Middleware.Server
             List<string> addresses = EmailHelper.SplitAddresses(addressList);
             if (recipientOption == EmailRecipientOption.ConfiguredResponsibles)
             {
-                return await emailHelper.GetRecipients(addressList ?? "", owner, null);
+                List<string> recipients = await emailHelper.GetRecipients(addressList ?? "", owner, null);
+                if (recipients.Count == 0)
+                {
+                    Log.WriteWarning("Notifications", $"No recipients resolved for configured responsibles while preparing notification client {notification.NotificationClient}.");
+                }
+                return recipients;
             }
             if (recipientOption == EmailRecipientOption.OtherAddresses && LooksLikeRecipientSelectionJson(addressList))
             {
-                return await emailHelper.GetRecipients(addressList ?? "", null, null);
+                List<string> recipients = await emailHelper.GetRecipients(addressList ?? "", null, null);
+                if (recipients.Count == 0)
+                {
+                    Log.WriteWarning("Notifications", $"No recipients resolved for other addresses while preparing notification client {notification.NotificationClient}.");
+                }
+                return recipients;
             }
-            return await emailHelper.GetRecipients(recipientOption, null, owner, null, addresses);
+            List<string> resolvedRecipients = await emailHelper.GetRecipients(recipientOption, null, owner, null, addresses);
+            if (resolvedRecipients.Count == 0)
+            {
+                Log.WriteWarning("Notifications", $"No recipients resolved for notification client {notification.NotificationClient} using option {recipientOption}.");
+            }
+            return resolvedRecipients;
         }
 
         private static bool LooksLikeRecipientSelectionJson(string? recipientValue)

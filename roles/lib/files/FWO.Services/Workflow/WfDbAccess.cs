@@ -88,7 +88,7 @@ namespace FWO.Services.Workflow
             return ticket;
         }
 
-        public async Task<List<WfTicket>> GetTicketsByParameters(string taskType, int startState, int endState, DateTime cutOffDate,
+        public async Task<List<WfTicket>> GetTicketsByParameters(string taskType, int startState, int endState, DateTime createdFrom, DateTime createdUntil,
             Func<WfTicket, bool>? ticketFilter = null)
         {
             List<WfTicket> tickets = [];
@@ -96,7 +96,8 @@ namespace FWO.Services.Workflow
             {
                 var Variables = new
                 {
-                    cutOffDate = cutOffDate,
+                    createdFrom = createdFrom,
+                    createdUntil = createdUntil,
                     taskType = taskType,
                     fromState = startState,
                     toState = endState

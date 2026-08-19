@@ -313,6 +313,45 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ReplaceWorkflowPlaceholdersUsesRequesterDnWhenRequesterNameIsMissing()
+        {
+            WfTicket ticket = new()
+            {
+                RequesterDn = "cn=requester,dc=test",
+                Tasks =
+                {
+                    new WfReqTask
+                    {
+                        Owners =
+                        {
+                            new() { Owner = new() { Name = "Application", ExtAppId = "APP-2" } }
+                        }
+                    }
+                }
+            };
+
+            string text = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(
+                $"{Placeholder.APPNAME}/{Placeholder.APPID}/{Placeholder.REQUESTER}", ticket, null);
+
+            Assert.That(text, Is.EqualTo("Application/APP-2/cn=requester,dc=test"));
+        }
+
+        [Test]
+        public void ReplaceOwnerPlaceholdersReplacesAppAndTimeInterval()
+        {
+            FwoOwner owner = new()
+            {
+                Name = "Application",
+                ExtAppId = "APP-3"
+            };
+
+            string text = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(
+                $"{Placeholder.APPNAME}/{Placeholder.APPID}/{Placeholder.TIME_INTERVAL}", owner, "14 days");
+
+            Assert.That(text, Is.EqualTo("Application/APP-3/14 days"));
+        }
+
+        [Test]
         public void NotificationRequestBuilderKeepsNetworkIpsWhenTicketIsSerialized()
         {
             ModellingNotificationRequestBuilder builder = new(new EmailNotificationUserConfig());
@@ -501,6 +540,44 @@ namespace FWO.Test
             Assert.That(content.Csv, Does.Contain("\"102\",\"Create Group\",\"New App Role\",\"create\",\"\",\"10.0.0.2\",\"\""));
             Assert.That(content.Json, Does.Contain("\"MembersToAdd\":\"10.0.0.2\""));
             Assert.That(content.Json, Does.Contain("\"MembersToRemove\":\"10.0.0.3\""));
+        }
+
+        [Test]
+        public void FromRequestTasksFormatsGroupServiceAndRuleMembersWithDetails()
+        {
+            WfReqTask groupTask = new()
+            {
+                Id = 10,
+                TaskNumber = 104,
+                TaskType = WfTaskType.group_modify.ToString(),
+                Title = "Refine Group",
+                RequestAction = RequestAction.modify.ToString(),
+                Elements =
+                {
+                    new WfReqElement
+                    {
+                        Field = ElemFieldType.service.ToString(),
+                        RequestAction = RequestAction.modify.ToString(),
+                        Port = 443,
+                        ProtoId = 6
+                    },
+                    new WfReqElement
+                    {
+                        Field = ElemFieldType.rule.ToString(),
+                        RequestAction = RequestAction.addAfterCreation.ToString(),
+                        Name = "RuleA",
+                        RuleUid = "R-7"
+                    }
+                }
+            };
+
+            WorkflowEmailContent content = WorkflowEmailContent.FromRequestTasks([groupTask], new EmailNotificationUserConfig(), new Dictionary<int, string>
+            {
+                { 6, "TCP" }
+            });
+
+            Assert.That(content.PlainText, Does.Contain("443/TCP"));
+            Assert.That(content.PlainText, Does.Contain("RuleA (R-7)"));
         }
 
         private static async Task<string> ReadFormFile(FormFile formFile)

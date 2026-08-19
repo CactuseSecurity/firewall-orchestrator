@@ -57,8 +57,9 @@ namespace FWO.Services
             {
                 ownerResponsibleTypes = await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes);
             }
-            catch
+            catch (Exception exception)
             {
+                Log.WriteWarning("Workflow Email", $"Could not load owner responsible types, continuing without active-type filtering: {exception.Message}");
                 ownerResponsibleTypes = [];
             }
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUserEmails);

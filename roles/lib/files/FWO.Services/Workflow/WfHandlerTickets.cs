@@ -59,15 +59,15 @@ namespace FWO.Services.Workflow
         {
             if (dbAcc != null)
             {
-                DateTime cutOffDate = interval switch
+                DateTime createdFrom = interval switch
                 {
-                    SchedulerInterval.Days => DateTime.Now.AddDays(-cutOffPeriod),
-                    SchedulerInterval.Weeks => DateTime.Now.AddDays(-cutOffPeriod * GlobalConst.kDaysPerWeek),
-                    SchedulerInterval.Months => DateTime.Now.AddMonths(-cutOffPeriod),
+                    SchedulerInterval.Days => DateTime.Now.Date.AddDays(-cutOffPeriod),
+                    SchedulerInterval.Weeks => DateTime.Now.Date.AddDays(-cutOffPeriod * GlobalConst.kDaysPerWeek),
+                    SchedulerInterval.Months => DateTime.Now.Date.AddMonths(-cutOffPeriod),
                     _ => throw new NotSupportedException("Time interval is not supported."),
                 };
-                return await dbAcc.GetTicketsByParameters(taskType, StateMatrix(taskType).LowestInputState, StateMatrix(taskType).LowestEndState, cutOffDate,
-                    null);
+                DateTime createdUntil = DateTime.Now;
+                return await dbAcc.GetTicketsByParameters(taskType, StateMatrix(taskType).LowestInputState, StateMatrix(taskType).LowestEndState, createdFrom, createdUntil, null);
             }
             return [];
         }

@@ -139,7 +139,8 @@
 
             List<WfTicket> openTickets = await apiConnection.SendQueryAsync<List<WfTicket>>(RequestQueries.getTicketsByParameters, new
             {
-                cutOffDate = DateTime.Now,
+                createdFrom = DateTime.MinValue,
+                createdUntil = DateTime.Now,
                 taskType = WfTaskType.new_interface.ToString(),
                 fromState = NewInterfaceStateMatrix.LowestInputState,
                 toState = NewInterfaceStateMatrix.LowestEndState

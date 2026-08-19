@@ -245,20 +245,57 @@ namespace FWO.Middleware.Server.Jobs
 
             foreach (var notification in notificationService.Notifications)
             {
+                bool sentForNotification = false;
+                bool anyNotificationDue = false;
+                int cutOffPeriod = GetInterfaceRequestCutOffPeriod(notification);
                 List<WfTicket>? unansweredTickets = await wfHandler.GetOpenTickets(WfTaskType.new_interface.ToString(),
-                    (notification.RepeatOffsetAfterDeadline ?? 0) + (notification.InitialOffsetAfterDeadline ?? 0),
+                    cutOffPeriod,
                     notification.RepeatIntervalAfterDeadline ?? SchedulerInterval.Days);
                 foreach (var ticket in unansweredTickets)
                 {
                     FwoOwner? owner = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString())?.Owners.FirstOrDefault()?.Owner;
-                    if (owner != null)
+                    if (owner == null)
                     {
-                        emailsSent += await notificationService.SendNotificationIfDue(notification, owner, ticket.CreationDate, await PrepareBody(ticket, owner));
+                        Log.WriteWarning(LogMessageTitle,
+                            $"No owner could be resolved for unanswered interface request ticket {ticket.Id} in notification {notification.Id}.");
+                        continue;
                     }
+
+                    bool notificationDue = NotificationService.IsNotificationDue(owner, ticket.CreationDate, notification);
+                    anyNotificationDue |= notificationDue;
+                    if (!notificationDue)
+                    {
+                        Log.WriteDebug(LogMessageTitle,
+                            $"Reminder notification {notification.Id} is not due for unanswered interface request ticket {ticket.Id}.");
+                        continue;
+                    }
+
+                    int sentForTicket = await notificationService.SendNotificationIfDue(notification, owner, ticket.CreationDate, await PrepareBody(ticket, owner));
+                    emailsSent += sentForTicket;
+                    sentForNotification |= sentForTicket > 0;
+                    if (sentForTicket == 0)
+                    {
+                        Log.WriteWarning(LogMessageTitle,
+                            $"Reminder notification {notification.Id} was due for unanswered interface request ticket {ticket.Id}, but no email was sent. Check recipient resolution and due settings.");
+                    }
+                }
+                if (unansweredTickets.Count > 0 && !sentForNotification && anyNotificationDue)
+                {
+                    Log.WriteWarning(LogMessageTitle,
+                        $"No reminder email was sent for notification {notification.Id} despite {unansweredTickets.Count} unanswered interface request(s) being due. Check recipient resolution and due settings.");
                 }
             }
             await notificationService.UpdateNotificationsLastSent();
             Log.WriteDebug(LogMessageTitle, $"Unanswered Interface Requests Check: Sent {emailsSent} emails.");
+        }
+
+        private static int GetInterfaceRequestCutOffPeriod(FwoNotification notification)
+        {
+            long initialOffset = notification.InitialOffsetAfterDeadline ?? 0;
+            long repeatOffset = notification.RepeatOffsetAfterDeadline ?? 0;
+            long repetitions = notification.RepetitionsAfterDeadline ?? 0;
+            long cutOffPeriod = initialOffset + repeatOffset * repetitions;
+            return (int)Math.Max(0, Math.Min(cutOffPeriod, int.MaxValue));
         }
 
         private async Task<string> PrepareBody(WfTicket ticket, FwoOwner owner)

@@ -8,6 +8,7 @@ using FWO.Data;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server.Jobs;
+using FWO.Services.Workflow;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -117,6 +118,36 @@ namespace FWO.Test
             HashSet<DailyCheckModule> enabledModules = InvokeLoadEnabledModules(globalConfig);
 
             Assert.That(enabledModules, Is.EquivalentTo(Enum.GetValues<DailyCheckModule>()));
+        }
+
+        [Test]
+        public void GetInterfaceRequestCutOffPeriod_UsesInitialPlusRepeatTimesRepetitions()
+        {
+            MethodInfo helper = typeof(DailyCheckJob).GetMethod("GetInterfaceRequestCutOffPeriod", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException("GetInterfaceRequestCutOffPeriod method not found.");
+
+            int noRepeats = (int)(helper.Invoke(null, [new FwoNotification
+            {
+                InitialOffsetAfterDeadline = 3,
+                RepeatOffsetAfterDeadline = 7,
+                RepetitionsAfterDeadline = 0
+            }]) ?? throw new InvalidOperationException("Helper returned null."));
+
+            int oneRepeat = (int)(helper.Invoke(null, [new FwoNotification
+            {
+                InitialOffsetAfterDeadline = 3,
+                RepeatOffsetAfterDeadline = 7,
+                RepetitionsAfterDeadline = 1
+            }]) ?? throw new InvalidOperationException("Helper returned null."));
+
+            int nullableValues = (int)(helper.Invoke(null, [new FwoNotification()]) ?? throw new InvalidOperationException("Helper returned null."));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(noRepeats, Is.EqualTo(3));
+                Assert.That(oneRepeat, Is.EqualTo(10));
+                Assert.That(nullableValues, Is.Zero);
+            });
         }
 
         [Test]
@@ -350,6 +381,104 @@ namespace FWO.Test
         }
 
         [Test]
+        [NonParallelizable]
+        public async Task CheckUnansweredInterfaceRequests_LogsWarningAndSkipsTicketWithoutOwner()
+        {
+            DailyCheckInterfaceRequestsApiConnection apiConnection = new()
+            {
+                LdapConnections =
+                [
+                    CreateInternalTestLdap()
+                ],
+                Notifications =
+                [
+                    CreateInterfaceRequestNotification(11)
+                ],
+                OpenTickets =
+                [
+                    CreateInterfaceRequestTicket(501, null)
+                ]
+            };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                UseDummyEmailAddress = true,
+                DummyEmailAddress = "dummy@example.test",
+                ModUnansweredReqEmailBody = "body"
+            };
+            DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
+            MethodInfo checkUnansweredInterfaceRequests = typeof(DailyCheckJob).GetMethod("CheckUnansweredInterfaceRequests", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests method not found.");
+            Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
+            GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
+
+            try
+            {
+                await (Task)(checkUnansweredInterfaceRequests.Invoke(dailyCheckJob, null)
+                    ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests returned null task."));
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(apiConnection.NotificationLoadCount, Is.EqualTo(1));
+                    Assert.That(apiConnection.OpenTicketQueryCount, Is.EqualTo(1));
+                    Assert.That(apiConnection.UpdatedNotificationIds, Is.Empty);
+                });
+            }
+            finally
+            {
+                GlobalStateMatrix.Factory = previousFactory;
+            }
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task CheckUnansweredInterfaceRequests_SendsDueNotificationForOwnedTicket()
+        {
+            DailyCheckInterfaceRequestsApiConnection apiConnection = new()
+            {
+                LdapConnections =
+                [
+                    CreateInternalTestLdap()
+                ],
+                Notifications =
+                [
+                    CreateInterfaceRequestNotification(11)
+                ],
+                OpenTickets =
+                [
+                    CreateInterfaceRequestTicket(501, new FwoOwner { Id = 7, Name = "Owner A", ExtAppId = "APP-7" }, DateTime.Now.AddDays(-1))
+                ]
+            };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                UseDummyEmailAddress = true,
+                DummyEmailAddress = "dummy@example.test",
+                ModUnansweredReqEmailBody = "body"
+            };
+            DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
+            MethodInfo checkUnansweredInterfaceRequests = typeof(DailyCheckJob).GetMethod("CheckUnansweredInterfaceRequests", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests method not found.");
+            Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
+            GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
+
+            try
+            {
+                await (Task)(checkUnansweredInterfaceRequests.Invoke(dailyCheckJob, null)
+                    ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests returned null task."));
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(apiConnection.NotificationLoadCount, Is.EqualTo(1));
+                    Assert.That(apiConnection.OpenTicketQueryCount, Is.EqualTo(1));
+                    Assert.That(apiConnection.UpdatedNotificationIds, Is.EqualTo(new[] { 11L }));
+                });
+            }
+            finally
+            {
+                GlobalStateMatrix.Factory = previousFactory;
+            }
+        }
+
+        [Test]
         public async Task CheckDemoData_LogsNoSampleData_WhenNothingMatches()
         {
             DailyCheckApiConnection apiConnection = new()
@@ -534,6 +663,46 @@ namespace FWO.Test
                 ?? throw new InvalidOperationException("LoadEnabledModules returned null."));
         }
 
+        private static FwoNotification CreateInterfaceRequestNotification(int id)
+        {
+            return new FwoNotification
+            {
+                Id = id,
+                NotificationClient = NotificationClient.InterfaceRequest,
+                RecipientTo = EmailRecipientOption.OtherAddresses,
+                EmailAddressTo = "notify@example.test",
+                EmailSubject = "subject",
+                EmailBody = "body",
+                Deadline = NotificationDeadline.RequestDate,
+                RepeatIntervalAfterDeadline = SchedulerInterval.Days,
+                InitialOffsetAfterDeadline = 0,
+                RepeatOffsetAfterDeadline = 1,
+                RepetitionsAfterDeadline = 3
+            };
+        }
+
+        private static WfTicket CreateInterfaceRequestTicket(long ticketId, FwoOwner? owner, DateTime? creationDate = null)
+        {
+            WfReqTask reqTask = new()
+            {
+                Id = ticketId + 1,
+                TaskType = WfTaskType.new_interface.ToString(),
+                Title = "Interface request"
+            };
+            if (owner != null)
+            {
+                reqTask.Owners = [new FwoOwnerDataHelper { Owner = owner }];
+            }
+
+            return new WfTicket
+            {
+                Id = ticketId,
+                CreationDate = creationDate ?? DateTime.Now.AddDays(-7),
+                Requester = new UiUser { Name = "Requester A" },
+                Tasks = [reqTask]
+            };
+        }
+
         private sealed class CountingApiConnection : SimulatedApiConnection
         {
             public int QueryCount { get; private set; }
@@ -542,6 +711,90 @@ namespace FWO.Test
             {
                 QueryCount++;
                 throw new InvalidOperationException("No query should be executed in this test.");
+            }
+        }
+
+        private sealed class TestGlobalStateMatrix : GlobalStateMatrix
+        {
+            public override async Task Init(ApiConnection apiConnection, WfTaskType taskType = WfTaskType.master)
+            {
+                await Task.CompletedTask;
+                Dictionary<WorkflowPhases, StateMatrix> matrices = [];
+                foreach (WorkflowPhases phase in Enum.GetValues<WorkflowPhases>())
+                {
+                    matrices[phase] = new StateMatrix
+                    {
+                        Active = true,
+                        LowestInputState = 1,
+                        LowestEndState = 10
+                    };
+                }
+                GlobalMatrix = matrices;
+            }
+        }
+
+        private sealed class DailyCheckInterfaceRequestsApiConnection : SimulatedApiConnection
+        {
+            public List<FWO.Middleware.Server.Ldap> LdapConnections { get; set; } = [];
+            public List<FwoNotification> Notifications { get; set; } = [];
+            public List<WfTicket> OpenTickets { get; set; } = [];
+            public int NotificationLoadCount { get; private set; }
+            public int OpenTicketQueryCount { get; private set; }
+            public List<long> UpdatedNotificationIds { get; private set; } = [];
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (query == AuthQueries.getLdapConnections && typeof(QueryResponseType) == typeof(List<FWO.Middleware.Server.Ldap>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)LdapConnections);
+                }
+
+                if (query == ConfigQueries.getConfigItemsByUser && typeof(QueryResponseType) == typeof(ConfigItem[]))
+                {
+                    return Task.FromResult((QueryResponseType)(object)Array.Empty<ConfigItem>());
+                }
+
+                if (query == RequestQueries.getStates && typeof(QueryResponseType) == typeof(List<WfState>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<WfState>());
+                }
+
+                if (query == DeviceQueries.getDeviceDetails && typeof(QueryResponseType) == typeof(List<Device>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<Device>());
+                }
+
+                if (query == OwnerQueries.getOwners && typeof(QueryResponseType) == typeof(List<FwoOwner>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<FwoOwner>());
+                }
+
+                if (query == NotificationQueries.getNotifications && typeof(QueryResponseType) == typeof(List<FwoNotification>))
+                {
+                    NotificationLoadCount++;
+                    return Task.FromResult((QueryResponseType)(object)Notifications);
+                }
+
+                if (query == RequestQueries.getTicketsByParameters && typeof(QueryResponseType) == typeof(List<WfTicket>))
+                {
+                    OpenTicketQueryCount++;
+                    return Task.FromResult((QueryResponseType)(object)OpenTickets);
+                }
+
+                if (query == NotificationQueries.updateNotificationsLastSent && typeof(QueryResponseType) == typeof(ReturnId))
+                {
+                    object vars = variables ?? throw new InvalidOperationException("Update notification variables missing.");
+                    IEnumerable<int> ids = (IEnumerable<int>?)vars.GetType().GetProperty("ids")?.GetValue(vars) ?? [];
+                    UpdatedNotificationIds = [.. ids.Select(id => (long)id)];
+                    return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = UpdatedNotificationIds.Count });
+                }
+
+                if (query == MonitorQueries.getOpenAlerts && typeof(QueryResponseType) == typeof(List<Alert>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<Alert>());
+                }
+
+                throw new InvalidOperationException($"Unexpected query: {query}");
             }
         }
 

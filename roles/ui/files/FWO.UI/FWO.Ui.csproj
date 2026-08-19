@@ -36,5 +36,6 @@
 		<ProjectReference Include="..\..\..\lib\files\FWO.DeviceAutoDiscovery\FWO.DeviceAutoDiscovery.csproj" />
 		<ProjectReference Include="..\..\..\lib\files\FWO.Services\FWO.Services.csproj" />
 		<ProjectReference Include="..\..\..\lib\files\FWO.Compliance\FWO.Compliance.csproj" />
+		<ProjectReference Include="..\..\..\..\..\SoPro.FancyTable\SoPro.FancyTable.csproj" />
 	</ItemGroup>
 </Project>

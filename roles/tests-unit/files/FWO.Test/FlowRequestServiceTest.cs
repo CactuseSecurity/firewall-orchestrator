@@ -14,6 +14,7 @@ using GraphQL.Client.Serializer.SystemTextJson;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NUnit.Framework;
+using System.Reflection;
 using System.Security.Claims;
 
 namespace FWO.Test;
@@ -303,12 +304,12 @@ internal class FlowRequestServiceTest
     {
         FlowRequestServiceApiConn apiConnection = new()
         {
-            States =
-            [
-                new WfState { Id = 17, Name = "requested" },
-                new WfState { Id = 0, Name = "draft" }
-            ],
-            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+            States = new List<WfState>
+            {
+                new() { Id = 17, Name = "requested" },
+                new() { Id = 0, Name = "draft" }
+            },
+            Protocols = new List<IpProtocol> { new() { Id = 6, Name = "tcp" } }
         };
         FlowRequestService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
 
@@ -782,16 +783,7 @@ internal class FlowRequestServiceTest
         FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 }));
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = new DefaultHttpContext
-            {
-                User = new ClaimsPrincipal(new ClaimsIdentity(
-                    [
-                        new Claim("x-hasura-user-id", "77"),
-                        new Claim(ClaimTypes.Name, "Trusted Requester"),
-                        new Claim("x-hasura-uuid", "uid=trusted,dc=fworch,dc=internal")
-                    ],
-                    "test"))
-            }
+            HttpContext = new DefaultHttpContext { User = CreateTrustedRequesterPrincipal() }
         };
 
         ActionResult<CreateRequestResponse> result = await controller.CreateRequest(new CreateRequestRequest
@@ -843,6 +835,365 @@ internal class FlowRequestServiceTest
             Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
             Assert.That(GetVariable(apiConnection.NewTicketVariables, "state"), Is.EqualTo(17));
         });
+    }
+
+    [Test]
+    public void EmitGlobalConfigChange_IgnoresUnrelatedConfigKeys()
+    {
+        FlowRequestServiceApiConn apiConnection = new();
+        GlobalConfig globalConfig = new() { ReqApiTicketInitialStateId = 17 };
+        FlowRequestService service = new(apiConnection, globalConfig);
+
+        apiConnection.EmitGlobalConfigChange(new ConfigItem
+        {
+            Key = "someOtherConfigKey",
+            Value = "49",
+            User = 0
+        });
+
+        Assert.That(globalConfig.ReqApiTicketInitialStateId, Is.EqualTo(17));
+        service.Dispose();
+    }
+
+    [Test]
+    public void EmitGlobalConfigChange_IgnoresInvalidInitialStateValues()
+    {
+        FlowRequestServiceApiConn apiConnection = new();
+        GlobalConfig globalConfig = new() { ReqApiTicketInitialStateId = 17 };
+        FlowRequestService service = new(apiConnection, globalConfig);
+
+        apiConnection.EmitGlobalConfigChange(new ConfigItem
+        {
+            Key = "reqApiTicketInitialStateId",
+            Value = "not-an-integer",
+            User = 0
+        });
+
+        Assert.That(globalConfig.ReqApiTicketInitialStateId, Is.EqualTo(17));
+        service.Dispose();
+    }
+
+    [Test]
+    public async Task CreateRequest_ReturnsInternalServerErrorWhenConfiguredInitialStateIsMissing()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            States = new List<WfState> { new() { Id = 0, Name = "draft" } },
+            Protocols = new List<IpProtocol> { new() { Id = 6, Name = "tcp" } }
+        };
+        FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 }));
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = CreateTrustedRequesterPrincipal() }
+        };
+
+        ActionResult<CreateRequestResponse> result = await controller.CreateRequest(new CreateRequestRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Missing configured state",
+            AddressObjects =
+            [
+                new CreateRequestRequest.CreateAddressObjectRequest
+                {
+                    Id = "-1",
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateRequestRequest.CreateServiceObjectRequest
+                {
+                    Id = "-2",
+                    Name = "https",
+                    Protocol = "tcp",
+                    PortStart = 443,
+                    PortEnd = 443
+                }
+            ],
+            Rules =
+            [
+                new CreateRequestRequest.CreateRequestRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [-1],
+                    DestinationObjects = [-1],
+                    ServiceObjects = [-2]
+                }
+            ]
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+            ObjectResult errorResult = (ObjectResult)result.Result!;
+            Assert.That(errorResult.StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
+            Assert.That(errorResult.Value, Is.EqualTo("Internal server error"));
+            Assert.That(apiConnection.LastTicketWriter, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task CreateRequest_UsesNumericProtocolIdWhenConfiguredProtocolExists()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            States = new List<WfState> { new() { Id = 0, Name = "draft" } },
+            Protocols = new List<IpProtocol>
+            {
+                new() { Id = 6, Name = "tcp" },
+                new() { Id = 17, Name = "udp" }
+            }
+        };
+        FlowRequestService service = new(apiConnection, new GlobalConfig());
+
+        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Numeric protocol request",
+            AddressObjects =
+            [
+                new CreateRequestRequest.CreateAddressObjectRequest
+                {
+                    Id = "-1",
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateRequestRequest.CreateServiceObjectRequest
+                {
+                    Id = "-2",
+                    Name = "https",
+                    Protocol = "17",
+                    PortStart = 443,
+                    PortEnd = 443
+                }
+            ],
+            Rules =
+            [
+                new CreateRequestRequest.CreateRequestRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [-1],
+                    DestinationObjects = [-1],
+                    ServiceObjects = [-2]
+                }
+            ]
+        }, 77);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Status, Is.EqualTo("draft"));
+            Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
+            Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(1));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].Elements.WfElementList[2].ProtoId, Is.EqualTo(17));
+        });
+    }
+
+    [Test]
+    public async Task CreateRequest_ReturnsBadRequestForZeroEntityId()
+    {
+        FlowRequestController controller = new(new FlowRequestService(new FlowRequestServiceApiConn
+        {
+            States = new List<WfState> { new() { Id = 0, Name = "draft" } },
+            Protocols = new List<IpProtocol> { new() { Id = 6, Name = "tcp" } }
+        }, new GlobalConfig()));
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = CreateTrustedRequesterPrincipal() }
+        };
+
+        ActionResult<CreateRequestResponse> result = await controller.CreateRequest(new CreateRequestRequest
+        {
+            RequestorName = "Payload Requester",
+            RequestorId = "payload-requester",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Invalid entity id request",
+            AddressObjects =
+            [
+                new CreateRequestRequest.CreateAddressObjectRequest
+                {
+                    Id = "0",
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateRequestRequest.CreateServiceObjectRequest
+                {
+                    Id = "-2",
+                    Name = "https",
+                    Protocol = "tcp",
+                    PortStart = 443,
+                    PortEnd = 443
+                }
+            ],
+            Rules =
+            [
+                new CreateRequestRequest.CreateRequestRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [-1],
+                    DestinationObjects = [-1],
+                    ServiceObjects = [-2]
+                }
+            ]
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("non-zero integer"));
+        });
+    }
+
+    [Test]
+    public async Task CreateRequest_ReturnsBadRequestForDuplicateEntityId()
+    {
+        FlowRequestController controller = new(new FlowRequestService(new FlowRequestServiceApiConn
+        {
+            States = new List<WfState> { new() { Id = 0, Name = "draft" } },
+            Protocols = new List<IpProtocol> { new() { Id = 6, Name = "tcp" } }
+        }, new GlobalConfig()));
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = CreateTrustedRequesterPrincipal() }
+        };
+
+        ActionResult<CreateRequestResponse> result = await controller.CreateRequest(new CreateRequestRequest
+        {
+            RequestorName = "Payload Requester",
+            RequestorId = "payload-requester",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Duplicate entity request",
+            AddressObjects =
+            [
+                new CreateRequestRequest.CreateAddressObjectRequest
+                {
+                    Id = "-1",
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateRequestRequest.CreateServiceObjectRequest
+                {
+                    Id = "-1",
+                    Name = "https",
+                    Protocol = "tcp",
+                    PortStart = 443,
+                    PortEnd = 443
+                }
+            ],
+            Rules =
+            [
+                new CreateRequestRequest.CreateRequestRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [-1],
+                    DestinationObjects = [-1],
+                    ServiceObjects = [-1]
+                }
+            ]
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("Duplicate request object id -1"));
+        });
+    }
+
+    [Test]
+    public async Task CreateRequest_FallsBackToStateNameWhenExternalStateLookupFails()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            States = new List<WfState> { new() { Id = 0, Name = "draft" } },
+            Protocols = new List<IpProtocol> { new() { Id = 6, Name = "tcp" } },
+            ExtStateErrors = new List<string> { "external state query failed" }.ToArray()
+        };
+        FlowRequestService service = new(apiConnection, new GlobalConfig());
+
+        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "External state fallback request",
+            AddressObjects =
+            [
+                new CreateRequestRequest.CreateAddressObjectRequest
+                {
+                    Id = "-1",
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateRequestRequest.CreateServiceObjectRequest
+                {
+                    Id = "-2",
+                    Name = "https",
+                    Protocol = "tcp",
+                    PortStart = 443,
+                    PortEnd = 443
+                }
+            ],
+            Rules =
+            [
+                new CreateRequestRequest.CreateRequestRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [-1],
+                    DestinationObjects = [-1],
+                    ServiceObjects = [-2]
+                }
+            ]
+        }, 77);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Status, Is.EqualTo("draft"));
+            Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
+            Assert.That(apiConnection.SentQueries, Does.Contain(RequestQueries.getExtStates));
+        });
+    }
+
+    [Test]
+    public void Dispose_DisposesConfigSubscription()
+    {
+        FlowRequestServiceApiConn apiConnection = new();
+        FlowRequestService service = new(apiConnection, new GlobalConfig());
+
+        service.Dispose();
+
+        object configSubscription = typeof(FlowRequestService)
+            .GetField("configSubscription", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?.GetValue(service) ?? throw new MissingFieldException(typeof(FlowRequestService).FullName, "configSubscription");
+        bool isDisposed = (bool)(configSubscription.GetType().GetProperty("IsDisposed", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+            ?.GetValue(configSubscription) ?? throw new MissingMemberException(configSubscription.GetType().FullName, "IsDisposed"));
+
+        Assert.That(isDisposed, Is.True);
     }
 
     [Test]
@@ -1292,6 +1643,18 @@ internal class FlowRequestServiceTest
         }
 
         return variables?.GetType().GetProperty(propertyName)?.GetValue(variables);
+    }
+
+    private static ClaimsPrincipal CreateTrustedRequesterPrincipal()
+    {
+        return new ClaimsPrincipal(new ClaimsIdentity(
+            new List<Claim>
+            {
+                new("x-hasura-user-id", "77"),
+                new(ClaimTypes.Name, "Trusted Requester"),
+                new("x-hasura-uuid", "uid=trusted,dc=fworch,dc=internal")
+            },
+            "test"));
     }
 
     private sealed class FlowRequestServiceApiConn : SimulatedApiConnection

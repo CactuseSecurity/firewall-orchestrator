@@ -629,6 +629,108 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SettingsStates_LoadsUsedStateIdsFromActionExternalParams()
+        {
+            List<WfStateAction> actions = new()
+            {
+                new()
+                {
+                    Id = 41000,
+                    Name = "AutoPromote",
+                    ActionType = StateActionTypes.AutoPromote.ToString(),
+                    ExternalParams = "41001"
+                },
+                new()
+                {
+                    Id = 41001,
+                    Name = "ConditionalAutoPromote",
+                    ActionType = StateActionTypes.AutoPromote.ToString(),
+                    ExternalParams = System.Text.Json.JsonSerializer.Serialize(new ConditionalAutoPromoteParams
+                    {
+                        IfCompliantState = 41002,
+                        IfNotCompliantState = 41003
+                    })
+                },
+                new()
+                {
+                    Id = 41002,
+                    Name = "AddApproval",
+                    ActionType = StateActionTypes.AddApproval.ToString(),
+                    ExternalParams = System.Text.Json.JsonSerializer.Serialize(new ApprovalParams
+                    {
+                        StateId = 41004,
+                        ApproverGroup = "ops",
+                        Deadline = 7
+                    })
+                }
+            };
+            List<WfState> states = new()
+            {
+                new() { Id = 41001, Name = "Promoted" },
+                new() { Id = 41002, Name = "Compliant" },
+                new() { Id = 41003, Name = "NonCompliant" },
+                new() { Id = 41004, Name = "Approval" },
+                new() { Id = 41010, Name = "Unrelated" }
+            };
+
+            await using BunitContext context = CreateRenderContext(new SettingsStatesRenderApiConn(actions, states));
+            IRenderedComponent<SettingsStates> component = RenderAuthorized<SettingsStates>(context);
+
+            component.WaitForAssertion(() =>
+            {
+                List<int> usedStateIds = GetPrivateField<List<int>>(component.Instance, "usedStateIds");
+                Assert.Multiple(() =>
+                {
+                    Assert.That(usedStateIds, Does.Contain(41001));
+                    Assert.That(usedStateIds, Does.Contain(41002));
+                    Assert.That(usedStateIds, Does.Contain(41003));
+                    Assert.That(usedStateIds, Does.Contain(41004));
+                    Assert.That(usedStateIds, Does.Not.Contain(41010));
+                });
+            });
+        }
+
+        [Test]
+        public async Task SettingsStates_IgnoresInvalidActionExternalParams()
+        {
+            List<WfStateAction> actions = new()
+            {
+                new()
+                {
+                    Id = 42000,
+                    Name = "BrokenAutoPromote",
+                    ActionType = StateActionTypes.AutoPromote.ToString(),
+                    ExternalParams = "{"
+                },
+                new()
+                {
+                    Id = 42001,
+                    Name = "BrokenAddApproval",
+                    ActionType = StateActionTypes.AddApproval.ToString(),
+                    ExternalParams = "{"
+                }
+            };
+            List<WfState> states = new()
+            {
+                new() { Id = 42000, Name = "BrokenAutoPromoteState" },
+                new() { Id = 42001, Name = "BrokenAddApprovalState" }
+            };
+
+            await using BunitContext context = CreateRenderContext(new SettingsStatesRenderApiConn(actions, states));
+            IRenderedComponent<SettingsStates> component = RenderAuthorized<SettingsStates>(context);
+
+            component.WaitForAssertion(() =>
+            {
+                List<int> usedStateIds = GetPrivateField<List<int>>(component.Instance, "usedStateIds");
+                Assert.Multiple(() =>
+                {
+                    Assert.That(usedStateIds, Does.Not.Contain(42000));
+                    Assert.That(usedStateIds, Does.Not.Contain(42001));
+                });
+            });
+        }
+
+        [Test]
         public async Task AddActionToState_ForExistingState_SendsMutationAndAppendsWithNextSortOrder()
         {
             SettingsStates component = new();
@@ -778,9 +880,36 @@ namespace FWO.Test
     internal sealed class SettingsStatesRenderApiConn : SimulatedApiConnection
     {
         private const string kEmptyStateMatrixConfig = """{"config_value":{}}""";
+        private readonly List<WfStateAction> actionCatalog;
+        private readonly List<WfState> workflowStates;
 
         public List<string> Queries { get; } = [];
         public List<object> Variables { get; } = [];
+
+        public SettingsStatesRenderApiConn(List<WfStateAction>? actions = null, List<WfState>? states = null)
+        {
+            actionCatalog = (actions ?? UiSettingsStatesTest.kTestActions)
+                .Select(action => new WfStateAction(action))
+                .ToList();
+            workflowStates = (states ?? UiSettingsStatesTest.kTestStates)
+                .Select(CopyState)
+                .ToList();
+        }
+
+        private static WfState CopyState(WfState state)
+        {
+            return new WfState
+            {
+                Id = state.Id,
+                Name = state.Name,
+                AutomaticOnly = state.AutomaticOnly,
+                Actions = state.Actions.Select(action => new WfStateActionDataHelper
+                {
+                    SortOrder = action.SortOrder,
+                    Action = new WfStateAction(action.Action)
+                }).ToList()
+            };
+        }
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
@@ -792,14 +921,8 @@ namespace FWO.Test
 
             object result = query switch
             {
-                string q when q == RequestQueries.getActions => UiSettingsStatesTest.kTestActions,
-                string q when q == RequestQueries.getStates => UiSettingsStatesTest.kTestStates.Select(state => new WfState
-                {
-                    Id = state.Id,
-                    Name = state.Name,
-                    AutomaticOnly = state.AutomaticOnly,
-                    Actions = [.. state.Actions]
-                }).ToList(),
+                string q when q == RequestQueries.getActions => actionCatalog.Select(action => new WfStateAction(action)).ToList(),
+                string q when q == RequestQueries.getStates => workflowStates.Select(CopyState).ToList(),
                 string q when q == RequestQueries.getExtStates => new List<WfExtState>
                 {
                     new() { Id = 1, Name = ExtStates.Done.ToString(), StateId = 0 }

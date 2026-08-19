@@ -587,6 +587,27 @@ namespace FWO.Test
         }
 
         [Test]
+        public void OwnerRecertificationGenerateHtmlHidesNotExistingAddInfoColumn()
+        {
+            ReportOwnerRecerts report = new(new DynGraphqlQuery(""), userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerAddInfoFilter = new AddInfoFilter
+            {
+                Name = "business_unit",
+                Mode = AddInfoFilterMode.not_existing
+            };
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+            string csv = report.ExportToCsv();
+
+            StringAssert.DoesNotContain("<th>Add. Info: business_unit</th>", html);
+            StringAssert.Contains("Add. Info: business_unit (not existing)", csv);
+            StringAssert.DoesNotContain("\"Add. Info: business_unit\"", csv);
+        }
+
+        [Test]
         public void OwnerRecertificationGenerateHtmlShowsValueAddInfoFilter()
         {
             ReportOwnerRecerts report = new(new DynGraphqlQuery(""), userConfig, ReportType.OwnerRecertification)

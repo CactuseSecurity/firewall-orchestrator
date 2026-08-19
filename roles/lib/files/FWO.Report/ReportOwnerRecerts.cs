@@ -146,7 +146,7 @@ namespace FWO.Report
                 }
                 else
                 {
-                    report.AppendLine(userConfig.GetText("no_recertifiable_owners_assigned"));
+                    report.AppendLine(userConfig.GetText("U4004"));
                 }
                 report.AppendLine("<hr>");
                 if (upcomingOwners.Count > 0)
@@ -298,7 +298,8 @@ namespace FWO.Report
 
         private static bool HasOwnerAdditionalInfoColumn(AddInfoFilter ownerAddInfoFilter)
         {
-            return !string.IsNullOrWhiteSpace(ownerAddInfoFilter.Name);
+            return !string.IsNullOrWhiteSpace(ownerAddInfoFilter.Name)
+                && ownerAddInfoFilter.Mode != AddInfoFilterMode.not_existing;
         }
 
         private List<OwnerConnectionReport> GetDisplayedOwnerData(AddInfoFilter ownerAddInfoFilter)

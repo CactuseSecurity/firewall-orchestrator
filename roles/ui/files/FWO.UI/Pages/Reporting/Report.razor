@@ -39,7 +39,7 @@
                                            @bind-TimeFilter="actReportFilters.TimeFilter"
                                            InjectedAppId="injectedAppId"
                                            ReportType="actReportFilters.ReportType"
-                                           AvailableAddInfoNames="GetAvailableOwnerAddInfoNames()" />
+                                           AvailableAddInfoNames="availableOwnerAddInfoNames" />
         }
         @if(actReportFilters.ReportType == ReportType.Owners)
         {
@@ -303,6 +303,7 @@
     private ReportTemplateComponent reportTemplateControl = new();
 
     private ReportBase? currentReport;
+    private List<string>? availableOwnerAddInfoNames;
 
     private Sidebar? deviceSelectionSidebar;
 
@@ -365,7 +366,7 @@
         return $"{userConfig.GetText("report_elements")}: {currentReport!.ReportData.ElementsCount}.";
     }
 
-    private IEnumerable<string>? GetAvailableOwnerAddInfoNames()
+    private void RefreshAvailableOwnerAddInfoNames()
     {
         List<string> addInfoNames = [];
 
@@ -382,7 +383,7 @@
             .OrderBy(addInfoName => addInfoName, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        return distinctAddInfoNames.Count > 0 ? distinctAddInfoNames : null;
+        availableOwnerAddInfoNames = distinctAddInfoNames.Count > 0 ? distinctAddInfoNames : null;
     }
 
 
@@ -420,6 +421,7 @@
                     autoGenerateReport = true;
                 }
             }
+            RefreshAvailableOwnerAddInfoNames();
             InitDone = true;
             await InvokeAsync(StateHasChanged);
         }
@@ -451,10 +453,16 @@
             UpdateRightSidebarVisibility(newReportType);
 
             actReportFilters.ReportType = newReportType;
+            if (newReportType == ReportType.Owners)
+            {
+                actReportFilters.ModellingFilter.OwnerAddInfoFilter = new();
+                actReportFilters.ModellingFilter.OwnerAdditionalInfoKey = "";
+            }
             apiConnection.SetBestRoleForReport(authenticationStateTask!.Result.User, actReportFilters.ReportType);
             actReportFilters.SetDisplayedTimeSelection();
             AdjustDeviceSelection();
             ResetReport();
+            RefreshAvailableOwnerAddInfoNames();
             StateHasChanged();
         }
         catch (Exception e)
@@ -553,6 +561,7 @@
         actReportFilters.SelectAll = !actReportFilters.DeviceFilter.IsAnyDeviceFilterSet();
         AdjustDeviceSelection();
         UpdateRightSidebarVisibility(actReportFilters.ReportType);
+        RefreshAvailableOwnerAddInfoNames();
 
         StateHasChanged();
     }
@@ -600,6 +609,7 @@
 
         watch.Stop();
         reportGenerationDuration = watch.ElapsedMilliseconds / 1000.0;
+        RefreshAvailableOwnerAddInfoNames();
 
         processing = false;
 
@@ -683,6 +693,7 @@
                 _showAnyRulesInComplianceReport = ((ReportCompliance)currentReport).ShowNonImpactRules;
             }
         }
+        RefreshAvailableOwnerAddInfoNames();
     }
 
     private void CancelGeneration()

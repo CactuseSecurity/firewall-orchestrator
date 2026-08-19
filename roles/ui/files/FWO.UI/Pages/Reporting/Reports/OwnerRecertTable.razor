@@ -67,11 +67,8 @@
 
         displayOwners = Owners.Select(owner =>
         {
-            FwoOwner displayOwner = new(owner)
-            {
-                AdditionalInfoValue = GetAdditionalInfoValue(owner)
-            };
-            return displayOwner;
+            owner.AdditionalInfoValue = GetAdditionalInfoValue(owner);
+            return owner;
         }).ToList();
     }
 

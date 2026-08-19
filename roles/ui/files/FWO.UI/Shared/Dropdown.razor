@@ -237,6 +237,7 @@
 
     private async Task ShowMenu(FocusEventArgs _)
     {
+        suppressFreeTextBlurCommit = false;
         if (!AllowFreeText || Multiselect || typeof(ElementType) != typeof(string))
         {
             ClearFilter();

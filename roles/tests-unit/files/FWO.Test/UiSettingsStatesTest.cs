@@ -95,6 +95,26 @@ namespace FWO.Test
             prop.SetValue(component, apiConnection);
         }
 
+        private static void SetMember(object instance, string memberName, object? value)
+        {
+            Type type = instance.GetType();
+            PropertyInfo? property = type.GetProperty(memberName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (property != null)
+            {
+                property.SetValue(instance, value);
+                return;
+            }
+
+            FieldInfo? field = type.GetField(memberName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (field != null)
+            {
+                field.SetValue(instance, value);
+                return;
+            }
+
+            throw new MissingMemberException(type.FullName, memberName);
+        }
+
         private static T GetVariable<T>(object variables, string name)
         {
             PropertyInfo? property = variables.GetType().GetProperty(name);
@@ -564,6 +584,47 @@ namespace FWO.Test
                 Assert.That(GetVariable<int>(apiConn.Variables[1], "sortOrder"), Is.EqualTo(1));
                 Assert.That(GetVariable<int>(apiConn.Variables[2], "actionId"), Is.EqualTo(10));
                 Assert.That(GetVariable<int>(apiConn.Variables[2], "sortOrder"), Is.EqualTo(2));
+            });
+        }
+
+        [Test]
+        public async Task SaveState_InAddMode_RejectsDuplicateStateId()
+        {
+            SettingsStates component = new();
+            SettingsStatesTestApiConn apiConn = new();
+            List<(string title, string message, bool isError)> messages = new();
+            WfState duplicateState = new()
+            {
+                Id = 2,
+                Name = "Review",
+                AutomaticOnly = true
+            };
+            SetInjectedApiConnection(component, apiConn);
+            SetMember(component, "userConfig", new SimulatedUserConfig());
+            SetPrivateField(component, "states", new List<WfState>
+            {
+                new() { Id = 1, Name = "Open" },
+                new() { Id = 2, Name = "Done" }
+            });
+            SetPrivateField(component, "actState", duplicateState);
+            SetPrivateField(component, "AddStateMode", true);
+            SetPrivateField(component, "EditStateMode", true);
+            SetMember(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((_, title, message, isError) =>
+                messages.Add((title, message, isError))));
+
+            Task task = (Task)GetPrivateMethod("SaveState").Invoke(component, null)!;
+            await task;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries, Is.Empty);
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].title, Is.EqualTo("Edit state"));
+                Assert.That(messages[0].message, Is.EqualTo("A workflow state with this id already exists."));
+                Assert.That(messages[0].isError, Is.True);
+                Assert.That(GetPrivateField<bool>(component, "AddStateMode"), Is.True);
+                Assert.That(GetPrivateField<bool>(component, "EditStateMode"), Is.True);
+                Assert.That(GetPrivateField<List<WfState>>(component, "states").Select(state => state.Name).ToList(), Is.EqualTo(new List<string> { "Open", "Done" }));
             });
         }
 

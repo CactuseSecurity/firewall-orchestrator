@@ -296,6 +296,12 @@ else
     {
         try
         {
+            if (AddStateMode && states.Any(state => state.Id == actState.Id))
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_state"), userConfig.GetText("duplicate_state_id"), true);
+                return;
+            }
+
             await apiConnection.SendQueryAsync<object>(RequestQueries.upsertState, new { id = actState.Id, name = actState.Name, automaticOnly = actState.AutomaticOnly });
             if(AddStateMode)
             {

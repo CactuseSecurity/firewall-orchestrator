@@ -40,6 +40,13 @@ namespace FWO.Test
             Type = new() { Name = ObjectType.AccessRole }
         };
 
+        static readonly NetworkObject PlaceholderObjWithoutIp = new()
+        {
+            Id = 24,
+            Name = "PlaceholderObjWithoutIp",
+            Type = new() { Name = ObjectType.Network }
+        };
+
         static readonly NetworkObject UpdObj1 = new()
         {
             Id = 31,
@@ -179,11 +186,21 @@ namespace FWO.Test
             Tos = [new(new(), Nwgroup3)],
             Services = [new() { Content = Svc1 }]
         };
+        static readonly Rule Rule15 = new()
+        {
+            Name = "FWOC13",
+            MgmtId = 1,
+            Froms = [new(new(), PlaceholderObjWithoutIp)],
+            Tos = [new(new(), Nwgroup3)],
+            Services = [new() { Content = Svc1 }]
+        };
         static readonly DeviceReport DevRep1 = new()
         {
             Id = 1,
             RulebaseLinks = [new() { GatewayId = 1, NextRulebaseId = 3 }]
         };
+
+        public bool IncludePlaceholderFallbackRule { get; set; }
 
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
@@ -249,7 +266,16 @@ namespace FWO.Test
             }
             else if (responseType == typeof(List<Rule>))
             {
-                GraphQLResponse<dynamic> response = new() { Data = new List<Rule>() { new(Rule1), new(Rule2), new(Rule3), new(Rule4), new(Rule5), new(Rule6), new(Rule7), new(Rule8), new(Rule9), new(Rule10), new(Rule11), new(Rule12), new(Rule13), new(Rule14) } };
+                List<Rule> rules =
+                [
+                    new(Rule1), new(Rule2), new(Rule3), new(Rule4), new(Rule5), new(Rule6), new(Rule7),
+                    new(Rule8), new(Rule9), new(Rule10), new(Rule11), new(Rule12), new(Rule13), new(Rule14)
+                ];
+                if (IncludePlaceholderFallbackRule)
+                {
+                    rules.Add(new(Rule15));
+                }
+                GraphQLResponse<dynamic> response = new() { Data = rules };
                 return response.Data;
             }
             else if (responseType == typeof(List<ModellingConnection>))

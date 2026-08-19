@@ -110,7 +110,7 @@ namespace FWO.Data
 
         /// <summary>
         /// True for imported object types whose IP fields do not carry stable identity for rule comparison.
-        /// NetworkObjectComparer compares these objects by type and name regardless of NwRegardIp and NwRegardName.
+        /// NetworkObjectComparer compares these objects by type and name while IP based rule recognition is active.
         /// Modelled network objects keep the default empty type name, so they are not treated as special identity objects.
         /// </summary>
         public bool IsSpecialConfigObjectType()

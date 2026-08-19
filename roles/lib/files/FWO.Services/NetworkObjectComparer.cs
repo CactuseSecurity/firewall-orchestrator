@@ -21,8 +21,8 @@ namespace FWO.Services
             bool isSpecial1 = nwObject1.IsSpecialConfigObjectType();
             bool isSpecial2 = nwObject2.IsSpecialConfigObjectType();
 
-            // Imported identity objects have no reliable IP identity and must keep a transitive equality relation.
-            if (isSpecial1 || isSpecial2)
+            // When IP comparison is active, imported identity objects need type/name identity because their IP fields are placeholders.
+            if (option.NwRegardIp && (isSpecial1 || isSpecial2))
             {
                 return isSpecial1 && isSpecial2
                     && string.Equals(nwObject1.Type.Name, nwObject2.Type.Name, StringComparison.Ordinal)
@@ -41,7 +41,7 @@ namespace FWO.Services
                 return 0;
             }
 
-            if (nwObject.IsSpecialConfigObjectType())
+            if (option.NwRegardIp && nwObject.IsSpecialConfigObjectType())
             {
                 return HashCode.Combine(nwObject.Type.Name, nwObject.Name);
             }

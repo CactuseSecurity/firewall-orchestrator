@@ -230,6 +230,15 @@ private static BadRequestObjectResult BuildValidationError(string fieldPath, str
 
 Do not query Hasura, LDAP, or other downstream systems before request validation succeeds.
 
+Later semantic rules should fit into the same structure as structure validation. Here is a possible example:
+
+```csharp
+.RequiredString("protocol", rules => rules.OneOf("tcp", "udp", "icmp"))
+.RequiredInt("portStart", rules => rules.Min(0).Max(65535))
+.Custom("portStart", "portEnd", ValidatePortRange)
+```
+
+
 ## Normalize After Validation
 
 Do not mutate DTOs during generic shape validation.

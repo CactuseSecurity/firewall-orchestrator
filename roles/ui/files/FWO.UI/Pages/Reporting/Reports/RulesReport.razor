@@ -39,7 +39,11 @@
                                             TreeActionsContainerClass="sticky-collapse"
                                             TreeActionsTemplate="RuleTreeActionsTemplate"
                                             RowTemplate="SectionHeaderTemplate"
-                                            RowTemplateSelector="context => context.Item.IsSectionHeader" />
+                                            RowTemplateSelector="context => context.Item.IsSectionHeader"
+                                            ShowPaginationSummary="true"
+                                            PageSize="5"
+                                            PaginationEnabled="true"
+                                            ShowPageSizeSelector="true"/>
                         </Collapse>
                     }
                 }

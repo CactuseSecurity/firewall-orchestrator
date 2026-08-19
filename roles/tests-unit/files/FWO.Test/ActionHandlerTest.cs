@@ -245,12 +245,17 @@ namespace FWO.Test
         }
 
         private static Task<WorkflowEmailContent?> InvokeCreateWorkflowEmailContent(ActionHandler handler,
-            EmailActionParams emailActionParams, WfStatefulObject statefulObject, WfObjectScopes scope)
+            EmailActionParams emailActionParams, WfStatefulObject statefulObject, WfObjectScopes scope,
+            WfStateAction? action = null, FwoOwner? owner = null, string? userGrpDn = null)
         {
-            object?[] arguments = new object?[3];
-            arguments[0] = emailActionParams;
-            arguments[1] = statefulObject;
-            arguments[2] = scope;
+            action ??= new WfStateAction { ExternalParams = JsonSerializer.Serialize(emailActionParams) };
+            object?[] arguments = new object?[6];
+            arguments[0] = action;
+            arguments[1] = emailActionParams;
+            arguments[2] = statefulObject;
+            arguments[3] = scope;
+            arguments[4] = owner;
+            arguments[5] = userGrpDn;
 
             return (Task<WorkflowEmailContent?>)GetPrivateMethod("CreateWorkflowEmailContent").Invoke(handler, arguments)!;
         }
@@ -603,6 +608,46 @@ namespace FWO.Test
                 Assert.That(content?.PlainText, Does.Contain("2 | Second matching task |"));
                 Assert.That(content?.PlainText, Does.Not.Contain("Wrong type task"));
                 Assert.That(content?.PlainText, Does.Not.Contain("Wrong target task"));
+            });
+        }
+
+        [Test]
+        public async Task CreateWorkflowEmailContent_DoesNotBundleRequestTasksForDifferentAssignedGroups()
+        {
+            WfReqTask firstTask = CreateEligibleRequestTask(12, title: "First group task");
+            firstTask.Id = 11;
+            firstTask.TicketId = 7;
+            firstTask.TaskNumber = 1;
+            firstTask.StateId = 60;
+            firstTask.TaskType = WfTaskType.access.ToString();
+            firstTask.AssignedGroup = "cn=group-a";
+            firstTask.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
+            WfReqTask secondTask = CreateEligibleRequestTask(13, title: "Second group task");
+            secondTask.Id = 12;
+            secondTask.TicketId = 7;
+            secondTask.TaskNumber = 2;
+            secondTask.StateId = 60;
+            secondTask.TaskType = WfTaskType.access.ToString();
+            secondTask.AssignedGroup = "cn=group-b";
+            secondTask.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
+            ActionHandlerTestApiConn apiConn = new()
+            {
+                FullTicket = CreateTicket(firstTask, secondTask)
+            };
+            apiConn.FullTicket.Id = 7;
+            ActionHandler handler = new(apiConn, new WfHandler { userConfig = new SimulatedUserConfig() });
+            EmailActionParams actionParams = new()
+            {
+                AttachedContent = EmailAttachedContent.RequestedConnections,
+                RequestTaskBundleMode = EmailRequestTaskBundleMode.SameTaskType
+            };
+
+            WorkflowEmailContent? content = await InvokeCreateWorkflowEmailContent(handler, actionParams, firstTask, WfObjectScopes.RequestTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(content?.PlainText, Does.Contain("1 | First group task |"));
+                Assert.That(content?.PlainText, Does.Not.Contain("Second group task"));
             });
         }
 

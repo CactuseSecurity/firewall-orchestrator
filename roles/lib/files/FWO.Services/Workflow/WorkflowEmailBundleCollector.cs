@@ -28,18 +28,23 @@ namespace FWO.Services.Workflow
             RequestTask = new WfReqTask(requestTask);
             Owner = owner;
             UserGrpDn = userGrpDn;
-            BundleKey = string.Join("|",
-                RequestTask.TicketId,
-                RequestTask.TaskType,
-                RequestTask.StateId,
-                RequestTask.GetAddInfoValue(AdditionalInfoKeys.FwConfigChangeTarget),
-                RequestTask.AssignedGroup,
-                RequestTask.CurrentHandler?.Dn,
-                RequestTask.RecentHandler?.Dn,
-                Action.Id,
-                Action.ExternalParams,
-                Owner?.Id,
-                UserGrpDn);
+            BundleKey = BuildBundleKey(Action, RequestTask, Owner, UserGrpDn);
+        }
+
+        public static string BuildBundleKey(WfStateAction action, WfReqTask requestTask, FwoOwner? owner, string? userGrpDn)
+        {
+            return string.Join("|",
+                requestTask.TicketId,
+                requestTask.TaskType,
+                requestTask.StateId,
+                requestTask.GetAddInfoValue(AdditionalInfoKeys.FwConfigChangeTarget),
+                requestTask.AssignedGroup,
+                requestTask.CurrentHandler?.Dn,
+                requestTask.RecentHandler?.Dn,
+                action.Id,
+                action.ExternalParams,
+                owner?.Id,
+                userGrpDn);
         }
     }
 }

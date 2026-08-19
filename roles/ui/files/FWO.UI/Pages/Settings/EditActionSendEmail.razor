@@ -1,6 +1,5 @@
 @using System.Text.Json
 @using FWO.Api.Client
-@using FWO.Api.Client.Queries
 @using FWO.Services
 @using FWO.Ui.Services
 
@@ -54,9 +53,6 @@
 
     [Parameter]
     public WfStateAction ActAction { get; set; } = new();
-
-    [Parameter]
-    public WfStateAction PersistedAction { get; set; } = new();
 
     private List<int> actActionNotificationIds = [];
     private EmailAttachedContent actAttachedContent = EmailAttachedContent.None;
@@ -120,8 +116,9 @@
 
     private Task SetActionNotificationIds(List<int> notificationIds)
     {
-        actActionNotificationIds = [.. notificationIds.Distinct()];
-        return PersistActionNotificationIds();
+        actActionNotificationIds = [.. notificationIds.Where(id => id > 0).Distinct()];
+        UpdateExternalParams();
+        return Task.CompletedTask;
     }
 
     public async Task<bool> PrepareForSaveAsync()
@@ -162,34 +159,6 @@
         await DeleteActionNotifications(actActionNotificationIds);
     }
 
-    private async Task PersistActionNotificationIds()
-    {
-        UpdateExternalParams();
-        if (!CanPersistNotificationIdsImmediately())
-        {
-            return;
-        }
-
-        string externalParams = ActAction.ExternalParams;
-        int updatedId = await UpdateAction(PersistedAction, externalParams);
-        if (updatedId != PersistedAction.Id)
-        {
-            DisplayMessageInUi(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
-            return;
-        }
-
-        ActAction.ExternalParams = externalParams;
-        PersistedAction.ExternalParams = externalParams;
-    }
-
-    private bool CanPersistNotificationIdsImmediately()
-    {
-        return PersistedAction.Id > 0
-            && PersistedAction.ActionType == nameof(StateActionTypes.SendEmail)
-            && ActAction.ActionType == nameof(StateActionTypes.SendEmail)
-            && PersistedAction.Scope == ActAction.Scope;
-    }
-
     private void UpdateExternalParams()
     {
         ActAction.ExternalParams = EmailExternalParams();
@@ -206,23 +175,6 @@
                 ? EmailRequestTaskBundleMode.SameTaskType
                 : EmailRequestTaskBundleMode.None
         });
-    }
-
-    private async Task<int> UpdateAction(WfStateAction action, string externalParams)
-    {
-        var Variables = new
-        {
-            id = action.Id,
-            name = action.Name,
-            actionType = action.ActionType,
-            scope = action.Scope,
-            taskType = action.TaskType,
-            phase = action.Phase,
-            eventt = action.Event,
-            buttonText = action.ButtonText,
-            externalParameters = externalParams
-        };
-        return (await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateAction, Variables)).UpdatedId;
     }
 
     private async Task DeleteActionNotifications(IEnumerable<int> notificationIds)

@@ -1699,7 +1699,6 @@ namespace FWO.Test
             SetMember(component, "persistedAction", persistedAction);
             SetMember(component, "sendEmailEditor", sendEmailEditor);
             SetMember(sendEmailEditor, "ActAction", draftAction);
-            SetMember(sendEmailEditor, "PersistedAction", persistedAction);
             SetMember(sendEmailEditor, "actActionNotificationIds", new List<int> { 11 });
 
             bool result = await InvokeAsync<bool>(component, "TryUpdateExternalParams");
@@ -1710,7 +1709,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task EditActionPopup_NotificationChange_UsesPersistedSnapshotWhenSavingAndCancelKeepsPopupClosed()
+        public async Task EditActionPopup_NotificationChange_DoesNotPersistWhenCanceled()
         {
             EditActionPopup component = new();
             EditActionSendEmail sendEmailEditor = new();
@@ -1743,7 +1742,6 @@ namespace FWO.Test
             SetMember(sendEmailEditor, "apiConnection", apiConn);
             SetMember(sendEmailEditor, "userConfig", new SimulatedUserConfig());
             SetMember(sendEmailEditor, "ActAction", draftAction);
-            SetMember(sendEmailEditor, "PersistedAction", persistedAction);
             SetMember(sendEmailEditor, "actActionNotificationIds", new List<int> { 3 });
             SetMember(sendEmailEditor, "actAttachedContent", EmailAttachedContent.RequestedConnections);
             SetMember(sendEmailEditor, "actConfirmSentMail", true);
@@ -1757,11 +1755,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConn.LastQuery, Is.EqualTo(RequestQueries.updateAction));
-                Assert.That(GetVariable<string>(apiConn.LastVariables, "name"), Is.EqualTo("Original action"));
-                Assert.That(GetVariable<string>(apiConn.LastVariables, "scope"), Is.EqualTo(WfObjectScopes.Ticket.ToString()));
-                Assert.That(GetVariable<string>(apiConn.LastVariables, "taskType"), Is.EqualTo("access"));
-                Assert.That(GetVariable<string>(apiConn.LastVariables, "buttonText"), Is.EqualTo("Original button"));
+                Assert.That(apiConn.Queries, Has.No.Member(RequestQueries.updateAction));
                 Assert.That(GetMember<bool>(component, "EditActionMode"), Is.False);
             });
         }
@@ -2023,7 +2017,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task SendEmail_SetActionNotificationIds_PersistsForExistingEmailAction()
+        public async Task SendEmail_SetActionNotificationIds_UpdatesExternalParamsWithoutImmediatePersistence()
         {
             EditActionSendEmail component = new();
             SettingsActionsApiConn apiConn = new();
@@ -2038,12 +2032,11 @@ namespace FWO.Test
             SetMember(component, "apiConnection", apiConn);
             SetMember(component, "userConfig", new SimulatedUserConfig());
             SetMember(component, "ActAction", action);
-            SetMember(component, "PersistedAction", new WfStateAction(action));
             SetMember(component, "actAttachedContent", EmailAttachedContent.RequestedConnections);
 
             await InvokeAsync(component, "SetActionNotificationIds", new List<int> { 3, 3, 8 });
 
-            Assert.That(apiConn.LastQuery, Is.EqualTo(RequestQueries.updateAction));
+            Assert.That(apiConn.Queries, Is.Empty);
             Assert.That(GetMember<List<int>>(component, "actActionNotificationIds"), Is.EqualTo(new List<int> { 3, 8 }));
             EmailActionParams parameters = JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams)!;
             Assert.That(parameters.NotificationIds, Is.EqualTo(new List<int> { 3, 8 }));
@@ -2063,13 +2056,8 @@ namespace FWO.Test
                 Scope = WfObjectScopes.RequestTask.ToString(),
                 Event = StateActionEvents.OnSet.ToString()
             };
-            WfStateAction persistedAction = new(action)
-            {
-                Scope = WfObjectScopes.Ticket.ToString()
-            };
             SetMember(component, "apiConnection", apiConn);
             SetMember(component, "ActAction", action);
-            SetMember(component, "PersistedAction", persistedAction);
 
             await InvokeAsync(component, "SetActionNotificationIds", new List<int> { 3, 8 });
 

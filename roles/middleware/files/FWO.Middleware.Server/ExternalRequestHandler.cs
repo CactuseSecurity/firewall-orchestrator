@@ -472,7 +472,12 @@ namespace FWO.Middleware.Server
                 if (await TrySendPendingInternalWorkEmailsIndividually(ticketId, emailBundleCollector))
                 {
                     emailBundleCollector.PendingItems.Clear();
+                    return;
                 }
+
+                Log.WriteError("RunInternalWorkStateChangeActions",
+                    $"Could not send {emailBundleCollector.PendingItems.Count} pending internal work approval email bundle item(s) for ticket {ticketId}. No automatic retry is available.");
+                emailBundleCollector.PendingItems.Clear();
             }
         }
 
@@ -497,17 +502,13 @@ namespace FWO.Middleware.Server
 
                 wfHandler.ActionHandler.EmailBundleCollector = null;
                 WfTicket? ticket = await wfHandler.ResolveTicket(ticketId);
-                if (ticket == null)
-                {
-                    return false;
-                }
 
                 foreach (WorkflowEmailBundleItem item in emailBundleCollector.PendingItems
                     .GroupBy(pendingItem => pendingItem.BundleKey)
                     .Select(group => group.OrderBy(bundleItem => bundleItem.RequestTask.TaskNumber).First()))
                 {
-                    WfReqTask requestTask = ticket.Tasks.FirstOrDefault(task => task.Id == item.RequestTask.Id)
-                        ?? ticket.Tasks.FirstOrDefault(task => task.TaskNumber == item.RequestTask.TaskNumber)
+                    WfReqTask requestTask = ticket?.Tasks.FirstOrDefault(task => task.Id == item.RequestTask.Id)
+                        ?? ticket?.Tasks.FirstOrDefault(task => task.TaskNumber == item.RequestTask.TaskNumber)
                         ?? item.RequestTask;
                     await wfHandler.ActionHandler.SendEmail(item.Action, requestTask, WfObjectScopes.RequestTask, item.Owner, item.UserGrpDn);
                 }
@@ -682,7 +683,7 @@ namespace FWO.Middleware.Server
             WfReqTask approvalTask = approvalTicket.Tasks.FirstOrDefault(ta => ta.TaskNumber == task.TaskNumber) ?? throw new InvalidOperationException($"Task {task.TaskNumber} not found in ticket {ticket.Id}.");
 
             StateMatrix approvalMatrix = approvalHandler.StateMatrix(approvalTask.TaskType);
-            if (!approvalHandler.MasterStateMatrix.PhaseActive.TryGetValue(WorkflowPhases.approval, out bool approvalPhaseActive) || !approvalPhaseActive)
+            if (!approvalMatrix.PhaseActive.TryGetValue(WorkflowPhases.approval, out bool approvalPhaseActive) || !approvalPhaseActive)
             {
                 await PromoteInternalWorkTaskToPlanning(ticket, task);
                 return WorkflowPhases.planning;

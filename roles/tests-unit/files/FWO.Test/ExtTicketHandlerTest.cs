@@ -559,6 +559,35 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task HandleStateChangeDonePromotesInternalWorkRuleTasksToPlanningWhenTaskTypeApprovalIsInactive()
+        {
+            SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
+            ExtTicketHandlerTestApiConn.ResetTicketTasks();
+            ExtTicketHandlerTestApiConn localApiConnection = new()
+            {
+                ApprovalPhaseActiveForMasterOnly = true
+            };
+
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+
+            await handler.HandleStateChange(new ExternalRequest
+            {
+                Id = 1,
+                TicketId = 123,
+                TaskNumber = 1,
+                ExtRequestState = ExtStates.ExtReqDone.ToString(),
+                ExtTicketId = "4711"
+            });
+
+            for (int taskNumber = 2; taskNumber <= 8; ++taskNumber)
+            {
+                WfReqTask? task = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(taskNumber);
+                ClassicAssert.IsNotNull(task, $"Task {taskNumber} should exist.");
+                ClassicAssert.AreEqual(99, task!.StateId, $"Task {taskNumber} should be promoted to planning input state.");
+            }
+        }
+
+        [Test]
         public async Task HandleStateChangeDonePromotesAllConsecutiveInternalWorkRuleTasksToApprovalWhenApprovalIsActive()
         {
             SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
@@ -717,7 +746,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task RunInternalWorkStateChangeActionsSafe_SwallowsFlushInitializationFailure()
+        public async Task RunInternalWorkStateChangeActionsSafe_ClearsCollectorWhenFallbackCannotRun()
         {
             WorkflowEmailBundleCollector collector = new();
             collector.Add(new WfStateAction { Id = 7, ExternalParams = "params" }, new WfReqTask { Id = 11, TicketId = 123, TaskType = WfTaskType.access.ToString() }, null, null);
@@ -725,7 +754,7 @@ namespace FWO.Test
 
             await InvokeRunInternalWorkStateChangeActionsSafe(handler, 123, collector);
 
-            ClassicAssert.AreEqual(1, collector.PendingItems.Count);
+            ClassicAssert.IsEmpty(collector.PendingItems);
         }
 
         [Test]

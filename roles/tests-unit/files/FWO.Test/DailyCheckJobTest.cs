@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.IO;
 using System.Text.Json;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -54,6 +55,7 @@ namespace FWO.Test
 
         private static readonly int[] ExpectedSuccessLogSeverities = [1];
         private static readonly int[] ExpectedNoAlertLogSeverities = [0];
+        private static readonly long[] ExpectedUpdatedNotificationIds = [11L];
 
         [Test]
         public void LoadEnabledModules_ReturnsAllModules_WhenConfigIsBlank()
@@ -469,7 +471,62 @@ namespace FWO.Test
                 {
                     Assert.That(apiConnection.NotificationLoadCount, Is.EqualTo(1));
                     Assert.That(apiConnection.OpenTicketQueryCount, Is.EqualTo(1));
-                    Assert.That(apiConnection.UpdatedNotificationIds, Is.EqualTo(new[] { 11L }));
+                    Assert.That(apiConnection.UpdatedNotificationIds, Is.EqualTo(ExpectedUpdatedNotificationIds));
+                });
+            }
+            finally
+            {
+                GlobalStateMatrix.Factory = previousFactory;
+            }
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task CheckUnansweredInterfaceRequests_LogsWarningWhenRecipientsCannotBeResolved()
+        {
+            DailyCheckInterfaceRequestsApiConnection apiConnection = new()
+            {
+                LdapConnections =
+                [
+                    CreateInternalTestLdap()
+                ],
+                Notifications =
+                [
+                    CreateInterfaceRequestNotificationWithoutRecipients(11)
+                ],
+                OpenTickets =
+                [
+                    CreateInterfaceRequestTicket(501, new FwoOwner { Id = 7, Name = "Owner A", ExtAppId = "APP-7" }, DateTime.Now.AddDays(-1))
+                ]
+            };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                UseDummyEmailAddress = false,
+                DummyEmailAddress = "dummy@example.test",
+                ModUnansweredReqEmailBody = "body"
+            };
+            DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
+            MethodInfo checkUnansweredInterfaceRequests = typeof(DailyCheckJob).GetMethod("CheckUnansweredInterfaceRequests", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests method not found.");
+            Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
+            GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
+
+            try
+            {
+                string output = await CaptureConsoleAsync(async () =>
+                {
+                    await (Task)(checkUnansweredInterfaceRequests.Invoke(dailyCheckJob, null)
+                        ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests returned null task."));
+                });
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(output, Does.Contain("No recipients resolved for notification client InterfaceRequest using option OtherAddresses"));
+                    Assert.That(output, Does.Contain("No recipients resolved for notification client InterfaceRequest using option None"));
+                    Assert.That(output, Does.Contain("Unanswered Interface Requests Check: Sent 1 emails."));
+                    Assert.That(apiConnection.NotificationLoadCount, Is.EqualTo(1));
+                    Assert.That(apiConnection.OpenTicketQueryCount, Is.EqualTo(1));
+                    Assert.That(apiConnection.UpdatedNotificationIds, Is.EqualTo(ExpectedUpdatedNotificationIds));
                 });
             }
             finally
@@ -703,6 +760,24 @@ namespace FWO.Test
             };
         }
 
+        private static FwoNotification CreateInterfaceRequestNotificationWithoutRecipients(int id)
+        {
+            return new FwoNotification
+            {
+                Id = id,
+                NotificationClient = NotificationClient.InterfaceRequest,
+                RecipientTo = EmailRecipientOption.OtherAddresses,
+                EmailAddressTo = "",
+                EmailSubject = "subject",
+                EmailBody = "body",
+                Deadline = NotificationDeadline.RequestDate,
+                RepeatIntervalAfterDeadline = SchedulerInterval.Days,
+                InitialOffsetAfterDeadline = 0,
+                RepeatOffsetAfterDeadline = 1,
+                RepetitionsAfterDeadline = 3
+            };
+        }
+
         private sealed class CountingApiConnection : SimulatedApiConnection
         {
             public int QueryCount { get; private set; }
@@ -747,6 +822,21 @@ namespace FWO.Test
                 if (query == AuthQueries.getLdapConnections && typeof(QueryResponseType) == typeof(List<FWO.Middleware.Server.Ldap>))
                 {
                     return Task.FromResult((QueryResponseType)(object)LdapConnections);
+                }
+
+                if (query == AuthQueries.getUserEmails && typeof(QueryResponseType) == typeof(List<UiUser>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<UiUser>());
+                }
+
+                if (query == ConfigQueries.getCustomTextsPerLanguage && typeof(QueryResponseType) == typeof(List<UiText>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<UiText>());
+                }
+
+                if (query == OwnerQueries.getOwnerResponsibleTypes && typeof(QueryResponseType) == typeof(List<OwnerResponsibleType>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<OwnerResponsibleType>());
                 }
 
                 if (query == ConfigQueries.getConfigItemsByUser && typeof(QueryResponseType) == typeof(ConfigItem[]))
@@ -795,6 +885,23 @@ namespace FWO.Test
                 }
 
                 throw new InvalidOperationException($"Unexpected query: {query}");
+            }
+        }
+
+        private static async Task<string> CaptureConsoleAsync(Func<Task> action)
+        {
+            TextWriter originalOut = Console.Out;
+            StringWriter writer = new();
+            Console.SetOut(writer);
+            try
+            {
+                await action();
+                await writer.FlushAsync();
+                return writer.ToString();
+            }
+            finally
+            {
+                Console.SetOut(originalOut);
             }
         }
 

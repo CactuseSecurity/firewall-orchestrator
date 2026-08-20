@@ -28,6 +28,9 @@ namespace FWO.Test
         private static readonly string[] kResolvedDns = ["cn=alice,dc=test", "cn=bob,dc=test", "cn=external,dc=test"];
         private static readonly string[] kOverrideRecipients = ["override@example.test"];
         private static readonly string[] kScopedRecipients = ["scoped@example.test"];
+        private static readonly string[] kAliceBobRecipients = ["alice@example.test", "bob@example.test"];
+        private static readonly string[] kAliceRecipients = ["alice@example.test"];
+        private static readonly string[] kAliceAndEmptyRecipients = ["alice@example.test", string.Empty];
         private static readonly List<string> kOtherAddressRecipients = ["a@test", "b@test"];
         private static readonly List<string> kJsonOtherAddressList = ["json-a@test", "json-b@test"];
         private static readonly List<string> kLegacyRecipients = ["legacy@test"];
@@ -206,7 +209,39 @@ namespace FWO.Test
 
             List<string> recipients = await helper.GetRecipients(EmailRecipientOption.AssignedGroup, statefulObject, null, null, null);
 
-            Assert.That(recipients, Is.EqualTo(new[] { "alice@example.test", "bob@example.test" }));
+            Assert.That(recipients, Is.EqualTo(kAliceBobRecipients));
+        }
+
+        [Test]
+        public async Task GetRecipientsReturnsEmptyForUnresolvedAssignedGroupMembers()
+        {
+            EmailHelper helper = CreateEmailHelper(
+                ownerGroups:
+                [
+                    new UserGroup
+                    {
+                        Dn = "cn=network-team,dc=test",
+                        Users =
+                        [
+                            new UiUser { Dn = "cn=alice,dc=test" },
+                            new UiUser { Dn = "cn=missing,dc=test" }
+                        ]
+                    }
+                ],
+                useDummyEmailAddress: false);
+            SetPrivateField(helper, "uiUsers", new List<UiUser>
+            {
+                new() { Dn = "cn=alice,dc=test", Email = "alice@example.test" }
+            });
+
+            WfStatefulObject statefulObject = new()
+            {
+                AssignedGroup = "cn=network-team,dc=test"
+            };
+
+            List<string> recipients = await helper.GetRecipients(EmailRecipientOption.AssignedGroup, statefulObject, null, null, null);
+
+            Assert.That(recipients, Is.EqualTo(kAliceAndEmptyRecipients));
         }
 
         [Test]

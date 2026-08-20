@@ -402,6 +402,26 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SendBundledNotifications_ReturnsZeroForEmptyNotificationList()
+        {
+            NotificationService notificationService = await NotificationService.CreateAsync(
+                NotificationClient.InterfaceRequest,
+                globalConfig,
+                apiConnection,
+                []);
+            FwoOwner owner = new() { Name = "Owner", ExtAppId = "1" };
+
+            int emailsSent = await notificationService.SendBundledNotifications([], owner, "body");
+            int updatedNotifications = await notificationService.UpdateNotificationsLastSent();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(emailsSent, Is.Zero);
+                Assert.That(updatedNotifications, Is.Zero);
+            });
+        }
+
+        [Test]
         public async Task PrepareBundledEmail_ReturnsBaseMailForNotificationsWithoutBundleType()
         {
             List<UserGroup> ownerGroups = [];

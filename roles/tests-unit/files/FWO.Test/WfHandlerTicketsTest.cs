@@ -36,6 +36,8 @@ namespace FWO.Test
             public WfTicket Ticket { get; set; } = new();
             public List<WfTicket> Tickets { get; set; } = [];
             public List<long> RegisteredTicketIds { get; set; } = [];
+            public object? LastTicketQueryVariables { get; private set; }
+            public string? LastTicketQuery { get; private set; }
 
             public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
@@ -50,6 +52,11 @@ namespace FWO.Test
                 }
                 if (query == RequestQueries.getTicketsByParameters || query == RequestQueries.getTickets || query == RequestQueries.getFullTickets)
                 {
+                    if (query == RequestQueries.getTicketsByParameters)
+                    {
+                        LastTicketQuery = query;
+                        LastTicketQueryVariables = variables;
+                    }
                     return Task.FromResult((T)(object)Tickets);
                 }
                 if (query == ConfigQueries.getConfigItemsByUser)
@@ -83,6 +90,14 @@ namespace FWO.Test
             Assert.That(dbAccField, Is.Not.Null);
             dbAccField!.SetValue(handler, dbAccess);
             return handler;
+        }
+
+        private static T GetQueryValue<T>(object? variables, string propertyName)
+        {
+            Assert.That(variables, Is.Not.Null);
+            object? value = variables!.GetType().GetProperty(propertyName)?.GetValue(variables);
+            Assert.That(value, Is.Not.Null, $"{propertyName} was not set on the query variables.");
+            return (T)value!;
         }
 
         [Test]
@@ -819,6 +834,70 @@ namespace FWO.Test
 
             Assert.That(tickets, Has.Count.EqualTo(1));
             Assert.That(tickets[0].Id, Is.EqualTo(7));
+        }
+
+        [Test]
+        public async Task GetOpenTickets_UsesWeeksIntervalForCreatedFrom()
+        {
+            TicketTestApiConn apiConn = new()
+            {
+                Tickets =
+                [
+                    new WfTicket
+                    {
+                        Id = 7,
+                        StateId = 10
+                    }
+                ]
+            };
+            UserConfig userConfig = new();
+            WfHandler handler = CreateHandlerWithDbAccess(apiConn, userConfig);
+            SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix
+            {
+                LowestInputState = 3,
+                LowestEndState = 9
+            });
+
+            List<WfTicket> tickets = await handler.GetOpenTickets(WfTaskType.access.ToString(), 2, SchedulerInterval.Weeks);
+
+            Assert.That(tickets, Has.Count.EqualTo(1));
+            Assert.That(apiConn.LastTicketQuery, Is.EqualTo(RequestQueries.getTicketsByParameters));
+            Assert.That(GetQueryValue<DateTime>(apiConn.LastTicketQueryVariables, "createdFrom"), Is.EqualTo(DateTime.Now.Date.AddDays(-14)));
+            Assert.That(GetQueryValue<DateTime>(apiConn.LastTicketQueryVariables, "createdUntil"), Is.EqualTo(DateTime.Now).Within(TimeSpan.FromSeconds(5)));
+            Assert.That(GetQueryValue<int>(apiConn.LastTicketQueryVariables, "fromState"), Is.EqualTo(3));
+            Assert.That(GetQueryValue<int>(apiConn.LastTicketQueryVariables, "toState"), Is.EqualTo(9));
+        }
+
+        [Test]
+        public async Task GetOpenTickets_UsesMonthsIntervalForCreatedFrom()
+        {
+            TicketTestApiConn apiConn = new()
+            {
+                Tickets =
+                [
+                    new WfTicket
+                    {
+                        Id = 7,
+                        StateId = 10
+                    }
+                ]
+            };
+            UserConfig userConfig = new();
+            WfHandler handler = CreateHandlerWithDbAccess(apiConn, userConfig);
+            SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix
+            {
+                LowestInputState = 3,
+                LowestEndState = 9
+            });
+
+            List<WfTicket> tickets = await handler.GetOpenTickets(WfTaskType.access.ToString(), 2, SchedulerInterval.Months);
+
+            Assert.That(tickets, Has.Count.EqualTo(1));
+            Assert.That(apiConn.LastTicketQuery, Is.EqualTo(RequestQueries.getTicketsByParameters));
+            Assert.That(GetQueryValue<DateTime>(apiConn.LastTicketQueryVariables, "createdFrom"), Is.EqualTo(DateTime.Now.Date.AddMonths(-2)));
+            Assert.That(GetQueryValue<DateTime>(apiConn.LastTicketQueryVariables, "createdUntil"), Is.EqualTo(DateTime.Now).Within(TimeSpan.FromSeconds(5)));
+            Assert.That(GetQueryValue<int>(apiConn.LastTicketQueryVariables, "fromState"), Is.EqualTo(3));
+            Assert.That(GetQueryValue<int>(apiConn.LastTicketQueryVariables, "toState"), Is.EqualTo(9));
         }
 
         [Test]

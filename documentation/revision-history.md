@@ -608,5 +608,10 @@ Not supported any longer are:
 ## 9.3.4 - 11.08.2026
 - fix a bug in reporting ui where users with role modeller and reporter could not fetch rsb data for app rule reports
 
-## 9.3.5 - 14.08.2026
+## 9.4.0 - 13.08.2026
+- add logging schema for imported traffic log entries with their owner and count
+- make replacement of existing log entries for applications contained in an import file configurable
+- increase of unit-tests
+
+## 9.4.1 - 20.08.2026
 - add upgrade seed for request task sort configuration

@@ -24,7 +24,7 @@ pytest-cov==7.1.0
 
 # Linting
 ruff==0.16.1
-pre-commit==4.6.1
+pre-commit==4.6.2
 pyright==1.1.411
 
 # OPNsense import

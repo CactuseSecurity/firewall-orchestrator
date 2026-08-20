@@ -66,6 +66,31 @@ with that exact name to exist on every run, including full-matrix
 runs. Other full matrix jobs are labeled with their OS and Python
 version, e.g. `Test install on ubuntu-26.04 with Python 3.10`.
 
+## Ruff required-version sync (Dependabot pip PRs)
+
+Ruff's version is pinned twice: as `ruff==<version>` in
+`roles/importer/files/importer/requirements.txt` and as
+`tool.ruff.required-version` in `pyproject.toml`. If the two drift apart,
+ruff refuses to run and the `python-code-check` job's `ruff check` step
+fails. When Dependabot opens a pip PR that bumps ruff, only the
+`requirements.txt` pin changes.
+
+The `sync-ruff-required-version` job closes that gap automatically. It
+runs only on `pull_request` events from `dependabot[bot]` on a
+`dependabot/pip/*` branch. It reads the pinned ruff version from
+`requirements.txt`, and if `required-version` in `pyproject.toml` differs,
+rewrites it, commits, and pushes the fix back onto the Dependabot branch.
+The job is idempotent — when the two already match, it does nothing.
+
+The push uses a Personal Access Token stored as a **Dependabot** secret
+named `RUFF_SYNC_PAT` (Settings -> Secrets and variables -> Dependabot;
+Dependabot-triggered runs cannot read regular Actions secrets). Scope:
+contents read/write on this repository. A PAT (rather than the default
+`GITHUB_TOKEN`) is required so the sync commit re-triggers this workflow.
+The re-triggered run supersedes the original via the workflow's
+`concurrency` group (keyed on the PR number), so the fresh run — now
+with matching versions — is the one that validates and reports status.
+
 ## Error handling in the matrix-selection script
 
 The script sets `set -euo pipefail` and validates the generated matrix

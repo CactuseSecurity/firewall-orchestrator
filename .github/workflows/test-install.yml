@@ -27,7 +27,12 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+      has_ruff_sync_pat: ${{ steps.ruff-sync-pat.outputs.present }}
     steps:
+      - name: Check for ruff sync PAT
+        id: ruff-sync-pat
+        run: echo "present=${{ secrets.RUFF_SYNC_PAT != '' }}" >> "$GITHUB_OUTPUT"
+
       - name: Select matrix based on event
         id: set-matrix
         env:
@@ -83,6 +88,49 @@ jobs:
           echo "::notice::full=$full, selected $combos matrix combo(s)"
 
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  sync-ruff-required-version:
+    name: Sync ruff required-version
+    needs: setup
+    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]' && startsWith(github.head_ref, 'dependabot/pip/') && needs.setup.outputs.has_ruff_sync_pat == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      REQ_FILE: roles/importer/files/importer/requirements.txt
+      PYPROJECT: pyproject.toml
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.RUFF_SYNC_PAT }}
+
+      - name: Sync required-version to pinned ruff
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ruff_version="$(sed -n 's/^ruff==\([^[:space:]]*\).*$/\1/p' "$REQ_FILE" | head -1)"
+          if [[ -z "$ruff_version" ]]; then
+            echo "No pinned 'ruff==' entry found in $REQ_FILE, nothing to sync."
+            exit 0
+          fi
+
+          current="$(sed -n 's/^required-version = "\(.*\)"/\1/p' "$PYPROJECT" | head -1)"
+          echo "requirements.txt pins ruff==$ruff_version, pyproject.toml requires \"$current\""
+
+          if [[ "$current" == "$ruff_version" ]]; then
+            echo "required-version already matches, nothing to do."
+            exit 0
+          fi
+
+          sed -i "s/^required-version = \".*\"/required-version = \"$ruff_version\"/" "$PYPROJECT"
+
+          git config user.name "dependabot[bot]"
+          git config user.email "49699333+dependabot[bot]@users.noreply.github.com"
+          git add "$PYPROJECT"
+          git commit -m "chore: sync ruff required-version to $ruff_version"
+          git push
 
   test-install:
     needs: setup

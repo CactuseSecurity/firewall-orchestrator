@@ -1,36 +1,69 @@
 # fallbacks for install_dot_net.RedHat.yml, entered when the dotnet sdk package could not be
 # installed from the configured repos. they are tried in this order:
-#   1. drop the dnf cache and retry the configured repos
+#   1. drop the cached rpms and retry the repos that offer the package
 #   2. add the microsoft package repo and install from there - only with allowRepoChangesForRedhat
 #   3. download and run the dotnet-install script - only with allowDotnetScriptInstallForRedhat
 - block:
     - name: retry the dotnet installation from the configured repos on RedHat
       block:
-        # a partially downloaded rpm, or metadata still advertising builds the mirrors have
-        # already replaced, makes every mirror fail; dropping the cache forces both to be
-        # refetched and the retries cover transient mirror or proxy hiccups
-        - name: drop the dnf cache on RedHat
-          command: dnf clean all
+        # the retry is pinned to the repos that actually offer the package. a third party repo
+        # whose metadata cannot be refreshed fails the whole transaction otherwise, although it
+        # has nothing to do with dotnet, and its error then hides the real one
+        - name: find the repos offering {{ dotnet_package_name }} on RedHat
+          command: >-
+            dnf --quiet repoquery --queryformat %{repoid}
+            --setopt=*.skip_if_unavailable=1 {{ dotnet_package_name }}
+          register: dotnet_repoquery_redhat
           changed_when: false
+          failed_when: false
 
-        - name: install {{ dotnet_package_name }} after dropping the dnf cache on RedHat
+        - name: set the repos used for the dotnet retry on RedHat
+          set_fact:
+            dotnet_retry_repos: "{{ dotnet_repoquery_redhat.stdout_lines | default([]) | map('trim') | select | unique | list }}"
+
+        # a truncated rpm left behind by the failed attempt makes every mirror fail again. only
+        # the cached rpms are dropped: "dnf clean all" takes the metadata of every repo with it
+        # and leaves the host unable to run dnf at all until each of them is reachable again
+        - name: drop the cached rpms on RedHat
+          command: dnf clean packages
+          changed_when: true
+
+        # metadata still advertising builds the mirrors have already replaced fails the same way,
+        # so the metadata is refreshed too - but only for the repos the retry is pinned to
+        - name: install {{ dotnet_package_name }} after dropping the cached rpms on RedHat
           ansible.builtin.dnf:
             name: "{{ dotnet_package_name }}"
             state: present
-            update_cache: true
+            disablerepo: "{{ '*' if dotnet_retry_repos | length > 0 else omit }}"
+            enablerepo: "{{ dotnet_retry_repos if dotnet_retry_repos | length > 0 else omit }}"
+            update_cache: "{{ dotnet_retry_repos | length > 0 }}"
           register: dotnet_install_after_cache_drop_redhat
-          until: dotnet_install_after_cache_drop_redhat is succeeded
+          # a permanent refusal - "all mirrors were already tried", a 403 or a 404 - answers every
+          # attempt the same way, so only transient errors are worth the retries
+          until: >-
+            dotnet_install_after_cache_drop_redhat is succeeded
+            or ([dotnet_install_after_cache_drop_redhat.msg | default('')] | flatten | join(' ')) is not search(redhat_repo_transient_failure_pattern)
           retries: 3
           delay: 5
       rescue:
-        - name: remember the dotnet installation error after dropping the dnf cache on RedHat
+        - name: remember the dotnet installation error after dropping the cached rpms on RedHat
           set_fact:
-            dotnet_install_last_error: "{{ ansible_failed_result.msg | default('unknown error') }}"
+            dotnet_install_last_error: "{{ ([ansible_failed_result.msg | default('unknown error')] | flatten | join(' ')) }}"
+            dotnet_install_first_error: "{{ dotnet_install_first_error | default(([ansible_failed_result.msg | default('unknown error')] | flatten | join(' ')), true) }}"
+            dotnet_install_error_chain: "{{ (dotnet_install_error_chain | default([])) + ['after dropping the cached rpms: ' ~ ([ansible_failed_result.msg | default('unknown error')] | flatten | join(' '))] }}"
 
-        - name: report failed dotnet installation after dropping the dnf cache on RedHat
+        # the point release hint may only be shown when this retry really got as far as the
+        # packages, which it did not when it already failed on the metadata of a repo
+        - name: remember whether the dotnet retry reached the packages on RedHat
+          set_fact:
+            dotnet_install_cache_retry_reached_packages: >-
+              {{ dotnet_install_last_error is search(redhat_repo_download_failure_pattern)
+                 and dotnet_install_last_error is not search(redhat_repo_metadata_failure_pattern) }}
+
+        - name: report failed dotnet installation after dropping the cached rpms on RedHat
           debug:
             msg:
-              - "{{ dotnet_package_name }} could not be installed after dropping the dnf cache: {{ dotnet_install_last_error }}"
+              - "{{ dotnet_package_name }} could not be installed after dropping the cached rpms: {{ dotnet_install_last_error }}"
 
         # adding the microsoft repo and its gpg key changes the package sources of the host.
         # hardened setups keep the package sources under the control of their OS team and
@@ -94,7 +127,9 @@
           rescue:
             - name: remember the dotnet installation error of the microsoft repo on RedHat
               set_fact:
-                dotnet_install_last_error: "{{ ansible_failed_result.msg | default('unknown error') }}"
+                dotnet_install_last_error: "{{ ([ansible_failed_result.msg | default('unknown error')] | flatten | join(' ')) }}"
+                dotnet_install_first_error: "{{ dotnet_install_first_error | default(([ansible_failed_result.msg | default('unknown error')] | flatten | join(' ')), true) }}"
+                dotnet_install_error_chain: "{{ (dotnet_install_error_chain | default([])) + ['microsoft repo: ' ~ ([ansible_failed_result.msg | default('unknown error')] | flatten | join(' '))] }}"
 
             - name: report failed dotnet installation from the microsoft repo on RedHat
               debug:

@@ -36,16 +36,21 @@
         # deliver it (expired entitlement, lazily synced satellite/capsule mirror, blocking proxy),
         # so the fallbacks are needed even when the package was listed as available
         # the fallbacks and the final error message need the original dnf error, and every
-        # nested rescue overwrites ansible_failed_result, so it is kept in a fact of its own
+        # nested rescue overwrites ansible_failed_result, so it is kept in facts of its own.
+        # every attempt can fail for a reason of its own, so all of them are collected: the first
+        # error is the one that describes the dotnet problem and selects the hints, while the
+        # later ones can be about a repository that has nothing to do with the dotnet packages
         - name: remember the dotnet installation error of the configured repos on RedHat
           set_fact:
-            dotnet_install_last_error: "{{ ansible_failed_result.msg | default('unknown error') }}"
+            dotnet_install_last_error: "{{ ([ansible_failed_result.msg | default('unknown error')] | flatten | join(' ')) }}"
+            dotnet_install_first_error: "{{ dotnet_install_first_error | default(([ansible_failed_result.msg | default('unknown error')] | flatten | join(' ')), true) }}"
+            dotnet_install_error_chain: "{{ (dotnet_install_error_chain | default([])) + ['configured repos: ' ~ ([ansible_failed_result.msg | default('unknown error')] | flatten | join(' '))] }}"
 
         - name: report failed dotnet installation from the configured repos on RedHat
           debug:
             msg:
               - "{{ dotnet_package_name }} could not be installed from the configured repos: {{ dotnet_install_last_error }}"
-              - "Dropping the dnf cache and retrying, then falling back to the microsoft package repo."
+              - "Dropping the cached rpms and retrying the repos that offer it, then falling back to the microsoft package repo."
 
         # the fallbacks are three attempts nested into each other, so they live in a file of
         # their own instead of indenting the whole chain into this rescue

@@ -36,36 +36,116 @@
             name: "{{ platform_packages }}"
             state: present
       rescue:
+        # the retry and the final message need the original dnf error, and the nested rescue
+        # overwrites ansible_failed_result, so both attempts are kept in facts of their own.
+        # the dnf module reports msg as a list often enough, which leaks its python repr into
+        # the message and into the pattern matching, so it is flattened into a sentence
+        - name: remember the chromium dependency installation error of the configured repos on RedHat
+          set_fact:
+            chromium_install_last_error: "{{ ([ansible_failed_result.msg | default('unknown error')] | flatten | join(' ')) }}"
+            chromium_install_first_error: "{{ chromium_install_first_error | default(([ansible_failed_result.msg | default('unknown error')] | flatten | join(' ')), true) }}"
+            chromium_install_error_chain: "{{ (chromium_install_error_chain | default([])) + ['configured repos: ' ~ ([ansible_failed_result.msg | default('unknown error')] | flatten | join(' '))] }}"
+
         - name: report failed chromium dependency installation on RedHat
           debug:
             msg:
-              - "The chromium dependencies could not be installed: {{ ansible_failed_result.msg | default('unknown error') }}"
-              - "Dropping the dnf cache and retrying."
+              - "The chromium dependencies could not be installed: {{ chromium_install_last_error }}"
+              - "Dropping the cached rpms and retrying the repos that offer them."
 
-        # a partially downloaded rpm, or metadata still advertising builds the mirrors have
-        # already replaced, makes every mirror fail; dropping the cache forces both to be
-        # refetched and the retries cover transient mirror or proxy hiccups
         - name: retry the chromium dependency installation on RedHat
           block:
-            - name: drop the dnf cache on RedHat
-              command: dnf clean all
+            # the retry is pinned to the repos that actually offer the packages. a third party
+            # repo whose metadata cannot be refreshed fails the whole transaction otherwise,
+            # although it has nothing to do with chromium, and its error then hides the real one.
+            # the dependencies come from BaseOS/AppStream, so their transitive dependencies are
+            # covered by the same repos
+            - name: find the repos offering the chromium dependencies on RedHat
+              command: >-
+                dnf --quiet repoquery --queryformat %{repoid}
+                --setopt=*.skip_if_unavailable=1 {{ platform_packages | join(' ') }}
+              register: chromium_repoquery_redhat
               changed_when: false
+              failed_when: false
 
-            - name: install chromium dependencies after dropping the dnf cache on RedHat
+            - name: set the repos used for the chromium dependency retry on RedHat
+              set_fact:
+                chromium_retry_repos: "{{ chromium_repoquery_redhat.stdout_lines | default([]) | map('trim') | select | unique | list }}"
+
+            # a truncated rpm left behind by the failed attempt makes every mirror fail again.
+            # only the cached rpms are dropped: "dnf clean all" takes the metadata of every repo
+            # with it and leaves the host unable to run dnf at all until each of them is
+            # reachable again
+            - name: drop the cached rpms on RedHat
+              command: dnf clean packages
+              changed_when: true
+
+            # metadata still advertising builds the mirrors have already replaced fails the same
+            # way, so the metadata is refreshed too - but only for the repos the retry is pinned to
+            - name: install chromium dependencies after dropping the cached rpms on RedHat
               ansible.builtin.dnf:
                 name: "{{ platform_packages }}"
                 state: present
-                update_cache: true
+                disablerepo: "{{ '*' if chromium_retry_repos | length > 0 else omit }}"
+                enablerepo: "{{ chromium_retry_repos if chromium_retry_repos | length > 0 else omit }}"
+                update_cache: "{{ chromium_retry_repos | length > 0 }}"
               register: chromium_dependency_install_redhat
-              until: chromium_dependency_install_redhat is succeeded
+              # a permanent refusal - "all mirrors were already tried", a 403 or a 404 - answers
+              # every attempt the same way, so only transient errors are worth the retries
+              until: >-
+                chromium_dependency_install_redhat is succeeded
+                or ([chromium_dependency_install_redhat.msg | default('')] | flatten | join(' ')) is not search(redhat_repo_transient_failure_pattern)
               retries: 3
               delay: 5
           rescue:
             # the retry above covers the causes the installer can do something about, so a second
             # failure is a repository access problem on the host that needs to be named
+            - name: remember the chromium dependency installation error after dropping the cached rpms on RedHat
+              set_fact:
+                chromium_install_last_error: "{{ ([ansible_failed_result.msg | default('unknown error')] | flatten | join(' ')) }}"
+                chromium_install_first_error: "{{ chromium_install_first_error | default(([ansible_failed_result.msg | default('unknown error')] | flatten | join(' ')), true) }}"
+                chromium_install_error_chain: "{{ (chromium_install_error_chain | default([])) + ['after dropping the cached rpms: ' ~ ([ansible_failed_result.msg | default('unknown error')] | flatten | join(' '))] }}"
+
+            # the hints only help when they match what dnf actually reported, and the error that
+            # decides that is the first one: the retry can fail on a repository that has nothing
+            # to do with the chromium packages and would send the admin after the wrong repo
+            - name: classify the chromium dependency installation failure on RedHat
+              set_fact:
+                chromium_install_failure_is_metadata: "{{ chromium_install_first_error is search(redhat_repo_metadata_failure_pattern) }}"
+                chromium_install_failure_is_download: >-
+                  {{ chromium_install_first_error is search(redhat_repo_download_failure_pattern)
+                     and chromium_install_first_error is not search(redhat_repo_metadata_failure_pattern) }}
+                chromium_install_failing_repo: "{{ chromium_install_first_error | regex_findall(\"repo '([^']+)'\") | first | default('', true) }}"
+
+            # the point release hint may only be shown when the retry really got as far as the
+            # packages, which it did not when it already failed on the metadata of a repo, and it
+            # belongs into the list of causes instead of behind their closing line
+            - name: collect the hints matching the chromium dependency failure on RedHat
+              set_fact:
+                chromium_install_hints: >-
+                  {{
+                    (["The repository dnf could not read is '" ~ chromium_install_failing_repo ~ "'."]
+                     if (chromium_install_failure_is_metadata | bool and chromium_install_failing_repo | length > 0) else [])
+                    +
+                    (redhat_repo_metadata_failure_hints
+                     if chromium_install_failure_is_metadata | bool
+                     else (redhat_repo_download_failure_hints[:-1]
+                           + ([redhat_repo_cache_retry_hint]
+                              if chromium_install_last_error is search(redhat_repo_download_failure_pattern)
+                              and chromium_install_last_error is not search(redhat_repo_metadata_failure_pattern) else [])
+                           + redhat_repo_download_failure_hints[-1:]
+                           if chromium_install_failure_is_download | bool
+                           else redhat_repo_missing_package_hints))
+                  }}
+
             - name: fail when the chromium dependencies stay unavailable on RedHat
               fail:
-                msg: "{{ ['The chromium dependencies (' ~ (platform_packages | join(', ')) ~ ') could not be installed from the configured repos: ' ~ (ansible_failed_result.msg | default('unknown error'))] + redhat_repo_download_failure_hints }}"
+                msg: >-
+                  {{
+                    ['The chromium dependencies (' ~ (platform_packages | join(', ')) ~ ') could not be installed from the configured repos.',
+                     'The installation attempts failed with:']
+                    + ((chromium_install_error_chain | default([])) | map('regex_replace', '^', '- ') | list)
+                    + chromium_install_hints
+                  }}
 
     # headless chromium from EPEL can replace the chrome download (hardened / proxy-restricted systems)
     - name: Define RedHat headless chromium package

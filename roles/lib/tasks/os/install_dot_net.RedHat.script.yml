@@ -2,12 +2,58 @@
 # nor the microsoft package repo delivered the sdk. the script is fetched from the internet and
 # executed as root, and it installs outside package management, so it stays opt-in on RedHat
 - block:
-    # the hints only help when they match what dnf actually reported: a package that the
-    # repositories do not offer at all needs a different action than one that was resolved
-    # but could not be fetched, so the reported error decides which hints are shown
+    # the hints only help when they match what dnf actually reported, and the error that decides
+    # that is the first one: every later attempt can fail for a reason of its own - a third party
+    # repo whose metadata cannot be refreshed, an unreachable microsoft repo - and picking the
+    # last error sends the admin after a repository that has nothing to do with the dotnet packages
+    - name: select the dotnet installation error that describes the failure on RedHat
+      set_fact:
+        dotnet_install_classified_error: "{{ dotnet_install_first_error | default(dotnet_install_last_error | default(''), true) }}"
+      when: not (allowDotnetScriptInstallForRedhat | default(false) | bool)
+
+    # three cases need three different actions: a package the repositories do not offer at all, a
+    # package that was resolved but could not be fetched, and a repository that cannot be read
     - name: classify the dotnet installation failure on RedHat
       set_fact:
-        dotnet_install_failure_is_download: "{{ (dotnet_install_last_error | default('')) is search(redhat_repo_download_failure_pattern) }}"
+        dotnet_install_failure_is_metadata: "{{ dotnet_install_classified_error is search(redhat_repo_metadata_failure_pattern) }}"
+        dotnet_install_failure_is_download: >-
+          {{ dotnet_install_classified_error is search(redhat_repo_download_failure_pattern)
+             and dotnet_install_classified_error is not search(redhat_repo_metadata_failure_pattern) }}
+        dotnet_install_failing_repo: "{{ dotnet_install_classified_error | regex_findall(\"repo '([^']+)'\") | first | default('', true) }}"
+      when: not (allowDotnetScriptInstallForRedhat | default(false) | bool)
+
+    # the hints ask for this to be run by hand. running it here puts the content urls dnf resolved
+    # into the failure message instead, which is what identifies the blocked path or the 403.
+    # it needs dnf-plugins-core and reads the metadata only, so a failure is not worth reporting
+    - name: collect the download urls dnf resolved for {{ dotnet_package_name }} on RedHat
+      command: >-
+        dnf --quiet download --url --resolve
+        --setopt=*.skip_if_unavailable=1 {{ dotnet_package_name }}
+      register: dotnet_download_urls_redhat
+      changed_when: false
+      failed_when: false
+      when:
+        - not (allowDotnetScriptInstallForRedhat | default(false) | bool)
+        - dotnet_install_failure_is_download | bool
+
+    # the point release hint belongs into the list of causes of the download hints, so it is
+    # inserted before their closing line instead of being appended behind it
+    - name: collect the hints matching the dotnet installation failure on RedHat
+      set_fact:
+        dotnet_install_hints: >-
+          {{
+            (["The repository dnf could not read is '" ~ dotnet_install_failing_repo ~ "'."]
+             if (dotnet_install_failure_is_metadata | bool and dotnet_install_failing_repo | length > 0) else [])
+            +
+            (redhat_repo_metadata_failure_hints
+             if dotnet_install_failure_is_metadata | bool
+             else (redhat_repo_download_failure_hints[:-1]
+                   + ([redhat_repo_cache_retry_hint]
+                      if dotnet_install_cache_retry_reached_packages | default(false) | bool else [])
+                   + redhat_repo_download_failure_hints[-1:]
+                   if dotnet_install_failure_is_download | bool
+                   else redhat_repo_missing_package_hints))
+          }}
       when: not (allowDotnetScriptInstallForRedhat | default(false) | bool)
 
     - name: collect the dotnet installation failure message on RedHat
@@ -16,9 +62,14 @@
           {{
             [dotnet_package_name ~ ' could not be installed from the configured repos'
              ~ (' or from the microsoft repo.' if (allowRepoChangesForRedhat | default(false) | bool) else '.'),
-             'The last error reported by dnf was: ' ~ (dotnet_install_last_error | default('unknown error'))]
-            + (redhat_repo_download_failure_hints if dotnet_install_failure_is_download | bool
-               else redhat_repo_missing_package_hints)
+             'The installation attempts failed with:']
+            + ((dotnet_install_error_chain | default([])) | map('regex_replace', '^', '- ') | list
+               if (dotnet_install_error_chain | default([])) | length > 0
+               else ['- ' ~ (dotnet_install_classified_error | default('unknown error', true))])
+            + dotnet_install_hints
+            + (['The urls dnf resolved for the packages are:']
+               + ((dotnet_download_urls_redhat.stdout_lines | default([])) | map('regex_replace', '^', '- ') | list)
+               if (dotnet_download_urls_redhat.stdout | default('')) | length > 0 else [])
             + ([] if (allowRepoChangesForRedhat | default(false) | bool) else
                ['The microsoft package repo was not tried because allowRepoChangesForRedhat is false. Set -e allowRepoChangesForRedhat=true to allow the '
                 ~ product_name ~ ' installer to add it, if your OS repository policy permits third party repos.'])

@@ -39,6 +39,12 @@ allowRepoChangesForRedhat: false
 # tells a package dnf resolved but could not fetch apart from one the enabled repositories do not
 # offer at all. the two need different actions, so the reported dnf error selects the hints below.
 redhat_repo_download_failure_pattern: "(?i)cannot download|failed to download|curl error|error was 40|no more mirrors|downloading error"
+# tells a repository whose metadata cannot be refreshed apart from the two cases above. it matches
+# the download pattern as well ("Failed to download metadata for repo"), so it is checked first.
+redhat_repo_metadata_failure_pattern: "(?i)failed to (?:download|synchronize) (?:cache for repo|metadata for repo)|cannot download repomd\\.xml"
+# tells a transient repository hiccup apart from a permanent refusal. "all mirrors were already
+# tried" and a 403/404 answer every attempt the same way, so retrying them only costs install time.
+redhat_repo_transient_failure_pattern: "(?i)timed out|timeout|connection reset|connection refused|temporary failure|try again|error was 5[0-9][0-9]"
 # shown when dnf resolved a package from its metadata but could not download it. the causes below
 # are all outside the installer, so the message has to point at them instead of repeating the
 # bare dnf error ("Cannot download, all mirrors were already tried without success").
@@ -47,13 +53,23 @@ redhat_repo_download_failure_hints:
   - "- the repository is a Satellite/Capsule synced on demand (lazy) that cannot reach its upstream content"
   - "- a proxy that allows the repodata but blocks the package download path or large downloads"
   - "- a detached or expired subscription entitlement, which answers the content urls with 403"
-  - "- a metadata cache left over from an earlier point release (already retried after dropping the cache)"
   - "Run 'dnf -v install <package>' on this host to see the failing url and its status, restore the repository access according to your OS repository policy, then rerun the installer."
+# only true after the retry got as far as downloading the packages again, so this hint is added to
+# the ones above only then instead of claiming a check that never happened.
+redhat_repo_cache_retry_hint: "- a metadata cache left over from an earlier point release, which still advertises builds the mirrors have replaced (already retried with the cached rpms dropped and the metadata refreshed)"
+# shown when dnf could not refresh the metadata of a repository. that fails every dnf transaction
+# on the host, whether or not the repository has anything to do with the dotnet packages.
+redhat_repo_metadata_failure_hints:
+  - "dnf could not refresh the metadata of a repository. That fails every dnf transaction on this host, whether or not the repository offers the packages being installed. This usually means one of:"
+  - "- the repository is not reachable from this host, for example a third party repository that the proxy does not allow"
+  - "- the repository url or its mirrorlist is stale, for example after a point release upgrade"
+  - "- the repository is a Satellite/Capsule the host cannot reach at the moment"
+  - "Run 'dnf repolist --enabled' and 'dnf makecache --repo=<repo>' on this host, then either restore access to the reported repository or disable it according to your OS repository policy, and rerun the installer."
 # shown when dnf did not find the package in the metadata of the enabled repositories at all.
 redhat_repo_missing_package_hints:
   - "dnf did not find the package in the metadata of the enabled repositories. On a hardened RedHat host this usually means one of:"
   - "- the host is pinned to an older point release whose repositories do not carry this package version yet"
-  - "- the repository providing the package (for the dotnet SDK normally AppStream) is not enabled"
+  - "- the repository providing the package (normally AppStream) is not enabled"
   - "- the Satellite/Capsule content view in use was published before the package entered the upstream repository"
   - "Run 'dnf list --showduplicates <package>' and 'dnf repolist --enabled' on this host to see which versions the enabled repositories offer, provide the package according to your OS repository policy, then rerun the installer."
 docker_network: ""

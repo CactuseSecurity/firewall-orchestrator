@@ -163,7 +163,7 @@ The importer runs in its own virtual environment and needs Python 3.9 or newer. 
 The installer needs the dotnet SDK for the UI and the middleware server. On RedHat-like systems it tries four sources in this order and stops at the first one that works:
 
 1. the already configured repositories (normally RHEL AppStream)
-2. the same repositories again after `dnf clean all`, with the metadata refreshed and up to three retries
+2. the same repositories again after the cached rpms were dropped, pinned to the repositories that offer the package and with their metadata refreshed, retried up to three times for transient errors
 3. the Microsoft package repository (`packages.microsoft.com`), which is added and given priority over the configured repositories for `dotnet-*`, `aspnetcore-*` and `netstandard-*` packages - **opt-in only**, see below
 4. the Microsoft `dotnet-install.sh` script, which installs into `dotnet_script_install_dir` (`/usr/local/fworch/dotnet`) and links `dotnet_binary_link` (`/usr/bin/dotnet`) - **opt-in only**, see below
 
@@ -198,15 +198,18 @@ Both the dotnet SDK and the Chromium libraries needed for PDF generation can fai
 Failed to download packages: libXfixes-5.0.3-16.el9.x86_64: Cannot download, all mirrors were already tried without success
 ```
 
-The package was resolved from the repository metadata but its rpm could not be fetched, which is a repository access problem on the host rather than a missing package. The installer drops the dnf cache and retries once, because a metadata cache left over from an earlier point release still advertises builds the mirrors have already replaced. If the retry fails too, the remaining causes are outside the installer:
+The package was resolved from the repository metadata but its rpm could not be fetched, which is a repository access problem on the host rather than a missing package. The installer drops the cached rpms and retries once, because a truncated rpm and a metadata cache left over from an earlier point release both make every mirror fail again. The retry is pinned to the repositories that offer the package, and only their metadata is refreshed: `dnf clean all` would take the metadata of every repository with it and leave the host unable to run `dnf` at all until each of them is reachable again, including repositories that have nothing to do with the package being installed. A permanent refusal - "all mirrors were already tried", a 403 or a 404 - is not retried, because it answers every attempt the same way.
+
+If the retry fails too, the remaining causes are outside the installer:
 
 - the repository is a Satellite/Capsule synced on demand (lazy) that cannot reach its upstream content
 - a proxy that allows the repodata but blocks the package download path or large downloads
 - a detached or expired subscription entitlement, which answers the content urls with 403
 
-Running the install of the reported package manually shows the failing url and its status:
+Both error messages quote every attempt with the error it failed with, and the dotnet one adds the content urls `dnf` resolved for the packages, which is what identifies the blocked path or the 403. The same urls can be listed manually, together with the status of the failing one:
 
 ```console
+dnf download --url --resolve libXfixes
 dnf -v install libXfixes
 ```
 
@@ -220,14 +223,29 @@ A download error is not the only reason a package task fails. If `dnf` does not 
 No match for argument: dotnet-sdk-10.0
 ```
 
-Here the enabled repositories genuinely do not offer the package, usually because the host is pinned to an older point release, because the repository providing it (for the dotnet SDK normally AppStream) is not enabled, or because the Satellite/Capsule content view was published before the package entered the upstream repository. The versions the host can actually see are listed by:
+Here the enabled repositories genuinely do not offer the package, usually because the host is pinned to an older point release, because the repository providing it (normally AppStream) is not enabled, or because the Satellite/Capsule content view was published before the package entered the upstream repository. The versions the host can actually see are listed by:
 
 ```console
 dnf list --showduplicates dotnet-sdk-10.0
 dnf repolist --enabled
 ```
 
-The dotnet error message of the installer quotes the error `dnf` reported and shows the hints matching it, so the two cases can be told apart without rerunning the installer.
+The error messages of the dotnet SDK and of the Chromium dependency installation quote the error `dnf` reported and show the hints matching it, so the cases can be told apart without rerunning the installer. The hints are selected by the **first** error of the attempt chain, because that is the one describing the problem with the packages being installed: a later attempt can fail on a repository that has nothing to do with them.
+
+### Repository metadata that cannot be refreshed on RedHat
+
+The third case is a repository whose metadata `dnf` cannot read at all:
+
+```console
+Failed to download metadata for repo 'epel': Cannot download repomd.xml: All mirrors were tried
+```
+
+This fails every `dnf` transaction on the host, whether or not the repository offers the packages being installed, so it is reported with the name of the repository and hints of its own. Either restore access to the reported repository or disable it according to your OS repository policy:
+
+```console
+dnf repolist --enabled
+dnf makecache --repo=<repo>
+```
 
 ### Parameter "docker_network" after the Podman migration
 

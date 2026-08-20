@@ -23,7 +23,6 @@ public sealed class FlowRequestService : IDisposable
     private const string kInitialStateConfigKey = "reqApiTicketInitialStateId";
     private readonly ApiConnection apiConnection;
     private readonly GlobalConfig globalConfig;
-    private readonly GraphQlApiSubscription<ConfigItem[]> configSubscription;
 
     /// <summary>
     /// Initializes a new instance of the type.
@@ -32,7 +31,7 @@ public sealed class FlowRequestService : IDisposable
     {
         this.apiConnection = apiConnection;
         this.globalConfig = globalConfig;
-        configSubscription = this.apiConnection.GetSubscription<ConfigItem[]>(
+        _ = this.apiConnection.GetSubscription<ConfigItem[]>(
             GraphqlExceptionHandler.Handle,
             OnGlobalConfigChange,
             ConfigQueries.subscribeFlowRequestConfigChanges);

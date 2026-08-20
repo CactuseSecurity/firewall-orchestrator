@@ -1,5 +1,6 @@
 @using System.Text.Json
 @using FWO.Api.Client
+@using FWO.Api.Client.Queries
 @using FWO.Services
 @using FWO.Ui.Services
 
@@ -54,7 +55,11 @@
     [Parameter]
     public WfStateAction ActAction { get; set; } = new();
 
+    [Parameter]
+    public WfStateAction? PersistedAction { get; set; }
+
     private List<int> actActionNotificationIds = [];
+    private List<int> temporaryNotificationIds = [];
     private EmailAttachedContent actAttachedContent = EmailAttachedContent.None;
     private bool actConfirmSentMail;
     private FwoNotification? legacyActionNotification;
@@ -69,6 +74,7 @@
     private void ResetLocalState()
     {
         actActionNotificationIds = [];
+        temporaryNotificationIds = [];
         actAttachedContent = EmailAttachedContent.None;
         actConfirmSentMail = false;
         legacyActionNotification = null;
@@ -114,11 +120,14 @@
         return Task.CompletedTask;
     }
 
-    private Task SetActionNotificationIds(List<int> notificationIds)
+    private async Task SetActionNotificationIds(List<int> notificationIds)
     {
+        List<int> previousNotificationIds = actActionNotificationIds;
         actActionNotificationIds = [.. notificationIds.Where(id => id > 0).Distinct()];
+        temporaryNotificationIds.AddRange(actActionNotificationIds.Except(previousNotificationIds).Except(temporaryNotificationIds));
+        temporaryNotificationIds.RemoveAll(id => !actActionNotificationIds.Contains(id));
         UpdateExternalParams();
-        return Task.CompletedTask;
+        await PersistNotificationIdsForExistingAction();
     }
 
     public async Task<bool> PrepareForSaveAsync()
@@ -153,6 +162,7 @@
     {
         if (ActAction.Id > 0)
         {
+            await DeleteActionNotifications(temporaryNotificationIds);
             return;
         }
 
@@ -162,6 +172,39 @@
     private void UpdateExternalParams()
     {
         ActAction.ExternalParams = EmailExternalParams();
+    }
+
+    private async Task PersistNotificationIdsForExistingAction()
+    {
+        if (!CanPersistNotificationIdsImmediately())
+        {
+            return;
+        }
+
+        string externalParams = EmailExternalParamsForPersistedAction();
+        int updatedId = await UpdateAction(PersistedAction!, externalParams);
+        if (updatedId != PersistedAction!.Id)
+        {
+            throw new InvalidOperationException(userConfig.GetText("E8011"));
+        }
+
+        PersistedAction.ExternalParams = externalParams;
+        temporaryNotificationIds.RemoveAll(id => actActionNotificationIds.Contains(id));
+    }
+
+    private bool CanPersistNotificationIdsImmediately()
+    {
+        return PersistedAction?.Id > 0
+            && PersistedAction.ActionType == nameof(StateActionTypes.SendEmail);
+    }
+
+    private string EmailExternalParamsForPersistedAction()
+    {
+        EmailActionParams emailActionParams = string.IsNullOrWhiteSpace(PersistedAction?.ExternalParams) || PersistedAction.ExternalParams == "{}"
+            ? new()
+            : JsonSerializer.Deserialize<EmailActionParams>(PersistedAction.ExternalParams) ?? new();
+        emailActionParams.NotificationIds = actActionNotificationIds;
+        return JsonSerializer.Serialize(emailActionParams);
     }
 
     private string EmailExternalParams()
@@ -175,6 +218,23 @@
                 ? EmailRequestTaskBundleMode.SameTaskType
                 : EmailRequestTaskBundleMode.None
         });
+    }
+
+    private async Task<int> UpdateAction(WfStateAction action, string externalParams)
+    {
+        var Variables = new
+        {
+            id = action.Id,
+            name = action.Name,
+            actionType = action.ActionType,
+            scope = action.Scope,
+            taskType = action.TaskType,
+            phase = action.Phase,
+            eventt = action.Event,
+            buttonText = action.ButtonText,
+            externalParameters = externalParams
+        };
+        return (await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateAction, Variables)).UpdatedId;
     }
 
     private async Task DeleteActionNotifications(IEnumerable<int> notificationIds)

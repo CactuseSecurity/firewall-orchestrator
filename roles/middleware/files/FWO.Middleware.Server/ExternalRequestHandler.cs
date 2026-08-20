@@ -638,7 +638,7 @@ namespace FWO.Middleware.Server
                 contentString.Contains("\"object_updated_status\":\"NEW\"") || contentString.Contains("object_updated_status\\u0022:\\u0022NEW\\u0022");
         }
 
-        private async Task PromoteInternalWorkTaskToPlanning(WfTicket ticket, WfReqTask task)
+        private async Task PromoteInternalWorkTaskToPlanning(WfTicket ticket, WfReqTask task, WorkflowEmailBundleCollector emailBundleCollector)
         {
             WfHandler planningHandler = new(UserConfig, ApiConnection, WorkflowPhases.planning, ownerGroups, new ComplianceRequestedRulePolicyChecker(UserConfig, ApiConnection));
 
@@ -653,6 +653,7 @@ namespace FWO.Middleware.Server
 
             StateMatrix planningMatrix = planningHandler.StateMatrix(planningTask.TaskType);
             planningTask.StateId = planningMatrix.LowestInputState;
+            planningHandler.ActionHandler!.EmailBundleCollector = emailBundleCollector;
 
             planningHandler.SetTicketEnv(planningTicket);
             planningHandler.SetReqTaskEnv(planningTask);
@@ -683,9 +684,9 @@ namespace FWO.Middleware.Server
             WfReqTask approvalTask = approvalTicket.Tasks.FirstOrDefault(ta => ta.TaskNumber == task.TaskNumber) ?? throw new InvalidOperationException($"Task {task.TaskNumber} not found in ticket {ticket.Id}.");
 
             StateMatrix approvalMatrix = approvalHandler.StateMatrix(approvalTask.TaskType);
-            if (!approvalMatrix.PhaseActive.TryGetValue(WorkflowPhases.approval, out bool approvalPhaseActive) || !approvalPhaseActive)
+            if (!PhaseIsActive(approvalHandler.MasterStateMatrix, WorkflowPhases.approval) || !PhaseIsActive(approvalMatrix, WorkflowPhases.approval))
             {
-                await PromoteInternalWorkTaskToPlanning(ticket, task);
+                await PromoteInternalWorkTaskToPlanning(ticket, task, emailBundleCollector);
                 return WorkflowPhases.planning;
             }
 
@@ -708,6 +709,11 @@ namespace FWO.Middleware.Server
 
             await LogRequestTasks([approvalTask], ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
             return WorkflowPhases.approval;
+        }
+
+        private static bool PhaseIsActive(StateMatrix stateMatrix, WorkflowPhases phase)
+        {
+            return stateMatrix.PhaseActive.TryGetValue(phase, out bool active) && active;
         }
 
         private async Task CreateExtRequest(WfTicket ticket, List<WfReqTask> tasks, List<WfReqTask> handledTasks, int waitCycles)

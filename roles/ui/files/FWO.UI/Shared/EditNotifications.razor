@@ -770,11 +770,10 @@
     private async Task Delete()
     {
         int notificationId = actNotification.Id;
-        bool removedReference = false;
+        List<int>? previousNotificationIds = NotificationIds?.ToList();
         try
         {
             await RemoveNotificationId(notificationId);
-            removedReference = true;
             await NotificationMutationHelper.DeleteAsync(apiConnection, notificationId);
             Notifications.Remove(actNotification);
             DeleteNotifMode = false;
@@ -782,9 +781,10 @@
         }
         catch (Exception exception)
         {
-            if (removedReference)
+            if (previousNotificationIds != null)
             {
-                await AddNotificationId(notificationId);
+                NotificationIds = previousNotificationIds;
+                await NotificationIdsChanged.InvokeAsync(NotificationIds);
             }
             DisplayMessageInUi(exception, userConfig.GetText("delete_notification"), "", true);
         }

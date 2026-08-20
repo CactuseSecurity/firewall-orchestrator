@@ -1516,17 +1516,18 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task SendEmail_CleanupOnCancelAsync_ExistingActionDoesNotDelete()
+        public async Task SendEmail_CleanupOnCancelAsync_ExistingActionDeletesOnlyTemporaryNotifications()
         {
             EditActionSendEmail component = new();
             SettingsActionsApiConn apiConn = new();
             SetMember(component, "apiConnection", apiConn);
             SetMember(component, "ActAction", new WfStateAction { Id = 99, ActionType = StateActionTypes.SendEmail.ToString() });
             SetMember(component, "actActionNotificationIds", new List<int> { 5, 7 });
+            SetMember(component, "temporaryNotificationIds", new List<int> { 7 });
 
             await component.CleanupOnCancelAsync();
 
-            Assert.That(apiConn.DeletedNotificationIds, Is.Empty);
+            Assert.That(apiConn.DeletedNotificationIds, Is.EqualTo(new List<int> { 7 }));
         }
 
         [Test]
@@ -1707,7 +1708,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task EditActionPopup_NotificationChange_DoesNotPersistWhenCanceled()
+        public async Task EditActionPopup_NotificationChange_PersistsIdsAndCancelKeepsPopupClosed()
         {
             EditActionPopup component = new();
             EditActionSendEmail sendEmailEditor = new();
@@ -1738,6 +1739,7 @@ namespace FWO.Test
             SetMember(sendEmailEditor, "apiConnection", apiConn);
             SetMember(sendEmailEditor, "userConfig", new SimulatedUserConfig());
             SetMember(sendEmailEditor, "ActAction", draftAction);
+            SetMember(sendEmailEditor, "PersistedAction", action);
             SetMember(sendEmailEditor, "actActionNotificationIds", new List<int> { 3 });
             SetMember(sendEmailEditor, "actAttachedContent", EmailAttachedContent.RequestedConnections);
             SetMember(sendEmailEditor, "actConfirmSentMail", true);
@@ -1751,7 +1753,11 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConn.Queries, Has.No.Member(RequestQueries.updateAction));
+                Assert.That(apiConn.Queries.Count(q => q == RequestQueries.updateAction), Is.EqualTo(1));
+                Assert.That(GetVariable<string>(apiConn.LastVariables, "name"), Is.EqualTo("Original action"));
+                Assert.That(GetVariable<string>(apiConn.LastVariables, "taskType"), Is.EqualTo("access"));
+                EmailActionParams parameters = JsonSerializer.Deserialize<EmailActionParams>(GetVariable<string>(apiConn.LastVariables, "externalParameters"))!;
+                Assert.That(parameters.NotificationIds, Is.EqualTo(new List<int> { 3, 7 }));
                 Assert.That(GetMember<bool>(component, "EditActionMode"), Is.False);
             });
         }
@@ -1960,6 +1966,7 @@ namespace FWO.Test
             SettingsActionsApiConn apiConn = new();
             WfStateAction action = new()
             {
+                Id = 77,
                 ActionType = StateActionTypes.SendEmail.ToString()
             };
             SetMember(component, "apiConnection", apiConn);
@@ -2013,7 +2020,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task SendEmail_SetActionNotificationIds_UpdatesExternalParamsWithoutImmediatePersistence()
+        public async Task SendEmail_SetActionNotificationIds_PersistsIdsForExistingAction()
         {
             EditActionSendEmail component = new();
             SettingsActionsApiConn apiConn = new();
@@ -2025,14 +2032,16 @@ namespace FWO.Test
                 Scope = WfObjectScopes.Ticket.ToString(),
                 Event = StateActionEvents.OnSet.ToString()
             };
+            WfStateAction persistedAction = new(action);
             SetMember(component, "apiConnection", apiConn);
             SetMember(component, "userConfig", new SimulatedUserConfig());
             SetMember(component, "ActAction", action);
+            SetMember(component, "PersistedAction", persistedAction);
             SetMember(component, "actAttachedContent", EmailAttachedContent.RequestedConnections);
 
             await InvokeAsync(component, "SetActionNotificationIds", new List<int> { 3, 3, 8 });
 
-            Assert.That(apiConn.Queries, Is.Empty);
+            Assert.That(apiConn.LastQuery, Is.EqualTo(RequestQueries.updateAction));
             Assert.That(GetMember<List<int>>(component, "actActionNotificationIds"), Is.EqualTo(new List<int> { 3, 8 }));
             EmailActionParams parameters = JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams)!;
             Assert.That(parameters.NotificationIds, Is.EqualTo(new List<int> { 3, 8 }));
@@ -2040,7 +2049,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task SendEmail_SetActionNotificationIds_DoesNotPersistImmediatelyAfterScopeChange()
+        public async Task SendEmail_SetActionNotificationIds_PersistsOnlyIdsFromDraftForExistingAction()
         {
             EditActionSendEmail component = new();
             SettingsActionsApiConn apiConn = new();
@@ -2052,17 +2061,33 @@ namespace FWO.Test
                 Scope = WfObjectScopes.RequestTask.ToString(),
                 Event = StateActionEvents.OnSet.ToString()
             };
+            WfStateAction persistedAction = new(action)
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                ExternalParams = JsonSerializer.Serialize(new EmailActionParams
+                {
+                    AttachedContent = EmailAttachedContent.None,
+                    RequestTaskBundleMode = EmailRequestTaskBundleMode.None
+                })
+            };
             SetMember(component, "apiConnection", apiConn);
             SetMember(component, "ActAction", action);
+            SetMember(component, "PersistedAction", persistedAction);
+            SetMember(component, "actAttachedContent", EmailAttachedContent.RequestedConnections);
+            SetMember(component, "actBundleRequestTasksByType", true);
 
             await InvokeAsync(component, "SetActionNotificationIds", new List<int> { 3, 8 });
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConn.Queries, Is.Empty);
+                Assert.That(apiConn.LastQuery, Is.EqualTo(RequestQueries.updateAction));
                 Assert.That(GetMember<List<int>>(component, "actActionNotificationIds"), Is.EqualTo(new List<int> { 3, 8 }));
                 EmailActionParams parameters = JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams)!;
                 Assert.That(parameters.NotificationIds, Is.EqualTo(new List<int> { 3, 8 }));
+                EmailActionParams persistedParameters = JsonSerializer.Deserialize<EmailActionParams>(GetVariable<string>(apiConn.LastVariables, "externalParameters"))!;
+                Assert.That(persistedParameters.NotificationIds, Is.EqualTo(new List<int> { 3, 8 }));
+                Assert.That(persistedParameters.AttachedContent, Is.EqualTo(EmailAttachedContent.None));
+                Assert.That(persistedParameters.RequestTaskBundleMode, Is.EqualTo(EmailRequestTaskBundleMode.None));
             });
         }
 

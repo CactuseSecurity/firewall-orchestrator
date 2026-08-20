@@ -588,6 +588,35 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task HandleStateChangeDonePromotesInternalWorkRuleTasksToPlanningWhenMasterApprovalIsInactive()
+        {
+            SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
+            ExtTicketHandlerTestApiConn.ResetTicketTasks();
+            ExtTicketHandlerTestApiConn localApiConnection = new()
+            {
+                ApprovalPhaseActiveForTaskTypesOnly = true
+            };
+
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+
+            await handler.HandleStateChange(new ExternalRequest
+            {
+                Id = 1,
+                TicketId = 123,
+                TaskNumber = 1,
+                ExtRequestState = ExtStates.ExtReqDone.ToString(),
+                ExtTicketId = "4711"
+            });
+
+            for (int taskNumber = 2; taskNumber <= 8; ++taskNumber)
+            {
+                WfReqTask? task = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(taskNumber);
+                ClassicAssert.IsNotNull(task, $"Task {taskNumber} should exist.");
+                ClassicAssert.AreEqual(99, task!.StateId, $"Task {taskNumber} should be promoted to planning input state.");
+            }
+        }
+
+        [Test]
         public async Task HandleStateChangeDonePromotesAllConsecutiveInternalWorkRuleTasksToApprovalWhenApprovalIsActive()
         {
             SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();

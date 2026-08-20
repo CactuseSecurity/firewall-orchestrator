@@ -31,7 +31,7 @@ jobs:
     steps:
       - name: Check for ruff sync app credentials
         id: ruff-sync-app
-        run: echo "present=${{ secrets.FWO_RUFF_SYNC_APP_KEY != '' }}" >> "$GITHUB_OUTPUT"
+        run: echo "present=${{ secrets.FWO_RUFF_SYNC_APP_KEY != '' && vars.FWO_RUFF_SYNC_APP_ID != '' }}" >> "$GITHUB_OUTPUT"
 
       - name: Select matrix based on event
         id: set-matrix

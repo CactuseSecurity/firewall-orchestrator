@@ -25,6 +25,7 @@ namespace FWO.Basics
         public const int kSecondsToMilliseconds = 1000;
         public const int kDaysPerWeek = 7;
         public const int kMaxPortNumber = 65535;
+        public const int kAnyIpProtocolId = -1;
         // an import script is waited for with a timeout in milliseconds which has to fit into an int
         public const int kMaxImportScriptTimeoutMinutes = int.MaxValue / kMinutesToMilliseconds;
         public const int kOwnerResponsibleTypeMain = 1;

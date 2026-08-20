@@ -507,6 +507,35 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Run_AutoMapsAnyIpProtocolServiceToCanonicalFlowObject()
+        {
+            NetworkService anyService = new()
+            {
+                Id = 3,
+                Name = "ANY",
+                ProtoId = GlobalConst.kAnyIpProtocolId,
+                Type = new NetworkServiceType { Name = "simple" }
+            };
+            FlowSyncTestApiConn apiConn = new();
+            apiConn.PendingImports.Add(new ImportControl { ControlId = 9, MgmId = 7 });
+            apiConn.ManagementData = new FlowSyncManagementData { Id = 7 };
+            apiConn.ManagementData.ServiceObjects.Add(anyService);
+            FlowSync flowSync = new(apiConn, new GlobalConfig());
+
+            bool result = await flowSync.Run();
+
+            string expectedHash = FlowHashGenerator.GenerateSvcObjectHash(GlobalConst.kAnyIpProtocolId, null, null);
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.InsertedServiceObjects, Has.Count.EqualTo(1));
+            Assert.That(apiConn.InsertedServiceObjects[0].IpProtoId, Is.EqualTo(GlobalConst.kAnyIpProtocolId));
+            Assert.That(apiConn.InsertedServiceObjects[0].PortStart, Is.Null);
+            Assert.That(apiConn.InsertedServiceObjects[0].PortEnd, Is.Null);
+            Assert.That(apiConn.InsertedServiceObjects[0].SvcObjHash, Is.EqualTo(expectedHash));
+            Assert.That(apiConn.ServiceObjectMappingUpdates, Has.Count.EqualTo(1));
+            Assert.That(apiConn.FlowServiceObjects.Single().Hash, Is.EqualTo(expectedHash));
+        }
+
+        [Test]
         public async Task Run_CreatesBlockingFlowAccessForDenyRule()
         {
             NetworkObject source = CreateNetworkObject(1, "src", "10.0.0.1", "10.0.0.1");

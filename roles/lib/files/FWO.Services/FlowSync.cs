@@ -847,6 +847,13 @@ namespace FWO.Services
                 // objects without protocol are not supported - flow svcobjects require a protocol to be meaningful
                 return false;
             }
+            if (svc.ProtoId.Value == GlobalConst.kAnyIpProtocolId
+                && !svc.DestinationPort.HasValue
+                && !svc.DestinationPortEnd.HasValue)
+            {
+                hash = FlowHashGenerator.GenerateSvcObjectHash(svc.ProtoId.Value, null, null);
+                return true;
+            }
             if (!svc.DestinationPort.HasValue || !svc.DestinationPortEnd.HasValue)
             {
                 if (flowData.SvcObjectHashes.TryGetValue(svc.Id, out var storedHash) && !string.IsNullOrWhiteSpace(storedHash))

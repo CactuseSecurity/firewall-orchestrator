@@ -7,12 +7,21 @@ namespace FWO.Test
     internal class ImportRollbackQueriesTest
     {
         [Test]
-        public void RollbackImport_TakesImportIdList_AndDeletesImportControl()
+        public void RollbackImportData_IsListBased_AndKeepsImportControl()
         {
-            // full rollback is list-based so multiple imports are removed in a single mutation call
-            Assert.That(ImportQueries.rollbackImport, Does.Contain("$importIds: [bigint!]!"));
-            Assert.That(ImportQueries.rollbackImport, Does.Contain("_in: $importIds"));
-            Assert.That(ImportQueries.rollbackImport, Does.Contain("delete_import_control"));
+            // data-only rollback is list-based and must not touch the import_control row
+            Assert.That(ImportQueries.rollbackImportData, Does.Contain("$importIds: [bigint!]!"));
+            Assert.That(ImportQueries.rollbackImportData, Does.Contain("_in: $importIds"));
+            Assert.That(ImportQueries.rollbackImportData, Does.Not.Contain("delete_import_control"));
+        }
+
+        [Test]
+        public void DeleteImportControl_IsListBased_AndDeletesImportControl()
+        {
+            // deleting the import_control rows is split into its own list-based mutation
+            Assert.That(ImportQueries.deleteImportControl, Does.Contain("$importIds: [bigint!]!"));
+            Assert.That(ImportQueries.deleteImportControl, Does.Contain("delete_import_control"));
+            Assert.That(ImportQueries.deleteImportControl, Does.Contain("_in: $importIds"));
         }
 
         [Test]

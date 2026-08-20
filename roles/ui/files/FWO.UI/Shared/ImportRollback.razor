@@ -80,7 +80,8 @@
             RollbackMode = true;
             workInProgress = true;
             var variablesRollback = new { importIds = importIds };
-            var ReturnId = await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.rollbackImport, variablesRollback);
+            await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.rollbackImportData, variablesRollback);
+            await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.deleteImportControl, variablesRollback);
 
             Log.WriteDebug("Delete Import", $"rolled back {importIds.Count} import(s) of management with ID {ManagementId}");
             workInProgress = false;

@@ -885,9 +885,8 @@ internal class FlowRequestServiceTest
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConnection.CreatedSubscriptions, Has.Count.EqualTo(2));
-                Assert.That(apiConnection.CreatedSubscriptions[0].DisposeCount, Is.EqualTo(1));
-                Assert.That(apiConnection.CreatedSubscriptions[1].DisposeCount, Is.EqualTo(1));
+                Assert.That(apiConnection.ConfigSubscriptionCreateCount, Is.EqualTo(2));
+                Assert.That(apiConnection.ConfigSubscriptionDisposeCount, Is.EqualTo(2));
             });
         }
 
@@ -1205,13 +1204,11 @@ internal class FlowRequestServiceTest
 
         service.Dispose();
 
-        object configSubscription = typeof(FlowRequestService)
-            .GetField("configSubscription", BindingFlags.Instance | BindingFlags.NonPublic)
-            ?.GetValue(service) ?? throw new MissingFieldException(typeof(FlowRequestService).FullName, "configSubscription");
-        bool isDisposed = (bool)(configSubscription.GetType().GetProperty("IsDisposed", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-            ?.GetValue(configSubscription) ?? throw new MissingMemberException(configSubscription.GetType().FullName, "IsDisposed"));
-
-        Assert.That(isDisposed, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(apiConnection.ConfigSubscriptionCreateCount, Is.EqualTo(1));
+            Assert.That(apiConnection.ConfigSubscriptionDisposeCount, Is.EqualTo(1));
+        });
     }
 
     [Test]
@@ -1717,9 +1714,11 @@ internal class FlowRequestServiceTest
         public WfTicket? CreatedTicket { get; private set; }
         public string? ConfigSubscriptionQuery { get; private set; }
         public object? ConfigSubscriptionVariables { get; private set; }
-        private List<TrackingConfigSubscription> CreatedConfigSubscriptions { get; } = [];
+        public int ConfigSubscriptionCreateCount { get; private set; }
+        public int ConfigSubscriptionDisposeCount { get; private set; }
         private long nextId = 99;
         private Action<ConfigItem[]>? configSubscriptionUpdateHandler;
+        private TrackingConfigSubscription? configSubscription;
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
@@ -1805,14 +1804,14 @@ internal class FlowRequestServiceTest
                 ConfigSubscriptionVariables = variables;
                 configSubscriptionUpdateHandler = configItems =>
                     subscriptionUpdateHandler((SubscriptionResponseType)(object)configItems);
-                TrackingConfigSubscription createdSubscription = new(
+                configSubscription = new(
                     this,
                     new GraphQLHttpClient(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient()),
                     new GraphQLRequest(subscription, variables, operationName),
                     exceptionHandler,
                     (GraphQlApiSubscription<ConfigItem[]>.SubscriptionUpdate)(object)subscriptionUpdateHandler);
-                CreatedConfigSubscriptions.Add(createdSubscription);
-                return (GraphQlApiSubscription<SubscriptionResponseType>)(object)createdSubscription;
+                ConfigSubscriptionCreateCount++;
+                return (GraphQlApiSubscription<SubscriptionResponseType>)(object)configSubscription;
             }
 
             throw new NotImplementedException();
@@ -1845,9 +1844,10 @@ internal class FlowRequestServiceTest
                 return;
             }
 
-            foreach (TrackingConfigSubscription subscription in CreatedConfigSubscriptions.Where(subscription => !subscription.IsDisposed))
+            if (configSubscription is { IsDisposed: false })
             {
-                subscription.Dispose();
+                configSubscription.Dispose();
+                ConfigSubscriptionDisposeCount++;
             }
         }
 
@@ -1936,10 +1936,12 @@ internal class FlowRequestServiceTest
 
     private sealed class FlowRequestServiceReconnectApiConn : SimulatedApiConnection
     {
-        public List<TrackingConfigSubscription> CreatedSubscriptions { get; } = [];
+        public int ConfigSubscriptionCreateCount { get; private set; }
+        public int ConfigSubscriptionDisposeCount { get; private set; }
         private GraphQLRequest? request;
         private Action<Exception>? exceptionHandler;
         private GraphQlApiSubscription<ConfigItem[]>.SubscriptionUpdate? subscriptionUpdateHandler;
+        private TrackingConfigSubscription? currentSubscription;
 
         public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler,
             GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
@@ -1953,9 +1955,9 @@ internal class FlowRequestServiceTest
             this.exceptionHandler = exceptionHandler;
             this.subscriptionUpdateHandler = (GraphQlApiSubscription<ConfigItem[]>.SubscriptionUpdate)(object)subscriptionUpdateHandler;
 
-            TrackingConfigSubscription createdSubscription = CreateSubscription();
-            CreatedSubscriptions.Add(createdSubscription);
-            return (GraphQlApiSubscription<SubscriptionResponseType>)(object)createdSubscription;
+            currentSubscription = CreateSubscription();
+            ConfigSubscriptionCreateCount++;
+            return (GraphQlApiSubscription<SubscriptionResponseType>)(object)currentSubscription;
         }
 
         public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
@@ -1965,13 +1967,14 @@ internal class FlowRequestServiceTest
                 return Task.CompletedTask;
             }
 
-            if (CreatedSubscriptions.Count > 0)
+            if (currentSubscription is { IsDisposed: false })
             {
-                CreatedSubscriptions[^1].Dispose();
+                currentSubscription.Dispose();
+                ConfigSubscriptionDisposeCount++;
             }
 
-            TrackingConfigSubscription recreatedSubscription = CreateSubscription();
-            CreatedSubscriptions.Add(recreatedSubscription);
+            currentSubscription = CreateSubscription();
+            ConfigSubscriptionCreateCount++;
             return Task.CompletedTask;
         }
 
@@ -1982,9 +1985,10 @@ internal class FlowRequestServiceTest
                 return;
             }
 
-            foreach (TrackingConfigSubscription subscription in CreatedSubscriptions.Where(subscription => !subscription.IsDisposed))
+            if (currentSubscription is { IsDisposed: false })
             {
-                subscription.Dispose();
+                currentSubscription.Dispose();
+                ConfigSubscriptionDisposeCount++;
             }
         }
 

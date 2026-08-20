@@ -292,12 +292,14 @@ namespace FWO.Test
             ClassicAssert.IsTrue(networkObjectComparer.Equals(DynamicObj1, DynamicObj1OtherIp));
             ClassicAssert.IsFalse(networkObjectComparer.Equals(AccessRoleObj1, AccessRoleObj2));
             ClassicAssert.IsFalse(networkObjectComparer.Equals(DomainObj1, DomainObj2));
+            ClassicAssert.IsFalse(networkObjectComparer.Equals(AccessRoleSharedName, DomainSharedName));
             ClassicAssert.IsFalse(networkObjectComparer.Equals(DynamicObj1, NonSpecialObjSameNameAndIp));
 
             ClassicAssert.IsFalse(networkObjectComparer.GetHashCode(DynamicObj1) == networkObjectComparer.GetHashCode(DynamicObj2));
             ClassicAssert.IsTrue(networkObjectComparer.GetHashCode(DynamicObj1) == networkObjectComparer.GetHashCode(DynamicObj1OtherIp));
             ClassicAssert.IsFalse(networkObjectComparer.GetHashCode(AccessRoleObj1) == networkObjectComparer.GetHashCode(AccessRoleObj2));
             ClassicAssert.IsFalse(networkObjectComparer.GetHashCode(DomainObj1) == networkObjectComparer.GetHashCode(DomainObj2));
+            ClassicAssert.IsFalse(networkObjectComparer.GetHashCode(AccessRoleSharedName) == networkObjectComparer.GetHashCode(DomainSharedName));
             ClassicAssert.IsFalse(networkObjectComparer.GetHashCode(DynamicObj1) == networkObjectComparer.GetHashCode(NonSpecialObjSameNameAndIp));
         }
 
@@ -400,7 +402,19 @@ namespace FWO.Test
             ruleRecognitionOption.NwRegardName = false;
             networkObjectGroupComparer = new(ruleRecognitionOption);
 
+            ClassicAssert.IsTrue(networkObjectGroupComparer.Equals(NwGrp1, NwGrp1));
+            ClassicAssert.IsTrue(networkObjectGroupComparer.Equals(NwGrp1, NwGrp2));
+            ClassicAssert.IsTrue(networkObjectGroupComparer.Equals(NwGrp1, NwGrp3));
+            ClassicAssert.IsFalse(networkObjectGroupComparer.Equals(NwGrp1, NwGrp4));
+            ClassicAssert.IsFalse(networkObjectGroupComparer.Equals(NwGrp1, NwGrp5));
+            ClassicAssert.IsFalse(networkObjectGroupComparer.Equals(NwGrp1, NwGrp6));
             ClassicAssert.IsFalse(networkObjectGroupComparer.Equals(NwGrpWithDynamicObj1, NwGrpWithDynamicObj2));
+            ClassicAssert.IsTrue(networkObjectGroupComparer.GetHashCode(NwGrp1) == networkObjectGroupComparer.GetHashCode(NwGrp1));
+            ClassicAssert.IsTrue(networkObjectGroupComparer.GetHashCode(NwGrp1) == networkObjectGroupComparer.GetHashCode(NwGrp2));
+            ClassicAssert.IsTrue(networkObjectGroupComparer.GetHashCode(NwGrp1) == networkObjectGroupComparer.GetHashCode(NwGrp3));
+            ClassicAssert.IsFalse(networkObjectGroupComparer.GetHashCode(NwGrp1) == networkObjectGroupComparer.GetHashCode(NwGrp4));
+            ClassicAssert.IsFalse(networkObjectGroupComparer.GetHashCode(NwGrp1) == networkObjectGroupComparer.GetHashCode(NwGrp5));
+            ClassicAssert.IsFalse(networkObjectGroupComparer.GetHashCode(NwGrp1) == networkObjectGroupComparer.GetHashCode(NwGrp6));
             ClassicAssert.IsFalse(networkObjectGroupComparer.GetHashCode(NwGrpWithDynamicObj1) == networkObjectGroupComparer.GetHashCode(NwGrpWithDynamicObj2));
         }
 

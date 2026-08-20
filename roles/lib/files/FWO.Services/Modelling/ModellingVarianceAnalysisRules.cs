@@ -354,7 +354,7 @@ namespace FWO.Services.Modelling
         {
             if (specialUserObjects.Count > 0 && disregardedLocations.Count > 0)
             {
-                List<NetworkLocation> specUserLocations = GetPlaceholderSubstitutes(networkLocations, specialUserObjects, ruleRecognitionOption.NwRegardIp);
+                List<NetworkLocation> specUserLocations = GetPlaceholderSubstitutes(networkLocations, specialUserObjects);
                 List<NetworkLocation> remainingPossibleSpecObj = GetPossibleSpecObjects(disregardedLocations, source);
                 // A placeholder area stands in for any number of special user objects (so N objects cover 1 area),
                 // but a single object must not cover several areas - require at least as many objects as areas.
@@ -380,14 +380,13 @@ namespace FWO.Services.Modelling
 
         /// <summary>
         /// Selects production objects, matched by name, that may stand in for a modelled placeholder area.
-        /// An object qualifies after the network-object comparer marked it as surplus, or when IP based
-        /// comparison is active and the imported object has no IP value to compare.
+        /// An object qualifies after the network-object comparer marked it as surplus.
         /// Imported name-only identity objects are handled by NetworkObjectComparer.
         /// </summary>
-        private static List<NetworkLocation> GetPlaceholderSubstitutes(NetworkLocation[] networkLocations, Dictionary<string, bool> objectsByName, bool regardIp)
+        private static List<NetworkLocation> GetPlaceholderSubstitutes(NetworkLocation[] networkLocations, Dictionary<string, bool> objectsByName)
         {
             return [.. networkLocations.Where(n => objectsByName.ContainsKey(n.Object.Name.ToLower())
-                && (n.Object.IsSurplus || (regardIp && string.IsNullOrEmpty(n.Object.IP))))];
+                && n.Object.IsSurplus)];
         }
 
         private void AdjustWithUpdatableObjects(NetworkLocation[] networkLocations, Dictionary<string, bool> updatableObjects, bool source,
@@ -395,7 +394,7 @@ namespace FWO.Services.Modelling
         {
             if (updatableObjects.Count > 0 && disregardedLocations.Count > 0)
             {
-                List<NetworkLocation> updObjLocations = GetPlaceholderSubstitutes(networkLocations, updatableObjects, ruleRecognitionOption.NwRegardIp);
+                List<NetworkLocation> updObjLocations = GetPlaceholderSubstitutes(networkLocations, updatableObjects);
                 List<NetworkLocation> remainingPossibleUpdatableObj = GetPossibleUpdatableObjects(disregardedLocations, source);
                 // A placeholder area stands in for any number of updatable objects (so N objects cover 1 area),
                 // but a single object must not cover several areas - require at least as many objects as areas.

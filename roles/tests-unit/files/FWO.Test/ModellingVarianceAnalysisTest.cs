@@ -1063,41 +1063,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task TestAnalyseRuleStatusIpLessPlaceholderObjectAlreadyMatchedByAppServer()
-        {
-            varianceAnalysisApiConnection.IncludePlaceholderFallbackRule = true;
-            try
-            {
-                ModellingAppServer ipLessAppServer = new()
-                {
-                    Id = 24,
-                    Name = "PlaceholderObjWithoutIp"
-                };
-                ModellingConnection connWithIpLessPlaceholderObject = new()
-                {
-                    Id = 13,
-                    Name = "Conn13",
-                    SourceAppServers = [new() { Content = ipLessAppServer }],
-                    SourceAreas = [new() { Content = new ModellingNetworkArea() { Id = 1, Name = "NA-SpecUserArea" } }],
-                    DestinationAppRoles = [new() { Content = AR3 }],
-                    Services = [new() { Content = Svc1 }],
-                    ExtraConfigs = [new() { ExtraConfigType = "IDA_user", ExtraConfigText = "PlaceholderObjWithoutIp" }]
-                };
-
-                List<ModellingConnection> connections = [connWithIpLessPlaceholderObject];
-                ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
-                ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(connections, new(), false);
-
-                ClassicAssert.AreEqual(0, result.ConnsNotImplemented.Count);
-                ClassicAssert.AreEqual(0, result.RuleDifferences.Count);
-            }
-            finally
-            {
-                varianceAnalysisApiConnection.IncludePlaceholderFallbackRule = false;
-            }
-        }
-
-        [Test]
         public async Task TestAnalyseRuleStatusSingleSpecialUserDoesNotMatchMultipleAreas()
         {
             ModellingConnection connWithMultipleAreas = new()

@@ -467,7 +467,7 @@ namespace FWO.Report.Filter
             }
 
             string ruleWherePrefix = RuleWhereStatement[..insertIndex].TrimEnd();
-            string separator = ruleWherePrefix.EndsWith("[") ? "" : ", ";
+            string separator = ruleWherePrefix.EndsWith('[') ? "" : ", ";
             RuleWhereStatement = RuleWhereStatement.Insert(insertIndex, separator + filter);
         }
 

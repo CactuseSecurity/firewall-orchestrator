@@ -190,7 +190,7 @@ namespace FWO.Report
         /// <summary>
         /// Collects management and sub-management IDs that can be affected by pending rule_owner mapping imports.
         /// </summary>
-        private HashSet<int> BuildRelevantManagementIds(List<ManagementReport> managementsWithRelevantImportId)
+        private static HashSet<int> BuildRelevantManagementIds(List<ManagementReport> managementsWithRelevantImportId)
         {
             HashSet<int> managementIds = new();
             foreach (ManagementReport management in managementsWithRelevantImportId)

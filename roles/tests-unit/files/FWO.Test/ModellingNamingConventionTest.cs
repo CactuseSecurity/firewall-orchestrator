@@ -124,6 +124,66 @@ namespace FWO.Test
         }
 
         /// <summary>
+        /// Verifies that an app role pattern longer than the network area pattern is detected,
+        /// as it would push the area specific content out of the fixed part.
+        /// </summary>
+        [TestCase("NA", "AR", true)]
+        [TestCase("NA", "A", true)]
+        [TestCase("NA", "", true)]
+        [TestCase("NA", "ARX", false)]
+        [TestCase("", "AR", false)]
+        public void IsAppRolePatternLengthValid_ComparesWithNetworkAreaPattern(string networkAreaPattern, string appRolePattern, bool expectedResult)
+        {
+            ModellingNamingConvention namingConvention = new()
+            {
+                FixedPartLength = 4,
+                NetworkAreaPattern = networkAreaPattern,
+                AppRolePattern = appRolePattern
+            };
+
+            ClassicAssert.AreEqual(expectedResult, namingConvention.IsAppRolePatternLengthValid());
+        }
+
+        /// <summary>
+        /// Verifies that both length rules are combined and only applied when network areas are used.
+        /// </summary>
+        [TestCase(true, 4, "NA", "AR", true)]
+        [TestCase(true, 1, "NA", "AR", false)]
+        [TestCase(true, 4, "NA", "ARX", false)]
+        [TestCase(false, 1, "NA", "ARX", true)]
+        [TestCase(false, 0, "NA", "AR", true)]
+        public void IsAreaConversionValid_CombinesRules(bool networkAreaRequired, int fixedPartLength,
+            string networkAreaPattern, string appRolePattern, bool expectedResult)
+        {
+            ModellingNamingConvention namingConvention = new()
+            {
+                NetworkAreaRequired = networkAreaRequired,
+                FixedPartLength = fixedPartLength,
+                NetworkAreaPattern = networkAreaPattern,
+                AppRolePattern = appRolePattern
+            };
+
+            ClassicAssert.AreEqual(expectedResult, namingConvention.IsAreaConversionValid());
+        }
+
+        /// <summary>
+        /// Verifies that null patterns do not break the combined check.
+        /// </summary>
+        [Test]
+        public void IsAreaConversionValid_WithNullPatterns_ReturnsTrue()
+        {
+            ModellingNamingConvention namingConvention = new()
+            {
+                NetworkAreaRequired = true,
+                FixedPartLength = 4,
+                NetworkAreaPattern = null!,
+                AppRolePattern = null!
+            };
+
+            ClassicAssert.IsTrue(namingConvention.IsAreaConversionValid());
+        }
+
+        /// <summary>
         /// Verifies that a null network area pattern does not break the validity check.
         /// </summary>
         [Test]

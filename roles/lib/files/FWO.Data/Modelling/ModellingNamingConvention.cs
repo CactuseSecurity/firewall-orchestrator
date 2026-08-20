@@ -66,12 +66,32 @@ namespace FWO.Data.Modelling
 
         /// <summary>
         /// Checks that the fixed part is long enough to hold the network area pattern.
-        /// Otherwise converting an area identifier into an app role identifier would drop the area specific content.
+        /// Otherwise the fixed part of an area identifier does not even contain the full pattern.
         /// </summary>
-        /// <returns>true if area identifiers can be converted into app role identifiers</returns>
+        /// <returns>true if the fixed part can hold the network area pattern</returns>
         public bool IsFixedPartLengthValid()
         {
             return FixedPartLength >= (NetworkAreaPattern?.Length ?? 0);
+        }
+
+        /// <summary>
+        /// Checks that the app role pattern is not longer than the network area pattern.
+        /// Otherwise the converted identifier exceeds the fixed part and its area specific end is cut off.
+        /// </summary>
+        /// <returns>true if the app role pattern fits into the fixed part</returns>
+        public bool IsAppRolePatternLengthValid()
+        {
+            return (AppRolePattern?.Length ?? 0) <= (NetworkAreaPattern?.Length ?? 0);
+        }
+
+        /// <summary>
+        /// Checks that converting an area identifier into an app role identifier keeps the area specific content.
+        /// Conventions without network areas are always valid, as no conversion takes place for them.
+        /// </summary>
+        /// <returns>true if area identifiers can be converted into app role identifiers</returns>
+        public bool IsAreaConversionValid()
+        {
+            return !NetworkAreaRequired || (IsFixedPartLengthValid() && IsAppRolePatternLengthValid());
         }
     }
 }

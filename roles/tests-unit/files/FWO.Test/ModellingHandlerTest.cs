@@ -313,23 +313,55 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Verifies that a stored convention with a too short fixed part does not propose a collapsed app role id.
+        /// Builds a user config carrying a naming convention that cannot convert areas into app roles.
         /// </summary>
-        [Test]
-        public async Task InitAppRole_WithFixedPartShorterThanAreaPattern_DoesNotProposeId()
+        private static SimulatedUserConfig InvalidConventionConfig(int fixedPartLength, string appRolePattern)
         {
-            List<(string Title, string Message, bool IsError)> messages = new();
-            SimulatedUserConfig localUserConfig = new()
+            return new SimulatedUserConfig
             {
-                ModNamingConvention = "{\"networkAreaRequired\":true,\"fixedPartLength\":1,\"freePartLength\":5,\"networkAreaPattern\":\"NA\",\"appRolePattern\":\"AR\"}",
+                ModNamingConvention = "{\"networkAreaRequired\":true,\"fixedPartLength\":" + fixedPartLength +
+                    ",\"freePartLength\":5,\"networkAreaPattern\":\"NA\",\"appRolePattern\":\"" + appRolePattern + "\"}",
                 Translate = new Dictionary<string, string>
                 {
                     ["E5601"] = "E5601",
+                    ["E5602"] = "E5602",
                     ["edit_app_role"] = "edit_app_role"
                 }
             };
-            ModellingAppRoleHandler handler = new(apiConnection, localUserConfig, Application, new List<ModellingAppRole>(), new ModellingAppRole(),
-                AvailableAppServers, new List<KeyValuePair<int, long>>(), true,
+        }
+
+        /// <summary>
+        /// Verifies that a convention which cannot convert areas is reported once with the fitting message.
+        /// </summary>
+        [TestCase(1, "AR", "E5601")]
+        [TestCase(4, "ARX", "E5602")]
+        public void ApplyNamingConvention_WithInvalidConvention_ReportsItOnce(int fixedPartLength, string appRolePattern, string expectedMessage)
+        {
+            List<(string Title, string Message, bool IsError)> messages = new();
+            ModellingAppRoleHandler handler = new(apiConnection, InvalidConventionConfig(fixedPartLength, appRolePattern), Application,
+                new List<ModellingAppRole>(), new ModellingAppRole(), AvailableAppServers, new List<KeyValuePair<int, long>>(), true,
+                (exception, title, message, isError) => messages.Add((title, message, isError)), IsOwner);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.AreaConversionValid, Is.False);
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Title, Is.EqualTo("edit_app_role"));
+                Assert.That(messages[0].Message, Is.EqualTo(expectedMessage));
+                Assert.That(messages[0].IsError, Is.True);
+            });
+        }
+
+        /// <summary>
+        /// Verifies that a stored convention with a too short fixed part does not propose a collapsed app role id
+        /// and does not repeat the message for every selected area.
+        /// </summary>
+        [Test]
+        public async Task InitAppRole_WithInvalidConvention_DoesNotProposeId()
+        {
+            List<(string Title, string Message, bool IsError)> messages = new();
+            ModellingAppRoleHandler handler = new(apiConnection, InvalidConventionConfig(1, "AR"), Application,
+                new List<ModellingAppRole>(), new ModellingAppRole(), AvailableAppServers, new List<KeyValuePair<int, long>>(), true,
                 (exception, title, message, isError) => messages.Add((title, message, isError)), IsOwner);
             ModellingNetworkArea area = new()
             {
@@ -339,15 +371,53 @@ namespace FWO.Test
             };
 
             await handler.InitAppRole(area);
+            await handler.InitAppRole(area);
 
             Assert.Multiple(() =>
             {
                 Assert.That(handler.ActAppRole.ManagedIdString.Whole, Is.Empty);
                 Assert.That(messages, Has.Count.EqualTo(1));
-                Assert.That(messages[0].Title, Is.EqualTo("edit_app_role"));
-                Assert.That(messages[0].Message, Is.EqualTo("E5601"));
-                Assert.That(messages[0].IsError, Is.True);
                 Assert.That(handler.AppServersInArea, Has.Count.EqualTo(3));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that editing an existing app role does not derive a phantom area from an invalid convention.
+        /// </summary>
+        [Test]
+        public void ApplyNamingConvention_InEditModeWithInvalidConvention_KeepsAreaUndetermined()
+        {
+            List<(string Title, string Message, bool IsError)> messages = new();
+            ModellingAppRole appRole = new() { Id = 1, IdString = "AR1234-001", Name = "AppRole1" };
+            ModellingAppRoleHandler handler = new(apiConnection, InvalidConventionConfig(1, "AR"), Application,
+                new List<ModellingAppRole>(), appRole, AvailableAppServers, new List<KeyValuePair<int, long>>(), false,
+                (exception, title, message, isError) => messages.Add((title, message, isError)), IsOwner);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActAppRole.Area?.IdString, Is.Empty);
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Message, Is.EqualTo("E5601"));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that a valid convention still derives the area of an existing app role.
+        /// </summary>
+        [Test]
+        public void ApplyNamingConvention_InEditModeWithValidConvention_DerivesArea()
+        {
+            List<(string Title, string Message, bool IsError)> messages = new();
+            ModellingAppRole appRole = new() { Id = 1, IdString = "AR1234-001", Name = "AppRole1" };
+            ModellingAppRoleHandler handler = new(apiConnection, userConfig, Application,
+                new List<ModellingAppRole>(), appRole, AvailableAppServers, new List<KeyValuePair<int, long>>(), false,
+                (exception, title, message, isError) => messages.Add((title, message, isError)), IsOwner);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.AreaConversionValid, Is.True);
+                Assert.That(handler.ActAppRole.Area?.IdString, Is.EqualTo("NA12"));
+                Assert.That(messages, Is.Empty);
             });
         }
 

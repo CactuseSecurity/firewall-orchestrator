@@ -91,41 +91,52 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Verifies that the fixed part cannot be shorter than the network area pattern.
+        /// Verifies which naming conventions are rejected and which message is reported for them.
         /// </summary>
-        [TestCase(1, "NA", false)]
-        [TestCase(2, "NA", true)]
-        [TestCase(4, "NA", true)]
-        [TestCase(0, null, true)]
-        public void IsNamingConventionValid_ChecksFixedPartLength(int fixedPartLength, string? networkAreaPattern, bool expectedResult)
+        [TestCase(true, 1, "NA", "AR", "E5601")]
+        [TestCase(true, 0, "NA", "AR", "E5601")]
+        [TestCase(true, 4, "NA", "ARX", "E5602")]
+        [TestCase(true, 4, "NA", "AR", null)]
+        [TestCase(true, 2, "NA", "AR", null)]
+        [TestCase(true, 4, "NA", "A", null)]
+        [TestCase(true, 0, null, null, null)]
+        [TestCase(false, 1, "NA", "ARX", null)]
+        public void GetNamingConventionError_ChecksPatternLengths(bool networkAreaRequired, int fixedPartLength,
+            string? networkAreaPattern, string? appRolePattern, string? expectedKey)
         {
             SettingsModelling component = CreateComponent();
             SetPrivateField(component, "namingConvention", new ModellingNamingConvention
             {
+                NetworkAreaRequired = networkAreaRequired,
                 FixedPartLength = fixedPartLength,
-                NetworkAreaPattern = networkAreaPattern!
+                NetworkAreaPattern = networkAreaPattern!,
+                AppRolePattern = appRolePattern!
             });
 
-            bool result = (bool)GetPrivateMethod("IsNamingConventionValid").Invoke(component, null)!;
+            string? result = (string?)GetPrivateMethod("GetNamingConventionError").Invoke(component, null);
 
-            Assert.That(result, Is.EqualTo(expectedResult));
+            Assert.That(result, Is.EqualTo(expectedKey));
         }
 
         /// <summary>
         /// Verifies that saving rejects a naming convention that would discard the area-specific identifier.
         /// </summary>
-        [Test]
-        public async Task Save_WithFixedPartShorterThanNetworkPattern_ReportsValidationError()
+        [TestCase(1, "NA", "AR", "E5601", "Invalid fixed part length")]
+        [TestCase(4, "NA", "ARX", "E5602", "Invalid app role pattern")]
+        public async Task Save_WithInvalidNamingConvention_ReportsValidationError(int fixedPartLength,
+            string networkAreaPattern, string appRolePattern, string expectedKey, string expectedMessage)
         {
             SimulatedGlobalConfig globalConfig = new();
             globalConfig.LangDict[GlobalConst.kEnglish]["modelling_settings"] = "Modelling Settings";
-            globalConfig.LangDict[GlobalConst.kEnglish]["E5601"] = "Invalid fixed part length";
+            globalConfig.LangDict[GlobalConst.kEnglish][expectedKey] = expectedMessage;
             SettingsModelling component = CreateComponent();
             SetPrivateProperty(component, "userConfig", UserConfig.ForTextOnly(globalConfig, registerOnChangeHandler: false));
             SetPrivateField(component, "namingConvention", new ModellingNamingConvention
             {
-                FixedPartLength = 1,
-                NetworkAreaPattern = "NA"
+                NetworkAreaRequired = true,
+                FixedPartLength = fixedPartLength,
+                NetworkAreaPattern = networkAreaPattern,
+                AppRolePattern = appRolePattern
             });
             List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
             SetPrivateProperty(component, "DisplayMessageInUi",
@@ -138,8 +149,44 @@ namespace FWO.Test
             {
                 Assert.That(messages[0].Exception, Is.Null);
                 Assert.That(messages[0].Title, Is.EqualTo("Modelling Settings"));
-                Assert.That(messages[0].Message, Is.EqualTo("Invalid fixed part length"));
+                Assert.That(messages[0].Message, Is.EqualTo(expectedMessage));
                 Assert.That(messages[0].IsError, Is.True);
+            });
+        }
+
+        /// <summary>
+        /// Verifies that a negative fixed part length is repaired before the naming convention is validated.
+        /// </summary>
+        [Test]
+        public async Task Save_WithNegativeFixedPartLength_RepairsItBeforeValidating()
+        {
+            SimulatedGlobalConfig globalConfig = new();
+            globalConfig.LangDict[GlobalConst.kEnglish]["modelling_settings"] = "Modelling Settings";
+            globalConfig.LangDict[GlobalConst.kEnglish]["E5601"] = "Invalid fixed part length";
+            SettingsModelling component = CreateComponent();
+            SetPrivateProperty(component, "userConfig", UserConfig.ForTextOnly(globalConfig, registerOnChangeHandler: false));
+            ModellingNamingConvention namingConvention = new()
+            {
+                NetworkAreaRequired = true,
+                FixedPartLength = -3,
+                FreePartLength = -1,
+                NetworkAreaPattern = "",
+                AppRolePattern = ""
+            };
+            SetPrivateField(component, "namingConvention", namingConvention);
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
+            SetPrivateProperty(component, "DisplayMessageInUi",
+                new Action<Exception?, string, string, bool>((exception, title, message, isError) => messages.Add((exception, title, message, isError))));
+
+            await (Task)GetPrivateMethod("Save").Invoke(component, null)!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(namingConvention.FixedPartLength, Is.Zero);
+                Assert.That(namingConvention.FreePartLength, Is.Zero);
+                // the validation passed, the remaining message only reports the config data missing in this isolated test
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Exception, Is.Not.Null);
             });
         }
 

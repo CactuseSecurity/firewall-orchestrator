@@ -142,15 +142,31 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Verifies that converting a short area does not inspect an unused null pattern.
+        /// Verifies that a stored null network area pattern is treated as an empty pattern.
         /// </summary>
         [Test]
-        public void TestConvertShortAreaToAppRoleWithNullPattern()
+        public void TestConvertAreaToAppRoleWithNullPattern()
         {
             ModellingNamingConvention namingConvention = new()
             {
                 FixedPartLength = 4,
                 NetworkAreaPattern = null!,
+                AppRolePattern = "AR"
+            };
+
+            ClassicAssert.AreEqual("ARNA12", ModellingManagedIdString.ConvertAreaToAppRole("NA1234", namingConvention));
+        }
+
+        /// <summary>
+        /// Verifies that converting a short area returns it unchanged.
+        /// </summary>
+        [Test]
+        public void TestConvertShortAreaToAppRole()
+        {
+            ModellingNamingConvention namingConvention = new()
+            {
+                FixedPartLength = 4,
+                NetworkAreaPattern = "NA",
                 AppRolePattern = "AR"
             };
 

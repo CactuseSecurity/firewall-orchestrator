@@ -143,7 +143,7 @@
         <div class="form-group row mt-2">
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5607"))">
                 <label class="col-form-label col-sm-5">@userConfig.GetText("fixedPartLength"):</label>
-                <input type="number" min="@(namingConvention.NetworkAreaPattern?.Length ?? 0)" class="col-sm-4" @bind="namingConvention.FixedPartLength" />
+                <input type="number" min="@(namingConvention.NetworkAreaRequired ? namingConvention.NetworkAreaPattern.Length : 0)" class="col-sm-4" @bind="namingConvention.FixedPartLength" />
             </div>
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5619"))">
                 <label for="cbx_use_app_part" class="col-form-label col-sm-8">@(userConfig.GetText("useAppPart")):</label>
@@ -595,9 +595,11 @@ else
     {
         try
         {
-            if (!IsNamingConventionValid())
+            namingConvention.Normalize();
+            string? namingConventionError = GetNamingConventionError();
+            if (namingConventionError != null)
             {
-                DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("E5601"), true);
+                DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText(namingConventionError), true);
                 return;
             }
             if (configData != null)
@@ -627,18 +629,22 @@ else
     }
 
     /// <summary>
-    /// Checks that converting a network area preserves the area-specific part of its fixed identifier.
+    /// Determines the message key if converting a network area would not preserve the area-specific part of its fixed identifier.
+    /// Only relevant for conventions using network areas, as no conversion takes place otherwise.
     /// </summary>
-    private bool IsNamingConventionValid()
+    private string? GetNamingConventionError()
     {
-        return namingConvention.IsFixedPartLengthValid();
+        if (namingConvention.IsAreaConversionValid())
+        {
+            return null;
+        }
+        return namingConvention.IsFixedPartLengthValid() ? "E5602" : "E5601";
     }
 
     private void PrepareConfigData()
     {
         PrepareExtraConfigs();
         PrepareModellingMailRecipients();
-        namingConvention.Normalize();
         configData!.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
         PrepareAppServerTypes();
         configData!.ModCommonAreas = PrepareAreas(CommonAreas, CommAreasToDelete);

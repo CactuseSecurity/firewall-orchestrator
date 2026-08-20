@@ -454,6 +454,33 @@ namespace FWO.Report.Filter
             }
         }
 
+        /// <summary>
+        /// Appends an additional rule filter to the generated top-level _and block.
+        /// </summary>
+        public void AddRuleWhereAndFilter(string filter)
+        {
+            int insertIndex = RuleWhereStatement.LastIndexOf(']');
+            if (insertIndex < 0)
+            {
+                RuleWhereStatement += filter;
+                return;
+            }
+
+            string ruleWherePrefix = RuleWhereStatement[..insertIndex].TrimEnd();
+            string separator = ruleWherePrefix.EndsWith("[") ? "" : ", ";
+            RuleWhereStatement = RuleWhereStatement.Insert(insertIndex, separator + filter);
+        }
+
+        /// <summary>
+        /// Rebuilds the legacy rule report query after late-bound filters were added.
+        /// </summary>
+        public void RebuildLegacyRulesQuery(ReportTemplate filter)
+        {
+            string paramString = string.Join(" ", QueryParameters.ToArray());
+            FullQuery = Queries.Compact(RuleReportQueryBuilder.ConstructLegacyRulesQuery(this, paramString, filter));
+            FullQuery = RemoveUnnecessaryWhitespaces(FullQuery);
+        }
+
         private static string ConstructTicketQuery(DynGraphqlQuery query, ReportTemplate filter)
         {
             InitializeTicketQuery(query, filter);

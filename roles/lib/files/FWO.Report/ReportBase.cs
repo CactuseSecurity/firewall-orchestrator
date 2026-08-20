@@ -198,7 +198,7 @@ namespace FWO.Report
                 ReportType.Recertification => new ReportRules(query, userConfig, repType, ruleTreeBuilder),
                 ReportType.UnusedRules => new ReportRules(query, userConfig, repType, ruleTreeBuilder),
                 ReportType.Connections => new ReportConnections(query, userConfig, repType),
-                ReportType.AppRules => new ReportAppRules(query, userConfig, repType, reportFilter.ReportParams.ModellingFilter),
+                ReportType.AppRules => new ReportAppRules(query, userConfig, repType, reportFilter.ReportParams.ModellingFilter, reportFilter),
                 ReportType.VarianceAnalysis => new ReportVariances(query, userConfig, repType),
                 ReportType.ComplianceReport => new ReportCompliance(query, userConfig, repType, reportFilter.ReportParams),
                 ReportType.ComplianceDiffReport => new ReportComplianceDiff(query, userConfig, repType, reportFilter.ReportParams),

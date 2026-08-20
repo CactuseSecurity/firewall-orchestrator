@@ -506,8 +506,10 @@ namespace FWO.Test
 
         private static T GetPrivateField<T>(object instance, string fieldName)
         {
-            return (T)(instance.GetType().GetField(fieldName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.GetValue(instance)
-                ?? throw new MissingFieldException(instance.GetType().FullName, fieldName));
+            Type type = instance.GetType();
+            object? value = type.GetField(fieldName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.GetValue(instance)
+                ?? type.GetProperty(fieldName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.GetValue(instance);
+            return (T)(value ?? throw new MissingFieldException(type.FullName, fieldName));
         }
 
         private static void SetPrivateField(object instance, string fieldName, object value)

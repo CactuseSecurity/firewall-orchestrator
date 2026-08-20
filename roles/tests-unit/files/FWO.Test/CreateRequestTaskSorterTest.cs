@@ -110,6 +110,41 @@ internal class CreateRequestTaskSorterTest
     }
 
     [Test]
+    public void OrderForSave_SplitsMixedGroupModifyTaskAndKeepsRetainedMembers()
+    {
+        WfReqTask groupModifyMixed = BuildTask("group-modify", WfTaskType.group_modify.ToString(),
+            new WfReqElement { RequestAction = RequestAction.create.ToString(), Name = "added" },
+            new WfReqElement { RequestAction = RequestAction.unchanged.ToString(), Name = "current-unchanged" },
+            new WfReqElement { RequestAction = RequestAction.modify.ToString(), Name = "current-modify" },
+            new WfReqElement { RequestAction = RequestAction.delete.ToString(), Name = "removed" });
+        groupModifyMixed.Id = 42;
+        groupModifyMixed.TicketId = 84;
+        groupModifyMixed.FlowAccessId = 126;
+        groupModifyMixed.Approvals = [new WfApproval
+        {
+            Id = 7,
+            Comments = [new WfCommentDataHelper(new WfComment { CommentText = "approval-comment" })]
+        }];
+        groupModifyMixed.RemovedElements = [new WfReqElement { RequestAction = RequestAction.delete.ToString(), Name = "removed-original" }];
+
+        List<WfReqTask> orderedTasks = CreateRequestTaskSorter.OrderForSave([groupModifyMixed], true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(orderedTasks, Has.Count.EqualTo(2));
+            Assert.That(orderedTasks[0].Id, Is.EqualTo(0));
+            Assert.That(orderedTasks[0].TicketId, Is.EqualTo(0));
+            Assert.That(orderedTasks[0].FlowAccessId, Is.Null);
+            Assert.That(orderedTasks[0].Elements.Select(element => element.RequestAction), Is.EqualTo([RequestAction.create.ToString(), RequestAction.unchanged.ToString(), RequestAction.modify.ToString()]));
+            Assert.That(orderedTasks[1].Elements.Select(element => element.RequestAction), Is.EqualTo([RequestAction.unchanged.ToString(), RequestAction.modify.ToString(), RequestAction.delete.ToString()]));
+            Assert.That(object.ReferenceEquals(orderedTasks[0].Elements[1], orderedTasks[1].Elements[0]), Is.False);
+            Assert.That(object.ReferenceEquals(orderedTasks[0].Approvals[0], orderedTasks[1].Approvals[0]), Is.False);
+            Assert.That(object.ReferenceEquals(orderedTasks[0].Approvals[0].Comments[0], orderedTasks[1].Approvals[0].Comments[0]), Is.False);
+            Assert.That(object.ReferenceEquals(orderedTasks[0].RemovedElements[0], orderedTasks[1].RemovedElements[0]), Is.False);
+        });
+    }
+
+    [Test]
     public void OrderForSave_SplitsMixedGroupModifyTaskAndKeepsPriorityWithOtherTaskTypes()
     {
         WfReqTask groupDelete = BuildTask("group-delete", WfTaskType.group_delete.ToString(),
@@ -209,6 +244,33 @@ internal class CreateRequestTaskSorterTest
         {
             Assert.That(orderedTasks.Select(task => task.Title), Is.EqualTo(["access", "group-create", "group-modify-add", "rule-modify", "rule-delete", "group-modify-remove", "group-delete"]));
             Assert.That(orderedTasks.Select(task => task.TaskNumber), Is.EqualTo([1, 2, 3, 4, 5, 6, 7]));
+        });
+    }
+
+    [Test]
+    public void OrderForSave_PlacesUnknownTaskTypesLastEvenWithLargeConfiguredPriorities()
+    {
+        CreateRequestTaskSortConfig sortConfig = new()
+        {
+            GroupCreatePriority = 200,
+            GroupModifyAddPriority = 300,
+            AccessPriority = 100,
+            RuleModifyPriority = 400,
+            RuleDeletePriority = 500,
+            GroupModifyRemovePriority = 600,
+            GroupDeletePriority = 700
+        };
+
+        WfReqTask access = BuildTask("access", WfTaskType.access.ToString());
+        WfReqTask generic = BuildTask("generic", WfTaskType.generic.ToString());
+        WfReqTask groupCreate = BuildTask("group-create", WfTaskType.group_create.ToString());
+
+        List<WfReqTask> orderedTasks = CreateRequestTaskSorter.OrderForSave([generic, groupCreate, access], true, sortConfig);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(orderedTasks.Select(task => task.Title), Is.EqualTo(["access", "group-create", "generic"]));
+            Assert.That(orderedTasks[2].TaskType, Is.EqualTo(WfTaskType.generic.ToString()));
         });
     }
 

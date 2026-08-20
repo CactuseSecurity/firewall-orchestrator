@@ -98,8 +98,8 @@
                 </button>
             </div>
         </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5546"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("api_ticket_initial_state")):</label>
+        <div class="form-group row">
+            <label class="col-form-label col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5546"))">@(userConfig.GetText("api_ticket_initial_state")):</label>
             <div class="col-sm-3">
                 <Dropdown ElementType="int?" @bind-SelectedElement="selectedApiTicketInitialStateId" ElementToString="StateDisplayName"
                           Elements="stateIds.Select(stateId => (int?)stateId)" Nullable="true" NoneSelectedText="@(userConfig.GetText("use_default"))">
@@ -169,7 +169,7 @@ else
 {
     <AllowedChangesByApprover @bind-Display="editAllowedChangesByApproverMode" ConfigValue="@configData.ReqAllowedChangesByApprover" ConfigValueChanged="HandleAllowedChangesByApproverChanged" />
     <FlowIntegration @bind-Display="editFlowIntegrationMode" ConfigValue="@configData.ReqFlowIntegration" ConfigValueChanged="HandleFlowIntegrationChanged" />
-    <CreateRequestTaskSortConfigPopup @bind-Display="editCreateRequestTaskSortConfigMode" ConfigValue="@configData.ReqCreateRequestTaskSortConfig" ConfigValueChanged="HandleCreateRequestTaskSortConfigChanged" />
+    <CreateRequestTaskSortConfigPopup @bind-Display="editCreateRequestTaskSortConfigMode" ConfigValue="@configData.ReqCreateRequestTaskSortConfig" ConfigValueChanged="HandleCreateRequestTaskSortConfigChanged" DisplayMessageInUi="DisplayMessageInUi" />
 }
 
 

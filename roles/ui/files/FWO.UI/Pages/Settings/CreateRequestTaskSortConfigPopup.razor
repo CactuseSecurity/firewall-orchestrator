@@ -66,6 +66,9 @@
     [Parameter]
     public EventCallback<string> ConfigValueChanged { get; set; }
 
+    [Parameter]
+    public Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
     private CreateRequestTaskSortConfig actConfig = new();
     private List<SortItem> sortItems = [];
 
@@ -91,12 +94,38 @@
 
     private async Task Confirm()
     {
-        ApplyOrderToConfig();
-        ConfigData editableConfig = await globalConfig.GetEditableConfig();
-        editableConfig.ReqCreateRequestTaskSortConfig = actConfig.ToConfigValue();
-        await globalConfig.WriteToDatabase(editableConfig, apiConnection);
-        await ConfigValueChanged.InvokeAsync(editableConfig.ReqCreateRequestTaskSortConfig);
-        Close();
+        try
+        {
+            ValidateOrder();
+            ApplyOrderToConfig();
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
+            editableConfig.ReqCreateRequestTaskSortConfig = actConfig.ToConfigValue();
+            await globalConfig.WriteToDatabase(editableConfig, apiConnection);
+            await ConfigValueChanged.InvokeAsync(editableConfig.ReqCreateRequestTaskSortConfig);
+            DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
+            Close();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
+        }
+    }
+
+    private void ValidateOrder()
+    {
+        int groupCreateIndex = GetItemIndex(SortItemKind.GroupCreate);
+        int groupModifyAddIndex = GetItemIndex(SortItemKind.GroupModifyAdd);
+        int accessIndex = GetItemIndex(SortItemKind.Access);
+
+        if (groupCreateIndex > accessIndex || groupModifyAddIndex > accessIndex)
+        {
+            throw new InvalidOperationException($"{userConfig.GetText("create_group")} and {userConfig.GetText("group_modify")}{userConfig.GetText("add_members")} must be sorted before {userConfig.GetText("access")}.");
+        }
+    }
+
+    private int GetItemIndex(SortItemKind kind)
+    {
+        return sortItems.FindIndex(item => item.Kind == kind);
     }
 
     private bool CanMoveUp(int index)

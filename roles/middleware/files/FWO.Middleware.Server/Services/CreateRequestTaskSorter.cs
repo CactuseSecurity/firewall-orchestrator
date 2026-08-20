@@ -1,3 +1,4 @@
+using FWO.Data;
 using FWO.Data.Workflow;
 
 namespace FWO.Middleware.Server.Services;
@@ -7,7 +8,7 @@ namespace FWO.Middleware.Server.Services;
 /// </summary>
 public static class CreateRequestTaskSorter
 {
-    private const int DefaultPriority = 7;
+    private const int DefaultPriority = int.MaxValue;
 
     /// <summary>
     /// Returns the tasks in save order and renumbers them if sorting is enabled.
@@ -43,8 +44,8 @@ public static class CreateRequestTaskSorter
         List<WfReqElement> removeElements = [.. task.Elements.Where(IsRemoveMemberElement)];
         if (sortConfig.AllowTaskSplit && addElements.Count > 0 && removeElements.Count > 0)
         {
-            yield return new TaskEntry(CloneTask(task, addElements), originalIndex, 0, sortConfig.GroupModifyAddPriority);
-            yield return new TaskEntry(CloneTask(task, removeElements), originalIndex, 1, sortConfig.GroupModifyRemovePriority);
+            yield return new TaskEntry(CloneTask(task, task.Elements.Where(element => !IsRemoveMemberElement(element))), originalIndex, 0, sortConfig.GroupModifyAddPriority);
+            yield return new TaskEntry(CloneTask(task, task.Elements.Where(element => !IsAddMemberElement(element))), originalIndex, 1, sortConfig.GroupModifyRemovePriority);
             yield break;
         }
 
@@ -92,18 +93,90 @@ public static class CreateRequestTaskSorter
         return string.Equals(element.RequestAction, RequestAction.delete.ToString(), StringComparison.OrdinalIgnoreCase);
     }
 
-    private static WfReqTask CloneTask(WfReqTask task, List<WfReqElement> elements)
+    private static WfReqTask CloneTask(WfReqTask task, IEnumerable<WfReqElement> elements)
     {
         return new WfReqTask(task)
         {
-            Elements = [.. elements],
-            Approvals = [.. task.Approvals],
-            Owners = [.. task.Owners],
-            Comments = [.. task.Comments],
-            RemovedElements = [.. task.RemovedElements],
-            NewOwners = [.. task.NewOwners],
-            RemovedOwners = [.. task.RemovedOwners]
+            Id = 0,
+            TicketId = 0,
+            FlowAccessId = null,
+            Elements = [.. elements.Select(CloneElement)],
+            ImplementationTasks = [.. task.ImplementationTasks.Select(CloneImplementationTask)],
+            Approvals = [.. task.Approvals.Select(CloneApproval)],
+            Owners = [.. task.Owners.Select(CloneOwnerData)],
+            Comments = [.. task.Comments.Select(CloneComment)],
+            RemovedElements = [.. task.RemovedElements.Select(CloneElement)],
+            NewOwners = [.. task.NewOwners.Select(CloneOwner)],
+            RemovedOwners = [.. task.RemovedOwners.Select(CloneOwner)]
         };
+    }
+
+    private static WfReqElement CloneElement(WfReqElement element)
+    {
+        return new WfReqElement(element)
+        {
+            Cidr = CloneCidr(element.Cidr),
+            CidrEnd = CloneCidr(element.CidrEnd)
+        };
+    }
+
+    private static Cidr? CloneCidr(Cidr? cidr)
+    {
+        if (cidr == null)
+        {
+            return null;
+        }
+
+        return cidr.Valid ? new Cidr(cidr.CidrString) : new Cidr();
+    }
+
+    private static WfImplTask CloneImplementationTask(WfImplTask implTask)
+    {
+        return new WfImplTask(implTask)
+        {
+            Id = 0,
+            ReqTaskId = 0,
+            DeviceId = implTask.DeviceId,
+            ImplElements = [.. implTask.ImplElements.Select(CloneImplElement)],
+            Comments = [.. implTask.Comments.Select(CloneComment)],
+            RemovedElements = [.. implTask.RemovedElements.Select(CloneImplElement)],
+            TicketId = 0
+        };
+    }
+
+    private static WfImplElement CloneImplElement(WfImplElement element)
+    {
+        return new WfImplElement(element)
+        {
+            Cidr = CloneCidr(element.Cidr),
+            CidrEnd = CloneCidr(element.CidrEnd)
+        };
+    }
+
+    private static WfApproval CloneApproval(WfApproval approval)
+    {
+        return new WfApproval(approval)
+        {
+            Comments = [.. approval.Comments.Select(CloneComment)]
+        };
+    }
+
+    private static WfCommentDataHelper CloneComment(WfCommentDataHelper comment)
+    {
+        return new WfCommentDataHelper(new WfComment(comment.Comment));
+    }
+
+    private static FwoOwnerDataHelper CloneOwnerData(FwoOwnerDataHelper ownerData)
+    {
+        return new FwoOwnerDataHelper
+        {
+            Owner = new FwoOwner(ownerData.Owner)
+        };
+    }
+
+    private static FwoOwner CloneOwner(FwoOwner owner)
+    {
+        return new FwoOwner(owner);
     }
 
     private static void RenumberTasks(List<WfReqTask> tasks)

@@ -156,7 +156,7 @@ namespace FWO.Test
             SetMember(component, "userConfig", userConfig);
             SetMember(component, "configData", editableConfig);
             SetMember(component, "states", apiConnection.States);
-            SetMember(component, "stateIds", apiConnection.States.Select(state => state.Id).ToList());
+            SetMember(component, "stateIds", apiConnection.States.ConvertAll(state => state.Id));
             SetMember(component, "selectedApiTicketInitialStateId", 17);
             SetMember(component, "taskTypesActiveDict", Enum.GetValues<WfTaskType>().ToDictionary(type => type, _ => false));
             SetMember(component, "prioList", new List<WfPriority>());
@@ -242,7 +242,18 @@ namespace FWO.Test
             SimulatedGlobalConfig globalConfig = new()
             {
                 ReqAvailableTaskTypes = "[]",
-                ReqPriorities = "[]"
+                ReqPriorities = "[]",
+                ReqCreateRequestTaskSortConfig = new CreateRequestTaskSortConfig
+                {
+                    GroupCreatePriority = 99,
+                    GroupModifyAddPriority = 98,
+                    AccessPriority = 97,
+                    RuleModifyPriority = 96,
+                    RuleDeletePriority = 95,
+                    GroupModifyRemovePriority = 94,
+                    GroupDeletePriority = 93,
+                    AllowTaskSplit = false
+                }.ToConfigValue()
             };
             SimulatedUserConfig userConfig = new();
             ConfigData editableConfig = await globalConfig.GetEditableConfig();
@@ -300,7 +311,7 @@ namespace FWO.Test
             {
                 IRenderedComponent<SettingsCustomizing> settings = wrapper.FindComponent<SettingsCustomizing>();
                 string sortLabelText = userConfig.GetText("reqCreateRequestTaskSortConfig");
-                List<AngleSharp.Dom.IElement> sortLabels = settings.FindAll("label").ToList();
+                List<AngleSharp.Dom.IElement> sortLabels = [.. settings.FindAll("label")];
                 AngleSharp.Dom.IElement sortLabel = FindElementByText(sortLabels, sortLabelText);
                 Assert.That(sortLabel.GetAttribute("title"), Is.EqualTo(userConfig.PureLine("C9034")));
                 IRenderedComponent<CreateRequestTaskSortConfigPopup> popup = settings.FindComponent<CreateRequestTaskSortConfigPopup>();
@@ -309,7 +320,7 @@ namespace FWO.Test
 
             IRenderedComponent<SettingsCustomizing> settingsComponent = wrapper.FindComponent<SettingsCustomizing>();
             string expectedLabelText = userConfig.GetText("reqCreateRequestTaskSortConfig");
-            List<AngleSharp.Dom.IElement> labels = settingsComponent.FindAll("label").ToList();
+            List<AngleSharp.Dom.IElement> labels = [.. settingsComponent.FindAll("label")];
             AngleSharp.Dom.IElement label = FindElementByText(labels, expectedLabelText);
             label.ParentElement!.ParentElement!.QuerySelector("button")!.Click();
 
@@ -345,8 +356,8 @@ namespace FWO.Test
                 .Add(p => p.Display, true)
                 .Add(p => p.ConfigValue, new CreateRequestTaskSortConfig().ToConfigValue()));
 
-            List<AngleSharp.Dom.IElement> rows = popup.FindAll(".form-group.row.mt-2.align-items-center").ToList();
-            List<AngleSharp.Dom.IElement> allRows = popup.FindAll("div.form-group.row.mt-2").ToList();
+            List<AngleSharp.Dom.IElement> rows = [.. popup.FindAll(".form-group.row.mt-2.align-items-center")];
+            List<AngleSharp.Dom.IElement> allRows = [.. popup.FindAll("div.form-group.row.mt-2")];
             AngleSharp.Dom.IElement allowSplitRow = FindElementByText(allRows, userConfig.GetText("allow_task_split"));
 
             Assert.Multiple(() =>
@@ -444,14 +455,128 @@ namespace FWO.Test
                 .Add(p => p.ConfigValue, new CreateRequestTaskSortConfig().ToConfigValue())
                 .Add(p => p.ConfigValueChanged, EventCallback.Factory.Create<string>(this, _ => configChangedCalled = true)));
 
-            List<AngleSharp.Dom.IElement> buttonGroups = popup.FindAll(".btn-group").ToList();
-            List<AngleSharp.Dom.IElement> buttons = buttonGroups[buttonGroups.Count - 1].QuerySelectorAll("button").ToList();
-            buttons[buttons.Count - 1].Click();
+            List<AngleSharp.Dom.IElement> buttonGroups = [.. popup.FindAll(".btn-group")];
+            List<AngleSharp.Dom.IElement> buttons = [.. buttonGroups[^1].QuerySelectorAll("button")];
+            buttons[^1].Click();
 
             Assert.Multiple(() =>
             {
                 Assert.That(display, Is.False);
                 Assert.That(configChangedCalled, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task CreateRequestTaskSortConfigPopup_BlocksSavingWhenAccessWouldSortBeforeCreateGroup()
+        {
+            await using BunitContext context = new();
+            SimulatedUserConfig userConfig = new();
+            WorkflowCustomizingApiConn apiConnection = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ReqAvailableTaskTypes = "[]",
+                ReqPriorities = "[]",
+                ReqCreateRequestTaskSortConfig = new CreateRequestTaskSortConfig
+                {
+                    GroupCreatePriority = 99,
+                    GroupModifyAddPriority = 98,
+                    AccessPriority = 97,
+                    RuleModifyPriority = 96,
+                    RuleDeletePriority = 95,
+                    GroupModifyRemovePriority = 94,
+                    GroupDeletePriority = 93,
+                    AllowTaskSplit = false
+                }.ToConfigValue()
+            };
+            CreateRequestTaskSortConfig invalidSortConfig = new()
+            {
+                AccessPriority = 0,
+                GroupCreatePriority = 1,
+                GroupModifyAddPriority = 2,
+                RuleModifyPriority = 3,
+                RuleDeletePriority = 4,
+                GroupModifyRemovePriority = 5,
+                GroupDeletePriority = 6,
+                AllowTaskSplit = true
+            };
+            bool display = true;
+            Exception? displayedException = null;
+
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+            context.Services.AddSingleton<GlobalConfig>(globalConfig);
+            context.Services.AddSingleton<DomEventService>();
+
+            IRenderedComponent<CreateRequestTaskSortConfigPopup> popup = context.Render<CreateRequestTaskSortConfigPopup>(parameters => parameters
+                .Add(p => p.Display, true)
+                .Add(p => p.DisplayChanged, EventCallback.Factory.Create<bool>(this, value => display = value))
+                .Add(p => p.ConfigValue, invalidSortConfig.ToConfigValue())
+                .Add(p => p.DisplayMessageInUi, (Exception? exception, string _, string __, bool ___) => displayedException = exception));
+
+            popup.Find("button.btn.btn-primary").Click();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(0));
+                Assert.That(display, Is.True);
+                Assert.That(displayedException, Is.Not.Null);
+                Assert.That(displayedException!.Message, Does.Contain(userConfig.GetText("create_group")));
+                Assert.That(displayedException.Message, Does.Contain(userConfig.GetText("access")));
+            });
+        }
+
+        [Test]
+        public async Task CreateRequestTaskSortConfigPopup_ShowsErrorWhenSavingFails()
+        {
+            await using BunitContext context = new();
+            SimulatedUserConfig userConfig = new();
+            WorkflowCustomizingApiConn apiConnection = new()
+            {
+                ThrowOnUpsertConfig = true
+            };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ReqAvailableTaskTypes = "[]",
+                ReqPriorities = "[]",
+                ReqCreateRequestTaskSortConfig = new CreateRequestTaskSortConfig
+                {
+                    GroupCreatePriority = 99,
+                    GroupModifyAddPriority = 98,
+                    AccessPriority = 97,
+                    RuleModifyPriority = 96,
+                    RuleDeletePriority = 95,
+                    GroupModifyRemovePriority = 94,
+                    GroupDeletePriority = 93,
+                    AllowTaskSplit = false
+                }.ToConfigValue()
+            };
+            bool display = true;
+            string? savedValue = null;
+            Exception? displayedException = null;
+
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+            context.Services.AddSingleton<GlobalConfig>(globalConfig);
+            context.Services.AddSingleton<DomEventService>();
+
+            IRenderedComponent<CreateRequestTaskSortConfigPopup> popup = context.Render<CreateRequestTaskSortConfigPopup>(parameters => parameters
+                .Add(p => p.Display, true)
+                .Add(p => p.DisplayChanged, EventCallback.Factory.Create<bool>(this, value => display = value))
+                .Add(p => p.ConfigValue, new CreateRequestTaskSortConfig().ToConfigValue())
+                .Add(p => p.ConfigValueChanged, EventCallback.Factory.Create<string>(this, value => savedValue = value))
+                .Add(p => p.DisplayMessageInUi, (Exception? exception, string _, string __, bool ___) => displayedException = exception));
+
+            popup.Find("button.btn.btn-primary").Click();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+                Assert.That(display, Is.True);
+                Assert.That(savedValue, Is.Null);
+                Assert.That(displayedException, Is.Not.Null);
+                Assert.That(displayedException!.Message, Does.Contain("upsert failed"));
             });
         }
 
@@ -487,7 +612,7 @@ namespace FWO.Test
 
             popup.WaitForAssertion(() =>
             {
-                List<AngleSharp.Dom.IElement> rows = popup.FindAll(".form-group.row.mt-2.align-items-center").ToList();
+                List<AngleSharp.Dom.IElement> rows = [.. popup.FindAll(".form-group.row.mt-2.align-items-center")];
                 Assert.That(rows[0].TextContent, Does.Contain(userConfig.GetText("group_modify") + userConfig.GetText("add_members")));
                 Assert.That(rows[1].TextContent, Does.Contain(userConfig.GetText("create_group")));
             });
@@ -534,7 +659,7 @@ namespace FWO.Test
                 .Add(p => p.Display, true)
                 .Add(p => p.ConfigValue, sortConfig.ToConfigValue()));
 
-            List<AngleSharp.Dom.IElement> rows = popup.FindAll(".form-group.row.mt-2.align-items-center").ToList();
+            List<AngleSharp.Dom.IElement> rows = [.. popup.FindAll(".form-group.row.mt-2.align-items-center")];
 
             Assert.Multiple(() =>
             {
@@ -606,7 +731,7 @@ namespace FWO.Test
                 .Add(p => p.Display, true)
                 .Add(p => p.ConfigValue, configValue));
 
-            IReadOnlyList<IRenderedComponent<Dropdown<string>>> dropdowns = component.FindComponents<Dropdown<string>>();
+            List<IRenderedComponent<Dropdown<string>>> dropdowns = [.. component.FindComponents<Dropdown<string>>()];
 
             Assert.Multiple(() =>
             {
@@ -661,6 +786,7 @@ namespace FWO.Test
             public int UpsertConfigCallCount { get; private set; }
             public List<ConfigItem> LastConfigItems { get; private set; } = [];
             public List<WfState> States { get; set; } = [new WfState { Id = 0, Name = "draft" }];
+            public bool ThrowOnUpsertConfig { get; set; } = false;
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
@@ -672,6 +798,11 @@ namespace FWO.Test
                 if (query == ConfigQueries.upsertConfigItems)
                 {
                     UpsertConfigCallCount++;
+                    if (ThrowOnUpsertConfig)
+                    {
+                        return Task.FromException<QueryResponseType>(new InvalidOperationException("upsert failed"));
+                    }
+
                     PropertyInfo configItemsProperty = variables?.GetType().GetProperty("config_items")
                         ?? throw new MissingFieldException("config_items");
                     LastConfigItems = ((IEnumerable<ConfigItem>)configItemsProperty.GetValue(variables)!).ToList();
@@ -686,7 +817,12 @@ namespace FWO.Test
         {
             public override Task<AuthenticationState> GetAuthenticationStateAsync()
             {
-                List<Claim> claims = roles.Select(role => new Claim(ClaimTypes.Role, role)).ToList();
+                List<Claim> claims = [];
+                foreach (string role in roles)
+                {
+                    claims.Add(new Claim(ClaimTypes.Role, role));
+                }
+
                 ClaimsIdentity identity = new(claims, "Test");
                 return Task.FromResult(new AuthenticationState(new ClaimsPrincipal(identity)));
             }

@@ -654,6 +654,31 @@ namespace FWO.Test
         }
 
         [Test]
+        public void OwnerRecertificationGenerateHtmlShowsOnlyEmptyStateWhenNoOwnersMatch()
+        {
+            ReportOwnerRecerts report = new(new DynGraphqlQuery(""), userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerAddInfoFilter = new AddInfoFilter
+            {
+                Name = "business_unit",
+                Mode = AddInfoFilterMode.value,
+                Value = "missing"
+            };
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+            string csv = report.ExportToCsv();
+
+            StringAssert.Contains("No recertifiable owners assigned", html);
+            StringAssert.DoesNotContain("Statistics", html);
+            StringAssert.DoesNotContain("No overdue owners", html);
+            StringAssert.Contains("# No recertifiable owners assigned", csv);
+            StringAssert.DoesNotContain("# Statistics", csv);
+            StringAssert.DoesNotContain("# Overdue owners:", csv);
+        }
+
+        [Test]
         public void OwnerRecertificationGenerateHtmlSkipsEmptyDeviceFilterLine()
         {
             ReportOwnerRecerts report = new(new DynGraphqlQuery(""), userConfig, ReportType.OwnerRecertification)

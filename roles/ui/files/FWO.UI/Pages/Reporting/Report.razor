@@ -383,7 +383,10 @@
             .OrderBy(addInfoName => addInfoName, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        availableOwnerAddInfoNames = distinctAddInfoNames.Count > 0 ? distinctAddInfoNames : null;
+        if (distinctAddInfoNames.Count > 0)
+        {
+            availableOwnerAddInfoNames = distinctAddInfoNames;
+        }
     }
 
 
@@ -453,11 +456,6 @@
             UpdateRightSidebarVisibility(newReportType);
 
             actReportFilters.ReportType = newReportType;
-            if (newReportType == ReportType.Owners)
-            {
-                actReportFilters.ModellingFilter.OwnerAddInfoFilter = new();
-                actReportFilters.ModellingFilter.OwnerAdditionalInfoKey = "";
-            }
             apiConnection.SetBestRoleForReport(authenticationStateTask!.Result.User, actReportFilters.ReportType);
             actReportFilters.SetDisplayedTimeSelection();
             AdjustDeviceSelection();

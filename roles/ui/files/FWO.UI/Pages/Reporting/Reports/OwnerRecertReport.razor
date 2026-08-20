@@ -32,14 +32,14 @@
     @if (MergeOwnerRecertTables)
     {
         <h5>@(GetMergedHeadline())</h5>
-        <OwnerRecertTable Owners="mergedOwners" AdditionalInfoKey="@GetEffectiveOwnerAdditionalInfoKey()" />
+        <OwnerRecertTable Owners="mergedOwners" AdditionalInfoKey="@GetDisplayOwnerAdditionalInfoKey()" />
     }
     else
     {
         @if (overdueOwners.Count > 0)
         {
             <h5>@(GetOverdueHeadline())</h5>
-            <OwnerRecertTable Owners="overdueOwners" AdditionalInfoKey="@GetEffectiveOwnerAdditionalInfoKey()" />
+            <OwnerRecertTable Owners="overdueOwners" AdditionalInfoKey="@GetDisplayOwnerAdditionalInfoKey()" />
         }
         else
         {
@@ -49,7 +49,7 @@
         @if (upcomingOwners.Count > 0)
         {
             <h5>@(GetUpcomingHeadline())</h5>
-            <OwnerRecertTable Owners="upcomingOwners" AdditionalInfoKey="@GetEffectiveOwnerAdditionalInfoKey()" />
+            <OwnerRecertTable Owners="upcomingOwners" AdditionalInfoKey="@GetDisplayOwnerAdditionalInfoKey()" />
         }
         else if (RecertificationDisplayPeriod > 0)
         {
@@ -59,12 +59,12 @@
         @if (furtherOwners.Count > 0)
         {
             <h5>@(GetFurtherHeadline())</h5>
-            <OwnerRecertTable Owners="furtherOwners" AdditionalInfoKey="@GetEffectiveOwnerAdditionalInfoKey()" />
+            <OwnerRecertTable Owners="furtherOwners" AdditionalInfoKey="@GetDisplayOwnerAdditionalInfoKey()" />
         }
         @if (inactiveOwners.Count > 0)
         {
             <h5>@(GetInactiveHeadline())</h5>
-            <OwnerRecertTable Owners="inactiveOwners" ShowRecertData="false" AdditionalInfoKey="@GetEffectiveOwnerAdditionalInfoKey()" />
+            <OwnerRecertTable Owners="inactiveOwners" ShowRecertData="false" AdditionalInfoKey="@GetDisplayOwnerAdditionalInfoKey()" />
         }
     }
 }
@@ -120,8 +120,13 @@ else
         allRecertified = !furtherOwners.Any(o => o.NextRecertDate == null);
     }
 
-    private string GetEffectiveOwnerAdditionalInfoKey()
+    private string GetDisplayOwnerAdditionalInfoKey()
     {
+        if (effectiveOwnerAddInfoFilter.Mode == AddInfoFilterMode.not_existing)
+        {
+            return "";
+        }
+
         return !string.IsNullOrWhiteSpace(effectiveOwnerAddInfoFilter.Name)
             ? effectiveOwnerAddInfoFilter.Name
             : OwnerAdditionalInfoKey;

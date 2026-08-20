@@ -273,13 +273,14 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ReportTemplateComponent_GetOwnerAdditionalInfoKeys_DeduplicatesAndSortsKeys()
+        public void ReportTemplateComponent_RefreshAvailableAddInfoNames_DeduplicatesAndSortsKeys()
         {
-            MethodInfo? method = typeof(ReportTemplateComponent).GetMethod("GetOwnerAdditionalInfoKeys", BindingFlags.NonPublic | BindingFlags.Static);
+            MethodInfo? method = typeof(ReportTemplateComponent).GetMethod("RefreshAvailableAddInfoNames", BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.That(method, Is.Not.Null);
 
-            List<FwoOwner> owners =
-            [
+            ReportTemplateComponent component = new();
+            SetPrivateField(component, "recertOwnerList", new List<FwoOwner>
+            {
                 new()
                 {
                     AdditionalInfo = new Dictionary<string, string>
@@ -296,12 +297,29 @@ namespace FWO.Test
                         ["REGION"] = "APAC"
                     }
                 }
-            ];
+            });
 
-            object?[] invokeArgs = [owners];
-            List<string> keys = (List<string>)method!.Invoke(null, invokeArgs)!;
+            method!.Invoke(component, null);
 
-            Assert.That(keys, Is.EqualTo(new List<string> { "business_unit", "region", "service_tier" }));
+            List<string>? availableAddInfoNames = GetPrivateField<List<string>?>(component, "availableAddInfoNames");
+
+            Assert.That(availableAddInfoNames, Is.EqualTo(new List<string> { "business_unit", "region", "service_tier" }));
+        }
+
+        [Test]
+        public void ReportTemplateComponent_RefreshAvailableAddInfoNames_KeepsNullWhenNoNamesExist()
+        {
+            MethodInfo? method = typeof(ReportTemplateComponent).GetMethod("RefreshAvailableAddInfoNames", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(method, Is.Not.Null);
+
+            ReportTemplateComponent component = new();
+            SetPrivateField(component, "recertOwnerList", new List<FwoOwner>());
+
+            method!.Invoke(component, null);
+
+            List<string>? availableAddInfoNames = GetPrivateField<List<string>?>(component, "availableAddInfoNames");
+
+            Assert.That(availableAddInfoNames, Is.Null);
         }
 
         [Test]

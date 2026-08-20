@@ -97,6 +97,27 @@ namespace FWO.Test
         }
 
         [Test]
+        public void OwnerRecertReport_HidesAdditionalInfoColumnForNotExistingMode()
+        {
+            List<OwnerConnectionReport> ownerData =
+            [
+                BuildOwnerReport("EXT-A", "A Owner", DateTime.Today.AddDays(-1), new Dictionary<string, string> { ["department"] = "A" })
+            ];
+
+            IRenderedComponent<OwnerRecertReport> cut = Render<OwnerRecertReport>(parameters => parameters
+                .Add(p => p.OwnerData, ownerData)
+                .Add(p => p.OwnerAddInfoFilter, new AddInfoFilter
+                {
+                    Name = "department",
+                    Mode = AddInfoFilterMode.not_existing
+                })
+                .Add(p => p.RecertificationDisplayPeriod, 7));
+
+            Assert.That(cut.Markup, Does.Not.Contain("Add. Info: department"));
+            Assert.That(cut.Markup, Does.Not.Contain("department"));
+        }
+
+        [Test]
         public void OwnerRecertReport_AddInfoFilterHidesNonMatchingOwners()
         {
             List<OwnerConnectionReport> ownerData =

@@ -23,7 +23,7 @@ namespace FWO.Report
 
         public override string ExportToCsv()
         {
-            (AddInfoFilter ownerAddInfoFilter, List<FwoOwner> overdueOwners, List<FwoOwner> upcomingOwners,
+            (AddInfoFilter ownerAddInfoFilter, List<OwnerConnectionReport> displayedOwnerData, List<FwoOwner> overdueOwners, List<FwoOwner> upcomingOwners,
                 List<FwoOwner> furtherOwners, List<FwoOwner> inactiveOwners) = PrepareOwnerRecertCollections();
 
             StringBuilder report = new();
@@ -37,6 +37,11 @@ namespace FWO.Report
             if (!string.IsNullOrWhiteSpace(Query.RawFilter))
             {
                 report.AppendLine($"# {userConfig.GetText("other_filters")}: {Query.RawFilter}");
+            }
+            if (displayedOwnerData.Count == 0)
+            {
+                report.AppendLine($"# {userConfig.GetText("no_recertifiable_owners_assigned")}");
+                return report.ToString();
             }
             report.AppendLine($"# {userConfig.GetText("statistics")}");
             report.AppendLine($"# {GetOverdueHeadline()}: {overdueOwners.Count}");
@@ -80,15 +85,24 @@ namespace FWO.Report
 
         public override string ExportToHtml()
         {
-            (AddInfoFilter ownerAddInfoFilter, List<FwoOwner> overdueOwners, List<FwoOwner> upcomingOwners,
+            (AddInfoFilter ownerAddInfoFilter, List<OwnerConnectionReport> displayedOwnerData, List<FwoOwner> overdueOwners, List<FwoOwner> upcomingOwners,
                 List<FwoOwner> furtherOwners, List<FwoOwner> inactiveOwners) = PrepareOwnerRecertCollections();
 
             StringBuilder report = new();
+            string addInfoFilterSummary = BuildOwnerAddInfoFilterSummary(ownerAddInfoFilter);
+            if (displayedOwnerData.Count == 0)
+            {
+                report.AppendLine(userConfig.GetText("no_recertifiable_owners_assigned"));
+                return GenerateHtmlFrameBase(userConfig.GetText(ReportType.ToString()), addInfoFilterSummary, DateTime.Now, report, new HtmlFrameOptions
+                {
+                    OtherFilter = Query.RawFilter
+                });
+            }
+
             AppendOwnerRecertStatisticsHtml(ref report, overdueOwners, upcomingOwners, furtherOwners, inactiveOwners);
             report.AppendLine("<hr>");
             AppendOwnerRecertTablesHtml(ref report, overdueOwners, upcomingOwners, furtherOwners, inactiveOwners, ownerAddInfoFilter);
 
-            string addInfoFilterSummary = BuildOwnerAddInfoFilterSummary(ownerAddInfoFilter);
             return GenerateHtmlFrameBase(userConfig.GetText(ReportType.ToString()), addInfoFilterSummary, DateTime.Now, report, new HtmlFrameOptions
             {
                 OtherFilter = Query.RawFilter,
@@ -96,7 +110,7 @@ namespace FWO.Report
             });
         }
 
-        private (AddInfoFilter OwnerAddInfoFilter, List<FwoOwner> OverdueOwners, List<FwoOwner> UpcomingOwners,
+        private (AddInfoFilter OwnerAddInfoFilter, List<OwnerConnectionReport> DisplayedOwnerData, List<FwoOwner> OverdueOwners, List<FwoOwner> UpcomingOwners,
             List<FwoOwner> FurtherOwners, List<FwoOwner> InactiveOwners) PrepareOwnerRecertCollections()
         {
             AddInfoFilter ownerAddInfoFilter = GetEffectiveOwnerAddInfoFilter();
@@ -105,7 +119,7 @@ namespace FWO.Report
             List<FwoOwner> upcomingOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => ow.RecertUpcoming)];
             List<FwoOwner> furtherOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => ow.RecertActive && !ow.RecertOverdue && !ow.RecertUpcoming)];
             List<FwoOwner> inactiveOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(ow => !ow.RecertActive).OrderBy(ow => ow.Id)];
-            return (ownerAddInfoFilter, overdueOwners, upcomingOwners, furtherOwners, inactiveOwners);
+            return (ownerAddInfoFilter, displayedOwnerData, overdueOwners, upcomingOwners, furtherOwners, inactiveOwners);
         }
 
         private void AppendOwnerRecertStatisticsHtml(ref StringBuilder report, List<FwoOwner> overdueOwners, List<FwoOwner> upcomingOwners,

@@ -130,7 +130,7 @@
             @if (reportTypeInEdit == ReportType.OwnerRecertification)
             {
                 <ReportOwnerRecertParamSelection @bind-ModellingFilter="reportTemplateInEdit.ReportParams.ModellingFilter"
-                                                  AvailableAddInfoNames="GetOwnerAdditionalInfoKeys(recertOwnerList)"
+                                                  AvailableAddInfoNames="availableAddInfoNames"
                                                   IdPrefix="templateOwnerAddInfo"
                                                   UseLightText="false"
                                                   UseFormLayout="true" />
@@ -248,6 +248,7 @@
     public ReportTemplate reportTemplateInEdit = new();
     private ReportType reportTypeInEdit = ReportType.Rules;
     private List<FwoOwner> recertOwnerList = [];
+    private List<string>? availableAddInfoNames;
     private List<FwoOwner> modOwnerList = [];
 
     private string tmpTemplateCommentKey = "";
@@ -270,6 +271,7 @@
         try
         {
             recertOwnerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            RefreshAvailableAddInfoNames();
             if (reportVisibility.ModellingRelated)
             {
                 modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection,
@@ -304,14 +306,16 @@
         }
     }
 
-    private static List<string> GetOwnerAdditionalInfoKeys(IEnumerable<FwoOwner> owners)
+    private void RefreshAvailableAddInfoNames()
     {
-        return owners
+        List<string> addInfoNames = recertOwnerList
             .SelectMany(owner => owner.AdditionalInfo?.Keys ?? Enumerable.Empty<string>())
             .Where(key => !string.IsNullOrWhiteSpace(key))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(key => key, StringComparer.OrdinalIgnoreCase)
             .ToList();
+
+        availableAddInfoNames = addInfoNames.Count > 0 ? addInfoNames : null;
     }
 
     public void Collapse()

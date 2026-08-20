@@ -156,10 +156,11 @@ public sealed class FlowComplianceService
                 Name = policyResolved ? policy!.Name : string.Empty
             },
             Violations = complianceCheck.CurrentViolationsInCheck
-                .Select(violation => new FlowComplianceStateResponse.ComplianceViolationResponse
+                .GroupBy(violation => MapViolationType(violation, complianceCheck.Policy))
+                .Select(violationGroup => new FlowComplianceStateResponse.ComplianceViolationResponse
                 {
-                    Id = violation.Id,
-                    Type = MapViolationType(violation, complianceCheck.Policy)
+                    Type = violationGroup.Key,
+                    Count = violationGroup.Count()
                 })
                 .ToList()
         };

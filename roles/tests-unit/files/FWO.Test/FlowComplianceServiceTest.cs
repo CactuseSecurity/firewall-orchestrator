@@ -86,6 +86,8 @@ internal class FlowComplianceServiceTest
             Assert.That(result[0].Policy.Name, Is.EqualTo("Matrix and Service Policy"));
             Assert.That(result[0].Violations, Has.Count.EqualTo(2));
             Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix", "ForbiddenService" }));
+            Assert.That(result[0].Violations.Single(v => v.Type == "Matrix").Count, Is.EqualTo(1));
+            Assert.That(result[0].Violations.Single(v => v.Type == "ForbiddenService").Count, Is.EqualTo(2));
             Assert.That(apiConnection.CountQueries(ConfigQueries.getLanguages), Is.EqualTo(0));
             Assert.That(apiConnection.CountQueries(ConfigQueries.getTextsPerLanguage), Is.EqualTo(0));
             Assert.That(apiConnection.SentQueries, Does.Contain(ComplianceQueries.getPolicyById));
@@ -155,8 +157,10 @@ internal class FlowComplianceServiceTest
         {
             Assert.That(result[0].Policy.Id, Is.EqualTo(7));
             Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix", "ForbiddenService" }));
+            Assert.That(result[0].Violations.Single(v => v.Type == "ForbiddenService").Count, Is.EqualTo(2));
             Assert.That(result[1].Policy.Id, Is.EqualTo(8));
             Assert.That(result[1].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix" }));
+            Assert.That(result[1].Violations.Single().Count, Is.EqualTo(1));
             Assert.That(apiConnection.CountQueries(DeviceQueries.getManagementNames), Is.EqualTo(1));
             Assert.That(apiConnection.CountQueries(ComplianceQueries.getNetworkZonesForMatrix), Is.EqualTo(1));
             Assert.That(apiConnection.CountQueries(ComplianceQueries.getPolicyById), Is.EqualTo(2));
@@ -262,6 +266,16 @@ internal class FlowComplianceServiceTest
                     {
                         Id = 102,
                         Name = "Forbidden Service",
+                        CriterionType = nameof(CriterionType.ForbiddenService),
+                        Content = "443/TCP"
+                    }
+                },
+                new ComplianceCriterionWrapper
+                {
+                    Content = new ComplianceCriterion
+                    {
+                        Id = 103,
+                        Name = "Forbidden Service Duplicate",
                         CriterionType = nameof(CriterionType.ForbiddenService),
                         Content = "443/TCP"
                     }

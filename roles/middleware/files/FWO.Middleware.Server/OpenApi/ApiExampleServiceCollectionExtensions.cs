@@ -294,8 +294,8 @@ public sealed class FlowComplianceStateResponseExample : ApiExampleProvider<Flow
         [
             new FlowComplianceStateResponse.ComplianceViolationResponse
             {
-                Id = 3,
-                Type = "missing-approval"
+                Type = "ForbiddenService",
+                Count = 3
             }
         ]
     };

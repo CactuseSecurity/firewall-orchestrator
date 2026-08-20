@@ -43,15 +43,15 @@ public sealed class FlowComplianceStateResponse
     public sealed class ComplianceViolationResponse
     {
         /// <summary>
-        /// Gets the Id value.
-        /// </summary>
-        [JsonPropertyName("id")]
-        public int Id { get; set; }
-
-        /// <summary>
         /// Gets the Type value.
         /// </summary>
         [JsonPropertyName("type")]
         public string Type { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets the Count value.
+        /// </summary>
+        [JsonPropertyName("count")]
+        public int Count { get; set; }
     }
 }

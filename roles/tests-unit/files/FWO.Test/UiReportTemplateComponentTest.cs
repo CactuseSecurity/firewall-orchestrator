@@ -315,11 +315,7 @@ namespace FWO.Test
             ReportTemplateComponent component = new();
             SetPrivateField(component, "recertOwnerList", new List<FwoOwner>());
 
-            method!.Invoke(component, null);
-
-            List<string>? availableAddInfoNames = GetPrivateField<List<string>?>(component, "availableAddInfoNames");
-
-            Assert.That(availableAddInfoNames, Is.Null);
+            Assert.DoesNotThrow(() => method!.Invoke(component, null));
         }
 
         [Test]

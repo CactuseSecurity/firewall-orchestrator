@@ -503,10 +503,43 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(states.Select(state => state.Name).ToList(), Is.EqualTo(new List<string> { "Open", "Approved" }));
-                Assert.That(apiConn.Queries, Is.EqualTo(new List<string> { RequestQueries.upsertState }));
+                Assert.That(apiConn.Queries, Is.EqualTo(new List<string> { RequestQueries.updateState }));
                 Assert.That(GetPrivateField<bool>(component, "EditStateMode"), Is.False);
                 Assert.That(GetVariable<int>(apiConn.Variables[0], "id"), Is.EqualTo(2));
                 Assert.That(GetVariable<string>(apiConn.Variables[0], "name"), Is.EqualTo("Approved"));
+            });
+        }
+
+        [Test]
+        public async Task EditState_ClearsStaleAddStateModeBeforeSavingExistingState()
+        {
+            SettingsStates component = new();
+            SettingsStatesTestApiConn apiConn = new();
+            WfState existingState = new()
+            {
+                Id = 2,
+                Name = "Done"
+            };
+            SetInjectedApiConnection(component, apiConn);
+            SetMember(component, "userConfig", new SimulatedUserConfig());
+            SetPrivateField(component, "states", new List<WfState>
+            {
+                new() { Id = 1, Name = "Open" },
+                existingState
+            });
+            SetPrivateField(component, "actState", existingState);
+            SetPrivateField(component, "AddStateMode", true);
+            SetPrivateField(component, "EditStateMode", false);
+
+            GetPrivateMethod("EditState").Invoke(component, new object?[] { existingState });
+            Task task = (Task)GetPrivateMethod("SaveState").Invoke(component, null)!;
+            await task;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries, Is.EqualTo(new List<string> { RequestQueries.updateState }));
+                Assert.That(GetPrivateField<bool>(component, "AddStateMode"), Is.False);
+                Assert.That(GetPrivateField<bool>(component, "EditStateMode"), Is.False);
             });
         }
 
@@ -573,7 +606,7 @@ namespace FWO.Test
                 Assert.That(GetPrivateField<bool>(component, "EditStateMode"), Is.False);
                 Assert.That(apiConn.Queries, Is.EqualTo(new List<string>
                 {
-                    RequestQueries.upsertState,
+                    RequestQueries.createState,
                     RequestQueries.addStateAction,
                     RequestQueries.addStateAction
                 }));

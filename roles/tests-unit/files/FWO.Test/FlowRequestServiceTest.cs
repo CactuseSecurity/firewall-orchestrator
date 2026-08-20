@@ -431,6 +431,7 @@ internal class FlowRequestServiceTest
             Assert.That(GetVariable(apiConnection.NewTicketVariables, "state"), Is.EqualTo(49));
             Assert.That(globalConfig.ReqApiTicketInitialStateId, Is.EqualTo(49));
             Assert.That(apiConnection.ConfigSubscriptionQuery, Is.EqualTo(ConfigQueries.subscribeFlowRequestConfigChanges));
+            Assert.That(apiConnection.ConfigSubscriptionQuery, Does.Contain("config_user: {_eq: 0}"));
         });
     }
 
@@ -873,10 +874,27 @@ internal class FlowRequestServiceTest
         service.Dispose();
     }
 
-    [Test]
-    public async Task CreateRequest_ReturnsInternalServerErrorWhenConfiguredInitialStateIsMissing()
-    {
-        FlowRequestServiceApiConn apiConnection = new()
+        [Test]
+        public async Task Dispose_DisposesRecreatedConfigSubscriptionAfterReconnect()
+        {
+            FlowRequestServiceReconnectApiConn apiConnection = new();
+            FlowRequestService service = new(apiConnection, new GlobalConfig());
+
+            await apiConnection.ReconnectSubscriptionsAsync("jwt", CancellationToken.None);
+            service.Dispose();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.CreatedSubscriptions, Has.Count.EqualTo(2));
+                Assert.That(apiConnection.CreatedSubscriptions[0].DisposeCount, Is.EqualTo(1));
+                Assert.That(apiConnection.CreatedSubscriptions[1].DisposeCount, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task CreateRequest_ReturnsInternalServerErrorWhenConfiguredInitialStateIsMissing()
+        {
+            FlowRequestServiceApiConn apiConnection = new()
         {
             States = new List<WfState> { new() { Id = 0, Name = "draft" } },
             Protocols = new List<IpProtocol> { new() { Id = 6, Name = "tcp" } }
@@ -1699,6 +1717,7 @@ internal class FlowRequestServiceTest
         public WfTicket? CreatedTicket { get; private set; }
         public string? ConfigSubscriptionQuery { get; private set; }
         public object? ConfigSubscriptionVariables { get; private set; }
+        private List<TrackingConfigSubscription> CreatedConfigSubscriptions { get; } = [];
         private long nextId = 99;
         private Action<ConfigItem[]>? configSubscriptionUpdateHandler;
 
@@ -1786,12 +1805,14 @@ internal class FlowRequestServiceTest
                 ConfigSubscriptionVariables = variables;
                 configSubscriptionUpdateHandler = configItems =>
                     subscriptionUpdateHandler((SubscriptionResponseType)(object)configItems);
-                return new SimulatedApiSubscription<SubscriptionResponseType>(
+                TrackingConfigSubscription createdSubscription = new(
                     this,
                     new GraphQLHttpClient(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient()),
                     new GraphQLRequest(subscription, variables, operationName),
                     exceptionHandler,
-                    subscriptionUpdateHandler);
+                    (GraphQlApiSubscription<ConfigItem[]>.SubscriptionUpdate)(object)subscriptionUpdateHandler);
+                CreatedConfigSubscriptions.Add(createdSubscription);
+                return (GraphQlApiSubscription<SubscriptionResponseType>)(object)createdSubscription;
             }
 
             throw new NotImplementedException();
@@ -1819,6 +1840,15 @@ internal class FlowRequestServiceTest
 
         public override void DisposeSubscriptions<T>()
         {
+            if (typeof(T) != typeof(ConfigItem[]))
+            {
+                return;
+            }
+
+            foreach (TrackingConfigSubscription subscription in CreatedConfigSubscriptions.Where(subscription => !subscription.IsDisposed))
+            {
+                subscription.Dispose();
+            }
         }
 
         public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
@@ -1885,6 +1915,101 @@ internal class FlowRequestServiceTest
                 },
                 Tasks = tasks
             };
+        }
+
+        private sealed class TrackingConfigSubscription : SimulatedApiSubscription<ConfigItem[]>
+        {
+            public int DisposeCount { get; private set; }
+
+            public TrackingConfigSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request,
+                Action<Exception> exceptionHandler, SubscriptionUpdate onUpdate)
+                : base(apiConnection, graphQlClient, request, exceptionHandler, onUpdate)
+            { }
+
+            protected override void Dispose(bool disposing)
+            {
+                DisposeCount++;
+                base.Dispose(disposing);
+            }
+        }
+    }
+
+    private sealed class FlowRequestServiceReconnectApiConn : SimulatedApiConnection
+    {
+        public List<TrackingConfigSubscription> CreatedSubscriptions { get; } = [];
+        private GraphQLRequest? request;
+        private Action<Exception>? exceptionHandler;
+        private GraphQlApiSubscription<ConfigItem[]>.SubscriptionUpdate? subscriptionUpdateHandler;
+
+        public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler,
+            GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
+        {
+            if (typeof(SubscriptionResponseType) != typeof(ConfigItem[]))
+            {
+                throw new NotImplementedException();
+            }
+
+            request = new GraphQLRequest(subscription, variables, operationName);
+            this.exceptionHandler = exceptionHandler;
+            this.subscriptionUpdateHandler = (GraphQlApiSubscription<ConfigItem[]>.SubscriptionUpdate)(object)subscriptionUpdateHandler;
+
+            TrackingConfigSubscription createdSubscription = CreateSubscription();
+            CreatedSubscriptions.Add(createdSubscription);
+            return (GraphQlApiSubscription<SubscriptionResponseType>)(object)createdSubscription;
+        }
+
+        public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
+        {
+            if (request == null || exceptionHandler == null || subscriptionUpdateHandler == null)
+            {
+                return Task.CompletedTask;
+            }
+
+            if (CreatedSubscriptions.Count > 0)
+            {
+                CreatedSubscriptions[^1].Dispose();
+            }
+
+            TrackingConfigSubscription recreatedSubscription = CreateSubscription();
+            CreatedSubscriptions.Add(recreatedSubscription);
+            return Task.CompletedTask;
+        }
+
+        public override void DisposeSubscriptions<T>()
+        {
+            if (typeof(T) != typeof(ConfigItem[]))
+            {
+                return;
+            }
+
+            foreach (TrackingConfigSubscription subscription in CreatedSubscriptions.Where(subscription => !subscription.IsDisposed))
+            {
+                subscription.Dispose();
+            }
+        }
+
+        private TrackingConfigSubscription CreateSubscription()
+        {
+            return new TrackingConfigSubscription(
+                this,
+                request!,
+                exceptionHandler!,
+                subscriptionUpdateHandler!);
+        }
+    }
+
+    private sealed class TrackingConfigSubscription : SimulatedApiSubscription<ConfigItem[]>
+    {
+        public int DisposeCount { get; private set; }
+
+        public TrackingConfigSubscription(ApiConnection apiConnection, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate onUpdate)
+            : base(apiConnection, new GraphQLHttpClient(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient()), request, exceptionHandler, onUpdate)
+        { }
+
+        protected override void Dispose(bool disposing)
+        {
+            DisposeCount++;
+            base.Dispose(disposing);
         }
     }
 }

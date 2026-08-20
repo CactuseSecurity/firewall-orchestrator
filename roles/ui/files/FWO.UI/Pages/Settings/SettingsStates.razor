@@ -52,7 +52,7 @@
         </Table>
     </div>
 
-    <PopUp Title="@(userConfig.GetText("edit_state"))" Show="@EditStateMode" Size=PopupSize.Large OnClose="() => EditStateMode = false">
+    <PopUp Title="@(userConfig.GetText("edit_state"))" Show="@EditStateMode" Size=PopupSize.Large OnClose="CloseEditState">
         <Body>
             @if (EditStateMode)
             {
@@ -277,18 +277,19 @@ else
 
     private void AddState()
     {
-        AddStateMode = true;
         int firstFreeId = 0;
         while (states.Find(x => x.Id == firstFreeId) != null)
         {
             firstFreeId++;
         }
         EditState(new WfState(){ Id = firstFreeId });
+        AddStateMode = true;
     }
 
     private void EditState(WfState state)
     {
         actState = state;
+        AddStateMode = false;
         EditStateMode = true;
     }
 
@@ -302,9 +303,9 @@ else
                 return;
             }
 
-            await apiConnection.SendQueryAsync<object>(RequestQueries.upsertState, new { id = actState.Id, name = actState.Name, automaticOnly = actState.AutomaticOnly });
             if(AddStateMode)
             {
+                await apiConnection.SendQueryAsync<object>(RequestQueries.createState, new { id = actState.Id, name = actState.Name, automaticOnly = actState.AutomaticOnly });
                 states.Add(actState);
                 states = states.OrderBy(x => x.Id).ToList();
                 NormalizeActionSortOrder(actState);
@@ -315,6 +316,7 @@ else
             }
             else
             {
+                await apiConnection.SendQueryAsync<object>(RequestQueries.updateState, new { id = actState.Id, name = actState.Name, automaticOnly = actState.AutomaticOnly });
                 states[states.FindIndex(x => x.Id == actState.Id)] = actState;
             }
             EditStateMode = false;
@@ -332,6 +334,12 @@ else
         AddStateMode = false;
         DeleteStateMode = false;
         EditExtStatesMode = false;
+    }
+
+    private void CloseEditState()
+    {
+        EditStateMode = false;
+        AddStateMode = false;
     }
 
     private void RequestDeleteState(WfState state)

@@ -821,6 +821,6 @@ public sealed class FlowRequestService : IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
-        configSubscription.Dispose();
+        apiConnection.DisposeSubscriptions<ConfigItem[]>();
     }
 }

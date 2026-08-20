@@ -80,6 +80,16 @@ def test_normalize_services_adds_builtin_imap_port() -> None:
     assert "placeholder" not in (services["imap"].svc_comment or "")
 
 
+def test_normalize_services_uses_any_protocol_for_any_service() -> None:
+    services = normalize_services(OPNsenseConfig(hostname="fw"))
+
+    any_service = services["Any"]
+    assert any_service.svc_typ == "simple"
+    assert any_service.svc_port is None
+    assert any_service.svc_port_end is None
+    assert any_service.ip_proto == -1
+
+
 def test_normalize_services_creates_placeholder_for_unknown_named_port() -> None:
     rule = OPNsenseAccessRule.model_validate(
         {

@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 import pytest
 from fw_modules.fortiadom5ff.fmgr_rule import rule_parse_last_hit
-from fw_modules.fortiadom5ff.fmgr_service import handle_svc_protocol
+from fw_modules.fortiadom5ff.fmgr_service import handle_svc_protocol, normalize_service_object
 from fw_modules.fortiadom5ff.fwcommon import to_time_object
 from fwo_exceptions import ImportInterruptionError
 from models.time_object import TimeObject
@@ -188,3 +188,26 @@ def test_handle_svc_protocol_ignores_unsupported_protocol():
     handle_svc_protocol({"protocol": 99}, service_objects, "simple", "svc", "foreground", None)
 
     assert service_objects == []
+
+
+def test_normalize_service_object_uses_any_protocol_for_all_service():
+    service_objects: list[dict[str, object]] = []
+
+    normalize_service_object({"name": "ALL", "protocol": 0}, service_objects)
+
+    assert service_objects == [
+        {
+            "svc_typ": "simple",
+            "svc_name": "ALL",
+            "svc_color": "foreground",
+            "svc_uid": "ALL",
+            "svc_comment": None,
+            "ip_proto": -1,
+            "svc_port": None,
+            "svc_port_end": None,
+            "svc_member_refs": None,
+            "svc_member_names": None,
+            "svc_timeout": None,
+            "rpc_nr": None,
+        }
+    ]

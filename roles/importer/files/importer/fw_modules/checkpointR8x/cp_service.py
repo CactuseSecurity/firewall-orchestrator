@@ -4,7 +4,7 @@ import re
 from typing import Any
 
 from fw_modules.checkpointR8x import cp_const
-from fwo_const import LIST_DELIMITER
+from fwo_const import ANY_IP_PROTOCOL_ID, LIST_DELIMITER
 from fwo_exceptions import FwoImporterErrorInconsistenciesError
 
 
@@ -96,6 +96,9 @@ def _get_protocol_number(obj: dict[str, Any]) -> int | None:
     Extract and validate protocol number from object.
     Returns validated protocol number or None.
     """
+    if obj.get("name") == "Any":
+        return ANY_IP_PROTOCOL_ID
+
     proto_map = {"service-tcp": 6, "service-udp": 17, "service-icmp": 1}
 
     proto = None

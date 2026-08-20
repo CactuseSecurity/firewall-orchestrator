@@ -4,7 +4,7 @@ import re
 from typing import Any
 
 from fwo_base import sort_and_join
-from fwo_const import LIST_DELIMITER
+from fwo_const import ANY_IP_PROTOCOL_ID, LIST_DELIMITER
 
 FORTI_PROTOCOL_IP = 1
 FORTI_PROTOCOL_GENERIC = 2
@@ -61,7 +61,9 @@ def normalize_service_object(obj_orig: dict[str, Any], svc_objects: list[dict[st
 
     session_timeout = None  # TODO: find the right timer
 
-    if "protocol" in obj_orig:
+    if svc_type == "simple" and name.upper() == "ALL":
+        add_object(svc_objects, svc_type, name, color, ANY_IP_PROTOCOL_ID, None, None, session_timeout)
+    elif "protocol" in obj_orig:
         handle_svc_protocol(obj_orig, svc_objects, svc_type, name, color, session_timeout)
     elif svc_type == "group":
         add_object(svc_objects, svc_type, name, color, 0, None, member_names, session_timeout)

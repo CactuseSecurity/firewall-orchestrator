@@ -20,6 +20,10 @@ if TYPE_CHECKING:
     from fw_modules.ciscoasa9.asa_models import AccessListEntry, AsaServiceObject, AsaServiceObjectGroup
 
 
+def _get_ip_protocol_id(protocol: str) -> int:
+    return fwo_const.ANY_IP_PROTOCOL_ID if protocol == "ip" else protocol_map.get(protocol, 0)
+
+
 def create_service_object(
     name: str, port: int, port_end: int, protocol: str, comment: str | None = None
 ) -> ServiceObject:
@@ -40,11 +44,11 @@ def create_service_object(
     return ServiceObject(
         svc_uid=name,
         svc_name=name,
-        svc_port=port,
-        svc_port_end=port_end,
+        svc_port=None if protocol == "ip" else port,
+        svc_port_end=None if protocol == "ip" else port_end,
         svc_color=fwo_const.DEFAULT_COLOR,
         svc_typ="simple",
-        ip_proto=protocol_map.get(protocol, 0),
+        ip_proto=_get_ip_protocol_id(protocol),
         svc_comment=comment,
     )
 
@@ -67,7 +71,7 @@ def create_protocol_service_object(name: str, protocol: str, comment: str | None
         svc_name=name,
         svc_color=fwo_const.DEFAULT_COLOR,
         svc_typ="simple",
-        ip_proto=protocol_map.get(protocol, 0),
+        ip_proto=_get_ip_protocol_id(protocol),
         svc_comment=comment,
     )
 
@@ -149,14 +153,15 @@ def create_protocol_any_service_objects() -> dict[str, ServiceObject]:
 
     for proto in ("tcp", "udp", "icmp", "ip"):
         obj_name = f"any-{proto}"
+        is_any_ip_protocol = proto == "ip"
         obj = ServiceObject(
             svc_uid=obj_name,
             svc_name=obj_name,
-            svc_port=0,
-            svc_port_end=65535,
+            svc_port=None if is_any_ip_protocol else 0,
+            svc_port_end=None if is_any_ip_protocol else 65535,
             svc_color=fwo_const.DEFAULT_COLOR,
             svc_typ="simple",
-            ip_proto=protocol_map.get(proto, 0),
+            ip_proto=_get_ip_protocol_id(proto),
             svc_comment=f"any {proto}",
         )
         service_objects[obj_name] = obj
@@ -249,7 +254,7 @@ def create_any_protocol_service(proto: str, service_objects: dict[str, ServiceOb
             svc_port_end=port_range[1],
             svc_color=fwo_const.DEFAULT_COLOR,
             svc_typ="simple",
-            ip_proto=protocol_map.get(proto, 0),
+            ip_proto=_get_ip_protocol_id(proto),
             svc_comment=f"any {proto}",
         )
         service_objects[obj_name] = obj
@@ -304,17 +309,12 @@ def create_service_for_protocol_entry(entry: AccessListEntry, service_objects: d
         return create_service_for_protocol_entry_with_single_protocol(entry, service_objects)
 
     if entry.protocol.value == "ip":
-        svc_refs = [create_any_protocol_service(proto, service_objects) for proto in protocol_map]
-
-        reference_string = fwo_base.sort_and_join(svc_refs)
-        # create a service group for all protocols
         service_objects["ANY"] = ServiceObject(
             svc_uid="ANY",
             svc_name="ANY",
             svc_color=fwo_const.DEFAULT_COLOR,
-            svc_typ="group",
-            svc_member_names=reference_string,
-            svc_member_refs=reference_string,
+            svc_typ="simple",
+            ip_proto=fwo_const.ANY_IP_PROTOCOL_ID,
         )
         return "ANY"
     # Unknown protocol, default to any for the protocol

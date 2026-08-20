@@ -19,8 +19,12 @@ from fw_modules.opnsense25ff.opnsense_model import (
 )
 from fwo_base import generate_hash_from_dict as fwo_base_generate_hash_from_dict
 from fwo_base import sort_and_join
+from fwo_const import ANY_IP_PROTOCOL_ID
 from fwo_log import FWOLogger
 from models.serviceobject import ServiceObject
+
+ANY_PROTOCOL_PORT_START = 1
+ANY_PROTOCOL_PORT_END = 65535
 
 
 def _service_ref_name(ref: str | OPNsensePortAlias) -> str:
@@ -66,11 +70,11 @@ def _create_any_svc_object() -> ServiceObject:
     return ServiceObject(
         svc_uid="Any",
         svc_name="Any",
-        svc_port=1,
-        svc_port_end=65535,
+        svc_port=None,
+        svc_port_end=None,
         svc_color="",
         svc_typ="simple",
-        ip_proto=None,
+        ip_proto=ANY_IP_PROTOCOL_ID,
         svc_member_refs=None,
         svc_member_names=None,
         svc_comment="special service object created during normalization",
@@ -207,11 +211,14 @@ def _port_service_from_dest_port(dest_port: str) -> ServiceObject | None:
 
 def _qualify_service(base: ServiceObject, protocol: str, member_names: str | None) -> ServiceObject:
     qualified_name = _qualified_service_name(base.svc_name, protocol)
+    is_protocol_specific_any_service = base.svc_name == "Any"
     return ServiceObject(
         svc_uid=fwo_base_generate_hash_from_dict({"svc_obj": qualified_name}),
         svc_name=qualified_name,
-        svc_port=base.svc_port,
-        svc_port_end=base.svc_port_end,
+        # The protocol-agnostic base service uses the dedicated ANY protocol without ports.
+        # Its TCP/UDP variants still represent all ports for their specific protocol.
+        svc_port=ANY_PROTOCOL_PORT_START if is_protocol_specific_any_service else base.svc_port,
+        svc_port_end=ANY_PROTOCOL_PORT_END if is_protocol_specific_any_service else base.svc_port_end,
         svc_color="",
         svc_typ=base.svc_typ,
         # only the leaf services carry the protocol, groups stay without one like all other groups

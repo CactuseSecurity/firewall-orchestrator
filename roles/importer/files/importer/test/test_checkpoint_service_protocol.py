@@ -7,6 +7,10 @@ def test_get_protocol_number_handles_string_protocol():
     assert cp_service._get_protocol_number(obj) == 17  # pyright: ignore[reportPrivateUsage]
 
 
+def test_get_protocol_number_uses_any_protocol_for_any_service():
+    assert cp_service._get_protocol_number({"name": "Any"}) == -1  # pyright: ignore[reportPrivateUsage]
+
+
 def test_get_rpc_number_stringifies_program_number():
     obj = {"program-number": 100235}
 

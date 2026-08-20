@@ -90,3 +90,18 @@ GRANT SELECT ON ALL TABLES IN SCHEMA network_zone TO fwo_ro;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA network_zone TO fwo_ro;
 ALTER DEFAULT PRIVILEGES IN SCHEMA network_zone GRANT SELECT ON TABLES TO fwo_ro;
 ALTER DEFAULT PRIVILEGES IN SCHEMA network_zone GRANT USAGE, SELECT ON SEQUENCES TO fwo_ro;
+
+-- path analysis algorithm
+CREATE TABLE IF NOT EXISTS "path_analysis_algorithm"
+(
+	"id" BIGSERIAL PRIMARY KEY,
+	"name" varchar NOT NULL UNIQUE
+);
+
+INSERT INTO path_analysis_algorithm (name)
+VALUES ('None')
+ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO config (config_key, config_value, config_user)
+VALUES ('pathAnalysisAlgorithm', 'None', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;

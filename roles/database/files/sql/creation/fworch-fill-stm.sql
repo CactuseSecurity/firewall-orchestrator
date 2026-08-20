@@ -2,6 +2,8 @@
 INSERT INTO language ("name", "culture_info") VALUES('German', 'de-DE');
 INSERT INTO language ("name", "culture_info") VALUES('English', 'en-US');
 
+INSERT INTO path_analysis_algorithm ("name") VALUES('None');
+
 insert into uiuser (uiuser_id, uiuser_username, uuid) VALUES (0,'default', 'default');
 
 insert into parent_rule_type (id, name) VALUES (1, 'section');          -- do not restart numbering

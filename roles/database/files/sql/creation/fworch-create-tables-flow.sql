@@ -15,6 +15,16 @@ create table flow.nwobject
     state varchar(32) NOT NULL DEFAULT 'requested',
     removed_date Timestamp with time zone,
     show_in_request_module boolean NOT NULL DEFAULT FALSE,
+    CONSTRAINT flow_nwobject_ip_start_is_host CHECK
+    (
+        (family(ip_start) = 4 AND masklen(ip_start) = 32)
+        OR (family(ip_start) = 6 AND masklen(ip_start) = 128)
+    ),
+    CONSTRAINT flow_nwobject_ip_end_is_host CHECK
+    (
+        (family(ip_end) = 4 AND masklen(ip_end) = 32)
+        OR (family(ip_end) = 6 AND masklen(ip_end) = 128)
+    ),
     check ((ip_start IS NULL) = (ip_end IS NULL)),
     check (ip_start <= ip_end),
     check (state IN ('requested', 'denied', 'implemented', 'removed'))

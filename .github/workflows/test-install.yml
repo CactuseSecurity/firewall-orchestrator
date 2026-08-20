@@ -27,11 +27,11 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
-      has_ruff_sync_pat: ${{ steps.ruff-sync-pat.outputs.present }}
+      has_ruff_sync_app: ${{ steps.ruff-sync-app.outputs.present }}
     steps:
-      - name: Check for ruff sync PAT
-        id: ruff-sync-pat
-        run: echo "present=${{ secrets.RUFF_SYNC_PAT != '' }}" >> "$GITHUB_OUTPUT"
+      - name: Check for ruff sync app credentials
+        id: ruff-sync-app
+        run: echo "present=${{ secrets.FWO_RUFF_SYNC_APP_KEY != '' }}" >> "$GITHUB_OUTPUT"
 
       - name: Select matrix based on event
         id: set-matrix
@@ -92,7 +92,7 @@ jobs:
   sync-ruff-required-version:
     name: Sync ruff required-version
     needs: setup
-    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]' && startsWith(github.head_ref, 'dependabot/pip/') && needs.setup.outputs.has_ruff_sync_pat == 'true'
+    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]' && startsWith(github.head_ref, 'dependabot/pip/') && needs.setup.outputs.has_ruff_sync_app == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -100,10 +100,17 @@ jobs:
       REQ_FILE: roles/importer/files/importer/requirements.txt
       PYPROJECT: pyproject.toml
     steps:
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        id: app-token
+        with:
+          app-id: ${{ vars.FWO_RUFF_SYNC_APP_ID }}
+          private-key: ${{ secrets.FWO_RUFF_SYNC_APP_KEY }}
+          permission-contents: write
+
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.ref }}
-          token: ${{ secrets.RUFF_SYNC_PAT }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Sync required-version to pinned ruff
         shell: bash

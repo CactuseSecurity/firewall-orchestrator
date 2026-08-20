@@ -82,14 +82,22 @@ runs only on `pull_request` events from `dependabot[bot]` on a
 rewrites it, commits, and pushes the fix back onto the Dependabot branch.
 The job is idempotent — when the two already match, it does nothing.
 
-The push uses a Personal Access Token stored as a **Dependabot** secret
-named `RUFF_SYNC_PAT` (Settings -> Secrets and variables -> Dependabot;
-Dependabot-triggered runs cannot read regular Actions secrets). Scope:
-contents read/write on this repository. A PAT (rather than the default
-`GITHUB_TOKEN`) is required so the sync commit re-triggers this workflow.
-The re-triggered run supersedes the original via the workflow's
-`concurrency` group (keyed on the PR number), so the fresh run — now
-with matching versions — is the one that validates and reports status.
+The push is authenticated with a short-lived GitHub App installation
+token minted by `actions/create-github-app-token`, scoped to
+`contents: write` on this repository. An App token (rather than the
+default `GITHUB_TOKEN`) is required so the sync commit re-triggers this
+workflow. The re-triggered run supersedes the original via the workflow's
+`concurrency` group (keyed on the PR number), so the fresh run — now with
+matching versions — is the one that validates and reports status.
+
+The App credentials are supplied as `vars.FWO_RUFF_SYNC_APP_ID` and the
+**Dependabot** secret `FWO_RUFF_SYNC_APP_KEY` (Settings -> Secrets and
+variables -> Dependabot; Dependabot-triggered runs cannot read regular
+Actions secrets, so the private key must live in the Dependabot store).
+The App must be installed on the repository with **Contents: Read and
+write**. When the credentials are absent the `setup` job's
+`has_ruff_sync_app` output is `false` and the job is skipped rather than
+failing.
 
 ## Error handling in the matrix-selection script
 

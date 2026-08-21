@@ -29,6 +29,7 @@ namespace FWO.Middleware.Server.Controllers
         private readonly JwtWriter jwtWriter;
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
         private static readonly ConcurrentDictionary<long, SemaphoreSlim> TicketActionLocks = new();
+        private static readonly ConcurrentDictionary<string, WorkflowEmailBundleCollector> WorkflowEmailBundles = new();
         private static readonly List<string> kNoGroups = [];
 
         /// <summary>
@@ -192,12 +193,38 @@ namespace FWO.Middleware.Server.Controllers
                 return result;
             }
 
-            result.Success = await ExecuteResolvedAction(wfHandler, parameters, scope, statefulObject, owner, actionTicketId, userGrpDn);
+            WorkflowEmailBundleCollector? emailBundleCollector = GetEmailBundleCollector(parameters);
+            wfHandler.ActionHandler!.EmailBundleCollector = emailBundleCollector;
+            try
+            {
+                result.Success = await ExecuteResolvedAction(wfHandler, parameters, scope, statefulObject, owner, actionTicketId, userGrpDn);
+                if (result.Success && parameters.EmailBundleEnd && emailBundleCollector != null)
+                {
+                    await wfHandler.ActionHandler.FlushEmailBundleCollector();
+                }
+            }
+            finally
+            {
+                if (parameters.EmailBundleEnd && emailBundleCollector != null)
+                {
+                    WorkflowEmailBundles.TryRemove(parameters.EmailBundleId, out _);
+                }
+            }
             if (result.Success)
             {
                 await ContinueAfterInternalWorkIfNeeded(actionApiConnection, userConfig, ticket, parameters, scope, statefulObject, result);
             }
             return result;
+        }
+
+        private static WorkflowEmailBundleCollector? GetEmailBundleCollector(WorkflowActionParameters parameters)
+        {
+            if (string.IsNullOrWhiteSpace(parameters.EmailBundleId))
+            {
+                return null;
+            }
+
+            return WorkflowEmailBundles.GetOrAdd(parameters.EmailBundleId, _ => new WorkflowEmailBundleCollector());
         }
 
         private static async Task ContinueAfterInternalWorkIfNeeded(ApiConnection actionApiConnection, UserConfig userConfig,

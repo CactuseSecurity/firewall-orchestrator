@@ -27,6 +27,26 @@ namespace FWO.Services.Workflow
 
     public partial class WfHandler
     {
+        public string? WorkflowEmailBundleId { get; private set; }
+        public bool WorkflowEmailBundleEnd { get; private set; }
+
+        private void BeginWorkflowEmailBundle()
+        {
+            WorkflowEmailBundleId = Guid.NewGuid().ToString("N");
+            WorkflowEmailBundleEnd = false;
+        }
+
+        private void EndWorkflowEmailBundle()
+        {
+            WorkflowEmailBundleEnd = true;
+        }
+
+        private void ClearWorkflowEmailBundle()
+        {
+            WorkflowEmailBundleId = null;
+            WorkflowEmailBundleEnd = false;
+        }
+
         // promote the different objects
 
         public async Task<bool> PromoteTicket(WfStatefulObject ticket)
@@ -49,15 +69,28 @@ namespace FWO.Services.Workflow
         {
             try
             {
-                if (await PromoteTicket(ticket) && await UpdateRequestTasksFromTicket(false))
+                if (await PromoteTicket(ticket))
                 {
-                    await UpdateActTicketStateFromReqTasks();
+                    BeginWorkflowEmailBundle();
+                    if (await UpdateRequestTasksFromTicket(false))
+                    {
+                        EndWorkflowEmailBundle();
+                        await UpdateActTicketStateFromReqTasks();
+                    }
+                    else
+                    {
+                        ClearWorkflowEmailBundle();
+                    }
                 }
                 return true;
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("promote_ticket"), "", true);
+            }
+            finally
+            {
+                ClearWorkflowEmailBundle();
             }
             return false;
         }

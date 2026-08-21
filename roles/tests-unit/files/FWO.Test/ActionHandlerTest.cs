@@ -1174,6 +1174,24 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildWorkflowActionParameters_IncludesWorkflowEmailBundleState()
+        {
+            WfHandler wfHandler = new();
+            typeof(WfHandler).GetMethod("BeginWorkflowEmailBundle", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(wfHandler, null);
+            typeof(WfHandler).GetMethod("EndWorkflowEmailBundle", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(wfHandler, null);
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), wfHandler);
+
+            WorkflowActionParameters parameters = (WorkflowActionParameters)GetPrivateMethod("BuildWorkflowActionParameters")
+                .Invoke(handler, [new WfTicket { Id = 42 }, WfObjectScopes.Ticket, null, 0])!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(parameters.EmailBundleId, Is.Not.Empty);
+                Assert.That(parameters.EmailBundleEnd, Is.True);
+            });
+        }
+
+        [Test]
         public void BuildWorkflowActionParameters_UsesScopeSpecificIds()
         {
             WfHandler wfHandler = new() { ActTicket = new WfTicket { Id = 400 } };

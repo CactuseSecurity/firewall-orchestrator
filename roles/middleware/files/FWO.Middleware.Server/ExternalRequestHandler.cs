@@ -245,14 +245,20 @@ namespace FWO.Middleware.Server
                     WfReqTask? nextTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == lastTaskNumber + 1);
                     if (nextTask is null)
                     {
-                        await RunInternalWorkStateChangeActionsSafe(ticket.Id, emailBundleCollector);
+                        if (!await RunInternalWorkStateChangeActionsSafe(ticket.Id, emailBundleCollector))
+                        {
+                            return false;
+                        }
                         Log.WriteDebug("CreateNextRequest", "No more task found.");
                         return handledTask;
                     }
 
                     if (handledInternalWork && !IsInternalWorkConfiguredForTask(nextTask))
                     {
-                        await RunInternalWorkStateChangeActionsSafe(ticket.Id, emailBundleCollector);
+                        if (!await RunInternalWorkStateChangeActionsSafe(ticket.Id, emailBundleCollector))
+                        {
+                            return false;
+                        }
                         Log.WriteInfo("CreateNextRequest", $"Internal work batch for ticket {ticket.Id} created. Waiting for completion before task {nextTask.TaskNumber}.");
                         return true;
                     }
@@ -289,13 +295,19 @@ namespace FWO.Middleware.Server
                     }
 
                     Log.WriteInfo("CreateNextRequest", $"Created Request for ticket {ticket.Id}.");
-                    await RunInternalWorkStateChangeActionsSafe(ticket.Id, emailBundleCollector);
+                    if (!await RunInternalWorkStateChangeActionsSafe(ticket.Id, emailBundleCollector))
+                    {
+                        return false;
+                    }
                     return true;
                 }
             }
             catch
             {
-                await RunInternalWorkStateChangeActionsSafe(ticket.Id, emailBundleCollector);
+                if (!await RunInternalWorkStateChangeActionsSafe(ticket.Id, emailBundleCollector))
+                {
+                    return false;
+                }
                 throw;
             }
         }
@@ -455,16 +467,17 @@ namespace FWO.Middleware.Server
             await approvalHandler.ActionHandler.FlushEmailBundleCollector();
         }
 
-        private async Task RunInternalWorkStateChangeActionsSafe(long ticketId, WorkflowEmailBundleCollector emailBundleCollector)
+        private async Task<bool> RunInternalWorkStateChangeActionsSafe(long ticketId, WorkflowEmailBundleCollector emailBundleCollector)
         {
             if (emailBundleCollector.PendingItems.Count == 0)
             {
-                return;
+                return true;
             }
 
             try
             {
                 await RunInternalWorkStateChangeActions(ticketId, emailBundleCollector);
+                return true;
             }
             catch (Exception exception)
             {
@@ -472,12 +485,13 @@ namespace FWO.Middleware.Server
                 if (await TrySendPendingInternalWorkEmailsIndividually(ticketId, emailBundleCollector))
                 {
                     emailBundleCollector.PendingItems.Clear();
-                    return;
+                    return true;
                 }
 
                 Log.WriteError("RunInternalWorkStateChangeActions",
                     $"Could not send {emailBundleCollector.PendingItems.Count} pending internal work approval email bundle item(s) for ticket {ticketId}. No automatic retry is available.");
                 emailBundleCollector.PendingItems.Clear();
+                return false;
             }
         }
 

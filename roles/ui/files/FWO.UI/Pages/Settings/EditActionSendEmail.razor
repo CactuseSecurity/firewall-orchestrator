@@ -60,6 +60,7 @@
 
     private List<int> actActionNotificationIds = [];
     private List<int> temporaryNotificationIds = [];
+    private WfStateAction? initializedAction;
     private EmailAttachedContent actAttachedContent = EmailAttachedContent.None;
     private bool actConfirmSentMail;
     private FwoNotification? legacyActionNotification;
@@ -67,7 +68,11 @@
 
     protected override void OnParametersSet()
     {
-        ResetLocalState();
+        if (!ReferenceEquals(initializedAction, ActAction))
+        {
+            ResetLocalState();
+            initializedAction = ActAction;
+        }
         LoadFromExternalParams();
     }
 
@@ -130,21 +135,8 @@
                 .Except(previousNotificationIds)
                 .Except(temporaryNotificationIds));
 
-        temporaryNotificationIds.RemoveAll(id => !actActionNotificationIds.Contains(id));
-
         UpdateExternalParams();
         await PersistNotificationIdsForExistingAction();
-    }
-
-    private bool CanPersistCurrentNotificationSelection()
-    {
-        if (actActionNotificationIds.Count > 0)
-        {
-            return true;
-        }
-
-        return legacyActionNotification != null
-            && !string.IsNullOrWhiteSpace(legacyActionNotification.EmailSubject);
     }
 
     public async Task<bool> PrepareForSaveAsync()
@@ -183,7 +175,7 @@
             return;
         }
 
-        await DeleteActionNotifications(actActionNotificationIds);
+        await DeleteActionNotifications(actActionNotificationIds.Union(temporaryNotificationIds));
     }
 
     private void UpdateExternalParams()
@@ -191,9 +183,22 @@
         ActAction.ExternalParams = EmailExternalParams();
     }
 
+    private string EmailExternalParams()
+    {
+        return JsonSerializer.Serialize(new
+        {
+            notification_ids = actActionNotificationIds,
+            attached_content = actAttachedContent,
+            confirm_sent_mail = actConfirmSentMail,
+            request_task_bundle_mode = ActAction.Scope == WfObjectScopes.RequestTask.ToString() && actBundleRequestTasksByType
+                ? EmailRequestTaskBundleMode.SameTaskType
+                : EmailRequestTaskBundleMode.None
+        });
+    }
+
     private async Task PersistNotificationIdsForExistingAction()
     {
-        if (!CanPersistNotificationIdsImmediately() || !CanPersistCurrentNotificationSelection())
+        if (!CanPersistNotificationIdsImmediately())
         {
             return;
         }
@@ -222,19 +227,6 @@
             : JsonSerializer.Deserialize<EmailActionParams>(PersistedAction.ExternalParams) ?? new();
         emailActionParams.NotificationIds = actActionNotificationIds;
         return JsonSerializer.Serialize(emailActionParams);
-    }
-
-    private string EmailExternalParams()
-    {
-        return JsonSerializer.Serialize(new
-        {
-            notification_ids = actActionNotificationIds,
-            attached_content = actAttachedContent,
-            confirm_sent_mail = actConfirmSentMail,
-            request_task_bundle_mode = ActAction.Scope == WfObjectScopes.RequestTask.ToString() && actBundleRequestTasksByType
-                ? EmailRequestTaskBundleMode.SameTaskType
-                : EmailRequestTaskBundleMode.None
-        });
     }
 
     private async Task<int> UpdateAction(WfStateAction action, string externalParams)

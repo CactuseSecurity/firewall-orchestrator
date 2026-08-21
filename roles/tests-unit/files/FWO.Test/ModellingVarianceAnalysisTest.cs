@@ -810,7 +810,7 @@ namespace FWO.Test
                 ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
                 ClassicAssert.AreEqual("Conn3", result.RuleDifferences[0].ModelledConnection.Name);
                 ClassicAssert.AreEqual(1, result.UnModelledRules.Count);
-                ClassicAssert.AreEqual(12, result.UnModelledRules[1].Count);
+                ClassicAssert.AreEqual(14, result.UnModelledRules[1].Count);
                 ClassicAssert.AreEqual("FWOC1", result.UnModelledRules[1][0].Name);
                 ClassicAssert.AreEqual("xxxFWOC2yyy", result.UnModelledRules[1][1].Name);
             }
@@ -1210,7 +1210,8 @@ namespace FWO.Test
                 Id = 5047,
                 Name = "DeletedConn5047",
                 Removed = true,
-                Services = [new() { Content = Svc1 }]
+                Services = [new() { Content = Svc1 }],
+                ExtraConfigs = [new() { ExtraConfigType = "Doku_Reason", ExtraConfigText = "deleted model reference" }]
             };
 
             List<WfReqTask> taskList = await analysis.AnalyseModelledConnectionsForRequest([deletedConnection]);
@@ -1292,13 +1293,43 @@ namespace FWO.Test
 
                 Type responseType = typeof(QueryResponseType);
 
+                if (responseType == typeof(List<ManagementReport>) && query == ReportQueries.getRelevantImportIdsAtTime)
+                {
+                    List<ManagementReport> managementReports =
+                    [
+                        new()
+                        {
+                            Id = 1,
+                            Import = new()
+                            {
+                                ImportAggregate = new()
+                                {
+                                    ImportAggregateMax = new()
+                                    {
+                                        RelevantImportId = 1
+                                    }
+                                }
+                            },
+                            SubManagements = []
+                        }
+                    ];
+
+                    return (QueryResponseType)(object)managementReports;
+                }
+
                 if (responseType == typeof(List<Management>))
                 {
-                    object managements = query == ReportQueries.getRelevantImportIdsAtTime
-                        ? new List<Management> { new() { Import = new() { ImportAggregate = new() { ImportAggregateMax = new() { RelevantImportId = 1 } } } } }
-                        : new List<Management> { new() { Id = 1, Name = "Checkpoint1", ExtMgtData = "{\"id\":\"1\",\"name\":\"CheckpointExt\"}" } };
+                    List<Management> managements =
+                    [
+                        new()
+                        {
+                            Id = 1,
+                            Name = "Checkpoint1",
+                            ExtMgtData = "{\"id\":\"1\",\"name\":\"CheckpointExt\"}"
+                        }
+                    ];
 
-                    return (QueryResponseType)managements;
+                    return (QueryResponseType)(object)managements;
                 }
 
                 if (responseType == typeof(List<ModellingNetworkArea>))
@@ -1391,7 +1422,7 @@ namespace FWO.Test
                 return await base.SendQueryAsync<QueryResponseType>(query, variables, operationName, chunkingOptions);
             }
         }
-        
+
         [Test]
         public async Task TestNATHeuristic()
         {

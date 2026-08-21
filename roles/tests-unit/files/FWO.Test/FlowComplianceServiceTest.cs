@@ -18,6 +18,26 @@ namespace FWO.Test;
 [TestFixture]
 internal class FlowComplianceServiceTest
 {
+    private static readonly string[] kExpectedMatrixAndServiceViolationTypes =
+    [
+        nameof(CriterionType.ForbiddenService),
+        nameof(CriterionType.Matrix)
+    ];
+
+    private static readonly string[] kExpectedAllViolationTypes =
+    [
+        nameof(CriterionType.Assessability),
+        nameof(CriterionType.ForbidBidirectionalDuplicate),
+        nameof(CriterionType.ForbidZonesAsDestination),
+        nameof(CriterionType.ForbidZonesAsSource),
+        nameof(CriterionType.ForbiddenService),
+        nameof(CriterionType.Matrix),
+        nameof(CriterionType.MinimumCIDRLength),
+        FlowComplianceStateResponse.ComplianceViolationResponse.UnknownType
+    ];
+
+    private static readonly string[] kExpectedMatrixViolationType = [nameof(CriterionType.Matrix)];
+
     [Test]
     public async Task GetPolicyIdsAsync_ReturnsActivePolicies()
     {
@@ -88,7 +108,7 @@ internal class FlowComplianceServiceTest
             Assert.That(result[0].Policy.Id, Is.EqualTo(7));
             Assert.That(result[0].Policy.Name, Is.EqualTo("Matrix and Service Policy"));
             Assert.That(result[0].Violations, Has.Count.EqualTo(2));
-            Assert.That(result[0].Violations.Select(v => v.Type), Is.EqualTo(new[] { "ForbiddenService", "Matrix" }));
+            Assert.That(result[0].Violations.Select(v => v.Type), Is.EqualTo(kExpectedMatrixAndServiceViolationTypes));
             Assert.That(result[0].Violations.Single(v => v.Type == "Matrix").Count, Is.EqualTo(1));
             Assert.That(result[0].Violations.Single(v => v.Type == "ForbiddenService").Count, Is.EqualTo(2));
             Assert.That(apiConnection.CountQueries(ConfigQueries.getLanguages), Is.EqualTo(0));
@@ -121,6 +141,26 @@ internal class FlowComplianceServiceTest
             },
             new ComplianceViolation
             {
+                Type = ComplianceViolationType.NotAssessable
+            },
+            new ComplianceViolation
+            {
+                Type = ComplianceViolationType.MinimumCIDRLengthViolation
+            },
+            new ComplianceViolation
+            {
+                Type = ComplianceViolationType.ZoneObjectSourceViolation
+            },
+            new ComplianceViolation
+            {
+                Type = ComplianceViolationType.ZoneObjectDestinationViolation
+            },
+            new ComplianceViolation
+            {
+                Type = ComplianceViolationType.BidirectionalDuplicateViolation
+            },
+            new ComplianceViolation
+            {
                 CriterionId = 101
             },
             new ComplianceViolation
@@ -142,9 +182,14 @@ internal class FlowComplianceServiceTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(response.Violations.Select(violation => violation.Type), Is.EqualTo(new[] { "ForbiddenService", "Matrix", "Unknown" }));
+            Assert.That(response.Violations.Select(violation => violation.Type), Is.EqualTo(kExpectedAllViolationTypes));
+            Assert.That(response.Violations.Single(violation => violation.Type == "Assessability").Count, Is.EqualTo(1));
+            Assert.That(response.Violations.Single(violation => violation.Type == "ForbidBidirectionalDuplicate").Count, Is.EqualTo(1));
+            Assert.That(response.Violations.Single(violation => violation.Type == "ForbidZonesAsDestination").Count, Is.EqualTo(1));
+            Assert.That(response.Violations.Single(violation => violation.Type == "ForbidZonesAsSource").Count, Is.EqualTo(1));
             Assert.That(response.Violations.Single(violation => violation.Type == "ForbiddenService").Count, Is.EqualTo(1));
             Assert.That(response.Violations.Single(violation => violation.Type == "Matrix").Count, Is.EqualTo(3));
+            Assert.That(response.Violations.Single(violation => violation.Type == "MinimumCIDRLength").Count, Is.EqualTo(1));
             Assert.That(response.Violations.Single(violation => violation.Type == FlowComplianceStateResponse.ComplianceViolationResponse.UnknownType).Count, Is.EqualTo(1));
         });
     }
@@ -209,10 +254,10 @@ internal class FlowComplianceServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result[0].Policy.Id, Is.EqualTo(7));
-            Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix", "ForbiddenService" }));
+            Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(kExpectedMatrixAndServiceViolationTypes));
             Assert.That(result[0].Violations.Single(v => v.Type == "ForbiddenService").Count, Is.EqualTo(2));
             Assert.That(result[1].Policy.Id, Is.EqualTo(8));
-            Assert.That(result[1].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix" }));
+            Assert.That(result[1].Violations.Select(v => v.Type), Is.EquivalentTo(kExpectedMatrixViolationType));
             Assert.That(result[1].Violations.Single().Count, Is.EqualTo(1));
             Assert.That(apiConnection.CountQueries(DeviceQueries.getManagementNames), Is.EqualTo(1));
             Assert.That(apiConnection.CountQueries(ComplianceQueries.getNetworkZonesForMatrix), Is.EqualTo(1));

@@ -379,17 +379,19 @@ namespace FWO.Services.Modelling
         }
 
         /// <summary>
-        /// Selects the modelled objects (matched by name) that may stand in for a placeholder area.
-        /// An object qualifies when it is surplus, or - only while IPs are compared - when it has no IP:
-        /// such an object can never match normally, so it always counts. Relying on the empty IP also
-        /// avoids the IP comparer deduping several IP-less objects (marking only the first as surplus)
-        /// and thereby undercounting them. When IPs are not compared the empty-IP signal is meaningless,
-        /// so the surplus flag alone decides.
+        /// Selects production objects, matched by name, that may stand in for a modelled placeholder area.
+        /// IP-less imported objects must be counted explicitly while IP comparison is active: the comparer
+        /// can deduplicate several IP-less objects before all of them receive IsSurplus.
         /// </summary>
         private List<NetworkLocation> GetPlaceholderSubstitutes(NetworkLocation[] networkLocations, Dictionary<string, bool> objectsByName)
         {
             return [.. networkLocations.Where(n => objectsByName.ContainsKey(n.Object.Name.ToLower())
-                && (n.Object.IsSurplus || (ruleRecognitionOption.NwRegardIp && string.IsNullOrEmpty(n.Object.IP))))];
+                    && (n.Object.IsSurplus || IsIpLessObjectWhileIpComparisonIsActive(n.Object)))];
+        }
+
+        private bool IsIpLessObjectWhileIpComparisonIsActive(NetworkObject networkObject)
+        {
+            return ruleRecognitionOption.NwRegardIp && string.IsNullOrEmpty(networkObject.IP);
         }
 
         private void AdjustWithUpdatableObjects(NetworkLocation[] networkLocations, Dictionary<string, bool> updatableObjects, bool source,

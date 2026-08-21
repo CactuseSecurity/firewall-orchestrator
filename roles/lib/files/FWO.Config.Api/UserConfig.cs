@@ -6,6 +6,7 @@ using FWO.Api.Client;
 using FWO.Data;
 using FWO.Api.Client.Queries;
 using System.Reflection;
+using System.Globalization;
 using System.Text.Json.Serialization;
 
 namespace FWO.Config.Api
@@ -227,6 +228,24 @@ namespace FWO.Config.Api
                 }
                 return GlobalConst.kUndefinedText;
             }
+        }
+
+        public CultureInfo GetCultureInfo()
+        {
+            ThrowIfDisposed();
+
+            string currentLanguage = GetUserLanguage();
+            string? cultureName = GlobalConfig?.UiLanguages
+                .FirstOrDefault(language => language.Name == currentLanguage)?.CultureInfo;
+
+            if (!string.IsNullOrWhiteSpace(cultureName))
+            {
+                return CultureInfo.GetCultureInfo(cultureName);
+            }
+
+            return currentLanguage == GlobalConst.kEnglish
+                ? CultureInfo.GetCultureInfo("en")
+                : CultureInfo.GetCultureInfo("de");
         }
 
         public string PureLine(string text)

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.1.11312.151 d18.0
+VisualStudioVersion = 18.1.11312.151
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lib", "Lib", "{CE55F125-0CD2-4789-A3C1-045DEF33ABA5}"
 EndProject
@@ -47,6 +47,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FWO.Compliance", "lib\files\FWO.Compliance\FWO.Compliance.csproj", "{A22D31CE-BAC6-4708-8B34-BCD46972F2F6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FWO.ExternalSystems", "lib\files\FWO.ExternalSystems\FWO.ExternalSystems.csproj", "{4AEFC459-C0F3-4091-AA84-FDCE3F03F347}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoPro.FancyTable", "..\..\SoPro.FancyTable\SoPro.FancyTable.csproj", "{0DF05B8C-67A0-4B5F-75E6-280F2E4EAF44}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -130,6 +132,10 @@ Global
 		{4AEFC459-C0F3-4091-AA84-FDCE3F03F347}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4AEFC459-C0F3-4091-AA84-FDCE3F03F347}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4AEFC459-C0F3-4091-AA84-FDCE3F03F347}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0DF05B8C-67A0-4B5F-75E6-280F2E4EAF44}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0DF05B8C-67A0-4B5F-75E6-280F2E4EAF44}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0DF05B8C-67A0-4B5F-75E6-280F2E4EAF44}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0DF05B8C-67A0-4B5F-75E6-280F2E4EAF44}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

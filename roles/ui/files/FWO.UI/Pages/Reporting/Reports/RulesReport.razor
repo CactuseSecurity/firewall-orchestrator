@@ -36,14 +36,13 @@
                                             Columns="RuleColumns"
                                             ChildItemsSelector="row => row.Children"
                                             HasChildrenSelector="row => row.Children.Count > 0"
+                                            InitiallyExpandedSelector="row => row.IsInitiallyExpanded"
+                                            Texts="RuleTableTexts"
                                             TreeActionsContainerClass="sticky-collapse"
                                             TreeActionsTemplate="RuleTreeActionsTemplate"
                                             RowTemplate="SectionHeaderTemplate"
                                             RowTemplateSelector="context => context.Item.IsSectionHeader"
-                                            ShowPaginationSummary="true"
-                                            PageSize="5"
-                                            PaginationEnabled="true"
-                                            ShowPageSizeSelector="true"/>
+                                             />
                         </Collapse>
                     }
                 }
@@ -136,6 +135,7 @@
     #region Properties - Private
 
     private IReadOnlyList<FancyColumn<RuleReportTreeRow>> RuleColumns => _ruleColumns;
+    private FancyTableTexts RuleTableTexts => FancyTableTextFactory.Create(userConfig);
     private bool ShowLastModifiedAfterLastHit => SelectedReportType == ReportType.UnusedRules || SelectedReportType == ReportType.AppRules;
     private bool ShowLastHitColumn => ReportTypeGroups.IsRuleReport(SelectedReportType);
 
@@ -494,6 +494,7 @@
         public RuleTreeItem Node { get; }
         public Rule Rule { get; }
         public IReadOnlyList<RuleReportTreeRow> Children { get; }
+        public bool IsInitiallyExpanded => Node.IsExpanded;
         public bool IsSectionHeader => Node.IsSectionHeader;
         public string DisplayName => IsSectionHeader ? string.Empty : Rule.Name ?? string.Empty;
         public string SectionHeaderTitle => Rule.SectionHeader ?? string.Empty;

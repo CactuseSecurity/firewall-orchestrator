@@ -21,6 +21,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\..\..\..\..\SoPro.FancyTable\SoPro.FancyTable.csproj" />
 		<ProjectReference Include="..\..\..\lib\files\FWO.Basics\FWO.Basics.csproj" />
 		<ProjectReference Include="..\..\..\lib\files\FWO.Config.Api\FWO.Config.Api.csproj" />
 		<ProjectReference Include="..\..\..\lib\files\FWO.Report.Filter\FWO.Report.Filter.csproj" />
@@ -36,6 +37,5 @@
 		<ProjectReference Include="..\..\..\lib\files\FWO.DeviceAutoDiscovery\FWO.DeviceAutoDiscovery.csproj" />
 		<ProjectReference Include="..\..\..\lib\files\FWO.Services\FWO.Services.csproj" />
 		<ProjectReference Include="..\..\..\lib\files\FWO.Compliance\FWO.Compliance.csproj" />
-		<ProjectReference Include="..\..\..\..\..\SoPro.FancyTable\SoPro.FancyTable.csproj" />
 	</ItemGroup>
 </Project>

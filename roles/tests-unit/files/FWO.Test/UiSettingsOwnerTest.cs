@@ -239,6 +239,10 @@ namespace FWO.Test
             SettingsOwner component = new();
             SetInjectedUserConfig(component, new EditOwnerTestUserConfig());
             SetPrivateField(component, "Tenants", new List<Tenant>());
+            SetPrivateField(component, "OwnerResponsibleTypes", new List<OwnerResponsibleType>
+            {
+                new() { Id = GlobalConst.kOwnerResponsibleTypeMain, Name = "Main", Active = true }
+            });
             SetPrivateField(component, "OwnerSearchTerm", "max mustermann");
             FwoOwner owner = new() { Id = 2, Name = "Payments" };
             owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeMain, "CN=Max Mustermann,OU=Users,DC=example,DC=com");
@@ -362,7 +366,7 @@ namespace FWO.Test
 
             string display = (string)GetPrivateMethod("GetOwnerLifeCycleStateDisplay").Invoke(component, [owner])!;
 
-            Assert.That(display, Is.EqualTo("Archived (inactive)"));
+            Assert.That(display, Is.EqualTo("Archived (Inactive)"));
         }
 
         [Test]

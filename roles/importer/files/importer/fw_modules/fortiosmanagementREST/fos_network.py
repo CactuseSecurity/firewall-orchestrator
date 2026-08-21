@@ -34,16 +34,13 @@ def _normalize_ipv6_address_range(
 def _normalize_static_ipv6_network_object(
     ip6_obj: NwObjAddress6,
 ) -> tuple[IPNetwork, IPNetwork, Literal["host", "ip_range", "network"]]:
-    """Normalize FortiOS IPv6 range or prefix fields, falling back to a dummy host."""
-    if ip6_obj.start_ip and ip6_obj.end_ip:
+    """Normalize FortiOS IPv6 fields according to the configured object type."""
+    if ip6_obj.type == "iprange" and ip6_obj.start_ip and ip6_obj.end_ip:
         return _normalize_ipv6_address_range(IPv6Address(ip6_obj.start_ip), IPv6Address(ip6_obj.end_ip))
 
-    if ip6_obj.ip6:
+    if ip6_obj.type == "ipprefix" and ip6_obj.ip6:
         network = IPNetwork(ip6_obj.ip6, version=6)
         ip_start_address = IPv6Address(network.first)
-        if ip6_obj.end_ip and ip6_obj.end_ip != "::":
-            return _normalize_ipv6_address_range(ip_start_address, IPv6Address(ip6_obj.end_ip))
-
         ip_end = IPNetwork(f"{IPv6Address(network.last)}/128", version=6)
         obj_typ: Literal["host", "network"] = "network" if network.size > 1 else "host"
         return IPNetwork(f"{ip_start_address}/128", version=6), ip_end, obj_typ

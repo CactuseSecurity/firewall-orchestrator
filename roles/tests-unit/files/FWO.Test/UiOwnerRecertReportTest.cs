@@ -101,7 +101,8 @@ namespace FWO.Test
         {
             List<OwnerConnectionReport> ownerData =
             [
-                BuildOwnerReport("EXT-A", "A Owner", DateTime.Today.AddDays(-1), new Dictionary<string, string> { ["department"] = "A" })
+                BuildOwnerReport("EXT-A", "A Owner", DateTime.Today.AddDays(-1), new Dictionary<string, string> { ["department"] = "A" }),
+                BuildOwnerReport("EXT-B", "B Owner", DateTime.Today.AddDays(-1))
             ];
 
             IRenderedComponent<OwnerRecertReport> cut = Render<OwnerRecertReport>(parameters => parameters
@@ -114,7 +115,8 @@ namespace FWO.Test
                 .Add(p => p.RecertificationDisplayPeriod, 7));
 
             Assert.That(cut.Markup, Does.Not.Contain("Add. Info: department"));
-            Assert.That(cut.Markup, Does.Not.Contain("department"));
+            Assert.That(cut.Markup, Does.Contain("EXT-B"));
+            Assert.That(cut.Markup, Does.Not.Contain("EXT-A"));
         }
 
         [Test]

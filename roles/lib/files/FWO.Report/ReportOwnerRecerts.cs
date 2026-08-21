@@ -95,7 +95,8 @@ namespace FWO.Report
                 report.AppendLine(userConfig.GetText("no_recertifiable_owners_assigned"));
                 return GenerateHtmlFrameBase(userConfig.GetText(ReportType.ToString()), addInfoFilterSummary, DateTime.Now, report, new HtmlFrameOptions
                 {
-                    OtherFilter = Query.RawFilter
+                    OtherFilter = Query.RawFilter,
+                    FilterTextKey = "add_info"
                 });
             }
 

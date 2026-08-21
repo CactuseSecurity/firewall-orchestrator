@@ -309,13 +309,22 @@ namespace FWO.Test
         [Test]
         public void ReportTemplateComponent_RefreshAvailableAddInfoNames_KeepsNullWhenNoNamesExist()
         {
-            MethodInfo? method = typeof(ReportTemplateComponent).GetMethod("RefreshAvailableAddInfoNames", BindingFlags.NonPublic | BindingFlags.Instance);
-            Assert.That(method, Is.Not.Null);
+            using BunitContext context = CreateContext(
+                new MonitoringTestAuthStateProvider(Roles.Reporter),
+                CreateUserConfig(kReporterRoles, kEmptyOwnerships),
+                new ReportTemplateComponentTestApiConn(kEmptyTemplates, kEmptyOwners));
 
-            ReportTemplateComponent component = new();
-            SetPrivateField(component, "recertOwnerList", new List<FwoOwner>());
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
+                parameters.AddChildContent<ReportTemplateComponent>());
+            IRenderedComponent<ReportTemplateComponent> component = wrapper.FindComponent<ReportTemplateComponent>();
+            component.Instance.NewTemplate(CreateTemplate(0, "Owner recert template", ReportType.OwnerRecertification));
+            component.Render();
 
-            Assert.DoesNotThrow(() => method!.Invoke(component, null));
+            component.WaitForAssertion(() =>
+            {
+                ReportOwnerRecertParamSelection selection = component.FindComponent<ReportOwnerRecertParamSelection>().Instance;
+                Assert.That(selection.AvailableAddInfoNames, Is.Null);
+            });
         }
 
         [Test]

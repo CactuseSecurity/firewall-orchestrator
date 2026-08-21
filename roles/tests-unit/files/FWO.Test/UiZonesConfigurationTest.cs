@@ -115,6 +115,41 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DeletingAutoCalculatedInternetZone_DoesNotRecreateIt()
+        {
+            ComplianceNetworkZone internetZone = new()
+            {
+                Id = 2,
+                CriterionId = 1,
+                IsAutoCalculatedInternetZone = true,
+                Name = "Auto-calculated Internet Zone"
+            };
+            NetworkZoneService networkZoneService = new()
+            {
+                NetworkZones = new List<ComplianceNetworkZone> { internetZone }
+            };
+            ZonesConfigurationApiConnection apiConnection = new();
+            apiConnection.NetworkZones.Add(internetZone);
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                AutoCalculateInternetZone = true
+            };
+            await using BunitContext context = CreateContext(networkZoneService, apiConnection, globalConfig);
+            IRenderedComponent<ZonesConfiguration> page = Render(context);
+
+            networkZoneService.InvokeOnDeleteZone(internetZone);
+            await page.InvokeAsync(async () =>
+            {
+                Task deleteTask = (Task)typeof(ZonesConfiguration)
+                    .GetMethod("ExecuteNetworkZoneDeletion", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                    .Invoke(page.Instance, null)!;
+                await deleteTask;
+            });
+
+            Assert.That(apiConnection.SentQueries, Is.EqualTo(new List<string> { ComplianceQueries.removeNetworkZone }));
+        }
+
+        [Test]
         public async Task SubscribesToTheZoneEventsWhileItIsRendered()
         {
             NetworkZoneService networkZoneService = new();

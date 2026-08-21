@@ -378,7 +378,10 @@
             try
             {
                 await NetworkZoneService.RemoveZone(networkZoneInEdit, apiConnection);
-                await RefreshSpecialZones();
+                if (!IsAutoCalculatedSpecialZone(networkZoneInEdit))
+                {
+                    await RefreshSpecialZones();
+                }
                 await ConfigChanged();
                 DisplayMessageInUi(null, userConfig.GetText("U0014"), userConfig.GetText("U0015"), false);
             }
@@ -398,6 +401,11 @@
         {
             await NetworkZoneService.UpdateSpecialZones(SelectedMatrix.Id, apiConnection, globalConfig);
         }
+    }
+
+    private static bool IsAutoCalculatedSpecialZone(ComplianceNetworkZone networkZone)
+    {
+        return networkZone.IsAutoCalculatedInternetZone || networkZone.IsAutoCalculatedUndefinedInternalZone;
     }
 
     private void CancelModifications()

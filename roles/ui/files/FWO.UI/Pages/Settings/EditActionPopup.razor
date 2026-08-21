@@ -294,16 +294,18 @@
     {
         try
         {
-            if (sendEmailEditor != null)
+            if (actAction.ActionType == nameof(StateActionTypes.SendEmail) && sendEmailEditor != null)
             {
                 await sendEmailEditor.CleanupOnCancelAsync();
             }
+
             usingStatesEditor?.ResetPendingStateLinks();
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("delete_notification"), "", true);
         }
+
         EditActionMode = false;
         AddActionMode = false;
     }

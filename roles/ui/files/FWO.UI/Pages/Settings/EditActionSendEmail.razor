@@ -122,12 +122,29 @@
 
     private async Task SetActionNotificationIds(List<int> notificationIds)
     {
-        List<int> previousNotificationIds = actActionNotificationIds;
+        List<int> previousNotificationIds = [.. actActionNotificationIds];
         actActionNotificationIds = [.. notificationIds.Where(id => id > 0).Distinct()];
-        temporaryNotificationIds.AddRange(actActionNotificationIds.Except(previousNotificationIds).Except(temporaryNotificationIds));
+
+        temporaryNotificationIds.AddRange(
+            actActionNotificationIds
+                .Except(previousNotificationIds)
+                .Except(temporaryNotificationIds));
+
         temporaryNotificationIds.RemoveAll(id => !actActionNotificationIds.Contains(id));
+
         UpdateExternalParams();
         await PersistNotificationIdsForExistingAction();
+    }
+
+    private bool CanPersistCurrentNotificationSelection()
+    {
+        if (actActionNotificationIds.Count > 0)
+        {
+            return true;
+        }
+
+        return legacyActionNotification != null
+            && !string.IsNullOrWhiteSpace(legacyActionNotification.EmailSubject);
     }
 
     public async Task<bool> PrepareForSaveAsync()
@@ -176,7 +193,7 @@
 
     private async Task PersistNotificationIdsForExistingAction()
     {
-        if (!CanPersistNotificationIdsImmediately())
+        if (!CanPersistNotificationIdsImmediately() || !CanPersistCurrentNotificationSelection())
         {
             return;
         }

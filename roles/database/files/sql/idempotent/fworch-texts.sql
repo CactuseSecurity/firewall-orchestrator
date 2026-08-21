@@ -7079,10 +7079,12 @@ INSERT INTO txt VALUES ('H5649', 'English', 'Marker Location: Defines the data f
 INSERT INTO txt VALUES ('H5650', 'German',  'Regelerkennungs-Optionen: Legt fest, wann implementierte Regeln als identisch zu den modellierten Verbindungen angesehen werden.
     M&ouml;gliche Kriterien sind - jeweils f&uuml;r Netzwerkobjekte und Dienste - Name, IP-Adresse bzw Port/Protokoll, Gruppennname.
     Ausserdem muss festgelegt werden, ob Gruppen aufgel&ouml;st werden sollen; dann werden die einzelnen Objekte unabh&auml;ngig von der Gruppenzugeh&ouml;rigkeit erkannt.
+    Wenn der IP-Adressvergleich aktiv ist, entsprechen importierte Identit&auml;tsobjekte wie Check Point Updatable Objects, Access Roles und Domain-Objekte nicht direkt modellierten App Servern &uuml;ber ihre Platzhalter-IP-Felder. In der Soll-Ist-Analyse werden konfigurierte Platzhalter-Areas f&uuml;r Sonderkonfigurationen mit diesen importierten Objekten nach Objekttyp und Name abgeglichen.
 ');
 INSERT INTO txt VALUES ('H5650', 'English', 'Rule Recognition Options: Defines, when implemented rules are regarded as identical to the modelled connections.
     Possible criteria are - separated for network objects and services - Name, IP address resp. Port/Protocol, Group Name.
     Additionally it has to be defined, if groups are resolved; then single objects are identified independently from their group membership.
+    When IP address comparison is active, imported identity objects such as Check Point updatable objects, access roles and domain objects do not directly match modelled app servers through their placeholder IP fields. In variance analysis, configured placeholder areas for special configurations are reconciled with these imported objects by object type and name.
 ');
 INSERT INTO txt VALUES ('H5651', 'German',  'Synchroner Soll-Ist-Abgleich: Wenn aktiviert, werden die Status der Verbindungen sofort bei Initialisierung der Seite berechnet.
     Da dies bei gr&ouml;sseren Systemen zu erheblichem Rechenaufwand f&uuml;hrt, kann dies zu einer verz&ouml;gerten Darstellung f&uuml;hren.

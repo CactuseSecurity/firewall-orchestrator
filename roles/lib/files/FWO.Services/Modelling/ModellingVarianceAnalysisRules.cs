@@ -380,13 +380,18 @@ namespace FWO.Services.Modelling
 
         /// <summary>
         /// Selects production objects, matched by name, that may stand in for a modelled placeholder area.
-        /// An object qualifies after the network-object comparer marked it as surplus.
-        /// Imported name-only identity objects are handled by NetworkObjectComparer.
+        /// IP-less imported objects must be counted explicitly while IP comparison is active: the comparer
+        /// can deduplicate several IP-less objects before all of them receive IsSurplus.
         /// </summary>
-        private static List<NetworkLocation> GetPlaceholderSubstitutes(NetworkLocation[] networkLocations, Dictionary<string, bool> objectsByName)
+        private List<NetworkLocation> GetPlaceholderSubstitutes(NetworkLocation[] networkLocations, Dictionary<string, bool> objectsByName)
         {
             return [.. networkLocations.Where(n => objectsByName.ContainsKey(n.Object.Name.ToLower())
-                && n.Object.IsSurplus)];
+                    && (n.Object.IsSurplus || IsIpLessObjectWhileIpComparisonIsActive(n.Object)))];
+        }
+
+        private bool IsIpLessObjectWhileIpComparisonIsActive(NetworkObject networkObject)
+        {
+            return ruleRecognitionOption.NwRegardIp && string.IsNullOrEmpty(networkObject.IP);
         }
 
         private void AdjustWithUpdatableObjects(NetworkLocation[] networkLocations, Dictionary<string, bool> updatableObjects, bool source,

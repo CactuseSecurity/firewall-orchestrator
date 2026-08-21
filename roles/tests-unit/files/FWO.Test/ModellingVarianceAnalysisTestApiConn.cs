@@ -40,6 +40,20 @@ namespace FWO.Test
             Type = new() { Name = ObjectType.AccessRole }
         };
 
+        static readonly NetworkObject HostObjWithoutIp1 = new()
+        {
+            Id = 24,
+            Name = "HostObjWithoutIp1",
+            Type = new() { Name = ObjectType.Host }
+        };
+
+        static readonly NetworkObject HostObjWithoutIp2 = new()
+        {
+            Id = 25,
+            Name = "HostObjWithoutIp2",
+            Type = new() { Name = ObjectType.Host }
+        };
+
         static readonly NetworkObject UpdObj1 = new()
         {
             Id = 31,
@@ -179,6 +193,14 @@ namespace FWO.Test
             Tos = [new(new(), Nwgroup3)],
             Services = [new() { Content = Svc1 }]
         };
+        static readonly Rule Rule15 = new()
+        {
+            Name = "FWOC15",
+            MgmtId = 1,
+            Froms = [new(new(), HostObjWithoutIp1), new(new(), HostObjWithoutIp2), new(new(), NwObj1)],
+            Tos = [new(new(), Nwgroup3)],
+            Services = [new() { Content = Svc1 }]
+        };
         static readonly DeviceReport DevRep1 = new()
         {
             Id = 1,
@@ -254,7 +276,7 @@ namespace FWO.Test
                     Data = new List<Rule>()
                     {
                         new(Rule1), new(Rule2), new(Rule3), new(Rule4), new(Rule5), new(Rule6), new(Rule7),
-                        new(Rule8), new(Rule9), new(Rule10), new(Rule11), new(Rule12), new(Rule13), new(Rule14)
+                        new(Rule8), new(Rule9), new(Rule10), new(Rule11), new(Rule12), new(Rule13), new(Rule14), new(Rule15)
                     }
                 };
                 return response.Data;

@@ -138,6 +138,7 @@ namespace FWO.Test
             });
             SetPrivateField(component, "EditOwnerMode", true);
             SetPrivateField(component, "Readonly", true);
+            SetPrivateField(component, "OwnerSearchTerm", "demo");
 
             Task task = (Task)GetPrivateMethod("HandleOwnerSaved").Invoke(component, null)!;
             await task;
@@ -145,6 +146,7 @@ namespace FWO.Test
             Assert.That(GetPrivateField<bool>(component, "EditOwnerMode"), Is.False);
             Assert.That(GetPrivateField<bool>(component, "Readonly"), Is.False);
             Assert.That(GetPrivateField<bool>(component, "ShowCleanupButton"), Is.True);
+            Assert.That(GetPrivateField<string>(component, "OwnerSearchTerm"), Is.Empty);
         }
 
         [Test]
@@ -261,6 +263,55 @@ namespace FWO.Test
         }
 
         [Test]
+        public void MatchesOwnerSearch_ReturnsTrue_WhenLifeCycleStateMatches()
+        {
+            SettingsOwner component = new();
+            SetInjectedUserConfig(component, new EditOwnerTestUserConfig());
+            SetPrivateField(component, "Tenants", new List<Tenant>());
+            SetPrivateField(component, "OwnerLifeCycleStates", new List<OwnerLifeCycleState> { new() { Id = 5, Name = "Manual", ActiveState = true } });
+            SetPrivateField(component, "OwnerSearchTerm", "manual");
+            FwoOwner owner = new() { Id = 4, Name = "Payments", OwnerLifeCycleStateId = 5 };
+
+            bool result = (bool)GetPrivateMethod("MatchesOwnerSearch").Invoke(component, [owner])!;
+
+            Assert.That(result, Is.True);
+        }
+
+        [Test]
+        public void MatchesOwnerSearch_ReturnsTrue_WhenImportSourceMatches()
+        {
+            SettingsOwner component = new();
+            SetInjectedUserConfig(component, new EditOwnerTestUserConfig());
+            SetPrivateField(component, "Tenants", new List<Tenant>());
+            SetPrivateField(component, "OwnerSearchTerm", "manual");
+            FwoOwner owner = new() { Id = 5, Name = "Payments", ImportSource = "manual" };
+
+            bool result = (bool)GetPrivateMethod("MatchesOwnerSearch").Invoke(component, [owner])!;
+
+            Assert.That(result, Is.True);
+        }
+
+        [Test]
+        public void MatchesOwnerSearch_IgnoresResponsiblesOfInactiveTypes()
+        {
+            SettingsOwner component = new();
+            SetInjectedUserConfig(component, new EditOwnerTestUserConfig());
+            SetPrivateField(component, "Tenants", new List<Tenant>());
+            SetPrivateField(component, "OwnerResponsibleTypes", new List<OwnerResponsibleType>
+            {
+                new() { Id = 1, Name = "Main", Active = true },
+                new() { Id = 2, Name = "Legacy", Active = true }
+            });
+            SetPrivateField(component, "OwnerSearchTerm", "hidden");
+            FwoOwner owner = new() { Id = 6, Name = "Payments" };
+            owner.AddOwnerResponsible(3, "CN=Hidden User,OU=Users,DC=example,DC=com");
+
+            bool result = (bool)GetPrivateMethod("MatchesOwnerSearch").Invoke(component, [owner])!;
+
+            Assert.That(result, Is.False);
+        }
+
+        [Test]
         public void FilteredOwners_ReturnsAllOwners_WhenSearchIsEmpty()
         {
             SettingsOwner component = new();
@@ -275,6 +326,56 @@ namespace FWO.Test
             IEnumerable<FwoOwner> filteredOwners = GetPrivateProperty<IEnumerable<FwoOwner>>(component, "FilteredOwners");
 
             Assert.That(filteredOwners.Select(owner => owner.Id).ToList(), Is.EqualTo(new List<int> { 1, 2 }));
+        }
+
+        [Test]
+        public void FilteredOwners_ReturnsMatchingOwners_WhenSearchIsSet()
+        {
+            SettingsOwner component = new();
+            SetInjectedUserConfig(component, new EditOwnerTestUserConfig());
+            SetPrivateField(component, "Tenants", new List<Tenant>());
+            SetPrivateField(component, "OwnerLifeCycleStates", new List<OwnerLifeCycleState>());
+            SetPrivateField(component, "OwnerResponsibleTypes", new List<OwnerResponsibleType>());
+            List<FwoOwner> owners =
+            [
+                new() { Id = 1, Name = "Finance" },
+                new() { Id = 2, Name = "Payments", ImportSource = "manual" }
+            ];
+            SetPrivateField(component, "Owners", owners);
+            SetPrivateField(component, "OwnerSearchTerm", "manual");
+
+            IEnumerable<FwoOwner> filteredOwners = GetPrivateProperty<IEnumerable<FwoOwner>>(component, "FilteredOwners");
+
+            Assert.That(filteredOwners.Select(owner => owner.Id).ToList(), Is.EqualTo(new List<int> { 2 }));
+        }
+
+        [Test]
+        public void GetOwnerLifeCycleStateDisplay_ReturnsInactiveSuffix_WhenStateIsInactive()
+        {
+            SettingsOwner component = new();
+            SetInjectedUserConfig(component, new EditOwnerTestUserConfig());
+            SetPrivateField(component, "OwnerLifeCycleStates", new List<OwnerLifeCycleState>
+            {
+                new() { Id = 8, Name = "Archived", ActiveState = false }
+            });
+            FwoOwner owner = new() { Id = 7, Name = "Legacy", OwnerLifeCycleStateId = 8 };
+
+            string display = (string)GetPrivateMethod("GetOwnerLifeCycleStateDisplay").Invoke(component, [owner])!;
+
+            Assert.That(display, Is.EqualTo("Archived (inactive)"));
+        }
+
+        [Test]
+        public void GetOwnerLifeCycleStateDisplay_ReturnsEmpty_WhenStateIsMissing()
+        {
+            SettingsOwner component = new();
+            SetInjectedUserConfig(component, new EditOwnerTestUserConfig());
+            SetPrivateField(component, "OwnerLifeCycleStates", new List<OwnerLifeCycleState>());
+            FwoOwner owner = new() { Id = 8, Name = "Legacy", OwnerLifeCycleStateId = 99 };
+
+            string display = (string)GetPrivateMethod("GetOwnerLifeCycleStateDisplay").Invoke(component, [owner])!;
+
+            Assert.That(display, Is.Empty);
         }
 
         [Test]

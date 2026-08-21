@@ -43,6 +43,11 @@ public sealed class FlowComplianceStateResponse
     public sealed class ComplianceViolationResponse
     {
         /// <summary>
+        /// Standard type value used when a violation cannot be mapped to a known criterion type.
+        /// </summary>
+        public const string UnknownType = "Unknown";
+
+        /// <summary>
         /// Gets the Type value.
         /// </summary>
         [JsonPropertyName("type")]

@@ -1,5 +1,7 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Compliance;
+using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Middleware.Server.Controllers;
@@ -8,6 +10,7 @@ using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using System.Reflection;
 using NUnit.Framework;
 
 namespace FWO.Test;
@@ -85,7 +88,7 @@ internal class FlowComplianceServiceTest
             Assert.That(result[0].Policy.Id, Is.EqualTo(7));
             Assert.That(result[0].Policy.Name, Is.EqualTo("Matrix and Service Policy"));
             Assert.That(result[0].Violations, Has.Count.EqualTo(2));
-            Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix", "ForbiddenService" }));
+            Assert.That(result[0].Violations.Select(v => v.Type), Is.EqualTo(new[] { "ForbiddenService", "Matrix" }));
             Assert.That(result[0].Violations.Single(v => v.Type == "Matrix").Count, Is.EqualTo(1));
             Assert.That(result[0].Violations.Single(v => v.Type == "ForbiddenService").Count, Is.EqualTo(2));
             Assert.That(apiConnection.CountQueries(ConfigQueries.getLanguages), Is.EqualTo(0));
@@ -93,6 +96,56 @@ internal class FlowComplianceServiceTest
             Assert.That(apiConnection.SentQueries, Does.Contain(ComplianceQueries.getPolicyById));
             Assert.That(apiConnection.SentQueries, Does.Contain(ComplianceQueries.getNetworkZonesForMatrix));
             Assert.That(apiConnection.SentQueries, Does.Contain(DeviceQueries.getManagementNames));
+        });
+    }
+
+    [Test]
+    public void FlowComplianceStateResponse_NormalizesViolationTypesAndOrdersGroups()
+    {
+        CompliancePolicy policy = BuildPolicy();
+        ComplianceCheck complianceCheck = new(UserConfig.ForTextOnly(new SimulatedGlobalConfig(), false), new FlowComplianceServiceApiConn())
+        {
+            Policy = policy
+        };
+        complianceCheck.CurrentViolationsInCheck.AddRange(
+        [
+            new ComplianceViolation
+            {
+                Type = ComplianceViolationType.MatrixViolation,
+                CriterionId = 101
+            },
+            new ComplianceViolation
+            {
+                Type = ComplianceViolationType.ServiceViolation,
+                CriterionId = 102
+            },
+            new ComplianceViolation
+            {
+                CriterionId = 101
+            },
+            new ComplianceViolation
+            {
+                Criterion = policy.Criteria[0].Content
+            },
+            new ComplianceViolation
+            {
+                Criterion = new ComplianceCriterion
+                {
+                    Id = 999,
+                    Name = "Custom Criterion",
+                    CriterionType = "CustomCriterion"
+                }
+            }
+        ]);
+
+        FlowComplianceStateResponse response = InvokeToResponse(7, policy, complianceCheck);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Violations.Select(violation => violation.Type), Is.EqualTo(new[] { "ForbiddenService", "Matrix", "Unknown" }));
+            Assert.That(response.Violations.Single(violation => violation.Type == "ForbiddenService").Count, Is.EqualTo(1));
+            Assert.That(response.Violations.Single(violation => violation.Type == "Matrix").Count, Is.EqualTo(3));
+            Assert.That(response.Violations.Single(violation => violation.Type == FlowComplianceStateResponse.ComplianceViolationResponse.UnknownType).Count, Is.EqualTo(1));
         });
     }
 
@@ -175,6 +228,14 @@ internal class FlowComplianceServiceTest
         apiConnection.PoliciesById[8] = BuildMatrixOnlyPolicy();
         apiConnection.Managements = [new Management { Id = 1, Uid = "mgmt-1" }];
         apiConnection.NetworkZones = BuildNetworkZones();
+    }
+
+    private static FlowComplianceStateResponse InvokeToResponse(int policyId, CompliancePolicy? policy, ComplianceCheck complianceCheck)
+    {
+        MethodInfo method = typeof(FlowComplianceService).GetMethod("ToResponse", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InvalidOperationException("FlowComplianceService.ToResponse helper not found.");
+
+        return (FlowComplianceStateResponse)method.Invoke(null, [policyId, policy, complianceCheck])!;
     }
 
     private static GetFlowComplianceStateRequest BuildComplianceRequest()

@@ -1008,6 +1008,28 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TestAnalyseRuleStatusSpecialUserObjectWithoutIp()
+        {
+            ModellingConnection connSpecUserWithoutIp = new()
+            {
+                Id = 12,
+                Name = "Conn12",
+                SourceAppServers = [new() { Content = AS1 }],
+                SourceAreas = [new() { Content = new ModellingNetworkArea() { Id = 1, Name = "NA-SpecUserArea" } }],
+                DestinationAppRoles = [new() { Content = AR3 }],
+                Services = [new() { Content = Svc1 }],
+                ExtraConfigs = [new() { ExtraConfigType = "IDA_user", ExtraConfigText = "SpecObjWithoutIp" }]
+            };
+
+            List<ModellingConnection> connections = [connSpecUserWithoutIp];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(connections, new(), false);
+
+            ClassicAssert.AreEqual(0, result.ConnsNotImplemented.Count);
+            ClassicAssert.AreEqual(0, result.RuleDifferences.Count);
+        }
+
+        [Test]
         public async Task TestAnalyseRuleStatusSingleSpecialUserDoesNotMatchMultipleAreas()
         {
             ModellingConnection connWithMultipleAreas = new()
@@ -1199,6 +1221,30 @@ namespace FWO.Test
         }
 
         [Test]
+        public void TestNameFieldRuleOwnerMappingQueriesIncludeRemovedConnections()
+        {
+            Assert.That(ModellingQueries.getOwnersForRuleOwnerNameField, Does.Not.Contain("removed:"));
+            Assert.That(ModellingQueries.getOwnersForRuleOwnerNameFieldFilteredByOwner, Does.Not.Contain("removed:"));
+        }
+
+        [Test]
+        public void TestNameFieldRuleOwnerPreFilterCompletenessQueryExcludesExistingOwnerMappings()
+        {
+            Assert.That(RuleQueries.getNameFieldRuleOwnerPreFilterCompletenessRules, Does.Contain("_not:"));
+            Assert.That(RuleQueries.getNameFieldRuleOwnerPreFilterCompletenessRules, Does.Contain("rule_owners:"));
+            Assert.That(RuleQueries.getNameFieldRuleOwnerPreFilterCompletenessRules, Does.Contain("owner_id: { _eq: $ownerId }"));
+            Assert.That(RuleQueries.getNameFieldRuleOwnerPreFilterCompletenessRules, Does.Contain("owner_mapping_source_id: { _eq: $ownerMappingSourceId }"));
+            Assert.That(RuleQueries.getNameFieldRuleOwnerPreFilterCompletenessRules, Does.Contain("removed: { _is_null: true }"));
+        }
+
+        [Test]
+        public void TestRelevantImportQueryIncludesSubManagementsForRuleOwnerPendingImportScope()
+        {
+            Assert.That(ReportQueries.getRelevantImportIdsAtTime, Does.Contain("managementByMultiDeviceManagerId"));
+            Assert.That(ReportQueries.getRelevantImportIdsAtTime, Does.Contain("id: mgm_id"));
+        }
+
+        [Test]
         public async Task TestNameFieldRuleOwnerPreFilterFindsDeletedConnectionForRequestFlow()
         {
             SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
@@ -1238,6 +1284,61 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterSkippedForPendingRuleOwnerMappingOnSameManagement()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                HasPendingRuleOwnerMappingImport = true,
+                PendingRuleOwnerMappingMgmId = 1
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterUsedForPendingRuleOwnerMappingOnForeignManagement()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                HasPendingRuleOwnerMappingImport = true,
+                PendingRuleOwnerMappingMgmId = 2
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterSkippedForPendingRuleOwnerMappingOnSubManagement()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                HasPendingRuleOwnerMappingImport = true,
+                PendingRuleOwnerMappingMgmId = 2,
+                RelevantImportSubManagementIds = [2]
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
         public async Task TestNameFieldRuleOwnerPreFilterFallsBackWhenPrefilterQueryFails()
         {
             SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
@@ -1263,6 +1364,24 @@ namespace FWO.Test
             Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
         }
 
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterStrictCompletenessFallsBackForMissingMapping()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                HasMissingRuleOwnerPreFilterCompletenessMapping = true
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            await analysis.AnalyseRulesVsModelledConnections([], new() { RulesForDeletedConns = true, VerifyRuleOwnerPreFilterCompleteness = true }, false);
+
+            Assert.That(apiConnection.Queries, Does.Contain(ModellingQueries.getOwnersForRuleOwnerNameFieldFilteredByOwner));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getNameFieldRuleOwnerPreFilterCompletenessRules));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
         private static SimulatedUserConfig CreateNameFieldPreFilterUserConfig()
         {
             return new()
@@ -1281,6 +1400,9 @@ namespace FWO.Test
             public bool ReturnRuleOwnerRules { get; init; } = true;
             public bool HasPendingRuleOwnerMappingImport { get; init; } = false;
             public bool ThrowOnRuleOwnerPreFilter { get; init; } = false;
+            public int? PendingRuleOwnerMappingMgmId { get; init; }
+            public List<int> RelevantImportSubManagementIds { get; init; } = [];
+            public bool HasMissingRuleOwnerPreFilterCompletenessMapping { get; init; } = false;
 
             public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(
                 string query,
@@ -1339,12 +1461,21 @@ namespace FWO.Test
 
                 if (responseType == typeof(List<ModellingConnection>))
                 {
+                    if (query == ModellingQueries.getOwnersForRuleOwnerNameFieldFilteredByOwner)
+                    {
+                        List<ModellingConnection> connections = HasMissingRuleOwnerPreFilterCompletenessMapping
+                            ? [new() { Id = 1, AppId = Application.Id }]
+                            : [];
+
+                        return (QueryResponseType)(object)connections;
+                    }
+
                     return (QueryResponseType)(object)new List<ModellingConnection>();
                 }
                 if (responseType == typeof(List<ImportControl>))
                 {
                     List<ImportControl> imports = HasPendingRuleOwnerMappingImport
-                        ? [new() { ControlId = 1 }]
+                        ? [new() { ControlId = 1, MgmId = PendingRuleOwnerMappingMgmId }]
                         : [];
                     return (QueryResponseType)(object)imports;
                 }
@@ -1363,6 +1494,15 @@ namespace FWO.Test
                     if (query == RuleQueries.getModelledRulesByRuleOwnerNameField && ThrowOnRuleOwnerPreFilter)
                     {
                         throw new InvalidOperationException("Simulated rule_owner prefilter failure.");
+                    }
+
+                    if (query == RuleQueries.getNameFieldRuleOwnerPreFilterCompletenessRules)
+                    {
+                        List<Rule> completenessRules = HasMissingRuleOwnerPreFilterCompletenessMapping
+                            ? [new() { Id = 1, Name = "FWOC1", MgmtId = 1 }]
+                            : [];
+
+                        return (QueryResponseType)(object)completenessRules;
                     }
 
                     List<Rule> rules = query == RuleQueries.getModelledRulesByRuleOwnerNameField && !ReturnRuleOwnerRules
@@ -1496,15 +1636,18 @@ namespace FWO.Test
             {
                 await DefaultInit.DoNothing();
                 Type responseType = typeof(QueryResponseType);
-                if (responseType == typeof(List<Management>))
+                if (responseType == typeof(List<ManagementReport>))
                 {
                     if (query == ReportQueries.getRelevantImportIdsAtTime)
                     {
-                        return (QueryResponseType)(object)new List<Management>
+                        return (QueryResponseType)(object)new List<ManagementReport>
                         {
                             new() { Import = new() { ImportAggregate = new() { ImportAggregateMax = new() { RelevantImportId = 1 } } } }
                         };
                     }
+                }
+                if (responseType == typeof(List<Management>))
+                {
                     return (QueryResponseType)(object)new List<Management>
                     {
                         new() { Id = 1, Name = "Checkpoint1", ExtMgtData = "{\"id\":\"1\"}" }

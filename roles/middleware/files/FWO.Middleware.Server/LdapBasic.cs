@@ -178,7 +178,11 @@ namespace FWO.Middleware.Server
         /// try an ldap bind, decrypting pwd before bind; using pwd as is if it cannot be decrypted
         /// false if bind fails
         /// </summary>
-        private static async Task<bool> TryBind(ILdapClient connection, string? user, string? password)
+        /// <param name="connection">Connection to bind on.</param>
+        /// <param name="user">Distinguished name of the binding user.</param>
+        /// <param name="password">Password of the binding user.</param>
+        /// <param name="decryptPassword">False if the password is already clear text and must be used as it is.</param>
+        private static async Task<bool> TryBind(ILdapClient connection, string? user, string? password, bool decryptPassword = true)
         {
             if (string.IsNullOrEmpty(user) || string.IsNullOrEmpty(password))
             {
@@ -187,7 +191,7 @@ namespace FWO.Middleware.Server
             }
             else
             {
-                await connection.BindAsync(user, AesEnc.TryDecrypt(password, true));
+                await connection.BindAsync(user, decryptPassword ? AesEnc.TryDecrypt(password, true) : password);
             }
             return connection.Bound;
         }
@@ -196,14 +200,19 @@ namespace FWO.Middleware.Server
         /// Test a connection to the specified Ldap server.
         /// Throws exception if not successful
         /// </summary>
+        /// <remarks>
+        /// The passwords are used as they were handed over, they are never decrypted: this test
+        /// reaches a server chosen by the caller, so it must not be usable to turn a stored
+        /// credential back into its clear text form.
+        /// </remarks>
         public async Task TestConnection()
         {
             using ILdapClient connection = await Connect();
-            if (!string.IsNullOrEmpty(SearchUser) && !string.IsNullOrEmpty(SearchUserPwd) && !await TryBind(connection, SearchUser, SearchUserPwd))
+            if (!string.IsNullOrEmpty(SearchUser) && !string.IsNullOrEmpty(SearchUserPwd) && !await TryBind(connection, SearchUser, SearchUserPwd, false))
             {
                 throw new LdapConnectionException("Binding failed for search user");
             }
-            if (!string.IsNullOrEmpty(WriteUser) && !string.IsNullOrEmpty(WriteUserPwd) && !await TryBind(connection, WriteUser, WriteUserPwd))
+            if (!string.IsNullOrEmpty(WriteUser) && !string.IsNullOrEmpty(WriteUserPwd) && !await TryBind(connection, WriteUser, WriteUserPwd, false))
             {
                 throw new LdapConnectionException("Binding failed for write user");
             }

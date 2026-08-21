@@ -534,6 +534,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Firewall Orchestrator betreibt nun eine eigene interne Zertifizierungsstelle. Alle internen Verbindungen werden gegen dieses Zertifikat gepr&uuml;ft, statt beliebige Zertifikate zu akzeptieren.</li>
     <li>Der Zugriff auf die GraphQL-API erfordert nun ein Client-Zertifikat. Eigene Skripte m&uuml;ssen ihre lokale Client-Identit&auml;t mitsenden, siehe <a target="_blank" href="/help/API/certificates">Hilfe zu Zertifikaten</a>.</li>
     <li>App-Rollen d&uuml;rfen nur noch von Verantwortlichen der Applikation mit der Rolle Modellierer ge&auml;ndert werden.</li>
+    <li>Die Passw&ouml;rter der LDAP-Verbindungen werden von der API nicht mehr herausgegeben. Beim Bearbeiten einer Verbindung bleibt das gespeicherte Passwort erhalten, solange das Feld leer bleibt.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -542,6 +543,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Firewall Orchestrator now operates its own internal certificate authority. All internal connections are verified against it instead of accepting any certificate.</li>
     <li>Access to the GraphQL API now requires a client certificate. Your own scripts have to present their local client identity, see <a target="_blank" href="/help/API/certificates">certificate help</a>.</li>
     <li>Application roles may now only be changed by an owner of the application holding the modeller role.</li>
+    <li>The passwords of the ldap connections are no longer handed out by the api. When editing a connection the stored password is kept as long as the field is left empty.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -2540,6 +2542,8 @@ INSERT INTO txt VALUES ('write_user',           'German', 	'Schreibender Nutzer'
 INSERT INTO txt VALUES ('write_user',           'English', 	'Write User');
 INSERT INTO txt VALUES ('write_user_pwd',       'German', 	'Passwort Schreibender Nutzer');
 INSERT INTO txt VALUES ('write_user_pwd',       'English', 	'Write User Password');
+INSERT INTO txt VALUES ('pwd_unchanged',        'German', 	'Leer lassen, um es nicht zu &auml;ndern');
+INSERT INTO txt VALUES ('pwd_unchanged',        'English', 	'Leave empty to keep unchanged');
 INSERT INTO txt VALUES ('tenant',               'German', 	'Mandant');
 INSERT INTO txt VALUES ('tenant',               'English', 	'Tenant');
 INSERT INTO txt VALUES ('owner_lc_state',       'German', 	'Produktionsstatus');
@@ -6129,12 +6133,12 @@ INSERT INTO txt VALUES ('H5219', 'German',  'Suchpfad Gruppen: Der Distinguished
 INSERT INTO txt VALUES ('H5219', 'English', 'Group Search Path: The distinguished name (Dn) of the root of the group search tree. This parameter should only be set for the internal Ldap, if user group handling is used.');
 INSERT INTO txt VALUES ('H5220', 'German',  'Nutzer f&uuml;r Suche*: Der Distinguished name (Dn) des Nutzers, der die Rechte f&uuml;r Suchen im Ldap hat.');
 INSERT INTO txt VALUES ('H5220', 'English', 'Search User*: The distinguished name (Dn) of the user having the rights performing searches in the Ldap.');
-INSERT INTO txt VALUES ('H5221', 'German',  'Passwort Nutzer f&uuml;r Suche*: Passwort des f&uuml;r Suchen verwendeten Nutzers.');
-INSERT INTO txt VALUES ('H5221', 'English', 'Search User Password*: The password for the search user.');
+INSERT INTO txt VALUES ('H5221', 'German',  'Passwort Nutzer f&uuml;r Suche*: Passwort des f&uuml;r Suchen verwendeten Nutzers. Gespeicherte Passw&ouml;rter werden nicht angezeigt: leer lassen, um das gespeicherte Passwort zu behalten.');
+INSERT INTO txt VALUES ('H5221', 'English', 'Search User Password*: The password for the search user. Stored passwords are not displayed: leave the field empty to keep the stored password.');
 INSERT INTO txt VALUES ('H5222', 'German',  'Schreibender Nutzer: Der Distinguished name (Dn) des Nutzers, der die Rechte f&uuml;r Schreiboperationen im Ldap hat. Notwendig nur f&uuml;r das interne Ldap, um Nutzer und Gruppen zu verwalten.');
 INSERT INTO txt VALUES ('H5222', 'English', 'Write User: The distinguished name (Dn) of the user having the rights performing write operations in the Ldap. Necessary only for the internal Ldap to administrate users and groups.');
-INSERT INTO txt VALUES ('H5223', 'German',  'Passwort Schreibender Nutzer: Passwort des zum Schreiben verwendeten Nutzers.');
-INSERT INTO txt VALUES ('H5223', 'English', 'Write User Password: The password for the write user.');
+INSERT INTO txt VALUES ('H5223', 'German',  'Passwort Schreibender Nutzer: Passwort des zum Schreiben verwendeten Nutzers. Gespeicherte Passw&ouml;rter werden nicht angezeigt: leer lassen, um das gespeicherte Passwort zu behalten.');
+INSERT INTO txt VALUES ('H5223', 'English', 'Write User Password: The password for the write user. Stored passwords are not displayed: leave the field empty to keep the stored password.');
 INSERT INTO txt VALUES ('H5224', 'German',  'Mandant: Wenn das Ldap nur f&uuml;r einen Mandanten genutzt werden soll, kann dieser hier ausgew&auml;hlt werden.');
 INSERT INTO txt VALUES ('H5224', 'English', 'Tenant: If the Ldap is used only for one tenant, it can be selected here.');
 INSERT INTO txt VALUES ('H5225', 'German',  'Globaler Mandantenname: Wenn das Ldap Mandanten nutzt (Mandantenebene > 0), kann dieser hier ein Name f&uuml;r den Globalen Mandanten gesetzt werden.

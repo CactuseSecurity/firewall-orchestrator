@@ -10000,7 +10000,6 @@
                       "ldap_pattern_length",
                       "ldap_port",
                       "ldap_search_user",
-                      "ldap_search_user_pwd",
                       "ldap_searchpath_for_groups",
                       "ldap_searchpath_for_roles",
                       "ldap_searchpath_for_users",
@@ -10009,7 +10008,6 @@
                       "ldap_tls",
                       "ldap_type",
                       "ldap_write_user",
-                      "ldap_write_user_pwd",
                       "ldap_writepath_for_groups",
                       "tenant_id"
                     ],

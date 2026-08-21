@@ -1,5 +1,7 @@
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Middleware;
+using FWO.Encryption;
 using FWO.Middleware.Server;
 using Novell.Directory.Ldap;
 using NUnit.Framework;
@@ -354,6 +356,53 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TestConnection_BindsWithThePasswordsAsTheyWereGiven()
+        {
+            FakeLdapConnection connection = new();
+            TestableLdap ldap = new(connection)
+            {
+                Address = "example.test",
+                Port = 636,
+                SearchUser = kSearchUser,
+                SearchUserPwd = "clearTextSearchPwd",
+                WriteUser = "cn=write,dc=example,dc=com",
+                WriteUserPwd = "clearTextWritePwd"
+            };
+
+            await ldap.TestConnection();
+
+            Assert.That(connection.LastBoundPasswords, Is.EqualTo(new List<string> { "clearTextSearchPwd", "clearTextWritePwd" }));
+        }
+
+        [Test]
+        public async Task TestConnection_DoesNotDecryptAStoredSecret()
+        {
+            // the connection test reaches a server chosen by the caller, so a stored credential
+            // must never be turned back into its clear text form here. This needs the main key of
+            // the installation, so it can only be checked where that key is present.
+            if (!File.Exists(GlobalConst.kMainKeyFile))
+            {
+                Assert.Ignore("No main key available on this machine, encryption cannot be exercised.");
+            }
+
+            string encryptedPwd = AesEnc.TryEncrypt("theClearTextSecret");
+            Assert.That(encryptedPwd, Is.Not.EqualTo("theClearTextSecret"));
+
+            FakeLdapConnection connection = new();
+            TestableLdap ldap = new(connection)
+            {
+                Address = "example.test",
+                Port = 636,
+                SearchUser = kSearchUser,
+                SearchUserPwd = encryptedPwd
+            };
+
+            await ldap.TestConnection();
+
+            Assert.That(connection.LastBoundPasswords, Is.EqualTo(new List<string> { encryptedPwd }));
+        }
+
+        [Test]
         public async Task GetUserDetailsFromLdap_UsesOverriddenConnectionWithoutNetwork()
         {
             LdapEntry expectedEntry = Entry(kUserDn, ("uid", ["user"]));
@@ -424,6 +473,7 @@ namespace FWO.Test
             public int BindCalls { get; private set; }
             public int ReadCalls { get; private set; }
             public List<string> LastBoundUsers { get; } = [];
+            public List<string> LastBoundPasswords { get; } = [];
             public LdapConstraints SearchConstraints { get; } = new();
             public LdapConstraints Constraints { get; set; } = new();
             public LdapEntry? ReadResult { get; set; }
@@ -432,6 +482,7 @@ namespace FWO.Test
             {
                 BindCalls++;
                 LastBoundUsers.Add(user);
+                LastBoundPasswords.Add(password);
                 Bound = true;
                 return Task.CompletedTask;
             }

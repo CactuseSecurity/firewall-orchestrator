@@ -618,3 +618,4 @@ Not supported any longer are:
   - an internal CA and certificate checks for all internal communication
   - client certificates for graphql API access to prevent unauthorized access
 - application roles may now only be changed by an owner holding the modeller role
+- the ldap connection passwords are no longer readable via the API, not even for auditors

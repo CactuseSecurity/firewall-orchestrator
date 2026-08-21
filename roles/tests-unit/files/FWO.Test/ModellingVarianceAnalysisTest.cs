@@ -1432,7 +1432,9 @@ namespace FWO.Test
                                     }
                                 }
                             },
-                            SubManagements = []
+                            SubManagements = RelevantImportSubManagementIds
+                                .Select(id => new Management { Id = id })
+                                .ToList()
                         }
                     ];
 

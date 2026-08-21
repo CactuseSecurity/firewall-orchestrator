@@ -176,6 +176,16 @@ tim@acantha24:~/dev/tim/fwo$
 Notes:
 - 160000 - sub module
 - 120000 - symbolic link
+
+
+## optional for agents supported work 
+
+### linux: install and authenticate gh cmd line tool (used by agents)
+```
+sudo apt install gh
+gh auth login
+```
+
 ## Troubleshooting: pre-commit Python / Ruff / Pyright
 
 If `git commit` fails with messages like:

@@ -804,6 +804,7 @@ namespace FWO.Test
                 new() { Id = 7, Active = true },
                 new() { Id = 11, Active = true }
             });
+            SetPrivateField(helper, "ownerResponsibleTypesLoaded", true);
 
             List<int> activeIds = InvokePrivate<List<int>>(helper, "GetActiveOwnerResponsibleTypeIds", Array.Empty<object?>());
 

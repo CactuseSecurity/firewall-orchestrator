@@ -111,8 +111,9 @@ namespace FWO.Data
                     .ToList()
             };
 
-            // If the caller has no active-type metadata, keep the configured selections.
-            if (activeOwnerResponsibleTypeIds != null && activeOwnerResponsibleTypeIds.Any())
+            // Null means the caller could not load active-type metadata.
+            // An empty list means there are currently no active responsible types.
+            if (activeOwnerResponsibleTypeIds != null)
             {
                 HashSet<int> activeTypeIds = activeOwnerResponsibleTypeIds.ToHashSet();
                 sanitized.OwnerResponsibleTypeIds = sanitized.OwnerResponsibleTypeIds

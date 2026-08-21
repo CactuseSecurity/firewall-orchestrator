@@ -238,10 +238,16 @@ namespace FWO.Middleware.Server.Jobs
         {
             int emailsSent = 0;
             List<UserGroup> OwnerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnection);
+            List<Ldap> ldaps = await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
             using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
             WfHandler wfHandler = new(userConfig, apiConnection, WorkflowPhases.implementation, OwnerGroups, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
             await wfHandler.Init();
-            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, OwnerGroups);
+            NotificationService notificationService = await NotificationService.CreateAsync(
+                NotificationClient.InterfaceRequest,
+                globalConfig,
+                apiConnection,
+                OwnerGroups,
+                new WorkflowRecipientResolver(apiConnection, ldaps));
 
             foreach (var notification in notificationService.Notifications)
             {
@@ -294,7 +300,7 @@ namespace FWO.Middleware.Server.Jobs
             long initialOffset = notification.InitialOffsetAfterDeadline ?? 0;
             long repeatOffset = notification.RepeatOffsetAfterDeadline ?? 0;
             long repetitions = notification.RepetitionsAfterDeadline ?? 0;
-            long cutOffPeriod = initialOffset + repeatOffset * repetitions;
+            long cutOffPeriod = initialOffset + repeatOffset * (repetitions + 1);
             return (int)Math.Max(0, Math.Min(cutOffPeriod, int.MaxValue));
         }
 

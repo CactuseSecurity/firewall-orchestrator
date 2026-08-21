@@ -25,14 +25,17 @@ namespace FWO.Middleware.Server
         private readonly ApiConnection ApiConnection;
         private readonly GlobalConfig GlobalConfig;
         private readonly List<UserGroup> OwnerGroups;
+        private readonly IWorkflowRecipientResolver? WorkflowRecipientResolver;
 
 
-        NotificationService(List<FwoNotification> notifications, GlobalConfig globalConfig, ApiConnection apiConnection, List<UserGroup> ownerGroups)
+        NotificationService(List<FwoNotification> notifications, GlobalConfig globalConfig, ApiConnection apiConnection, List<UserGroup> ownerGroups,
+            IWorkflowRecipientResolver? workflowRecipientResolver = null)
         {
             ApiConnection = apiConnection;
             GlobalConfig = globalConfig;
             Notifications = notifications;
             OwnerGroups = ownerGroups;
+            WorkflowRecipientResolver = workflowRecipientResolver;
         }
 
         /// <summary>
@@ -42,11 +45,13 @@ namespace FWO.Middleware.Server
         /// <param name="globalConfig"></param>
         /// <param name="apiConnection"></param>
         /// <param name="ownerGroups"></param>
+        /// <param name="workflowRecipientResolver">Optional workflow recipient resolver for LDAP-backed recipient lookup.</param>
         /// <returns></returns>
-        public static async Task<NotificationService> CreateAsync(NotificationClient notificationClient, GlobalConfig globalConfig, ApiConnection apiConnection, List<UserGroup> ownerGroups)
+        public static async Task<NotificationService> CreateAsync(NotificationClient notificationClient, GlobalConfig globalConfig, ApiConnection apiConnection,
+            List<UserGroup> ownerGroups, IWorkflowRecipientResolver? workflowRecipientResolver = null)
         {
             List<FwoNotification> notifications = await LoadNotifications(notificationClient, apiConnection);
-            return new NotificationService(notifications, globalConfig, apiConnection, ownerGroups);
+            return new NotificationService(notifications, globalConfig, apiConnection, ownerGroups, workflowRecipientResolver);
         }
 
         /// <summary>
@@ -80,7 +85,11 @@ namespace FWO.Middleware.Server
         public async Task<int> SendNotification(FwoNotification notification, FwoOwner? owner, string? content = null, ReportBase? report = null, string timeIntervalText = "")
         {
             // Later: Handle other channels here when implemented
-            await SendEmail(notification, content, owner, report, timeIntervalText);
+            bool sent = await SendEmail(notification, content, owner, report, timeIntervalText);
+            if (!sent)
+            {
+                return 0;
+            }
             if (!CheckedNotificationIds.Contains(notification.Id))
             {
                 CheckedNotificationIds.Add(notification.Id);
@@ -109,7 +118,11 @@ namespace FWO.Middleware.Server
                     continue;
                 }
 
-                await SendBundledEmail(groupedNotifications, content, owner, report, timeIntervalText);
+                bool sent = await SendBundledEmail(groupedNotifications, content, owner, report, timeIntervalText);
+                if (!sent)
+                {
+                    continue;
+                }
                 foreach (FwoNotification notification in groupedNotifications)
                 {
                     if (!CheckedNotificationIds.Contains(notification.Id))
@@ -258,25 +271,41 @@ namespace FWO.Middleware.Server
             return await apiConnection.SendQueryAsync<List<FwoNotification>>(NotificationQueries.getNotifications, new { client = notificationClient.ToString() });
         }
 
-        private async Task SendEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
+        private async Task<bool> SendEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
         {
+            MailData? mail = await PrepareEmail(notification, content, owner, report, timeIntervalText);
+            if (mail.To.Count == 0 && mail.Cc.Count == 0 && mail.Bcc.Count == 0)
+            {
+                Log.WriteWarning("Notifications",
+                    $"No recipients resolved for notification client {notification.NotificationClient} while preparing notification {notification.Id}. Skipping send.");
+                return false;
+            }
+
             string decryptedSecret = AesEnc.TryDecrypt(GlobalConfig.EmailPassword, false, "NotificationService", "Could not decrypt mailserver password.");
             EmailConnection emailConnection = new(GlobalConfig.EmailServerAddress, GlobalConfig.EmailPort,
                 GlobalConfig.EmailTls, GlobalConfig.EmailUser, decryptedSecret, GlobalConfig.EmailSenderAddress);
-
-            MailData? mail = await PrepareEmail(notification, content, owner, report, timeIntervalText);
 
             await MailKitMailer.SendAsync(mail, emailConnection, notification.Layout == NotificationLayout.HtmlInBody, new());
+            return true;
         }
 
-        private async Task SendBundledEmail(List<FwoNotification> notifications, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
+        private async Task<bool> SendBundledEmail(List<FwoNotification> notifications, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
         {
+            MailData mail = await PrepareBundledEmail(notifications, content, owner, report, timeIntervalText);
+            if (mail.To.Count == 0 && mail.Cc.Count == 0 && mail.Bcc.Count == 0)
+            {
+                FwoNotification baseNotification = notifications.First();
+                Log.WriteWarning("Notifications",
+                    $"No recipients resolved for notification client {baseNotification.NotificationClient} while preparing bundled notification {baseNotification.Id}. Skipping send.");
+                return false;
+            }
+
             string decryptedSecret = AesEnc.TryDecrypt(GlobalConfig.EmailPassword, false, "NotificationService", "Could not decrypt mailserver password.");
             EmailConnection emailConnection = new(GlobalConfig.EmailServerAddress, GlobalConfig.EmailPort,
                 GlobalConfig.EmailTls, GlobalConfig.EmailUser, decryptedSecret, GlobalConfig.EmailSenderAddress);
 
-            MailData mail = await PrepareBundledEmail(notifications, content, owner, report, timeIntervalText);
             await MailKitMailer.SendAsync(mail, emailConnection, false, new());
+            return true;
         }
 
         private async Task<MailData> PrepareEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
@@ -362,7 +391,7 @@ namespace FWO.Middleware.Server
             {
                 return [GlobalConfig.DummyEmailAddress];
             }
-            EmailHelper emailHelper = new(ApiConnection, null, new(), DefaultInit.DoNothing, OwnerGroups);
+            EmailHelper emailHelper = new(ApiConnection, null, new(), DefaultInit.DoNothing, OwnerGroups, recipientResolver: WorkflowRecipientResolver);
             await emailHelper.Init();
             EmailRecipientOption recipientOption = notification.RecipientTo;
             string? addressList = notification.EmailAddressTo;
@@ -397,7 +426,7 @@ namespace FWO.Middleware.Server
                 return recipients;
             }
             List<string> resolvedRecipients = await emailHelper.GetRecipients(recipientOption, null, owner, null, addresses);
-            if (resolvedRecipients.Count == 0)
+            if (resolvedRecipients.Count == 0 && recipientOption != EmailRecipientOption.None)
             {
                 Log.WriteWarning("Notifications", $"No recipients resolved for notification client {notification.NotificationClient} using option {recipientOption}.");
             }

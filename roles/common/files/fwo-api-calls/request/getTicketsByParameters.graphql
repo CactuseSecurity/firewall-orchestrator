@@ -38,6 +38,10 @@ query getTicketsByParameters($createdFrom: timestamp, $createdUntil: timestamp, 
           id
           name
           app_id_external
+          owner_responsibles {
+            dn
+            responsible_type
+          }
         }
       }
     }

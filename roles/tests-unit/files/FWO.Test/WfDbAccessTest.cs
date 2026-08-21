@@ -388,6 +388,7 @@ namespace FWO.Test
         public void GetTicketsByParameters_UsesLowerBoundForCutoffDate()
         {
             Assert.That(RequestQueries.getTicketsByParameters, Does.Contain("date_created: { _gte: $createdFrom, _lte: $createdUntil }"));
+            Assert.That(RequestQueries.getTicketsByParameters, Does.Contain("owner_responsibles"));
         }
 
         [Test]

@@ -25,6 +25,7 @@ namespace FWO.Services
         private readonly IWorkflowRecipientResolver? recipientResolver;
         private List<UserGroup> ownerGroups = [];
         private List<OwnerResponsibleType> ownerResponsibleTypes = [];
+        private bool ownerResponsibleTypesLoaded;
         private List<UiUser> uiUsers = [];
         private string? ScopedUserTo;
         private string? ScopedUserCc;
@@ -56,11 +57,13 @@ namespace FWO.Services
             try
             {
                 ownerResponsibleTypes = await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes);
+                ownerResponsibleTypesLoaded = true;
             }
             catch (Exception exception)
             {
                 Log.WriteWarning("Workflow Email", $"Could not load owner responsible types, continuing without active-type filtering: {exception.Message}");
                 ownerResponsibleTypes = [];
+                ownerResponsibleTypesLoaded = false;
             }
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUserEmails);
             ScopedUserTo = scopedUserTo;
@@ -316,8 +319,13 @@ namespace FWO.Services
             }
         }
 
-        private List<int> GetActiveOwnerResponsibleTypeIds()
+        private List<int>? GetActiveOwnerResponsibleTypeIds()
         {
+            if (!ownerResponsibleTypesLoaded)
+            {
+                return null;
+            }
+
             return ownerResponsibleTypes
                 .Where(type => type.Active)
                 .Select(type => type.Id)

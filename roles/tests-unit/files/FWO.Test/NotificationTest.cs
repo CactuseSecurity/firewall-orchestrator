@@ -627,6 +627,35 @@ namespace FWO.Test
         }
 
         [Test]
+        [NonParallelizable]
+        public async Task CollectRecipientsDoesNotWarnForNoneRecipientOption()
+        {
+            globalConfig.UseDummyEmailAddress = false;
+            List<UserGroup> ownerGroups = [];
+            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, ownerGroups);
+            FwoNotification notification = new()
+            {
+                NotificationClient = NotificationClient.InterfaceRequest,
+                RecipientTo = EmailRecipientOption.None,
+                EmailAddressTo = ""
+            };
+
+            string output = await CaptureConsoleAsync(async () =>
+            {
+                MethodInfo? collectRecipients = typeof(NotificationService).GetMethod("CollectRecipients", BindingFlags.Instance | BindingFlags.NonPublic);
+                ClassicAssert.IsNotNull(collectRecipients);
+
+                Task<List<string>> task = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, [notification, null, false, false])
+                    ?? throw new InvalidOperationException("CollectRecipients returned null task."));
+                List<string> recipients = await task;
+
+                Assert.That(recipients, Is.Empty);
+            });
+
+            Assert.That(output, Does.Not.Contain("using option None"));
+        }
+
+        [Test]
         public void TestDecommissionNotificationDueCalculation()
         {
             FwoOwner owner = new() { DecommDate = DateTime.Now.AddDays(-8) };

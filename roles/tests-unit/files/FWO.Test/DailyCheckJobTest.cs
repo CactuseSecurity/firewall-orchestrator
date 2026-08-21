@@ -123,7 +123,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void GetInterfaceRequestCutOffPeriod_UsesInitialPlusRepeatTimesRepetitions()
+        public void GetInterfaceRequestCutOffPeriod_UsesInitialPlusRepeatTimesRepetitionsPlusOne()
         {
             MethodInfo helper = typeof(DailyCheckJob).GetMethod("GetInterfaceRequestCutOffPeriod", BindingFlags.NonPublic | BindingFlags.Static)
                 ?? throw new InvalidOperationException("GetInterfaceRequestCutOffPeriod method not found.");
@@ -146,8 +146,8 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(noRepeats, Is.EqualTo(3));
-                Assert.That(oneRepeat, Is.EqualTo(10));
+                Assert.That(noRepeats, Is.EqualTo(10));
+                Assert.That(oneRepeat, Is.EqualTo(17));
                 Assert.That(nullableValues, Is.Zero);
             });
         }
@@ -521,12 +521,13 @@ namespace FWO.Test
 
                 Assert.Multiple(() =>
                 {
-                    Assert.That(output, Does.Contain("No recipients resolved for notification client InterfaceRequest using option OtherAddresses"));
-                    Assert.That(output, Does.Contain("No recipients resolved for notification client InterfaceRequest using option None"));
-                    Assert.That(output, Does.Contain("Unanswered Interface Requests Check: Sent 1 emails."));
+                    Assert.That(output, Does.Contain("No recipients resolved for configured responsibles while preparing notification client InterfaceRequest."));
+                    Assert.That(output, Does.Contain("Reminder notification 11 was due for unanswered interface request ticket 501, but no email was sent. Check recipient resolution and due settings."));
+                    Assert.That(output, Does.Contain("No reminder email was sent for notification 11 despite 1 unanswered interface request(s) being due. Check recipient resolution and due settings."));
+                    Assert.That(output, Does.Contain("Unanswered Interface Requests Check: Sent 0 emails."));
                     Assert.That(apiConnection.NotificationLoadCount, Is.EqualTo(1));
                     Assert.That(apiConnection.OpenTicketQueryCount, Is.EqualTo(1));
-                    Assert.That(apiConnection.UpdatedNotificationIds, Is.EqualTo(ExpectedUpdatedNotificationIds));
+                    Assert.That(apiConnection.UpdatedNotificationIds, Is.Empty);
                 });
             }
             finally
@@ -766,7 +767,7 @@ namespace FWO.Test
             {
                 Id = id,
                 NotificationClient = NotificationClient.InterfaceRequest,
-                RecipientTo = EmailRecipientOption.OtherAddresses,
+                RecipientTo = EmailRecipientOption.ConfiguredResponsibles,
                 EmailAddressTo = "",
                 EmailSubject = "subject",
                 EmailBody = "body",

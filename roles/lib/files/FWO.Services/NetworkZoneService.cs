@@ -236,6 +236,13 @@ namespace FWO.Services
                 return;
             }
 
+            bool dummyInternetZoneExists = TryUpdateInternetZoneObject(existingZones, matrixId, out ComplianceNetworkZone internetZone);
+            List<IPAddressRange> dummyInternetZoneRanges = internetZone.IPRanges.ToList();
+            if (dummyInternetZoneExists)
+            {
+                existingZones.Remove(internetZone);
+            }
+
             ComplianceNetworkZone undefinedInternalZone = new()
             {
                 IdString = "AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL",
@@ -246,11 +253,11 @@ namespace FWO.Services
             CalculateUndefinedInternalZone(undefinedInternalZone, GetInternalZoneRanges(globalConfig), existingZones);
             existingZones.Add(undefinedInternalZone);
 
-            bool dummyInternetZoneExists = TryUpdateInternetZoneObject(existingZones, matrixId, out ComplianceNetworkZone internetZone);
             CalculateInternetZone(internetZone, existingZones);
             AdditionsDeletions internetZoneAddDel = new()
             {
-                IpRangesToAdd = internetZone.IPRanges.ToList()
+                IpRangesToAdd = internetZone.IPRanges.ToList(),
+                IpRangesToDelete = dummyInternetZoneRanges
             };
 
             if (dummyInternetZoneExists)

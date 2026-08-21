@@ -82,6 +82,7 @@ namespace FWO.Test
             IRenderedComponent<ZonesConfiguration> page = Render(context);
 
             networkZoneService.InvokeOnEditZone(normalZone);
+            page.WaitForAssertion(() => Assert.That(page.FindAll(".alert-warning"), Has.Count.EqualTo(1)));
             Task updateTask = (Task)typeof(ZonesConfiguration)
                 .GetMethod("ExecuteNetworkZoneModifications", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
                 .Invoke(page.Instance, null)!;
@@ -90,6 +91,26 @@ namespace FWO.Test
             Assert.That(apiConnection.SentQueries.First(), Is.EqualTo(ComplianceQueries.updateNetworkZone));
             Assert.That(apiConnection.SentQueries, Does.Contain(ComplianceQueries.removeNetworkZone));
             Assert.That(apiConnection.SentQueries.Count(query => query == ComplianceQueries.addNetworkZone), Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task DeletingZoneDisplaysAutoCalculatedZoneCommunicationWarning()
+        {
+            ComplianceNetworkZone normalZone = new() { Id = 1, CriterionId = 1, Name = "normal" };
+            NetworkZoneService networkZoneService = new()
+            {
+                NetworkZones = new List<ComplianceNetworkZone> { normalZone }
+            };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                AutoCalculateInternetZone = true
+            };
+            await using BunitContext context = CreateContext(networkZoneService, globalConfig: globalConfig);
+            IRenderedComponent<ZonesConfiguration> page = Render(context);
+
+            networkZoneService.InvokeOnDeleteZone(normalZone);
+
+            page.WaitForAssertion(() => Assert.That(page.FindAll(".alert-warning"), Has.Count.EqualTo(1)));
         }
 
         [Test]

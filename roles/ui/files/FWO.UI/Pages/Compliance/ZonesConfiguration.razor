@@ -39,6 +39,10 @@
     <PopUp Title="@userConfig.GetText("edit_zone_title")" Show="editMode" Size=PopupSize.XLarge OnClose="() => editMode = false">
         <Body>
             <form>
+                @if (!string.IsNullOrWhiteSpace(AutoCalculatedZoneCommunicationsWarning))
+                {
+                    <div class="alert alert-warning" role="alert">@AutoCalculatedZoneCommunicationsWarning</div>
+                }
                 <div class="row mb-3">
                     <div class="col-3">
                         <label for="id" class="form-label">@(userConfig.GetText("id"))</label>
@@ -178,7 +182,8 @@
     </PopUp>
 
     <ConfirmDelete @bind-Display="deleteMode" PerformAction="ExecuteNetworkZoneDeletion" Title="@userConfig.GetText("delete_zone_title")"
-        AllowedRoles="@($"{Roles.Admin}, {Roles.FwAdmin}")" DeleteMessage="@(userConfig.GetText("delete_zone_text").Replace("%", $"\"{networkZoneInEdit.Name}\""))" />
+        AllowedRoles="@($"{Roles.Admin}, {Roles.FwAdmin}")" DeleteMessage="@(userConfig.GetText("delete_zone_text").Replace("%", $"\"{networkZoneInEdit.Name}\""))"
+        WarningMessage="@AutoCalculatedZoneCommunicationsWarning" />
 }
 
 @code
@@ -212,6 +217,13 @@
         SelectedMatrix.Id > 0
         && userConfig.GlobalConfig?.AutoCalculateInternetZone == true
         && !networkZoneService.NetworkZones.Any(zone => zone.IsAutoCalculatedInternetZone);
+
+    private string AutoCalculatedZoneCommunicationsWarning =>
+        userConfig.GlobalConfig?.AutoCalculateInternetZone == true
+        && networkZoneInEdit?.IsAutoCalculatedInternetZone != true
+        && networkZoneInEdit?.IsAutoCalculatedUndefinedInternalZone != true
+            ? userConfig.GetText("auto_calculated_zone_communications_warning")
+            : "";
 
     protected override async Task OnInitializedAsync()
     {

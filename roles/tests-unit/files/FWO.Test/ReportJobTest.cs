@@ -487,7 +487,7 @@ namespace FWO.Test
             await reportJob.TrySendReportViaEmail(reportSchedule, report, userConfig);
 
             Assert.That(apiConnection.LastQuery, Is.EqualTo(NotificationQueries.updateNotificationsLastSent));
-            Assert.That(apiConnection.QueryCount, Is.EqualTo(2));
+            Assert.That(apiConnection.QueryCount, Is.EqualTo(4));
         }
 
         [Test]

@@ -287,7 +287,8 @@ namespace FWO.Test
                 MethodInfo method = typeof(NotificationService).GetMethod("CollectRecipients", BindingFlags.Instance | BindingFlags.NonPublic)
                     ?? throw new MissingMethodException(typeof(NotificationService).FullName, "CollectRecipients");
 
-                Task<List<string>> task = (Task<List<string>>)method.Invoke(notificationService, [notification, null, false, false])!;
+                object?[] args = [notification, null, false, false];
+                Task<List<string>> task = (Task<List<string>>)method.Invoke(notificationService, args)!;
                 List<string> recipients = await task;
 
                 Assert.That(recipients, Is.Empty);

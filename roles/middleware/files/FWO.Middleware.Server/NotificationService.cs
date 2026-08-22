@@ -44,14 +44,27 @@ namespace FWO.Middleware.Server
         /// <param name="notificationClient"></param>
         /// <param name="globalConfig"></param>
         /// <param name="apiConnection"></param>
+        /// <returns></returns>
+        public static async Task<NotificationService> CreateAsync(NotificationClient notificationClient, GlobalConfig globalConfig, ApiConnection apiConnection)
+        {
+            List<UserGroup> ownerGroups = await LoadOwnerGroups(apiConnection);
+            IWorkflowRecipientResolver? workflowRecipientResolver = await LoadWorkflowRecipientResolver(apiConnection);
+            return new NotificationService(await LoadNotifications(notificationClient, apiConnection), globalConfig, apiConnection, ownerGroups, workflowRecipientResolver);
+        }
+
+        /// <summary>
+        /// Creates a notification service with explicitly supplied owner groups and optional recipient resolver.
+        /// </summary>
+        /// <param name="notificationClient"></param>
+        /// <param name="globalConfig"></param>
+        /// <param name="apiConnection"></param>
         /// <param name="ownerGroups"></param>
         /// <param name="workflowRecipientResolver">Optional workflow recipient resolver for LDAP-backed recipient lookup.</param>
         /// <returns></returns>
         public static async Task<NotificationService> CreateAsync(NotificationClient notificationClient, GlobalConfig globalConfig, ApiConnection apiConnection,
             List<UserGroup> ownerGroups, IWorkflowRecipientResolver? workflowRecipientResolver = null)
         {
-            List<FwoNotification> notifications = await LoadNotifications(notificationClient, apiConnection);
-            return new NotificationService(notifications, globalConfig, apiConnection, ownerGroups, workflowRecipientResolver);
+            return new NotificationService(await LoadNotifications(notificationClient, apiConnection), globalConfig, apiConnection, ownerGroups, workflowRecipientResolver);
         }
 
         /// <summary>
@@ -269,6 +282,33 @@ namespace FWO.Middleware.Server
         private static async Task<List<FwoNotification>> LoadNotifications(NotificationClient notificationClient, ApiConnection apiConnection)
         {
             return await apiConnection.SendQueryAsync<List<FwoNotification>>(NotificationQueries.getNotifications, new { client = notificationClient.ToString() });
+        }
+
+        private static async Task<List<UserGroup>> LoadOwnerGroups(ApiConnection apiConnection)
+        {
+            try
+            {
+                return await MiddlewareServerServices.GetInternalGroups(apiConnection);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteWarning("Notifications", $"Could not load internal owner groups for recipient resolution. Continuing without owner-group fallback: {exception.Message}");
+                return [];
+            }
+        }
+
+        private static async Task<IWorkflowRecipientResolver?> LoadWorkflowRecipientResolver(ApiConnection apiConnection)
+        {
+            try
+            {
+                List<Ldap> ldaps = await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
+                return new WorkflowRecipientResolver(apiConnection, ldaps);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteWarning("Notifications", $"Could not load LDAP connections for workflow recipient resolution. Continuing without LDAP-backed recipient lookup: {exception.Message}");
+                return null;
+            }
         }
 
         private async Task<bool> SendEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")

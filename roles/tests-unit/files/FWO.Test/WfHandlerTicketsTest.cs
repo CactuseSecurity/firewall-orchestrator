@@ -863,7 +863,7 @@ namespace FWO.Test
             Assert.That(tickets, Has.Count.EqualTo(1));
             Assert.That(apiConn.LastTicketQuery, Is.EqualTo(RequestQueries.getTicketsByParameters));
             Assert.That(GetQueryValue<DateTime>(apiConn.LastTicketQueryVariables, "createdFrom"), Is.EqualTo(DateTime.Now.Date.AddDays(-14)));
-            Assert.That(GetQueryValue<DateTime>(apiConn.LastTicketQueryVariables, "createdUntil"), Is.EqualTo(DateTime.Now).Within(TimeSpan.FromSeconds(5)));
+            Assert.That(apiConn.LastTicketQueryVariables!.GetType().GetProperty("createdUntil")!.GetValue(apiConn.LastTicketQueryVariables), Is.Null);
             Assert.That(GetQueryValue<int>(apiConn.LastTicketQueryVariables, "fromState"), Is.EqualTo(3));
             Assert.That(GetQueryValue<int>(apiConn.LastTicketQueryVariables, "toState"), Is.EqualTo(9));
         }
@@ -895,7 +895,7 @@ namespace FWO.Test
             Assert.That(tickets, Has.Count.EqualTo(1));
             Assert.That(apiConn.LastTicketQuery, Is.EqualTo(RequestQueries.getTicketsByParameters));
             Assert.That(GetQueryValue<DateTime>(apiConn.LastTicketQueryVariables, "createdFrom"), Is.EqualTo(DateTime.Now.Date.AddMonths(-2)));
-            Assert.That(GetQueryValue<DateTime>(apiConn.LastTicketQueryVariables, "createdUntil"), Is.EqualTo(DateTime.Now).Within(TimeSpan.FromSeconds(5)));
+            Assert.That(apiConn.LastTicketQueryVariables!.GetType().GetProperty("createdUntil")!.GetValue(apiConn.LastTicketQueryVariables), Is.Null);
             Assert.That(GetQueryValue<int>(apiConn.LastTicketQueryVariables, "fromState"), Is.EqualTo(3));
             Assert.That(GetQueryValue<int>(apiConn.LastTicketQueryVariables, "toState"), Is.EqualTo(9));
         }

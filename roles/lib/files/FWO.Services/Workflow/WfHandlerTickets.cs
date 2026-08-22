@@ -66,8 +66,7 @@ namespace FWO.Services.Workflow
                     SchedulerInterval.Months => DateTime.Now.Date.AddMonths(-cutOffPeriod),
                     _ => throw new NotSupportedException("Time interval is not supported."),
                 };
-                DateTime createdUntil = DateTime.Now;
-                return await dbAcc.GetTicketsByParameters(taskType, StateMatrix(taskType).LowestInputState, StateMatrix(taskType).LowestEndState, createdFrom, createdUntil, null);
+                return await dbAcc.GetTicketsByParameters(taskType, StateMatrix(taskType).LowestInputState, StateMatrix(taskType).LowestEndState, createdFrom, null, null);
             }
             return [];
         }

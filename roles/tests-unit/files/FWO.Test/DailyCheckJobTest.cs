@@ -128,21 +128,24 @@ namespace FWO.Test
             MethodInfo helper = typeof(DailyCheckJob).GetMethod("GetInterfaceRequestCutOffPeriod", BindingFlags.NonPublic | BindingFlags.Static)
                 ?? throw new InvalidOperationException("GetInterfaceRequestCutOffPeriod method not found.");
 
-            int noRepeats = (int)(helper.Invoke(null, [new FwoNotification
+            object?[] noRepeatsArgs = [new FwoNotification
             {
                 InitialOffsetAfterDeadline = 3,
                 RepeatOffsetAfterDeadline = 7,
                 RepetitionsAfterDeadline = 0
-            }]) ?? throw new InvalidOperationException("Helper returned null."));
+            }, SchedulerInterval.Days];
+            int noRepeats = (int)(helper.Invoke(null, noRepeatsArgs) ?? throw new InvalidOperationException("Helper returned null."));
 
-            int oneRepeat = (int)(helper.Invoke(null, [new FwoNotification
+            object?[] oneRepeatArgs = [new FwoNotification
             {
                 InitialOffsetAfterDeadline = 3,
                 RepeatOffsetAfterDeadline = 7,
                 RepetitionsAfterDeadline = 1
-            }]) ?? throw new InvalidOperationException("Helper returned null."));
+            }, SchedulerInterval.Days];
+            int oneRepeat = (int)(helper.Invoke(null, oneRepeatArgs) ?? throw new InvalidOperationException("Helper returned null."));
 
-            int nullableValues = (int)(helper.Invoke(null, [new FwoNotification()]) ?? throw new InvalidOperationException("Helper returned null."));
+            object?[] nullableArgs = [new FwoNotification(), SchedulerInterval.Days];
+            int nullableValues = (int)(helper.Invoke(null, nullableArgs) ?? throw new InvalidOperationException("Helper returned null."));
 
             Assert.Multiple(() =>
             {
@@ -249,7 +252,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConnection.CountQuery(AuthQueries.getLdapConnections), Is.EqualTo(2));
+                Assert.That(apiConnection.CountQuery(AuthQueries.getLdapConnections), Is.EqualTo(3));
                 Assert.That(apiConnection.CountQuery(AuthQueries.getUsers), Is.EqualTo(1));
                 Assert.That(apiConnection.CountQuery(OwnerQueries.getOwners), Is.EqualTo(1));
                 Assert.That(apiConnection.CountQuery(NotificationQueries.getNotifications), Is.EqualTo(1));

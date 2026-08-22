@@ -238,25 +238,23 @@ namespace FWO.Middleware.Server.Jobs
         {
             int emailsSent = 0;
             List<UserGroup> OwnerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnection);
-            List<Ldap> ldaps = await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
             using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
             WfHandler wfHandler = new(userConfig, apiConnection, WorkflowPhases.implementation, OwnerGroups, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
             await wfHandler.Init();
             NotificationService notificationService = await NotificationService.CreateAsync(
                 NotificationClient.InterfaceRequest,
                 globalConfig,
-                apiConnection,
-                OwnerGroups,
-                new WorkflowRecipientResolver(apiConnection, ldaps));
+                apiConnection);
 
             foreach (var notification in notificationService.Notifications)
             {
                 bool sentForNotification = false;
                 bool anyNotificationDue = false;
-                int cutOffPeriod = GetInterfaceRequestCutOffPeriod(notification);
+                SchedulerInterval repeatInterval = notification.RepeatIntervalAfterDeadline ?? SchedulerInterval.Days;
+                int cutOffPeriod = GetInterfaceRequestCutOffPeriod(notification, repeatInterval);
                 List<WfTicket>? unansweredTickets = await wfHandler.GetOpenTickets(WfTaskType.new_interface.ToString(),
                     cutOffPeriod,
-                    notification.RepeatIntervalAfterDeadline ?? SchedulerInterval.Days);
+                    repeatInterval);
                 foreach (var ticket in unansweredTickets)
                 {
                     FwoOwner? owner = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString())?.Owners.FirstOrDefault()?.Owner;
@@ -276,7 +274,7 @@ namespace FWO.Middleware.Server.Jobs
                         continue;
                     }
 
-                    int sentForTicket = await notificationService.SendNotificationIfDue(notification, owner, ticket.CreationDate, await PrepareBody(ticket, owner));
+                    int sentForTicket = await notificationService.SendNotification(notification, owner, await PrepareBody(ticket, owner));
                     emailsSent += sentForTicket;
                     sentForNotification |= sentForTicket > 0;
                     if (sentForTicket == 0)
@@ -295,13 +293,26 @@ namespace FWO.Middleware.Server.Jobs
             Log.WriteDebug(LogMessageTitle, $"Unanswered Interface Requests Check: Sent {emailsSent} emails.");
         }
 
-        private static int GetInterfaceRequestCutOffPeriod(FwoNotification notification)
+        private static int GetInterfaceRequestCutOffPeriod(FwoNotification notification, SchedulerInterval interval)
         {
             long initialOffset = notification.InitialOffsetAfterDeadline ?? 0;
             long repeatOffset = notification.RepeatOffsetAfterDeadline ?? 0;
             long repetitions = notification.RepetitionsAfterDeadline ?? 0;
             long cutOffPeriod = initialOffset + repeatOffset * (repetitions + 1);
-            return (int)Math.Max(0, Math.Min(cutOffPeriod, int.MaxValue));
+            long maxCutOffPeriod = GetMaximumCutOffPeriod(interval);
+            return (int)Math.Max(0, Math.Min(cutOffPeriod, maxCutOffPeriod));
+        }
+
+        private static long GetMaximumCutOffPeriod(SchedulerInterval interval)
+        {
+            DateTime referenceDate = DateTime.Now.Date;
+            return interval switch
+            {
+                SchedulerInterval.Days => (long)(referenceDate - DateTime.MinValue.Date).TotalDays,
+                SchedulerInterval.Weeks => (long)(referenceDate - DateTime.MinValue.Date).TotalDays / GlobalConst.kDaysPerWeek,
+                SchedulerInterval.Months => ((referenceDate.Year - DateTime.MinValue.Year) * 12L) + referenceDate.Month - DateTime.MinValue.Month,
+                _ => throw new NotSupportedException("Time interval is not supported."),
+            };
         }
 
         private async Task<string> PrepareBody(WfTicket ticket, FwoOwner owner)

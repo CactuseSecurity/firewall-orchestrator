@@ -98,6 +98,47 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CreateAsync_LoadsNotificationsAndFallsBackWhenNoInternalLdapIsConfigured()
+        {
+            CreateAsyncApiConn createAsyncApiConnection = new()
+            {
+                LdapConnections = []
+            };
+
+            NotificationService? notificationService = null;
+            string output = await CaptureConsoleAsync(async () =>
+            {
+                notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, createAsyncApiConnection);
+            });
+
+            ClassicAssert.IsNotNull(notificationService);
+            ClassicAssert.AreEqual(2, notificationService!.Notifications.Count);
+            ClassicAssert.AreEqual(3, createAsyncApiConnection.QueryCount);
+            Assert.That(output, Does.Contain("Could not load internal owner groups for recipient resolution."));
+        }
+
+        [Test]
+        public async Task CreateAsync_LogsWarningsAndContinuesWhenLdapConnectionsCannotBeLoaded()
+        {
+            CreateAsyncApiConn createAsyncApiConnection = new()
+            {
+                ThrowOnGetLdapConnections = true
+            };
+
+            NotificationService? notificationService = null;
+            string output = await CaptureConsoleAsync(async () =>
+            {
+                notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, createAsyncApiConnection);
+            });
+
+            ClassicAssert.IsNotNull(notificationService);
+            ClassicAssert.AreEqual(2, notificationService!.Notifications.Count);
+            ClassicAssert.AreEqual(3, createAsyncApiConnection.QueryCount);
+            Assert.That(output, Does.Contain("Could not load internal owner groups for recipient resolution."));
+            Assert.That(output, Does.Contain("Could not load LDAP connections for workflow recipient resolution."));
+        }
+
+        [Test]
         public void IsNotificationDue_ReturnsFalse_WhenBeforeDeadlineIntervalIsMissing()
         {
             FwoOwner owner = new() { NextRecertDate = DateTime.Now.AddDays(7) };
@@ -500,9 +541,11 @@ namespace FWO.Test
                 MethodInfo? collectRecipients = typeof(NotificationService).GetMethod("CollectRecipients", BindingFlags.Instance | BindingFlags.NonPublic);
                 ClassicAssert.IsNotNull(collectRecipients);
 
-                Task<List<string>> jsonTask = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, [jsonNotification, owner, false, false])
+                object?[] jsonArgs = [jsonNotification, owner, false, false];
+                Task<List<string>> jsonTask = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, jsonArgs)
                     ?? throw new InvalidOperationException("CollectRecipients returned null task."));
-                Task<List<string>> configuredTask = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, [configuredNotification, owner, false, false])
+                object?[] configuredArgs = [configuredNotification, owner, false, false];
+                Task<List<string>> configuredTask = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, configuredArgs)
                     ?? throw new InvalidOperationException("CollectRecipients returned null task."));
 
                 List<string> jsonRecipients = await jsonTask;
@@ -533,7 +576,8 @@ namespace FWO.Test
             MethodInfo? collectRecipients = typeof(NotificationService).GetMethod("CollectRecipients", BindingFlags.Instance | BindingFlags.NonPublic);
             ClassicAssert.IsNotNull(collectRecipients);
 
-            Task<List<string>> task = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, [notification, owner, false, false])
+            object?[] args = [notification, owner, false, false];
+            Task<List<string>> task = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, args)
                 ?? throw new InvalidOperationException("CollectRecipients returned null task."));
             List<string> recipients = await task;
 
@@ -559,7 +603,8 @@ namespace FWO.Test
                 MethodInfo? collectRecipients = typeof(NotificationService).GetMethod("CollectRecipients", BindingFlags.Instance | BindingFlags.NonPublic);
                 ClassicAssert.IsNotNull(collectRecipients);
 
-                Task<List<string>> task = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, [notification, owner, false, false])
+                object?[] args = [notification, owner, false, false];
+                Task<List<string>> task = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, args)
                     ?? throw new InvalidOperationException("CollectRecipients returned null task."));
                 List<string> recipients = await task;
 
@@ -587,7 +632,8 @@ namespace FWO.Test
                 MethodInfo? collectRecipients = typeof(NotificationService).GetMethod("CollectRecipients", BindingFlags.Instance | BindingFlags.NonPublic);
                 ClassicAssert.IsNotNull(collectRecipients);
 
-                Task<List<string>> task = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, [notification, null, false, false])
+                object?[] args = [notification, null, false, false];
+                Task<List<string>> task = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, args)
                     ?? throw new InvalidOperationException("CollectRecipients returned null task."));
                 List<string> recipients = await task;
 
@@ -616,7 +662,8 @@ namespace FWO.Test
                 MethodInfo? collectRecipients = typeof(NotificationService).GetMethod("CollectRecipients", BindingFlags.Instance | BindingFlags.NonPublic);
                 ClassicAssert.IsNotNull(collectRecipients);
 
-                Task<List<string>> task = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, [notification, null, false, false])
+                object?[] args = [notification, null, false, false];
+                Task<List<string>> task = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, args)
                     ?? throw new InvalidOperationException("CollectRecipients returned null task."));
                 List<string> recipients = await task;
 
@@ -645,7 +692,8 @@ namespace FWO.Test
                 MethodInfo? collectRecipients = typeof(NotificationService).GetMethod("CollectRecipients", BindingFlags.Instance | BindingFlags.NonPublic);
                 ClassicAssert.IsNotNull(collectRecipients);
 
-                Task<List<string>> task = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, [notification, null, false, false])
+                object?[] args = [notification, null, false, false];
+                Task<List<string>> task = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, args)
                     ?? throw new InvalidOperationException("CollectRecipients returned null task."));
                 List<string> recipients = await task;
 
@@ -786,6 +834,29 @@ namespace FWO.Test
                 }
 
                 throw new NotImplementedException($"Query not implemented in notification service test api: {query}");
+            }
+        }
+
+        private sealed class CreateAsyncApiConn : NotificationTestApiConn
+        {
+            public List<Ldap> LdapConnections { get; init; } = [];
+            public bool ThrowOnGetLdapConnections { get; init; }
+            public int QueryCount { get; private set; }
+
+            public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                QueryCount++;
+                if (query == AuthQueries.getLdapConnections && typeof(QueryResponseType) == typeof(List<Ldap>))
+                {
+                    if (ThrowOnGetLdapConnections)
+                    {
+                        throw new InvalidOperationException("ldap connections unavailable");
+                    }
+
+                    return (QueryResponseType)(object)LdapConnections;
+                }
+
+                return await base.SendQueryAsync<QueryResponseType>(query, variables, operationName, chunkingOptions);
             }
         }
 

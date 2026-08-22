@@ -384,6 +384,91 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CreateFlowInFlowDb_ReusesExistingNameOnlyNetworkObject()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            apiConn.ExistingNetworkObjects.Add(new FlowNwObject
+            {
+                Id = 55,
+                Name = "app-server-1",
+                Hash = "randomhashofapreviouslycreatedobject",
+                State = FlowState.Requested,
+                ShowInRequestModule = true
+            });
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
+            WfReqElement source = task.Elements.Single(element => element.Field == ElemFieldType.source.ToString());
+            source.IpString = null;
+            source.IpEnd = null;
+            source.Name = "app-server-1";
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.InsertedNetworkObjects.Select(nwObject => nwObject.Name), Does.Not.Contain("app-server-1"));
+            Assert.That(apiConn.UpdatedRequestElements.Single(update => update.Id == source.Id).FlowNetworkObjectId, Is.EqualTo(55));
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_CreatesNameOnlyNetworkObjectOnlyOnce()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfTicket ticket = new()
+            {
+                Id = 7,
+                Tasks =
+                [
+                    CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443),
+                    CreateAccessTask(12, "10.0.0.2", "10.0.1.2", 8443)
+                ]
+            };
+            foreach (WfReqElement source in ticket.Tasks.Select(task => task.Elements.Single(element => element.Field == ElemFieldType.source.ToString())))
+            {
+                source.IpString = null;
+                source.IpEnd = null;
+                source.Name = "app-server-1";
+            }
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, ticket, WfObjectScopes.Ticket, null, ticket.Id);
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.InsertedNetworkObjects.Count(nwObject => nwObject.Name == "app-server-1"), Is.EqualTo(1));
+            List<long?> sourceFlowIds = [.. ticket.Tasks
+                .Select(task => task.Elements.Single(element => element.Field == ElemFieldType.source.ToString()).Id)
+                .Select(elementId => apiConn.UpdatedRequestElements.Single(update => update.Id == elementId).FlowNetworkObjectId)];
+            Assert.That(sourceFlowIds.Distinct().Count(), Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_ReusesExistingPortLessServiceObject()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            apiConn.ExistingServiceObjects.Add(new FlowSvcObject
+            {
+                Id = 66,
+                Name = "icmp-echo",
+                ProtoId = 1,
+                Hash = "randomhashofapreviouslycreatedservice",
+                State = FlowState.Requested,
+                ShowInRequestModule = true
+            });
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
+            WfReqElement service = task.Elements.Single(element => element.Field == ElemFieldType.service.ToString());
+            service.ProtoId = 1;
+            service.Port = null;
+            service.PortEnd = null;
+            service.Name = "icmp-echo";
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.InsertedServiceObjects, Is.Empty);
+            Assert.That(apiConn.UpdatedRequestElements.Single(update => update.Id == service.Id).FlowServiceObjectId, Is.EqualTo(66));
+        }
+
+        [Test]
         public async Task CreateFlowInFlowDb_UsesPortRangeAndProtocolNameForFallbackServiceName()
         {
             FlowDbCreatorTestApiConn apiConn = new();

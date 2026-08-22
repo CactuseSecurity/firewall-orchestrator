@@ -10,7 +10,7 @@
       Content-Type: html/text
     body:
     validate_certs: true
-    ca_path: "{{ internalca_peer_ca_certificate }}"
+    ca_path: "{{ internalca_trust_bundle }}"
     return_content: true
   register: web_call_result
   changed_when: false
@@ -35,7 +35,7 @@
       Content-Type: html/text
     body:
     validate_certs: true
-    ca_path: "{{ internalca_peer_ca_certificate }}"
+    ca_path: "{{ internalca_trust_bundle }}"
     client_cert: "{{ internalca_client_certificate }}"
     client_key: "{{ internalca_client_private_key }}"
     return_content: true
@@ -61,7 +61,7 @@
       Content-Type: html/text
     body:
     validate_certs: true
-    ca_path: "{{ internalca_peer_ca_certificate }}"
+    ca_path: "{{ internalca_trust_bundle }}"
     return_content: true
   register: web_call_result
   changed_when: false

@@ -139,12 +139,12 @@ namespace FWO.Api.Client
                 return false;
             }
 
-            X509Certificate2 trustAnchor;
+            X509Certificate2Collection trustAnchors;
             try
             {
-                // Shared and cached: it is reloaded only when the configured file changes,
+                // Shared and cached: they are reloaded only when the configured file changes,
                 // so a rotated anchor takes effect without restarting this service.
-                trustAnchor = InternalCaCertificate.Get();
+                trustAnchors = InternalCaCertificate.Get();
             }
             catch (ConfigException)
             {
@@ -158,8 +158,10 @@ namespace FWO.Api.Client
             using X509Chain pinnedChain = new();
             pinnedChain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
             // Disposing the chain does not dispose the custom trust store, so the cached
-            // anchor stays usable for later handshakes.
-            pinnedChain.ChainPolicy.CustomTrustStore.Add(trustAnchor);
+            // anchors stay usable for later handshakes. More than one is expected: an
+            // installation that retained a customer managed certificate on part of its
+            // Apache endpoints trusts that issuer alongside the internal CA.
+            pinnedChain.ChainPolicy.CustomTrustStore.AddRange(trustAnchors);
             // The peer supplies its intermediates in the chain handed to this callback.
             // Without them a root -> intermediate -> leaf chain cannot be built, which is
             // the usual shape of a customer managed certificate.

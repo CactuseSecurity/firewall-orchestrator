@@ -17,12 +17,20 @@ file explicitly. The issuer copy under `/usr/local/fworch/etc/secrets/ca/` is
 root-only and exists on the middleware server alone, so every host also
 receives a world-readable copy at `/etc/fworch/fworch-internal-ca.crt`
 (`internalca_ca_certificate_local`). That is the path Apache client
-verification, `ldap.conf`, the importer, and the customizing scripts use;
-never reference the issuer copy from another host.
+verification and `ldap.conf` use; never reference the issuer copy from another
+host.
+
+Alongside it every host receives `/etc/fworch/fworch-trust-bundle.crt`
+(`internalca_trust_bundle`), which holds the internal CA plus any additional issuer
+configured as `internalca_peer_ca_certificate`. That is the anchor set FWO's own TLS
+clients - the importer, the customizing scripts and the .NET clients - validate FWO
+endpoints against; see *administrator managed certificates* below for why the two
+files are kept apart.
 
 The installer writes the system-wide LDAP client configuration (`/etc/ldap/ldap.conf`
 on Debian, `/etc/openldap/ldap.conf` on RedHat) on the middleware host, pointing
-`TLS_CACERT` at that anchor and setting `TLS_REQCERT demand`, so an administrator
+`TLS_CACERT` at `internalca_ca_certificate_local` - the internal CA, since FWO's own
+OpenLDAP certificate always comes from it - and setting `TLS_REQCERT demand`, so an administrator
 running `ldapsearch` by hand verifies the connection. The installer's own
 `ldapsearch`/`ldapmodify` calls pass the same settings explicitly through
 `fwo_ldap_tls_opts`, defined once in `inventory/group_vars/all.yml` (the `fwo_`
@@ -66,15 +74,33 @@ managed Apache certificate, set `internalca_issue_apache_certificate: false`
 and provide `internalca_apache_certificate` and
 `internalca_apache_private_key`; the role then leaves those files untouched.
 Set `internalca_peer_ca_certificate` to the path of the issuing root CA
-certificate on every FWO client host. This explicit trust anchor is used by
-the importer, customizing scripts, and .NET GraphQL clients. When an upgrade
-retains a customer-managed API certificate without this setting, FWO stops
-before deploying clients that would trust the unrelated internal CA.
+certificate on every FWO client host. When an upgrade retains a customer-managed
+API certificate without this setting, FWO stops before deploying clients that
+would trust the unrelated internal CA.
 
-The middleware and UI read the trust anchor once and reuse it, but reload it
-when the file changes, so replacing the anchor alone - a rotated CA, or a peer
+That issuer is **added to** the internal CA, not substituted for it. The installer
+concatenates both into a trust bundle at
+`/etc/fworch/fworch-trust-bundle.crt` (`internalca_trust_bundle`), and that is the
+path written to `fworch.json` as `tls_ca_certificate` - the anchor set the importer,
+the customizing scripts, the .NET GraphQL and LDAP clients, and the integration
+tests validate FWO endpoints against. Adding rather than replacing matters because
+retention is decided per host: in a distributed installation one Apache endpoint can
+keep a customer-managed certificate while another still serves an internal CA one,
+and a single anchor could not cover both.
+
+Do not confuse the bundle with `internalca_ca_certificate_local`
+(`/etc/fworch/fworch-internal-ca.crt`), which stays the internal CA alone. That one
+is what Apache verifies *client* certificates against, and adding a customer issuer
+there would let it mint FWO client identities.
+
+The middleware and UI read the trust anchors once and reuse them, but reload them
+when the file changes, so replacing the bundle alone - a rotated CA, or a peer
 CA added after the fact - takes effect without restarting those services. A
-renewed *client identity* still requires the restart the installer performs.
+renewed *client identity* still requires a restart, which the installer performs:
+`roles/internalCA` restarts the middleware, the UI and slapd, and reloads Apache,
+whenever it reissued the identity that service holds. That happens on a plain
+installer run and on a `--tags certificates` run alike, so a certificate-only
+renewal does not leave services on the previous certificate.
 
 During an upgrade, the role preserves a customer-managed Apache or OpenLDAP
 certificate/key pair, identified by the certificate and key belonging together
@@ -142,7 +168,7 @@ Scripts that talk to the API must present the client identity, for example:
 curl --request POST \
     --cert /etc/fworch/secrets/client/client.crt \
     --key /etc/fworch/secrets/client/client.key \
-    --cacert /etc/fworch/fworch-internal-ca.crt \
+    --cacert /etc/fworch/fworch-trust-bundle.crt \
     --url https://localhost:9443/api/v1/graphql \
     --header 'content-type: application/json' \
     --data '{"query":"query { management {mgm_name} }"}'

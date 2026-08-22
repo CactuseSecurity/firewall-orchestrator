@@ -166,3 +166,9 @@
 
 - name: Issue internal CA certificates for this host
   include_tasks: issue-certificates.yml
+
+# Only on an existing installation: on a fresh one the services do not exist yet and
+# the roles installing them start them with the identity issued above.
+- name: Restart the services whose identity was renewed
+  include_tasks: restart-consumers.yml
+  when: installation_mode != 'new'

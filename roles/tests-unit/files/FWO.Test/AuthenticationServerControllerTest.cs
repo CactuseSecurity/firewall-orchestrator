@@ -149,7 +149,8 @@ namespace FWO.Test
                     }
                 ]
             };
-            AuthenticationServerController controller = new(apiConnection, [BuildLdap(7)]);
+            List<MiddlewareLdap> ldaps = [BuildLdap(7)];
+            AuthenticationServerController controller = new(apiConnection, ldaps);
 
             LdapGetUpdateParameters updateParameters = BuildUpdateParameters(7);
             updateParameters.WriteUser = "cn=writer,dc=example,dc=com";
@@ -167,7 +168,8 @@ namespace FWO.Test
             {
                 UpdateResult = new ReturnId { UpdatedId = 7 }
             };
-            AuthenticationServerController controller = new(apiConnection, [BuildLdap(7)]);
+            List<MiddlewareLdap> ldaps = [BuildLdap(7)];
+            AuthenticationServerController controller = new(apiConnection, ldaps);
 
             LdapGetUpdateParameters updateParameters = BuildUpdateParameters(7);
             updateParameters.SearchUserPwd = "newSearchSecret";
@@ -194,7 +196,8 @@ namespace FWO.Test
                     }
                 ]
             };
-            AuthenticationServerController controller = new(apiConnection, [BuildLdap(7)]);
+            List<MiddlewareLdap> ldaps = [BuildLdap(7)];
+            AuthenticationServerController controller = new(apiConnection, ldaps);
 
             LdapGetUpdateParameters updateParameters = BuildUpdateParameters(7);
             updateParameters.WriteUser = "";
@@ -211,7 +214,8 @@ namespace FWO.Test
             {
                 UpdateResult = new ReturnId { UpdatedId = 7 }
             };
-            AuthenticationServerController controller = new(apiConnection, [BuildLdap(7)]);
+            List<MiddlewareLdap> ldaps = [BuildLdap(7)];
+            AuthenticationServerController controller = new(apiConnection, ldaps);
 
             LdapGetUpdateParameters updateParameters = BuildUpdateParameters(7);
             await controller.Update(updateParameters);

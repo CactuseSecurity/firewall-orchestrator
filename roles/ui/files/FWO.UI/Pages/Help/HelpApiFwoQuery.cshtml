@@ -22,7 +22,7 @@
 curl --request POST \
     --cert /etc/fworch/secrets/client/client.crt \
     --key /etc/fworch/secrets/client/client.key \
-    --cacert /etc/fworch/fworch-internal-ca.crt \
+    --cacert /etc/fworch/fworch-trust-bundle.crt \
     --url https://localhost:9443/api/v1/graphql \
     --header 'content-type: application/json' \
     --header 'x-hasura-admin-secret: &lt;hasura admin pwd&gt;' \
@@ -40,7 +40,7 @@ curl --request POST \
 curl --request POST \
     --cert /etc/fworch/secrets/client/client.crt \
     --key /etc/fworch/secrets/client/client.key \
-    --cacert /etc/fworch/fworch-internal-ca.crt \
+    --cacert /etc/fworch/fworch-trust-bundle.crt \
     --url https://localhost:9443/api/v1/graphql \
     --header 'content-type: application/json' \
     --header 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...' \
@@ -81,7 +81,7 @@ curl --request POST \
 curl --request POST \
     --cert /etc/fworch/secrets/client/client.crt \
     --key /etc/fworch/secrets/client/client.key \
-    --cacert /etc/fworch/fworch-internal-ca.crt \
+    --cacert /etc/fworch/fworch-trust-bundle.crt \
     --url https://localhost:9443/api/v1/graphql \
     --header 'content-type: application/json' \
     --header 'x-hasura-role: auditor' \
@@ -100,7 +100,7 @@ curl --request POST \
 curl --request POST  \
     --cert /etc/fworch/secrets/client/client.crt \
     --key /etc/fworch/secrets/client/client.key \
-    --cacert /etc/fworch/fworch-internal-ca.crt \
+    --cacert /etc/fworch/fworch-trust-bundle.crt \
     --url https://localhost:9443/api/v1/graphql \
     --header 'content-type: application/json' \
     --header 'Accept: application/json' \

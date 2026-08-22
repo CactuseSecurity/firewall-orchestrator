@@ -10,7 +10,7 @@
       query: ""
     body_format: json
     validate_certs: true
-    ca_path: "{{ internalca_peer_ca_certificate }}"
+    ca_path: "{{ internalca_trust_bundle }}"
     client_cert: "{{ internalca_client_certificate }}"
     client_key: "{{ internalca_client_private_key }}"
     return_content: true
@@ -36,7 +36,7 @@
       query: "query { object(limit:3) {obj_name} }"
     body_format: json
     validate_certs: true
-    ca_path: "{{ internalca_peer_ca_certificate }}"
+    ca_path: "{{ internalca_trust_bundle }}"
     client_cert: "{{ internalca_client_certificate }}"
     client_key: "{{ internalca_client_private_key }}"
     return_content: true
@@ -64,7 +64,7 @@
       Password: "{{ test_user1_pw }}"
     body_format: json
     validate_certs: true
-    ca_path: "{{ internalca_peer_ca_certificate }}"
+    ca_path: "{{ internalca_trust_bundle }}"
     client_cert: "{{ internalca_client_certificate }}"
     client_key: "{{ internalca_client_private_key }}"
     return_content: true
@@ -85,7 +85,7 @@
       query: "query text { txt(limit:3) { id } }"
     body_format: json
     validate_certs: true
-    ca_path: "{{ internalca_peer_ca_certificate }}"
+    ca_path: "{{ internalca_trust_bundle }}"
     client_cert: "{{ internalca_client_certificate }}"
     client_key: "{{ internalca_client_private_key }}"
     return_content: true
@@ -125,7 +125,7 @@
       query: "{ stm_obj_typ(limit: 1) { obj_typ_name } }"
     body_format: json
     validate_certs: true
-    ca_path: "{{ internalca_peer_ca_certificate }}"
+    ca_path: "{{ internalca_trust_bundle }}"
     client_cert: "{{ internalca_client_certificate }}"
     client_key: "{{ internalca_client_private_key }}"
     return_content: true

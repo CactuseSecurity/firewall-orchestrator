@@ -10,8 +10,11 @@ using System.Reflection;
 namespace FWO.Test
 {
     [TestFixture]
+    // TestConnection_DoesNotDecryptAStoredSecret installs a process wide main key.
+    [NonParallelizable]
     internal class LdapBasicTest
     {
+        private const string kClearTextSecret = "theClearTextSecret";
         private static readonly string kUserDn = "uid=user,ou=users,dc=example,dc=com";
         private static readonly string kSearchUser = "cn=search,dc=example,dc=com";
         private static readonly string kSearchPassword = LdapTestSupport.CreateEncryptedSecret("searchpwd");
@@ -378,15 +381,15 @@ namespace FWO.Test
         public async Task TestConnection_DoesNotDecryptAStoredSecret()
         {
             // the connection test reaches a server chosen by the caller, so a stored credential
-            // must never be turned back into its clear text form here. This needs the main key of
-            // the installation, so it can only be checked where that key is present.
-            if (!File.Exists(GlobalConst.kMainKeyFile))
-            {
-                Assert.Ignore("No main key available on this machine, encryption cannot be exercised.");
-            }
+            // must never be turned back into its clear text form here. The scope installs the key
+            // the fixture encrypts with, so the decryption path is genuinely available and this
+            // asserts that it was not taken - rather than that it could not have been.
+            using IDisposable mainKey = LdapTestSupport.UseTestMainKey();
 
-            string encryptedPwd = AesEnc.TryEncrypt("theClearTextSecret");
-            Assert.That(encryptedPwd, Is.Not.EqualTo("theClearTextSecret"));
+            string encryptedPwd = LdapTestSupport.CreateEncryptedSecret(kClearTextSecret);
+            Assert.That(encryptedPwd, Is.Not.EqualTo(kClearTextSecret));
+            Assert.That(AesEnc.TryDecrypt(encryptedPwd, true), Is.EqualTo(kClearTextSecret),
+                "the scope must make the secret decryptable, otherwise this test proves nothing");
 
             FakeLdapConnection connection = new();
             TestableLdap ldap = new(connection)
@@ -400,6 +403,7 @@ namespace FWO.Test
             await ldap.TestConnection();
 
             Assert.That(connection.LastBoundPasswords, Is.EqualTo(new List<string> { encryptedPwd }));
+            Assert.That(connection.LastBoundPasswords, Has.No.Member(kClearTextSecret));
         }
 
         [Test]

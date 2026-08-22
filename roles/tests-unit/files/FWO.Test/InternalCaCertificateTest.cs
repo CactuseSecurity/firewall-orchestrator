@@ -52,8 +52,8 @@ namespace FWO.Test
         [Test]
         public void Get_CalledTwiceForAnUnchangedFile_ReturnsTheSameInstance()
         {
-            X509Certificate2 first = InternalCaCertificate.Get();
-            X509Certificate2 second = InternalCaCertificate.Get();
+            X509Certificate2Collection first = InternalCaCertificate.Get();
+            X509Certificate2Collection second = InternalCaCertificate.Get();
 
             Assert.That(second, Is.SameAs(first));
         }
@@ -65,15 +65,15 @@ namespace FWO.Test
         [Test]
         public void Get_AfterTheAnchorFileChanged_ReturnsTheNewAnchor()
         {
-            X509Certificate2 first = InternalCaCertificate.Get();
-            Assert.That(first.Thumbprint, Is.EqualTo(firstAnchorThumbprint));
+            X509Certificate2Collection first = InternalCaCertificate.Get();
+            Assert.That(Thumbprints(first), Is.EqualTo(new List<string> { firstAnchorThumbprint }));
 
             ReplaceAnchorFile(secondAnchorPem);
 
-            X509Certificate2 second = InternalCaCertificate.Get();
+            X509Certificate2Collection second = InternalCaCertificate.Get();
             Assert.Multiple(() =>
             {
-                Assert.That(second.Thumbprint, Is.EqualTo(secondAnchorThumbprint));
+                Assert.That(Thumbprints(second), Is.EqualTo(new List<string> { secondAnchorThumbprint }));
                 Assert.That(second, Is.Not.SameAs(first));
             });
         }
@@ -130,7 +130,7 @@ namespace FWO.Test
 
             ReplaceAnchorFile(firstAnchorPem);
 
-            Assert.That(InternalCaCertificate.Get().Thumbprint, Is.EqualTo(firstAnchorThumbprint));
+            Assert.That(Thumbprints(InternalCaCertificate.Get()), Is.EqualTo(new List<string> { firstAnchorThumbprint }));
         }
 
         /// <summary>
@@ -149,13 +149,60 @@ namespace FWO.Test
         }
 
         /// <summary>
+        /// An upgrade that retains a customer managed certificate on part of its Apache
+        /// endpoints has to trust that issuer alongside the internal CA, so the configured
+        /// file is a bundle rather than a single certificate.
+        /// </summary>
+        [Test]
+        public void Get_WithABundleOfAnchors_ReturnsEveryAnchor()
+        {
+            // Newline separated, the way the installer assembles the bundle: run the two
+            // blocks together and the END of one meets the BEGIN of the next, and neither
+            // parses.
+            ReplaceAnchorFile(firstAnchorPem + "\n" + secondAnchorPem);
+
+            X509Certificate2Collection anchors = InternalCaCertificate.Get();
+
+            Assert.That(Thumbprints(anchors), Is.EquivalentTo(new List<string> { firstAnchorThumbprint, secondAnchorThumbprint }));
+        }
+
+        /// <summary>
+        /// A readable file holding no certificate at all is a misconfiguration, not an
+        /// empty trust store that silently rejects every peer.
+        /// </summary>
+        [Test]
+        public void Get_WithAFileHoldingNoCertificate_ReportsTheMisconfiguration()
+        {
+            ReplaceAnchorFile("# no certificate here\n");
+
+            ConfigException thrown = Assert.Throws<ConfigException>(() => InternalCaCertificate.Get())!;
+
+            Assert.That(thrown.Message, Does.Contain(kAnchorPath));
+        }
+
+        /// <summary>
+        /// Lists the thumbprints of a loaded anchor set in file order.
+        /// </summary>
+        /// <param name="anchors">The loaded anchors.</param>
+        /// <returns>The thumbprint of each anchor.</returns>
+        private static List<string> Thumbprints(X509Certificate2Collection anchors)
+        {
+            List<string> thumbprints = [];
+            foreach (X509Certificate2 anchor in anchors)
+            {
+                thumbprints.Add(anchor.Thumbprint);
+            }
+            return thumbprints;
+        }
+
+        /// <summary>
         /// Drops the shared cache so a test starts from an unloaded state. Also used by
         /// <see cref="GraphQlApiConnectionClientCertificateTest"/>, which validates against
         /// the same anchor.
         /// </summary>
         internal static void ClearCache()
         {
-            SetStaticField("certificate", null);
+            SetStaticField("certificates", null);
             SetStaticField("cachedPath", "");
             SetStaticField("cachedWriteTimeUtc", DateTime.MinValue);
             SetStaticField("failure", null);

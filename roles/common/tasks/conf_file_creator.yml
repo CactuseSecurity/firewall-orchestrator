@@ -23,7 +23,7 @@
         middleware_uri: "{{ middleware_uri }}"
         tls_client_certificate: "{{ internalca_client_certificate }}"
         tls_client_private_key: "{{ internalca_client_private_key }}"
-        tls_ca_certificate: "{{ internalca_peer_ca_certificate }}"
+        tls_ca_certificate: "{{ internalca_trust_bundle }}"
         remote_addresses: []
 
   - name: create central conf file by dumping varibale as json file
@@ -66,7 +66,7 @@
             {
               'tls_client_certificate': internalca_client_certificate,
               'tls_client_private_key': internalca_client_private_key,
-              'tls_ca_certificate': internalca_peer_ca_certificate
+              'tls_ca_certificate': internalca_trust_bundle
             }
           ) | to_nice_json
         }}

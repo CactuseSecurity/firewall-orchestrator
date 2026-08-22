@@ -179,8 +179,10 @@ class FwoApi:
 
         """
         service_provider = ServiceProvider()
-        fwo_config = service_provider.get_fwo_config()
-        url = fwo_config["user_management_api_base_url"] + endpoint.lstrip("/")
+        # Not named fwo_config: that is the module this file imports for FWO_CONFIG_FILE,
+        # and a local of the same name would shadow it inside this method.
+        config = service_provider.get_fwo_config()
+        url = config["user_management_api_base_url"] + endpoint.lstrip("/")
 
         with requests.Session() as session:
             self._configure_internal_api_session(session)

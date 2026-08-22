@@ -121,6 +121,17 @@
         | length > 0
       }}
 
+- name: Record renewal of the Apache server identity
+  set_fact:
+    internalca_apache_identity_changed: >-
+      {{
+        internalca_installed_certificates.results
+        | selectattr('item.item.name', 'equalto', 'apache-server')
+        | selectattr('changed')
+        | list
+        | length > 0
+      }}
+
 - name: Record renewal of the LDAP server identity
   set_fact:
     internalca_ldap_identity_changed: >-

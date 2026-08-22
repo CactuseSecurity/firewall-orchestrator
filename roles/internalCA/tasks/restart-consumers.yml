@@ -1,0 +1,59 @@
+---
+# A renewed identity only takes effect once the process holding it is restarted, and
+# this role is reachable on its own through "--tags certificates". None of the plays
+# that restart certificate consumers - api/ui/middleware (apache), openldap-server
+# (slapd) and finalize (middleware, ui) - carries that tag, so a tag limited renewal
+# run would otherwise report success while every consumer kept the previous
+# certificate: GraphQlApiConnection caches its client identity for the process
+# lifetime, and apache and slapd hold theirs until reloaded. The stale identity keeps
+# working until it expires, which is exactly the failure the renewal was meant to
+# prevent.
+#
+# On a full run those other plays restart the same services again. That redundancy is
+# deliberate: it costs one extra restart in the rare run that actually renews an
+# identity, and it keeps the condition here independent of which tags were selected.
+#
+# The importer is absent on purpose. It reads the certificate paths from fworch.json
+# and hands them to requests, which re-reads the files on every handshake, so a
+# renewed identity applies there without a restart.
+
+- name: Look up the services holding a renewed identity
+  service_facts:
+  become: true
+
+- name: Reload Apache after its server identity was renewed
+  systemd:
+    name: "{{ webserver_package_name }}"
+    state: reloaded
+  become: true
+  when:
+    - internalca_apache_identity_changed | default(false) | bool
+    - (webserver_package_name ~ '.service') in ansible_facts.services
+
+- name: Restart slapd after its server identity was renewed
+  systemd:
+    name: slapd
+    state: restarted
+  become: true
+  when:
+    - internalca_ldap_identity_changed | default(false) | bool
+    - "'slapd.service' in ansible_facts.services"
+
+- name: Restart the middleware after its client identity was renewed
+  systemd:
+    name: "{{ middleware_service_name }}"
+    state: restarted
+  become: true
+  when:
+    - internalca_client_identity_changed | default(false) | bool
+    - (middleware_service_name ~ '.service') in ansible_facts.services
+
+- name: Restart the UI after its client identity was renewed
+  systemd:
+    name: "{{ ui_service_name }}"
+    state: restarted
+  become: true
+  when:
+    - internalca_client_identity_changed | default(false) | bool
+    - ui_service_name is defined
+    - (ui_service_name ~ '.service') in ansible_facts.services

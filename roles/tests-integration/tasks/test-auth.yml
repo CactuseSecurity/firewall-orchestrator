@@ -27,7 +27,7 @@
           url: "{{ middleware_uri }}/swagger/"
           method: GET
           validate_certs: true
-          ca_path: "{{ internalca_peer_ca_certificate }}"
+          ca_path: "{{ internalca_trust_bundle }}"
           return_content: false
       register: middleware_web_result
       changed_when: false
@@ -71,7 +71,7 @@
           Password: "{{ test_user1_pw }}"
       body_format: json
       validate_certs: true
-      ca_path: "{{ internalca_peer_ca_certificate }}"
+      ca_path: "{{ internalca_trust_bundle }}"
       return_content: true
   register: sample_jwt
   changed_when: false
@@ -136,7 +136,7 @@
           Password: "wrong-pwd"
       body_format: json
       validate_certs: true
-      ca_path: "{{ internalca_peer_ca_certificate }}"
+      ca_path: "{{ internalca_trust_bundle }}"
       return_content: true
   register: sample_jwt
   changed_when: false

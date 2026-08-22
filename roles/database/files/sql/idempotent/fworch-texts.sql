@@ -7424,11 +7424,11 @@ INSERT INTO txt VALUES ('H6322', 'German',  'Auf jedem FWO-Host liegen drei Date
 INSERT INTO txt VALUES ('H6322', 'English', 'Every FWO host holds three files that your own scripts need:');
 INSERT INTO txt VALUES ('H6323', 'German',  '<li><code>/etc/fworch/secrets/client/client.crt</code> - das Client-Zertifikat dieses Hosts</li>
     <li><code>/etc/fworch/secrets/client/client.key</code> - der zugeh&ouml;rige private Schl&uuml;ssel</li>
-    <li><code>/etc/fworch/fworch-internal-ca.crt</code> - das CA-Zertifikat zur Pr&uuml;fung der Gegenstelle</li>
+    <li><code>/etc/fworch/fworch-trust-bundle.crt</code> - die CA-Zertifikate zur Pr&uuml;fung der Gegenstelle</li>
 ');
 INSERT INTO txt VALUES ('H6323', 'English', '<li><code>/etc/fworch/secrets/client/client.crt</code> - this host''s client certificate</li>
     <li><code>/etc/fworch/secrets/client/client.key</code> - its matching private key</li>
-    <li><code>/etc/fworch/fworch-internal-ca.crt</code> - the CA certificate used to verify the peer</li>
+    <li><code>/etc/fworch/fworch-trust-bundle.crt</code> - the CA certificates used to verify the peer</li>
 ');
 INSERT INTO txt VALUES ('H6324', 'German',  'Der private Schl&uuml;ssel ist nur f&uuml;r das FWO-Dienstkonto lesbar. Eigene Skripte m&uuml;ssen daher als dieser Benutzer oder als root laufen.
     Das CA-Zertifikat muss explizit angegeben werden: g&auml;ngige Bibliotheken pr&uuml;fen sonst gegen den mitgelieferten &ouml;ffentlichen Zertifikatsspeicher, der die interne CA nicht kennt.

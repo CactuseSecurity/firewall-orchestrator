@@ -11,6 +11,48 @@
     mode: "0644"
   become: true
 
+# FWO's own TLS clients pin to this bundle instead of the operating-system trust
+# store. It always carries the internal CA, and additionally the issuer of a
+# retained customer-managed Apache certificate when one is configured. Both are
+# needed at once: retention is decided per host, so a distributed installation can
+# have one Apache endpoint on a customer-managed certificate and another still on
+# an internal CA one.
+- name: Read the configured peer CA certificate
+  slurp:
+    src: "{{ internalca_peer_ca_certificate }}"
+  register: internalca_peer_ca_content
+  failed_when: false
+  become: true
+  when: internalca_peer_ca_certificate != internalca_ca_certificate_local
+
+- name: Fail when the configured peer CA certificate cannot be read
+  fail:
+    msg: >-
+      internalca_peer_ca_certificate is set to {{ internalca_peer_ca_certificate }},
+      but that file cannot be read on {{ inventory_hostname }}. Place the issuing root
+      CA certificate of the retained Apache certificate at that path on every FWO host,
+      or leave the setting at its default to trust the {{ product_name }} internal CA alone.
+  when:
+    - internalca_peer_ca_certificate != internalca_ca_certificate_local
+    - internalca_peer_ca_content.content is not defined
+
+- name: Install the trust anchors FWO clients validate FWO endpoints against
+  copy:
+    # Trimmed and rejoined explicitly: a PEM block that does not end in a newline
+    # would run into the BEGIN line of the next one and neither would parse.
+    content: >-
+      {{
+        ([hostvars[internalca_ca_host].internalca_ca_certificate_pem | b64decode | trim]
+         + ([internalca_peer_ca_content.content | b64decode | trim]
+            if internalca_peer_ca_content.content is defined else [])
+        ) | join('\n') ~ '\n'
+      }}
+    dest: "{{ internalca_trust_bundle }}"
+    owner: root
+    group: "{{ fworch_group }}"
+    mode: "0644"
+  become: true
+
 - name: Install internal CA on Debian trust store
   copy:
     content: "{{ hostvars[internalca_ca_host].internalca_ca_certificate_pem | b64decode }}"

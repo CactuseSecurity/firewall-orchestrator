@@ -247,13 +247,26 @@ were checked out as links. `git ls-files` reads the index, and with `core.symlin
 git keeps the index entry at `120000` while writing a plain text file into the working
 tree - so a broken checkout still reports `120000` here.
 
-To check what is actually on disk, look for typechanges:
+To check what is actually on disk, verify for each of them that it really is a link and
+that its target resolves:
 ```shell
-git status --porcelain | awk '$1=="T"'
+git ls-files -s | awk '$1=="120000"{print $4}' | while read -r f; do
+  [ -L "$f" ] || echo "NOT A LINK: $f"
+  [ -e "$f" ] || echo "DANGLING:   $f"
+done
 ```
-Empty output means all links are intact. Any path listed was checked out as a plain file
-instead of a link and is broken - see the Windows section above.
+Empty output means all links are intact. Otherwise:
 
+- `NOT A LINK` - the path was checked out as a plain file instead of a link. See the
+  Windows section above.
+- `DANGLING` - the link itself is fine, but its target is missing. For `.claude`,
+  `AGENTS.md` and `CLAUDE.md` this means the `.agents` submodule was never initialised;
+  fix it with `git submodule update --init --recursive`.
+
+Do not use a typechange check (`git status --porcelain | awk '$1=="T"'`) on its own: it
+finds only the first case. A clone made without `--recurse-submodules` contains real
+symlinks pointing into an empty `.agents`, so it reports nothing at all while `AGENTS.md`
+and `CLAUDE.md` dangle and `.claude` resolves onto an empty directory.
 
 ## Optional: agent-supported work
 

@@ -671,9 +671,12 @@ namespace FWO.Test
             string csv = report.ExportToCsv();
 
             StringAssert.Contains("No recertifiable owners assigned", html);
+            StringAssert.Contains("Add. Info: business_unit=missing", html);
+            StringAssert.DoesNotContain("Filter: business_unit=missing", html);
             StringAssert.DoesNotContain("Statistics", html);
             StringAssert.DoesNotContain("No overdue owners", html);
             StringAssert.Contains("# No recertifiable owners assigned", csv);
+            StringAssert.Contains("# Add. Info: business_unit=missing", csv);
             StringAssert.DoesNotContain("# Statistics", csv);
             StringAssert.DoesNotContain("# Overdue owners:", csv);
         }
@@ -824,7 +827,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void OwnersGenerateCsvAndHtml_RespectOwnerAddInfoFilter()
+        public void OwnersGenerateCsvAndHtml_IgnoreOwnerAddInfoFilter()
         {
             ReportOwners report = new(query, userConfig, ReportType.Owners)
             {
@@ -867,11 +870,11 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 StringAssert.Contains("\"APP-1\",\"Owner One\"", csv);
-                StringAssert.DoesNotContain("\"APP-2\",\"Owner Two\"", csv);
+                StringAssert.Contains("\"APP-2\",\"Owner Two\"", csv);
                 StringAssert.Contains("<td>APP-1</td><td>Owner One</td>", html);
-                StringAssert.DoesNotContain("<td>APP-2</td><td>Owner Two</td>", html);
+                StringAssert.Contains("<td>APP-2</td><td>Owner Two</td>", html);
                 StringAssert.Contains("\"APP-1\"", json);
-                StringAssert.DoesNotContain("\"APP-2\"", json);
+                StringAssert.Contains("\"APP-2\"", json);
             });
         }
 

@@ -176,7 +176,7 @@
             }
             @if (reportTypeInEdit.IsWorkflowReport())
             {
-                <ReportWorkflowParamSelection @bind-WorkflowFilter="reportTemplateInEdit.ReportParams.WorkflowFilter" SelectedReportType="reportTypeInEdit" UseLightText="false" UseFormLayout="true" />
+                <ReportWorkflowParamSelection @bind-WorkflowFilter="reportTemplateInEdit.ReportParams.WorkflowFilter" SelectedReportType="reportTypeInEdit" UseLightText="false" UseFormLayout="true" IdPrefix="templateWorkflowAddInfo" />
             }
 
             @if (reportTemplateInEdit.ReportParams.TenantFilter.IsActive)

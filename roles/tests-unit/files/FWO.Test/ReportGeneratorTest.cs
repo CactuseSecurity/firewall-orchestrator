@@ -174,6 +174,13 @@ namespace FWO.Test
             FwoOwner owner = BuildOwner(200, DateTime.Now.AddDays(20));
             owner.ExtAppId = "app-200";
             ReportTemplate template = BuildTemplate(ReportType.Owners);
+            template.ReportParams.ModellingFilter.OwnerAdditionalInfoKey = "business_unit";
+            template.ReportParams.ModellingFilter.OwnerAddInfoFilter = new AddInfoFilter
+            {
+                Name = "business_unit",
+                Mode = AddInfoFilterMode.value,
+                Value = "Payments"
+            };
 
             ReportBase? report = await ReportGenerator.GenerateFromTemplate(
                 template,
@@ -185,7 +192,13 @@ namespace FWO.Test
                 DisplayNothing);
 
             Assert.That(report, Is.Not.Null);
-            Assert.That(report!.ReportData.OwnerData.Single().Owner, Is.EqualTo(owner));
+            Assert.Multiple(() =>
+            {
+                Assert.That(report!.ReportData.OwnerData.Single().Owner, Is.EqualTo(owner));
+                Assert.That(report.ReportData.OwnerAdditionalInfoKey, Is.Empty);
+                Assert.That(report.ReportData.OwnerAddInfoFilter.Name, Is.Empty);
+                Assert.That(report.ReportData.OwnerAddInfoFilter.Value, Is.Empty);
+            });
         }
 
         [Test]

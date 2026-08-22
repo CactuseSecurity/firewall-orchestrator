@@ -52,6 +52,11 @@ namespace FWO.Report
 
         protected AddInfoFilter GetEffectiveOwnerAddInfoFilter()
         {
+            if (ReportType != ReportType.OwnerRecertification)
+            {
+                return new AddInfoFilter();
+            }
+
             if (!string.IsNullOrWhiteSpace(ReportData.OwnerAddInfoFilter.Name))
             {
                 return new AddInfoFilter(ReportData.OwnerAddInfoFilter);

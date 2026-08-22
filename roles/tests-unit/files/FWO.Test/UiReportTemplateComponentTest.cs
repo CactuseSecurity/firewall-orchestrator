@@ -307,6 +307,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ReportTemplateComponent_UsesDedicatedWorkflowAddInfoPrefixInTemplateDialog()
+        {
+            await using BunitContext context = CreateContext(
+                new MonitoringTestAuthStateProvider(Roles.Reporter),
+                CreateUserConfig(kReporterRoles, kEmptyOwnerships),
+                new ReportTemplateComponentTestApiConn(kEmptyTemplates, kEmptyOwners));
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
+                parameters.AddChildContent<ReportTemplateComponent>());
+            IRenderedComponent<ReportTemplateComponent> component = wrapper.FindComponent<ReportTemplateComponent>();
+            ReportTemplate workflowTemplate = CreateTemplate(1, "Workflow template", ReportType.TicketReport);
+
+            component.Instance.NewTemplate(workflowTemplate);
+            component.Render();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("templateWorkflowAddInfo-summary"));
+                Assert.That(component.Markup, Does.Not.Contain("workflowAddInfo-summary"));
+            });
+        }
+
+        [Test]
         public void ReportTemplateComponent_RefreshAvailableAddInfoNames_KeepsNullWhenNoNamesExist()
         {
             using BunitContext context = CreateContext(
@@ -317,14 +340,10 @@ namespace FWO.Test
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<ReportTemplateComponent>());
             IRenderedComponent<ReportTemplateComponent> component = wrapper.FindComponent<ReportTemplateComponent>();
-            component.Instance.NewTemplate(CreateTemplate(0, "Owner recert template", ReportType.OwnerRecertification));
-            component.Render();
+            SetPrivateField(component.Instance, "recertOwnerList", new List<FwoOwner>());
+            InvokePrivateMethod(component.Instance, "RefreshAvailableAddInfoNames");
 
-            component.WaitForAssertion(() =>
-            {
-                ReportOwnerRecertParamSelection selection = component.FindComponent<ReportOwnerRecertParamSelection>().Instance;
-                Assert.That(selection.AvailableAddInfoNames, Is.Null);
-            });
+            Assert.That(GetPrivateField<List<string>?>(component.Instance, "availableAddInfoNames"), Is.Null);
         }
 
         [Test]
@@ -511,22 +530,62 @@ namespace FWO.Test
 
         private static T GetPrivateField<T>(object instance, string fieldName)
         {
-            Type type = instance.GetType();
-            object? value = type.GetField(fieldName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.GetValue(instance)
-                ?? type.GetProperty(fieldName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.GetValue(instance);
-            return (T)(value ?? throw new MissingFieldException(type.FullName, fieldName));
+            Type originalType = instance.GetType();
+            Type? type = originalType;
+            bool found = false;
+            object? value = null;
+
+            while (type != null && !found)
+            {
+                FieldInfo? fieldInfo = type.GetField(fieldName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                if (fieldInfo != null)
+                {
+                    value = fieldInfo.GetValue(instance);
+                    found = true;
+                }
+                else
+                {
+                    PropertyInfo? propertyInfo = type.GetProperty(fieldName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                    if (propertyInfo != null)
+                    {
+                        value = propertyInfo.GetValue(instance);
+                        found = true;
+                    }
+                }
+                type = type.BaseType;
+            }
+
+            return found ? (T)value! : throw new MissingFieldException(originalType.FullName, fieldName);
         }
 
         private static void SetPrivateField(object instance, string fieldName, object value)
         {
-            instance.GetType().GetField(fieldName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
-                ?.SetValue(instance, value);
+            Type? type = instance.GetType();
+            while (type != null)
+            {
+                FieldInfo? fieldInfo = type.GetField(fieldName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                if (fieldInfo != null)
+                {
+                    fieldInfo.SetValue(instance, value);
+                    return;
+                }
+                type = type.BaseType;
+            }
         }
 
         private static object? InvokePrivateMethod(object instance, string methodName, params object[] parameters)
         {
-            return instance.GetType().GetMethod(methodName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
-                ?.Invoke(instance, parameters);
+            Type? type = instance.GetType();
+            while (type != null)
+            {
+                MethodInfo? methodInfo = type.GetMethod(methodName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                if (methodInfo != null)
+                {
+                    return methodInfo.Invoke(instance, parameters);
+                }
+                type = type.BaseType;
+            }
+            return null;
         }
     }
 

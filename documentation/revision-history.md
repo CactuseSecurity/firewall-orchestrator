@@ -614,7 +614,6 @@ Not supported any longer are:
 - increase of unit-tests
 - Fixed variance-analysis comparison for imported identity network objects such as Check Point updatable objects, access roles and domain objects. When IP based rule recognition is active, configured placeholder areas for special configurations are reconciled with these imported objects by object type and name instead of placeholder IP fields.
 
-
 # 9.5.0 - 30.08.2026
 - introducing
   - an internal CA and certificate checks for all internal communication

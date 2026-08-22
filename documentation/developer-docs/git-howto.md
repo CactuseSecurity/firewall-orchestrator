@@ -119,6 +119,27 @@ How to merge fork tpurschke/master into CactuseSecurity/master
 
 ## Submodules
 
+### Before you pull: back up an existing local `.claude/` directory
+
+The repo tracks `.claude` as a symbolic link to the `.agents` submodule. If you already
+have your own `.claude/` **directory** in your working copy, git silently deletes it and
+everything inside it the first time you pull that change - the pull reports success and
+prints no warning. This happens because `.gitignore` lists `**/.claude/`, and git treats
+an ignored directory as disposable when a tracked path needs that name.
+
+Affected are your local Claude Code permission allowlist (`settings.local.json`) and any
+local skills, commands or agents you kept there. Move the directory aside **before**
+pulling:
+```shell
+mv .claude ~/claude-backup-$(date +%F)
+git pull
+```
+
+Afterwards there is nothing more to do: local state written through the link lands in the
+`.agents` submodule, whose `.gitignore` already excludes `settings.local.json`,
+`.credentials.json`, `shell-snapshots/` and `todos/`. Only a directory that predates the
+symlink is at risk.
+
 ### Windows only: enable symbolic links before cloning
 
 Only relevant on Windows. On Linux, macOS and WSL2 there is nothing to do.
@@ -144,8 +165,14 @@ If the repo was already cloned without symlink support, the links exist as small
 files containing their target path. Repair them without re-cloning:
 ```shell
 git config core.symlinks true
+git submodule update --init --recursive
 git checkout --force HEAD -- .claude AGENTS.md CLAUDE.md roles/lib/files/FWO.Api.Client/Queries/GraphQL
 ```
+
+The `submodule update` step is not optional: `.claude`, `AGENTS.md` and `CLAUDE.md` all
+point into `.agents`. On a clone made without `--recurse-submodules` that directory is
+empty, so restoring the links alone leaves all three dangling while the command looks
+like it succeeded.
 
 ### Automatic submodule sync via repo hooks
 Enable the repo-managed hooks once (per clone) to keep submodules up to date automatically:
@@ -166,6 +193,12 @@ To automatically ignore local submodule pointer changes, run:
 ```shell
 git config submodule.agents.ignore all
 ```
+
+Note that `.agents` is not just documentation. Through the repo-root `.claude` symlink its
+contents are loaded automatically as project configuration by agent tooling, from a
+separate repository. Should the submodule ever gain a `settings.json` defining hooks, a
+pointer bump would run those commands on every developer machine that pulls it. Review
+pointer bumps as you would review code, not as a routine sync.
 
 ### Trigger hook 
 In order to initially trigger the hook which does the initialisation, we need to do any of the operations (git checkout, git merge, git rewrite)
@@ -205,21 +238,32 @@ Notes:
 - 160000 - sub module
 - 120000 - symbolic link
 
-List every symbolic link the repo tracks, with its current state:
+List every symbolic link the repo tracks:
 ```shell
 git ls-files -s | awk '$1=="120000"'
 ```
-All of them must show mode `120000`. Anything listed as `100644` was checked out as a
-plain file instead of a link and is broken - see the Windows section below.
+This tells you which paths are *supposed* to be links, but it cannot tell you whether they
+were checked out as links. `git ls-files` reads the index, and with `core.symlinks=false`
+git keeps the index entry at `120000` while writing a plain text file into the working
+tree - so a broken checkout still reports `120000` here.
 
-
-## optional for agents supported work 
-
-### linux: install and authenticate gh cmd line tool (used by agents)
+To check what is actually on disk, look for typechanges:
+```shell
+git status --porcelain | awk '$1=="T"'
 ```
+Empty output means all links are intact. Any path listed was checked out as a plain file
+instead of a link and is broken - see the Windows section above.
+
+
+## Optional: agent-supported work
+
+### Linux: install and authenticate the gh command line tool (used by agents)
+```shell
 sudo apt install gh
 gh auth login
 ```
+
+This works on current Ubuntu/Debian but not on older LTS releases, where GitHub's own apt repository is required.
 
 ## Troubleshooting: pre-commit Python / Ruff / Pyright
 

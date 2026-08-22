@@ -119,6 +119,34 @@ How to merge fork tpurschke/master into CactuseSecurity/master
 
 ## Submodules
 
+### Windows only: enable symbolic links before cloning
+
+Only relevant on Windows. On Linux, macOS and WSL2 there is nothing to do.
+
+This is not limited to agent tooling. Besides `.claude`, `AGENTS.md` and `CLAUDE.md`,
+the repo links `roles/lib/files/FWO.Api.Client/Queries/GraphQL` to the shared
+GraphQL query sources, so a checkout without symlink support breaks the build too.
+
+Two things are needed, and both have to be in place **before cloning**, because
+`core.symlinks` is evaluated at checkout time:
+
+1. Allow Windows to create symbolic links: enable **Developer Mode**
+   (Settings > System > For developers), or run git elevated. Without this privilege
+   Windows refuses to create them no matter how git is configured.
+2. Tell git to use them:
+```shell
+git config --global core.symlinks true
+```
+   The Git for Windows installer offers the same thing as the
+   "Enable symbolic links" checkbox.
+
+If the repo was already cloned without symlink support, the links exist as small text
+files containing their target path. Repair them without re-cloning:
+```shell
+git config core.symlinks true
+git checkout --force HEAD -- .claude AGENTS.md CLAUDE.md roles/lib/files/FWO.Api.Client/Queries/GraphQL
+```
+
 ### Automatic submodule sync via repo hooks
 Enable the repo-managed hooks once (per clone) to keep submodules up to date automatically:
 ```shell
@@ -176,6 +204,13 @@ tim@acantha24:~/dev/tim/fwo$
 Notes:
 - 160000 - sub module
 - 120000 - symbolic link
+
+List every symbolic link the repo tracks, with its current state:
+```shell
+git ls-files -s | awk '$1=="120000"'
+```
+All of them must show mode `120000`. Anything listed as `100644` was checked out as a
+plain file instead of a link and is broken - see the Windows section below.
 
 
 ## optional for agents supported work 

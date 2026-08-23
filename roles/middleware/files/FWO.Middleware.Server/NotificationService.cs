@@ -316,7 +316,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private static IWorkflowRecipientResolver? LoadWorkflowRecipientResolver(ApiConnection apiConnection, List<Ldap>? connectedLdaps)
+        private static WorkflowRecipientResolver? LoadWorkflowRecipientResolver(ApiConnection apiConnection, List<Ldap>? connectedLdaps)
         {
             try
             {
@@ -469,7 +469,7 @@ namespace FWO.Middleware.Server
             return await CollectRecipients(notification, owner, emailHelper, cc, bcc);
         }
 
-        private async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner? owner, EmailHelper emailHelper, bool cc = false, bool bcc = false)
+        private static async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner? owner, EmailHelper emailHelper, bool cc = false, bool bcc = false)
         {
             EmailRecipientOption recipientOption = notification.RecipientTo;
             string? addressList = notification.EmailAddressTo;

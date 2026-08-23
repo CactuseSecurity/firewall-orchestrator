@@ -122,7 +122,7 @@ namespace FWO.Config.File
                 // bundle. A file holding a single certificate is the ordinary case and
                 // behaves exactly as before.
                 loaded.ImportFromPemFile(path);
-                if (loaded.Count == 0)
+                if (!ContainsCertificate(loaded))
                 {
                     throw new ConfigException(string.Format(NoAnchorsMessage, path));
                 }
@@ -144,6 +144,20 @@ namespace FWO.Config.File
                 Log.WriteError(LogCategory, failure.Message);
                 throw failure;
             }
+        }
+
+        /// <summary>
+        /// Returns whether an imported certificate bundle has at least one certificate.
+        /// </summary>
+        /// <param name="loaded">The certificates imported from the configured anchor file.</param>
+        /// <returns>True when the bundle contains a trust anchor.</returns>
+        private static bool ContainsCertificate(X509Certificate2Collection loaded)
+        {
+            foreach (X509Certificate2 certificate in loaded)
+            {
+                return true;
+            }
+            return false;
         }
     }
 }

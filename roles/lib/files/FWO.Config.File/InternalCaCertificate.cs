@@ -117,12 +117,8 @@ namespace FWO.Config.File
                 {
                     throw new ConfigException(NotConfiguredMessage, configurationError);
                 }
-                X509Certificate2Collection loaded = [];
-                // Reads every certificate in the file, so the configured anchor may be a
-                // bundle. A file holding a single certificate is the ordinary case and
-                // behaves exactly as before.
-                loaded.ImportFromPemFile(path);
-                if (!ContainsCertificate(loaded))
+                X509Certificate2Collection loaded = LoadCertificates(path);
+                if (loaded.Count == 0)
                 {
                     throw new ConfigException(string.Format(NoAnchorsMessage, path));
                 }
@@ -147,17 +143,19 @@ namespace FWO.Config.File
         }
 
         /// <summary>
-        /// Returns whether an imported certificate bundle has at least one certificate.
+        /// Imports every certificate in the configured anchor file.
         /// </summary>
-        /// <param name="loaded">The certificates imported from the configured anchor file.</param>
-        /// <returns>True when the bundle contains a trust anchor.</returns>
-        private static bool ContainsCertificate(X509Certificate2Collection loaded)
+        /// <param name="path">The configured anchor file.</param>
+        /// <returns>The imported trust anchors, which can be empty for a file without PEM certificates.</returns>
+        private static X509Certificate2Collection LoadCertificates(string path)
         {
-            foreach (X509Certificate2 certificate in loaded)
-            {
-                return true;
-            }
-            return false;
+            X509Certificate2Collection loaded = [];
+            // Reads every certificate in the file, so the configured anchor may be a
+            // bundle. A file holding a single certificate is the ordinary case and
+            // behaves exactly as before.
+            loaded.ImportFromPemFile(path);
+            return loaded;
         }
+
     }
 }

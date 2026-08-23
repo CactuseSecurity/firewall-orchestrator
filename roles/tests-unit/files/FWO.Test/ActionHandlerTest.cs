@@ -111,6 +111,11 @@ namespace FWO.Test
                     UpdatedNotificationLastSentIds = GetVariable<List<int>>(variables, "ids");
                     return Task.FromResult((T)(object)new ReturnId { AffectedRows = UpdateNotificationsLastSentAffectedRows });
                 }
+                if (query == RequestQueries.updateTicketState || query == RequestQueries.updateRequestTaskState)
+                {
+                    long id = GetVariable<long>(variables, "id");
+                    return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = id });
+                }
                 if (query == RequestQueries.getTicketById)
                 {
                     if (ThrowOnGetTicketById)
@@ -246,6 +251,13 @@ namespace FWO.Test
             FieldInfo? field = typeof(WfHandler).GetField("stateMatrixDict", BindingFlags.NonPublic | BindingFlags.Instance);
             StateMatrixDict dict = (StateMatrixDict)(field?.GetValue(handler) ?? new StateMatrixDict());
             dict.Matrices[taskType] = new StateMatrix();
+        }
+
+        private static void SetMatrix(WfHandler handler, string taskType, StateMatrix matrix)
+        {
+            FieldInfo? field = typeof(WfHandler).GetField("stateMatrixDict", BindingFlags.NonPublic | BindingFlags.Instance);
+            StateMatrixDict dict = (StateMatrixDict)(field?.GetValue(handler) ?? new StateMatrixDict());
+            dict.Matrices[taskType] = matrix;
         }
 
         private static TValue GetVariable<TValue>(object? variables, string propertyName)

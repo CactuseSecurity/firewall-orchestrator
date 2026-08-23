@@ -104,7 +104,7 @@ namespace FWO.Services.Workflow
                 ActImplTask.StateId = actPossibleStates[0];
             }
             await UpdateActImplTaskState();
-            if (!ActStateMatrix.PhaseActive[WorkflowPhases.planning] && ActReqTask.Start == null)
+            if (!IsPlanningPhaseActive(ActStateMatrix) && ActReqTask.Start == null)
             {
                 ActReqTask.Start = ActImplTask.Start;
             }
@@ -266,7 +266,7 @@ namespace FWO.Services.Workflow
 
         private async Task AutoCreateOrUpdateImplTasks()
         {
-            if (Phase <= WorkflowPhases.approval && !MasterStateMatrix.PhaseActive[WorkflowPhases.planning]
+            if (Phase <= WorkflowPhases.approval && !IsPlanningPhaseActive(MasterStateMatrix)
                 && ActTicket.StateId >= MasterStateMatrix.LowestEndState)
             {
                 List<WfReqTask> requestTasksNeedingInitialImplTasks = [];
@@ -401,8 +401,13 @@ namespace FWO.Services.Workflow
             return reqTask.ImplementationTasks.Count == 0
                 && (reqTask.TaskType != WfTaskType.access.ToString() || userConfig.ReqAutoCreateImplTasks != AutoCreateImplTaskOptions.never)
                 && stateMatrixDict.Matrices.TryGetValue(reqTask.TaskType, out StateMatrix? matrix)
-                && !matrix.PhaseActive[WorkflowPhases.planning]
+                && !IsPlanningPhaseActive(matrix)
                 && RequestTaskNeedsInitialImplTasks(reqTask);
+        }
+
+        private static bool IsPlanningPhaseActive(StateMatrix matrix)
+        {
+            return matrix.PhaseActive.TryGetValue(WorkflowPhases.planning, out bool planningActive) && planningActive;
         }
 
         public bool CanAutoCreateInitialImplTasks(WfTicket ticket, WfReqTask reqTask)

@@ -126,12 +126,22 @@
   become: true
   when: ansible_facts['os_family'] == 'Debian'
 
-- name: Refresh Debian CA trust store after removing internal CA
+- name: Remove configured peer CA from Debian trust store
+  file:
+    path: "/usr/local/share/ca-certificates/{{ internalca_peer_ca_trust_anchor }}"
+    state: absent
+  register: internalca_debian_peer_ca_anchor_removed
+  become: true
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Refresh Debian CA trust store after removing FWO CA certificates
   command: update-ca-certificates
   become: true
   when:
     - ansible_facts['os_family'] == 'Debian'
-    - internalca_debian_ca_anchor_removed.changed
+    - >-
+      internalca_debian_ca_anchor_removed.changed
+      or internalca_debian_peer_ca_anchor_removed.changed | default(false)
 
 - name: Remove internal CA from RedHat trust store
   file:
@@ -141,12 +151,22 @@
   become: true
   when: ansible_facts['os_family'] == 'RedHat'
 
-- name: Refresh RedHat CA trust store after removing internal CA
+- name: Remove configured peer CA from RedHat trust store
+  file:
+    path: "/etc/pki/ca-trust/source/anchors/{{ internalca_peer_ca_trust_anchor }}"
+    state: absent
+  register: internalca_redhat_peer_ca_anchor_removed
+  become: true
+  when: ansible_facts['os_family'] == 'RedHat'
+
+- name: Refresh RedHat CA trust store after removing FWO CA certificates
   command: update-ca-trust extract
   become: true
   when:
     - ansible_facts['os_family'] == 'RedHat'
-    - internalca_redhat_ca_anchor_removed.changed
+    - >-
+      internalca_redhat_ca_anchor_removed.changed
+      or internalca_redhat_peer_ca_anchor_removed.changed | default(false)
 
 - name: include uninstall package tasks for current OS family
   include_tasks: "os/uninstall-packages.{{ ansible_facts['os_family'] }}.yml"

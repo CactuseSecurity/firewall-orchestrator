@@ -22,10 +22,10 @@ host.
 
 Alongside it every host receives `/etc/fworch/fworch-trust-bundle.crt`
 (`internalca_trust_bundle`), which holds the internal CA plus any additional issuer
-configured as `internalca_peer_ca_certificate`. That is the anchor set FWO's own TLS
-clients - the importer, the customizing scripts and the .NET clients - validate FWO
-endpoints against; see *administrator managed certificates* below for why the two
-files are kept apart.
+configured as `internalca_peer_ca_certificate`. Clients that load
+`tls_ca_certificate` - the importer, the customizing scripts and the GraphQL and
+LDAP clients - validate FWO endpoints against it; see *administrator managed
+certificates* below for why the two files are kept apart.
 
 The installer writes the system-wide LDAP client configuration (`/etc/ldap/ldap.conf`
 on Debian, `/etc/openldap/ldap.conf` on RedHat) on the middleware host, pointing
@@ -78,12 +78,14 @@ certificate on every FWO client host. When an upgrade retains a customer-managed
 API certificate without this setting, FWO stops before deploying clients that
 would trust the unrelated internal CA.
 
-That issuer is **added to** the internal CA, not substituted for it. The installer
-concatenates both into a trust bundle at
+That issuer is **added to** FWO's trust configuration, not substituted for the
+internal CA. The installer concatenates both into a trust bundle at
 `/etc/fworch/fworch-trust-bundle.crt` (`internalca_trust_bundle`), and that is the
 path written to `fworch.json` as `tls_ca_certificate` - the anchor set the importer,
-the customizing scripts, the .NET GraphQL and LDAP clients, and the integration
-tests validate FWO endpoints against. Adding rather than replacing matters because
+the customizing scripts, the GraphQL and LDAP clients, and the integration tests
+validate FWO endpoints against. It also installs the configured peer CA as an
+FWO-owned operating-system trust anchor on every host, for platform-validated
+clients such as the middleware client. Adding rather than replacing matters because
 retention is decided per host: in a distributed installation one Apache endpoint can
 keep a customer-managed certificate while another still serves an internal CA one,
 and a single anchor could not cover both.

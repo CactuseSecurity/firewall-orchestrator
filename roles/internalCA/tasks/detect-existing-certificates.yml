@@ -140,8 +140,8 @@
       managed. Set internalca_peer_ca_certificate to the path of its issuing
       root CA certificate on every FWO component before upgrading. The
       {{ product_name }} internal CA alone cannot validate the retained certificate.
-      The issuer is added to the internal CA rather than replacing it, so endpoints
-      that still serve an internal CA certificate keep working.
+      The issuer is added to FWO's trust configuration rather than replacing the
+      internal CA, so endpoints that still serve an internal CA certificate keep working.
   when:
     - internalca_preserve_apache_certificate | default(false) | bool
     - internalca_peer_ca_certificate == internalca_ca_certificate_local

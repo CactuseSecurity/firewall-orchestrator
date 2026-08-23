@@ -123,6 +123,10 @@ internalca_ca_certificate_local: "{{ fworch_conf_dir }}/{{ internalca_ca_trust_a
 # endpoint can keep a customer-managed certificate while another still serves an
 # internal CA one, and a single anchor could not cover both.
 internalca_peer_ca_certificate: "{{ internalca_ca_certificate_local }}"
+# The FWO-owned operating-system trust-store anchor for a configured peer CA.
+# It is separate from the customer-supplied source file so uninstall can remove
+# only the copy managed by FWO.
+internalca_peer_ca_trust_anchor: "{{ product_name }}-peer-ca.crt"
 # The anchors FWO's own TLS clients validate FWO endpoints against, written to
 # fworch.json as tls_ca_certificate and used by the importer, the customizing
 # scripts, the .NET GraphQL and LDAP clients and the integration tests. Assembled

@@ -23,10 +23,15 @@ JSON_CONTENT_TYPE = "application/json"
 REDACTED_VALUE = "<redacted>"
 HTTP_STATUS_OK = 200
 HTTP_STATUS_UNAUTHORIZED = 401
+HTTP_STATUS_BAD_GATEWAY = 502
+HTTP_STATUS_SERVICE_UNAVAILABLE = 503
 MAX_LOGIN_ERROR_RESPONSE_LEN = 200  # keep the login failure reason readable without dumping a full error page
 SENSITIVE_HEADER_NAMES = {"authorization", "x-hasura-admin-secret"}
 JWT_EXPIRED_ERROR_MARKER = "JWTExpired"  # substring Hasura uses in its "Could not verify JWT: JWTExpired" error
 JWT_REFRESH_MARGIN_SECONDS = 60  # proactively refresh once the JWT has less than this long left to live
+
+# sentinel returned by _handle_endpoint_error_status() when the response status is not an error it handles
+_NO_ENDPOINT_ERROR = object()
 
 
 class _JwtExpiredResponseError(Exception):
@@ -364,55 +369,79 @@ class FwoApi:
         # refresh ahead of time if the JWT is about to expire, so the call below has a fresh one
         self._ensure_jwt_fresh()
 
-        service_provider = ServiceProvider()
-        fwo_config = service_provider.get_fwo_config()
-        url = fwo_config["user_management_api_base_url"] + endpoint.lstrip("/")
+        url = self._build_endpoint_url(endpoint)
 
         with requests.Session() as session:
-            if fwo_globals.verify_certs is None:
-                session.verify = False
-            else:
-                session.verify = fwo_globals.verify_certs
-
-            session.headers.update({"Authorization": f"Bearer {self.fwo_jwt}", "Content-Type": JSON_CONTENT_TYPE})
+            self._configure_endpoint_session(session)
 
             try:
-                if method.upper() == "GET":
-                    response = session.get(url, json=params, timeout=int(FWO_API_HTTP_IMPORT_TIMEOUT))
-                elif method.upper() == "POST":
-                    response = session.post(url, json=params, timeout=int(FWO_API_HTTP_IMPORT_TIMEOUT))
-                elif method.upper() == "PUT":
-                    response = session.put(url, json=params, timeout=int(FWO_API_HTTP_IMPORT_TIMEOUT))
-                elif method.upper() == "DELETE":
-                    response = session.delete(url, json=params, timeout=int(FWO_API_HTTP_IMPORT_TIMEOUT))
-                elif method.upper() == "PATCH":
-                    response = session.patch(url, json=params, timeout=int(FWO_API_HTTP_IMPORT_TIMEOUT))
-                else:
-                    raise FwoImporterError(f"Unsupported HTTP method: {method}")
+                response = self._dispatch_endpoint_request(session, method, url, params)
 
-                # Check for HTTP errors
-                if response.status_code == HTTP_STATUS_UNAUTHORIZED:
-                    if _retry_on_jwt_expiry and self._try_refresh_jwt():
-                        FWOLogger.info("fwo_api: middleware call got 401 - refreshed JWT and retrying once")
-                        return self.call_endpoint(method, endpoint, params, _retry_on_jwt_expiry=False)
-                    raise FwoApiLoginFailedError(f"Authentication failed for endpoint: {endpoint}")
-                if response.status_code == 503:  # noqa: PLR2004
-                    raise FwoApiServiceUnavailableError("FWO Middleware API HTTP error 503 (middleware died?)")
-                if response.status_code == 502:  # noqa: PLR2004
-                    raise FwoApiTimeoutError("FWO Middleware API HTTP error 502 (might have reached timeout)")
+                error_result = self._handle_endpoint_error_status(
+                    response, method, endpoint, params, _retry_on_jwt_expiry
+                )
+                if error_result is not _NO_ENDPOINT_ERROR:
+                    return error_result
 
                 response.raise_for_status()
-
-                # Try to parse JSON response
-                try:
-                    return response.json()
-                except ValueError:
-                    # If response is not JSON, return the text content
-                    return response.text
+                return self._parse_endpoint_response(response)
 
             except requests.exceptions.RequestException as e:
                 FWOLogger.error(f"Middleware API request failed: {e!s}")
                 raise FwoImporterError(f"Middleware API request failed: {e!s}")
+
+    @staticmethod
+    def _build_endpoint_url(endpoint: str) -> str:
+        fwo_config = ServiceProvider().get_fwo_config()
+        return fwo_config["user_management_api_base_url"] + endpoint.lstrip("/")
+
+    def _configure_endpoint_session(self, session: requests.Session) -> None:
+        session.verify = False if fwo_globals.verify_certs is None else fwo_globals.verify_certs
+        session.headers.update({"Authorization": f"Bearer {self.fwo_jwt}", "Content-Type": JSON_CONTENT_TYPE})
+
+    @staticmethod
+    def _dispatch_endpoint_request(
+        session: requests.Session, method: str, url: str, params: Any
+    ) -> requests.Response:
+        request_by_method = {
+            "GET": session.get,
+            "POST": session.post,
+            "PUT": session.put,
+            "DELETE": session.delete,
+            "PATCH": session.patch,
+        }
+        request_func = request_by_method.get(method.upper())
+        if request_func is None:
+            raise FwoImporterError(f"Unsupported HTTP method: {method}")
+        return request_func(url, json=params, timeout=int(FWO_API_HTTP_IMPORT_TIMEOUT))
+
+    def _handle_endpoint_error_status(
+        self,
+        response: requests.Response,
+        method: str,
+        endpoint: str,
+        params: Any,
+        retry_on_jwt_expiry: bool,
+    ) -> Any:
+        """Return the retried call's result for a handled error status, or _NO_ENDPOINT_ERROR if none applied."""
+        if response.status_code == HTTP_STATUS_UNAUTHORIZED:
+            if retry_on_jwt_expiry and self._try_refresh_jwt():
+                FWOLogger.info("fwo_api: middleware call got 401 - refreshed JWT and retrying once")
+                return self.call_endpoint(method, endpoint, params, _retry_on_jwt_expiry=False)
+            raise FwoApiLoginFailedError(f"Authentication failed for endpoint: {endpoint}")
+        if response.status_code == HTTP_STATUS_SERVICE_UNAVAILABLE:
+            raise FwoApiServiceUnavailableError("FWO Middleware API HTTP error 503 (middleware died?)")
+        if response.status_code == HTTP_STATUS_BAD_GATEWAY:
+            raise FwoApiTimeoutError("FWO Middleware API HTTP error 502 (might have reached timeout)")
+        return _NO_ENDPOINT_ERROR
+
+    @staticmethod
+    def _parse_endpoint_response(response: requests.Response) -> Any:
+        try:
+            return response.json()
+        except ValueError:
+            # If response is not JSON, return the text content
+            return response.text
 
     def _handle_request_exception(
         self, exception: requests.exceptions.RequestException, query_payload: dict[str, Any], headers: dict[str, Any]

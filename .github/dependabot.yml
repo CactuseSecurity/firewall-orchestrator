@@ -13,6 +13,8 @@ updates:
     target-branch: "develop"
     schedule:
       interval: "weekly"
+    assignees:
+      - Laennart
 
   - package-ecosystem: "nuget"
     directory: "/roles/"
@@ -21,6 +23,8 @@ updates:
       interval: "daily"
     registries:
       - private-github
+    assignees:
+      - SolidProgramming
 
   - package-ecosystem: "pip"
     directory: "/roles/importer/files/importer"

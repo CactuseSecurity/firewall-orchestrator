@@ -70,50 +70,20 @@ class FwoApi:
         # refresh ahead of time if the JWT is about to expire, so the call below has a fresh one
         self._ensure_jwt_fresh()
 
-        role = "importer"
-        request_headers = {
-            "Content-Type": JSON_CONTENT_TYPE,
-            "Authorization": f"Bearer {self.fwo_jwt}",
-            "x-hasura-role": role,
-        }
+        request_headers = self._build_request_headers()
         full_query: dict[str, Any] = {"query": query, "variables": query_variables}
-        return_object = {}
+        return_object: dict[str, Any] = {}
 
         if analyze_payload:
             self.query_info = self.query_analyzer.analyze_payload(query, query_variables)
 
         try:
-            with requests.Session() as session:
-                if fwo_globals.verify_certs is None:  # only for first FWO API call (getting info on cert verification)
-                    session.verify = False
-                else:
-                    session.verify = fwo_globals.verify_certs
-                session.headers.update(request_headers)
-
-                if analyze_payload and self.query_info["chunking_info"]["needs_chunking"]:
-                    started = time.time()
-                    return_object: dict[str, Any] = self._call_chunked(session, query, query_variables)
-                    elapsed_time = time.time() - started
-                    affected_rows = 0
-                    if "data" in return_object and "affected_rows" in return_object["data"]:
-                        # If the return object contains data, we can log the affected rows.
-                        affected_rows = sum(obj["affected_rows"] for obj in return_object["data"].values())
-                    FWOLogger.debug(
-                        f"Chunked API call ({self.query_info['query_name']}) processed in {elapsed_time:.4f} s. Affected rows: {affected_rows}."
-                    )
-                    self.query_info = {}
-                else:
-                    return_object: dict[str, Any] = self._post_query(session, full_query)
-
-                self._try_show_api_call_info(full_query, request_headers)
-
-                return return_object
+            return_object = self._send_query(full_query, request_headers, analyze_payload)
+            self._try_show_api_call_info(full_query, request_headers)
+            return return_object
 
         except _JwtExpiredResponseError:
-            if not _retry_on_jwt_expiry or not self._try_refresh_jwt():
-                raise FwoImporterError("fwo_api: JWT expired and could not be refreshed")
-            FWOLogger.info("fwo_api: JWT had expired - refreshed token and retrying call once")
-            return self.call(query, query_variables, analyze_payload, _retry_on_jwt_expiry=False)
+            return self._retry_after_jwt_expiry(query, query_variables, analyze_payload, _retry_on_jwt_expiry)
         except requests.exceptions.RequestException as e:
             self._handle_request_exception(e, full_query, request_headers)
         except FwoImporterError as e:
@@ -121,16 +91,66 @@ class FwoApi:
             FWOLogger.error(f"FwoImporterError during API call: {e!s}")
             raise
         except Exception as e:
-            # Catch all other exceptions and log them.
-            FWOLogger.error(f"Unexpected error during API call: {e!s}")
-            FWOLogger.debug(pformat(self.query_info))
-            try:
-                FWOLogger.debug(pformat(return_object))
-            except NameError:
-                FWOLogger.error(f"Unexpected error during API call: {e!s}")
-                raise FwoImporterError(f"return_object not defined. Error during API call: {e!s}")
-            raise FwoImporterError(f"Unexpected error during API call: {e!s}")
+            self._handle_unexpected_error(e, return_object)
         return return_object
+
+    def _build_request_headers(self) -> dict[str, str]:
+        role = "importer"
+        return {
+            "Content-Type": JSON_CONTENT_TYPE,
+            "Authorization": f"Bearer {self.fwo_jwt}",
+            "x-hasura-role": role,
+        }
+
+    def _send_query(
+        self,
+        full_query: dict[str, Any],
+        request_headers: dict[str, str],
+        analyze_payload: bool,
+    ) -> dict[str, Any]:
+        with requests.Session() as session:
+            # session.verify is None only for the first FWO API call (getting info on cert verification)
+            session.verify = False if fwo_globals.verify_certs is None else fwo_globals.verify_certs
+            session.headers.update(request_headers)
+
+            if analyze_payload and self.query_info["chunking_info"]["needs_chunking"]:
+                return self._call_chunked_and_log(session, full_query["query"], full_query["variables"])
+            return self._post_query(session, full_query)
+
+    def _call_chunked_and_log(
+        self, session: requests.Session, query: str, query_variables: dict[str, list[Any] | Any]
+    ) -> dict[str, Any]:
+        started = time.time()
+        return_object: dict[str, Any] = self._call_chunked(session, query, query_variables)
+        elapsed_time = time.time() - started
+        affected_rows = 0
+        if "data" in return_object and "affected_rows" in return_object["data"]:
+            # If the return object contains data, we can log the affected rows.
+            affected_rows = sum(obj["affected_rows"] for obj in return_object["data"].values())
+        FWOLogger.debug(
+            f"Chunked API call ({self.query_info['query_name']}) processed in {elapsed_time:.4f} s. Affected rows: {affected_rows}."
+        )
+        self.query_info = {}
+        return return_object
+
+    def _retry_after_jwt_expiry(
+        self,
+        query: str,
+        query_variables: dict[str, list[Any] | Any],
+        analyze_payload: bool,
+        retry_on_jwt_expiry: bool,
+    ) -> dict[str, Any]:
+        if not retry_on_jwt_expiry or not self._try_refresh_jwt():
+            raise FwoImporterError("fwo_api: JWT expired and could not be refreshed")
+        FWOLogger.info("fwo_api: JWT had expired - refreshed token and retrying call once")
+        return self.call(query, query_variables, analyze_payload, _retry_on_jwt_expiry=False)
+
+    def _handle_unexpected_error(self, error: Exception, return_object: dict[str, Any]) -> None:
+        # Catch-all for unforeseen errors: log context and re-raise as FwoImporterError.
+        FWOLogger.error(f"Unexpected error during API call: {error!s}")
+        FWOLogger.debug(pformat(self.query_info))
+        FWOLogger.debug(pformat(return_object))
+        raise FwoImporterError(f"Unexpected error during API call: {error!s}")
 
     @staticmethod
     def refresh(

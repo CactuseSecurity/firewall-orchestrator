@@ -364,7 +364,7 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public async Task CreateRequest_UsesUpdatedConfiguredInitialStateFromSubscription()
+    public async Task CreateRequest_UsesConfiguredInitialStateFromGlobalConfig()
     {
         FlowRequestServiceApiConn apiConnection = new()
         {
@@ -375,15 +375,8 @@ internal class FlowRequestServiceTest
             ],
             Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
         };
-        GlobalConfig globalConfig = new() { ReqApiTicketInitialStateId = -1 };
+        GlobalConfig globalConfig = new() { ReqApiTicketInitialStateId = 49 };
         FlowRequestService service = new(apiConnection, globalConfig);
-
-        apiConnection.EmitGlobalConfigChange(new ConfigItem
-        {
-            Key = "reqApiTicketInitialStateId",
-            Value = "49",
-            User = 0
-        });
 
         CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
         {
@@ -429,10 +422,92 @@ internal class FlowRequestServiceTest
         {
             Assert.That(response.Status, Is.EqualTo("approval"));
             Assert.That(GetVariable(apiConnection.NewTicketVariables, "state"), Is.EqualTo(49));
-            Assert.That(globalConfig.ReqApiTicketInitialStateId, Is.EqualTo(49));
-            Assert.That(apiConnection.ConfigSubscriptionQuery, Is.EqualTo(ConfigQueries.subscribeFlowRequestConfigChanges));
-            Assert.That(apiConnection.ConfigSubscriptionQuery, Does.Contain("config_user: {_eq: 0}"));
         });
+    }
+
+    [Test]
+    public void GlobalConfigSubscription_UpdatesSharedConfigAndRaisesChange()
+    {
+        FlowRequestServiceApiConn apiConnection = new();
+        GlobalConfig globalConfig = new() { ReqApiTicketInitialStateId = -1 };
+        FlowRequestService service = new(apiConnection, globalConfig);
+        int onChangeCount = 0;
+        globalConfig.OnChange += (_, _) => onChangeCount++;
+
+        apiConnection.EmitGlobalConfigChange(new ConfigItem
+        {
+            Key = "reqApiTicketInitialStateId",
+            Value = "49",
+            User = 0
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(globalConfig.ReqApiTicketInitialStateId, Is.EqualTo(49));
+            Assert.That(globalConfig.RawConfigItems, Has.Length.EqualTo(1));
+            Assert.That(globalConfig.RawConfigItems[0].Key, Is.EqualTo("reqApiTicketInitialStateId"));
+            Assert.That(onChangeCount, Is.EqualTo(1));
+        });
+
+        service.Dispose();
+    }
+
+    [Test]
+    public async Task Constructor_IgnoresConfigSubscriptionFailures()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            ThrowOnConfigSubscriptionInit = true,
+            States =
+            [
+                new WfState { Id = 17, Name = "requested" }
+            ],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+        };
+        FlowRequestService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
+
+        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Config subscription failure fallback",
+            AddressObjects =
+            [
+                new CreateRequestRequest.CreateAddressObjectRequest
+                {
+                    Id = "-1",
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateRequestRequest.CreateServiceObjectRequest
+                {
+                    Id = "-2",
+                    Name = "https",
+                    Protocol = "tcp",
+                    PortStart = 443,
+                    PortEnd = 443
+                }
+            ],
+            Rules =
+            [
+                new CreateRequestRequest.CreateRequestRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [-1],
+                    DestinationObjects = [-1],
+                    ServiceObjects = [-2]
+                }
+            ]
+        }, 77);
+
+        Assert.That(response.Status, Is.EqualTo("requested"));
+        service.Dispose();
     }
 
     [Test]
@@ -839,59 +914,7 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public void EmitGlobalConfigChange_IgnoresUnrelatedConfigKeys()
-    {
-        FlowRequestServiceApiConn apiConnection = new();
-        GlobalConfig globalConfig = new() { ReqApiTicketInitialStateId = 17 };
-        FlowRequestService service = new(apiConnection, globalConfig);
-
-        apiConnection.EmitGlobalConfigChange(new ConfigItem
-        {
-            Key = "someOtherConfigKey",
-            Value = "49",
-            User = 0
-        });
-
-        Assert.That(globalConfig.ReqApiTicketInitialStateId, Is.EqualTo(17));
-        service.Dispose();
-    }
-
-    [Test]
-    public void EmitGlobalConfigChange_IgnoresInvalidInitialStateValues()
-    {
-        FlowRequestServiceApiConn apiConnection = new();
-        GlobalConfig globalConfig = new() { ReqApiTicketInitialStateId = 17 };
-        FlowRequestService service = new(apiConnection, globalConfig);
-
-        apiConnection.EmitGlobalConfigChange(new ConfigItem
-        {
-            Key = "reqApiTicketInitialStateId",
-            Value = "not-an-integer",
-            User = 0
-        });
-
-        Assert.That(globalConfig.ReqApiTicketInitialStateId, Is.EqualTo(17));
-        service.Dispose();
-    }
-
-        [Test]
-        public async Task Dispose_DisposesRecreatedConfigSubscriptionAfterReconnect()
-        {
-            FlowRequestServiceReconnectApiConn apiConnection = new();
-            FlowRequestService service = new(apiConnection, new GlobalConfig());
-
-            await apiConnection.ReconnectSubscriptionsAsync("jwt", CancellationToken.None);
-            service.Dispose();
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(apiConnection.ConfigSubscriptionCreateCount, Is.EqualTo(2));
-                Assert.That(apiConnection.ConfigSubscriptionDisposeCount, Is.EqualTo(2));
-            });
-        }
-
-        [Test]
-        public async Task CreateRequest_ReturnsInternalServerErrorWhenConfiguredInitialStateIsMissing()
+    public async Task CreateRequest_ReturnsInternalServerErrorWhenConfiguredInitialStateIsMissing()
         {
             FlowRequestServiceApiConn apiConnection = new()
         {
@@ -1193,21 +1216,6 @@ internal class FlowRequestServiceTest
             Assert.That(response.Status, Is.EqualTo("draft"));
             Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
             Assert.That(apiConnection.SentQueries, Does.Contain(RequestQueries.getExtStates));
-        });
-    }
-
-    [Test]
-    public void Dispose_DisposesConfigSubscription()
-    {
-        FlowRequestServiceApiConn apiConnection = new();
-        FlowRequestService service = new(apiConnection, new GlobalConfig());
-
-        service.Dispose();
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(apiConnection.ConfigSubscriptionCreateCount, Is.EqualTo(1));
-            Assert.That(apiConnection.ConfigSubscriptionDisposeCount, Is.EqualTo(1));
         });
     }
 
@@ -1716,6 +1724,7 @@ internal class FlowRequestServiceTest
         public object? ConfigSubscriptionVariables { get; private set; }
         public int ConfigSubscriptionCreateCount { get; private set; }
         public int ConfigSubscriptionDisposeCount { get; private set; }
+        public bool ThrowOnConfigSubscriptionInit { get; set; }
         private long nextId = 99;
         private Action<ConfigItem[]>? configSubscriptionUpdateHandler;
         private TrackingConfigSubscription? configSubscription;
@@ -1800,6 +1809,11 @@ internal class FlowRequestServiceTest
         {
             if (typeof(SubscriptionResponseType) == typeof(ConfigItem[]))
             {
+                if (ThrowOnConfigSubscriptionInit)
+                {
+                    throw new InvalidOperationException("Simulated config subscription failure");
+                }
+
                 ConfigSubscriptionQuery = subscription;
                 ConfigSubscriptionVariables = variables;
                 configSubscriptionUpdateHandler = configItems =>

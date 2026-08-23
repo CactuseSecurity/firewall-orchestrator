@@ -6,8 +6,6 @@ mutation createState($id: Int!, $name: String!, $automaticOnly: Boolean!) {
       automatic_only: $automaticOnly
     }
   ) {
-    returning {
-      id: id
-    }
+    affected_rows
   }
 }

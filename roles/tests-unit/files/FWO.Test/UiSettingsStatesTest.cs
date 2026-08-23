@@ -487,6 +487,7 @@ namespace FWO.Test
                 Actions = [StateAction(10, 1)]
             };
             SetInjectedApiConnection(component, apiConn);
+            SetMember(component, "userConfig", new SimulatedUserConfig());
             SetPrivateField(component, "states", new List<WfState>
             {
                 new() { Id = 1, Name = "Open" },
@@ -540,6 +541,85 @@ namespace FWO.Test
                 Assert.That(apiConn.Queries, Is.EqualTo(new List<string> { RequestQueries.updateState }));
                 Assert.That(GetPrivateField<bool>(component, "AddStateMode"), Is.False);
                 Assert.That(GetPrivateField<bool>(component, "EditStateMode"), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task SaveState_InEditMode_HandlesDeletedStateWithoutThrowing()
+        {
+            SettingsStates component = new();
+            SettingsStatesTestApiConn apiConn = new()
+            {
+                UpdateStateAffectedRows = 0
+            };
+            WfState editedState = new()
+            {
+                Id = 2,
+                Name = "Approved",
+                AutomaticOnly = false
+            };
+            SetInjectedApiConnection(component, apiConn);
+            SetMember(component, "userConfig", new SimulatedUserConfig());
+            SetPrivateField(component, "states", new List<WfState>
+            {
+                new() { Id = 1, Name = "Open" },
+                new() { Id = 2, Name = "Old" }
+            });
+            SetPrivateField(component, "actState", editedState);
+            SetPrivateField(component, "AddStateMode", false);
+            SetPrivateField(component, "EditStateMode", true);
+
+            Task task = (Task)GetPrivateMethod("SaveState").Invoke(component, null)!;
+            await task;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries, Is.EqualTo(new List<string> { RequestQueries.updateState }));
+                Assert.That(GetPrivateField<List<WfState>>(component, "states").Select(state => state.Name).ToList(), Is.EqualTo(new List<string> { "Open", "Old" }));
+                Assert.That(GetPrivateField<bool>(component, "AddStateMode"), Is.False);
+                Assert.That(GetPrivateField<bool>(component, "EditStateMode"), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task SaveState_InAddMode_LeavesEditModeEnabledWhenActionInsertFails()
+        {
+            SettingsStates component = new();
+            SettingsStatesTestApiConn apiConn = new()
+            {
+                ThrowOnAddStateAction = true
+            };
+            WfState addedState = new()
+            {
+                Id = 3,
+                Name = "Review",
+                AutomaticOnly = true,
+                Actions =
+                [
+                    StateAction(20, 1),
+                    StateAction(10, 2)
+                ]
+            };
+            SetInjectedApiConnection(component, apiConn);
+            SetMember(component, "userConfig", new SimulatedUserConfig());
+            SetPrivateField(component, "states", new List<WfState> { new() { Id = 5, Name = "Later" } });
+            SetPrivateField(component, "actState", addedState);
+            SetPrivateField(component, "AddStateMode", true);
+            SetPrivateField(component, "EditStateMode", true);
+
+            Task task = (Task)GetPrivateMethod("SaveState").Invoke(component, null)!;
+            await task;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries, Is.EqualTo(new List<string>
+                {
+                    RequestQueries.createState,
+                    RequestQueries.addStateAction
+                }));
+                Assert.That(GetPrivateField<bool>(component, "AddStateMode"), Is.False);
+                Assert.That(GetPrivateField<bool>(component, "EditStateMode"), Is.True);
+                Assert.That(GetPrivateField<List<WfState>>(component, "states").Select(state => state.Id).ToList(), Is.EqualTo(new List<int> { 3, 5 }));
             });
         }
 
@@ -897,6 +977,9 @@ namespace FWO.Test
     {
         public List<string> Queries { get; } = [];
         public List<object> Variables { get; } = [];
+        public int CreateStateAffectedRows { get; set; } = 1;
+        public int UpdateStateAffectedRows { get; set; } = 1;
+        public bool ThrowOnAddStateAction { get; set; }
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
@@ -906,7 +989,17 @@ namespace FWO.Test
                 Variables.Add(variables);
             }
 
-            return Task.FromResult(default(QueryResponseType)!);
+            object result = query switch
+            {
+                string q when q == RequestQueries.createState => new ReturnId { AffectedRows = CreateStateAffectedRows },
+                string q when q == RequestQueries.updateState => new ReturnId { AffectedRows = UpdateStateAffectedRows },
+                string q when q == RequestQueries.addStateAction && ThrowOnAddStateAction => throw new InvalidOperationException("Simulated add-state-action failure"),
+                string q when q == RequestQueries.addStateAction => new ReturnId { AffectedRows = 1 },
+                string q when q == RequestQueries.deleteState => new object(),
+                _ => default(QueryResponseType)!
+            };
+
+            return Task.FromResult((QueryResponseType)result);
         }
     }
 
@@ -918,6 +1011,9 @@ namespace FWO.Test
 
         public List<string> Queries { get; } = [];
         public List<object> Variables { get; } = [];
+        public int CreateStateAffectedRows { get; set; } = 1;
+        public int UpdateStateAffectedRows { get; set; } = 1;
+        public bool ThrowOnAddStateAction { get; set; }
 
         public SettingsStatesRenderApiConn(List<WfStateAction>? actions = null, List<WfState>? states = null)
         {
@@ -961,6 +1057,10 @@ namespace FWO.Test
                     new() { Id = 1, Name = ExtStates.Done.ToString(), StateId = 0 }
                 },
                 string q when q == RequestQueries.getActiveStateMatrixConfiguration => StateMatrixConfigurationTestHelper.FromLegacyJson(kEmptyStateMatrixConfig),
+                string q when q == RequestQueries.createState => new ReturnId { AffectedRows = CreateStateAffectedRows },
+                string q when q == RequestQueries.updateState => new ReturnId { AffectedRows = UpdateStateAffectedRows },
+                string q when q == RequestQueries.addStateAction && ThrowOnAddStateAction => throw new InvalidOperationException("Simulated add-state-action failure"),
+                string q when q == RequestQueries.addStateAction => new ReturnId { AffectedRows = 1 },
                 string q when q == RequestQueries.replaceExtStates => new ReturnId
                 {
                     AffectedRows = 1

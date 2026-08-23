@@ -295,6 +295,7 @@ else
 
     private async Task SaveState()
     {
+        bool stateCreated = false;
         try
         {
             if (AddStateMode && states.Any(state => state.Id == actState.Id))
@@ -303,27 +304,46 @@ else
                 return;
             }
 
-            if(AddStateMode)
+            if (AddStateMode)
             {
-                await apiConnection.SendQueryAsync<object>(RequestQueries.createState, new { id = actState.Id, name = actState.Name, automaticOnly = actState.AutomaticOnly });
+                ReturnId createResult = await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.createState, new { id = actState.Id, name = actState.Name, automaticOnly = actState.AutomaticOnly });
+                if (createResult.AffectedRows != 1)
+                {
+                    throw new InvalidOperationException($"Could not create workflow state with id {actState.Id}.");
+                }
+                stateCreated = true;
                 states.Add(actState);
                 states = states.OrderBy(x => x.Id).ToList();
                 NormalizeActionSortOrder(actState);
-                foreach(var action in actState.Actions)
+                foreach (var action in actState.Actions)
                 {
-                    await apiConnection.SendQueryAsync<object>(RequestQueries.addStateAction, new { stateId = actState.Id, actionId = action.Action.Id, sortOrder = action.SortOrder });
+                    await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.addStateAction, new { stateId = actState.Id, actionId = action.Action.Id, sortOrder = action.SortOrder });
                 }
             }
             else
             {
-                await apiConnection.SendQueryAsync<object>(RequestQueries.updateState, new { id = actState.Id, name = actState.Name, automaticOnly = actState.AutomaticOnly });
-                states[states.FindIndex(x => x.Id == actState.Id)] = actState;
+                ReturnId updateResult = await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateState, new { id = actState.Id, name = actState.Name, automaticOnly = actState.AutomaticOnly });
+                if (updateResult.AffectedRows != 1)
+                {
+                    throw new InvalidOperationException($"Workflow state with id {actState.Id} no longer exists.");
+                }
+                int stateIndex = states.FindIndex(x => x.Id == actState.Id);
+                if (stateIndex < 0)
+                {
+                    throw new InvalidOperationException($"Workflow state with id {actState.Id} no longer exists.");
+                }
+                states[stateIndex] = actState;
             }
             EditStateMode = false;
             AddStateMode = false;
         }
         catch (Exception exception)
         {
+            if (stateCreated)
+            {
+                AddStateMode = false;
+                EditStateMode = true;
+            }
             DisplayMessageInUi(exception, userConfig.GetText("edit_state"), "", true);
         }
     }

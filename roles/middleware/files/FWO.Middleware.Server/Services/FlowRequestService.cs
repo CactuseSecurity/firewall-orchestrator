@@ -20,9 +20,9 @@ namespace FWO.Middleware.Server.Services;
 /// </summary>
 public sealed class FlowRequestService : IDisposable
 {
-    private const string kInitialStateConfigKey = "reqApiTicketInitialStateId";
     private readonly ApiConnection apiConnection;
     private readonly GlobalConfig globalConfig;
+    private readonly GraphQlApiSubscription<ConfigItem[]>? configSubscription;
 
     /// <summary>
     /// Initializes a new instance of the type.
@@ -31,10 +31,25 @@ public sealed class FlowRequestService : IDisposable
     {
         this.apiConnection = apiConnection;
         this.globalConfig = globalConfig;
-        _ = this.apiConnection.GetSubscription<ConfigItem[]>(
-            GraphqlExceptionHandler.Handle,
-            OnGlobalConfigChange,
-            ConfigQueries.subscribeFlowRequestConfigChanges);
+        try
+        {
+            configSubscription = this.apiConnection.GetSubscription<ConfigItem[]>(
+                GraphqlExceptionHandler.Handle,
+                OnGlobalConfigChange,
+                ConfigQueries.subscribeFlowRequestConfigChanges);
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Flow request config", "Could not start flow-request config subscription.", exception);
+        }
+    }
+
+    /// <summary>
+    /// Applies refreshed request-flow config values to the shared config snapshot.
+    /// </summary>
+    private void OnGlobalConfigChange(ConfigItem[] configItems)
+    {
+        globalConfig.SubscriptionUpdateHandler(configItems);
     }
 
     /// <summary>
@@ -80,25 +95,6 @@ public sealed class FlowRequestService : IDisposable
             Status = await BuildRequestStatusAsync(ticket.StateId, tolerateExternalStateErrors: false),
             StatusComment = GetLatestTicketComment(ticket)
         };
-    }
-
-    /// <summary>
-    /// Applies refreshed request-flow config values to the shared config snapshot.
-    /// </summary>
-    private void OnGlobalConfigChange(ConfigItem[] configItems)
-    {
-        ConfigItem? initialStateConfig = configItems.FirstOrDefault(item =>
-            string.Equals(item.Key, kInitialStateConfigKey, StringComparison.OrdinalIgnoreCase));
-
-        if (initialStateConfig?.Value == null)
-        {
-            return;
-        }
-
-        if (int.TryParse(initialStateConfig.Value, out int configuredStateId))
-        {
-            globalConfig.ReqApiTicketInitialStateId = configuredStateId;
-        }
     }
 
     /// <summary>
@@ -820,6 +816,6 @@ public sealed class FlowRequestService : IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
-        apiConnection.DisposeSubscriptions<ConfigItem[]>();
+        configSubscription?.Dispose();
     }
 }

@@ -283,11 +283,6 @@ namespace FWO.Middleware.Server.Jobs
                             $"Reminder notification {notification.Id} was due for unanswered interface request ticket {ticket.Id}, but no email was sent. Check recipient resolution and due settings.");
                     }
                 }
-                if (unansweredTickets.Count > 0 && !sentForNotification && anyNotificationDue)
-                {
-                    Log.WriteWarning(LogMessageTitle,
-                        $"No reminder email was sent for notification {notification.Id} despite {unansweredTickets.Count} unanswered interface request(s) being due. Check recipient resolution and due settings.");
-                }
             }
             await notificationService.UpdateNotificationsLastSent();
             Log.WriteDebug(LogMessageTitle, $"Unanswered Interface Requests Check: Sent {emailsSent} emails.");
@@ -310,7 +305,7 @@ namespace FWO.Middleware.Server.Jobs
             {
                 SchedulerInterval.Days => (long)(referenceDate - DateTime.MinValue.Date).TotalDays,
                 SchedulerInterval.Weeks => (long)(referenceDate - DateTime.MinValue.Date).TotalDays / GlobalConst.kDaysPerWeek,
-                SchedulerInterval.Months => ((referenceDate.Year - DateTime.MinValue.Year) * 12L) + referenceDate.Month - DateTime.MinValue.Month,
+                SchedulerInterval.Months => ((referenceDate.Year - DateTime.MinValue.Year) * GlobalConst.kMonthsPerYear) + referenceDate.Month - DateTime.MinValue.Month,
                 _ => throw new NotSupportedException("Time interval is not supported."),
             };
         }

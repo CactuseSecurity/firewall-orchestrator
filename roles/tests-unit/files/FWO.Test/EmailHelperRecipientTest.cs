@@ -284,7 +284,12 @@ namespace FWO.Test
 
             string output = await CaptureConsoleAsync(async () =>
             {
-                MethodInfo method = typeof(NotificationService).GetMethod("CollectRecipients", BindingFlags.Instance | BindingFlags.NonPublic)
+                MethodInfo method = typeof(NotificationService).GetMethod(
+                    "CollectRecipients",
+                    BindingFlags.Instance | BindingFlags.NonPublic,
+                    null,
+                    [typeof(FwoNotification), typeof(FwoOwner), typeof(bool), typeof(bool)],
+                    null)
                     ?? throw new MissingMethodException(typeof(NotificationService).FullName, "CollectRecipients");
 
                 object?[] args = [notification, null, false, false];

@@ -47,8 +47,9 @@ namespace FWO.Middleware.Server
         /// <returns></returns>
         public static async Task<NotificationService> CreateAsync(NotificationClient notificationClient, GlobalConfig globalConfig, ApiConnection apiConnection)
         {
-            List<UserGroup> ownerGroups = await LoadOwnerGroups(apiConnection);
-            IWorkflowRecipientResolver? workflowRecipientResolver = await LoadWorkflowRecipientResolver(apiConnection);
+            List<Ldap>? connectedLdaps = await LoadLdapConnections(apiConnection);
+            List<UserGroup> ownerGroups = await LoadOwnerGroups(connectedLdaps);
+            IWorkflowRecipientResolver? workflowRecipientResolver = LoadWorkflowRecipientResolver(apiConnection, connectedLdaps);
             return new NotificationService(await LoadNotifications(notificationClient, apiConnection), globalConfig, apiConnection, ownerGroups, workflowRecipientResolver);
         }
 
@@ -284,11 +285,29 @@ namespace FWO.Middleware.Server
             return await apiConnection.SendQueryAsync<List<FwoNotification>>(NotificationQueries.getNotifications, new { client = notificationClient.ToString() });
         }
 
-        private static async Task<List<UserGroup>> LoadOwnerGroups(ApiConnection apiConnection)
+        private static async Task<List<Ldap>?> LoadLdapConnections(ApiConnection apiConnection)
         {
             try
             {
-                return await MiddlewareServerServices.GetInternalGroups(apiConnection);
+                return await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteWarning("Notifications", $"Could not load LDAP connections for recipient resolution. Continuing without owner-group fallback or workflow resolver: {exception.Message}");
+                return null;
+            }
+        }
+
+        private static async Task<List<UserGroup>> LoadOwnerGroups(List<Ldap>? connectedLdaps)
+        {
+            try
+            {
+                if (connectedLdaps == null)
+                {
+                    throw new InvalidOperationException("LDAP connections unavailable.");
+                }
+
+                return await MiddlewareServerServices.GetInternalGroups(connectedLdaps);
             }
             catch (Exception exception)
             {
@@ -297,12 +316,16 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private static async Task<IWorkflowRecipientResolver?> LoadWorkflowRecipientResolver(ApiConnection apiConnection)
+        private static IWorkflowRecipientResolver? LoadWorkflowRecipientResolver(ApiConnection apiConnection, List<Ldap>? connectedLdaps)
         {
             try
             {
-                List<Ldap> ldaps = await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
-                return new WorkflowRecipientResolver(apiConnection, ldaps);
+                if (connectedLdaps == null)
+                {
+                    throw new InvalidOperationException("LDAP connections unavailable.");
+                }
+
+                return new WorkflowRecipientResolver(apiConnection, connectedLdaps);
             }
             catch (Exception exception)
             {
@@ -353,15 +376,19 @@ namespace FWO.Middleware.Server
             string subject = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(notification.EmailSubject ?? "", owner, timeIntervalText);
             string body = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(NotificationEmailLayoutHelper.BuildBody(notification, content), owner, timeIntervalText);
             FormFile? attachment = report != null ? await BuildAttachment(notification, report, subject) : null;
+            EmailHelper? emailHelper = GlobalConfig.UseDummyEmailAddress ? null : await CreateEmailHelper();
             if (report != null && notification.Layout == NotificationLayout.HtmlInBody)
             {
                 body += report.ExportToHtmlBody();
             }
-            MailData mailData = new(await CollectRecipients(notification, owner), subject)
+            List<string> tos = emailHelper == null ? await CollectRecipients(notification, owner) : await CollectRecipients(notification, owner, emailHelper);
+            List<string> bccs = emailHelper == null ? await CollectRecipients(notification, owner, false, true) : await CollectRecipients(notification, owner, emailHelper, false, true);
+            List<string> ccs = emailHelper == null ? await CollectRecipients(notification, owner, true) : await CollectRecipients(notification, owner, emailHelper, true);
+            MailData mailData = new(tos, subject)
             {
                 Body = body,
-                Bcc = await CollectRecipients(notification, owner, false, true),
-                Cc = await CollectRecipients(notification, owner, true)
+                Bcc = bccs,
+                Cc = ccs
             };
             if (attachment != null)
             {
@@ -425,14 +452,25 @@ namespace FWO.Middleware.Server
                 });
         }
 
+        private async Task<EmailHelper> CreateEmailHelper()
+        {
+            EmailHelper emailHelper = new(ApiConnection, null, new(), DefaultInit.DoNothing, OwnerGroups, recipientResolver: WorkflowRecipientResolver);
+            await emailHelper.Init();
+            return emailHelper;
+        }
+
         private async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner? owner, bool cc = false, bool bcc = false)
         {
             if (GlobalConfig.UseDummyEmailAddress)
             {
                 return [GlobalConfig.DummyEmailAddress];
             }
-            EmailHelper emailHelper = new(ApiConnection, null, new(), DefaultInit.DoNothing, OwnerGroups, recipientResolver: WorkflowRecipientResolver);
-            await emailHelper.Init();
+            EmailHelper emailHelper = await CreateEmailHelper();
+            return await CollectRecipients(notification, owner, emailHelper, cc, bcc);
+        }
+
+        private async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner? owner, EmailHelper emailHelper, bool cc = false, bool bcc = false)
+        {
             EmailRecipientOption recipientOption = notification.RecipientTo;
             string? addressList = notification.EmailAddressTo;
             if (bcc)

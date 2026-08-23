@@ -252,7 +252,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConnection.CountQuery(AuthQueries.getLdapConnections), Is.EqualTo(3));
+                Assert.That(apiConnection.CountQuery(AuthQueries.getLdapConnections), Is.EqualTo(2));
                 Assert.That(apiConnection.CountQuery(AuthQueries.getUsers), Is.EqualTo(1));
                 Assert.That(apiConnection.CountQuery(OwnerQueries.getOwners), Is.EqualTo(1));
                 Assert.That(apiConnection.CountQuery(NotificationQueries.getNotifications), Is.EqualTo(1));
@@ -526,7 +526,6 @@ namespace FWO.Test
                 {
                     Assert.That(output, Does.Contain("No recipients resolved for configured responsibles while preparing notification client InterfaceRequest."));
                     Assert.That(output, Does.Contain("Reminder notification 11 was due for unanswered interface request ticket 501, but no email was sent. Check recipient resolution and due settings."));
-                    Assert.That(output, Does.Contain("No reminder email was sent for notification 11 despite 1 unanswered interface request(s) being due. Check recipient resolution and due settings."));
                     Assert.That(output, Does.Contain("Unanswered Interface Requests Check: Sent 0 emails."));
                     Assert.That(apiConnection.NotificationLoadCount, Is.EqualTo(1));
                     Assert.That(apiConnection.OpenTicketQueryCount, Is.EqualTo(1));

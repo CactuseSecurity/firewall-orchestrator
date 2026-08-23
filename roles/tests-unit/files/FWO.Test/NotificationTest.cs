@@ -113,7 +113,7 @@ namespace FWO.Test
 
             ClassicAssert.IsNotNull(notificationService);
             ClassicAssert.AreEqual(2, notificationService!.Notifications.Count);
-            ClassicAssert.AreEqual(3, createAsyncApiConnection.QueryCount);
+            ClassicAssert.AreEqual(2, createAsyncApiConnection.QueryCount);
             Assert.That(output, Does.Contain("Could not load internal owner groups for recipient resolution."));
         }
 
@@ -133,7 +133,7 @@ namespace FWO.Test
 
             ClassicAssert.IsNotNull(notificationService);
             ClassicAssert.AreEqual(2, notificationService!.Notifications.Count);
-            ClassicAssert.AreEqual(3, createAsyncApiConnection.QueryCount);
+            ClassicAssert.AreEqual(2, createAsyncApiConnection.QueryCount);
             Assert.That(output, Does.Contain("Could not load internal owner groups for recipient resolution."));
             Assert.That(output, Does.Contain("Could not load LDAP connections for workflow recipient resolution."));
         }
@@ -538,7 +538,7 @@ namespace FWO.Test
             globalConfig.UseDummyEmailAddress = false;
             try
             {
-                MethodInfo? collectRecipients = typeof(NotificationService).GetMethod("CollectRecipients", BindingFlags.Instance | BindingFlags.NonPublic);
+                MethodInfo? collectRecipients = GetCollectRecipientsMethod();
                 ClassicAssert.IsNotNull(collectRecipients);
 
                 object?[] jsonArgs = [jsonNotification, owner, false, false];
@@ -573,7 +573,7 @@ namespace FWO.Test
             };
             FwoOwner owner = new();
 
-            MethodInfo? collectRecipients = typeof(NotificationService).GetMethod("CollectRecipients", BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo? collectRecipients = GetCollectRecipientsMethod();
             ClassicAssert.IsNotNull(collectRecipients);
 
             object?[] args = [notification, owner, false, false];
@@ -600,7 +600,7 @@ namespace FWO.Test
 
             string output = await CaptureConsoleAsync(async () =>
             {
-                MethodInfo? collectRecipients = typeof(NotificationService).GetMethod("CollectRecipients", BindingFlags.Instance | BindingFlags.NonPublic);
+                MethodInfo? collectRecipients = GetCollectRecipientsMethod();
                 ClassicAssert.IsNotNull(collectRecipients);
 
                 object?[] args = [notification, owner, false, false];
@@ -629,7 +629,7 @@ namespace FWO.Test
 
             string output = await CaptureConsoleAsync(async () =>
             {
-                MethodInfo? collectRecipients = typeof(NotificationService).GetMethod("CollectRecipients", BindingFlags.Instance | BindingFlags.NonPublic);
+                MethodInfo? collectRecipients = GetCollectRecipientsMethod();
                 ClassicAssert.IsNotNull(collectRecipients);
 
                 object?[] args = [notification, null, false, false];
@@ -659,7 +659,7 @@ namespace FWO.Test
 
             string output = await CaptureConsoleAsync(async () =>
             {
-                MethodInfo? collectRecipients = typeof(NotificationService).GetMethod("CollectRecipients", BindingFlags.Instance | BindingFlags.NonPublic);
+                MethodInfo? collectRecipients = GetCollectRecipientsMethod();
                 ClassicAssert.IsNotNull(collectRecipients);
 
                 object?[] args = [notification, null, false, false];
@@ -689,7 +689,7 @@ namespace FWO.Test
 
             string output = await CaptureConsoleAsync(async () =>
             {
-                MethodInfo? collectRecipients = typeof(NotificationService).GetMethod("CollectRecipients", BindingFlags.Instance | BindingFlags.NonPublic);
+                MethodInfo? collectRecipients = GetCollectRecipientsMethod();
                 ClassicAssert.IsNotNull(collectRecipients);
 
                 object?[] args = [notification, null, false, false];
@@ -858,6 +858,17 @@ namespace FWO.Test
 
                 return await base.SendQueryAsync<QueryResponseType>(query, variables, operationName, chunkingOptions);
             }
+        }
+
+        private static MethodInfo GetCollectRecipientsMethod()
+        {
+            return typeof(NotificationService).GetMethod(
+                "CollectRecipients",
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null,
+                [typeof(FwoNotification), typeof(FwoOwner), typeof(bool), typeof(bool)],
+                null)
+                ?? throw new MissingMethodException(typeof(NotificationService).FullName, "CollectRecipients");
         }
 
         private static async Task<string> CaptureConsoleAsync(Func<Task> action)

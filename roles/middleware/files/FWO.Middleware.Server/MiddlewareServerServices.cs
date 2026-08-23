@@ -20,27 +20,45 @@ namespace FWO.Middleware.Server
         public static async Task<List<UserGroup>> GetInternalGroups(ApiConnection ApiConnection)
         {
             List<Ldap> connectedLdaps = await ApiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
+            return await GetInternalGroups(connectedLdaps);
+        }
+
+        /// <summary>
+        /// get user groups from already loaded ldap connections
+        /// </summary>
+        /// <param name="connectedLdaps"></param>
+        /// <returns></returns>
+        /// <exception cref="KeyNotFoundException"></exception>
+        public static async Task<List<UserGroup>> GetInternalGroups(List<Ldap> connectedLdaps)
+        {
             Ldap internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new KeyNotFoundException("No internal Ldap with group handling found.");
 
             List<GroupGetReturnParameters> allGroups = await internalLdap.GetAllInternalGroups();
+            return BuildOwnerGroups(allGroups);
+        }
+
+        private static List<UserGroup> BuildOwnerGroups(List<GroupGetReturnParameters> allGroups)
+        {
             List<UserGroup> ownerGroups = [];
-            foreach (var ldapUserGroup in allGroups)
+            foreach (GroupGetReturnParameters ldapUserGroup in allGroups)
             {
-                if (ldapUserGroup.OwnerGroup)
+                if (!ldapUserGroup.OwnerGroup)
                 {
-                    UserGroup group = new()
-                    {
-                        Dn = ldapUserGroup.GroupDn,
-                        Name = new DistName(ldapUserGroup.GroupDn).Group,
-                        OwnerGroup = ldapUserGroup.OwnerGroup
-                    };
-                    foreach (var userDn in ldapUserGroup.Members)
-                    {
-                        UiUser newUser = new() { Dn = userDn, Name = new DistName(userDn).UserName };
-                        group.Users.Add(newUser);
-                    }
-                    ownerGroups.Add(group);
+                    continue;
                 }
+
+                UserGroup group = new()
+                {
+                    Dn = ldapUserGroup.GroupDn,
+                    Name = new DistName(ldapUserGroup.GroupDn).Group,
+                    OwnerGroup = ldapUserGroup.OwnerGroup
+                };
+                foreach (string userDn in ldapUserGroup.Members)
+                {
+                    UiUser newUser = new() { Dn = userDn, Name = new DistName(userDn).UserName };
+                    group.Users.Add(newUser);
+                }
+                ownerGroups.Add(group);
             }
             return ownerGroups;
         }

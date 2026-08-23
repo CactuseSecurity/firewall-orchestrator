@@ -36,21 +36,39 @@
     - internalca_peer_ca_certificate != internalca_ca_certificate_local
     - internalca_peer_ca_content.content is not defined
 
-- name: Install the trust anchors FWO clients validate FWO endpoints against
+- name: Install the internal CA in the FWO trust bundle
   copy:
-    # Trimmed and rejoined explicitly: a PEM block that does not end in a newline
-    # would run into the BEGIN line of the next one and neither would parse.
+    # Keep the default bundle identical to the tested single-anchor copy above.
+    # The previous list expression rendered an empty file on fresh installations.
+    content: "{{ hostvars[internalca_ca_host].internalca_ca_certificate_pem | b64decode }}"
+    dest: "{{ internalca_trust_bundle }}"
+    owner: root
+    group: "{{ fworch_group }}"
+    mode: "0644"
+  become: true
+
+- name: Add the configured peer CA to the FWO trust bundle
+  copy:
+    # PEM blocks must be newline separated; otherwise the final END line would
+    # meet the next BEGIN line and neither anchor could be parsed.
     content: >-
       {{
-        ([hostvars[internalca_ca_host].internalca_ca_certificate_pem | b64decode | trim]
-         + ([internalca_peer_ca_content.content | b64decode | trim]
-            if internalca_peer_ca_content.content is defined else [])
-        ) | join('\n') ~ '\n'
+        hostvars[internalca_ca_host].internalca_ca_certificate_pem | b64decode | trim
+        ~ '\n'
+        ~ internalca_peer_ca_content.content | b64decode | trim
+        ~ '\n'
       }}
     dest: "{{ internalca_trust_bundle }}"
     owner: root
     group: "{{ fworch_group }}"
     mode: "0644"
+  become: true
+  when: internalca_peer_ca_certificate != internalca_ca_certificate_local
+
+- name: Verify the FWO trust bundle contains a CA certificate
+  community.crypto.x509_certificate_info:
+    path: "{{ internalca_trust_bundle }}"
+  changed_when: false
   become: true
 
 - name: Install internal CA on Debian trust store

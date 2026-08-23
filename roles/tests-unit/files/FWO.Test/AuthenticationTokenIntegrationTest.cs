@@ -1,5 +1,4 @@
 using NUnit.Framework;
-using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net.Http.Json;
 using FWO.Data.Middleware;
 using FWO.Logging;
@@ -7,8 +6,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Net;
 using FWO.Test.DataGenerators;
-using Microsoft.Extensions.Configuration;
 using FWO.Test.Helpers;
+using FWO.Config.File;
 
 namespace FWO.Test
 {
@@ -23,7 +22,6 @@ namespace FWO.Test
     {
         private const string DefaultCiUsername = "integration_user_jwt_refresh_test";
         private const string DefaultCiPassword = "testpassword";
-        private WebApplicationFactory<Middleware.ServerTest.Program>? factory;
         private HttpClient? client;
         private JwtSecurityTokenHandler? tokenHandler;
         private TokenTestDataBuilder defaultCredentialsBuilder = null!;
@@ -56,23 +54,12 @@ namespace FWO.Test
                 .WithUsername(username)
                 .WithPassword(password);
 
-            // Spin up local test server using WebApplicationFactory
-            Log.WriteInfo("Test Setup", "Creating WebApplicationFactory for local testing");
-
-            factory = new WebApplicationFactory<Middleware.ServerTest.Program>()
-                .WithWebHostBuilder(builder =>
-                {
-                    builder.ConfigureAppConfiguration((context, config) =>
-                    {
-                        var testConfig = new Dictionary<string, string?>
-                        {
-                                { "Logging:LogLevel:Default", "Debug" }
-                        };
-                        config.AddInMemoryCollection(testConfig);
-                    });
-                });
-
-            client = factory.CreateClient();
+            // Exercise the middleware service that the installer deployed. Starting a
+            // second host here can wait forever for its startup dependencies and does
+            // not verify the installed reverse proxy.
+            Uri middlewareUri = new(ConfigFile.MiddlewareServerUri);
+            Log.WriteInfo("Test Setup", $"Using installed middleware at '{middlewareUri}'.");
+            client = new HttpClient { BaseAddress = middlewareUri };
 
             tokenHandler = new JwtSecurityTokenHandler();
         }
@@ -82,7 +69,6 @@ namespace FWO.Test
         {
             Log.WriteInfo("Test Cleanup", "Disposing JWT integration test resources");
             client?.Dispose();
-            factory?.Dispose();
         }
 
         #endregion

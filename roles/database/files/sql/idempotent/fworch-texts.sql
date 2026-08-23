@@ -2744,6 +2744,10 @@ INSERT INTO txt VALUES ('approval_deadline',    'German', 	'Genehmigungs-Deadlin
 INSERT INTO txt VALUES ('approval_deadline',    'English',  'Approval Deadline');
 INSERT INTO txt VALUES ('language_settings',    'German', 	'Spracheinstellungen');
 INSERT INTO txt VALUES ('language_settings',    'English', 	'Language Settings');
+INSERT INTO txt VALUES ('personal_settings',    'German', 	'Persönliche Einstellungen');
+INSERT INTO txt VALUES ('personal_settings',    'English', 	'Personal Settings');
+INSERT INTO txt VALUES ('display_settings',     'German', 	'Anzeigeeinstellungen');
+INSERT INTO txt VALUES ('display_settings',     'English', 	'Display Settings');
 INSERT INTO txt VALUES ('apply_changes',        'German', 	'&Auml;nderungen anwenden');
 INSERT INTO txt VALUES ('apply_changes',        'English', 	'Apply Changes');
 INSERT INTO txt VALUES ('description',          'German', 	'Beschreibung');
@@ -3178,6 +3182,8 @@ INSERT INTO txt VALUES ('import_source',        'German',   'Importquelle');
 INSERT INTO txt VALUES ('import_source',        'English',  'Import Source');
 INSERT INTO txt VALUES ('modelling_settings',   'German', 	'Modellierungseinstellungen');
 INSERT INTO txt VALUES ('modelling_settings',   'English', 	'Modelling Settings');
+INSERT INTO txt VALUES ('modelling_general_settings',   'German', 	'Allgemeine Modellierungseinstellungen');
+INSERT INTO txt VALUES ('modelling_general_settings',   'English', 	'General Modelling Settings');
 INSERT INTO txt VALUES ('rule_recognition_options','German','Regelerkennungs-Optionen');
 INSERT INTO txt VALUES ('rule_recognition_options','English','Rule Recognition Options');
 INSERT INTO txt VALUES ('port_protocol',        'German', 	'Port und Protokoll');
@@ -6873,11 +6879,13 @@ INSERT INTO txt VALUES ('H5598', 'English', 'This page is used to manage global 
 INSERT INTO txt VALUES ('H5599', 'German',  'Tasktyp: Typ des Tasks im externen Auftragssystem.');
 INSERT INTO txt VALUES ('H5599', 'English', 'Task Type: Type of the task in the external ticket system.');
 
-INSERT INTO txt VALUES ('H5601', 'German',  'Hier werden die Einstellungen f&uuml;r die Netzwerk-Modellierung verwaltet.
-    Dies betrifft Vordefinierte Dienste, Darstellung verschiedener Elemente, Definition von Namenskonventionen sowie Scheduling-Einstellungen f&uuml;r die zu importierenden Objekte:
+INSERT INTO txt VALUES ('H5601', 'German',  'Hier werden die allgemeinen Modellierungseinstellungen verwaltet.
+    Dies betrifft vordefinierte Dienste, Anzeigeoptionen, Namenskonventionen und die restlichen Modelleinstellungen.
+    Die ausgelagerten Benachrichtigungen befinden sich auf der benachbarten Benachrichtigungsseite.
 ');
-INSERT INTO txt VALUES ('H5601', 'English', 'On this page all types of modelling settings are administrated.
-    This includes Predefined Services, Display options of different elements, definition of naming conventions as well as scheduling settings for the objects to be imported:
+INSERT INTO txt VALUES ('H5601', 'English', 'On this page the general modelling settings are administrated.
+    This includes predefined services, display options, naming conventions and the remaining modelling settings.
+    The extracted notifications are available on the adjacent notifications page.
 ');
 INSERT INTO txt VALUES ('H5602', 'German',  'Vordefinierte Dienste: Hier wird dem Administrator ein Men&uuml; angeboten, um Dienste und Gruppierungen von Diensten vorzudefinieren,
     zu bearbeiten oder zu l&ouml;schen. Diese stehen dann allen Applikationen zur Verf&uuml;gung.

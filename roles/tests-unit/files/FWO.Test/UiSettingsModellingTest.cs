@@ -42,10 +42,37 @@ namespace FWO.Test
             return (T)field.GetValue(component)!;
         }
 
+        private static void SetMember(object component, string memberName, object? value)
+        {
+            Type type = component.GetType();
+            PropertyInfo? property = type.GetProperty(memberName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (property != null)
+            {
+                property.SetValue(component, value);
+                return;
+            }
+
+            FieldInfo? field = type.GetField(memberName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (field != null)
+            {
+                field.SetValue(component, value);
+                return;
+            }
+
+            throw new MissingMemberException(type.FullName, memberName);
+        }
+
         private static void InvokePrivate(string name, object component, params object?[]? args)
         {
             MethodInfo method = GetPrivateMethod(name);
             method.Invoke(component, args);
+        }
+
+        private static async Task InvokePrivateAsync(string name, object component, params object?[]? args)
+        {
+            MethodInfo method = GetPrivateMethod(name);
+            Task task = (Task)(method.Invoke(component, args) ?? throw new InvalidOperationException($"{name} returned null task."));
+            await task;
         }
 
         [Test]
@@ -135,26 +162,6 @@ namespace FWO.Test
             InvokePrivate("AddAppServerType", component);
 
             Assert.That(GetPrivateField<List<AppServerType>>(component, "appServerTypesToAdd"), Is.Empty);
-        }
-
-        [Test]
-        public void MergeLegacyOtherAddresses_MergesUniqueAddressesAndSetsSelectionFlags()
-        {
-            EmailRecipientSelection selection = new()
-            {
-                None = true,
-                OtherAddresses = false,
-                OtherAddressList = ["existing@example.org"]
-            };
-
-            GetPrivateMethod("MergeLegacyOtherAddresses").Invoke(null, [selection, "new@example.org; existing@example.org | second@example.org"]);
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(selection.OtherAddresses, Is.True);
-                Assert.That(selection.None, Is.False);
-                Assert.That(selection.OtherAddressList, Is.EqualTo(new List<string> { "existing@example.org", "new@example.org", "second@example.org" }));
-            });
         }
 
         [Test]
@@ -263,21 +270,6 @@ namespace FWO.Test
             SetPrivateField(component, "ExtraConfigs", new List<string> { "first" });
             SetPrivateField(component, "ExtraConfigsToAdd", new List<string> { "second" });
             SetPrivateField(component, "ExtraConfigsToDelete", new List<string>());
-            SetPrivateField(component, "activeOwnerResponsibleTypes", new List<OwnerResponsibleType>
-            {
-                new() { Id = 1, Active = true, Name = "Main" },
-                new() { Id = 2, Active = true, Name = "Supporting" }
-            });
-            SetPrivateField(component, "modReqEmailRecipients", new EmailRecipientSelection
-            {
-                OtherAddresses = true,
-                OtherAddressList = ["mail@example.org"],
-                OwnerResponsibleTypeIds = [1]
-            });
-            SetPrivateField(component, "modDecommEmailRecipients", new EmailRecipientSelection
-            {
-                OwnerResponsibleTypeIds = [2]
-            });
             SetPrivateField(component, "appServerTypes", new List<AppServerType> { new() { Id = 0, Name = "Default" } });
             SetPrivateField(component, "appServerTypesToAdd", new List<AppServerType>());
             SetPrivateField(component, "appServerTypesToDelete", new List<AppServerType>());
@@ -295,11 +287,67 @@ namespace FWO.Test
                 Assert.That(configData.ModNamingConvention, Does.Contain("\"networkAreaRequired\":true"));
                 Assert.That(configData.RuleRecognitionOption, Does.Contain("\"nwRegardName\":true"));
                 Assert.That(configData.VarianceAnalysisStartAt, Is.EqualTo(new DateTime(2026, 7, 5, 14, 35, 0, DateTimeKind.Utc)));
-                Assert.That(configData.ModReqEmailReceiver, Does.Contain("\"owner_responsible_type_ids\":[1]"));
-                Assert.That(configData.ModDecommEmailReceiver, Does.Contain("\"owner_responsible_type_ids\":[2]"));
-                Assert.That(configData.ModReqEmailOtherAddresses, Is.Empty);
-                Assert.That(configData.ModDecommEmailOtherAddresses, Is.Empty);
                 Assert.That(configData.ModExtraConfigs, Does.Contain("second"));
+            });
+        }
+
+        [Test]
+        public void RefreshAreas_ReturnsEmptyWhenConfigIsEmpty()
+        {
+            SettingsModelling component = CreateComponent();
+            SetPrivateField(component, "configData", new ConfigData());
+            SetPrivateField(component, "allAreas", new List<ModellingNwGroup> { new() { Id = 1, Name = "Area 1" } });
+
+            List<CommonArea> result = (List<CommonArea>)GetPrivateMethod("RefreshAreas").Invoke(component, [string.Empty])!;
+
+            Assert.That(result, Is.Empty);
+        }
+
+        [Test]
+        public void RefreshAreas_IgnoresUnknownAreaIds()
+        {
+            SettingsModelling component = CreateComponent();
+            SetPrivateField(component, "configData", new ConfigData());
+            SetPrivateField(component, "allAreas", new List<ModellingNwGroup> { new() { Id = 1, Name = "Area 1" } });
+            string config = JsonSerializer.Serialize(new List<CommonAreaConfig>
+            {
+                new() { AreaId = 99, UseInSrc = true, UseInDst = true }
+            });
+
+            List<CommonArea> result = (List<CommonArea>)GetPrivateMethod("RefreshAreas").Invoke(component, [config])!;
+
+            Assert.That(result, Is.Empty);
+        }
+
+        [Test]
+        public async Task Save_PersistsOverviewChange()
+        {
+            SettingsModelling component = CreateComponent();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                OverviewDisplayLines = 10
+            };
+            RecordingSettingsApiConn apiConnection = new()
+            {
+                IpProtocols = [],
+                ModellingGroups = []
+            };
+            SimulatedUserConfig userConfig = new();
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
+            editableConfig.OverviewDisplayLines = 11;
+
+            SetMember(component, "globalConfig", globalConfig);
+            SetMember(component, "apiConnection", apiConnection);
+            SetMember(component, "userConfig", userConfig);
+            SetPrivateField(component, "configData", editableConfig);
+            SetPrivateField(component, "initComplete", true);
+
+            await InvokePrivateAsync("Save", component);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+                Assert.That(apiConnection.LastUpsertConfigItems.Any(item => item.Key == "overviewDisplayLines" && item.Value == "11"), Is.True);
             });
         }
     }

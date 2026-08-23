@@ -269,6 +269,11 @@
         {
             return GetUserSettingsAmbientRoles();
         }
+        if (path.StartsWith("settings/personal"))
+        {
+            return [Roles.Admin, Roles.FwAdmin, Roles.Auditor, Roles.Modeller, Roles.Recertifier,
+                Roles.Reporter, Roles.ReporterViewAll, Roles.WorkflowRolesList];
+        }
         if (path.StartsWith("settings"))
         {
             return [Roles.Admin, Roles.FwAdmin, Roles.Auditor];

@@ -1,0 +1,184 @@
+@using FWO.Api.Client.Queries
+@using FWO.Basics
+@using FWO.Config.Api.Data
+@using FWO.Data
+@using FWO.Data.Middleware
+@using FWO.Middleware.Client
+@using FWO.Services
+@using FWO.Ui.Data
+@using FWO.Ui.Pages.NetworkModelling
+
+@page "/settings/modellingnotifications"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("notifications"))</h3>
+    <HelpLink Page="settings/modellingnotifications" />
+</div>
+<hr />
+
+@if (configData != null)
+{
+    <form onsubmit="return false">
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5622"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqInterfaceName")):</label>
+            <input type="text" class="col-sm-6" @bind="configData.ModReqInterfaceName" />
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5630"))">
+            <label for="cbx_email_requester_in_cc" class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailRequesterInCc")):</label>
+            <div class="col-sm-6">
+                <input id="cbx_email_requester_in_cc" type="checkbox" @bind="configData.ModReqEmailRequesterInCc">
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5630"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailReceiver")):</label>
+            <div class="col-sm-6">
+                <EmailRecipientSelectionEditor Selection="@modReqEmailRecipients" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
+                    CheckboxIdPrefix="cbx_mod_req_mail" Client="NotificationClient.InterfaceRequest" />
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5630"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailSubject")):</label>
+            <input type="text" class="col-sm-6" @bind="configData.ModReqEmailSubject" />
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5624"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailBody")):</label>
+            <textarea class="col-sm-7 mt-2" rows="4" name="text" @bind="configData.ModReqEmailBody"></textarea>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5625"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTicketTitle")):</label>
+            <input type="text" class="col-sm-6" @bind="configData.ModReqTicketTitle" />
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5626"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTaskTitle")):</label>
+            <input type="text" class="col-sm-6" @bind="configData.ModReqTaskTitle" />
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5624a"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modUnansweredReqEmailBody")):</label>
+            <textarea class="col-sm-7 mt-2" rows="4" name="text" @bind="configData.ModUnansweredReqEmailBody"></textarea>
+        </div>
+        <hr />
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5629"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("reminders")):</label>
+            <div class="col-sm-8">
+                <EditNotifications Client="NotificationClient.InterfaceRequest" />
+            </div>
+        </div>
+        <hr />
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5660"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailReceiver")):</label>
+            <div class="col-sm-4">
+                <EmailRecipientSelectionEditor Selection="@modDecommEmailRecipients" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
+                    CheckboxIdPrefix="cbx_mod_decomm_mail" Client="NotificationClient.AppDecomm" />
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5661"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailSubject")):</label>
+            <input type="text" class="col-sm-6" @bind="configData.ModDecommEmailSubject" />
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5662"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailBody")):</label>
+            <textarea class="col-sm-7 mt-2" rows="4" name="text" @bind="configData.ModDecommEmailBody"></textarea>
+        </div>
+    </form>
+    <hr />
+    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+        <Authorized>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>
+                @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+            </button>
+        </Authorized>
+        <NotAuthorized>
+            <button type="button" class="btn btn-sm btn-primary" disabled>
+                @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+            </button>
+        </NotAuthorized>
+    </ExecutionModeAuthorizeView>
+}
+else
+{
+    <Loading />
+}
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private ConfigData? configData;
+    private List<OwnerResponsibleType> activeOwnerResponsibleTypes = [];
+    private EmailRecipientSelection modReqEmailRecipients = new();
+    private EmailRecipientSelection modDecommEmailRecipients = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            configData = await globalConfig.GetEditableConfig();
+            activeOwnerResponsibleTypes = await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes);
+            activeOwnerResponsibleTypes = activeOwnerResponsibleTypes
+                .Where(type => type.Active)
+                .ToList();
+            List<int> activeTypeIds = activeOwnerResponsibleTypes.Select(type => type.Id).ToList();
+            modReqEmailRecipients = EmailRecipientSelection.Parse(configData.ModReqEmailReceiver, activeTypeIds);
+            modDecommEmailRecipients = EmailRecipientSelection.Parse(configData.ModDecommEmailReceiver, activeTypeIds);
+            MergeLegacyOtherAddresses(modReqEmailRecipients, configData.ModReqEmailOtherAddresses);
+            MergeLegacyOtherAddresses(modDecommEmailRecipients, configData.ModDecommEmailOtherAddresses);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if (configData == null)
+            {
+                throw new ArgumentException("Data saved before loaded. This should be impossible.");
+            }
+
+            PrepareConfigData();
+            await globalConfig.WriteToDatabase(configData, apiConnection);
+            DisplayMessageInUi(null, userConfig.GetText("notifications"), userConfig.GetText("U5301"), false);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("notifications"), "", true);
+        }
+    }
+
+    private void PrepareConfigData()
+    {
+        List<int> activeTypeIds = activeOwnerResponsibleTypes.Select(type => type.Id).ToList();
+        configData!.ModReqEmailReceiver = modReqEmailRecipients.ToConfigValue(activeTypeIds);
+        configData!.ModDecommEmailReceiver = modDecommEmailRecipients.ToConfigValue(activeTypeIds);
+        configData!.ModReqEmailOtherAddresses = "";
+        configData!.ModDecommEmailOtherAddresses = "";
+    }
+
+    private static void MergeLegacyOtherAddresses(EmailRecipientSelection selection, string legacyOtherAddresses)
+    {
+        List<string> addresses = EmailHelper.SplitAddresses(legacyOtherAddresses);
+        if (addresses.Count == 0)
+        {
+            return;
+        }
+
+        selection.OtherAddresses = true;
+        selection.None = false;
+        foreach (string address in addresses)
+        {
+            if (!selection.OtherAddressList.Contains(address, StringComparer.OrdinalIgnoreCase))
+            {
+                selection.OtherAddressList.Add(address);
+            }
+        }
+    }
+}

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import base64
 import json
 import string
 import time
 import traceback
 from pprint import pformat
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import fwo_globals
 import requests
@@ -21,20 +22,35 @@ if TYPE_CHECKING:
 JSON_CONTENT_TYPE = "application/json"
 REDACTED_VALUE = "<redacted>"
 HTTP_STATUS_OK = 200
+HTTP_STATUS_UNAUTHORIZED = 401
 MAX_LOGIN_ERROR_RESPONSE_LEN = 200  # keep the login failure reason readable without dumping a full error page
 SENSITIVE_HEADER_NAMES = {"authorization", "x-hasura-admin-secret"}
+JWT_EXPIRED_ERROR_MARKER = "JWTExpired"  # substring Hasura uses in its "Could not verify JWT: JWTExpired" error
+JWT_REFRESH_MARGIN_SECONDS = 60  # proactively refresh once the JWT has less than this long left to live
+
+
+class _JwtExpiredResponseError(Exception):
+    """
+    Internal signal raised when the FWO API accepted the HTTP request but rejected the JWT
+    itself (e.g. Hasura's "Could not verify JWT: JWTExpired"). Caught by call() to trigger
+    a token refresh followed by a single retry - never meant to escape this module.
+    """
 
 
 # this class is used for making calls to the FWO API (will supersede fwo_api.py)
 class FwoApi:
     fwo_api_url: str
     fwo_jwt: str
+    fwo_refresh_token: str | None
     query_info: dict[str, Any]
     query_analyzer: QueryAnalyzer
 
-    def __init__(self, api_uri: str, jwt: str):
+    def __init__(self, api_uri: str, jwt: str, refresh_token: str | None = None):
         self.fwo_api_url = api_uri
         self.fwo_jwt = jwt
+        # optional: without it we can still proactively/reactively detect an expired JWT,
+        # we just can't refresh it and the caller has to fall back to a full login
+        self.fwo_refresh_token = refresh_token
         self.query_info = {}
         self.query_analyzer = QueryAnalyzer()
 
@@ -43,12 +59,17 @@ class FwoApi:
         query: str,
         query_variables: dict[str, list[Any] | Any] | None = None,
         analyze_payload: bool = False,
+        _retry_on_jwt_expiry: bool = True,
     ) -> dict[str, Any]:
         """
         The standard FWO API call.
         """
         if query_variables is None:
             query_variables = {}
+
+        # refresh ahead of time if the JWT is about to expire, so the call below has a fresh one
+        self._ensure_jwt_fresh()
+
         role = "importer"
         request_headers = {
             "Content-Type": JSON_CONTENT_TYPE,
@@ -88,6 +109,11 @@ class FwoApi:
 
                 return return_object
 
+        except _JwtExpiredResponseError:
+            if not _retry_on_jwt_expiry or not self._try_refresh_jwt():
+                raise FwoImporterError("fwo_api: JWT expired and could not be refreshed")
+            FWOLogger.info("fwo_api: JWT had expired - refreshed token and retrying call once")
+            return self.call(query, query_variables, analyze_payload, _retry_on_jwt_expiry=False)
         except requests.exceptions.RequestException as e:
             self._handle_request_exception(e, full_query, request_headers)
         except FwoImporterError as e:
@@ -105,6 +131,154 @@ class FwoApi:
                 raise FwoImporterError(f"return_object not defined. Error during API call: {e!s}")
             raise FwoImporterError(f"Unexpected error during API call: {e!s}")
         return return_object
+
+    @staticmethod
+    def refresh(
+        refresh_token: str,
+        user_management_api_base_url: str | None,
+        method: str = "api/AuthenticationToken/Refresh",
+    ):
+        """
+        Exchanges a still-valid refresh token for a new access/refresh token pair,
+        so callers can recover from an expired JWT without a full re-login.
+        """
+        payload: dict[str, str] = {"RefreshToken": refresh_token}
+
+        if user_management_api_base_url is None:
+            raise FwoApiLoginFailedError("fwo_api: user_management_api_base_url is None during token refresh")
+
+        with requests.Session() as session:
+            if fwo_globals.verify_certs is None:  # only for first FWO API call (getting info on cert verification)
+                session.verify = False
+            else:
+                session.verify = fwo_globals.verify_certs
+            session.headers.update({"Content-Type": JSON_CONTENT_TYPE})
+
+            try:
+                response = session.post(
+                    user_management_api_base_url + method,
+                    data=json.dumps(payload),
+                    timeout=FWO_HTTP_TIMEOUT,
+                )
+            except requests.exceptions.RequestException:
+                raise FwoApiLoginFailedError(
+                    "fwo_api: error during token refresh at url: " + str(user_management_api_base_url)
+                ) from None
+
+            if response.status_code == HTTP_STATUS_OK:
+                return response.text
+            # the status and the response body carry the actual reason (e.g. expired/invalid refresh token),
+            # without them a refresh failure is indistinguishable from a misconfigured url
+            error_txt = (
+                "fwo_api: ERROR: did not receive a JWT during token refresh"
+                f", api_url: {user_management_api_base_url}{method}"
+                f", http_status: {response.status_code}"
+                f", response: {response.text[:MAX_LOGIN_ERROR_RESPONSE_LEN]}"
+                f", ssl_verification: {fwo_globals.verify_certs}"
+            )
+            raise FwoApiLoginFailedError(error_txt)
+
+    def refresh_jwt(
+        self,
+        refresh_token: str,
+        user_management_api_base_url: str | None,
+        method: str = "api/AuthenticationToken/Refresh",
+    ) -> str:
+        """
+        Refreshes this instance's JWT in place and returns the new access token.
+
+        On failure self.fwo_jwt is left untouched so a caller can decide whether
+        to fall back to a full login.
+        """
+        json_raw = self.refresh(refresh_token, user_management_api_base_url, method)
+        json_data = json.loads(json_raw)
+        self.fwo_jwt = json_data["AccessToken"]
+        # the refresh endpoint typically rotates the refresh token as well - pick up the new one if present
+        if json_data.get("RefreshToken"):
+            self.fwo_refresh_token = json_data["RefreshToken"]
+        return self.fwo_jwt
+
+    def _try_refresh_jwt(self) -> bool:
+        """
+        Best-effort JWT refresh using the instance's stored refresh token.
+
+        Returns True on success, False if there is no refresh token to use or the
+        refresh call itself failed (in which case self.fwo_jwt is left untouched).
+        """
+        if not self.fwo_refresh_token:
+            FWOLogger.debug("fwo_api: no refresh token available - cannot refresh JWT", 3)
+            return False
+        try:
+            service_provider = ServiceProvider()
+            fwo_config = service_provider.get_fwo_config()
+            user_management_api_base_url = fwo_config["user_management_api_base_url"]
+            self.refresh_jwt(self.fwo_refresh_token, user_management_api_base_url)
+        except FwoApiLoginFailedError as e:
+            FWOLogger.error(f"fwo_api: JWT refresh failed: {e.message}")
+            return False
+        except Exception:
+            FWOLogger.error(f"fwo_api: unexpected error while refreshing JWT: {traceback.format_exc()}")
+            return False
+        else:
+            return True
+
+    def _ensure_jwt_fresh(self, margin_seconds: int = JWT_REFRESH_MARGIN_SECONDS) -> None:
+        """
+        Proactively refreshes the JWT if it is about to expire within margin_seconds.
+
+        Silently does nothing if the expiry can't be determined or there is no refresh
+        token available - the reactive handling in call() still catches an expired JWT.
+        """
+        if not self.fwo_refresh_token:
+            return
+        expiry = self._get_jwt_expiry_epoch(self.fwo_jwt)
+        if expiry is None or expiry > time.time() + margin_seconds:
+            return
+        FWOLogger.debug("fwo_api: JWT is about to expire - refreshing proactively", 5)
+        self._try_refresh_jwt()
+
+    @staticmethod
+    def _get_jwt_expiry_epoch(jwt_token: str) -> float | None:
+        """
+        Best-effort, unverified read of a JWT's 'exp' claim (seconds since epoch).
+
+        This only informs the decision to proactively refresh; the API itself remains
+        the authority on whether a token is actually still valid.
+        """
+        try:
+            payload_segment = jwt_token.split(".")[1]
+            padding = "=" * (-len(payload_segment) % 4)
+            claims = json.loads(base64.urlsafe_b64decode(payload_segment + padding))
+            return claims.get("exp")
+        except Exception:
+            return None
+
+    @staticmethod
+    def _contains_jwt_expired_error(response_body: dict[str, Any] | list[Any] | None) -> bool:
+        """
+        Detects a GraphQL-level "JWT expired" error, regardless of whether response_body
+        is the usual {"errors": [...]} shape or a bare list of error objects.
+        """
+        errors: list[Any] | None
+        if isinstance(response_body, dict):
+            errors = response_body.get("errors")
+        elif isinstance(response_body, list):
+            errors = response_body
+        else:
+            errors = None
+
+        if not errors:
+            return False
+
+        return any(
+            FwoApi._is_jwt_expired_error_entry(cast("dict[str, Any]", error))
+            for error in errors
+            if isinstance(error, dict)
+        )
+
+    @staticmethod
+    def _is_jwt_expired_error_entry(error: dict[str, Any]) -> bool:
+        return JWT_EXPIRED_ERROR_MARKER in str(error.get("message", ""))
 
     @staticmethod
     def login(
@@ -150,7 +324,7 @@ class FwoApi:
             )
             raise FwoApiLoginFailedError(error_txt)
 
-    def call_endpoint(self, method: str, endpoint: str, params: Any = None) -> Any:
+    def call_endpoint(self, method: str, endpoint: str, params: Any = None, _retry_on_jwt_expiry: bool = True) -> Any:
         """
         Generic method to call any middleware endpoint.
 
@@ -167,6 +341,9 @@ class FwoApi:
             FwoImporterError: If request fails or returns error
 
         """
+        # refresh ahead of time if the JWT is about to expire, so the call below has a fresh one
+        self._ensure_jwt_fresh()
+
         service_provider = ServiceProvider()
         fwo_config = service_provider.get_fwo_config()
         url = fwo_config["user_management_api_base_url"] + endpoint.lstrip("/")
@@ -194,7 +371,10 @@ class FwoApi:
                     raise FwoImporterError(f"Unsupported HTTP method: {method}")
 
                 # Check for HTTP errors
-                if response.status_code == 401:  # noqa: PLR2004
+                if response.status_code == HTTP_STATUS_UNAUTHORIZED:
+                    if _retry_on_jwt_expiry and self._try_refresh_jwt():
+                        FWOLogger.info("fwo_api: middleware call got 401 - refreshed JWT and retrying once")
+                        return self.call_endpoint(method, endpoint, params, _retry_on_jwt_expiry=False)
                     raise FwoApiLoginFailedError(f"Authentication failed for endpoint: {endpoint}")
                 if response.status_code == 503:  # noqa: PLR2004
                     raise FwoApiServiceUnavailableError("FWO Middleware API HTTP error 503 (middleware died?)")
@@ -393,6 +573,15 @@ class FwoApi:
         r = session.post(self.fwo_api_url, data=json.dumps(query_payload), timeout=int(FWO_API_HTTP_IMPORT_TIMEOUT))
 
         FWOLogger.debug("API response received", 10)
+
+        # Hasura may report an expired JWT as a GraphQL-level error (HTTP 200 with an "errors"
+        # array) rather than an HTTP-level 401, so this has to be checked before raise_for_status().
+        try:
+            response_body = r.json()
+        except ValueError:
+            response_body = None
+        if response_body is not None and self._contains_jwt_expired_error(response_body):
+            raise _JwtExpiredResponseError
 
         r.raise_for_status()
 

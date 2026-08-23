@@ -2712,6 +2712,8 @@ INSERT INTO txt VALUES ('time_object_precision','German',   'Zeitobjekt-Genauigk
 INSERT INTO txt VALUES ('time_object_precision','English',  'Time object precision');
 INSERT INTO txt VALUES ('reqAllowManualOwnerAdmin','German', 'Manuelle Eigent&uuml;merverwaltung erlauben');
 INSERT INTO txt VALUES ('reqAllowManualOwnerAdmin','English','Allow manual owner administration');
+INSERT INTO txt VALUES ('allowFullRollback','German', 'Kompletten Rollback erlauben');
+INSERT INTO txt VALUES ('allowFullRollback','English','Allow full rollback');
 INSERT INTO txt VALUES ('ruleOwnershipMode',    'German',   'Regel-Eigent&uuml;merschaftsmodus');
 INSERT INTO txt VALUES ('ruleOwnershipMode',    'English',  'Rule Ownership Mode');
 INSERT INTO txt VALUES ('reqPriorities',        'German', 	'Priorit&auml;ten');
@@ -3929,6 +3931,10 @@ INSERT INTO txt VALUES ('U5107', 'German',  'Der Import wurde zur&uuml;ckgesetzt
 INSERT INTO txt VALUES ('U5107', 'English', 'The import has been rolled back');
 INSERT INTO txt VALUES ('U5108', 'German',  'L&ouml;scht alle Beispiel-Logindaten (auf "_demo" endend)');
 INSERT INTO txt VALUES ('U5108', 'English', 'Deletes all sample credentials (ending with "_demo")');
+INSERT INTO txt VALUES ('U5109', 'German',  'Warnung: Ein kompletter Rollback l&ouml;scht unwiderruflich alle Importdaten dieses Managements. Diese Aktion kann nicht r&uuml;ckg&auml;ngig gemacht werden.');
+INSERT INTO txt VALUES ('U5109', 'English', 'Warning: A full rollback permanently deletes all import data of this management. This action cannot be undone.');
+INSERT INTO txt VALUES ('U5110', 'German',  'Ich habe verstanden und m&ouml;chte den kompletten Rollback durchf&uuml;hren');
+INSERT INTO txt VALUES ('U5110', 'English', 'I understand and want to perform the full rollback');
 INSERT INTO txt VALUES ('U5111', 'German',  'Verwaltung aller verbundenen Managements');
 INSERT INTO txt VALUES ('U5111', 'English', 'Administrate the connected managements');
 INSERT INTO txt VALUES ('U5112', 'German',  'Verwaltung aller verbundenen Gateways');
@@ -7331,6 +7337,8 @@ INSERT INTO txt VALUES ('H5850', 'German',  'Check starten');
 INSERT INTO txt VALUES ('H5850', 'English', 'Run Check');
 INSERT INTO txt VALUES ('H5851', 'German',  'Sollen festgestellte Objekt&auml;nderungen im &Auml;nderungsreport angezeigt werden, ist diese Einstellung zu aktivieren. Default-Wert = "inaktiv".');
 INSERT INTO txt VALUES ('H5851', 'English', 'Include object changes: When the import detects object changes, they will be included in the change report. Default value = "inactive".');
+INSERT INTO txt VALUES ('H5853', 'German',  'Kompletten Rollback erlauben: Es wird die komplette L&ouml;schung der Importdaten durch den Administrator gestattet.');
+INSERT INTO txt VALUES ('H5853', 'English', 'Allow full rollback: The deletion of all import data by the admin can be permitted.');
 
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:

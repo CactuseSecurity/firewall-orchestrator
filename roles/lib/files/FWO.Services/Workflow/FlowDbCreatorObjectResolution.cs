@@ -12,6 +12,17 @@ namespace FWO.Services.Workflow
     /// </summary>
     public partial class FlowDbCreator
     {
+        private static readonly List<string> kReusableFlowStates = [FlowState.Requested, FlowState.Implemented];
+
+        /// <summary>
+        /// Returns whether an existing Flow object may be bound to a new request. Denied and removed
+        /// objects are left alone so that a new request does not silently inherit an earlier rejection.
+        /// </summary>
+        private static bool IsReusableFlowObject(string state, DateTime? removedDate)
+        {
+            return removedDate == null && kReusableFlowStates.Contains(state);
+        }
+
         private async Task<List<FlowNetworkReference>> ResolveNetworkReferences(IEnumerable<FlowObjectSnapshot> snapshots, FlowSyncFlowData context,
             FlowGroupMaps groupMaps, bool allowGroupNameReference)
         {
@@ -142,7 +153,7 @@ namespace FWO.Services.Workflow
                 return null;
             }
             return context.NwObjects.Values
-                .Where(flowObject => flowObject.RemovedDate == null
+                .Where(flowObject => IsReusableFlowObject(flowObject.State, flowObject.RemovedDate)
                     && string.IsNullOrWhiteSpace(flowObject.IpStart)
                     && string.Equals(flowObject.Name, name, StringComparison.OrdinalIgnoreCase))
                 .OrderBy(flowObject => flowObject.Id)
@@ -337,7 +348,7 @@ namespace FWO.Services.Workflow
                 return null;
             }
             return context.SvcObjects.Values
-                .Where(flowObject => flowObject.RemovedDate == null
+                .Where(flowObject => IsReusableFlowObject(flowObject.State, flowObject.RemovedDate)
                     && flowObject.ProtoId == protoId
                     && !flowObject.PortStart.HasValue
                     && string.Equals(flowObject.Name, name, StringComparison.OrdinalIgnoreCase))

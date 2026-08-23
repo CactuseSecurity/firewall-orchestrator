@@ -541,6 +541,39 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Run_SkipsServiceGroupWithoutFailingWhenMemberHasNoFlowObject()
+        {
+            NetworkObject source = CreateNetworkObject(1, "src", "10.0.0.1", "10.0.0.1");
+            NetworkObject destination = CreateNetworkObject(2, "dst", "10.0.1.1", "10.0.1.1");
+            NetworkService service = CreateService(3, "https", 6, 443, 443);
+            // the group member is never offered as a service object, so no flow object is created for it
+            NetworkService unsyncedMember = CreateService(5, "ssh", 6, 22, 22);
+            NetworkService serviceGroup = CreateServiceGroup(6, "web-and-ssh", unsyncedMember);
+            FlowSyncTestApiConn apiConn = new()
+            {
+                PendingImports = [new ImportControl { ControlId = 9, MgmId = 7 }],
+                ManagementData = new FlowSyncManagementData
+                {
+                    Id = 7,
+                    NetworkObjects = [source, destination],
+                    ServiceObjects = [service, serviceGroup],
+                    Rules = [CreateRule(4, source, destination, service)]
+                }
+            };
+            FlowSync flowSync = new(apiConn, new GlobalConfig());
+
+            bool result = await flowSync.Run();
+
+            Assert.That(result, Is.True);
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.InsertedServiceGroups, Is.Empty);
+                Assert.That(apiConn.InsertedAccesses, Has.Count.EqualTo(1));
+                Assert.That(apiConn.CompletedImportControlId, Is.EqualTo(9));
+            });
+        }
+
+        [Test]
         public async Task Run_SyncsNetworkObjectAndRuleWhenIpEndIsMissing()
         {
             NetworkObject source = CreateNetworkObject(1, "src", "10.0.0.1", "10.0.0.1");

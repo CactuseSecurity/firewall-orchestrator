@@ -979,8 +979,10 @@ namespace FWO.Services
                 }
                 if (!flowData.SvcObjects.ContainsKey(memberHash))
                 {
-                    // technical member services should have been previously inserted
-                    throw new InvalidOperationException($"Service group member {member.Id} expected to have a corresponding flow object, but it was not found. Hash: {memberHash}");
+                    // technical member services should have been previously inserted; skip the group
+                    // rather than aborting the whole management sync
+                    Log.WriteWarning(LogMessageTitle, $"Skipping service group {group.Id} because member {member.Id} has no corresponding flow object. Hash: {memberHash}");
+                    return false;
                 }
                 memberHashes.Add(memberHash);
             }

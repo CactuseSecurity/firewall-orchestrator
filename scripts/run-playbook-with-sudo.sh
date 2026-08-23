@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-args=("$@")
-
-if [[ "${#args[@]}" -eq 0 ]]; then
-    args=(site.yml)
-fi
-
 sudoers_file=""
 
 cleanup() {
@@ -18,15 +12,12 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' HUP INT TERM
 
-# The pinned collections declare a minimum ansible-core (community.general 11.x
-# requires >=2.16.0). A distro-provided ansible-core can be older; it would still
-# install the collection but fail at playbook runtime, so require the pinned pip
-# Ansible from install-ansible-from-venv.sh instead of the distro package.
+# Pinned collections need ansible-core >=2.16 (community.general 11.x); a distro
+# package can be older and would only fail later at playbook runtime.
 require_ansible_core() {
     local min_core="2.16"
     local core
-    # '|| true' keeps a failing grep (no "core" in the version string, or no
-    # Ansible at all) from tripping 'set -e' before the guidance below is shown.
+    # '|| true': a non-matching grep must not trip 'set -e' before the guidance.
     core="$(ansible --version 2>/dev/null | grep -oE 'core [0-9]+\.[0-9]+' | head -1 | awk '{print $2}')" || true
 
     if [[ -z "$core" ]]; then
@@ -44,13 +35,9 @@ require_ansible_core() {
     fi
 }
 
-# Make sure ./collections holds exactly the pinned collection versions. ansible.cfg
-# lists ./collections first, so whatever sits there is what actually executes - a
-# stale version already on disk (or a different one bundled with ansible) would
-# otherwise silently take precedence over the pin. Only reinstall (with --force,
-# which a plain install refuses when a different version is present) when a pinned
-# collection is missing or at the wrong version, so offline/air-gapped hosts that
-# already have the right versions keep working without contacting Ansible Galaxy.
+# ./collections is first in ansible.cfg's path, so a stale version there silently
+# shadows the pin. Reinstall with --force only when a pinned collection is missing
+# or at the wrong version, so offline hosts with the right versions skip Galaxy.
 ensure_collections() {
     local requirements_file="collections/requirements.yml"
     local collections_dir="collections/ansible_collections"
@@ -90,29 +77,42 @@ ensure_collections() {
     fi
 }
 
-require_ansible_core
-ensure_collections
+main() {
+    local -a args=("$@")
 
-if [[ "$(id -u)" -ne 0 ]]; then
-    if ! command -v sudo >/dev/null 2>&1; then
-        echo "sudo is required to run the Firewall Orchestrator installer." >&2
-        exit 1
+    if [[ "${#args[@]}" -eq 0 ]]; then
+        args=(site.yml)
     fi
 
-    if ! sudo -k -n true 2>/dev/null; then
-        echo "Enter sudo password to create a temporary sudoers entry for Ansible."
-        sudo -v
+    require_ansible_core
+    ensure_collections
 
-        current_user="$(id -un)"
-        sudoers_file="/etc/sudoers.d/fworch-ansible-$$"
+    if [[ "$(id -u)" -ne 0 ]]; then
+        if ! command -v sudo >/dev/null 2>&1; then
+            echo "sudo is required to run the Firewall Orchestrator installer." >&2
+            exit 1
+        fi
 
-        printf '%s ALL=(ALL) NOPASSWD: ALL\n' "$current_user" | sudo tee "$sudoers_file" >/dev/null
-        sudo chmod 0440 "$sudoers_file"
+        if ! sudo -k -n true 2>/dev/null; then
+            echo "Enter sudo password to create a temporary sudoers entry for Ansible."
+            sudo -v
 
-        if command -v visudo >/dev/null 2>&1; then
-            sudo visudo -cf "$sudoers_file" >/dev/null
+            current_user="$(id -un)"
+            sudoers_file="/etc/sudoers.d/fworch-ansible-$$"
+
+            printf '%s ALL=(ALL) NOPASSWD: ALL\n' "$current_user" | sudo tee "$sudoers_file" >/dev/null
+            sudo chmod 0440 "$sudoers_file"
+
+            if command -v visudo >/dev/null 2>&1; then
+                sudo visudo -cf "$sudoers_file" >/dev/null
+            fi
         fi
     fi
-fi
 
-ansible-playbook "${args[@]}"
+    ansible-playbook "${args[@]}"
+}
+
+# Run the installer flow only when executed directly, not when sourced (tests).
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

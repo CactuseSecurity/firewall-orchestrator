@@ -19,6 +19,7 @@ namespace FWO.Report.Filter
         public string StandardRulesStructureQuery { get; set; } = "";
         public string StandardRulesPageQuery { get; set; } = "";
         public string RulebaseLinkWhereStatement { get; set; } = "";
+        public string NatRulebaseLinkWhereStatement { get; set; } = "";
         public string RuleWhereStatement { get; set; } = "";
         public string NwObjWhereStatement { get; set; } = "";
         public string SvcObjWhereStatement { get; set; } = "";
@@ -58,7 +59,7 @@ namespace FWO.Report.Filter
         const string devWhereStringEnd = $@"}} order_by: {{ dev_name: asc }}";
         const string devWhereStringDefault = devWhereStringStart + devWhereStringEnd;
 
-        const string limitOffsetString = $@"limit: $limit 
+        const string limitOffsetString = $@"limit: $limit
                                         offset: $offset ";
 
 
@@ -132,9 +133,9 @@ namespace FWO.Report.Filter
                 ? query.RuleWhereStatement.Insert(insertIndex, ", {rule_metadatum: { rule_last_hit: { _is_null: true }}}")
                 : query.RuleWhereStatement;
             return $@"
-                query statisticsReport ({paramString}) 
-                {{ 
-                    management({mgmtWhereString}) 
+                query statisticsReport ({paramString})
+                {{
+                    management({mgmtWhereString})
                     {{
                         name: mgm_name
                         id: mgm_id
@@ -159,13 +160,13 @@ namespace FWO.Report.Filter
         {
             return $@"
                 {RecertQueries.ruleOpenRecertFragments}
-                query rulesCertReport({paramString}) 
+                query rulesCertReport({paramString})
                 {{
-                    management({mgmtWhereString}) 
+                    management({mgmtWhereString})
                     {{
                         id: mgm_id
                         name: mgm_name
-                        devices({devWhereStringDefault}) 
+                        devices({devWhereStringDefault})
                         {{
                             id: dev_id
                             name: dev_name
@@ -192,14 +193,14 @@ namespace FWO.Report.Filter
                             uid
                             name
                             {query.OpenRulesTable}
-                                where: {{ 
+                                where: {{
                                     rule_metadatum: {{ recertifications_aggregate: {{ count: {{ filter: {{ _and: [{{owner: $ownerWhere}}, {{recert_date: {{_is_null: true}}}}, {{next_recert_date: {{_lte: $refdate1}}}}]}}, predicate: {{_gt: 0}}}}}}}}
                                     active:{{ _eq:true }}
-                                    {query.RuleWhereStatement} 
-                                }} 
+                                    {query.RuleWhereStatement}
+                                }}
                                 {limitOffsetString}
                                 order_by: {{ rule_num_numeric: asc }}
-                            ) 
+                            )
                             {{
                                 mgm_id: mgm_id
                                 ...ruleOpenCertOverview
@@ -223,10 +224,10 @@ namespace FWO.Report.Filter
                 import: import_control { time: stop_time }
                 change_action
                 old: objectByOldObjId {
-                    ...networkObjectDetailsChangesOld 
+                    ...networkObjectDetailsChangesOld
                 }
                 new: object {
-                    ...networkObjectDetailsChangesNew 
+                    ...networkObjectDetailsChangesNew
                 }
             }
             changelog_services: changelog_services(
@@ -241,10 +242,10 @@ namespace FWO.Report.Filter
                 import: import_control { time: stop_time }
                 change_action
                 old: serviceByOldSvcId {
-                    ...networkServiceDetailsChangesOld 
+                    ...networkServiceDetailsChangesOld
                 }
                 new: service {
-                    ...networkServiceDetailsChangesNew 
+                    ...networkServiceDetailsChangesNew
                 }
             }
             changelog_users: changelog_users(
@@ -259,10 +260,10 @@ namespace FWO.Report.Filter
                 import: import_control { time: stop_time }
                 change_action
                 old: usrByOldUserId {
-                    ...userDetailsChangesOld 
+                    ...userDetailsChangesOld
                 }
                 new: usr {
-                    ...userDetailsChangesNew 
+                    ...userDetailsChangesNew
                 }
             }
             ";
@@ -281,28 +282,28 @@ namespace FWO.Report.Filter
                         id: mgm_id
                         name: mgm_name
         		        import_controls {{
-                              control_id
-                              start_time
-                              stop_time
-                              successful_import
-                              import_errors
-		                                }}
+                            control_id
+                            start_time
+                            stop_time
+                            successful_import
+                            import_errors
+                        }}
                         devices {{
-                            id: dev_id  
-                            name: dev_name  
-                                }}
+                            id: dev_id
+                            name: dev_name
+                        }}
                         changelog_rules: {query.OpenChangeLogRulesTable}
-                                    {limitOffsetString} 
-                                    where: {{ 
+                                    {limitOffsetString}
+                                    where: {{
                                         _or:[
-                                                {{_and: [{{change_action:{{_eq:""I""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}]}}, 
+                                                {{_and: [{{change_action:{{_eq:""I""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}]}},
                                                 {{_and: [{{change_action:{{_eq:""D""}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}},
                                                 {{_and: [{{change_action:{{_eq:""C""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}}
-                                            ]                                        
-                                            {query.RuleWhereStatement} 
+                                            ]
+                                            {query.RuleWhereStatement}
                                     }}
                                     order_by: {{ control_id: asc }}
-                                ) 
+                                )
                             {{
                             import: import_control {{ time: stop_time }}
                             change_action
@@ -314,7 +315,7 @@ namespace FWO.Report.Filter
                                     ...{(filter.Detailed ? "ruleDetailsChangesNew" : "ruleOverviewChangesNew")}
                             }}
                         }}
-                        {changelogObjectsBlock}                            
+                        {changelogObjectsBlock}
                     }}
                 }}";
         }
@@ -323,29 +324,50 @@ namespace FWO.Report.Filter
         {
             return $@"
                 {(filter.Detailed ? RuleQueries.natRuleDetailsForReportFragments : RuleQueries.natRuleOverviewFragments)}
-                query natRulesReport ({paramString}) 
-                {{ 
-                    management({mgmtWhereString}) 
+                query natRulesReport ({paramString})
+                {{
+                    management({mgmtWhereString})
                     {{
                         id: mgm_id
+                        uid: mgm_uid
                         name: mgm_name
-                        devices ({devWhereStringDefault}) 
+                        devices ({RuleReportQueryBuilder.GetDeviceWhereFilter(filter.ReportParams.DeviceFilter)})
                         {{
                             id: dev_id
                             name: dev_name
-                            rulebase_links(where: {{ {query.RulebaseLinkWhereStatement} }})
+                            uid: dev_uid
+                            rulebase_links(where: {{ {query.NatRulebaseLinkWhereStatement} }})
                             {{
-                                {query.OpenRulesTable}
-                                    {limitOffsetString}
-                                    where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.RuleWhereStatement} }} 
-                                    order_by: {{ rule_num_numeric: asc }} )
-                                {{
-                                    mgm_id: mgm_id
-                                    ...{(filter.Detailed ? "natRuleDetails" : "natRuleOverview")}
-                                }} 
+                                linkType: stm_link_type  {{
+                                    name
+                                    id
+                                }}
+                                link_type
+                                is_initial
+                                is_global
+                                is_section
+                                gw_id
+                                from_rule_id
+                                from_rulebase_id
+                                to_rulebase_id
+                                created
+                                removed
                             }}
                         }}
-                    }} 
+                        rulebases {{
+                            name
+                            uid
+                            id
+                            {query.OpenRulesTable}
+                                {limitOffsetString}
+                                where: {{ nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.RuleWhereStatement} }}
+                                order_by: {{ rule_num_numeric: asc }} )
+                            {{
+                                mgm_id: mgm_id
+                                ...{(filter.Detailed ? "natRuleDetails" : "natRuleOverview")}
+                            }}
+                        }}
+                    }}
                 }}";
         }
 
@@ -438,7 +460,17 @@ namespace FWO.Report.Filter
                     break;
 
                 case ReportType.NatRules:
-                    query.FullQuery = Queries.Compact(ConstructNatRulesQuery(query, paramString, filter));
+                    // The nested rulebases query cannot apply the get_rules_for_tenant function,
+                    // so tenant-filtered reports must use the legacy nested query.
+                    if (filter.ReportParams.TenantFilter.IsActive)
+                    {
+                        query.FullQuery = Queries.Compact(ConstructNatRulesQuery(query, paramString, filter));
+                    }
+                    else
+                    {
+                        query.StandardRulesStructureQuery = Queries.Compact(RuleReportQueryBuilder.ConstructNatStructureQuery(query, filter));
+                        query.StandardRulesPageQuery = Queries.Compact(RuleReportQueryBuilder.ConstructNatPageQuery(query, paramString, filter));
+                    }
                     break;
 
                 case ReportType.Connections:
@@ -690,7 +722,6 @@ namespace FWO.Report.Filter
             }
         }
 
-
         private static void SetTimeFilter(ref DynGraphqlQuery query, TimeFilter? timeFilter, ReportType? reportType, RecertFilter recertFilter)
         {
             if (timeFilter != null)
@@ -710,9 +741,17 @@ namespace FWO.Report.Filter
                     case ReportType.RecertEventReport:
                         query.QueryParameters.Add("$import_id_start: bigint ");
                         query.QueryParameters.Add("$import_id_end: bigint ");
+                        string removedStatement = $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
+                        string linkTypeStatement = $"_or: [{{link_type: {{_is_null: true}}}}, {{link_type: {{_neq: {RulebaseLinkTypes.Nat}}}}}]"; // Filter out NAT rulebase links
                         query.RulebaseLinkWhereStatement +=
                             $"created: {{_lte: $import_id_end }}" +
-                            $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
+                            $"_and: [{{{removedStatement}}}, {{{linkTypeStatement}}}]";
+                        // Include the full structural graph (not just is_initial/nat links) so RuleTreeBuilder can
+                        // traverse ordered/domain/section chains down to whichever layer a NAT link originates from
+                        // (e.g. FortiManager rules_adom_v4/_v6 rulebases sitting behind a global header package).
+                        query.NatRulebaseLinkWhereStatement +=
+                            $"created: {{_lte: $import_id_end }}" +
+                            $"{removedStatement}";
                         query.RuleWhereStatement +=
                             $"rule_create: {{_lte: $import_id_end}}" +
                             $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
@@ -946,7 +985,7 @@ namespace FWO.Report.Filter
                 query.QueryVariables["tolerance"] = DateTime.Now.AddDays(-unusedFilter.CreationTolerance);
                 query.RuleWhereStatement += $@"{{rule_metadatum: {{_or: [
                     {{_and: [{{rule_last_hit: {{_is_null: false}} }}, {{rule_last_hit: {{_lte: $cut}} }} ] }},
-                    {{_and: [{{rule_last_hit: {{_is_null: true}} }}, {{created_import: {{ start_time: {{_lte: $tolerance}} }} }} ] }} 
+                    {{_and: [{{rule_last_hit: {{_is_null: true}} }}, {{created_import: {{ start_time: {{_lte: $tolerance}} }} }} ] }}
                 ]}} }}";
             }
         }

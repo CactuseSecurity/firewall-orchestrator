@@ -148,6 +148,14 @@ jobs:
             FWO_TEST_PASSWORD=testpassword \
             dotnet test /usr/local/fworch/test/csharp/FWO.Test/FWO.Test.csproj --filter "FullyQualifiedName~AuthenticationTokenIntegrationTest"
 
+      - name: Collect middleware diagnostics after JWT test failure
+        if: ${{ matrix.integration && failure() }}
+        run: |
+          sudo systemctl status fworch-middleware --no-pager || true
+          sudo journalctl -u fworch-middleware --no-pager -n 200 || true
+          sudo tail -n 200 /var/log/fworch/middleware.log || true
+          sudo tail -n 200 /var/log/apache2/error.log || true
+
       - name: Run Ansible integration tests with cleanup
         if: ${{ matrix.integration && success() }}
         run: |

@@ -5,6 +5,7 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Middleware.Server.Jobs;
 using FWO.Services;
+using FWO.Services.FlowSync;
 using NUnit.Framework;
 
 namespace FWO.Test

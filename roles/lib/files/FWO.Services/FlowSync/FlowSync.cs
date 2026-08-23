@@ -6,7 +6,7 @@ using FWO.Data.Flow;
 using FWO.Config.Api;
 using FWO.Logging;
 
-namespace FWO.Services
+namespace FWO.Services.FlowSync
 {
     /// <summary>
     /// Synchronizes normalized firewall objects and rules to flow database tables.
@@ -83,21 +83,6 @@ namespace FWO.Services
                 .Select(import => import.MgmId)
                 .Concat(pendingImportsByManagement.SelectMany(import => superMgmToSubMgmIds.GetValueOrDefault(import.MgmId, [])))
                 .Distinct()];
-
-            List<int> configuredManagementRanking = FlowNamingHelper.ParseManagementRanking(globalConfig.FlowNamingSourceManagementRanking);
-            List<int> preferredManagementRanking = FlowNamingHelper.NormalizeManagementRanking(
-                configuredManagementRanking,
-                managementIdsToSync);
-            bool useManagementNamesForFlow = configuredManagementRanking.Count > 0;
-            if (useManagementNamesForFlow)
-            {
-                Dictionary<int, int> rankingPositions = preferredManagementRanking
-                    .Select((managementId, index) => new { managementId, index })
-                    .ToDictionary(item => item.managementId, item => item.index);
-
-                managementIdsToSync = [.. managementIdsToSync
-                    .OrderBy(mgmId => rankingPositions.GetValueOrDefault(mgmId, int.MaxValue))];
-            }
             managementIdsToSync = [.. managementIdsToSync.OrderBy(allSubManagementIds.Contains)];
 
             HashSet<int> successfullySyncedManagementIds = [];
@@ -106,7 +91,7 @@ namespace FWO.Services
             {
                 try
                 {
-                    if (await SyncManagementAsync(mgmId, useManagementNamesForFlow))
+                    if (await SyncManagementAsync(mgmId))
                     {
                         successfullySyncedManagementIds.Add(mgmId);
                     }
@@ -117,6 +102,8 @@ namespace FWO.Services
                 }
             }
 
+            await new FlowNaming(apiConnection).ApplyNamesAsync(
+                FlowNamingHelper.ParseManagementRanking(globalConfig.FlowNamingSourceManagementRanking));
             await CompletePendingImportsAsync(pendingImportsByManagement, superMgmToSubMgmIds, successfullySyncedManagementIds);
             bool hasSuccessfulSync = successfullySyncedManagementIds.Count > 0;
 
@@ -132,7 +119,7 @@ namespace FWO.Services
         /// Synchronizes a single management: fetches normalized objects, calculates hashes,
         /// inserts missing flows, and updates mappings.
         /// </summary>
-        private async Task<bool> SyncManagementAsync(int mgmId, bool useManagementNamesForFlow)
+        private async Task<bool> SyncManagementAsync(int mgmId)
         {
             var managementData = (await apiConnection.SendQueryAsync<List<FlowSyncManagementData>>(FlowQueries.getFlowSyncManagementData, new { mgmId }))?.FirstOrDefault();
 
@@ -151,14 +138,14 @@ namespace FWO.Services
             }
 
             // Process simple objects first, as they are used in groups and accesses
-            await ProcessNetworkObjectsAsync(mgmId, managementData.NetworkObjects.Where(o => o.Type.Name != ObjectType.Group), flowData, useManagementNamesForFlow);
-            await ProcessServiceObjectsAsync(mgmId, managementData.ServiceObjects.Where(s => s.Type.Name != ServiceType.Group), flowData, useManagementNamesForFlow);
-            await ProcessTimeObjectsAsync(mgmId, managementData.TimeObjects, flowData, useManagementNamesForFlow);
+            await ProcessNetworkObjectsAsync(mgmId, managementData.NetworkObjects.Where(o => o.Type.Name != ObjectType.Group), flowData);
+            await ProcessServiceObjectsAsync(mgmId, managementData.ServiceObjects.Where(s => s.Type.Name != ServiceType.Group), flowData);
+            await ProcessTimeObjectsAsync(mgmId, managementData.TimeObjects, flowData);
             // Refresh flow data to include newly inserted objects
             flowData = await GetFlowSyncDataAsync(mgmId);
             // Process groups next, as they are used in accesses
-            await ProcessNetworkGroupsAsync(mgmId, managementData.NetworkObjects.Where(o => o.Type.Name == ObjectType.Group), flowData, useManagementNamesForFlow);
-            await ProcessServiceGroupsAsync(mgmId, managementData.ServiceObjects.Where(s => s.Type.Name == ServiceType.Group), flowData, useManagementNamesForFlow);
+            await ProcessNetworkGroupsAsync(mgmId, managementData.NetworkObjects.Where(o => o.Type.Name == ObjectType.Group), flowData);
+            await ProcessServiceGroupsAsync(mgmId, managementData.ServiceObjects.Where(s => s.Type.Name == ServiceType.Group), flowData);
             // Refresh flow data to include newly inserted groups
             flowData = await GetFlowSyncDataAsync(mgmId);
             // Finally, process accesses which reference all object types
@@ -204,7 +191,7 @@ namespace FWO.Services
         /// <summary>
         /// Inserts missing flow network objects and updates normalized object mappings.
         /// </summary>
-        private async Task ProcessNetworkObjectsAsync(int mgmId, IEnumerable<NetworkObject> nwObjects, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
+        private async Task ProcessNetworkObjectsAsync(int mgmId, IEnumerable<NetworkObject> nwObjects, FlowSyncFlowData flowData)
         {
             Dictionary<string, FlowNwObjectInsert> pendingNwObjInserts = [];
             Dictionary<string, List<FlowMappingUpdate>> newFLowMappings = [];
@@ -213,7 +200,7 @@ namespace FWO.Services
 
             foreach (var obj in nwObjects)
             {
-                if (!TryBuildFlowNwObj(obj, flowData, pendingNwObjInserts, newFLowMappings, useManagementNamesForFlow))
+                if (!TryBuildFlowNwObj(obj, flowData, pendingNwObjInserts, newFLowMappings))
                 {
                     skippedNwObjects++;
                     continue;
@@ -261,7 +248,7 @@ namespace FWO.Services
         /// <summary>
         /// Builds or reuses a flow network object and prepares mapping updates for the normalized object.
         /// </summary>
-        private static bool TryBuildFlowNwObj(NetworkObject obj, FlowSyncFlowData flowData, Dictionary<string, FlowNwObjectInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
+        private static bool TryBuildFlowNwObj(NetworkObject obj, FlowSyncFlowData flowData, Dictionary<string, FlowNwObjectInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings)
         {
             if (!TryGetFlowNwObjectHash(obj, flowData, out var hash))
             {
@@ -281,7 +268,7 @@ namespace FWO.Services
                     State = FlowState.Implemented,
                     RemovedDate = null,
                     ShowInRequestModule = true,
-                    Name = useManagementNamesForFlow ? obj.Name : null
+                    Name = null
                 };
                 pendingInserts.Add(hash, newInsert);
             }
@@ -316,7 +303,7 @@ namespace FWO.Services
         /// <summary>
         /// Inserts missing flow service objects and updates normalized service mappings.
         /// </summary>
-        private async Task ProcessServiceObjectsAsync(int mgmId, IEnumerable<NetworkService> svcObjects, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
+        private async Task ProcessServiceObjectsAsync(int mgmId, IEnumerable<NetworkService> svcObjects, FlowSyncFlowData flowData)
         {
             Dictionary<string, FlowSvcObjectInsert> pendingSvcObjInserts = [];
             Dictionary<string, List<FlowMappingUpdate>> newFLowMappings = [];
@@ -325,7 +312,7 @@ namespace FWO.Services
 
             foreach (var svc in svcObjects)
             {
-                if (!TryBuildFlowSvcObj(svc, flowData, pendingSvcObjInserts, newFLowMappings, useManagementNamesForFlow))
+                if (!TryBuildFlowSvcObj(svc, flowData, pendingSvcObjInserts, newFLowMappings))
                 {
                     skippedSvcObjects++;
                     continue;
@@ -372,7 +359,7 @@ namespace FWO.Services
         /// <summary>
         /// Builds or reuses a flow service object and prepares mapping updates for the normalized service.
         /// </summary>
-        private static bool TryBuildFlowSvcObj(NetworkService svc, FlowSyncFlowData flowData, Dictionary<string, FlowSvcObjectInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
+        private static bool TryBuildFlowSvcObj(NetworkService svc, FlowSyncFlowData flowData, Dictionary<string, FlowSvcObjectInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings)
         {
             if (!TryGetFlowSvcObjectHash(svc, flowData, out var hash))
             {
@@ -386,7 +373,7 @@ namespace FWO.Services
             {
                 var newInsert = new FlowSvcObjectInsert
                 {
-                    Name = useManagementNamesForFlow ? svc.Name : null,
+                    Name = null,
                     PortStart = svc.DestinationPort,
                     PortEnd = svc.DestinationPortEnd,
                     IpProtoId = svc.ProtoId!.Value,
@@ -427,7 +414,7 @@ namespace FWO.Services
         /// <summary>
         /// Inserts missing flow time objects and updates normalized time object mappings.
         /// </summary>
-        private async Task ProcessTimeObjectsAsync(int mgmId, IEnumerable<TimeObject> timeObjects, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
+        private async Task ProcessTimeObjectsAsync(int mgmId, IEnumerable<TimeObject> timeObjects, FlowSyncFlowData flowData)
         {
             Dictionary<string, FlowTimeObjectInsert> pendingTimeObjInserts = [];
             Dictionary<string, List<FlowMappingUpdate>> newFLowMappings = [];
@@ -436,7 +423,7 @@ namespace FWO.Services
 
             foreach (var timeObj in timeObjects)
             {
-                if (!TryBuildFlowTimeObj(timeObj, flowData, pendingTimeObjInserts, newFLowMappings, useManagementNamesForFlow))
+                if (!TryBuildFlowTimeObj(timeObj, flowData, pendingTimeObjInserts, newFLowMappings))
                 {
                     skippedTimeObjects++;
                     continue;
@@ -478,7 +465,7 @@ namespace FWO.Services
         /// <summary>
         /// Builds or reuses a flow time object and prepares mapping updates for the normalized time object.
         /// </summary>
-        private static bool TryBuildFlowTimeObj(TimeObject timeObj, FlowSyncFlowData flowData, Dictionary<string, FlowTimeObjectInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
+        private static bool TryBuildFlowTimeObj(TimeObject timeObj, FlowSyncFlowData flowData, Dictionary<string, FlowTimeObjectInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings)
         {
             if (!TryGetFlowTimeObjectHash(timeObj, flowData, out var hash))
             {
@@ -492,7 +479,7 @@ namespace FWO.Services
             {
                 var newInsert = new FlowTimeObjectInsert
                 {
-                    Name = useManagementNamesForFlow ? timeObj.Name : null,
+                    Name = null,
                     StartTime = timeObj.StartTime?.ToUniversalTime(),
                     EndTime = timeObj.EndTime?.ToUniversalTime(),
                     TimeObjHash = hash,
@@ -534,7 +521,7 @@ namespace FWO.Services
         /// <summary>
         /// Inserts missing flow network groups, including their member references, and updates normalized group mappings.
         /// </summary>
-        private async Task ProcessNetworkGroupsAsync(int mgmId, IEnumerable<NetworkObject> nwGroups, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
+        private async Task ProcessNetworkGroupsAsync(int mgmId, IEnumerable<NetworkObject> nwGroups, FlowSyncFlowData flowData)
         {
             Dictionary<string, FlowNwGroupInsert> pendingNwGroupInserts = [];
             Dictionary<string, List<FlowMappingUpdate>> newFLowMappings = [];
@@ -542,7 +529,7 @@ namespace FWO.Services
             var skippedNwGroups = 0;
             foreach (var group in nwGroups)
             {
-                if (!TryBuildNwGroup(group, flowData, pendingNwGroupInserts, newFLowMappings, useManagementNamesForFlow))
+                if (!TryBuildNwGroup(group, flowData, pendingNwGroupInserts, newFLowMappings))
                 {
                     skippedNwGroups++;
                     continue; // Skip groups with non-technical members - they need to be manually created first
@@ -589,7 +576,7 @@ namespace FWO.Services
         /// <summary>
         /// Builds or reuses a flow network group and prepares mapping updates for the normalized group.
         /// </summary>
-        private static bool TryBuildNwGroup(NetworkObject group, FlowSyncFlowData flowData, Dictionary<string, FlowNwGroupInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
+        private static bool TryBuildNwGroup(NetworkObject group, FlowSyncFlowData flowData, Dictionary<string, FlowNwGroupInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings)
         {
             if (!TryBuildNwGroupMemberHashes(group, flowData, out var memberHashes))
             {
@@ -604,7 +591,7 @@ namespace FWO.Services
             {
                 var newInsert = new FlowNwGroupInsert
                 {
-                    Name = useManagementNamesForFlow ? group.Name : null,
+                    Name = null,
                     NwGrpHash = hash,
                     State = FlowState.Implemented,
                     RemovedDate = null,
@@ -649,7 +636,7 @@ namespace FWO.Services
         /// <summary>
         /// Inserts missing flow service groups, including their member references, and updates normalized group mappings.
         /// </summary>
-        private async Task ProcessServiceGroupsAsync(int mgmId, IEnumerable<NetworkService> svcGroups, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
+        private async Task ProcessServiceGroupsAsync(int mgmId, IEnumerable<NetworkService> svcGroups, FlowSyncFlowData flowData)
         {
             Dictionary<string, FlowSvcGroupInsert> pendingSvcGroupInserts = [];
             Dictionary<string, List<FlowMappingUpdate>> newFLowMappings = [];
@@ -657,7 +644,7 @@ namespace FWO.Services
             var skippedSvcGroups = 0;
             foreach (var group in svcGroups)
             {
-                if (!TryBuildSvcGroup(group, flowData, pendingSvcGroupInserts, newFLowMappings, useManagementNamesForFlow))
+                if (!TryBuildSvcGroup(group, flowData, pendingSvcGroupInserts, newFLowMappings))
                 {
                     skippedSvcGroups++;
                     continue;
@@ -703,7 +690,7 @@ namespace FWO.Services
         /// <summary>
         /// Builds or reuses a flow service group and prepares mapping updates for the normalized group.
         /// </summary>
-        private static bool TryBuildSvcGroup(NetworkService group, FlowSyncFlowData flowData, Dictionary<string, FlowSvcGroupInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
+        private static bool TryBuildSvcGroup(NetworkService group, FlowSyncFlowData flowData, Dictionary<string, FlowSvcGroupInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings)
         {
             if (!TryBuildSvcGroupMemberHashes(group, flowData, out var memberHashes))
             {
@@ -719,7 +706,7 @@ namespace FWO.Services
                 var newInsert = new FlowSvcGroupInsert
                 {
                     SvcGrpHash = hash,
-                    Name = useManagementNamesForFlow ? group.Name : null,
+                    Name = null,
                     State = FlowState.Implemented,
                     RemovedDate = null,
                     ShowInRequestModule = true,

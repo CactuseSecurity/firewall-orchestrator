@@ -473,8 +473,20 @@ else
         }
 
         FlowNwObject? flowNwObject = flowNwObjects.FirstOrDefault(item => item.Id == SelectedDuplicateGroup.FlowNwObjectId);
-        string? resolvedName = FlowNamingHelper.ResolveMissingNameFromDuplicateSelection(flowNwObject?.Name, selectedName);
-        if (string.IsNullOrWhiteSpace(resolvedName) || flowNwObject == null)
+        if (flowNwObject == null)
+        {
+            return;
+        }
+
+        string? resolvedName = FlowNamingHelper.ResolveMissingNameFromDuplicateSelection(
+            flowNwObject.Name,
+            selectedName,
+            SelectedDuplicateGroup.ManagementId,
+            namingObjectManagements
+                .Where(management => management.Objects.Any(nwObject => nwObject.FlowNetworkObjectId == flowNwObject.Id))
+                .Select(management => management.Id),
+            FlowNamingHelper.ParseManagementRanking(userConfig.FlowNamingSourceManagementRanking));
+        if (string.IsNullOrWhiteSpace(resolvedName))
         {
             return;
         }

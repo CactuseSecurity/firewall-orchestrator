@@ -408,8 +408,20 @@ else
         }
 
         FlowSvcGroup? flowSvcGroup = flowSvcGroups.FirstOrDefault(item => item.Id == SelectedDuplicateGroup.FlowSvcGroupId);
-        string? resolvedName = FlowNamingHelper.ResolveMissingNameFromDuplicateSelection(flowSvcGroup?.Name, selectedName);
-        if (string.IsNullOrWhiteSpace(resolvedName) || flowSvcGroup == null)
+        if (flowSvcGroup == null)
+        {
+            return;
+        }
+
+        string? resolvedName = FlowNamingHelper.ResolveMissingNameFromDuplicateSelection(
+            flowSvcGroup.Name,
+            selectedName,
+            SelectedDuplicateGroup.ManagementId,
+            customServiceManagements
+                .Where(management => management.Services.Any(service => service.FlowServiceGroupId == flowSvcGroup.Id))
+                .Select(management => management.Id),
+            FlowNamingHelper.ParseManagementRanking(userConfig.FlowNamingSourceManagementRanking));
+        if (string.IsNullOrWhiteSpace(resolvedName))
         {
             return;
         }

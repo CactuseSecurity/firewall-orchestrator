@@ -27,6 +27,18 @@ updates:
     target-branch: "develop"
     schedule:
       interval: "weekly"
+    ignore:
+      - dependency-name: "ruff"
+    assignees:
+      - Laennart
+
+  - package-ecosystem: "pip"
+    directory: "/roles/importer/files/importer"
+    target-branch: "develop"
+    schedule:
+      interval: "monthly"
+    allow:
+      - dependency-name: "ruff"
     assignees:
       - Laennart
 

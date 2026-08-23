@@ -27,12 +27,16 @@ updates:
     target-branch: "develop"
     schedule:
       interval: "weekly"
+    assignees:
+      - Laennart
 
   - package-ecosystem: "pip"
     directory: "/scripts/customizing/app_data_import"
     target-branch: "develop"
     schedule:
       interval: "weekly"
+    assignees:
+      - Laennart
 
   - package-ecosystem: "pip"
     directory: "/"
@@ -43,3 +47,5 @@ updates:
       # ansible >=13 requires Python >=3.12, unavailable on Debian 12 (see requirements.txt)
       - dependency-name: "ansible"
         versions: [">=13"]
+    assignees:
+      - Laennart

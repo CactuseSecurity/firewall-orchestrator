@@ -384,7 +384,8 @@ def isolate_from_host_git_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     """Make the test see the unattended host the middleware runs on: git without an identity."""
     home_path: Path = tmp_path / "home"
     home_path.mkdir()
-    monkeypatch.setenv("HOME", str(home_path))
+    monkeypatch.setenv("HOME", str(home_path))  # Linux path
+    monkeypatch.setenv("USERPROFILE", str(home_path))  # Windows path
     monkeypatch.setenv("XDG_CONFIG_HOME", str(home_path / ".config"))
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
     for identity_variable in ("GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL"):

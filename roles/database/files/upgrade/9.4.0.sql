@@ -83,12 +83,6 @@ INSERT INTO config (config_key, config_value, config_user)
 VALUES ('importScriptTimeout', '60', 0)
 ON CONFLICT DO NOTHING;
 
--- allow the admin to perform a full rollback (deletion of all import data) of a management.
--- defaults to disabled so existing installations keep the safe behaviour after upgrade.
-INSERT INTO config (config_key, config_value, config_user)
-VALUES ('allowFullRollback', 'false', 0)
-ON CONFLICT DO NOTHING;
-
 -- Flow sync previously skipped services whose svc_port_end was empty, network objects whose
 -- obj_ip_end was empty, and every rule referencing one of them. Those entries are now synced,
 -- but a management only gets re-scanned while it still has a pending import, so without this

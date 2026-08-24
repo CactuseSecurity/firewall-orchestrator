@@ -22,12 +22,18 @@ namespace FWO.Data.Report
         public int RecertificationDisplayPeriod { get; set; } = 0;
         public bool MergeOwnerRecertTables { get; set; } = false;
         public string OwnerAdditionalInfoKey { get; set; } = "";
+        public AddInfoFilter OwnerAddInfoFilter { get; set; } = new();
 
         public ReportData()
         { }
 
-        public ReportData(ReportData reportData)
+        public ReportData(ReportData? reportData)
         {
+            if (reportData == null)
+            {
+                return;
+            }
+
             ManagementData = reportData.ManagementData;
             OwnerData = reportData.OwnerData;
             GlobalComSvc = reportData.GlobalComSvc;
@@ -39,6 +45,7 @@ namespace FWO.Data.Report
             RecertificationDisplayPeriod = reportData.RecertificationDisplayPeriod;
             MergeOwnerRecertTables = reportData.MergeOwnerRecertTables;
             OwnerAdditionalInfoKey = reportData.OwnerAdditionalInfoKey;
+            OwnerAddInfoFilter = new(reportData.OwnerAddInfoFilter);
         }
     }
 }

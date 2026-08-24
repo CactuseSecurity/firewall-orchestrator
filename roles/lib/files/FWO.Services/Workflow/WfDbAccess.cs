@@ -149,6 +149,9 @@ namespace FWO.Services.Workflow
         {
             try
             {
+                // Callers may supply either plain IP strings or parsed CIDRs. Deriving the CIDRs first makes sure
+                // that IP strings coming e.g. from the REST API survive the following normalization step.
+                ticket.UpdateCidrsInTaskElements();
                 ticket.UpdateIpStringsFromCidrInTaskElements();
                 var Variables = BuildTicketVariables(ticket);
                 Variables["requesterId"] = ticket.Requester?.DbId;

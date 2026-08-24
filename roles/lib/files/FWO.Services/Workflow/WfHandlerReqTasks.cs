@@ -129,17 +129,38 @@ namespace FWO.Services.Workflow
         public void SetReqTaskEnv(WfReqTask reqTask)
         {
             ActReqTask = new(reqTask);
-            WfTicket? tick = TicketList.FirstOrDefault(x => x.Id == ActReqTask.TicketId);
-            if (tick != null)
-            {
-                ActTicket = tick;
-            }
+            ActTicket = ResolveTicketForReqTask(reqTask) ?? throw new InvalidOperationException($"Could not resolve ticket {ActReqTask.TicketId} for request task {reqTask.Id}.");
             ActStateMatrix = stateMatrixDict.Matrices[reqTask.TaskType];
+        }
+
+        private WfTicket? ResolveTicketForReqTask(WfReqTask reqTask)
+        {
+            if (ActTicket != null && ActTicket.Id == reqTask.TicketId)
+            {
+                return ActTicket;
+            }
+
+            if (reqTask.TicketId > 0)
+            {
+                return TicketList.FirstOrDefault(ticket => ticket.Id == reqTask.TicketId);
+            }
+
+            if (ActTicket != null)
+            {
+                return ActTicket;
+            }
+
+            return TicketList.FirstOrDefault(ticket => ticket.Tasks.Any(task => task.Id == reqTask.Id));
         }
 
         public bool TrySetReqTaskEnv(WfReqTask reqTask)
         {
             if (!stateMatrixDict.Matrices.ContainsKey(reqTask.TaskType))
+            {
+                return false;
+            }
+
+            if (ResolveTicketForReqTask(reqTask) == null)
             {
                 return false;
             }

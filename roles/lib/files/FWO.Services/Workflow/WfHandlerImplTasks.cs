@@ -1,6 +1,7 @@
 using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Logging;
 
 namespace FWO.Services.Workflow
 {
@@ -407,7 +408,13 @@ namespace FWO.Services.Workflow
 
         private static bool IsPlanningPhaseActive(StateMatrix matrix)
         {
-            return matrix.PhaseActive.TryGetValue(WorkflowPhases.planning, out bool planningActive) && planningActive;
+            if (!matrix.PhaseActive.TryGetValue(WorkflowPhases.planning, out bool planningActive))
+            {
+                Log.WriteWarning("Workflow State", "Planning phase key is missing from the state matrix; treating planning as inactive.");
+                return false;
+            }
+
+            return planningActive;
         }
 
         public bool CanAutoCreateInitialImplTasks(WfTicket ticket, WfReqTask reqTask)

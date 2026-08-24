@@ -463,6 +463,112 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
+    public async Task CreateRequest_FallsBackToActivePhaseWhenConfiguredStateDoesNotMatchAPhase()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            States =
+            [
+                new WfState { Id = 1, Name = "request" },
+                new WfState { Id = 11, Name = "approval" },
+                new WfState { Id = 99, Name = "orphan" }
+            ],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
+            WorkflowConfigurations =
+            [
+                new WorkflowConfiguration
+                {
+                    Id = 1,
+                    Name = "approval-active",
+                    Phases =
+                    [
+                        new WorkflowConfigurationPhase
+                        {
+                            TaskType = WfTaskType.master.ToString(),
+                            Phase = WorkflowPhases.request.ToString(),
+                            PhaseMatrix = new StateMatrixPhase
+                            {
+                                Id = 21,
+                                Name = "request",
+                                Phase = WorkflowPhases.request.ToString(),
+                                Active = false,
+                                LowestInputState = 1,
+                                LowestStartState = 1,
+                                LowestEndState = 2
+                            }
+                        },
+                        new WorkflowConfigurationPhase
+                        {
+                            TaskType = WfTaskType.master.ToString(),
+                            Phase = WorkflowPhases.approval.ToString(),
+                            PhaseMatrix = new StateMatrixPhase
+                            {
+                                Id = 22,
+                                Name = "approval",
+                                Phase = WorkflowPhases.approval.ToString(),
+                                Active = true,
+                                LowestInputState = 11,
+                                LowestStartState = 11,
+                                LowestEndState = 12
+                            }
+                        }
+                    ]
+                }
+            ]
+        };
+        FlowRequestService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 99 });
+
+        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Invalid initial state",
+            AddressObjects =
+            [
+                new CreateRequestRequest.CreateAddressObjectRequest
+                {
+                    Id = "-1",
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateRequestRequest.CreateServiceObjectRequest
+                {
+                    Id = "-2",
+                    Name = "https",
+                    Protocol = "tcp",
+                    PortStart = 443,
+                    PortEnd = 443
+                }
+            ],
+            Rules =
+            [
+                new CreateRequestRequest.CreateRequestRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [-1],
+                    DestinationObjects = [-1],
+                    ServiceObjects = [-2]
+                }
+            ]
+        }, 77);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Status, Is.EqualTo("orphan"));
+            Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
+            Assert.That(GetVariable(apiConnection.NewTicketVariables, "state"), Is.EqualTo(99));
+            Assert.That(apiConnection.CreatedTicket, Is.Not.Null);
+            Assert.That(apiConnection.CreatedTicket!.StateId, Is.EqualTo(99));
+        });
+    }
+
+    [Test]
     public async Task CreateRequest_MapsDropActionToConfiguredRuleActionId()
     {
         FlowRequestServiceApiConn apiConnection = new()

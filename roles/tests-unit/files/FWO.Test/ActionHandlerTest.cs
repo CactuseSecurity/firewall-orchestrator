@@ -253,13 +253,6 @@ namespace FWO.Test
             dict.Matrices[taskType] = new StateMatrix();
         }
 
-        private static void SetMatrix(WfHandler handler, string taskType, StateMatrix matrix)
-        {
-            FieldInfo? field = typeof(WfHandler).GetField("stateMatrixDict", BindingFlags.NonPublic | BindingFlags.Instance);
-            StateMatrixDict dict = (StateMatrixDict)(field?.GetValue(handler) ?? new StateMatrixDict());
-            dict.Matrices[taskType] = matrix;
-        }
-
         private static TValue GetVariable<TValue>(object? variables, string propertyName)
         {
             PropertyInfo? property = variables?.GetType().GetProperty(propertyName);

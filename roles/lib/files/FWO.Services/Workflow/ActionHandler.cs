@@ -73,10 +73,6 @@ namespace FWO.Services.Workflow
 
         public async Task DoStateChangeActions(WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null)
         {
-            if (scope == WfObjectScopes.Ticket)
-            {
-                await SetScope(statefulObject, scope);
-            }
             if (!statefulObject.StateChanged())
             {
                 return;
@@ -94,6 +90,11 @@ namespace FWO.Services.Workflow
                     statefulObject.ResetStateChanged();
                 }
                 return;
+            }
+
+            if (scope == WfObjectScopes.Ticket)
+            {
+                await SetScope(statefulObject, scope);
             }
 
             List<WfStateAction> onSetActions = StateActionsForEvent(statefulObject, scope, StateActionEvents.OnSet, true);

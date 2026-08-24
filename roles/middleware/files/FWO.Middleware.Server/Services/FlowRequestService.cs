@@ -113,19 +113,20 @@ public sealed class FlowRequestService
     {
         List<WfState> states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates) ?? [];
         StateMatrixConfigurationSnapshot stateMatrix = await StateMatrixConfigurationRepository.Load(apiConnection, WfTaskType.master);
-        WorkflowPhases phase = ResolveInitialWorkflowPhase(stateMatrix);
-
         int configuredStateId = globalConfig.ReqApiTicketInitialStateId;
         if (configuredStateId >= 0)
         {
             if (states.Any(state => state.Id == configuredStateId))
             {
-                return (phase, configuredStateId);
+                WorkflowPhases fallbackPhase = ResolveInitialWorkflowPhase(stateMatrix);
+                WorkflowPhases configuredPhase = ResolvePhaseForConfiguredState(stateMatrix, configuredStateId, fallbackPhase);
+                return (configuredPhase, configuredStateId);
             }
 
             throw new InvalidOperationException($"Configured API ticket state id {configuredStateId} does not exist in the current state list.");
         }
 
+        WorkflowPhases phase = ResolveInitialWorkflowPhase(stateMatrix);
         return (phase, stateMatrix.Matrices[phase].LowestInputState);
     }
 
@@ -136,11 +137,6 @@ public sealed class FlowRequestService
     {
         foreach (WorkflowPhases phase in Enum.GetValues<WorkflowPhases>())
         {
-            if (phase < WorkflowPhases.request)
-            {
-                continue;
-            }
-
             if (stateMatrix.Matrices.TryGetValue(phase, out StateMatrix? matrix) && matrix.Active)
             {
                 return phase;
@@ -148,6 +144,37 @@ public sealed class FlowRequestService
         }
 
         return WorkflowPhases.request;
+    }
+
+    /// <summary>
+    /// Resolves the active workflow phase that owns a configured ticket state.
+    /// </summary>
+    private static WorkflowPhases ResolvePhaseForConfiguredState(StateMatrixConfigurationSnapshot stateMatrix, int stateId, WorkflowPhases fallbackPhase)
+    {
+        List<WorkflowPhases> matchingPhases = [];
+        foreach (WorkflowPhases phase in Enum.GetValues<WorkflowPhases>())
+        {
+            if (stateMatrix.Matrices.TryGetValue(phase, out StateMatrix? matrix)
+                && matrix.Active
+                && stateId >= matrix.LowestInputState
+                && stateId < matrix.LowestEndState)
+            {
+                matchingPhases.Add(phase);
+            }
+        }
+
+        if (matchingPhases.Count == 1)
+        {
+            return matchingPhases[0];
+        }
+
+        if (matchingPhases.Count > 1)
+        {
+            throw new InvalidOperationException($"Configured API ticket state id {stateId} matches multiple active workflow phases: {string.Join(", ", matchingPhases)}.");
+        }
+
+        Log.WriteWarning("Flow Request", $"Configured API ticket state id {stateId} does not belong to an active workflow phase. Falling back to {fallbackPhase}.");
+        return fallbackPhase;
     }
 
     /// <summary>
@@ -605,8 +632,12 @@ public sealed class FlowRequestService
     {
         using UserConfig userConfig = new();
         WfHandler wfHandler = new(userConfig, apiConnection, phase, (List<UserGroup>?)null);
-        await wfHandler.InitForActionExecution();
-        WfDbAccess dbAccess = new((_, _, _, _) => { }, userConfig, apiConnection, wfHandler.ActionHandler!, true);
+        if (!await wfHandler.InitForActionExecution() || wfHandler.ActionHandler == null)
+        {
+            throw new InvalidOperationException($"Could not initialize workflow actions for request ticket creation in phase {phase}.");
+        }
+
+        WfDbAccess dbAccess = new((_, _, _, _) => { }, userConfig, apiConnection, wfHandler.ActionHandler, true);
 
         WfTicket createdTicket = await dbAccess.AddTicketToDb(ticket);
         long ticketId = createdTicket.Id;

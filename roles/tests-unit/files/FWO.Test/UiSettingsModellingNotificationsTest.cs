@@ -12,6 +12,12 @@ namespace FWO.Test
     [TestFixture]
     internal class UiSettingsModellingNotificationsTest
     {
+        private static readonly int[] RequestRecipientTypeIds = [1];
+        private static readonly int[] DecommRecipientTypeIds = [2];
+        private static readonly int[] ActiveRecipientTypeIds = [1, 2];
+        private static readonly string[] RequestLegacyAddresses = ["legacy-request@example.org"];
+        private static readonly string[] DecommLegacyAddresses = ["legacy-decomm@example.org"];
+
         private static MethodInfo GetPrivateMethod(string name)
         {
             return typeof(SettingsModellingNotifications).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)
@@ -88,13 +94,13 @@ namespace FWO.Test
             {
                 ModReqEmailReceiver = new EmailRecipientSelection
                 {
-                    OwnerResponsibleTypeIds = [1]
-                }.ToConfigValue([1, 2]),
+                    OwnerResponsibleTypeIds = RequestRecipientTypeIds
+                }.ToConfigValue(ActiveRecipientTypeIds),
                 ModReqEmailOtherAddresses = "legacy-request@example.org",
                 ModDecommEmailReceiver = new EmailRecipientSelection
                 {
-                    OwnerResponsibleTypeIds = [2]
-                }.ToConfigValue([1, 2]),
+                    OwnerResponsibleTypeIds = DecommRecipientTypeIds
+                }.ToConfigValue(ActiveRecipientTypeIds),
                 ModDecommEmailOtherAddresses = "legacy-decomm@example.org"
             };
             RecordingSettingsApiConn apiConnection = new()
@@ -118,10 +124,10 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(modReq.OwnerResponsibleTypeIds, Is.EqualTo(new[] { 1 }));
-                Assert.That(modReq.OtherAddressList, Is.EqualTo(new[] { "legacy-request@example.org" }));
-                Assert.That(modDecomm.OwnerResponsibleTypeIds, Is.EqualTo(new[] { 2 }));
-                Assert.That(modDecomm.OtherAddressList, Is.EqualTo(new[] { "legacy-decomm@example.org" }));
+                Assert.That(modReq.OwnerResponsibleTypeIds, Is.EqualTo(RequestRecipientTypeIds));
+                Assert.That(modReq.OtherAddressList, Is.EqualTo(RequestLegacyAddresses));
+                Assert.That(modDecomm.OwnerResponsibleTypeIds, Is.EqualTo(DecommRecipientTypeIds));
+                Assert.That(modDecomm.OtherAddressList, Is.EqualTo(DecommLegacyAddresses));
             });
         }
 

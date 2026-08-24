@@ -161,7 +161,7 @@ def normalize_log_time(value: str) -> str:
 def write_import_file(entries: list[LogDataEntry], csv_files: list[Path], repository_directory: Path) -> None:
     import_time: str = datetime.now(timezone.utc).isoformat()
     write_json_file(OUTPUT_FILE, {"import_time": import_time, "logs": entries})
-    relative_files: list[str] = [str(csv_file.relative_to(repository_directory)) for csv_file in csv_files]
+    relative_files: list[str] = [csv_file.relative_to(repository_directory).as_posix() for csv_file in csv_files]
     manifest: dict[str, object] = {"csv_files": relative_files, REUSES_KEY: 0, ACKNOWLEDGE_FAILURES_KEY: 0}
     write_json_file(MANIFEST_FILE, manifest)
 

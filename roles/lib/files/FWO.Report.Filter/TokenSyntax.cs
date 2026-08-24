@@ -2,6 +2,9 @@ namespace FWO.Report.Filter
 {
     class TokenSyntax
     {
+        private static readonly string[] kSourceTypeAliases = ["source_type", "source-type", "src_type", "src-type"];
+        private static readonly string[] kDestinationTypeAliases = ["destination_type", "destination-type", "dst_type", "dst-type", "dest_type", "dest-type"];
+
         public string[] WhiteSpaceRequiered { get; private set; }
         public string[] NoWhiteSpaceRequiered { get; private set; }
 
@@ -77,13 +80,13 @@ namespace FWO.Report.Filter
 
                 TokenKind.SourceType => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: ["source_type", "source-type", "src_type", "src-type"],
+                    WhiteSpaceRequiered: kSourceTypeAliases,
                     NoWhiteSpaceRequiered: []
                 ),
 
                 TokenKind.DestinationType => new TokenSyntax
                 (
-                    WhiteSpaceRequiered: ["destination_type", "destination-type", "dst_type", "dst-type", "dest_type", "dest-type"],
+                    WhiteSpaceRequiered: kDestinationTypeAliases,
                     NoWhiteSpaceRequiered: []
                 ),
 

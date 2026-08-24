@@ -207,9 +207,9 @@ namespace FWO.Report
                 rulesCount,
                 elementsPerFetch,
                 apiConnection,
-                ct,
                 query,
-                (offset, limit) => CreateQueryVariables(offset, limit, query));
+                (offset, limit) => CreateQueryVariables(offset, limit, query),
+                ct);
         }
 
         /// <summary>
@@ -220,14 +220,11 @@ namespace FWO.Report
             int elementCount,
             int elementsPerFetch,
             ApiConnection apiConnection,
-            CancellationToken ct,
             string query,
-            Func<int, int, Dictionary<string, object>> createVariables)
+            Func<int, int, Dictionary<string, object>> createVariables,
+            CancellationToken ct)
         {
-            if (elementsPerFetch <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(elementsPerFetch));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(elementsPerFetch);
 
             List<Task<List<T>>> tasks = [];
 

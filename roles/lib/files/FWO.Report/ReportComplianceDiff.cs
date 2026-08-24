@@ -98,9 +98,9 @@ namespace FWO.Report
                 violationCount,
                 elementsPerFetch,
                 apiConnection,
-                ct,
                 ComplianceQueries.getComplianceDiffViolationsByChunk,
-                (offset, limit) => CreateViolationPageVariables(offset, limit, violationsWhere));
+                (offset, limit) => CreateViolationPageVariables(offset, limit, violationsWhere),
+                ct);
 
             return chunks.SelectMany(chunk => chunk).ToList();
         }
@@ -128,9 +128,9 @@ namespace FWO.Report
                     candidateRuleUids.Count,
                     elementsPerFetch,
                     apiConnection,
-                    ct,
                     ComplianceQueries.getActiveViolationsBeforeDate,
-                    (offset, limit) => CreatePreviousViolationVariables(candidateRuleUids, offset, limit, reportStart));
+                    (offset, limit) => CreatePreviousViolationVariables(candidateRuleUids, offset, limit, reportStart),
+                    ct);
 
                 HashSet<RuleIdentity> previouslyNonCompliantRules = previousViolationChunks
                     .SelectMany(chunk => chunk)
@@ -170,9 +170,9 @@ namespace FWO.Report
                 candidateRuleUids.Count,
                 elementsPerFetch,
                 apiConnection,
-                ct,
                 RuleQueries.getActiveRulesByUids,
-                (offset, limit) => CreateRulePageVariables(candidateRuleUids, offset, limit));
+                (offset, limit) => CreateRulePageVariables(candidateRuleUids, offset, limit),
+                ct);
 
             AttachViolationsToRules(ruleChunks, violations);
             return ruleChunks;

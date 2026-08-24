@@ -105,3 +105,6 @@ ON CONFLICT (name) DO NOTHING;
 INSERT INTO config (config_key, config_value, config_user)
 VALUES ('pathAnalysisAlgorithm', 'None', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
+
+GRANT SELECT ON TABLE path_analysis_algorithm TO fwo_ro;
+GRANT USAGE, SELECT ON SEQUENCE path_analysis_algorithm_id_seq TO fwo_ro;

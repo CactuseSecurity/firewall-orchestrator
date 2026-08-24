@@ -8229,6 +8229,34 @@
             },
             {
               "table": {
+                "name": "path_analysis_algorithm",
+                "schema": "public"
+              },
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "admin",
+                  "permission": {
+                    "columns": [
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "error",
                 "schema": "public"
               }

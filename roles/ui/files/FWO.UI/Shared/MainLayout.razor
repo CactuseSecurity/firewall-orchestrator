@@ -661,7 +661,7 @@
 
         alertSubscription?.Dispose();
         locationChangingRegistration?.Dispose();
-        apiConnection.OnExecutionModeChanged -= OnExecutionModeChanged;        
+        apiConnection.OnExecutionModeChanged -= OnExecutionModeChanged;
         authenticationProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
         EventMediator.Unsubscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent));
         EventMediator.Unsubscribe<ReloginRequiredEvent>(nameof(ReloginRequiredEvent));

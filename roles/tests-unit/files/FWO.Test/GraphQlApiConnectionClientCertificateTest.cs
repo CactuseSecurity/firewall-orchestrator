@@ -115,14 +115,13 @@ namespace FWO.Test
 
             try
             {
-                TargetInvocationException thrown = Assert.Throws<TargetInvocationException>(
-                    () => TestHelper.InvokeMethod<GraphQlApiConnection, X509Certificate2>("LoadClientCertificate"))!;
+                ConfigException thrown = Assert.Throws<ConfigException>(
+                    () => GraphQlTlsCertificateSupport.LoadClientCertificate())!;
 
-                Assert.That(thrown.InnerException, Is.TypeOf<ConfigException>());
-                Assert.That(thrown.InnerException!.Message, Does.Contain("tls_client_certificate"));
-                Assert.That(thrown.InnerException.Message, Does.Contain("tls_client_private_key"));
-                Assert.That(thrown.InnerException.Message, Does.Contain(missingCertificate));
-                Assert.That(thrown.InnerException.InnerException, Is.Not.Null, "the original failure must be preserved");
+                Assert.That(thrown.Message, Does.Contain("tls_client_certificate"));
+                Assert.That(thrown.Message, Does.Contain("tls_client_private_key"));
+                Assert.That(thrown.Message, Does.Contain(missingCertificate));
+                Assert.That(thrown.InnerException, Is.Not.Null, "the original failure must be preserved");
             }
             finally
             {
@@ -133,7 +132,7 @@ namespace FWO.Test
         [Test]
         public void LoadClientCertificate_ReadsConfiguredPemPair()
         {
-            X509Certificate2 certificate = TestHelper.InvokeMethod<GraphQlApiConnection, X509Certificate2>("LoadClientCertificate");
+            X509Certificate2 certificate = GraphQlTlsCertificateSupport.LoadClientCertificate();
 
             Assert.That(certificate.Subject, Is.EqualTo(kClientCertificateSubject));
             Assert.That(certificate.HasPrivateKey, Is.True, "the client identity must carry its private key");
@@ -149,14 +148,13 @@ namespace FWO.Test
         {
             SetConfiguredPaths(null, null);
 
-            TargetInvocationException thrown = Assert.Throws<TargetInvocationException>(
-                () => TestHelper.InvokeMethod<GraphQlApiConnection, X509Certificate2>("LoadClientCertificate"))!;
+            ConfigException thrown = Assert.Throws<ConfigException>(
+                () => GraphQlTlsCertificateSupport.LoadClientCertificate())!;
 
-            Assert.That(thrown.InnerException, Is.TypeOf<ConfigException>(),
+            Assert.That(thrown.Message, Does.Contain("tls_client_certificate"),
                 "an unset config value must still surface as a ConfigException naming the keys");
-            Assert.That(thrown.InnerException!.Message, Does.Contain("tls_client_certificate"));
-            Assert.That(thrown.InnerException.Message, Does.Contain("tls_client_private_key"));
-            Assert.That(thrown.InnerException.InnerException, Is.Not.Null, "the original failure must be preserved");
+            Assert.That(thrown.Message, Does.Contain("tls_client_private_key"));
+            Assert.That(thrown.InnerException, Is.Not.Null, "the original failure must be preserved");
         }
 
         /// <summary>
@@ -167,7 +165,7 @@ namespace FWO.Test
         public void ClientCertificate_RecoversAfterAnEarlierFailure()
         {
             SetConfiguredPaths(Path.Combine(Path.GetTempPath(), "fwo_absent.crt"), Path.Combine(Path.GetTempPath(), "fwo_absent.key"));
-            Assert.Throws<TargetInvocationException>(() => CreateHttpClientHandler(useTls: true));
+            Assert.Throws<ConfigException>(() => CreateHttpClientHandler(useTls: true));
 
             SetConfiguredPaths(kCertificatePath, kPrivateKeyPath);
             ExpireBackOffWindow();
@@ -255,9 +253,8 @@ namespace FWO.Test
             peerChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
             peerChain.Build(leaf);
 
-            List<object?> chainParameters = [leaf, peerChain, SslPolicyErrors.RemoteCertificateChainErrors];
-            bool accepted = TestHelper.InvokeMethod<GraphQlApiConnection, bool>(
-                "ValidateApiServerCertificate", chainParameters.ToArray());
+            bool accepted = GraphQlTlsCertificateSupport.ValidateApiServerCertificate(
+                leaf, peerChain, SslPolicyErrors.RemoteCertificateChainErrors);
 
             Assert.That(accepted, Is.True,
                 "a server certificate issued by an intermediate of the configured root must be accepted");
@@ -265,10 +262,9 @@ namespace FWO.Test
 
         private static ConfigException CaptureLoadFailure()
         {
-            TargetInvocationException thrown = Assert.Throws<TargetInvocationException>(
+            ConfigException thrown = Assert.Throws<ConfigException>(
                 () => CreateHttpClientHandler(useTls: true))!;
-            Assert.That(thrown.InnerException, Is.TypeOf<ConfigException>());
-            return (ConfigException)thrown.InnerException!;
+            return thrown;
         }
 
         /// <summary>
@@ -293,21 +289,19 @@ namespace FWO.Test
 
         private static void SetStaticField(string name, object? value)
         {
-            FieldInfo field = typeof(GraphQlApiConnection).GetField(name, BindingFlags.Static | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException($"GraphQlApiConnection.{name} could not be found.");
+            FieldInfo field = typeof(GraphQlTlsCertificateSupport).GetField(name, BindingFlags.Static | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException($"GraphQlTlsCertificateSupport.{name} could not be found.");
             field.SetValue(null, value);
         }
 
         private static HttpClientHandler CreateHttpClientHandler(bool useTls)
         {
-            List<object?> handlerParameters = [useTls];
-            return TestHelper.InvokeMethod<GraphQlApiConnection, HttpClientHandler>("CreateHttpClientHandler", handlerParameters.ToArray());
+            return GraphQlTlsCertificateSupport.CreateHttpClientHandler(useTls);
         }
 
         private static bool ValidateApiServerCertificate(X509Certificate2 certificate, SslPolicyErrors errors)
         {
-            List<object?> validationParameters = [certificate, null, errors];
-            return TestHelper.InvokeMethod<GraphQlApiConnection, bool>("ValidateApiServerCertificate", validationParameters.ToArray());
+            return GraphQlTlsCertificateSupport.ValidateApiServerCertificate(certificate, null, errors);
         }
 
         private static void CreateApiServerCertificate()

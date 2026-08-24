@@ -1545,58 +1545,74 @@ namespace FWO.Test
 
         [Test]
         [Parallelizable]
-        public void TicketReport_FiltersByWorkflowLabelValueTrue()
+        public void TicketReport_FiltersByWorkflowAddInfoValueTrue()
         {
             ReportTemplate template = new()
             {
                 Filter = ""
             };
             template.ReportParams.ReportType = (int)ReportType.TicketReport;
-            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.value, Value = "true" };
+            template.ReportParams.WorkflowFilter.AddInfoFilter = new() { Name = "policy_check", Mode = AddInfoFilterMode.value, Value = "true" };
 
             DynGraphqlQuery query = Compiler.Compile(template);
 
-            StringAssert.Contains("reqtasks: { additional_info: { _ilike: $labelValuePattern0 } }", query.FullQuery);
-            Assert.That(query.QueryVariables["labelValuePattern0"], Is.EqualTo("%\"policy_check\":\"true\"%"));
+            StringAssert.Contains("reqtasks: { additional_info: { _ilike: $addInfoValuePattern0 } }", query.FullQuery);
+            Assert.That(query.QueryVariables["addInfoValuePattern0"], Is.EqualTo("%\"policy\\_check\":\"true\"%"));
         }
 
         [Test]
         [Parallelizable]
-        public void TicketReport_FiltersByWorkflowLabelNotExisting()
+        public void TicketReport_FiltersByWorkflowAddInfoValueEscapesLikeWildcards()
         {
             ReportTemplate template = new()
             {
                 Filter = ""
             };
             template.ReportParams.ReportType = (int)ReportType.TicketReport;
-            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.not_existing };
+            template.ReportParams.WorkflowFilter.AddInfoFilter = new() { Name = "policy_check_%", Mode = AddInfoFilterMode.value, Value = "tr%ue_" };
 
             DynGraphqlQuery query = Compiler.Compile(template);
 
-            StringAssert.Contains("_not: { reqtasks: { additional_info: { _ilike: $labelKeyPattern0 } } }", query.FullQuery);
-            Assert.That(query.QueryVariables["labelKeyPattern0"], Is.EqualTo("%\"policy_check\":%"));
+            Assert.That(query.QueryVariables["addInfoValuePattern0"], Is.EqualTo("%\"policy\\_check\\_\\%\":\"tr\\%ue\\_\"%"));
         }
 
         [Test]
         [Parallelizable]
-        public void TicketReport_LabelDisplayOnlyDoesNotFilterTickets()
+        public void TicketReport_FiltersByWorkflowAddInfoNotExisting()
         {
             ReportTemplate template = new()
             {
                 Filter = ""
             };
             template.ReportParams.ReportType = (int)ReportType.TicketReport;
-            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.display_only };
+            template.ReportParams.WorkflowFilter.AddInfoFilter = new() { Name = "policy_check", Mode = AddInfoFilterMode.not_existing };
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("_not: { reqtasks: { additional_info: { _ilike: $addInfoKeyPattern0 } } }", query.FullQuery);
+            Assert.That(query.QueryVariables["addInfoKeyPattern0"], Is.EqualTo("%\"policy\\_check\":%"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void TicketReport_AddInfoDisplayOnlyDoesNotFilterTickets()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = ""
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+            template.ReportParams.WorkflowFilter.AddInfoFilter = new() { Name = "policy_check", Mode = AddInfoFilterMode.display_only };
 
             DynGraphqlQuery query = Compiler.Compile(template);
 
             Assert.Multiple(() =>
             {
-                Assert.That(query.FullQuery, Does.Not.Contain("labelKeyPattern"));
-                Assert.That(query.FullQuery, Does.Not.Contain("labelValuePattern"));
+                Assert.That(query.FullQuery, Does.Not.Contain("addInfoKeyPattern"));
+                Assert.That(query.FullQuery, Does.Not.Contain("addInfoValuePattern"));
                 Assert.That(query.FullQuery, Does.Not.Contain("additional_info: { _ilike"));
-                Assert.That(query.QueryVariables.Keys, Does.Not.Contain("labelKeyPattern0"));
-                Assert.That(query.QueryVariables.Keys, Does.Not.Contain("labelValuePattern0"));
+                Assert.That(query.QueryVariables.Keys, Does.Not.Contain("addInfoKeyPattern0"));
+                Assert.That(query.QueryVariables.Keys, Does.Not.Contain("addInfoValuePattern0"));
             });
         }
 
@@ -1618,6 +1634,41 @@ namespace FWO.Test
 
         [Test]
         [Parallelizable]
+        public void TicketReport_FiltersByWorkflowAddInfoValueEscapesJsonCharacters()
+        {
+            string addInfoName = "policy\"check\\name\n";
+            string addInfoValue = "tr\"ue\\value\t";
+            ReportTemplate template = new()
+            {
+                Filter = ""
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+            template.ReportParams.WorkflowFilter.AddInfoFilter = new() { Name = addInfoName, Mode = AddInfoFilterMode.value, Value = addInfoValue };
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            Assert.That(query.QueryVariables["addInfoValuePattern0"], Is.EqualTo(BuildAddInfoValuePattern(addInfoName, addInfoValue)));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void TicketReport_FiltersByWorkflowAddInfoNotExistingEscapesJsonCharacters()
+        {
+            string addInfoName = "policy\"check\\name\n";
+            ReportTemplate template = new()
+            {
+                Filter = ""
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+            template.ReportParams.WorkflowFilter.AddInfoFilter = new() { Name = addInfoName, Mode = AddInfoFilterMode.not_existing };
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            Assert.That(query.QueryVariables["addInfoKeyPattern0"], Is.EqualTo(BuildAddInfoExistsPattern(addInfoName)));
+        }
+
+        [Test]
+        [Parallelizable]
         public void TicketReport_FilterLineDoesNotBreakPlainTextStatusSearch()
         {
             ReportTemplate template = new()
@@ -1631,6 +1682,29 @@ namespace FWO.Test
             StringAssert.Contains("query ticketReport", query.FullQuery);
             Assert.That(query.QueryVariables, Does.ContainKey("task_types"));
             Assert.That(query.QueryVariables, Does.Not.ContainKey("state_ids"));
+        }
+
+        private static string BuildAddInfoValuePattern(string addInfoName, string addInfoValue)
+        {
+            return $"%\"{EscapeLike(EscapeJson(addInfoName))}\":\"{EscapeLike(EscapeJson(addInfoValue))}\"%";
+        }
+
+        private static string BuildAddInfoExistsPattern(string addInfoName)
+        {
+            return $"%\"{EscapeLike(EscapeJson(addInfoName))}\":%";
+        }
+
+        private static string EscapeJson(string value)
+        {
+            return JsonSerializer.Serialize(value)[1..^1];
+        }
+
+        private static string EscapeLike(string value)
+        {
+            return value
+                .Replace("\\", "\\\\")
+                .Replace("%", "\\%")
+                .Replace("_", "\\_");
         }
     }
 }

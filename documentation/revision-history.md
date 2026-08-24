@@ -612,6 +612,7 @@ Not supported any longer are:
 - add logging schema for imported traffic log entries with their owner and count
 - make replacement of existing log entries for applications contained in an import file configurable
 - increase of unit-tests
+- Fixed variance-analysis comparison for imported identity network objects such as Check Point updatable objects, access roles and domain objects. When IP based rule recognition is active, configured placeholder areas for special configurations are reconciled with these imported objects by object type and name instead of placeholder IP fields.
 
 ## 9.4.1 - 19.08.2026
 - normalize and import fqdn and dynamic ip network objects with ip=null instead of 0.0.0.0/0

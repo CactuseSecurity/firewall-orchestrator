@@ -429,9 +429,31 @@ namespace FWO.Test
 
             string csv = report.ExportToCsv();
 
-            StringAssert.Contains("\"Label: business_unit\",", csv);
+            StringAssert.Contains("\"Add. Info: business_unit\",", csv);
             StringAssert.Contains("\"EXT-OVERDUE\",\"Overdue Owner\",\"overdue.main, overdue.second\",\"", csv);
             StringAssert.Contains("\",\"overdue.user\",\"Payments\",", csv);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateCsvShowsAddInfoFilterSummaryForValueMode()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerAddInfoFilter = new AddInfoFilter
+            {
+                Name = "business_unit",
+                Mode = AddInfoFilterMode.value,
+                Value = "Payments"
+            };
+            report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner.AdditionalInfo =
+                new() { ["business_unit"] = "Payments" };
+
+            string csv = report.ExportToCsv();
+
+            StringAssert.Contains("# Add. Info: business_unit=Payments", csv);
+            StringAssert.Contains("\"Add. Info: business_unit\",", csv);
         }
 
         [Test]
@@ -515,8 +537,169 @@ namespace FWO.Test
 
             string html = RemoveLinebreaks(report.ExportToHtml());
 
-            StringAssert.Contains("<th>Label: business_unit</th>", html);
+            StringAssert.DoesNotContain("<p>Owners: Overdue Owner; Upcoming Owner; Further Owner; Inactive Owner</p>", html);
+            StringAssert.Contains("<p>Other filters: TestFilter</p>", html);
+            StringAssert.DoesNotContain("<p>Add. Info: business_unit (existing)</p>", html);
             StringAssert.Contains("<td>overdue.user</td><td>Payments</td>", html);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateHtmlLegacyAdditionalInfoKeyKeepsAllOwnersVisible()
+        {
+            ReportOwnerRecerts report = new(new DynGraphqlQuery(""), userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerAdditionalInfoKey = "business_unit";
+            report.ReportData.OwnerData.First(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner.AdditionalInfo =
+                new() { ["business_unit"] = "Payments" };
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            StringAssert.DoesNotContain("Add. Info: business_unit (existing)", html);
+            StringAssert.Contains("<th>Add. Info: business_unit</th>", html);
+            StringAssert.Contains("EXT-OVERDUE", html);
+            StringAssert.Contains("EXT-UPCOMING", html);
+            StringAssert.Contains("EXT-FURTHER", html);
+            StringAssert.Contains("EXT-INACTIVE", html);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateHtmlHidesDisplayOnlyAddInfoFilter()
+        {
+            ReportOwnerRecerts report = new(new DynGraphqlQuery(""), userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerAddInfoFilter = new AddInfoFilter
+            {
+                Name = "business_unit",
+                Mode = AddInfoFilterMode.display_only
+            };
+            report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner.AdditionalInfo =
+                new() { ["business_unit"] = "Payments" };
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            StringAssert.DoesNotContain("<p>Add. Info: business_unit", html);
+            StringAssert.Contains("<th>Add. Info: business_unit</th>", html);
+            StringAssert.DoesNotContain("Owners: ", html);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateHtmlHidesNotExistingAddInfoColumn()
+        {
+            ReportOwnerRecerts report = new(new DynGraphqlQuery(""), userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerAddInfoFilter = new AddInfoFilter
+            {
+                Name = "business_unit",
+                Mode = AddInfoFilterMode.not_existing
+            };
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+            string csv = report.ExportToCsv();
+
+            StringAssert.DoesNotContain("<th>Add. Info: business_unit</th>", html);
+            StringAssert.Contains("Add. Info: business_unit (not existing)", csv);
+            StringAssert.DoesNotContain("\"Add. Info: business_unit\"", csv);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateHtmlShowsValueAddInfoFilter()
+        {
+            ReportOwnerRecerts report = new(new DynGraphqlQuery(""), userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerAddInfoFilter = new AddInfoFilter
+            {
+                Name = "business_unit",
+                Mode = AddInfoFilterMode.value,
+                Value = "Payments"
+            };
+            report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner.AdditionalInfo =
+                new() { ["business_unit"] = "Payments" };
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            StringAssert.Contains("<p>Add. Info: business_unit=Payments</p>", html);
+            StringAssert.DoesNotContain("Add. Info: business_unit (", html);
+            StringAssert.DoesNotContain("<p>Other filters: TestFilter</p>", html);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateHtmlEncodesUserDerivedFilterText()
+        {
+            ReportOwnerRecerts report = new(new DynGraphqlQuery(""), userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerAddInfoFilter = new AddInfoFilter
+            {
+                Name = "<script>alert(\"x\") & more</script>",
+                Mode = AddInfoFilterMode.value,
+                Value = "\"quoted\" & <value>"
+            };
+            report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner.AdditionalInfo =
+                new() { ["<script>alert(\"x\") & more</script>"] = "\"quoted\" & <value>" };
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            StringAssert.DoesNotContain("<script>alert(\"x\")", html);
+            StringAssert.Contains("<p>Add. Info: &lt;script&gt;alert(&quot;x&quot;) &amp; more&lt;/script&gt;=&quot;quoted&quot; &amp; &lt;value&gt;</p>", html);
+            StringAssert.Contains("<th>Add. Info: &lt;script&gt;alert(&quot;x&quot;) &amp; more&lt;/script&gt;</th>", html);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateHtmlShowsOnlyEmptyStateWhenNoOwnersMatch()
+        {
+            ReportOwnerRecerts report = new(new DynGraphqlQuery(""), userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerAddInfoFilter = new AddInfoFilter
+            {
+                Name = "business_unit",
+                Mode = AddInfoFilterMode.value,
+                Value = "missing"
+            };
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+            string csv = report.ExportToCsv();
+
+            StringAssert.Contains("No recertifiable owners assigned", html);
+            StringAssert.Contains("Add. Info: business_unit=missing", html);
+            StringAssert.DoesNotContain("Filter: business_unit=missing", html);
+            StringAssert.DoesNotContain("Statistics", html);
+            StringAssert.DoesNotContain("No overdue owners", html);
+            StringAssert.Contains("# No recertifiable owners assigned", csv);
+            StringAssert.Contains("# Add. Info: business_unit=missing", csv);
+            StringAssert.DoesNotContain("# Statistics", csv);
+            StringAssert.DoesNotContain("# Overdue owners:", csv);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateHtmlSkipsEmptyDeviceFilterLine()
+        {
+            ReportOwnerRecerts report = new(new DynGraphqlQuery(""), userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerAddInfoFilter = new AddInfoFilter
+            {
+                Name = "business_unit",
+                Mode = AddInfoFilterMode.existing
+            };
+            report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner.AdditionalInfo =
+                new() { ["business_unit"] = "Payments" };
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            StringAssert.DoesNotContain("Devices:", html);
+            StringAssert.DoesNotContain("Other filters:", html);
         }
 
         [Test]
@@ -641,6 +824,58 @@ namespace FWO.Test
             StringAssert.Contains("<td>APP-1</td><td>Owner One</td><td>High</td><td>Active</td><td>1</td><td>Active</td><td>user1</td><td>user2</td><td>department: IT<br>region: EU</td>", html);
             StringAssert.Contains("\"owner_lifecycle_state_id\": 1", json);
             StringAssert.Contains("\"name\": \"Active\"", json);
+        }
+
+        [Test]
+        public void OwnersGenerateCsvAndHtml_IgnoreOwnerAddInfoFilter()
+        {
+            ReportOwners report = new(query, userConfig, ReportType.Owners)
+            {
+                ReportData = new ReportData()
+                {
+                    OwnerAddInfoFilter = new AddInfoFilter
+                    {
+                        Name = "department",
+                        Mode = AddInfoFilterMode.value,
+                        Value = "IT"
+                    },
+                    OwnerData =
+                    [
+                        new OwnerConnectionReport()
+                        {
+                            Owner = new FwoOwner()
+                            {
+                                ExtAppId = "APP-1",
+                                Name = "Owner One",
+                                AdditionalInfo = new Dictionary<string, string>() { { "department", "IT" } }
+                            }
+                        },
+                        new OwnerConnectionReport()
+                        {
+                            Owner = new FwoOwner()
+                            {
+                                ExtAppId = "APP-2",
+                                Name = "Owner Two",
+                                AdditionalInfo = new Dictionary<string, string>() { { "department", "HR" } }
+                            }
+                        }
+                    ]
+                }
+            };
+
+            string csv = report.ExportToCsv();
+            string html = RemoveLinebreaks(report.ExportToHtml());
+            string json = report.ExportToJson();
+
+            Assert.Multiple(() =>
+            {
+                StringAssert.Contains("\"APP-1\",\"Owner One\"", csv);
+                StringAssert.Contains("\"APP-2\",\"Owner Two\"", csv);
+                StringAssert.Contains("<td>APP-1</td><td>Owner One</td>", html);
+                StringAssert.Contains("<td>APP-2</td><td>Owner Two</td>", html);
+                StringAssert.Contains("\"APP-1\"", json);
+                StringAssert.Contains("\"APP-2\"", json);
+            });
         }
 
         private static void SetPrivateField<T>(object target, string fieldName, T value)

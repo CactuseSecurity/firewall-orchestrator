@@ -178,10 +178,12 @@ else
 
     private bool EditStateMode = false;
     private bool AddStateMode = false;
+    private bool NewStatePersisted = false;
     private bool DeleteStateMode = false;
     private bool InitComplete = false;
     private bool SelectActionMode = false;
     private bool EditExtStatesMode = false;
+    private readonly HashSet<int> persistedNewStateActionIds = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -277,6 +279,7 @@ else
 
     private void AddState()
     {
+        ResetNewStateTracking();
         int firstFreeId = 0;
         while (states.Find(x => x.Id == firstFreeId) != null)
         {
@@ -288,17 +291,23 @@ else
 
     private void EditState(WfState state)
     {
+        ResetNewStateTracking();
         actState = state;
         AddStateMode = false;
         EditStateMode = true;
     }
 
+    private void ResetNewStateTracking()
+    {
+        NewStatePersisted = false;
+        persistedNewStateActionIds.Clear();
+    }
+
     private async Task SaveState()
     {
-        bool stateCreated = false;
         try
         {
-            if (AddStateMode && states.Any(state => state.Id == actState.Id))
+            if (AddStateMode && !NewStatePersisted && states.Any(state => state.Id == actState.Id))
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_state"), userConfig.GetText("duplicate_state_id"), true);
                 return;
@@ -306,18 +315,23 @@ else
 
             if (AddStateMode)
             {
-                ReturnId createResult = await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.createState, new { id = actState.Id, name = actState.Name, automaticOnly = actState.AutomaticOnly });
-                if (createResult.AffectedRows != 1)
+                if (!NewStatePersisted)
                 {
-                    throw new InvalidOperationException($"Could not create workflow state with id {actState.Id}.");
+                    ReturnId createResult = await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.createState, new { id = actState.Id, name = actState.Name, automaticOnly = actState.AutomaticOnly });
+                    if (createResult.AffectedRows != 1)
+                    {
+                        throw new InvalidOperationException($"Could not create workflow state with id {actState.Id}.");
+                    }
+                    NewStatePersisted = true;
+                    states.Add(actState);
+                    states = states.OrderBy(x => x.Id).ToList();
+                    NormalizeActionSortOrder(actState);
                 }
-                stateCreated = true;
-                states.Add(actState);
-                states = states.OrderBy(x => x.Id).ToList();
-                NormalizeActionSortOrder(actState);
-                foreach (var action in actState.Actions)
+
+                foreach (var action in actState.Actions.Where(action => !persistedNewStateActionIds.Contains(action.Action.Id)).ToList())
                 {
                     await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.addStateAction, new { stateId = actState.Id, actionId = action.Action.Id, sortOrder = action.SortOrder });
+                    persistedNewStateActionIds.Add(action.Action.Id);
                 }
             }
             else
@@ -336,14 +350,10 @@ else
             }
             EditStateMode = false;
             AddStateMode = false;
+            ResetNewStateTracking();
         }
         catch (Exception exception)
         {
-            if (stateCreated)
-            {
-                AddStateMode = false;
-                EditStateMode = true;
-            }
             DisplayMessageInUi(exception, userConfig.GetText("edit_state"), "", true);
         }
     }
@@ -354,12 +364,14 @@ else
         AddStateMode = false;
         DeleteStateMode = false;
         EditExtStatesMode = false;
+        ResetNewStateTracking();
     }
 
     private void CloseEditState()
     {
         EditStateMode = false;
         AddStateMode = false;
+        ResetNewStateTracking();
     }
 
     private void RequestDeleteState(WfState state)

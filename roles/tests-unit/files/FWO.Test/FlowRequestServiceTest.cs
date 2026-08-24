@@ -521,6 +521,7 @@ internal class FlowRequestServiceTest
             Assert.That(globalConfig.RawConfigItems, Has.Length.EqualTo(1));
             Assert.That(globalConfig.RawConfigItems[0].Key, Is.EqualTo("reqApiTicketInitialStateId"));
             Assert.That(onChangeCount, Is.EqualTo(1));
+            Assert.That(apiConnection.ConfigSubscriptionQuery, Does.Contain("config_user: {_eq: 0}"));
         });
 
         service.Dispose();

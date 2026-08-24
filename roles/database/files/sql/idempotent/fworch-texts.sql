@@ -531,17 +531,17 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
-    <li>Das neue Logging-Modul importiert normalisierte Verkehrs-Logdaten und stellt sie in modellierten Verbindungen dar.</li>
-    <li>Beim Logdaten-Import k&ouml;nnen vorhandene Eintr&auml;ge f&uuml;r alle in der JSON-Datei enthaltenen Applikationen optional ersetzt werden.</li>
-    <li>Die maximale Laufzeit von Importskripten ist als Standardeinstellung konfigurierbar.</li>
+    <li>In Zonenmatrizen kann eine automatisch berechnete Internet-Zone angelegt werden.</li>
+    <li>Regelreports k&ouml;nnen nach den Objekttypen von Quelle und Ziel gefiltert werden.</li>
+    <li>FQDN-, dynamische und Access-Role-Objekte ohne IP-Adresse werden als adresslose Objekte behandelt.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
-    <li>The new Logging module imports normalized traffic log data and displays it in modelled connections.</li>
-    <li>Log data imports can optionally replace existing entries for every application contained in the JSON file.</li>
-    <li>The maximum runtime of import scripts is configurable in the default settings.</li>
+    <li>An auto-calculated Internet zone can be added to zone matrices.</li>
+    <li>Rule reports can be filtered by source and destination object types.</li>
+    <li>FQDN, dynamic, and access-role objects without an IP address are handled as addressless objects.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');

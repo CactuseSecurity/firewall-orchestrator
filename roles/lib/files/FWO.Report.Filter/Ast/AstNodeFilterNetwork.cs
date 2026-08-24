@@ -66,6 +66,13 @@ namespace FWO.Report.Filter.Ast
             }
         }
 
+        /// <summary>
+        /// Adds a source or destination network-object type predicate to a rule report query.
+        /// </summary>
+        /// <param name="query">Query to extend.</param>
+        /// <param name="reportType">Type of report for which the filter is requested.</param>
+        /// <param name="location">Object location prefix used for the query variable.</param>
+        /// <param name="locationTable">Rule relation to filter.</param>
         private void ExtractObjectTypeFilter(DynGraphqlQuery query, ReportType? reportType, string location, string locationTable)
         {
             if (reportType is not null && !SupportsObjectTypeFilter(reportType.Value))
@@ -84,6 +91,12 @@ namespace FWO.Report.Filter.Ast
                 : objectRelationFilter;
         }
 
+        /// <summary>
+        /// Determines whether a report embeds firewall-rule predicates, which are required to apply an object type filter.
+        /// Rule, change, compliance, and statistics reports are supported because they consume those predicates.
+        /// </summary>
+        /// <param name="reportType">Report type to evaluate.</param>
+        /// <returns><c>true</c> when the report query consumes rule predicates; otherwise, <c>false</c>.</returns>
         private static bool SupportsObjectTypeFilter(ReportType reportType)
         {
             return reportType.IsRuleReport()
@@ -92,6 +105,10 @@ namespace FWO.Report.Filter.Ast
                 || reportType == ReportType.Statistics;
         }
 
+        /// <summary>
+        /// Parses and normalizes the comma-separated object type names from the filter value.
+        /// </summary>
+        /// <returns>Normalized object type names.</returns>
         private List<string> ExtractObjectTypes()
         {
             List<string> objectTypes = Value.Text.Split(',', StringSplitOptions.TrimEntries).ToList();
@@ -102,6 +119,13 @@ namespace FWO.Report.Filter.Ast
             return objectTypes.Select(objectType => objectType.ToLowerInvariant()).ToList();
         }
 
+        /// <summary>
+        /// Adds an object type list variable to the GraphQL query.
+        /// </summary>
+        /// <param name="query">Query to extend.</param>
+        /// <param name="location">Object location prefix used for the variable name.</param>
+        /// <param name="objectTypes">Object type names assigned to the variable.</param>
+        /// <returns>Name of the added GraphQL variable.</returns>
         private static string AddObjectTypeVariable(DynGraphqlQuery query, string location, List<string> objectTypes)
         {
             string queryVarName = $"{location}Type" + query.parameterCounter++;

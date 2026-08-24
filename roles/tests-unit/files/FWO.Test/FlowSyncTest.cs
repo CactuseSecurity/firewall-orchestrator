@@ -507,6 +507,108 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Run_SyncsServiceAndRuleWhenPortEndIsMissing()
+        {
+            NetworkObject source = CreateNetworkObject(1, "src", "10.0.0.1", "10.0.0.1");
+            NetworkObject destination = CreateNetworkObject(2, "dst", "10.0.1.1", "10.0.1.1");
+            NetworkService service = CreateService(3, "https", 6, 443, 443);
+            service.DestinationPortEnd = null;
+            FlowSyncTestApiConn apiConn = new()
+            {
+                PendingImports = [new ImportControl { ControlId = 9, MgmId = 7 }],
+                ManagementData = new FlowSyncManagementData
+                {
+                    Id = 7,
+                    NetworkObjects = [source, destination],
+                    ServiceObjects = [service],
+                    Rules = [CreateRule(4, source, destination, service)]
+                }
+            };
+            FlowSync flowSync = new(apiConn, new GlobalConfig());
+
+            bool result = await flowSync.Run();
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.InsertedServiceObjects, Has.Count.EqualTo(1));
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.InsertedServiceObjects[0].PortStart, Is.EqualTo(443));
+                Assert.That(apiConn.InsertedServiceObjects[0].PortEnd, Is.EqualTo(443));
+                Assert.That(apiConn.InsertedServiceObjects[0].SvcObjHash, Is.EqualTo(FlowHashGenerator.GenerateSvcObjectHash(6, 443, 443)));
+                Assert.That(apiConn.InsertedAccesses, Has.Count.EqualTo(1));
+                Assert.That(apiConn.RuleMappingUpdates, Has.Count.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task Run_SkipsServiceGroupWithoutFailingWhenMemberHasNoFlowObject()
+        {
+            NetworkObject source = CreateNetworkObject(1, "src", "10.0.0.1", "10.0.0.1");
+            NetworkObject destination = CreateNetworkObject(2, "dst", "10.0.1.1", "10.0.1.1");
+            NetworkService service = CreateService(3, "https", 6, 443, 443);
+            // the group member is never offered as a service object, so no flow object is created for it
+            NetworkService unsyncedMember = CreateService(5, "ssh", 6, 22, 22);
+            NetworkService serviceGroup = CreateServiceGroup(6, "web-and-ssh", unsyncedMember);
+            FlowSyncTestApiConn apiConn = new()
+            {
+                PendingImports = [new ImportControl { ControlId = 9, MgmId = 7 }],
+                ManagementData = new FlowSyncManagementData
+                {
+                    Id = 7,
+                    NetworkObjects = [source, destination],
+                    ServiceObjects = [service, serviceGroup],
+                    Rules = [CreateRule(4, source, destination, service)]
+                }
+            };
+            FlowSync flowSync = new(apiConn, new GlobalConfig());
+
+            bool result = await flowSync.Run();
+
+            Assert.That(result, Is.True);
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.InsertedServiceGroups, Is.Empty);
+                Assert.That(apiConn.InsertedAccesses, Has.Count.EqualTo(1));
+                Assert.That(apiConn.CompletedImportControlId, Is.EqualTo(9));
+            });
+        }
+
+        [Test]
+        public async Task Run_SyncsNetworkObjectAndRuleWhenIpEndIsMissing()
+        {
+            NetworkObject source = CreateNetworkObject(1, "src", "10.0.0.1", "10.0.0.1");
+            source.IpEnd = "";
+            source.Type = new NetworkObjectType { Name = "gateway" };
+            NetworkObject destination = CreateNetworkObject(2, "dst", "10.0.1.1", "10.0.1.1");
+            NetworkService service = CreateService(3, "https", 6, 443, 443);
+            FlowSyncTestApiConn apiConn = new()
+            {
+                PendingImports = [new ImportControl { ControlId = 9, MgmId = 7 }],
+                ManagementData = new FlowSyncManagementData
+                {
+                    Id = 7,
+                    NetworkObjects = [source, destination],
+                    ServiceObjects = [service],
+                    Rules = [CreateRule(4, source, destination, service)]
+                }
+            };
+            FlowSync flowSync = new(apiConn, new GlobalConfig());
+
+            bool result = await flowSync.Run();
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.InsertedNetworkObjects, Has.Count.EqualTo(2));
+            FlowNwObjectInsert insertedSource = apiConn.InsertedNetworkObjects.Single(insert => insert.IpStart == "10.0.0.1");
+            Assert.Multiple(() =>
+            {
+                Assert.That(insertedSource.IpEnd, Is.EqualTo("10.0.0.1"));
+                Assert.That(insertedSource.NwObjHash, Is.EqualTo(FlowHashGenerator.GenerateNwObjectHash("10.0.0.1", "10.0.0.1")));
+                Assert.That(apiConn.InsertedAccesses, Has.Count.EqualTo(1));
+                Assert.That(apiConn.RuleMappingUpdates, Has.Count.EqualTo(1));
+            });
+        }
+
+        [Test]
         public async Task Run_CreatesBlockingFlowAccessForDenyRule()
         {
             NetworkObject source = CreateNetworkObject(1, "src", "10.0.0.1", "10.0.0.1");

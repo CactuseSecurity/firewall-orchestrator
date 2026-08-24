@@ -237,19 +237,20 @@ namespace FWO.Middleware.Server.Jobs
         private async Task CheckUnansweredInterfaceRequests()
         {
             int emailsSent = 0;
-            List<UserGroup> OwnerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnection);
+            List<Ldap> connectedLdaps = await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
+            List<UserGroup> OwnerGroups = await MiddlewareServerServices.GetInternalGroups(connectedLdaps);
             using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
             WfHandler wfHandler = new(userConfig, apiConnection, WorkflowPhases.implementation, OwnerGroups, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
             await wfHandler.Init();
             NotificationService notificationService = await NotificationService.CreateAsync(
                 NotificationClient.InterfaceRequest,
                 globalConfig,
-                apiConnection);
+                apiConnection,
+                connectedLdaps,
+                OwnerGroups);
 
             foreach (var notification in notificationService.Notifications)
             {
-                bool sentForNotification = false;
-                bool anyNotificationDue = false;
                 SchedulerInterval repeatInterval = notification.RepeatIntervalAfterDeadline ?? SchedulerInterval.Days;
                 int cutOffPeriod = GetInterfaceRequestCutOffPeriod(notification, repeatInterval);
                 List<WfTicket>? unansweredTickets = await wfHandler.GetOpenTickets(WfTaskType.new_interface.ToString(),
@@ -266,7 +267,6 @@ namespace FWO.Middleware.Server.Jobs
                     }
 
                     bool notificationDue = NotificationService.IsNotificationDue(owner, ticket.CreationDate, notification);
-                    anyNotificationDue |= notificationDue;
                     if (!notificationDue)
                     {
                         Log.WriteDebug(LogMessageTitle,
@@ -276,7 +276,6 @@ namespace FWO.Middleware.Server.Jobs
 
                     int sentForTicket = await notificationService.SendNotification(notification, owner, await PrepareBody(ticket, owner));
                     emailsSent += sentForTicket;
-                    sentForNotification |= sentForTicket > 0;
                     if (sentForTicket == 0)
                     {
                         Log.WriteWarning(LogMessageTitle,

@@ -139,6 +139,21 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CreateAsync_ReturnsEarlyWhenNoNotificationsAreConfigured()
+        {
+            CreateAsyncApiConn createAsyncApiConnection = new()
+            {
+                ReturnNoNotifications = true
+            };
+
+            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, createAsyncApiConnection);
+
+            ClassicAssert.IsNotNull(notificationService);
+            ClassicAssert.AreEqual(0, notificationService.Notifications.Count);
+            ClassicAssert.AreEqual(1, createAsyncApiConnection.QueryCount);
+        }
+
+        [Test]
         public void IsNotificationDue_ReturnsFalse_WhenBeforeDeadlineIntervalIsMissing()
         {
             FwoOwner owner = new() { NextRecertDate = DateTime.Now.AddDays(7) };
@@ -841,11 +856,17 @@ namespace FWO.Test
         {
             public List<Ldap> LdapConnections { get; init; } = [];
             public bool ThrowOnGetLdapConnections { get; init; }
+            public bool ReturnNoNotifications { get; init; }
             public int QueryCount { get; private set; }
 
             public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 QueryCount++;
+                if (ReturnNoNotifications && query == NotificationQueries.getNotifications && typeof(QueryResponseType) == typeof(List<FwoNotification>))
+                {
+                    return (QueryResponseType)(object)new List<FwoNotification>();
+                }
+
                 if (query == AuthQueries.getLdapConnections && typeof(QueryResponseType) == typeof(List<Ldap>))
                 {
                     if (ThrowOnGetLdapConnections)

@@ -47,10 +47,16 @@ namespace FWO.Middleware.Server
         /// <returns></returns>
         public static async Task<NotificationService> CreateAsync(NotificationClient notificationClient, GlobalConfig globalConfig, ApiConnection apiConnection)
         {
+            List<FwoNotification> notifications = await LoadNotifications(notificationClient, apiConnection);
+            if (notifications.Count == 0)
+            {
+                return new NotificationService(notifications, globalConfig, apiConnection, new List<UserGroup>());
+            }
+
             List<Ldap>? connectedLdaps = await LoadLdapConnections(apiConnection);
             List<UserGroup> ownerGroups = await LoadOwnerGroups(connectedLdaps);
             IWorkflowRecipientResolver? workflowRecipientResolver = LoadWorkflowRecipientResolver(apiConnection, connectedLdaps);
-            return new NotificationService(await LoadNotifications(notificationClient, apiConnection), globalConfig, apiConnection, ownerGroups, workflowRecipientResolver);
+            return new NotificationService(notifications, globalConfig, apiConnection, ownerGroups, workflowRecipientResolver);
         }
 
         /// <summary>
@@ -65,6 +71,22 @@ namespace FWO.Middleware.Server
         public static async Task<NotificationService> CreateAsync(NotificationClient notificationClient, GlobalConfig globalConfig, ApiConnection apiConnection,
             List<UserGroup> ownerGroups, IWorkflowRecipientResolver? workflowRecipientResolver = null)
         {
+            return new NotificationService(await LoadNotifications(notificationClient, apiConnection), globalConfig, apiConnection, ownerGroups, workflowRecipientResolver);
+        }
+
+        /// <summary>
+        /// Creates a notification service with preloaded LDAP connections and owner groups.
+        /// </summary>
+        /// <param name="notificationClient">Notification client to load.</param>
+        /// <param name="globalConfig">Global configuration.</param>
+        /// <param name="apiConnection">GraphQL API connection.</param>
+        /// <param name="connectedLdaps">Preloaded LDAP connections used for recipient resolution.</param>
+        /// <param name="ownerGroups">Preloaded owner groups used for recipient resolution.</param>
+        /// <returns></returns>
+        public static async Task<NotificationService> CreateAsync(NotificationClient notificationClient, GlobalConfig globalConfig, ApiConnection apiConnection,
+            List<Ldap> connectedLdaps, List<UserGroup> ownerGroups)
+        {
+            IWorkflowRecipientResolver? workflowRecipientResolver = LoadWorkflowRecipientResolver(apiConnection, connectedLdaps);
             return new NotificationService(await LoadNotifications(notificationClient, apiConnection), globalConfig, apiConnection, ownerGroups, workflowRecipientResolver);
         }
 

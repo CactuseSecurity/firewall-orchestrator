@@ -252,7 +252,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConnection.CountQuery(AuthQueries.getLdapConnections), Is.EqualTo(2));
+                Assert.That(apiConnection.CountQuery(AuthQueries.getLdapConnections), Is.EqualTo(1));
                 Assert.That(apiConnection.CountQuery(AuthQueries.getUsers), Is.EqualTo(1));
                 Assert.That(apiConnection.CountQuery(OwnerQueries.getOwners), Is.EqualTo(1));
                 Assert.That(apiConnection.CountQuery(NotificationQueries.getNotifications), Is.EqualTo(1));
@@ -421,12 +421,13 @@ namespace FWO.Test
                 await (Task)(checkUnansweredInterfaceRequests.Invoke(dailyCheckJob, null)
                     ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests returned null task."));
 
-                Assert.Multiple(() =>
-                {
-                    Assert.That(apiConnection.NotificationLoadCount, Is.EqualTo(1));
-                    Assert.That(apiConnection.OpenTicketQueryCount, Is.EqualTo(1));
-                    Assert.That(apiConnection.UpdatedNotificationIds, Is.Empty);
-                });
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.LdapQueryCount, Is.EqualTo(1));
+                Assert.That(apiConnection.NotificationLoadCount, Is.EqualTo(1));
+                Assert.That(apiConnection.OpenTicketQueryCount, Is.EqualTo(1));
+                Assert.That(apiConnection.UpdatedNotificationIds, Is.Empty);
+            });
             }
             finally
             {
@@ -470,12 +471,13 @@ namespace FWO.Test
                 await (Task)(checkUnansweredInterfaceRequests.Invoke(dailyCheckJob, null)
                     ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests returned null task."));
 
-                Assert.Multiple(() =>
-                {
-                    Assert.That(apiConnection.NotificationLoadCount, Is.EqualTo(1));
-                    Assert.That(apiConnection.OpenTicketQueryCount, Is.EqualTo(1));
-                    Assert.That(apiConnection.UpdatedNotificationIds, Is.EqualTo(ExpectedUpdatedNotificationIds));
-                });
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.LdapQueryCount, Is.EqualTo(1));
+                Assert.That(apiConnection.NotificationLoadCount, Is.EqualTo(1));
+                Assert.That(apiConnection.OpenTicketQueryCount, Is.EqualTo(1));
+                Assert.That(apiConnection.UpdatedNotificationIds, Is.EqualTo(ExpectedUpdatedNotificationIds));
+            });
             }
             finally
             {
@@ -524,6 +526,7 @@ namespace FWO.Test
 
                 Assert.Multiple(() =>
                 {
+                    Assert.That(apiConnection.LdapQueryCount, Is.EqualTo(1));
                     Assert.That(output, Does.Contain("No recipients resolved for configured responsibles while preparing notification client InterfaceRequest."));
                     Assert.That(output, Does.Contain("Reminder notification 11 was due for unanswered interface request ticket 501, but no email was sent. Check recipient resolution and due settings."));
                     Assert.That(output, Does.Contain("Unanswered Interface Requests Check: Sent 0 emails."));
@@ -816,6 +819,7 @@ namespace FWO.Test
             public List<FWO.Middleware.Server.Ldap> LdapConnections { get; set; } = [];
             public List<FwoNotification> Notifications { get; set; } = [];
             public List<WfTicket> OpenTickets { get; set; } = [];
+            public int LdapQueryCount { get; private set; }
             public int NotificationLoadCount { get; private set; }
             public int OpenTicketQueryCount { get; private set; }
             public List<long> UpdatedNotificationIds { get; private set; } = [];
@@ -824,6 +828,7 @@ namespace FWO.Test
             {
                 if (query == AuthQueries.getLdapConnections && typeof(QueryResponseType) == typeof(List<FWO.Middleware.Server.Ldap>))
                 {
+                    LdapQueryCount++;
                     return Task.FromResult((QueryResponseType)(object)LdapConnections);
                 }
 

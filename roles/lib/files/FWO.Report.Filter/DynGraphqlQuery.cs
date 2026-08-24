@@ -4,6 +4,7 @@ using FWO.Data;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
 using System.Text.RegularExpressions;
+using System.Text.Json;
 using FWO.Logging;
 using FWO.Basics;
 
@@ -543,10 +544,10 @@ namespace FWO.Report.Filter
                 }
             }
 
-            string? labelFilter = BuildTicketLabelFilter(query, filter.ReportParams.WorkflowFilter.LabelFilter);
-            if (!string.IsNullOrWhiteSpace(labelFilter))
+            string? addInfoFilter = BuildTicketAddInfoFilter(query, filter.ReportParams.WorkflowFilter.AddInfoFilter);
+            if (!string.IsNullOrWhiteSpace(addInfoFilter))
             {
-                ticketFilters.Add(labelFilter);
+                ticketFilters.Add(addInfoFilter);
             }
 
             return ticketFilters;
@@ -671,34 +672,47 @@ namespace FWO.Report.Filter
             return query.WorkflowReferenceDateFilter ?? workflowFilter.ReferenceDate;
         }
 
-        private static string? BuildTicketLabelFilter(DynGraphqlQuery query, WorkflowLabelFilter labelFilter)
+        private static string? BuildTicketAddInfoFilter(DynGraphqlQuery query, AddInfoFilter addInfoFilter)
         {
-            if (string.IsNullOrWhiteSpace(labelFilter.Name))
+            if (string.IsNullOrWhiteSpace(addInfoFilter.Name))
             {
                 return null;
             }
 
-            return labelFilter.Mode switch
+            return addInfoFilter.Mode switch
             {
-                WorkflowLabelFilterMode.not_existing => BuildTicketLabelExistsFilter(query, labelFilter.Name, negate: true),
-                WorkflowLabelFilterMode.existing => BuildTicketLabelExistsFilter(query, labelFilter.Name, negate: false),
-                WorkflowLabelFilterMode.value => BuildTicketLabelValueFilter(query, labelFilter.Name, labelFilter.Value),
-                WorkflowLabelFilterMode.display_only => null,
+                AddInfoFilterMode.not_existing => BuildTicketAddInfoExistsFilter(query, addInfoFilter.Name, negate: true),
+                AddInfoFilterMode.existing => BuildTicketAddInfoExistsFilter(query, addInfoFilter.Name, negate: false),
+                AddInfoFilterMode.value => BuildTicketAddInfoValueFilter(query, addInfoFilter.Name, addInfoFilter.Value),
+                AddInfoFilterMode.display_only => null,
                 _ => null
             };
         }
 
-        private static string BuildTicketLabelExistsFilter(DynGraphqlQuery query, string labelName, bool negate)
+        private static string BuildTicketAddInfoExistsFilter(DynGraphqlQuery query, string addInfoName, bool negate)
         {
-            string keyPatternVar = AddQueryVariable(query, "labelKeyPattern", "String", $"%\"{labelName}\":%");
+            string keyPatternVar = AddQueryVariable(query, "addInfoKeyPattern", "String", $"%\"{EscapeLikePattern(EscapeJsonString(addInfoName))}\":%");
             string filter = $"{{ reqtasks: {{ additional_info: {{ _ilike: ${keyPatternVar} }} }} }}";
             return negate ? $"{{ _not: {filter} }}" : filter;
         }
 
-        private static string BuildTicketLabelValueFilter(DynGraphqlQuery query, string labelName, string value)
+        private static string BuildTicketAddInfoValueFilter(DynGraphqlQuery query, string addInfoName, string value)
         {
-            string valuePatternVar = AddQueryVariable(query, "labelValuePattern", "String", $"%\"{labelName}\":\"{value}\"%");
+            string valuePatternVar = AddQueryVariable(query, "addInfoValuePattern", "String", $"%\"{EscapeLikePattern(EscapeJsonString(addInfoName))}\":\"{EscapeLikePattern(EscapeJsonString(value))}\"%");
             return $"{{ reqtasks: {{ additional_info: {{ _ilike: ${valuePatternVar} }} }} }}";
+        }
+
+        private static string EscapeJsonString(string value)
+        {
+            return JsonSerializer.Serialize(value)[1..^1];
+        }
+
+        private static string EscapeLikePattern(string value)
+        {
+            return value
+                .Replace("\\", "\\\\")
+                .Replace("%", "\\%")
+                .Replace("_", "\\_");
         }
 
         private static string AddQueryVariable(DynGraphqlQuery query, string name, string type, object value)

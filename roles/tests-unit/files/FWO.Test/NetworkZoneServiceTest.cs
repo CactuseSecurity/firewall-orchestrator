@@ -333,6 +333,37 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AddAutoCalculatedInternetZone_UndefinedInternalZonePersisted_WhenConfigured()
+        {
+            MockApiConnection mock = new();
+            ApiConnection apiConnection = mock;
+            GlobalConfig globalConfig = new()
+            {
+                AutoCalculateInternetZone = true,
+                AutoCalculateUndefinedInternalZone = true
+            };
+            mock.Sub
+                .SendQueryAsync<List<ComplianceNetworkZone>>(
+                    ComplianceQueries.getNetworkZonesForMatrix,
+                    Arg.Any<object>())
+                .Returns(Task.FromResult(new List<ComplianceNetworkZone>()));
+
+            await NetworkZoneService.AddAutoCalculatedInternetZone(1, apiConnection, globalConfig);
+
+            List<(string Query, object Variables)> addedZones = mock.SentQueries
+                .Where(query => query.Query == ComplianceQueries.addNetworkZone)
+                .ToList();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(addedZones, Has.Count.EqualTo(2));
+                Assert.That(GetFromGeneric(addedZones[0].Variables, "isAutoCalculatedUndefinedInternalZone"), Is.EqualTo(true));
+                Assert.That(GetFromGeneric(addedZones[0].Variables, "name"), Is.EqualTo("Auto-calculated Undefined-internal Zone"));
+                Assert.That(GetFromGeneric(addedZones[1].Variables, "isAutoCalculatedInternetZone"), Is.EqualTo(true));
+            });
+        }
+
+        [Test]
         public async Task AddAutoCalculatedInternetZone_ExistingDummy_ReplacesDummyRanges()
         {
             MockApiConnection mock = new();

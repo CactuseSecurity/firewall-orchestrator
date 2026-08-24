@@ -243,15 +243,29 @@ namespace FWO.Services
                 existingZones.Remove(internetZone);
             }
 
-            ComplianceNetworkZone undefinedInternalZone = new()
+            ComplianceNetworkZone? existingUndefinedInternalZone = existingZones
+                .FirstOrDefault(zone => zone.IsAutoCalculatedUndefinedInternalZone);
+            if (existingUndefinedInternalZone == null)
             {
-                IdString = "AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL",
-                IsAutoCalculatedUndefinedInternalZone = true,
-                CriterionId = matrixId,
-            };
+                ComplianceNetworkZone undefinedInternalZone = new()
+                {
+                    IdString = "AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL",
+                    Name = "Auto-calculated Undefined-internal Zone",
+                    IsAutoCalculatedUndefinedInternalZone = true,
+                    CriterionId = matrixId,
+                };
 
-            CalculateUndefinedInternalZone(undefinedInternalZone, GetInternalZoneRanges(globalConfig), existingZones);
-            existingZones.Add(undefinedInternalZone);
+                CalculateUndefinedInternalZone(undefinedInternalZone, GetInternalZoneRanges(globalConfig), existingZones);
+                if (globalConfig.AutoCalculateUndefinedInternalZone)
+                {
+                    AdditionsDeletions undefinedInternalZoneAddDel = new()
+                    {
+                        IpRangesToAdd = undefinedInternalZone.IPRanges.ToList()
+                    };
+                    await AddZone(undefinedInternalZone, undefinedInternalZoneAddDel, apiConnection);
+                }
+                existingZones.Add(undefinedInternalZone);
+            }
 
             CalculateInternetZone(internetZone, existingZones);
             AdditionsDeletions internetZoneAddDel = new()

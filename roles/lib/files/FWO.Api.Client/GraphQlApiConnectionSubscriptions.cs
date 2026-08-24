@@ -137,7 +137,7 @@ namespace FWO.Api.Client
         /// </summary>
         /// <param name="client">The GraphQL client owning the WebSocket connection.</param>
         /// <returns>The WebSocket initialization payload.</returns>
-        private object CreateWebSocketConnectionInitPayload(GraphQLHttpClient client)
+        private Dictionary<string, object?> CreateWebSocketConnectionInitPayload(GraphQLHttpClient client)
         {
             string role = GetRequestRole();
             Dictionary<string, object?> headers = new()

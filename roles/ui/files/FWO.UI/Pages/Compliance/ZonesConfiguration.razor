@@ -81,15 +81,26 @@
                         <label>@userConfig.GetText("ip_addresses")</label>
                         @if(InsertIpPossible())
                         {
-                            <div class="input-group mb-2">
-                                <IpAddressInput @bind-IpRange="ipRangeToAdd" />
-                                <button @onclick="AddIpRange" type="button" class="btn btn-success" id="addIpAddress">@userConfig.GetText("add")</button>
-                            </div>
-                            <EditList ElementType="IPAddressRange" Elements="networkZoneInEdit?.IPRanges" ElementsToAdd="addDel.IpRangesToAdd" ElementsToDelete="addDel.IpRangesToDelete">
-                                <Display>
-                                    @NetworkZoneService.DisplayIpRange(context)
-                                </Display>
-                            </EditList>
+                            @if (IsAutoCalculatedSpecialZone(networkZoneInEdit))
+                            {
+                                <ExpandableList Elements="networkZoneInEdit?.IPRanges" Context="ipRange">
+                                    <ElementTemplate>
+                                        @NetworkZoneService.DisplayIpRange(ipRange)
+                                    </ElementTemplate>
+                                </ExpandableList>
+                            }
+                            else
+                            {
+                                <div class="input-group mb-2">
+                                    <IpAddressInput @bind-IpRange="ipRangeToAdd" />
+                                    <button @onclick="AddIpRange" type="button" class="btn btn-success" id="addIpAddress">@userConfig.GetText("add")</button>
+                                </div>
+                                <EditList ElementType="IPAddressRange" Elements="networkZoneInEdit?.IPRanges" ElementsToAdd="addDel.IpRangesToAdd" ElementsToDelete="addDel.IpRangesToDelete">
+                                    <Display>
+                                        @NetworkZoneService.DisplayIpRange(context)
+                                    </Display>
+                                </EditList>
+                            }
                         }
                     </div>
                     @if(userConfig.ComplianceMatrixAllowNetworkZones)
@@ -222,6 +233,7 @@
         userConfig.GlobalConfig?.AutoCalculateInternetZone == true
         && networkZoneInEdit?.IsAutoCalculatedInternetZone != true
         && networkZoneInEdit?.IsAutoCalculatedUndefinedInternalZone != true
+        && (deleteMode || AddressCoverageChanged())
             ? userConfig.GetText("auto_calculated_zone_communications_warning")
             : "";
 
@@ -296,6 +308,14 @@
         return networkZoneInEdit != null && networkZoneInEdit.IPRanges.Length == 0 && addDel.IpRangesToAdd.Count == 0;
     }
 
+    private bool AddressCoverageChanged()
+    {
+        return addDel.IpRangesToAdd.Count > 0
+            || addDel.IpRangesToDelete.Count > 0
+            || addDel.SubzonesToAdd.Count > 0
+            || addDel.SubzonesToDelete.Count > 0;
+    }
+
     private async Task OpenClearEditForm()
     {
         editMode = true;
@@ -336,7 +356,10 @@
             }
 
             zoneSaved = true;
-            await RefreshSpecialZones();
+            if (AddressCoverageChanged())
+            {
+                await RefreshSpecialZones();
+            }
             specialZonesRefreshCompleted = true;
             editMode = false;
             await ConfigChanged();
@@ -429,9 +452,9 @@
         }
     }
 
-    private static bool IsAutoCalculatedSpecialZone(ComplianceNetworkZone networkZone)
+    private static bool IsAutoCalculatedSpecialZone(ComplianceNetworkZone? networkZone)
     {
-        return networkZone.IsAutoCalculatedInternetZone || networkZone.IsAutoCalculatedUndefinedInternalZone;
+        return networkZone?.IsAutoCalculatedInternetZone == true || networkZone?.IsAutoCalculatedUndefinedInternalZone == true;
     }
 
     private void CancelModifications()

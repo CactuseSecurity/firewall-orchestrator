@@ -10,6 +10,7 @@ using FWO.Ui.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
+using NetTools;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -18,6 +19,9 @@ namespace FWO.Test
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     internal class UiZonesConfigurationTest
     {
+        private static readonly IPAddressRange kZoneRange = IPAddressRange.Parse("192.0.2.0/24");
+        private static readonly IPAddressRange[] kAutoCalculatedZoneRanges = [kZoneRange];
+
         private sealed class ZonesConfigurationApiConnection : SimulatedApiConnection
         {
             public List<string> SentQueries { get; } = [];
@@ -89,7 +93,11 @@ namespace FWO.Test
             IRenderedComponent<ZonesConfiguration> page = Render(context);
 
             networkZoneService.InvokeOnEditZone(normalZone);
-            page.WaitForAssertion(() => Assert.That(page.FindAll(".alert-warning"), Has.Count.EqualTo(1)));
+            NetworkZoneService.AdditionsDeletions addDel = new();
+            addDel.IpRangesToAdd.Add(kZoneRange);
+            typeof(ZonesConfiguration)
+                .GetField("addDel", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .SetValue(page.Instance, addDel);
             await page.InvokeAsync(async () =>
             {
                 Task updateTask = (Task)typeof(ZonesConfiguration)
@@ -101,6 +109,70 @@ namespace FWO.Test
             Assert.That(apiConnection.SentQueries.First(), Is.EqualTo(ComplianceQueries.updateNetworkZone));
             Assert.That(apiConnection.SentQueries, Does.Contain(ComplianceQueries.removeNetworkZone));
             Assert.That(apiConnection.SentQueries.Count(query => query == ComplianceQueries.addNetworkZone), Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task UpdatingZoneWithoutAddressCoverageChangeDoesNotRefreshAutoCalculatedZones()
+        {
+            ComplianceNetworkZone normalZone = new() { Id = 1, CriterionId = 1, Name = "normal" };
+            ComplianceNetworkZone internetZone = new()
+            {
+                Id = 2,
+                CriterionId = 1,
+                IsAutoCalculatedInternetZone = true,
+                Name = "Auto-calculated Internet Zone"
+            };
+            NetworkZoneService networkZoneService = new()
+            {
+                NetworkZones = new List<ComplianceNetworkZone> { normalZone, internetZone }
+            };
+            ZonesConfigurationApiConnection apiConnection = new();
+            apiConnection.NetworkZones.Add(normalZone);
+            apiConnection.NetworkZones.Add(internetZone);
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                AutoCalculateInternetZone = true
+            };
+            await using BunitContext context = CreateContext(networkZoneService, apiConnection, globalConfig);
+            IRenderedComponent<ZonesConfiguration> page = Render(context);
+
+            networkZoneService.InvokeOnEditZone(normalZone);
+            await page.InvokeAsync(async () =>
+            {
+                Task updateTask = (Task)typeof(ZonesConfiguration)
+                    .GetMethod("ExecuteNetworkZoneModifications", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                    .Invoke(page.Instance, null)!;
+                await updateTask;
+            });
+
+            Assert.That(apiConnection.SentQueries, Is.EqualTo(new List<string> { ComplianceQueries.updateNetworkZone }));
+        }
+
+        [Test]
+        public async Task EditingAutoCalculatedZoneHidesIpRangeControls()
+        {
+            ComplianceNetworkZone internetZone = new()
+            {
+                Id = 2,
+                CriterionId = 1,
+                IsAutoCalculatedInternetZone = true,
+                Name = "Auto-calculated Internet Zone",
+                IPRanges = kAutoCalculatedZoneRanges
+            };
+            NetworkZoneService networkZoneService = new()
+            {
+                NetworkZones = new List<ComplianceNetworkZone> { internetZone }
+            };
+            await using BunitContext context = CreateContext(networkZoneService);
+            IRenderedComponent<ZonesConfiguration> page = Render(context);
+
+            networkZoneService.InvokeOnEditZone(internetZone);
+
+            page.WaitForAssertion(() =>
+            {
+                Assert.That(page.FindAll("#addIpAddress"), Is.Empty);
+                Assert.That(page.FindAll(".badge.bg-danger"), Is.Empty);
+            });
         }
 
         [Test]

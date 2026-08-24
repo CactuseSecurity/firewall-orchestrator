@@ -449,6 +449,33 @@ namespace FWO.Test
             ClassicAssert.AreEqual(2, handler.DstAppRolesToAdd[0].Id);
         }
 
+        /// <summary>
+        /// Verifies that an existing app role cannot open without a recoverable network area.
+        /// </summary>
+        [TestCase(1, false)]
+        [TestCase(4, true)]
+        public void EditAppRole_OnlyOpensWhenAreaCanBeDerived(int fixedPartLength, bool expectedDialogState)
+        {
+            int messageCount = 0;
+            SimulatedUserConfig config = new()
+            {
+                ModNamingConvention = $"{{\"networkAreaRequired\":true,\"fixedPartLength\":{fixedPartLength},\"freePartLength\":5,\"networkAreaPattern\":\"NA\",\"appRolePattern\":\"AR\"}}"
+            };
+            ModellingConnection connection = new() { Id = 21 };
+            List<ModellingConnection> connections = new() { connection };
+            ModellingConnectionHandler handler = new(new ModellingHandlerTestApiConn(), config, Application, connections, connection, false,
+                false, (_, _, _, _) => messageCount++, DefaultInit.DoNothing, true);
+
+            handler.EditAppRole(new ModellingAppRole { Id = 1, IdString = "AR12-001", Name = "Role1" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.EditAppRoleMode, Is.EqualTo(expectedDialogState));
+                Assert.That(handler.AppRoleHandler, Is.Not.Null);
+                Assert.That(messageCount, Is.EqualTo(expectedDialogState ? 0 : 1));
+            });
+        }
+
         private static ModellingConnectionHandler CreateHandler(ModellingConnection connection)
         {
             return new ModellingConnectionHandler(new ModellingHandlerTestApiConn(), userConfig, Application, [connection], connection, false, false, DisplayMessageInUi, DefaultInit.DoNothing, true);

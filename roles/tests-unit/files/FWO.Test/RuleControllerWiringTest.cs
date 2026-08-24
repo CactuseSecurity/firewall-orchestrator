@@ -68,7 +68,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ConvertRuleList_ShouldFlattenServiceObjectsAndRemoveDuplicates()
+        public void ConvertRuleList_ShouldPreserveServiceGroupsAndRemoveDuplicates()
         {
             List<RuleDetail> rules = InvokeConvertRuleList(
                 [CreateRuleWithDuplicateNetworkAndServiceObjects()]);
@@ -84,9 +84,10 @@ namespace FWO.Test
             ClassicAssert.AreEqual("Destination Group", rule.Destination[0].Name);
             ClassicAssert.AreEqual("Shared Destination", rule.Destination[1].Name);
 
-            ClassicAssert.AreEqual(1, rule.Service.Count);
-            ClassicAssert.AreEqual("Shared Service", rule.Service[0].Name);
-            ClassicAssert.AreEqual("Shared Service (443/TCP)", rule.ServiceShort);
+            ClassicAssert.AreEqual(2, rule.Service.Count);
+            ClassicAssert.AreEqual("Service Group", rule.Service[0].Name);
+            ClassicAssert.AreEqual("Shared Service", rule.Service[1].Name);
+            ClassicAssert.AreEqual($"Service Group{Environment.NewLine}Shared Service (443/TCP)", rule.ServiceShort);
         }
 
         [Test]
@@ -137,15 +138,15 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ConvertRuleList_ShouldFlattenNestedServiceGroups()
+        public void ConvertRuleList_ShouldPreserveNestedServiceGroups()
         {
             List<RuleDetail> rules = InvokeConvertRuleList(
                 [CreateRuleWithNestedServiceGroups()]);
 
             ClassicAssert.AreEqual(1, rules.Count);
             ClassicAssert.AreEqual(1, rules[0].Service.Count);
-            ClassicAssert.AreEqual("Nested Service", rules[0].Service[0].Name);
-            ClassicAssert.AreEqual("Nested Service (8443/TCP)", rules[0].ServiceShort);
+            ClassicAssert.AreEqual("Outer Service Group", rules[0].Service[0].Name);
+            ClassicAssert.AreEqual("Outer Service Group", rules[0].ServiceShort);
         }
 
         [Test]

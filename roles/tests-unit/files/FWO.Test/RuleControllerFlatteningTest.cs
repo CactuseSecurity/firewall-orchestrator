@@ -48,7 +48,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void FlattenRuleServices_ShouldDropTypelessPlaceholder()
+        public void GetRuleServices_ShouldPreserveGroupsAndDropTypelessPlaceholder()
         {
             var placeholder = new NetworkService
             {
@@ -89,13 +89,13 @@ namespace FWO.Test
                 ]
             };
 
-            List<NetworkService> result = InvokePrivateFlatten<NetworkService>("FlattenRuleServices",
+            List<NetworkService> result = InvokePrivateFlatten<NetworkService>("GetRuleServices",
                 [placeholder, group]);
 
             ClassicAssert.AreEqual(1, result.Count);
             ClassicAssert.IsFalse(result.Any(item => item.Id == placeholder.Id));
-            ClassicAssert.IsFalse(result.Any(item => item.Id == group.Id));
-            ClassicAssert.IsTrue(result.Any(item => item.Id == leaf.Id));
+            ClassicAssert.IsTrue(result.Any(item => item.Id == group.Id));
+            ClassicAssert.IsFalse(result.Any(item => item.Id == leaf.Id));
         }
 
         private static List<T> InvokePrivateFlatten<T>(string methodName, List<T> input)

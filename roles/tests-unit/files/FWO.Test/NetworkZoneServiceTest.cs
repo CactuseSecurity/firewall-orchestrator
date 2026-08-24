@@ -377,7 +377,8 @@ namespace FWO.Test
             };
             List<IPAddressRange> dummyRanges = new()
             {
-                IpOperations.GetIPAdressRange("8.8.8.0/24")
+                IpOperations.GetIPAdressRange("8.8.8.0/24"),
+                IpOperations.GetIPAdressRange("10.0.0.0/8")
             };
             ComplianceNetworkZone dummyInternetZone = new()
             {
@@ -411,6 +412,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(calculatedRanges.Any(range => range.Contains(IPAddress.Parse("8.8.8.8"))), Is.True);
+                Assert.That(calculatedRanges.Any(range => range.Contains(IPAddress.Parse("10.0.0.1"))), Is.False);
                 Assert.That(deletedRangeStarts, Does.Contain("8.8.8.0"));
             });
         }

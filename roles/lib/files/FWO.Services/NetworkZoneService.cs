@@ -382,7 +382,10 @@ namespace FWO.Services
 
         public static void CalculateUndefinedInternalZone(ComplianceNetworkZone undefinedInternalZone, List<IPAddressRange> internalZoneRanges, List<ComplianceNetworkZone> definedZones)
         {
-            List<IPAddressRange> definedZonesRanges = ParseNetworkZoneToListOfRanges(definedZones, true);
+            List<ComplianceNetworkZone> definedNonInternetZones = definedZones
+                .Where(zone => zone.IdString != "AUTO_CALCULATED_ZONE_INTERNET")
+                .ToList();
+            List<IPAddressRange> definedZonesRanges = ParseNetworkZoneToListOfRanges(definedNonInternetZones, true);
             List<IPAddressRange> undefinedInternalZoneRanges = new();
 
             foreach (IPAddressRange range in internalZoneRanges)

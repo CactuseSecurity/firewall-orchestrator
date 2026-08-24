@@ -287,6 +287,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         return inputList.Select(item =>
         {
             List<NetworkService> ruleServices = GetRuleServices(item.Services.Select(s => s.Content).ToList());
+            List<NetworkService> ruleServicesWithMembers = GetRuleServicesWithMembers(ruleServices);
 
             return new RuleDetail
             {
@@ -310,7 +311,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                     })
                     .ToList(),
                 DestinationShort = DisplaySourceOrDestinationPlain(item, isSource: false, userConfig),
-                Service = ruleServices
+                Service = ruleServicesWithMembers
                     .Select(s => new ServiceObject
                     {
                         Name = s.Name,
@@ -436,6 +437,15 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
     private static List<NetworkService> GetRuleServices(List<NetworkService> list)
     {
         return list
+            .Where(HasType)
+            .Distinct()
+            .ToList();
+    }
+
+    private static List<NetworkService> GetRuleServicesWithMembers(List<NetworkService> list)
+    {
+        return list
+            .Concat(NetworkService.FlattenRuleServices(list))
             .Where(HasType)
             .Distinct()
             .ToList();

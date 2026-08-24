@@ -8242,16 +8242,6 @@
                     ],
                     "filter": {}
                   }
-                },
-                {
-                  "role": "admin",
-                  "permission": {
-                    "columns": [
-                      "name",
-                      "id"
-                    ],
-                    "filter": {}
-                  }
                 }
               ]
             },

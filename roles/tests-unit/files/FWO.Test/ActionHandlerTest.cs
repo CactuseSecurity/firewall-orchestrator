@@ -9,9 +9,13 @@ using FWO.Data.Workflow;
 using FWO.Middleware.Client;
 using FWO.Services;
 using FWO.Services.Workflow;
+using FWO.Test.Mocks;
 using NetTools;
 using NUnit.Framework;
+using System.Net;
+using System.Net.Http;
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
 
 namespace FWO.Test
@@ -225,6 +229,25 @@ namespace FWO.Test
             {
                 PropertyInfo? property = variables?.GetType().GetProperty(propertyName);
                 return property != null ? (TValue)property.GetValue(variables)! : default!;
+            }
+        }
+
+        private sealed class RecordingMiddlewareActionsHandler : HttpMessageHandler
+        {
+            public int RequestCount { get; private set; }
+            public string? LastPath { get; private set; }
+            public string? LastBody { get; private set; }
+
+            protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                RequestCount++;
+                LastPath = request.RequestUri?.AbsolutePath;
+                LastBody = request.Content != null ? await request.Content.ReadAsStringAsync(cancellationToken) : null;
+
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("{\"success\":true,\"messages\":[],\"errorMessage\":\"\"}", Encoding.UTF8, "application/json")
+                };
             }
         }
 
@@ -954,6 +977,30 @@ namespace FWO.Test
             await handler.DoStateChangeActions(ticket, WfObjectScopes.Ticket);
 
             Assert.That(apiConn.Queries, Is.Empty);
+        }
+
+        [Test]
+        public async Task DoStateChangeActions_DelegatesToMiddlewareWhenMiddlewareClientIsConfigured()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            using TestMiddlewareClient middlewareClient = new();
+            RecordingMiddlewareActionsHandler middlewareHandler = new();
+            middlewareClient.UseHandler(middlewareHandler);
+            WfHandler wfHandler = new((_, _, _, _) => { }, new SimulatedUserConfig(), new System.Security.Claims.ClaimsPrincipal(), apiConn, middlewareClient, WorkflowPhases.request);
+            ActionHandler handler = new(apiConn, wfHandler);
+            WfTicket ticket = new() { Id = 42 };
+            ticket.MarkCreatedStateChanged(1);
+
+            await handler.DoStateChangeActions(ticket, WfObjectScopes.Ticket);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(middlewareHandler.RequestCount, Is.EqualTo(1));
+                Assert.That(middlewareHandler.LastPath, Does.EndWith("/Workflow/Actions"));
+                Assert.That(middlewareHandler.LastBody, Is.Not.Null);
+                Assert.That(ticket.StateChanged(), Is.False);
+                Assert.That(apiConn.Queries, Is.Empty);
+            });
         }
 
         [Test]

@@ -310,6 +310,19 @@ namespace FWO.Test
         }
 
         [Test]
+        public void TrySetReqTaskEnv_ReturnsFalseWhenTicketCannotBeResolved()
+        {
+            WfHandler handler = new();
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType);
+            WfReqTask reqTask = new() { Id = 11, TicketId = 7, TaskType = taskType };
+
+            bool found = handler.TrySetReqTaskEnv(reqTask);
+
+            Assert.That(found, Is.False);
+        }
+
+        [Test]
         public void SetReqTaskEnv_ThrowsWhenTicketCannotBeResolved()
         {
             WfHandler handler = new();

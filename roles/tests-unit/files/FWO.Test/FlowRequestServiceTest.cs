@@ -643,6 +643,175 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
+    public void CreateRequest_RejectsConfiguredInitialStateWhenStateIsUnknown()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            States =
+            [
+                new WfState { Id = 11, Name = "approval" }
+            ],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+        };
+        FlowRequestService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
+
+        InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await service.CreateRequestAsync(new CreateRequestRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Unknown state request",
+            AddressObjects =
+            [
+                new CreateRequestRequest.CreateAddressObjectRequest
+                {
+                    Id = "-1",
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateRequestRequest.CreateServiceObjectRequest
+                {
+                    Id = "-2",
+                    Name = "https",
+                    Protocol = "tcp",
+                    PortStart = 443,
+                    PortEnd = 443
+                }
+            ],
+            Rules =
+            [
+                new CreateRequestRequest.CreateRequestRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [-1],
+                    DestinationObjects = [-1],
+                    ServiceObjects = [-2]
+                }
+            ]
+        }, 77))!;
+
+        Assert.That(exception.Message, Does.Contain("does not exist in the current state list"));
+    }
+
+    [Test]
+    public void CreateRequest_RejectsConfiguredInitialStateWhenMultipleActivePhasesMatch()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            States =
+            [
+                new WfState { Id = 17, Name = "shared-state" },
+                new WfState { Id = 20, Name = "fallback" }
+            ],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
+            WorkflowConfigurations =
+            [
+                new WorkflowConfiguration
+                {
+                    Id = 1,
+                    Name = "overlap",
+                    Phases =
+                    [
+                        new WorkflowConfigurationPhase
+                        {
+                            TaskType = WfTaskType.master.ToString(),
+                            Phase = WorkflowPhases.request.ToString(),
+                            PhaseMatrix = new StateMatrixPhase
+                            {
+                                Id = 31,
+                                Name = "request",
+                                Phase = WorkflowPhases.request.ToString(),
+                                Active = false,
+                                LowestInputState = 1,
+                                LowestStartState = 1,
+                                LowestEndState = 2
+                            }
+                        },
+                        new WorkflowConfigurationPhase
+                        {
+                            TaskType = WfTaskType.master.ToString(),
+                            Phase = WorkflowPhases.approval.ToString(),
+                            PhaseMatrix = new StateMatrixPhase
+                            {
+                                Id = 32,
+                                Name = "approval",
+                                Phase = WorkflowPhases.approval.ToString(),
+                                Active = true,
+                                LowestInputState = 10,
+                                LowestStartState = 10,
+                                LowestEndState = 20
+                            }
+                        },
+                        new WorkflowConfigurationPhase
+                        {
+                            TaskType = WfTaskType.master.ToString(),
+                            Phase = WorkflowPhases.planning.ToString(),
+                            PhaseMatrix = new StateMatrixPhase
+                            {
+                                Id = 33,
+                                Name = "planning",
+                                Phase = WorkflowPhases.planning.ToString(),
+                                Active = true,
+                                LowestInputState = 15,
+                                LowestStartState = 15,
+                                LowestEndState = 25
+                            }
+                        }
+                    ]
+                }
+            ]
+        };
+        FlowRequestService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
+
+        InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await service.CreateRequestAsync(new CreateRequestRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Overlapping phase request",
+            AddressObjects =
+            [
+                new CreateRequestRequest.CreateAddressObjectRequest
+                {
+                    Id = "-1",
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateRequestRequest.CreateServiceObjectRequest
+                {
+                    Id = "-2",
+                    Name = "https",
+                    Protocol = "tcp",
+                    PortStart = 443,
+                    PortEnd = 443
+                }
+            ],
+            Rules =
+            [
+                new CreateRequestRequest.CreateRequestRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [-1],
+                    DestinationObjects = [-1],
+                    ServiceObjects = [-2]
+                }
+            ]
+        }, 77))!;
+
+        Assert.That(exception.Message, Does.Contain("matches multiple active workflow phases"));
+    }
+
+    [Test]
     public async Task CreateRequest_MapsDropActionToConfiguredRuleActionId()
     {
         FlowRequestServiceApiConn apiConnection = new()

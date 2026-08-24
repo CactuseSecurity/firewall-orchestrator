@@ -18,6 +18,8 @@ namespace FWO.Test
     [TestFixture]
     public class NetworkZoneServiceTest
     {
+        private static readonly IPAddressRange[] kDummyInternetZoneRanges = [IpOperations.GetIPAdressRange("8.8.8.0/24")];
+
         [Test]
         public void CalculateInternetZone_BasicZonesWithoutOverlaps_InternetZoneCalculatedCorrectly()
         {
@@ -427,6 +429,7 @@ namespace FWO.Test
             ComplianceNetworkZone internetZoneDummy = predefinedZones.Last();
             internetZoneDummy.IdString = "AUTO_CALCULATED_ZONE_INTERNET";
             internetZoneDummy.AllowedCommunicationDestinations = [zoneOne];
+            internetZoneDummy.IPRanges = kDummyInternetZoneRanges;
 
             mock.Sub
                 .SendQueryAsync<List<ComplianceNetworkZone>>(
@@ -466,6 +469,19 @@ namespace FWO.Test
             Assert.That(secondSentQuery.Item1 == ComplianceQueries.updateNetworkZone);
             AssertThatGeneric.PropertyIsTrue(secondSentQuery.Item2, "isAutoCalculatedInternetZone");
             AssertThatGeneric.PropertyIsEqual(secondSentQuery.Item2, "networkZoneId", 4);
+            IEnumerable addedRanges = (IEnumerable)GetFromGeneric(secondSentQuery.Item2, "addIpRanges")!;
+            IEnumerable deletedRanges = (IEnumerable)GetFromGeneric(secondSentQuery.Item2, "deleteIpRangesExp")!;
+            List<IPAddressRange> calculatedRanges = addedRanges.Cast<object>().Select(range => new IPAddressRange(
+                IPAddress.Parse(GetFromGeneric(range, "ip_range_start")!.ToString()!),
+                IPAddress.Parse(GetFromGeneric(range, "ip_range_end")!.ToString()!))).ToList();
+            IEnumerable<string> deletedRangeStarts = deletedRanges.Cast<object>().Select(range =>
+                GetFromGeneric(GetFromGeneric(range, "ip_range_start")!, "_eq")!.ToString()!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(calculatedRanges.Any(range => range.Contains(IPAddress.Parse("8.8.8.8"))), Is.True);
+                Assert.That(deletedRangeStarts, Does.Contain("8.8.8.0"));
+            });
         }
 
         private static object? GetFromGeneric(object o, string name) => o.GetType().GetProperty(name)?.GetValue(o);

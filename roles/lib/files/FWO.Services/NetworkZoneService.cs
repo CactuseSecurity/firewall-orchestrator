@@ -236,13 +236,6 @@ namespace FWO.Services
                 return;
             }
 
-            bool dummyInternetZoneExists = TryUpdateInternetZoneObject(existingZones, matrixId, out ComplianceNetworkZone internetZone);
-            List<IPAddressRange> dummyInternetZoneRanges = internetZone.IPRanges.ToList();
-            if (dummyInternetZoneExists)
-            {
-                existingZones.Remove(internetZone);
-            }
-
             ComplianceNetworkZone? existingUndefinedInternalZone = existingZones
                 .FirstOrDefault(zone => zone.IsAutoCalculatedUndefinedInternalZone);
             if (existingUndefinedInternalZone == null)
@@ -267,21 +260,7 @@ namespace FWO.Services
                 existingZones.Add(undefinedInternalZone);
             }
 
-            CalculateInternetZone(internetZone, existingZones);
-            AdditionsDeletions internetZoneAddDel = new()
-            {
-                IpRangesToAdd = internetZone.IPRanges.ToList(),
-                IpRangesToDelete = dummyInternetZoneRanges
-            };
-
-            if (dummyInternetZoneExists)
-            {
-                await UpdateZone(internetZone, internetZoneAddDel, apiConnection);
-            }
-            else
-            {
-                await AddZone(internetZone, internetZoneAddDel, apiConnection);
-            }
+            await AddOrUpdateInternetZone(matrixId, apiConnection, existingZones);
         }
 
         public static async Task UpdateSpecialZones(int matrixId, ApiConnection apiConnection, GlobalConfig globalConfig)
@@ -331,24 +310,37 @@ namespace FWO.Services
 
                 // Add new internet zone
 
-                bool dummyInternetZoneExists = TryUpdateInternetZoneObject(existingZones, matrixId, out ComplianceNetworkZone internetZone);
+                await AddOrUpdateInternetZone(matrixId, apiConnection, existingZones);
 
-                CalculateInternetZone(internetZone, existingZones);
+            }
+        }
 
-                AdditionsDeletions internetZoneAddDel = new()
-                {
-                    IpRangesToAdd = internetZone.IPRanges.ToList()
-                };
+        /// <summary>
+        /// Calculates and persists the Internet zone, replacing the ranges of an imported placeholder when present.
+        /// </summary>
+        private static async Task AddOrUpdateInternetZone(int matrixId, ApiConnection apiConnection, List<ComplianceNetworkZone> existingZones)
+        {
+            bool dummyInternetZoneExists = TryUpdateInternetZoneObject(existingZones, matrixId, out ComplianceNetworkZone internetZone);
+            List<IPAddressRange> dummyInternetZoneRanges = internetZone.IPRanges.ToList();
+            if (dummyInternetZoneExists)
+            {
+                existingZones.Remove(internetZone);
+            }
 
-                if (dummyInternetZoneExists)
-                {
-                    await UpdateZone(internetZone, internetZoneAddDel, apiConnection);
-                }
-                else
-                {
-                    await AddZone(internetZone, internetZoneAddDel, apiConnection);
-                }
+            CalculateInternetZone(internetZone, existingZones);
+            AdditionsDeletions internetZoneAddDel = new()
+            {
+                IpRangesToAdd = internetZone.IPRanges.ToList(),
+                IpRangesToDelete = dummyInternetZoneRanges
+            };
 
+            if (dummyInternetZoneExists)
+            {
+                await UpdateZone(internetZone, internetZoneAddDel, apiConnection);
+            }
+            else
+            {
+                await AddZone(internetZone, internetZoneAddDel, apiConnection);
             }
         }
 

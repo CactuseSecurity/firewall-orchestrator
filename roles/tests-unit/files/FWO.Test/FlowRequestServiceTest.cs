@@ -300,6 +300,80 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
+    public async Task CreateRequest_KeepsAddressIpsOnWrittenElements()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+        };
+        FlowRequestService service = new(apiConnection, new GlobalConfig());
+
+        await service.CreateRequestAsync(new CreateRequestRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Allow HTTPS to application server",
+            AddressObjects =
+            [
+                new CreateRequestRequest.CreateAddressObjectRequest
+                {
+                    Id = "-1",
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            AddressGroups =
+            [
+                new CreateRequestRequest.CreateAddressGroupRequest
+                {
+                    Id = -3,
+                    Name = "app-servers",
+                    MemberIds = [-1]
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateRequestRequest.CreateServiceObjectRequest
+                {
+                    Id = "-2",
+                    Name = "https",
+                    Protocol = "tcp",
+                    PortStart = 443,
+                    PortEnd = 443
+                }
+            ],
+            Rules =
+            [
+                new CreateRequestRequest.CreateRequestRuleRequest
+                {
+                    Action = "accept",
+                    Name = "Allow app HTTPS",
+                    SourceObjects = [-1],
+                    DestinationObjects = [-3],
+                    ServiceObjects = [-2]
+                }
+            ]
+        }, 77);
+
+        WfReqTaskWriter groupTask = apiConnection.LastTicketWriter!.Tasks.Single(task => task.TaskType == WfTaskType.group_create.ToString());
+        WfReqTaskWriter accessTask = apiConnection.LastTicketWriter.Tasks.Single(task => task.TaskType == WfTaskType.access.ToString());
+        WfReqElementWriter groupMember = groupTask.Elements.WfElementList.Single();
+        WfReqElementWriter accessSource = accessTask.Elements.WfElementList.Single(element => element.Field == ElemFieldType.source.ToString());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(accessSource.IpString, Is.EqualTo("192.0.2.10/32"));
+            Assert.That(accessSource.IpEnd, Is.EqualTo("192.0.2.10/32"));
+            Assert.That(groupMember.IpString, Is.EqualTo("192.0.2.10/32"));
+            Assert.That(groupMember.IpEnd, Is.EqualTo("192.0.2.10/32"));
+        });
+    }
+
+    [Test]
     public async Task CreateRequest_UsesConfiguredInitialTicketState()
     {
         FlowRequestServiceApiConn apiConnection = new()

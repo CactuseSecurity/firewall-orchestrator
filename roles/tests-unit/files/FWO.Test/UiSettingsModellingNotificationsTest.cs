@@ -12,9 +12,9 @@ namespace FWO.Test
     [TestFixture]
     internal class UiSettingsModellingNotificationsTest
     {
-        private static readonly int[] RequestRecipientTypeIds = [1];
-        private static readonly int[] DecommRecipientTypeIds = [2];
-        private static readonly int[] ActiveRecipientTypeIds = [1, 2];
+        private static readonly List<int> RequestRecipientTypeIds = [1];
+        private static readonly List<int> DecommRecipientTypeIds = [2];
+        private static readonly List<int> ActiveRecipientTypeIds = [1, 2];
         private static readonly string[] RequestLegacyAddresses = ["legacy-request@example.org"];
         private static readonly string[] DecommLegacyAddresses = ["legacy-decomm@example.org"];
 

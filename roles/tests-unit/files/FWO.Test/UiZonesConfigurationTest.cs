@@ -22,12 +22,17 @@ namespace FWO.Test
         {
             public List<string> SentQueries { get; } = [];
             public List<ComplianceNetworkZone> NetworkZones { get; } = [];
+            public bool ThrowWhenLoadingNetworkZones { get; set; }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 SentQueries.Add(query);
                 if (typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>))
                 {
+                    if (ThrowWhenLoadingNetworkZones)
+                    {
+                        throw new InvalidOperationException("Unable to refresh special zones.");
+                    }
                     return Task.FromResult((QueryResponseType)(object)NetworkZones);
                 }
                 return Task.FromResult(default(QueryResponseType)!);
@@ -49,11 +54,12 @@ namespace FWO.Test
             return context;
         }
 
-        private static IRenderedComponent<ZonesConfiguration> Render(BunitContext context)
+        private static IRenderedComponent<ZonesConfiguration> Render(BunitContext context, Func<Task>? configChanged = null)
         {
             return context.Render<ZonesConfiguration>(parameters => parameters
                 .Add(p => p.SelectedMatrix, new ComplianceCriterion { Id = 1, Name = "matrix" })
-                .Add(p => p.ReadonlyMode, false));
+                .Add(p => p.ReadonlyMode, false)
+                .Add(p => p.ConfigChanged, configChanged ?? DefaultInit.DoNothing));
         }
 
         [Test]
@@ -84,10 +90,13 @@ namespace FWO.Test
 
             networkZoneService.InvokeOnEditZone(normalZone);
             page.WaitForAssertion(() => Assert.That(page.FindAll(".alert-warning"), Has.Count.EqualTo(1)));
-            Task updateTask = (Task)typeof(ZonesConfiguration)
-                .GetMethod("ExecuteNetworkZoneModifications", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
-                .Invoke(page.Instance, null)!;
-            await updateTask;
+            await page.InvokeAsync(async () =>
+            {
+                Task updateTask = (Task)typeof(ZonesConfiguration)
+                    .GetMethod("ExecuteNetworkZoneModifications", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                    .Invoke(page.Instance, null)!;
+                await updateTask;
+            });
 
             Assert.That(apiConnection.SentQueries.First(), Is.EqualTo(ComplianceQueries.updateNetworkZone));
             Assert.That(apiConnection.SentQueries, Does.Contain(ComplianceQueries.removeNetworkZone));
@@ -147,6 +156,46 @@ namespace FWO.Test
             });
 
             Assert.That(apiConnection.SentQueries, Is.EqualTo(new List<string> { ComplianceQueries.removeNetworkZone }));
+        }
+
+        [Test]
+        public async Task RecalculationFailureAfterZoneUpdate_ReloadsThePersistedState()
+        {
+            ComplianceNetworkZone normalZone = new() { Id = 1, CriterionId = 1, Name = "normal" };
+            NetworkZoneService networkZoneService = new()
+            {
+                NetworkZones = new List<ComplianceNetworkZone> { normalZone }
+            };
+            ZonesConfigurationApiConnection apiConnection = new()
+            {
+                ThrowWhenLoadingNetworkZones = true
+            };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                AutoCalculateInternetZone = true
+            };
+            int configChangedCalls = 0;
+            await using BunitContext context = CreateContext(networkZoneService, apiConnection, globalConfig);
+            IRenderedComponent<ZonesConfiguration> page = Render(context, () =>
+            {
+                configChangedCalls++;
+                return Task.CompletedTask;
+            });
+
+            networkZoneService.InvokeOnEditZone(normalZone);
+            await page.InvokeAsync(async () =>
+            {
+                Task updateTask = (Task)typeof(ZonesConfiguration)
+                    .GetMethod("ExecuteNetworkZoneModifications", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                    .Invoke(page.Instance, null)!;
+                await updateTask;
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.SentQueries.First(), Is.EqualTo(ComplianceQueries.updateNetworkZone));
+                Assert.That(configChangedCalls, Is.EqualTo(1));
+            });
         }
 
         [Test]

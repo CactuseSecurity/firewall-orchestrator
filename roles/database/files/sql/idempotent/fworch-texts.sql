@@ -3286,6 +3286,8 @@ INSERT INTO txt VALUES ('add_auto_calculated_internet_zone', 'German', 'Auto-ber
 INSERT INTO txt VALUES ('add_auto_calculated_internet_zone', 'English', 'Add auto-calculated internet zone');
 INSERT INTO txt VALUES ('auto_calculated_zone_communications_warning', 'German', 'Nach dieser &Auml;nderung werden die automatisch berechneten Zonen neu berechnet. Konfigurierte Kommunikationen mit diesen Zonen werden entfernt und m&uuml;ssen erneut &uuml;berpr&uuml;ft werden.');
 INSERT INTO txt VALUES ('auto_calculated_zone_communications_warning', 'English', 'This change recalculates the auto-calculated zones. Configured communications involving these zones are removed and must be reviewed again.');
+INSERT INTO txt VALUES ('auto_calculated_zone_recalculation_failed', 'German', 'Die Zone wurde gespeichert, aber die Neuberechnung der automatischen Zonen ist fehlgeschlagen. Der angezeigte Matrixzustand wurde neu geladen und muss &uuml;berpr&uuml;ft werden.');
+INSERT INTO txt VALUES ('auto_calculated_zone_recalculation_failed', 'English', 'The zone was saved, but recalculation of the auto-calculated zones failed. The matrix state was reloaded and must be reviewed.');
 INSERT INTO txt VALUES ('complianceCheckAutoCalcUndefinedInternalZone','German', 'Undefiniert-intern Zone automatisch berechnen');
 INSERT INTO txt VALUES ('complianceCheckAutoCalcUndefinedInternalZone','English','Auto-calculate undefined-internal zone');
 INSERT INTO txt VALUES ('complianceCheckExcludeFromInternetZone','German', 'Von Internetzonenberechnung ausschlie&szlig;en');

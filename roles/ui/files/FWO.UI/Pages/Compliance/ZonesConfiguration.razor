@@ -320,6 +320,8 @@
     private async Task ExecuteNetworkZoneModifications()
     {
         Debug.Assert(networkZoneInEdit != null);
+        bool zoneSaved = false;
+        bool specialZonesRefreshCompleted = false;
         try
         {
             if (AddMode())
@@ -333,13 +335,24 @@
                 await ExecuteNetworkZoneUpdate();
             }
 
+            zoneSaved = true;
             await RefreshSpecialZones();
+            specialZonesRefreshCompleted = true;
             editMode = false;
             await ConfigChanged();
             StateHasChanged();
         }
         catch (Exception exception)
         {
+            if (zoneSaved && !specialZonesRefreshCompleted)
+            {
+                editMode = false;
+                await ConfigChanged();
+                StateHasChanged();
+                DisplayMessageInUi(exception, userConfig.GetText("zone_comm_matrix"), userConfig.GetText("auto_calculated_zone_recalculation_failed"), true);
+                return;
+            }
+
             if (networkZoneInEdit.Id == -1)
             {
                 // Add case

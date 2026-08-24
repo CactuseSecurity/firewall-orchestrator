@@ -1559,6 +1559,9 @@ namespace FWO.Compliance
             if (networkObject.IP == null && networkObject.IpEnd == null)
                 return AssessabilityIssue.IPNull;
 
+            if (networkObject.IP == "::/128" && networkObject.IpEnd == "::/128")
+                return AssessabilityIssue.IPNull;
+
             if (networkObject.IP == "0.0.0.0/32" && networkObject.IpEnd == "255.255.255.255/32")
                 return AssessabilityIssue.AllIPs;
 

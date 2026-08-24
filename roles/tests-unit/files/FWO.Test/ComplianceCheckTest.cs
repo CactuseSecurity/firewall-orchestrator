@@ -1,5 +1,6 @@
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Basics.Enums;
 using FWO.Compliance;
 using FWO.Config.Api;
 using FWO.Data;
@@ -39,6 +40,23 @@ namespace FWO.Test
         public override void SetUpTest()
         {
             base.SetUpTest();
+        }
+
+        [Test]
+        public void TryGetAssessabilityIssue_UnspecifiedIpv6Fallback_ReturnsIPNull()
+        {
+            NetworkObject networkObject = new()
+            {
+                IP = "::/128",
+                IpEnd = "::/128"
+            };
+            MethodInfo method = typeof(ComplianceCheck).GetMethod("TryGetAssessabilityIssue", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            object?[] parameters = new object?[1];
+            parameters[0] = networkObject;
+
+            AssessabilityIssue? issue = (AssessabilityIssue?)method.Invoke(ComplianceCheck, parameters);
+
+            Assert.That(issue, Is.EqualTo(AssessabilityIssue.IPNull));
         }
 
         #endregion

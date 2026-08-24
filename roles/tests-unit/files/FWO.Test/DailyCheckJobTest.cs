@@ -420,14 +420,13 @@ namespace FWO.Test
             {
                 await (Task)(checkUnansweredInterfaceRequests.Invoke(dailyCheckJob, null)
                     ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests returned null task."));
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(apiConnection.LdapQueryCount, Is.EqualTo(1));
-                Assert.That(apiConnection.NotificationLoadCount, Is.EqualTo(1));
-                Assert.That(apiConnection.OpenTicketQueryCount, Is.EqualTo(1));
-                Assert.That(apiConnection.UpdatedNotificationIds, Is.Empty);
-            });
+                Assert.Multiple(() =>
+                {
+                    Assert.That(apiConnection.LdapQueryCount, Is.EqualTo(1));
+                    Assert.That(apiConnection.NotificationLoadCount, Is.EqualTo(1));
+                    Assert.That(apiConnection.OpenTicketQueryCount, Is.EqualTo(1));
+                    Assert.That(apiConnection.UpdatedNotificationIds, Is.Empty);
+                });
             }
             finally
             {

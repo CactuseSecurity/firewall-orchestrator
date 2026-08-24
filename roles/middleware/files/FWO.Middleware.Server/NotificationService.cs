@@ -378,6 +378,15 @@ namespace FWO.Middleware.Server
             }
         }
 
+        /// <summary>
+        /// Prepares and sends a single notification email when recipients are available.
+        /// </summary>
+        /// <param name="notification">Notification to send.</param>
+        /// <param name="content">Email body content.</param>
+        /// <param name="owner">Owner context used for placeholder replacement.</param>
+        /// <param name="report">Optional report attachment.</param>
+        /// <param name="timeIntervalText">Optional resolved time interval text.</param>
+        /// <returns>True when an email was sent; otherwise false.</returns>
         private async Task<bool> SendEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
         {
             MailData? mail = await PrepareEmail(notification, content, owner, report, timeIntervalText);

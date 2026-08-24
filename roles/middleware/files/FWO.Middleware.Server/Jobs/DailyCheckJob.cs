@@ -292,7 +292,7 @@ namespace FWO.Middleware.Server.Jobs
         /// </summary>
         /// <param name="notification">Notification to evaluate.</param>
         /// <param name="interval">Repeat interval used for ticket lookup.</param>
-        /// <returns>Cut-off period in days.</returns>
+        /// <returns>Cut-off period in units of the given interval.</returns>
         private static int GetInterfaceRequestCutOffPeriod(FwoNotification notification, SchedulerInterval interval)
         {
             long initialOffset = notification.InitialOffsetAfterDeadline ?? 0;

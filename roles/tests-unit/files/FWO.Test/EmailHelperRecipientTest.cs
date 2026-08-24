@@ -183,19 +183,20 @@ namespace FWO.Test
         [Test]
         public async Task GetRecipientsResolvesAssignedGroupUsersThroughOwnerGroups()
         {
+            List<UserGroup> ownerGroups = new()
+            {
+                new UserGroup
+                {
+                    Dn = "cn=network-team,dc=test",
+                    Users =
+                    [
+                        new UiUser { Dn = "cn=alice,dc=test" },
+                        new UiUser { Dn = "cn=bob,dc=test" }
+                    ]
+                }
+            };
             EmailHelper helper = CreateEmailHelper(
-                ownerGroups:
-                [
-                    new UserGroup
-                    {
-                        Dn = "cn=network-team,dc=test",
-                        Users =
-                        [
-                            new UiUser { Dn = "cn=alice,dc=test" },
-                            new UiUser { Dn = "cn=bob,dc=test" }
-                        ]
-                    }
-                ],
+                ownerGroups,
                 useDummyEmailAddress: false);
             SetPrivateField(helper, "uiUsers", new List<UiUser>
             {
@@ -216,19 +217,20 @@ namespace FWO.Test
         [Test]
         public async Task GetRecipientsReturnsEmptyForUnresolvedAssignedGroupMembers()
         {
+            List<UserGroup> ownerGroups = new()
+            {
+                new UserGroup
+                {
+                    Dn = "cn=network-team,dc=test",
+                    Users =
+                    [
+                        new UiUser { Dn = "cn=alice,dc=test" },
+                        new UiUser { Dn = "cn=missing,dc=test" }
+                    ]
+                }
+            };
             EmailHelper helper = CreateEmailHelper(
-                ownerGroups:
-                [
-                    new UserGroup
-                    {
-                        Dn = "cn=network-team,dc=test",
-                        Users =
-                        [
-                            new UiUser { Dn = "cn=alice,dc=test" },
-                            new UiUser { Dn = "cn=missing,dc=test" }
-                        ]
-                    }
-                ],
+                ownerGroups,
                 useDummyEmailAddress: false);
             SetPrivateField(helper, "uiUsers", new List<UiUser>
             {

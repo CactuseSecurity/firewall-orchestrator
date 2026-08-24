@@ -319,6 +319,10 @@ namespace FWO.Services
             }
         }
 
+        /// <summary>
+        /// Returns the active owner responsible type ids loaded from configuration.
+        /// </summary>
+        /// <returns>Active owner responsible type ids, or null before the responsible types are loaded.</returns>
         private List<int>? GetActiveOwnerResponsibleTypeIds()
         {
             if (!ownerResponsibleTypesLoaded)

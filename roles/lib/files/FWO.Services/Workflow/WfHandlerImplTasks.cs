@@ -406,6 +406,9 @@ namespace FWO.Services.Workflow
                 && RequestTaskNeedsInitialImplTasks(reqTask);
         }
 
+        /// <summary>
+        /// Determines whether the planning phase is enabled for the supplied state matrix.
+        /// </summary>
         private static bool IsPlanningPhaseActive(StateMatrix matrix)
         {
             if (!matrix.PhaseActive.TryGetValue(WorkflowPhases.planning, out bool planningActive))

@@ -56,6 +56,10 @@ namespace FWO.Services.Workflow
 
         public void SelectReqTask(WfReqTask reqTask, ObjAction action)
         {
+            if (action == ObjAction.add && reqTask.TicketId <= 0 && ActTicket != null)
+            {
+                reqTask.TicketId = ActTicket.Id;
+            }
             SetReqTaskEnv(reqTask);
             SetReqTaskMode(action);
         }
@@ -133,19 +137,22 @@ namespace FWO.Services.Workflow
             ActStateMatrix = stateMatrixDict.Matrices[reqTask.TaskType];
         }
 
+        /// <summary>
+        /// Resolves the ticket that belongs to the supplied request task from the current context or ticket list.
+        /// </summary>
         private WfTicket? ResolveTicketForReqTask(WfReqTask reqTask)
         {
-            if (ActTicket != null && ActTicket.Id == reqTask.TicketId)
-            {
-                return ActTicket;
-            }
-
             if (reqTask.TicketId > 0)
             {
+                if (ActTicket != null && ActTicket.Id == reqTask.TicketId)
+                {
+                    return ActTicket;
+                }
+
                 return TicketList.FirstOrDefault(ticket => ticket.Id == reqTask.TicketId);
             }
 
-            if (ActTicket != null)
+            if (ActTicket != null && (ActTicket.Id <= 0 || ActTicket.Tasks.Any(task => task.Id == reqTask.Id)))
             {
                 return ActTicket;
             }

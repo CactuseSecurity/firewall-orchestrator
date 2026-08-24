@@ -118,8 +118,7 @@ public sealed class FlowRequestService
         {
             if (states.Any(state => state.Id == configuredStateId))
             {
-                WorkflowPhases fallbackPhase = ResolveInitialWorkflowPhase(stateMatrix);
-                WorkflowPhases configuredPhase = ResolvePhaseForConfiguredState(stateMatrix, configuredStateId, fallbackPhase);
+                WorkflowPhases configuredPhase = ResolvePhaseForConfiguredState(stateMatrix, configuredStateId);
                 return (configuredPhase, configuredStateId);
             }
 
@@ -149,7 +148,7 @@ public sealed class FlowRequestService
     /// <summary>
     /// Resolves the active workflow phase that owns a configured ticket state.
     /// </summary>
-    private static WorkflowPhases ResolvePhaseForConfiguredState(StateMatrixConfigurationSnapshot stateMatrix, int stateId, WorkflowPhases fallbackPhase)
+    private static WorkflowPhases ResolvePhaseForConfiguredState(StateMatrixConfigurationSnapshot stateMatrix, int stateId)
     {
         List<WorkflowPhases> matchingPhases = [];
         foreach (WorkflowPhases phase in Enum.GetValues<WorkflowPhases>())
@@ -173,8 +172,7 @@ public sealed class FlowRequestService
             throw new InvalidOperationException($"Configured API ticket state id {stateId} matches multiple active workflow phases: {string.Join(", ", matchingPhases)}.");
         }
 
-        Log.WriteWarning("Flow Request", $"Configured API ticket state id {stateId} does not belong to an active workflow phase. Falling back to {fallbackPhase}.");
-        return fallbackPhase;
+        throw new InvalidOperationException($"Configured API ticket state id {stateId} does not belong to any active workflow phase.");
     }
 
     /// <summary>

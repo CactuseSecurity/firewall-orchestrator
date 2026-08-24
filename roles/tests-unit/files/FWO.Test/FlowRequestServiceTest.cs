@@ -378,7 +378,12 @@ internal class FlowRequestServiceTest
                 new WfState { Id = 17, Name = "requested" },
                 new WfState { Id = 0, Name = "draft" }
             ],
-            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
+            WorkflowConfigurations =
+            [
+                CreateWorkflowConfiguration("request-active",
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.request, true, 17, 18, 17))
+            ]
         };
         FlowRequestService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
 
@@ -445,87 +450,14 @@ internal class FlowRequestServiceTest
             Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
             WorkflowConfigurations =
             [
-                new WorkflowConfiguration
-                {
-                    Id = 1,
-                    Name = "approval-active",
-                    Phases =
-                    [
-                        new WorkflowConfigurationPhase
-                        {
-                            TaskType = WfTaskType.master.ToString(),
-                            Phase = WorkflowPhases.request.ToString(),
-                            PhaseMatrix = new StateMatrixPhase
-                            {
-                                Id = 21,
-                                Name = "request",
-                                Phase = WorkflowPhases.request.ToString(),
-                                Active = false,
-                                LowestInputState = 1,
-                                LowestStartState = 1,
-                                LowestEndState = 2
-                            }
-                        },
-                        new WorkflowConfigurationPhase
-                        {
-                            TaskType = WfTaskType.master.ToString(),
-                            Phase = WorkflowPhases.approval.ToString(),
-                            PhaseMatrix = new StateMatrixPhase
-                            {
-                                Id = 22,
-                                Name = "approval",
-                                Phase = WorkflowPhases.approval.ToString(),
-                                Active = true,
-                                LowestInputState = 11,
-                                LowestStartState = 11,
-                                LowestEndState = 12
-                            }
-                        }
-                    ]
-                }
+                CreateWorkflowConfiguration("approval-active",
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.request, false, 1, 2, 21),
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.approval, true, 11, 12, 22))
             ]
         };
         FlowRequestService service = new(apiConnection, new GlobalConfig());
 
-        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
-        {
-            RequestorName = "Alice Example",
-            RequestorId = "alice",
-            RuleContactName = "Bob Approver",
-            RuleContactId = "bob",
-            Title = "Approval phase request",
-            AddressObjects =
-            [
-                new CreateRequestRequest.CreateAddressObjectRequest
-                {
-                    Id = "-1",
-                    Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
-                }
-            ],
-            ServiceObjects =
-            [
-                new CreateRequestRequest.CreateServiceObjectRequest
-                {
-                    Id = "-2",
-                    Name = "https",
-                    Protocol = "tcp",
-                    PortStart = 443,
-                    PortEnd = 443
-                }
-            ],
-            Rules =
-            [
-                new CreateRequestRequest.CreateRequestRuleRequest
-                {
-                    Action = "accept",
-                    SourceObjects = [-1],
-                    DestinationObjects = [-1],
-                    ServiceObjects = [-2]
-                }
-            ]
-        }, 77);
+        CreateRequestResponse response = await service.CreateRequestAsync(CreateBaseRequest("Approval phase request"), 77);
 
         Assert.Multiple(() =>
         {
@@ -537,109 +469,28 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public async Task CreateRequest_FallsBackToActivePhaseWhenConfiguredStateDoesNotMatchAPhase()
+    public async Task CreateRequest_RejectsConfiguredInitialStateWhenConfiguredStateBelongsToInactivePhase()
     {
         FlowRequestServiceApiConn apiConnection = new()
         {
             States =
             [
                 new WfState { Id = 1, Name = "request" },
-                new WfState { Id = 11, Name = "approval" },
-                new WfState { Id = 99, Name = "orphan" }
+                new WfState { Id = 11, Name = "approval" }
             ],
             Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
             WorkflowConfigurations =
             [
-                new WorkflowConfiguration
-                {
-                    Id = 1,
-                    Name = "approval-active",
-                    Phases =
-                    [
-                        new WorkflowConfigurationPhase
-                        {
-                            TaskType = WfTaskType.master.ToString(),
-                            Phase = WorkflowPhases.request.ToString(),
-                            PhaseMatrix = new StateMatrixPhase
-                            {
-                                Id = 21,
-                                Name = "request",
-                                Phase = WorkflowPhases.request.ToString(),
-                                Active = false,
-                                LowestInputState = 1,
-                                LowestStartState = 1,
-                                LowestEndState = 2
-                            }
-                        },
-                        new WorkflowConfigurationPhase
-                        {
-                            TaskType = WfTaskType.master.ToString(),
-                            Phase = WorkflowPhases.approval.ToString(),
-                            PhaseMatrix = new StateMatrixPhase
-                            {
-                                Id = 22,
-                                Name = "approval",
-                                Phase = WorkflowPhases.approval.ToString(),
-                                Active = true,
-                                LowestInputState = 11,
-                                LowestStartState = 11,
-                                LowestEndState = 12
-                            }
-                        }
-                    ]
-                }
+                CreateWorkflowConfiguration("approval-active",
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.request, false, 1, 2, 21),
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.approval, true, 11, 12, 22))
             ]
         };
-        FlowRequestService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 99 });
+        FlowRequestService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 1 });
 
-        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
-        {
-            RequestorName = "Alice Example",
-            RequestorId = "alice",
-            RuleContactName = "Bob Approver",
-            RuleContactId = "bob",
-            Title = "Invalid initial state",
-            AddressObjects =
-            [
-                new CreateRequestRequest.CreateAddressObjectRequest
-                {
-                    Id = "-1",
-                    Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
-                }
-            ],
-            ServiceObjects =
-            [
-                new CreateRequestRequest.CreateServiceObjectRequest
-                {
-                    Id = "-2",
-                    Name = "https",
-                    Protocol = "tcp",
-                    PortStart = 443,
-                    PortEnd = 443
-                }
-            ],
-            Rules =
-            [
-                new CreateRequestRequest.CreateRequestRuleRequest
-                {
-                    Action = "accept",
-                    SourceObjects = [-1],
-                    DestinationObjects = [-1],
-                    ServiceObjects = [-2]
-                }
-            ]
-        }, 77);
+        InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await service.CreateRequestAsync(CreateBaseRequest("Invalid initial state"), 77))!;
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(response.Status, Is.EqualTo("orphan"));
-            Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
-            Assert.That(GetVariable(apiConnection.NewTicketVariables, "state"), Is.EqualTo(99));
-            Assert.That(apiConnection.CreatedTicket, Is.Not.Null);
-            Assert.That(apiConnection.CreatedTicket!.StateId, Is.EqualTo(99));
-        });
+        Assert.That(exception.Message, Does.Contain("does not belong to any active workflow phase"));
     }
 
     [Test]
@@ -711,102 +562,15 @@ internal class FlowRequestServiceTest
             Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
             WorkflowConfigurations =
             [
-                new WorkflowConfiguration
-                {
-                    Id = 1,
-                    Name = "overlap",
-                    Phases =
-                    [
-                        new WorkflowConfigurationPhase
-                        {
-                            TaskType = WfTaskType.master.ToString(),
-                            Phase = WorkflowPhases.request.ToString(),
-                            PhaseMatrix = new StateMatrixPhase
-                            {
-                                Id = 31,
-                                Name = "request",
-                                Phase = WorkflowPhases.request.ToString(),
-                                Active = false,
-                                LowestInputState = 1,
-                                LowestStartState = 1,
-                                LowestEndState = 2
-                            }
-                        },
-                        new WorkflowConfigurationPhase
-                        {
-                            TaskType = WfTaskType.master.ToString(),
-                            Phase = WorkflowPhases.approval.ToString(),
-                            PhaseMatrix = new StateMatrixPhase
-                            {
-                                Id = 32,
-                                Name = "approval",
-                                Phase = WorkflowPhases.approval.ToString(),
-                                Active = true,
-                                LowestInputState = 10,
-                                LowestStartState = 10,
-                                LowestEndState = 20
-                            }
-                        },
-                        new WorkflowConfigurationPhase
-                        {
-                            TaskType = WfTaskType.master.ToString(),
-                            Phase = WorkflowPhases.planning.ToString(),
-                            PhaseMatrix = new StateMatrixPhase
-                            {
-                                Id = 33,
-                                Name = "planning",
-                                Phase = WorkflowPhases.planning.ToString(),
-                                Active = true,
-                                LowestInputState = 15,
-                                LowestStartState = 15,
-                                LowestEndState = 25
-                            }
-                        }
-                    ]
-                }
+                CreateWorkflowConfiguration("overlap",
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.request, false, 1, 2, 31),
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.approval, true, 10, 20, 32),
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.planning, true, 15, 25, 33))
             ]
         };
         FlowRequestService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
 
-        InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await service.CreateRequestAsync(new CreateRequestRequest
-        {
-            RequestorName = "Alice Example",
-            RequestorId = "alice",
-            RuleContactName = "Bob Approver",
-            RuleContactId = "bob",
-            Title = "Overlapping phase request",
-            AddressObjects =
-            [
-                new CreateRequestRequest.CreateAddressObjectRequest
-                {
-                    Id = "-1",
-                    Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
-                }
-            ],
-            ServiceObjects =
-            [
-                new CreateRequestRequest.CreateServiceObjectRequest
-                {
-                    Id = "-2",
-                    Name = "https",
-                    Protocol = "tcp",
-                    PortStart = 443,
-                    PortEnd = 443
-                }
-            ],
-            Rules =
-            [
-                new CreateRequestRequest.CreateRequestRuleRequest
-                {
-                    Action = "accept",
-                    SourceObjects = [-1],
-                    DestinationObjects = [-1],
-                    ServiceObjects = [-2]
-                }
-            ]
-        }, 77))!;
+        InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await service.CreateRequestAsync(CreateBaseRequest("Overlapping phase request"), 77))!;
 
         Assert.That(exception.Message, Does.Contain("matches multiple active workflow phases"));
     }
@@ -1155,7 +919,12 @@ internal class FlowRequestServiceTest
                 new WfState { Id = 17, Name = "requested" },
                 new WfState { Id = 0, Name = "draft" }
             ],
-            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
+            WorkflowConfigurations =
+            [
+                CreateWorkflowConfiguration("request-active",
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.request, true, 17, 18, 17))
+            ]
         };
         FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 }));
         controller.ControllerContext = new ControllerContext
@@ -1670,6 +1439,102 @@ internal class FlowRequestServiceTest
         }
 
         return variables?.GetType().GetProperty(propertyName)?.GetValue(variables);
+    }
+
+    /// <summary>
+    /// Builds a minimal create-request payload used by the workflow phase tests.
+    /// </summary>
+    private static CreateRequestRequest CreateBaseRequest(string title)
+    {
+        return new CreateRequestRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = title,
+            AddressObjects = [CreateAddressObjectRequest()],
+            ServiceObjects = [CreateServiceObjectRequest()],
+            Rules = [CreateAcceptRuleRequest()]
+        };
+    }
+
+    /// <summary>
+    /// Creates the default address object used by the workflow phase tests.
+    /// </summary>
+    private static CreateRequestRequest.CreateAddressObjectRequest CreateAddressObjectRequest()
+    {
+        return new CreateRequestRequest.CreateAddressObjectRequest
+        {
+            Id = "-1",
+            Name = "app-server-1",
+            IpStart = "192.0.2.10",
+            IpEnd = "192.0.2.10"
+        };
+    }
+
+    /// <summary>
+    /// Creates the default service object used by the workflow phase tests.
+    /// </summary>
+    private static CreateRequestRequest.CreateServiceObjectRequest CreateServiceObjectRequest()
+    {
+        return new CreateRequestRequest.CreateServiceObjectRequest
+        {
+            Id = "-2",
+            Name = "https",
+            Protocol = "tcp",
+            PortStart = 443,
+            PortEnd = 443
+        };
+    }
+
+    /// <summary>
+    /// Creates the default accept rule used by the workflow phase tests.
+    /// </summary>
+    private static CreateRequestRequest.CreateRequestRuleRequest CreateAcceptRuleRequest()
+    {
+        return new CreateRequestRequest.CreateRequestRuleRequest
+        {
+            Action = "accept",
+            SourceObjects = [-1],
+            DestinationObjects = [-1],
+            ServiceObjects = [-2]
+        };
+    }
+
+    /// <summary>
+    /// Creates a workflow configuration with the supplied phases.
+    /// </summary>
+    private static WorkflowConfiguration CreateWorkflowConfiguration(string name, params WorkflowConfigurationPhase[] phases)
+    {
+        return new WorkflowConfiguration
+        {
+            Id = 1,
+            Name = name,
+            Phases = [.. phases]
+        };
+    }
+
+    /// <summary>
+    /// Creates one workflow configuration phase entry for the supplied phase.
+    /// </summary>
+    private static WorkflowConfigurationPhase CreateWorkflowConfigurationPhase(WorkflowPhases phase, bool active, int lowestInputState, int lowestEndState, int id)
+    {
+        return new WorkflowConfigurationPhase
+        {
+            TaskType = WfTaskType.master.ToString(),
+            Phase = phase.ToString(),
+            PhaseMatrix = new StateMatrixPhase
+            {
+                Id = id,
+                Name = phase.ToString(),
+                Phase = phase.ToString(),
+                Active = active,
+                LowestInputState = lowestInputState,
+                LowestStartState = lowestInputState,
+                LowestEndState = lowestEndState
+            }
+        };
     }
 
     private sealed class FlowRequestServiceApiConn : SimulatedApiConnection

@@ -1004,6 +1004,20 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DoStateChangeActions_SetsTicketEnvironmentForTicketScope()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            WfHandler wfHandler = new();
+            ActionHandler handler = new(apiConn, wfHandler);
+            WfTicket ticket = new() { Id = 42 };
+            ticket.MarkCreatedStateChanged(1);
+
+            await handler.DoStateChangeActions(ticket, WfObjectScopes.Ticket);
+
+            Assert.That(wfHandler.ActTicket, Is.SameAs(ticket));
+        }
+
+        [Test]
         public void BuildWorkflowActionParameters_IncludesCreationStateChangeFlag()
         {
             ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler());

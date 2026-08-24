@@ -115,6 +115,25 @@ namespace FWO.Test
         }
 
         [Test]
+        public void SelectReqTask_AddBindsNewTaskToCurrentTicket()
+        {
+            WfHandler handler = new();
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType);
+            handler.ActTicket = new WfTicket { Id = 7 };
+            WfReqTask reqTask = new() { Id = 11, TicketId = 0, TaskType = taskType };
+
+            handler.SelectReqTask(reqTask, ObjAction.add);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActReqTask.TicketId, Is.EqualTo(7));
+                Assert.That(handler.ActTicket, Is.Not.Null);
+                Assert.That(handler.AddReqTaskMode, Is.True);
+            });
+        }
+
+        [Test]
         public async Task SelectReqTask_AsyncWithoutReloadUsesProvidedTask()
         {
             WfHandler handler = new();
@@ -316,6 +335,39 @@ namespace FWO.Test
             string taskType = WfTaskType.access.ToString();
             SetMatrix(handler, taskType);
             WfReqTask reqTask = new() { Id = 11, TicketId = 7, TaskType = taskType };
+
+            bool found = handler.TrySetReqTaskEnv(reqTask);
+
+            Assert.That(found, Is.False);
+        }
+
+        [Test]
+        public void TrySetReqTaskEnv_UsesUnsavedCurrentTicketWhenRequestTaskHasNoTicketId()
+        {
+            WfHandler handler = new();
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType);
+            WfReqTask reqTask = new() { Id = 11, TicketId = 0, TaskType = taskType };
+            handler.ActTicket = new WfTicket { Id = 0, Tasks = { reqTask } };
+
+            bool found = handler.TrySetReqTaskEnv(reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(found, Is.True);
+                Assert.That(handler.ActTicket, Is.Not.Null);
+                Assert.That(handler.ActReqTask.Id, Is.EqualTo(11));
+            });
+        }
+
+        [Test]
+        public void TrySetReqTaskEnv_ReturnsFalseWhenZeroTicketIdUsesStaleCurrentTicket()
+        {
+            WfHandler handler = new();
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType);
+            WfReqTask reqTask = new() { Id = 11, TicketId = 0, TaskType = taskType };
+            handler.ActTicket = new WfTicket { Id = 7 };
 
             bool found = handler.TrySetReqTaskEnv(reqTask);
 

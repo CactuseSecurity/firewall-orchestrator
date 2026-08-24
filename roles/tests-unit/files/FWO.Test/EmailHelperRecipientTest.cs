@@ -42,6 +42,7 @@ namespace FWO.Test
         private static readonly string[] kResolverDns = ["cn=existing,dc=test", "cn=fresh,dc=test"];
         private static readonly string[] kOwnerGroupDns = ["cn=network-team,dc=test", "cn=external,dc=test"];
         private static readonly string[] kResolvedRecipients = ["new@example.test", "fresh@example.test"];
+        private static readonly Type[] kCollectRecipientsParameterTypes = [typeof(FwoNotification), typeof(FwoOwner), typeof(bool), typeof(bool)];
 
         private static EmailHelper CreateEmailHelper(List<UserGroup>? ownerGroups = null, bool useDummyEmailAddress = true,
             IWorkflowRecipientResolver? recipientResolver = null)
@@ -273,7 +274,7 @@ namespace FWO.Test
                 NotificationClient.InterfaceRequest,
                 globalConfig,
                 new NotificationServiceWithRecipientsApiConn(),
-                []);
+                new List<UserGroup>());
 
             FwoNotification notification = new()
             {
@@ -288,11 +289,11 @@ namespace FWO.Test
                     "CollectRecipients",
                     BindingFlags.Instance | BindingFlags.NonPublic,
                     null,
-                    [typeof(FwoNotification), typeof(FwoOwner), typeof(bool), typeof(bool)],
+                    kCollectRecipientsParameterTypes,
                     null)
                     ?? throw new MissingMethodException(typeof(NotificationService).FullName, "CollectRecipients");
 
-                object?[] args = [notification, null, false, false];
+                object?[] args = new object?[] { notification, null, false, false };
                 Task<List<string>> task = (Task<List<string>>)method.Invoke(notificationService, args)!;
                 List<string> recipients = await task;
 

@@ -28,6 +28,7 @@ namespace FWO.Test
         private static readonly string[] kJsonRecipients = ["json@example.test"];
         private static readonly string[] kMainRecipients = ["main@example.test"];
         private static readonly NotificationDeadline[] kNoneDeadline = [NotificationDeadline.None];
+        private static readonly Type[] kCollectRecipientsParameterTypes = [typeof(FwoNotification), typeof(FwoOwner), typeof(bool), typeof(bool)];
 
         [Test]
         public async Task TestInterfaceRequestNotification()
@@ -429,7 +430,7 @@ namespace FWO.Test
                 NotificationClient.InterfaceRequest,
                 localConfig,
                 new NotificationTestApiConn(),
-                []);
+                new List<UserGroup>());
             FwoOwner owner = new() { Name = "Owner", ExtAppId = "1" };
 
             FwoNotification bundledA = notificationService.Notifications[0];
@@ -447,7 +448,8 @@ namespace FWO.Test
                 EmailBody = "single body"
             };
 
-            int emailsSent = await notificationService.SendBundledNotifications([bundledA, bundledB, standalone], owner, "body");
+            List<FwoNotification> bundledNotifications = new() { bundledA, bundledB, standalone };
+            int emailsSent = await notificationService.SendBundledNotifications(bundledNotifications, owner, "body");
             int updatedNotifications = await notificationService.UpdateNotificationsLastSent();
 
             Assert.Multiple(() =>
@@ -464,10 +466,11 @@ namespace FWO.Test
                 NotificationClient.InterfaceRequest,
                 globalConfig,
                 apiConnection,
-                []);
+                new List<UserGroup>());
             FwoOwner owner = new() { Name = "Owner", ExtAppId = "1" };
 
-            int emailsSent = await notificationService.SendBundledNotifications([], owner, "body");
+            List<FwoNotification> noNotifications = new();
+            int emailsSent = await notificationService.SendBundledNotifications(noNotifications, owner, "body");
             int updatedNotifications = await notificationService.UpdateNotificationsLastSent();
 
             Assert.Multiple(() =>
@@ -488,7 +491,9 @@ namespace FWO.Test
             MethodInfo? prepareBundledEmail = typeof(NotificationService).GetMethod("PrepareBundledEmail", BindingFlags.Instance | BindingFlags.NonPublic);
             ClassicAssert.IsNotNull(prepareBundledEmail);
 
-            Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareBundledEmail?.Invoke(notificationService, [new List<FwoNotification> { notification }, null, owner, null, ""])
+            List<FwoNotification> notifications = new() { notification };
+            object?[] invokeArgs = new object?[] { notifications, null, owner, null, "" };
+            Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareBundledEmail?.Invoke(notificationService, invokeArgs)
                 ?? throw new InvalidOperationException("PrepareBundledEmail returned null task."));
             FWO.Mail.MailData mailData = await task;
 
@@ -508,7 +513,9 @@ namespace FWO.Test
             MethodInfo? prepareBundledEmail = typeof(NotificationService).GetMethod("PrepareBundledEmail", BindingFlags.Instance | BindingFlags.NonPublic);
             ClassicAssert.IsNotNull(prepareBundledEmail);
 
-            Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareBundledEmail?.Invoke(notificationService, [new List<FwoNotification> { notification }, null, owner, new TestReport(), ""])
+            List<FwoNotification> notifications = new() { notification };
+            object?[] invokeArgs = new object?[] { notifications, null, owner, new TestReport(), "" };
+            Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareBundledEmail?.Invoke(notificationService, invokeArgs)
                 ?? throw new InvalidOperationException("PrepareBundledEmail returned null task."));
 
             Assert.ThrowsAsync<NotSupportedException>(async () => await task);
@@ -523,8 +530,10 @@ namespace FWO.Test
             MethodInfo? getBundleGroupKey = typeof(NotificationService).GetMethod("GetBundleGroupKey", BindingFlags.Static | BindingFlags.NonPublic);
             ClassicAssert.IsNotNull(getBundleGroupKey);
 
-            string singleKey = (string)(getBundleGroupKey?.Invoke(null, [singleNotification]) ?? throw new InvalidOperationException("GetBundleGroupKey returned null."));
-            string groupedKey = (string)(getBundleGroupKey?.Invoke(null, [groupedNotification]) ?? throw new InvalidOperationException("GetBundleGroupKey returned null."));
+            object?[] singleArgs = new object?[] { singleNotification };
+            object?[] groupedArgs = new object?[] { groupedNotification };
+            string singleKey = (string)(getBundleGroupKey?.Invoke(null, singleArgs) ?? throw new InvalidOperationException("GetBundleGroupKey returned null."));
+            string groupedKey = (string)(getBundleGroupKey?.Invoke(null, groupedArgs) ?? throw new InvalidOperationException("GetBundleGroupKey returned null."));
 
             ClassicAssert.AreEqual("single:17", singleKey);
             ClassicAssert.AreEqual("Attachments:bundle-42", groupedKey);
@@ -887,7 +896,7 @@ namespace FWO.Test
                 "CollectRecipients",
                 BindingFlags.Instance | BindingFlags.NonPublic,
                 null,
-                [typeof(FwoNotification), typeof(FwoOwner), typeof(bool), typeof(bool)],
+                kCollectRecipientsParameterTypes,
                 null)
                 ?? throw new MissingMethodException(typeof(NotificationService).FullName, "CollectRecipients");
         }

@@ -302,11 +302,22 @@ namespace FWO.Middleware.Server
             return DateTime.Now;
         }
 
+        /// <summary>
+        /// Loads notification definitions for the selected notification client.
+        /// </summary>
+        /// <param name="notificationClient">Notification client to load.</param>
+        /// <param name="apiConnection">GraphQL API connection.</param>
+        /// <returns>Notification definitions for the client.</returns>
         private static async Task<List<FwoNotification>> LoadNotifications(NotificationClient notificationClient, ApiConnection apiConnection)
         {
             return await apiConnection.SendQueryAsync<List<FwoNotification>>(NotificationQueries.getNotifications, new { client = notificationClient.ToString() });
         }
 
+        /// <summary>
+        /// Loads LDAP connections for recipient resolution.
+        /// </summary>
+        /// <param name="apiConnection">GraphQL API connection.</param>
+        /// <returns>Loaded LDAP connections or null when loading fails.</returns>
         private static async Task<List<Ldap>?> LoadLdapConnections(ApiConnection apiConnection)
         {
             try
@@ -320,6 +331,11 @@ namespace FWO.Middleware.Server
             }
         }
 
+        /// <summary>
+        /// Loads owner groups from already available LDAP connections.
+        /// </summary>
+        /// <param name="connectedLdaps">Previously loaded LDAP connections.</param>
+        /// <returns>Owner groups or an empty list when loading fails.</returns>
         private static async Task<List<UserGroup>> LoadOwnerGroups(List<Ldap>? connectedLdaps)
         {
             try
@@ -338,6 +354,12 @@ namespace FWO.Middleware.Server
             }
         }
 
+        /// <summary>
+        /// Creates the workflow recipient resolver from already available LDAP connections.
+        /// </summary>
+        /// <param name="apiConnection">GraphQL API connection.</param>
+        /// <param name="connectedLdaps">Previously loaded LDAP connections.</param>
+        /// <returns>A workflow recipient resolver or null when loading fails.</returns>
         private static WorkflowRecipientResolver? LoadWorkflowRecipientResolver(ApiConnection apiConnection, List<Ldap>? connectedLdaps)
         {
             try
@@ -374,6 +396,15 @@ namespace FWO.Middleware.Server
             return true;
         }
 
+        /// <summary>
+        /// Sends a bundled notification email for a group of notifications.
+        /// </summary>
+        /// <param name="notifications">Grouped notifications to send together.</param>
+        /// <param name="content">Text for notification email body.</param>
+        /// <param name="owner">Owner context used for placeholder replacement.</param>
+        /// <param name="report">Optional report attachment.</param>
+        /// <param name="timeIntervalText">Optional resolved time interval text.</param>
+        /// <returns>True when the email was sent; otherwise false.</returns>
         private async Task<bool> SendBundledEmail(List<FwoNotification> notifications, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
         {
             MailData mail = await PrepareBundledEmail(notifications, content, owner, report, timeIntervalText);
@@ -474,6 +505,10 @@ namespace FWO.Middleware.Server
                 });
         }
 
+        /// <summary>
+        /// Creates and initializes the email helper used for recipient resolution.
+        /// </summary>
+        /// <returns>Initialized email helper.</returns>
         private async Task<EmailHelper> CreateEmailHelper()
         {
             EmailHelper emailHelper = new(ApiConnection, null, new(), DefaultInit.DoNothing, OwnerGroups, recipientResolver: WorkflowRecipientResolver);
@@ -481,6 +516,14 @@ namespace FWO.Middleware.Server
             return emailHelper;
         }
 
+        /// <summary>
+        /// Collects recipients for the notification using the configured resolution path.
+        /// </summary>
+        /// <param name="notification">Notification to inspect.</param>
+        /// <param name="owner">Owner context used for recipient resolution.</param>
+        /// <param name="cc">Whether to resolve the Cc recipient set.</param>
+        /// <param name="bcc">Whether to resolve the Bcc recipient set.</param>
+        /// <returns>Resolved email addresses.</returns>
         private async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner? owner, bool cc = false, bool bcc = false)
         {
             if (GlobalConfig.UseDummyEmailAddress)
@@ -491,6 +534,15 @@ namespace FWO.Middleware.Server
             return await CollectRecipients(notification, owner, emailHelper, cc, bcc);
         }
 
+        /// <summary>
+        /// Collects recipients for the notification using a preinitialized email helper.
+        /// </summary>
+        /// <param name="notification">Notification to inspect.</param>
+        /// <param name="owner">Owner context used for recipient resolution.</param>
+        /// <param name="emailHelper">Preinitialized email helper.</param>
+        /// <param name="cc">Whether to resolve the Cc recipient set.</param>
+        /// <param name="bcc">Whether to resolve the Bcc recipient set.</param>
+        /// <returns>Resolved email addresses.</returns>
         private static async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner? owner, EmailHelper emailHelper, bool cc = false, bool bcc = false)
         {
             EmailRecipientOption recipientOption = notification.RecipientTo;

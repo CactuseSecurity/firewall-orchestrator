@@ -37,6 +37,11 @@ namespace FWO.Middleware.Server
             return BuildOwnerGroups(allGroups);
         }
 
+        /// <summary>
+        /// Converts LDAP group query results into owner groups.
+        /// </summary>
+        /// <param name="allGroups">LDAP group results to convert.</param>
+        /// <returns>Owner groups derived from the LDAP data.</returns>
         private static List<UserGroup> BuildOwnerGroups(List<GroupGetReturnParameters> allGroups)
         {
             List<UserGroup> ownerGroups = [];

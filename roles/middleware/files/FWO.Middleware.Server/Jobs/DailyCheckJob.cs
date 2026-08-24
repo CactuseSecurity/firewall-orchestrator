@@ -287,6 +287,12 @@ namespace FWO.Middleware.Server.Jobs
             Log.WriteDebug(LogMessageTitle, $"Unanswered Interface Requests Check: Sent {emailsSent} emails.");
         }
 
+        /// <summary>
+        /// Calculates the ticket creation cut-off period for unanswered interface request notifications.
+        /// </summary>
+        /// <param name="notification">Notification to evaluate.</param>
+        /// <param name="interval">Repeat interval used for ticket lookup.</param>
+        /// <returns>Cut-off period in days.</returns>
         private static int GetInterfaceRequestCutOffPeriod(FwoNotification notification, SchedulerInterval interval)
         {
             long initialOffset = notification.InitialOffsetAfterDeadline ?? 0;
@@ -297,6 +303,11 @@ namespace FWO.Middleware.Server.Jobs
             return (int)Math.Max(0, Math.Min(cutOffPeriod, maxCutOffPeriod));
         }
 
+        /// <summary>
+        /// Returns the maximum supported cut-off period for the configured interval.
+        /// </summary>
+        /// <param name="interval">Repeat interval used for ticket lookup.</param>
+        /// <returns>Maximum supported cut-off period in interval units.</returns>
         private static long GetMaximumCutOffPeriod(SchedulerInterval interval)
         {
             DateTime referenceDate = DateTime.Now.Date;

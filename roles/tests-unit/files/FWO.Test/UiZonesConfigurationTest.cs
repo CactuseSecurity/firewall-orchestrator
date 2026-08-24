@@ -199,6 +199,46 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task RecalculationFailureAfterZoneDeletion_ReloadsThePersistedState()
+        {
+            ComplianceNetworkZone normalZone = new() { Id = 1, CriterionId = 1, Name = "normal" };
+            NetworkZoneService networkZoneService = new()
+            {
+                NetworkZones = new List<ComplianceNetworkZone> { normalZone }
+            };
+            ZonesConfigurationApiConnection apiConnection = new()
+            {
+                ThrowWhenLoadingNetworkZones = true
+            };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                AutoCalculateInternetZone = true
+            };
+            int configChangedCalls = 0;
+            await using BunitContext context = CreateContext(networkZoneService, apiConnection, globalConfig);
+            IRenderedComponent<ZonesConfiguration> page = Render(context, () =>
+            {
+                configChangedCalls++;
+                return Task.CompletedTask;
+            });
+
+            networkZoneService.InvokeOnDeleteZone(normalZone);
+            await page.InvokeAsync(async () =>
+            {
+                Task deleteTask = (Task)typeof(ZonesConfiguration)
+                    .GetMethod("ExecuteNetworkZoneDeletion", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                    .Invoke(page.Instance, null)!;
+                await deleteTask;
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.SentQueries.First(), Is.EqualTo(ComplianceQueries.removeNetworkZone));
+                Assert.That(configChangedCalls, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
         public async Task SubscribesToTheZoneEventsWhileItIsRendered()
         {
             NetworkZoneService networkZoneService = new();

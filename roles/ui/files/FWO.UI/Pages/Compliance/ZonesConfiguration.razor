@@ -388,18 +388,31 @@
     {
         if(networkZoneInEdit != null)
         {
+            bool zoneDeleted = false;
+            bool specialZonesRefreshCompleted = false;
             try
             {
                 await NetworkZoneService.RemoveZone(networkZoneInEdit, apiConnection);
+                zoneDeleted = true;
                 if (!IsAutoCalculatedSpecialZone(networkZoneInEdit))
                 {
                     await RefreshSpecialZones();
                 }
+                specialZonesRefreshCompleted = true;
                 await ConfigChanged();
                 DisplayMessageInUi(null, userConfig.GetText("U0014"), userConfig.GetText("U0015"), false);
             }
             catch (Exception exception)
             {
+                if (zoneDeleted && !specialZonesRefreshCompleted)
+                {
+                    deleteMode = false;
+                    await ConfigChanged();
+                    StateHasChanged();
+                    DisplayMessageInUi(exception, userConfig.GetText("zone_comm_matrix"), userConfig.GetText("auto_calculated_zone_recalculation_failed"), true);
+                    return;
+                }
+
                 DisplayMessageInUi(exception, userConfig.GetText("E0036"), userConfig.GetText("E0037"), true);
             }
         }

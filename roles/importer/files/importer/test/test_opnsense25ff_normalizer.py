@@ -33,14 +33,34 @@ from fw_modules.opnsense25ff.opnsense_normalizer import (
     normalize_opnsense_config,
 )
 from fw_modules.opnsense25ff.opnsense_parser import parse_opnsense_config
+from fwo_api import FwoApi
+from fwo_api_call import FwoApiCall
 from fwo_exceptions import FwoImporterError
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.import_state_controller import ImportStateController
 from models.networkobject import NetworkObject
 from models.rule import RuleAction, RuleTrack, RuleType
 from models.rulebase import Rulebase
 from models.serviceobject import ServiceObject
 from pytest_mock import MockerFixture
+from states.import_state import ImportState
+
+
+@pytest.fixture
+def import_state(
+    api_call: FwoApiCall,
+    api_connection: FwoApi,
+    mocker: MockerFixture,
+) -> ImportState:
+    mgm_id = 1
+    mock_mgm = mocker.Mock(mgm_id=mgm_id, current_mgm_id=mgm_id)
+
+    mocker.patch("states.import_state.ManagementController.get_mgm_details", return_value={})
+    mocker.patch("states.import_state.ManagementController.from_json", return_value=mock_mgm)
+
+    api_call.get_last_complete_import = mocker.Mock(return_value=(0, ""))
+    api_call.get_config_value = mocker.Mock(return_value="30")
+
+    return ImportState(fwo_api=api_connection, fwo_api_call=api_call, mgm_id=mgm_id)
 
 
 def _host_alias(name: str) -> OPNsenseHostAlias:
@@ -513,11 +533,11 @@ def test_resolve_named_refs_replaces_names_with_uids() -> None:
     assert rb.rules["r"].rule_svc_refs == "SVC-UID"
 
 
-def test_get_gateway_name_prefers_configured_device_name(import_state_controller: ImportStateController) -> None:
-    import_state_controller.state.mgm_details.devices = [{"name": "configured-gateway-uid"}]
+def test_get_gateway_name_prefers_configured_device_name(import_state: ImportState) -> None:
+    import_state.mgm_details.devices = [{"name": "configured-gateway-uid"}]
     native_config = OPNsenseConfig(hostname="native-hostname")
 
-    assert _get_gateway_name(native_config, import_state_controller) == "configured-gateway-uid"
+    assert _get_gateway_name(native_config, import_state) == "configured-gateway-uid"
 
 
 @pytest.mark.parametrize(
@@ -529,26 +549,26 @@ def test_get_gateway_name_prefers_configured_device_name(import_state_controller
     ],
 )
 def test_get_gateway_name_uses_fallback_order(
-    import_state_controller: ImportStateController,
+    import_state: ImportState,
     management_name: str,
     native_hostname: str,
     management_hostname: str,
     expected: str,
 ) -> None:
-    import_state_controller.state.mgm_details.devices = []
-    import_state_controller.state.mgm_details.name = management_name
-    import_state_controller.state.mgm_details.hostname = management_hostname
+    import_state.mgm_details.devices = []
+    import_state.mgm_details.name = management_name
+    import_state.mgm_details.hostname = management_hostname
 
-    assert _get_gateway_name(OPNsenseConfig(hostname=native_hostname), import_state_controller) == expected
+    assert _get_gateway_name(OPNsenseConfig(hostname=native_hostname), import_state) == expected
 
 
-def test_get_gateway_name_requires_available_name(import_state_controller: ImportStateController) -> None:
-    import_state_controller.state.mgm_details.devices = []
-    import_state_controller.state.mgm_details.name = ""
-    import_state_controller.state.mgm_details.hostname = ""
+def test_get_gateway_name_requires_available_name(import_state: ImportState) -> None:
+    import_state.mgm_details.devices = []
+    import_state.mgm_details.name = ""
+    import_state.mgm_details.hostname = ""
 
     with pytest.raises(FwoImporterError, match="must contain a device name"):
-        _get_gateway_name(OPNsenseConfig(hostname=""), import_state_controller)
+        _get_gateway_name(OPNsenseConfig(hostname=""), import_state)
 
 
 def test_normalize_network_objects_adds_geoip_and_urltable_aliases() -> None:
@@ -647,7 +667,7 @@ def test_normalize_interfaces_skips_groups_and_adds_ipv4_ipv6() -> None:
 
 def test_normalize_opnsense_config_builds_manager_config_with_uid_refs(
     mocker: MockerFixture,
-    import_state_controller: ImportStateController,
+    import_state: ImportState,
 ) -> None:
     host_alias = _host_alias("web-hosts")
     host_alias.uuid = "uid-web-hosts"
@@ -682,7 +702,7 @@ def test_normalize_opnsense_config_builds_manager_config_with_uid_refs(
         return_value=parsed_config,
     )
 
-    normalized = normalize_opnsense_config(config, import_state_controller)
+    normalized = normalize_opnsense_config(config, import_state)
 
     manager = normalized.ManagerSet[0]
     normalized_config = manager.configs[0]

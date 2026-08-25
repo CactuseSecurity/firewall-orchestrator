@@ -394,7 +394,7 @@ def get_rulebases(
     # get rulebase in chunks
     if rulebase_uid not in fetched_rulebase_list:
         current_rulebase = get_rulebases_in_chunks(
-            global_state,  # type: ignore  # noqa: PGH003
+            global_state,
             rulebase_uid,  # type: ignore  # noqa: PGH003
             show_params_rules,
             api_v_url,

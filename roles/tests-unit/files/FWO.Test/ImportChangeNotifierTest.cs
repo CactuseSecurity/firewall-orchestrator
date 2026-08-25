@@ -51,6 +51,7 @@ namespace FWO.Test
 
             Assert.That(GetPrivateField<bool>(notifier, "WorkInProgress"), Is.False);
             Assert.That(apiConnection.NotificationQueryCalls, Is.EqualTo(1));
+            Assert.That(apiConnection.LdapQueryCalls, Is.EqualTo(0));
             Assert.That(apiConnection.SetImportsNotifiedCalls, Is.EqualTo(0));
         }
 
@@ -275,6 +276,7 @@ namespace FWO.Test
             public bool ThrowOnSetImportsNotified { get; init; }
             public string? LastQuery { get; private set; }
             public object? LastVariables { get; private set; }
+            public int LdapQueryCalls { get; private set; }
             public int NotificationQueryCalls { get; private set; }
             public int SetImportsNotifiedCalls { get; private set; }
 
@@ -297,6 +299,12 @@ namespace FWO.Test
                 {
                     ++NotificationQueryCalls;
                     return Task.FromResult((QueryResponseType)(object)Notifications.ToList());
+                }
+
+                if (query == AuthQueries.getLdapConnections)
+                {
+                    ++LdapQueryCalls;
+                    return Task.FromResult((QueryResponseType)(object)new List<Ldap>());
                 }
 
                 if (query == NotificationQueries.updateNotificationsLastSent)

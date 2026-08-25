@@ -614,5 +614,5 @@ Not supported any longer are:
 - increase of unit-tests
 - Fixed variance-analysis comparison for imported identity network objects such as Check Point updatable objects, access roles and domain objects. When IP based rule recognition is active, configured placeholder areas for special configurations are reconciled with these imported objects by object type and name instead of placeholder IP fields.
 
-## 9.4.1 - 20.08.2026
+## 9.4.2 - 25.08.2026
 - Import OPNsense protocol-agnostic `Any` services with the dedicated `ANY` IP protocol.

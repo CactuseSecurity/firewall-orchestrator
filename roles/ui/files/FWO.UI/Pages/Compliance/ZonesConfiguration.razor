@@ -107,7 +107,7 @@
                     {
                         <div class="col-3">
                             <label>@userConfig.GetText("subzones")</label>
-                            @if(InsertSubzonePossible())
+                            @if(InsertSubzonePossible() && !IsAutoCalculatedSpecialZone(networkZoneInEdit))
                             {
                                 <div class="mb-2">
                                     <Dropdown Nullable="true" Small="false" ElementToString="@(e => e?.Name ?? "")" InputClass="@subzoneInputClass"
@@ -117,7 +117,7 @@
                                         </ElementTemplate>
                                         <Append>
                                             <button @onclick="() => AddCommunicationZone(addDel.SubzonesToAdd, ref subzoneToAdd, ref subzoneInputClass)"
-                                                type="button" style="width: 60px" class="btn btn-success">@userConfig.GetText("add")</button>
+                                                type="button" style="width: 60px" class="btn btn-success" id="addSubzone">@userConfig.GetText("add")</button>
                                         </Append>
                                     </Dropdown>
                                 </div>
@@ -356,7 +356,7 @@
             }
 
             zoneSaved = true;
-            if (AddressCoverageChanged())
+            if (AddressCoverageChanged() && !IsAutoCalculatedSpecialZone(networkZoneInEdit))
             {
                 await RefreshSpecialZones();
             }

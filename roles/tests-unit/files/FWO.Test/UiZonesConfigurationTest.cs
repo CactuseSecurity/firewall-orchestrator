@@ -176,6 +176,68 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task EditingEmptyAutoCalculatedZoneHidesSubzoneControls()
+        {
+            ComplianceNetworkZone undefinedInternalZone = new()
+            {
+                Id = 2,
+                CriterionId = 1,
+                IsAutoCalculatedUndefinedInternalZone = true,
+                Name = "Auto-calculated Undefined-internal Zone"
+            };
+            NetworkZoneService networkZoneService = new()
+            {
+                NetworkZones = new List<ComplianceNetworkZone> { undefinedInternalZone }
+            };
+            await using BunitContext context = CreateContext(networkZoneService);
+            IRenderedComponent<ZonesConfiguration> page = Render(context);
+
+            networkZoneService.InvokeOnEditZone(undefinedInternalZone);
+
+            page.WaitForAssertion(() => Assert.That(page.FindAll("#addSubzone"), Is.Empty));
+        }
+
+        [Test]
+        public async Task UpdatingAutoCalculatedZoneWithAddressCoverageChangeDoesNotRefreshAutoCalculatedZones()
+        {
+            ComplianceNetworkZone undefinedInternalZone = new()
+            {
+                Id = 2,
+                CriterionId = 1,
+                IsAutoCalculatedUndefinedInternalZone = true,
+                Name = "Auto-calculated Undefined-internal Zone"
+            };
+            NetworkZoneService networkZoneService = new()
+            {
+                NetworkZones = new List<ComplianceNetworkZone> { undefinedInternalZone }
+            };
+            ZonesConfigurationApiConnection apiConnection = new();
+            apiConnection.NetworkZones.Add(undefinedInternalZone);
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                AutoCalculateInternetZone = true
+            };
+            await using BunitContext context = CreateContext(networkZoneService, apiConnection, globalConfig);
+            IRenderedComponent<ZonesConfiguration> page = Render(context);
+
+            networkZoneService.InvokeOnEditZone(undefinedInternalZone);
+            NetworkZoneService.AdditionsDeletions addDel = new();
+            addDel.SubzonesToAdd.Add(new ComplianceNetworkZone { Id = 3, CriterionId = 1, Name = "subzone" });
+            typeof(ZonesConfiguration)
+                .GetField("addDel", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .SetValue(page.Instance, addDel);
+            await page.InvokeAsync(async () =>
+            {
+                Task updateTask = (Task)typeof(ZonesConfiguration)
+                    .GetMethod("ExecuteNetworkZoneModifications", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                    .Invoke(page.Instance, null)!;
+                await updateTask;
+            });
+
+            Assert.That(apiConnection.SentQueries, Is.EqualTo(new List<string> { ComplianceQueries.updateNetworkZone }));
+        }
+
+        [Test]
         public async Task DeletingZoneDisplaysAutoCalculatedZoneCommunicationWarning()
         {
             ComplianceNetworkZone normalZone = new() { Id = 1, CriterionId = 1, Name = "normal" };

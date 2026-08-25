@@ -5,7 +5,13 @@ from pytest_mock import MockerFixture
 from test.utils.test_utils import mock_get_graphql_code
 
 
-def build_normalized_rule(rule_uid: str, *, rule_src_zone: str | None, rule_dst_zone: str | None) -> RuleNormalized:
+def build_normalized_rule(
+    rule_uid: str,
+    *,
+    rule_src_zone: str | None,
+    rule_dst_zone: str | None,
+    xlate_rule_uid: str | None = None,
+) -> RuleNormalized:
     return RuleNormalized(
         rule_num_numeric=1.0,
         rule_disabled=False,
@@ -24,8 +30,10 @@ def build_normalized_rule(rule_uid: str, *, rule_src_zone: str | None, rule_dst_
         rule_action=RuleAction.ACCEPT,
         rule_track=RuleTrack.NONE,
         rule_implied=False,
-        rule_type=RuleType.ACCESS,
+        rule_type=RuleType.NAT if xlate_rule_uid else RuleType.ACCESS,
         rule_uid=rule_uid,
+        xlate_rule_uid=xlate_rule_uid,
+        nat_rule=xlate_rule_uid is not None,
     )
 
 
@@ -215,3 +223,97 @@ class TestFwConfigImportRule:
 
         assert changes == 1
         assert removed_rule_ids == [101]
+
+    def test_get_stale_xlate_rule_fk_uids_flags_unchanged_original_rule(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+    ):
+        # Original rule "orig-uid" is unchanged, but its translated counterpart
+        # "orig-uid_translated" was changed and will be re-inserted with a new rule_id.
+        # The original rule must be flagged so it gets routed through the normal
+        # insert/remove handling (new versioned row) instead of an in-place FK patch.
+        original_rule = build_normalized_rule(
+            "orig-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="orig-uid_translated"
+        )
+        translated_rule = build_normalized_rule("orig-uid_translated", rule_src_zone=None, rule_dst_zone=None)
+        curr_rules = {"orig-uid": original_rule, "orig-uid_translated": translated_rule}
+
+        repoint_uids = fwconfig_import_rule.get_stale_xlate_rule_fk_uids(
+            curr_rules, changed_rule_uids={"orig-uid_translated"}, added_rule_uids=set()
+        )
+
+        assert repoint_uids == {"orig-uid"}
+
+    def test_get_stale_xlate_rule_fk_uids_skips_when_original_rule_already_reinserted(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+    ):
+        # If the original rule's own row is already (re)inserted this import, its xlate_rule
+        # FK is already set correctly by prepare_rule_for_import, so no repoint is needed.
+        original_rule = build_normalized_rule(
+            "orig-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="orig-uid_translated"
+        )
+        translated_rule = build_normalized_rule("orig-uid_translated", rule_src_zone=None, rule_dst_zone=None)
+        curr_rules = {"orig-uid": original_rule, "orig-uid_translated": translated_rule}
+
+        repoint_uids = fwconfig_import_rule.get_stale_xlate_rule_fk_uids(
+            curr_rules,
+            changed_rule_uids={"orig-uid_translated", "orig-uid"},
+            added_rule_uids=set(),
+        )
+
+        assert repoint_uids == set()
+
+    def test_get_stale_xlate_rule_fk_uids_skips_when_translated_rule_unchanged(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+    ):
+        # If the translated counterpart didn't change (and thus wasn't re-inserted), the
+        # original rule's existing xlate_rule FK is still correct.
+        original_rule = build_normalized_rule(
+            "orig-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="orig-uid_translated"
+        )
+        translated_rule = build_normalized_rule("orig-uid_translated", rule_src_zone=None, rule_dst_zone=None)
+        curr_rules = {"orig-uid": original_rule, "orig-uid_translated": translated_rule}
+
+        repoint_uids = fwconfig_import_rule.get_stale_xlate_rule_fk_uids(
+            curr_rules, changed_rule_uids=set(), added_rule_uids=set()
+        )
+
+        assert repoint_uids == set()
+
+    def test_filter_resolvable_xlate_fk_repoint_uids_keeps_resolvable_rows(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+    ):
+        # The translated counterpart's rule_id is already resolvable in the mapping (e.g. it
+        # was just inserted and added to the mapping), so the repoint row is kept.
+        original_rule = build_normalized_rule(
+            "orig-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="orig-uid_translated"
+        )
+        curr_rules = {"orig-uid": original_rule}
+        fwconfig_import_rule.uid2id_mapper.rule_uid2id.set("orig-uid_translated", 202)
+
+        resolvable_uids = fwconfig_import_rule.filter_resolvable_xlate_fk_repoint_uids(curr_rules, {"orig-uid"})
+
+        assert resolvable_uids == {"orig-uid"}
+
+    def test_filter_resolvable_xlate_fk_repoint_uids_skips_unresolvable_rows(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ):
+        # If the translated counterpart's rule_id never showed up in the mapping (e.g. the
+        # earlier insert of the translated rule returned fewer 'returning' rows than expected),
+        # the repoint row must be skipped with a warning instead of blowing up later with an
+        # uncaught KeyError from prepare_rule_for_import's get_rule_id call.
+        original_rule = build_normalized_rule(
+            "orig-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="orig-uid_translated"
+        )
+        curr_rules = {"orig-uid": original_rule}
+        warning_mock = mocker.patch("model_controllers.fwconfig_import_rule.FWOLogger.warning")
+
+        resolvable_uids = fwconfig_import_rule.filter_resolvable_xlate_fk_repoint_uids(curr_rules, {"orig-uid"})
+
+        assert resolvable_uids == set()
+        warning_mock.assert_called_once()

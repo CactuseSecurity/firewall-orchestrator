@@ -12,10 +12,7 @@ public class AmbientRoleSmokeTest
     private static readonly string[] DefaultRoutes =
     [
         "/settings/user",
-        "/settings/language",
-        "/settings/report",
-        "/settings/modellingpersonal",
-        "/settings/recertificationpersonal",
+        "/settings/personal",
         "/report/generation",
         "/report/schedule",
         "/report/archive",
@@ -210,10 +207,7 @@ public class AmbientRoleSmokeTest
         string normalizedRoute = NormalizeRoute(route);
         string[] actionRoutes =
         [
-            "/settings/language",
-            "/settings/report",
-            "/settings/modellingpersonal",
-            "/settings/recertificationpersonal",
+            "/settings/personal",
         ];
 
         if (!actionRoutes.Contains(normalizedRoute, StringComparer.Ordinal))

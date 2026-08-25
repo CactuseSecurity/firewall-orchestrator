@@ -236,7 +236,7 @@ namespace FWO.Test
                 return null;
             }
 
-            private Task<T>? HandleStmQueries<T>(string query, object? variables)
+            private static Task<T>? HandleStmQueries<T>(string query, object? variables)
             {
                 if (query == StmQueries.getIpProtocols)
                 {

@@ -400,9 +400,7 @@ class FwoApi:
         session.headers.update({"Authorization": f"Bearer {self.fwo_jwt}", "Content-Type": JSON_CONTENT_TYPE})
 
     @staticmethod
-    def _dispatch_endpoint_request(
-        session: requests.Session, method: str, url: str, params: Any
-    ) -> requests.Response:
+    def _dispatch_endpoint_request(session: requests.Session, method: str, url: str, params: Any) -> requests.Response:
         request_by_method = {
             "GET": session.get,
             "POST": session.post,

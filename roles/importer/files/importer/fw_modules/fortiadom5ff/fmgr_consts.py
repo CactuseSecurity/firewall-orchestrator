@@ -4,6 +4,7 @@ nw_obj_types = [
     "firewall/addrgrp",
     "firewall/addrgrp6",
     "firewall/ippool",
+    "firewall/ippool6",
     "firewall/vip",
     "system/external-resource",
     "firewall/wildcard-fqdn/custom",
@@ -25,3 +26,5 @@ svc_obj_types = [
 
 nat_types = ["central/dnat", "central/dnat6", "firewall/central-snat-map"]
 user_obj_types = ["user/local", "user/group"]
+
+EXPECTED_NATIP_LIST_LENGTH = 2

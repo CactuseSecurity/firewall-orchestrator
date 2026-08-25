@@ -30,7 +30,7 @@ def normalize_service_objects(
         svc_objects.append(
             create_svc_object(
                 name=original_obj_name,
-                proto=0,
+                proto=None,
                 color="foreground",
                 port=None,
                 comment='"original" service object created by FWO importer for NAT purposes',
@@ -183,7 +183,7 @@ def extract_ports(port_ranges: list[str] | None) -> tuple[list[Any], list[Any]]:
     return ports, port_ends
 
 
-def create_svc_object(name: str, proto: int, color: str, port: Any, comment: str) -> dict[str, Any]:
+def create_svc_object(name: str, proto: int | None, color: str, port: Any, comment: str) -> dict[str, Any]:
     return {
         "svc_name": name,
         "svc_typ": "simple",

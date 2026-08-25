@@ -12,12 +12,27 @@ namespace FWO.Test
     [TestFixture]
     internal class UiModIntegrationStatesEditorTest
     {
+        private static readonly List<ModIntegrationState> ExistingStates =
+        [
+            new() { Name = "Existing", IncludeIntoRequest = true }
+        ];
+
+        private static readonly List<ModIntegrationState> OldDisabledState =
+        [
+            new() { Name = "Old", IncludeIntoRequest = false }
+        ];
+
+        private static readonly List<ModIntegrationState> RetryState =
+        [
+            new() { Name = "Retry", IncludeIntoRequest = true, MonitorStatus = ModIntegrationStateStatus.RequestRunning }
+        ];
+
         [Test]
         public void OnParametersSet_UsesDefaultMarkerWhenMarkerIsBlank()
         {
             ModIntegrationStatesEditor component = CreateComponent();
             SetMember(component, "Display", true);
-            SetMember(component, "ConfigValue", ModIntegrationStateConfig.ToConfigValue([new() { Name = "Existing", IncludeIntoRequest = true }]));
+            SetMember(component, "ConfigValue", ModIntegrationStateConfig.ToConfigValue(ExistingStates));
             SetMember(component, "ConfigMarker", "");
 
             InvokeOnParametersSet(component);
@@ -78,7 +93,7 @@ namespace FWO.Test
             RecordingSettingsApiConn apiConnection = new();
             SimulatedGlobalConfig globalConfig = new()
             {
-                ModIntegrationStates = ModIntegrationStateConfig.ToConfigValue([new() { Name = "Old", IncludeIntoRequest = false }]),
+                ModIntegrationStates = ModIntegrationStateConfig.ToConfigValue(OldDisabledState),
                 ModIntegrationStateMarker = ""
             };
             ModIntegrationStatesEditor component = CreateComponent(apiConnection, globalConfig);
@@ -86,16 +101,13 @@ namespace FWO.Test
             string? savedMarker = null;
             bool displayClosed = false;
             SetMember(component, "Display", true);
-            SetMember(component, "ConfigValue", ModIntegrationStateConfig.ToConfigValue([new() { Name = "Old", IncludeIntoRequest = false }]));
+            SetMember(component, "ConfigValue", ModIntegrationStateConfig.ToConfigValue(OldDisabledState));
             SetMember(component, "ConfigMarker", "");
             SetMember(component, "ConfigValueChanged", EventCallback.Factory.Create<string>(new object(), value => savedValue = value));
             SetMember(component, "ConfigMarkerChanged", EventCallback.Factory.Create<string>(new object(), value => savedMarker = value));
             SetMember(component, "DisplayChanged", EventCallback.Factory.Create<bool>(new object(), value => displayClosed = true));
             InvokeOnParametersSet(component);
-            SetPrivateField(component, "states", new List<ModIntegrationState>
-            {
-                new() { Name = "Retry", IncludeIntoRequest = true, MonitorStatus = ModIntegrationStateStatus.RequestRunning }
-            });
+            SetPrivateField(component, "states", RetryState.ToList());
             SetPrivateField(component, "stateMarker", " ");
 
             await InvokePrivateAsync(component, "Save");
@@ -103,7 +115,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
-                Assert.That(savedValue, Is.EqualTo(ModIntegrationStateConfig.ToConfigValue([new() { Name = "Retry", IncludeIntoRequest = true, MonitorStatus = ModIntegrationStateStatus.RequestRunning }])));
+                Assert.That(savedValue, Is.EqualTo(ModIntegrationStateConfig.ToConfigValue(RetryState)));
                 Assert.That(savedMarker, Is.EqualTo(ModIntegrationStateConfig.DefaultMarker));
                 Assert.That(displayClosed, Is.True);
                 Assert.That(component.Display, Is.False);
@@ -131,9 +143,10 @@ namespace FWO.Test
             SetMember(component, "ConfigValue", "");
             SetMember(component, "ConfigMarker", "");
             SetMember(component, "Display", false);
-            SetMember(component, "ConfigValueChanged", EventCallback.Factory.Create<string>(new object(), _ => { }));
-            SetMember(component, "ConfigMarkerChanged", EventCallback.Factory.Create<string>(new object(), _ => { }));
-            SetMember(component, "DisplayChanged", EventCallback.Factory.Create<bool>(new object(), _ => { }));
+            object callbackContext = new();
+            SetMember(component, "ConfigValueChanged", EventCallback.Factory.Create<string>(callbackContext, _ => { }));
+            SetMember(component, "ConfigMarkerChanged", EventCallback.Factory.Create<string>(callbackContext, _ => { }));
+            SetMember(component, "DisplayChanged", EventCallback.Factory.Create<bool>(callbackContext, _ => { }));
             SetMember(component, "globalConfig", globalConfig);
             SetMember(component, "apiConnection", apiConnection);
             SetMember(component, "userConfig", new SimulatedUserConfig());

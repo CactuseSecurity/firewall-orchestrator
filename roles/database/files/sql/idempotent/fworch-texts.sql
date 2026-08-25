@@ -5146,17 +5146,17 @@ INSERT INTO txt VALUES ('H1508', 'English', 'Time intervals in days, weeks, mont
 INSERT INTO txt VALUES ('H1509', 'German',  'Absolute Start- und Endezeiten. Beide Grenzen k&ouml;nnen durch setzen der "offen"-Markierung ausser Kraft gesetzt werden.');
 INSERT INTO txt VALUES ('H1509', 'English', 'Absolute start and end times. Both limits can be separately omitted by setting the "open" checkbox.');
 INSERT INTO txt VALUES ('H1510', 'German',  'Nur beim Unbenutzte-Regel-Report: Unbenutzt seit: Hier wird die Anzahl von Tagen eingegeben, seitdem die anzuzeigenden Regeln nicht mehr benutzt wurden.
-    Regeln, die noch keine letzte Nutzung protokolliert haben, werden ebenfalls dargestellt, falls sie &auml;lter als eine in den <a href="/help/settings/report">Reporting-Einstellungen</a> definierte Toleranzzeit sind.
+    Regeln, die noch keine letzte Nutzung protokolliert haben, werden ebenfalls dargestellt, falls sie &auml;lter als eine in den <a href="/help/settings/personal">Reporting-Einstellungen</a> definierte Toleranzzeit sind.
     Dort kann auch der Default-Wert f&uuml;r den Zeitraum der Nichtbenutzung gesetzt werden.
 ');
 INSERT INTO txt VALUES ('H1510', 'English', 'Only for Unused Rules Report: Unused since: Here the number of days is given, where the rules to be displayed have not be used.
-    Rules never used are also displayed if their creation date is older than a tolerance interval defined in the <a href="/help/settings/report">Report Settings</a>.
+    Rules never used are also displayed if their creation date is older than a tolerance interval defined in the <a href="/help/settings/personal">Report Settings</a>.
     There also the default value for the unused interval can be defined.
 ');
 INSERT INTO txt VALUES ('H1511', 'German',  'Nur beim Zert-Regel-Details: Rezertifizierungsparameter
     <ul><li>F&auml;llig in: Hier wird festgelegt, wie weit die Suche nach zu rezertifizierenden Regeln gehen soll (in Tagen).
         Der Default-Wert kann sowohl vom Administrator in den <a href="/help/settings/recertificationgeneral">Allgemeinen</a>
-        als auch vom jeweiligen Nutzer in den <a href="/help/settings/recertificationpersonal">Pers&ouml;nlichen</a> Rezertifizierungseinstellungen festgelegt werden.</li>
+        als auch vom jeweiligen Nutzer in den <a href="/help/settings/personal">Pers&ouml;nlichen</a> Rezertifizierungseinstellungen festgelegt werden.</li>
     <li>Eigent&uuml;mer: Hier kann aus den dem Nutzer zugeordneten Eigent&uuml;merschaften ausgew&auml;hlt werden.</li>
     <li>Any-Regeln anzeigen: Wenn das H&auml;kchen gesetzt ist, werden auch Regeln mit Ip 0.0.0.0 in Quelle oder Ziel dargestellt.
         Beim deselektieren wird ein exkludierender Ausdruck zur Filterzeile hinzugef&uuml;gt.</li></ul>
@@ -5164,7 +5164,7 @@ INSERT INTO txt VALUES ('H1511', 'German',  'Nur beim Zert-Regel-Details: Rezert
 INSERT INTO txt VALUES ('H1511', 'English', 'Only for Cert Rule Details: Recertification Parameters
     <ul><li>Due within: Select how far ahead should be searched for rules to be recertified (in days).
         The default value can be set by the administrator in the <a href="/help/settings/recertificationgeneral">General</a>
-        as well as in the <a href="/help/settings/recertificationpersonal">Personal</a> Recertification Settings by the user.</li>
+        as well as in the <a href="/help/settings/personal">Personal</a> Recertification Settings by the user.</li>
     <li>Owner: Select the certifying owner out of the ownerships related to the user.</li>
     <li>Show any rules: If flag is set, rules with Ip 0.0.0.0 in source or destination are shown.
         When deselecting an excluding statement is added to the filter line.</li></ul>
@@ -5289,14 +5289,14 @@ INSERT INTO txt VALUES ('H3001', 'English', 'Here the archived reports can be fo
 
 INSERT INTO txt VALUES ('H4011', 'German',  'Im ersten Schritt muss ein Report mit den demn&auml;chst zu rezertifizierenden Regeln geladen werden.
     Der Zeitraum f&uuml;r die Vorausschau kann im Feld "F&auml;llig in" gew&auml;hlt werden.
-    Diese wird im "Rezertifizierungsanzeigeintervall" in den <a href="/help/settings/recertificationpersonal">pers&ouml;nlichen</a> bzw.
+    Diese wird im "Rezertifizierungsanzeigeintervall" in den <a href="/help/settings/personal">pers&ouml;nlichen</a> bzw.
     in den <a href="/help/settings/recertificationgeneral">allgemeinen</a> Rezertifizierungseinstellungen initialisiert.
     Desweiteren m&uuml;ssen die zu betrachtenden Ger&auml;te in der linken Randleiste ausgew&auml;hlt werden.
 ');
 INSERT INTO txt VALUES ('H4011', 'English', 'In the first step a report of upcoming rules to be certified has to be loaded.
     The lookahead period for this can be chosen in the "Due within" field.
     It is initialized by the settings value "Recertification Display Period" in the
-    <a href="/help/settings/recertificationpersonal">personal</a> resp. <a href="/help/settings/recertificationgeneral">general</a> Recertification Settings.
+    <a href="/help/settings/personal">personal</a> resp. <a href="/help/settings/recertificationgeneral">general</a> Recertification Settings.
     Also the regarded devices have to be chosen in the left sidebar.
 ');
 INSERT INTO txt VALUES ('H4012', 'German',  'Der Report zeigt nun alle Regeln, die im gew&auml;hlten Zeitraum zertifiziert werden m&uuml;ssen.
@@ -5769,14 +5769,14 @@ INSERT INTO txt VALUES ('H5013', 'English', 'In the "Defaults" chapter the admin
     Additionally there are the module specific <a href="/help/settings/recertificationgeneral">General Recertification</a> and <a href="/help/settings/modelling">Modelling Settings</a>.
 ');
 INSERT INTO txt VALUES ('H5014', 'German',  'Das Kapitel "Pers&ouml;nlich" ist f&uuml;r alle Nutzer zug&auml;nglich. Hier k&ouml;nnen das individuelle <a href="/help/settings/password">Password</a>,
-    die bevorzugte <a href="/help/settings/language">Sprache</a> und <a href="/help/settings/report">Reporting</a>-Einstellungen gesetzt werden.
-    Nutzer mit Rezertifizierer-Rolle k&ouml;nnen auch ihre <a href="/help/settings/recertificationpersonal">Rezertifizierungseinstellungen</a> anpassen.
-    Das gleiche gilt f&uuml;r Modellierer in den <a href="/help/settings/modellingpersonal">Modellierungseinstellungen</a>.
+    die bevorzugte <a href="/help/settings/personal">Sprache</a> und <a href="/help/settings/personal">Reporting</a>-Einstellungen gesetzt werden.
+    Nutzer mit Rezertifizierer-Rolle k&ouml;nnen auch ihre <a href="/help/settings/personal">Rezertifizierungseinstellungen</a> anpassen.
+    Das gleiche gilt f&uuml;r Modellierer in den <a href="/help/settings/personal">Modellierungseinstellungen</a>.
 ');
 INSERT INTO txt VALUES ('H5014', 'English', 'The "Personal" chapter is accessible by all users, where they can set their individual <a href="/help/settings/password">Password</a>,
-    <a href="/help/settings/language">Language</a> and <a href="/help/settings/report">Reporting</a> preferences.
-    Users with recertifier role have also the possibility to adjust their <a href="/help/settings/recertificationpersonal">Recertification Setting</a>.
-    Same for modellers in the <a href="/help/settings/modellingpersonal">Modelling Settings</a>.
+    <a href="/help/settings/personal">Language</a> and <a href="/help/settings/personal">Reporting</a> preferences.
+    Users with recertifier role have also the possibility to adjust their <a href="/help/settings/personal">Recertification Setting</a>.
+    Same for modellers in the <a href="/help/settings/personal">Modelling Settings</a>.
 ');
 INSERT INTO txt VALUES ('H5015', 'German',  'Das Kapitel "Workflow" dient dem Administrator, einen Workflow aufzusetzen. Dazu geh&ouml;rt die Definition der angebotenen <a href="/help/settings/stateactions">Aktionen</a>,
     der verwendeten <a href="/help/settings/statedefinitions">Status</a> und den Status&uuml;berg&auml;ngen in den zentralen <a href="/help/settings/statematrix">Status-Matrizen</a>.
@@ -6298,10 +6298,10 @@ INSERT INTO txt VALUES ('H5401', 'English', 'The admin can define several defaul
     Some of them can be overwritten in the individual settings of each user.
 ');
 INSERT INTO txt VALUES ('H5411', 'German',  'Standardsprache: Die Sprache, die neuen Nutzern beim ersten Anmelden zugewiesen wird.
-    Nach dem Anmelden kann jeder Nutzer seine eigene bevorzugte <a href="/help/settings/language">Sprache</a> definieren.
+    Nach dem Anmelden kann jeder Nutzer seine eigene bevorzugte <a href="/help/settings/personal">Sprache</a> definieren.
 ');
 INSERT INTO txt VALUES ('H5411', 'English', 'Default Language: The language which every user gets at first login.
-    After login each user can define its own preferred <a href="/help/settings/language">language</a>.
+    After login each user can define its own preferred <a href="/help/settings/personal">language</a>.
 ');
 INSERT INTO txt VALUES ('H5411a', 'German',  'Farbschema: Legt das Standard-Farbschema der Benutzeroberfl&auml;che fest, das f&uuml;r alle Nutzer gilt.');
 INSERT INTO txt VALUES ('H5411a', 'English', 'Color Scheme: Defines the default color scheme of the user interface, which is valid for all users.');

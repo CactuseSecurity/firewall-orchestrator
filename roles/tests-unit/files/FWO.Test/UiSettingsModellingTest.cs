@@ -25,6 +25,8 @@ namespace FWO.Test
     [TestFixture]
     internal class UiSettingsModellingTest
     {
+        private static readonly object?[] RefreshEmptyArgs = [string.Empty];
+
         private static SettingsModelling CreateComponent()
         {
             return new SettingsModelling();
@@ -198,7 +200,12 @@ namespace FWO.Test
                 new() { Area = new() { Content = new ModellingNwGroup { Id = 2, Name = "Area 2" } } }
             });
 
-            string serialized = (string)GetPrivateMethod("PrepareAreas").Invoke(component, [GetPrivateField<List<CommonArea>>(component, "CommonAreas"), GetPrivateField<List<CommonArea>>(component, "CommAreasToDelete")])!;
+            object?[] prepareAreasArgs =
+            [
+                GetPrivateField<List<CommonArea>>(component, "CommonAreas"),
+                GetPrivateField<List<CommonArea>>(component, "CommAreasToDelete")
+            ];
+            string serialized = (string)GetPrivateMethod("PrepareAreas").Invoke(component, prepareAreasArgs)!;
             List<CommonAreaConfig>? parsed = JsonSerializer.Deserialize<List<CommonAreaConfig>>(serialized);
 
             Assert.That(parsed, Is.Not.Null);
@@ -312,7 +319,7 @@ namespace FWO.Test
             SetPrivateField(component, "configData", new ConfigData());
             SetPrivateField(component, "allAreas", new List<ModellingNwGroup> { new() { Id = 1, Name = "Area 1" } });
 
-            List<CommonArea> result = (List<CommonArea>)GetPrivateMethod("RefreshAreas").Invoke(component, [string.Empty])!;
+            List<CommonArea> result = (List<CommonArea>)GetPrivateMethod("RefreshAreas").Invoke(component, RefreshEmptyArgs)!;
 
             Assert.That(result, Is.Empty);
         }
@@ -328,7 +335,8 @@ namespace FWO.Test
                 new() { AreaId = 99, UseInSrc = true, UseInDst = true }
             });
 
-            List<CommonArea> result = (List<CommonArea>)GetPrivateMethod("RefreshAreas").Invoke(component, [config])!;
+            object?[] refreshConfigArgs = [config];
+            List<CommonArea> result = (List<CommonArea>)GetPrivateMethod("RefreshAreas").Invoke(component, refreshConfigArgs)!;
 
             Assert.That(result, Is.Empty);
         }

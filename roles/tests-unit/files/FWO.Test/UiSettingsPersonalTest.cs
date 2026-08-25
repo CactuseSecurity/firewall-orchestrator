@@ -22,10 +22,33 @@ namespace FWO.Test
     [TestFixture]
     internal class UiSettingsPersonalTest
     {
+        private static readonly string[] PrivilegedRoles =
+        [
+            Roles.Admin,
+            Roles.Modeller,
+            Roles.Recertifier,
+            Roles.Reporter
+        ];
+
+        private static readonly string[] WorkflowOnlyRoles =
+        [
+            Roles.Requester,
+            Roles.Approver,
+            Roles.Planner,
+            Roles.Implementer,
+            Roles.Reviewer
+        ];
+
+        private static readonly string[] ModellerRoles =
+        [
+            Roles.Admin,
+            Roles.Modeller
+        ];
+
         [Test]
         public async Task SettingsPersonal_RendersSharedAndRoleGatedSections_ForPrivilegedUser()
         {
-            await using BunitContext context = CreateContext(Roles.Admin, Roles.Modeller, Roles.Recertifier, Roles.Reporter);
+            await using BunitContext context = CreateContext(PrivilegedRoles);
             IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
 
             wrapper.WaitForAssertion(() =>
@@ -41,7 +64,7 @@ namespace FWO.Test
         [Test]
         public async Task SettingsPersonal_HidesRoleGatedSections_ForWorkflowOnlyUser()
         {
-            await using BunitContext context = CreateContext(Roles.WorkflowRolesList);
+            await using BunitContext context = CreateContext(WorkflowOnlyRoles);
             IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
 
             wrapper.WaitForAssertion(() =>
@@ -57,7 +80,7 @@ namespace FWO.Test
         [Test]
         public async Task SettingsPersonal_SavePersistsLanguageAndConfigChanges()
         {
-            await using BunitContext context = CreateSavingContext(new[] { Roles.Admin, Roles.Modeller, Roles.Recertifier, Roles.Reporter }, out RecordingSettingsApiConn apiConnection, out UserConfig userConfig);
+            await using BunitContext context = CreateSavingContext(PrivilegedRoles, out RecordingSettingsApiConn apiConnection, out UserConfig userConfig);
             IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
 
             wrapper.WaitForAssertion(() => Assert.That(wrapper.Find("#cbx_personal_iconify"), Is.Not.Null));
@@ -82,7 +105,7 @@ namespace FWO.Test
         [Test]
         public async Task SettingsPersonal_SaveSkipsLanguageUpdateWhenLanguageIsUnchanged()
         {
-            await using BunitContext context = CreateSavingContext(new[] { Roles.Admin, Roles.Modeller }, out RecordingSettingsApiConn apiConnection, out _);
+            await using BunitContext context = CreateSavingContext(ModellerRoles, out RecordingSettingsApiConn apiConnection, out _);
             IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
 
             wrapper.WaitForAssertion(() => Assert.That(wrapper.Find("#cbx_personal_iconify"), Is.Not.Null));

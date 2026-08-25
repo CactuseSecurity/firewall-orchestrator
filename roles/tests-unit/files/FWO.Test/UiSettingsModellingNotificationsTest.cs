@@ -17,7 +17,8 @@ namespace FWO.Test
         private static readonly List<int> ActiveRecipientTypeIds = [1, 2];
         private static readonly string[] RequestLegacyAddresses = ["legacy-request@example.org"];
         private static readonly string[] DecommLegacyAddresses = ["legacy-decomm@example.org"];
-
+        private static readonly List<string> RequestOtherAddressList = ["request@example.org"];
+        private static readonly List<string> DecommOtherAddressList = ["decomm@example.org"];
         private static MethodInfo GetPrivateMethod(string name)
         {
             return typeof(SettingsModellingNotifications).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)
@@ -73,16 +74,21 @@ namespace FWO.Test
             {
                 None = true,
                 OtherAddresses = false,
-                OtherAddressList = ["existing@example.org"]
+                OtherAddressList = RequestLegacyAddresses.ToList()
             };
 
-            GetPrivateMethod("MergeLegacyOtherAddresses").Invoke(null, [selection, "new@example.org; existing@example.org | second@example.org"]);
+            object?[] mergeLegacyArgs =
+            [
+                selection,
+                "new@example.org; existing@example.org | second@example.org"
+            ];
+            GetPrivateMethod("MergeLegacyOtherAddresses").Invoke(null, mergeLegacyArgs);
 
             Assert.Multiple(() =>
             {
                 Assert.That(selection.OtherAddresses, Is.True);
                 Assert.That(selection.None, Is.False);
-                Assert.That(selection.OtherAddressList, Is.EqualTo(new List<string> { "existing@example.org", "new@example.org", "second@example.org" }));
+                Assert.That(selection.OtherAddressList, Is.EqualTo(new List<string> { "legacy-request@example.org", "new@example.org", "existing@example.org", "second@example.org" }));
             });
         }
 
@@ -144,15 +150,15 @@ namespace FWO.Test
             });
             SetPrivateField(component, "modReqEmailRecipients", new EmailRecipientSelection
             {
-                OwnerResponsibleTypeIds = [1],
+                OwnerResponsibleTypeIds = RequestRecipientTypeIds,
                 OtherAddresses = true,
-                OtherAddressList = ["request@example.org"]
+                OtherAddressList = RequestOtherAddressList
             });
             SetPrivateField(component, "modDecommEmailRecipients", new EmailRecipientSelection
             {
-                OwnerResponsibleTypeIds = [2],
+                OwnerResponsibleTypeIds = DecommRecipientTypeIds,
                 OtherAddresses = true,
-                OtherAddressList = ["decomm@example.org"]
+                OtherAddressList = DecommOtherAddressList
             });
 
             GetPrivateMethod("PrepareConfigData").Invoke(component, null);

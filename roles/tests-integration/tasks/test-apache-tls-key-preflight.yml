@@ -7,10 +7,12 @@
   become: true
 
 - name: Verify the preflight accepts a missing Apache TLS key
-  include_tasks: "{{ role_path }}/../common/tasks/apache/validate-unencrypted-tls-key.yml"
+  include_tasks:
+    file: "{{ role_path }}/../common/tasks/apache/validate-unencrypted-tls-key.yml"
+    apply:
+      become: true
   vars:
     apache_ssl_dir: "{{ apache_tls_key_test_directory.path }}"
-  become: true
 
 - name: Create an unencrypted Apache TLS key for the preflight test
   command:
@@ -27,10 +29,12 @@
   become: true
 
 - name: Verify the preflight accepts an unencrypted Apache TLS key
-  include_tasks: "{{ role_path }}/../common/tasks/apache/validate-unencrypted-tls-key.yml"
+  include_tasks:
+    file: "{{ role_path }}/../common/tasks/apache/validate-unencrypted-tls-key.yml"
+    apply:
+      become: true
   vars:
     apache_ssl_dir: "{{ apache_tls_key_test_directory.path }}"
-  become: true
 
 - name: Create an encrypted Apache TLS key for the preflight test
   command:

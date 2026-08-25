@@ -17,10 +17,16 @@ namespace FWO.Test
     [Parallelizable]
     internal partial class ConfigTest
     {
+        private static readonly ConfigItem[] ModIconifyFalseConfigItem =
+        [
+            new() { Key = "modIconify", Value = "false", User = 50 }
+        ];
+
         private sealed class UserConfigApiConnection(ConfigItem[] configItems) : ApiConnection
         {
             public int UpsertConfigCallCount { get; private set; }
             public List<ConfigItem> LastConfigItems { get; private set; } = [];
+            public object? LastGetConfigItemsByUserVariables { get; private set; }
             public bool IsDisposed { get; private set; }
 
             public override void SetAuthHeader(string jwt) { }
@@ -37,6 +43,7 @@ namespace FWO.Test
             {
                 if (typeof(QueryResponseType) == typeof(ConfigItem[]) && query == ConfigQueries.getConfigItemsByUser)
                 {
+                    LastGetConfigItemsByUserVariables = variables;
                     return Task.FromResult((QueryResponseType)(object)configItems);
                 }
                 if (typeof(QueryResponseType) == typeof(List<UiText>) && query == ConfigQueries.getCustomTextsPerLanguage)
@@ -100,6 +107,29 @@ namespace FWO.Test
 
             Assert.That(userConfig.ReqOwnerBased, Is.True);
             Assert.That(userConfig.ReqVisibilityBased, Is.True);
+            Assert.That(apiConnection.LastGetConfigItemsByUserVariables?.GetType().GetProperty("user")?.GetValue(apiConnection.LastGetConfigItemsByUserVariables), Is.EqualTo(50));
+            Assert.That(apiConnection.LastGetConfigItemsByUserVariables?.GetType().GetProperty("User"), Is.Null);
+        }
+
+        [Test]
+        public void GlobalConfigChange_DoesNotOverwritePersonalModIconifyOverride()
+        {
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ModIconify = true
+            };
+
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
+            userConfig.RawConfigItems =
+            [
+                ModIconifyFalseConfigItem[0]
+            ];
+
+            InvokeUpdate(userConfig, ModIconifyFalseConfigItem);
+
+            InvokePrivateMethod(userConfig, "OnGlobalConfigChange", globalConfig, ModIconifyFalseConfigItem);
+
+            Assert.That(userConfig.ModIconify, Is.False);
         }
 
         [Test]
@@ -735,6 +765,14 @@ namespace FWO.Test
                 ?? throw new MissingFieldException(target.GetType().FullName, fieldName);
 
             field.SetValue(target, value);
+        }
+
+        private static void InvokePrivateMethod(object target, string methodName, params object?[] args)
+        {
+            MethodInfo method = target.GetType().GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new MissingMethodException(target.GetType().FullName, methodName);
+
+            method.Invoke(target, args);
         }
     }
 }

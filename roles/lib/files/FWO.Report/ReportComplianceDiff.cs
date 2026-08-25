@@ -68,6 +68,11 @@ namespace FWO.Report
                     ct);
             }
 
+            if (ShowNonImpactRules)
+            {
+                return await FetchAllActiveRules(intervalViolations, elementsPerFetch, apiConnection, ct);
+            }
+
             return await FetchRulesForViolations(intervalViolations, elementsPerFetch, apiConnection, ct);
         }
 
@@ -175,6 +180,27 @@ namespace FWO.Report
                 ct);
 
             AttachViolationsToRules(ruleChunks, violations);
+            return ruleChunks;
+        }
+
+        /// <summary>
+        /// Fetches every active rule through the standard compliance-report path when unchanged rules must be shown.
+        /// The standard query includes current violations, so replace them with the already filtered interval violations
+        /// to retain compliance-diff semantics.
+        /// </summary>
+        private async Task<List<Rule>[]?> FetchAllActiveRules(
+            List<ComplianceViolation> violations,
+            int elementsPerFetch,
+            ApiConnection apiConnection,
+            CancellationToken ct)
+        {
+            List<Rule>[]? ruleChunks = await base.FetchRuleChunks(elementsPerFetch, apiConnection, ct);
+            if (ruleChunks == null)
+            {
+                return null;
+            }
+
+            AttachViolationsToRules(ruleChunks, violations, retainRulesWithoutViolations: true);
             return ruleChunks;
         }
 
@@ -291,7 +317,10 @@ namespace FWO.Report
         /// Associates interval violations with current rule versions by stable management/rule UIDs. A final exact-key
         /// check removes any extra rules produced by independently batching the two GraphQL IN lists.
         /// </summary>
-        private void AttachViolationsToRules(List<Rule>[] ruleChunks, List<ComplianceViolation> violations)
+        private void AttachViolationsToRules(
+            List<Rule>[] ruleChunks,
+            List<ComplianceViolation> violations,
+            bool retainRulesWithoutViolations = false)
         {
             Dictionary<RuleIdentity, List<ComplianceViolation>> violationsByRule = violations
                 .GroupBy(CreateRuleIdentity)
@@ -301,8 +330,19 @@ namespace FWO.Report
 
             foreach (List<Rule> ruleChunk in ruleChunks)
             {
-                // The rule query uses separate UID and management lists. Retain only exact pairs that had violations.
-                ruleChunk.RemoveAll(rule => !TryAttachRuleViolations(rule, managementUidsById, violationsByRule));
+                if (retainRulesWithoutViolations)
+                {
+                    foreach (Rule rule in ruleChunk)
+                    {
+                        TryAttachRuleViolations(rule, managementUidsById, violationsByRule);
+                    }
+                }
+                else
+                {
+                    // The selective rule query uses separate UID and management lists. Retain only exact pairs that
+                    // had violations, preventing cross-management UID matches from entering the report.
+                    ruleChunk.RemoveAll(rule => !TryAttachRuleViolations(rule, managementUidsById, violationsByRule));
+                }
             }
         }
 
@@ -314,6 +354,10 @@ namespace FWO.Report
             Dictionary<int, string> managementUidsById,
             Dictionary<RuleIdentity, List<ComplianceViolation>> violationsByRule)
         {
+            // The all-active fallback query includes current violations. Always clear them before attaching only the
+            // violations from this diff interval; unchanged rules must remain violation-free in the diff report.
+            rule.Violations.Clear();
+
             if (!managementUidsById.TryGetValue(rule.MgmtId, out string? managementUid) || string.IsNullOrEmpty(rule.Uid))
             {
                 return false;

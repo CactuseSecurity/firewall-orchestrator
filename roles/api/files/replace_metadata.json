@@ -295,7 +295,8 @@
                       "criterion_id",
                       "name",
                       "created",
-                      "removed"
+                      "removed",
+                      "id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -311,7 +312,8 @@
                       "criterion_id",
                       "name",
                       "created",
-                      "removed"
+                      "removed",
+                      "id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -327,7 +329,8 @@
                       "criterion_id",
                       "name",
                       "created",
-                      "removed"
+                      "removed",
+                      "id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -343,7 +346,8 @@
                       "criterion_id",
                       "name",
                       "created",
-                      "removed"
+                      "removed",
+                      "id"
                     ],
                     "filter": {}
                   },
@@ -359,7 +363,8 @@
                       "criterion_id",
                       "name",
                       "created",
-                      "removed"
+                      "removed",
+                      "id"
                     ],
                     "filter": {},
                     "allow_aggregations": true

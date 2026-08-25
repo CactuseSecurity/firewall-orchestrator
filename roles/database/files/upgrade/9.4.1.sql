@@ -108,3 +108,42 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 
 GRANT SELECT ON TABLE path_analysis_algorithm TO fwo_ro;
 GRANT USAGE, SELECT ON SEQUENCE path_analysis_algorithm_id_seq TO fwo_ro;
+
+-- Network Zone Tree
+INSERT INTO path_analysis_algorithm (name)
+VALUES ('Network Zone Tree')
+ON CONFLICT (name) DO NOTHING;
+
+ALTER TABLE network_zone.ip_range
+ADD COLUMN IF NOT EXISTS id BIGSERIAL;
+
+ALTER TABLE network_zone.ip_range
+DROP CONSTRAINT IF EXISTS ip_range_pkey;
+
+ALTER TABLE network_zone.ip_range
+ADD CONSTRAINT ip_range_pkey PRIMARY KEY (id);
+
+CREATE TABLE IF NOT EXISTS network_zone.device_ip_range_root
+(
+    dev_id BIGINT NOT NULL,
+    ip_range_id BIGINT NOT NULL,
+    order_to_root BIGINT NOT NULL,
+    PRIMARY KEY (dev_id, ip_range_id, order_to_root)
+);
+
+CREATE TABLE IF NOT EXISTS network_zone.device_ip_range_internet
+(
+    dev_id BIGINT NOT NULL,
+    ip_range_id BIGINT NOT NULL,
+    order_to_internet BIGINT NOT NULL,
+    PRIMARY KEY (dev_id, ip_range_id, order_to_internet)
+);
+
+ALTER TABLE network_zone.device_ip_range_root DROP CONSTRAINT IF EXISTS dev_id_device_ip_range_root;
+ALTER TABLE network_zone.device_ip_range_root DROP CONSTRAINT IF EXISTS ip_range_id_device_ip_range_root;
+ALTER TABLE network_zone.device_ip_range_internet DROP CONSTRAINT IF EXISTS dev_id_device_ip_range_internet;
+ALTER TABLE network_zone.device_ip_range_internet DROP CONSTRAINT IF EXISTS ip_range_id_device_ip_range_internet;
+ALTER TABLE network_zone.device_ip_range_root ADD CONSTRAINT dev_id_device_ip_range_root FOREIGN KEY (dev_id) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE network_zone.device_ip_range_root ADD CONSTRAINT ip_range_id_device_ip_range_root FOREIGN KEY (ip_range_id) REFERENCES network_zone.ip_range(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE network_zone.device_ip_range_internet ADD CONSTRAINT dev_id_device_ip_range_internet FOREIGN KEY (dev_id) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE network_zone.device_ip_range_internet ADD CONSTRAINT ip_range_id_device_ip_range_internet FOREIGN KEY (ip_range_id) REFERENCES network_zone.ip_range(id) ON UPDATE RESTRICT ON DELETE CASCADE;

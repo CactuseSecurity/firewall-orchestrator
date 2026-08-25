@@ -358,6 +358,12 @@ ALTER TABLE network_zone.ip_range ADD CONSTRAINT compliance_criterion_ip_range_f
 ALTER TABLE network_zone.zone ADD CONSTRAINT network_zone_super_zone_foreign_key FOREIGN KEY (super_network_zone_id) REFERENCES network_zone.zone(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE network_zone.zone ADD CONSTRAINT compliance_criterion_network_zone_foreign_key FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
+--- network_zone relational tables ---
+ALTER TABLE network_zone.device_ip_range_root ADD CONSTRAINT dev_id_device_ip_range_root FOREIGN KEY (dev_id) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE network_zone.device_ip_range_root ADD CONSTRAINT ip_range_id_device_ip_range_root FOREIGN KEY (ip_range_id) REFERENCES network_zone.ip_range(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE network_zone.device_ip_range_internet ADD CONSTRAINT dev_id_device_ip_range_internet FOREIGN KEY (dev_id) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE network_zone.device_ip_range_internet ADD CONSTRAINT ip_range_id_device_ip_range_internet FOREIGN KEY (ip_range_id) REFERENCES network_zone.ip_range(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
 --- compliance.network_zone_communication ---
 ALTER TABLE compliance.network_zone_communication ADD CONSTRAINT network_zone_from_zone_communication_foreign_key FOREIGN KEY (from_network_zone_id) REFERENCES network_zone.zone(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE compliance.network_zone_communication ADD CONSTRAINT network_zone_to_zone_communication_foreign_key FOREIGN KEY (to_network_zone_id) REFERENCES network_zone.zone(id) ON UPDATE RESTRICT ON DELETE CASCADE;

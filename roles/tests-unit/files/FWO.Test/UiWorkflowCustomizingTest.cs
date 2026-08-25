@@ -135,6 +135,7 @@ namespace FWO.Test
             SetMember(component, "configData", editableConfig);
             SetMember(component, "states", apiConnection.States);
             SetMember(component, "stateIds", apiConnection.States.Select(state => state.Id).ToList());
+            SetMember(component, "validInitialStateIds", new List<int> { 17 });
             SetMember(component, "selectedApiTicketInitialStateId", 17);
             SetMember(component, "taskTypesActiveDict", Enum.GetValues<WfTaskType>().ToDictionary(type => type, _ => false));
             SetMember(component, "prioList", new List<WfPriority>());
@@ -189,8 +190,8 @@ namespace FWO.Test
                 List<int> stateIds = (List<int>)GetField(settings.Instance, "stateIds");
                 int? selectedStateId = (int?)GetField(settings.Instance, "selectedApiTicketInitialStateId");
 
-                Assert.That(stateIds, Is.EqualTo(new List<int> { 17 }));
-                Assert.That(selectedStateId, Is.Null);
+                Assert.That(stateIds, Is.EqualTo(new List<int> { 17, 50 }));
+                Assert.That(selectedStateId, Is.EqualTo(50));
             });
         }
 

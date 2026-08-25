@@ -1,4 +1,4 @@
-using FWO.Api.Client;
+﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
@@ -90,6 +90,15 @@ namespace FWO.Test
             {
                 Queries.Add(query);
                 Variables.Add(variables);
+                return HandleRequestQueries<T>(query, variables)
+                    ?? HandleModellingQueries<T>(query, variables)
+                    ?? HandleReferenceQueries<T>(query, variables)
+                    ?? HandleStmQueries<T>(query, variables)
+                    ?? throw new AssertionException($"Unexpected query: {query}");
+            }
+
+            private Task<T>? HandleRequestQueries<T>(string query, object? variables)
+            {
                 if (query == RequestQueries.getStates)
                 {
                     return Task.FromResult((T)(object)States);
@@ -128,6 +137,11 @@ namespace FWO.Test
                     }
                     return Task.FromResult((T)(object)FullTicket);
                 }
+                return null;
+            }
+
+            private Task<T>? HandleModellingQueries<T>(string query, object? variables)
+            {
                 if (query == ModellingQueries.getConnectionsByTicketId
                     || query == ModellingQueries.getWorkflowConnectionsByTicketId)
                 {
@@ -163,6 +177,11 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)new ReturnIdWrapper());
                 }
+                return null;
+            }
+
+            private Task<T>? HandleReferenceQueries<T>(string query, object? variables)
+            {
                 if (query == DeviceQueries.getManagementNames)
                 {
                     return Task.FromResult((T)(object)managements);
@@ -214,6 +233,11 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)new List<FlowAccess>());
                 }
+                return null;
+            }
+
+            private Task<T>? HandleStmQueries<T>(string query, object? variables)
+            {
                 if (query == StmQueries.getIpProtocols)
                 {
                     return Task.FromResult((T)(object)new List<IpProtocol> { new() { Id = 6, Name = "tcp" }, new() { Id = 17, Name = "udp" } });
@@ -222,7 +246,7 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)new List<RuleAction> { new() { Id = 1, Name = "accept", Allowed = true } });
                 }
-                throw new AssertionException($"Unexpected query: {query}");
+                return null;
             }
 
             private static TValue GetVariable<TValue>(object? variables, string propertyName)

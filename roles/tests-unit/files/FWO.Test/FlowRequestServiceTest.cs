@@ -1,4 +1,4 @@
-using FWO.Api.Client;
+﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
@@ -10,7 +10,7 @@ using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NUnit.Framework;
-using System.Text.Json;
+
 using System.Security.Claims;
 
 namespace FWO.Test;
@@ -1013,14 +1013,9 @@ internal class FlowRequestServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
-            object? payload = ((OkObjectResult)result.Result!).Value;
-            CreateRequestResponse? response = payload as CreateRequestResponse;
-            if (response == null && payload is string responseJson)
-            {
-                response = JsonSerializer.Deserialize<CreateRequestResponse>(responseJson);
-            }
-            Assert.That(response, Is.Not.Null);
-            Assert.That(response!.Status, Is.EqualTo("requested"));
+            CreateRequestResponse response = (CreateRequestResponse)((OkObjectResult)result.Result!).Value!;
+            Assert.That(response.Status, Is.EqualTo("requested"));
+            Assert.That(response.RequestId, Is.EqualTo(100));
             Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
             Assert.That(GetVariable(apiConnection.NewTicketVariables, "state"), Is.EqualTo(17));
             Assert.That(apiConnection.CreatedTicket, Is.Not.Null);

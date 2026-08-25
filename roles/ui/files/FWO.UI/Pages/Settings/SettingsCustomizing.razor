@@ -1,4 +1,4 @@
-@using System.Text.Json
+﻿@using System.Text.Json
 @using FWO.Services.Workflow
 
 
@@ -178,6 +178,7 @@ else
 
     private List<WfState> states = [];
     private List<int> stateIds = [];
+    private List<int> validInitialStateIds = [];
     private StateMatrixConfigurationSnapshot? masterStateMatrix;
     private List<WfTaskType> availableTaskTypes { get; set; } = [];
     private Dictionary<WfTaskType, bool> taskTypesActiveDict = [];
@@ -192,10 +193,13 @@ else
             configData = await globalConfig.GetEditableConfig();
             states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates) ?? [];
             masterStateMatrix = await StateMatrixConfigurationRepository.Load(apiConnection, WfTaskType.master);
-            stateIds = states.Where(state => IsValidInitialState(state.Id)).Select(state => state.Id).ToList();
-            selectedApiTicketInitialStateId = configData.ReqApiTicketInitialStateId >= 0 && stateIds.Contains(configData.ReqApiTicketInitialStateId)
-                ? configData.ReqApiTicketInitialStateId
-                : null;
+            validInitialStateIds = states.Where(state => IsValidInitialState(state.Id)).Select(state => state.Id).ToList();
+            stateIds = new List<int>(validInitialStateIds);
+            if (configData.ReqApiTicketInitialStateId >= 0 && !stateIds.Contains(configData.ReqApiTicketInitialStateId))
+            {
+                stateIds.Add(configData.ReqApiTicketInitialStateId);
+            }
+            selectedApiTicketInitialStateId = configData.ReqApiTicketInitialStateId >= 0 ? configData.ReqApiTicketInitialStateId : null;
             availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(configData.ReqAvailableTaskTypes) ?? throw new JsonException("Config data could not be parsed.");
             taskTypesActiveDict = [];
             foreach(WfTaskType type in Enum.GetValues<WfTaskType>())
@@ -252,9 +256,9 @@ else
 
     private void ValidateApiTicketInitialStateSelection()
     {
-        if (selectedApiTicketInitialStateId.HasValue && !stateIds.Contains(selectedApiTicketInitialStateId.Value))
+        if (selectedApiTicketInitialStateId.HasValue && !validInitialStateIds.Contains(selectedApiTicketInitialStateId.Value))
         {
-            throw new InvalidOperationException($"Configured API ticket initial state id {selectedApiTicketInitialStateId.Value} is not available in an active workflow phase.");
+            throw new InvalidOperationException($"Configured API ticket initial state id {selectedApiTicketInitialStateId.Value} no longer resolves to an active workflow phase.");
         }
     }
 
@@ -265,24 +269,7 @@ else
 
     private static bool IsValidInitialState(StateMatrixConfigurationSnapshot stateMatrix, int stateId)
     {
-        bool matchedPhase = false;
-        foreach (WorkflowPhases phase in Enum.GetValues<WorkflowPhases>())
-        {
-            if (stateMatrix.Matrices.TryGetValue(phase, out StateMatrix? matrix)
-                && matrix.Active
-                && stateId >= matrix.LowestInputState
-                && stateId < matrix.LowestEndState)
-            {
-                if (matchedPhase)
-                {
-                    return false;
-                }
-
-                matchedPhase = true;
-            }
-        }
-
-        return matchedPhase;
+        return StateMatrixConfigurationRepository.GetMatchingActiveWorkflowPhases(stateMatrix, stateId).Count == 1;
     }
 
     private async Task HandleAllowedChangesByApproverChanged(string configValue)

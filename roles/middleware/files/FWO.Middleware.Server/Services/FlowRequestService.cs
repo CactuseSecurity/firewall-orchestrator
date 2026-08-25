@@ -1,4 +1,4 @@
-using FWO.Api.Client;
+﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
@@ -118,8 +118,18 @@ public sealed class FlowRequestService
         {
             if (states.Any(state => state.Id == configuredStateId))
             {
-                WorkflowPhases configuredPhase = ResolvePhaseForConfiguredState(stateMatrix, configuredStateId);
-                return (configuredPhase, configuredStateId);
+                List<WorkflowPhases> matchingPhases = StateMatrixConfigurationRepository.GetMatchingActiveWorkflowPhases(stateMatrix, configuredStateId);
+                if (matchingPhases.Count == 1)
+                {
+                    return (matchingPhases[0], configuredStateId);
+                }
+
+                if (matchingPhases.Count > 1)
+                {
+                    throw new InvalidOperationException($"Configured API ticket state id {configuredStateId} matches multiple active workflow phases: {string.Join(", ", matchingPhases)}.");
+                }
+
+                throw new InvalidOperationException($"Configured API ticket state id {configuredStateId} does not belong to any active workflow phase.");
             }
 
             throw new InvalidOperationException($"Configured API ticket state id {configuredStateId} does not exist in the current state list.");
@@ -143,36 +153,6 @@ public sealed class FlowRequestService
         }
 
         throw new InvalidOperationException("No active workflow phase is configured for request creation.");
-    }
-
-    /// <summary>
-    /// Resolves the active workflow phase that owns a configured ticket state.
-    /// </summary>
-    private static WorkflowPhases ResolvePhaseForConfiguredState(StateMatrixConfigurationSnapshot stateMatrix, int stateId)
-    {
-        List<WorkflowPhases> matchingPhases = [];
-        foreach (WorkflowPhases phase in Enum.GetValues<WorkflowPhases>())
-        {
-            if (stateMatrix.Matrices.TryGetValue(phase, out StateMatrix? matrix)
-                && matrix.Active
-                && stateId >= matrix.LowestInputState
-                && stateId < matrix.LowestEndState)
-            {
-                matchingPhases.Add(phase);
-            }
-        }
-
-        if (matchingPhases.Count == 1)
-        {
-            return matchingPhases[0];
-        }
-
-        if (matchingPhases.Count > 1)
-        {
-            throw new InvalidOperationException($"Configured API ticket state id {stateId} matches multiple active workflow phases: {string.Join(", ", matchingPhases)}.");
-        }
-
-        throw new InvalidOperationException($"Configured API ticket state id {stateId} does not belong to any active workflow phase.");
     }
 
     /// <summary>

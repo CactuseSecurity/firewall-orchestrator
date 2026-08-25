@@ -261,6 +261,10 @@
         await OpenClearEditForm();
     }
 
+    /// <summary>
+    /// Adds the missing auto-calculated Internet zone for the selected matrix and reloads the matrix state.
+    /// </summary>
+    /// <returns>A task that represents the add operation.</returns>
     private async Task AddAutoCalculatedInternetZone()
     {
         GlobalConfig? globalConfig = userConfig.GlobalConfig;
@@ -309,6 +313,10 @@
         return networkZoneInEdit != null && networkZoneInEdit.IPRanges.Length == 0 && addDel.IpRangesToAdd.Count == 0;
     }
 
+    /// <summary>
+    /// Determines whether the pending zone edit changes IP ranges or subzone coverage.
+    /// </summary>
+    /// <returns><c>true</c> when the edit requires special-zone recalculation; otherwise, <c>false</c>.</returns>
     private bool AddressCoverageChanged()
     {
         return addDel.IpRangesToAdd.Count > 0
@@ -444,6 +452,10 @@
         StateHasChanged();
     }
 
+    /// <summary>
+    /// Recalculates special zones when automatic Internet-zone calculation is enabled.
+    /// </summary>
+    /// <returns>A task that represents the recalculation.</returns>
     private async Task RefreshSpecialZones()
     {
         GlobalConfig? globalConfig = userConfig.GlobalConfig;
@@ -453,6 +465,11 @@
         }
     }
 
+    /// <summary>
+    /// Determines whether a zone is automatically calculated and therefore managed as a special zone.
+    /// </summary>
+    /// <param name="networkZone">Zone to evaluate.</param>
+    /// <returns><c>true</c> for auto-calculated Internet or Undefined-internal zones; otherwise, <c>false</c>.</returns>
     private static bool IsAutoCalculatedSpecialZone(ComplianceNetworkZone? networkZone)
     {
         return networkZone?.IsAutoCalculatedInternetZone == true || networkZone?.IsAutoCalculatedUndefinedInternalZone == true;
